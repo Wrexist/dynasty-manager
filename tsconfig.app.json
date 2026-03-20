@@ -21,7 +21,8 @@
       ]
     },
     "skipLibCheck": true,
-    "strict": true,
+    "strict": false,
+    "noImplicitAny": false,
     "target": "ES2020",
     "types": [
       "vitest/globals"

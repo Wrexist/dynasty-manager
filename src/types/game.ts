@@ -521,6 +521,7 @@ export interface PlayerMatchRating {
   goals: number;
   assists: number;
   yellowCards: number;
+  redCards: number;
 }
 
 // ── Save Slots ──

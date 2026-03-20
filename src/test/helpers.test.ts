@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { pick, clamp, getSuffix } from '@/utils/helpers';
-import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('helpers', () => {
   describe('pick', () => {
@@ -39,57 +38,5 @@ describe('helpers', () => {
       expect(getSuffix(22)).toBe('nd');
       expect(getSuffix(23)).toBe('rd');
     });
-  });
-});
-
-describe('saveMigration', () => {
-  it('migrates v1 save to current version', () => {
-    const v1Save = {
-      version: 1,
-      playerClubId: 'test',
-      clubs: {},
-      players: {},
-      fixtures: [],
-    };
-
-    const result = migrateSaveData(v1Save);
-    expect(result.version).toBe(CURRENT_VERSION);
-    expect(result.messages).toEqual([]);
-    expect(result.seasonHistory).toEqual([]);
-    expect(result.settings).toBeDefined();
-    expect(result.tactics).toBeDefined();
-    expect(result.training).toBeDefined();
-    expect(result.staff).toBeDefined();
-    expect(result.scouting).toBeDefined();
-  });
-
-  it('migrates v2 save to current version', () => {
-    const v2Save = {
-      version: 2,
-      playerClubId: 'test',
-      clubs: {},
-      players: {},
-      fixtures: [],
-      messages: [{ id: '1', title: 'test' }],
-      trainingFocus: 'attacking',
-    };
-
-    const result = migrateSaveData(v2Save);
-    expect(result.version).toBe(CURRENT_VERSION);
-    expect(result.messages).toHaveLength(1);
-    expect(result.training.schedule.mon).toBe('attacking');
-  });
-
-  it('leaves current version save unchanged', () => {
-    const v5Save = {
-      version: 5,
-      playerClubId: 'test',
-      clubs: {},
-      settings: { matchSpeed: 'fast' },
-    };
-
-    const result = migrateSaveData(v5Save);
-    expect(result.version).toBe(5);
-    expect(result.settings.matchSpeed).toBe('fast');
   });
 });

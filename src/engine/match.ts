@@ -46,7 +46,7 @@ export interface HalfState {
   awayCorners: number;
   sentOff: string[];
   injured: string[];
-  playerEvents: Record<string, { goals: number; assists: number; yellows: number; redCard: boolean; saves: number; cleanSheet: boolean }>;
+  playerEvents: Record<string, { goals: number; assists: number; yellows: number; redCard: boolean; saves: number; cleanSheet: boolean; goalsAtEntry?: number }>;
 }
 
 /** Formation fit bonus: 0.0 to ~0.12 — mismatched players are a real penalty */
@@ -157,9 +157,6 @@ function computeStrengths(
   const awayFamBonus = (playerClubId === awayClub.id && tacticalFamiliarity) ? tacticalFamiliarity * TACTICAL_FAMILIARITY_MULTIPLIER : 0;
   const homeFormBonus = getFormationFitBonus(homePlayers, homeClub.formation);
   const awayFormBonus = getFormationFitBonus(awayPlayers, awayClub.formation);
-  // Dual formation bonus: having a defensive shape gives a small defensive boost
-  const homeDualBonus = homeClub.defensiveFormation ? 0.02 : 0;
-  const awayDualBonus = awayClub.defensiveFormation ? 0.02 : 0;
   const homeMatchup = getTacticalMatchupBonus(homeTactics, awayTactics);
   const awayMatchup = getTacticalMatchupBonus(awayTactics, homeTactics);
   // Chemistry bonus (0-8%) based on squad composition
@@ -171,8 +168,8 @@ function computeStrengths(
   const homeFormDef = FORMATION_DEFENSE_BONUS[homeClub.formation] || 0;
   const awayFormDef = FORMATION_DEFENSE_BONUS[awayClub.formation] || 0;
   // Strength = base * (attack modifiers) reduced by opponent's defensive modifiers
-  const homeStr = getTeamStrength(homePlayers) * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeDualBonus + homeFormAtk) * (1 - (awayMods.defenseMod + awayFormDef) * 0.3);
-  const awayStr = getTeamStrength(awayPlayers) * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayDualBonus + awayFormAtk) * (1 - (homeMods.defenseMod + homeFormDef) * 0.3);
+  const homeStr = getTeamStrength(homePlayers) * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk) * (1 - (awayMods.defenseMod + awayFormDef) * 0.3);
+  const awayStr = getTeamStrength(awayPlayers) * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk) * (1 - (homeMods.defenseMod + homeFormDef) * 0.3);
   return { homeStr, awayStr, homeMods, awayMods };
 }
 
@@ -199,10 +196,10 @@ export function simulateHalf(
   const derbyFoulMod = derbyIntensity ? derbyIntensity * 0.06 : 0;
   const derbyCardMod = derbyIntensity ? derbyIntensity * 0.05 : 0;
 
-  const { homeStr, awayStr, homeMods, awayMods } = computeStrengths(
+  let { homeStr, awayStr, homeMods, awayMods } = computeStrengths(
     homeClub, awayClub, homePlayers, awayPlayers, homeTactics, awayTactics, tacticalFamiliarity, playerClubId,
   );
-  const total = homeStr + awayStr;
+  let total = homeStr + awayStr;
 
   // Pre-compute defensive qualities for both teams
   const homeDefQuality = getDefenseQuality(homePlayers);
@@ -227,16 +224,13 @@ export function simulateHalf(
   const unavailable = new Set<string>([...sentOff, ...injured]);
 
   // Carry forward player events and add any new players (subs)
-  const playerEvents: Record<string, { goals: number; assists: number; yellows: number; redCard: boolean; saves: number; cleanSheet: boolean }> = prevState ? { ...prevState.playerEvents } : {};
+  const playerEvents: Record<string, { goals: number; assists: number; yellows: number; redCard: boolean; saves: number; cleanSheet: boolean; goalsAtEntry?: number }> = prevState ? { ...prevState.playerEvents } : {};
   const allMatchPlayers = [...homePlayers, ...awayPlayers];
   allMatchPlayers.forEach(p => {
     if (!playerEvents[p.id]) {
-      playerEvents[p.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true };
-      if (prevState) {
-        const isHomeSide = homePlayers.some(hp => hp.id === p.id);
-        const conceded = isHomeSide ? awayGoals > 0 : homeGoals > 0;
-        if (p.position === 'GK' && conceded) playerEvents[p.id].cleanSheet = false;
-      }
+      const isHomeSide = homePlayers.some(hp => hp.id === p.id);
+      const goalsAgainst = isHomeSide ? awayGoals : homeGoals;
+      playerEvents[p.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: p.position === 'GK' ? goalsAgainst : undefined };
     }
   });
 
@@ -332,8 +326,10 @@ export function simulateHalf(
             pe.redCard = true;
             sentOff.add(fouler.id);
             unavailable.add(fouler.id);
-            events.push({ minute: min, type: 'yellow_card', playerId: fouler.id, clubId: club.id, description: `🟨 Second yellow card for ${fouler.lastName}.` });
-            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `🟥 RED CARD! ${fouler.lastName} is sent off!` });
+            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `🟥 Second yellow! ${fouler.lastName} is sent off!` });
+            // Rebalance strength after red card
+            const recomputed = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
+            homeStr = recomputed.homeStr; awayStr = recomputed.awayStr; total = homeStr + awayStr;
           } else {
             events.push({ minute: min, type: 'yellow_card', playerId: fouler.id, clubId: club.id, description: `🟨 Yellow card for ${fouler.lastName}.` });
           }
@@ -345,6 +341,9 @@ export function simulateHalf(
           sentOff.add(fouler.id);
           unavailable.add(fouler.id);
           events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `🟥 RED CARD! Straight red for ${fouler.lastName}! Dangerous play!` });
+            // Rebalance strength after red card
+            const recomputed2 = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
+            homeStr = recomputed2.homeStr; awayStr = recomputed2.awayStr; total = homeStr + awayStr;
         }
       } else {
         events.push({ minute: min, type: 'foul', playerId: fouler.id, clubId: club.id, description: `Foul by ${fouler.lastName}.` });
@@ -421,7 +420,12 @@ export function finalizeMatch(
       rating += ev.saves * RATING_SAVE_BONUS;
       rating -= ev.yellows * RATING_YELLOW_PENALTY;
       if (ev.redCard) rating -= RATING_RED_PENALTY;
-      if (p.position === 'GK' && ev.cleanSheet) rating += RATING_CLEAN_SHEET_BONUS;
+      // GK clean sheet: only if no goals conceded after they entered
+      if (p.position === 'GK') {
+        const totalConceded = isHomeSide ? state.awayGoals : state.homeGoals;
+        const concededAfterEntry = totalConceded - (ev.goalsAtEntry ?? 0);
+        if (concededAfterEntry === 0) rating += RATING_CLEAN_SHEET_BONUS;
+      }
     }
 
     // Attribute-based contribution bonus (defenders get credit for defending, midfielders for passing)
@@ -436,13 +440,18 @@ export function finalizeMatch(
 
     rating += (Math.random() - 0.5) * RATING_VARIANCE;
     rating = Math.max(RATING_MIN, Math.min(RATING_MAX, Math.round(rating * 10) / 10));
-    return { playerId: p.id, rating, goals: ev?.goals || 0, assists: ev?.assists || 0, yellowCards: ev?.yellows || 0 };
+    return { playerId: p.id, rating, goals: ev?.goals || 0, assists: ev?.assists || 0, yellowCards: ev?.yellows || 0, redCards: ev?.redCard ? 1 : 0 };
   });
 
   return {
     result: { ...match, played: true, homeGoals: state.homeGoals, awayGoals: state.awayGoals, events: state.events, stats },
     playerRatings,
   };
+}
+
+/** Validate a squad has enough players to field a team */
+function isSquadValid(players: Player[]): boolean {
+  return players.length >= 7 && players.some(p => p.position === 'GK');
 }
 
 /**
@@ -461,6 +470,17 @@ export function simulateMatch(
   playerClubId?: string,
   derbyIntensity?: number,
 ): { result: Match; playerRatings: PlayerMatchRating[] } {
+  // Forfeit if either squad is invalid
+  const homeValid = isSquadValid(homePlayers);
+  const awayValid = isSquadValid(awayPlayers);
+  if (!homeValid || !awayValid) {
+    const forfeitHome = !homeValid ? 0 : 3;
+    const forfeitAway = !awayValid ? 0 : 3;
+    return {
+      result: { ...match, played: true, homeGoals: forfeitHome, awayGoals: forfeitAway, events: [{ minute: 0, type: 'full_time', clubId: '', description: `— Forfeit: ${!homeValid ? homeClub.shortName : awayClub.shortName} unable to field a valid squad —` }], stats: { homePossession: 50, awayPossession: 50, homeShots: 0, awayShots: 0, homeShotsOnTarget: 0, awayShotsOnTarget: 0, homeFouls: 0, awayFouls: 0, homeCorners: 0, awayCorners: 0 } },
+      playerRatings: [],
+    };
+  }
   const state = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 90, homeTactics, awayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity);
   return finalizeMatch(match, homeClub, awayClub, homePlayers, awayPlayers, state);
 }

@@ -8,7 +8,7 @@
 export const FORMATION_FIT_MAX_BONUS = 0.18;
 
 // ── Attacker Selection ──
-export const ATTACKER_POSITIONS = ['ST', 'LW', 'RW', 'CAM', 'CF'] as const;
+export const ATTACKER_POSITIONS = ['ST', 'LW', 'RW', 'CAM'] as const;
 export const MIDFIELDER_POSITIONS = ['CM', 'LM', 'RM', 'CDM'] as const;
 export const ATTACKER_SHOOTING_WEIGHT = 0.6;
 export const ATTACKER_FITNESS_WEIGHT = 0.4;

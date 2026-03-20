@@ -46,11 +46,11 @@ const divisionMeta: Record<string, {
   },
 };
 
-const difficultyConfig: Record<string, { color: string; bg: string; label: string }> = {
-  Easy: { color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/20', label: 'Recommended' },
-  Medium: { color: 'text-blue-400', bg: 'bg-blue-400/10 border-blue-400/20', label: 'Medium' },
-  Hard: { color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/20', label: 'Hard' },
-  'Very Hard': { color: 'text-red-400', bg: 'bg-red-400/10 border-red-400/20', label: 'Expert' },
+const difficultyConfig: Record<string, { color: string; bg: string; bar: string; label: string }> = {
+  Easy: { color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/20', bar: 'bg-emerald-400/50', label: 'Recommended' },
+  Medium: { color: 'text-blue-400', bg: 'bg-blue-400/10 border-blue-400/20', bar: 'bg-blue-400/50', label: 'Medium' },
+  Hard: { color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/20', bar: 'bg-amber-400/50', label: 'Hard' },
+  'Very Hard': { color: 'text-red-400', bg: 'bg-red-400/10 border-red-400/20', bar: 'bg-red-400/50', label: 'Expert' },
 };
 
 const difficultyBars: Record<string, number> = { Easy: 1, Medium: 2, Hard: 3, 'Very Hard': 4 };
@@ -182,14 +182,8 @@ const ClubSelection = () => {
                                   key={n}
                                   className={cn(
                                     'w-1.5 h-4 rounded-full transition-colors',
-                                    n <= bars ? difficulty?.bg?.replace('bg-', 'bg-').replace('/10', '/50') || 'bg-muted' : 'bg-white/5'
+                                    n <= bars ? difficulty?.bar || 'bg-muted' : 'bg-white/5'
                                   )}
-                                  style={n <= bars ? {
-                                    backgroundColor: division.difficulty === 'Easy' ? 'rgba(52,211,153,0.5)'
-                                      : division.difficulty === 'Medium' ? 'rgba(96,165,250,0.5)'
-                                      : division.difficulty === 'Hard' ? 'rgba(251,191,36,0.5)'
-                                      : 'rgba(248,113,113,0.5)'
-                                  } : undefined}
                                 />
                               ))}
                             </div>
