@@ -16,9 +16,6 @@ jobs:
       - run: npm run build
       - run: npx cap sync ios
 
-      - name: Install CocoaPods
-        run: cd ios/App && pod install
-
       - name: Import certificate
         env:
           CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
@@ -42,7 +39,7 @@ jobs:
         run: |
           cd ios/App
           xcodebuild archive \
-            -workspace App.xcworkspace \
+            -project App.xcodeproj \
             -scheme App \
             -archivePath $RUNNER_TEMP/App.xcarchive \
             -configuration Release \

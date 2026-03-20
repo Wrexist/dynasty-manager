@@ -1,0 +1,278 @@
+================================================
+  GIT COMMANDS - Quick Reference
+  (Windows Command Prompt / Git Bash)
+================================================
+
+
+================================================
+  FIRST TIME SETUP (Only Once)
+================================================
+
+  Set your name and email (used in commits):
+    git config --global user.name "Isac Molin"
+    git config --global user.email "isacmolin@gmail.com"
+
+  Turn a folder into a git project:
+    git init
+
+  Connect to a GitHub repo:
+    git remote add origin https://github.com/Wrexist/dynasty-manager.git
+
+  First push to GitHub:
+    git push -u origin main
+
+
+================================================
+  DAILY WORKFLOW (Use These Most)
+================================================
+
+  These are the commands you'll use 90% of the time.
+
+  --- See what changed ---
+
+  Check what files you changed:
+    git status
+
+  See the actual code changes:
+    git diff
+
+  See changes for a specific file:
+    git diff src/store/gameStore.ts
+
+
+  --- Save your work ---
+
+  Add specific files to commit:
+    git add src/store/gameStore.ts src/pages/Dashboard.tsx
+
+  Add ALL changed files:
+    git add -A
+
+  Commit (save a snapshot):
+    git commit -m "Add transfer deadline feature"
+
+  Push to GitHub:
+    git push
+
+
+  --- The typical flow ---
+
+  1. Make your code changes
+  2. git status              (see what changed)
+  3. git add -A              (stage everything)
+  4. git commit -m "message" (save it)
+  5. git push                (send to GitHub)
+
+
+================================================
+  WRITING GOOD COMMIT MESSAGES
+================================================
+
+  Keep them short and describe WHAT you did:
+
+    git commit -m "Add player injury system"
+    git commit -m "Fix transfer budget not updating"
+    git commit -m "Update match engine to use tactics"
+    git commit -m "Remove unused imports"
+    git commit -m "Redesign squad page layout"
+
+  Start with a verb: Add, Fix, Update, Remove, Redesign, Refactor
+
+
+================================================
+  VIEWING HISTORY
+================================================
+
+  See recent commits:
+    git log --oneline -10
+
+  See all commits with details:
+    git log
+
+  See who last changed each line of a file:
+    git blame src/store/gameStore.ts
+
+  See what changed in a specific commit:
+    git show abc1234
+
+  See all commits that touched a specific file:
+    git log --oneline src/engine/match.ts
+
+
+================================================
+  UNDOING MISTAKES
+================================================
+
+  --- Haven't committed yet ---
+
+  Undo changes to a specific file (back to last commit):
+    git checkout -- src/pages/Dashboard.tsx
+
+  Unstage a file (remove from "git add" but keep changes):
+    git reset src/pages/Dashboard.tsx
+
+  Undo ALL uncommitted changes (CAREFUL - deletes your work):
+    git checkout -- .
+
+
+  --- Already committed ---
+
+  Undo the last commit but KEEP your changes:
+    git reset --soft HEAD~1
+
+  Undo the last commit and DISCARD changes (CAREFUL):
+    git reset --hard HEAD~1
+
+  Create a new commit that reverses a previous one (safe):
+    git revert abc1234
+
+
+  --- Already pushed ---
+
+  If you already pushed, the safest way is git revert:
+    git revert abc1234
+    git push
+
+  DO NOT use "git push --force" unless you know what you're doing.
+  It can delete other people's work.
+
+
+================================================
+  BRANCHES
+================================================
+
+  Branches let you work on features without breaking main.
+
+  See all branches:
+    git branch
+
+  Create a new branch and switch to it:
+    git checkout -b feature/new-cup-system
+
+  Switch between branches:
+    git checkout main
+    git checkout feature/new-cup-system
+
+  Push a new branch to GitHub:
+    git push -u origin feature/new-cup-system
+
+  Merge a branch into main:
+    git checkout main
+    git merge feature/new-cup-system
+
+  Delete a branch after merging:
+    git branch -d feature/new-cup-system
+
+
+  --- When to use branches ---
+
+  Use a branch when:
+    - Adding a big new feature
+    - Trying something experimental
+    - You want to keep "main" working while you build something
+
+  Skip branches when:
+    - Small fixes or tweaks
+    - You're the only one working on the project
+    - Quick one-file changes
+
+
+================================================
+  SYNCING WITH GITHUB
+================================================
+
+  Download latest changes from GitHub:
+    git pull
+
+  Download changes without merging (just check):
+    git fetch
+
+  See if you're ahead or behind GitHub:
+    git status
+    (it will say "Your branch is ahead by X commits" etc.)
+
+
+================================================
+  STASHING (Temporary Save)
+================================================
+
+  Save your current changes temporarily (without committing):
+    git stash
+
+  Get them back:
+    git stash pop
+
+  See what's stashed:
+    git stash list
+
+  When to use:
+    - You need to switch branches but aren't ready to commit
+    - You want to pull latest changes but have uncommitted work
+    - You want to test something clean and come back to your work
+
+
+================================================
+  FIXING COMMON PROBLEMS
+================================================
+
+  "Your branch is behind origin/main":
+    git pull
+
+  "Merge conflict" after pull:
+    - Open the conflicted files
+    - Look for <<<<<<< and >>>>>>> markers
+    - Pick which version to keep, delete the markers
+    - git add the fixed files
+    - git commit
+
+  "fatal: not a git repository":
+    - You're not in a git project folder
+    - cd to your project: cd C:\Users\IsacC\Downloads\season-summit-main
+
+  "rejected - non-fast-forward":
+    - Someone else pushed changes (or you pushed from another place)
+    - Fix: git pull, then git push
+
+  "'git' is not recognized":
+    - Git isn't installed or not in PATH
+    - Download from: https://git-scm.com
+
+  Push hangs / asks for password:
+    - GitHub needs authentication
+    - A browser window should pop up to sign in
+    - If not, run: git credential-manager github login
+
+
+================================================
+  GITHUB ACTIONS (CI/CD)
+================================================
+
+  Your TestFlight build runs automatically from GitHub.
+
+  Trigger a build:
+    1. Push your code: git push
+    2. Go to: https://github.com/Wrexist/dynasty-manager/actions
+    3. Click "iOS TestFlight Build" > "Run workflow"
+
+  Or make it build automatically on every push by changing
+  the workflow trigger from "workflow_dispatch" to "push"
+
+
+================================================
+  USEFUL COMBOS
+================================================
+
+  Quick save and push everything:
+    git add -A && git commit -m "Your message" && git push
+
+  See a summary of what changed between two commits:
+    git diff --stat abc1234 def5678
+
+  Find which commit broke something:
+    git log --oneline --all --graph
+
+  Clean up untracked files (CAREFUL):
+    git clean -fd
+
+  See the size of your repo:
+    git count-objects -vH
