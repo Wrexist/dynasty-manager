@@ -1,0 +1,155 @@
+import { useGameStore } from '@/store/gameStore';
+import { GlassPanel } from '@/components/game/GlassPanel';
+import { DollarSign, TrendingUp, TrendingDown, Users, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
+import { MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP } from '@/config/gameBalance';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+
+const FinancePage = () => {
+  const { clubs, playerClubId, players, financeHistory } = useGameStore();
+  const club = clubs[playerClubId];
+  if (!club) return null;
+
+  const weeklyIncome = getWeeklyIncome(club);
+  const netPerWeek = getNetWeeklyIncome(club);
+  const isPositive = netPerWeek >= 0;
+
+  // Top wage earners
+  const squadPlayers = club.playerIds
+    .map(id => players[id])
+    .filter(Boolean)
+    .sort((a, b) => b.wage - a.wage);
+  const topEarners = squadPlayers.slice(0, 5);
+  const maxWage = topEarners[0]?.wage || 1;
+
+  // Squad cost breakdown
+  const totalWages = club.wageBill;
+  const squadValue = squadPlayers.reduce((sum, p) => sum + p.value, 0);
+
+  // Chart data — last 20 weeks
+  const chartData = financeHistory.slice(-20).map(f => ({
+    week: `W${f.week}`,
+    balance: Math.round(f.balance / 1e6 * 10) / 10,
+    income: Math.round(f.income / 1000),
+    expenses: Math.round(f.expenses / 1000),
+  }));
+
+  return (
+    <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+      <h2 className="text-lg font-display font-bold text-foreground">Finance</h2>
+
+      {/* Budget Overview */}
+      <GlassPanel className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <DollarSign className="w-5 h-5 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Transfer Budget</h3>
+        </div>
+        <p className="text-3xl font-black text-foreground font-display tabular-nums">
+          £{(club.budget / 1e6).toFixed(1)}M
+        </p>
+        <div className="flex items-center gap-1 mt-1">
+          {isPositive ? (
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+          ) : (
+            <TrendingDown className="w-3.5 h-3.5 text-destructive" />
+          )}
+          <span className={cn('text-xs font-semibold', isPositive ? 'text-emerald-400' : 'text-destructive')}>
+            {isPositive ? '+' : ''}£{(netPerWeek / 1000).toFixed(0)}K/week
+          </span>
+        </div>
+      </GlassPanel>
+
+      {/* Balance History Chart */}
+      {chartData.length > 0 && (
+        <GlassPanel className="p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Budget History</h3>
+          <ResponsiveContainer width="100%" height={160}>
+            <LineChart data={chartData}>
+              <XAxis dataKey="week" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} axisLine={false} tickLine={false} width={35} tickFormatter={(v) => `${v}M`} />
+              <Tooltip
+                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', fontSize: '12px' }}
+                labelStyle={{ color: 'hsl(var(--foreground))' }}
+                formatter={(value: number) => [`£${value}M`, 'Balance']}
+              />
+              <Line type="monotone" dataKey="balance" stroke="hsl(43, 96%, 46%)" strokeWidth={2} dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
+        </GlassPanel>
+      )}
+
+      {/* Income vs Expenses */}
+      <div className="grid grid-cols-2 gap-3">
+        <GlassPanel className="p-3">
+          <div className="flex items-center gap-1.5 mb-1">
+            <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="text-xs text-muted-foreground">Weekly Income</span>
+          </div>
+          <p className="text-lg font-bold text-emerald-400 tabular-nums">£{(weeklyIncome / 1000).toFixed(0)}K</p>
+          <div className="mt-2 space-y-1">
+            <div className="flex justify-between text-[10px]">
+              <span className="text-muted-foreground">Matchday</span>
+              <span className="text-foreground">£{(club.fanBase * MATCHDAY_INCOME_PER_FAN / 1000).toFixed(0)}K</span>
+            </div>
+            <div className="flex justify-between text-[10px]">
+              <span className="text-muted-foreground">Commercial</span>
+              <span className="text-foreground">£{(club.reputation * COMMERCIAL_INCOME_PER_REP / 1000).toFixed(0)}K</span>
+            </div>
+          </div>
+        </GlassPanel>
+        <GlassPanel className="p-3">
+          <div className="flex items-center gap-1.5 mb-1">
+            <ArrowDownRight className="w-3.5 h-3.5 text-destructive" />
+            <span className="text-xs text-muted-foreground">Weekly Expenses</span>
+          </div>
+          <p className="text-lg font-bold text-destructive tabular-nums">£{(club.wageBill / 1000).toFixed(0)}K</p>
+          <div className="mt-2 space-y-1">
+            <div className="flex justify-between text-[10px]">
+              <span className="text-muted-foreground">Player Wages</span>
+              <span className="text-foreground">£{(totalWages / 1000).toFixed(0)}K</span>
+            </div>
+          </div>
+        </GlassPanel>
+      </div>
+
+      {/* Squad Value */}
+      <GlassPanel className="p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-primary" />
+            <span className="text-sm font-semibold text-foreground">Squad Value</span>
+          </div>
+          <span className="text-lg font-bold text-primary tabular-nums">£{(squadValue / 1e6).toFixed(1)}M</span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">{squadPlayers.length} players · Avg £{(squadValue / squadPlayers.length / 1e6).toFixed(1)}M</p>
+      </GlassPanel>
+
+      {/* Top Earners */}
+      <GlassPanel className="p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Top Earners</h3>
+        <div className="space-y-2.5">
+          {topEarners.map((player, i) => (
+            <div key={player.id} className="flex items-center gap-3">
+              <span className="text-xs text-muted-foreground w-4 shrink-0 tabular-nums">{i + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-semibold text-foreground truncate">{player.lastName}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums shrink-0">£{(player.wage / 1000).toFixed(0)}K/w</span>
+                </div>
+                <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary/60 rounded-full"
+                    style={{ width: `${(player.wage / maxWage) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </GlassPanel>
+    </div>
+  );
+};
+
+export default FinancePage;

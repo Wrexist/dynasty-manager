@@ -1,0 +1,339 @@
+========================================
+  DYNASTY MANAGER - Developer Commands
+========================================
+
+  DAILY DEVELOPMENT
+  -----------------
+
+  Start dev server (hot reload):
+    npm run dev
+
+  Open in browser:
+    http://localhost:8080
+
+
+  BUILDING
+  --------
+
+  Production build:
+    npm run build
+
+  Development build (with source maps):
+    npm run build:dev
+
+  Preview production build locally:
+    npm run preview
+
+
+  TESTING & LINTING
+  -----------------
+
+  Run tests once:
+    npm run test
+
+  Run tests in watch mode:
+    npm run test:watch
+
+  Run linter:
+    npm run lint
+
+
+========================================
+  CAPACITOR (App Store / Play Store)
+========================================
+
+  FIRST-TIME SETUP
+  ----------------
+
+  1. Build the web app + sync to native:
+       npm run build
+
+  2. Add iOS platform:
+       npx cap add ios
+
+  3. Add Android platform:
+       npx cap add android
+
+  4. Sync web build to native projects:
+       npx cap sync
+
+
+  DAILY WORKFLOW
+  --------------
+
+  Build + sync (do this after every code change):
+    npm run cap:sync
+
+  Open in Xcode (iOS):
+    npm run cap:ios
+
+  Open in Android Studio:
+    npm run cap:android
+
+  Sync without rebuilding (if you already ran npm run build):
+    npx cap sync
+
+  Copy web files only (faster, no native plugin update):
+    npx cap copy
+
+
+  RUNNING ON DEVICE
+  -----------------
+
+  Android Emulator (after opening Android Studio):
+    1. npm run cap:android
+    2. In Android Studio: select an emulator or connected device
+    3. Press the Run button (green triangle)
+
+  Physical Android Device:
+    1. Enable "Developer Options" on your phone
+    2. Enable "USB Debugging" in Developer Options
+    3. Connect via USB
+    4. In Android Studio: your device appears in the device list
+    5. Press Run
+
+  iOS (No Mac - see TESTFLIGHT section below for cloud build options)
+
+
+  GENERATING APP ICONS
+  --------------------
+
+  1. Place your 1024x1024 icon as:
+       resources/icon.png
+
+  2. Install the asset generator:
+       npm install -D @capacitor/assets
+
+  3. Generate all icon sizes:
+       npx capacitor-assets generate --iconBackgroundColor #0f1524
+
+  This creates all iOS and Android icon sizes automatically.
+
+
+  GENERATING SPLASH SCREENS
+  -------------------------
+
+  1. Place your splash image as:
+       resources/splash.png  (2732x2732, centered logo)
+
+  2. Generate:
+       npx capacitor-assets generate --splashBackgroundColor #0f1524
+
+
+========================================
+  APP CONFIGURATION (Apple Developer)
+========================================
+
+  Team ID:    S3U8B8HH96
+  Bundle ID:  com.dynastymanager
+  SKU:        dynastymanagerf
+  App Name:   Dynasty Manager
+
+
+========================================
+  iOS TESTFLIGHT (From Windows - No Mac)
+========================================
+
+  STEP 1: Build & sync on Windows
+  --------------------------------
+    npm run build
+    npx cap sync ios
+
+  STEP 2: Choose a cloud build service (picks up the iOS project)
+  ----------------------------------------------------------------
+
+  --- OPTION A: GitHub Actions (Free) ---
+
+  1. Push your repo to GitHub
+
+  2. Go to Apple Developer > Certificates:
+     - Create an "Apple Distribution" certificate
+     - Export it as a .p12 file with a password
+     - Create a provisioning profile for "com.dynastymanager" (App Store type)
+     - Download the .mobileprovision file
+
+  3. Generate an App-Specific Password:
+     - Go to https://appleid.apple.com > Sign-In and Security > App-Specific Passwords
+     - Generate one and save it
+
+  4. In your GitHub repo > Settings > Secrets and variables > Actions, add:
+     - APPLE_CERTIFICATE_BASE64     (run: certutil -encode cert.p12 cert.txt, paste contents)
+     - APPLE_CERTIFICATE_PASSWORD   (password you set when exporting .p12)
+     - APPLE_PROVISIONING_PROFILE   (run: certutil -encode profile.mobileprovision profile.txt, paste contents)
+     - APPLE_ID                     (your Apple ID email)
+     - APPLE_APP_SPECIFIC_PASSWORD  (from step 3)
+     - APPLE_TEAM_ID                S3U8B8HH96
+
+  5. Create file: .github/workflows/ios-testflight.yml
+     (see the workflow file in this project — create it with the content below)
+
+  6. Go to GitHub > Actions tab > "iOS TestFlight Build" > Run workflow
+     The build runs on a macOS runner in the cloud and uploads to TestFlight.
+
+  7. Check App Store Connect > TestFlight for the new build (takes ~15 min to process)
+
+
+  --- OPTION B: Codemagic (Easiest, Free Tier) ---
+
+  1. Sign up at https://codemagic.io (500 free macOS build minutes/month)
+  2. Connect your GitHub/GitLab/Bitbucket repo
+  3. Choose "Capacitor Ionic" as the project type
+  4. Upload your Apple signing credentials:
+     - Distribution certificate (.p12)
+     - Provisioning profile (.mobileprovision)
+     - Apple ID + App-Specific Password for TestFlight upload
+  5. Set the build script to:
+       npm install && npm run build && npx cap sync ios
+  6. Set the Xcode project path to: ios/App/App.xcworkspace
+  7. Set scheme to: App
+  8. Enable "Publish to TestFlight"
+  9. Start build — Codemagic builds on macOS in the cloud and uploads to TestFlight
+
+
+  --- OPTION C: Ionic Appflow (Paid, Fully Managed) ---
+
+  1. Sign up at https://ionic.io/appflow
+  2. Connect your repo
+  3. Link your Apple Developer account (Team ID: S3U8B8HH96)
+  4. Upload your iOS distribution certificate + provisioning profile
+  5. Trigger a build — Appflow compiles and uploads to TestFlight
+
+
+========================================
+  GITHUB ACTIONS WORKFLOW FILE
+========================================
+
+  Create this file: .github/workflows/ios-testflight.yml
+
+  ---- START OF FILE ----
+
+  name: iOS TestFlight Build
+  on:
+    workflow_dispatch:
+
+  jobs:
+    build:
+      runs-on: macos-latest
+      steps:
+        - uses: actions/checkout@v4
+
+        - uses: actions/setup-node@v4
+          with:
+            node-version: 20
+
+        - run: npm ci
+        - run: npm run build
+        - run: npx cap sync ios
+
+        - name: Install CocoaPods
+          run: cd ios/App && pod install
+
+        - name: Import certificate
+          env:
+            CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+            PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          run: |
+            echo "$CERTIFICATE" | base64 --decode > cert.p12
+            security create-keychain -p "" build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "" build.keychain
+            security import cert.p12 -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
+
+        - name: Import provisioning profile
+          env:
+            PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+          run: |
+            mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+            echo "$PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+
+        - name: Build archive
+          run: |
+            cd ios/App
+            xcodebuild archive \
+              -workspace App.xcworkspace \
+              -scheme App \
+              -archivePath $RUNNER_TEMP/App.xcarchive \
+              -configuration Release \
+              DEVELOPMENT_TEAM=S3U8B8HH96 \
+              CODE_SIGN_IDENTITY="Apple Distribution"
+
+        - name: Export IPA
+          run: |
+            cat > exportOptions.plist << 'PLIST'
+            <?xml version="1.0" encoding="UTF-8"?>
+            <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+              "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+            <plist version="1.0">
+            <dict>
+              <key>method</key>
+              <string>app-store-connect</string>
+              <key>teamID</key>
+              <string>S3U8B8HH96</string>
+              <key>uploadBitcode</key>
+              <false/>
+              <key>uploadSymbols</key>
+              <true/>
+            </dict>
+            </plist>
+            PLIST
+            xcodebuild -exportArchive \
+              -archivePath $RUNNER_TEMP/App.xcarchive \
+              -exportPath $RUNNER_TEMP/export \
+              -exportOptionsPlist exportOptions.plist
+
+        - name: Upload to TestFlight
+          env:
+            APPLE_ID: ${{ secrets.APPLE_ID }}
+            APP_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          run: |
+            xcrun altool --upload-app \
+              -f $RUNNER_TEMP/export/*.ipa \
+              -t ios \
+              -u "$APPLE_ID" \
+              -p "$APP_PASSWORD"
+
+  ---- END OF FILE ----
+
+
+========================================
+  PUBLISHING TO GOOGLE PLAY (Android)
+========================================
+
+  1. npm run cap:sync
+  2. npm run cap:android  (opens Android Studio on Windows)
+  3. In Android Studio: Build > Generate Signed Bundle/APK
+  4. Choose "Android App Bundle" (.aab)
+  5. Create or select a keystore for signing
+  6. Build the release bundle
+  7. Go to Google Play Console (play.google.com/console)
+  8. Create app listing, upload .aab, submit for review
+
+  Requirements:
+    - Google Play Developer account ($25 one-time)
+    - Signing keystore (keep this file safe, you need it for every update)
+    - Play Store listing with screenshots
+
+
+========================================
+  USEFUL TIPS
+========================================
+
+  Check installed Capacitor plugins:
+    npx cap ls
+
+  Update Capacitor to latest:
+    npm install @capacitor/core@latest @capacitor/cli@latest
+
+  Check what native changes need manual review:
+    npx cap sync --inline
+
+  Live reload on device (dev only):
+    Add to capacitor.config.ts:
+      server: { url: 'http://YOUR_IP:8080', cleartext: true }
+    Then: npm run dev  (on your computer)
+    Then: npx cap run ios  (or android)
+
+  Clear build cache if things break:
+    rm -rf dist node_modules/.vite
+    npm run build

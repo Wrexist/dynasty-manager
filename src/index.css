@@ -1,0 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 30% 7%;
+    --foreground: 220 15% 90%;
+
+    --card: 222 25% 11%;
+    --card-foreground: 220 15% 90%;
+
+    --popover: 222 25% 11%;
+    --popover-foreground: 220 15% 90%;
+
+    --primary: 43 96% 46%;
+    --primary-foreground: 222 30% 7%;
+
+    --secondary: 215 25% 18%;
+    --secondary-foreground: 220 15% 85%;
+
+    --muted: 222 20% 15%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 215 60% 50%;
+    --accent-foreground: 220 15% 95%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 222 15% 18%;
+    --input: 222 15% 18%;
+    --ring: 43 96% 46%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 222 25% 9%;
+    --sidebar-foreground: 220 15% 85%;
+    --sidebar-primary: 43 96% 46%;
+    --sidebar-primary-foreground: 222 30% 7%;
+    --sidebar-accent: 222 20% 15%;
+    --sidebar-accent-foreground: 220 15% 85%;
+    --sidebar-border: 222 15% 18%;
+    --sidebar-ring: 43 96% 46%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none;
+  }
+
+  input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+
+  .font-display {
+    font-family: 'Oswald', sans-serif;
+  }
+}
+
+@layer utilities {
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+
+  .safe-area-right {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar,
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide,
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Match event fade-in animation */
+@keyframes fadeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Touch-friendly range inputs */
+input[type="range"]::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+}

@@ -1,0 +1,316 @@
+================================================
+  DYNASTY MANAGER - Google Play Store Guide
+  (Step by Step from Windows)
+================================================
+
+  App Details:
+    App Name:     Dynasty Manager
+    Package ID:   com.dynastymanager
+    App Type:     Game > Simulation
+
+
+================================================
+  ALREADY DONE FOR YOU
+================================================
+
+  [x] Android platform added to Capacitor (npx cap add android)
+  [x] Web app built (npm run build) — dist/ folder ready
+  [x] Android project synced (npx cap sync android) — android/ folder ready
+  [x] Package ID set to com.dynastymanager in build.gradle
+  [x] Version set to 1.0 (versionCode 1)
+  [x] Privacy policy page created at privacy-policy.html
+      (you need to host this online — see Step 4)
+
+
+================================================
+  WHAT YOU STILL NEED TO DO
+================================================
+
+  There are 7 steps left.
+  Estimated time: 1-2 hours (spread across a few days due to Google review).
+
+
+------------------------------------------------
+  STEP 1: Install Android Studio
+  (15 minutes)
+------------------------------------------------
+
+  1. Download from: https://developer.android.com/studio
+  2. Run the installer
+  3. During setup, make sure these are checked:
+     - Android SDK
+     - Android Virtual Device (emulator)
+  4. Finish the installation and open Android Studio
+  5. Let it download any remaining SDK components (it does this on first launch)
+
+
+------------------------------------------------
+  STEP 2: Open & Test the App
+  (10 minutes)
+------------------------------------------------
+
+  1. In your project terminal, run:
+
+       npm run cap:android
+
+     This opens the android/ folder in Android Studio.
+
+  2. Wait for Android Studio to finish syncing (progress bar at bottom)
+     If it asks to update Gradle, click "Update"
+
+  3. (Optional but recommended) Test on emulator:
+     - Click the device dropdown in the top toolbar
+     - Click "Device Manager" (or Tools > Device Manager)
+     - Click "Create Device"
+     - Pick "Pixel 7" or any phone
+     - Select a system image (download API 34 if needed)
+     - Click Finish
+     - Select the emulator from the dropdown, click the green Play button
+     - Verify the app works
+
+
+------------------------------------------------
+  STEP 3: Create a Signing Keystore
+  (5 minutes)
+------------------------------------------------
+
+  Your app must be signed to publish. The keystore is PERMANENT —
+  you need the SAME keystore for every future update.
+
+  1. In Android Studio: Build > Generate Signed Bundle / APK
+  2. Select "Android App Bundle" (NOT APK)
+  3. Click "Create new..." under Key store path
+  4. Fill in:
+       Key store path:     Pick a safe location, name it dynasty-manager.jks
+       Password:           Choose a strong password
+       Key alias:          dynasty-manager
+       Key password:       Same as above (or different)
+       Validity (years):   25
+       First and Last Name: Your name
+       Organization:       Your name or company
+       Country Code:       Your 2-letter country code (US, GB, etc.)
+  5. Click OK
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  !! BACK UP YOUR KEYSTORE AND PASSWORDS RIGHT NOW !!
+  !! If you lose them, you can NEVER update your app !!
+  !! Save dynasty-manager.jks + passwords to a USB  !!
+  !! drive, Google Drive, OneDrive, etc.             !!
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+------------------------------------------------
+  STEP 4: Build the Release Bundle
+  (5 minutes)
+------------------------------------------------
+
+  1. In Android Studio: Build > Generate Signed Bundle / APK
+  2. Select "Android App Bundle"
+  3. Click Next
+  4. Select your keystore (dynasty-manager.jks)
+  5. Enter your passwords
+  6. Select "release" as the build variant
+  7. Click Create
+  8. When finished, the file is at:
+
+       android\app\release\app-release.aab
+
+     This is what you upload to Google Play.
+
+
+------------------------------------------------
+  STEP 5: Host Your Privacy Policy
+  (10 minutes)
+------------------------------------------------
+
+  Google Play requires a public URL for your privacy policy.
+  A privacy-policy.html file was already created in your project.
+
+  Easiest free option — GitHub Pages:
+
+  1. Create a new PUBLIC repo on GitHub (e.g., "dynasty-manager-site")
+  2. Upload privacy-policy.html to it
+  3. Go to repo Settings > Pages
+  4. Set Source to "Deploy from a branch", Branch to "main", folder to "/ (root)"
+  5. Click Save
+  6. Your policy will be live at:
+     https://YOUR_USERNAME.github.io/dynasty-manager-site/privacy-policy.html
+
+  Other free options:
+  - Google Sites: sites.google.com (create a page and paste the text)
+  - Netlify: netlify.com (drag & drop the HTML file)
+
+
+------------------------------------------------
+  STEP 6: Set Up Google Play Console
+  (20-30 minutes)
+------------------------------------------------
+
+  A. Create developer account (if you don't have one):
+     1. Go to https://play.google.com/console/signup
+     2. Sign in with a Google account
+     3. Pay the $25 one-time fee
+     4. Fill in developer name and contact info
+     5. Complete identity verification
+        (Google may take 1-2 days to verify — you can continue setup while waiting)
+
+  B. Create your app:
+     1. In Play Console, click "Create app"
+     2. Fill in:
+          App name:        Dynasty Manager
+          Default language: English (United States)
+          App or Game:     Game
+          Free or Paid:    Free (or Paid)
+     3. Accept the declarations, click "Create app"
+
+  C. Complete ALL required sections (left sidebar):
+
+     --- App content ---
+
+     Privacy policy:
+       Paste the URL from Step 5
+
+     Ads:
+       Select "No, my app does not contain ads"
+
+     Content rating:
+       Click "Start questionnaire"
+       Category: "All Other App Types" (or most fitting)
+       Answer questions honestly
+       Click Save > Submit
+
+     Target audience:
+       Select 13+ (safest unless you specifically target younger)
+
+     Data safety:
+       The app stores data only on-device with no server:
+       - "Does your app collect or share any user data?" > No
+       Complete and submit the form
+
+     --- Main store listing ---
+
+     Short description (max 80 chars):
+       "Build your football dynasty. Manage, transfer, and compete."
+
+     Full description (max 4000 chars):
+       Write a detailed description of your game. Include:
+       - What the game is about
+       - Key features (squad management, transfers, match sim, tactics)
+       - What makes it unique
+
+     App icon:
+       512 x 512 PNG, 32-bit color, no transparency
+       (Use your app's icon or create one)
+
+     Feature graphic:
+       1024 x 500 PNG or JPG
+       (Banner image shown at top of your Play Store listing)
+
+     Phone screenshots (REQUIRED, minimum 2):
+       Take them from the emulator:
+       - Run the app in the emulator (Step 2)
+       - Click the camera icon in the emulator sidebar
+       - Screenshots save to your Desktop
+       - Upload at least 2 (recommended: 4-6 showing different screens)
+
+     App category:
+       Game > Simulation
+
+     Contact email:
+       Your email address
+
+
+------------------------------------------------
+  STEP 7: Upload & Publish
+  (10 minutes + review wait)
+------------------------------------------------
+
+  A. (Recommended) Start with Internal Testing:
+     1. Go to Testing > Internal testing in the left sidebar
+     2. Click "Create new release"
+     3. App signing: click "Continue" to let Google manage signing (recommended)
+     4. Click "Upload" and select: android\app\release\app-release.aab
+     5. Add release notes: "Initial release of Dynasty Manager"
+     6. Click "Review release" > "Start rollout"
+     7. Go to Testers tab, create an email list, add your testers' Gmail
+     8. Share the opt-in link — testers can install within minutes (no review needed)
+
+  B. When ready for public release:
+     1. Go to Release > Production
+     2. Click "Create new release"
+     3. Upload the same .aab file
+     4. Add release notes
+     5. Click "Review release" > "Start rollout to Production"
+     6. Google reviews your app (usually 1-7 days for first submission)
+     7. You'll get an email when approved
+     8. Once approved — your app is LIVE on the Google Play Store!
+
+
+================================================
+  FUTURE UPDATES
+================================================
+
+  When you make changes and want to release a new version:
+
+  1. Make your code changes
+  2. Run:
+       npm run build
+       npx cap sync android
+  3. Open android\app\build.gradle and update:
+       versionCode 2    (increment by 1 each time: 1 -> 2 -> 3 -> 4...)
+       versionName "1.1" (or whatever version label you want)
+  4. In Android Studio: Build > Generate Signed Bundle / APK
+     Use the SAME keystore as before
+  5. Upload new .aab to Play Console > Production > Create new release
+
+
+================================================
+  CHECKLIST
+================================================
+
+  [ ] Android Studio installed
+  [ ] App tested on emulator
+  [ ] Signing keystore created AND backed up
+  [ ] Release .aab built
+  [ ] Privacy policy hosted online
+  [ ] Google Play Developer account ($25)
+  [ ] App created in Play Console
+  [ ] Privacy policy URL added
+  [ ] Content rating completed
+  [ ] Target audience set
+  [ ] Data safety form completed
+  [ ] App icon uploaded (512x512)
+  [ ] Feature graphic uploaded (1024x500)
+  [ ] At least 2 phone screenshots uploaded
+  [ ] Short + full description written
+  [ ] App category set (Game > Simulation)
+  [ ] Contact email provided
+  [ ] .aab uploaded and release created
+  [ ] App submitted for review
+
+
+================================================
+  TROUBLESHOOTING
+================================================
+
+  "App not installed" on test device:
+    - Uninstall the app first, then try again
+
+  Build fails in Android Studio:
+    - Try: Build > Clean Project, then Build > Rebuild Project
+    - Make sure you ran: npm run build && npx cap sync android
+
+  Google rejects the app:
+    - Read the rejection email — they tell you exactly what to fix
+    - Common reasons: missing privacy policy, placeholder screenshots,
+      metadata doesn't match app content
+
+  "Upload failed, version code already used":
+    - Open android\app\build.gradle
+    - Find versionCode and increase it by 1
+    - Rebuild the .aab
+
+  Keystore lost:
+    - If you enabled Play App Signing, contact Google support
+    - If not, you must publish as a NEW app with a new package name
+    - THIS IS WHY BACKING UP THE KEYSTORE IS CRITICAL

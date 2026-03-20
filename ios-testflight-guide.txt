@@ -1,0 +1,222 @@
+================================================
+  DYNASTY MANAGER - iOS TestFlight Guide
+  (Step by Step from Windows, No Mac Needed)
+================================================
+
+  App Details:
+    App Name:   Dynasty Manager
+    Bundle ID:  com.dynastymanager
+    Team ID:    S3U8B8HH96
+    SKU:        dynastymanagerf
+
+
+================================================
+  ALREADY DONE FOR YOU
+================================================
+
+  [x] Bundle ID set to com.dynastymanager in capacitor.config.ts
+  [x] Team ID S3U8B8HH96 added to Xcode project (project.pbxproj)
+  [x] Web app built (npm run build) — dist/ folder ready
+  [x] iOS project synced (npx cap sync ios)
+  [x] GitHub Actions workflow file created at .github/workflows/ios-testflight.yml
+  [x] Privacy policy page created at privacy-policy.html
+
+
+================================================
+  WHAT YOU STILL NEED TO DO
+================================================
+
+  There are 6 steps left. All are done in your browser or Command Prompt.
+  Estimated time: 30-45 minutes.
+
+
+------------------------------------------------
+  STEP 1: Create App Record in App Store Connect
+  (5 minutes)
+------------------------------------------------
+
+  1. Go to https://appstoreconnect.apple.com
+  2. Sign in with your Apple ID
+  3. Click "My Apps" then the "+" button > "New App"
+  4. Fill in:
+       - Platform: iOS
+       - Name: Dynasty Manager
+       - Primary Language: English
+       - Bundle ID: com.dynastymanager (select from dropdown)
+       - SKU: dynastymanagerf
+  5. Click "Create"
+
+
+------------------------------------------------
+  STEP 2: Create Signing Certificate
+  (10 minutes)
+------------------------------------------------
+
+  This is needed so Apple trusts your app.
+
+  A. OpenSSL is included with Git for Windows. No extra install needed.
+     Use the full path to Git's OpenSSL in Command Prompt.
+
+  B. Open Command Prompt (Win+R, type cmd, press Enter) and run:
+
+       "C:\Program Files\Git\usr\bin\openssl.exe" genrsa -out dynasty.key 2048
+
+       "C:\Program Files\Git\usr\bin\openssl.exe" req -new -key dynasty.key -out dynasty.csr -subj "/CN=Dynasty Manager/O=Your Name"
+
+  C. Go to https://developer.apple.com/account
+     - Click "Certificates, Identifiers & Profiles"
+     - Click "Certificates" in the sidebar
+     - Click the "+" button
+     - Select "Apple Distribution"
+     - Click Continue
+     - Upload the dynasty.csr file you just created
+     - Click Continue
+     - Download the certificate (.cer file)
+
+  D. Back in Command Prompt, convert to .p12 format:
+
+       "C:\Program Files\Git\usr\bin\openssl.exe" x509 -inform DER -in distribution.cer -out distribution.pem
+
+       "C:\Program Files\Git\usr\bin\openssl.exe" pkcs12 -export -out distribution.p12 -inkey dynasty.key -in distribution.pem
+
+     It asks you to set a password — WRITE THIS PASSWORD DOWN, you need it in Step 5.
+
+
+------------------------------------------------
+  STEP 3: Create Provisioning Profile
+  (5 minutes)
+------------------------------------------------
+
+  1. Still on https://developer.apple.com/account
+  2. Click "Profiles" in the sidebar
+  3. Click the "+" button
+  4. Select "App Store Connect" under Distribution
+  5. Click Continue
+  6. Select App ID: com.dynastymanager
+  7. Click Continue
+  8. Select the distribution certificate you just created
+  9. Click Continue
+  10. Name it: "Dynasty Manager App Store"
+  11. Click Generate
+  12. Download the .mobileprovision file
+
+
+------------------------------------------------
+  STEP 4: Create App-Specific Password
+  (2 minutes)
+------------------------------------------------
+
+  1. Go to https://appleid.apple.com
+  2. Sign in with your Apple ID
+  3. Go to "Sign-In and Security"
+  4. Click "App-Specific Passwords"
+  5. Click "Generate an app-specific password"
+  6. Label it: "GitHub Actions"
+  7. Copy the generated password — SAVE IT, you can't see it again
+
+
+------------------------------------------------
+  STEP 5: Push to GitHub & Add Secrets
+  (10 minutes)
+------------------------------------------------
+
+  A. Create a GitHub repo:
+     - Go to https://github.com > click "+" > "New repository"
+     - Name: dynasty-manager (or whatever you want)
+     - Set to Private
+     - Do NOT add README or .gitignore
+     - Click "Create repository"
+
+  B. Open terminal in your project folder and run:
+
+       git init
+       git add -A
+       git commit -m "Initial commit"
+       git branch -M main
+       git remote add origin https://github.com/YOUR_USERNAME/dynasty-manager.git
+       git push -u origin main
+
+     Replace YOUR_USERNAME with your actual GitHub username.
+
+  C. Add secrets to GitHub:
+     - Go to your repo on GitHub
+     - Click Settings > Secrets and variables > Actions
+     - Click "New repository secret" for each of these 6 secrets:
+
+     Secret 1: APPLE_CERTIFICATE_BASE64
+       In Command Prompt run:
+         certutil -encode distribution.p12 cert_base64.txt
+       Open cert_base64.txt in Notepad
+       Copy EVERYTHING between "-----BEGIN CERTIFICATE-----" and "-----END CERTIFICATE-----"
+       (do NOT include those lines themselves)
+       Paste as the secret value
+
+     Secret 2: APPLE_CERTIFICATE_PASSWORD
+       The password you set when creating the .p12 in Step 2D
+
+     Secret 3: APPLE_PROVISIONING_PROFILE
+       In Command Prompt run:
+         certutil -encode "Dynasty_Manager_App_Store.mobileprovision" profile_base64.txt
+       Open profile_base64.txt in Notepad
+       Copy EVERYTHING between the BEGIN and END lines
+       Paste as the secret value
+
+     Secret 4: APPLE_ID
+       Your Apple ID email address
+
+     Secret 5: APPLE_APP_SPECIFIC_PASSWORD
+       The password from Step 4
+
+     Secret 6: APPLE_TEAM_ID
+       S3U8B8HH96
+
+
+------------------------------------------------
+  STEP 6: Run the Build & Check TestFlight
+  (15-30 minutes, mostly waiting)
+------------------------------------------------
+
+  1. Go to your GitHub repo in the browser
+  2. Click the "Actions" tab
+  3. Click "iOS TestFlight Build" in the left sidebar
+  4. Click "Run workflow" dropdown > "Run workflow" button
+  5. Wait for the build (usually 10-20 minutes)
+  6. If it passes with a green checkmark, your app is uploaded!
+
+  7. Go to https://appstoreconnect.apple.com
+  8. Click "My Apps" > "Dynasty Manager"
+  9. Click "TestFlight" tab
+  10. Your build will appear (may take 15-30 min to process)
+  11. It may say "Missing Compliance" — click it and select:
+      "Does your app use encryption?" > "No"
+  12. Once processed, the build is available for testing!
+
+  To invite testers:
+  13. In TestFlight tab, click "Internal Testing" or "External Testing"
+  14. Create a group, add testers by email
+  15. Testers get an email to download TestFlight app and install your build
+
+
+================================================
+  TROUBLESHOOTING
+================================================
+
+  Build fails at "Import certificate":
+    - Make sure you copied the base64 WITHOUT the BEGIN/END lines
+    - Make sure the password matches exactly
+
+  Build fails at "Build archive":
+    - Check that your provisioning profile matches bundle ID "com.dynastymanager"
+    - Make sure the profile uses the same certificate you uploaded
+
+  Build fails at "Install CocoaPods":
+    - This usually fixes itself on retry — click "Re-run failed jobs"
+
+  Build succeeds but nothing in TestFlight:
+    - Check your Apple ID email for a message from Apple
+    - Sometimes Apple rejects builds silently — check email for details
+    - Verify the App-Specific Password is correct
+
+  "Missing Compliance" in TestFlight:
+    - This is normal. Click the warning and answer the encryption question.
+    - For a web-wrapped app with no custom encryption, answer "No"

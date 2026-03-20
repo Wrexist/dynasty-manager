@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+
+# Lock files (huge, not useful for AI)
+package-lock.json
+bun.lock
+bun.lockb
+
+# Git
+.git/
+
+# Logs
+*.log
+logs/
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+*.sw?
+
+# Environment
+.env
+.env.*
+*.local
+
+# Generated shadcn/ui (read-only, don't index deeply)
+# src/components/ui/  ← keep indexed but rules say don't modify
+
+# OS
+Thumbs.db

@@ -1,0 +1,47 @@
+---
+description: React component conventions for Dynasty Manager
+globs: ["**/*.tsx"]
+---
+
+# Component Rules
+
+## Structure
+- Functional components only. Use hooks.
+- Pages: default export. Shared components: named export.
+- Props interface defined above the component or inline.
+
+## State
+- Components NEVER contain game logic. They read from `useGameStore()` and call actions.
+- Use Zustand selectors to avoid unnecessary re-renders: `const week = useGameStore(s => s.week)`
+- Local UI state (modals, tabs, filters) is fine with `useState`.
+
+## Styling
+- Tailwind classes only. Use `cn()` for conditionals.
+- Glass panel pattern: use `<GlassPanel>` component, not raw classes.
+- Mobile-first: design for 375px. Use `max-w-lg mx-auto`.
+- Never use inline `style={}` except for dynamic colors (club colors) or computed widths.
+
+## Imports
+```tsx
+// 1. External
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+// 2. UI components
+import { Button } from '@/components/ui/button';
+// 3. Game components
+import { GlassPanel } from '@/components/game/GlassPanel';
+// 4. Store/utils/types
+import { useGameStore } from '@/store/gameStore';
+import { Player } from '@/types/game';
+```
+
+## Patterns
+- Use `cn()` not string concatenation for class merging
+- Use `lucide-react` for icons (already installed)
+- Use `framer-motion` for page transitions and animations
+- Ratings: ≥80 `text-emerald-400`, ≥70 `text-primary`, ≥60 `text-amber-400`, <60 `text-muted-foreground`
+
+## Don'ts
+- Don't modify anything in `src/components/ui/` — those are shadcn generated
+- Don't use `useEffect` for game logic — that belongs in store actions
+- Don't create new component files without a clear reason — check if existing ones can be extended

@@ -1,0 +1,58 @@
+---
+description: Styling and design system for Dynasty Manager
+globs: ["**/*.tsx", "**/*.css"]
+---
+
+# Design System
+
+## Theme
+- Dark theme ONLY. No light mode. All colors via HSL CSS variables in `src/index.css`.
+- Primary/Gold: `hsl(43 96% 46%)` — CTAs, active states, accents, ratings
+- Background: `hsl(222 30% 7%)` — deep navy
+- Card: `hsl(222 25% 11%)` — panels, elevated surfaces
+- Muted: `hsl(222 20% 15%)` — disabled states, borders
+- Destructive: `hsl(0 72% 51%)` — errors, losses, injuries
+
+## Glass Morphism Pattern
+Use the `<GlassPanel>` component for all card-like containers:
+```tsx
+<GlassPanel className="p-4">content</GlassPanel>
+```
+Underlying classes: `bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl`
+
+## Typography
+- Headings: `font-display` class (Oswald font)
+- Body: default sans (DM Sans)
+- Tiny labels: `text-[10px] text-muted-foreground uppercase tracking-wider`
+- Stat numbers: `font-mono font-black`
+
+## Rating Colors (used everywhere)
+```
+≥80 → text-emerald-400
+≥70 → text-primary (gold)
+≥60 → text-amber-400
+<60 → text-muted-foreground
+```
+
+## Layout
+- Mobile-first: `max-w-lg mx-auto px-4`
+- Top bar: `h-14`, fixed, blur background
+- Bottom nav: `h-16`, fixed, 5 tabs
+- Content area: `pt-14 pb-20` (clears top/bottom bars)
+- Safe area: `safe-area-bottom` utility class
+
+## Spacing
+- Page sections: `space-y-4`
+- Inside panels: `p-4` standard, `p-3` compact, `p-5` hero sections
+- Grid gaps: `gap-3` for cards, `gap-2` for compact lists
+
+## Animations
+- Page transitions: Framer Motion `opacity + y` (see GameShell.tsx)
+- Match events: `AnimatePresence` with slide-in
+- Buttons: `active:scale-[0.98]` on interactive panels
+
+## Don'ts
+- Don't use raw hex colors — always use CSS variables or Tailwind color classes
+- Don't use `px-*` values larger than `px-6` on mobile
+- Don't add shadows beyond `shadow-lg` — the glass effect handles depth
+- Don't use `dark:` prefix — we're always dark mode

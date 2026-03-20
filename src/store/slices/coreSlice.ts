@@ -1,0 +1,39 @@
+import { GameScreen, GameSettings, DivisionId, SeasonPhase } from '@/types/game';
+import type { GameState } from '../storeTypes';
+
+type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
+type Get = () => GameState;
+
+export const createCoreSlice = (set: Set, get: Get) => ({
+  gameStarted: false,
+  playerClubId: '',
+  currentScreen: 'dashboard' as GameScreen,
+  previousScreen: null as GameScreen | null,
+  selectedPlayerId: null as string | null,
+  season: 1,
+  week: 1,
+  totalWeeks: 46,
+  transferWindowOpen: true,
+  messages: [] as GameState['messages'],
+  boardObjectives: [] as GameState['boardObjectives'],
+  boardConfidence: 50,
+  seasonHistory: [] as GameState['seasonHistory'],
+  settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: false } as GameSettings,
+  activeSlot: 1,
+
+  // Division system defaults
+  seasonPhase: 'regular' as SeasonPhase,
+  divisionFixtures: {} as GameState['divisionFixtures'],
+  divisionTables: {} as GameState['divisionTables'],
+  divisionClubs: {} as GameState['divisionClubs'],
+  playerDivision: 'div-1' as DivisionId,
+  playoffs: [] as GameState['playoffs'],
+  lastPromotionRelegation: null as GameState['lastPromotionRelegation'],
+  derbies: [] as GameState['derbies'],
+
+  setScreen: (screen: GameScreen) => set(s => ({ currentScreen: screen, previousScreen: s.currentScreen })),
+  selectPlayer: (id: string | null) => set({ selectedPlayerId: id, currentScreen: id ? 'player-detail' : get().currentScreen }),
+  markMessageRead: (id: string) => set(s => ({ messages: s.messages.map(m => m.id === id ? { ...m, read: true } : m) })),
+  markAllRead: () => set(s => ({ messages: s.messages.map(m => ({ ...m, read: true })) })),
+  updateSettings: (partial: Partial<GameSettings>) => set(s => ({ settings: { ...s.settings, ...partial } })),
+});

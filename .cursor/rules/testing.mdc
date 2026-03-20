@@ -1,0 +1,38 @@
+---
+description: Testing conventions for Dynasty Manager
+globs: ["**/*.test.*", "**/*.spec.*"]
+---
+
+# Testing Rules
+
+## Setup
+- Vitest + jsdom + React Testing Library
+- Config: `vitest.config.ts` with `@/` alias and jsdom environment
+- Setup file: `src/test/setup.ts` (includes jest-dom matchers + matchMedia mock)
+- Globals: `describe`/`it`/`expect` available without imports (`globals: true` in vitest config, `vitest/globals` in tsconfig types)
+- Test files go next to source: `Component.test.tsx` beside `Component.tsx`
+
+## What to Test (Priority Order)
+1. **Store actions** — `gameStore.ts` actions are the most critical. Test state transitions.
+2. **Match engine** — `simulateMatch()` should produce valid Match objects with correct event structure.
+3. **Player generation** — `generatePlayer()`, `calculateOverallExport()`, `selectBestLineup()` should produce valid data.
+4. **League utilities** — `generateFixtures()` should create correct number of matches, `buildLeagueTable()` should sort correctly.
+5. **Components** — test user interactions, not implementation details.
+
+## Patterns
+```ts
+import { describe, it, expect } from 'vitest';
+
+// For store testing, create fresh store per test:
+// Don't import the singleton — test the logic functions directly
+
+// For components:
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+```
+
+## Don'ts
+- Don't test shadcn/ui components — they're third-party
+- Don't snapshot test — they're brittle for this project
+- Don't mock the store unless testing component isolation
+- Don't test CSS classes — test behavior and content

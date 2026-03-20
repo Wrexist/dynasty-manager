@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Dynasty Manager</string>
+    <string name="title_activity_main">Dynasty Manager</string>
+    <string name="package_name">com.dynastymanager</string>
+    <string name="custom_url_scheme">com.dynastymanager</string>
+</resources>

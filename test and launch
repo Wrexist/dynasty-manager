@@ -1,0 +1,4 @@
+
+Run npx cap add ios and npx cap add android to create native projects
+Run npm run cap:sync to build and sync to native platforms
+Open in Xcode (npm run cap:ios) or Android Studio (npm run cap:android) to test on device

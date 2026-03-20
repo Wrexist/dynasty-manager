@@ -1,0 +1,47 @@
+---
+description: Game logic, store, and engine conventions
+globs: ["src/store/**", "src/engine/**", "src/utils/**", "src/data/**"]
+---
+
+# Game Logic Rules
+
+## gameStore.ts
+- This is the heart of the app. Every game action is a Zustand action here.
+- State is immutable — always spread objects/arrays before mutating.
+- Keep helper functions (like `applyPlayerDevelopment`, `addMsg`) outside the store as pure functions.
+- When the store grows past 800 lines, split into slices (e.g., `transferSlice.ts`, `matchSlice.ts`).
+
+## Types
+- ALL types live in `src/types/game.ts`. Import from there.
+- Add new types to `game.ts`, don't create new type files.
+- Use `interface` for objects, `type` for unions/aliases.
+- Formation data (`FORMATION_POSITIONS`, `POSITION_COMPATIBILITY`) lives in `game.ts`.
+
+## Match Engine (`src/engine/match.ts`)
+- `simulateMatch()` takes clubs + player arrays, returns a `Match` with events.
+- Events are typed as `MatchEvent` with minute, type, player references.
+- Keep simulation pure — no store access inside the engine.
+- Team strength calc is in `playerGen.ts` (`getTeamStrength`).
+
+## Player Generation (`src/utils/playerGen.ts`)
+- `generatePlayer()` — single player with position-based attribute profiles.
+- `generateSquad()` — full squad from template (20 positions).
+- `selectBestLineup()` — auto-picks best XI + subs for a formation.
+- `calculateOverallExport()` — weighted overall rating per position.
+- Keep the `POSITION_WEIGHTS` balanced — changes ripple everywhere.
+
+## Data (`src/data/league.ts`)
+- 20 clubs with detailed attributes (budget, reputation, facilities, etc.)
+- `generateFixtures()` — round-robin home and away.
+- `buildLeagueTable()` — processes played fixtures into sorted table.
+
+## Patterns
+- Use `crypto.randomUUID()` for all IDs.
+- Clamp values: `const clamp = (v, min=1, max=99) => Math.max(min, Math.min(max, Math.round(v)))`
+- Random pick: `const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)]`
+- Messages: use `addMsg()` helper, cap at 80 messages.
+
+## Don'ts
+- Don't access `localStorage` outside of `saveGame`/`loadGame`.
+- Don't import React or components into store/engine/utils files.
+- Don't put UI concerns (toasts, navigation) in store — return results and let components handle UI.
