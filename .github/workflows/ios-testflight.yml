@@ -58,6 +58,13 @@ jobs:
             <string>app-store-connect</string>
             <key>teamID</key>
             <string>S3U8B8HH96</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.dynastymanager</key>
+              <string>Dynasty Manager App Store</string>
+            </dict>
             <key>uploadBitcode</key>
             <false/>
             <key>uploadSymbols</key>
