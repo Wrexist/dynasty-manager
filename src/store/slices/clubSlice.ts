@@ -2,6 +2,7 @@ import { FormationType } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { selectBestLineup } from '@/utils/playerGen';
 import { autoFillBestTeam } from '@/utils/autoFillLineup';
+import { toast } from 'sonner';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -43,10 +44,16 @@ export const createClubSlice = (set: Set, get: Get) => ({
     const state = get();
     const club = { ...state.clubs[state.playerClubId] };
     const squad = club.playerIds.map(id => state.players[id]).filter(Boolean);
-    const { lineup, subs } = autoFillBestTeam(squad, club.formation, state.currentWeek);
-    club.lineup = lineup.map(p => p.id);
-    club.subs = subs.map(p => p.id);
+    const result = autoFillBestTeam(squad, club.formation, state.currentWeek);
+    club.lineup = result.lineup.map(p => p.id);
+    club.subs = result.subs.map(p => p.id);
     set({ clubs: { ...state.clubs, [club.id]: club } });
+
+    if (result.lineup.length < 11) {
+      toast.warning('Not enough available players to fill all positions');
+    } else {
+      toast.success(`Lineup optimized — Chemistry: ${result.chemistryLabel} (+${(result.chemistryBonus * 100).toFixed(1)}%)`);
+    }
   },
 
   setTrainingFocus: (f: GameState['trainingFocus']) => set({ trainingFocus: f }),

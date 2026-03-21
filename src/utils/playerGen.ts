@@ -175,7 +175,7 @@ export function generateSquad(clubId: string, quality: number, season: number): 
 }
 
 export function selectBestLineup(players: Player[], formation: FormationType, currentWeek?: number): { lineup: Player[]; subs: Player[] } {
-  const isAvailable = (p: Player) => !p.injured && !(p.suspendedUntilWeek && currentWeek !== undefined && p.suspendedUntilWeek > currentWeek);
+  const isAvailable = (p: Player) => !p.injured && !p.onLoan && !(p.suspendedUntilWeek && currentWeek !== undefined && p.suspendedUntilWeek > currentWeek);
   const slots = FORMATION_POSITIONS[formation];
   const selected: Player[] = [];
   const used = new Set<string>();
