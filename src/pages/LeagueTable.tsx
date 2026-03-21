@@ -13,13 +13,13 @@ const LeagueTable = () => {
   const [browseWeek, setBrowseWeek] = useState(week);
 
   const currentTable = divisionTables[selectedDiv] || [];
-  const currentFixtures = divisionFixtures[selectedDiv] || [];
   const currentDivision = DIVISIONS.find(d => d.id === selectedDiv);
 
   // Fixtures for the browsed week
   const weekFixtures = useMemo(() => {
+    const currentFixtures = divisionFixtures[selectedDiv] || [];
     return currentFixtures.filter(m => m.week === browseWeek);
-  }, [currentFixtures, browseWeek]);
+  }, [divisionFixtures, selectedDiv, browseWeek]);
 
   // Stats leaders for selected division
   const { topScorers, topAssisters } = useMemo(() => {

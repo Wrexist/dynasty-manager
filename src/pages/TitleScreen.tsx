@@ -26,6 +26,7 @@ const TitleScreen = () => {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const slots = useMemo(() => getSlotSummaries(), [refreshKey]);
   const handleContinue = (slot: number) => {
     if (loadGame(slot)) navigate('/game');

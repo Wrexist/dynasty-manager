@@ -75,7 +75,7 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed }
   useEffect(() => {
     if (allPlayed && !isCurrent && !playerTie) setExpanded(false);
     if (isCurrent) setExpanded(true);
-  }, [allPlayed, isCurrent]);
+  }, [allPlayed, isCurrent, playerTie]);
 
   // Player's match always shown at top
   const sortedTies = playerTie

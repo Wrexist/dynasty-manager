@@ -24,9 +24,9 @@ jobs:
       - name: Strip alpha channel from app icon
         run: |
           ICON=ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
-          sips -s format png --setProperty formatOptions 0 "$ICON" --out "$ICON.tmp"
-          sips -s format png -s hasAlpha false "$ICON.tmp" --out "$ICON"
-          rm -f "$ICON.tmp"
+          sips -s format jpeg -s formatOptions 100 "$ICON" --out "$ICON.jpg"
+          sips -s format png "$ICON.jpg" --out "$ICON"
+          rm -f "$ICON.jpg"
           echo "Alpha channel removed from app icon"
 
       - name: Set build number from run number
