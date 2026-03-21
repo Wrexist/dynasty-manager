@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/game';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
@@ -14,6 +14,7 @@ const typeIcon: Record<Message['type'], React.ElementType> = {
   transfer: ArrowLeftRight,
   contract: FileText,
   development: TrendingUp,
+  sponsorship: Handshake,
   general: Mail,
 };
 
@@ -23,6 +24,7 @@ const CATEGORY_FILTERS: { label: string; types: Message['type'][] }[] = [
   { label: 'Transfer', types: ['transfer'] },
   { label: 'Match', types: ['match_preview', 'match_result'] },
   { label: 'Player', types: ['development', 'injury', 'contract'] },
+  { label: 'Sponsors', types: ['sponsorship'] },
 ];
 
 const InboxPage = () => {

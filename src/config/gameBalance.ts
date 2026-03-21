@@ -126,7 +126,6 @@ export const COMMERCIAL_INCOME_PER_REP = 200000;
 export const STADIUM_INCOME_PER_LEVEL = 20000;
 export const POSITION_PRIZE_PER_RANK = 15000;
 export const POSITION_PRIZE_MAX_RANK = 21;
-export const SPONSORSHIP_REP_MULTIPLIER = 30000;
 export const MERCHANDISE_FAN_MULTIPLIER = 10000;
 export const SCOUTING_COST_PER_ASSIGNMENT = 25000;
 export const FAN_MOOD_BASE = 0.8;
@@ -241,3 +240,145 @@ export const PRESS_TRANSFER_RUMOUR_CHANCE = 0.3;
 export const PRESS_POOR_FORM_LOSSES = 3;
 export const PRESS_GOOD_FORM_WINS = 4;
 export const PRESS_BIG_MATCH_REP_GAP = 2;
+
+// ── Injury Types & Severity ──
+import type { InjuryType, InjurySeverity } from '@/types/game';
+
+export interface InjuryTypeConfig {
+  /** Display name */
+  label: string;
+  /** Weeks range by severity */
+  weeks: Record<InjurySeverity, [number, number]>;
+  /** Re-injury risk (0-1) by severity */
+  reinjuryRisk: Record<InjurySeverity, number>;
+  /** Weeks of elevated re-injury risk after return */
+  reinjuryDuration: Record<InjurySeverity, number>;
+  /** Fitness on return (0-100) by severity */
+  fitnessOnReturn: Record<InjurySeverity, number>;
+  /** Whether this injury type is caused by fouls (vs non-contact) */
+  foulRelated: boolean;
+}
+
+export const INJURY_TYPES: Record<InjuryType, InjuryTypeConfig> = {
+  knock: {
+    label: 'Knock',
+    weeks: { minor: [1, 1], moderate: [1, 2], severe: [2, 3] },
+    reinjuryRisk: { minor: 0.05, moderate: 0.08, severe: 0.12 },
+    reinjuryDuration: { minor: 2, moderate: 3, severe: 4 },
+    fitnessOnReturn: { minor: 85, moderate: 75, severe: 65 },
+    foulRelated: true,
+  },
+  muscle_strain: {
+    label: 'Muscle Strain',
+    weeks: { minor: [1, 2], moderate: [2, 3], severe: [3, 5] },
+    reinjuryRisk: { minor: 0.08, moderate: 0.15, severe: 0.22 },
+    reinjuryDuration: { minor: 3, moderate: 4, severe: 6 },
+    fitnessOnReturn: { minor: 80, moderate: 70, severe: 55 },
+    foulRelated: false,
+  },
+  hamstring: {
+    label: 'Hamstring Injury',
+    weeks: { minor: [2, 3], moderate: [3, 5], severe: [5, 8] },
+    reinjuryRisk: { minor: 0.12, moderate: 0.20, severe: 0.30 },
+    reinjuryDuration: { minor: 4, moderate: 6, severe: 8 },
+    fitnessOnReturn: { minor: 75, moderate: 60, severe: 50 },
+    foulRelated: false,
+  },
+  ligament: {
+    label: 'Ligament Damage',
+    weeks: { minor: [3, 5], moderate: [5, 10], severe: [10, 16] },
+    reinjuryRisk: { minor: 0.10, moderate: 0.18, severe: 0.25 },
+    reinjuryDuration: { minor: 4, moderate: 6, severe: 10 },
+    fitnessOnReturn: { minor: 70, moderate: 55, severe: 45 },
+    foulRelated: true,
+  },
+  fracture: {
+    label: 'Fracture',
+    weeks: { minor: [4, 6], moderate: [6, 10], severe: [10, 16] },
+    reinjuryRisk: { minor: 0.05, moderate: 0.08, severe: 0.10 },
+    reinjuryDuration: { minor: 3, moderate: 4, severe: 6 },
+    fitnessOnReturn: { minor: 65, moderate: 50, severe: 40 },
+    foulRelated: true,
+  },
+  concussion: {
+    label: 'Concussion',
+    weeks: { minor: [1, 2], moderate: [2, 4], severe: [4, 6] },
+    reinjuryRisk: { minor: 0.15, moderate: 0.25, severe: 0.35 },
+    reinjuryDuration: { minor: 4, moderate: 6, severe: 8 },
+    fitnessOnReturn: { minor: 80, moderate: 70, severe: 60 },
+    foulRelated: true,
+  },
+  acl: {
+    label: 'ACL Injury',
+    weeks: { minor: [12, 16], moderate: [16, 24], severe: [24, 36] },
+    reinjuryRisk: { minor: 0.15, moderate: 0.25, severe: 0.35 },
+    reinjuryDuration: { minor: 8, moderate: 12, severe: 16 },
+    fitnessOnReturn: { minor: 55, moderate: 40, severe: 30 },
+    foulRelated: false,
+  },
+};
+
+/** Probability weights for injury type selection (foul-related) */
+export const FOUL_INJURY_TYPE_WEIGHTS: Record<string, number> = {
+  knock: 40, fracture: 20, concussion: 15, ligament: 15, muscle_strain: 10,
+};
+
+/** Probability weights for injury type selection (non-foul) */
+export const NON_FOUL_INJURY_TYPE_WEIGHTS: Record<string, number> = {
+  muscle_strain: 35, hamstring: 30, knock: 15, ligament: 10, acl: 5, concussion: 5,
+};
+
+/** Severity distribution */
+export const INJURY_SEVERITY_WEIGHTS: Record<InjurySeverity, number> = {
+  minor: 50, moderate: 35, severe: 15,
+};
+
+/** How much medical facility level reduces match injury probability (per level, 1-10) */
+export const MEDICAL_INJURY_PREVENTION_PER_LEVEL = 0.015;
+
+/** How much medical facility level reduces re-injury risk (per level, 1-10) */
+export const MEDICAL_REINJURY_REDUCTION_PER_LEVEL = 0.02;
+
+/** Re-injury chance multiplier when a player with active reinjuryRisk plays a match */
+export const REINJURY_MATCH_CHECK_CHANCE = 0.5;
+
+// ── Financial Fair Play ──
+/** Wage-to-revenue ratio that triggers a warning */
+export const FFP_WAGE_RATIO_WARNING = 0.70;
+/** Wage-to-revenue ratio that triggers critical penalties */
+export const FFP_WAGE_RATIO_CRITICAL = 0.90;
+/** Board confidence penalty per week when above warning threshold */
+export const FFP_CONFIDENCE_PENALTY = 3;
+/** Board confidence penalty per week when above critical threshold */
+export const FFP_CRITICAL_CONFIDENCE_PENALTY = 6;
+
+// ── Training Focus Development ──
+/** Extra growth chance for attributes matching the player's training focus */
+export const TRAINING_FOCUS_BONUS = 0.03;
+/** Map training modules to boosted attribute groups */
+export const TRAINING_FOCUS_ATTR_MAP: Record<string, string[]> = {
+  attacking: ['shooting', 'passing'],
+  defending: ['defending', 'physical'],
+  fitness: ['pace', 'physical'],
+  mentality: ['mental', 'passing'],
+  'set-pieces': ['shooting', 'passing'],
+  tactical: ['mental', 'passing'],
+};
+
+// ── Player Unhappiness ──
+/** Morale threshold below which unhappiness weeks accumulate */
+export const UNHAPPY_THRESHOLD = 30;
+/** Weeks of low morale before player submits transfer request */
+export const UNHAPPY_WEEKS_TO_REQUEST = 4;
+/** Weeks of low morale before unhappiness spreads to teammates */
+export const UNHAPPY_CONTAGION_WEEKS = 6;
+/** Performance penalty for players wanting to leave (0-1) */
+export const UNHAPPY_PERFORMANCE_PENALTY = 0.05;
+/** Morale hit to random teammates from contagion */
+export const UNHAPPY_CONTAGION_MORALE_HIT = 3;
+
+// ── Free Agent Market ──
+/** Maximum free agents in the pool at any time */
+export const FREE_AGENT_POOL_MAX = 40;
+/** Chance per week that an AI club signs a free agent */
+export const AI_FREE_AGENT_SIGN_CHANCE = 0.08;

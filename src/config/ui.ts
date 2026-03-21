@@ -136,10 +136,12 @@ export const HELP_TEXTS = {
   morale: 'Average squad morale. Winning boosts morale, losing lowers it. Low morale hurts match performance.',
   budget: 'Your transfer budget. Income comes from matchday, commercial, and stadium revenue minus your weekly wage bill.',
   fanMood: 'Fan mood affects stadium atmosphere and income. Good results and winning streaks keep fans happy.',
-  trainingIntensity: 'Heavy training develops players faster but increases injury risk. Light training is safer but progress is slower.',
+  trainingIntensity: 'Training intensity affects development speed and injury risk. Heavy training develops players faster but increases injury risk. Light training recovers fitness but progress is slower. Medium balances both.',
   tacticalFamiliarity: 'How well your team knows the current formation. Higher familiarity improves match performance. Train "Tactical" to boost it.',
   transferBudget: 'Your available funds for buying players. Wage costs reduce your weekly income, so watch the wage bill too.',
   transferWindow: 'You can only buy/sell players during transfer windows: Weeks 1-8 (summer) and Weeks 20-24 (winter).',
+  chemistry: 'Chemistry reflects how well players work together. Players from the same nationality, with compatible positions, or who have played together longer build stronger links.',
+  form: 'A player\'s recent match performance. Good form boosts morale and match ratings. Poor form can lower confidence.',
 } as const;
 
 // ── Page Hints (first-visit tips) ──
@@ -155,6 +157,22 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
   transfers: {
     title: 'Transfer Guide',
     body: 'Browse the market and make offers during transfer windows. Add players to your shortlist to track them between sessions.',
+  },
+  squad: {
+    title: 'Squad Guide',
+    body: 'View your players, check fitness and morale, and spot injuries. Tap any player for full details. Keep squad depth balanced across positions.',
+  },
+  finance: {
+    title: 'Finance Guide',
+    body: 'Track your budget, wage bill, and income. Selling players and winning matches generate revenue. Keep wages under control to stay profitable.',
+  },
+  matchPrep: {
+    title: 'Match Prep Guide',
+    body: 'Review opponent formation, key threats, and form. Rotate tired players before kick-off. Tap "Edit Lineup" to make changes.',
+  },
+  matchDay: {
+    title: 'Match Day Guide',
+    body: 'Watch the match unfold minute-by-minute. At half-time you can make substitutions, change mentality, and give a team talk.',
   },
 } as const;
 

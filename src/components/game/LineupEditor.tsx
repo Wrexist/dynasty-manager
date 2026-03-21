@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/types/game';
-import { PITCH_COLORS, FITNESS_HEX_THRESHOLDS } from '@/config/ui';
+import { MAX_SUBS } from '@/config/playerGeneration';
+import { PITCH_COLORS } from '@/config/ui';
+import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { cn } from '@/lib/utils';
-import { DndContext, DragOverlay, useDraggable, useDroppable, useSensor, useSensors, PointerSensor, TouchSensor, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
+import { DndContext, DragOverlay, useDraggable, useDroppable, useSensor, useSensors, MouseSensor, TouchSensor, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { calculateChemistryLinks } from '@/utils/chemistry';
 import { PlayerAvatar } from './PlayerAvatar';
 
@@ -11,11 +13,6 @@ import { PlayerAvatar } from './PlayerAvatar';
 const VP_Y = 46;
 const VP_H = 59;
 const VP_W = 68;
-
-function getFitnessColor(fitness: number): string {
-  const threshold = FITNESS_HEX_THRESHOLDS.find(t => fitness >= t.min);
-  return threshold?.color || FITNESS_HEX_THRESHOLDS[FITNESS_HEX_THRESHOLDS.length - 1].color;
-}
 
 function getCompatibility(playerPos: Position, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
   if (playerPos === slotPos) return 'natural';
@@ -59,11 +56,19 @@ export function LineupEditor() {
   const [draggedId, setDraggedId] = useState<string | null>(null);
 
   // Sensors must be declared before any early returns (hooks rules)
-  const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 5 } });
-  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } });
-  const sensors = useSensors(pointerSensor, touchSensor);
+  const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 5 } });
+  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } });
+  const sensors = useSensors(mouseSensor, touchSensor);
 
   const club = clubs[playerClubId];
+
+  // Chemistry links for SVG lines (memoized — only recalculate when lineup changes)
+  const chemLinks = useMemo(() => {
+    if (!club) return [];
+    const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
+    return calculateChemistryLinks(lineupPlayers);
+  }, [club, players]);
+
   if (!club) return null;
 
   const slots = FORMATION_POSITIONS[club.formation];
@@ -124,12 +129,8 @@ export function LineupEditor() {
       }
     }
 
-    updateLineup(newLineup, newSubs.slice(0, 7));
+    updateLineup(newLineup, newSubs.slice(0, MAX_SUBS));
   };
-
-  // Chemistry links for SVG lines
-  const lineupPlayers = lineup.map(id => players[id]).filter(Boolean);
-  const chemLinks = calculateChemistryLinks(lineupPlayers);
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -196,9 +197,9 @@ export function LineupEditor() {
                       </svg>
                       <div
                         className="bg-black/70 rounded px-1 py-px -mt-0.5 text-center min-w-[34px]"
-                        style={{ borderBottom: `2px solid ${getFitnessColor(player.fitness)}` }}
+                        style={{ borderBottom: `2px solid ${getFitnessHexColor(player.fitness)}` }}
                       >
-                        <span className="text-[7px] text-white font-bold block leading-tight">{player.lastName.slice(0, 4)}</span>
+                        <span className="text-[7px] text-white font-bold block leading-tight">{player.lastName.slice(0, 3).toUpperCase()}</span>
                         <span className="text-[6px] text-gray-400 block leading-tight">{slot.pos} {player.overall}</span>
                       </div>
                     </div>
@@ -233,9 +234,9 @@ export function LineupEditor() {
                     </svg>
                     <div
                       className="bg-black/60 rounded px-1 py-px -mt-0.5 text-center min-w-[28px]"
-                      style={{ borderBottom: `1.5px solid ${getFitnessColor(p.fitness)}` }}
+                      style={{ borderBottom: `1.5px solid ${getFitnessHexColor(p.fitness)}` }}
                     >
-                      <span className="text-[6px] text-white font-bold block leading-tight">{p.lastName.slice(0, 4)}</span>
+                      <span className="text-[6px] text-white font-bold block leading-tight">{p.lastName.slice(0, 3).toUpperCase()}</span>
                       <span className="text-[5px] text-gray-400 block leading-tight">{p.position} {p.overall}</span>
                     </div>
                   </div>
@@ -254,7 +255,7 @@ export function LineupEditor() {
               <PlayerAvatar playerId={draggedPlayer.id} jerseyColor={club.color} size={32} />
             </svg>
             <div className="bg-black/80 rounded px-1.5 py-0.5 -mt-0.5 text-center shadow-lg">
-              <span className="text-[8px] text-white font-bold block leading-tight">{draggedPlayer.lastName.slice(0, 5)}</span>
+              <span className="text-[8px] text-white font-bold block leading-tight">{draggedPlayer.lastName.slice(0, 3).toUpperCase()}</span>
               <span className="text-[7px] text-gray-300 block leading-tight">{draggedPlayer.position} {draggedPlayer.overall}</span>
             </div>
           </div>

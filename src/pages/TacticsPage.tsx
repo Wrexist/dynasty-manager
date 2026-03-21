@@ -7,6 +7,7 @@ import { getRatingColor } from '@/utils/uiHelpers';
 import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
 import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft } from 'lucide-react';
+import { getFlag } from '@/utils/nationality';
 import { useState } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
@@ -110,35 +111,120 @@ const TacticsPage = () => {
       </GlassPanel>
 
       {/* Squad Chemistry */}
-      <GlassPanel className="p-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" />
-            <span className="text-xs font-semibold text-foreground">Squad Chemistry</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className={cn('text-xs font-bold', chemLabel.color)}>{chemLabel.label}</span>
-            <span className="text-[10px] text-muted-foreground">+{(chemBonus * 100).toFixed(1)}%</span>
-          </div>
-        </div>
-        {chemLinks.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {chemLinks.slice(0, 6).map((link, i) => {
-              const a = players[link.playerIdA];
-              const b = players[link.playerIdB];
-              const TypeIcon = link.type === 'nationality' ? Globe : link.type === 'mentor' ? BookOpen : Handshake;
-              return (
-                <span key={i} className="text-[9px] bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded inline-flex items-center gap-0.5">
-                  <TypeIcon className="w-2.5 h-2.5 inline" /> {a?.lastName?.slice(0, 3) || '?'}-{b?.lastName?.slice(0, 3) || '?'} {Array.from({ length: link.strength }).map((_, si) => <Star key={si} className="w-2 h-2 fill-current inline" />)}
-                </span>
-              );
-            })}
-            {chemLinks.length > 6 && (
-              <span className="text-[9px] text-muted-foreground px-1.5 py-0.5">+{chemLinks.length - 6} more</span>
+      {(() => {
+        const natLinks = chemLinks.filter(l => l.type === 'nationality');
+        const mentorLinks = chemLinks.filter(l => l.type === 'mentor');
+        const partnershipLinks = chemLinks.filter(l => l.type === 'partnership');
+        return (
+          <GlassPanel className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-primary" />
+                <span className="text-sm font-semibold text-foreground">Squad Chemistry</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className={cn('text-xs font-bold', chemLabel.color)}>{chemLabel.label}</span>
+                <span className="text-[10px] text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full">+{(chemBonus * 100).toFixed(1)}%</span>
+              </div>
+            </div>
+
+            {chemLinks.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-2">No chemistry links detected. Try players with shared nationality or compatible positions.</p>
             )}
-          </div>
-        )}
-      </GlassPanel>
+
+            <div className="space-y-3 max-h-[40vh] overflow-y-auto">
+              {/* Nationality Links */}
+              {natLinks.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Globe className="w-3.5 h-3.5 text-primary" />
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Nationality ({natLinks.length})</span>
+                  </div>
+                  <div className="space-y-1">
+                    {natLinks.map((link, i) => {
+                      const a = players[link.playerIdA];
+                      const b = players[link.playerIdB];
+                      if (!a || !b) return null;
+                      return (
+                        <div key={`nat-${i}`} className="flex items-center gap-2 bg-muted/20 rounded-lg px-2.5 py-1.5">
+                          <span className="text-sm">{getFlag(a.nationality)}</span>
+                          <span className="text-[11px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
+                          <div className="flex gap-0.5">
+                            {Array.from({ length: link.strength }).map((_, si) => (
+                              <Star key={si} className="w-2.5 h-2.5 text-primary fill-primary" />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Mentor Links */}
+              {mentorLinks.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Mentor ({mentorLinks.length})</span>
+                  </div>
+                  <div className="space-y-1">
+                    {mentorLinks.map((link, i) => {
+                      const a = players[link.playerIdA];
+                      const b = players[link.playerIdB];
+                      if (!a || !b) return null;
+                      const senior = a.age >= 28 ? a : b;
+                      const junior = senior === a ? b : a;
+                      return (
+                        <div key={`men-${i}`} className="flex items-center gap-2 bg-muted/20 rounded-lg px-2.5 py-1.5">
+                          <BookOpen className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <span className="text-[11px] text-foreground">{senior.lastName} mentoring {junior.lastName}</span>
+                            <span className="text-[9px] text-muted-foreground ml-1">({junior.position})</span>
+                          </div>
+                          <div className="flex gap-0.5">
+                            {Array.from({ length: link.strength }).map((_, si) => (
+                              <Star key={si} className="w-2.5 h-2.5 text-emerald-400 fill-emerald-400" />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Partnership Links */}
+              {partnershipLinks.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <Handshake className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Partnership ({partnershipLinks.length})</span>
+                  </div>
+                  <div className="space-y-1">
+                    {partnershipLinks.map((link, i) => {
+                      const a = players[link.playerIdA];
+                      const b = players[link.playerIdB];
+                      if (!a || !b) return null;
+                      return (
+                        <div key={`part-${i}`} className="flex items-center gap-2 bg-muted/20 rounded-lg px-2.5 py-1.5">
+                          <Handshake className="w-3 h-3 text-amber-400 shrink-0" />
+                          <span className="text-[11px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
+                          <div className="flex gap-0.5">
+                            {Array.from({ length: link.strength }).map((_, si) => (
+                              <Star key={si} className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </GlassPanel>
+        );
+      })()}
 
       {/* Style Presets */}
       <GlassPanel className="p-4">

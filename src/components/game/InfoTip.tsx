@@ -20,7 +20,7 @@ export function InfoTip({ text, className }: InfoTipProps) {
         aria-label="More info"
         aria-expanded={open}
       >
-        <Info className="w-2.5 h-2.5 text-primary/70" />
+        <Info className="w-3.5 h-3.5 text-primary/70" />
       </button>
       <AnimatePresence>
         {open && (

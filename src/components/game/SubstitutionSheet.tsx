@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { usePlayerClub } from '@/hooks/useGameSelectors';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -6,7 +6,9 @@ import { PitchView } from '@/components/game/PitchView';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
+import { POSITION_COMPATIBILITY, type Position } from '@/types/game';
 import { hapticMedium } from '@/utils/haptics';
+import { getFlag } from '@/utils/nationality';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRightLeft, Check, X } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
@@ -32,10 +34,33 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
     }
   }, [open]);
 
+  // Sort bench by position compatibility, then overall, then fitness
+  const sortedSubs = useMemo(() => {
+    if (!playerClub) return [];
+    const subs = playerClub.subs;
+    const selectedOutPlayer = selectedOutId ? players[selectedOutId] : null;
+    if (!selectedOutPlayer) return subs;
+    const outPos = selectedOutPlayer.position as Position;
+    const posScore = (playerPos: Position): number => {
+      if (playerPos === outPos) return 2;
+      const compat = POSITION_COMPATIBILITY[outPos] || [];
+      if (compat.includes(playerPos)) return 1;
+      return 0;
+    };
+    return [...subs].sort((a, b) => {
+      const pa = players[a];
+      const pb = players[b];
+      if (!pa || !pb) return 0;
+      const psDiff = posScore(pb.position as Position) - posScore(pa.position as Position);
+      if (psDiff !== 0) return psDiff;
+      if (pb.overall !== pa.overall) return pb.overall - pa.overall;
+      return pb.fitness - pa.fitness;
+    });
+  }, [playerClub, selectedOutId, players]);
+
   if (!playerClub) return null;
 
   const lineup = playerClub.lineup;
-  const subs = playerClub.subs;
   const subsRemaining = MAX_SUBSTITUTIONS - matchSubsUsed;
 
   const selectedOutPlayer = selectedOutId ? players[selectedOutId] : null;
@@ -131,7 +156,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                 <ArrowRightLeft className="w-3.5 h-3.5 text-destructive shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-foreground truncate">
-                    {selectedOutPlayer.firstName[0]}. {selectedOutPlayer.lastName}
+                    {getFlag(selectedOutPlayer.nationality)} {selectedOutPlayer.firstName[0]}. {selectedOutPlayer.lastName}
                   </p>
                   <p className="text-[10px] text-muted-foreground">{selectedOutPlayer.position} · OVR {selectedOutPlayer.overall} · FIT {Math.round(selectedOutPlayer.fitness)}%</p>
                 </div>
@@ -143,14 +168,19 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
               {/* Bench list */}
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Select Replacement</p>
               <div className="space-y-1 max-h-[36vh] overflow-y-auto">
-                {subs.map(id => {
+                {(() => { let bestShown = false; return sortedSubs.map((id) => {
                   const p = players[id];
                   if (!p || p.injured || (p.suspendedUntilWeek && p.suspendedUntilWeek > week)) return null;
+                  const isFirst = !bestShown;
+                  if (isFirst) bestShown = true;
                   return (
                     <button
                       key={id}
                       onClick={() => handleBenchClick(id)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg bg-card/40 border border-border/30 hover:bg-primary/10 hover:border-primary/30 transition-all text-left active:scale-[0.98]"
+                      className={cn(
+                        'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-all text-left active:scale-[0.98]',
+                        isFirst ? 'bg-primary/10 border-primary/30' : 'bg-card/40 border-border/30 hover:bg-primary/10 hover:border-primary/30'
+                      )}
                     >
                       <div className={cn(
                         'w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0',
@@ -159,14 +189,19 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                         {p.overall}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-foreground truncate">{p.firstName[0]}. {p.lastName}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-foreground truncate">{getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}</p>
+                          {isFirst && (
+                            <span className="text-[8px] font-bold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Best</span>
+                          )}
+                        </div>
                         <p className="text-[10px] text-muted-foreground">{p.position}</p>
                       </div>
                       <div className="text-right shrink-0">
                         <div className="flex items-center gap-1">
                           <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
                             <div
-                              className={cn('h-full rounded-full', p.fitness >= 70 ? 'bg-emerald-500' : p.fitness >= 50 ? 'bg-amber-500' : 'bg-destructive')}
+                              className={cn('h-full rounded-full', p.fitness >= 80 ? 'bg-emerald-500' : p.fitness >= 60 ? 'bg-amber-500' : 'bg-destructive')}
                               style={{ width: `${p.fitness}%` }}
                             />
                           </div>
@@ -175,7 +210,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                       </div>
                     </button>
                   );
-                })}
+                }); })()}
               </div>
             </motion.div>
           )}

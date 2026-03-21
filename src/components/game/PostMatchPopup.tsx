@@ -5,6 +5,7 @@ import { Trophy, TrendingUp, TrendingDown, Minus, Zap, Shield, Star } from 'luci
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { xpForLevel } from '@/utils/managerPerks';
+import { getSuffix } from '@/utils/helpers';
 
 interface PostMatchPopupProps {
   onContinue: () => void;
@@ -74,9 +75,16 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
                   {homeClub?.shortName}
                 </div>
               </div>
+              <div className="text-center">
               <p className="text-2xl font-black text-foreground tabular-nums font-display">
                 {currentMatchResult.homeGoals} - {currentMatchResult.awayGoals}
               </p>
+              {currentMatchResult.stats?.homeXG != null && (
+                <p className="text-[10px] text-muted-foreground tabular-nums mt-0.5">
+                  xG: {currentMatchResult.stats.homeXG.toFixed(1)} - {(currentMatchResult.stats.awayXG ?? 0).toFixed(1)}
+                </p>
+              )}
+            </div>
               <div className="text-center">
                 <div className="w-8 h-8 rounded-full mx-auto mb-0.5 flex items-center justify-center text-[9px] font-bold" style={{ backgroundColor: awayClub?.color, color: awayClub?.secondaryColor }}>
                   {awayClub?.shortName}
@@ -107,7 +115,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
                 'text-sm font-bold tabular-nums',
                 positionChange > 0 ? 'text-emerald-400' : positionChange < 0 ? 'text-destructive' : 'text-foreground'
               )}>
-                {currentPosition}{currentPosition === 1 ? 'st' : currentPosition === 2 ? 'nd' : currentPosition === 3 ? 'rd' : 'th'}
+                {currentPosition}{getSuffix(currentPosition)}
               </p>
               <p className="text-[9px] text-muted-foreground">
                 {positionChange > 0 ? `Up ${positionChange}` : positionChange < 0 ? `Down ${Math.abs(positionChange)}` : 'No change'}

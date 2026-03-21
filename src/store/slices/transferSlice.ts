@@ -8,6 +8,7 @@ import {
   COUNTER_OFFER_MIN_THRESHOLD, COUNTER_OFFER_MAX_THRESHOLD, COUNTER_OFFER_CHANCE,
   TRANSFER_SHARK_DISCOUNT,
 } from '@/config/transfers';
+import { MIN_SQUAD_SIZE } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -71,6 +72,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
   executeTransfer: (playerId: string, fee: number) => {
     const state = get();
+    if (!state.transferWindowOpen) return { success: false, message: 'Transfer window is closed.' };
     const listing = state.transferMarket.find(l => l.playerId === playerId);
     if (!listing) return { success: false, message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
@@ -83,10 +85,22 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     oldClub.playerIds = oldClub.playerIds.filter(id => id !== playerId);
     oldClub.lineup = oldClub.lineup.filter(id => id !== playerId);
     oldClub.subs = oldClub.subs.filter(id => id !== playerId);
-    oldClub.budget += fee;
     oldClub.wageBill -= player.wage;
 
-    // Sell-on clause: the selling club gets 10-20% on expensive transfers
+    // Honor existing sell-on clause: pay percentage to the previous club
+    const updatedClubs = { ...state.clubs };
+    let sellOnFee = 0;
+    let sellOnClubName = '';
+    if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== listing.sellerClubId) {
+      sellOnFee = Math.round(fee * (player.sellOnPercentage / 100));
+      sellOnClubName = state.clubs[player.sellOnClubId]?.name || 'former club';
+      const sellOnClub = { ...updatedClubs[player.sellOnClubId] };
+      sellOnClub.budget += sellOnFee;
+      updatedClubs[player.sellOnClubId] = sellOnClub;
+    }
+    oldClub.budget += fee - sellOnFee;
+
+    // New sell-on clause: the selling club gets 10-20% on expensive transfers
     const sellOnPct = fee >= 10_000_000 ? 10 + Math.floor(Math.random() * 11) : fee >= 5_000_000 ? 5 + Math.floor(Math.random() * 6) : 0;
     player.clubId = state.playerClubId;
     player.joinedSeason = state.season;
@@ -94,16 +108,20 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (sellOnPct > 0) {
       player.sellOnPercentage = sellOnPct;
       player.sellOnClubId = listing.sellerClubId;
+    } else {
+      player.sellOnPercentage = undefined;
+      player.sellOnClubId = undefined;
     }
     newClub.playerIds.push(playerId);
     newClub.budget -= fee;
     newClub.wageBill += player.wage;
 
     const transferMarket = state.transferMarket.filter(l => l.playerId !== playerId);
+    const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${sellOnClubName})` : '';
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Signed!`,
-      body: `${player.firstName} ${player.lastName} has joined ${newClub.name} from ${oldClub.name} for £${(fee / 1e6).toFixed(1)}M.`,
+      body: `${player.firstName} ${player.lastName} has joined ${newClub.name} from ${oldClub.name} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}`,
     });
 
     const ms = { ...state.managerStats, totalSpent: state.managerStats.totalSpent + fee };
@@ -112,13 +130,15 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const newTimeline = isRecordSigning
       ? [...state.careerTimeline, { id: crypto.randomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${player.firstName} ${player.lastName} for £${(fee / 1e6).toFixed(1)}M from ${oldClub.name}.`, season: state.season, week: state.week, icon: 'pen-line' }]
       : state.careerTimeline;
+    updatedClubs[oldClub.id] = oldClub;
+    updatedClubs[newClub.id] = newClub;
     set({
       players: { ...state.players, [playerId]: player },
-      clubs: { ...state.clubs, [oldClub.id]: oldClub, [newClub.id]: newClub },
+      clubs: updatedClubs,
       transferMarket, messages: newMessages, managerStats: ms,
       careerTimeline: newTimeline,
     });
-    return { success: true, message: `${player.firstName} ${player.lastName} signed!` };
+    return { success: true, message: `${player.firstName} ${player.lastName} signed!${sellOnNote}` };
   },
 
   makeOffer: (playerId: string, fee: number) => {
@@ -139,7 +159,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const player = state.players[playerId];
     if (!player || player.clubId !== state.playerClubId) return;
     const newPlayers = { ...state.players, [playerId]: { ...player, listedForSale: true } };
-    const newMarket = [...state.transferMarket, { playerId, askingPrice: Math.round(player.value * LIST_PRICE_MULTIPLIER), sellerClubId: state.playerClubId }];
+    const askingPrice = Math.max(50_000, Math.round(player.value * LIST_PRICE_MULTIPLIER));
+    const newMarket = [...state.transferMarket, { playerId, askingPrice, sellerClubId: state.playerClubId }];
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Listed`,
@@ -174,6 +195,12 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `Bid Rejected`, body: `You rejected ${buyerClub.name}'s £${(offer.fee / 1e6).toFixed(1)}M bid for ${player.lastName}.` });
       set({ incomingOffers: newOffers, messages: msg });
       return { success: true, message: 'Offer rejected.' };
+    }
+
+    // Prevent selling if squad would drop below minimum
+    const sellerClubData = state.clubs[state.playerClubId];
+    if (sellerClubData && sellerClubData.playerIds.length <= MIN_SQUAD_SIZE) {
+      return { success: false, message: `Cannot sell — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
     }
 
     const newPlayers = { ...state.players };
@@ -219,10 +246,40 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     set({
       players: newPlayers,
       clubs: updatedClubs,
-      transferMarket: newMarket, incomingOffers: newOffers.filter(o => o.playerId !== offer.playerId), messages: msg, managerStats: ms,
+      transferMarket: newMarket, incomingOffers: newOffers.filter(o => o.playerId !== offer.playerId), incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== offer.playerId), messages: msg, managerStats: ms,
       ...(pendingFarewell ? { pendingFarewell } : {}),
     });
     return { success: true, message: `${player.firstName} ${player.lastName} sold for £${(offer.fee / 1e6).toFixed(1)}M!${sellOnNote}` };
+  },
+
+  signFreeAgent: (playerId: string, wage: number, years: number) => {
+    const state = get();
+    if (!state.freeAgents.includes(playerId)) return { success: false, message: 'Player is not a free agent.' };
+    const player = state.players[playerId];
+    if (!player) return { success: false, message: 'Player not found.' };
+    const club = { ...state.clubs[state.playerClubId] };
+    // Signing bonus: 4 weeks of wages per year
+    const signingBonus = Math.round(wage * years * SIGNING_BONUS_WEEKS_PER_YEAR);
+    if (club.budget < signingBonus) return { success: false, message: `Insufficient funds for signing bonus (£${(signingBonus / 1e6).toFixed(1)}M).` };
+
+    club.budget -= signingBonus;
+    club.playerIds = [...club.playerIds, playerId];
+    club.wageBill += wage;
+
+    const updatedPlayer = { ...player, clubId: state.playerClubId, wage, contractEnd: state.season + years, joinedSeason: state.season, listedForSale: false };
+    const newMessages = addMsg(state.messages, {
+      week: state.week, season: state.season, type: 'transfer',
+      title: `${player.lastName} Signed (Free)`,
+      body: `${player.firstName} ${player.lastName} has joined on a free transfer. ${years}-year contract at £${(wage / 1000).toFixed(0)}K/week.`,
+    });
+
+    set({
+      players: { ...state.players, [playerId]: updatedPlayer },
+      clubs: { ...state.clubs, [club.id]: club },
+      freeAgents: state.freeAgents.filter(id => id !== playerId),
+      messages: newMessages,
+    });
+    return { success: true, message: `${player.firstName} ${player.lastName} signed on a free transfer!` };
   },
 
   renewContract: (playerId: string, years: number, newWage: number) => {

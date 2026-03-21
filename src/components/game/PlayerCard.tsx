@@ -4,6 +4,7 @@ import { GlassPanel } from './GlassPanel';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown, HeartPulse } from 'lucide-react';
 import { getRatingColor, getFitnessColor } from '@/utils/uiHelpers';
+import { getFlag } from '@/utils/nationality';
 
 interface PlayerCardProps {
   player: Player;
@@ -24,7 +25,7 @@ export const PlayerCard = memo(function PlayerCard({ player, onClick, compact }:
             {player.growthDelta && player.growthDelta > 0 && <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />}
             {player.growthDelta && player.growthDelta < 0 && <TrendingDown className="w-3 h-3 text-destructive shrink-0" />}
           </div>
-          <p className="text-xs text-muted-foreground">{player.position} • {player.age}y</p>
+          <p className="text-xs text-muted-foreground">{getFlag(player.nationality)} {player.position} • {player.age}y</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {player.listedForSale && <span className="text-primary text-[10px] font-bold">LISTED</span>}
@@ -47,7 +48,7 @@ export const PlayerCard = memo(function PlayerCard({ player, onClick, compact }:
             {player.growthDelta && player.growthDelta > 0 && <TrendingUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
             {player.growthDelta && player.growthDelta < 0 && <TrendingDown className="w-3.5 h-3.5 text-destructive shrink-0" />}
           </div>
-          <p className="text-sm text-muted-foreground">{player.position} • {player.age} • {player.nationality}</p>
+          <p className="text-sm text-muted-foreground">{player.position} • {player.age} • {getFlag(player.nationality)} {player.nationality}</p>
         </div>
         <div className="text-right text-xs space-y-1">
           <p className="text-muted-foreground">FIT {player.fitness}%</p>
@@ -60,6 +61,7 @@ export const PlayerCard = memo(function PlayerCard({ player, onClick, compact }:
   prev.player.id === next.player.id &&
   prev.player.overall === next.player.overall &&
   prev.player.fitness === next.player.fitness &&
+  prev.player.morale === next.player.morale &&
   prev.player.injured === next.player.injured &&
   prev.compact === next.compact
 );

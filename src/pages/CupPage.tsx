@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
-import { getRoundName, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
+import { getRoundName, getCupWeek, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
 import { cn } from '@/lib/utils';
-import { Trophy, Shield, ChevronRight, ChevronDown } from 'lucide-react';
+import { Trophy, Shield, ChevronRight, ChevronDown, Calendar } from 'lucide-react';
 import type { CupRound, CupTie } from '@/types/game';
 
 function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: string; clubs: Record<string, { name: string; shortName: string; color: string }> }) {
@@ -58,13 +58,15 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
   );
 }
 
-function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed }: {
+function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, currentWeek, roundWeek }: {
   round: CupRound;
   ties: CupTie[];
   playerClubId: string;
   clubs: Record<string, { name: string; shortName: string; color: string }>;
   isCurrent: boolean;
   allPlayed: boolean;
+  currentWeek: number;
+  roundWeek: number;
 }) {
   // Auto-expand current round and rounds with player matches; collapse completed large rounds
   const playerTie = ties.find(t => t.homeClubId === playerClubId || t.awayClubId === playerClubId);
@@ -81,6 +83,9 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed }
   const sortedTies = playerTie
     ? [playerTie, ...ties.filter(t => t.id !== playerTie.id)]
     : ties;
+
+  const weeksAway = roundWeek - currentWeek;
+  const isUpcoming = !allPlayed && weeksAway > 0;
 
   return (
     <div className="space-y-2">
@@ -105,6 +110,13 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed }
         {isCurrent && (
           <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">
             Current
+          </span>
+        )}
+        {!allPlayed && (
+          <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground ml-auto shrink-0">
+            <Calendar className="w-2.5 h-2.5" />
+            Week {roundWeek}
+            {isUpcoming && ` · in ${weeksAway}w`}
           </span>
         )}
       </button>
@@ -135,7 +147,7 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed }
 }
 
 const CupPage = () => {
-  const { cup, clubs, playerClubId } = useGameStore();
+  const { cup, clubs, playerClubId, week } = useGameStore();
 
   if (!cup || !cup.ties.length) {
     return (
@@ -166,7 +178,7 @@ const CupPage = () => {
               : playerEliminated
                 ? 'You have been eliminated'
                 : cup.currentRound
-                  ? `Current: ${getRoundName(cup.currentRound)}`
+                  ? `Current: ${getRoundName(cup.currentRound)} · Week ${getCupWeek(cup.currentRound)}`
                   : 'Complete'}
           </p>
         </div>
@@ -192,6 +204,7 @@ const CupPage = () => {
 
         const allPlayed = ties.every(t => t.played);
         const isCurrent = cup.currentRound === round;
+        const roundWeek = getCupWeek(round as CupRound);
 
         return (
           <RoundSection
@@ -202,6 +215,8 @@ const CupPage = () => {
             clubs={clubs}
             isCurrent={isCurrent}
             allPlayed={allPlayed}
+            currentWeek={week}
+            roundWeek={roundWeek}
           />
         );
       })}

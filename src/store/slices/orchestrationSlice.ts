@@ -1,7 +1,7 @@
-import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, DivisionId, PlayoffState } from '@/types/game';
+import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, DivisionId, PlayoffState } from '@/types/game';
 import { CLUBS_DATA, buildLeagueTable, getClubsByDivision, generateAllDivisionFixtures, buildAllDivisionTables, DERBIES, DIVISIONS, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
-import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
+import { simulateMatch, simulateHalf, finalizeMatch, type HalfState } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
 import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity } from '@/utils/training';
 import { completeAssignment } from '@/utils/scouting';
@@ -11,7 +11,7 @@ import { addMsg, getSuffix, pick, shuffle } from '@/utils/helpers';
 import { migrateLegacySave } from '@/store/helpers/persistence';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS } from '@/utils/achievements';
-import { generateCupDraw, advanceCupRound, getCupResultForClub } from '@/data/cup';
+import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName } from '@/data/cup';
 import { generatePressConference } from '@/data/pressConferences';
 import { getMentorBonus } from '@/utils/chemistry';
 import { checkChallengeComplete, checkChallengeFailed, CHALLENGES } from '@/data/challenges';
@@ -22,14 +22,13 @@ import { getFarewellSummary } from '@/utils/playerNarratives';
 import {
   TOTAL_WEEKS, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY,
   CONFIDENCE_MIN,
-  MATCH_INJURY_WEEKS_MIN, MATCH_INJURY_WEEKS_RANGE, TRAINING_INJURY_WEEKS_MIN, TRAINING_INJURY_WEEKS_RANGE,
   RED_CARD_SUSPENSION_MIN, RED_CARD_SUSPENSION_RANGE,
   PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_INJURY_REDUCTION_PER_QUALITY, ASSISTANT_MANAGER_FAMILIARITY_BOOST,
   CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_OVERALL_THRESHOLD,
   CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_MIN,
   MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, STADIUM_INCOME_PER_LEVEL,
   POSITION_PRIZE_PER_RANK, POSITION_PRIZE_MAX_RANK,
-  SPONSORSHIP_REP_MULTIPLIER, MERCHANDISE_FAN_MULTIPLIER, SCOUTING_COST_PER_ASSIGNMENT,
+  MERCHANDISE_FAN_MULTIPLIER, SCOUTING_COST_PER_ASSIGNMENT,
   FAN_MOOD_BASE, FAN_MOOD_SCALE,
   STADIUM_LEVEL_DIVISOR, MEDICAL_LEVEL_FACTOR, FACILITY_MAX_LEVEL,
   SEASON_END_CONFIDENCE,
@@ -49,6 +48,9 @@ import {
   CONGESTED_FIXTURE_INJURY_MULTIPLIER,
   MOTIVATOR_MORALE_BOOST, YOUTH_DEVELOPER_BOOST,
   VALUE_AGE_MULTIPLIERS,
+  FFP_WAGE_RATIO_WARNING, FFP_WAGE_RATIO_CRITICAL, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY,
+  FREE_AGENT_POOL_MAX, AI_FREE_AGENT_SIGN_CHANCE,
+  UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_CONTAGION_MORALE_HIT,
 } from '@/config/gameBalance';
 import {
   SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END,
@@ -56,6 +58,7 @@ import {
   AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD,
   URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS,
   OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
+  RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM,
 } from '@/config/transfers';
 import { PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
 import { VALUE_OVERALL_MULTIPLIER, VALUE_RANDOM_RANGE } from '@/config/playerGeneration';
@@ -75,11 +78,18 @@ import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
 import { getWinStreak } from '@/utils/celebrations';
 import { generateWeeklyObjectives, evaluateObjectives } from '@/utils/weeklyObjectives';
 import type { ObjectiveContext } from '@/utils/weeklyObjectives';
+import { generateAIManagerProfile } from '@/config/aiManager';
+import {
+  INJURY_TYPES, NON_FOUL_INJURY_TYPE_WEIGHTS,
+  INJURY_SEVERITY_WEIGHTS,
+} from '@/config/gameBalance';
+import type { InjuryType, InjurySeverity, InjuryDetails } from '@/types/game';
 import { createMilestone } from '@/utils/milestones';
 import { createDefaultProgression, grantXP, XP_REWARDS, MANAGER_PERKS, canUnlockPerk, hasPerk } from '@/utils/managerPerks';
 import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
 import type { CareerMilestone, PerkId, ManagerProgression } from '@/types/game';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
+import { processSponsorWeek, processSponsorSeasonEnd, generateStarterDeals } from '@/store/slices/sponsorSlice';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -88,6 +98,33 @@ type Get = () => GameState;
 export { getSlotSummaries } from '@/store/helpers/persistence';
 
 
+
+/** Weighted random pick from a record of weights */
+function weightedPickFromRecord<T extends string>(weights: Record<T, number>): T {
+  const entries = Object.entries(weights) as [T, number][];
+  const total = entries.reduce((s, [, w]) => s + (w as number), 0);
+  let r = Math.random() * total;
+  for (const [key, weight] of entries) {
+    r -= weight as number;
+    if (r <= 0) return key;
+  }
+  return entries[entries.length - 1][0];
+}
+
+/** Generate injury details for AI match processing */
+function generateAIInjuryDetails(_medicalLevel: number = 5): InjuryDetails {
+  const type = weightedPickFromRecord(NON_FOUL_INJURY_TYPE_WEIGHTS) as InjuryType;
+  const severity = weightedPickFromRecord(INJURY_SEVERITY_WEIGHTS) as InjurySeverity;
+  const config = INJURY_TYPES[type];
+  const [minWeeks, maxWeeks] = config.weeks[severity];
+  const weeks = Math.max(1, minWeeks + Math.floor(Math.random() * (maxWeeks - minWeeks + 1)));
+  return {
+    type, severity, weeksRemaining: weeks, totalWeeks: weeks,
+    reinjuryRisk: config.reinjuryRisk[severity],
+    reinjuryWeeksRemaining: config.reinjuryDuration[severity],
+    fitnessOnReturn: config.fitnessOnReturn[severity],
+  };
+}
 
 function generateObjectives(club: Club, divisionId?: DivisionId): BoardObjective[] {
   const objectives: BoardObjective[] = [];
@@ -208,10 +245,22 @@ function advancePlayoffWeek(set: Set, get: Get) {
     if (p.injured) {
       const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD ? 1 : 0;
       p.injuryWeeks = Math.max(0, p.injuryWeeks - 1 - recoveryBoost);
+      if (p.injuryDetails) {
+        p.injuryDetails = { ...p.injuryDetails, weeksRemaining: p.injuryWeeks };
+      }
       if (p.injuryWeeks === 0) {
         p.injured = false;
+        if (p.injuryDetails) {
+          p.fitness = p.injuryDetails.fitnessOnReturn;
+          p.injuryDetails = { ...p.injuryDetails, weeksRemaining: 0 };
+        }
         newMessages = addMsg(newMessages, { week: newWeek, season, type: 'injury', title: `${p.lastName} Returns`, body: `${p.firstName} ${p.lastName} has recovered and is available for the playoffs.` });
       }
+    }
+    // Decrement re-injury risk window
+    if (!p.injured && p.injuryDetails && p.injuryDetails.reinjuryWeeksRemaining > 0) {
+      p.injuryDetails = { ...p.injuryDetails, reinjuryWeeksRemaining: p.injuryDetails.reinjuryWeeksRemaining - 1 };
+      if (p.injuryDetails.reinjuryWeeksRemaining === 0) p.injuryDetails = undefined;
     }
     if (p.suspendedUntilWeek && p.suspendedUntilWeek <= newWeek) {
       p.suspendedUntilWeek = undefined;
@@ -296,6 +345,7 @@ function advancePlayoffWeek(set: Set, get: Get) {
       const { lineup, subs } = selectBestLineup(squad, '4-4-2');
       newClub.lineup = lineup.map(p => p.id);
       newClub.subs = subs.map(p => p.id);
+      newClub.aiManagerProfile = generateAIManagerProfile(clubId, clubData.reputation);
       workingClubs[clubId] = newClub;
       postPromRelDivClubs['div-4'].push(clubId);
       promRel.newClubs.push(clubId);
@@ -392,6 +442,10 @@ function advancePlayoffWeek(set: Set, get: Get) {
     });
   }
 
+  // Process sponsorship system during playoffs
+  const sponsorUpdates = processSponsorWeek({ ...state, week: newWeek, players: newPlayers, messages: newMessages, currentMatchResult: state.currentMatchResult });
+  if (sponsorUpdates.messages) newMessages = sponsorUpdates.messages;
+
   set({
     week: newWeek,
     fixtures: updatedFixtures,
@@ -400,6 +454,9 @@ function advancePlayoffWeek(set: Set, get: Get) {
     playoffs: updatedPlayoffs,
     currentMatchResult: null,
     matchSubsUsed: 0,
+    sponsorDeals: sponsorUpdates.sponsorDeals || state.sponsorDeals,
+    sponsorOffers: sponsorUpdates.sponsorOffers || state.sponsorOffers,
+    sponsorSlotCooldowns: sponsorUpdates.sponsorSlotCooldowns || state.sponsorSlotCooldowns,
   });
 }
 
@@ -519,6 +576,7 @@ function endSeasonImpl(set: Set, get: Get) {
     const { lineup, subs } = selectBestLineup(squad, '4-4-2');
     newClub.lineup = lineup.map(p => p.id);
     newClub.subs = subs.map(p => p.id);
+    newClub.aiManagerProfile = generateAIManagerProfile(clubId, clubData.reputation);
     workingClubs[clubId] = newClub;
     postPromRelDivClubs['div-4'].push(clubId);
     promRel.newClubs.push(clubId);
@@ -585,10 +643,11 @@ function finalizeSeason(
 
   const newPlayers: Record<string, Player> = {};
   const newClubs = { ...inputClubs };
+  const freeAgentIds: string[] = [];
   let bestFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] } | null = null;
 
   Object.values(inputPlayers).forEach(p => {
-    const aged = { ...p, age: p.age + 1, goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0, suspendedUntilWeek: undefined, growthDelta: 0, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined };
+    const aged = { ...p, age: p.age + 1, goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0, suspendedUntilWeek: undefined, growthDelta: 0, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false };
     if (aged.contractEnd <= season) {
       const club = newClubs[aged.clubId];
       if (club) {
@@ -605,6 +664,14 @@ function finalizeSeason(
             bestFarewell = { playerId: p.id, playerName: `${p.firstName} ${p.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats };
           }
         }
+      }
+      // Route to free agent pool instead of deleting (up to max pool size)
+      if (aged.age <= 34 && aged.overall >= 55 && freeAgentIds.length < FREE_AGENT_POOL_MAX) {
+        aged.clubId = '';
+        aged.listedForSale = false;
+        aged.wage = Math.round(aged.wage * 0.8); // Free agents accept lower wages
+        newPlayers[aged.id] = aged;
+        freeAgentIds.push(aged.id);
       }
       return;
     }
@@ -715,6 +782,15 @@ function finalizeSeason(
     }
   }
 
+  // Process sponsor season-end: evaluate bonuses, expire deals
+  const sponsorSeasonEnd = processSponsorSeasonEnd(state);
+  if (sponsorSeasonEnd.clubs) {
+    for (const [id, club] of Object.entries(sponsorSeasonEnd.clubs)) {
+      newClubs[id] = club;
+    }
+  }
+  if (sponsorSeasonEnd.messages) newMessages = sponsorSeasonEnd.messages;
+
   set({
     season: newSeason, week: 1, totalWeeks: TOTAL_WEEKS, transferWindowOpen: true,
     seasonPhase: 'regular',
@@ -725,7 +801,11 @@ function finalizeSeason(
     transferMarket, boardObjectives: objectives, boardConfidence: newConfidence,
     seasonHistory: [...state.seasonHistory, history],
     currentMatchResult: null, currentScreen: 'season-summary',
+    matchPhase: 'none' as const, pendingPressConference: null,
     messages: newMessages, incomingOffers: [], matchSubsUsed: 0, shortlist: [], scoutWatchList: [],
+    sponsorDeals: sponsorSeasonEnd.sponsorDeals || state.sponsorDeals,
+    sponsorOffers: [],
+    sponsorSlotCooldowns: {},
     youthAcademy: { prospects: newYouthProspects, nextIntakePreview: newIntakePreview },
     staff: { ...state.staff, availableHires: newAvailableHires },
     scouting: { ...state.scouting, assignments: [], reports: [] },
@@ -734,6 +814,7 @@ function finalizeSeason(
     activeChallenge: endChallenge,
     activeStorylineChains: [],
     pendingStoryline: null,
+    freeAgents: freeAgentIds,
     ...(bestFarewell ? { pendingFarewell: bestFarewell } : {}),
     playoffs, lastPromotionRelegation: promRel,
     // Career milestones & manager XP at end of season
@@ -796,6 +877,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const { lineup, subs } = selectBestLineup(squad, '4-3-3');
       club.lineup = lineup.map(p => p.id);
       club.subs = subs.map(p => p.id);
+      // Assign AI manager profiles to non-player clubs
+      if (club.id !== clubId) {
+        club.aiManagerProfile = generateAIManagerProfile(club.id, cd.reputation);
+      }
       clubs[club.id] = club;
     });
 
@@ -848,9 +933,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable,
       divisionFixtures, divisionTables, divisionClubs, playerDivision,
       playoffs: [], lastPromotionRelegation: null, derbies: DERBIES,
-      transferMarket, shortlist: [], scoutWatchList: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
+      transferMarket, shortlist: [], scoutWatchList: [], freeAgents: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
-      messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none',
+      messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', currentCupTieId: null,
       settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: false },
       tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
       training: {
@@ -878,6 +963,17 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pendingStoryline: null,
       activeStorylineChains: [],
       pendingFarewell: null,
+      sponsorDeals: generateStarterDeals(pcInit.reputation, 1),
+      sponsorOffers: [],
+      sponsorSlotCooldowns: {},
+      fanMood: 50,
+      pendingPressConference: null,
+      halfTimeState: null,
+      preMatchLeaguePosition: 0,
+      seasonPhase: 'regular',
+      activeNegotiation: null,
+      selectedPlayerId: null,
+      lastMatchXPGain: 0,
     });
   },
 
@@ -914,10 +1010,27 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       if (p.injured) {
         const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD ? 1 : 0;
         p.injuryWeeks = Math.max(0, p.injuryWeeks - 1 - recoveryBoost);
+        if (p.injuryDetails) {
+          p.injuryDetails = { ...p.injuryDetails, weeksRemaining: p.injuryWeeks };
+        }
         if (p.injuryWeeks === 0) {
           p.injured = false;
+          // Set fitness on return based on injury severity
+          if (p.injuryDetails) {
+            p.fitness = p.injuryDetails.fitnessOnReturn;
+            // Keep reinjury risk active for a period after return
+            p.injuryDetails = { ...p.injuryDetails, weeksRemaining: 0 };
+          }
           digestRecoveries.push(p.lastName);
-          newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `${p.lastName} Returns`, body: `${p.firstName} ${p.lastName} has recovered from injury and is available for selection.` });
+          const injLabel = p.injuryDetails ? INJURY_TYPES[p.injuryDetails.type].label : 'injury';
+          newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `${p.lastName} Returns`, body: `${p.firstName} ${p.lastName} has recovered from ${injLabel} and is available for selection.${p.injuryDetails && p.injuryDetails.reinjuryRisk > 0.1 ? ' Caution: elevated re-injury risk.' : ''}` });
+        }
+      }
+      // Decrement re-injury risk window for recovered players
+      if (!p.injured && p.injuryDetails && p.injuryDetails.reinjuryWeeksRemaining > 0) {
+        p.injuryDetails = { ...p.injuryDetails, reinjuryWeeksRemaining: p.injuryDetails.reinjuryWeeksRemaining - 1 };
+        if (p.injuryDetails.reinjuryWeeksRemaining === 0) {
+          p.injuryDetails = undefined;
         }
       }
       if (p.suspendedUntilWeek && p.suspendedUntilWeek <= week) {
@@ -937,10 +1050,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const congestionFactor = (hasCupThisWeek && hasLeagueThisWeek) ? CONGESTED_FIXTURE_INJURY_MULTIPLIER : 1;
         const injuryRisk = baseInjuryRisk * physioReduction * perkReduction * congestionFactor;
         if (Math.random() < injuryRisk && !p.injured) {
+          const injDetails = generateAIInjuryDetails(facilities.medical);
           p.injured = true;
-          p.injuryWeeks = TRAINING_INJURY_WEEKS_MIN + Math.floor(Math.random() * TRAINING_INJURY_WEEKS_RANGE);
+          p.injuryWeeks = injDetails.weeksRemaining;
+          p.injuryDetails = injDetails;
           digestInjuries.push(p.lastName);
-          newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `${p.lastName} Injured in Training`, body: `${p.firstName} ${p.lastName} picked up an injury during training. Out for ${p.injuryWeeks} week(s).` });
+          const injLabel = INJURY_TYPES[injDetails.type].label;
+          newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `${p.lastName} Injured in Training`, body: `${p.firstName} ${p.lastName} picked up a ${injDetails.severity} ${injLabel} during training. Out for ${p.injuryWeeks} week(s).` });
         }
       }
 
@@ -956,6 +1072,42 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       // Benched players gradually lose morale
       if (!playerClub.lineup.includes(pid) && !playerClub.subs.includes(pid) && !p.injured) {
         p.morale = Math.max(MORALE_BENCH_MIN, p.morale - MORALE_BENCH_WEEKLY_LOSS);
+      }
+
+      // Track consecutive low morale weeks and escalate unhappiness
+      if (p.morale < UNHAPPY_THRESHOLD) {
+        p.lowMoraleWeeks = (p.lowMoraleWeeks || 0) + 1;
+        if (p.lowMoraleWeeks === UNHAPPY_WEEKS_TO_REQUEST && !p.wantsToLeave) {
+          p.wantsToLeave = true;
+          p.listedForSale = true;
+          newMessages = addMsg(newMessages, {
+            week, season, type: 'transfer',
+            title: `${p.lastName} Wants Out!`,
+            body: `${p.firstName} ${p.lastName} has submitted a transfer request after weeks of low morale. The player wants to leave the club.`,
+          });
+        }
+        if (p.lowMoraleWeeks >= UNHAPPY_CONTAGION_WEEKS) {
+          // Morale contagion: affect 2 random teammates
+          const teammates = playerClub.playerIds.filter(id => id !== pid);
+          const shuffled = [...teammates].sort(() => Math.random() - 0.5);
+          for (let ti = 0; ti < Math.min(2, shuffled.length); ti++) {
+            const tmId = shuffled[ti];
+            if (newPlayers[tmId]) {
+              newPlayers[tmId] = { ...newPlayers[tmId], morale: Math.max(0, newPlayers[tmId].morale - UNHAPPY_CONTAGION_MORALE_HIT) };
+            }
+          }
+        }
+      } else {
+        // Reset low morale tracking when morale improves
+        if (p.lowMoraleWeeks) p.lowMoraleWeeks = 0;
+        if (p.wantsToLeave && p.morale >= 50) {
+          p.wantsToLeave = false;
+          newMessages = addMsg(newMessages, {
+            week, season, type: 'general',
+            title: `${p.lastName} Settled`,
+            body: `${p.firstName} ${p.lastName} appears to have settled down and withdrawn the transfer request.`,
+          });
+        }
       }
 
       newPlayers[pid] = p;
@@ -1022,7 +1174,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
           }
           if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
-            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: MATCH_INJURY_WEEKS_MIN + Math.floor(Math.random() * MATCH_INJURY_WEEKS_RANGE) };
+            const injDetails = generateAIInjuryDetails(clubs[newPlayers[ev.playerId].clubId]?.facilities);
+            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: injDetails.weeksRemaining, injuryDetails: injDetails };
           }
           if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
             newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
@@ -1042,6 +1195,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       if (!hc || !ac) continue;
       const hp = hc.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
       const ap = ac.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
+      // Forfeit if either team has no available players
+      if (hp.length === 0 || ap.length === 0) {
+        const forfeit = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : 3, awayGoals: ap.length === 0 ? 0 : 3, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
+        updatedFixtures[idx] = forfeit;
+        continue;
+      }
       const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId));
       updatedFixtures[idx] = result;
 
@@ -1053,7 +1212,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
         }
         if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
-          newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: MATCH_INJURY_WEEKS_MIN + Math.floor(Math.random() * MATCH_INJURY_WEEKS_RANGE) };
+          const injDetails = generateAIInjuryDetails(clubs[newPlayers[ev.playerId].clubId]?.facilities);
+          newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: injDetails.weeksRemaining, injuryDetails: injDetails };
         }
         if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
           newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
@@ -1077,6 +1237,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const aPlayers = aClub.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
 
         const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
+        const hasLeagueMatch = updatedFixtures.some(f => f.week === week && (f.homeClubId === playerClubId || f.awayClubId === playerClubId));
+        if (isPlayerMatch && !hasLeagueMatch) continue; // Player's cup match is played interactively only when no league match
+        // Forfeit if either team has no available players
+        if (hPlayers.length === 0 || aPlayers.length === 0) {
+          const winnerId = hPlayers.length === 0 ? tie.awayClubId : tie.homeClubId;
+          newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hPlayers.length === 0 ? 0 : 3, awayGoals: aPlayers.length === 0 ? 0 : 3, winnerId };
+          continue;
+        }
         const { result: cupResult } = simulateMatch(
           { id: tie.id, week: tie.week, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
           hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId)
@@ -1110,13 +1278,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
               if (Math.random() > awayGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penHome++;
               if (Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penAway++;
             }
-            // Sudden death if tied after 5
+            // Sudden death if tied after 5 — loop exits when scores diverge
             while (penHome === penAway) {
-              const hScores = Math.random() > awayGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
-              const aScores = Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
-              if (hScores) penHome++;
-              if (aScores) penAway++;
-              if (hScores !== aScores) break;
+              if (Math.random() > awayGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penHome++;
+              if (Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penAway++;
             }
             penaltyShootout = { home: penHome, away: penAway };
             if (penHome > penAway) hGoals++;
@@ -1136,7 +1301,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
           }
           if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
-            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: MATCH_INJURY_WEEKS_MIN + Math.floor(Math.random() * MATCH_INJURY_WEEKS_RANGE) };
+            const injDetails = generateAIInjuryDetails(clubs[newPlayers[ev.playerId].clubId]?.facilities);
+            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: injDetails.weeksRemaining, injuryDetails: injDetails };
           }
           if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
             newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
@@ -1151,7 +1317,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           const isHome = tie.homeClubId === playerClubId;
           const won = isHome ? hGoals > aGoals : aGoals > hGoals;
           const oppName = clubs[isHome ? tie.awayClubId : tie.homeClubId]?.name || 'Unknown';
-          const roundName = tie.round === 'R1' ? 'Round of 16' : tie.round === 'QF' ? 'Quarter-Finals' : tie.round === 'SF' ? 'Semi-Finals' : 'Final';
+          const roundName = getRoundName(tie.round);
           if (won) {
             newMessages = addMsg(newMessages, { week, season, type: 'match_result', title: `Cup: ${roundName} Won!`, body: `You beat ${oppName} ${hGoals}-${aGoals} to advance in the cup!` });
           } else {
@@ -1191,11 +1357,31 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Build all division tables
     const divisionTables = buildAllDivisionTables(updatedDivisionFixtures, state.divisionClubs);
 
+    // Transfer rumors — foreshadow potential incoming offers
+    if (transferWindowOpen) {
+      const starPlayers = Object.values(newPlayers).filter(p => p.clubId === playerClubId && !p.listedForSale && p.overall >= 70 && !p.onLoan);
+      for (const sp of starPlayers) {
+        if (Math.random() < RUMOR_CHANCE) {
+          const interestedClubs = Object.values(clubs).filter(c => c.id !== playerClubId && c.budget > sp.value * 0.5);
+          if (interestedClubs.length > 0) {
+            const rumorClub = pick(interestedClubs);
+            newMessages = addMsg(newMessages, {
+              week: newWeek, season, type: 'transfer',
+              title: `Transfer Rumor: ${sp.lastName}`,
+              body: `Reports suggest ${rumorClub.name} are monitoring ${sp.firstName} ${sp.lastName}. No official approach has been made yet.`,
+            });
+          }
+        }
+      }
+    }
+
     // Incoming offers — AI clubs only bid for positions they actually need
     const newOffers = [...state.incomingOffers];
     const listedPlayers = Object.values(newPlayers).filter(p => p.listedForSale && p.clubId === playerClubId);
     for (const lp of listedPlayers) {
-      if (Math.random() < AI_OFFER_CHANCE) {
+      const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
+      const effectiveOfferChance = isDeadlineDay ? AI_OFFER_CHANCE * DEADLINE_DAY_OFFER_MULTIPLIER : AI_OFFER_CHANCE;
+      if (Math.random() < effectiveOfferChance) {
         const buyerClubs = Object.values(clubs).filter(c => {
           if (c.id === playerClubId) return false;
           if (c.budget < lp.value * AI_OFFER_MIN_BUDGET_RATIO) return false;
@@ -1212,7 +1398,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           const buyerSquad = buyer.playerIds.map(id => newPlayers[id]?.position).filter(Boolean);
           const posCount = buyerSquad.filter(pos => pos === lp.position).length;
           const urgencyMult = posCount === 0 ? URGENCY_NONE : posCount === 1 ? URGENCY_ONE : URGENCY_TWO_PLUS;
-          const baseFee = lp.value * (OFFER_FEE_BASE + Math.random() * OFFER_FEE_RANDOM_RANGE) * urgencyMult;
+          const deadlinePremium = isDeadlineDay ? 1 + DEADLINE_DAY_BID_PREMIUM : 1;
+          const baseFee = lp.value * (OFFER_FEE_BASE + Math.random() * OFFER_FEE_RANDOM_RANGE) * urgencyMult * deadlinePremium;
           const offerFee = Math.round(baseFee);
           if (buyer.budget >= offerFee && offerFee <= buyer.budget * OFFER_MAX_BUDGET_RATIO) {
             const offer: IncomingOffer = { id: crypto.randomUUID(), playerId: lp.id, buyerClubId: buyer.id, fee: offerFee, week: newWeek };
@@ -1470,8 +1657,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const playerTableIdx = leagueTable.findIndex(e => e.clubId === playerClubId);
     const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;
     const positionPrize = Math.max(0, (POSITION_PRIZE_MAX_RANK - playerTablePos)) * POSITION_PRIZE_PER_RANK;
-    // Sponsorship: scales quadratically with reputation
-    const sponsorIncome = Math.round(playerClub.reputation * playerClub.reputation * SPONSORSHIP_REP_MULTIPLIER);
+    // Sponsorship: sum of active sponsor deals
+    const sponsorIncome = state.sponsorDeals.reduce((sum, d) => sum + d.weeklyPayment, 0);
     // Merchandise: scales with fan base
     const merchandiseIncome = Math.round(playerClub.fanBase * MERCHANDISE_FAN_MULTIPLIER);
     const weeklyIncome = matchdayIncome + commercialIncome + stadiumIncome + positionPrize + sponsorIncome + merchandiseIncome;
@@ -1481,9 +1668,27 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const totalExpenses = playerClub.wageBill + staffWages + scoutingCosts;
     newClubs[playerClubId] = { ...playerClub, budget: playerClub.budget + weeklyIncome - totalExpenses };
 
+    // Financial Fair Play check: warn/penalise when wages are too high relative to income
+    const wageToRevenueRatio = weeklyIncome > 0 ? totalExpenses / weeklyIncome : 1;
+    if (wageToRevenueRatio >= FFP_WAGE_RATIO_CRITICAL) {
+      newConfidence = Math.max(CONFIDENCE_MIN, newConfidence - FFP_CRITICAL_CONFIDENCE_PENALTY);
+      if (newWeek % 4 === 0) {
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Critical Warning!', body: `Your wage bill is ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board demands immediate action to reduce spending or face severe consequences.` });
+      }
+    } else if (wageToRevenueRatio >= FFP_WAGE_RATIO_WARNING) {
+      newConfidence = Math.max(CONFIDENCE_MIN, newConfidence - FFP_CONFIDENCE_PENALTY);
+      if (newWeek % 8 === 0) {
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Spending Warning', body: `Your wage bill is ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board urges you to manage finances more carefully.` });
+      }
+    }
+
     const newFinanceHistory = [...state.financeHistory, {
       week: newWeek, season, income: weeklyIncome, expenses: totalExpenses, transfers: 0, balance: newClubs[playerClubId].budget,
     }];
+
+    // Process sponsorship system (offers, satisfaction, new deals)
+    const sponsorUpdates = processSponsorWeek({ ...state, week: newWeek, clubs: newClubs, messages: newMessages, currentMatchResult: thisWeekMatch ? state.currentMatchResult : null });
+    if (sponsorUpdates.messages) newMessages = sponsorUpdates.messages;
 
     // Evaluate board objectives based on current league position
     const playerPos = playerTableIdx >= 0 ? playerTableIdx + 1 : 20;
@@ -1614,6 +1819,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     set({
       week: newWeek, fixtures: updatedFixtures, players: newPlayers,
       leagueTable, transferWindowOpen, currentMatchResult: null,
+      matchPhase: 'none' as const,
       messages: newMessages, incomingOffers: newOffers, clubs: newClubs,
       matchSubsUsed: 0, boardObjectives: updatedObjectives,
       training: { ...training, tacticalFamiliarity: newTacticalFamiliarity },
@@ -1628,6 +1834,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       managerProgression: updatedProgression,
       pendingStoryline: pendingStorylineEvent || null,
       activeStorylineChains: updatedChains,
+      ...(sponsorUpdates.sponsorDeals ? { sponsorDeals: sponsorUpdates.sponsorDeals } : {}),
+      ...(sponsorUpdates.sponsorOffers ? { sponsorOffers: sponsorUpdates.sponsorOffers } : {}),
+      ...(sponsorUpdates.sponsorSlotCooldowns ? { sponsorSlotCooldowns: sponsorUpdates.sponsorSlotCooldowns } : {}),
       weeklyDigest: {
         incomeEarned: weeklyIncome,
         expensesPaid: totalExpenses,
@@ -1703,6 +1912,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // AI inter-club transfers: during transfer windows, AI clubs buy from each other
+    // Transfer chance is influenced by manager profile's transferAggression
     if (transferWindowOpen && Math.random() < AI_TRANSFER_CHANCE) {
       const latestState = get();
       const latestPlayers = { ...latestState.players };
@@ -1710,41 +1920,99 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const aiClubIds = Object.keys(latestClubs).filter(id => id !== playerClubId);
       const buyerClubId = pick(aiClubIds);
       const buyerClub = { ...latestClubs[buyerClubId] };
-      // Find weakest position in buyer's squad
-      const buyerSquad = buyerClub.playerIds.map(id => latestPlayers[id]).filter(Boolean);
-      const positionCounts: Record<string, number> = {};
-      buyerSquad.forEach(p => { positionCounts[p.position] = (positionCounts[p.position] || 0) + 1; });
-      const weakPos = (['GK', 'CB', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'] as Position[])
-        .filter(pos => (positionCounts[pos] || 0) < 2)
-        .sort((a, b) => (positionCounts[a] || 0) - (positionCounts[b] || 0))[0];
-      if (weakPos) {
-        // Find a seller with surplus at that position
-        const sellerIds = aiClubIds.filter(id => id !== buyerClubId);
-        for (const sellerId of sellerIds) {
-          const seller = latestClubs[sellerId];
-          const sellerSquad = seller.playerIds.map(id => latestPlayers[id]).filter(Boolean);
-          const surplus = sellerSquad.filter(p => p.position === weakPos && !seller.lineup.includes(p.id));
-          if (surplus.length > 0 && buyerClub.budget > AI_TRANSFER_MIN_BUDGET) {
-            const target = surplus.sort((a, b) => b.overall - a.overall)[0];
-            const fee = Math.round(target.value * (AI_TRANSFER_FEE_BASE + Math.random() * AI_TRANSFER_FEE_RANGE));
-            if (fee <= buyerClub.budget * AI_TRANSFER_MAX_BUDGET_RATIO) {
-              // Execute transfer
-              const updSeller = { ...latestClubs[sellerId] };
-              updSeller.playerIds = updSeller.playerIds.filter(id => id !== target.id);
-              updSeller.lineup = updSeller.lineup.filter(id => id !== target.id);
-              updSeller.subs = updSeller.subs.filter(id => id !== target.id);
-              updSeller.budget += fee;
-              updSeller.wageBill -= target.wage;
-              buyerClub.playerIds = [...buyerClub.playerIds, target.id];
-              buyerClub.budget -= fee;
-              buyerClub.wageBill += target.wage;
-              latestPlayers[target.id] = { ...target, clubId: buyerClubId };
-              latestClubs[sellerId] = updSeller;
-              latestClubs[buyerClubId] = buyerClub;
-              set({ players: latestPlayers, clubs: latestClubs });
-              break;
+      const buyerProfile = buyerClub.aiManagerProfile;
+
+      // Profile-driven transfer aggression: skip if manager isn't aggressive enough
+      const aggressionThreshold = buyerProfile ? (1 - buyerProfile.transferAggression) : 0.5;
+      if (Math.random() >= aggressionThreshold) {
+        // Find weakest position in buyer's squad
+        const buyerSquad = buyerClub.playerIds.map(id => latestPlayers[id]).filter(Boolean);
+        const positionCounts: Record<string, number> = {};
+        buyerSquad.forEach(p => { positionCounts[p.position] = (positionCounts[p.position] || 0) + 1; });
+        const weakPos = (['GK', 'CB', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'] as Position[])
+          .filter(pos => (positionCounts[pos] || 0) < 2)
+          .sort((a, b) => (positionCounts[a] || 0) - (positionCounts[b] || 0))[0];
+        if (weakPos) {
+          // Find a seller with surplus at that position
+          const sellerIds = aiClubIds.filter(id => id !== buyerClubId);
+          for (const sellerId of sellerIds) {
+            const seller = latestClubs[sellerId];
+            const sellerSquad = seller.playerIds.map(id => latestPlayers[id]).filter(Boolean);
+            const surplus = sellerSquad.filter(p => p.position === weakPos && !seller.lineup.includes(p.id));
+            if (surplus.length > 0 && buyerClub.budget > AI_TRANSFER_MIN_BUDGET) {
+              // Youth-focused managers prefer younger, cheaper targets
+              const youthFocus = buyerProfile?.youthFocus ?? 0.5;
+              const sortedSurplus = [...surplus].sort((a, b) => {
+                if (youthFocus > 0.6) {
+                  // Prefer younger players, weight potential over overall
+                  return (b.potential - a.potential) || (a.age - b.age);
+                }
+                // Default: prefer best overall
+                return b.overall - a.overall;
+              });
+              const target = sortedSurplus[0];
+
+              // Youth-focused managers skip old players; experience-focused skip low-overall
+              if (youthFocus > 0.6 && target.age > 26) continue;
+              if (youthFocus < 0.3 && target.overall < 70) continue;
+
+              const fee = Math.round(target.value * (AI_TRANSFER_FEE_BASE + Math.random() * AI_TRANSFER_FEE_RANGE));
+              if (fee <= buyerClub.budget * AI_TRANSFER_MAX_BUDGET_RATIO) {
+                // Execute transfer
+                const updSeller = { ...latestClubs[sellerId] };
+                updSeller.playerIds = updSeller.playerIds.filter(id => id !== target.id);
+                updSeller.lineup = updSeller.lineup.filter(id => id !== target.id);
+                updSeller.subs = updSeller.subs.filter(id => id !== target.id);
+                updSeller.budget += fee;
+                updSeller.wageBill -= target.wage;
+                buyerClub.playerIds = [...buyerClub.playerIds, target.id];
+                buyerClub.budget -= fee;
+                buyerClub.wageBill += target.wage;
+                latestPlayers[target.id] = { ...target, clubId: buyerClubId };
+                latestClubs[sellerId] = updSeller;
+                latestClubs[buyerClubId] = buyerClub;
+                set({ players: latestPlayers, clubs: latestClubs });
+                break;
+              }
             }
           }
+        }
+      }
+    }
+
+    // AI free agent signings: AI clubs occasionally sign from the free agent pool
+    {
+      const faState = get();
+      if (faState.freeAgents.length > 0) {
+        let updatedFreeAgents = [...faState.freeAgents];
+        const faPlayers = { ...faState.players };
+        const faClubs = { ...faState.clubs };
+        let changed = false;
+        const aiClubIds = Object.keys(faClubs).filter(id => id !== playerClubId);
+        for (const aiClubId of aiClubIds) {
+          if (updatedFreeAgents.length === 0) break;
+          if (Math.random() >= AI_FREE_AGENT_SIGN_CHANCE) continue;
+          const club = { ...faClubs[aiClubId] };
+          const squad = club.playerIds.map(id => faPlayers[id]).filter(Boolean);
+          const posCounts: Record<string, number> = {};
+          squad.forEach(p => { posCounts[p.position] = (posCounts[p.position] || 0) + 1; });
+          const weakPos = (['GK', 'CB', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'] as Position[])
+            .filter(pos => (posCounts[pos] || 0) < 2)[0];
+          if (!weakPos) continue;
+          const candidate = updatedFreeAgents
+            .map(id => faPlayers[id]).filter(Boolean)
+            .find(p => p.position === weakPos);
+          if (!candidate) continue;
+          // Sign the free agent
+          faPlayers[candidate.id] = { ...candidate, clubId: aiClubId, contractEnd: faState.season + 1 + Math.floor(Math.random() * 2) };
+          club.playerIds = [...club.playerIds, candidate.id];
+          club.wageBill += candidate.wage;
+          faClubs[aiClubId] = club;
+          updatedFreeAgents = updatedFreeAgents.filter(id => id !== candidate.id);
+          changed = true;
+        }
+        if (changed) {
+          set({ players: faPlayers, clubs: faClubs, freeAgents: updatedFreeAgents });
         }
       }
     }
@@ -1781,9 +2049,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const matchDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const { result, playerRatings } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian);
+    const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian);
 
-    const processed = processMatchResult(state, match, result, playerRatings, () => get().week);
+    const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
 
     // Generate post-match press conference
     const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
@@ -1794,6 +2062,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       fixtures: processed.updatedFixtures, players: processed.newPlayers, leagueTable: processed.leagueTable,
       currentMatchResult: result, boardConfidence: processed.confidence, messages: processed.newMessages,
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
+      matchPhase: 'full_time' as const,
       pendingPressConference: press,
       divisionFixtures: syncedDivFixtures,
       divisionTables: { ...state.divisionTables, [state.playerDivision]: processed.leagueTable },
@@ -1808,7 +2077,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   playFirstHalf: () => {
     const state = get();
     const { week, fixtures, clubs, players, playerClubId, tactics, training } = state;
-    const match = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+
+    // Check for cup tie if no league match
+    const cupTie = !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+    const match = leagueMatch || (cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null);
     if (!match) return null;
 
     const hc = clubs[match.homeClubId];
@@ -1834,9 +2107,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian);
+    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities);
 
-    set({ halfTimeState: halfState, matchPhase: 'half_time', matchSubsUsed: 0, preMatchLeaguePosition: preMatchPos });
+    set({ halfTimeState: halfState, matchPhase: 'half_time', matchSubsUsed: 0, preMatchLeaguePosition: preMatchPos, currentCupTieId: cupTie ? cupTie.id : null });
     return halfState;
   },
 
@@ -1845,7 +2118,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const { week, fixtures, clubs, players, playerClubId, tactics, training, halfTimeState } = state;
     if (!halfTimeState) return null;
 
-    const match = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    // Find league match or cup match
+    const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const cupTie = state.currentCupTieId ? state.cup.ties.find(t => t.id === state.currentCupTieId) : null;
+    const match = leagueMatch || (cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null);
     if (!match) return null;
 
     const hc = clubs[match.homeClubId];
@@ -1861,10 +2137,63 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Simulate second half, carrying forward first half state
     const secondHalfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian);
+    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
-    const processed = processMatchResult(state, match, result, playerRatings, () => get().week);
+    // Cup match ended in draw — need extra time
+    if (state.currentCupTieId && result.homeGoals === result.awayGoals) {
+      set({
+        currentMatchResult: result,
+        halfTimeState: fullState, // carry forward for extra time continuation
+        matchPhase: 'extra_time',
+        matchSubsUsed: 0,
+        matchPlayerRatings: playerRatings,
+      });
+      return result;
+    }
+
+    // Cup match decided in 90 mins — process cup result
+    if (state.currentCupTieId) {
+      const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
+        t.id === state.currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals } : t
+      )};
+      const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
+      if (allPlayed) {
+        if (newCup.currentRound === 'F') {
+          const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
+          if (finalTie) {
+            newCup.winner = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+            newCup.currentRound = null;
+          }
+        } else {
+          const advanced = advanceCupRound(newCup);
+          Object.assign(newCup, advanced);
+        }
+      }
+
+      // Check if player was eliminated
+      const isHome = result.homeClubId === playerClubId;
+      const playerWon = isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
+      if (!playerWon) newCup.eliminated = true;
+
+      const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
+      const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+      set({
+        currentMatchResult: result, players: processed.newPlayers,
+        boardConfidence: processed.confidence, messages: processed.newMessages,
+        matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
+        halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
+        cup: newCup,
+        pendingPressConference: generatePressConference(pressContext),
+        careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
+        managerProgression: processed.managerProgression,
+        lastMatchXPGain: processed.xpGain,
+      });
+      return result;
+    }
+
+    // League match — process as normal
+    const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
 
     // Generate post-match press conference
     const pressContext2 = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
@@ -1884,6 +2213,192 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       lastMatchXPGain: processed.xpGain,
     });
     return result;
+  },
+
+  playExtraTime: () => {
+    const state = get();
+    const { clubs, players, playerClubId, tactics, training, currentMatchResult, halfTimeState, currentCupTieId } = state;
+    if (!currentMatchResult || !halfTimeState || !currentCupTieId) return null;
+
+    const hc = clubs[currentMatchResult.homeClubId];
+    const ac = clubs[currentMatchResult.awayClubId];
+    const hp = hc.lineup.map(id => players[id]).filter(Boolean);
+    const ap = ac.lineup.map(id => players[id]).filter(Boolean);
+
+    const isPlayerHome = currentMatchResult.homeClubId === playerClubId;
+    const homeTactics = isPlayerHome ? tactics : undefined;
+    const awayTactics = isPlayerHome ? undefined : tactics;
+    const derbyInt = getDerbyIntensity(currentMatchResult.homeClubId, currentMatchResult.awayClubId);
+    const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
+
+    // Simulate extra time as one 30-minute block (91-120)
+    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities);
+
+    // Build the extended match result
+    const etResult: Match = {
+      ...currentMatchResult,
+      homeGoals: etState.homeGoals,
+      awayGoals: etState.awayGoals,
+      events: etState.events,
+    };
+
+    if (etState.homeGoals !== etState.awayGoals) {
+      // Extra time decided the match — finalize
+      const { result, playerRatings } = finalizeMatch(etResult, hc, ac, hp, ap, etState);
+
+      // Update cup tie
+      const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
+        t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals } : t
+      )};
+
+      // Check if player was eliminated
+      const playerWon = isPlayerHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
+      if (!playerWon) newCup.eliminated = true;
+
+      // Check if all cup ties for this round are done, advance if so
+      const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
+      if (allPlayed) {
+        if (newCup.currentRound === 'F') {
+          const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
+          if (finalTie) {
+            newCup.winner = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+            newCup.currentRound = null;
+          }
+        } else {
+          const advanced = advanceCupRound(newCup);
+          Object.assign(newCup, advanced);
+        }
+      }
+
+      const processed = processMatchResult(state, etResult, result, playerRatings, () => get().week, etState.matchInjuries);
+      const press = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+
+      set({
+        currentMatchResult: result,
+        halfTimeState: null,
+        matchPhase: 'full_time',
+        matchSubsUsed: 0,
+        matchPlayerRatings: processed.playerRatings,
+        currentCupTieId: null,
+        cup: newCup,
+        players: processed.newPlayers,
+        messages: processed.newMessages,
+        boardConfidence: processed.confidence,
+        managerStats: processed.managerStats,
+        careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
+        managerProgression: processed.managerProgression,
+        lastMatchXPGain: processed.xpGain,
+        pendingPressConference: generatePressConference(press),
+      });
+      return result;
+    }
+
+    // Still drawn — go to penalties
+    set({
+      currentMatchResult: etResult,
+      halfTimeState: etState,
+      matchPhase: 'penalties',
+      matchPlayerRatings: [],
+    });
+    return etResult;
+  },
+
+  playPenalties: () => {
+    const state = get();
+    const { clubs, players, playerClubId, currentMatchResult, halfTimeState, currentCupTieId } = state;
+    if (!currentMatchResult || !currentCupTieId) return null;
+
+    const hc = clubs[currentMatchResult.homeClubId];
+    const ac = clubs[currentMatchResult.awayClubId];
+    const hp = hc.lineup.map(id => players[id]).filter(Boolean);
+    const ap = ac.lineup.map(id => players[id]).filter(Boolean);
+
+    // Penalty shootout
+    const homeGK = hp.find(p => p.position === 'GK');
+    const awayGK = ap.find(p => p.position === 'GK');
+    const homeGKQuality = homeGK ? (homeGK.attributes.defending + homeGK.attributes.mental) / 200 : 0.5;
+    const awayGKQuality = awayGK ? (awayGK.attributes.defending + awayGK.attributes.mental) / 200 : 0.5;
+
+    let penHome = 0, penAway = 0;
+    const penEvents: MatchEvent[] = [];
+    for (let i = 0; i < CUP_PENALTY_KICKS; i++) {
+      const hScores = Math.random() > awayGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
+      if (hScores) penHome++;
+      penEvents.push({ minute: 121 + i, type: 'penalty_shootout' as const, clubId: hc.id, description: hScores ? `${hc.shortName} SCORE! (${penHome}-${penAway})` : `${hc.shortName} miss! (${penHome}-${penAway})` });
+
+      const aScores = Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
+      if (aScores) penAway++;
+      penEvents.push({ minute: 121 + i, type: 'penalty_shootout' as const, clubId: ac.id, description: aScores ? `${ac.shortName} SCORE! (${penHome}-${penAway})` : `${ac.shortName} miss! (${penHome}-${penAway})` });
+    }
+    // Sudden death
+    while (penHome === penAway) {
+      const hScores = Math.random() > awayGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
+      if (hScores) penHome++;
+      penEvents.push({ minute: 130, type: 'penalty_shootout' as const, clubId: hc.id, description: hScores ? `${hc.shortName} SCORE! (${penHome}-${penAway})` : `${hc.shortName} miss! (${penHome}-${penAway})` });
+
+      const aScores = Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
+      if (aScores) penAway++;
+      penEvents.push({ minute: 130, type: 'penalty_shootout' as const, clubId: ac.id, description: aScores ? `${ac.shortName} SCORE! (${penHome}-${penAway})` : `${ac.shortName} miss! (${penHome}-${penAway})` });
+
+      if (hScores !== aScores) break;
+    }
+
+    const winnerId = penHome > penAway ? hc.id : ac.id;
+    const penaltyShootout = { home: penHome, away: penAway };
+
+    // Build final result
+    const finalResult: Match = {
+      ...currentMatchResult,
+      events: [...currentMatchResult.events, ...penEvents],
+      penaltyShootout,
+    };
+
+    // Finalize with extra events
+    const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState || { events: [], homeGoals: 0, awayGoals: 0, homeShots: 0, awayShots: 0, homeSoT: 0, awaySoT: 0, homeFouls: 0, awayFouls: 0, homeCorners: 0, awayCorners: 0, homeYellows: 0, awayYellows: 0, homeReds: 0, awayReds: 0, homePossession: 50, awayPossession: 50 } as HalfState);
+
+    // Update cup tie
+    const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
+      t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, penaltyShootout } : t
+    )};
+
+    // Check if player was eliminated
+    if (winnerId !== playerClubId) newCup.eliminated = true;
+
+    const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
+    if (allPlayed) {
+      if (newCup.currentRound === 'F') {
+        const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
+        if (finalTie) {
+          newCup.winner = winnerId;
+          newCup.currentRound = null;
+        }
+      } else {
+        const advanced = advanceCupRound(newCup);
+        Object.assign(newCup, advanced);
+      }
+    }
+
+    const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {});
+    const press = winnerId === playerClubId ? 'post_win' : 'post_loss';
+
+    set({
+      currentMatchResult: { ...result, penaltyShootout },
+      halfTimeState: null,
+      matchPhase: 'full_time',
+      matchSubsUsed: 0,
+      matchPlayerRatings: processed.playerRatings,
+      currentCupTieId: null,
+      cup: newCup,
+      players: processed.newPlayers,
+      messages: processed.newMessages,
+      boardConfidence: processed.confidence,
+      managerStats: processed.managerStats,
+      careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
+      managerProgression: processed.managerProgression,
+      lastMatchXPGain: processed.xpGain,
+      pendingPressConference: generatePressConference(press),
+    });
+    return { ...result, penaltyShootout };
   },
 
   endSeason: () => {
@@ -1943,6 +2458,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       preMatchLeaguePosition: state.preMatchLeaguePosition,
       lastMatchXPGain: state.lastMatchXPGain,
       weeklyDigest: state.weeklyDigest,
+      sponsorDeals: state.sponsorDeals,
+      sponsorOffers: state.sponsorOffers,
+      sponsorSlotCooldowns: state.sponsorSlotCooldowns,
+      halfTimeState: state.halfTimeState,
+      matchPhase: state.matchPhase,
+      currentCupTieId: state.currentCupTieId,
+      pendingFarewell: state.pendingFarewell,
+      freeAgents: state.freeAgents,
     };
     localStorage.setItem(`dynasty-save-${s}`, JSON.stringify(saveData));
   },
@@ -1972,6 +2495,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         transferWindowOpen: data.week <= SUMMER_WINDOW_END || (data.week >= WINTER_WINDOW_START && data.week <= WINTER_WINDOW_END),
         matchSubsUsed: 0,
         matchPlayerRatings: [],
+        currentCupTieId: null,
         unlockedAchievements: data.unlockedAchievements || [],
         managerStats: data.managerStats || { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
         activeLoans: data.activeLoans || [],
@@ -1999,6 +2523,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         preMatchLeaguePosition: data.preMatchLeaguePosition ?? 10,
         lastMatchXPGain: data.lastMatchXPGain ?? 0,
         scoutWatchList: data.scoutWatchList || [],
+        freeAgents: data.freeAgents || [],
+        sponsorDeals: data.sponsorDeals || [],
+        sponsorOffers: data.sponsorOffers || [],
+        sponsorSlotCooldowns: data.sponsorSlotCooldowns || {},
+        halfTimeState: null,
+        matchPhase: 'none' as const,
+        pendingFarewell: data.pendingFarewell || null,
       });
       return true;
     } catch { return false; }
@@ -2012,7 +2543,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       clubs: {}, players: {}, fixtures: [], leagueTable: [],
       messages: [], seasonHistory: [], incomingOffers: [],
       matchPlayerRatings: [], halfTimeState: null, matchPhase: 'none' as const,
-      currentMatchResult: null, matchSubsUsed: 0,
+      currentMatchResult: null, matchSubsUsed: 0, currentCupTieId: null,
       transferMarket: [], shortlist: [], scoutWatchList: [],
       activeLoans: [], incomingLoanOffers: [],
       cup: { ties: [], currentRound: null, eliminated: false, winner: null },
@@ -2020,6 +2551,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pendingFarewell: null, pendingStoryline: null,
       activeStorylineChains: [], weeklyObjectives: [],
       weeklyDigest: null, careerTimeline: [],
+      sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {},
     });
   },
 
@@ -2031,7 +2563,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Save to Hall of Managers before resetting
     try {
-      const entry = buildHallEntry(state.seasonHistory, state.managerStats, state.playerClubId, state.clubs, currentProg);
+      const club = state.clubs[state.playerClubId];
+      const entry = buildHallEntry(
+        `prestige-${Date.now()}`,
+        club?.name || 'Unknown Club',
+        state.seasonHistory,
+        state.managerStats,
+        newPrestigeLevel,
+      );
       saveToHall(entry);
     } catch { /* hall of managers save is best-effort */ }
 

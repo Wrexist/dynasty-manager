@@ -39,10 +39,18 @@ describe('chemistry', () => {
     });
 
     it('should detect partnership links for adjacent positions with high form', () => {
-      const a = makePlayer('CM', { form: 85, nationality: 'French' });
-      const b = makePlayer('CAM', { form: 85, nationality: 'German' });
+      const a = makePlayer('CM', { form: 85, age: 25, nationality: 'French' });
+      const b = makePlayer('CAM', { form: 85, age: 26, nationality: 'German' });
       const links = calculateChemistryLinks([a, b]);
       expect(links.some(l => l.type === 'partnership')).toBe(true);
+    });
+
+    it('should allow multiple link types between the same pair', () => {
+      const a = makePlayer('CM', { nationality: 'Spanish', form: 85, age: 25 });
+      const b = makePlayer('CAM', { nationality: 'Spanish', form: 85, age: 25 });
+      const links = calculateChemistryLinks([a, b]);
+      expect(links.filter(l => l.type === 'nationality')).toHaveLength(1);
+      expect(links.filter(l => l.type === 'partnership')).toHaveLength(1);
     });
 
     it('should return empty for a single player', () => {

@@ -226,3 +226,21 @@ export const DISCIPLINARIAN_CARD_REDUCTION = 0.30;
 
 // ── Substitutions ──
 export const MAX_SUBSTITUTIONS = 3;
+
+// ── Momentum System ──
+/** How much momentum swings toward the scoring team after a goal (-100 to +100 scale) */
+export const MOMENTUM_GOAL_SWING = 30;
+/** Momentum gained by the saving team after a GK save */
+export const MOMENTUM_SAVE_SWING = 8;
+/** Momentum swing toward the non-fouling team after a card */
+export const MOMENTUM_CARD_SWING = 15;
+/** Momentum swing toward scoring team after a penalty goal */
+export const MOMENTUM_PENALTY_SWING = 20;
+/** How much momentum decays back toward 0 each minute (natural regression) */
+export const MOMENTUM_DECAY_PER_MINUTE = 2;
+/** How much momentum affects the home/away strength ratio (0-1 scale, applied as %) */
+export const MOMENTUM_STRENGTH_SCALE = 0.15;
+
+// ── Substitution Freshness ──
+/** Strength bonus for recently substituted players */
+export const SUB_FRESHNESS_BONUS = 0.04;

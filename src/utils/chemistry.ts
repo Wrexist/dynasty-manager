@@ -19,36 +19,32 @@ import {
  */
 export function calculateChemistryLinks(players: Player[]): ChemistryLink[] {
   const links: ChemistryLink[] = [];
-  const seen = new Set<string>();
+
+  const posGroups: Record<string, string[]> = {
+    defense: ['GK', 'CB', 'LB', 'RB'],
+    midfield: ['CDM', 'CM', 'CAM', 'LM', 'RM'],
+    attack: ['LW', 'RW', 'ST'],
+  };
 
   for (let i = 0; i < players.length; i++) {
     for (let j = i + 1; j < players.length; j++) {
       const a = players[i];
       const b = players[j];
-      const key = [a.id, b.id].sort().join('-');
-      if (seen.has(key)) continue;
 
       // Nationality bond
       if (a.nationality === b.nationality) {
-        seen.add(key);
-        const strength = a.nationality === b.nationality && a.clubId === b.clubId ? 2 : 1;
+        const strength = a.clubId === b.clubId ? 2 : 1;
         links.push({ playerIdA: a.id, playerIdB: b.id, type: 'nationality', strength });
       }
 
       // Mentor bond: experienced player mentoring a young one at similar position
-      const posGroups: Record<string, string[]> = {
-        defense: ['GK', 'CB', 'LB', 'RB'],
-        midfield: ['CDM', 'CM', 'CAM', 'LM', 'RM'],
-        attack: ['LW', 'RW', 'ST'],
-      };
       const aGroup = Object.entries(posGroups).find(([, positions]) => positions.includes(a.position))?.[0];
       const bGroup = Object.entries(posGroups).find(([, positions]) => positions.includes(b.position))?.[0];
 
       if (aGroup === bGroup) {
         const senior = a.age >= MENTOR_SENIOR_AGE && b.age < MENTOR_JUNIOR_AGE ? a : b.age >= MENTOR_SENIOR_AGE && a.age < MENTOR_JUNIOR_AGE ? b : null;
         const junior = senior === a ? b : a;
-        if (senior && junior && !seen.has(key)) {
-          seen.add(key);
+        if (senior && junior) {
           const mentorQuality = Math.min(MENTOR_MAX_STRENGTH, Math.floor((senior.overall - MENTOR_QUALITY_OVERALL_BASE) / MENTOR_QUALITY_DIVISOR) + 1);
           links.push({ playerIdA: senior.id, playerIdB: junior.id, type: 'mentor', strength: Math.max(1, mentorQuality) });
         }
@@ -58,8 +54,7 @@ export function calculateChemistryLinks(players: Player[]): ChemistryLink[] {
       const isAdjacent = ADJACENT_PAIRS.some(([p1, p2]) =>
         (a.position === p1 && b.position === p2) || (a.position === p2 && b.position === p1)
       );
-      if (isAdjacent && (a.form + b.form) > PARTNERSHIP_FORM_THRESHOLD && !seen.has(key)) {
-        seen.add(key);
+      if (isAdjacent && (a.form + b.form) > PARTNERSHIP_FORM_THRESHOLD) {
         links.push({ playerIdA: a.id, playerIdB: b.id, type: 'partnership', strength: Math.min(PARTNERSHIP_MAX_STRENGTH, Math.floor((a.form + b.form - PARTNERSHIP_FORM_THRESHOLD) / PARTNERSHIP_STRENGTH_DIVISOR) + 1) });
       }
     }

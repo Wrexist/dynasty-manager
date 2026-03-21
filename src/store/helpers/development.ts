@@ -9,6 +9,7 @@ import {
   DECLINE_AGE_THRESHOLD, STEEP_DECLINE_AGE_THRESHOLD,
   DECLINE_FACTOR_NORMAL, DECLINE_FACTOR_STEEP, DECLINE_BASE_CHANCE, DECLINE_ATTR_MULTIPLIERS,
   VALUE_AGE_MULTIPLIERS,
+  TRAINING_FOCUS_BONUS, TRAINING_FOCUS_ATTR_MAP,
 } from '@/config/gameBalance';
 import { VALUE_OVERALL_MULTIPLIER, VALUE_RANDOM_RANGE } from '@/config/playerGeneration';
 
@@ -29,10 +30,12 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
       const devMultiplier = getDevelopmentMultiplier(p.personality);
       const growthChance = (GROWTH_BASE_CHANCE + potentialGap * GROWTH_POTENTIAL_GAP_FACTOR + playingTimeBonus + mentorBonus) * devMultiplier;
       const posBonus = POSITION_DEV_BONUS[p.position] || {};
+      const trainedAttrs = TRAINING_FOCUS_ATTR_MAP[trainingFocus] || [];
       const attrs = Object.keys(updated.attributes) as (keyof PlayerAttributes)[];
       for (const attr of attrs) {
         const positionBonus = posBonus[attr] || 0;
-        if (Math.random() < growthChance + positionBonus) {
+        const trainingBonus = trainedAttrs.includes(attr) ? TRAINING_FOCUS_BONUS : 0;
+        if (Math.random() < growthChance + positionBonus + trainingBonus) {
           updated.attributes[attr] = clamp(updated.attributes[attr] + 1);
         }
       }

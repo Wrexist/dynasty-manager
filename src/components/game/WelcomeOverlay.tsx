@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, ArrowLeftRight, ChevronRight, Trophy } from 'lucide-react';
+import { Target, ArrowLeftRight, ChevronRight, Trophy, Swords, Heart } from 'lucide-react';
 
 const STEPS = [
   {
@@ -20,6 +20,18 @@ const STEPS = [
     title: 'Transfer Market',
     description: 'Buy and sell players during transfer windows (Weeks 1-8 and 20-24). Scout to find hidden gems.',
     hint: 'Add players to your shortlist to track them between sessions.',
+  },
+  {
+    icon: Swords,
+    title: 'Match Day',
+    description: 'Watch matches unfold live. Make substitutions, give team talks at half-time, and react to key moments.',
+    hint: 'Check player fitness before matches. Tired players perform worse and risk injuries.',
+  },
+  {
+    icon: Heart,
+    title: 'Keep the Board Happy',
+    description: 'The board sets objectives each season. Meet them to keep your job. Winning boosts confidence, losing drops it.',
+    hint: 'Check the Board page for your objectives. Below 25% confidence, you risk being sacked!',
   },
 ];
 

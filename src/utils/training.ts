@@ -13,6 +13,8 @@ import {
   TACTICAL_FAMILIARITY_GAIN_PER_DAY, TACTICAL_FAMILIARITY_DECAY, TACTICAL_FAMILIARITY_MAX, TACTICAL_FAMILIARITY_MIN,
 } from '@/config/training';
 import { VALUE_OVERALL_MULTIPLIER, VALUE_RANDOM_RANGE } from '@/config/playerGeneration';
+import { seasonGrowthTracker } from '@/store/helpers/development';
+import { MAX_SEASON_GROWTH } from '@/config/gameBalance';
 
 const MODULE_ATTR_MAP = CONFIG_MODULE_ATTR_MAP;
 const INTENSITY_MULTIPLIER = CONFIG_INTENSITY_MULTIPLIER;
@@ -34,20 +36,23 @@ export function applyWeeklyTraining(
   const mult = INTENSITY_MULTIPLIER[training.intensity];
   const staffMult = 1 + staffBonus * STAFF_BONUS_MULTIPLIER; // up to 1.5x with quality 10
 
-  // Apply attribute gains per module
-  for (const [mod, count] of Object.entries(moduleCounts) as [TrainingModule, number][]) {
-    const attrs = MODULE_ATTR_MAP[mod];
-    if (!attrs || attrs.length === 0) continue;
+  // Apply attribute gains per module (respecting season growth cap)
+  const priorGrowth = seasonGrowthTracker[player.id] || 0;
+  if (priorGrowth < MAX_SEASON_GROWTH) {
+    for (const [mod, count] of Object.entries(moduleCounts) as [TrainingModule, number][]) {
+      const attrs = MODULE_ATTR_MAP[mod];
+      if (!attrs || attrs.length === 0) continue;
 
-    for (const attr of attrs) {
-      // Individual training focus: +50% gain if player's individual plan matches this module
-      const individualBonus = (training.individualPlans || []).some(
-        plan => plan.playerId === player.id && MODULE_ATTR_MAP[plan.focus]?.includes(attr)
-      ) ? INDIVIDUAL_TRAINING_BONUS : 1.0;
-      const personalityMult = getTrainingMultiplier(player.personality);
-      const gainChance = BASE_GAIN_CHANCE * count * mult * staffMult * individualBonus * personalityMult;
-      if (Math.random() < gainChance) {
-        updated.attributes[attr] = clamp(updated.attributes[attr] + 1);
+      for (const attr of attrs) {
+        // Individual training focus: +50% gain if player's individual plan matches this module
+        const individualBonus = (training.individualPlans || []).some(
+          plan => plan.playerId === player.id && MODULE_ATTR_MAP[plan.focus]?.includes(attr)
+        ) ? INDIVIDUAL_TRAINING_BONUS : 1.0;
+        const personalityMult = getTrainingMultiplier(player.personality);
+        const gainChance = BASE_GAIN_CHANCE * count * mult * staffMult * individualBonus * personalityMult;
+        if (Math.random() < gainChance) {
+          updated.attributes[attr] = clamp(updated.attributes[attr] + 1);
+        }
       }
     }
   }
@@ -62,6 +67,11 @@ export function applyWeeklyTraining(
   updated.growthDelta = newOverall - player.overall;
   updated.overall = newOverall;
   updated.value = Math.round(updated.overall * updated.overall * VALUE_OVERALL_MULTIPLIER + Math.random() * VALUE_RANDOM_RANGE);
+
+  // Track training growth toward season cap
+  if (updated.growthDelta > 0) {
+    seasonGrowthTracker[player.id] = (seasonGrowthTracker[player.id] || 0) + updated.growthDelta;
+  }
 
   return updated;
 }

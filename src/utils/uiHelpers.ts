@@ -11,6 +11,7 @@ import {
   CONFIDENCE_COLOR_THRESHOLDS,
   FAN_CONFIDENCE_THRESHOLDS,
   FITNESS_COLOR_THRESHOLDS,
+  FITNESS_HEX_THRESHOLDS,
   MATCH_RATING_THRESHOLDS,
   MOOD_COLOR_THRESHOLDS,
   POTENTIAL_COLOR_THRESHOLDS,
@@ -67,6 +68,12 @@ export function getFitnessColor(value: number): string {
     if (value >= t.min) return t.bgClass;
   }
   return 'bg-destructive';
+}
+
+/** Get hex color string for fitness (SVG rendering on pitch views) */
+export function getFitnessHexColor(fitness: number): string {
+  const threshold = FITNESS_HEX_THRESHOLDS.find(t => fitness >= t.min);
+  return threshold?.color || FITNESS_HEX_THRESHOLDS[FITNESS_HEX_THRESHOLDS.length - 1].color;
 }
 
 /** Get text color class for match rating (8+=emerald, 6+=primary, else amber) */

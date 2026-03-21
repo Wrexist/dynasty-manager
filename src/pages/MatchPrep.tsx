@@ -9,6 +9,9 @@ import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
 import { Button } from '@/components/ui/button';
 import { getDerbyIntensity, getDerbyName } from '@/data/league';
 import { FormationType } from '@/types/game';
+import { calculateChemistryLinks } from '@/utils/chemistry';
+import { PageHint } from '@/components/game/PageHint';
+import { PAGE_HINTS } from '@/config/ui';
 
 const FORMATION_HINTS: Record<FormationType, string> = {
   '4-4-2': 'Balanced and direct. Strong in midfield and up front.',
@@ -67,9 +70,13 @@ const MatchPrep = () => {
   // Formation labels
   const myLineup = myClub.lineup.map(id => players[id]).filter(Boolean);
 
+  // Chemistry links for pitch visualization
+  const chemLinks = calculateChemistryLinks(myLineup);
+
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
       <h2 className="text-lg font-display font-bold text-foreground">Match Preparation</h2>
+      <PageHint screen="matchPrep" title={PAGE_HINTS.matchPrep.title} body={PAGE_HINTS.matchPrep.body} />
 
       {/* Match Header */}
       <GlassPanel className="p-4">
@@ -173,6 +180,40 @@ const MatchPrep = () => {
         </div>
       </GlassPanel>
 
+      {/* Opponent Manager */}
+      {oppClub.aiManagerProfile && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Info className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold text-foreground">Opponent Manager</h3>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-muted/40 flex items-center justify-center text-xs font-bold text-foreground">
+              {oppClub.aiManagerProfile.name.split(' ').map(n => n[0]).join('')}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-foreground truncate">{oppClub.aiManagerProfile.name}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={cn(
+                  'text-[10px] font-bold px-2 py-0.5 rounded-full uppercase',
+                  oppClub.aiManagerProfile.style === 'attacking' ? 'bg-destructive/20 text-destructive' :
+                  oppClub.aiManagerProfile.style === 'defensive' ? 'bg-blue-500/20 text-blue-400' :
+                  oppClub.aiManagerProfile.style === 'possession' ? 'bg-emerald-500/20 text-emerald-400' :
+                  oppClub.aiManagerProfile.style === 'counter-attack' ? 'bg-amber-500/20 text-amber-400' :
+                  oppClub.aiManagerProfile.style === 'direct' ? 'bg-orange-500/20 text-orange-400' :
+                  'bg-muted/30 text-muted-foreground'
+                )}>
+                  {oppClub.aiManagerProfile.style.replace('-', ' ')}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                  Adaptability: {Math.round(oppClub.aiManagerProfile.adaptability * 100)}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </GlassPanel>
+      )}
+
       {/* Lineup Fitness Warning */}
       {lowFitnessInLineup > 0 && (
         <GlassPanel className="p-3 border-amber-500/30 bg-amber-500/5">
@@ -244,11 +285,13 @@ const MatchPrep = () => {
           formation={myClub.formation}
           homeColor={myClub.color}
           homeLabels={myLineup.map(p => p.lastName.slice(0, 3).toUpperCase())}
+          playerOveralls={myLineup.map(p => p.overall)}
           playerFitness={myLineup.map(p => Math.round(p.fitness))}
           playerIds={myLineup.map(p => p.id)}
           awayFormation={oppClub.formation}
           awayColor={oppClub.color}
           showAway
+          chemistryLinks={chemLinks}
         />
       </GlassPanel>
 

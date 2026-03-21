@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubstitutionSheet } from '@/components/game/SubstitutionSheet';
 import { Button } from '@/components/ui/button';
-import { MatchEvent } from '@/types/game';
+import { MatchEvent, Match, Club } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle } from 'lucide-react';
@@ -15,6 +15,8 @@ import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
 import { infoToast } from '@/utils/gameToast';
+import { PageHint } from '@/components/game/PageHint';
+import { PAGE_HINTS } from '@/config/ui';
 
 const isGoalEvent = (e: MatchEvent) => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored';
 
@@ -32,9 +34,9 @@ function getEnrichedDescription(ev: MatchEvent, events: MatchEvent[], homeClubId
 
 const MatchDay = () => {
   const store = useGameStore();
-  const { playerClubId, week, clubs, playFirstHalf, playSecondHalf, setScreen, matchSubsUsed, tactics, setTactics } = store;
+  const { playerClubId, week, clubs, playFirstHalf, playSecondHalf, playExtraTime, playPenalties, setScreen, matchSubsUsed, tactics, setTactics, cup } = store;
 
-  const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'post'>('pre');
+  const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'extra_time_break' | 'extra_time' | 'penalties' | 'post'>('pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
   const [allEvents, setAllEvents] = useState<MatchEvent[]>([]);
   const [currentMin, setCurrentMin] = useState(0);
@@ -49,10 +51,20 @@ const MatchDay = () => {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
 
-  const { match } = useCurrentMatch();
+  const { match: liveMatch } = useCurrentMatch();
 
-  const homeClub = match ? clubs[match.homeClubId] : null;
-  const awayClub = match ? clubs[match.awayClubId] : null;
+  // Detect cup match if no league match this week
+  const cupTie = !liveMatch ? cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  const cupMatch = cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
+  const isCupMatch = !!cupTie || !!store.currentCupTieId;
+
+  // Cache match data when kickoff starts — playSecondHalf() marks the fixture
+  // as played which makes useCurrentMatch() return undefined mid-animation.
+  const matchCacheRef = useRef<{ match: Match; homeClub: Club; awayClub: Club } | null>(null);
+
+  const match = matchCacheRef.current?.match ?? liveMatch ?? cupMatch;
+  const homeClub = matchCacheRef.current?.homeClub ?? (match ? clubs[match.homeClubId] : null);
+  const awayClub = matchCacheRef.current?.awayClub ?? (match ? clubs[match.awayClubId] : null);
   // Reset popup state when entering post phase
   useEffect(() => {
     if (phase === 'post') setShowPostPopup(true);
@@ -61,6 +73,9 @@ const MatchDay = () => {
   // No auto-start — show "Ready to Kick Off?" screen instead
 
   const kickOff = () => {
+    if (!match || !homeClub || !awayClub) return;
+    // Cache match data so it survives the fixture being marked as played
+    matchCacheRef.current = { match, homeClub, awayClub };
     const halfState = playFirstHalf();
     if (!halfState) return;
     setFirstHalfState(halfState);
@@ -80,6 +95,24 @@ const MatchDay = () => {
     // Continue from minute 46
     setCurrentMin(45);
     setPaused(false);
+  };
+
+  const resumeExtraTime = () => {
+    const result = playExtraTime();
+    if (!result) return;
+    setAllEvents(result.events);
+    setCurrentMin(90);
+    setPhase('extra_time');
+    setPaused(false);
+  };
+
+  const handlePenalties = () => {
+    const result = playPenalties();
+    if (!result) return;
+    // Show all events including penalty events immediately
+    setAllEvents(result.events);
+    setVisibleEvents(result.events);
+    setPhase('post');
   };
 
   // Detect key moments that should pause the match for player decisions
@@ -157,21 +190,28 @@ const MatchDay = () => {
 
   // Animate events for current half
   useEffect(() => {
-    if (phase !== 'first_half' && phase !== 'second_half') return;
+    if (phase !== 'first_half' && phase !== 'second_half' && phase !== 'extra_time') return;
     if (allEvents.length === 0) return;
     if (keyMoment || paused) return; // Paused for key moment or manual pause
 
     intervalRef.current = setInterval(() => {
       setCurrentMin(prev => {
         const next = prev + 1;
-        if (next > (phase === 'first_half' ? 45 : 90)) {
+        const maxMin = phase === 'first_half' ? 45 : phase === 'extra_time' ? 120 : 90;
+        if (next > maxMin) {
           clearInterval(intervalRef.current!);
           if (phase === 'first_half') {
             setPhase('half_time');
+          } else if (phase === 'second_half') {
+            // Check if cup match needs extra time
+            const storePhase = store.matchPhase;
+            setPhase(storePhase === 'extra_time' ? 'extra_time_break' : 'post');
           } else {
-            setPhase('post');
+            // extra_time animation finished
+            const storePhase = store.matchPhase;
+            setPhase(storePhase === 'penalties' ? 'penalties' : 'post');
           }
-          return phase === 'first_half' ? 45 : 90;
+          return maxMin;
         }
         const events = allEvents.filter(e => e.minute <= next);
         setVisibleEvents(events);
@@ -187,7 +227,7 @@ const MatchDay = () => {
       });
     }, speed);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [phase, allEvents, speed, keyMoment, paused, checkKeyMoment]);
+  }, [phase, allEvents, speed, keyMoment, paused, checkKeyMoment, store.matchPhase]);
 
   // Haptic feedback for goals and final whistle
   const prevGoalCountRef = useRef(0);
@@ -240,7 +280,7 @@ const MatchDay = () => {
     );
   }
 
-  const isLive = phase === 'first_half' || phase === 'second_half';
+  const isLive = phase === 'first_half' || phase === 'second_half' || phase === 'extra_time';
   const homeGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => isGoalEvent(e) && e.clubId === match.homeClubId).length;
   const awayGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => isGoalEvent(e) && e.clubId === match.awayClubId).length;
 
@@ -248,19 +288,18 @@ const MatchDay = () => {
   const htHomeGoals = firstHalfState?.homeGoals ?? homeGoals;
   const htAwayGoals = firstHalfState?.awayGoals ?? awayGoals;
 
-  // Momentum: count events in last 10 minutes per side
-  const recentEvents = visibleEvents.filter(e => e.minute > currentMin - 10);
-  const homeMomentum = recentEvents.filter(e => e.clubId === match.homeClubId && ['goal', 'shot_saved', 'shot_missed'].includes(e.type)).length;
-  const awayMomentum = recentEvents.filter(e => e.clubId === match.awayClubId && ['goal', 'shot_saved', 'shot_missed'].includes(e.type)).length;
-  const totalMomentum = homeMomentum + awayMomentum || 1;
-  const homeMomPct = Math.round((homeMomentum / totalMomentum) * 100);
+  // Momentum: use engine-calculated momentum from events, or fall back to event counting
+  const latestMomentumEvent = [...visibleEvents].reverse().find(e => e.momentum !== undefined);
+  const currentMomentum = latestMomentumEvent?.momentum ?? 0; // -100 (away) to +100 (home)
+  const homeMomPct = Math.round(50 + currentMomentum / 2); // 0-100 scale
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+      {phase === 'pre' && <PageHint screen="matchDay" title={PAGE_HINTS.matchDay.title} body={PAGE_HINTS.matchDay.body} />}
       {/* Score Header */}
       <GlassPanel className="p-5">
         <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center mb-3">
-          {phase === 'pre' ? `Week ${week}` : phase === 'half_time' ? 'Half Time' : isLive ? `${currentMin}'` : 'Full Time'}
+          {phase === 'pre' ? `Week ${week}${isCupMatch ? ' — Cup' : ''}` : phase === 'half_time' ? 'Half Time' : phase === 'extra_time_break' ? 'Extra Time' : phase === 'penalties' ? 'Penalties' : isLive ? `${currentMin}'` : 'Full Time'}
         </p>
         <div className="flex items-center justify-center gap-6">
           <div className="text-center">
@@ -278,10 +317,10 @@ const MatchDay = () => {
           </div>
         </div>
 
-        {(isLive || phase === 'half_time') && (
+        {(isLive || phase === 'half_time' || phase === 'extra_time_break') && (
           <div className="mt-3">
             <div className="h-1 bg-muted rounded-full overflow-hidden">
-              <motion.div className="h-full bg-primary rounded-full" animate={{ width: `${(currentMin / 90) * 100}%` }} />
+              <motion.div className="h-full bg-primary rounded-full" animate={{ width: `${(currentMin / (phase === 'extra_time' ? 120 : 90)) * 100}%` }} />
             </div>
           </div>
         )}
@@ -435,6 +474,82 @@ const MatchDay = () => {
         </>
       )}
 
+      {/* Extra Time Break — cup match drawn after 90 mins */}
+      {phase === 'extra_time_break' && (
+        <>
+          <GlassPanel className="p-4 text-center">
+            <p className="text-sm font-bold text-primary mb-2">Extra Time</p>
+            <p className="text-xs text-muted-foreground">The scores are level after 90 minutes. 30 minutes of extra time will be played.</p>
+          </GlassPanel>
+
+          {/* Sub button before extra time */}
+          {matchSubsUsed < MAX_SUBSTITUTIONS && (
+            <Button variant="outline" className="w-full gap-2" onClick={() => setSubSheetOpen(true)}>
+              <RefreshCw className="w-4 h-4" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
+            </Button>
+          )}
+
+          {/* Tactical changes before extra time */}
+          <GlassPanel className="p-4 space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Mentality</p>
+              <div className="flex gap-1.5">
+                {(['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setTactics({ mentality: m })}
+                    className={cn(
+                      'flex-1 py-2 rounded-lg text-[10px] font-semibold capitalize transition-all',
+                      tactics.mentality === m
+                        ? 'bg-primary/20 text-primary border border-primary/30'
+                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    {m === 'all-out-attack' ? 'All Out' : m}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Tempo</p>
+              <div className="flex gap-1.5">
+                {(['slow', 'normal', 'fast'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTactics({ tempo: t })}
+                    className={cn(
+                      'flex-1 py-2 rounded-lg text-[10px] font-semibold capitalize transition-all',
+                      tactics.tempo === t
+                        ? 'bg-primary/20 text-primary border border-primary/30'
+                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </GlassPanel>
+
+          <Button className="w-full h-12 text-base font-bold gap-2" onClick={resumeExtraTime}>
+            <Play className="w-5 h-5" /> Play Extra Time
+          </Button>
+        </>
+      )}
+
+      {/* Penalties — cup match still drawn after extra time */}
+      {phase === 'penalties' && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <GlassPanel className="p-5 space-y-4 text-center">
+            <p className="text-sm font-bold text-primary">Penalty Shootout</p>
+            <p className="text-xs text-muted-foreground">Still level after extra time. This match will be decided by penalties.</p>
+            <Button className="w-full h-12 text-base font-bold gap-2" onClick={handlePenalties}>
+              <Play className="w-5 h-5" /> Take Penalties
+            </Button>
+          </GlassPanel>
+        </motion.div>
+      )}
+
       {/* Live Controls (first or second half) — hidden during key moments */}
       {isLive && !keyMoment && (
         <>
@@ -477,7 +592,7 @@ const MatchDay = () => {
                   >
                     <span className="text-xs font-mono w-8 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
                     <span className="flex-1">{getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId)}</span>
-                    <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: clubs[ev.clubId]?.color }} />
+                    <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: clubs[ev.clubId]?.color || '#888' }} />
                   </div>
                 );
               })}
@@ -563,6 +678,11 @@ const MatchDay = () => {
             <p className="text-3xl font-black text-foreground font-display tabular-nums">
               {store.currentMatchResult?.homeGoals ?? 0} - {store.currentMatchResult?.awayGoals ?? 0}
             </p>
+            {store.currentMatchResult?.penaltyShootout && (
+              <p className="text-xs text-muted-foreground mt-1">
+                Penalties: {store.currentMatchResult.penaltyShootout.home} - {store.currentMatchResult.penaltyShootout.away}
+              </p>
+            )}
           </GlassPanel>
           <Button className="w-full h-12 text-base font-bold gap-2" onClick={handleContinue}>
             Match Review

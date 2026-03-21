@@ -155,6 +155,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       durationWeeks: offer.durationWeeks,
       wageSplit: offer.wageSplit,
       recallClause: offer.recallClause,
+      obligatoryBuyFee: offer.obligatoryBuyFee,
     };
 
     const updatedPlayer = {

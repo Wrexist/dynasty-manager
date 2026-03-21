@@ -1,14 +1,21 @@
+import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { DollarSign, TrendingUp, TrendingDown, Users, ArrowUpRight, ArrowDownRight, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHint } from '@/components/game/PageHint';
+import { PAGE_HINTS } from '@/config/ui';
 import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP } from '@/config/gameBalance';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
+import { SponsorshipPanel } from '@/components/game/SponsorshipPanel';
 
 const FinancePage = () => {
   const { clubs, playerClubId, players, financeHistory } = useGameStore();
   const club = clubs[playerClubId];
+  const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
+  const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');
   if (!club) return null;
 
   const weeklyIncome = getWeeklyIncome(club);
@@ -36,8 +43,10 @@ const FinancePage = () => {
   }));
 
   return (
+    <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
       <h2 className="text-lg font-display font-bold text-foreground">Finance</h2>
+      <PageHint screen="finance" title={PAGE_HINTS.finance.title} body={PAGE_HINTS.finance.body} />
 
       {/* Negative Budget Warning */}
       {club.budget < 0 && (
@@ -48,7 +57,7 @@ const FinancePage = () => {
       )}
 
       {/* Budget Overview */}
-      <GlassPanel className="p-4">
+      <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('budget'); setFinanceSheetOpen(true); }}>
         <div className="flex items-center gap-2 mb-3">
           <DollarSign className="w-5 h-5 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Transfer Budget</h3>
@@ -89,7 +98,7 @@ const FinancePage = () => {
 
       {/* Income vs Expenses */}
       <div className="grid grid-cols-2 gap-3">
-        <GlassPanel className="p-3">
+        <GlassPanel className="p-3 cursor-pointer" onClick={() => { setFinanceSheetMode('income'); setFinanceSheetOpen(true); }}>
           <div className="flex items-center gap-1.5 mb-1">
             <ArrowUpRight className="w-3.5 h-3.5 text-emerald-400" />
             <span className="text-xs text-muted-foreground">Weekly Income</span>
@@ -106,7 +115,7 @@ const FinancePage = () => {
             </div>
           </div>
         </GlassPanel>
-        <GlassPanel className="p-3">
+        <GlassPanel className="p-3 cursor-pointer" onClick={() => { setFinanceSheetMode('expenses'); setFinanceSheetOpen(true); }}>
           <div className="flex items-center gap-1.5 mb-1">
             <ArrowDownRight className="w-3.5 h-3.5 text-destructive" />
             <span className="text-xs text-muted-foreground">Weekly Expenses</span>
@@ -121,6 +130,48 @@ const FinancePage = () => {
         </GlassPanel>
       </div>
 
+      {/* Sponsorship Deals */}
+      <SponsorshipPanel />
+
+      {/* Financial Fair Play */}
+      {(() => {
+        const wageRatio = weeklyIncome > 0 ? club.wageBill / weeklyIncome : 0;
+        const ratioPct = Math.round(wageRatio * 100);
+        const ffpStatus = ratioPct >= 90 ? 'critical' : ratioPct >= 70 ? 'warning' : 'healthy';
+        const statusColor = ffpStatus === 'critical' ? 'text-destructive' : ffpStatus === 'warning' ? 'text-amber-400' : 'text-emerald-400';
+        const statusBg = ffpStatus === 'critical' ? 'bg-destructive/20' : ffpStatus === 'warning' ? 'bg-amber-400/20' : 'bg-emerald-500/20';
+        const statusText = ffpStatus === 'critical' ? 'Critical — Restrictions Active' : ffpStatus === 'warning' ? 'Warning — Board Concern' : 'Healthy';
+        return (
+          <GlassPanel className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <AlertTriangle className={cn('w-4 h-4', statusColor)} />
+              <h3 className="text-sm font-semibold text-foreground">Financial Fair Play</h3>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs text-muted-foreground">Wage-to-Revenue Ratio</span>
+              <span className={cn('text-sm font-bold tabular-nums', statusColor)}>{ratioPct}%</span>
+            </div>
+            <div className="relative w-full h-3 rounded-full bg-muted/40 overflow-hidden mb-2">
+              <div
+                className={cn('h-full rounded-full transition-all', ffpStatus === 'critical' ? 'bg-destructive' : ffpStatus === 'warning' ? 'bg-amber-500' : 'bg-emerald-500')}
+                style={{ width: `${Math.min(100, ratioPct)}%` }}
+              />
+              <div className="absolute top-0 bottom-0 w-px bg-amber-400/60" style={{ left: '70%' }} />
+              <div className="absolute top-0 bottom-0 w-px bg-destructive/60" style={{ left: '90%' }} />
+            </div>
+            <div className="flex justify-between text-[9px] text-muted-foreground mb-2">
+              <span>0%</span>
+              <span className="text-amber-400">70%</span>
+              <span className="text-destructive">90%</span>
+              <span>100%</span>
+            </div>
+            <div className={cn('text-[10px] font-semibold px-2 py-1 rounded-md text-center', statusColor, statusBg)}>
+              {statusText}
+            </div>
+          </GlassPanel>
+        );
+      })()}
+
       {/* Squad Value */}
       <GlassPanel className="p-4">
         <div className="flex items-center justify-between">
@@ -130,7 +181,7 @@ const FinancePage = () => {
           </div>
           <span className="text-lg font-bold text-primary tabular-nums">£{(squadValue / 1e6).toFixed(1)}M</span>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">{squadPlayers.length} players · Avg £{(squadValue / squadPlayers.length / 1e6).toFixed(1)}M</p>
+        <p className="text-xs text-muted-foreground mt-1">{squadPlayers.length} players · Avg £{squadPlayers.length > 0 ? (squadValue / squadPlayers.length / 1e6).toFixed(1) : '0.0'}M</p>
       </GlassPanel>
 
       {/* Top Earners */}
@@ -157,6 +208,8 @@ const FinancePage = () => {
         </div>
       </GlassPanel>
     </div>
+    <FinanceBreakdownSheet open={financeSheetOpen} onOpenChange={setFinanceSheetOpen} mode={financeSheetMode} />
+    </>
   );
 };
 

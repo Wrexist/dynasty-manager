@@ -1,4 +1,4 @@
-import type { Match, PlayerMatchRating, CareerMilestone } from '@/types/game';
+import type { Match, PlayerMatchRating, CareerMilestone, InjuryDetails } from '@/types/game';
 import { buildLeagueTable } from '@/data/league';
 import { addMsg } from '@/utils/helpers';
 import {
@@ -12,7 +12,7 @@ import {
   CONFIDENCE_BUDGET_PENALTY, CONFIDENCE_BUDGET_THRESHOLD,
   CONFIDENCE_WIN_STREAK_BONUS, CONFIDENCE_LOSS_STREAK_PENALTY, CONFIDENCE_STREAK_LENGTH,
   CONFIDENCE_WARNING_THRESHOLD, CONFIDENCE_PLEASED_THRESHOLD, CONFIDENCE_MIN, CONFIDENCE_MAX,
-  MORALE_APPEARANCE_BOOST,
+  MORALE_APPEARANCE_BOOST, INJURY_TYPES,
   getExpectedPosition,
 } from '@/config/gameBalance';
 import { createMilestone, checkMatchMilestones } from '@/utils/milestones';
@@ -28,6 +28,7 @@ export function processMatchResult(
   result: Match,
   playerRatings: PlayerMatchRating[],
   getWeek: () => number,
+  matchInjuries?: Record<string, InjuryDetails>,
 ) {
   const { clubs, players, playerClubId, messages, season } = state;
   const week = state.week;
@@ -44,7 +45,9 @@ export function processMatchResult(
       newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
     }
     if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
-      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: MATCH_INJURY_WEEKS_MIN + Math.floor(Math.random() * MATCH_INJURY_WEEKS_RANGE) };
+      const details = matchInjuries?.[ev.playerId];
+      const weeks = details ? details.weeksRemaining : (MATCH_INJURY_WEEKS_MIN + Math.floor(Math.random() * MATCH_INJURY_WEEKS_RANGE));
+      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: weeks, injuryDetails: details };
     }
     if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
@@ -69,10 +72,14 @@ export function processMatchResult(
   const lost = isHome ? result.homeGoals < result.awayGoals : result.awayGoals < result.homeGoals;
   const pc = clubs[playerClubId];
   if (!pc) return { newPlayers, updatedFixtures: state.fixtures.map(f => f.id === match.id ? result : f), leagueTable: [], confidence: state.boardConfidence || 50, newMessages: messages, managerStats: state.managerStats, playerRatings, won, lost, newMilestones: [] as CareerMilestone[], managerProgression: state.managerProgression };
+  const matchParticipants = new Set([...hc.lineup, ...ac.lineup]);
   pc.playerIds.forEach(pid => {
     if (newPlayers[pid]) {
       const p = { ...newPlayers[pid] };
-      p.fitness = Math.max(FITNESS_MIN_POST_MATCH, p.fitness + FITNESS_DRAIN_PER_MATCH);
+      // Only drain fitness from players who actually played
+      if (matchParticipants.has(pid)) {
+        p.fitness = Math.max(FITNESS_MIN_POST_MATCH, p.fitness + FITNESS_DRAIN_PER_MATCH);
+      }
       const moraleDelta = won ? MORALE_WIN_CHANGE : lost ? MORALE_LOSS_CHANGE : 0;
       const moraleStability = getMoraleStability(p.personality);
       p.morale = Math.min(100, Math.max(10, p.morale + Math.round(moraleDelta * moraleStability)));
@@ -119,7 +126,9 @@ export function processMatchResult(
   result.events.filter(ev => ev.type === 'injury' && ev.playerId).forEach(ev => {
     const p = newPlayers[ev.playerId!];
     if (p && p.clubId === playerClubId) {
-      newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `${p.lastName} Injured`, body: `${p.firstName} ${p.lastName} suffered an injury and will be out for ${p.injuryWeeks} week(s).` });
+      const injLabel = p.injuryDetails ? `${p.injuryDetails.severity} ${INJURY_TYPES[p.injuryDetails.type].label}` : 'an injury';
+      const reinjuryWarning = p.injuryDetails && p.injuryDetails.reinjuryRisk > 0.15 ? ' Take care when bringing them back.' : '';
+      newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `${p.lastName} Injured`, body: `${p.firstName} ${p.lastName} suffered ${injLabel} and will be out for ${p.injuryWeeks} week(s).${reinjuryWarning}` });
     }
   });
 

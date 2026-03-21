@@ -42,6 +42,14 @@ export const COUNTER_OFFER_CHANCE = 0.3;
 // ── Manager Perks ──
 export const TRANSFER_SHARK_DISCOUNT = 0.15;
 
+// ── Transfer Rumors ──
+export const RUMOR_CHANCE = 0.15;
+export const RUMOR_TO_OFFER_CHANCE = 0.6;
+
+// ── Deadline Day ──
+export const DEADLINE_DAY_OFFER_MULTIPLIER = 2.0;
+export const DEADLINE_DAY_BID_PREMIUM = 0.15;
+
 // ── Contract Renewal ──
 export const CONTRACT_MIN_YEARS = 1;
 export const CONTRACT_MAX_YEARS = 5;

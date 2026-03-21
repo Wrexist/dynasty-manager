@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 9;
+const CURRENT_VERSION = 12;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -103,6 +103,75 @@ const migrations: Record<number, MigrationFn> = {
     version: 9,
     weeklyDigest: data.weeklyDigest || null,
   }),
+
+  // v9 → v10: Added free agents, AI manager profiles, injury details
+  9: (data) => {
+    // Add injuryDetails to players that have active injuries
+    const players = data.players as Record<string, Record<string, unknown>> | undefined;
+    if (players) {
+      Object.values(players).forEach(p => {
+        if (p.injured && !p.injuryDetails) {
+          p.injuryDetails = {
+            type: 'knock',
+            severity: 'minor',
+            weeksRemaining: (p.injuryWeeks as number) || 1,
+            totalWeeks: (p.injuryWeeks as number) || 1,
+            reinjuryRisk: 0.05,
+            reinjuryWeeksRemaining: 0,
+            fitnessOnReturn: 70,
+          };
+        }
+      });
+    }
+    // Add aiManagerProfile to clubs that don't have one
+    const clubs = data.clubs as Record<string, Record<string, unknown>> | undefined;
+    if (clubs) {
+      const styles = ['attacking', 'defensive', 'possession', 'counter-attack', 'balanced', 'direct'];
+      Object.values(clubs).forEach((club, i) => {
+        if (!club.aiManagerProfile) {
+          const style = styles[i % styles.length];
+          club.aiManagerProfile = {
+            name: 'Manager',
+            style,
+            defaultTactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
+            transferAggression: 0.5,
+            youthFocus: 0.5,
+            adaptability: 0.5,
+          };
+        }
+      });
+    }
+    return {
+      ...data,
+      version: 10,
+      freeAgents: data.freeAgents || [],
+    };
+  },
+
+  // v10 → v11: Added sponsorship system
+  10: (data) => ({
+    ...data,
+    version: 11,
+    sponsorDeals: data.sponsorDeals || [],
+    sponsorOffers: data.sponsorOffers || [],
+    sponsorSlotCooldowns: data.sponsorSlotCooldowns || {},
+  }),
+
+  // v11 → v12: Added player unhappiness tracking, cup extra time state
+  11: (data) => {
+    const players = data.players as Record<string, Record<string, unknown>> | undefined;
+    if (players) {
+      Object.values(players).forEach(p => {
+        if (p.lowMoraleWeeks === undefined) p.lowMoraleWeeks = 0;
+        if (p.wantsToLeave === undefined) p.wantsToLeave = false;
+      });
+    }
+    return {
+      ...data,
+      version: 12,
+      currentCupTieId: data.currentCupTieId || null,
+    };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

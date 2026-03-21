@@ -4,12 +4,12 @@ import { generatePlayer } from '@/utils/playerGen';
 
 describe('personality', () => {
   describe('generatePersonality', () => {
-    it('should generate all traits in 4-17 range', () => {
+    it('should generate all traits in 1-20 range', () => {
       for (let i = 0; i < 50; i++) {
         const p = generatePersonality();
         for (const val of Object.values(p)) {
-          expect(val).toBeGreaterThanOrEqual(4);
-          expect(val).toBeLessThanOrEqual(17);
+          expect(val).toBeGreaterThanOrEqual(1);
+          expect(val).toBeLessThanOrEqual(20);
         }
       }
     });
@@ -34,7 +34,7 @@ describe('personality', () => {
     });
 
     it('should return Hot Head for low temperament', () => {
-      expect(getPersonalityLabel({ professionalism: 10, ambition: 10, temperament: 7, loyalty: 10, leadership: 10 })).toBe('Hot Head');
+      expect(getPersonalityLabel({ professionalism: 10, ambition: 10, temperament: 5, loyalty: 10, leadership: 10 })).toBe('Hot Head');
     });
 
     it('should return Determined as fallback', () => {

@@ -4,7 +4,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock } from 'lucide-react';
+import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users } from 'lucide-react';
 import { TransferListing } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
@@ -13,6 +13,7 @@ import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
+import { getFlag } from '@/utils/nationality';
 
 const TransferPage = () => {
   const {
@@ -21,10 +22,14 @@ const TransferPage = () => {
     incomingOffers, respondToOffer, unlistPlayer,
     activeLoans, incomingLoanOffers, recallLoan, respondToLoanOffer,
     week, season, totalWeeks,
+    freeAgents, signFreeAgent,
   } = useGameStore();
 
   const [posFilter, setPosFilter] = useState(0);
-  const [tab, setTab] = useState<'market' | 'shortlist' | 'incoming' | 'outgoing' | 'loans'>('market');
+  const [tab, setTab] = useState<'market' | 'shortlist' | 'incoming' | 'outgoing' | 'loans' | 'freeAgents'>('market');
+  const [signingPlayer, setSigningPlayer] = useState<string | null>(null);
+  const [offerWage, setOfferWage] = useState(0);
+  const [offerYears, setOfferYears] = useState(2);
   const [searchQuery, setSearchQuery] = useState('');
   const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ offerId: string; accept: boolean; playerName: string; fee: number } | null>(null);
@@ -62,6 +67,19 @@ const TransferPage = () => {
   const outgoingPlayers = useMemo(() => {
     return Object.values(players).filter(p => p.clubId === playerClubId && p.listedForSale);
   }, [players, playerClubId]);
+
+  // Free agents
+  const freeAgentPlayers = useMemo(() => {
+    let result = freeAgents.map(id => players[id]).filter(Boolean);
+    if (POSITION_FILTERS[posFilter].positions.length > 0) {
+      result = result.filter(p => POSITION_FILTERS[posFilter].positions.includes(p.position));
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q));
+    }
+    return result.sort((a, b) => b.overall - a.overall);
+  }, [freeAgents, players, posFilter, searchQuery]);
 
   const handleOffer = (listing: TransferListing) => {
     if (!transferWindowOpen) {
@@ -120,7 +138,7 @@ const TransferPage = () => {
           </span>
         ) : (
           <span className="text-xs bg-muted/50 text-muted-foreground px-2 py-1 rounded-md">
-            Closed — opens Wk {week < WINTER_WINDOW_START ? WINTER_WINDOW_START : SUMMER_WINDOW_END + 1}
+            Closed — opens {week < WINTER_WINDOW_START ? `Wk ${WINTER_WINDOW_START}` : 'next season'}
           </span>
         )}
       </div>
@@ -178,10 +196,19 @@ const TransferPage = () => {
         >
           <Repeat2 className="w-3.5 h-3.5" /> Loans ({activeLoans.length})
         </button>
+        <button
+          onClick={() => setTab('freeAgents')}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-all',
+            tab === 'freeAgents' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+          )}
+        >
+          <Users className="w-3.5 h-3.5" /> Free ({freeAgents.length})
+        </button>
       </div>
 
-      {/* Search + Position Filter (for market and shortlist tabs) */}
-      {(tab === 'market' || tab === 'shortlist') && (
+      {/* Search + Position Filter (for market, shortlist, and free agents tabs) */}
+      {(tab === 'market' || tab === 'shortlist' || tab === 'freeAgents') && (
         <>
           {/* Search Input */}
           <input
@@ -232,7 +259,7 @@ const TransferPage = () => {
                     )}>{p.overall}</span>
                   </div>
                   <div className="flex-1 min-w-0" onClick={() => selectPlayer(p.id)}>
-                    <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
+                    <p className="font-bold text-foreground text-sm">{getFlag(p.nationality)} {p.firstName} {p.lastName}</p>
                     <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} {p.nationality}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">From: {seller?.shortName || '?'}</p>
                     {/* Top 3 Attributes */}
@@ -367,7 +394,7 @@ const TransferPage = () => {
                     )}>{p.overall}</span>
                   </div>
                   <div className="flex-1 min-w-0" onClick={() => selectPlayer(p.id)}>
-                    <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
+                    <p className="font-bold text-foreground text-sm">{getFlag(p.nationality)} {p.firstName} {p.lastName}</p>
                     <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} {p.nationality}</p>
                     <div className="flex gap-2 mt-1.5">
                       {top3.map(attr => (
@@ -561,6 +588,121 @@ const TransferPage = () => {
           })()}
         </div>
       )}
+
+      {/* Free Agents */}
+      {tab === 'freeAgents' && (
+        <div className="space-y-2">
+          {freeAgentPlayers.map(p => {
+            const top3 = getTop3Attributes(p.attributes);
+            return (
+              <GlassPanel key={p.id} className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
+                    <span className={cn('font-mono font-black text-lg', getRatingColor(p.overall))}>{p.overall}</span>
+                  </div>
+                  <div className="flex-1 min-w-0" onClick={() => selectPlayer(p.id)}>
+                    <p className="font-bold text-foreground text-sm">{getFlag(p.nationality)} {p.firstName} {p.lastName}</p>
+                    <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} {p.nationality}</p>
+                    <div className="flex gap-2 mt-1.5">
+                      {top3.map(attr => (
+                        <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">
+                          <span className="text-muted-foreground">{attr.label}</span>{' '}
+                          <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-emerald-400">FREE</p>
+                    <p className="text-[10px] text-muted-foreground">{'\u00A3'}{(p.wage / 1e3).toFixed(0)}K/w</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm" className="w-full h-8 text-xs mt-3"
+                  onClick={() => { setSigningPlayer(p.id); setOfferWage(p.wage); setOfferYears(2); }}
+                >
+                  Sign Player
+                </Button>
+              </GlassPanel>
+            );
+          })}
+          {freeAgentPlayers.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {freeAgents.length === 0 ? 'No free agents available. Players become free agents when their contracts expire at season end.' : 'No free agents match your filters.'}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Free Agent Signing Modal */}
+      {signingPlayer && (() => {
+        const p = players[signingPlayer];
+        if (!p) return null;
+        const signingBonus = Math.round(offerWage * offerYears * 4);
+        const canAfford = (club?.budget || 0) >= signingBonus;
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+            <GlassPanel className="p-5 max-w-sm w-full space-y-4">
+              <h3 className="text-base font-bold text-foreground font-display">Sign {p.firstName} {p.lastName}</h3>
+              <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} OVR {p.overall}</p>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Weekly Wage</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={Math.round(p.wage * 0.5)}
+                    max={Math.round(p.wage * 2)}
+                    step={1000}
+                    value={offerWage}
+                    onChange={e => setOfferWage(Number(e.target.value))}
+                    className="flex-1"
+                  />
+                  <span className="text-sm font-bold text-foreground tabular-nums w-16 text-right">{'\u00A3'}{(offerWage / 1e3).toFixed(0)}K</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Contract Length</label>
+                <div className="flex gap-2">
+                  {[1, 2, 3].map(y => (
+                    <button
+                      key={y}
+                      onClick={() => setOfferYears(y)}
+                      className={cn(
+                        'flex-1 py-1.5 rounded-lg text-xs font-medium transition-all',
+                        offerYears === y ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground'
+                      )}
+                    >
+                      {y} year{y > 1 ? 's' : ''}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Signing Bonus</span>
+                <span className={cn('font-semibold', canAfford ? 'text-foreground' : 'text-destructive')}>
+                  {'\u00A3'}{(signingBonus / 1e6).toFixed(1)}M
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm" className="flex-1 h-9 text-xs"
+                  disabled={!canAfford}
+                  onClick={() => {
+                    const result = signFreeAgent(signingPlayer, offerWage, offerYears);
+                    if (result.success) { successToast(result.message); } else { errorToast(result.message); }
+                    setSigningPlayer(null);
+                  }}
+                >
+                  {canAfford ? 'Confirm Signing' : 'Cannot Afford'}
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1 h-9 text-xs" onClick={() => setSigningPlayer(null)}>
+                  Cancel
+                </Button>
+              </div>
+            </GlassPanel>
+          </div>
+        );
+      })()}
 
       {/* Transfer Negotiation Popup */}
       {negotiatingListing && (

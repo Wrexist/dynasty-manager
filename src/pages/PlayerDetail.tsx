@@ -3,10 +3,11 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
 import { POSITION_COMPATIBILITY, Position } from '@/types/game';
-import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope } from 'lucide-react';
+import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle } from 'lucide-react';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
+import { getFlag } from '@/utils/nationality';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel } from '@/utils/personality';
 
@@ -78,6 +79,7 @@ const PlayerDetail = () => {
   else if (player.form < 40) moraleFactors.push({ label: 'Poor form', impact: 'negative' });
   if (player.contractEnd <= season) moraleFactors.push({ label: 'Contract expiring', impact: 'negative' });
   if (player.injured) moraleFactors.push({ label: 'Currently injured', impact: 'negative' });
+  if (player.wantsToLeave) moraleFactors.push({ label: 'Wants to leave the club', impact: 'negative' });
   if (player.personality?.temperament && player.personality.temperament < 40) moraleFactors.push({ label: 'Volatile temperament', impact: 'negative' });
 
   // Season performance derived stats
@@ -111,7 +113,7 @@ const PlayerDetail = () => {
           </div>
           <div className="flex-1">
             <p className="text-xl font-black text-foreground">{player.firstName} {player.lastName}</p>
-            <p className="text-sm text-muted-foreground">{player.position} · {player.age} · {player.nationality}</p>
+            <p className="text-sm text-muted-foreground">{player.position} · {player.age} · {getFlag(player.nationality)} {player.nationality}</p>
             {club && (
               <div className="flex items-center gap-1.5 mt-1">
                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: club.color }} />
@@ -131,6 +133,15 @@ const PlayerDetail = () => {
               <span className={cn('text-[10px] font-bold', n.color)}>{n.tag}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Transfer Request Badge */}
+      {player.wantsToLeave && (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2 flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 text-destructive" />
+          <span className="text-xs font-bold text-destructive">Transfer Request Submitted</span>
+          <span className="text-[10px] text-muted-foreground ml-auto">Low morale for {player.lowMoraleWeeks || 0} weeks</span>
         </div>
       )}
 
@@ -410,35 +421,64 @@ const PlayerDetail = () => {
       )}
 
       {/* Injury Recovery Panel */}
-      {player.injured && (
-        <GlassPanel className="p-4 border-destructive/30">
-          <div className="flex items-center gap-2 mb-3">
-            <HeartPulse className="w-4 h-4 text-destructive" />
-            <p className="text-sm text-destructive font-bold">
-              Injured — {player.injuryWeeks} week{player.injuryWeeks !== 1 ? 's' : ''} remaining
-            </p>
-          </div>
-          <div className="space-y-2">
-            <div>
-              <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
-                <span>Recovery Progress</span>
-                <span>Est. return: Week {Math.min(week + player.injuryWeeks, 46)}</span>
+      {player.injured && (() => {
+        const details = player.injuryDetails;
+        const progressPct = details
+          ? Math.max(5, ((details.totalWeeks - details.weeksRemaining) / details.totalWeeks) * 100)
+          : Math.max(5, 100 - (player.injuryWeeks / 5) * 100);
+        const severityColor = details?.severity === 'severe' ? 'text-destructive' : details?.severity === 'moderate' ? 'text-orange-400' : 'text-amber-400';
+        const severityBg = details?.severity === 'severe' ? 'bg-destructive/20' : details?.severity === 'moderate' ? 'bg-orange-400/20' : 'bg-amber-400/20';
+        return (
+          <GlassPanel className="p-4 border-destructive/30">
+            <div className="flex items-center gap-2 mb-3">
+              <HeartPulse className="w-4 h-4 text-destructive" />
+              <p className="text-sm text-destructive font-bold">
+                Injured — {player.injuryWeeks} week{player.injuryWeeks !== 1 ? 's' : ''} remaining
+              </p>
+            </div>
+            {details && (
+              <div className="flex items-center gap-2 mb-3">
+                <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full uppercase', severityColor, severityBg)}>
+                  {details.severity}
+                </span>
+                <span className="text-xs text-foreground font-medium">{details.type.replace(/_/g, ' ')}</span>
               </div>
-              <div className="w-full h-2 rounded-full bg-muted/40 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-destructive to-amber-500 transition-all"
-                  style={{ width: `${Math.max(5, 100 - (player.injuryWeeks / 5) * 100)}%` }}
-                />
+            )}
+            <div className="space-y-2">
+              <div>
+                <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                  <span>Recovery Progress</span>
+                  <span>Est. return: Week {Math.min(week + player.injuryWeeks, 46)}</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-muted/40 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-destructive to-amber-500 transition-all"
+                    style={{ width: `${progressPct}%` }}
+                  />
+                </div>
+              </div>
+              {details && (
+                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                  {details.reinjuryRisk > 0 && (
+                    <div className="flex items-center gap-1 text-amber-400">
+                      <AlertTriangle className="w-3 h-3" />
+                      <span>Re-injury risk: {Math.round(details.reinjuryRisk * 100)}%</span>
+                    </div>
+                  )}
+                  <div className="text-muted-foreground">
+                    Fitness on return: {details.fitnessOnReturn}%
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                <Stethoscope className="w-3 h-3" />
+                <span>Medical Center Lv.{facilities.medicalLevel}</span>
+                {facilities.medicalLevel >= 5 && <span className="text-emerald-400">— Enhanced recovery</span>}
               </div>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              <Stethoscope className="w-3 h-3" />
-              <span>Medical Center Lv.{facilities.medicalLevel}</span>
-              {facilities.medicalLevel >= 5 && <span className="text-emerald-400">— Enhanced recovery</span>}
-            </div>
-          </div>
-        </GlassPanel>
-      )}
+          </GlassPanel>
+        );
+      })()}
 
       {/* Sell Button */}
       {isOwnPlayer && (

@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { checkCelebrations, getWinStreak } from '@/utils/celebrations';
 import { STREAK_MORALE_THRESHOLD } from '@/config/gameBalance';
+import { SUMMER_WINDOW_END, WINTER_WINDOW_END } from '@/config/transfers';
 import type { Celebration } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
 import { CelebrationModal } from '@/components/game/CelebrationModal';
@@ -29,6 +30,7 @@ import { getWeekPreview } from '@/utils/weekPreview';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { InfoTip } from '@/components/game/InfoTip';
 import { WeeklyDigest } from '@/components/game/WeeklyDigest';
+import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { HELP_TEXTS } from '@/config/ui';
 import { getManagerTips } from '@/utils/managerTips';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
@@ -59,6 +61,8 @@ const Dashboard = () => {
 
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [boardWarningDismissed, setBoardWarningDismissed] = useState(false);
+  const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
+  const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');
   // Reset board warning dismissal when confidence changes significantly
   const prevConfRef = useRef(boardConfidence);
   useEffect(() => {
@@ -209,6 +213,7 @@ const Dashboard = () => {
   ];
 
   return (
+    <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       {/* Welcome overlay for first-time players */}
       {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} />}
@@ -247,6 +252,17 @@ const Dashboard = () => {
             <span className="text-xs font-semibold text-primary">Challenge Active</span>
           </div>
           <span className="text-[10px] text-muted-foreground">{store.activeChallenge.seasonsRemaining} season(s) left</span>
+        </div>
+      )}
+
+      {/* Deadline Day Banner */}
+      {(week === SUMMER_WINDOW_END || week === WINTER_WINDOW_END) && (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2 flex items-center justify-between animate-pulse">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-destructive" />
+            <span className="text-xs font-bold text-destructive uppercase tracking-wide">Deadline Day!</span>
+          </div>
+          <span className="text-[10px] text-muted-foreground">Transfer window closes today</span>
         </div>
       )}
       {store.activeChallenge?.completed && (
@@ -572,7 +588,7 @@ const Dashboard = () => {
           <p className="text-[10px] text-muted-foreground truncate">{DIVISIONS.find(d => d.id === store.playerDivision)?.shortName || ''} {'\u2022'} {entry?.points || 0} pts</p>
         </GlassPanel>
 
-        <GlassPanel className="p-4">
+        <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('budget'); setFinanceSheetOpen(true); }}>
           <div className="flex items-center gap-2 mb-1">
             <DollarSign className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">Budget</span>
@@ -632,7 +648,7 @@ const Dashboard = () => {
 
       {/* Finance Snapshot + Fan Confidence Row */}
       <div className="grid grid-cols-2 gap-3">
-        <GlassPanel className="p-4">
+        <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('all'); setFinanceSheetOpen(true); }}>
           <div className="flex items-center gap-2 mb-1">
             <Banknote className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">Net Income</span>
@@ -774,6 +790,8 @@ const Dashboard = () => {
         </div>
       </div>
     </div>
+    <FinanceBreakdownSheet open={financeSheetOpen} onOpenChange={setFinanceSheetOpen} mode={financeSheetMode} />
+    </>
   );
 };
 

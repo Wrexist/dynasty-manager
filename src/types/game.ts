@@ -76,7 +76,24 @@ export interface PlayerPersonality {
   leadership: number;       // 1-20: affects team morale & mentoring
 }
 
-export type PersonalityLabel = 'Model Professional' | 'Born Leader' | 'Maverick' | 'Loyal Servant' | 'Hot Head' | 'Ambitious' | 'Laid Back' | 'Determined';
+export type PersonalityLabel = 'Model Professional' | 'Born Leader' | 'Club Legend' | 'Maverick' | 'Loyal Servant' | 'Steady Hand' | 'Hot Head' | 'Enigma' | 'Ambitious' | 'Laid Back' | 'Determined';
+
+// ── Injury System ──
+export type InjuryType = 'knock' | 'muscle_strain' | 'hamstring' | 'ligament' | 'fracture' | 'concussion' | 'acl';
+export type InjurySeverity = 'minor' | 'moderate' | 'severe';
+
+export interface InjuryDetails {
+  type: InjuryType;
+  severity: InjurySeverity;
+  weeksRemaining: number;
+  totalWeeks: number;
+  /** Elevated re-injury risk (0-1) for several weeks after return */
+  reinjuryRisk: number;
+  /** Weeks of elevated re-injury risk remaining after return */
+  reinjuryWeeksRemaining: number;
+  /** Fitness level the player returns at (0-100) */
+  fitnessOnReturn: number;
+}
 
 export interface Player {
   id: string;
@@ -97,6 +114,7 @@ export interface Player {
   form: number;
   injured: boolean;
   injuryWeeks: number;
+  injuryDetails?: InjuryDetails;
   goals: number;
   assists: number;
   appearances: number;
@@ -114,6 +132,8 @@ export interface Player {
   sellOnClubId?: string; // club owed the sell-on fee
   joinedSeason?: number; // season when the player joined this club
   isFromYouthAcademy?: boolean; // true if player was promoted from youth academy
+  wantsToLeave?: boolean; // player has submitted a transfer request
+  lowMoraleWeeks?: number; // consecutive weeks with morale below threshold
 }
 
 export interface Club {
@@ -135,6 +155,7 @@ export interface Club {
   lineup: string[];
   subs: string[];
   divisionId: DivisionId;
+  aiManagerProfile?: AIManagerProfile;
 }
 
 export interface ClubData {
@@ -161,6 +182,7 @@ export interface MatchEvent {
   assistPlayerId?: string;
   clubId: string;
   description: string;
+  momentum?: number;
 }
 
 export interface MatchStats {
@@ -174,6 +196,8 @@ export interface MatchStats {
   awayFouls: number;
   homeCorners: number;
   awayCorners: number;
+  homeXG?: number;
+  awayXG?: number;
 }
 
 export interface Match {
@@ -200,6 +224,7 @@ export interface LeagueTableEntry {
   goalDifference: number;
   points: number;
   form: ('W' | 'D' | 'L')[];
+  cleanSheets: number;
 }
 
 export interface TransferListing {
@@ -252,7 +277,7 @@ export interface Message {
   id: string;
   week: number;
   season: number;
-  type: 'match_preview' | 'match_result' | 'board' | 'injury' | 'transfer' | 'contract' | 'development' | 'general';
+  type: 'match_preview' | 'match_result' | 'board' | 'injury' | 'transfer' | 'contract' | 'development' | 'general' | 'sponsorship';
   title: string;
   body: string;
   read: boolean;
@@ -414,6 +439,21 @@ export type TeamWidth = 'narrow' | 'normal' | 'wide';
 export type Tempo = 'slow' | 'normal' | 'fast';
 export type DefensiveLine = 'deep' | 'normal' | 'high';
 
+// ── AI Manager Profiles ──
+export type AIManagerStyle = 'attacking' | 'defensive' | 'possession' | 'counter-attack' | 'balanced' | 'direct';
+
+export interface AIManagerProfile {
+  name: string;
+  style: AIManagerStyle;
+  defaultTactics: TacticalInstructions;
+  /** How aggressively the AI buys players (0-1) */
+  transferAggression: number;
+  /** Preference for young players in transfers (0-1) */
+  youthFocus: number;
+  /** How much AI adapts tactics mid-match based on scoreline (0-1) */
+  adaptability: number;
+}
+
 export interface TacticalInstructions {
   mentality: Mentality;
   width: TeamWidth;
@@ -514,6 +554,59 @@ export interface FinanceRecord {
   expenses: number;
   transfers: number;
   balance: number;
+}
+
+// ── Sponsorship ──
+export type SponsorSlotId = 'kit_main' | 'kit_sleeve' | 'stadium_naming' | 'training_kit' | 'match_ball' | 'academy' | 'digital';
+
+export type SponsorBonusCondition =
+  | 'win_league' | 'top_2' | 'top_4' | 'top_6' | 'avoid_relegation'
+  | 'win_cup' | 'cup_final' | 'cup_semi'
+  | 'win_20_matches' | 'score_80_goals' | 'clean_sheets_15'
+  | 'goal_diff_30' | 'promotion' | 'unbeaten_home_10';
+
+export interface SponsorDef {
+  id: string;
+  name: string;
+  industry: string;
+  tier: 1 | 2 | 3 | 4 | 5;
+  weeklyPaymentRange: [number, number];
+  preferredDuration: number[];
+  bonusConditions: SponsorBonusCondition[];
+  minReputation: number;
+}
+
+export interface SponsorDeal {
+  id: string;
+  sponsorId: string;
+  slotId: SponsorSlotId;
+  weeklyPayment: number;
+  seasonDuration: number;
+  startSeason: number;
+  performanceBonus: number;
+  bonusCondition: SponsorBonusCondition;
+  bonusMet: boolean;
+  satisfaction: number;
+  buyoutCost: number;
+}
+
+export interface SponsorOffer {
+  id: string;
+  sponsorId: string;
+  slotId: SponsorSlotId;
+  weeklyPayment: number;
+  seasonDuration: number;
+  performanceBonus: number;
+  bonusCondition: SponsorBonusCondition;
+  buyoutCost: number;
+  expiresWeek: number;
+}
+
+export interface SponsorSlotDef {
+  id: SponsorSlotId;
+  label: string;
+  valueTier: number;
+  unlock: { facilityType: 'stadium' | 'training' | 'youth' | 'medical'; level: number } | null;
 }
 
 // ── Match Ratings ──

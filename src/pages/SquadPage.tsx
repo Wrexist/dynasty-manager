@@ -7,7 +7,9 @@ import { Position } from '@/types/game';
 import { Tag, TrendingUp, TrendingDown, HeartPulse } from 'lucide-react';
 import { getRatingColor, getFitnessColor, getMoraleBgColor } from '@/utils/uiHelpers';
 import { successToast } from '@/utils/gameToast';
-import { POSITION_FILTERS } from '@/config/ui';
+import { POSITION_FILTERS, PAGE_HINTS } from '@/config/ui';
+import { PageHint } from '@/components/game/PageHint';
+import { getFlag } from '@/utils/nationality';
 
 const SUBNAV_ITEMS = [
   { screen: 'squad' as const, label: 'Squad' },
@@ -121,6 +123,8 @@ const SquadPage = () => {
       <SubNav items={SUBNAV_ITEMS} />
 
       <div className="px-4 space-y-4">
+        <PageHint screen="squad" title={PAGE_HINTS.squad.title} body={PAGE_HINTS.squad.body} />
+
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -227,7 +231,7 @@ const SquadPage = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1">
                     <p className="font-semibold text-foreground text-sm truncate">
-                      {player.firstName[0]}. {player.lastName}
+                      {getFlag(player.nationality)} {player.firstName[0]}. {player.lastName}
                     </p>
                     {player.growthDelta && player.growthDelta > 0 && (
                       <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
@@ -266,6 +270,11 @@ const SquadPage = () => {
                     <span className="flex items-center gap-0.5" title={`Injured — ${player.injuryWeeks || '?'} wk(s)`}>
                       <HeartPulse className="w-3.5 h-3.5 text-destructive" />
                       <span className="text-[8px] font-bold text-destructive">{player.injuryWeeks}w</span>
+                    </span>
+                  )}
+                  {player.wantsToLeave && !player.injured && (
+                    <span className="text-[8px] font-bold text-destructive bg-destructive/10 px-1 py-0.5 rounded" title="Wants to leave">
+                      UNHAPPY
                     </span>
                   )}
                   {player.contractEnd <= season && !player.injured && (

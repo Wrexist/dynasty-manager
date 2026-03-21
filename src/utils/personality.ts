@@ -2,7 +2,7 @@ import { Player, PlayerPersonality, PersonalityLabel } from '@/types/game';
 
 /** Generate random personality traits for a player */
 export function generatePersonality(): PlayerPersonality {
-  const rand = () => 4 + Math.floor(Math.random() * 14); // 4-17 range, bell-curve later
+  const rand = () => 1 + Math.floor(Math.random() * 20); // 1-20 full range
   return {
     professionalism: rand(),
     ambition: rand(),
@@ -18,9 +18,12 @@ export function getPersonalityLabel(p: PlayerPersonality): PersonalityLabel {
 
   if (professionalism >= 16 && temperament >= 14) return 'Model Professional';
   if (leadership >= 16 && professionalism >= 12) return 'Born Leader';
+  if (loyalty >= 16 && leadership >= 14) return 'Club Legend';
   if (ambition >= 16 && professionalism < 10) return 'Maverick';
   if (loyalty >= 16 && ambition < 10) return 'Loyal Servant';
-  if (temperament < 8) return 'Hot Head';
+  if (temperament >= 16 && ambition < 10) return 'Steady Hand';
+  if (temperament < 6) return 'Hot Head';
+  if (professionalism < 5 && ambition < 5) return 'Enigma';
   if (ambition >= 14) return 'Ambitious';
   if (ambition < 8 && professionalism < 8) return 'Laid Back';
   return 'Determined';

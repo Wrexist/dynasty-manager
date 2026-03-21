@@ -274,7 +274,7 @@ export function generateAllDivisionFixtures(
 export function buildLeagueTable(fixtures: Match[], clubIds: string[]): LeagueTableEntry[] {
   const table: Record<string, LeagueTableEntry> = {};
   clubIds.forEach(id => {
-    table[id] = { clubId: id, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0, form: [] };
+    table[id] = { clubId: id, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0, form: [], cleanSheets: 0 };
   });
 
   const played = fixtures.filter(m => m.played).sort((a, b) => a.week - b.week);
@@ -285,6 +285,8 @@ export function buildLeagueTable(fixtures: Match[], clubIds: string[]): LeagueTa
     h.played++; a.played++;
     h.goalsFor += m.homeGoals; h.goalsAgainst += m.awayGoals;
     a.goalsFor += m.awayGoals; a.goalsAgainst += m.homeGoals;
+    if (m.awayGoals === 0) h.cleanSheets++;
+    if (m.homeGoals === 0) a.cleanSheets++;
     if (m.homeGoals > m.awayGoals) {
       h.won++; a.lost++; h.points += 3;
       h.form.push('W'); a.form.push('L');

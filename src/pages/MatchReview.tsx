@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ChevronRight, Flame, Calendar, HeartPulse } from 'lucide-react';
+import { ChevronRight, Flame, Calendar, HeartPulse, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor } from '@/utils/uiHelpers';
@@ -167,6 +167,7 @@ const MatchReview = () => {
           <div className="space-y-2.5">
             {[
               { label: 'Possession', home: `${match.stats.homePossession}%`, away: `${match.stats.awayPossession}%`, homeVal: match.stats.homePossession, awayVal: match.stats.awayPossession },
+              ...(match.stats.homeXG != null ? [{ label: 'xG', home: match.stats.homeXG.toFixed(1), away: (match.stats.awayXG ?? 0).toFixed(1), homeVal: match.stats.homeXG, awayVal: match.stats.awayXG ?? 0 }] : []),
               { label: 'Shots', home: match.stats.homeShots, away: match.stats.awayShots, homeVal: match.stats.homeShots, awayVal: match.stats.awayShots },
               { label: 'On Target', home: match.stats.homeShotsOnTarget, away: match.stats.awayShotsOnTarget, homeVal: match.stats.homeShotsOnTarget, awayVal: match.stats.awayShotsOnTarget },
               { label: 'Fouls', home: match.stats.homeFouls, away: match.stats.awayFouls, homeVal: match.stats.homeFouls, awayVal: match.stats.awayFouls },
@@ -193,32 +194,38 @@ const MatchReview = () => {
       )}
 
       {/* Player Ratings */}
-      {matchPlayerRatings.length > 0 && (
-        <GlassPanel className="p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-2">Player Ratings</h3>
-          <div className="space-y-1.5">
-            {matchPlayerRatings
-              .filter(r => players[r.playerId]?.clubId === playerClubId)
-              .sort((a, b) => b.rating - a.rating).map(r => {
-              const player = players[r.playerId];
-              if (!player) return null;
-              return (
-                <div key={r.playerId} className="flex items-center gap-2">
-                  <span className={cn(
-                    'w-6 text-center text-xs font-bold',
-                    getMatchRatingColor(r.rating)
-                  )}>
-                    {r.rating.toFixed(1)}
-                  </span>
-                  <span className="text-xs text-foreground flex-1 truncate">{player.lastName}</span>
-                  {r.goals > 0 && <span className="text-[10px] text-emerald-400">{r.goals}G</span>}
-                  {r.assists > 0 && <span className="text-[10px] text-primary">{r.assists}A</span>}
-                </div>
-              );
-            })}
-          </div>
-        </GlassPanel>
-      )}
+      {matchPlayerRatings.length > 0 && (() => {
+        const clubRatings = matchPlayerRatings
+          .filter(r => players[r.playerId]?.clubId === playerClubId)
+          .sort((a, b) => b.rating - a.rating);
+        const motmId = clubRatings[0]?.playerId;
+        return (
+          <GlassPanel className="p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Player Ratings</h3>
+            <div className="space-y-1.5">
+              {clubRatings.map(r => {
+                const player = players[r.playerId];
+                if (!player) return null;
+                const isMotm = r.playerId === motmId;
+                return (
+                  <div key={r.playerId} className={cn('flex items-center gap-2', isMotm && 'bg-primary/10 rounded-lg px-2 py-1 -mx-2')}>
+                    <span className={cn(
+                      'w-6 text-center text-xs font-bold',
+                      getMatchRatingColor(r.rating)
+                    )}>
+                      {r.rating.toFixed(1)}
+                    </span>
+                    <span className="text-xs text-foreground flex-1 truncate">{player.lastName}</span>
+                    {isMotm && <Star className="w-3.5 h-3.5 text-primary shrink-0" />}
+                    {r.goals > 0 && <span className="text-[10px] text-emerald-400">{r.goals}G</span>}
+                    {r.assists > 0 && <span className="text-[10px] text-primary">{r.assists}A</span>}
+                  </div>
+                );
+              })}
+            </div>
+          </GlassPanel>
+        );
+      })()}
 
       {/* Injuries & Cards */}
       {(injuries.length > 0 || cards.length > 0) && (

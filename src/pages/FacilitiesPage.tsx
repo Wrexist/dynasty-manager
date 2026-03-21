@@ -84,19 +84,26 @@ const FacilitiesPage = () => {
                 <button onClick={() => setConfirmUpgrade(null)} className="px-4 py-2 rounded-lg text-xs font-semibold bg-muted/30 text-muted-foreground">Cancel</button>
               </div>
             ) : level < maxLevel && (
-              <button
-                disabled={!canUpgrade}
-                onClick={() => canUpgrade && setConfirmUpgrade(type)}
-                className={cn(
-                  'w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all',
-                  canUpgrade
-                    ? 'bg-primary/20 text-primary hover:bg-primary/30'
-                    : 'bg-muted/20 text-muted-foreground cursor-not-allowed'
+              <div>
+                <button
+                  disabled={!canUpgrade}
+                  onClick={() => canUpgrade && setConfirmUpgrade(type)}
+                  className={cn(
+                    'w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all',
+                    canUpgrade
+                      ? 'bg-primary/20 text-primary hover:bg-primary/30'
+                      : 'bg-muted/20 text-muted-foreground cursor-not-allowed'
+                  )}
+                >
+                  <ArrowUp className="w-3.5 h-3.5" />
+                  Upgrade to Level {level + 1} — £{(cost / 1e6).toFixed(1)}M
+                </button>
+                {!canUpgrade && level < maxLevel && (
+                  <p className="text-[10px] text-muted-foreground text-center mt-1">
+                    {facilities.upgradeInProgress ? 'Another upgrade is in progress' : club && club.budget < cost ? 'Insufficient funds' : ''}
+                  </p>
                 )}
-              >
-                <ArrowUp className="w-3.5 h-3.5" />
-                Upgrade to Level {level + 1} — £{(cost / 1e6).toFixed(1)}M
-              </button>
+              </div>
             )}
             {level >= maxLevel && (
               <p className="text-center text-xs text-emerald-400 font-semibold">Max Level</p>

@@ -1,4 +1,4 @@
-import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, CupState, PressConference, ContractOffer, ActiveChallenge, DivisionId, PlayoffState, PromotionRelegation, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain } from '@/types/game';
+import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, CupState, PressConference, ContractOffer, ActiveChallenge, DivisionId, PlayoffState, PromotionRelegation, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -44,15 +44,17 @@ export interface GameState {
   incomingOffers: IncomingOffer[];
   activeLoans: LoanDeal[];
   incomingLoanOffers: IncomingLoanOffer[];
+  freeAgents: string[];
 
   // Match
   currentMatchResult: Match | null;
   matchSubsUsed: number;
   matchPlayerRatings: PlayerMatchRating[];
   halfTimeState: HalfState | null;
-  matchPhase: 'none' | 'first_half' | 'half_time' | 'second_half' | 'full_time';
+  matchPhase: 'none' | 'first_half' | 'half_time' | 'second_half' | 'full_time' | 'extra_time' | 'penalties';
   preMatchLeaguePosition: number;
   lastMatchXPGain: number;
+  currentCupTieId: string | null;
 
   // Systems
   tactics: TacticalInstructions;
@@ -80,6 +82,11 @@ export interface GameState {
 
   // Storyline Chains
   activeStorylineChains: ActiveStorylineChain[];
+
+  // Sponsorship
+  sponsorDeals: SponsorDeal[];
+  sponsorOffers: SponsorOffer[];
+  sponsorSlotCooldowns: Partial<Record<SponsorSlotId, number>>;
 
   // Weekly Digest (post-advanceWeek summary)
   weeklyDigest: {
@@ -123,6 +130,7 @@ export interface GameState {
   listPlayerForSale: (playerId: string) => void;
   unlistPlayer: (playerId: string) => void;
   respondToOffer: (offerId: string, accept: boolean) => { success: boolean; message: string };
+  signFreeAgent: (playerId: string, wage: number, years: number) => { success: boolean; message: string };
 
   // Actions — Loans
   loanOut: (playerId: string, toClubId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => { success: boolean; message: string };
@@ -135,6 +143,8 @@ export interface GameState {
   playCurrentMatch: () => Match | null;
   playFirstHalf: () => HalfState | null;
   playSecondHalf: () => Match | null;
+  playExtraTime: () => Match | null;
+  playPenalties: () => Match | null;
   clearMatchResult: () => void;
   makeMatchSub: (outId: string, inId: string) => void;
 
@@ -165,6 +175,11 @@ export interface GameState {
 
   // Actions — Challenge Mode
   startChallenge: (scenarioId: string, clubId: string) => void;
+
+  // Actions — Sponsorship
+  acceptSponsorOffer: (offerId: string) => void;
+  rejectSponsorOffer: (offerId: string) => void;
+  terminateSponsorDeal: (dealId: string) => void;
 
   // Actions — Manager Progression
   unlockPerk: (perkId: PerkId) => { success: boolean; message: string };
