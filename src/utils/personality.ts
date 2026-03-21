@@ -62,7 +62,7 @@ export function wantsTransfer(player: Player, clubReputation: number): boolean {
   const { ambition, loyalty } = player.personality;
   // Only high-ambition, low-loyalty players at clubs below their level
   if (ambition < 14 || loyalty > 12) return false;
-  if (player.overall > clubReputation * 15 + 10) {
+  if (player.overall > clubReputation * 12 + 15) {
     return Math.random() < (ambition - loyalty) * 0.02;
   }
   return false;

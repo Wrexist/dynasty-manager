@@ -51,7 +51,7 @@ export function TopBar() {
             <button
               onClick={() => setScreen(backTarget)}
               aria-label="Go back"
-              className="p-2.5 -ml-2.5 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              className="p-3 -ml-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -80,7 +80,7 @@ export function TopBar() {
             <Trophy className="w-3 h-3" />
             <span>S{season}</span>
           </div>
-          <button onClick={saveGame} aria-label="Save game" className="p-2.5 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={saveGame} aria-label="Save game" className="p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
             <Save className="w-4 h-4" />
           </button>
         </div>

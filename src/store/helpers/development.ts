@@ -1,6 +1,6 @@
 import { Player, PlayerAttributes } from '@/types/game';
 import { clamp } from '@/utils/helpers';
-import { calculateOverallExport } from '@/utils/playerGen';
+import { calculateOverall } from '@/utils/playerGen';
 import { getDevelopmentMultiplier } from '@/utils/personality';
 import {
   MAX_SEASON_GROWTH, POSITION_DEV_BONUS,
@@ -51,7 +51,7 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
     }
   }
 
-  updated.overall = calculateOverallExport(updated.attributes, updated.position);
+  updated.overall = calculateOverall(updated.attributes, updated.position);
   updated.growthDelta = updated.overall - oldOverall;
 
   // Track season growth

@@ -3,6 +3,7 @@ import type { MatchEvent } from '@/types/game';
 interface CommentaryContext {
   homeGoals: number;
   awayGoals: number;
+  homeClubId: string;
   isPlayerHome: boolean;
   minute: number;
 }
@@ -31,7 +32,12 @@ function getScoreContext(ctx: CommentaryContext, scoringClubIsHome: boolean): st
 export function getCommentaryStyle(event: MatchEvent): { textClass: string; prefix: string } {
   switch (event.type) {
     case 'goal':
+    case 'penalty_scored':
       return { textClass: 'text-foreground font-bold', prefix: '' };
+    case 'own_goal':
+      return { textClass: 'text-destructive font-bold', prefix: '' };
+    case 'penalty_missed':
+      return { textClass: 'text-amber-400', prefix: '' };
     case 'save':
       return { textClass: 'text-blue-400', prefix: '' };
     case 'miss':
@@ -42,6 +48,10 @@ export function getCommentaryStyle(event: MatchEvent): { textClass: string; pref
       return { textClass: 'text-destructive font-bold', prefix: '' };
     case 'injury':
       return { textClass: 'text-destructive', prefix: '' };
+    case 'extra_time_goal':
+      return { textClass: 'text-primary font-bold', prefix: '' };
+    case 'penalty_shootout':
+      return { textClass: 'text-primary font-black', prefix: '' };
     case 'foul':
       return { textClass: 'text-muted-foreground/70', prefix: '' };
     case 'kickoff':
@@ -54,8 +64,8 @@ export function getCommentaryStyle(event: MatchEvent): { textClass: string; pref
 }
 
 export function enrichDescription(event: MatchEvent, ctx: CommentaryContext): string {
-  if (event.type !== 'goal') return event.description;
-  const scoringClubIsHome = event.clubId ? true : false;
+  if (event.type !== 'goal' && event.type !== 'penalty_scored' && event.type !== 'own_goal') return event.description;
+  const scoringClubIsHome = event.clubId === ctx.homeClubId;
   const extra = getScoreContext(ctx, scoringClubIsHome);
   return extra ? `${event.description} ${extra}` : event.description;
 }

@@ -1,6 +1,6 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { DollarSign, TrendingUp, TrendingDown, Users, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Users, ArrowUpRight, ArrowDownRight, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP } from '@/config/gameBalance';
@@ -38,6 +38,14 @@ const FinancePage = () => {
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
       <h2 className="text-lg font-display font-bold text-foreground">Finance</h2>
+
+      {/* Negative Budget Warning */}
+      {club.budget < 0 && (
+        <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2">
+          <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
+          <p className="text-xs text-destructive font-medium">Your club is in debt. The board may intervene if finances don't improve.</p>
+        </div>
+      )}
 
       {/* Budget Overview */}
       <GlassPanel className="p-4">

@@ -17,7 +17,7 @@ Dynasty Manager is a mobile-first football management simulation with native iOS
 - **Sonner 1.7.4** — toast notifications
 - **Zod 3.25.76** — schema validation
 - **Capacitor 8.2.0** — native iOS/Android builds (haptics, splash screen, status bar, keyboard plugins)
-- **Vitest 3.2.4 + jsdom + Testing Library** — test infra (8 test files)
+- **Vitest 3.2.4 + jsdom + Testing Library** — test infra (14 test files, 134 tests)
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Package manager:** npm
 - **Fonts:** Oswald (headings) + DM Sans (body) via Google Fonts
@@ -69,8 +69,9 @@ src/
 │                         managerPerks, celebrations, seasonAwards, records,
 │                         storylines, playerNarratives, financeHelpers, hallOfManagers,
 │                         weekPreview, weeklyObjectives, saveMigration (v7), etc.
-├── test/               → 8 test files: match, playerDev, helpers, cup,
-│                         celebrations, saveMigration
+├── test/               → 14 test files: match, playerDev, helpers, cup,
+│                         celebrations, saveMigration, contracts, chemistry,
+│                         personality, promotionRelegation, youth, finance, league, training
 ├── index.css           → Tailwind + CSS vars + custom utilities
 └── main.tsx            → Entry
 ```
@@ -116,7 +117,7 @@ src/
 - **Loans:** Separate loan system via `loanSlice.ts` — incoming/outgoing loan offers and deals.
 - **Season end:** `endSeason()` — age, contracts, replacements, new fixtures, reset stats, promotion/relegation.
 - **Promotion/Relegation:** Handled by `utils/promotionRelegation.ts` and `utils/playoffs.ts`. Playoff system for lower divisions.
-- **Persistence:** `saveGame()`/`loadGame()` via localStorage key `'dynasty-save'` (save version: **7**, migration in `utils/saveMigration.ts`).
+- **Persistence:** `saveGame()`/`loadGame()` via localStorage key `'dynasty-save'` (save version: **9**, migration in `utils/saveMigration.ts`).
 - **Progression:** Manager perks, prestige system, achievements, milestones, Hall of Managers.
 - **Narratives:** Storyline chains (`data/storylineChains.ts`), press conferences, player narratives.
 

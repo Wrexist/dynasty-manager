@@ -8,6 +8,8 @@ import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTI
 import type { StylePreset } from '@/config/tactics';
 import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft } from 'lucide-react';
 import { useState } from 'react';
+import { PageHint } from '@/components/game/PageHint';
+import { PAGE_HINTS } from '@/config/ui';
 
 const STYLE_PRESETS: StylePreset[] = [
   { label: 'Park the Bus', values: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 } },
@@ -45,6 +47,7 @@ const TacticsPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      <PageHint screen="tactics" title={PAGE_HINTS.tactics.title} body={PAGE_HINTS.tactics.body} />
       <h2 className="text-lg font-bold text-foreground font-display">Tactics</h2>
 
       {/* Formation Selection */}

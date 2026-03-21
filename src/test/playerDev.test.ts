@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generatePlayer, calculateOverallExport as calculateOverall } from '@/utils/playerGen';
+import { generatePlayer, calculateOverall } from '@/utils/playerGen';
 
 describe('playerDev', () => {
   describe('generatePlayer', () => {

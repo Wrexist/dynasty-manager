@@ -2,7 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { cn } from '@/lib/utils';
-import { MANAGER_PERKS, xpForLevel, getTotalXP, canUnlockPerk } from '@/utils/managerPerks';
+import { MANAGER_PERKS, xpForLevel, getTotalXP, canUnlockPerk, XP_REWARDS } from '@/utils/managerPerks';
 import { toast } from 'sonner';
 import { hapticMedium } from '@/utils/haptics';
 import type { PerkId } from '@/types/game';
@@ -46,7 +46,7 @@ const PerksPage = () => {
             style={{ width: `${xpProgress}%` }}
           />
         </div>
-        <p className="text-[9px] text-muted-foreground mt-1">Earn XP from wins (+15), draws (+5), season end (+30), titles (+100), cup wins (+50)</p>
+        <p className="text-[9px] text-muted-foreground mt-1">Earn XP from wins (+{XP_REWARDS.win}), draws (+{XP_REWARDS.draw}), season end (+{XP_REWARDS.seasonEnd}), titles (+{XP_REWARDS.titleWin}), cup wins (+{XP_REWARDS.cupWin})</p>
       </GlassPanel>
 
       {/* Perk Tree */}
@@ -55,7 +55,7 @@ const PerksPage = () => {
         return (
           <div key={tier}>
             <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
-              Tier {tier} {tier === 1 ? '(100 XP)' : tier === 2 ? '(250 XP)' : '(500 XP)'}
+              Tier {tier} ({tierPerks[0]?.cost || 0} XP)
             </p>
             <div className="grid grid-cols-2 gap-2">
               {tierPerks.map(perk => {

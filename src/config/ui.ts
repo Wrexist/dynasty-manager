@@ -51,14 +51,6 @@ export const POSITION_FILTERS: { label: string; positions: Position[] }[] = [
   { label: 'FWD', positions: ['LW', 'RW', 'ST'] },
 ];
 
-// ── Position Group Colors ──
-export const POSITION_GROUP_COLORS: Record<string, string> = {
-  GK: 'bg-amber-500',
-  DEF: 'bg-blue-500',
-  MID: 'bg-emerald-500',
-  ATT: 'bg-red-500',
-} as const;
-
 // ── Board Verdict Colors & Labels ──
 export const VERDICT_COLORS: Record<string, string> = {
   excellent: 'text-emerald-400',
@@ -76,21 +68,19 @@ export const VERDICT_LABELS: Record<string, string> = {
   sacked: 'Under Pressure',
 } as const;
 
-// ── Attribute Short Labels ──
-export const ATTRIBUTE_LABELS: { key: string; label: string }[] = [
-  { key: 'pace', label: 'PAC' },
-  { key: 'shooting', label: 'SHO' },
-  { key: 'passing', label: 'PAS' },
-  { key: 'defending', label: 'DEF' },
-  { key: 'physical', label: 'PHY' },
-  { key: 'mental', label: 'MEN' },
-];
-
 // ── Match Rating Color Thresholds (used in MatchReview) ──
 export const MATCH_RATING_THRESHOLDS = [
   { min: 8, textClass: 'text-emerald-400' },
   { min: 6, textClass: 'text-primary' },
   { min: 0, textClass: 'text-amber-400' },
+] as const;
+
+// ── Fitness Hex Colors (for SVG rendering on pitch) ──
+export const FITNESS_HEX_THRESHOLDS = [
+  { min: 80, color: '#22c55e' },
+  { min: 60, color: '#eab308' },
+  { min: 40, color: '#f97316' },
+  { min: 0,  color: '#ef4444' },
 ] as const;
 
 // ── Pitch SVG Colors ──
@@ -139,3 +129,38 @@ export const DIFFICULTY_CONFIG: Record<string, { color: string; bg: string; bar:
 } as const;
 
 export const DIFFICULTY_BARS: Record<string, number> = { Easy: 1, Medium: 2, Hard: 3, 'Very Hard': 4 } as const;
+
+// ── Help Texts (used by InfoTip component) ──
+export const HELP_TEXTS = {
+  boardConfidence: 'Board confidence reflects how happy the board is with your results. Winning boosts it, losing drops it. Below 25% you risk being sacked.',
+  morale: 'Average squad morale. Winning boosts morale, losing lowers it. Low morale hurts match performance.',
+  budget: 'Your transfer budget. Income comes from matchday, commercial, and stadium revenue minus your weekly wage bill.',
+  fanMood: 'Fan mood affects stadium atmosphere and income. Good results and winning streaks keep fans happy.',
+  trainingIntensity: 'Heavy training develops players faster but increases injury risk. Light training is safer but progress is slower.',
+  tacticalFamiliarity: 'How well your team knows the current formation. Higher familiarity improves match performance. Train "Tactical" to boost it.',
+  transferBudget: 'Your available funds for buying players. Wage costs reduce your weekly income, so watch the wage bill too.',
+  transferWindow: 'You can only buy/sell players during transfer windows: Weeks 1-8 (summer) and Weeks 20-24 (winter).',
+} as const;
+
+// ── Page Hints (first-visit tips) ──
+export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
+  tactics: {
+    title: 'Tactics Guide',
+    body: 'Pick a formation and set your mentality. Tactical familiarity builds over time — avoid switching formations too often.',
+  },
+  training: {
+    title: 'Training Guide',
+    body: 'Set your weekly training schedule. Heavy training develops players faster but risks injuries. Train "Tactical" to boost formation familiarity.',
+  },
+  transfers: {
+    title: 'Transfer Guide',
+    body: 'Browse the market and make offers during transfer windows. Add players to your shortlist to track them between sessions.',
+  },
+} as const;
+
+// ── Team Talk Options (match day half-time) ──
+export const TEAM_TALK_OPTIONS = [
+  { id: 'motivate', label: 'Motivate', icon: 'Flame', description: "Let's show them what we're made of!" },
+  { id: 'calm', label: 'Stay Calm', icon: 'Shield', description: 'Keep focused, stick to the game plan.' },
+  { id: 'demand', label: 'Demand More', icon: 'AlertTriangle', description: "I expect more from every one of you!" },
+] as const;

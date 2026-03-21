@@ -4,6 +4,9 @@ import { SubNav } from '@/components/game/SubNav';
 import { Dumbbell, Flame, Shield, Brain, Target, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TrainingModule } from '@/types/game';
+import { PageHint } from '@/components/game/PageHint';
+import { PAGE_HINTS, HELP_TEXTS } from '@/config/ui';
+import { InfoTip } from '@/components/game/InfoTip';
 
 const SQUAD_SUB_NAV = [
   { screen: 'squad' as const, label: 'Squad' },
@@ -25,8 +28,9 @@ const DAYS = ['mon', 'tue', 'wed', 'thu', 'fri'] as const;
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
 
 const TrainingPage = () => {
-  const { training, updateTraining } = useGameStore();
+  const { training, updateTraining, players, clubs, playerClubId } = useGameStore();
   const { schedule, intensity, tacticalFamiliarity } = training;
+  const club = clubs[playerClubId];
 
   const handleDayChange = (day: typeof DAYS[number], mod: TrainingModule) => {
     updateTraining({ [day]: mod });
@@ -40,6 +44,7 @@ const TrainingPage = () => {
     <div className="max-w-lg mx-auto">
       <SubNav items={SQUAD_SUB_NAV} />
       <div className="px-4 pb-4 space-y-3">
+        <PageHint screen="training" title={PAGE_HINTS.training.title} body={PAGE_HINTS.training.body} />
         <h2 className="text-lg font-display font-bold text-foreground">Training</h2>
 
         {/* Weekly Schedule */}
@@ -76,7 +81,10 @@ const TrainingPage = () => {
 
         {/* Intensity */}
         <GlassPanel className="p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Training Intensity</h3>
+          <div className="flex items-center gap-2 mb-3">
+            <h3 className="text-sm font-semibold text-foreground">Training Intensity</h3>
+            <InfoTip text={HELP_TEXTS.trainingIntensity} />
+          </div>
           <div className="flex gap-2">
             {(['light', 'medium', 'heavy'] as const).map(level => (
               <button
@@ -108,7 +116,10 @@ const TrainingPage = () => {
         {/* Tactical Familiarity */}
         <GlassPanel className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-sm font-semibold text-foreground">Tactical Familiarity</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-foreground">Tactical Familiarity</h3>
+              <InfoTip text={HELP_TEXTS.tacticalFamiliarity} />
+            </div>
             <span className="text-sm font-bold text-primary tabular-nums">{tacticalFamiliarity}%</span>
           </div>
           <div className="w-full h-2 bg-muted/50 rounded-full overflow-hidden">
@@ -121,6 +132,49 @@ const TrainingPage = () => {
             Train 'Tactical' to improve familiarity with your formation and instructions.
           </p>
         </GlassPanel>
+
+        {/* Recent Development */}
+        {(() => {
+          if (!club) return null;
+          const devChanges = club.playerIds
+            .map(id => players[id])
+            .filter(Boolean)
+            .filter(p => p.growthDelta != null && p.growthDelta !== 0)
+            .sort((a, b) => Math.abs(b.growthDelta || 0) - Math.abs(a.growthDelta || 0))
+            .slice(0, 5);
+          if (devChanges.length === 0) return null;
+          return (
+            <GlassPanel className="p-4">
+              <h3 className="text-sm font-semibold text-foreground mb-3">Recent Development</h3>
+              <div className="space-y-2">
+                {devChanges.map(p => (
+                  <div key={p.id} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-foreground font-medium">{p.firstName[0]}. {p.lastName}</span>
+                      <span className="text-[10px] text-muted-foreground">({p.position})</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground tabular-nums">{p.overall - (p.growthDelta || 0)}</span>
+                      <span className="text-[10px] text-muted-foreground">→</span>
+                      <span className={cn(
+                        'text-xs font-bold tabular-nums',
+                        (p.growthDelta || 0) > 0 ? 'text-emerald-400' : 'text-destructive'
+                      )}>
+                        {p.overall}
+                      </span>
+                      <span className={cn(
+                        'text-[10px] font-bold',
+                        (p.growthDelta || 0) > 0 ? 'text-emerald-400' : 'text-destructive'
+                      )}>
+                        {(p.growthDelta || 0) > 0 ? '↑' : '↓'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassPanel>
+          );
+        })()}
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ import {
   CONFIDENCE_BUDGET_PENALTY, CONFIDENCE_BUDGET_THRESHOLD,
   CONFIDENCE_WIN_STREAK_BONUS, CONFIDENCE_LOSS_STREAK_PENALTY, CONFIDENCE_STREAK_LENGTH,
   CONFIDENCE_WARNING_THRESHOLD, CONFIDENCE_PLEASED_THRESHOLD, CONFIDENCE_MIN, CONFIDENCE_MAX,
+  MORALE_APPEARANCE_BOOST,
   getExpectedPosition,
 } from '@/config/gameBalance';
 import { createMilestone, checkMatchMilestones } from '@/utils/milestones';
@@ -36,7 +37,7 @@ export function processMatchResult(
 
   // Process events: goals, assists, injuries, cards
   result.events.forEach(ev => {
-    if (ev.type === 'goal' && ev.playerId && newPlayers[ev.playerId]) {
+    if ((ev.type === 'goal' || ev.type === 'penalty_scored') && ev.playerId && newPlayers[ev.playerId]) {
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], goals: newPlayers[ev.playerId].goals + 1 };
     }
     if (ev.type === 'goal' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
@@ -53,9 +54,13 @@ export function processMatchResult(
     }
   });
 
-  // Track appearances
+  // Track appearances and boost morale for playing
   [...hc.lineup, ...ac.lineup].forEach(pid => {
-    if (newPlayers[pid]) newPlayers[pid] = { ...newPlayers[pid], appearances: newPlayers[pid].appearances + 1 };
+    if (newPlayers[pid]) {
+      const p = { ...newPlayers[pid], appearances: newPlayers[pid].appearances + 1 };
+      p.morale = Math.min(100, p.morale + MORALE_APPEARANCE_BOOST);
+      newPlayers[pid] = p;
+    }
   });
 
   // Player club fitness/morale/form

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Dumbbell, GraduationCap, Home, Stethoscope, ArrowUp, Clock } from 'lucide-react';
@@ -15,6 +16,7 @@ const getUpgradeCost = (level: number) => (level + 1) * FACILITY_COST_PER_LEVEL;
 
 const FacilitiesPage = () => {
   const { facilities, clubs, playerClubId, startUpgrade } = useGameStore();
+  const [confirmUpgrade, setConfirmUpgrade] = useState<string | null>(null);
   const club = clubs[playerClubId];
 
   return (
@@ -76,10 +78,15 @@ const FacilitiesPage = () => {
             </div>
 
             {/* Upgrade Button */}
-            {level < maxLevel && (
+            {level < maxLevel && confirmUpgrade === type ? (
+              <div className="flex gap-2">
+                <button onClick={() => { startUpgrade(type); setConfirmUpgrade(null); }} className="flex-1 py-2 rounded-lg text-xs font-bold bg-primary/30 text-primary">Confirm — £{(cost / 1e6).toFixed(1)}M</button>
+                <button onClick={() => setConfirmUpgrade(null)} className="px-4 py-2 rounded-lg text-xs font-semibold bg-muted/30 text-muted-foreground">Cancel</button>
+              </div>
+            ) : level < maxLevel && (
               <button
                 disabled={!canUpgrade}
-                onClick={() => canUpgrade && startUpgrade(type)}
+                onClick={() => canUpgrade && setConfirmUpgrade(type)}
                 className={cn(
                   'w-full flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold transition-all',
                   canUpgrade

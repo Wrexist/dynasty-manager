@@ -5,7 +5,7 @@ import { SubNav } from '@/components/game/SubNav';
 import { cn } from '@/lib/utils';
 import { Position } from '@/types/game';
 import { Tag, TrendingUp, TrendingDown, HeartPulse } from 'lucide-react';
-import { getRatingColor, getFitnessColor } from '@/utils/uiHelpers';
+import { getRatingColor, getFitnessColor, getMoraleBgColor } from '@/utils/uiHelpers';
 import { successToast } from '@/utils/gameToast';
 import { POSITION_FILTERS } from '@/config/ui';
 
@@ -210,7 +210,7 @@ const SquadPage = () => {
         <GlassPanel className="divide-y divide-border/30">
           {squad.map(player => {
             const fitnessColor = getFitnessColor(player.fitness);
-            const moraleColor = getFitnessColor(player.morale);
+            const moraleColor = getMoraleBgColor(player.morale);
 
             return (
               <div
@@ -262,7 +262,17 @@ const SquadPage = () => {
 
                 {/* Status icons */}
                 <div className="flex items-center gap-1 w-10 justify-end shrink-0">
-                  {player.injured && <HeartPulse className="w-3.5 h-3.5 text-destructive" title="Injured" />}
+                  {player.injured && (
+                    <span className="flex items-center gap-0.5" title={`Injured — ${player.injuryWeeks || '?'} wk(s)`}>
+                      <HeartPulse className="w-3.5 h-3.5 text-destructive" />
+                      <span className="text-[8px] font-bold text-destructive">{player.injuryWeeks}w</span>
+                    </span>
+                  )}
+                  {player.contractEnd <= season && !player.injured && (
+                    <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded" title="Contract expiring">
+                      EXP
+                    </span>
+                  )}
                   {player.listedForSale && (
                     <span className="text-[8px] font-bold text-primary bg-primary/10 px-1 py-0.5 rounded">
                       LISTED

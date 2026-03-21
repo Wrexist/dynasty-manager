@@ -21,8 +21,8 @@ export const URGENCY_ONE = 1.0;
 export const URGENCY_TWO_PLUS = 0.85;
 
 // ── Offer Fee Formula ──
-export const OFFER_FEE_BASE = 0.7;
-export const OFFER_FEE_RANDOM_RANGE = 0.6;
+export const OFFER_FEE_BASE = 0.85;
+export const OFFER_FEE_RANDOM_RANGE = 0.35;
 export const OFFER_MAX_BUDGET_RATIO = 0.6;
 
 // ── Offer Acceptance Chances ──
@@ -34,8 +34,16 @@ export const ACCEPT_80_PERCENT_THRESHOLD = 0.8;
 // ── Listing ──
 export const LIST_PRICE_MULTIPLIER = 1.2;
 
+// ── Counter-Offer Negotiation ──
+export const COUNTER_OFFER_MIN_THRESHOLD = 0.7;
+export const COUNTER_OFFER_MAX_THRESHOLD = 0.95;
+export const COUNTER_OFFER_CHANCE = 0.3;
+
+// ── Manager Perks ──
+export const TRANSFER_SHARK_DISCOUNT = 0.15;
+
 // ── Contract Renewal ──
 export const CONTRACT_MIN_YEARS = 1;
 export const CONTRACT_MAX_YEARS = 5;
-export const SIGNING_BONUS_WEEKS_PER_YEAR = 4;
+export const SIGNING_BONUS_WEEKS_PER_YEAR = 2;
 export const RENEWAL_MORALE_BOOST = 10;

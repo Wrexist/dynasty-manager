@@ -1,5 +1,5 @@
 import { FormationType, FORMATION_POSITIONS } from '@/types/game';
-import { PITCH_COLORS } from '@/config/ui';
+import { PITCH_COLORS, FITNESS_HEX_THRESHOLDS } from '@/config/ui';
 import { PlayerAvatar } from './PlayerAvatar';
 
 interface PitchViewProps {
@@ -15,23 +15,25 @@ interface PitchViewProps {
   playerFitness?: number[];
   playerIds?: string[];
   jerseyNumbers?: number[];
+  halfPitch?: boolean;
 }
 
 function getFitnessColor(fitness: number): string {
-  if (fitness >= 80) return '#22c55e';
-  if (fitness >= 60) return '#eab308';
-  if (fitness >= 40) return '#f97316';
-  return '#ef4444';
+  const threshold = FITNESS_HEX_THRESHOLDS.find(t => fitness >= t.min);
+  return threshold?.color || FITNESS_HEX_THRESHOLDS[FITNESS_HEX_THRESHOLDS.length - 1].color;
 }
 
-export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, highlightIndex, onSlotClick, playerFitness, playerIds, jerseyNumbers }: PitchViewProps) {
+export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, highlightIndex, onSlotClick, playerFitness, playerIds, jerseyNumbers, halfPitch = false }: PitchViewProps) {
   const homeSlots = FORMATION_POSITIONS[formation];
   const awaySlots = awayFormation ? FORMATION_POSITIONS[awayFormation] : [];
   const resolvedLabels = homeLabels || labels;
 
+  const vpY = halfPitch ? 46 : 0;
+  const vpH = halfPitch ? 59 : 105;
+
   return (
-    <div className="relative w-full aspect-[68/105] max-w-sm mx-auto">
-      <svg viewBox="0 0 68 105" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+    <div className="relative w-full mx-auto" style={{ aspectRatio: `68/${vpH}`, maxWidth: '24rem' }}>
+      <svg viewBox={`0 ${vpY} 68 ${vpH}`} className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
         {/* Pitch */}
         <rect x="0" y="0" width="68" height="105" rx="1.5" fill={PITCH_COLORS.FILL} />
         <rect x="2" y="2" width="64" height="101" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
@@ -40,16 +42,16 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
         <circle cx="34" cy="52.5" r="9.15" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
         <circle cx="34" cy="52.5" r="0.5" fill={PITCH_COLORS.LINE} />
         {/* Penalty areas */}
-        <rect x="13.85" y="2" width="40.3" height="16.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+        {!halfPitch && <rect x="13.85" y="2" width="40.3" height="16.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />}
         <rect x="13.85" y="86.5" width="40.3" height="16.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
         {/* Goal areas */}
-        <rect x="24.85" y="2" width="18.3" height="5.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+        {!halfPitch && <rect x="24.85" y="2" width="18.3" height="5.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />}
         <rect x="24.85" y="97.5" width="18.3" height="5.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
         {/* Goals */}
-        <rect x="29" y="0" width="10" height="2" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+        {!halfPitch && <rect x="29" y="0" width="10" height="2" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />}
         <rect x="29" y="103" width="10" height="2" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
         {/* Penalty arcs */}
-        <path d="M 26.85 18.5 A 9.15 9.15 0 0 0 41.15 18.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+        {!halfPitch && <path d="M 26.85 18.5 A 9.15 9.15 0 0 0 41.15 18.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />}
         <path d="M 26.85 86.5 A 9.15 9.15 0 0 1 41.15 86.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
 
         {/* Home team (bottom half) — spread from near goal (y≈95) to just past center (y≈56) */}
@@ -99,8 +101,8 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
           );
         })}
 
-        {/* Away team (top half) — spread from near goal (y≈10) to just past center (y≈49) */}
-        {showAway && awaySlots.map((slot, i) => {
+        {/* Away team (top half) — only shown in full pitch mode */}
+        {showAway && !halfPitch && awaySlots.map((slot, i) => {
           const cx = 2 + ((100 - slot.x) / 100) * 64;
           const cy = 10 + (slot.y / 100) * 39;
           return (

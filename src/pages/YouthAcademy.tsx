@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
@@ -14,6 +15,7 @@ const SQUAD_SUB_NAV = [
 
 const YouthAcademy = () => {
   const { youthAcademy, players, clubs, playerClubId, promoteYouth, releaseYouth } = useGameStore();
+  const [confirmReleaseId, setConfirmReleaseId] = useState<string | null>(null);
   const club = clubs[playerClubId];
 
   return (
@@ -95,12 +97,19 @@ const YouthAcademy = () => {
                         <ArrowUpRight className="w-3.5 h-3.5" /> Promote
                       </button>
                     )}
-                    <button
-                      onClick={() => releaseYouth(prospect.playerId)}
-                      className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-destructive/10 text-destructive text-xs font-semibold hover:bg-destructive/20 transition-colors"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" /> Release
-                    </button>
+                    {confirmReleaseId === prospect.playerId ? (
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => { releaseYouth(prospect.playerId); setConfirmReleaseId(null); }} className="flex items-center justify-center gap-1 py-2.5 px-3 rounded-lg bg-destructive/20 text-destructive text-xs font-bold min-h-[44px]">Confirm</button>
+                        <button onClick={() => setConfirmReleaseId(null)} className="py-2.5 px-3 rounded-lg bg-muted/30 text-muted-foreground text-xs font-semibold min-h-[44px]">Cancel</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmReleaseId(prospect.playerId)}
+                        className="flex items-center justify-center gap-1.5 py-1.5 px-3 rounded-lg bg-destructive/10 text-destructive text-xs font-semibold hover:bg-destructive/20 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Release
+                      </button>
+                    )}
                   </div>
                 </GlassPanel>
               );

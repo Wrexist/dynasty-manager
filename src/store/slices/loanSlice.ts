@@ -160,6 +160,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     const updatedPlayer = {
       ...player,
       onLoan: true,
+      listedForSale: false,
       loanFromClubId: state.playerClubId,
       loanToClubId: offer.fromClubId,
       clubId: offer.fromClubId,
@@ -185,7 +186,8 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       players: { ...state.players, [offer.playerId]: updatedPlayer },
       clubs: { ...state.clubs, [sellerClub.id]: sellerClub, [buyerClub.id]: buyerClub },
       activeLoans: [...state.activeLoans, loan],
-      incomingLoanOffers: newOffers,
+      incomingLoanOffers: newOffers.filter(o => o.playerId !== offer.playerId),
+      transferMarket: state.transferMarket.filter(l => l.playerId !== offer.playerId),
       messages: msg,
     });
 

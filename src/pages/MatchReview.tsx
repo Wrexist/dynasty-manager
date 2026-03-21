@@ -33,7 +33,7 @@ const MatchReview = () => {
   const lost = !won && !drew;
 
   // Goals
-  const goals = match.events.filter(e => e.type === 'goal');
+  const goals = match.events.filter(e => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored');
   const injuries = match.events.filter(e => e.type === 'injury');
   const cards = match.events.filter(e => e.type === 'yellow_card' || e.type === 'red_card');
 
@@ -84,7 +84,7 @@ const MatchReview = () => {
 
       {/* Key Highlights — animated timeline of the biggest moments */}
       {(() => {
-        const highlights = match.events.filter(e => ['goal', 'red_card', 'injury'].includes(e.type));
+        const highlights = match.events.filter(e => ['goal', 'own_goal', 'penalty_scored', 'penalty_missed', 'red_card', 'injury'].includes(e.type));
         if (highlights.length === 0) return null;
         return (
           <GlassPanel className="p-4">
@@ -103,15 +103,19 @@ const MatchReview = () => {
                   >
                     <div className={cn(
                       'absolute -left-[21px] w-2.5 h-2.5 rounded-full border-2 border-background',
-                      ev.type === 'goal' ? 'bg-emerald-400' : ev.type === 'red_card' ? 'bg-red-500' : 'bg-amber-400'
+                      (ev.type === 'goal' || ev.type === 'penalty_scored') ? 'bg-emerald-400'
+                        : ev.type === 'red_card' ? 'bg-red-500'
+                        : 'bg-amber-400'
                     )} />
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-mono text-primary tabular-nums w-5">{ev.minute}'</span>
                       <span className={cn(
                         'text-[10px] font-bold uppercase tracking-wider',
-                        ev.type === 'goal' ? 'text-emerald-400' : ev.type === 'red_card' ? 'text-red-400' : 'text-amber-400'
+                        (ev.type === 'goal' || ev.type === 'penalty_scored') ? 'text-emerald-400'
+                          : ev.type === 'red_card' ? 'text-red-400'
+                          : 'text-amber-400'
                       )}>
-                        {ev.type === 'goal' ? 'GOAL' : ev.type === 'red_card' ? 'RED CARD' : 'INJURY'}
+                        {ev.type === 'goal' ? 'GOAL' : ev.type === 'penalty_scored' ? 'PENALTY' : ev.type === 'own_goal' ? 'OWN GOAL' : ev.type === 'penalty_missed' ? 'PEN MISSED' : ev.type === 'red_card' ? 'RED CARD' : 'INJURY'}
                       </span>
                       {evClub && (
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: evClub.color }} />
@@ -144,7 +148,9 @@ const MatchReview = () => {
                   <span className="text-xs text-muted-foreground tabular-nums w-6 shrink-0">{g.minute}'</span>
                   <span className="text-xs text-foreground">
                     {scorer ? `${scorer.firstName} ${scorer.lastName}` : 'Unknown'}
-                    {assister && <span className="text-muted-foreground"> (ast. {assister.lastName})</span>}
+                    {g.type === 'penalty_scored' && <span className="text-muted-foreground"> (pen)</span>}
+                    {g.type === 'own_goal' && <span className="text-amber-400"> (OG)</span>}
+                    {g.type === 'goal' && assister && <span className="text-muted-foreground"> (ast. {assister.lastName})</span>}
                   </span>
                   <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clubs[g.clubId]?.color }} />
                 </div>

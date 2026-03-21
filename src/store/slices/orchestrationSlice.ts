@@ -1,6 +1,6 @@
-import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, FacilitiesState, BoardObjective, Position, Message, Match, DivisionId, PlayoffState } from '@/types/game';
+import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, DivisionId, PlayoffState } from '@/types/game';
 import { CLUBS_DATA, buildLeagueTable, getClubsByDivision, generateAllDivisionFixtures, buildAllDivisionTables, DERBIES, DIVISIONS, getDerbyIntensity, getDerbyName } from '@/data/league';
-import { generateSquad, selectBestLineup, generatePlayer, calculateOverallExport } from '@/utils/playerGen';
+import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
 import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity } from '@/utils/training';
@@ -18,6 +18,7 @@ import { checkChallengeComplete, checkChallengeFailed, CHALLENGES } from '@/data
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
 import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
+import { getFarewellSummary } from '@/utils/playerNarratives';
 import {
   TOTAL_WEEKS, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY,
   CONFIDENCE_MIN,
@@ -38,10 +39,16 @@ import {
   SEASON_YOUTH_INTAKE_MIN, SEASON_YOUTH_INTAKE_RANGE,
   LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR,
   LOAN_QUALITY_FORMULA_REP_MULT, LOAN_QUALITY_FORMULA_BASE, LOAN_FITNESS_DRAIN, LOAN_YOUNG_AGE_THRESHOLD,
-  AI_LOAN_OFFER_CHANCE, AI_LOAN_DURATIONS, AI_LOAN_WAGE_SPLITS, AI_LOAN_RECALL_CLAUSE_CHANCE,
+  AI_LOAN_OFFER_CHANCE, AI_LOAN_DURATIONS, AI_LOAN_WAGE_SPLITS, AI_LOAN_RECALL_CLAUSE_CHANCE, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER,
   AI_TRANSFER_CHANCE, AI_TRANSFER_FEE_BASE, AI_TRANSFER_FEE_RANGE, AI_TRANSFER_MAX_BUDGET_RATIO, AI_TRANSFER_MIN_BUDGET,
   getExpectedPosition,
   STREAK_MORALE_THRESHOLD, STREAK_MORALE_BONUS, STREAK_INCOME_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_FORM_THRESHOLD, STREAK_FORM_BONUS,
+  BOARD_REVIEW_WEEKS,
+  MORALE_BENCH_WEEKLY_LOSS, MORALE_BENCH_MIN,
+  CUP_EXTRA_TIME_GOAL_CHANCE, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS,
+  CONGESTED_FIXTURE_INJURY_MULTIPLIER,
+  MOTIVATOR_MORALE_BOOST, YOUTH_DEVELOPER_BOOST,
+  VALUE_AGE_MULTIPLIERS,
 } from '@/config/gameBalance';
 import {
   SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END,
@@ -50,6 +57,8 @@ import {
   URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS,
   OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
 } from '@/config/transfers';
+import { PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
+import { VALUE_OVERALL_MULTIPLIER, VALUE_RANDOM_RANGE } from '@/config/playerGeneration';
 import {
   PLAYOFF_HOME_ADVANTAGE, PLAYOFF_GOAL_RANGE, PLAYOFF_STRONG_BONUS, PLAYOFF_WEAK_BONUS,
   PLAYOFF_FINAL_STRONG_BONUS, PLAYOFF_FINAL_WEAK_BONUS, PLAYOFF_EXTRA_TIME_CHANCE, PLAYOFF_FALLBACK_OVERALL,
@@ -576,6 +585,7 @@ function finalizeSeason(
 
   const newPlayers: Record<string, Player> = {};
   const newClubs = { ...inputClubs };
+  let bestFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] } | null = null;
 
   Object.values(inputPlayers).forEach(p => {
     const aged = { ...p, age: p.age + 1, goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0, suspendedUntilWeek: undefined, growthDelta: 0, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined };
@@ -588,6 +598,13 @@ function finalizeSeason(
         updatedClub.subs = updatedClub.subs.filter(id => id !== aged.id);
         updatedClub.wageBill -= aged.wage;
         newClubs[updatedClub.id] = updatedClub;
+        // Track farewell for most significant departing player from user's club
+        if (p.clubId === playerClubId) {
+          const farewell = getFarewellSummary(p, season, p.joinedSeason);
+          if (farewell.shouldShow && (!bestFarewell || farewell.seasonsServed > bestFarewell.seasonsServed)) {
+            bestFarewell = { playerId: p.id, playerName: `${p.firstName} ${p.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats };
+          }
+        }
       }
       return;
     }
@@ -708,13 +725,16 @@ function finalizeSeason(
     transferMarket, boardObjectives: objectives, boardConfidence: newConfidence,
     seasonHistory: [...state.seasonHistory, history],
     currentMatchResult: null, currentScreen: 'season-summary',
-    messages: newMessages, incomingOffers: [], matchSubsUsed: 0, shortlist: [],
+    messages: newMessages, incomingOffers: [], matchSubsUsed: 0, shortlist: [], scoutWatchList: [],
     youthAcademy: { prospects: newYouthProspects, nextIntakePreview: newIntakePreview },
     staff: { ...state.staff, availableHires: newAvailableHires },
     scouting: { ...state.scouting, assignments: [], reports: [] },
     cup: newCup,
     clubRecords: updatedRecords,
     activeChallenge: endChallenge,
+    activeStorylineChains: [],
+    pendingStoryline: null,
+    ...(bestFarewell ? { pendingFarewell: bestFarewell } : {}),
     playoffs, lastPromotionRelegation: promRel,
     // Career milestones & manager XP at end of season
     careerTimeline: (() => {
@@ -828,9 +848,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable,
       divisionFixtures, divisionTables, divisionClubs, playerDivision,
       playoffs: [], lastPromotionRelegation: null, derbies: DERBIES,
-      transferMarket, shortlist: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
+      transferMarket, shortlist: [], scoutWatchList: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
-      messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0,
+      messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none',
       settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: false },
       tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
       training: {
@@ -854,6 +874,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       managerProgression: createDefaultProgression(),
       cup,
       weeklyObjectives: generateWeeklyObjectives(true),
+      weeklyDigest: null,
       pendingStoryline: null,
       activeStorylineChains: [],
       pendingFarewell: null,
@@ -872,6 +893,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     let newMessages = [...messages];
     const newTimeline: CareerMilestone[] = [];
 
+    // Digest tracking
+    const digestInjuries: string[] = [];
+    const digestRecoveries: string[] = [];
+    const prevMorale = (() => {
+      const pc = clubs[playerClubId];
+      const ids = pc.playerIds;
+      if (ids.length === 0) return 0;
+      return Math.round(ids.reduce((s, id) => s + (players[id]?.morale || 0), 0) / ids.length);
+    })();
+
     const fitnessCoachBonus = getStaffBonus(staff.members, 'fitness-coach');
     const firstTeamCoachBonus = getStaffBonus(staff.members, 'first-team-coach');
     const physioBonus = getStaffBonus(staff.members, 'physio');
@@ -885,6 +916,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         p.injuryWeeks = Math.max(0, p.injuryWeeks - 1 - recoveryBoost);
         if (p.injuryWeeks === 0) {
           p.injured = false;
+          digestRecoveries.push(p.lastName);
           newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `${p.lastName} Returns`, body: `${p.firstName} ${p.lastName} has recovered from injury and is available for selection.` });
         }
       }
@@ -899,10 +931,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const baseInjuryRisk = getInjuryRisk(training, p.age);
         const physioReduction = 1 - physioBonus * PHYSIO_INJURY_REDUCTION_PER_QUALITY;
         const perkReduction = hasPerk(state.managerProgression, 'fitness_guru') ? 0.8 : 1;
-        const injuryRisk = baseInjuryRisk * physioReduction * perkReduction;
+        // Congested fixtures: if player has both a league and cup match this week
+        const hasCupThisWeek = state.cup.ties.some(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId));
+        const hasLeagueThisWeek = state.fixtures.some(f => f.week === week && !f.played && (f.homeClubId === playerClubId || f.awayClubId === playerClubId));
+        const congestionFactor = (hasCupThisWeek && hasLeagueThisWeek) ? CONGESTED_FIXTURE_INJURY_MULTIPLIER : 1;
+        const injuryRisk = baseInjuryRisk * physioReduction * perkReduction * congestionFactor;
         if (Math.random() < injuryRisk && !p.injured) {
           p.injured = true;
           p.injuryWeeks = TRAINING_INJURY_WEEKS_MIN + Math.floor(Math.random() * TRAINING_INJURY_WEEKS_RANGE);
+          digestInjuries.push(p.lastName);
           newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `${p.lastName} Injured in Training`, body: `${p.firstName} ${p.lastName} picked up an injury during training. Out for ${p.injuryWeeks} week(s).` });
         }
       }
@@ -914,6 +951,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         newMessages = addMsg(newMessages, { week, season, type: 'development', title: `${p.lastName} Improving!`, body: `${p.firstName} ${p.lastName} (${p.position}) has improved to ${p.overall} overall!` });
       } else if (p.growthDelta && p.growthDelta < 0) {
         newMessages = addMsg(newMessages, { week, season, type: 'development', title: `${p.lastName} Declining`, body: `${p.firstName} ${p.lastName} (${p.position}) has dropped to ${p.overall} overall. Age is catching up.` });
+      }
+
+      // Benched players gradually lose morale
+      if (!playerClub.lineup.includes(pid) && !playerClub.subs.includes(pid) && !p.injured) {
+        p.morale = Math.max(MORALE_BENCH_MIN, p.morale - MORALE_BENCH_WEEKLY_LOSS);
       }
 
       newPlayers[pid] = p;
@@ -1040,15 +1082,50 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId)
         );
 
-        // Ensure no draws in cup (extra-time goal for random side)
+        // Resolve draws via extra time then penalties
         let hGoals = cupResult.homeGoals;
         let aGoals = cupResult.awayGoals;
+        let penaltyShootout: { home: number; away: number } | undefined;
+        const cupEvents = [...cupResult.events];
         if (hGoals === aGoals) {
-          if (Math.random() < 0.5) hGoals++;
-          else aGoals++;
+          // Extra time: each side has a chance to score based on team strength
+          const homeStr = hClub.reputation / 5;
+          const awayStr = aClub.reputation / 5;
+          if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * homeStr) {
+            hGoals++;
+            cupEvents.push({ minute: 105, type: 'extra_time_goal', clubId: tie.homeClubId, description: `${hClub.shortName} score in extra time!` });
+          }
+          if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * awayStr) {
+            aGoals++;
+            cupEvents.push({ minute: 115, type: 'extra_time_goal', clubId: tie.awayClubId, description: `${aClub.shortName} score in extra time!` });
+          }
+          // If still level, penalty shootout
+          if (hGoals === aGoals) {
+            const homeGK = hPlayers.find(p => p.position === 'GK');
+            const awayGK = aPlayers.find(p => p.position === 'GK');
+            const homeGKQuality = homeGK ? (homeGK.attributes.defending + homeGK.attributes.mental) / 200 : 0.5;
+            const awayGKQuality = awayGK ? (awayGK.attributes.defending + awayGK.attributes.mental) / 200 : 0.5;
+            let penHome = 0, penAway = 0;
+            for (let i = 0; i < CUP_PENALTY_KICKS; i++) {
+              if (Math.random() > awayGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penHome++;
+              if (Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penAway++;
+            }
+            // Sudden death if tied after 5
+            while (penHome === penAway) {
+              const hScores = Math.random() > awayGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
+              const aScores = Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
+              if (hScores) penHome++;
+              if (aScores) penAway++;
+              if (hScores !== aScores) break;
+            }
+            penaltyShootout = { home: penHome, away: penAway };
+            if (penHome > penAway) hGoals++;
+            else aGoals++;
+            cupEvents.push({ minute: 120, type: 'penalty_shootout', clubId: penHome > penAway ? tie.homeClubId : tie.awayClubId, description: `${penHome > penAway ? hClub.shortName : aClub.shortName} win on penalties (${penHome}-${penAway})!` });
+          }
         }
 
-        newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals };
+        newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout };
 
         // Track cup match stats for players
         cupResult.events.forEach(ev => {
@@ -1298,8 +1375,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // Transfer window messages
+    if (newWeek === WINDOW_CLOSING_WEEK - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Transfer Deadline Approaching', body: 'The summer transfer window closes next week. Finalise any deals now!' });
     if (newWeek === WINDOW_CLOSING_WEEK) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Window Closing', body: 'The transfer window closes this week. Make your final moves!' });
     if (newWeek === WINDOW_OPENING_WEEK) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'January Window Opens', body: 'The winter transfer window is now open until Week 24.' });
+    if (newWeek === WINTER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Winter Deadline Approaching', body: 'The winter transfer window closes next week. Last chance for January deals!' });
+    if (newWeek === WINTER_WINDOW_END) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Winter Window Closed', body: 'The January transfer window has closed. No more transfers until next season.' });
 
     // Scouting tick
     const newScouting = { ...scouting, assignments: [...scouting.assignments], reports: [...scouting.reports], discoveredPlayers: [...scouting.discoveredPlayers] };
@@ -1353,7 +1433,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         if (Math.random() < stagnationChance) {
           // No development gain this week — prospect stalled
         } else {
-          const devGain = 1 + youthCoachQuality * 0.3 + newFacilities.youthLevel * 0.2;
+          const baseDevGain = 1 + youthCoachQuality * 0.3 + newFacilities.youthLevel * 0.2;
+          const devGain = hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST) : baseDevGain;
           prospect.developmentScore = Math.min(100, prospect.developmentScore + devGain);
         }
         // Bust risk: low-potential prospects can lose potential permanently (1% per week)
@@ -1474,10 +1555,32 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             const attr = attrKeys[Math.floor(Math.random() * attrKeys.length)];
             attrs[attr] = Math.min(99, attrs[attr] + 1);
             lp.attributes = attrs;
-            lp.overall = calculateOverallExport(attrs, lp.position);
+            lp.overall = calculateOverall(attrs, lp.position);
+            // Recalculate value after development
+            let ageMult = 0.25;
+            for (const tier of VALUE_AGE_MULTIPLIERS) {
+              if (lp.age <= tier.maxAge) { ageMult = tier.multiplier; break; }
+            }
+            lp.value = Math.round(lp.overall * lp.overall * VALUE_OVERALL_MULTIPLIER * ageMult + Math.random() * VALUE_RANDOM_RANGE);
           }
         }
         newPlayers[loan.playerId] = lp;
+      }
+    }
+
+    // Board mid-season review
+    if (BOARD_REVIEW_WEEKS.includes(newWeek)) {
+      const expectedPos = getExpectedPosition(playerClub.reputation);
+      const actualPos = playerTableIdx >= 0 ? playerTableIdx + 1 : 20;
+      const diff = expectedPos - actualPos;
+      if (diff >= 3) {
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: Impressive', body: `The board acknowledges your excellent work. Finishing ${getSuffix(actualPos)} exceeds expectations. Keep it up!` });
+      } else if (diff >= 0) {
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: On Track', body: `The board is satisfied with progress. Current position of ${actualPos}${getSuffix(actualPos)} meets expectations.` });
+      } else if (diff >= -3) {
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: Concerns', body: `The board notes the team is underperforming. A position of ${actualPos}${getSuffix(actualPos)} is below expectations. Improvement is needed.` });
+      } else {
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: Serious Concerns', body: `The board is deeply unhappy. Current position of ${actualPos}${getSuffix(actualPos)} is well below the expected ${expectedPos}${getSuffix(expectedPos)}. Results must improve immediately.` });
       }
     }
 
@@ -1500,6 +1603,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const nextWeekHasMatch = updatedFixtures.some(m => !m.played && m.week === newWeek && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
     const newObjectives = generateWeeklyObjectives(nextWeekHasMatch);
 
+    // Compute digest
+    const newAvgMorale = (() => {
+      const ids = playerClub.playerIds;
+      if (ids.length === 0) return 0;
+      return Math.round(ids.reduce((s, id) => s + (newPlayers[id]?.morale || 0), 0) / ids.length);
+    })();
+    const digestOffersReceived = newOffers.length - state.incomingOffers.length;
+
     set({
       week: newWeek, fixtures: updatedFixtures, players: newPlayers,
       leagueTable, transferWindowOpen, currentMatchResult: null,
@@ -1517,6 +1628,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       managerProgression: updatedProgression,
       pendingStoryline: pendingStorylineEvent || null,
       activeStorylineChains: updatedChains,
+      weeklyDigest: {
+        incomeEarned: weeklyIncome,
+        expensesPaid: totalExpenses,
+        injuriesThisWeek: digestInjuries,
+        recoveriesThisWeek: digestRecoveries,
+        offersReceived: Math.max(0, digestOffersReceived),
+        moraleChange: newAvgMorale - prevMorale,
+      },
     });
 
     // Process loan returns
@@ -1540,7 +1659,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
               const aiClub = pick(aiClubs);
               // Don't send duplicate offers
               if (!newLoanOffers.some(o => o.playerId === fp.id)) {
-                newLoanOffers = [...newLoanOffers, {
+                const offer: IncomingLoanOffer = {
                   id: crypto.randomUUID(),
                   playerId: fp.id,
                   fromClubId: aiClub.id,
@@ -1548,7 +1667,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
                   wageSplit: pick([...AI_LOAN_WAGE_SPLITS]),
                   recallClause: Math.random() < AI_LOAN_RECALL_CLAUSE_CHANCE,
                   week: newWeek,
-                }];
+                };
+                if (Math.random() < AI_LOAN_OBLIGATORY_BUY_CHANCE) {
+                  offer.obligatoryBuyFee = Math.round(fp.value * AI_LOAN_OBLIGATORY_BUY_MULTIPLIER);
+                }
+                newLoanOffers = [...newLoanOffers, offer];
               }
             }
           }
@@ -1638,8 +1761,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const hc = clubs[match.homeClubId];
     const ac = clubs[match.awayClubId];
-    const hp = hc.lineup.map(id => players[id]).filter(Boolean);
-    const ap = ac.lineup.map(id => players[id]).filter(Boolean);
+    let hp = hc.lineup.map(id => players[id]).filter(Boolean);
+    let ap = ac.lineup.map(id => players[id]).filter(Boolean);
+
+    // Motivator perk: boost player team morale before match
+    if (hasPerk(state.managerProgression, 'motivator')) {
+      const boostPlayers = (ps: typeof hp, clubId: string) =>
+        clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + MOTIVATOR_MORALE_BOOST) })) : ps;
+      hp = boostPlayers(hp, match.homeClubId);
+      ap = boostPlayers(ap, match.awayClubId);
+    }
 
     const isPlayerHome = match.homeClubId === playerClubId;
     const homeTactics = isPlayerHome ? tactics : undefined;
@@ -1649,7 +1780,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const prePos = preEntry ? state.leagueTable.indexOf(preEntry) + 1 : 10;
 
     const matchDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
-    const { result, playerRatings } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity);
+    const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
+    const { result, playerRatings } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian);
 
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week);
 
@@ -1681,8 +1813,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const hc = clubs[match.homeClubId];
     const ac = clubs[match.awayClubId];
-    const hp = hc.lineup.map(id => players[id]).filter(Boolean);
-    const ap = ac.lineup.map(id => players[id]).filter(Boolean);
+    let hp = hc.lineup.map(id => players[id]).filter(Boolean);
+    let ap = ac.lineup.map(id => players[id]).filter(Boolean);
+
+    // Motivator perk: boost player team morale before match
+    if (hasPerk(state.managerProgression, 'motivator')) {
+      const boostPlayers = (ps: typeof hp, clubId: string) =>
+        clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + MOTIVATOR_MORALE_BOOST) })) : ps;
+      hp = boostPlayers(hp, match.homeClubId);
+      ap = boostPlayers(ap, match.awayClubId);
+    }
 
     const isPlayerHome = match.homeClubId === playerClubId;
     const homeTactics = isPlayerHome ? tactics : undefined;
@@ -1693,7 +1833,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const preMatchPos = preMatchEntry ? state.leagueTable.indexOf(preMatchEntry) + 1 : 10;
 
     const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
-    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity);
+    const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
+    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian);
 
     set({ halfTimeState: halfState, matchPhase: 'half_time', matchSubsUsed: 0, preMatchLeaguePosition: preMatchPos });
     return halfState;
@@ -1719,7 +1860,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Simulate second half, carrying forward first half state
     const secondHalfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
-    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity);
+    const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
+    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week);
@@ -1771,7 +1913,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       activeSlot: s,
       playerClubId: state.playerClubId, season: state.season, week: state.week,
       clubs: state.clubs, players: state.players, fixtures: state.fixtures,
-      transferMarket: state.transferMarket, shortlist: state.shortlist,
+      transferMarket: state.transferMarket, shortlist: state.shortlist, scoutWatchList: state.scoutWatchList,
       boardObjectives: state.boardObjectives, boardConfidence: state.boardConfidence,
       trainingFocus: state.trainingFocus, totalWeeks: state.totalWeeks,
       messages: state.messages, seasonHistory: state.seasonHistory,
@@ -1800,6 +1942,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       activeStorylineChains: state.activeStorylineChains,
       preMatchLeaguePosition: state.preMatchLeaguePosition,
       lastMatchXPGain: state.lastMatchXPGain,
+      weeklyDigest: state.weeklyDigest,
     };
     localStorage.setItem(`dynasty-save-${s}`, JSON.stringify(saveData));
   },
@@ -1850,10 +1993,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         playoffs: data.playoffs || [],
         lastPromotionRelegation: data.lastPromotionRelegation || null,
         weeklyObjectives: data.weeklyObjectives || [],
+        weeklyDigest: data.weeklyDigest || null,
         pendingStoryline: data.pendingStoryline || null,
         activeStorylineChains: data.activeStorylineChains || [],
         preMatchLeaguePosition: data.preMatchLeaguePosition ?? 10,
         lastMatchXPGain: data.lastMatchXPGain ?? 0,
+        scoutWatchList: data.scoutWatchList || [],
       });
       return true;
     } catch { return false; }
@@ -1862,7 +2007,20 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   resetGame: (slot?: number) => {
     const s = slot ?? get().activeSlot;
     localStorage.removeItem(`dynasty-save-${s}`);
-    set({ gameStarted: false, playerClubId: '', currentScreen: 'dashboard', clubs: {}, players: {}, fixtures: [], leagueTable: [], messages: [], seasonHistory: [], incomingOffers: [] });
+    set({
+      gameStarted: false, playerClubId: '', currentScreen: 'dashboard',
+      clubs: {}, players: {}, fixtures: [], leagueTable: [],
+      messages: [], seasonHistory: [], incomingOffers: [],
+      matchPlayerRatings: [], halfTimeState: null, matchPhase: 'none' as const,
+      currentMatchResult: null, matchSubsUsed: 0,
+      transferMarket: [], shortlist: [], scoutWatchList: [],
+      activeLoans: [], incomingLoanOffers: [],
+      cup: { ties: [], currentRound: null, eliminated: false, winner: null },
+      pendingPressConference: null, activeNegotiation: null,
+      pendingFarewell: null, pendingStoryline: null,
+      activeStorylineChains: [], weeklyObjectives: [],
+      weeklyDigest: null, careerTimeline: [],
+    });
   },
 
   // ── Prestige ──

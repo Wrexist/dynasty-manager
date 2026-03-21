@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { getSuffix } from '@/utils/helpers';
-import { getConfidenceColor, getFanConfidenceColor } from '@/utils/uiHelpers';
+import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PressConference } from '@/components/game/PressConference';
@@ -18,6 +18,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { checkCelebrations, getWinStreak } from '@/utils/celebrations';
+import { STREAK_MORALE_THRESHOLD } from '@/config/gameBalance';
 import type { Celebration } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
 import { CelebrationModal } from '@/components/game/CelebrationModal';
@@ -26,6 +27,11 @@ import { FarewellModal } from '@/components/game/FarewellModal';
 import { BoardWarning } from '@/components/game/BoardWarning';
 import { getWeekPreview } from '@/utils/weekPreview';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
+import { InfoTip } from '@/components/game/InfoTip';
+import { WeeklyDigest } from '@/components/game/WeeklyDigest';
+import { HELP_TEXTS } from '@/config/ui';
+import { getManagerTips } from '@/utils/managerTips';
+import { getFlag, setFlag } from '@/store/helpers/persistence';
 
 const WELCOME_KEY = 'dynasty-welcome-shown';
 
@@ -42,13 +48,13 @@ const Dashboard = () => {
   const unread = useUnreadCount();
 
   const [showWelcome, setShowWelcome] = useState(() => {
-    if (season === 1 && week === 1 && !localStorage.getItem(WELCOME_KEY)) return true;
+    if (season === 1 && week === 1 && !getFlag(WELCOME_KEY)) return true;
     return false;
   });
 
   const dismissWelcome = () => {
     setShowWelcome(false);
-    localStorage.setItem(WELCOME_KEY, '1');
+    setFlag(WELCOME_KEY);
   };
 
   const [isAdvancing, setIsAdvancing] = useState(false);
@@ -100,59 +106,87 @@ const Dashboard = () => {
     prevWeekRef.current = week;
   }, [week, playerClubId, players, club, fixtures, leagueTable, season]);
 
-  if (!club) return null;
+  // ── Derived data (memoized) — must be above early return to avoid conditional hooks ──
 
-  // ── Derived data ──
-
-  const lastResults = fixtures
+  const lastResults = useMemo(() => fixtures
     .filter(m => m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
     .sort((a, b) => b.week - a.week)
-    .slice(0, 5);
+    .slice(0, 5), [fixtures, playerClubId]);
 
-  const entry = leagueTable.find(e => e.clubId === playerClubId);
+  const entry = useMemo(() => leagueTable.find(e => e.clubId === playerClubId), [leagueTable, playerClubId]);
 
-  const avgMorale = club.playerIds.length > 0
-    ? Math.round(club.playerIds.reduce((s, id) => s + (players[id]?.morale || 0), 0) / club.playerIds.length) : 0;
+  const avgMorale = useMemo(() => club && club.playerIds.length > 0
+    ? Math.round(club.playerIds.reduce((s, id) => s + (players[id]?.morale || 0), 0) / club.playerIds.length) : 0, [club, players]);
 
   const pendingOffers = incomingOffers.length;
 
   // Injured players
-  const injuredPlayers = club.playerIds
+  const injuredPlayers = useMemo(() => (club?.playerIds || [])
     .map(id => players[id])
-    .filter(p => p && p.injured && p.clubId === playerClubId);
+    .filter(Boolean)
+    .filter(p => p.injured && p.clubId === playerClubId), [club, players, playerClubId]);
 
   // Expiring contracts (end this season)
-  const expiringPlayers = club.playerIds
+  const expiringPlayers = useMemo(() => (club?.playerIds || [])
     .map(id => players[id])
-    .filter(p => p && p.contractEnd <= season && !p.injured);
+    .filter(Boolean)
+    .filter(p => p.contractEnd <= season && !p.injured), [club, players, season]);
 
   // Net weekly income
-  const netWeeklyIncome = getNetWeeklyIncome(club);
+  const netWeeklyIncome = useMemo(() => club ? getNetWeeklyIncome(club) : 0, [club]);
 
   // Win streak
-  const winStreak = getWinStreak(playerClubId, fixtures);
+  const winStreak = useMemo(() => getWinStreak(playerClubId, fixtures), [playerClubId, fixtures]);
 
   // Week preview teasers
-  const weekPreviews = club ? getWeekPreview({
+  const weekPreviews = useMemo(() => club ? getWeekPreview({
     playerClubId, players, clubs, fixtures, facilities: store.facilities,
     scouting: store.scouting, week, season,
-  }) : [];
+  }) : [], [playerClubId, players, clubs, fixtures, store.facilities, store.scouting, week, season, club]);
 
   // Fan confidence
-  const fanConfidence = Math.min(100, Math.round(club.fanBase * 0.5 + boardConfidence * 0.5));
+  const _fanConfidence = useMemo(() => club ? getFanConfidence(club.fanBase, boardConfidence) : 0, [club, boardConfidence]);
+
+  // Manager tips
+  const managerTips = useMemo(() => club ? getManagerTips({
+    week, season, club, players, fixtures,
+    transferWindowOpen: store.transferWindowOpen,
+    boardConfidence, incomingOffers: incomingOffers.length,
+    tacticalFamiliarity: store.training.tacticalFamiliarity,
+  }) : [], [week, season, club, players, fixtures, store.transferWindowOpen, boardConfidence, incomingOffers.length, store.training.tacticalFamiliarity]);
+
+  // Last played match
+  const lastMatchInfo = useMemo(() => {
+    const lastMatch = fixtures
+      .filter(m => m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
+      .sort((a, b) => b.week - a.week)[0];
+    if (!lastMatch) return null;
+    const isH = lastMatch.homeClubId === playerClubId;
+    const oppId = isH ? lastMatch.awayClubId : lastMatch.homeClubId;
+    const oppClub = clubs[oppId];
+    const pGoals = isH ? lastMatch.homeGoals : lastMatch.awayGoals;
+    const oGoals = isH ? lastMatch.awayGoals : lastMatch.homeGoals;
+    const result = pGoals > oGoals ? 'W' : pGoals < oGoals ? 'L' : 'D';
+    return { oppName: oppClub?.shortName || '?', score: `${lastMatch.homeGoals}-${lastMatch.awayGoals}`, result };
+  }, [fixtures, playerClubId, clubs]);
 
   // Next 3 unplayed fixtures for player club
-  const upcomingFixtures = fixtures
+  const upcomingFixtures = useMemo(() => fixtures
     .filter(m => !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId) && m.week > week)
     .sort((a, b) => a.week - b.week)
-    .slice(0, 3);
+    .slice(0, 3), [fixtures, playerClubId, week]);
+
+  const inPlayoffs = store.seasonPhase === 'playoffs';
 
   // Season over check — 46-week season, but only when all player matches done and not in playoffs
-  const allMatchesPlayed = fixtures
-    .filter(m => m.homeClubId === playerClubId || m.awayClubId === playerClubId)
-    .every(m => m.played);
-  const inPlayoffs = store.seasonPhase === 'playoffs';
-  const seasonOver = !inPlayoffs && (week > store.totalWeeks || (allMatchesPlayed && fixtures.filter(m => m.played).length > 0));
+  const seasonOver = useMemo(() => {
+    const allMatchesPlayed = fixtures
+      .filter(m => m.homeClubId === playerClubId || m.awayClubId === playerClubId)
+      .every(m => m.played);
+    return !inPlayoffs && (week > store.totalWeeks || (allMatchesPlayed && fixtures.filter(m => m.played).length > 0));
+  }, [fixtures, playerClubId, week, inPlayoffs, store.totalWeeks]);
+
+  if (!club) return null;
 
   // Training focus label map
   const trainingLabels: Record<string, string> = {
@@ -178,6 +212,9 @@ const Dashboard = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       {/* Welcome overlay for first-time players */}
       {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} />}
+
+      {/* Weekly Digest (post-advanceWeek summary) */}
+      <WeeklyDigest />
 
       {/* Press Conference (shown after matches) */}
       {store.pendingPressConference && <PressConference />}
@@ -250,6 +287,23 @@ const Dashboard = () => {
         </motion.div>
       )}
 
+      {/* Last Match Result */}
+      {lastMatchInfo && !seasonOver && (
+        <GlassPanel className="p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              'w-6 h-6 rounded-md flex items-center justify-center text-xs font-black',
+              lastMatchInfo.result === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
+              lastMatchInfo.result === 'L' ? 'bg-destructive/20 text-destructive' :
+              'bg-amber-500/20 text-amber-400'
+            )}>{lastMatchInfo.result}</span>
+            <div>
+              <p className="text-xs font-semibold text-foreground">Last Result: {lastMatchInfo.score} vs {lastMatchInfo.oppName}</p>
+            </div>
+          </div>
+        </GlassPanel>
+      )}
+
       {/* Training Status Chip + Win Streak */}
       {!seasonOver && !inPlayoffs && (
         <div className="flex items-center gap-2 flex-wrap">
@@ -258,8 +312,10 @@ const Dashboard = () => {
             <span className="text-xs font-semibold text-primary">
               Training: {trainingLabels[trainingFocus] || trainingFocus}
             </span>
+            <span className="text-[10px] text-primary/60">|</span>
+            <span className="text-[10px] font-medium text-primary/70">Fam {store.training.tacticalFamiliarity}%</span>
           </div>
-          {winStreak >= 3 && (
+          {winStreak >= STREAK_MORALE_THRESHOLD && (
             <div className="inline-flex items-center gap-1 bg-orange-500/10 border border-orange-500/30 rounded-full px-3 py-1">
               <Flame className="w-3.5 h-3.5 text-orange-400" />
               <span className="text-xs font-bold text-orange-400">{winStreak} Win Streak</span>
@@ -267,6 +323,33 @@ const Dashboard = () => {
           )}
           <span className="text-[10px] text-muted-foreground">Week {week} / Season {season}</span>
         </div>
+      )}
+
+      {/* Manager Tips */}
+      {!seasonOver && managerTips.length > 0 && (
+        <GlassPanel className="p-4 border-primary/20">
+          <p className="text-[10px] text-primary uppercase tracking-wider font-semibold mb-2">Manager Tips</p>
+          <div className="space-y-2">
+            {managerTips.map((tip, i) => (
+              <motion.div
+                key={tip.text}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.08 }}
+                className={cn(
+                  'flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors',
+                  tip.action ? 'cursor-pointer hover:bg-primary/5' : '',
+                  'bg-muted/20'
+                )}
+                onClick={() => tip.action && setScreen(tip.action)}
+              >
+                <DynamicIcon name={tip.icon} className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-xs text-foreground flex-1">{tip.text}</span>
+                {tip.action && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+              </motion.div>
+            ))}
+          </div>
+        </GlassPanel>
       )}
 
       {/* Weekly Objectives */}
@@ -493,6 +576,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-2 mb-1">
             <DollarSign className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">Budget</span>
+            <InfoTip text={HELP_TEXTS.budget} />
           </div>
           <p className="text-2xl font-black text-foreground tabular-nums">
             £{(club.budget / 1e6).toFixed(1)}<span className="text-sm">M</span>
@@ -506,6 +590,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-2 mb-1">
             <Heart className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">Morale</span>
+            <InfoTip text={HELP_TEXTS.morale} />
           </div>
           <p className={cn(
             'text-2xl font-black tabular-nums',
@@ -522,6 +607,7 @@ const Dashboard = () => {
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">Board</span>
+            <InfoTip text={HELP_TEXTS.boardConfidence} />
           </div>
           <p className={cn(
             'text-2xl font-black tabular-nums',
@@ -563,13 +649,17 @@ const Dashboard = () => {
         <GlassPanel className="p-4">
           <div className="flex items-center gap-2 mb-1">
             <Users className="w-4 h-4 text-primary" />
-            <span className="text-xs text-muted-foreground">Fan Confidence</span>
+            <span className="text-xs text-muted-foreground">Fan Mood</span>
+            <InfoTip text={HELP_TEXTS.fanMood} />
           </div>
           <p className={cn(
             'text-xl font-black tabular-nums',
-            getFanConfidenceColor(fanConfidence)
+            getFanConfidenceColor(store.fanMood)
           )}>
-            {fanConfidence}%
+            {store.fanMood}%
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            {store.fanMood >= 70 ? 'Buzzing' : store.fanMood >= 40 ? 'Content' : 'Restless'}
           </p>
         </GlassPanel>
       </div>

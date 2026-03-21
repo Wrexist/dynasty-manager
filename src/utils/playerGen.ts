@@ -69,8 +69,7 @@ function calculateOverall(attrs: PlayerAttributes, position: Position): number {
   return clamp(Math.round(vals.reduce((s, v, i) => s + v * w[i], 0)));
 }
 
-// Export for use by store
-export const calculateOverallExport = calculateOverall;
+export { calculateOverall };
 
 export function generatePlayer(position: Position, quality: number, clubId: string, season: number): Player {
   const attrs = generateAttributes(position, quality);
@@ -151,7 +150,7 @@ export function generateSquad(clubId: string, quality: number, season: number): 
     starAttrs[key] = clamp(starAttrs[key] + starBoost, 1, 99);
   }
   star.attributes = starAttrs;
-  star.overall = calculateOverallExport(starAttrs, star.position);
+  star.overall = calculateOverall(starAttrs, star.position);
   star.potential = clamp(star.overall + 3 + Math.floor(Math.random() * 3));
   star.value = star.overall * star.overall * VALUE_OVERALL_MULTIPLIER + Math.floor(Math.random() * VALUE_RANDOM_RANGE);
 
@@ -166,7 +165,7 @@ export function generateSquad(clubId: string, quality: number, season: number): 
     }
     vetAttrs.mental = clamp(vetAttrs.mental + 10, 1, 99);
     vet.attributes = vetAttrs;
-    vet.overall = calculateOverallExport(vetAttrs, vet.position);
+    vet.overall = calculateOverall(vetAttrs, vet.position);
     vet.potential = vet.overall; // no growth left
     vet.value = vet.overall * vet.overall * VALUE_OVERALL_MULTIPLIER + Math.floor(Math.random() * VALUE_RANDOM_RANGE);
     if (vet.personality) vet.personality.leadership = Math.max(vet.personality.leadership, 16);

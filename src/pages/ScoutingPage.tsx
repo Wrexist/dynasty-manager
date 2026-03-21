@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
-import { Search, Globe, MapPin, Eye, Clock } from 'lucide-react';
+import { Search, Globe, MapPin, Eye, Clock, Star, StarOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScoutRegion } from '@/types/game';
 import { getPotentialInfo } from '@/utils/uiHelpers';
@@ -20,8 +21,11 @@ const REGION_INFO: { region: ScoutRegion; label: string; weeks: number; descript
   { region: 'asia', label: 'Asia', weeks: 5, description: 'Hidden gems, longer scouting' },
 ];
 
+const SCOUTING_TABS = ['Overview', 'Watch List'] as const;
+
 const ScoutingPage = () => {
-  const { scouting, players, assignScout, cancelAssignment } = useGameStore();
+  const { scouting, players, scoutWatchList, assignScout, cancelAssignment, addToWatchList, removeFromWatchList } = useGameStore();
+  const [activeTab, setActiveTab] = useState<typeof SCOUTING_TABS[number]>('Overview');
 
   return (
     <div className="max-w-lg mx-auto">
@@ -34,6 +38,23 @@ const ScoutingPage = () => {
           </span>
         </div>
 
+        {/* Tab Switcher */}
+        <div className="flex gap-1 bg-muted/30 rounded-lg p-1">
+          {SCOUTING_TABS.map(tab => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                'flex-1 text-xs font-semibold py-1.5 rounded-md transition-colors',
+                activeTab === tab ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {activeTab === 'Overview' && (<>
         {/* Active Assignments */}
         {scouting.assignments.length > 0 && (
           <div className="space-y-2">
@@ -97,18 +118,27 @@ const ScoutingPage = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold',
-                        report.recommendation === 'sign' ? 'bg-emerald-500/20 text-emerald-400'
-                        : report.recommendation === 'monitor' ? 'bg-amber-500/20 text-amber-400'
-                        : 'bg-destructive/20 text-destructive'
-                      )}>
-                        {report.recommendation.toUpperCase()}
-                      </span>
-                      <div className="flex items-center gap-0.5">
-                        <Eye className="w-3 h-3 text-muted-foreground" />
-                        <span className="text-[10px] text-muted-foreground">{report.knowledgeLevel}%</span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-semibold',
+                          report.recommendation === 'sign' ? 'bg-emerald-500/20 text-emerald-400'
+                          : report.recommendation === 'monitor' ? 'bg-amber-500/20 text-amber-400'
+                          : 'bg-destructive/20 text-destructive'
+                        )}>
+                          {report.recommendation.toUpperCase()}
+                        </span>
+                        <div className="flex items-center gap-0.5">
+                          <Eye className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">{report.knowledgeLevel}%</span>
+                        </div>
                       </div>
+                      <button
+                        onClick={() => scoutWatchList.includes(report.playerId) ? removeFromWatchList(report.playerId) : addToWatchList(report.playerId)}
+                        className="p-1 rounded-md hover:bg-primary/20 transition-colors"
+                        title={scoutWatchList.includes(report.playerId) ? 'Remove from watch list' : 'Add to watch list'}
+                      >
+                        <Star className={cn('w-4 h-4', scoutWatchList.includes(report.playerId) ? 'text-primary fill-primary' : 'text-muted-foreground')} />
+                      </button>
                     </div>
                   </div>
                 </GlassPanel>
@@ -148,6 +178,49 @@ const ScoutingPage = () => {
             <p className="text-sm text-muted-foreground">No scouting activity</p>
             <p className="text-xs text-muted-foreground mt-1">Send scouts to discover new talent for your squad</p>
           </GlassPanel>
+        )}
+        </>)}
+
+        {activeTab === 'Watch List' && (
+          <div className="space-y-2">
+            {scoutWatchList.length > 0 ? (
+              scoutWatchList.map(pid => {
+                const player = players[pid];
+                if (!player) return null;
+                return (
+                  <GlassPanel key={pid} className="p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={cn(
+                          'w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold',
+                          getPotentialInfo(player.overall).bgClass
+                        )}>
+                          {player.overall}
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{player.firstName} {player.lastName}</p>
+                          <p className="text-xs text-muted-foreground">{player.position} · Age {player.age} · Pot. {player.potential}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeFromWatchList(pid)}
+                        className="p-1.5 rounded-md hover:bg-destructive/20 transition-colors"
+                        title="Remove from watch list"
+                      >
+                        <StarOff className="w-4 h-4 text-destructive" />
+                      </button>
+                    </div>
+                  </GlassPanel>
+                );
+              })
+            ) : (
+              <GlassPanel className="p-6 text-center">
+                <Star className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No players on watch list</p>
+                <p className="text-xs text-muted-foreground mt-1">Add players from scout reports to keep track of them</p>
+              </GlassPanel>
+            )}
+          </div>
         )}
       </div>
     </div>

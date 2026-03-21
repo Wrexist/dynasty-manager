@@ -1,9 +1,11 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { infoToast } from '@/utils/gameToast';
+import { removeFlag, clearFlagsByPrefix } from '@/store/helpers/persistence';
 
 const APP_VERSION = 'v0.2 Alpha · Football Edition';
 
@@ -140,6 +142,23 @@ const SettingsPage = () => {
             </button>
           </div>
         </div>
+      </GlassPanel>
+
+      {/* Help */}
+      <GlassPanel className="p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Help</h3>
+        <Button
+          variant="secondary"
+          className="w-full justify-start gap-3 h-11"
+          onClick={() => {
+            removeFlag('dynasty-welcome-shown');
+            clearFlagsByPrefix('dynasty-hint-');
+            infoToast('Tutorial Reset', 'The welcome tutorial and page hints will show again.');
+          }}
+        >
+          <HelpCircle className="w-4 h-4" />
+          Replay Tutorial
+        </Button>
       </GlassPanel>
 
       {/* About */}

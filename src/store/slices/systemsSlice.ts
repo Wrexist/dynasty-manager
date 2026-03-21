@@ -92,6 +92,14 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     });
   },
 
+  addToWatchList: (playerId: string) => set(s => ({
+    scoutWatchList: s.scoutWatchList.includes(playerId) ? s.scoutWatchList : [...s.scoutWatchList, playerId],
+  })),
+
+  removeFromWatchList: (playerId: string) => set(s => ({
+    scoutWatchList: s.scoutWatchList.filter(id => id !== playerId),
+  })),
+
   promoteYouth: (playerId: string) => {
     const state = get();
     const prospect = state.youthAcademy.prospects.find(p => p.playerId === playerId);

@@ -167,7 +167,7 @@ export const CORNER_GOAL_DEFENDING_WEIGHT = 0.4;
 export const FITNESS_DEGRADE_PER_MINUTE = 0.20;
 export const FITNESS_DEGRADE_VARIANCE = 0.05;
 export const LOW_FITNESS_SHOT_PENALTY = 0.15;
-export const LOW_FITNESS_THRESHOLD = 50;
+export const MATCH_LOW_FITNESS_THRESHOLD = 50;
 export const LOW_FITNESS_INJURY_BONUS = 0.02;
 
 // ── Fouler Position Weights ──
@@ -200,6 +200,29 @@ export const DERBY_CARD_MOD_SCALE = 0.05;
 export const CORNER_HEADER_MIN_CHANCE = 0.25;
 /** Physical attribute scaling for corner header goal chance */
 export const CORNER_HEADER_PHYSICAL_SCALE = 0.5;
+
+// ── Own Goals ──
+/** Chance of an own goal per match event cycle (very low) */
+export const OWN_GOAL_CHANCE = 0.003;
+
+// ── Penalties ──
+/** Chance a foul in a dangerous area becomes a penalty */
+export const PENALTY_FROM_FOUL_CHANCE = 0.08;
+/** Conversion rate for penalties */
+export const PENALTY_CONVERSION_RATE = 0.76;
+
+// ── Morale Performance Impact ──
+/** How much morale deviation from baseline affects shot quality / defense (0–1) */
+export const MORALE_PERFORMANCE_WEIGHT = 0.10;
+/** Neutral morale level — above boosts performance, below penalizes */
+export const MORALE_BASELINE = 50;
+
+// ── Key Moment Thresholds ──
+export const KEY_MOMENT_LOSING_MINUTE = 70;
+export const KEY_MOMENT_TIGHT_FINISH_MINUTE = 80;
+
+// ── Manager Perks ──
+export const DISCIPLINARIAN_CARD_REDUCTION = 0.30;
 
 // ── Substitutions ──
 export const MAX_SUBSTITUTIONS = 3;

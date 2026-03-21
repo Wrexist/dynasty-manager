@@ -8,6 +8,8 @@ import type { PlayerAttributes, Position } from '@/types/game';
 // ── Season Structure ──
 export const TOTAL_WEEKS = 46;
 export const STARTING_BOARD_CONFIDENCE = 50;
+export const LINEUP_SIZE = 11;
+export const LOW_FITNESS_THRESHOLD = 65;
 
 // ── Player Development: Growth ──
 export const GROWTH_AGE_THRESHOLD = 24;
@@ -43,7 +45,6 @@ export const POSITION_DEV_BONUS: Record<string, Partial<Record<keyof PlayerAttri
   'LW':  { pace: 0.03, shooting: 0.02 },
   'RW':  { pace: 0.03, shooting: 0.02 },
   'ST':  { shooting: 0.03, physical: 0.01, pace: 0.01 },
-  'CF':  { shooting: 0.02, passing: 0.02, mental: 0.01 },
 };
 
 // ── Value Age Multipliers ──
@@ -185,11 +186,25 @@ export const LOAN_QUALITY_FORMULA_BASE = 30;
 export const LOAN_FITNESS_DRAIN = 8;
 export const LOAN_YOUNG_AGE_THRESHOLD = 24;
 
+// ── Congested Fixture Injury Risk ──
+export const CONGESTED_FIXTURE_INJURY_MULTIPLIER = 1.3;
+
+// ── Cup Draw Resolution ──
+export const CUP_EXTRA_TIME_GOAL_CHANCE = 0.35;
+export const CUP_PENALTY_WIN_CHANCE = 0.5;
+export const CUP_PENALTY_GK_QUALITY_FACTOR = 0.15;
+export const CUP_PENALTY_KICKS = 5;
+
+// ── Morale: Match Appearances ──
+export const MORALE_APPEARANCE_BOOST = 2;
+
 // ── AI Loan Offers ──
 export const AI_LOAN_OFFER_CHANCE = 0.08;
 export const AI_LOAN_DURATIONS = [12, 16, 20, 24] as const;
 export const AI_LOAN_WAGE_SPLITS = [50, 60, 75, 100] as const;
 export const AI_LOAN_RECALL_CLAUSE_CHANCE = 0.4;
+export const AI_LOAN_OBLIGATORY_BUY_CHANCE = 0.2;
+export const AI_LOAN_OBLIGATORY_BUY_MULTIPLIER = 0.8;
 
 // ── AI Inter-Club Transfers ──
 export const AI_TRANSFER_CHANCE = 0.10;
@@ -205,6 +220,21 @@ export const STREAK_INCOME_THRESHOLD = 5;
 export const STREAK_INCOME_MULTIPLIER = 0.05; // +5% matchday income
 export const STREAK_FORM_THRESHOLD = 8;
 export const STREAK_FORM_BONUS = 3;
+
+// ── Morale: Benched Players ──
+export const MORALE_BENCH_WEEKLY_LOSS = 3;
+export const MORALE_BENCH_MIN = 20;
+
+// ── Board Mid-Season Review ──
+export const BOARD_REVIEW_WEEKS = [15, 30];
+
+// ── Fan Confidence Formula ──
+export const FAN_CONFIDENCE_FAN_WEIGHT = 0.5;
+export const FAN_CONFIDENCE_BOARD_WEIGHT = 0.5;
+
+// ── Manager Perks ──
+export const MOTIVATOR_MORALE_BOOST = 5;
+export const YOUTH_DEVELOPER_BOOST = 0.25;
 
 // ── Press Conferences ──
 export const PRESS_TRANSFER_RUMOUR_CHANCE = 0.3;

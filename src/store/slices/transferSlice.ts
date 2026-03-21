@@ -5,7 +5,10 @@ import {
   ACCEPT_CHANCE_AT_ASKING, ACCEPT_CHANCE_AT_80_PERCENT, ACCEPT_CHANCE_BELOW, ACCEPT_80_PERCENT_THRESHOLD,
   LIST_PRICE_MULTIPLIER,
   CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS, SIGNING_BONUS_WEEKS_PER_YEAR, RENEWAL_MORALE_BOOST,
+  COUNTER_OFFER_MIN_THRESHOLD, COUNTER_OFFER_MAX_THRESHOLD, COUNTER_OFFER_CHANCE,
+  TRANSFER_SHARK_DISCOUNT,
 } from '@/config/transfers';
+import { hasPerk } from '@/utils/managerPerks';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -13,22 +16,65 @@ type Get = () => GameState;
 export const createTransferSlice = (set: Set, get: Get) => ({
   transferMarket: [] as GameState['transferMarket'],
   shortlist: [] as string[],
+  scoutWatchList: [] as string[],
   incomingOffers: [] as GameState['incomingOffers'],
 
   addToShortlist: (id: string) => set(s => ({ shortlist: [...s.shortlist, id] })),
   removeFromShortlist: (id: string) => set(s => ({ shortlist: s.shortlist.filter(x => x !== id) })),
 
-  makeOffer: (playerId: string, fee: number) => {
+  evaluateOffer: (playerId: string, fee: number) => {
     const state = get();
-    if (!state.transferWindowOpen) return { success: false, message: 'Transfer window is closed.' };
+    const listing = state.transferMarket.find(l => l.playerId === playerId);
+    if (!listing) return null;
+    const player = state.players[playerId];
+    if (!player) return null;
+    const club = state.clubs[state.playerClubId];
+    const ratio = fee / listing.askingPrice;
+    const acceptChance = fee >= listing.askingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= listing.askingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
+    const wouldTriggerSellOn = fee >= 5_000_000;
+    const sellOnPct = fee >= 10_000_000 ? 15 : fee >= 5_000_000 ? 7 : 0;
+    const budgetAfter = club.budget - fee;
+    const wageImpact = player.wage;
+    const positionCount = club.playerIds.filter(id => state.players[id]?.position === player.position).length;
+    const totalSquadSize = club.playerIds.length;
+    return { acceptChance, wouldTriggerSellOn, sellOnPct, budgetAfter, wageImpact, ratio, positionCount, totalSquadSize };
+  },
+
+  makeOfferWithNegotiation: (playerId: string, fee: number): { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string } => {
+    const state = get();
+    if (!state.transferWindowOpen) return { outcome: 'rejected', message: 'Transfer window is closed.' };
+    const listing = state.transferMarket.find(l => l.playerId === playerId);
+    if (!listing) return { outcome: 'rejected', message: 'Player not available.' };
+    const club = state.clubs[state.playerClubId];
+    if (fee > club.budget) return { outcome: 'rejected', message: 'Insufficient funds.' };
+
+    // Transfer Shark perk: treat asking price as 15% lower for acceptance calculation
+    const effectiveAskingPrice = hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT) : listing.askingPrice;
+    const ratio = fee / effectiveAskingPrice;
+    const acceptChance = fee >= effectiveAskingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= effectiveAskingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
+    const roll = Math.random();
+
+    if (roll <= acceptChance) {
+      // Accept — delegate to executeTransfer directly (skip the second random roll in makeOffer)
+      const result = get().executeTransfer(playerId, fee);
+      return { outcome: result.success ? 'accepted' : 'rejected', message: result.message };
+    }
+
+    // Check for counter-offer
+    if (ratio >= COUNTER_OFFER_MIN_THRESHOLD && ratio < COUNTER_OFFER_MAX_THRESHOLD && Math.random() < COUNTER_OFFER_CHANCE) {
+      const counterFee = Math.round(fee + (listing.askingPrice - fee) * (0.5 + Math.random() * 0.3));
+      return { outcome: 'counter', counterFee, message: `${state.clubs[listing.sellerClubId]?.shortName || 'The club'} want more — they counter with £${(counterFee / 1e6).toFixed(1)}M.` };
+    }
+
+    return { outcome: 'rejected', message: 'Offer rejected. The selling club want a higher fee.' };
+  },
+
+  executeTransfer: (playerId: string, fee: number) => {
+    const state = get();
     const listing = state.transferMarket.find(l => l.playerId === playerId);
     if (!listing) return { success: false, message: 'Player not available.' };
-
     const club = state.clubs[state.playerClubId];
     if (fee > club.budget) return { success: false, message: 'Insufficient funds.' };
-
-    const acceptChance = fee >= listing.askingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= listing.askingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
-    if (Math.random() > acceptChance) return { success: false, message: 'Offer rejected. Try a higher fee.' };
 
     const player = { ...state.players[playerId] };
     const oldClub = { ...state.clubs[listing.sellerClubId] };
@@ -75,6 +121,19 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     return { success: true, message: `${player.firstName} ${player.lastName} signed!` };
   },
 
+  makeOffer: (playerId: string, fee: number) => {
+    const state = get();
+    if (!state.transferWindowOpen) return { success: false, message: 'Transfer window is closed.' };
+    const listing = state.transferMarket.find(l => l.playerId === playerId);
+    if (!listing) return { success: false, message: 'Player not available.' };
+    const club = state.clubs[state.playerClubId];
+    if (fee > club.budget) return { success: false, message: 'Insufficient funds.' };
+    const effAsk = hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT) : listing.askingPrice;
+    const acceptChance = fee >= effAsk ? ACCEPT_CHANCE_AT_ASKING : fee >= effAsk * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
+    if (Math.random() > acceptChance) return { success: false, message: 'Offer rejected. Try a higher fee.' };
+    return get().executeTransfer(playerId, fee);
+  },
+
   listPlayerForSale: (playerId: string) => {
     const state = get();
     const player = state.players[playerId];
@@ -108,6 +167,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const buyerClub = state.clubs[offer.buyerClubId];
     if (!player || !buyerClub) return { success: false, message: 'Invalid offer.' };
 
+    // When rejecting, only remove this offer; when accepting, remove ALL offers for same player
     const newOffers = state.incomingOffers.filter(o => o.id !== offerId);
 
     if (!accept) {
@@ -159,7 +219,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     set({
       players: newPlayers,
       clubs: updatedClubs,
-      transferMarket: newMarket, incomingOffers: newOffers, messages: msg, managerStats: ms,
+      transferMarket: newMarket, incomingOffers: newOffers.filter(o => o.playerId !== offer.playerId), messages: msg, managerStats: ms,
       ...(pendingFarewell ? { pendingFarewell } : {}),
     });
     return { success: true, message: `${player.firstName} ${player.lastName} sold for £${(offer.fee / 1e6).toFixed(1)}M!${sellOnNote}` };

@@ -26,7 +26,8 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
   // Injury returns (players returning in 1 week)
   const returningPlayers = club.playerIds
     .map(id => ctx.players[id])
-    .filter(p => p && p.injured && p.injuryWeeks === 1);
+    .filter(Boolean)
+    .filter(p => p.injured && p.injuryWeeks === 1);
   for (const p of returningPlayers) {
     items.push({ icon: 'heart-pulse', text: `${p.lastName} returns from injury next week!`, type: 'positive' });
   }
@@ -34,7 +35,8 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
   // Suspensions ending
   const unsuspended = club.playerIds
     .map(id => ctx.players[id])
-    .filter(p => p && p.suspendedUntilWeek === ctx.week + 1);
+    .filter(Boolean)
+    .filter(p => p.suspendedUntilWeek === ctx.week + 1);
   for (const p of unsuspended) {
     items.push({ icon: 'check-circle', text: `${p.lastName}'s suspension ends next week`, type: 'positive' });
   }
@@ -80,7 +82,8 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
   // Contracts expiring warning
   const expiringContracts = club.playerIds
     .map(id => ctx.players[id])
-    .filter(p => p && p.contractEnd <= ctx.season && p.overall >= 65);
+    .filter(Boolean)
+    .filter(p => p.contractEnd <= ctx.season && p.overall >= 65);
   if (expiringContracts.length > 0 && ctx.week >= 20) {
     items.push({
       icon: 'clipboard',

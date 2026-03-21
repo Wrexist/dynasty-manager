@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
@@ -34,6 +35,7 @@ const ROLE_BENEFITS: Record<StaffRole, string> = {
 
 const StaffPage = () => {
   const { staff, hireStaff, fireStaff } = useGameStore();
+  const [confirmFireId, setConfirmFireId] = useState<string | null>(null);
 
   return (
     <div className="max-w-lg mx-auto">
@@ -73,12 +75,19 @@ const StaffPage = () => {
                   <span className="text-[10px] text-muted-foreground">{ROLE_BENEFITS[member.role]}</span>
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-muted-foreground">£{(member.wage / 1000).toFixed(0)}K/w</span>
-                    <button
-                      onClick={() => fireStaff(member.id)}
-                      className="text-[10px] text-destructive hover:text-destructive/80 font-semibold transition-colors"
-                    >
-                      Release
-                    </button>
+                    {confirmFireId === member.id ? (
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => { fireStaff(member.id); setConfirmFireId(null); }} className="text-xs text-destructive font-bold py-2 px-2 min-h-[44px]">Confirm</button>
+                        <button onClick={() => setConfirmFireId(null)} className="text-xs text-muted-foreground font-semibold py-2 px-2 min-h-[44px]">Cancel</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setConfirmFireId(member.id)}
+                        className="text-[10px] text-destructive hover:text-destructive/80 font-semibold transition-colors"
+                      >
+                        Release
+                      </button>
+                    )}
                   </div>
                 </div>
               </GlassPanel>

@@ -156,7 +156,7 @@ export interface ClubData {
 
 export interface MatchEvent {
   minute: number;
-  type: 'goal' | 'shot_saved' | 'shot_missed' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff';
+  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout';
   playerId?: string;
   assistPlayerId?: string;
   clubId: string;
@@ -186,6 +186,7 @@ export interface Match {
   awayGoals: number;
   events: MatchEvent[];
   stats?: MatchStats;
+  penaltyShootout?: { home: number; away: number };
 }
 
 export interface LeagueTableEntry {
@@ -237,6 +238,7 @@ export interface IncomingLoanOffer {
   wageSplit: number;
   recallClause: boolean;
   week: number;
+  obligatoryBuyFee?: number;
 }
 
 export interface BoardObjective {
@@ -546,6 +548,7 @@ export interface CupTie {
   homeGoals: number;
   awayGoals: number;
   week: number; // which league week this cup match is played
+  penaltyShootout?: { home: number; away: number };
 }
 
 export interface CupState {

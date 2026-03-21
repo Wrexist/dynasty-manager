@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -11,6 +11,17 @@ const LeagueTable = () => {
   const [tab, setTab] = useState<'table' | 'fixtures' | 'stats'>('table');
   const [selectedDiv, setSelectedDiv] = useState<DivisionId>(playerDivision || 'div-1');
   const [browseWeek, setBrowseWeek] = useState(week);
+
+  const playerRowRef = useRef<HTMLTableRowElement>(null);
+  const scrolledRef = useRef(false);
+  const scrollToPlayer = useCallback(() => {
+    if (playerRowRef.current && !scrolledRef.current) {
+      playerRowRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrolledRef.current = true;
+    }
+  }, []);
+  useEffect(() => { scrolledRef.current = false; }, [selectedDiv]);
+  useEffect(() => { if (tab === 'table' && selectedDiv === playerDivision) scrollToPlayer(); }, [tab, selectedDiv, playerDivision, scrollToPlayer]);
 
   const currentTable = divisionTables[selectedDiv] || [];
   const currentDivision = DIVISIONS.find(d => d.id === selectedDiv);
@@ -131,7 +142,7 @@ const LeagueTable = () => {
                   const zone = getZone(pos, currentTable.length);
 
                   return (
-                    <tr key={entry.clubId} className={cn('border-b border-border/10', zoneBgClass(zone), isPlayer && 'bg-primary/5')}>
+                    <tr key={entry.clubId} ref={isPlayer ? playerRowRef : undefined} className={cn('border-b border-border/10', zoneBgClass(zone), isPlayer && 'bg-primary/5')}>
                       <td className={cn('p-2 text-xs', pos === 1 ? 'text-primary font-bold' : 'text-muted-foreground')}>{pos}</td>
                       <td className="p-2">
                         <div className="flex items-center gap-1.5">

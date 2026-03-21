@@ -56,7 +56,7 @@ export function completeAssignment(
       noise = isBust ? MEDIUM_KNOWLEDGE_BUST_RANGE + Math.floor(Math.random() * MEDIUM_KNOWLEDGE_BUST_RANGE) : Math.floor(Math.random() * MEDIUM_KNOWLEDGE_NOISE_RANGE) - 3;
     } else {
       const isBust = Math.random() < LOW_KNOWLEDGE_BUST_CHANCE; // 20% bust chance at low knowledge
-      noise = isBust ? MEDIUM_KNOWLEDGE_BUST_RANGE + Math.floor(Math.random() * LOW_KNOWLEDGE_BUST_RANGE) : Math.floor(Math.random() * LOW_KNOWLEDGE_NOISE_RANGE) - 6;
+      noise = isBust ? LOW_KNOWLEDGE_BUST_RANGE + Math.floor(Math.random() * LOW_KNOWLEDGE_BUST_RANGE) : Math.floor(Math.random() * LOW_KNOWLEDGE_NOISE_RANGE) - 6;
     }
     const estimatedOverall = Math.max(30, Math.min(99, player.overall + noise));
 

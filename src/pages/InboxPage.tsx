@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/game';
+import { STORYLINE_CHAINS } from '@/data/storylineChains';
 
 const typeIcon: Record<Message['type'], React.ElementType> = {
   match_preview: Trophy,
@@ -25,7 +26,7 @@ const CATEGORY_FILTERS: { label: string; types: Message['type'][] }[] = [
 ];
 
 const InboxPage = () => {
-  const { messages, markMessageRead, markAllRead } = useGameStore();
+  const { messages, markMessageRead, markAllRead, activeStorylineChains } = useGameStore();
   const [category, setCategory] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -79,6 +80,35 @@ const InboxPage = () => {
           </button>
         ))}
       </div>
+
+      {/* Active Storyline Chains */}
+      {activeStorylineChains.length > 0 && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <BookOpen className="w-4 h-4 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Active Storylines</p>
+          </div>
+          <div className="space-y-2">
+            {activeStorylineChains.map(chain => {
+              const chainDef = STORYLINE_CHAINS.find(c => c.id === chain.chainId);
+              const totalSteps = chainDef?.steps.length || 0;
+              return (
+                <div key={chain.chainId} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-foreground truncate">{chainDef?.name || chain.chainId}</p>
+                    <p className="text-[10px] text-muted-foreground">Step {chain.currentStep + 1} of {totalSteps}</p>
+                  </div>
+                  <div className="flex gap-0.5 ml-2">
+                    {Array.from({ length: totalSteps }, (_, i) => (
+                      <div key={i} className={cn('w-2 h-2 rounded-full', i <= chain.currentStep ? 'bg-primary' : 'bg-muted')} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Messages grouped by week */}
       {filtered.length === 0 ? (

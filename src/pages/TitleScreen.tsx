@@ -33,8 +33,7 @@ const TitleScreen = () => {
   };
 
   const handleNewGame = (slot: number) => {
-    sessionStorage.setItem('dynasty-pending-slot', String(slot));
-    navigate('/select-club');
+    navigate('/select-club', { state: { slot } });
   };
 
   const handleDelete = (slot: number) => {

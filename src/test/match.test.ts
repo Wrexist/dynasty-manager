@@ -89,4 +89,37 @@ describe('Match Engine', () => {
     const { result } = simulateMatch(match, homeClub, awayClub, homePlayers, awayPlayers);
     expect(result.played).toBe(true);
   });
+
+  it('can generate penalty events over many matches', () => {
+    const { homeClub, awayClub, homePlayers, awayPlayers } = setupMatch();
+    let penaltySeen = false;
+
+    for (let i = 0; i < 300; i++) {
+      const match: Match = { id: `pen-${i}`, week: 1, homeClubId: 'home', awayClubId: 'away', played: false, homeGoals: 0, awayGoals: 0, events: [] };
+      const { result } = simulateMatch(match, homeClub, awayClub, homePlayers, awayPlayers);
+      if (result.events.some(e => e.type === 'penalty_scored' || e.type === 'penalty_missed')) {
+        penaltySeen = true;
+        break;
+      }
+    }
+
+    expect(penaltySeen).toBe(true);
+  });
+
+  it('can generate own goal events over many matches', () => {
+    const { homeClub, awayClub, homePlayers, awayPlayers } = setupMatch();
+    let ownGoalSeen = false;
+
+    // Own goals are very rare (~0.3% per event cycle) — need many matches
+    for (let i = 0; i < 1000; i++) {
+      const match: Match = { id: `og-${i}`, week: 1, homeClubId: 'home', awayClubId: 'away', played: false, homeGoals: 0, awayGoals: 0, events: [] };
+      const { result } = simulateMatch(match, homeClub, awayClub, homePlayers, awayPlayers);
+      if (result.events.some(e => e.type === 'own_goal')) {
+        ownGoalSeen = true;
+        break;
+      }
+    }
+
+    expect(ownGoalSeen).toBe(true);
+  });
 });

@@ -1,5 +1,29 @@
 import type { SlotSummary } from '@/types/game';
 
+/** Read a flag from localStorage */
+export function getFlag(key: string): boolean {
+  try { return localStorage.getItem(key) === '1'; }
+  catch { return false; }
+}
+
+/** Set a flag in localStorage */
+export function setFlag(key: string): void {
+  try { localStorage.setItem(key, '1'); }
+  catch { /* storage full or unavailable */ }
+}
+
+/** Remove a flag from localStorage */
+export function removeFlag(key: string): void {
+  try { localStorage.removeItem(key); }
+  catch { /* storage unavailable */ }
+}
+
+/** Remove all localStorage keys matching a prefix */
+export function clearFlagsByPrefix(prefix: string): void {
+  try { Object.keys(localStorage).filter(k => k.startsWith(prefix)).forEach(k => localStorage.removeItem(k)); }
+  catch { /* storage unavailable */ }
+}
+
 /** Migrate legacy single-slot save to slot 1 */
 export function migrateLegacySave() {
   const legacy = localStorage.getItem('dynasty-save');

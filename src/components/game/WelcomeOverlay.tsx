@@ -1,37 +1,25 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, Target, ArrowLeftRight, Play, ChevronRight, Trophy } from 'lucide-react';
+import { Target, ArrowLeftRight, ChevronRight, Trophy } from 'lucide-react';
 
 const STEPS = [
   {
     icon: Trophy,
     title: 'Welcome, Manager!',
-    description: 'You\'re in charge now. Build your squad, set tactics, and lead your club to glory across multiple seasons.',
-    hint: 'Swipe left and right between tabs to navigate quickly.',
-  },
-  {
-    icon: Users,
-    title: 'Manage Your Squad',
-    description: 'Check your players\' fitness, morale, and form. Tap any player to see full details. Keep your squad depth balanced across all positions.',
-    hint: 'Tip: Players with low fitness perform worse in matches.',
+    description: 'Build your squad, set tactics, and lead your club to glory. Meet the board\'s objectives to keep your job.',
+    hint: 'Swipe between tabs to navigate. Tap any player to see full details.',
   },
   {
     icon: Target,
-    title: 'Set Your Tactics',
-    description: 'Pick a formation and mentality that suits your squad. Your tactical choices directly affect match results.',
-    hint: 'Tip: Balanced mentality is safe. Go attacking when chasing a win.',
+    title: 'Weekly Rhythm',
+    description: 'Each week: check your squad, adjust tactics, then advance. Matches happen automatically when scheduled.',
+    hint: 'Training develops players over time. Heavy training is faster but risks injuries.',
   },
   {
     icon: ArrowLeftRight,
     title: 'Transfer Market',
-    description: 'Buy and sell players during transfer windows. Scout new talent and manage your wage budget wisely.',
-    hint: 'Tip: Check the scouting page to discover hidden gems.',
-  },
-  {
-    icon: Play,
-    title: 'Play Matches & Advance',
-    description: 'When a match is scheduled, tap "Kick Off" to play. Between matches, press "Advance Week" to progress through the season.',
-    hint: 'Tip: Check your board objectives — they\'re your key targets.',
+    description: 'Buy and sell players during transfer windows (Weeks 1-8 and 20-24). Scout to find hidden gems.',
+    hint: 'Add players to your shortlist to track them between sessions.',
   },
 ];
 
@@ -72,16 +60,19 @@ export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
           </div>
 
           <div className="flex items-center justify-between px-5 py-3 border-t border-border/30">
-            {/* Progress dots */}
-            <div className="flex gap-1.5">
-              {STEPS.map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-1.5 h-1.5 rounded-full transition-colors ${
-                    i === step ? 'bg-primary' : i < step ? 'bg-primary/40' : 'bg-muted'
-                  }`}
-                />
-              ))}
+            {/* Progress indicator */}
+            <div className="flex items-center gap-2">
+              <div className="flex gap-1.5">
+                {STEPS.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                      i === step ? 'bg-primary' : i < step ? 'bg-primary/40' : 'bg-muted'
+                    }`}
+                  />
+                ))}
+              </div>
+              <span className="text-[10px] text-muted-foreground">{step + 1} of {STEPS.length}</span>
             </div>
 
             <div className="flex gap-2">

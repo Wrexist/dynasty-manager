@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 7;
+const CURRENT_VERSION = 9;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -89,6 +89,20 @@ const migrations: Record<number, MigrationFn> = {
     preMatchLeaguePosition: data.preMatchLeaguePosition ?? 10,
     lastMatchXPGain: data.lastMatchXPGain ?? 0,
   }),
+
+  // v7 → v8: Added scouting watch list
+  7: (data) => ({
+    ...data,
+    version: 8,
+    scoutWatchList: data.scoutWatchList || [],
+  }),
+
+  // v8 → v9: Added weeklyDigest for post-week summary overlay
+  8: (data) => ({
+    ...data,
+    version: 9,
+    weeklyDigest: data.weeklyDigest || null,
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
@@ -98,13 +112,11 @@ export function migrateSaveData(data: Record<string, unknown>): Record<string, u
   while (version < CURRENT_VERSION) {
     const migrate = migrations[version];
     if (!migrate) {
-      console.warn(`No migration found for save version ${version}`);
       break;
     }
     try {
       migrated = migrate(migrated);
-    } catch (err) {
-      console.error(`Save migration v${version} → v${version + 1} failed:`, err);
+    } catch {
       migrated = { ...migrated, version: (version as number) + 1 };
     }
     version = migrated.version;

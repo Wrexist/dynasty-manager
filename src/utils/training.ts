@@ -1,6 +1,6 @@
 import { Player, TrainingState, TrainingModule } from '@/types/game';
 import { clamp } from './helpers';
-import { calculateOverallExport } from './playerGen';
+import { calculateOverall } from './playerGen';
 import { getTrainingMultiplier } from './personality';
 import {
   MODULE_ATTR_MAP as CONFIG_MODULE_ATTR_MAP,
@@ -58,7 +58,7 @@ export function applyWeeklyTraining(
   updated.fitness = Math.max(FITNESS_MIN, updated.fitness + INTENSITY_FITNESS_COST[training.intensity]);
 
   // Recalculate overall
-  const newOverall = calculateOverallExport(updated.attributes, updated.position);
+  const newOverall = calculateOverall(updated.attributes, updated.position);
   updated.growthDelta = newOverall - player.overall;
   updated.overall = newOverall;
   updated.value = Math.round(updated.overall * updated.overall * VALUE_OVERALL_MULTIPLIER + Math.random() * VALUE_RANDOM_RANGE);

@@ -1,13 +1,22 @@
-import { Component, type ReactNode } from "react";
+import { Component, type ReactNode, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import TitleScreen from "./pages/TitleScreen";
-import ClubSelection from "./pages/ClubSelection";
-import GameShell from "./pages/GameShell";
-import ChallengePicker from "./pages/ChallengePicker";
 import NotFound from "./pages/NotFound";
+
+// Lazy-loaded routes for code splitting
+const ClubSelection = lazy(() => import("./pages/ClubSelection"));
+const GameShell = lazy(() => import("./pages/GameShell"));
+const ChallengePicker = lazy(() => import("./pages/ChallengePicker"));
+
+// Loading fallback
+const LoadingFallback = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="text-muted-foreground text-sm">Loading...</div>
+  </div>
+);
 
 // Error boundary to prevent white-screen crashes
 class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -52,13 +61,15 @@ const App = () => (
       <Toaster />
       <Sonner />
       <HashRouter>
-        <Routes>
-          <Route path="/" element={<TitleScreen />} />
-          <Route path="/select-club" element={<ClubSelection />} />
-          <Route path="/challenge" element={<ChallengePicker />} />
-          <Route path="/game" element={<GameShell />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/" element={<TitleScreen />} />
+            <Route path="/select-club" element={<ClubSelection />} />
+            <Route path="/challenge" element={<ChallengePicker />} />
+            <Route path="/game" element={<GameShell />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
       </HashRouter>
     </TooltipProvider>
   </ErrorBoundary>

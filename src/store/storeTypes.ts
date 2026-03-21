@@ -40,6 +40,7 @@ export interface GameState {
   // Transfer & Loans
   transferMarket: TransferListing[];
   shortlist: string[];
+  scoutWatchList: string[];
   incomingOffers: IncomingOffer[];
   activeLoans: LoanDeal[];
   incomingLoanOffers: IncomingLoanOffer[];
@@ -80,6 +81,16 @@ export interface GameState {
   // Storyline Chains
   activeStorylineChains: ActiveStorylineChain[];
 
+  // Weekly Digest (post-advanceWeek summary)
+  weeklyDigest: {
+    incomeEarned: number;
+    expensesPaid: number;
+    injuriesThisWeek: string[];
+    recoveriesThisWeek: string[];
+    offersReceived: number;
+    moraleChange: number;
+  } | null;
+
   // Challenge Mode
   activeChallenge: ActiveChallenge | null;
 
@@ -103,7 +114,10 @@ export interface GameState {
   setTrainingFocus: (f: 'fitness' | 'attacking' | 'defending' | 'mentality') => void;
 
   // Actions — Transfer
+  executeTransfer: (playerId: string, fee: number) => { success: boolean; message: string };
   makeOffer: (playerId: string, fee: number) => { success: boolean; message: string };
+  evaluateOffer: (playerId: string, fee: number) => { acceptChance: number; wouldTriggerSellOn: boolean; sellOnPct: number; budgetAfter: number; wageImpact: number; ratio: number; positionCount: number; totalSquadSize: number } | null;
+  makeOfferWithNegotiation: (playerId: string, fee: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string };
   addToShortlist: (id: string) => void;
   removeFromShortlist: (id: string) => void;
   listPlayerForSale: (playerId: string) => void;
@@ -132,6 +146,8 @@ export interface GameState {
   fireStaff: (staffId: string) => void;
   assignScout: (region: ScoutRegion) => void;
   cancelAssignment: (assignmentId: string) => void;
+  addToWatchList: (playerId: string) => void;
+  removeFromWatchList: (playerId: string) => void;
   promoteYouth: (playerId: string) => void;
   releaseYouth: (playerId: string) => void;
   startUpgrade: (type: 'training' | 'youth' | 'stadium' | 'medical') => void;

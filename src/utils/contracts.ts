@@ -126,6 +126,7 @@ export function createContractOffer(
  * Returns updated offer with new demanded wage (player may compromise) or rejection.
  */
 export function negotiateRound(offer: ContractOffer): ContractOffer {
+  if (offer.demandedWage <= 0) return { ...offer, status: 'accepted', round: offer.round + 1 };
   const gap = offer.offeredWage / offer.demandedWage;
 
   // Player accepts if offer meets or exceeds demand, or close enough + willing

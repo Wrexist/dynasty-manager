@@ -6,12 +6,29 @@ import { Button } from '@/components/ui/button';
 import { MatchEvent } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap } from 'lucide-react';
-import { hapticHeavy, hapticMedium } from '@/utils/haptics';
+import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle } from 'lucide-react';
+import { hapticHeavy, hapticMedium, hapticLight } from '@/utils/haptics';
+import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 import type { HalfState } from '@/engine/match';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
-import { getCommentaryStyle } from '@/utils/matchCommentary';
+import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
+import { TEAM_TALK_OPTIONS } from '@/config/ui';
+import { infoToast } from '@/utils/gameToast';
+
+const isGoalEvent = (e: MatchEvent) => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored';
+
+/** Compute enriched description with running score context */
+function getEnrichedDescription(ev: MatchEvent, events: MatchEvent[], homeClubId: string, isPlayerHome: boolean): string {
+  let hg = 0, ag = 0;
+  for (const e of events) {
+    if (isGoalEvent(e)) {
+      if (e.clubId === homeClubId) hg++; else ag++;
+    }
+    if (e === ev) break;
+  }
+  return enrichDescription(ev, { homeGoals: hg, awayGoals: ag, homeClubId, isPlayerHome, minute: ev.minute });
+}
 
 const MatchDay = () => {
   const store = useGameStore();
@@ -41,12 +58,7 @@ const MatchDay = () => {
     if (phase === 'post') setShowPostPopup(true);
   }, [phase]);
 
-  // Auto-start match — skip the kick-off screen since MatchPrep already serves as pre-match
-  useEffect(() => {
-    if (phase === 'pre' && match && homeClub && awayClub) {
-      kickOff();
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // No auto-start — show "Ready to Kick Off?" screen instead
 
   const kickOff = () => {
     const halfState = playFirstHalf();
@@ -73,13 +85,13 @@ const MatchDay = () => {
   // Detect key moments that should pause the match for player decisions
   const checkKeyMoment = useCallback((minute: number, events: MatchEvent[]) => {
     if (!match || keyMoment) return false;
-    const playerGoals = events.filter(e => e.type === 'goal' && e.clubId === playerClubId).length;
-    const opponentGoals = events.filter(e => e.type === 'goal' && e.clubId !== playerClubId).length;
+    const playerGoals = events.filter(e => isGoalEvent(e) && e.clubId === playerClubId).length;
+    const opponentGoals = events.filter(e => isGoalEvent(e) && e.clubId !== playerClubId).length;
     const isLosing = opponentGoals > playerGoals;
     const deficit = opponentGoals - playerGoals;
 
     // Check for opponent goal just scored
-    const justConceded = events.filter(e => e.type === 'goal' && e.clubId !== playerClubId && e.minute === minute);
+    const justConceded = events.filter(e => isGoalEvent(e) && e.clubId !== playerClubId && e.minute === minute);
     if (justConceded.length > 0) {
       const key = `goal-conceded-${minute}`;
       if (!dismissedMomentsRef.current.has(key)) {
@@ -100,7 +112,7 @@ const MatchDay = () => {
 
     // Injury to a player on your team — offer substitution
     const injury = events.filter(e => e.type === 'injury' && e.clubId === playerClubId && e.minute === minute);
-    if (injury.length > 0 && matchSubsUsed < 3) {
+    if (injury.length > 0 && matchSubsUsed < MAX_SUBSTITUTIONS) {
       const key = `injury-${minute}`;
       if (!dismissedMomentsRef.current.has(key)) {
         dismissedMomentsRef.current.add(key);
@@ -109,10 +121,10 @@ const MatchDay = () => {
     }
 
     // Comeback: was down 2+, just scored to narrow gap to 1
-    const justScored = events.filter(e => e.type === 'goal' && e.clubId === playerClubId && e.minute === minute);
+    const justScored = events.filter(e => isGoalEvent(e) && e.clubId === playerClubId && e.minute === minute);
     if (justScored.length > 0 && deficit === 1) {
       // Check if we were down by 2+ before this goal
-      const prevPlayerGoals = events.filter(e => e.type === 'goal' && e.clubId === playerClubId && e.minute < minute).length;
+      const prevPlayerGoals = events.filter(e => isGoalEvent(e) && e.clubId === playerClubId && e.minute < minute).length;
       if (opponentGoals - prevPlayerGoals >= 2) {
         const key = `comeback-${minute}`;
         if (!dismissedMomentsRef.current.has(key)) {
@@ -122,8 +134,8 @@ const MatchDay = () => {
       }
     }
 
-    // 70th minute and losing — offer tactical push
-    if (minute === 70 && isLosing) {
+    // Losing late — offer tactical push
+    if (minute === KEY_MOMENT_LOSING_MINUTE && isLosing) {
       const key = 'losing-70';
       if (!dismissedMomentsRef.current.has(key)) {
         dismissedMomentsRef.current.add(key);
@@ -131,8 +143,8 @@ const MatchDay = () => {
       }
     }
 
-    // 80th minute, scores level — tense finish decision
-    if (minute === 80 && playerGoals === opponentGoals && playerGoals > 0) {
+    // Tight finish — scores level late
+    if (minute === KEY_MOMENT_TIGHT_FINISH_MINUTE && playerGoals === opponentGoals && playerGoals > 0) {
       const key = 'level-80';
       if (!dismissedMomentsRef.current.has(key)) {
         dismissedMomentsRef.current.add(key);
@@ -180,7 +192,7 @@ const MatchDay = () => {
   // Haptic feedback for goals and final whistle
   const prevGoalCountRef = useRef(0);
   useEffect(() => {
-    const goalCount = visibleEvents.filter(e => e.type === 'goal').length;
+    const goalCount = visibleEvents.filter(e => isGoalEvent(e)).length;
     if (goalCount > prevGoalCountRef.current) {
       hapticHeavy();
     }
@@ -229,8 +241,8 @@ const MatchDay = () => {
   }
 
   const isLive = phase === 'first_half' || phase === 'second_half';
-  const homeGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => e.type === 'goal' && e.clubId === match.homeClubId).length;
-  const awayGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => e.type === 'goal' && e.clubId === match.awayClubId).length;
+  const homeGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => isGoalEvent(e) && e.clubId === match.homeClubId).length;
+  const awayGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => isGoalEvent(e) && e.clubId === match.awayClubId).length;
 
   // Use firstHalfState for half-time display
   const htHomeGoals = firstHalfState?.homeGoals ?? homeGoals;
@@ -289,11 +301,34 @@ const MatchDay = () => {
         </div>
       )}
 
-      {/* Pre-match — auto-starts, show brief loading */}
+      {/* Pre-match — Ready to Kick Off */}
       {phase === 'pre' && (
-        <GlassPanel className="p-8 text-center">
-          <p className="text-sm text-muted-foreground animate-pulse">Starting match...</p>
-        </GlassPanel>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+          <GlassPanel className="p-5 space-y-4">
+            <p className="text-sm font-bold text-foreground text-center">Ready to Kick Off?</p>
+            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+              <span>{homeClub.shortName}: {store.clubs[match.homeClubId]?.formation || '4-3-3'}</span>
+              <span className="text-primary font-bold">vs</span>
+              <span>{awayClub.shortName}: {store.clubs[match.awayClubId]?.formation || '4-3-3'}</span>
+            </div>
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-[10px] text-muted-foreground">Speed:</span>
+              <button
+                type="button"
+                onClick={() => setSpeed(200)}
+                className={cn('px-2.5 py-1 rounded text-[10px] font-medium transition-all', speed === 200 ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground')}
+              >Normal</button>
+              <button
+                type="button"
+                onClick={() => setSpeed(50)}
+                className={cn('px-2.5 py-1 rounded text-[10px] font-medium transition-all', speed === 50 ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground')}
+              >Fast</button>
+            </div>
+            <Button className="w-full h-12 text-base font-bold gap-2" onClick={() => { hapticLight(); kickOff(); }}>
+              <Play className="w-5 h-5" /> Kick Off
+            </Button>
+          </GlassPanel>
+        </motion.div>
       )}
 
       {/* Half Time — subs and tactical changes */}
@@ -304,10 +339,33 @@ const MatchDay = () => {
             <p className="text-xs text-muted-foreground">Make substitutions and tactical changes before the second half.</p>
           </GlassPanel>
 
+          {/* Team Talk */}
+          <GlassPanel className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Team Talk</p>
+            <div className="flex gap-2">
+              {TEAM_TALK_OPTIONS.map(talk => {
+                const TalkIcon = talk.id === 'motivate' ? Flame : talk.id === 'calm' ? Shield : AlertTriangle;
+                return (
+                  <button
+                    key={talk.id}
+                    onClick={() => {
+                      hapticLight();
+                      infoToast(`"${talk.description}"`);
+                    }}
+                    className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-lg bg-muted/30 hover:bg-primary/10 transition-colors"
+                  >
+                    <TalkIcon className="w-4 h-4 text-primary" />
+                    <span className="text-[10px] font-semibold text-foreground">{talk.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </GlassPanel>
+
           {/* Sub button at half-time */}
-          {matchSubsUsed < 3 && (
+          {matchSubsUsed < MAX_SUBSTITUTIONS && (
             <Button variant="outline" className="w-full gap-2" onClick={() => setSubSheetOpen(true)}>
-              <RefreshCw className="w-4 h-4" /> Make Substitution ({3 - matchSubsUsed} left)
+              <RefreshCw className="w-4 h-4" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
             </Button>
           )}
 
@@ -363,7 +421,7 @@ const MatchDay = () => {
                   return (
                     <div key={i} className={cn('flex items-start gap-2 text-xs', style.textClass)}>
                       <span className="font-mono w-6 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
-                      <span className="flex-1">{ev.description}</span>
+                      <span className="flex-1">{getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId)}</span>
                     </div>
                   );
                 })}
@@ -387,9 +445,9 @@ const MatchDay = () => {
                   <button onClick={handleResume} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-semibold">
                     <Play className="w-3 h-3" /> Resume
                   </button>
-                  {matchSubsUsed < 3 && (
+                  {matchSubsUsed < MAX_SUBSTITUTIONS && (
                     <button onClick={() => setSubSheetOpen(true)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                      <RefreshCw className="w-3 h-3" /> Sub ({3 - matchSubsUsed})
+                      <RefreshCw className="w-3 h-3" /> Sub ({MAX_SUBSTITUTIONS - matchSubsUsed})
                     </button>
                   )}
                 </>
@@ -418,7 +476,7 @@ const MatchDay = () => {
                     )}
                   >
                     <span className="text-xs font-mono w-8 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
-                    <span className="flex-1">{ev.description}</span>
+                    <span className="flex-1">{getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId)}</span>
                     <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: clubs[ev.clubId]?.color }} />
                   </div>
                 );
@@ -478,12 +536,12 @@ const MatchDay = () => {
             </div>
 
             {/* Quick sub button */}
-            {matchSubsUsed < 3 && (
+            {matchSubsUsed < MAX_SUBSTITUTIONS && (
               <button
                 onClick={() => setSubSheetOpen(true)}
                 className="w-full py-2 rounded-lg bg-muted/30 text-xs text-muted-foreground hover:bg-muted/50 mb-2 flex items-center justify-center gap-1.5"
               >
-                <RefreshCw className="w-3 h-3" /> Make Substitution ({3 - matchSubsUsed} left)
+                <RefreshCw className="w-3 h-3" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
               </button>
             )}
 

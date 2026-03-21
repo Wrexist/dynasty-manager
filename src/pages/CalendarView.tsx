@@ -70,7 +70,7 @@ const CalendarView = () => {
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors',
                 isCurrent ? 'bg-primary/10 border border-primary/30' : 'bg-card/40',
-                isPast && 'opacity-70',
+                isPast && 'opacity-60',
                 isDerby && !isCurrent && 'border-l-2 border-l-amber-500/70'
               )}
             >

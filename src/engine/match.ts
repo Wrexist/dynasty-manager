@@ -31,12 +31,15 @@ import {
   FORMATION_ATTACK_BONUS, FORMATION_DEFENSE_BONUS,
   STOPPAGE_TIME_BASE, STOPPAGE_TIME_MAX_EXTRA, STOPPAGE_TIME_INJURY_ADD, STOPPAGE_TIME_CARD_ADD,
   CORNER_GOAL_CHANCE, CORNER_GOAL_PHYSICAL_WEIGHT, CORNER_GOAL_DEFENDING_WEIGHT,
-  FITNESS_DEGRADE_PER_MINUTE, FITNESS_DEGRADE_VARIANCE, LOW_FITNESS_SHOT_PENALTY, LOW_FITNESS_THRESHOLD, LOW_FITNESS_INJURY_BONUS,
+  FITNESS_DEGRADE_PER_MINUTE, FITNESS_DEGRADE_VARIANCE, LOW_FITNESS_SHOT_PENALTY, MATCH_LOW_FITNESS_THRESHOLD, LOW_FITNESS_INJURY_BONUS,
   FOULER_DEFENDER_WEIGHT, FOULER_MIDFIELDER_WEIGHT, FOULER_ATTACKER_WEIGHT,
   FORMATION_MATCHUP,
   DEFENSE_MODIFIER_SCALE,
   DERBY_EVENT_MOD_SCALE, DERBY_FOUL_MOD_SCALE, DERBY_CARD_MOD_SCALE,
   CORNER_HEADER_MIN_CHANCE, CORNER_HEADER_PHYSICAL_SCALE,
+  OWN_GOAL_CHANCE, PENALTY_FROM_FOUL_CHANCE, PENALTY_CONVERSION_RATE,
+  MORALE_PERFORMANCE_WEIGHT, MORALE_BASELINE,
+  DISCIPLINARIAN_CARD_REDUCTION,
 } from '@/config/matchEngine';
 
 /** State carried between halves so the second half can continue from the first */
@@ -178,11 +181,15 @@ function getTacticsModifiers(tactics?: TacticalInstructions) {
   };
 }
 
-/** Compute average defensive quality of a squad's defenders */
+/** Compute average defensive quality of a squad's defenders (morale-adjusted) */
 function getDefenseQuality(squad: Player[]): number {
   const defenders = squad.filter(p => [...DEFENDER_POSITIONS].includes(p.position));
   if (defenders.length === 0) return DEFENSE_QUALITY_FALLBACK;
-  return defenders.reduce((s, p) => s + (p.attributes.defending * DEFENSE_DEFENDING_WEIGHT + p.attributes.physical * DEFENSE_PHYSICAL_WEIGHT + p.attributes.mental * DEFENSE_MENTAL_WEIGHT) / 100, 0) / defenders.length;
+  return defenders.reduce((s, p) => {
+    const base = (p.attributes.defending * DEFENSE_DEFENDING_WEIGHT + p.attributes.physical * DEFENSE_PHYSICAL_WEIGHT + p.attributes.mental * DEFENSE_MENTAL_WEIGHT) / 100;
+    const moraleMod = (p.morale - MORALE_BASELINE) / 100 * MORALE_PERFORMANCE_WEIGHT;
+    return s + base + moraleMod;
+  }, 0) / defenders.length;
 }
 
 /** Get the GK's save ability (0.30 to 0.70) */
@@ -193,6 +200,11 @@ function getGKSaveChance(squad: Player[]): number {
   return GK_SAVE_BASE + quality * GK_SAVE_RANGE;
 }
 
+/**
+ * Compute attack/defense strength for both sides factoring in:
+ * player attributes, tactical modifiers, formation fit, familiarity,
+ * home advantage, and rock-paper-scissors tactical matchups.
+ */
 function computeStrengths(
   homeClub: Club, awayClub: Club,
   homePlayers: Player[], awayPlayers: Player[],
@@ -247,6 +259,7 @@ export function simulateHalf(
   playerClubId?: string,
   prevState?: HalfState,
   derbyIntensity?: number,
+  disciplinarianActive?: boolean,
 ): HalfState {
   // Derby matches: more events, more fouls, more cards
   const derbyEventMod = derbyIntensity ? derbyIntensity * DERBY_EVENT_MOD_SCALE : 0;
@@ -355,6 +368,21 @@ export function simulateHalf(
     (name: string) => `${name} signals to the bench — he can't continue!`,
     (name: string) => `The physio is rushing on for ${name}. This doesn't look good.`,
   ];
+  const ownGoalDescs = [
+    (name: string, club: string) => `OWN GOAL! ${name} puts the ball into his own net! Disaster for ${club}!`,
+    (name: string, club: string) => `OWN GOAL! A miscued clearance from ${name} goes in! ${club} can't believe it!`,
+    (name: string, club: string) => `OWN GOAL! ${name} deflects the ball past his own keeper! ${club} in shock!`,
+  ];
+  const penaltyGoalDescs = [
+    (name: string, club: string) => `PENALTY GOAL! ${name} sends the keeper the wrong way! ${club} score from the spot!`,
+    (name: string, _club: string) => `PENALTY GOAL! ${name} smashes it into the top corner! No chance for the keeper!`,
+    (name: string, club: string) => `PENALTY GOAL! Cool as you like from ${name}! ${club} take the lead from the spot!`,
+  ];
+  const penaltyMissDescs = [
+    (name: string) => `PENALTY MISS! ${name} sees his spot kick saved!`,
+    (name: string) => `PENALTY MISS! ${name} blazes it over the bar from twelve yards!`,
+    (name: string) => `PENALTY MISS! ${name} hits the post! What a miss!`,
+  ];
   const cornerGoalDescs = [
     (name: string, club: string) => `GOAL! ${name} heads in from the corner for ${club}!`,
     (name: string, club: string) => `GOAL! ${name} rises highest from the corner! ${club} score!`,
@@ -431,10 +459,13 @@ export function simulateHalf(
       // Fitness factor: uses in-match fitness, penalizes low fitness
       const currentFitness = matchFitness[scorer.id] ?? scorer.fitness;
       const fitnessFactor = FITNESS_FACTOR_BASE + (currentFitness / 100) * FITNESS_FACTOR_SCALE;
-      const lowFitPenalty = currentFitness < LOW_FITNESS_THRESHOLD ? LOW_FITNESS_SHOT_PENALTY : 0;
+      const lowFitPenalty = currentFitness < MATCH_LOW_FITNESS_THRESHOLD ? LOW_FITNESS_SHOT_PENALTY : 0;
+
+      // Morale factor: high morale boosts, low morale penalizes
+      const moraleMod = (scorer.morale - MORALE_BASELINE) / 100 * MORALE_PERFORMANCE_WEIGHT;
 
       // Goal chance: attacker quality vs opponent defense, modified by tactics
-      const goalChance = (shotQuality * fitnessFactor * GOAL_CHANCE_ATTACK_MULT) - (oppDefense * GOAL_CHANCE_DEFENSE_MULT) + atkMods.attackMod * GOAL_CHANCE_ATTACK_MOD_SCALE + oppMods.counterVuln * GOAL_CHANCE_COUNTER_VULN_SCALE - lowFitPenalty;
+      const goalChance = (shotQuality * fitnessFactor * GOAL_CHANCE_ATTACK_MULT) - (oppDefense * GOAL_CHANCE_DEFENSE_MULT) + atkMods.attackMod * GOAL_CHANCE_ATTACK_MOD_SCALE + oppMods.counterVuln * GOAL_CHANCE_COUNTER_VULN_SCALE - lowFitPenalty + moraleMod;
 
       if (Math.random() < Math.max(GOAL_CHANCE_MIN, goalChance)) {
         // Goal scored!
@@ -473,9 +504,11 @@ export function simulateHalf(
                 if (isHome) homeGoals++; else awayGoals++;
                 if (isHome) homeSoT++; else awaySoT++;
                 if (playerEvents[header.id]) playerEvents[header.id].goals++;
+                const cornerAssist = pickAssist(squad, header.id);
+                if (cornerAssist && playerEvents[cornerAssist.id]) playerEvents[cornerAssist.id].assists++;
                 oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
                 const cDesc = pick(cornerGoalDescs);
-                events.push({ minute: min, type: 'goal', playerId: header.id, clubId: club.id, description: cDesc(`${header.firstName} ${header.lastName}`, club.shortName) });
+                events.push({ minute: min, type: 'goal', playerId: header.id, assistPlayerId: cornerAssist?.id, clubId: club.id, description: cDesc(`${header.firstName} ${header.lastName}`, club.shortName) + (cornerAssist ? ` (assist: ${cornerAssist.lastName})` : '') });
               }
             }
           }
@@ -497,7 +530,9 @@ export function simulateHalf(
       const fouler = pickFouler(eligibleFoulers);
       if (!fouler) continue;
       if (isHome) homeFouls++; else awayFouls++;
-      const cardChance = (CARD_BASE_CHANCE + atkMods.foulMod + derbyCardMod) * getCardRiskMultiplier(fouler.personality);
+      const isPlayerTeamFouling = (isHome && homeClub.id === playerClubId) || (!isHome && awayClub.id === playerClubId);
+      const disciplinarianMod = (disciplinarianActive && isPlayerTeamFouling) ? (1 - DISCIPLINARIAN_CARD_REDUCTION) : 1;
+      const cardChance = (CARD_BASE_CHANCE + atkMods.foulMod + derbyCardMod) * getCardRiskMultiplier(fouler.personality) * disciplinarianMod;
       if (Math.random() < cardChance) {
         const pe = playerEvents[fouler.id];
         if (pe) {
@@ -539,6 +574,36 @@ export function simulateHalf(
           events.push({ minute: min, type: 'injury', playerId: fouled.id, clubId: fouled.clubId, description: `${fouled.lastName} goes down injured after the foul!` });
         }
       }
+
+      // Penalty: foul in dangerous area
+      if (Math.random() < PENALTY_FROM_FOUL_CHANCE) {
+        const oppEligible = oppSquad.filter(p => !unavailable.has(p.id));
+        if (oppEligible.length > 0) {
+          const penaltyTaker = pickAttacker(oppEligible);
+          const oppClubRef = isHome ? awayClub : homeClub;
+          if (Math.random() < PENALTY_CONVERSION_RATE) {
+            if (isHome) awayGoals++; else homeGoals++;
+            if (isHome) { awayShots++; awaySoT++; } else { homeShots++; homeSoT++; }
+            if (playerEvents[penaltyTaker.id]) playerEvents[penaltyTaker.id].goals++;
+            squad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
+            events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: oppClubRef.id, description: pick(penaltyGoalDescs)(penaltyTaker.lastName, oppClubRef.shortName) });
+          } else {
+            if (isHome) awayShots++; else homeShots++;
+            events.push({ minute: min, type: 'penalty_missed', playerId: penaltyTaker.id, clubId: oppClubRef.id, description: pick(penaltyMissDescs)(penaltyTaker.lastName) });
+          }
+        }
+      }
+    }
+    // === OWN GOAL (rare) ===
+    else if (Math.random() < OWN_GOAL_CHANCE) {
+      const oppEligible = oppSquad.filter(p => !unavailable.has(p.id) && [...DEFENDER_POSITIONS].includes(p.position));
+      if (oppEligible.length > 0) {
+        const ownGoalPlayer = pick(oppEligible);
+        const oppClubRef = isHome ? awayClub : homeClub;
+        if (isHome) homeGoals++; else awayGoals++;
+        oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
+        events.push({ minute: min, type: 'own_goal', playerId: ownGoalPlayer.id, clubId: club.id, description: pick(ownGoalDescs)(ownGoalPlayer.lastName, oppClubRef.shortName) });
+      }
     }
     // === INJURY (non-foul) ===
     else if (roll < INJURY_EVENT_THRESHOLD) {
@@ -547,7 +612,7 @@ export function simulateHalf(
       // Injury chance scales with physical fragility, age, and in-match fitness
       const candidate = pick(eligibleForInjury);
       const currentFit = matchFitness[candidate.id] ?? candidate.fitness;
-      const lowFitInjuryBonus = currentFit < LOW_FITNESS_THRESHOLD ? LOW_FITNESS_INJURY_BONUS : 0;
+      const lowFitInjuryBonus = currentFit < MATCH_LOW_FITNESS_THRESHOLD ? LOW_FITNESS_INJURY_BONUS : 0;
       const injuryProb = NON_FOUL_INJURY_BASE + ((100 - candidate.attributes.physical) * PHYSICAL_FRAGILITY_FACTOR) + (candidate.age > OLD_PLAYER_INJURY_AGE_THRESHOLD ? OLD_PLAYER_INJURY_BONUS : 0) + lowFitInjuryBonus;
       if (Math.random() < injuryProb) {
         injured.add(candidate.id);
@@ -636,9 +701,11 @@ export function finalizeMatch(
   };
 }
 
-/** Validate a squad has enough players to field a team */
-function isSquadValid(players: Player[]): boolean {
-  return players.length >= 7 && players.some(p => p.position === 'GK');
+/** Validate a squad has enough players to field a team.
+ *  Player's team requires 11; AI teams allow down to 7 (injury-depleted squads). */
+function isSquadValid(players: Player[], isPlayerTeam = false): boolean {
+  const minPlayers = isPlayerTeam ? 11 : 7;
+  return players.length >= minPlayers && players.some(p => p.position === 'GK');
 }
 
 /**
@@ -656,10 +723,13 @@ export function simulateMatch(
   tacticalFamiliarity?: number,
   playerClubId?: string,
   derbyIntensity?: number,
+  disciplinarianActive?: boolean,
 ): { result: Match; playerRatings: PlayerMatchRating[] } {
   // Forfeit if either squad is invalid
-  const homeValid = isSquadValid(homePlayers);
-  const awayValid = isSquadValid(awayPlayers);
+  const homeIsPlayer = playerClubId === homeClub.id;
+  const awayIsPlayer = playerClubId === awayClub.id;
+  const homeValid = isSquadValid(homePlayers, homeIsPlayer);
+  const awayValid = isSquadValid(awayPlayers, awayIsPlayer);
   if (!homeValid || !awayValid) {
     const forfeitHome = !homeValid ? 0 : 3;
     const forfeitAway = !awayValid ? 0 : 3;
@@ -671,6 +741,6 @@ export function simulateMatch(
   // Use balanced defaults for any side missing tactics (AI teams)
   const effectiveHomeTactics = homeTactics ?? AI_DEFAULT_TACTICS;
   const effectiveAwayTactics = awayTactics ?? AI_DEFAULT_TACTICS;
-  const state = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 90, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity);
+  const state = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 90, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive);
   return finalizeMatch(match, homeClub, awayClub, homePlayers, awayPlayers, state);
 }

@@ -9,6 +9,7 @@ import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { hapticMedium } from '@/utils/haptics';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRightLeft, Check, X } from 'lucide-react';
+import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 
 interface SubstitutionSheetProps {
   open: boolean;
@@ -17,7 +18,7 @@ interface SubstitutionSheetProps {
 }
 
 export function SubstitutionSheet({ open, onOpenChange, onSubMade }: SubstitutionSheetProps) {
-  const { players, makeMatchSub, matchSubsUsed } = useGameStore();
+  const { players, makeMatchSub, matchSubsUsed, week } = useGameStore();
   const playerClub = usePlayerClub();
 
   const [selectedOutId, setSelectedOutId] = useState<string | null>(null);
@@ -35,7 +36,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
 
   const lineup = playerClub.lineup;
   const subs = playerClub.subs;
-  const subsRemaining = 3 - matchSubsUsed;
+  const subsRemaining = MAX_SUBSTITUTIONS - matchSubsUsed;
 
   const selectedOutPlayer = selectedOutId ? players[selectedOutId] : null;
   const selectedInPlayer = selectedInId ? players[selectedInId] : null;
@@ -88,14 +89,17 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
           </div>
         </SheetHeader>
 
-        {/* Pitch — tap a player to select them */}
+        {/* Pitch — tap a player to select them (half-pitch to save space) */}
         <div className="max-w-[280px] mx-auto">
           <PitchView
             formation={playerClub.formation}
             homeColor={playerClub.color}
             homeLabels={lineupLabels}
+            playerIds={lineup}
+            playerFitness={lineup.map(id => Math.round(players[id]?.fitness ?? 0))}
             highlightIndex={highlightIndex}
             onSlotClick={handleSlotClick}
+            halfPitch
           />
         </div>
 
@@ -129,7 +133,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                   <p className="text-xs font-semibold text-foreground truncate">
                     {selectedOutPlayer.firstName[0]}. {selectedOutPlayer.lastName}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">{selectedOutPlayer.position} · OVR {selectedOutPlayer.overall}</p>
+                  <p className="text-[10px] text-muted-foreground">{selectedOutPlayer.position} · OVR {selectedOutPlayer.overall} · FIT {Math.round(selectedOutPlayer.fitness)}%</p>
                 </div>
                 <button onClick={handleCancel} className="text-muted-foreground hover:text-foreground p-1">
                   <X className="w-3.5 h-3.5" />
@@ -138,10 +142,10 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
 
               {/* Bench list */}
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Select Replacement</p>
-              <div className="space-y-1 max-h-[28vh] overflow-y-auto">
+              <div className="space-y-1 max-h-[36vh] overflow-y-auto">
                 {subs.map(id => {
                   const p = players[id];
-                  if (!p) return null;
+                  if (!p || p.injured || (p.suspendedUntilWeek && p.suspendedUntilWeek > week)) return null;
                   return (
                     <button
                       key={id}

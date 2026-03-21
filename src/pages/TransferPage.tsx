@@ -4,28 +4,20 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2 } from 'lucide-react';
-import { PlayerAttributes } from '@/types/game';
+import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock } from 'lucide-react';
+import { TransferListing } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
-import { getRatingColor } from '@/utils/uiHelpers';
+import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { POSITION_FILTERS } from '@/config/ui';
-
-function getTop3Attributes(attrs: PlayerAttributes): { label: string; value: number }[] {
-  const entries: { label: string; value: number }[] = [
-    { label: 'PAC', value: attrs.pace },
-    { label: 'SHO', value: attrs.shooting },
-    { label: 'PAS', value: attrs.passing },
-    { label: 'DEF', value: attrs.defending },
-    { label: 'PHY', value: attrs.physical },
-    { label: 'MEN', value: attrs.mental },
-  ];
-  return entries.sort((a, b) => b.value - a.value).slice(0, 3);
-}
+import { TransferNegotiation } from '@/components/game/TransferNegotiation';
+import { PageHint } from '@/components/game/PageHint';
+import { PAGE_HINTS } from '@/config/ui';
+import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
 
 const TransferPage = () => {
   const {
     transferMarket, players, clubs, playerClubId, shortlist, transferWindowOpen,
-    makeOffer, addToShortlist, removeFromShortlist, selectPlayer,
+    addToShortlist, removeFromShortlist, selectPlayer,
     incomingOffers, respondToOffer, unlistPlayer,
     activeLoans, incomingLoanOffers, recallLoan, respondToLoanOffer,
     week, season, totalWeeks,
@@ -34,6 +26,8 @@ const TransferPage = () => {
   const [posFilter, setPosFilter] = useState(0);
   const [tab, setTab] = useState<'market' | 'shortlist' | 'incoming' | 'outgoing' | 'loans'>('market');
   const [searchQuery, setSearchQuery] = useState('');
+  const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{ offerId: string; accept: boolean; playerName: string; fee: number } | null>(null);
 
   const club = clubs[playerClubId];
 
@@ -69,22 +63,35 @@ const TransferPage = () => {
     return Object.values(players).filter(p => p.clubId === playerClubId && p.listedForSale);
   }, [players, playerClubId]);
 
-  const handleOffer = (playerId: string, askingPrice: number) => {
-    const result = makeOffer(playerId, askingPrice);
-    if (result.success) {
-      successToast(result.message);
-    } else {
-      errorToast(result.message);
+  const handleOffer = (listing: TransferListing) => {
+    if (!transferWindowOpen) {
+      errorToast('Transfer window is closed.');
+      return;
     }
+    setNegotiatingListing(listing);
   };
 
   const handleRespondToOffer = (offerId: string, accept: boolean) => {
+    // Confirm significant offers (player overall >= 70 or fee >= 5M)
+    if (accept) {
+      const offer = incomingOffers.find(o => o.id === offerId);
+      const p = offer ? players[offer.playerId] : null;
+      if (p && (p.overall >= 70 || (offer && offer.fee >= 5_000_000))) {
+        setConfirmAction({ offerId, accept, playerName: `${p.firstName} ${p.lastName}`, fee: offer!.fee });
+        return;
+      }
+    }
+    executeOfferResponse(offerId, accept);
+  };
+
+  const executeOfferResponse = (offerId: string, accept: boolean) => {
     const result = respondToOffer(offerId, accept);
     if (result.success) {
       successToast(result.message);
     } else {
       errorToast(result.message);
     }
+    setConfirmAction(null);
   };
 
   const handleUnlist = (playerId: string) => {
@@ -100,10 +107,21 @@ const TransferPage = () => {
         { screen: 'scouting', label: 'Scouting' },
       ]} />
 
+      <PageHint screen="transfers" title={PAGE_HINTS.transfers.title} body={PAGE_HINTS.transfers.body} />
+
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground font-display">Transfers</h2>
-        {!transferWindowOpen && (
-          <span className="text-xs bg-destructive/20 text-destructive px-2 py-1 rounded-md">Window Closed</span>
+        {transferWindowOpen ? (
+          <span className="flex items-center gap-1 text-xs bg-emerald-500/15 text-emerald-400 px-2 py-1 rounded-md">
+            <Clock className="w-3 h-3" />
+            {week <= SUMMER_WINDOW_END
+              ? `${SUMMER_WINDOW_END - week} wk${SUMMER_WINDOW_END - week !== 1 ? 's' : ''} left`
+              : `${WINTER_WINDOW_END - week} wk${WINTER_WINDOW_END - week !== 1 ? 's' : ''} left`}
+          </span>
+        ) : (
+          <span className="text-xs bg-muted/50 text-muted-foreground px-2 py-1 rounded-md">
+            Closed — opens Wk {week < WINTER_WINDOW_START ? WINTER_WINDOW_START : SUMMER_WINDOW_END + 1}
+          </span>
         )}
       </div>
 
@@ -231,7 +249,14 @@ const TransferPage = () => {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-primary">{'\u00A3'}{(listing.askingPrice / 1e6).toFixed(1)}M</p>
+                    <div className="flex items-center gap-1.5 justify-end">
+                      <div className={cn(
+                        'w-1.5 h-1.5 rounded-full',
+                        listing.askingPrice > (club?.budget || 0) ? 'bg-destructive' :
+                        listing.askingPrice > (club?.budget || 0) * 0.5 ? 'bg-amber-400' : 'bg-emerald-400'
+                      )} />
+                      <p className="text-sm font-bold text-primary">{'\u00A3'}{(listing.askingPrice / 1e6).toFixed(1)}M</p>
+                    </div>
                     <p className="text-[10px] text-muted-foreground">{'\u00A3'}{(p.wage / 1e3).toFixed(0)}K/w</p>
                   </div>
                 </div>
@@ -239,7 +264,7 @@ const TransferPage = () => {
                   <Button
                     size="sm" className="flex-1 h-8 text-xs"
                     disabled={!transferWindowOpen}
-                    onClick={() => handleOffer(p.id, listing.askingPrice)}
+                    onClick={() => handleOffer(listing)}
                   >
                     Make Offer
                   </Button>
@@ -534,6 +559,40 @@ const TransferPage = () => {
               </>
             );
           })()}
+        </div>
+      )}
+
+      {/* Transfer Negotiation Popup */}
+      {negotiatingListing && (
+        <TransferNegotiation
+          listing={negotiatingListing}
+          onClose={() => setNegotiatingListing(null)}
+        />
+      )}
+
+      {/* Confirm Accept Dialog */}
+      {confirmAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <GlassPanel className="p-5 max-w-sm w-full space-y-4">
+            <h3 className="text-base font-bold text-foreground font-display">Confirm Sale</h3>
+            <p className="text-sm text-muted-foreground">
+              Accept {'\u00A3'}{(confirmAction.fee / 1e6).toFixed(1)}M for <span className="text-foreground font-medium">{confirmAction.playerName}</span>? This cannot be undone.
+            </p>
+            <div className="flex gap-2">
+              <Button
+                size="sm" className="flex-1 h-9 bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => executeOfferResponse(confirmAction.offerId, true)}
+              >
+                Confirm Sale
+              </Button>
+              <Button
+                size="sm" variant="outline" className="flex-1 h-9"
+                onClick={() => setConfirmAction(null)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </GlassPanel>
         </div>
       )}
     </div>

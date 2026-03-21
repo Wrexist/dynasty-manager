@@ -483,10 +483,10 @@ const PlayerDetail = () => {
                     </p>
                   </div>
                   <div className="flex gap-1.5">
-                    <Button size="sm" className="h-7 text-xs px-2" onClick={() => handleOffer(offer.id, true)}>
+                    <Button size="sm" className="h-10 text-xs px-3" onClick={() => handleOffer(offer.id, true)}>
                       Accept
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-7 text-xs px-2" onClick={() => handleOffer(offer.id, false)}>
+                    <Button size="sm" variant="ghost" className="h-10 text-xs px-3" onClick={() => handleOffer(offer.id, false)}>
                       Reject
                     </Button>
                   </div>

@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 7', () => {
-    expect(CURRENT_VERSION).toBe(7);
+  it('should have current version set to 9', () => {
+    expect(CURRENT_VERSION).toBe(9);
   });
 
   it('should migrate v1 data to current version', () => {
@@ -56,7 +56,19 @@ describe('saveMigration', () => {
     const result = migrateSaveData(v6Data);
     expect(result.preMatchLeaguePosition).toBe(10);
     expect(result.lastMatchXPGain).toBe(0);
-    expect(result.version).toBe(7);
+  });
+
+  it('should add scoutWatchList in v7→v8', () => {
+    const v7Data: Record<string, unknown> = { version: 7 };
+    const result = migrateSaveData(v7Data);
+    expect(result.scoutWatchList).toEqual([]);
+  });
+
+  it('should add weeklyDigest in v8→v9', () => {
+    const v8Data: Record<string, unknown> = { version: 8 };
+    const result = migrateSaveData(v8Data);
+    expect(result.weeklyDigest).toBeNull();
+    expect(result.version).toBe(9);
   });
 
   it('should survive a corrupted migration step gracefully', () => {

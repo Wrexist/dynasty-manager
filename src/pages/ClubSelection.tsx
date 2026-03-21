@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { CLUBS_DATA, DIVISIONS } from '@/data/league';
 import { Button } from '@/components/ui/button';
@@ -46,11 +46,9 @@ const divisionMeta: Record<string, {
   },
 };
 
-const difficultyConfig = DIFFICULTY_CONFIG;
-const difficultyBars = DIFFICULTY_BARS;
-
 const ClubSelection = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { initGame } = useGameStore();
   const [step, setStep] = useState<'league' | 'club'>('league');
   const [selectedLeague, setSelectedLeague] = useState<DivisionId | null>(null);
@@ -58,8 +56,7 @@ const ClubSelection = () => {
 
   const handleStart = () => {
     if (!selected) return;
-    const pendingSlot = Number(sessionStorage.getItem('dynasty-pending-slot')) || 1;
-    sessionStorage.removeItem('dynasty-pending-slot');
+    const pendingSlot = (location.state as { slot?: number })?.slot || 1;
     initGame(selected);
     useGameStore.setState({ activeSlot: pendingSlot });
     useGameStore.getState().saveGame(pendingSlot);
@@ -134,8 +131,8 @@ const ClubSelection = () => {
               {DIVISIONS.map((division, i) => {
                 const meta = divisionMeta[division.id];
                 const Icon = meta?.icon || Shield;
-                const difficulty = difficultyConfig[division.difficulty];
-                const bars = difficultyBars[division.difficulty] || 1;
+                const difficulty = DIFFICULTY_CONFIG[division.difficulty];
+                const bars = DIFFICULTY_BARS[division.difficulty] || 1;
                 const clubsInDiv = CLUBS_DATA.filter(c => c.divisionId === division.id);
 
                 return (
