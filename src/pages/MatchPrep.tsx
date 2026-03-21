@@ -290,6 +290,7 @@ const MatchPrep = () => {
           playerIds={myLineup.map(p => p.id)}
           awayFormation={oppClub.formation}
           awayColor={oppClub.color}
+          awayPlayerIds={oppClub.lineup}
           showAway
           chemistryLinks={chemLinks}
         />

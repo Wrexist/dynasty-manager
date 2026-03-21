@@ -18,6 +18,18 @@ interface SubstitutionSheetProps {
   onSubMade?: () => void;
 }
 
+const POSITION_ORDER: Record<string, number> = {
+  'GK': 0, 'CB': 1, 'LB': 2, 'RB': 3,
+  'CDM': 4, 'CM': 5, 'CAM': 6, 'LM': 7, 'RM': 8,
+  'LW': 9, 'RW': 10, 'ST': 11,
+};
+
+const POSITION_GROUP_LABELS: Record<string, string> = {
+  'GK': 'GK', 'CB': 'DEF', 'LB': 'DEF', 'RB': 'DEF',
+  'CDM': 'MID', 'CM': 'MID', 'CAM': 'MID', 'LM': 'MID', 'RM': 'MID',
+  'LW': 'FWD', 'RW': 'FWD', 'ST': 'FWD',
+};
+
 function getPositionFitClass(playerPos: Position, targetPos: Position | null): string {
   if (!targetPos) return 'bg-muted/50 text-muted-foreground';
   if (playerPos === targetPos) return 'bg-emerald-500/20 text-emerald-400';
@@ -49,6 +61,12 @@ function getKeyAttributes(position: Position, attrs: { pace: number; shooting: n
     case 'ST': return [{ label: 'SHO', value: attrs.shooting }, { label: 'PAC', value: attrs.pace }];
     default: return [{ label: 'PAC', value: attrs.pace }, { label: 'PAS', value: attrs.passing }];
   }
+}
+
+function getFitnessColor(fitness: number): string {
+  if (fitness >= 80) return 'bg-emerald-500';
+  if (fitness >= 60) return 'bg-amber-500';
+  return 'bg-destructive';
 }
 
 export function SubstitutionSheet({ open, onOpenChange, onSubMade }: SubstitutionSheetProps) {
@@ -92,6 +110,15 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
     });
   }, [playerClub, selectedOutId, players]);
 
+  // Group lineup by position for display
+  const groupedLineup = useMemo(() => {
+    if (!playerClub) return [];
+    return [...playerClub.lineup]
+      .map(id => ({ id, player: players[id] }))
+      .filter(({ player }) => !!player)
+      .sort((a, b) => (POSITION_ORDER[a.player.position] ?? 99) - (POSITION_ORDER[b.player.position] ?? 99));
+  }, [playerClub, players]);
+
   if (!playerClub) return null;
 
   const lineup = playerClub.lineup;
@@ -129,6 +156,48 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
     }
   };
 
+  // Render a lineup row for State 1
+  const renderLineupRow = (id: string, player: typeof players[string]) => {
+    if (!player) return null;
+    const formInfo = getFormLabel(player.form);
+    return (
+      <button
+        key={id}
+        onClick={() => handleLineupPlayerClick(id)}
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border bg-card/40 border-border/30 hover:bg-destructive/10 hover:border-destructive/30 transition-all text-left active:scale-[0.98]"
+      >
+        <div className={cn(
+          'w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0',
+          getRatingBadgeClasses(player.overall)
+        )}>
+          {player.overall}
+        </div>
+        <div className="w-8 text-center">
+          <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+            {player.position}
+          </span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-foreground truncate">
+            {getFlag(player.nationality)} {player.firstName[0]}. {player.lastName}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={cn('text-[9px] font-semibold', formInfo.className)}>{formInfo.text}</span>
+          <div className="flex items-center gap-1">
+            <div className="w-8 h-1 bg-muted rounded-full overflow-hidden">
+              <div
+                className={cn('h-full rounded-full', getFitnessColor(player.fitness))}
+                style={{ width: `${player.fitness}%` }}
+              />
+            </div>
+            <span className="text-[9px] text-muted-foreground w-7 text-right">{Math.round(player.fitness)}%</span>
+          </div>
+        </div>
+      </button>
+    );
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-t border-border/50 px-4 pb-8">
@@ -142,7 +211,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
         </SheetHeader>
 
         <AnimatePresence mode="wait">
-          {/* State 1: Select player to sub out — show compact lineup grid */}
+          {/* State 1: Select player to sub out — grouped lineup */}
           {!selectedOutId && (
             <motion.div
               key="lineup-select"
@@ -155,49 +224,26 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                 Select Player to Substitute
               </p>
 
-              {/* Compact lineup grid */}
+              {/* Grouped lineup */}
               <div className="space-y-1">
-                {lineup.map((id) => {
-                  const p = players[id];
-                  if (!p) return null;
-                  const formInfo = getFormLabel(p.form);
-                  return (
-                    <button
-                      key={id}
-                      onClick={() => handleLineupPlayerClick(id)}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border bg-card/40 border-border/30 hover:bg-destructive/10 hover:border-destructive/30 transition-all text-left active:scale-[0.98]"
-                    >
-                      <div className={cn(
-                        'w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0',
-                        getRatingBadgeClasses(p.overall)
-                      )}>
-                        {p.overall}
+                {(() => {
+                  let lastGroup = '';
+                  return groupedLineup.map(({ id, player }) => {
+                    const group = POSITION_GROUP_LABELS[player.position] || 'OTHER';
+                    const showGroupHeader = group !== lastGroup;
+                    lastGroup = group;
+                    return (
+                      <div key={id}>
+                        {showGroupHeader && (
+                          <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-semibold mt-1.5 mb-0.5 pl-1">
+                            {group}
+                          </p>
+                        )}
+                        {renderLineupRow(id, player)}
                       </div>
-                      <div className="w-8 text-center">
-                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-                          {p.position}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-foreground truncate">
-                          {getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className={cn('text-[9px] font-semibold', formInfo.className)}>{formInfo.text}</span>
-                        <div className="flex items-center gap-1">
-                          <div className="w-8 h-1 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={cn('h-full rounded-full', p.fitness >= 80 ? 'bg-emerald-500' : p.fitness >= 60 ? 'bg-amber-500' : 'bg-destructive')}
-                              style={{ width: `${p.fitness}%` }}
-                            />
-                          </div>
-                          <span className="text-[9px] text-muted-foreground w-7 text-right">{Math.round(p.fitness)}%</span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+                    );
+                  });
+                })()}
               </div>
             </motion.div>
           )}
@@ -253,7 +299,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                         isFirst ? 'bg-primary/10 border-primary/30' : 'bg-card/40 border-border/30 hover:bg-primary/10 hover:border-primary/30'
                       )}
                     >
-                      {/* Top row: rating, name, position, best badge */}
+                      {/* Top row: rating, position, name, age */}
                       <div className="flex items-center gap-2 w-full">
                         <div className={cn(
                           'w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0',
@@ -277,9 +323,8 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                         <span className="text-[10px] text-muted-foreground shrink-0">Age {p.age}</span>
                       </div>
 
-                      {/* Bottom row: key attrs, form, morale, fitness */}
+                      {/* Bottom row: key attrs, form, morale, stats, fitness */}
                       <div className="flex items-center gap-2 w-full pl-9">
-                        {/* Key attributes */}
                         {keyAttrs.map(attr => (
                           <div key={attr.label} className="flex items-center gap-0.5">
                             <span className="text-[8px] text-muted-foreground">{attr.label}</span>
@@ -290,16 +335,10 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                         ))}
 
                         <span className="text-[8px] text-border">·</span>
-
-                        {/* Form */}
                         <span className={cn('text-[9px] font-semibold', formInfo.className)}>{formInfo.text}</span>
-
                         <span className="text-[8px] text-border">·</span>
-
-                        {/* Morale */}
                         <span className={cn('text-[9px]', moraleInfo.className)}>{moraleInfo.text}</span>
 
-                        {/* Season stats for attackers */}
                         {(p.goals > 0 || p.assists > 0) && (
                           <>
                             <span className="text-[8px] text-border">·</span>
@@ -311,11 +350,10 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
 
                         <div className="flex-1" />
 
-                        {/* Fitness */}
                         <div className="flex items-center gap-1 shrink-0">
                           <div className="w-10 h-1 bg-muted rounded-full overflow-hidden">
                             <div
-                              className={cn('h-full rounded-full', p.fitness >= 80 ? 'bg-emerald-500' : p.fitness >= 60 ? 'bg-amber-500' : 'bg-destructive')}
+                              className={cn('h-full rounded-full', getFitnessColor(p.fitness))}
                               style={{ width: `${p.fitness}%` }}
                             />
                           </div>
@@ -360,7 +398,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
             </motion.div>
           )}
 
-          {/* State 3: Confirm swap */}
+          {/* State 3: Confirm swap with attribute comparison */}
           {selectedOutId && selectedInId && selectedOutPlayer && selectedInPlayer && (
             <motion.div
               key="confirm"
@@ -381,7 +419,9 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                   )}>
                     {selectedOutPlayer.overall}
                   </div>
-                  <p className="text-xs font-semibold text-foreground truncate">{selectedOutPlayer.lastName}</p>
+                  <p className="text-xs font-semibold text-foreground truncate">
+                    {getFlag(selectedOutPlayer.nationality)} {selectedOutPlayer.lastName}
+                  </p>
                   <p className="text-[10px] text-muted-foreground">{selectedOutPlayer.position}</p>
                   <p className="text-[9px] text-muted-foreground mt-0.5">FIT {Math.round(selectedOutPlayer.fitness)}%</p>
                 </div>
@@ -397,10 +437,39 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                   )}>
                     {selectedInPlayer.overall}
                   </div>
-                  <p className="text-xs font-semibold text-foreground truncate">{selectedInPlayer.lastName}</p>
+                  <p className="text-xs font-semibold text-foreground truncate">
+                    {getFlag(selectedInPlayer.nationality)} {selectedInPlayer.lastName}
+                  </p>
                   <p className="text-[10px] text-muted-foreground">{selectedInPlayer.position}</p>
                   <p className="text-[9px] text-muted-foreground mt-0.5">FIT {Math.round(selectedInPlayer.fitness)}%</p>
                 </div>
+              </div>
+
+              {/* Attribute comparison */}
+              <div className="bg-card/40 border border-border/30 rounded-lg px-3 py-2 space-y-1">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Key Stats Comparison</p>
+                {(['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'] as const).map(attr => {
+                  const outVal = selectedOutPlayer.attributes[attr];
+                  const inVal = selectedInPlayer.attributes[attr];
+                  const diff = inVal - outVal;
+                  return (
+                    <div key={attr} className="flex items-center gap-2 text-[10px]">
+                      <span className="w-10 text-muted-foreground uppercase text-[8px]">{attr.slice(0, 3)}</span>
+                      <span className="w-5 text-right text-foreground font-semibold">{outVal}</span>
+                      <div className="flex-1 h-1 bg-muted/30 rounded-full relative overflow-hidden">
+                        <div className="absolute inset-y-0 left-0 bg-destructive/40 rounded-full" style={{ width: `${outVal}%` }} />
+                        <div className="absolute inset-y-0 left-0 bg-emerald-500/40 rounded-full" style={{ width: `${inVal}%` }} />
+                      </div>
+                      <span className="w-5 text-foreground font-semibold">{inVal}</span>
+                      {diff !== 0 && (
+                        <span className={cn('w-7 text-[9px] font-bold', diff > 0 ? 'text-emerald-400' : 'text-destructive')}>
+                          {diff > 0 ? '+' : ''}{diff}
+                        </span>
+                      )}
+                      {diff === 0 && <span className="w-7 text-[9px] text-muted-foreground text-center">=</span>}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Position fit warning */}
@@ -412,7 +481,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                 )}>
                   {POSITION_COMPATIBILITY[selectedOutPlayer.position as Position]?.includes(selectedInPlayer.position as Position)
                     ? `${selectedInPlayer.position} is a compatible position for ${selectedOutPlayer.position}`
-                    : `⚠ ${selectedInPlayer.position} is not a natural fit for ${selectedOutPlayer.position}`
+                    : `${selectedInPlayer.position} is not a natural fit for ${selectedOutPlayer.position}`
                   }
                 </p>
               )}

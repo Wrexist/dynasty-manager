@@ -20,6 +20,7 @@ interface PitchViewProps {
   jerseyNumbers?: number[];
   halfPitch?: boolean;
   chemistryLinks?: ChemistryLink[];
+  awayPlayerIds?: string[];
 }
 
 function getChemistryLineColor(strength: number): string {
@@ -83,7 +84,7 @@ function getFormationLines(slots: FormationSlot[]): [number, number][] {
   });
 }
 
-export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, awayLabels, highlightIndex, onSlotClick, playerFitness, playerIds, playerOveralls, jerseyNumbers, halfPitch = false, chemistryLinks }: PitchViewProps) {
+export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, awayLabels, highlightIndex, onSlotClick, playerFitness, playerIds, playerOveralls, jerseyNumbers, halfPitch = false, chemistryLinks, awayPlayerIds }: PitchViewProps) {
   const homeSlots = FORMATION_POSITIONS[formation];
   const awaySlots = awayFormation ? FORMATION_POSITIONS[awayFormation] : [];
   const resolvedLabels = homeLabels || labels;
@@ -227,7 +228,7 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
           return (
             <g key={`a${i}`}>
               <g transform={`translate(${cx - 6 / 2}, ${cy - 6 / 2})`}>
-                <PlayerAvatar playerId={`away-${i}`} jerseyColor={awayColor} size={6} isAway />
+                <PlayerAvatar playerId={awayPlayerIds?.[i] || `away-${i}`} jerseyColor={awayColor} size={6} isAway />
               </g>
               {/* Dark info box for away team */}
               <rect x={cx - 4.5} y={cy + 3.2} width="9" height="2.8" rx="0.6" fill="rgba(0,0,0,0.6)" />

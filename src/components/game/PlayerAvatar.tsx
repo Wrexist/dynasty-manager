@@ -10,9 +10,9 @@ const HAIR_COLORS = ['#2C1B0E', '#5C3317', '#8B6914', '#D4A843', '#C0392B', '#1A
 const HAIR_STYLES = ['none', 'short', 'medium', 'mohawk', 'buzz', 'long'] as const;
 
 function hashId(id: string): number {
-  let hash = 0;
+  let hash = 5381;
   for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+    hash = ((hash << 5) + hash + id.charCodeAt(i)) | 0;
   }
   return Math.abs(hash);
 }
