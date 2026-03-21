@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake } from 'lucide-react';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/game';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
@@ -18,24 +18,50 @@ const typeIcon: Record<Message['type'], React.ElementType> = {
   general: Mail,
 };
 
-const CATEGORY_FILTERS: { label: string; types: Message['type'][] }[] = [
-  { label: 'All', types: [] },
-  { label: 'Board', types: ['board'] },
-  { label: 'Transfer', types: ['transfer'] },
-  { label: 'Match', types: ['match_preview', 'match_result'] },
-  { label: 'Player', types: ['development', 'injury', 'contract'] },
-  { label: 'Sponsors', types: ['sponsorship'] },
+const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.ElementType }[] = [
+  { label: 'Match', types: ['match_preview', 'match_result'], icon: Trophy },
+  { label: 'Board', types: ['board'], icon: Megaphone },
+  { label: 'Transfer', types: ['transfer'], icon: ArrowLeftRight },
+  { label: 'Injury', types: ['injury'], icon: Stethoscope },
+  { label: 'Contract', types: ['contract'], icon: FileText },
+  { label: 'Development', types: ['development'], icon: TrendingUp },
+  { label: 'Sponsorship', types: ['sponsorship'], icon: Handshake },
+  { label: 'General', types: ['general'], icon: Mail },
 ];
 
 const InboxPage = () => {
   const { messages, markMessageRead, markAllRead, activeStorylineChains } = useGameStore();
-  const [category, setCategory] = useState(0);
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
+  const [filterOpen, setFilterOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    };
+    if (filterOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [filterOpen]);
+
+  const toggleFilter = (label: string) => {
+    setActiveFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
 
   const unread = messages.filter(m => !m.read).length;
 
-  const filtered = CATEGORY_FILTERS[category].types.length > 0
-    ? messages.filter(m => CATEGORY_FILTERS[category].types.includes(m.type))
+  const allowedTypes = activeFilters.size > 0
+    ? FILTER_OPTIONS.filter(o => activeFilters.has(o.label)).flatMap(o => o.types)
+    : [];
+  const filtered = allowedTypes.length > 0
+    ? messages.filter(m => allowedTypes.includes(m.type))
     : messages;
 
   // Group by week
@@ -65,22 +91,69 @@ const InboxPage = () => {
         )}
       </div>
 
-      {/* Category Filters */}
-      <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-        {CATEGORY_FILTERS.map((cat, i) => (
-          <button
-            key={cat.label}
-            onClick={() => setCategory(i)}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0',
-              category === i
-                ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+      {/* Filter Dropdown */}
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setFilterOpen(prev => !prev)}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all',
+            activeFilters.size > 0
+              ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
+              : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+          )}
+        >
+          <Filter className="w-3 h-3" />
+          Filter
+          {activeFilters.size > 0 && (
+            <span className="ml-0.5 w-4 h-4 rounded-full bg-primary-foreground/20 text-[10px] flex items-center justify-center">
+              {activeFilters.size}
+            </span>
+          )}
+        </button>
+
+        {filterOpen && (
+          <div className="absolute left-0 top-full mt-1.5 z-50 w-56 bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl shadow-xl overflow-hidden">
+            <div className="p-2 space-y-0.5">
+              {FILTER_OPTIONS.map(opt => {
+                const Icon = opt.icon;
+                const checked = activeFilters.has(opt.label);
+                return (
+                  <button
+                    key={opt.label}
+                    onClick={() => toggleFilter(opt.label)}
+                    className={cn(
+                      'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs transition-colors',
+                      checked ? 'bg-primary/15 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    )}
+                  >
+                    <div className={cn(
+                      'w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors',
+                      checked ? 'bg-primary border-primary' : 'border-border'
+                    )}>
+                      {checked && (
+                        <svg className="w-2.5 h-2.5 text-primary-foreground" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1.5 5.5L4 8L8.5 2" />
+                        </svg>
+                      )}
+                    </div>
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="font-medium">{opt.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {activeFilters.size > 0 && (
+              <div className="border-t border-border/50 px-2.5 py-2">
+                <button
+                  onClick={() => setActiveFilters(new Set())}
+                  className="text-[10px] text-primary hover:underline"
+                >
+                  Clear all
+                </button>
+              </div>
             )}
-          >
-            {cat.label}
-          </button>
-        ))}
+          </div>
+        )}
       </div>
 
       {/* Active Storyline Chains */}
@@ -117,11 +190,11 @@ const InboxPage = () => {
         <GlassPanel className="p-8 text-center">
           <MailOpen className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
-            {category > 0 ? `No ${CATEGORY_FILTERS[category].label.toLowerCase()} messages` : 'No messages'}
+            {activeFilters.size > 0 ? 'No messages match your filters' : 'No messages'}
           </p>
-          {category > 0 && (
-            <button className="text-xs text-primary mt-2 hover:underline" onClick={() => setCategory(0)}>
-              Clear filter
+          {activeFilters.size > 0 && (
+            <button className="text-xs text-primary mt-2 hover:underline" onClick={() => setActiveFilters(new Set())}>
+              Clear filters
             </button>
           )}
         </GlassPanel>
