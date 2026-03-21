@@ -29,6 +29,7 @@ const TacticsPage = () => {
   const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam } = useGameStore();
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
+  const [autoFilling, setAutoFilling] = useState(false);
   if (!club) return null;
 
   const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
@@ -107,11 +108,23 @@ const TacticsPage = () => {
 
       {/* Smart Auto Fill */}
       <button
-        onClick={autoFillTeam}
-        className="w-full py-2.5 rounded-xl bg-primary/90 hover:bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+        onClick={() => {
+          setAutoFilling(true);
+          setTimeout(() => {
+            autoFillTeam();
+            setAutoFilling(false);
+          }, 0);
+        }}
+        disabled={autoFilling}
+        className={cn(
+          'w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]',
+          autoFilling
+            ? 'bg-primary/50 text-primary-foreground/70 cursor-not-allowed'
+            : 'bg-primary/90 hover:bg-primary text-primary-foreground'
+        )}
       >
-        <Wand2 className="w-4 h-4" />
-        Smart Auto Fill
+        <Wand2 className={cn('w-4 h-4', autoFilling && 'animate-spin')} />
+        {autoFilling ? 'Optimizing...' : 'Smart Auto Fill'}
       </button>
 
       {/* Lineup Editor with Drag & Drop */}

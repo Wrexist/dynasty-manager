@@ -11,14 +11,17 @@ const FORM_WEIGHT = 20;
 const FITNESS_WEIGHT = 15;
 const MORALE_WEIGHT = 10;
 const NATURAL_POSITION_BONUS = 5;
-const COMPATIBLE_POSITION_BONUS = 0;
+const COMPATIBLE_POSITION_BONUS = 2;
 const INCOMPATIBLE_POSITION_PENALTY = -20;
 const LOW_FITNESS_EXTRA_PENALTY = -8;
 const LOW_MORALE_THRESHOLD = 40;
 const LOW_MORALE_EXTRA_PENALTY = -6;
-const WANTS_TO_LEAVE_PENALTY = -10;
-const YELLOW_CARD_PENALTY = -2;
-const CHEMISTRY_SCORE_SCALE = 150;
+const WANTS_TO_LEAVE_PENALTY = -5;
+const YELLOW_CARD_LOW_PENALTY = -1;
+const YELLOW_CARD_HIGH_PENALTY = -8;
+const YELLOW_CARD_HIGH_THRESHOLD = 2;
+const REINJURY_RISK_PENALTY_SCALE = -5;
+const CHEMISTRY_SCORE_SCALE = 50;
 const SWAP_OPTIMIZATION_PASSES = 3;
 
 // Bench selection position priority (higher = more important to have on bench)
@@ -51,6 +54,7 @@ function positionalOverall(attrs: PlayerAttributes, targetPosition: Position): n
 
 /**
  * Determine position fit bonus/penalty for a player in a target slot.
+ * Natural position: +5, Compatible: +2, Incompatible: -20
  */
 function positionFitScore(playerPosition: Position, slotPosition: Position): number {
   if (playerPosition === slotPosition) return NATURAL_POSITION_BONUS;
@@ -62,7 +66,7 @@ function positionFitScore(playerPosition: Position, slotPosition: Position): num
 /**
  * Score a player for a specific formation slot.
  * Considers: positional overall, form, fitness, morale, position fit,
- * wantsToLeave status, yellow card risk, and fitness/morale thresholds.
+ * wantsToLeave, yellow card suspension risk, re-injury risk, and threshold penalties.
  */
 function scorePlayerForSlot(player: Player, slotPosition: Position): number {
   const posOverall = positionalOverall(player.attributes, slotPosition);
@@ -73,7 +77,7 @@ function scorePlayerForSlot(player: Player, slotPosition: Position): number {
     (player.morale / 100) * MORALE_WEIGHT +
     positionFitScore(player.position, slotPosition);
 
-  // Extra penalty for very low fitness — match engine applies -0.15 shot penalty below 50
+  // Extra penalty for low fitness — match engine applies -0.15 shot penalty below 50
   if (player.fitness < LOW_FITNESS_THRESHOLD) {
     score += LOW_FITNESS_EXTRA_PENALTY;
   }
@@ -83,14 +87,21 @@ function scorePlayerForSlot(player: Player, slotPosition: Position): number {
     score += LOW_MORALE_EXTRA_PENALTY;
   }
 
-  // Unhappy players reduce team strength by 15% per player in the match engine
+  // Unhappy players reduce team strength ~1.4% per unhappy player (15% / 11)
   if (player.wantsToLeave) {
     score += WANTS_TO_LEAVE_PENALTY;
   }
 
-  // Yellow card accumulation risk — each yellow increases suspension probability
-  if (player.yellowCards > 0) {
-    score += player.yellowCards * YELLOW_CARD_PENALTY;
+  // Yellow card suspension risk — non-linear: 2+ cards = imminent ban risk
+  if (player.yellowCards >= YELLOW_CARD_HIGH_THRESHOLD) {
+    score += YELLOW_CARD_HIGH_PENALTY;
+  } else if (player.yellowCards > 0) {
+    score += YELLOW_CARD_LOW_PENALTY;
+  }
+
+  // Re-injury risk for players recently returned from injury
+  if (player.injuryDetails?.reinjuryWeeksRemaining && player.injuryDetails.reinjuryWeeksRemaining > 0) {
+    score += REINJURY_RISK_PENALTY_SCALE * (player.injuryDetails.reinjuryRisk || 0);
   }
 
   return score;
@@ -104,7 +115,7 @@ function scorePlayerForSlot(player: Player, slotPosition: Position): number {
  * 2. Greedy assignment (constrained slots first: GK, then fewest-candidate slots)
  * 3. Chemistry-aware pairwise swap optimization
  * 4. Chemistry-aware bench-to-starter refinement
- * 5. Smart bench selection: GK priority, defensive coverage, sub-need awareness
+ * 5. Smart bench selection: GK priority, formation-aware coverage, sub-need awareness
  */
 export function autoFillBestTeam(
   players: Player[],
@@ -192,7 +203,6 @@ export function autoFillBestTeam(
         const pj = lineup[j];
         if (!pi || !pj) continue;
 
-        // Swap and evaluate full team score (including chemistry)
         lineup[i] = pj;
         lineup[j] = pi;
         const swappedTeamScore = getTeamScore(lineup);
@@ -201,7 +211,6 @@ export function autoFillBestTeam(
           currentTeamScore = swappedTeamScore;
           improved = true;
         } else {
-          // Restore
           lineup[i] = pi;
           lineup[j] = pj;
         }
@@ -213,30 +222,32 @@ export function autoFillBestTeam(
   // ── Phase 4: Chemistry-aware bench-to-starter refinement ──
   const bench = available.filter(p => !used.has(p.id));
 
-  for (const benchPlayer of bench) {
-    let bestSwapIdx = -1;
-    let bestNewScore = currentTeamScore;
+  if (bench.length > 0) {
+    for (const benchPlayer of bench) {
+      let bestSwapIdx = -1;
+      let bestNewScore = currentTeamScore;
 
-    for (let i = 0; i < lineup.length; i++) {
-      const starter = lineup[i];
-      if (!starter) continue;
+      for (let i = 0; i < lineup.length; i++) {
+        const starter = lineup[i];
+        if (!starter) continue;
 
-      lineup[i] = benchPlayer;
-      const newScore = getTeamScore(lineup);
-      lineup[i] = starter;
+        lineup[i] = benchPlayer;
+        const newScore = getTeamScore(lineup);
+        lineup[i] = starter;
 
-      if (newScore > bestNewScore) {
-        bestNewScore = newScore;
-        bestSwapIdx = i;
+        if (newScore > bestNewScore) {
+          bestNewScore = newScore;
+          bestSwapIdx = i;
+        }
       }
-    }
 
-    if (bestSwapIdx >= 0) {
-      const displaced = lineup[bestSwapIdx]!;
-      lineup[bestSwapIdx] = benchPlayer;
-      used.add(benchPlayer.id);
-      used.delete(displaced.id);
-      currentTeamScore = bestNewScore;
+      if (bestSwapIdx >= 0) {
+        const displaced = lineup[bestSwapIdx]!;
+        lineup[bestSwapIdx] = benchPlayer;
+        used.add(benchPlayer.id);
+        used.delete(displaced.id);
+        currentTeamScore = bestNewScore;
+      }
     }
   }
 
@@ -245,36 +256,37 @@ export function autoFillBestTeam(
   const lineupPositions = new Set(finalLineup.map(p => p.position));
   const remaining = available.filter(p => !used.has(p.id));
 
+  // Positions used in the current formation (for formation-aware gap detection)
+  const formationPositions = new Set(slots.map(s => s.pos));
+
   // Find starters with lowest fitness (most likely to need subbing)
   const startersByFitness = [...finalLineup].sort((a, b) => a.fitness - b.fitness);
   const subNeedPositions = new Set(startersByFitness.slice(0, 3).map(p => p.position));
 
-  // Ensure GK backup: check if there's a GK not in the lineup
+  // Ensure GK backup
   const hasGKInLineup = finalLineup.some(p => p.position === 'GK');
   const backupGKAvailable = remaining.find(p => p.position === 'GK');
 
   const benchCandidates = remaining.map(p => {
-    // GK backup is critical if we have a GK starting
     const isGKBackup = p.position === 'GK' && hasGKInLineup;
 
-    // Position covers a gap not in the starting XI
-    const coversGap = !lineupPositions.has(p.position);
+    // Only count as covering a gap if the position is actually used in the formation
+    const coversFormationGap = !lineupPositions.has(p.position) && formationPositions.has(p.position);
 
     // Can substitute for a low-fitness starter
     const coversSubNeed = subNeedPositions.has(p.position) ||
       (POSITION_COMPATIBILITY[p.position] || []).some(pos => subNeedPositions.has(pos));
 
-    // Position importance weight
     const positionPriority = BENCH_POSITION_PRIORITY[p.position] || 1;
 
-    // Composite bench priority score
     const priority =
       (isGKBackup ? 100 : 0) +
-      (coversGap ? 15 : 0) +
+      (coversFormationGap ? 15 : 0) +
       (coversSubNeed ? 8 : 0) +
       positionPriority;
 
-    const rating = p.overall * 0.5 + (p.form / 100) * 25 + (p.fitness / 100) * 15 + (p.morale / 100) * 10;
+    // Bench rating: overall-dominant since bench players are insurance
+    const rating = p.overall * 0.7 + (p.form / 100) * 15 + (p.fitness / 100) * 10 + (p.morale / 100) * 5;
 
     return { player: p, priority, rating };
   });
@@ -284,7 +296,7 @@ export function autoFillBestTeam(
     return b.rating - a.rating;
   });
 
-  // If we have a backup GK available, always include them
+  // Always include backup GK first if available
   const finalSubs: Player[] = [];
   if (backupGKAvailable && hasGKInLineup) {
     finalSubs.push(backupGKAvailable);

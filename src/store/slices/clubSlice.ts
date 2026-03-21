@@ -50,7 +50,10 @@ export const createClubSlice = (set: Set, get: Get) => ({
     set({ clubs: { ...state.clubs, [club.id]: club } });
 
     if (result.lineup.length < 11) {
-      toast.warning('Not enough available players to fill all positions');
+      const injuredCount = squad.filter(p => p.injured).length;
+      const suspendedCount = squad.filter(p => p.suspendedUntilWeek && state.currentWeek !== undefined && p.suspendedUntilWeek > state.currentWeek).length;
+      const onLoanCount = squad.filter(p => p.onLoan).length;
+      toast.warning(`Only ${result.lineup.length}/11 spots filled (${injuredCount} injured, ${suspendedCount} suspended, ${onLoanCount} on loan)`);
     } else {
       toast.success(`Lineup optimized — Chemistry: ${result.chemistryLabel} (+${(result.chemistryBonus * 100).toFixed(1)}%)`);
     }
