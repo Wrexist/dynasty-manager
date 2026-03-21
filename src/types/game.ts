@@ -258,7 +258,7 @@ export interface Message {
 
 export interface CareerMilestone {
   id: string;
-  type: 'first_win' | 'first_trophy' | 'promotion' | 'cup_win' | 'record_signing' | 'biggest_win' | 'milestone_matches' | 'unbeaten_run' | 'youth_graduate' | 'season_start' | 'custom';
+  type: 'first_win' | 'first_trophy' | 'promotion' | 'cup_win' | 'record_signing' | 'biggest_win' | 'milestone_matches' | 'unbeaten_run' | 'youth_graduate' | 'season_start' | 'prestige' | 'custom';
   title: string;
   description: string;
   season: number;

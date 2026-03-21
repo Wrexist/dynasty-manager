@@ -1,6 +1,7 @@
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import type { LoanDeal } from '@/types/game';
+import { TOTAL_WEEKS } from '@/config/gameBalance';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -80,7 +81,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     if (!loan.recallClause) return { success: false, message: 'No recall clause in this loan.' };
 
     // Must have been on loan for at least 4 weeks
-    const elapsed = (state.season - loan.startSeason) * 38 + (state.week - loan.startWeek);
+    const elapsed = (state.season - loan.startSeason) * TOTAL_WEEKS + (state.week - loan.startWeek);
     if (elapsed < 4) return { success: false, message: 'Must wait at least 4 weeks before recalling.' };
 
     const player = state.players[loan.playerId];
@@ -199,7 +200,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     const remaining: LoanDeal[] = [];
 
     for (const loan of state.activeLoans) {
-      const elapsed = (state.season - loan.startSeason) * 38 + (state.week - loan.startWeek);
+      const elapsed = (state.season - loan.startSeason) * TOTAL_WEEKS + (state.week - loan.startWeek);
       if (elapsed >= loan.durationWeeks) {
         returning.push(loan);
       } else {
@@ -215,7 +216,15 @@ export const createLoanSlice = (set: Set, get: Get) => ({
 
     for (const loan of returning) {
       const player = newPlayers[loan.playerId];
-      if (!player) continue;
+      if (!player) {
+        // Player entity missing — still clean up club rosters to prevent ghost references
+        const toClub = { ...newClubs[loan.toClubId] };
+        toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
+        toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
+        toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
+        newClubs[toClub.id] = toClub;
+        continue;
+      }
 
       if (loan.obligatoryBuyFee) {
         // Convert to permanent transfer

@@ -1,6 +1,6 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { DollarSign, Users, Building2, GraduationCap, TrendingUp, TrendingDown } from 'lucide-react';
+import { DollarSign, Users, Building2, GraduationCap, TrendingUp, TrendingDown, Star, HeartPulse } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getConfidenceColor } from '@/utils/uiHelpers';
 import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
@@ -26,7 +26,7 @@ const ClubPage = () => {
         </div>
         <div>
           <h2 className="text-xl font-black text-foreground font-display">{club.name}</h2>
-          <p className="text-sm text-muted-foreground">Season {season} • {'⭐'.repeat(club.reputation)}</p>
+          <p className="text-sm text-muted-foreground flex items-center gap-1">Season {season} • {Array.from({ length: club.reputation }).map((_, i) => <Star key={i} className="w-3 h-3 fill-primary text-primary inline" />)}</p>
         </div>
       </div>
 
@@ -80,7 +80,7 @@ const ClubPage = () => {
           </div>
         </div>
         {injuries > 0 && (
-          <p className="text-xs text-destructive mt-2">🏥 {injuries} player{injuries > 1 ? 's' : ''} injured</p>
+          <p className="text-xs text-destructive mt-2 flex items-center gap-1"><HeartPulse className="w-3 h-3" /> {injuries} player{injuries > 1 ? 's' : ''} injured</p>
         )}
       </GlassPanel>
 

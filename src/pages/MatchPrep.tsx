@@ -2,7 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PitchView } from '@/components/game/PitchView';
-import { Swords, AlertTriangle, Flame, Info, Shield } from 'lucide-react';
+import { Swords, AlertTriangle, Flame, Info, Shield, Pencil } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
@@ -24,6 +24,10 @@ const MatchPrep = () => {
   const { week, fixtures, clubs, players, playerClubId, leagueTable, setScreen } = useGameStore();
 
   const { match, isHome, opponent: oppClub } = useCurrentMatch();
+  const oppClubId = match ? (isHome ? match.awayClubId : match.homeClubId) : '';
+  const oppPos = useLeaguePosition(oppClubId);
+  const myPos = useLeaguePosition();
+
   if (!match || !oppClub) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">
@@ -34,12 +38,7 @@ const MatchPrep = () => {
     );
   }
 
-  const oppClubId = isHome ? match.awayClubId : match.homeClubId;
   const myClub = clubs[playerClubId];
-
-  // Opponent info
-  const oppPos = useLeaguePosition(oppClubId);
-  const myPos = useLeaguePosition();
   const myEntry = leagueTable.find(e => e.clubId === playerClubId);
   const oppEntry = leagueTable.find(e => e.clubId === oppClubId);
 
@@ -232,11 +231,21 @@ const MatchPrep = () => {
 
       {/* Formation Preview */}
       <GlassPanel className="p-4">
-        <h3 className="text-sm font-semibold text-foreground mb-2">Your Formation: {myClub.formation}</h3>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-semibold text-foreground">Your Formation: {myClub.formation}</h3>
+          <button
+            onClick={() => setScreen('tactics')}
+            className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 font-semibold"
+          >
+            <Pencil className="w-3 h-3" /> Edit Lineup
+          </button>
+        </div>
         <PitchView
           formation={myClub.formation}
           homeColor={myClub.color}
           homeLabels={myLineup.map(p => p.lastName.slice(0, 3).toUpperCase())}
+          playerFitness={myLineup.map(p => Math.round(p.fitness))}
+          playerIds={myLineup.map(p => p.id)}
           awayFormation={oppClub.formation}
           awayColor={oppClub.color}
           showAway

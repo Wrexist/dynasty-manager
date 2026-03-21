@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
-import { getRoundName, ROUND_ORDER } from '@/data/cup';
+import { getRoundName, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
 import { cn } from '@/lib/utils';
 import { Trophy, Shield, ChevronRight, ChevronDown } from 'lucide-react';
 import type { CupRound, CupTie } from '@/types/game';
@@ -187,7 +187,7 @@ const CupPage = () => {
 
       {/* Rounds — filter out bye ties from display */}
       {ROUND_ORDER.map((round) => {
-        const ties = cup.ties.filter(t => t.round === round && t.awayClubId !== '__BYE__');
+        const ties = cup.ties.filter(t => t.round === round && t.awayClubId !== CUP_BYE_MARKER);
         if (ties.length === 0) return null;
 
         const allPlayed = ties.every(t => t.played);

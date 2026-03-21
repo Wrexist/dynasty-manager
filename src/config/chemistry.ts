@@ -11,7 +11,7 @@ export const MENTOR_QUALITY_DIVISOR = 10;
 export const MENTOR_MAX_STRENGTH = 3;
 
 // ── Partnership Bond ──
-export const PARTNERSHIP_FORM_THRESHOLD = 130;
+export const PARTNERSHIP_FORM_THRESHOLD = 100;
 export const PARTNERSHIP_STRENGTH_DIVISOR = 20;
 export const PARTNERSHIP_MAX_STRENGTH = 3;
 

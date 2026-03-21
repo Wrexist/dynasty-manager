@@ -5,7 +5,8 @@ import { CHALLENGES, getDifficultyColor } from '@/data/challenges';
 import { CLUBS_DATA } from '@/data/league';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, ChevronRight, Shield, Trophy, Lock } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Shield, Trophy, Lock, Star } from 'lucide-react';
+import { DynamicIcon } from '@/components/game/DynamicIcon';
 import type { ChallengeScenario } from '@/types/game';
 
 const ChallengePicker = () => {
@@ -61,7 +62,7 @@ const ChallengePicker = () => {
                 </div>
                 <div className="flex-1 text-left">
                   <p className="text-sm font-semibold text-foreground">{club.name}</p>
-                  <p className="text-[10px] text-muted-foreground">Rep: {'★'.repeat(club.reputation)}{'☆'.repeat(5 - club.reputation)} · Budget: £{(club.budget / 1e6).toFixed(0)}M</p>
+                  <p className="text-[10px] text-muted-foreground flex items-center gap-0.5">Rep: {Array.from({ length: 5 }).map((_, si) => <Star key={si} className={cn('w-2 h-2 inline', si < club.reputation ? 'fill-primary text-primary' : 'text-muted-foreground/30')} />)} · Budget: £{(club.budget / 1e6).toFixed(0)}M</p>
                 </div>
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </button>
@@ -98,7 +99,7 @@ const ChallengePicker = () => {
               className="w-full text-left bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-4 hover:border-primary/40 active:scale-[0.98] transition-all"
             >
               <div className="flex items-start gap-3">
-                <span className="text-2xl">{challenge.icon}</span>
+                <DynamicIcon name={challenge.icon} className="w-7 h-7 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-bold text-foreground">{challenge.name}</h3>

@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 5', () => {
-    expect(CURRENT_VERSION).toBe(5);
+  it('should have current version set to 7', () => {
+    expect(CURRENT_VERSION).toBe(7);
   });
 
   it('should migrate v1 data to current version', () => {
@@ -39,6 +39,31 @@ describe('saveMigration', () => {
     expect(result.activeSlot).toBe(1);
     expect(result.activeLoans).toEqual([]);
     expect(result.incomingLoanOffers).toEqual([]);
+  });
+
+  it('should add manager progression and achievements in v5→v6', () => {
+    const v5Data: Record<string, unknown> = { version: 5 };
+    const result = migrateSaveData(v5Data);
+    expect(result.managerProgression).toBeDefined();
+    expect(result.careerTimeline).toEqual([]);
+    expect(result.unlockedAchievements).toEqual([]);
+    expect(result.managerStats).toBeDefined();
+    expect(result.weeklyObjectives).toEqual([]);
+  });
+
+  it('should add preMatchLeaguePosition and lastMatchXPGain in v6→v7', () => {
+    const v6Data: Record<string, unknown> = { version: 6 };
+    const result = migrateSaveData(v6Data);
+    expect(result.preMatchLeaguePosition).toBe(10);
+    expect(result.lastMatchXPGain).toBe(0);
+    expect(result.version).toBe(7);
+  });
+
+  it('should survive a corrupted migration step gracefully', () => {
+    // Data at version 1 with a property that could cause issues
+    const corruptData: Record<string, unknown> = { version: 1 };
+    const result = migrateSaveData(corruptData);
+    expect(result.version).toBe(CURRENT_VERSION);
   });
 
   it('should not modify data already at current version', () => {

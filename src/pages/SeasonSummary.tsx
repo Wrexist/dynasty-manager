@@ -4,18 +4,19 @@ import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from 'lucide-react';
+import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { DIVISIONS } from '@/data/league';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { VERDICT_COLORS, VERDICT_LABELS } from '@/config/ui';
 
 const AWARD_ICONS: Record<string, string> = {
-  'Golden Boot': '👟',
-  'Golden Glove': '🧤',
-  'Playmaker of the Season': '🎯',
-  'Young Player of the Season': '🌟',
-  'Manager of the Season': '🏅',
-  'Team of the Season': '⭐',
+  'Golden Boot': 'footprints',
+  'Golden Glove': 'shield-check',
+  'Playmaker of the Season': 'target',
+  'Young Player of the Season': 'star',
+  'Manager of the Season': 'medal',
+  'Team of the Season': 'star',
 };
 
 const AWARD_STAT_LABELS: Record<string, string> = {
@@ -133,7 +134,7 @@ const SeasonSummary = () => {
               <p className="text-sm font-bold text-foreground">{latest.cupResult}</p>
             </div>
             {latest.cupResult === 'Winner' && (
-              <span className="text-lg">🏆</span>
+              <Trophy className="w-5 h-5 text-primary" />
             )}
           </GlassPanel>
         )}
@@ -157,7 +158,7 @@ const SeasonSummary = () => {
                     award.recipientClub === playerClubShort ? 'bg-primary/10 border border-primary/20' : 'bg-muted/20'
                   )}
                 >
-                  <span className="text-lg">{AWARD_ICONS[award.name] || '🏆'}</span>
+                  <DynamicIcon name={AWARD_ICONS[award.name] || 'trophy'} className="w-5 h-5 text-primary" />
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{award.name}</p>
                     <p className={cn('text-xs font-bold truncate', award.recipientClub === playerClubShort ? 'text-primary' : 'text-foreground')}>
@@ -233,7 +234,7 @@ const SeasonSummary = () => {
                   <span className="text-muted-foreground">Season {sh.season}</span>
                   <span className="font-bold text-foreground">
                     {sh.position}{getSuffix(sh.position)} · {sh.points}pts
-                    {sh.cupResult === 'Winner' ? ' · 🏆' : sh.cupResult === 'Final' ? ' · Cup Final' : ''}
+                    {sh.cupResult === 'Winner' ? ' · Cup Winner' : sh.cupResult === 'Final' ? ' · Cup Final' : ''}
                   </span>
                 </div>
               ))}

@@ -1,4 +1,5 @@
 import { Player, Match, LeagueTableEntry } from '@/types/game';
+import { shuffle } from '@/utils/helpers';
 
 export interface WeeklyObjective {
   id: string;
@@ -37,7 +38,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     id: 'win-match',
     title: 'Get the Win',
     description: 'Win your match this week',
-    icon: '🏆',
+    icon: 'trophy',
     xpReward: 10,
     check: (ctx) => {
       const match = getThisWeekMatch(ctx);
@@ -52,7 +53,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     id: 'clean-sheet',
     title: 'Shut Them Out',
     description: 'Keep a clean sheet',
-    icon: '🧤',
+    icon: 'shield-check',
     xpReward: 15,
     check: (ctx) => {
       const match = getThisWeekMatch(ctx);
@@ -65,7 +66,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     id: 'score-2-plus',
     title: 'Fire Power',
     description: 'Score 2 or more goals',
-    icon: '⚽',
+    icon: 'circle',
     xpReward: 10,
     check: (ctx) => {
       const match = getThisWeekMatch(ctx);
@@ -78,7 +79,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     id: 'win-by-2',
     title: 'Comfortable Victory',
     description: 'Win by 2 or more goals',
-    icon: '💪',
+    icon: 'dumbbell',
     xpReward: 15,
     check: (ctx) => {
       const match = getThisWeekMatch(ctx);
@@ -93,7 +94,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     id: 'youth-start',
     title: 'Trust the Youth',
     description: 'Start a player aged 21 or under',
-    icon: '🌱',
+    icon: 'sprout',
     xpReward: 10,
     check: (ctx) => {
       return ctx.lineup.some(id => {
@@ -106,7 +107,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     id: 'score-3-plus',
     title: 'Goal Fest',
     description: 'Score 3 or more goals',
-    icon: '🔥',
+    icon: 'flame',
     xpReward: 20,
     check: (ctx) => {
       const match = getThisWeekMatch(ctx);
@@ -119,7 +120,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     id: 'no-cards',
     title: 'Fair Play',
     description: 'Finish the match with no cards',
-    icon: '🤝',
+    icon: 'handshake',
     xpReward: 10,
     check: (ctx) => {
       const match = getThisWeekMatch(ctx);
@@ -133,7 +134,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     id: 'dont-lose',
     title: 'Stay Unbeaten',
     description: 'Avoid defeat this week',
-    icon: '🛡️',
+    icon: 'shield',
     xpReward: 8,
     check: (ctx) => {
       const match = getThisWeekMatch(ctx);
@@ -148,7 +149,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     id: 'full-fitness',
     title: 'Fit Squad',
     description: 'Have no injured players in your squad',
-    icon: '💚',
+    icon: 'heart-pulse',
     xpReward: 10,
     check: (ctx) => {
       return ctx.playerIds.every(id => {
@@ -161,7 +162,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     id: 'high-morale',
     title: 'Happy Camp',
     description: 'Keep average squad morale above 70',
-    icon: '😊',
+    icon: 'star',
     xpReward: 10,
     check: (ctx) => {
       const players = ctx.playerIds.map(id => ctx.players[id]).filter(Boolean);
@@ -186,7 +187,7 @@ export function generateWeeklyObjectives(hasMatch: boolean): ObjectiveInstance[]
     : OBJECTIVE_TEMPLATES.filter(o => !['win-match', 'clean-sheet', 'score-2-plus', 'win-by-2', 'score-3-plus', 'no-cards', 'dont-lose'].includes(o.id));
 
   // Pick 3 unique objectives
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle([...pool]);
   const selected = shuffled.slice(0, Math.min(3, shuffled.length));
 
   return selected.map(obj => ({

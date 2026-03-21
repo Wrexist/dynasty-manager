@@ -1,4 +1,7 @@
 import { CupTie, CupRound, CupState, Club } from '@/types/game';
+import { shuffle } from '@/utils/helpers';
+
+export const CUP_BYE_MARKER = '__BYE__';
 
 const CUP_WEEKS: Record<CupRound, number> = {
   R1: 4,   // Lower-league clubs enter
@@ -44,10 +47,10 @@ export function generateCupDraw(clubIds: string[], clubs?: Record<string, Club>)
     const div2Playing = div2Sorted.slice(16);
 
     // Bye clubs: all div-1 + top 16 div-2
-    const byeClubs = [...div1Clubs, ...div2Byes].sort(() => Math.random() - 0.5);
+    const byeClubs = shuffle([...div1Clubs, ...div2Byes]);
 
     // R1 entrants: remaining div-2 + all div-3/4
-    const r1Entrants = [...div2Playing, ...lowerClubs].sort(() => Math.random() - 0.5);
+    const r1Entrants = shuffle([...div2Playing, ...lowerClubs]);
 
     // Create R1 ties (pair up R1 entrants)
     for (let i = 0; i + 1 < r1Entrants.length; i += 2) {
@@ -74,7 +77,7 @@ export function generateCupDraw(clubIds: string[], clubs?: Record<string, Club>)
         id: crypto.randomUUID(),
         round: 'R1',
         homeClubId: id,
-        awayClubId: '__BYE__',
+        awayClubId: CUP_BYE_MARKER,
         played: true,
         homeGoals: 1,
         awayGoals: 0,
@@ -86,7 +89,7 @@ export function generateCupDraw(clubIds: string[], clubs?: Record<string, Club>)
         id: crypto.randomUUID(),
         round: 'R1',
         homeClubId: r1OddByeClub,
-        awayClubId: '__BYE__',
+        awayClubId: CUP_BYE_MARKER,
         played: true,
         homeGoals: 1,
         awayGoals: 0,
@@ -95,7 +98,7 @@ export function generateCupDraw(clubIds: string[], clubs?: Record<string, Club>)
     }
   } else {
     // Fallback: simple all-in first round (legacy / small club count)
-    const shuffled = [...clubIds].sort(() => Math.random() - 0.5);
+    const shuffled = shuffle([...clubIds]);
     for (let i = 0; i + 1 < shuffled.length; i += 2) {
       ties.push({
         id: crypto.randomUUID(),
@@ -130,14 +133,14 @@ export function advanceCupRound(cup: CupState): CupState {
   const currentTies = cup.ties.filter(t => t.round === currentRound && t.played);
   const winners = currentTies.map(t => {
     // Bye ties: home club always wins
-    if (t.awayClubId === '__BYE__') return t.homeClubId;
+    if (t.awayClubId === CUP_BYE_MARKER) return t.homeClubId;
     return t.homeGoals > t.awayGoals ? t.homeClubId :
       t.awayGoals > t.homeGoals ? t.awayClubId :
       Math.random() < 0.5 ? t.homeClubId : t.awayClubId;
   });
 
   // Shuffle winners for next round draw
-  const shuffled = [...winners].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle([...winners]);
 
   // Generate next round fixtures
   const newTies: CupTie[] = [];
@@ -159,7 +162,7 @@ export function advanceCupRound(cup: CupState): CupState {
       id: crypto.randomUUID(),
       round: nextRound,
       homeClubId: shuffled[shuffled.length - 1],
-      awayClubId: '__BYE__',
+      awayClubId: CUP_BYE_MARKER,
       played: true,
       homeGoals: 1,
       awayGoals: 0,
@@ -193,7 +196,7 @@ export function getRoundName(round: CupRound): string {
 export function getCupResultForClub(cup: CupState, clubId: string): string {
   if (cup.winner === clubId) return 'Winner';
   const clubTies = cup.ties.filter(t =>
-    t.played && (t.homeClubId === clubId || t.awayClubId === clubId) && t.awayClubId !== '__BYE__'
+    t.played && (t.homeClubId === clubId || t.awayClubId === clubId) && t.awayClubId !== CUP_BYE_MARKER
   );
   if (clubTies.length === 0) return 'Did not enter';
   const lastTie = clubTies[clubTies.length - 1];

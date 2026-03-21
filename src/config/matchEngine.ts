@@ -92,10 +92,10 @@ export const LATE_GAME_EVENT_BONUS = 0.08;
 export const LATE_GAME_THRESHOLD_MINUTE = 85;
 /** Fraction of event rolls that become shot attempts */
 export const SHOT_ATTEMPT_THRESHOLD = 0.2;
-/** Fraction of event rolls between shots and fouls */
-export const FOUL_THRESHOLD = 0.35;
+/** Fraction of event rolls between shots and fouls (reduced for ~12-16 fouls/game) */
+export const FOUL_THRESHOLD = 0.30;
 /** Fraction of event rolls between fouls and non-foul injuries */
-export const INJURY_EVENT_THRESHOLD = 0.38;
+export const INJURY_EVENT_THRESHOLD = 0.33;
 
 // ── Shot Quality Weights ──
 export const SHOT_QUALITY_WEIGHTS = {
@@ -122,7 +122,7 @@ export const CORNER_FROM_SAVE_CHANCE = 0.35;
 export const CORNER_FROM_MISS_CHANCE = 0.15;
 
 // ── Cards / Fouls ──
-export const CARD_BASE_CHANCE = 0.18;
+export const CARD_BASE_CHANCE = 0.14;
 export const STRAIGHT_RED_CHANCE = 0.008;
 
 // ── Match Injuries ──
@@ -151,6 +151,55 @@ export const RATING_EXHAUSTION_PENALTY = 0.5;
 export const RATING_VARIANCE = 0.8;
 export const RATING_MIN = 1;
 export const RATING_MAX = 10;
+
+// ── Stoppage Time ──
+export const STOPPAGE_TIME_BASE = 1;
+export const STOPPAGE_TIME_MAX_EXTRA = 3;
+export const STOPPAGE_TIME_INJURY_ADD = 0.5;
+export const STOPPAGE_TIME_CARD_ADD = 0.3;
+
+// ── Corner Goal ──
+export const CORNER_GOAL_CHANCE = 0.06;
+export const CORNER_GOAL_PHYSICAL_WEIGHT = 0.6;
+export const CORNER_GOAL_DEFENDING_WEIGHT = 0.4;
+
+// ── In-Match Fitness Degradation ──
+export const FITNESS_DEGRADE_PER_MINUTE = 0.20;
+export const FITNESS_DEGRADE_VARIANCE = 0.05;
+export const LOW_FITNESS_SHOT_PENALTY = 0.15;
+export const LOW_FITNESS_THRESHOLD = 50;
+export const LOW_FITNESS_INJURY_BONUS = 0.02;
+
+// ── Fouler Position Weights ──
+export const FOULER_DEFENDER_WEIGHT = 3.0;
+export const FOULER_MIDFIELDER_WEIGHT = 2.0;
+export const FOULER_ATTACKER_WEIGHT = 1.0;
+
+// ── Formation Matchup Matrix ──
+export const FORMATION_MATCHUP: Record<string, Record<string, number>> = {
+  '3-4-3': { '4-3-3': -0.06, '4-4-2': -0.04, '5-3-2': 0.06 },
+  '3-5-2': { '4-3-3': -0.04, '3-4-3': 0.04 },
+  '4-3-3': { '3-4-3': 0.06, '3-5-2': 0.04, '5-3-2': -0.04 },
+  '4-4-2': { '3-4-3': 0.04, '4-2-3-1': -0.03 },
+  '4-2-3-1': { '4-4-2': 0.03, '5-3-2': -0.04 },
+  '4-1-4-1': { '4-3-3': 0.04, '3-4-3': 0.06 },
+  '5-3-2': { '4-3-3': 0.04, '3-4-3': -0.06, '4-2-3-1': 0.04 },
+};
+
+// ── Defense Modifier Scaling ──
+/** How much opponent's combined defensive mods dampen attack strength (0–1) */
+export const DEFENSE_MODIFIER_SCALE = 0.3;
+
+// ── Derby Modifiers ──
+export const DERBY_EVENT_MOD_SCALE = 0.03;
+export const DERBY_FOUL_MOD_SCALE = 0.06;
+export const DERBY_CARD_MOD_SCALE = 0.05;
+
+// ── Corner Header Goal ──
+/** Minimum probability a header from a corner results in a goal */
+export const CORNER_HEADER_MIN_CHANCE = 0.25;
+/** Physical attribute scaling for corner header goal chance */
+export const CORNER_HEADER_PHYSICAL_SCALE = 0.5;
 
 // ── Substitutions ──
 export const MAX_SUBSTITUTIONS = 3;

@@ -128,19 +128,19 @@ export function processMatchResult(
   const newMilestones: CareerMilestone[] = [];
   const totalMatches = ms.totalWins + ms.totalDraws + ms.totalLosses;
   if (won && ms.totalWins === 1) {
-    newMilestones.push(createMilestone('first_win', 'First Victory', `Won ${result.homeGoals}-${result.awayGoals} against ${clubs[isHome ? match.awayClubId : match.homeClubId].name}.`, season, week, '🏆'));
+    newMilestones.push(createMilestone('first_win', 'First Victory', `Won ${result.homeGoals}-${result.awayGoals} against ${clubs[isHome ? match.awayClubId : match.homeClubId].name}.`, season, week, 'trophy'));
   }
   const matchMilestone = checkMatchMilestones(totalMatches, state.careerTimeline, season, week);
   if (matchMilestone) newMilestones.push(matchMilestone);
   // Biggest win milestone (5+ goal margin)
   const margin = won ? Math.abs(result.homeGoals - result.awayGoals) : 0;
   if (margin >= 5) {
-    newMilestones.push(createMilestone('biggest_win', 'Thrashing!', `${result.homeGoals}-${result.awayGoals} against ${clubs[isHome ? match.awayClubId : match.homeClubId].name}.`, season, week, '⚽'));
+    newMilestones.push(createMilestone('biggest_win', 'Thrashing!', `${result.homeGoals}-${result.awayGoals} against ${clubs[isHome ? match.awayClubId : match.homeClubId].name}.`, season, week, 'circle'));
   }
 
   // XP for match result
   const xpGain = won ? XP_REWARDS.win : !lost ? XP_REWARDS.draw : 0;
   const updatedProgression = xpGain > 0 ? grantXP(state.managerProgression, xpGain) : state.managerProgression;
 
-  return { newPlayers, updatedFixtures, leagueTable, confidence, newMessages, managerStats: ms, playerRatings, won, lost, newMilestones, managerProgression: updatedProgression };
+  return { newPlayers, updatedFixtures, leagueTable, confidence, newMessages, managerStats: ms, playerRatings, won, lost, newMilestones, managerProgression: updatedProgression, xpGain, leaguePosition: pos };
 }

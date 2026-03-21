@@ -3,7 +3,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
 import { POSITION_COMPATIBILITY, Position } from '@/types/game';
-import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award } from 'lucide-react';
+import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse } from 'lucide-react';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
 import { cn } from '@/lib/utils';
 import { getRatingColor } from '@/utils/uiHelpers';
@@ -380,8 +380,8 @@ const PlayerDetail = () => {
       {/* Injury Alert */}
       {player.injured && (
         <GlassPanel className="p-4 border-destructive/30">
-          <p className="text-sm text-destructive font-bold">
-            🏥 Injured — {player.injuryWeeks} week{player.injuryWeeks !== 1 ? 's' : ''} remaining
+          <p className="text-sm text-destructive font-bold flex items-center gap-1.5">
+            <HeartPulse className="w-4 h-4" /> Injured — {player.injuryWeeks} week{player.injuryWeeks !== 1 ? 's' : ''} remaining
           </p>
         </GlassPanel>
       )}

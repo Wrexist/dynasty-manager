@@ -1,6 +1,7 @@
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { X, BookOpen } from 'lucide-react';
+import { DynamicIcon } from '@/components/game/DynamicIcon';
 
 export function StorylineModal() {
   const { pendingStoryline, respondToStoryline, dismissStoryline } = useGameStore();
@@ -12,8 +13,8 @@ export function StorylineModal() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center text-lg">
-            {pendingStoryline.icon}
+          <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
+            <DynamicIcon name={pendingStoryline.icon} className="w-5 h-5 text-amber-400" />
           </div>
           <div>
             <p className="text-xs font-bold text-amber-400 uppercase tracking-wide">Storyline Event</p>

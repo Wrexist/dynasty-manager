@@ -6,7 +6,7 @@ import { getXPProgress } from '@/utils/managerPerks';
 const DETAIL_SCREENS: GameScreen[] = [
   'player-detail', 'match-review', 'board', 'finance', 'facilities',
   'settings', 'season-summary', 'calendar', 'match-prep', 'match',
-  'league-table', 'comparison', 'manager-profile', 'cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers',
+  'league-table', 'comparison', 'manager-profile', 'cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club',
 ];
 
 const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
@@ -28,6 +28,7 @@ const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
   'trophy-cabinet': 'dashboard',
   'prestige': 'season-summary',
   'hall-of-managers': 'dashboard',
+  'club': 'dashboard',
 };
 
 export function TopBar() {

@@ -109,7 +109,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       body: `${player.firstName} ${player.lastName} (${player.position}, ${player.overall} OVR) has been promoted to the first team!`,
     });
     const youthMilestone = player.potential >= 70
-      ? { id: crypto.randomUUID(), type: 'youth_graduate' as const, title: 'Youth Graduate', description: `${player.firstName} ${player.lastName} (${player.position}, pot. ${player.potential}) promoted from the academy.`, season: state.season, week: state.week, icon: '🌟' }
+      ? { id: crypto.randomUUID(), type: 'youth_graduate' as const, title: 'Youth Graduate', description: `${player.firstName} ${player.lastName} (${player.position}, pot. ${player.potential}) promoted from the academy.`, season: state.season, week: state.week, icon: 'star' }
       : null;
     set({
       players: { ...state.players, [playerId]: updatedPlayer },
@@ -138,7 +138,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const key = `${type}Level` as keyof Pick<FacilitiesState, 'trainingLevel' | 'youthLevel' | 'stadiumLevel' | 'medicalLevel'>;
     const currentLevel = state.facilities[key] as number;
     if (currentLevel >= FACILITY_MAX_LEVEL) return;
-    const cost = currentLevel * FACILITY_COST_PER_LEVEL;
+    const cost = (currentLevel + 1) * FACILITY_COST_PER_LEVEL;
     const club = state.clubs[state.playerClubId];
     if (!club || club.budget < cost) return;
     const newClub = { ...club, budget: club.budget - cost };

@@ -47,7 +47,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         id: crypto.randomUUID(),
         title: 'Dressing Room Unrest',
         body: `Your squad is unhappy after ${ctx.recentResults.lost} defeats. How do you respond?`,
-        icon: '😤',
+        icon: 'angry',
         options: [
           { label: 'Rally the troops', text: 'You gather the team and deliver a passionate speech.', effects: { morale: 5, boardConfidence: 2 } },
           { label: 'Crack down on discipline', text: 'You impose extra training sessions and demand focus.', effects: { morale: -3, boardConfidence: 5, fanMood: 2 } },
@@ -69,7 +69,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         id: crypto.randomUUID(),
         title: 'Riding the Wave',
         body: `Your team is on a ${ctx.recentResults.won}-game winning streak. The media wants to know your thoughts.`,
-        icon: '🎉',
+        icon: 'trophy',
         options: [
           { label: 'Stay humble', text: 'You downplay the run and keep the squad focused.', effects: { morale: 2, boardConfidence: 3 } },
           { label: 'Enjoy the moment', text: 'You let the team celebrate and bask in the glory.', effects: { morale: 5, fanMood: 5, boardConfidence: -1 } },
@@ -96,7 +96,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
           id: crypto.randomUUID(),
           title: `${star.lastName} Linked with ${suitor.shortName}`,
           body: `${star.firstName} ${star.lastName} has been spotted talking to ${suitor.name} representatives. How do you handle it?`,
-          icon: '📰',
+          icon: 'newspaper',
           options: [
             { label: 'Promise him first-team football', text: 'You assure the player he is central to your plans.', effects: { targetPlayerId: star.id, playerMorale: 10, boardConfidence: 1 } },
             { label: 'Tell him he can leave', text: 'You accept his wishes and begin looking at replacements.', effects: { targetPlayerId: star.id, playerMorale: -5, fanMood: -3 } },
@@ -121,7 +121,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         id: crypto.randomUUID(),
         title: `${prospect.lastName} Breaking Through`,
         body: `${prospect.firstName} ${prospect.lastName} is impressing everyone. Rival scouts are watching. What's your approach?`,
-        icon: '🌟',
+        icon: 'star',
         options: [
           { label: 'Give him more game time', text: 'You promote the youngster to a regular starter.', effects: { targetPlayerId: prospect.id, playerMorale: 10, fanMood: 3 } },
           { label: 'Shield him from pressure', text: 'You protect the youngster from media attention and ease his integration.', effects: { targetPlayerId: prospect.id, playerMorale: 3, boardConfidence: 2 } },
@@ -143,7 +143,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         id: crypto.randomUUID(),
         title: 'Fans Demand Answers',
         body: 'Supporters are protesting outside the stadium. They want to see improvement. How do you respond?',
-        icon: '📢',
+        icon: 'megaphone',
         options: [
           { label: 'Acknowledge their frustration', text: 'You hold a fan forum and promise to do better.', effects: { fanMood: 8, boardConfidence: -2, morale: -2 } },
           { label: 'Focus on results', text: 'You say results will do the talking.', effects: { fanMood: 2, boardConfidence: 3 } },
@@ -165,7 +165,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         id: crypto.randomUUID(),
         title: 'Board Meeting',
         body: 'The board has summoned you for a mid-season review. Your position is under scrutiny.',
-        icon: '🏛️',
+        icon: 'building',
         options: [
           { label: 'Present a plan for improvement', text: 'You outline your strategy for the rest of the season.', effects: { boardConfidence: 8, morale: -2 } },
           { label: 'Ask for patience', text: 'You request more time to implement your vision.', effects: { boardConfidence: 3 } },
@@ -216,7 +216,7 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
         id: crypto.randomUUID(),
         title: `${hh.lastName} Losing His Cool`,
         body: `${hh.firstName} ${hh.lastName} has been aggressive in training. Other players are concerned.`,
-        icon: '😡',
+        icon: 'angry',
         options: [
           { label: 'Have a private chat', text: 'You sit down with the player and talk things through calmly.', effects: { targetPlayerId: hh.id, playerMorale: 5 } },
           { label: 'Issue a public warning', text: 'You make it clear this behaviour is unacceptable.', effects: { targetPlayerId: hh.id, playerMorale: -8, morale: 2, boardConfidence: 2 } },

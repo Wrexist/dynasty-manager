@@ -11,6 +11,7 @@ import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap } from 'lucide-reac
 import { hapticHeavy, hapticMedium } from '@/utils/haptics';
 import type { HalfState } from '@/engine/match';
 import { useCurrentMatch, usePlayerClub } from '@/hooks/useGameSelectors';
+import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 
 const MatchDay = () => {
   const store = useGameStore();
@@ -24,8 +25,9 @@ const MatchDay = () => {
   const [speed, setSpeed] = useState(200);
   const [paused, setPaused] = useState(false);
   const [subSheetOpen, setSubSheetOpen] = useState(false);
-  const [showTacticUI, setShowTacticUI] = useState(false);
+  // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
   const [keyMoment, setKeyMoment] = useState<{ type: string; description: string } | null>(null);
+  const [showPostPopup, setShowPostPopup] = useState(true);
   const dismissedMomentsRef = useRef<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
@@ -35,6 +37,18 @@ const MatchDay = () => {
   const homeClub = match ? clubs[match.homeClubId] : null;
   const awayClub = match ? clubs[match.awayClubId] : null;
   const playerClub = usePlayerClub();
+
+  // Reset popup state when entering post phase
+  useEffect(() => {
+    if (phase === 'post') setShowPostPopup(true);
+  }, [phase]);
+
+  // Auto-start match — skip the kick-off screen since MatchPrep already serves as pre-match
+  useEffect(() => {
+    if (phase === 'pre' && match && homeClub && awayClub) {
+      kickOff();
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const kickOff = () => {
     const halfState = playFirstHalf();
@@ -48,7 +62,6 @@ const MatchDay = () => {
   };
 
   const resumeSecondHalf = () => {
-    setShowTacticUI(false);
     // Simulate second half with potentially updated lineup/tactics
     const result = playSecondHalf();
     if (!result) return;
@@ -65,10 +78,11 @@ const MatchDay = () => {
     const playerGoals = events.filter(e => e.type === 'goal' && e.clubId === playerClubId).length;
     const opponentGoals = events.filter(e => e.type === 'goal' && e.clubId !== playerClubId).length;
     const isLosing = opponentGoals > playerGoals;
+    const deficit = opponentGoals - playerGoals;
 
     // Check for opponent goal just scored
-    const justScored = events.filter(e => e.type === 'goal' && e.clubId !== playerClubId && e.minute === minute);
-    if (justScored.length > 0) {
+    const justConceded = events.filter(e => e.type === 'goal' && e.clubId !== playerClubId && e.minute === minute);
+    if (justConceded.length > 0) {
       const key = `goal-conceded-${minute}`;
       if (!dismissedMomentsRef.current.has(key)) {
         dismissedMomentsRef.current.add(key);
@@ -86,6 +100,30 @@ const MatchDay = () => {
       }
     }
 
+    // Injury to a player on your team — offer substitution
+    const injury = events.filter(e => e.type === 'injury' && e.clubId === playerClubId && e.minute === minute);
+    if (injury.length > 0 && matchSubsUsed < 3) {
+      const key = `injury-${minute}`;
+      if (!dismissedMomentsRef.current.has(key)) {
+        dismissedMomentsRef.current.add(key);
+        return { type: 'injury', description: `${injury[0].description} Consider making a substitution.` };
+      }
+    }
+
+    // Comeback: was down 2+, just scored to narrow gap to 1
+    const justScored = events.filter(e => e.type === 'goal' && e.clubId === playerClubId && e.minute === minute);
+    if (justScored.length > 0 && deficit === 1) {
+      // Check if we were down by 2+ before this goal
+      const prevPlayerGoals = events.filter(e => e.type === 'goal' && e.clubId === playerClubId && e.minute < minute).length;
+      if (opponentGoals - prevPlayerGoals >= 2) {
+        const key = `comeback-${minute}`;
+        if (!dismissedMomentsRef.current.has(key)) {
+          dismissedMomentsRef.current.add(key);
+          return { type: 'comeback', description: `You've pulled one back! Just one goal behind now. Push for the equalizer?` };
+        }
+      }
+    }
+
     // 70th minute and losing — offer tactical push
     if (minute === 70 && isLosing) {
       const key = 'losing-70';
@@ -95,8 +133,17 @@ const MatchDay = () => {
       }
     }
 
+    // 80th minute, scores level — tense finish decision
+    if (minute === 80 && playerGoals === opponentGoals && playerGoals > 0) {
+      const key = 'level-80';
+      if (!dismissedMomentsRef.current.has(key)) {
+        dismissedMomentsRef.current.add(key);
+        return { type: 'tight_finish', description: `Scores level with 10 minutes left. Go for the win or hold firm?` };
+      }
+    }
+
     return false;
-  }, [match, playerClubId, keyMoment]);
+  }, [match, playerClubId, keyMoment, matchSubsUsed]);
 
   // Animate events for current half
   useEffect(() => {
@@ -157,7 +204,6 @@ const MatchDay = () => {
   };
 
   const handleResume = () => {
-    setShowTacticUI(false);
     setPaused(false);
     // Effect will restart the interval since paused becomes false
   };
@@ -245,20 +291,11 @@ const MatchDay = () => {
         </div>
       )}
 
-      {/* Pre-match */}
+      {/* Pre-match — auto-starts, show brief loading */}
       {phase === 'pre' && (
-        <>
-          <PitchView
-            formation={homeClub.formation}
-            homeColor={homeClub.color}
-            awayColor={awayClub.color}
-            awayFormation={awayClub.formation}
-            showAway
-          />
-          <Button className="w-full h-12 text-base font-bold gap-2" onClick={kickOff}>
-            <Play className="w-5 h-5" /> Kick Off
-          </Button>
-        </>
+        <GlassPanel className="p-8 text-center">
+          <p className="text-sm text-muted-foreground animate-pulse">Starting match...</p>
+        </GlassPanel>
       )}
 
       {/* Half Time — subs and tactical changes */}
@@ -277,23 +314,44 @@ const MatchDay = () => {
           )}
 
           {/* Tactical changes at half-time */}
-          <GlassPanel className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Adjust Mentality</p>
-            <div className="flex gap-1.5">
-              {(['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'] as const).map(m => (
-                <button
-                  key={m}
-                  onClick={() => setTactics({ mentality: m })}
-                  className={cn(
-                    'flex-1 py-2 rounded-lg text-[10px] font-semibold capitalize transition-all',
-                    tactics.mentality === m
-                      ? 'bg-primary/20 text-primary border border-primary/30'
-                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                  )}
-                >
-                  {m === 'all-out-attack' ? 'All Out' : m}
-                </button>
-              ))}
+          <GlassPanel className="p-4 space-y-3">
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Mentality</p>
+              <div className="flex gap-1.5">
+                {(['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'] as const).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setTactics({ mentality: m })}
+                    className={cn(
+                      'flex-1 py-2 rounded-lg text-[10px] font-semibold capitalize transition-all',
+                      tactics.mentality === m
+                        ? 'bg-primary/20 text-primary border border-primary/30'
+                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    {m === 'all-out-attack' ? 'All Out' : m}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Tempo</p>
+              <div className="flex gap-1.5">
+                {(['slow', 'normal', 'fast'] as const).map(t => (
+                  <button
+                    key={t}
+                    onClick={() => setTactics({ tempo: t })}
+                    className={cn(
+                      'flex-1 py-2 rounded-lg text-[10px] font-semibold capitalize transition-all',
+                      tactics.tempo === t
+                        ? 'bg-primary/20 text-primary border border-primary/30'
+                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                    )}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
             </div>
           </GlassPanel>
 
@@ -379,7 +437,7 @@ const MatchDay = () => {
 
             {/* Quick mentality change */}
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Mentality</p>
-            <div className="flex gap-1 mb-3">
+            <div className="flex gap-1 mb-2">
               {(['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'] as const).map(m => (
                 <button
                   key={m}
@@ -392,6 +450,25 @@ const MatchDay = () => {
                   )}
                 >
                   {m === 'all-out-attack' ? 'All Out' : m}
+                </button>
+              ))}
+            </div>
+
+            {/* Quick tempo change */}
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Tempo</p>
+            <div className="flex gap-1 mb-3">
+              {(['slow', 'normal', 'fast'] as const).map(t => (
+                <button
+                  key={t}
+                  onClick={() => setTactics({ tempo: t })}
+                  className={cn(
+                    'flex-1 py-1.5 rounded-lg text-[9px] font-semibold capitalize transition-all',
+                    tactics.tempo === t
+                      ? 'bg-primary/20 text-primary border border-primary/30'
+                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                  )}
+                >
+                  {t}
                 </button>
               ))}
             </div>
@@ -413,8 +490,11 @@ const MatchDay = () => {
         </motion.div>
       )}
 
-      {/* Post-match → redirect to Match Review */}
-      {phase === 'post' && (
+      {/* Post-match popup then match review */}
+      {phase === 'post' && showPostPopup && (
+        <PostMatchPopup onContinue={() => setShowPostPopup(false)} />
+      )}
+      {phase === 'post' && !showPostPopup && (
         <>
           <GlassPanel className="p-5 text-center">
             <p className="text-sm font-bold text-muted-foreground mb-1">Full Time</p>

@@ -1,6 +1,7 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Trophy, Award, Star, Medal } from 'lucide-react';
+import { Trophy, Award, Star, Medal, Lock } from 'lucide-react';
+import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { ACHIEVEMENTS, getTierColor } from '@/utils/achievements';
@@ -148,7 +149,7 @@ const TrophyCabinet = () => {
                         unlocked ? 'bg-muted/30' : 'bg-muted/10 opacity-50'
                       )}
                     >
-                      <span className="text-sm">{unlocked ? a.icon : '🔒'}</span>
+                      {unlocked ? <DynamicIcon name={a.icon} className="w-4 h-4 text-primary" /> : <Lock className="w-4 h-4 text-muted-foreground" />}
                       <div className="flex-1 min-w-0">
                         <p className={cn('text-xs font-semibold truncate', unlocked ? 'text-foreground' : 'text-muted-foreground')}>
                           {a.hidden && !unlocked ? '???' : a.title}

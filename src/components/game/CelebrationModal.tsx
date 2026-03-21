@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
 
 interface CelebrationModalProps {
@@ -84,12 +85,12 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
               {/* Icon */}
               {icon && (
                 <motion.div
-                  className="text-5xl"
+                  className="flex justify-center"
                   initial={{ scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.15 }}
                 >
-                  {icon}
+                  <DynamicIcon name={icon} className="w-12 h-12 text-primary" />
                 </motion.div>
               )}
 

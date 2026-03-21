@@ -9,8 +9,9 @@ import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
 import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail,
-  Dumbbell, AlertTriangle, Banknote, Users, Shield, Settings, BarChart3, UserPlus, Award,
+  Dumbbell, AlertTriangle, Banknote, Users, Shield, Settings, BarChart3, UserPlus, Award, Flame,
 } from 'lucide-react';
+import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getRoundName } from '@/data/cup';
 import { DIVISIONS } from '@/data/league';
 import { motion } from 'framer-motion';
@@ -170,7 +171,7 @@ const Dashboard = () => {
     { label: 'Training', screen: 'training' as const, icon: Dumbbell },
     { label: 'Club', screen: 'club' as const, icon: Settings },
     { label: 'Transfers', screen: 'transfers' as const, icon: UserPlus },
-    { label: 'Stats', screen: 'league-table' as const, icon: BarChart3 },
+    { label: 'Cup', screen: 'cup' as const, icon: BarChart3 },
   ];
 
   return (
@@ -205,7 +206,7 @@ const Dashboard = () => {
       {store.activeChallenge && !store.activeChallenge.completed && !store.activeChallenge.failed && (
         <div className="bg-primary/10 border border-primary/30 rounded-xl px-3 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm">🏆</span>
+            <Trophy className="w-4 h-4 text-primary" />
             <span className="text-xs font-semibold text-primary">Challenge Active</span>
           </div>
           <span className="text-[10px] text-muted-foreground">{store.activeChallenge.seasonsRemaining} season(s) left</span>
@@ -260,7 +261,7 @@ const Dashboard = () => {
           </div>
           {winStreak >= 3 && (
             <div className="inline-flex items-center gap-1 bg-orange-500/10 border border-orange-500/30 rounded-full px-3 py-1">
-              <span className="text-xs">🔥</span>
+              <Flame className="w-3.5 h-3.5 text-orange-400" />
               <span className="text-xs font-bold text-orange-400">{winStreak} Win Streak</span>
             </div>
           )}
@@ -286,7 +287,7 @@ const Dashboard = () => {
                   obj.completed ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-muted/30 border border-border/30'
                 )}
               >
-                <span className="text-sm">{obj.icon}</span>
+                <DynamicIcon name={obj.icon} className="w-4 h-4 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className={cn('text-xs font-semibold truncate', obj.completed ? 'text-emerald-400 line-through' : 'text-foreground')}>{obj.title}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{obj.description}</p>
@@ -360,7 +361,7 @@ const Dashboard = () => {
                   'bg-muted/30 text-muted-foreground'
                 )}
               >
-                <span className="text-sm">{preview.icon}</span>
+                <DynamicIcon name={preview.icon} className="w-4 h-4 shrink-0" />
                 <span className="font-medium">{preview.text}</span>
               </div>
             ))}
@@ -647,7 +648,7 @@ const Dashboard = () => {
       </GlassPanel>
 
       {/* Quick Links - Horizontal scrollable row */}
-      <div className="overflow-x-auto scrollbar-none -mx-4 px-4">
+      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
         <div className="flex gap-3 w-max pb-1">
           {quickLinks.map(link => {
             const Icon = link.icon;

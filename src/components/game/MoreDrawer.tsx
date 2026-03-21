@@ -4,7 +4,7 @@ import { useGameStore } from '@/store/gameStore';
 import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
-  Mail, Trophy, Target, DollarSign, Building2, Calendar,
+  Mail, Trophy, Target, DollarSign, Building2, Calendar, Home,
   Settings, MoreHorizontal, ChevronRight, GitCompare, User, Star, Award
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
@@ -34,6 +34,7 @@ const drawerSections: DrawerSection[] = [
   {
     title: 'Management',
     items: [
+      { screen: 'club', label: 'Club', icon: Home, description: 'Club overview & squad info' },
       { screen: 'board', label: 'Board', icon: Target, description: 'Your objectives & job security' },
       { screen: 'finance', label: 'Finance', icon: DollarSign, description: 'Budget, wages & revenue' },
       { screen: 'facilities', label: 'Facilities', icon: Building2, description: 'Stadium & training upgrades' },

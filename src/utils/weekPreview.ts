@@ -28,7 +28,7 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
     .map(id => ctx.players[id])
     .filter(p => p && p.injured && p.injuryWeeks === 1);
   for (const p of returningPlayers) {
-    items.push({ icon: '🏥', text: `${p.lastName} returns from injury next week!`, type: 'positive' });
+    items.push({ icon: 'heart-pulse', text: `${p.lastName} returns from injury next week!`, type: 'positive' });
   }
 
   // Suspensions ending
@@ -36,14 +36,14 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
     .map(id => ctx.players[id])
     .filter(p => p && p.suspendedUntilWeek === ctx.week + 1);
   for (const p of unsuspended) {
-    items.push({ icon: '✅', text: `${p.lastName}'s suspension ends next week`, type: 'positive' });
+    items.push({ icon: 'check-circle', text: `${p.lastName}'s suspension ends next week`, type: 'positive' });
   }
 
   // Facility upgrade completing soon
   if (ctx.facilities.upgradeInProgress && ctx.facilities.upgradeInProgress.weeksRemaining <= 2) {
     const remaining = ctx.facilities.upgradeInProgress.weeksRemaining;
     items.push({
-      icon: '🏗️',
+      icon: 'wrench',
       text: `${ctx.facilities.upgradeInProgress.type} upgrade completes in ${remaining} week${remaining > 1 ? 's' : ''}!`,
       type: 'positive',
     });
@@ -53,7 +53,7 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
   const completingScouts = ctx.scouting.assignments.filter(a => a.weeksRemaining <= 1);
   if (completingScouts.length > 0) {
     items.push({
-      icon: '🔍',
+      icon: 'search',
       text: `Scout report arriving from ${completingScouts[0].region}`,
       type: 'positive',
     });
@@ -70,7 +70,7 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
     const opp = ctx.clubs[oppId];
     if (opp) {
       items.push({
-        icon: isHome ? '🏠' : '✈️',
+        icon: isHome ? 'home' : 'plane',
         text: `${isHome ? 'Home' : 'Away'} vs ${opp.shortName} next week`,
         type: 'neutral',
       });
@@ -83,7 +83,7 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
     .filter(p => p && p.contractEnd <= ctx.season && p.overall >= 65);
   if (expiringContracts.length > 0 && ctx.week >= 20) {
     items.push({
-      icon: '📋',
+      icon: 'clipboard',
       text: `${expiringContracts.length} contract${expiringContracts.length > 1 ? 's' : ''} expiring — act soon!`,
       type: 'warning',
     });

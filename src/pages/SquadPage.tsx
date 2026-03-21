@@ -4,7 +4,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { cn } from '@/lib/utils';
 import { Position } from '@/types/game';
-import { Tag, TrendingUp, TrendingDown } from 'lucide-react';
+import { Tag, TrendingUp, TrendingDown, HeartPulse } from 'lucide-react';
 import { getRatingColor, getFitnessColor } from '@/utils/uiHelpers';
 import { successToast } from '@/utils/gameToast';
 import { POSITION_FILTERS } from '@/config/ui';
@@ -262,7 +262,7 @@ const SquadPage = () => {
 
                 {/* Status icons */}
                 <div className="flex items-center gap-1 w-10 justify-end shrink-0">
-                  {player.injured && <span className="text-xs" title="Injured">🏥</span>}
+                  {player.injured && <HeartPulse className="w-3.5 h-3.5 text-destructive" title="Injured" />}
                   {player.listedForSale && (
                     <span className="text-[8px] font-bold text-primary bg-primary/10 px-1 py-0.5 rounded">
                       LISTED

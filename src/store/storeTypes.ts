@@ -50,6 +50,8 @@ export interface GameState {
   matchPlayerRatings: PlayerMatchRating[];
   halfTimeState: HalfState | null;
   matchPhase: 'none' | 'first_half' | 'half_time' | 'second_half' | 'full_time';
+  preMatchLeaguePosition: number;
+  lastMatchXPGain: number;
 
   // Systems
   tactics: TacticalInstructions;
@@ -158,6 +160,3 @@ export interface GameState {
   pendingFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] } | null;
   dismissFarewell: () => void;
 }
-
-// @deprecated — Import directly from '@/utils/helpers' instead. This re-export exists only for backward compatibility.
-export { addMsg, getSuffix, pick, clamp } from '@/utils/helpers';

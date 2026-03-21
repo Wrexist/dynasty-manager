@@ -64,7 +64,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     // Record signing milestone if this is the most expensive signing ever
     const isRecordSigning = fee > ms.totalSpent * 0.4 && fee >= 5_000_000;
     const newTimeline = isRecordSigning
-      ? [...state.careerTimeline, { id: crypto.randomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${player.firstName} ${player.lastName} for £${(fee / 1e6).toFixed(1)}M from ${oldClub.name}.`, season: state.season, week: state.week, icon: '✍️' }]
+      ? [...state.careerTimeline, { id: crypto.randomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${player.firstName} ${player.lastName} for £${(fee / 1e6).toFixed(1)}M from ${oldClub.name}.`, season: state.season, week: state.week, icon: 'pen-line' }]
       : state.careerTimeline;
     set({
       players: { ...state.players, [playerId]: player },

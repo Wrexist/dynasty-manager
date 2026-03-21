@@ -69,11 +69,11 @@ export const VERDICT_COLORS: Record<string, string> = {
 } as const;
 
 export const VERDICT_LABELS: Record<string, string> = {
-  excellent: '🏆 Excellent Season!',
-  good: '👏 Good Season',
-  acceptable: '👍 Acceptable',
-  poor: '😤 Disappointing',
-  sacked: '🔴 Under Pressure',
+  excellent: 'Excellent Season!',
+  good: 'Good Season',
+  acceptable: 'Acceptable',
+  poor: 'Disappointing',
+  sacked: 'Under Pressure',
 } as const;
 
 // ── Attribute Short Labels ──
@@ -129,3 +129,13 @@ export const POTENTIAL_COLOR_THRESHOLDS = [
   { min: 65, textClass: 'text-primary', fillClass: 'text-primary fill-primary', bgClass: 'bg-primary/20 text-primary', label: 'Good' },
   { min: 0,  textClass: 'text-muted-foreground', fillClass: 'text-muted-foreground', bgClass: 'bg-muted/50 text-muted-foreground', label: 'Average' },
 ] as const;
+
+// ── Club Selection Difficulty Config ──
+export const DIFFICULTY_CONFIG: Record<string, { color: string; bg: string; bar: string; label: string }> = {
+  Easy: { color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/20', bar: 'bg-emerald-400/50', label: 'Recommended' },
+  Medium: { color: 'text-blue-400', bg: 'bg-blue-400/10 border-blue-400/20', bar: 'bg-blue-400/50', label: 'Medium' },
+  Hard: { color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/20', bar: 'bg-amber-400/50', label: 'Hard' },
+  'Very Hard': { color: 'text-red-400', bg: 'bg-red-400/10 border-red-400/20', bar: 'bg-red-400/50', label: 'Expert' },
+} as const;
+
+export const DIFFICULTY_BARS: Record<string, number> = { Easy: 1, Medium: 2, Hard: 3, 'Very Hard': 4 } as const;

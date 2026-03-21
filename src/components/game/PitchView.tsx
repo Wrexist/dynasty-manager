@@ -1,5 +1,6 @@
 import { FormationType, FormationSlot, FORMATION_POSITIONS } from '@/types/game';
 import { PITCH_COLORS } from '@/config/ui';
+import { PlayerAvatar } from './PlayerAvatar';
 
 interface PitchViewProps {
   formation: FormationType;
@@ -11,9 +12,19 @@ interface PitchViewProps {
   homeLabels?: string[];
   highlightIndex?: number;
   onSlotClick?: (index: number) => void;
+  playerFitness?: number[];
+  playerIds?: string[];
+  jerseyNumbers?: number[];
 }
 
-export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, highlightIndex, onSlotClick }: PitchViewProps) {
+function getFitnessColor(fitness: number): string {
+  if (fitness >= 80) return '#22c55e';
+  if (fitness >= 60) return '#eab308';
+  if (fitness >= 40) return '#f97316';
+  return '#ef4444';
+}
+
+export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, highlightIndex, onSlotClick, playerFitness, playerIds, jerseyNumbers }: PitchViewProps) {
   const homeSlots = FORMATION_POSITIONS[formation];
   const awaySlots = awayFormation ? FORMATION_POSITIONS[awayFormation] : [];
   const resolvedLabels = homeLabels || labels;
@@ -45,6 +56,8 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
         {homeSlots.map((slot, i) => {
           const cx = 2 + (slot.x / 100) * 64;
           const cy = 95 - (slot.y / 100) * 39;
+          const hasAvatar = playerIds?.[i];
+          const avatarSize = 6;
           return (
             <g key={`h${i}`} onClick={() => onSlotClick?.(i)} className={onSlotClick ? 'cursor-pointer' : ''}>
               {onSlotClick && <circle cx={cx} cy={cy} r="5" fill="transparent" />}
@@ -54,15 +67,34 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
                   <animate attributeName="opacity" values="0.8;0.3;0.8" dur="1.2s" repeatCount="indefinite" />
                 </circle>
               )}
-              <circle cx={cx} cy={cy} r="2.8" fill={homeColor} stroke={i === highlightIndex ? '#D4A843' : 'white'} strokeWidth={i === highlightIndex ? '0.6' : '0.4'} opacity="0.9" />
-              {resolvedLabels?.[i] && (
-                <text x={cx} y={cy + 0.7} textAnchor="middle" fill="white" fontSize="1.8" fontWeight="bold" fontFamily="monospace">
-                  {resolvedLabels[i]}
-                </text>
+              {hasAvatar ? (
+                <g transform={`translate(${cx - avatarSize / 2}, ${cy - avatarSize / 2})`}>
+                  <PlayerAvatar
+                    playerId={playerIds[i]}
+                    jerseyColor={homeColor}
+                    jerseyNumber={jerseyNumbers?.[i]}
+                    size={avatarSize}
+                  />
+                </g>
+              ) : (
+                <>
+                  <circle cx={cx} cy={cy} r="2.8" fill={homeColor} stroke={i === highlightIndex ? '#D4A843' : 'white'} strokeWidth={i === highlightIndex ? '0.6' : '0.4'} opacity="0.9" />
+                  {resolvedLabels?.[i] && (
+                    <text x={cx} y={cy + 0.7} textAnchor="middle" fill="white" fontSize="1.8" fontWeight="bold" fontFamily="monospace">
+                      {resolvedLabels[i]}
+                    </text>
+                  )}
+                </>
               )}
-              <text x={cx} y={cy - 4} textAnchor="middle" fill="#9ca3af" fontSize="1.4" fontFamily="sans-serif">
+              <text x={cx} y={cy - (hasAvatar ? 3.5 : 4)} textAnchor="middle" fill="#9ca3af" fontSize="1.4" fontFamily="sans-serif">
                 {slot.pos}
               </text>
+              {playerFitness?.[i] !== undefined && (
+                <>
+                  <rect x={cx - 2.5} y={cy + (hasAvatar ? 4 : 3.5)} width="5" height="0.9" rx="0.45" fill="rgba(255,255,255,0.15)" />
+                  <rect x={cx - 2.5} y={cy + (hasAvatar ? 4 : 3.5)} width={Math.max(0.2, (playerFitness[i] / 100) * 5)} height="0.9" rx="0.45" fill={getFitnessColor(playerFitness[i])} />
+                </>
+              )}
             </g>
           );
         })}
@@ -73,7 +105,9 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
           const cy = 10 + (slot.y / 100) * 39;
           return (
             <g key={`a${i}`}>
-              <circle cx={cx} cy={cy} r="2.8" fill={awayColor} stroke="white" strokeWidth="0.4" opacity="0.7" />
+              <g transform={`translate(${cx - 6 / 2}, ${cy - 6 / 2})`}>
+                <PlayerAvatar playerId={`away-${i}`} jerseyColor={awayColor} size={6} isAway />
+              </g>
               <text x={cx} y={cy - 4} textAnchor="middle" fill="#6b7280" fontSize="1.4" fontFamily="sans-serif">
                 {slot.pos}
               </text>

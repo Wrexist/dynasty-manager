@@ -2,6 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { Trophy, Star, Award, ArrowRight, Crown } from 'lucide-react';
+import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { PRESTIGE_OPTIONS, calculatePrestigeStats } from '@/utils/prestige';
@@ -73,7 +74,7 @@ const PrestigePage = () => {
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <span className="text-xl">{option.icon}</span>
+                    <DynamicIcon name={option.icon} className="w-6 h-6 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-foreground">{option.label}</p>

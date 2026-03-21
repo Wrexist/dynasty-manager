@@ -2,6 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Trophy, Star, TrendingUp, Shield, ScrollText, Clock, BarChart3 } from 'lucide-react';
+import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import { cn } from '@/lib/utils';
@@ -201,7 +202,7 @@ const ManagerProfile = () => {
               <div key={m.id} className="relative">
                 <div className="absolute -left-[21px] top-0.5 w-3 h-3 rounded-full bg-primary/80 border-2 border-background" />
                 <div className="flex items-start gap-2">
-                  <span className="text-sm">{m.icon || getMilestoneIcon(m.type)}</span>
+                  <DynamicIcon name={m.icon || getMilestoneIcon(m.type)} className="w-4 h-4 text-primary shrink-0" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-foreground">{m.title}</p>
                     <p className="text-[10px] text-muted-foreground">{m.description}</p>
@@ -240,7 +241,7 @@ const ManagerProfile = () => {
                     : 'bg-muted/10 border-border/30 opacity-40'
                 )}
               >
-                <span className="text-lg">{a.icon}</span>
+                <DynamicIcon name={a.icon} className="w-5 h-5 text-primary mx-auto" />
                 <p className="text-[10px] font-semibold text-foreground mt-1">{a.title}</p>
                 <p className="text-[9px] text-muted-foreground">{a.description}</p>
               </div>

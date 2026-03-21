@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Star, Wallet, Users, Zap, Crown, Shield, Swords, Flame, Trophy, TrendingUp, Target, Pickaxe } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DivisionId } from '@/types/game';
+import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
 
 const divisionMeta: Record<string, {
   icon: React.ElementType;
@@ -21,39 +22,33 @@ const divisionMeta: Record<string, {
     gradient: 'from-amber-500/20 via-yellow-600/10 to-transparent',
     glow: 'shadow-[0_0_60px_-15px_rgba(234,179,8,0.3)]',
     tagline: 'Big budgets. World-class squads. Glory awaits.',
-    emoji: '👑',
+    emoji: 'crown',
   },
   'div-2': {
     icon: TrendingUp,
     gradient: 'from-blue-500/20 via-blue-600/10 to-transparent',
     glow: 'shadow-[0_0_60px_-15px_rgba(59,130,246,0.3)]',
     tagline: 'Rising clubs hungry for the top flight.',
-    emoji: '📈',
+    emoji: 'trending-up',
   },
   'div-3': {
     icon: Target,
     gradient: 'from-amber-400/20 via-orange-500/10 to-transparent',
     glow: 'shadow-[0_0_60px_-15px_rgba(245,158,11,0.3)]',
     tagline: 'Smart tactics and shrewd deals win here.',
-    emoji: '🎯',
+    emoji: 'target',
   },
   'div-4': {
     icon: Pickaxe,
     gradient: 'from-red-500/20 via-rose-600/10 to-transparent',
     glow: 'shadow-[0_0_60px_-15px_rgba(239,68,68,0.3)]',
     tagline: 'Start from nothing. Build a legacy.',
-    emoji: '⛏️',
+    emoji: 'pickaxe',
   },
 };
 
-const difficultyConfig: Record<string, { color: string; bg: string; bar: string; label: string }> = {
-  Easy: { color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/20', bar: 'bg-emerald-400/50', label: 'Recommended' },
-  Medium: { color: 'text-blue-400', bg: 'bg-blue-400/10 border-blue-400/20', bar: 'bg-blue-400/50', label: 'Medium' },
-  Hard: { color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/20', bar: 'bg-amber-400/50', label: 'Hard' },
-  'Very Hard': { color: 'text-red-400', bg: 'bg-red-400/10 border-red-400/20', bar: 'bg-red-400/50', label: 'Expert' },
-};
-
-const difficultyBars: Record<string, number> = { Easy: 1, Medium: 2, Hard: 3, 'Very Hard': 4 };
+const difficultyConfig = DIFFICULTY_CONFIG;
+const difficultyBars = DIFFICULTY_BARS;
 
 const ClubSelection = () => {
   const navigate = useNavigate();

@@ -1,50 +1,14 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PitchView } from '@/components/game/PitchView';
-import { FormationType, Mentality, TeamWidth, Tempo, DefensiveLine, TacticalInstructions } from '@/types/game';
+import { LineupEditor } from '@/components/game/LineupEditor';
 import { cn } from '@/lib/utils';
 import { getChemistryBonus, getChemistryLabel, calculateChemistryLinks } from '@/utils/chemistry';
 import { getRatingColor } from '@/utils/uiHelpers';
-import { Users } from 'lucide-react';
-
-const FORMATIONS: FormationType[] = ['4-3-3', '4-4-2', '4-2-3-1', '3-5-2', '4-1-4-1', '3-4-3', '5-3-2'];
-
-const MENTALITIES: { value: Mentality; label: string }[] = [
-  { value: 'defensive', label: 'Defensive' },
-  { value: 'cautious', label: 'Cautious' },
-  { value: 'balanced', label: 'Balanced' },
-  { value: 'attacking', label: 'Attacking' },
-  { value: 'all-out-attack', label: 'All-Out' },
-];
-
-const WIDTHS: { value: TeamWidth; label: string }[] = [
-  { value: 'narrow', label: 'Narrow' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'wide', label: 'Wide' },
-];
-
-const TEMPOS: { value: Tempo; label: string }[] = [
-  { value: 'slow', label: 'Slow' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'fast', label: 'Fast' },
-];
-
-const DEFENSIVE_LINES: { value: DefensiveLine; label: string }[] = [
-  { value: 'deep', label: 'Deep' },
-  { value: 'normal', label: 'Normal' },
-  { value: 'high', label: 'High' },
-];
-
-const PRESSING_OPTIONS: { label: string; value: number }[] = [
-  { label: 'Low', value: 25 },
-  { label: 'Medium', value: 50 },
-  { label: 'High', value: 75 },
-];
-
-interface StylePreset {
-  label: string;
-  values: Partial<TacticalInstructions>;
-}
+import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS } from '@/config/tactics';
+import type { StylePreset } from '@/config/tactics';
+import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft } from 'lucide-react';
+import { useState } from 'react';
 
 const STYLE_PRESETS: StylePreset[] = [
   { label: 'Park the Bus', values: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 } },
@@ -60,12 +24,14 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics } = useGameStore();
+  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup } = useGameStore();
   const club = clubs[playerClubId];
+  const [swapSubId, setSwapSubId] = useState<string | null>(null);
   if (!club) return null;
 
   const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
   const labels = lineupPlayers.map(p => p.lastName.slice(0, 3).toUpperCase());
+  const fitnessValues = lineupPlayers.map(p => Math.round(p.fitness));
   const chemBonus = getChemistryBonus(lineupPlayers);
   const chemLabel = getChemistryLabel(chemBonus);
   const chemLinks = calculateChemistryLinks(lineupPlayers);
@@ -138,13 +104,9 @@ const TacticsPage = () => {
         )}
       </GlassPanel>
 
-      {/* Pitch */}
+      {/* Lineup Editor with Drag & Drop */}
       <GlassPanel className="p-4">
-        <PitchView
-          formation={club.formation}
-          homeColor={club.color}
-          labels={labels}
-        />
+        <LineupEditor />
       </GlassPanel>
 
       {/* Squad Chemistry */}
@@ -164,10 +126,10 @@ const TacticsPage = () => {
             {chemLinks.slice(0, 6).map((link, i) => {
               const a = players[link.playerIdA];
               const b = players[link.playerIdB];
-              const typeIcon = link.type === 'nationality' ? '🌍' : link.type === 'mentor' ? '📚' : '🤝';
+              const TypeIcon = link.type === 'nationality' ? Globe : link.type === 'mentor' ? BookOpen : Handshake;
               return (
-                <span key={i} className="text-[9px] bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded">
-                  {typeIcon} {a?.lastName?.slice(0, 3) || '?'}-{b?.lastName?.slice(0, 3) || '?'} {'★'.repeat(link.strength)}
+                <span key={i} className="text-[9px] bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded inline-flex items-center gap-0.5">
+                  <TypeIcon className="w-2.5 h-2.5 inline" /> {a?.lastName?.slice(0, 3) || '?'}-{b?.lastName?.slice(0, 3) || '?'} {Array.from({ length: link.strength }).map((_, si) => <Star key={si} className="w-2 h-2 fill-current inline" />)}
                 </span>
               );
             })}
@@ -349,19 +311,55 @@ const TacticsPage = () => {
         </div>
       </GlassPanel>
 
-      {/* Subs */}
+      {/* Subs — tap a sub to swap with a starting player */}
       <GlassPanel className="p-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Substitutes</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Substitutes</p>
+          {swapSubId && (
+            <button onClick={() => setSwapSubId(null)} className="text-[10px] text-primary font-semibold">Cancel</button>
+          )}
+        </div>
+
+        {/* When a sub is selected, show starters to swap with */}
+        {swapSubId && (
+          <div className="mb-3 p-2 bg-primary/5 border border-primary/20 rounded-lg">
+            <p className="text-[10px] text-primary mb-1.5">Tap a starter to swap with {players[swapSubId]?.lastName}:</p>
+            <div className="space-y-1">
+              {club.lineup.map(id => players[id]).filter(Boolean).map(p => (
+                <button
+                  key={p.id}
+                  onClick={() => {
+                    const newLineup = club.lineup.map(id => id === p.id ? swapSubId : id);
+                    const newSubs = club.subs.map(id => id === swapSubId ? p.id : id);
+                    updateLineup(newLineup, newSubs);
+                    setSwapSubId(null);
+                  }}
+                  className="flex items-center gap-2 py-1 w-full hover:bg-muted/30 rounded px-1 transition-colors"
+                >
+                  <ArrowRightLeft className="w-3 h-3 text-primary" />
+                  <span className="text-xs font-mono text-muted-foreground w-8">{p.position}</span>
+                  <span className="text-sm text-foreground flex-1 text-left">{p.firstName[0]}. {p.lastName}</span>
+                  <span className={cn('text-xs font-mono', getRatingColor(p.overall))}>{p.overall}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="space-y-1">
           {club.subs.map(id => players[id]).filter(Boolean).map(p => (
-            <div key={p.id} className="flex items-center gap-2 py-1">
+            <button
+              key={p.id}
+              onClick={() => setSwapSubId(swapSubId === p.id ? null : p.id)}
+              className={cn(
+                'flex items-center gap-2 py-1 w-full rounded px-1 transition-colors',
+                swapSubId === p.id ? 'bg-primary/10 border border-primary/30' : 'hover:bg-muted/30'
+              )}
+            >
               <span className="text-xs font-mono text-muted-foreground w-8">{p.position}</span>
-              <span className="text-sm text-foreground/70 flex-1">{p.firstName[0]}. {p.lastName}</span>
-              <span className={cn(
-                'text-xs font-mono',
-                getRatingColor(p.overall)
-              )}>{p.overall}</span>
-            </div>
+              <span className="text-sm text-foreground/70 flex-1 text-left">{p.firstName[0]}. {p.lastName}</span>
+              <span className={cn('text-xs font-mono', getRatingColor(p.overall))}>{p.overall}</span>
+            </button>
           ))}
         </div>
       </GlassPanel>

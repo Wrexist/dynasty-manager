@@ -73,7 +73,7 @@ const LeagueTable = () => {
       <h2 className="text-lg font-bold text-foreground font-display">League</h2>
 
       {/* Division Selector */}
-      <div className="flex gap-1 overflow-x-auto scrollbar-none">
+      <div className="flex gap-1 overflow-x-auto scrollbar-hide">
         {DIVISIONS.map(div => (
           <button
             key={div.id}

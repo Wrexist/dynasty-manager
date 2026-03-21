@@ -9,6 +9,8 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   matchPlayerRatings: [] as GameState['matchPlayerRatings'],
   halfTimeState: null as GameState['halfTimeState'],
   matchPhase: 'none' as GameState['matchPhase'],
+  preMatchLeaguePosition: 10,
+  lastMatchXPGain: 0,
 
   clearMatchResult: () => set({ currentMatchResult: null, halfTimeState: null, matchPhase: 'none' }),
 

@@ -7,7 +7,7 @@ import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity } from '@
 import { completeAssignment } from '@/utils/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
-import { addMsg, getSuffix, pick, clamp } from '@/utils/helpers';
+import { addMsg, getSuffix, pick, clamp, shuffle } from '@/utils/helpers';
 import { migrateLegacySave } from '@/store/helpers/persistence';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS } from '@/utils/achievements';
@@ -215,7 +215,7 @@ function advancePlayoffWeek(set: Set, get: Get) {
   });
 
   // ── Deep-copy playoffs ──
-  let updatedPlayoffs = playoffs.map(p => ({ ...p, bracket: p.bracket.map(t => ({ ...t })) }));
+  const updatedPlayoffs = playoffs.map(p => ({ ...p, bracket: p.bracket.map(t => ({ ...t })) }));
 
   // ── Sync played fixture results back to playoff bracket ──
   for (const m of fixtures) {
@@ -278,7 +278,7 @@ function advancePlayoffWeek(set: Set, get: Get) {
         budget: clubData.budget, wageBill: 0, reputation: clubData.reputation,
         facilities: clubData.facilities, youthRating: clubData.youthRating,
         fanBase: clubData.fanBase, boardPatience: clubData.boardPatience,
-        playerIds: [], formation: '4-4-2' as any, lineup: [], subs: [],
+        playerIds: [], formation: '4-4-2', lineup: [], subs: [],
         divisionId: 'div-4',
       };
       const squad = generateSquad(clubId, clubData.squadQuality, season);
@@ -457,7 +457,8 @@ function endSeasonImpl(set: Set, get: Get) {
   const finalTables = buildAllDivisionTables(state.divisionFixtures, state.divisionClubs);
   const newPlayoffs: PlayoffState[] = [];
   for (const divId of ['div-2', 'div-3', 'div-4'] as DivisionId[]) {
-    const div = DIVISIONS.find(d => d.id === divId)!;
+    const div = DIVISIONS.find(d => d.id === divId);
+    if (!div) continue;
     const table = finalTables[divId] || [];
     const zones = determineZones(table, div);
     if (zones.playoffContenders.length >= 4) {
@@ -659,7 +660,7 @@ function finalizeSeason(
     const clubPlayers = c.playerIds.map(id => newPlayers[id]).filter(Boolean);
     const benched = clubPlayers.filter(p => !c.lineup.includes(p.id));
     if (benched.length > 2) {
-      const listed = benched.sort(() => Math.random() - 0.5).slice(0, INITIAL_LISTINGS_MIN + Math.floor(Math.random() * INITIAL_LISTINGS_RANGE));
+      const listed = shuffle(benched).slice(0, INITIAL_LISTINGS_MIN + Math.floor(Math.random() * INITIAL_LISTINGS_RANGE));
       listed.forEach(p => {
         transferMarket.push({ playerId: p.id, askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)), sellerClubId: c.id });
       });
@@ -736,10 +737,10 @@ function finalizeSeason(
       const milestones = [...state.careerTimeline];
       if (pos === 1) {
         const isFirst = !state.seasonHistory.some(h => h.position === 1);
-        milestones.push(createMilestone(isFirst ? 'first_trophy' : 'season_start', isFirst ? 'First League Title!' : 'League Champions!', `Won the league in Season ${season} with ${playerEntry?.points || 0} points.`, season, TOTAL_WEEKS, isFirst ? '🥇' : '🏆'));
+        milestones.push(createMilestone(isFirst ? 'first_trophy' : 'season_start', isFirst ? 'First League Title!' : 'League Champions!', `Won the league in Season ${season} with ${playerEntry?.points || 0} points.`, season, TOTAL_WEEKS, isFirst ? 'medal' : 'trophy'));
       }
       if (state.cup.winner === playerClubId) {
-        milestones.push(createMilestone('cup_win', 'Cup Winners!', `Won the cup in Season ${season}!`, season, TOTAL_WEEKS, '🏅'));
+        milestones.push(createMilestone('cup_win', 'Cup Winners!', `Won the cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
       }
       return milestones;
     })(),
@@ -809,7 +810,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const clubPlayers = c.playerIds.map(id => allPlayers[id]).filter(Boolean);
       const benched = clubPlayers.filter(p => !c.lineup.includes(p.id));
       if (benched.length > 2) {
-        const listed = benched.sort(() => Math.random() - 0.5).slice(0, INITIAL_LISTINGS_MIN + Math.floor(Math.random() * INITIAL_LISTINGS_RANGE));
+        const listed = shuffle(benched).slice(0, INITIAL_LISTINGS_MIN + Math.floor(Math.random() * INITIAL_LISTINGS_RANGE));
         listed.forEach(p => {
           transferMarket.push({ playerId: p.id, askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)), sellerClubId: c.id });
         });
@@ -865,7 +866,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       unlockedAchievements: [],
       managerStats: { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
       clubRecords: createEmptyRecords(),
-      careerTimeline: [createMilestone('season_start', 'Career Begins', `Started managing ${CLUBS_DATA.find(c => c.id === clubId)?.name || 'a club'}.`, 1, 1, '📅')],
+      careerTimeline: [createMilestone('season_start', 'Career Begins', `Started managing ${CLUBS_DATA.find(c => c.id === clubId)?.name || 'a club'}.`, 1, 1, 'calendar')],
       managerProgression: createDefaultProgression(),
       cup,
       weeklyObjectives: generateWeeklyObjectives(true),
@@ -1111,7 +1112,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           newCup.currentRound = null;
           if (winnerId === playerClubId) {
             newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'Cup Winners!', body: 'Congratulations! You have won the cup! The board and fans are ecstatic!' });
-            newTimeline.push(createMilestone('cup_win', 'Cup Winners!', `Won the cup in Season ${season}!`, season, week, '🏅'));
+            newTimeline.push(createMilestone('cup_win', 'Cup Winners!', `Won the cup in Season ${season}!`, season, week, 'medal'));
           }
         } else {
           newCup = advanceCupRound(newCup);
@@ -1190,6 +1191,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // Dynamic storylines — emergent narrative events
+    let pendingStorylineEvent: StorylineEvent | null = null;
     const recentMatches = updatedFixtures.filter(m => m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)).slice(-5);
     const recentResults = { won: 0, drawn: 0, lost: 0 };
     {
@@ -1211,11 +1213,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         newMessages = addMsg(newMessages, { week: newWeek, season, type: s.type, title: s.title, body: s.body });
       }
       // Store the storyline event for player choice (if any)
-      var pendingStorylineEvent: StorylineEvent | null = storylineResult.event;
+      pendingStorylineEvent = storylineResult.event;
     }
 
     // ── Multi-week Storyline Chains ──
-    var updatedChains: ActiveStorylineChain[] = [...(state.activeStorylineChains || [])];
+    const updatedChains: ActiveStorylineChain[] = [...(state.activeStorylineChains || [])];
 
     // Advance existing chains — check if a step is due this week
     for (let ci = updatedChains.length - 1; ci >= 0; ci--) {
@@ -1299,7 +1301,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // Contract expiry warnings — escalating urgency + morale impact for unhappy players
-    if (CONTRACT_WARNING_WEEKS.includes(newWeek as any)) {
+    if ((CONTRACT_WARNING_WEEKS as readonly number[]).includes(newWeek)) {
       const expiring = Object.values(newPlayers).filter(ep => ep.clubId === playerClubId && ep.contractEnd <= season && ep.overall > CONTRACT_WARNING_OVERALL_THRESHOLD);
       const urgency = newWeek >= 35 ? 'URGENT: ' : newWeek >= 30 ? '' : 'Reminder: ';
       for (const ep of expiring) {
@@ -1488,7 +1490,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             const attr = attrKeys[Math.floor(Math.random() * attrKeys.length)];
             attrs[attr] = Math.min(99, attrs[attr] + 1);
             lp.attributes = attrs;
-            lp.overall = calculateOverallExport(attrs, lp.position as any);
+            lp.overall = calculateOverallExport(attrs, lp.position);
           }
         }
         newPlayers[loan.playerId] = lp;
@@ -1658,6 +1660,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const isPlayerHome = match.homeClubId === playerClubId;
     const homeTactics = isPlayerHome ? tactics : undefined;
     const awayTactics = isPlayerHome ? undefined : tactics;
+    // Store pre-match league position
+    const preEntry = state.leagueTable.find(e => e.clubId === playerClubId);
+    const prePos = preEntry ? state.leagueTable.indexOf(preEntry) + 1 : 10;
+
     const matchDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const { result, playerRatings } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity);
 
@@ -1677,6 +1683,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       divisionTables: { ...state.divisionTables, [state.playerDivision]: processed.leagueTable },
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
       managerProgression: processed.managerProgression,
+      preMatchLeaguePosition: prePos,
+      lastMatchXPGain: processed.xpGain,
     });
     return result;
   },
@@ -1696,10 +1704,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const homeTactics = isPlayerHome ? tactics : undefined;
     const awayTactics = isPlayerHome ? undefined : tactics;
 
+    // Store pre-match league position for post-match popup
+    const preMatchEntry = state.leagueTable.find(e => e.clubId === playerClubId);
+    const preMatchPos = preMatchEntry ? state.leagueTable.indexOf(preMatchEntry) + 1 : 10;
+
     const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity);
 
-    set({ halfTimeState: halfState, matchPhase: 'half_time', matchSubsUsed: 0 });
+    set({ halfTimeState: halfState, matchPhase: 'half_time', matchSubsUsed: 0, preMatchLeaguePosition: preMatchPos });
     return halfState;
   },
 
@@ -1743,6 +1755,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       divisionTables: { ...state.divisionTables, [state.playerDivision]: processed.leagueTable },
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
       managerProgression: processed.managerProgression,
+      lastMatchXPGain: processed.xpGain,
     });
     return result;
   },
@@ -1802,6 +1815,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       weeklyObjectives: state.weeklyObjectives,
       pendingStoryline: state.pendingStoryline,
       activeStorylineChains: state.activeStorylineChains,
+      preMatchLeaguePosition: state.preMatchLeaguePosition,
+      lastMatchXPGain: state.lastMatchXPGain,
     };
     localStorage.setItem(`dynasty-save-${s}`, JSON.stringify(saveData));
   },
@@ -1854,6 +1869,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         weeklyObjectives: data.weeklyObjectives || [],
         pendingStoryline: data.pendingStoryline || null,
         activeStorylineChains: data.activeStorylineChains || [],
+        preMatchLeaguePosition: data.preMatchLeaguePosition ?? 10,
+        lastMatchXPGain: data.lastMatchXPGain ?? 0,
       });
       return true;
     } catch { return false; }
@@ -1892,14 +1909,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     } else if (optionId === 'drop-division') {
       // Pick a random club from a lower division
       const currentDiv = state.playerDivision;
-      const divNum = parseInt(currentDiv.split('-')[1] || '1');
+      const divNum = parseInt(currentDiv.split('-')[1] || '1', 10) || 1;
       const lowerDiv = `div-${Math.min(divNum + 1, 4)}` as DivisionId;
       const lowerClubs = allClubs.filter(c => c.divisionId === lowerDiv);
       newClubId = lowerClubs.length > 0 ? lowerClubs[Math.floor(Math.random() * lowerClubs.length)].id : currentClubId;
       budgetMultiplier = 1.5;
     } else {
-      // restart-perks: same club, fresh start
+      // restart-perks: same club, fresh start with perks reset
       newClubId = currentClubId;
+      preserveProgression = false;
     }
 
     // Reinitialize game with new club
@@ -1929,12 +1947,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (preserveProgression) {
       updates.careerTimeline = [...state.careerTimeline, {
         id: crypto.randomUUID(),
-        type: 'prestige' as any,
+        type: 'prestige',
         title: `Prestige ${newPrestigeLevel}`,
         description: `Started a new journey with prestige level ${newPrestigeLevel}.`,
         season: state.season,
         week: state.week,
-        icon: '⭐',
+        icon: 'star',
       }];
       updates.unlockedAchievements = state.unlockedAchievements;
       updates.seasonHistory = state.seasonHistory;

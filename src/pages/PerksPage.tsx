@@ -1,9 +1,11 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { cn } from '@/lib/utils';
 import { MANAGER_PERKS, xpForLevel, getTotalXP, canUnlockPerk } from '@/utils/managerPerks';
 import { toast } from 'sonner';
 import { hapticMedium } from '@/utils/haptics';
+import type { PerkId } from '@/types/game';
 
 const PerksPage = () => {
   const { managerProgression, unlockPerk } = useGameStore();
@@ -12,7 +14,7 @@ const PerksPage = () => {
   const xpProgress = Math.round((managerProgression.xp / xpNeeded) * 100);
 
   const handleUnlock = (perkId: string) => {
-    const result = unlockPerk(perkId as any);
+    const result = unlockPerk(perkId as PerkId);
     if (result.success) {
       hapticMedium();
       toast.success(result.message);
@@ -75,7 +77,7 @@ const PerksPage = () => {
                     onClick={() => !isUnlocked && canBuy && handleUnlock(perk.id)}
                   >
                     <div className="flex items-start gap-2">
-                      <span className="text-lg">{perk.icon}</span>
+                      <DynamicIcon name={perk.icon} className="w-5 h-5 text-primary" />
                       <div className="flex-1 min-w-0">
                         <p className={cn(
                           'text-xs font-semibold',

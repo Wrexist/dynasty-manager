@@ -1,12 +1,13 @@
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { Mic, X, MessageSquare } from 'lucide-react';
+import { DynamicIcon } from '@/components/game/DynamicIcon';
 import type { PressResponseTone } from '@/types/game';
 
 const TONE_STYLES: Record<PressResponseTone, { label: string; color: string; icon: string }> = {
-  confident: { label: 'Bold', color: 'border-primary/50 hover:bg-primary/10', icon: '💪' },
-  humble: { label: 'Humble', color: 'border-emerald-500/50 hover:bg-emerald-500/10', icon: '🤝' },
-  deflect: { label: 'Deflect', color: 'border-muted-foreground/50 hover:bg-muted/30', icon: '🤐' },
+  confident: { label: 'Bold', color: 'border-primary/50 hover:bg-primary/10', icon: 'dumbbell' },
+  humble: { label: 'Humble', color: 'border-emerald-500/50 hover:bg-emerald-500/10', icon: 'handshake' },
+  deflect: { label: 'Deflect', color: 'border-muted-foreground/50 hover:bg-muted/30', icon: 'shield' },
 };
 
 export function PressConference() {
@@ -58,7 +59,7 @@ export function PressConference() {
               )}
             >
               <div className="flex items-start gap-2">
-                <span className="text-sm shrink-0">{style.icon}</span>
+                <DynamicIcon name={style.icon} className="w-4 h-4 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-foreground mb-0.5">{style.label}</p>
                   <p className="text-xs text-muted-foreground leading-relaxed">"{option.text}"</p>

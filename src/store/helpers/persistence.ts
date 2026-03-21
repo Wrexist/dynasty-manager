@@ -20,19 +20,20 @@ export function getSlotSummaries(): SlotSummary[] {
     try {
       const data = JSON.parse(raw);
       const club = data.clubs?.[data.playerClubId];
-      // Compute league position from fixtures
+      // Compute league position from division-specific fixtures (or all fixtures for old saves)
       let position = '?';
-      if (data.fixtures && data.clubs) {
-        const clubIds = Object.keys(data.clubs);
+      const divFixtures = data.divisionFixtures?.[data.playerDivision] || data.fixtures;
+      const divClubs = data.divisionClubs?.[data.playerDivision] || (data.clubs ? Object.keys(data.clubs) : []);
+      if (divFixtures && divClubs.length > 0) {
         const points: Record<string, number> = {};
-        clubIds.forEach(id => { points[id] = 0; });
-        data.fixtures.forEach((m: { played: boolean; homeClubId: string; awayClubId: string; homeGoals: number; awayGoals: number }) => {
+        divClubs.forEach((id: string) => { points[id] = 0; });
+        divFixtures.forEach((m: { played: boolean; homeClubId: string; awayClubId: string; homeGoals: number; awayGoals: number }) => {
           if (!m.played) return;
           if (m.homeGoals > m.awayGoals) points[m.homeClubId] = (points[m.homeClubId] || 0) + 3;
           else if (m.homeGoals < m.awayGoals) points[m.awayClubId] = (points[m.awayClubId] || 0) + 3;
           else { points[m.homeClubId] = (points[m.homeClubId] || 0) + 1; points[m.awayClubId] = (points[m.awayClubId] || 0) + 1; }
         });
-        const sorted = clubIds.sort((a, b) => (points[b] || 0) - (points[a] || 0));
+        const sorted = [...divClubs].sort((a: string, b: string) => (points[b] || 0) - (points[a] || 0));
         const pos = sorted.indexOf(data.playerClubId) + 1;
         position = `${pos}`;
       }

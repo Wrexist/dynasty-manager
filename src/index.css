@@ -95,13 +95,11 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .scrollbar-hide::-webkit-scrollbar,
-  .scrollbar-none::-webkit-scrollbar {
+  .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 
-  .scrollbar-hide,
-  .scrollbar-none {
+  .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
@@ -117,6 +115,15 @@
     opacity: 1;
     transform: translateX(0);
   }
+}
+
+/* Player avatar idle bob animation */
+@keyframes playerIdleBob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-0.4px); }
+}
+.player-avatar-idle {
+  animation: playerIdleBob 2.5s ease-in-out infinite;
 }
 
 /* Touch-friendly range inputs */

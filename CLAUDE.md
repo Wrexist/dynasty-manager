@@ -29,7 +29,7 @@ src/
 ├── hooks/            → use-mobile, use-toast
 ├── lib/utils.ts      → cn() utility
 ├── pages/            → Dashboard, SquadPage, TacticsPage, MatchDay, TransferPage, etc.
-├── store/gameStore.ts → ALL game state + logic lives here
+├── store/            → Zustand store split into slices (gameStore.ts + slices/)
 ├── types/game.ts     → Every type, formations, position compatibility
 ├── utils/playerGen.ts → Player gen, overall calc, squad building, lineup selection
 ├── test/             → Vitest setup
@@ -38,11 +38,11 @@ src/
 ```
 
 ## Critical Files (read these first)
-1. **`src/store/gameStore.ts`** — Entire state machine. All actions. ~750 lines.
+1. **`src/store/`** — Zustand store split into slices: `gameStore.ts` (entry), `slices/orchestrationSlice.ts` (largest), `slices/transferSlice.ts`, etc.
 2. **`src/types/game.ts`** — All types. Formations, positions, compatibility maps.
 3. **`src/utils/playerGen.ts`** — Player attributes, overall calc, squad gen, lineup auto-select.
 4. **`src/engine/match.ts`** — Match simulation. Produces minute-by-minute events.
-5. **`src/data/league.ts`** — 20 fictional clubs, round-robin fixtures, table builder.
+5. **`src/data/league.ts`** — 92 clubs across 4 divisions, round-robin fixtures, table builder.
 
 ## Code Conventions
 - **TS non-strict** (`strict: false`, `noImplicitAny: false`). Use `interface` > `type` for objects.
@@ -78,16 +78,10 @@ npm run lint         # ESLint
 ```
 
 ## Known Tech Debt
-- gameStore.ts needs splitting into slices (~750 lines)
-- Match engine ignores formation/tactics in results
-- No save migration system (version field present but unused)
+- orchestrationSlice.ts is large (~1,968 lines) — could be further split
 - TS strict mode OFF
-- Minimal tests (1 placeholder test)
 - No PWA manifest
 - framer-motion v12 is heavy
-- React Query installed but zero queries exist (QueryClientProvider wraps app in App.tsx)
-- `getSuffix()` helper duplicated in gameStore.ts, Dashboard.tsx, SeasonSummary.tsx
-- `pick()`/`clamp()` helpers duplicated across store/utils/engine
 
 ## Hard Rules
 - NEVER modify `src/components/ui/*` unless asked

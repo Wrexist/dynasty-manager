@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { Player } from '@/types/game';
 import { GlassPanel } from './GlassPanel';
 import { cn } from '@/lib/utils';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { TrendingUp, TrendingDown, HeartPulse } from 'lucide-react';
 import { getRatingColor, getFitnessColor } from '@/utils/uiHelpers';
 
 interface PlayerCardProps {
@@ -28,7 +28,7 @@ export const PlayerCard = memo(function PlayerCard({ player, onClick, compact }:
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {player.listedForSale && <span className="text-primary text-[10px] font-bold">LISTED</span>}
-          {player.injured && <span className="text-destructive">🏥</span>}
+          {player.injured && <HeartPulse className="w-3.5 h-3.5 text-destructive" />}
           <span className={cn('w-2 h-2 rounded-full', getFitnessColor(player.fitness))} />
         </div>
       </div>

@@ -23,31 +23,37 @@ export function checkCelebrations(
   const celebrations: Celebration[] = [];
 
   // Player goal milestones (10, 15, 20, 25, 30)
+  // Use >= with upper bound to handle cases where a player scores multiple goals
+  // in one match and jumps past the exact threshold (e.g., 9 → 11 skips 10).
   const goalThresholds = [10, 15, 20, 25, 30];
   for (const pid of playerIds) {
     const p = players[pid];
     if (!p) continue;
-    for (const t of goalThresholds) {
-      if (p.goals === t) {
+    for (let i = 0; i < goalThresholds.length; i++) {
+      const t = goalThresholds[i];
+      const nextT = goalThresholds[i + 1] ?? t + 5;
+      if (p.goals >= t && p.goals < nextT) {
         celebrations.push({
           title: `${p.lastName} — ${t} Goals!`,
           description: `${p.firstName} ${p.lastName} reaches ${t} goals this season.`,
           type: 'milestone',
           severity: t >= 25 ? 'major' : 'minor',
-          icon: '⚽',
+          icon: 'circle',
         });
       }
     }
     // Assists milestones (10, 15, 20)
     const assistThresholds = [10, 15, 20];
-    for (const t of assistThresholds) {
-      if (p.assists === t) {
+    for (let i = 0; i < assistThresholds.length; i++) {
+      const t = assistThresholds[i];
+      const nextT = assistThresholds[i + 1] ?? t + 5;
+      if (p.assists >= t && p.assists < nextT) {
         celebrations.push({
           title: `${p.lastName} — ${t} Assists!`,
           description: `${p.firstName} ${p.lastName} reaches ${t} assists this season.`,
           type: 'milestone',
           severity: t >= 20 ? 'major' : 'minor',
-          icon: '🎯',
+          icon: 'target',
         });
       }
     }
@@ -66,15 +72,17 @@ export function checkCelebrations(
     if (ga > gf) break;
     unbeatenRun++;
   }
+  // Streaks use >= so milestones fire even if a bye week caused a skip
   const unbeatenMilestones = [5, 10, 15, 20];
   for (const t of unbeatenMilestones) {
-    if (unbeatenRun === t) {
+    const nextT = unbeatenMilestones[unbeatenMilestones.indexOf(t) + 1] || t + 5;
+    if (unbeatenRun >= t && unbeatenRun < nextT) {
       celebrations.push({
         title: `${t}-Match Unbeaten Run!`,
-        description: `Your team hasn't lost in ${t} consecutive matches.`,
+        description: `Your team hasn't lost in ${unbeatenRun} consecutive matches.`,
         type: 'streak',
         severity: t >= 15 ? 'major' : 'minor',
-        icon: '🛡️',
+        icon: 'shield',
       });
     }
   }
@@ -90,13 +98,14 @@ export function checkCelebrations(
   }
   const winMilestones = [3, 5, 8, 10];
   for (const t of winMilestones) {
-    if (winStreak === t) {
+    const nextT = winMilestones[winMilestones.indexOf(t) + 1] || t + 5;
+    if (winStreak >= t && winStreak < nextT) {
       celebrations.push({
         title: `${t} Wins in a Row!`,
-        description: `An incredible run of ${t} consecutive victories.`,
+        description: `An incredible run of ${winStreak} consecutive victories.`,
         type: 'streak',
         severity: t >= 8 ? 'major' : 'minor',
-        icon: '🔥',
+        icon: 'flame',
       });
     }
   }
@@ -108,27 +117,28 @@ export function checkCelebrations(
   }).length;
   const csMilestones = [5, 10, 15];
   for (const t of csMilestones) {
-    if (cleanSheets === t) {
+    const nextT = csMilestones[csMilestones.indexOf(t) + 1] || t + 5;
+    if (cleanSheets >= t && cleanSheets < nextT) {
       celebrations.push({
         title: `${t} Clean Sheets!`,
-        description: `Your defense has kept ${t} clean sheets this season.`,
+        description: `Your defense has kept ${cleanSheets} clean sheets this season.`,
         type: 'milestone',
         severity: t >= 15 ? 'major' : 'minor',
-        icon: '🧤',
+        icon: 'shield-check',
       });
     }
   }
 
   // League position breakthroughs
   const myEntry = leagueTable.find(e => e.clubId === playerClubId);
-  const pos = myEntry ? leagueTable.indexOf(myEntry) + 1 : 0;
+  const pos = myEntry ? leagueTable.indexOf(myEntry) + 1 : 999;
   if (pos === 1 && playedMatches.length >= 5) {
     celebrations.push({
       title: 'Top of the Table!',
       description: 'Your club sits at the summit of the league.',
       type: 'record',
       severity: 'major',
-      icon: '👑',
+      icon: 'crown',
     });
   }
 

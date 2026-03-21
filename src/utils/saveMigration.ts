@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 5;
+const CURRENT_VERSION = 7;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -64,6 +64,31 @@ const migrations: Record<number, MigrationFn> = {
       derbies: [],
     };
   },
+
+  // v5 → v6: Manager progression, career timeline, records, objectives, storylines, achievements
+  5: (data) => ({
+    ...data,
+    version: 6,
+    managerProgression: data.managerProgression || { xp: 0, level: 1, unlockedPerks: [], prestigeLevel: 0 },
+    careerTimeline: data.careerTimeline || [],
+    clubRecords: data.clubRecords || { biggestWin: null, biggestLoss: null, highestScorer: null, mostAppearances: null, longestWinStreak: 0, longestUnbeatenRun: 0 },
+    weeklyObjectives: data.weeklyObjectives || [],
+    unlockedAchievements: data.unlockedAchievements || [],
+    managerStats: data.managerStats || { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
+    activeStorylineChains: data.activeStorylineChains || [],
+    fanMood: data.fanMood ?? 50,
+    activeChallenge: data.activeChallenge || null,
+    seasonPhase: data.seasonPhase || 'regular',
+    pendingFarewell: null,
+  }),
+
+  // v6 → v7: Added preMatchLeaguePosition, lastMatchXPGain for post-match popup
+  6: (data) => ({
+    ...data,
+    version: 7,
+    preMatchLeaguePosition: data.preMatchLeaguePosition ?? 10,
+    lastMatchXPGain: data.lastMatchXPGain ?? 0,
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
@@ -76,7 +101,12 @@ export function migrateSaveData(data: Record<string, unknown>): Record<string, u
       console.warn(`No migration found for save version ${version}`);
       break;
     }
-    migrated = migrate(migrated);
+    try {
+      migrated = migrate(migrated);
+    } catch (err) {
+      console.error(`Save migration v${version} → v${version + 1} failed:`, err);
+      migrated = { ...migrated, version: (version as number) + 1 };
+    }
     version = migrated.version;
   }
 

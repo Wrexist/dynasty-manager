@@ -1,6 +1,6 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ChevronRight, Flame, Calendar } from 'lucide-react';
+import { ChevronRight, Flame, Calendar, HeartPulse } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor } from '@/utils/uiHelpers';
@@ -75,6 +75,55 @@ const MatchReview = () => {
           </div>
         </GlassPanel>
       </motion.div>
+
+      {/* Key Highlights — animated timeline of the biggest moments */}
+      {(() => {
+        const highlights = match.events.filter(e => ['goal', 'red_card', 'injury'].includes(e.type));
+        if (highlights.length === 0) return null;
+        return (
+          <GlassPanel className="p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Key Highlights</h3>
+            <div className="relative pl-4 border-l border-border/50 space-y-3">
+              {highlights.map((ev, i) => {
+                const evPlayer = ev.playerId ? players[ev.playerId] : null;
+                const evClub = clubs[ev.clubId];
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.15, duration: 0.3 }}
+                    className="relative"
+                  >
+                    <div className={cn(
+                      'absolute -left-[21px] w-2.5 h-2.5 rounded-full border-2 border-background',
+                      ev.type === 'goal' ? 'bg-emerald-400' : ev.type === 'red_card' ? 'bg-red-500' : 'bg-amber-400'
+                    )} />
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-primary tabular-nums w-5">{ev.minute}'</span>
+                      <span className={cn(
+                        'text-[10px] font-bold uppercase tracking-wider',
+                        ev.type === 'goal' ? 'text-emerald-400' : ev.type === 'red_card' ? 'text-red-400' : 'text-amber-400'
+                      )}>
+                        {ev.type === 'goal' ? 'GOAL' : ev.type === 'red_card' ? 'RED CARD' : 'INJURY'}
+                      </span>
+                      {evClub && (
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: evClub.color }} />
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {evPlayer ? `${evPlayer.firstName} ${evPlayer.lastName}` : ev.description}
+                      {ev.type === 'goal' && ev.assistPlayerId && players[ev.assistPlayerId] && (
+                        <span className="text-primary/60"> (ast. {players[ev.assistPlayerId].lastName})</span>
+                      )}
+                    </p>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </GlassPanel>
+        );
+      })()}
 
       {/* Scorers */}
       {goals.length > 0 && (
@@ -168,7 +217,7 @@ const MatchReview = () => {
               const p = e.playerId ? players[e.playerId] : null;
               return (
                 <div key={`inj-${i}`} className="flex items-center gap-2 text-xs">
-                  <span className="text-destructive">🏥</span>
+                  <HeartPulse className="w-3.5 h-3.5 text-destructive shrink-0" />
                   <span className="text-foreground">{p?.lastName || 'Unknown'} — Injured</span>
                   <span className="text-muted-foreground">{e.minute}'</span>
                 </div>
@@ -178,7 +227,7 @@ const MatchReview = () => {
               const p = e.playerId ? players[e.playerId] : null;
               return (
                 <div key={`card-${i}`} className="flex items-center gap-2 text-xs">
-                  <span>{e.type === 'yellow_card' ? '🟨' : '🟥'}</span>
+                  <span className={`w-3 h-4 rounded-sm inline-block shrink-0 ${e.type === 'yellow_card' ? 'bg-amber-400' : 'bg-red-500'}`} />
                   <span className="text-foreground">{p?.lastName || 'Unknown'}</span>
                   <span className="text-muted-foreground">{e.minute}'</span>
                 </div>
