@@ -12,14 +12,14 @@ describe('chemistry', () => {
   describe('calculateChemistryLinks', () => {
     it('should detect nationality links', () => {
       const a = makePlayer('CM', { nationality: 'Spanish' });
-      const b = makePlayer('CB', { nationality: 'Spanish' });
+      const b = makePlayer('CAM', { nationality: 'Spanish' });
       const links = calculateChemistryLinks([a, b]);
       expect(links.some(l => l.type === 'nationality')).toBe(true);
     });
 
     it('should not create nationality links for different nationalities', () => {
       const a = makePlayer('CM', { nationality: 'Spanish' });
-      const b = makePlayer('CB', { nationality: 'French' });
+      const b = makePlayer('CAM', { nationality: 'French' });
       const links = calculateChemistryLinks([a, b]);
       expect(links.filter(l => l.type === 'nationality')).toHaveLength(0);
     });
