@@ -130,6 +130,8 @@
   App Name:   Dynasty Manager
 
 
+git add -A && git commit -m "Fix bugs & made the game easier to understand" && git push
+
 ========================================
   iOS TESTFLIGHT (From Windows - No Mac)
 ========================================

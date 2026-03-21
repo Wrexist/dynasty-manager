@@ -16,6 +16,14 @@ jobs:
       - run: npm run build
       - run: npx cap sync ios
 
+      - name: Auto-increment build number
+        run: |
+          cd ios/App/App.xcodeproj
+          CURRENT=$(grep -m1 'CURRENT_PROJECT_VERSION' project.pbxproj | tr -dc '0-9')
+          NEXT=$((CURRENT + 1))
+          sed -i "s/CURRENT_PROJECT_VERSION = $CURRENT;/CURRENT_PROJECT_VERSION = $NEXT;/g" project.pbxproj
+          echo "Build version bumped: $CURRENT → $NEXT"
+
       - name: Import certificate
         env:
           CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
