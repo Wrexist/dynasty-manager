@@ -6,7 +6,7 @@ import { getChemistryBonus, getChemistryLabel, calculateChemistryLinks } from '@
 import { getRatingColor } from '@/utils/uiHelpers';
 import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
-import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft } from 'lucide-react';
+import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft, Wand2 } from 'lucide-react';
 import { getFlag } from '@/utils/nationality';
 import { useState } from 'react';
 import { PageHint } from '@/components/game/PageHint';
@@ -26,7 +26,7 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup } = useGameStore();
+  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam } = useGameStore();
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
   if (!club) return null;
@@ -104,6 +104,15 @@ const TacticsPage = () => {
           </p>
         )}
       </GlassPanel>
+
+      {/* Smart Auto Fill */}
+      <button
+        onClick={autoFillTeam}
+        className="w-full py-2.5 rounded-xl bg-primary/90 hover:bg-primary text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
+      >
+        <Wand2 className="w-4 h-4" />
+        Smart Auto Fill
+      </button>
 
       {/* Lineup Editor with Drag & Drop */}
       <GlassPanel className="p-4">
