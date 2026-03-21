@@ -5,7 +5,7 @@ import { MAX_SUBS } from '@/config/playerGeneration';
 import { PITCH_COLORS } from '@/config/ui';
 import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { cn } from '@/lib/utils';
-import { DndContext, DragOverlay, useDraggable, useDroppable, useSensor, useSensors, MouseSensor, TouchSensor, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
+import { DndContext, DragOverlay, useDraggable, useDroppable, useSensor, useSensors, MouseSensor, TouchSensor, type DragEndEvent, type DragStartEvent, type Modifier } from '@dnd-kit/core';
 import { calculateChemistryLinks } from '@/utils/chemistry';
 import { PlayerAvatar } from './PlayerAvatar';
 
@@ -13,6 +13,17 @@ import { PlayerAvatar } from './PlayerAvatar';
 const VP_Y = 46;
 const VP_H = 59;
 const VP_W = 68;
+
+// Modifier that centers the DragOverlay under the pointer/finger
+// instead of maintaining the original grab offset
+const snapCenterToCursor: Modifier = ({ activatorEvent, draggingNodeRect, transform }) => {
+  if (!activatorEvent || !draggingNodeRect) return transform;
+  const event = activatorEvent as PointerEvent;
+  if (event.clientX === undefined) return transform;
+  const grabOffsetX = event.clientX - (draggingNodeRect.left + draggingNodeRect.width / 2);
+  const grabOffsetY = event.clientY - (draggingNodeRect.top + draggingNodeRect.height / 2);
+  return { ...transform, x: transform.x - grabOffsetX, y: transform.y - grabOffsetY };
+};
 
 function getCompatibility(playerPos: Position, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
   if (playerPos === slotPos) return 'natural';
@@ -57,7 +68,7 @@ export function LineupEditor() {
 
   // Sensors must be declared before any early returns (hooks rules)
   const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 5 } });
-  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } });
+  const touchSensor = useSensor(TouchSensor, { activationConstraint: { distance: 5 } });
   const sensors = useSensors(mouseSensor, touchSensor);
 
   const club = clubs[playerClubId];
@@ -135,7 +146,7 @@ export function LineupEditor() {
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       {/* Half Pitch (bottom half only — your team) */}
-      <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: '24rem' }}>
+      <div className="relative w-full mx-auto touch-none" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: '24rem' }}>
         <svg viewBox={`0 ${VP_Y} ${VP_W} ${VP_H}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
           {/* Pitch background & markings */}
           <rect x="0" y="0" width="68" height="105" rx="1.5" fill={PITCH_COLORS.FILL} />
@@ -221,7 +232,7 @@ export function LineupEditor() {
       {/* Bench */}
       <div className="mt-3">
         <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">Bench & Reserves</p>
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 px-1">
+        <div className={cn('flex gap-2 overflow-x-auto scrollbar-hide pb-1 px-1', draggedId && 'touch-none')}>
           {subAndBench.map(id => {
             const p = players[id];
             if (!p) return null;
@@ -248,7 +259,7 @@ export function LineupEditor() {
       </div>
 
       {/* Drag Overlay */}
-      <DragOverlay>
+      <DragOverlay modifiers={[snapCenterToCursor]}>
         {draggedPlayer && (
           <div className="flex flex-col items-center pointer-events-none">
             <svg width="32" height="32" viewBox="0 0 32 32" className="drop-shadow-lg">
