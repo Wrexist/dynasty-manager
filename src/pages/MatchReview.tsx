@@ -253,7 +253,6 @@ const MatchReview = () => {
               const myPoss = isHome ? match.stats.homePossession : match.stats.awayPossession;
               const myShots = isHome ? match.stats.homeShots : match.stats.awayShots;
               const mySoT = isHome ? match.stats.homeShotsOnTarget : match.stats.awayShotsOnTarget;
-              const oppShots = isHome ? match.stats.awayShots : match.stats.homeShots;
               const oppSoT = isHome ? match.stats.awayShotsOnTarget : match.stats.homeShotsOnTarget;
               const myGoals = isHome ? match.homeGoals : match.awayGoals;
               const oppGoals = isHome ? match.awayGoals : match.homeGoals;

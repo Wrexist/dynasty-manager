@@ -21,7 +21,7 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
-  const { week, fixtures, clubs, players, playerClubId, leagueTable, setScreen } = useGameStore();
+  const { week, clubs, players, playerClubId, leagueTable, setScreen } = useGameStore();
 
   const { match, isHome, opponent: oppClub } = useCurrentMatch();
   const oppClubId = match ? (isHome ? match.awayClubId : match.homeClubId) : '';

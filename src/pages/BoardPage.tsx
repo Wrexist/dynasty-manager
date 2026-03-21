@@ -7,7 +7,7 @@ import { getConfidenceColor, getConfidenceRisk } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition } from '@/hooks/useGameSelectors';
 
 const BoardPage = () => {
-  const { boardConfidence, boardObjectives, clubs, playerClubId, leagueTable, season, seasonHistory } = useGameStore();
+  const { boardConfidence, boardObjectives, season, seasonHistory } = useGameStore();
 
   const club = usePlayerClub();
   const pos = useLeaguePosition();

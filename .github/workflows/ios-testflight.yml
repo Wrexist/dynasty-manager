@@ -21,13 +21,20 @@ jobs:
       - run: npm run build
       - run: npx cap sync ios
 
-      - name: Auto-increment build number
+      - name: Strip alpha channel from app icon
+        run: |
+          ICON=ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+          sips -s format png --setProperty formatOptions 0 "$ICON" --out "$ICON.tmp"
+          sips -s format png -s hasAlpha false "$ICON.tmp" --out "$ICON"
+          rm -f "$ICON.tmp"
+          echo "Alpha channel removed from app icon"
+
+      - name: Set build number from run number
         run: |
           FILE=ios/App/App.xcodeproj/project.pbxproj
-          CURRENT=$(grep -m1 'CURRENT_PROJECT_VERSION' "$FILE" | tr -dc '0-9')
-          NEXT=$((CURRENT + 1))
-          sed -i '' "s/CURRENT_PROJECT_VERSION = ${CURRENT};/CURRENT_PROJECT_VERSION = ${NEXT};/g" "$FILE"
-          echo "Build version bumped: $CURRENT → $NEXT"
+          BUILD=${{ github.run_number }}
+          sed -i '' "s/CURRENT_PROJECT_VERSION = [0-9]*;/CURRENT_PROJECT_VERSION = ${BUILD};/g" "$FILE"
+          echo "Build number set to: $BUILD"
 
       - name: Import certificate
         env:

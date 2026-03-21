@@ -1,4 +1,4 @@
-import { FormationType, FormationSlot, FORMATION_POSITIONS } from '@/types/game';
+import { FormationType, FORMATION_POSITIONS } from '@/types/game';
 import { PITCH_COLORS } from '@/config/ui';
 import { PlayerAvatar } from './PlayerAvatar';
 

@@ -3,7 +3,7 @@
  * All constants used by src/utils/playerGen.ts
  */
 
-import type { Position, PlayerAttributes } from '@/types/game';
+import type { Position } from '@/types/game';
 
 // ── Age Ranges ──
 export const PLAYER_MIN_AGE = 17;

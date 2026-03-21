@@ -20,7 +20,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
   const goalsAgainst = isHome ? currentMatchResult.awayGoals : currentMatchResult.homeGoals;
   const won = goalsFor > goalsAgainst;
   const lost = goalsFor < goalsAgainst;
-  const drew = goalsFor === goalsAgainst;
+
 
   const homeClub = clubs[currentMatchResult.homeClubId];
   const awayClub = clubs[currentMatchResult.awayClubId];

@@ -41,13 +41,6 @@ export function StorylineModal() {
       {/* Response Options */}
       <div className="space-y-2">
         {pendingStoryline.options.map((option, index) => {
-          const hasPositive = (option.effects.morale && option.effects.morale > 0) ||
-            (option.effects.boardConfidence && option.effects.boardConfidence > 0) ||
-            (option.effects.playerMorale && option.effects.playerMorale > 0);
-          const hasNegative = (option.effects.morale && option.effects.morale < 0) ||
-            (option.effects.boardConfidence && option.effects.boardConfidence < 0) ||
-            (option.effects.playerMorale && option.effects.playerMorale < 0);
-
           return (
             <button
               key={index}

@@ -14,7 +14,7 @@ interface CelebrationModalProps {
 
 const PARTICLE_COUNT = 20;
 
-function Particle({ index }: { index: number }) {
+function Particle({ index: _index }: { index: number }) {
   const x = Math.random() * 100;
   const delay = Math.random() * 0.5;
   const duration = 1.5 + Math.random() * 1.5;

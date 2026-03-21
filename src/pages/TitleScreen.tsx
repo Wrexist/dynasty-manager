@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Play, Settings, RotateCcw, Trash2, Save, Info, Swords } from 'lucide-react';
 import { getSuffix } from '@/utils/helpers';
-import { cn } from '@/lib/utils';
 
 interface FloatingCircle {
   id: number;
@@ -28,8 +27,6 @@ const TitleScreen = () => {
   const [refreshKey, setRefreshKey] = useState(0);
 
   const slots = useMemo(() => getSlotSummaries(), [refreshKey]);
-  const hasAnySave = slots.some(s => s.exists);
-
   const handleContinue = (slot: number) => {
     if (loadGame(slot)) navigate('/game');
   };

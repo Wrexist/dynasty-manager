@@ -125,7 +125,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const prospect = state.youthAcademy.prospects.find(p => p.playerId === playerId);
     if (!prospect) return;
     const newProspects = state.youthAcademy.prospects.filter(p => p.playerId !== playerId);
-    const { [playerId]: removed, ...restPlayers } = state.players;
+    const { [playerId]: _removed, ...restPlayers } = state.players;
     set({
       youthAcademy: { ...state.youthAcademy, prospects: newProspects },
       players: restPlayers,

@@ -190,7 +190,6 @@ export function LineupEditor() {
           {subAndBench.map(id => {
             const p = players[id];
             if (!p) return null;
-            const compat = draggedPlayer && draggedId !== id ? getCompatibility(draggedPlayer.position as Position, p.position as Position) : null;
             return (
               <DraggablePlayer key={id} id={id}>
                 <div className="flex flex-col items-center shrink-0 cursor-grab active:cursor-grabbing">

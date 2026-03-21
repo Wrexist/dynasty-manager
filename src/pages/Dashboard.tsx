@@ -16,7 +16,7 @@ import { getRoundName } from '@/data/cup';
 import { DIVISIONS } from '@/data/league';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
+import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { checkCelebrations, getWinStreak } from '@/utils/celebrations';
 import type { Celebration } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
@@ -34,7 +34,7 @@ const Dashboard = () => {
   const {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
     boardConfidence, boardObjectives, setScreen, advanceWeek,
-    currentMatchResult, messages, incomingOffers, endSeason, trainingFocus, cup,
+    currentMatchResult, incomingOffers, endSeason, trainingFocus, cup,
   } = store;
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent } = useCurrentMatch();
@@ -127,7 +127,6 @@ const Dashboard = () => {
     .filter(p => p && p.contractEnd <= season && !p.injured);
 
   // Net weekly income
-  const weeklyIncome = getWeeklyIncome(club);
   const netWeeklyIncome = getNetWeeklyIncome(club);
 
   // Win streak

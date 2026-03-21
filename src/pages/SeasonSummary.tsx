@@ -44,8 +44,6 @@ const SeasonSummary = () => {
   const playerClubShort = clubs[playerClubId]?.shortName || '';
   const individualAwards = (latest.awards || []).filter(a => a.name !== 'Team of the Season');
   const bestXI = (latest.awards || []).filter(a => a.name === 'Team of the Season');
-  const playerClubAwards = individualAwards.filter(a => a.recipientClub === playerClubShort);
-
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>

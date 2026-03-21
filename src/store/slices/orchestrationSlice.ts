@@ -1,5 +1,5 @@
-import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, SeasonAward, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, FacilitiesState, BoardObjective, Position, Message, Match, PlayerMatchRating, DivisionId, PlayoffState } from '@/types/game';
-import { CLUBS_DATA, generateFixtures, buildLeagueTable, getClubsByDivision, generateAllDivisionFixtures, buildAllDivisionTables, DERBIES, DIVISIONS, getDerbyIntensity, getDerbyName } from '@/data/league';
+import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, FacilitiesState, BoardObjective, Position, Message, Match, DivisionId, PlayoffState } from '@/types/game';
+import { CLUBS_DATA, buildLeagueTable, getClubsByDivision, generateAllDivisionFixtures, buildAllDivisionTables, DERBIES, DIVISIONS, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverallExport } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
@@ -7,14 +7,12 @@ import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity } from '@
 import { completeAssignment } from '@/utils/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
-import { addMsg, getSuffix, pick, clamp, shuffle } from '@/utils/helpers';
+import { addMsg, getSuffix, pick, shuffle } from '@/utils/helpers';
 import { migrateLegacySave } from '@/store/helpers/persistence';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS } from '@/utils/achievements';
-import { generateCupDraw, advanceCupRound, CUP_WEEKS, getCupResultForClub } from '@/data/cup';
-import type { CupState } from '@/types/game';
-import { generatePressConference, getPressContext } from '@/data/pressConferences';
-import { getChemistryBonus } from '@/utils/chemistry';
+import { generateCupDraw, advanceCupRound, getCupResultForClub } from '@/data/cup';
+import { generatePressConference } from '@/data/pressConferences';
 import { getMentorBonus } from '@/utils/chemistry';
 import { checkChallengeComplete, checkChallengeFailed, CHALLENGES } from '@/data/challenges';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
@@ -22,14 +20,7 @@ import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
 import {
   TOTAL_WEEKS, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY,
-  CONFIDENCE_WIN_CHANGE, CONFIDENCE_LOSS_CHANGE, CONFIDENCE_DRAW_CHANGE,
-  CONFIDENCE_POSITION_BONUS, CONFIDENCE_POSITION_PENALTY, CONFIDENCE_POSITION_PENALTY_THRESHOLD,
-  CONFIDENCE_BUDGET_PENALTY, CONFIDENCE_BUDGET_THRESHOLD,
-  CONFIDENCE_WIN_STREAK_BONUS, CONFIDENCE_LOSS_STREAK_PENALTY, CONFIDENCE_STREAK_LENGTH,
-  CONFIDENCE_WARNING_THRESHOLD, CONFIDENCE_PLEASED_THRESHOLD, CONFIDENCE_MIN, CONFIDENCE_MAX,
-  FITNESS_DRAIN_PER_MATCH, FITNESS_MIN_POST_MATCH,
-  MORALE_WIN_CHANGE, MORALE_LOSS_CHANGE,
-  FORM_WIN_CHANGE, FORM_LOSS_CHANGE, FORM_DRAW_CHANGE,
+  CONFIDENCE_MIN,
   MATCH_INJURY_WEEKS_MIN, MATCH_INJURY_WEEKS_RANGE, TRAINING_INJURY_WEEKS_MIN, TRAINING_INJURY_WEEKS_RANGE,
   RED_CARD_SUSPENSION_MIN, RED_CARD_SUSPENSION_RANGE,
   PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_INJURY_REDUCTION_PER_QUALITY, ASSISTANT_MANAGER_FAMILIARITY_BOOST,
@@ -41,7 +32,7 @@ import {
   FAN_MOOD_BASE, FAN_MOOD_SCALE,
   STADIUM_LEVEL_DIVISOR, MEDICAL_LEVEL_FACTOR, FACILITY_MAX_LEVEL,
   SEASON_END_CONFIDENCE,
-  TARGET_TEMPLATE as TARGET_TEMPLATE_CONFIG, MIN_SQUAD_SIZE, REPLACEMENT_QUALITY_REP_MULTIPLIER, REPLACEMENT_QUALITY_BASE, REPLACEMENT_QUALITY_VARIANCE,
+  MIN_SQUAD_SIZE, REPLACEMENT_QUALITY_REP_MULTIPLIER, REPLACEMENT_QUALITY_BASE, REPLACEMENT_QUALITY_VARIANCE,
   GENERIC_FILL_POSITIONS,
   LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, INITIAL_LISTINGS_MIN, INITIAL_LISTINGS_RANGE,
   SEASON_YOUTH_INTAKE_MIN, SEASON_YOUTH_INTAKE_RANGE,
@@ -49,7 +40,7 @@ import {
   LOAN_QUALITY_FORMULA_REP_MULT, LOAN_QUALITY_FORMULA_BASE, LOAN_FITNESS_DRAIN, LOAN_YOUNG_AGE_THRESHOLD,
   AI_LOAN_OFFER_CHANCE, AI_LOAN_DURATIONS, AI_LOAN_WAGE_SPLITS, AI_LOAN_RECALL_CLAUSE_CHANCE,
   AI_TRANSFER_CHANCE, AI_TRANSFER_FEE_BASE, AI_TRANSFER_FEE_RANGE, AI_TRANSFER_MAX_BUDGET_RATIO, AI_TRANSFER_MIN_BUDGET,
-  getExpectedPosition, MAX_MESSAGES,
+  getExpectedPosition,
   STREAK_MORALE_THRESHOLD, STREAK_MORALE_BONUS, STREAK_INCOME_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_FORM_THRESHOLD, STREAK_FORM_BONUS,
 } from '@/config/gameBalance';
 import {
@@ -68,17 +59,16 @@ import {
   STORYLINE_CHAIN_TRIGGER_CHANCE, STORYLINE_CHAIN_MIN_WEEK,
 } from '@/config/playoffs';
 import { applyPlayerDevelopment, resetSeasonGrowth } from '@/store/helpers/development';
-import { determineZones, generatePlayoffBracket, populatePlayoffFinal, resolvePlayoffFinal, applyPromotionRelegation, generateReplacementClub, isPlayerInPlayoffs, getNextPlayoffMatch, getSemiWinner } from '@/utils/promotionRelegation';
+import { determineZones, generatePlayoffBracket, populatePlayoffFinal, resolvePlayoffFinal, applyPromotionRelegation, generateReplacementClub, isPlayerInPlayoffs, getNextPlayoffMatch } from '@/utils/promotionRelegation';
 import { generateStorylines } from '@/utils/storylines';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
 import { getWinStreak } from '@/utils/celebrations';
 import { generateWeeklyObjectives, evaluateObjectives } from '@/utils/weeklyObjectives';
 import type { ObjectiveContext } from '@/utils/weeklyObjectives';
-import { createMilestone, checkMatchMilestones } from '@/utils/milestones';
-import { createDefaultProgression, grantXP, XP_REWARDS, MANAGER_PERKS, canUnlockPerk, getTotalXP, hasPerk } from '@/utils/managerPerks';
+import { createMilestone } from '@/utils/milestones';
+import { createDefaultProgression, grantXP, XP_REWARDS, MANAGER_PERKS, canUnlockPerk, hasPerk } from '@/utils/managerPerks';
 import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
-import { getFarewellSummary } from '@/utils/playerNarratives';
 import type { CareerMilestone, PerkId, ManagerProgression } from '@/types/game';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
 
@@ -1642,7 +1632,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playCurrentMatch: () => {
     const state = get();
-    const { week, season, fixtures, clubs, players, playerClubId, messages, tactics, training } = state;
+    const { week, fixtures, clubs, players, playerClubId, tactics, training } = state;
     const match = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
     if (!match) return null;
 
@@ -1711,7 +1701,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playSecondHalf: () => {
     const state = get();
-    const { week, season, fixtures, clubs, players, playerClubId, messages, tactics, training, halfTimeState } = state;
+    const { week, fixtures, clubs, players, playerClubId, tactics, training, halfTimeState } = state;
     if (!halfTimeState) return null;
 
     const match = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
@@ -1765,7 +1755,6 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const check = canUnlockPerk(perk, state.managerProgression);
     if (!check.canUnlock) return { success: false, message: check.reason || 'Cannot unlock' };
     // Deduct XP by adjusting the xp field (subtract cost from total pool)
-    const currentTotal = getTotalXP(state.managerProgression);
     const newProg: ManagerProgression = {
       ...state.managerProgression,
       unlockedPerks: [...state.managerProgression.unlockedPerks, perkId],

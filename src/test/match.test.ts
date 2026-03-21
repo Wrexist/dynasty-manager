@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { simulateMatch } from '@/engine/match';
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
-import { Club, Match, Player } from '@/types/game';
+import { Club, Match } from '@/types/game';
 
 function makeClub(id: string, name: string): Club {
   return {

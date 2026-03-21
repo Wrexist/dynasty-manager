@@ -1,7 +1,7 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
-import { Search, Globe, MapPin, Eye, Star, Clock } from 'lucide-react';
+import { Search, Globe, MapPin, Eye, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScoutRegion } from '@/types/game';
 import { getPotentialInfo } from '@/utils/uiHelpers';

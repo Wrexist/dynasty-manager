@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { PitchView } from '@/components/game/PitchView';
 import { SubstitutionSheet } from '@/components/game/SubstitutionSheet';
 import { Button } from '@/components/ui/button';
 import { MatchEvent } from '@/types/game';
@@ -10,13 +9,13 @@ import { motion } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap } from 'lucide-react';
 import { hapticHeavy, hapticMedium } from '@/utils/haptics';
 import type { HalfState } from '@/engine/match';
-import { useCurrentMatch, usePlayerClub } from '@/hooks/useGameSelectors';
+import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
-import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
+import { getCommentaryStyle } from '@/utils/matchCommentary';
 
 const MatchDay = () => {
   const store = useGameStore();
-  const { playerClubId, week, fixtures, clubs, players, playFirstHalf, playSecondHalf, setScreen, clearMatchResult, matchSubsUsed, tactics, setTactics } = store;
+  const { playerClubId, week, clubs, playFirstHalf, playSecondHalf, setScreen, matchSubsUsed, tactics, setTactics } = store;
 
   const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'post'>('pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
@@ -37,8 +36,6 @@ const MatchDay = () => {
 
   const homeClub = match ? clubs[match.homeClubId] : null;
   const awayClub = match ? clubs[match.awayClubId] : null;
-  const playerClub = usePlayerClub();
-
   // Reset popup state when entering post phase
   useEffect(() => {
     if (phase === 'post') setShowPostPopup(true);

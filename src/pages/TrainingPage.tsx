@@ -48,12 +48,11 @@ const TrainingPage = () => {
           <div className="space-y-2">
             {DAYS.map((day, i) => {
               const current = schedule[day];
-              const info = MODULE_INFO.find(m => m.module === current);
               return (
                 <div key={day} className="flex items-center gap-3">
                   <span className="text-xs text-muted-foreground w-8 shrink-0">{DAY_LABELS[i]}</span>
                   <div className="flex gap-1.5 flex-1 overflow-x-auto">
-                    {MODULE_INFO.map(({ module, label, icon: Icon, color }) => (
+                    {MODULE_INFO.map(({ module, label, icon: Icon, color: _color }) => (
                       <button
                         key={module}
                         onClick={() => handleDayChange(day, module)}

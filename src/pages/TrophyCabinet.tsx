@@ -8,7 +8,7 @@ import { ACHIEVEMENTS, getTierColor } from '@/utils/achievements';
 import { motion } from 'framer-motion';
 
 const TrophyCabinet = () => {
-  const { seasonHistory, unlockedAchievements, cup, playerClubId, clubRecords, managerProgression } = useGameStore();
+  const { seasonHistory, unlockedAchievements, clubRecords } = useGameStore();
 
   const leagueTitles = seasonHistory.filter(h => h.position === 1);
   const cupWins = clubRecords.cupWins;

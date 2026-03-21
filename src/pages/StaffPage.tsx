@@ -1,7 +1,7 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
-import { Users, Star, Briefcase, Plus } from 'lucide-react';
+import { Users, Star, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StaffRole } from '@/types/game';
 

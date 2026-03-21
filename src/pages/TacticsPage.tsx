@@ -1,6 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { PitchView } from '@/components/game/PitchView';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { cn } from '@/lib/utils';
 import { getChemistryBonus, getChemistryLabel, calculateChemistryLinks } from '@/utils/chemistry';
@@ -30,8 +29,6 @@ const TacticsPage = () => {
   if (!club) return null;
 
   const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
-  const labels = lineupPlayers.map(p => p.lastName.slice(0, 3).toUpperCase());
-  const fitnessValues = lineupPlayers.map(p => Math.round(p.fitness));
   const chemBonus = getChemistryBonus(lineupPlayers);
   const chemLabel = getChemistryLabel(chemBonus);
   const chemLinks = calculateChemistryLinks(lineupPlayers);

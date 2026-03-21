@@ -1,4 +1,4 @@
-import { SeasonHistory, ManagerProgression } from '@/types/game';
+import { SeasonHistory } from '@/types/game';
 
 export interface PrestigeOption {
   id: 'rival' | 'drop-division' | 'restart-perks';

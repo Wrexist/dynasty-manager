@@ -5,7 +5,7 @@ import { SubNav } from '@/components/game/SubNav';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2 } from 'lucide-react';
-import { Position, PlayerAttributes } from '@/types/game';
+import { PlayerAttributes } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { getRatingColor } from '@/utils/uiHelpers';
 import { POSITION_FILTERS } from '@/config/ui';
@@ -26,7 +26,7 @@ const TransferPage = () => {
   const {
     transferMarket, players, clubs, playerClubId, shortlist, transferWindowOpen,
     makeOffer, addToShortlist, removeFromShortlist, selectPlayer,
-    incomingOffers, respondToOffer, listPlayerForSale, unlistPlayer,
+    incomingOffers, respondToOffer, unlistPlayer,
     activeLoans, incomingLoanOffers, recallLoan, respondToLoanOffer,
     week, season, totalWeeks,
   } = useGameStore();

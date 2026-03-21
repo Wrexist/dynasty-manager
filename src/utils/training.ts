@@ -1,4 +1,4 @@
-import { Player, PlayerAttributes, TrainingState, TrainingModule } from '@/types/game';
+import { Player, TrainingState, TrainingModule } from '@/types/game';
 import { clamp } from './helpers';
 import { calculateOverallExport } from './playerGen';
 import { getTrainingMultiplier } from './personality';

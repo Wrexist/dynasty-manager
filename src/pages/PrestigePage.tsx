@@ -1,9 +1,8 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
-import { Trophy, Star, Award, ArrowRight, Crown } from 'lucide-react';
+import { Trophy, Star, ArrowRight, Crown } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
-import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { PRESTIGE_OPTIONS, calculatePrestigeStats } from '@/utils/prestige';
 

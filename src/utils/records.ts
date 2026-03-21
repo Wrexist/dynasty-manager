@@ -1,4 +1,4 @@
-import { ClubRecords, RecordEntry, Player, LeagueTableEntry, Match } from '@/types/game';
+import { ClubRecords, Match } from '@/types/game';
 
 export function createEmptyRecords(): ClubRecords {
   return {

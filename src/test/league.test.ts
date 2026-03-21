@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateFixtures, buildLeagueTable, CLUBS_DATA, DIVISIONS, getClubsByDivision, getDivision } from '@/data/league';
+import { generateFixtures, buildLeagueTable, CLUBS_DATA, getDivision } from '@/data/league';
 
 describe('league', () => {
   describe('generateFixtures', () => {

@@ -358,9 +358,9 @@ export function simulateHalf(
   const cornerGoalDescs = [
     (name: string, club: string) => `GOAL! ${name} heads in from the corner for ${club}!`,
     (name: string, club: string) => `GOAL! ${name} rises highest from the corner! ${club} score!`,
-    (name: string, club: string) => `GOAL! A towering header from ${name} after the corner!`,
+    (name: string, _club: string) => `GOAL! A towering header from ${name} after the corner!`,
     (name: string, club: string) => `GOAL! ${name} meets the cross at the back post! ${club} score from the set piece!`,
-    (name: string, club: string) => `GOAL! Bullet header from ${name}! Nobody was going to stop that!`,
+    (name: string, _club: string) => `GOAL! Bullet header from ${name}! Nobody was going to stop that!`,
   ];
 
   if (startMin === 1) {

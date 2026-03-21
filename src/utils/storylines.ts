@@ -1,4 +1,4 @@
-import { Player, Message, Club, StorylineEvent, StorylineOption } from '@/types/game';
+import { Player, Message, Club, StorylineEvent } from '@/types/game';
 
 interface StorylineContext {
   week: number;

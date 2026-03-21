@@ -1,6 +1,6 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Building2, Dumbbell, GraduationCap, Home, Stethoscope, ArrowUp, Clock } from 'lucide-react';
+import { Dumbbell, GraduationCap, Home, Stethoscope, ArrowUp, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FACILITY_COST_PER_LEVEL, FACILITY_MAX_LEVEL } from '@/config/gameBalance';
 

@@ -6,8 +6,7 @@
 
 import { DivisionId, DivisionInfo, LeagueTableEntry, PlayoffState, PlayoffTie, PromotionRelegation, Club } from '@/types/game';
 import { DIVISIONS } from '@/data/league';
-import { generatePlayer, selectBestLineup } from '@/utils/playerGen';
-import type { Position, FormationType, ClubData } from '@/types/game';
+import type { ClubData } from '@/types/game';
 
 // ── Determine zone positions from final table ──
 

@@ -18,7 +18,7 @@ export function checkCelebrations(
   playerIds: string[],
   fixtures: Match[],
   leagueTable: LeagueTableEntry[],
-  season: number,
+  _season: number,
 ): Celebration[] {
   const celebrations: Celebration[] = [];
 

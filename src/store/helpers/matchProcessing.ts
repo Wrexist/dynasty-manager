@@ -1,4 +1,4 @@
-import type { Club, Player, Match, PlayerMatchRating, Message, CareerMilestone, ManagerProgression } from '@/types/game';
+import type { Match, PlayerMatchRating, CareerMilestone } from '@/types/game';
 import { buildLeagueTable } from '@/data/league';
 import { addMsg } from '@/utils/helpers';
 import {

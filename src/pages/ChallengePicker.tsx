@@ -5,7 +5,7 @@ import { CHALLENGES, getDifficultyColor } from '@/data/challenges';
 import { CLUBS_DATA } from '@/data/league';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
-import { ArrowLeft, ChevronRight, Shield, Trophy, Lock, Star } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Shield, Trophy, Star } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import type { ChallengeScenario } from '@/types/game';
 

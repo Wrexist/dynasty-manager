@@ -1,9 +1,8 @@
 import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
-import { generatePressConference, getPressContext } from '@/data/pressConferences';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
-import { CHALLENGES, checkChallengeComplete, checkChallengeFailed } from '@/data/challenges';
+import { CHALLENGES } from '@/data/challenges';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
