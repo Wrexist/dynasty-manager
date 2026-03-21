@@ -1,54 +1,103 @@
 # CLAUDE.md — Dynasty Manager
 
 ## Project Overview
-Dynasty Manager is a mobile-first football management simulation built as a single-page web app. Players pick a club, manage squads, set tactics, handle transfers, and simulate matches across seasons. Dark premium UI with glass-morphism and gold accents.
+Dynasty Manager is a mobile-first football management simulation with native iOS/Android builds via Capacitor. Players pick a club from 92 teams across 4 divisions, manage squads, set tactics, handle transfers/loans, simulate matches, and progress through seasons with promotion/relegation and cup competitions. Dark premium UI with glass-morphism and gold accents.
 
 **Origin:** MVP scaffolded in Lovable.dev → now in Cursor + Claude Code for deeper development.
 
 ## Tech Stack
-- **React 18.3.1** + **TypeScript 5.8.3** (non-strict) via **Vite 5.4.19** (SWC plugin `@vitejs/plugin-react-swc 3.11.0`)
+- **React 18.3.1** + **TypeScript 5.8.3** (non-strict) via **Vite 7.3.1** (SWC plugin `@vitejs/plugin-react-swc 3.11.0`)
 - **Tailwind CSS 3.4.17** + `tailwindcss-animate` + HSL CSS variables (dark-only theme)
-- **shadcn/ui** (Radix + CVA + clsx + tailwind-merge) — ~50 UI component files
-- **Zustand 5.0.11** — single `gameStore.ts` (~750 lines, the brain of the app)
+- **shadcn/ui** (Radix + CVA + clsx + tailwind-merge) — 9 UI component files
+- **Zustand 5.0.11** — modular store: `gameStore.ts` (25-line entry) + 9 slices + 3 helpers (~3,400 LOC total)
 - **React Router DOM 6.30.1** — routes: `/`, `/select-club`, `/game`, `*`
 - **Framer Motion 12.35.1** — page transitions, match animations
-- **Recharts 2.15.4** — for stats (future use)
+- **@dnd-kit** (core + sortable + utilities) — drag-and-drop for lineup editing
+- **Recharts 2.15.4** — stats charts
 - **Sonner 1.7.4** — toast notifications
 - **Zod 3.25.76** — schema validation
-- **Vitest 3.2.4 + jsdom + Testing Library** — test infra
+- **Capacitor 8.2.0** — native iOS/Android builds (haptics, splash screen, status bar, keyboard plugins)
+- **Vitest 3.2.4 + jsdom + Testing Library** — test infra (8 test files)
+- **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Package manager:** npm
 - **Fonts:** Oswald (headings) + DM Sans (body) via Google Fonts
 
-## Architecture
+## Architecture (~21,000 LOC across 142 TS/TSX files)
 ```
 src/
-├── components/game/  → BottomNav, TopBar, GlassPanel, PitchView, PlayerCard, StatBar
-├── components/ui/    → shadcn/ui (~50 files — DO NOT modify unless asked)
-├── data/league.ts    → 20 clubs, fixture gen, league table calc
-├── engine/match.ts   → Match sim (event-based, minute-by-minute)
-├── hooks/            → use-mobile, use-toast
-├── lib/utils.ts      → cn() utility
-├── pages/            → Dashboard, SquadPage, TacticsPage, MatchDay, TransferPage, etc.
-├── store/            → Zustand store split into slices (gameStore.ts + slices/)
-├── types/game.ts     → Every type, formations, position compatibility
-├── utils/playerGen.ts → Player gen, overall calc, squad building, lineup selection
-├── test/             → Vitest setup
-├── index.css         → Tailwind + CSS vars + custom utilities
-└── main.tsx          → Entry
+├── components/
+│   ├── game/           → 21 components: TopBar, BottomNav, SubNav, GlassPanel,
+│   │                     PitchView, PlayerCard, PlayerAvatar, LineupEditor,
+│   │                     SubstitutionSheet, StatBar, CelebrationModal,
+│   │                     StorylineModal, ContractNegotiation, PressConference,
+│   │                     PostMatchPopup, BoardWarning, DynamicIcon, etc.
+│   ├── ui/             → 9 shadcn/ui files (DO NOT modify unless asked)
+│   └── NavLink.tsx
+├── config/             → 14 config files (~1,100 LOC): gameBalance, playerGeneration,
+│                         matchEngine, transfers, contracts, training, staff,
+│                         scouting, youth, tactics, chemistry, ui, playoffs
+├── data/               → league.ts (92 clubs, 4 divisions), cup.ts, challenges.ts,
+│                         pressConferences.ts, storylineChains.ts
+├── engine/match.ts     → Match sim (653 LOC, event-based, minute-by-minute)
+├── hooks/              → use-mobile, use-toast, useGameSelectors, useSwipeGesture
+├── lib/utils.ts        → cn() utility
+├── pages/              → 33 pages (~7,600 LOC): Dashboard, Squad, Tactics, MatchDay,
+│                         Transfer, Training, Staff, Scouting, YouthAcademy,
+│                         Facilities, Finance, MatchPrep, MatchReview, Cup,
+│                         Board, Perks, Prestige, TrophyCabinet, HallOfManagers,
+│                         SeasonSummary, PlayerDetail, ManagerProfile, Settings,
+│                         Inbox, CalendarView, ChallengePicker, LeagueTable, etc.
+├── store/
+│   ├── gameStore.ts    → 25-line Zustand composition layer
+│   ├── storeTypes.ts   → GameState interface (162 LOC)
+│   ├── slices/         → 9 slices:
+│   │   ├── orchestrationSlice.ts  (1,970 LOC — game loop, largest file)
+│   │   ├── loanSlice.ts           (292 LOC)
+│   │   ├── featureSlice.ts        (242 LOC)
+│   │   ├── transferSlice.ts       (202 LOC)
+│   │   ├── systemsSlice.ts        (157 LOC — tactics, training, staff)
+│   │   ├── clubSlice.ts           (42 LOC)
+│   │   ├── coreSlice.ts           (39 LOC)
+│   │   ├── matchSlice.ts          (25 LOC)
+│   │   └── cupSlice.ts            (21 LOC)
+│   └── helpers/        → development.ts, matchProcessing.ts, persistence.ts
+├── types/game.ts       → All types (674 LOC): Player, Club, Match, Formation,
+│                         Position, DivisionInfo, PlayoffState, PlayerPersonality, etc.
+├── utils/              → 27 utility files (~2,900 LOC): playerGen, training,
+│                         scouting, youth, staff, contracts, chemistry, personality,
+│                         promotionRelegation, playoffs, achievements, milestones,
+│                         managerPerks, celebrations, seasonAwards, records,
+│                         storylines, playerNarratives, financeHelpers, hallOfManagers,
+│                         weekPreview, weeklyObjectives, saveMigration (v7), etc.
+├── test/               → 8 test files: match, playerDev, helpers, cup,
+│                         celebrations, saveMigration
+├── index.css           → Tailwind + CSS vars + custom utilities
+└── main.tsx            → Entry
 ```
 
 ## Critical Files (read these first)
-1. **`src/store/`** — Zustand store split into slices: `gameStore.ts` (entry), `slices/orchestrationSlice.ts` (largest), `slices/transferSlice.ts`, etc.
-2. **`src/types/game.ts`** — All types. Formations, positions, compatibility maps.
-3. **`src/utils/playerGen.ts`** — Player attributes, overall calc, squad gen, lineup auto-select.
-4. **`src/engine/match.ts`** — Match simulation. Produces minute-by-minute events.
-5. **`src/data/league.ts`** — 92 clubs across 4 divisions, round-robin fixtures, table builder.
+1. **`src/store/slices/orchestrationSlice.ts`** — Game loop brain. `advanceWeek()`, `endSeason()`, `initGame()`. Largest file at ~1,970 LOC.
+2. **`src/store/storeTypes.ts`** — Complete `GameState` interface. Understand state shape here.
+3. **`src/types/game.ts`** — All types (674 LOC). 7 formations, 12 positions, 23 game screens, season phases, player personality system.
+4. **`src/config/gameBalance.ts`** — 100+ balancing constants. Check here before hardcoding values.
+5. **`src/engine/match.ts`** — Match simulation (653 LOC). Event-based, minute-by-minute.
+6. **`src/data/league.ts`** — 92 clubs across 4 divisions, fixture generation, league table builder.
+7. **`src/utils/playerGen.ts`** — Player generation, overall calculation, squad building.
+
+## League Structure
+| Division | Name | Clubs | Weeks | Promotion |
+|----------|------|-------|-------|-----------|
+| div-1 | Monarch Premier League | 20 | 46 | N/A (top flight) |
+| div-2 | Dynasty Championship | 24 | 46 | 2 auto + 4 playoff |
+| div-3 | Sovereign First Division | 24 | 46 | 2 auto + 4 playoff |
+| div-4 | Foundation League | 24 | 46 | 3 auto + 4 playoff |
 
 ## Code Conventions
-- **TS non-strict** (`strict: false`, `noImplicitAny: false`). Use `interface` > `type` for objects.
+- **TS non-strict** (`strict: false`, `noImplicitAny: false`, `strictNullChecks: false`). Use `interface` > `type` for objects.
 - **Components:** Functional + hooks. Default export for pages, named for shared.
 - **Styling:** Tailwind only. Use `cn()` for conditionals. Glass = `bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl`.
-- **State:** All game logic → Zustand actions in `gameStore.ts`. Never in components.
+- **State:** All game logic → Zustand slices in `src/store/slices/`. Never in components.
+- **Config:** Game balance constants go in `src/config/`, not hardcoded in logic files.
 - **Imports:** `@/` alias. Order: external → `@/components/ui` → `@/components/game` → local.
 - **Naming:** camelCase vars, PascalCase components/types, UPPER_SNAKE constants.
 
@@ -56,18 +105,32 @@ src/
 - Dark theme only, HSL CSS vars (see `src/index.css`)
 - Primary/Gold: `43 96% 46%` | Background: `222 30% 7%` | Accent: `215 60% 50%`
 - Mobile-first: `max-w-lg mx-auto`, bottom nav, safe-area padding
-- Rating colors: ≥80 emerald, ≥70 primary, ≥60 amber, <60 muted
+- Rating colors: >=80 emerald, >=70 primary, >=60 amber, <60 muted
+- Club colors are the only place where inline `style={{ backgroundColor }}` is acceptable
 
 ## Key Patterns
-- **Game loop:** `advanceWeek()` — training, development, AI sims, injuries, income, messages
-- **Match sim:** `simulateMatch()` → Match with events. MatchDay renders live.
-- **Player dev:** Young (<24) grow toward potential, vets (≥31) decline. Per-attribute probability.
-- **Transfers:** Buy `makeOffer()`, sell `listPlayerForSale()`, respond `respondToOffer()`
-- **Season end:** `endSeason()` — age, contracts, replacements, new fixtures, reset stats
-- **Persistence:** `saveGame()`/`loadGame()` via localStorage key `'dynasty-save'` (version: 2)
+- **Game loop:** `advanceWeek()` — training, development, AI sims, injuries, income, messages, offers, weekly objectives
+- **Match sim:** `simulateMatch()` → Match with events. MatchDay renders live. Late drama after min 85.
+- **Player dev:** Young (<24) grow toward potential, vets (>=31) decline. Per-attribute probability via `helpers/development.ts`.
+- **Transfers:** Buy `makeOffer()`, sell `listPlayerForSale()`, respond `respondToOffer()`. Window: weeks 1-8 and 20-24.
+- **Loans:** Separate loan system via `loanSlice.ts` — incoming/outgoing loan offers and deals.
+- **Season end:** `endSeason()` — age, contracts, replacements, new fixtures, reset stats, promotion/relegation.
+- **Promotion/Relegation:** Handled by `utils/promotionRelegation.ts` and `utils/playoffs.ts`. Playoff system for lower divisions.
+- **Persistence:** `saveGame()`/`loadGame()` via localStorage key `'dynasty-save'` (save version: **7**, migration in `utils/saveMigration.ts`).
+- **Progression:** Manager perks, prestige system, achievements, milestones, Hall of Managers.
+- **Narratives:** Storyline chains (`data/storylineChains.ts`), press conferences, player narratives.
+
+## Key Gotchas
+- `club.lineup` and `club.subs` are **string arrays of player IDs**, not Player objects.
+- Always `filter(Boolean)` after mapping playerIds to players — some IDs may reference deleted players.
+- When selling a player, must update: seller (playerIds/lineup/subs/wageBill/budget), buyer (same), player's clubId, AND remove from transferMarket.
+- Match results must update BOTH the fixtures array AND individual player stats (goals, assists, etc.).
+- `advanceWeek()` resets `matchSubsUsed` to 0 at the end. Player match is handled via `playCurrentMatch()`, not inside `advanceWeek()`.
+- Store uses `set()` with spread — always spread nested objects before modifying or you'll mutate state.
 
 ## Commands
 ```bash
+# Development
 npm run dev          # Dev server (port 8080)
 npm run build        # Production build
 npm run build:dev    # Development build
@@ -75,20 +138,35 @@ npm run preview      # Preview production build
 npm run test         # Vitest
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
+
+# Mobile (Capacitor)
+npm run cap:sync     # Build + sync to native projects
+npm run cap:ios      # Open Xcode project
+npm run cap:android  # Open Android Studio project
 ```
 
+## CI/CD
+- **`ios-testflight.yml`** — Automated iOS TestFlight deployment
+- **`android-build.yml`** — Android APK/AAB building
+- **`pr-checks.yml`** — Pull request validation (lint + build + test)
+
 ## Known Tech Debt
-- orchestrationSlice.ts is large (~1,968 lines) — could be further split
-- TS strict mode OFF
-- No PWA manifest
-- framer-motion v12 is heavy
+- `orchestrationSlice.ts` is ~1,970 lines — could be further split
+- TS strict mode OFF (`strict: false`, `strictNullChecks: false`)
+- `getSuffix()` helper duplicated across Dashboard, SeasonSummary
+- `pick()` and `clamp()` helpers duplicated across multiple files
+- framer-motion v12 is heavy (~30kb gzipped)
+- Vite config has manual chunk splitting for framer-motion, recharts, radix
 
 ## Hard Rules
 - NEVER modify `src/components/ui/*` unless asked
 - NEVER change HSL color variable system
 - NEVER add npm deps without discussing tradeoffs
-- NEVER put game logic in components — store or utils only
-- NEVER use localStorage directly — go through store actions
+- NEVER put game logic in components — store slices or utils only
+- NEVER hardcode balance values — use `src/config/` constants
+- NEVER use localStorage directly — go through store persistence helpers
 - NEVER break mobile-first layout — test at 375px
+- NEVER create type files outside `src/types/game.ts` — single source of truth
 - ALWAYS run `npm run build` before marking done
-- ALWAYS keep `game.ts` types as single source of truth
+- ALWAYS spread nested objects when using Zustand `set()` — no direct mutation
+- ALWAYS `filter(Boolean)` when mapping player IDs to Player objects

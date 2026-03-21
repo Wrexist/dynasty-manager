@@ -59,6 +59,14 @@ import {
   URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS,
   OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
 } from '@/config/transfers';
+import {
+  PLAYOFF_HOME_ADVANTAGE, PLAYOFF_GOAL_RANGE, PLAYOFF_STRONG_BONUS, PLAYOFF_WEAK_BONUS,
+  PLAYOFF_FINAL_STRONG_BONUS, PLAYOFF_FINAL_WEAK_BONUS, PLAYOFF_EXTRA_TIME_CHANCE, PLAYOFF_FALLBACK_OVERALL,
+  PROMOTION_BUDGET_MULTIPLIER, PROMOTION_MORALE_BONUS, PROMOTION_FAN_MOOD_BONUS,
+  RELEGATION_BUDGET_MULTIPLIER, RELEGATION_MORALE_PENALTY, RELEGATION_FAN_MOOD_PENALTY, RELEGATION_UNHAPPY_OVERALL,
+  VERDICT_EXCELLENT_OFFSET, VERDICT_ACCEPTABLE_OFFSET, BOARD_SACKING_THRESHOLD,
+  STORYLINE_CHAIN_TRIGGER_CHANCE, STORYLINE_CHAIN_MIN_WEEK,
+} from '@/config/playoffs';
 import { applyPlayerDevelopment, resetSeasonGrowth } from '@/store/helpers/development';
 import { determineZones, generatePlayoffBracket, populatePlayoffFinal, resolvePlayoffFinal, applyPromotionRelegation, generateReplacementClub, isPlayerInPlayoffs, getNextPlayoffMatch, getSemiWinner } from '@/utils/promotionRelegation';
 import { generateStorylines } from '@/utils/storylines';
@@ -125,35 +133,47 @@ function generateObjectives(club: Club, divisionId?: DivisionId): BoardObjective
   return objectives;
 }
 
+/** Calculate average overall strength for a club's players. */
+function getClubAvgStrength(club: Club, players: Record<string, Player>): number {
+  return club.playerIds.reduce((s, id) => s + (players[id]?.overall || PLAYOFF_FALLBACK_OVERALL), 0) / Math.max(club.playerIds.length, 1);
+}
+
+/** Simulate playoff goals for a single tie. */
+function simulatePlayoffGoals(hStrength: number, aStrength: number, homeAdv: number, isFinal: boolean): { homeGoals: number; awayGoals: number } {
+  const strongBonus = isFinal ? PLAYOFF_FINAL_STRONG_BONUS : PLAYOFF_STRONG_BONUS;
+  const weakBonus = isFinal ? PLAYOFF_FINAL_WEAK_BONUS : PLAYOFF_WEAK_BONUS;
+  const homeGoals = Math.floor(Math.random() * PLAYOFF_GOAL_RANGE + (hStrength + homeAdv > aStrength ? strongBonus : weakBonus));
+  const awayGoals = Math.floor(Math.random() * PLAYOFF_GOAL_RANGE + (aStrength > hStrength + homeAdv ? strongBonus : weakBonus));
+  return { homeGoals, awayGoals };
+}
+
+/** Simulate a single playoff tie (leg or final). */
+function simulatePlayoffTie(tie: PlayoffState['bracket'][number], clubs: Record<string, Club>, players: Record<string, Player>) {
+  const hc = clubs[tie.homeClubId];
+  const ac = clubs[tie.awayClubId];
+  if (!hc || !ac) return;
+  const hStrength = getClubAvgStrength(hc, players);
+  const aStrength = getClubAvgStrength(ac, players);
+  const isFinal = tie.round === 'final';
+  const homeAdv = isFinal ? 0 : PLAYOFF_HOME_ADVANTAGE;
+  const goals = simulatePlayoffGoals(hStrength, aStrength, homeAdv, isFinal);
+  tie.homeGoals = goals.homeGoals;
+  tie.awayGoals = goals.awayGoals;
+  if (isFinal && tie.homeGoals === tie.awayGoals) {
+    if (Math.random() < PLAYOFF_EXTRA_TIME_CHANCE) tie.homeGoals++; else tie.awayGoals++;
+  }
+  tie.played = true;
+}
+
 /** Simulate an entire playoff bracket instantly (for AI divisions). */
 function simulatePlayoffBracket(
   playoff: PlayoffState,
   clubs: Record<string, Club>,
   players: Record<string, Player>,
 ) {
-  // Simulate semi-final leg 1
-  for (const tie of playoff.bracket.filter(t => t.round === 'semi-leg1' && !t.played)) {
-    const hc = clubs[tie.homeClubId];
-    const ac = clubs[tie.awayClubId];
-    if (!hc || !ac) continue;
-    const hStrength = hc.playerIds.reduce((s, id) => s + (players[id]?.overall || 50), 0) / Math.max(hc.playerIds.length, 1);
-    const aStrength = ac.playerIds.reduce((s, id) => s + (players[id]?.overall || 50), 0) / Math.max(ac.playerIds.length, 1);
-    const hAdv = 3;
-    tie.homeGoals = Math.floor(Math.random() * 3 + (hStrength + hAdv > aStrength ? 0.8 : 0.3));
-    tie.awayGoals = Math.floor(Math.random() * 3 + (aStrength > hStrength + hAdv ? 0.8 : 0.3));
-    tie.played = true;
-  }
-  // Simulate semi-final leg 2
-  for (const tie of playoff.bracket.filter(t => t.round === 'semi-leg2' && !t.played)) {
-    const hc = clubs[tie.homeClubId];
-    const ac = clubs[tie.awayClubId];
-    if (!hc || !ac) continue;
-    const hStrength = hc.playerIds.reduce((s, id) => s + (players[id]?.overall || 50), 0) / Math.max(hc.playerIds.length, 1);
-    const aStrength = ac.playerIds.reduce((s, id) => s + (players[id]?.overall || 50), 0) / Math.max(ac.playerIds.length, 1);
-    const hAdv = 3;
-    tie.homeGoals = Math.floor(Math.random() * 3 + (hStrength + hAdv > aStrength ? 0.8 : 0.3));
-    tie.awayGoals = Math.floor(Math.random() * 3 + (aStrength > hStrength + hAdv ? 0.8 : 0.3));
-    tie.played = true;
+  // Simulate semi-final legs
+  for (const tie of playoff.bracket.filter(t => (t.round === 'semi-leg1' || t.round === 'semi-leg2') && !t.played)) {
+    simulatePlayoffTie(tie, clubs, players);
   }
   // Populate final from semi winners
   const updated = populatePlayoffFinal(playoff);
@@ -162,18 +182,7 @@ function simulatePlayoffBracket(
   // Simulate final
   const final = playoff.bracket.find(t => t.round === 'final');
   if (final && !final.played && final.homeClubId && final.awayClubId) {
-    const hc = clubs[final.homeClubId];
-    const ac = clubs[final.awayClubId];
-    if (hc && ac) {
-      const hStrength = hc.playerIds.reduce((s, id) => s + (players[id]?.overall || 50), 0) / Math.max(hc.playerIds.length, 1);
-      const aStrength = ac.playerIds.reduce((s, id) => s + (players[id]?.overall || 50), 0) / Math.max(ac.playerIds.length, 1);
-      final.homeGoals = Math.floor(Math.random() * 3 + (hStrength > aStrength ? 0.6 : 0.3));
-      final.awayGoals = Math.floor(Math.random() * 3 + (aStrength > hStrength ? 0.6 : 0.3));
-      if (final.homeGoals === final.awayGoals) {
-        if (Math.random() < 0.5) final.homeGoals++; else final.awayGoals++;
-      }
-      final.played = true;
-    }
+    simulatePlayoffTie(final, clubs, players);
   }
   const resolved = resolvePlayoffFinal(playoff);
   playoff.promotedClubId = resolved.promotedClubId;
@@ -312,28 +321,26 @@ function advancePlayoffWeek(set: Set, get: Get) {
     if (history.promoted) {
       const toDivName = DIVISIONS.find(d => d.id === newPlayerDivision)?.name || newPlayerDivision;
       newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'PROMOTED!', body: `Congratulations! You won the playoffs and earned promotion to the ${toDivName}!` });
-      // Promotion bonus: budget +20%, morale +10, fan mood +15
-      if (playerClubForConseq) playerClubForConseq.budget = Math.round(playerClubForConseq.budget * 1.2);
+      if (playerClubForConseq) playerClubForConseq.budget = Math.round(playerClubForConseq.budget * PROMOTION_BUDGET_MULTIPLIER);
       playerClubForConseq?.playerIds.forEach(pid => {
-        if (workingPlayers[pid]) workingPlayers[pid] = { ...workingPlayers[pid], morale: Math.min(100, workingPlayers[pid].morale + 10) };
+        if (workingPlayers[pid]) workingPlayers[pid] = { ...workingPlayers[pid], morale: Math.min(100, workingPlayers[pid].morale + PROMOTION_MORALE_BONUS) };
       });
-      fanMoodDelta = 15;
+      fanMoodDelta = PROMOTION_FAN_MOOD_BONUS;
     }
     if (history.relegated) {
       const toDivName = DIVISIONS.find(d => d.id === newPlayerDivision)?.name || newPlayerDivision;
       newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Relegated', body: `Your club has been relegated to the ${toDivName}. Time to rebuild.` });
-      // Relegation consequences: budget -30%, morale -15, fan mood -20, top players want out
-      if (playerClubForConseq) playerClubForConseq.budget = Math.round(playerClubForConseq.budget * 0.7);
+      if (playerClubForConseq) playerClubForConseq.budget = Math.round(playerClubForConseq.budget * RELEGATION_BUDGET_MULTIPLIER);
       playerClubForConseq?.playerIds.forEach(pid => {
         const p = workingPlayers[pid];
         if (!p) return;
-        workingPlayers[pid] = { ...p, morale: Math.max(0, p.morale - 15) };
-        if (p.overall > 75) {
+        workingPlayers[pid] = { ...p, morale: Math.max(0, p.morale - RELEGATION_MORALE_PENALTY) };
+        if (p.overall > RELEGATION_UNHAPPY_OVERALL) {
           workingPlayers[pid] = { ...workingPlayers[pid], listedForSale: true };
           newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: `${p.lastName} Wants Out`, body: `${p.firstName} ${p.lastName} is unhappy after relegation and wants to leave.` });
         }
       });
-      fanMoodDelta = -20;
+      fanMoodDelta = RELEGATION_FAN_MOOD_PENALTY;
     }
     if (fanMoodDelta !== 0) {
       set(s => ({ fanMood: Math.max(0, Math.min(100, s.fanMood + fanMoodDelta)) }));
@@ -350,18 +357,7 @@ function advancePlayoffWeek(set: Set, get: Get) {
       if (tie.round !== playoff.currentRound || tie.played) continue;
       if (tie.homeClubId === playerClubId || tie.awayClubId === playerClubId) continue;
       if (!tie.homeClubId || !tie.awayClubId) continue;
-      const hc = clubs[tie.homeClubId];
-      const ac = clubs[tie.awayClubId];
-      if (!hc || !ac) continue;
-      const hStr = hc.playerIds.reduce((s, id) => s + (newPlayers[id]?.overall || 50), 0) / Math.max(hc.playerIds.length, 1);
-      const aStr = ac.playerIds.reduce((s, id) => s + (newPlayers[id]?.overall || 50), 0) / Math.max(ac.playerIds.length, 1);
-      const hAdv = tie.round === 'final' ? 0 : 3;
-      tie.homeGoals = Math.floor(Math.random() * 3 + (hStr + hAdv > aStr ? 0.8 : 0.3));
-      tie.awayGoals = Math.floor(Math.random() * 3 + (aStr > hStr + hAdv ? 0.8 : 0.3));
-      if (tie.round === 'final' && tie.homeGoals === tie.awayGoals) {
-        if (Math.random() < 0.5) tie.homeGoals++; else tie.awayGoals++;
-      }
-      tie.played = true;
+      simulatePlayoffTie(tie, clubs, newPlayers);
     }
   }
 
@@ -423,10 +419,10 @@ function endSeasonImpl(set: Set, get: Get) {
   const pc = clubs[playerClubId];
   const expectedPos = getExpectedPosition(pc.reputation);
   let verdict: SeasonHistory['boardVerdict'] = 'acceptable';
-  if (pos <= Math.max(1, expectedPos - 3)) verdict = 'excellent';
+  if (pos <= Math.max(1, expectedPos + VERDICT_EXCELLENT_OFFSET)) verdict = 'excellent';
   else if (pos <= expectedPos) verdict = 'good';
-  else if (pos <= expectedPos + 4) verdict = 'acceptable';
-  else if (boardConfidence < 20) verdict = 'sacked';
+  else if (pos <= expectedPos + VERDICT_ACCEPTABLE_OFFSET) verdict = 'acceptable';
+  else if (boardConfidence < BOARD_SACKING_THRESHOLD) verdict = 'sacked';
   else verdict = 'poor';
 
   const history: SeasonHistory = {
@@ -539,28 +535,26 @@ function endSeasonImpl(set: Set, get: Get) {
   if (history.promoted) {
     const toDivName = DIVISIONS.find(d => d.id === newPlayerDivision)?.name || newPlayerDivision;
     newMessages = addMsg(newMessages, { week: state.week, season, type: 'board', title: 'PROMOTED!', body: `Congratulations! Your club has been promoted to the ${toDivName}!` });
-    // Promotion bonus: budget +20%, morale +10, fan mood +15
-    if (playerClub) playerClub.budget = Math.round(playerClub.budget * 1.2);
+    if (playerClub) playerClub.budget = Math.round(playerClub.budget * PROMOTION_BUDGET_MULTIPLIER);
     playerClub?.playerIds.forEach(pid => {
-      if (workingPlayers[pid]) workingPlayers[pid] = { ...workingPlayers[pid], morale: Math.min(100, workingPlayers[pid].morale + 10) };
+      if (workingPlayers[pid]) workingPlayers[pid] = { ...workingPlayers[pid], morale: Math.min(100, workingPlayers[pid].morale + PROMOTION_MORALE_BONUS) };
     });
-    fanMoodDelta = 15;
+    fanMoodDelta = PROMOTION_FAN_MOOD_BONUS;
   }
   if (history.relegated) {
     const toDivName = DIVISIONS.find(d => d.id === newPlayerDivision)?.name || newPlayerDivision;
     newMessages = addMsg(newMessages, { week: state.week, season, type: 'board', title: 'Relegated', body: `Your club has been relegated to the ${toDivName}. Time to rebuild and fight for promotion.` });
-    // Relegation consequences: budget -30%, morale -15, fan mood -20, top players want out
-    if (playerClub) playerClub.budget = Math.round(playerClub.budget * 0.7);
+    if (playerClub) playerClub.budget = Math.round(playerClub.budget * RELEGATION_BUDGET_MULTIPLIER);
     playerClub?.playerIds.forEach(pid => {
       const p = workingPlayers[pid];
       if (!p) return;
-      workingPlayers[pid] = { ...p, morale: Math.max(0, p.morale - 15) };
-      if (p.overall > 75) {
+      workingPlayers[pid] = { ...p, morale: Math.max(0, p.morale - RELEGATION_MORALE_PENALTY) };
+      if (p.overall > RELEGATION_UNHAPPY_OVERALL) {
         workingPlayers[pid] = { ...workingPlayers[pid], listedForSale: true };
         newMessages = addMsg(newMessages, { week: state.week, season, type: 'transfer', title: `${p.lastName} Wants Out`, body: `${p.firstName} ${p.lastName} is unhappy after relegation and wants to leave.` });
       }
     });
-    fanMoodDelta = -20;
+    fanMoodDelta = RELEGATION_FAN_MOOD_PENALTY;
   }
   if (fanMoodDelta !== 0) {
     set(s => ({ fanMood: Math.max(0, Math.min(100, s.fanMood + fanMoodDelta)) }));
@@ -1261,7 +1255,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // Try to start a new chain (max 1 active, 15% chance per week)
-    if (updatedChains.length === 0 && Math.random() < 0.15 && newWeek >= 5) {
+    if (updatedChains.length === 0 && Math.random() < STORYLINE_CHAIN_TRIGGER_CHANCE && newWeek >= STORYLINE_CHAIN_MIN_WEEK) {
       const playerClub = clubs[playerClubId];
       const squadPlayers = Object.values(newPlayers).filter(p => p.clubId === playerClubId);
       const avgBudget = Object.values(clubs).reduce((s, c) => s + c.budget, 0) / Object.values(clubs).length;
@@ -1402,7 +1396,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const matchdayIncome = Math.round(playerClub.fanBase * MATCHDAY_INCOME_PER_FAN * fanMoodMult * derbyIncomeBonus * streakIncomeMult);
     const commercialIncome = Math.round(playerClub.reputation * COMMERCIAL_INCOME_PER_REP);
     // League position prize money: higher position = more income
-    const playerTablePos = leagueTable.findIndex(e => e.clubId === playerClubId) + 1;
+    const playerTableIdx = leagueTable.findIndex(e => e.clubId === playerClubId);
+    const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;
     const positionPrize = Math.max(0, (POSITION_PRIZE_MAX_RANK - playerTablePos)) * POSITION_PRIZE_PER_RANK;
     // Sponsorship: scales quadratically with reputation
     const sponsorIncome = Math.round(playerClub.reputation * playerClub.reputation * SPONSORSHIP_REP_MULTIPLIER);
@@ -1420,8 +1415,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }];
 
     // Evaluate board objectives based on current league position
-    const playerTableEntry = leagueTable.find(e => e.clubId === playerClubId);
-    const playerPos = playerTableEntry ? leagueTable.indexOf(playerTableEntry) + 1 : 20;
+    const playerPos = playerTableIdx >= 0 ? playerTableIdx + 1 : 20;
     const updatedObjectives = state.boardObjectives.map(obj => {
       const o = { ...obj };
       if (obj.description === 'Win the League') o.completed = playerPos === 1;

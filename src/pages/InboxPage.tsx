@@ -84,7 +84,14 @@ const InboxPage = () => {
       {filtered.length === 0 ? (
         <GlassPanel className="p-8 text-center">
           <MailOpen className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No messages</p>
+          <p className="text-sm text-muted-foreground">
+            {category > 0 ? `No ${CATEGORY_FILTERS[category].label.toLowerCase()} messages` : 'No messages'}
+          </p>
+          {category > 0 && (
+            <button className="text-xs text-primary mt-2 hover:underline" onClick={() => setCategory(0)}>
+              Clear filter
+            </button>
+          )}
         </GlassPanel>
       ) : (
         Object.entries(grouped).map(([weekKey, msgs]) => (

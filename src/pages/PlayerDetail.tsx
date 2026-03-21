@@ -3,10 +3,10 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
 import { POSITION_COMPATIBILITY, Position } from '@/types/game';
-import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse } from 'lucide-react';
+import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope } from 'lucide-react';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
 import { cn } from '@/lib/utils';
-import { getRatingColor } from '@/utils/uiHelpers';
+import { getRatingColor, getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel } from '@/utils/personality';
 
@@ -14,7 +14,7 @@ const PlayerDetail = () => {
   const {
     selectedPlayerId, players, clubs, playerClubId,
     incomingOffers, setScreen, selectPlayer,
-    listPlayerForSale, unlistPlayer, respondToOffer, season, startNegotiation,
+    listPlayerForSale, unlistPlayer, respondToOffer, season, week, facilities, startNegotiation,
   } = useGameStore();
 
   const player = selectedPlayerId ? players[selectedPlayerId] : null;
@@ -65,6 +65,20 @@ const PlayerDetail = () => {
   // Role suitability: find all positions where this player appears as compatible
   const naturalPosition = player.position;
   const compatiblePositions = POSITION_COMPATIBILITY[naturalPosition] || [naturalPosition];
+
+  // Morale factors
+  const moraleFactors: { label: string; impact: 'positive' | 'neutral' | 'negative' }[] = [];
+  if (player.appearances > 0 && week > 0) {
+    const playingTimePct = player.appearances / Math.max(1, week) * 100;
+    if (playingTimePct > 50) moraleFactors.push({ label: 'Regular playing time', impact: 'positive' });
+    else if (playingTimePct < 20) moraleFactors.push({ label: 'Lack of playing time', impact: 'negative' });
+    else moraleFactors.push({ label: 'Limited playing time', impact: 'neutral' });
+  }
+  if (player.form > 70) moraleFactors.push({ label: 'Good form', impact: 'positive' });
+  else if (player.form < 40) moraleFactors.push({ label: 'Poor form', impact: 'negative' });
+  if (player.contractEnd <= season) moraleFactors.push({ label: 'Contract expiring', impact: 'negative' });
+  if (player.injured) moraleFactors.push({ label: 'Currently injured', impact: 'negative' });
+  if (player.personality?.temperament && player.personality.temperament < 40) moraleFactors.push({ label: 'Volatile temperament', impact: 'negative' });
 
   // Season performance derived stats
   const goalsPerApp = player.appearances > 0 ? (player.goals / player.appearances).toFixed(2) : '0.00';
@@ -129,8 +143,8 @@ const PlayerDetail = () => {
         </GlassPanel>
         <GlassPanel className="p-3 text-center">
           <Heart className="w-4 h-4 text-primary mx-auto mb-1" />
-          <p className="text-lg font-black text-foreground tabular-nums">{player.morale}%</p>
-          <p className="text-[10px] text-muted-foreground">Morale</p>
+          <p className={cn("text-lg font-black tabular-nums", getMoodColor(player.morale))}>{player.morale}%</p>
+          <p className="text-[10px] text-muted-foreground">{getMoodLabel(player.morale)}</p>
         </GlassPanel>
         <GlassPanel className="p-3 text-center">
           <TrendingUp className="w-4 h-4 text-primary mx-auto mb-1" />
@@ -138,6 +152,24 @@ const PlayerDetail = () => {
           <p className="text-[10px] text-muted-foreground">Form</p>
         </GlassPanel>
       </div>
+
+      {/* Morale Factors */}
+      {moraleFactors.length > 0 && (
+        <GlassPanel className="p-4">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Morale Factors</p>
+          <div className="space-y-1">
+            {moraleFactors.map((f, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs">
+                <span className={cn(
+                  "w-1.5 h-1.5 rounded-full",
+                  f.impact === 'positive' ? "bg-emerald-400" : f.impact === 'negative' ? "bg-destructive" : "bg-amber-400"
+                )} />
+                <span className="text-muted-foreground">{f.label}</span>
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Development Curve */}
       <GlassPanel className="p-4">
@@ -377,12 +409,34 @@ const PlayerDetail = () => {
         </GlassPanel>
       )}
 
-      {/* Injury Alert */}
+      {/* Injury Recovery Panel */}
       {player.injured && (
         <GlassPanel className="p-4 border-destructive/30">
-          <p className="text-sm text-destructive font-bold flex items-center gap-1.5">
-            <HeartPulse className="w-4 h-4" /> Injured — {player.injuryWeeks} week{player.injuryWeeks !== 1 ? 's' : ''} remaining
-          </p>
+          <div className="flex items-center gap-2 mb-3">
+            <HeartPulse className="w-4 h-4 text-destructive" />
+            <p className="text-sm text-destructive font-bold">
+              Injured — {player.injuryWeeks} week{player.injuryWeeks !== 1 ? 's' : ''} remaining
+            </p>
+          </div>
+          <div className="space-y-2">
+            <div>
+              <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
+                <span>Recovery Progress</span>
+                <span>Est. return: Week {Math.min(week + player.injuryWeeks, 46)}</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-muted/40 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-destructive to-amber-500 transition-all"
+                  style={{ width: `${Math.max(5, 100 - (player.injuryWeeks / 5) * 100)}%` }}
+                />
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+              <Stethoscope className="w-3 h-3" />
+              <span>Medical Center Lv.{facilities.medicalLevel}</span>
+              {facilities.medicalLevel >= 5 && <span className="text-emerald-400">— Enhanced recovery</span>}
+            </div>
+          </div>
         </GlassPanel>
       )}
 

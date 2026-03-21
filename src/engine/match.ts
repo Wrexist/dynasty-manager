@@ -304,12 +304,21 @@ export function simulateHalf(
     (name: string, club: string) => `GOAL! ${name} puts ${club} ahead!`,
     (name: string, club: string) => `GOAL! Brilliant finish from ${name}! ${club} score!`,
     (name: string, club: string) => `GOAL! ${name} makes no mistake for ${club}!`,
+    (name: string, club: string) => `GOAL! ${name} slots it home for ${club}!`,
+    (name: string, club: string) => `GOAL! Clinical from ${name}! That's another for ${club}!`,
+    (name: string, club: string) => `GOAL! ${name} fires it into the bottom corner for ${club}!`,
+    (name: string, club: string) => `GOAL! What a strike from ${name}! ${club} celebrate!`,
+    (name: string, club: string) => `GOAL! ${name} taps it in for ${club}! The fans are on their feet!`,
   ];
   const saveDescs = [
     (shooter: string, gk: string) => `${shooter}'s shot is saved by ${gk}.`,
     (shooter: string, gk: string) => `Great save from ${gk} to deny ${shooter}!`,
     (shooter: string, gk: string) => `${gk} gets down well to stop ${shooter}'s effort.`,
     (shooter: string, gk: string) => `${shooter} is denied by a fine stop from ${gk}.`,
+    (shooter: string, gk: string) => `Brilliant reflexes from ${gk}! ${shooter} can't believe it.`,
+    (shooter: string, gk: string) => `${gk} stands tall and blocks ${shooter}'s strike.`,
+    (shooter: string, gk: string) => `Full stretch from ${gk} to tip ${shooter}'s effort away!`,
+    (shooter: string, gk: string) => `${shooter} thought he'd scored but ${gk} had other ideas.`,
   ];
   const missDescs = [
     (name: string) => `${name} fires wide.`,
@@ -317,27 +326,41 @@ export function simulateHalf(
     (name: string) => `${name} drags his shot wide of the post.`,
     (name: string) => `${name} blazes over from a good position.`,
     (name: string) => `Off target from ${name}.`,
+    (name: string) => `${name} hits the side netting.`,
+    (name: string) => `${name}'s strike rattles the crossbar!`,
+    (name: string) => `${name} snatches at the shot and skies it.`,
+    (name: string) => `So close! ${name}'s effort just whistles past the post.`,
+    (name: string) => `${name} pulls his shot just wide. A let-off for the defence.`,
   ];
   const foulDescs = [
     (name: string) => `Foul by ${name}.`,
     (name: string) => `${name} is penalized for a foul.`,
     (name: string) => `Free kick awarded after a foul from ${name}.`,
     (name: string) => `${name} brings down the opponent.`,
+    (name: string) => `${name} catches the attacker late.`,
+    (name: string) => `Cynical challenge from ${name} to stop the counter.`,
+    (name: string) => `${name} clips the heels of his opponent.`,
   ];
   const yellowDescs = [
     (name: string) => `Yellow card for ${name}.`,
     (name: string) => `${name} is booked by the referee.`,
     (name: string) => `${name} goes into the book.`,
+    (name: string) => `The referee shows ${name} a yellow card. He'll need to be careful now.`,
+    (name: string) => `${name} picks up a booking for that challenge.`,
   ];
   const injuryDescs = [
     (name: string) => `${name} goes down injured!`,
     (name: string) => `${name} is down and receiving treatment!`,
     (name: string) => `Concern for ${name} who pulls up with an injury!`,
+    (name: string) => `${name} signals to the bench — he can't continue!`,
+    (name: string) => `The physio is rushing on for ${name}. This doesn't look good.`,
   ];
   const cornerGoalDescs = [
     (name: string, club: string) => `GOAL! ${name} heads in from the corner for ${club}!`,
     (name: string, club: string) => `GOAL! ${name} rises highest from the corner! ${club} score!`,
     (name: string, club: string) => `GOAL! A towering header from ${name} after the corner!`,
+    (name: string, club: string) => `GOAL! ${name} meets the cross at the back post! ${club} score from the set piece!`,
+    (name: string, club: string) => `GOAL! Bullet header from ${name}! Nobody was going to stop that!`,
   ];
 
   if (startMin === 1) {
@@ -600,7 +623,7 @@ export function finalizeMatch(
     }
 
     // Fitness penalty for exhausted players
-    if (p.fitness < RATING_EXHAUSTION_THRESHOLD) rating -= RATING_EXHAUSTION_PENALTY;
+    if (p.fitness <= RATING_EXHAUSTION_THRESHOLD) rating -= RATING_EXHAUSTION_PENALTY;
 
     rating += (Math.random() - 0.5) * RATING_VARIANCE;
     rating = Math.max(RATING_MIN, Math.min(RATING_MAX, Math.round(rating * 10) / 10));

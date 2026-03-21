@@ -51,6 +51,7 @@ const Dashboard = () => {
     localStorage.setItem(WELCOME_KEY, '1');
   };
 
+  const [isAdvancing, setIsAdvancing] = useState(false);
   const [boardWarningDismissed, setBoardWarningDismissed] = useState(false);
   // Reset board warning dismissal when confidence changes significantly
   const prevConfRef = useRef(boardConfidence);
@@ -340,8 +341,12 @@ const Dashboard = () => {
       ) : !seasonOver && (
         <GlassPanel className="p-5">
           <p className="text-sm text-muted-foreground text-center">No match this week</p>
-          <Button className="w-full mt-3" onClick={() => { hapticLight(); advanceWeek(); }}>
-            Advance to Week {week + 1}
+          <Button className="w-full mt-3" disabled={isAdvancing} onClick={() => {
+            hapticLight();
+            setIsAdvancing(true);
+            setTimeout(() => { advanceWeek(); setIsAdvancing(false); }, 50);
+          }}>
+            {isAdvancing ? 'Advancing...' : `Advance to Week ${week + 1}`}
           </Button>
         </GlassPanel>
       )}
@@ -410,14 +415,19 @@ const Dashboard = () => {
           </div>
           <div className="space-y-1.5">
             {injuredPlayers.map(p => (
-              <div key={p.id} className="flex items-center justify-between">
+              <div key={p.id} className="flex items-center justify-between cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition-colors" onClick={() => store.selectPlayer(p.id)}>
                 <span className="text-sm text-foreground">
                   {p.firstName[0]}. {p.lastName}
                   <span className="text-xs text-muted-foreground ml-1.5">({p.position})</span>
                 </span>
-                <span className="text-xs text-destructive font-medium tabular-nums">
-                  {p.injuryWeeks} wk{p.injuryWeeks !== 1 ? 's' : ''} remaining
-                </span>
+                <div className="flex items-center gap-2">
+                  <div className="w-16 h-1 rounded-full bg-muted/40 overflow-hidden">
+                    <div className="h-full rounded-full bg-destructive" style={{ width: `${Math.max(10, 100 - (p.injuryWeeks / 5) * 100)}%` }} />
+                  </div>
+                  <span className="text-xs text-destructive font-medium tabular-nums">
+                    {p.injuryWeeks} wk{p.injuryWeeks !== 1 ? 's' : ''}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -509,7 +519,7 @@ const Dashboard = () => {
           </p>
         </GlassPanel>
 
-        <GlassPanel className="p-4">
+        <GlassPanel className={cn("p-4", boardConfidence <= 35 && "border-destructive/50 animate-pulse")}>
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">Board</span>
@@ -520,7 +530,16 @@ const Dashboard = () => {
           )}>
             {boardConfidence}%
           </p>
-          <p className="text-[10px] text-muted-foreground">
+          <div className="w-full h-1.5 rounded-full bg-muted/40 mt-1.5 overflow-hidden">
+            <div
+              className={cn(
+                "h-full rounded-full transition-all",
+                boardConfidence > 50 ? "bg-emerald-500" : boardConfidence > 25 ? "bg-amber-500" : "bg-destructive"
+              )}
+              style={{ width: `${boardConfidence}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">
             {boardConfidence > 70 ? 'Secure' : boardConfidence > 40 ? 'Under pressure' : 'Sacking risk!'}
           </p>
         </GlassPanel>

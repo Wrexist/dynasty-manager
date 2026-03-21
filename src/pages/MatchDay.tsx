@@ -12,6 +12,7 @@ import { hapticHeavy, hapticMedium } from '@/utils/haptics';
 import type { HalfState } from '@/engine/match';
 import { useCurrentMatch, usePlayerClub } from '@/hooks/useGameSelectors';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
+import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
 
 const MatchDay = () => {
   const store = useGameStore();
@@ -360,12 +361,15 @@ const MatchDay = () => {
             <GlassPanel className="p-4 max-h-40 overflow-y-auto">
               <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">First Half</p>
               <div className="space-y-1">
-                {visibleEvents.filter(e => !['kickoff', 'half_time'].includes(e.type)).map((ev, i) => (
-                  <div key={i} className={cn('flex items-start gap-2 text-xs', ev.type === 'goal' ? 'font-bold text-foreground' : 'text-muted-foreground')}>
-                    <span className="font-mono w-6 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
-                    <span className="flex-1">{ev.description}</span>
-                  </div>
-                ))}
+                {visibleEvents.filter(e => !['kickoff', 'half_time'].includes(e.type)).map((ev, i) => {
+                  const style = getCommentaryStyle(ev);
+                  return (
+                    <div key={i} className={cn('flex items-start gap-2 text-xs', style.textClass)}>
+                      <span className="font-mono w-6 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
+                      <span className="flex-1">{ev.description}</span>
+                    </div>
+                  );
+                })}
               </div>
             </GlassPanel>
           )}
@@ -406,19 +410,22 @@ const MatchDay = () => {
           {/* Event Log */}
           <GlassPanel className="p-4 max-h-[30vh] overflow-y-auto">
             <div className="space-y-2">
-              {visibleEvents.filter(e => e.type !== 'kickoff').map((ev, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    'flex items-start gap-2 text-sm animate-[fadeSlideIn_0.2s_ease-out]',
-                    ev.type === 'goal' ? 'font-bold text-foreground' : 'text-muted-foreground'
-                  )}
-                >
-                  <span className="text-xs font-mono w-8 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
-                  <span className="flex-1">{ev.description}</span>
-                  <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: clubs[ev.clubId]?.color }} />
-                </div>
-              ))}
+              {visibleEvents.filter(e => e.type !== 'kickoff').map((ev, i) => {
+                const style = getCommentaryStyle(ev);
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      'flex items-start gap-2 text-sm animate-[fadeSlideIn_0.2s_ease-out]',
+                      style.textClass
+                    )}
+                  >
+                    <span className="text-xs font-mono w-8 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
+                    <span className="flex-1">{ev.description}</span>
+                    <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: clubs[ev.clubId]?.color }} />
+                  </div>
+                );
+              })}
               <div ref={eventsEndRef} />
             </div>
           </GlassPanel>

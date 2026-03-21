@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronRight, Flame, Calendar, HeartPulse } from 'lucide-react';
@@ -10,6 +11,7 @@ import { motion } from 'framer-motion';
 
 const MatchReview = () => {
   const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, advanceWeek, setScreen, week, divisionFixtures, playerDivision, divisionTables } = useGameStore();
+  const [isAdvancing, setIsAdvancing] = useState(false);
 
   if (!currentMatchResult) {
     return (
@@ -36,8 +38,12 @@ const MatchReview = () => {
   const cards = match.events.filter(e => e.type === 'yellow_card' || e.type === 'red_card');
 
   const handleContinue = () => {
-    advanceWeek();
-    setScreen('dashboard');
+    setIsAdvancing(true);
+    setTimeout(() => {
+      advanceWeek();
+      setScreen('dashboard');
+      setIsAdvancing(false);
+    }, 50);
   };
 
   return (
@@ -403,8 +409,8 @@ const MatchReview = () => {
       })()}
 
       {/* Continue */}
-      <Button size="lg" className="w-full h-14 text-lg font-bold gap-3" onClick={handleContinue}>
-        Continue <ChevronRight className="w-5 h-5" />
+      <Button size="lg" className="w-full h-14 text-lg font-bold gap-3" disabled={isAdvancing} onClick={handleContinue}>
+        {isAdvancing ? 'Advancing...' : 'Continue'} {!isAdvancing && <ChevronRight className="w-5 h-5" />}
       </Button>
     </div>
   );

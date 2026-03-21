@@ -132,6 +132,14 @@
 
 git add -A && git commit -m "Fix bugs & made the game easier to understand" && git push
 
+# 1. Commit and push your changes (triggers TestFlight build automatically)
+git add -A
+git commit -m "Bugs fixes"
+git push
+
+# 2. Only when ready for a new version number:
+git tag v1.1.0
+git push --tags
 ========================================
   iOS TESTFLIGHT (From Windows - No Mac)
 ========================================
