@@ -1,7 +1,7 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,7 +13,14 @@
     "test:watch": "vitest",
     "cap:sync": "npm run build && npx cap sync",
     "cap:ios": "npx cap open ios",
-    "cap:android": "npx cap open android"
+    "cap:android": "npx cap open android",
+    "prepare": "husky",
+    "version:sync": "node scripts/sync-version.mjs"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix"
+    ]
   },
   "dependencies": {
     "@capacitor/android": "^8.2.0",
@@ -42,13 +49,11 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.25.76",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.2.0",
     "@eslint/js": "^9.32.0",
-    "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
     "@types/node": "^22.16.5",
@@ -60,7 +65,9 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
+    "husky": "^9.1.7",
     "jsdom": "^28.1.0",
+    "lint-staged": "^16.4.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",

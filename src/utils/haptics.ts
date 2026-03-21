@@ -1,7 +1,9 @@
 // Haptic feedback wrapper — uses Capacitor Haptics when available, no-op in browser
 // Import dynamically to avoid build errors before Capacitor is installed
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let Haptics: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let ImpactStyle: any = null;
 
 async function loadHaptics() {

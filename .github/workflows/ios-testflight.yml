@@ -1,5 +1,8 @@
 name: iOS TestFlight Build
 on:
+  push:
+    branches: [main]
+    paths-ignore: ['**.md']
   workflow_dispatch:
 
 jobs:
@@ -13,6 +16,8 @@ jobs:
           node-version: 22
 
       - run: npm ci
+      - run: npm run lint
+      - run: npm run test
       - run: npm run build
       - run: npx cap sync ios
 
