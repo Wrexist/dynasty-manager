@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter } from 'lucide-react';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/game';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
@@ -32,6 +32,7 @@ const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.Ele
 const InboxPage = () => {
   const { messages, markMessageRead, markAllRead, activeStorylineChains } = useGameStore();
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -55,14 +56,50 @@ const InboxPage = () => {
     });
   };
 
-  const unread = messages.filter(m => !m.read).length;
+  // Per-category counts (total + unread) for dropdown badges
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, { total: number; unread: number }> = {};
+    for (const opt of FILTER_OPTIONS) {
+      const matching = messages.filter(m => opt.types.includes(m.type));
+      counts[opt.label] = {
+        total: matching.length,
+        unread: matching.filter(m => !m.read).length,
+      };
+    }
+    return counts;
+  }, [messages]);
 
+  // Apply type filters
   const allowedTypes = activeFilters.size > 0
     ? FILTER_OPTIONS.filter(o => activeFilters.has(o.label)).flatMap(o => o.types)
     : [];
-  const filtered = allowedTypes.length > 0
+  let filtered = allowedTypes.length > 0
     ? messages.filter(m => allowedTypes.includes(m.type))
     : messages;
+
+  // Apply unread-only filter
+  if (unreadOnly) {
+    filtered = filtered.filter(m => !m.read);
+  }
+
+  const filteredUnread = filtered.filter(m => !m.read).length;
+  const totalUnread = messages.filter(m => !m.read).length;
+  const hasActiveFilter = activeFilters.size > 0 || unreadOnly;
+  const activeCount = activeFilters.size + (unreadOnly ? 1 : 0);
+
+  // Filter-aware mark all read
+  const handleMarkAllRead = () => {
+    if (hasActiveFilter) {
+      filtered.forEach(m => { if (!m.read) markMessageRead(m.id); });
+    } else {
+      markAllRead();
+    }
+  };
+
+  const clearAllFilters = () => {
+    setActiveFilters(new Set());
+    setUnreadOnly(false);
+  };
 
   // Group by week
   const grouped: Record<string, Message[]> = {};
@@ -82,11 +119,16 @@ const InboxPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-foreground font-display">Inbox</h2>
-          <p className="text-xs text-muted-foreground">{unread} unread · {filtered.length} messages</p>
+          <p className="text-xs text-muted-foreground">
+            {hasActiveFilter
+              ? `${filteredUnread} unread · ${filtered.length} of ${messages.length} messages`
+              : `${totalUnread} unread · ${messages.length} messages`}
+          </p>
         </div>
-        {unread > 0 && (
-          <button onClick={markAllRead} className="flex items-center gap-1 text-xs text-primary hover:underline">
-            <CheckCheck className="w-3 h-3" /> Mark all read
+        {(hasActiveFilter ? filteredUnread : totalUnread) > 0 && (
+          <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs text-primary hover:underline">
+            <CheckCheck className="w-3 h-3" />
+            {hasActiveFilter ? 'Mark filtered read' : 'Mark all read'}
           </button>
         )}
       </div>
@@ -97,26 +139,56 @@ const InboxPage = () => {
           onClick={() => setFilterOpen(prev => !prev)}
           className={cn(
             'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all',
-            activeFilters.size > 0
+            hasActiveFilter
               ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
               : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
           )}
         >
           <Filter className="w-3 h-3" />
           Filter
-          {activeFilters.size > 0 && (
+          {activeCount > 0 && (
             <span className="ml-0.5 w-4 h-4 rounded-full bg-primary-foreground/20 text-[10px] flex items-center justify-center">
-              {activeFilters.size}
+              {activeCount}
             </span>
           )}
+          <ChevronDown className={cn('w-3 h-3 transition-transform', filterOpen && 'rotate-180')} />
         </button>
 
         {filterOpen && (
-          <div className="absolute left-0 top-full mt-1.5 z-50 w-56 bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl shadow-xl overflow-hidden">
+          <div className="absolute left-0 top-full mt-1.5 z-50 w-60 bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl shadow-xl overflow-hidden">
             <div className="p-2 space-y-0.5">
+              {/* Unread only toggle */}
+              <button
+                onClick={() => setUnreadOnly(prev => !prev)}
+                className={cn(
+                  'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs transition-colors',
+                  unreadOnly ? 'bg-primary/15 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                )}
+              >
+                <div className={cn(
+                  'w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors',
+                  unreadOnly ? 'bg-primary border-primary' : 'border-border'
+                )}>
+                  {unreadOnly && (
+                    <svg className="w-2.5 h-2.5 text-primary-foreground" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1.5 5.5L4 8L8.5 2" />
+                    </svg>
+                  )}
+                </div>
+                <BellDot className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-medium">Unread only</span>
+                {totalUnread > 0 && (
+                  <span className="ml-auto text-[10px] text-primary font-semibold">{totalUnread}</span>
+                )}
+              </button>
+
+              <div className="border-t border-border/30 my-1" />
+
+              {/* Category filters */}
               {FILTER_OPTIONS.map(opt => {
                 const Icon = opt.icon;
                 const checked = activeFilters.has(opt.label);
+                const counts = categoryCounts[opt.label];
                 return (
                   <button
                     key={opt.label}
@@ -138,14 +210,20 @@ const InboxPage = () => {
                     </div>
                     <Icon className="w-3.5 h-3.5 shrink-0" />
                     <span className="font-medium">{opt.label}</span>
+                    <span className="ml-auto flex items-center gap-1.5">
+                      {counts.unread > 0 && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                      )}
+                      <span className="text-[10px] tabular-nums text-muted-foreground">{counts.total}</span>
+                    </span>
                   </button>
                 );
               })}
             </div>
-            {activeFilters.size > 0 && (
+            {hasActiveFilter && (
               <div className="border-t border-border/50 px-2.5 py-2">
                 <button
-                  onClick={() => setActiveFilters(new Set())}
+                  onClick={clearAllFilters}
                   className="text-[10px] text-primary hover:underline"
                 >
                   Clear all
@@ -190,10 +268,10 @@ const InboxPage = () => {
         <GlassPanel className="p-8 text-center">
           <MailOpen className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
-            {activeFilters.size > 0 ? 'No messages match your filters' : 'No messages'}
+            {hasActiveFilter ? 'No messages match your filters' : 'No messages'}
           </p>
-          {activeFilters.size > 0 && (
-            <button className="text-xs text-primary mt-2 hover:underline" onClick={() => setActiveFilters(new Set())}>
+          {hasActiveFilter && (
+            <button className="text-xs text-primary mt-2 hover:underline" onClick={clearAllFilters}>
               Clear filters
             </button>
           )}
