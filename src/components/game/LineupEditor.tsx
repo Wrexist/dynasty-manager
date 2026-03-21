@@ -90,6 +90,7 @@ export function LineupEditor() {
   const subAndBench = [...subs, ...benchIds];
 
   const draggedPlayer = draggedId ? players[draggedId] : null;
+  const isDragging = !!draggedId;
 
   const handleDragStart = (event: DragStartEvent) => {
     setDraggedId(event.active.id as string);
@@ -114,30 +115,53 @@ export function LineupEditor() {
     const newLineup = [...lineup];
     let newSubs = [...subs];
 
+    // Helper to remove a player from subs (no-op if not in subs — handles benchIds players)
+    const removeFromSubs = (id: string) => {
+      newSubs = newSubs.filter(sid => sid !== id);
+    };
+
+    // Helper to add a player to subs (at front for priority, capped later by MAX_SUBS)
+    const addToSubs = (id: string) => {
+      if (!newSubs.includes(id)) newSubs.push(id);
+    };
+
     if (activeInLineupIdx >= 0 && overInLineupIdx >= 0) {
+      // Lineup ↔ Lineup: swap positions
       newLineup[activeInLineupIdx] = overId;
       newLineup[overInLineupIdx] = activeId;
     } else if (activeOnBench && overSlotIdx >= 0) {
+      // Bench → Empty/occupied slot
       const displaced = newLineup[overSlotIdx];
       newLineup[overSlotIdx] = activeId;
-      newSubs = newSubs.filter(id => id !== activeId);
-      if (displaced) newSubs.push(displaced);
+      removeFromSubs(activeId);
+      if (displaced) addToSubs(displaced);
     } else if (activeOnBench && overInLineupIdx >= 0) {
+      // Bench → Lineup player: swap them
       const displaced = newLineup[overInLineupIdx];
       newLineup[overInLineupIdx] = activeId;
-      newSubs = newSubs.filter(id => id !== activeId);
-      if (displaced) newSubs.push(displaced);
+      removeFromSubs(activeId);
+      if (displaced) addToSubs(displaced);
     } else if (activeInLineupIdx >= 0 && overOnBench) {
+      // Lineup → Bench player: swap them
       newLineup[activeInLineupIdx] = overId;
-      newSubs = newSubs.filter(id => id !== overId);
-      newSubs.push(activeId);
+      removeFromSubs(overId);
+      addToSubs(activeId);
     } else if (activeOnBench && overOnBench) {
-      const activeSubIdx = newSubs.indexOf(activeId);
-      const overSubIdx = newSubs.indexOf(overId);
-      if (activeSubIdx >= 0 && overSubIdx >= 0) {
-        newSubs[activeSubIdx] = overId;
-        newSubs[overSubIdx] = activeId;
+      // Bench ↔ Bench: swap positions in subs (handle benchIds players too)
+      const activeInSubs = newSubs.indexOf(activeId);
+      const overInSubs = newSubs.indexOf(overId);
+      if (activeInSubs >= 0 && overInSubs >= 0) {
+        // Both in subs — direct swap
+        newSubs[activeInSubs] = overId;
+        newSubs[overInSubs] = activeId;
+      } else if (activeInSubs >= 0) {
+        // Active in subs, over in benchIds — replace active's subs slot with over
+        newSubs[activeInSubs] = overId;
+      } else if (overInSubs >= 0) {
+        // Active in benchIds, over in subs — replace over's subs slot with active
+        newSubs[overInSubs] = activeId;
       }
+      // Both in benchIds — no subs change needed (purely cosmetic order)
     }
 
     updateLineup(newLineup, newSubs.slice(0, MAX_SUBS));
@@ -159,8 +183,8 @@ export function LineupEditor() {
           <rect x="29" y="103" width="10" height="2" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
           <path d="M 26.85 86.5 A 9.15 9.15 0 0 1 41.15 86.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
 
-          {/* Chemistry Lines */}
-          {chemLinks.map((link, idx) => {
+          {/* Chemistry Lines — hidden while dragging for cleaner visual */}
+          {!isDragging && chemLinks.map((link, idx) => {
             const idxA = lineup.indexOf(link.playerIdA);
             const idxB = lineup.indexOf(link.playerIdB);
             if (idxA < 0 || idxB < 0) return null;
@@ -187,6 +211,7 @@ export function LineupEditor() {
         {slots.map((slot, i) => {
           const playerId = lineup[i];
           const player = playerId ? players[playerId] : null;
+          const isBeingDragged = playerId === draggedId;
           const cxSvg = 2 + (slot.x / 100) * 64;
           const cySvg = 95 - (slot.y / 100) * 39;
           const left = (cxSvg / VP_W) * 100;
@@ -197,7 +222,7 @@ export function LineupEditor() {
           return (
             <div key={`slot-${i}`} className="absolute" style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}>
               <DroppableSlot id={playerId || `slot-${i}`}>
-                {player ? (
+                {player && !isBeingDragged ? (
                   <DraggablePlayer id={player.id}>
                     <div className={cn(
                       'flex flex-col items-center cursor-grab active:cursor-grabbing p-0.5 rounded-lg',
@@ -217,7 +242,8 @@ export function LineupEditor() {
                   </DraggablePlayer>
                 ) : (
                   <div className={cn(
-                    'w-10 h-10 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center',
+                    'w-10 h-10 rounded-full border-2 border-dashed flex items-center justify-center',
+                    isBeingDragged ? 'border-primary/50 bg-primary/10' : 'border-white/20',
                     compat ? COMPAT_RING[compat] : ''
                   )}>
                     <span className="text-[8px] text-white/40">{slot.pos}</span>
@@ -232,14 +258,20 @@ export function LineupEditor() {
       {/* Bench */}
       <div className="mt-3">
         <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">Bench & Reserves</p>
-        <div className={cn('flex gap-2 overflow-x-auto scrollbar-hide pb-1 px-1', draggedId && 'touch-none')}>
+        <div className={cn('flex gap-2 overflow-x-auto scrollbar-hide pb-1 px-1', isDragging && 'touch-none')}>
           {subAndBench.map(id => {
             const p = players[id];
             if (!p) return null;
+            const benchCompat = draggedPlayer && draggedPlayer.id !== id
+              ? getCompatibility(p.position as Position, draggedPlayer.position as Position)
+              : null;
             return (
               <DroppableSlot key={`drop-${id}`} id={id}>
                 <DraggablePlayer id={id}>
-                  <div className="flex flex-col items-center shrink-0 cursor-grab active:cursor-grabbing" style={{ opacity: p.injured ? 0.4 : 1 }}>
+                  <div className={cn(
+                    'flex flex-col items-center shrink-0 cursor-grab active:cursor-grabbing rounded-lg p-0.5',
+                    benchCompat ? COMPAT_RING[benchCompat] : ''
+                  )} style={{ opacity: p.injured ? 0.4 : 1 }}>
                     <svg width="24" height="24" viewBox="0 0 24 24" className="pointer-events-none">
                       <PlayerAvatar playerId={p.id} jerseyColor={club.color} size={24} />
                     </svg>
