@@ -38,22 +38,8 @@ export function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6, is
   const bodyH = s * 0.30;
   const bodyY = s * 0.45;
 
-  // Simpler rendering for away team
-  if (isAway) {
-    return (
-      <g>
-        <circle cx={cx} cy={cx} r={s * 0.38} fill={jerseyColor} opacity="0.7" stroke="white" strokeWidth="0.3" />
-        {jerseyNumber !== undefined && (
-          <text x={cx} y={cx + s * 0.06} textAnchor="middle" fill="white" fontSize={s * 0.22} fontWeight="bold" fontFamily="monospace">
-            {jerseyNumber}
-          </text>
-        )}
-      </g>
-    );
-  }
-
   return (
-    <g className="player-avatar-idle">
+    <g className={isAway ? undefined : 'player-avatar-idle'}>
       {/* Body / Jersey */}
       <rect
         x={cx - bodyW / 2}
@@ -62,8 +48,9 @@ export function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6, is
         height={bodyH}
         rx={s * 0.06}
         fill={jerseyColor}
-        stroke="rgba(0,0,0,0.2)"
-        strokeWidth="0.15"
+        opacity={isAway ? 0.85 : 1}
+        stroke={isAway ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.2)'}
+        strokeWidth={isAway ? '0.25' : '0.15'}
       />
 
       {/* Jersey number */}
