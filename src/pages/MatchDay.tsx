@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight } from '@/utils/haptics';
-import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS } from '@/config/matchEngine';
+import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT } from '@/config/matchEngine';
 import type { HalfState } from '@/engine/match';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
@@ -46,7 +46,7 @@ const MatchDay = () => {
   const [subSheetOpen, setSubSheetOpen] = useState(false);
   // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
   const [keyMoment, setKeyMoment] = useState<{ type: string; description: string } | null>(null);
-  const [showPostPopup, setShowPostPopup] = useState(true);
+  // Full Time screen removed — PostMatchPopup navigates directly to Match Review
   const dismissedMomentsRef = useRef<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
@@ -65,10 +65,7 @@ const MatchDay = () => {
   const match = matchCacheRef.current?.match ?? liveMatch ?? cupMatch;
   const homeClub = matchCacheRef.current?.homeClub ?? (match ? clubs[match.homeClubId] : null);
   const awayClub = matchCacheRef.current?.awayClub ?? (match ? clubs[match.awayClubId] : null);
-  // Reset popup state when entering post phase
-  useEffect(() => {
-    if (phase === 'post') setShowPostPopup(true);
-  }, [phase]);
+  // No useEffect needed — PostMatchPopup now navigates directly to Match Review
 
   // No auto-start — show "Ready to Kick Off?" screen instead
 
@@ -176,12 +173,43 @@ const MatchDay = () => {
       }
     }
 
-    // Tight finish — scores level late
-    if (minute === KEY_MOMENT_TIGHT_FINISH_MINUTE && playerGoals === opponentGoals && playerGoals > 0) {
+    // Tight finish — scores level late (including 0-0)
+    if (minute === KEY_MOMENT_TIGHT_FINISH_MINUTE && playerGoals === opponentGoals) {
       const key = 'level-80';
       if (!dismissedMomentsRef.current.has(key)) {
         dismissedMomentsRef.current.add(key);
-        return { type: 'tight_finish', description: `Scores level with 10 minutes left. Go for the win or hold firm?` };
+        const desc = playerGoals === 0
+          ? `Still goalless with 10 minutes left. Go all-out or hold for the draw?`
+          : `Scores level with 10 minutes left. Go for the win or hold firm?`;
+        return { type: 'tight_finish', description: desc };
+      }
+    }
+
+    // Dominant possession but scoreless — offer tactical change
+    if (minute === KEY_MOMENT_DOMINANT_POSSESSION_MIN && playerGoals === 0 && opponentGoals === 0) {
+      const shotEvents = events.filter(e => e.type === 'shot_saved' || e.type === 'shot_missed' || e.type === 'hit_woodwork' || e.type === 'goal_line_clearance');
+      const playerShots = shotEvents.filter(e => e.clubId === playerClubId).length;
+      const totalShots = shotEvents.length;
+      if (totalShots > 0 && playerShots / totalShots >= KEY_MOMENT_POSSESSION_THRESHOLD) {
+        const key = 'dominant-possession';
+        if (!dismissedMomentsRef.current.has(key)) {
+          dismissedMomentsRef.current.add(key);
+          return { type: 'dominant_possession', description: `You're dominating but can't break through. Change approach?` };
+        }
+      }
+    }
+
+    // Near-miss flurry — opponent creating many dangerous chances in 0-0
+    if (playerGoals === 0 && opponentGoals === 0 && minute >= 25) {
+      const nearMisses = events.filter(e =>
+        (e.type === 'hit_woodwork' || e.type === 'goal_line_clearance') && e.clubId !== playerClubId
+      ).length;
+      if (nearMisses >= KEY_MOMENT_NEAR_MISS_COUNT) {
+        const key = `near-miss-flurry-${nearMisses}`;
+        if (!dismissedMomentsRef.current.has(key)) {
+          dismissedMomentsRef.current.add(key);
+          return { type: 'near_miss_flurry', description: `You're under pressure! ${nearMisses} close calls. Shore up your defence?` };
+        }
       }
     }
 
@@ -375,7 +403,11 @@ const MatchDay = () => {
         <>
           <GlassPanel className="p-4 text-center">
             <p className="text-sm font-bold text-primary mb-2">Half Time</p>
-            <p className="text-xs text-muted-foreground">Make substitutions and tactical changes before the second half.</p>
+            <p className="text-xs text-muted-foreground">
+              {homeGoals === 0 && awayGoals === 0
+                ? 'Neither side has broken through. This is a tactical battle — consider changing your approach.'
+                : 'Make substitutions and tactical changes before the second half.'}
+            </p>
           </GlassPanel>
 
           {/* Team Talk */}
@@ -667,27 +699,9 @@ const MatchDay = () => {
         </motion.div>
       )}
 
-      {/* Post-match popup then match review */}
-      {phase === 'post' && showPostPopup && (
-        <PostMatchPopup onContinue={() => setShowPostPopup(false)} />
-      )}
-      {phase === 'post' && !showPostPopup && (
-        <>
-          <GlassPanel className="p-5 text-center">
-            <p className="text-sm font-bold text-muted-foreground mb-1">Full Time</p>
-            <p className="text-3xl font-black text-foreground font-display tabular-nums">
-              {store.currentMatchResult?.homeGoals ?? 0} - {store.currentMatchResult?.awayGoals ?? 0}
-            </p>
-            {store.currentMatchResult?.penaltyShootout && (
-              <p className="text-xs text-muted-foreground mt-1">
-                Penalties: {store.currentMatchResult.penaltyShootout.home} - {store.currentMatchResult.penaltyShootout.away}
-              </p>
-            )}
-          </GlassPanel>
-          <Button className="w-full h-12 text-base font-bold gap-2" onClick={handleContinue}>
-            Match Review
-          </Button>
-        </>
+      {/* Post-match popup → navigates directly to Match Review */}
+      {phase === 'post' && (
+        <PostMatchPopup onContinue={handleContinue} />
       )}
 
       {/* Substitution Sheet — used from half-time, key moments, and paused play */}

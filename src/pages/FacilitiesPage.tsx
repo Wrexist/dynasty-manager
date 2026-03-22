@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Dumbbell, GraduationCap, Home, Stethoscope, ArrowUp, Clock } from 'lucide-react';
+import { Dumbbell, GraduationCap, Home, Stethoscope, ArrowUp, Clock, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FACILITY_COST_PER_LEVEL, FACILITY_MAX_LEVEL } from '@/config/gameBalance';
 
@@ -10,6 +10,7 @@ const FACILITY_INFO = [
   { type: 'youth', label: 'Youth Academy', icon: GraduationCap, color: 'text-primary', key: 'youthLevel' as const, benefit: 'Higher quality youth intake' },
   { type: 'stadium', label: 'Stadium', icon: Home, color: 'text-blue-400', key: 'stadiumLevel' as const, benefit: 'Increased matchday revenue' },
   { type: 'medical', label: 'Medical Center', icon: Stethoscope, color: 'text-red-400', key: 'medicalLevel' as const, benefit: 'Faster injury recovery' },
+  { type: 'recovery', label: 'Recovery Center', icon: RefreshCw, color: 'text-cyan-400', key: 'recoveryLevel' as const, benefit: 'Faster weekly fitness recovery' },
 ] as const;
 
 const getUpgradeCost = (level: number) => (level + 1) * FACILITY_COST_PER_LEVEL;

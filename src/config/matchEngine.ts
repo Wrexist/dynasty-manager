@@ -217,9 +217,21 @@ export const MORALE_PERFORMANCE_WEIGHT = 0.10;
 /** Neutral morale level — above boosts performance, below penalizes */
 export const MORALE_BASELINE = 50;
 
+// ── Near-Miss Events ──
+/** Chance that a missed shot becomes a dramatic woodwork hit */
+export const WOODWORK_CHANCE = 0.12;
+/** Chance that a saved shot becomes a goal-line clearance */
+export const GOAL_LINE_CLEARANCE_CHANCE = 0.08;
+
 // ── Key Moment Thresholds ──
 export const KEY_MOMENT_LOSING_MINUTE = 70;
 export const KEY_MOMENT_TIGHT_FINISH_MINUTE = 80;
+/** Minute range for dominant possession key moment */
+export const KEY_MOMENT_DOMINANT_POSSESSION_MIN = 30;
+/** Possession share threshold to trigger dominant possession moment */
+export const KEY_MOMENT_POSSESSION_THRESHOLD = 0.60;
+/** Number of near-miss events against player's goal to trigger defensive warning */
+export const KEY_MOMENT_NEAR_MISS_COUNT = 2;
 
 // ── Manager Perks ──
 export const DISCIPLINARIAN_CARD_REDUCTION = 0.30;

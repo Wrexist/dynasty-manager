@@ -23,9 +23,10 @@ interface PitchViewProps {
   chemistryLinks?: ChemistryLink[];
   awayPlayerIds?: string[];
   awayPlayerOveralls?: number[];
+  playerFlags?: string[];
 }
 
-export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, awayLabels, highlightIndex, onSlotClick, playerFitness, playerIds, playerOveralls, jerseyNumbers, halfPitch = false, chemistryLinks, awayPlayerIds, awayPlayerOveralls }: PitchViewProps) {
+export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, awayLabels, highlightIndex, onSlotClick, playerFitness, playerIds, playerOveralls, jerseyNumbers, halfPitch = false, chemistryLinks, awayPlayerIds, awayPlayerOveralls, playerFlags }: PitchViewProps) {
   const homeSlots = FORMATION_POSITIONS[formation];
   const awaySlots = awayFormation ? FORMATION_POSITIONS[awayFormation] : [];
   const resolvedLabels = homeLabels || labels;
@@ -137,7 +138,7 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
               <rect x={cx - 4.5} y={cy + (hasAvatar ? 3.2 : 3)} width="9" height={ovr !== undefined ? 4.2 : 2.8} rx="0.6" fill="rgba(0,0,0,0.7)" />
               {label && (
                 <text x={cx} y={cy + (hasAvatar ? 5.2 : 5)} textAnchor="middle" fill="white" fontSize="1.6" fontWeight="bold" fontFamily="sans-serif">
-                  {label}
+                  {playerFlags?.[i] ? `${playerFlags[i]} ${label}` : label}
                 </text>
               )}
               {!label && (

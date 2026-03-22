@@ -45,6 +45,7 @@ import {
   DERBY_EVENT_MOD_SCALE, DERBY_FOUL_MOD_SCALE, DERBY_CARD_MOD_SCALE,
   CORNER_HEADER_MIN_CHANCE, CORNER_HEADER_PHYSICAL_SCALE,
   OWN_GOAL_CHANCE, PENALTY_FROM_FOUL_CHANCE, PENALTY_CONVERSION_RATE,
+  WOODWORK_CHANCE, GOAL_LINE_CLEARANCE_CHANCE,
   MORALE_PERFORMANCE_WEIGHT, MORALE_BASELINE,
   DISCIPLINARIAN_CARD_REDUCTION,
   MOMENTUM_GOAL_SWING, MOMENTUM_SAVE_SWING, MOMENTUM_CARD_SWING, MOMENTUM_PENALTY_SWING,
@@ -473,6 +474,18 @@ export function simulateHalf(
     (name: string) => `PENALTY MISS! ${name} blazes it over the bar from twelve yards!`,
     (name: string) => `PENALTY MISS! ${name} hits the post! What a miss!`,
   ];
+  const woodworkDescs = [
+    (name: string) => `${name}'s strike crashes off the crossbar! So close!`,
+    (name: string) => `Off the post! ${name} is inches away from scoring!`,
+    (name: string) => `${name} rattles the woodwork! The ground shakes with that effort!`,
+    (name: string) => `Agonizingly close! ${name} hits the inside of the post and it bounces out!`,
+    (name: string) => `What a strike from ${name}! It cannons back off the bar!`,
+  ];
+  const goalLineClearanceDescs = [
+    (shooter: string, defender: string) => `${shooter}'s shot is headed off the line by ${defender}! Incredible last-ditch defending!`,
+    (shooter: string, defender: string) => `${defender} clears off the line! ${shooter} can't believe it — it was going in!`,
+    (shooter: string, defender: string) => `Heroic clearance from ${defender}! ${shooter} was denied a certain goal!`,
+  ];
   const cornerGoalDescs = [
     (name: string, club: string) => `GOAL! ${name} heads in from the corner for ${club}!`,
     (name: string, club: string) => `GOAL! ${name} rises highest from the corner! ${club} score!`,
@@ -645,8 +658,16 @@ export function simulateHalf(
         momentum = isHome
           ? Math.max(-100, momentum - MOMENTUM_SAVE_SWING)
           : Math.min(100, momentum + MOMENTUM_SAVE_SWING);
-        const saveDesc = pick(saveDescs);
-        events.push({ minute: min, type: 'shot_saved', playerId: scorer.id, clubId: club.id, description: gk ? saveDesc(scorer.lastName, gk.lastName) : `${scorer.lastName}'s shot is saved.` });
+        // Goal-line clearance: dramatic defensive intervention
+        const eligibleDefenders = oppSquad.filter(p => !unavailable.has(p.id) && DEFENDER_POSITIONS.includes(p.position as typeof DEFENDER_POSITIONS[number]));
+        if (Math.random() < GOAL_LINE_CLEARANCE_CHANCE && eligibleDefenders.length > 0) {
+          const defender = eligibleDefenders[Math.floor(Math.random() * eligibleDefenders.length)];
+          const clearDesc = pick(goalLineClearanceDescs);
+          events.push({ minute: min, type: 'goal_line_clearance', playerId: scorer.id, clubId: club.id, description: clearDesc(scorer.lastName, defender.lastName) });
+        } else {
+          const saveDesc = pick(saveDescs);
+          events.push({ minute: min, type: 'shot_saved', playerId: scorer.id, clubId: club.id, description: gk ? saveDesc(scorer.lastName, gk.lastName) : `${scorer.lastName}'s shot is saved.` });
+        }
         // Corner chance from saved shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_SAVE_CHANCE + widthCornerBonus) {
           if (isHome) homeCorners++; else awayCorners++;
@@ -674,9 +695,13 @@ export function simulateHalf(
           }
         }
       } else {
-        // Shot missed
+        // Shot missed — chance of dramatic woodwork hit
         if (isHome) homeShots++; else awayShots++;
-        events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: pick(missDescs)(scorer.lastName) });
+        if (Math.random() < WOODWORK_CHANCE) {
+          events.push({ minute: min, type: 'hit_woodwork', playerId: scorer.id, clubId: club.id, description: pick(woodworkDescs)(scorer.lastName) });
+        } else {
+          events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: pick(missDescs)(scorer.lastName) });
+        }
         // Corner chance from missed shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_MISS_CHANCE + widthCornerBonus) {
           if (isHome) homeCorners++; else awayCorners++;
