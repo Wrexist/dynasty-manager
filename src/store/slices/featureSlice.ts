@@ -1,8 +1,9 @@
-import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain } from '@/types/game';
+import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
 import { CHALLENGES } from '@/data/challenges';
+import { createEmptyRecords } from '@/utils/records';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -16,6 +17,19 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   weeklyObjectives: [] as import('@/utils/weeklyObjectives').ObjectiveInstance[],
   pendingStoryline: null as StorylineEvent | null,
   activeStorylineChains: [] as ActiveStorylineChain[],
+  freeAgents: [] as string[],
+  unlockedAchievements: [] as string[],
+  pendingAchievementIds: [] as string[],
+  managerStats: { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
+  clubRecords: createEmptyRecords(),
+  careerTimeline: [] as GameState['careerTimeline'],
+  managerProgression: { xp: 0, level: 1, unlockedPerks: [], prestigeLevel: 0 } as ManagerProgression,
+  objectiveStreak: 0,
+  weekCliffhangers: [] as CliffhangerItem[],
+  lastMatchDrama: null as MatchDramaType,
+  sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 } as SessionStats,
+  weeklyDigest: null as GameState['weeklyDigest'],
+  pendingFarewell: null as GameState['pendingFarewell'],
 
   // ── Press Conference Actions ──
   respondToPress: (tone: 'confident' | 'humble' | 'deflect') => {

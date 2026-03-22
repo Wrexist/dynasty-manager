@@ -79,8 +79,8 @@ describe('celebrations', () => {
 
   it('should detect top of the table', () => {
     const table: LeagueTableEntry[] = [
-      { clubId: 'club-a', played: 10, won: 8, drawn: 1, lost: 1, gf: 20, ga: 5, gd: 15, points: 25, form: [] },
-      { clubId: 'club-b', played: 10, won: 7, drawn: 2, lost: 1, gf: 18, ga: 6, gd: 12, points: 23, form: [] },
+      { clubId: 'club-a', played: 10, won: 8, drawn: 1, lost: 1, goalsFor: 20, goalsAgainst: 5, goalDifference: 15, points: 25, form: [], cleanSheets: 0 },
+      { clubId: 'club-b', played: 10, won: 7, drawn: 2, lost: 1, goalsFor: 18, goalsAgainst: 6, goalDifference: 12, points: 23, form: [], cleanSheets: 0 },
     ] as LeagueTableEntry[];
     const fixtures = Array.from({ length: 6 }, (_, i) =>
       makeMatch(i + 1, 'club-a', `club-${i}`, 2, 0)

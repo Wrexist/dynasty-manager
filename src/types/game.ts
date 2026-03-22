@@ -658,6 +658,7 @@ export interface CupTie {
   awayGoals: number;
   week: number; // which league week this cup match is played
   penaltyShootout?: { home: number; away: number };
+  winnerId?: string; // set on forfeits and resolved cup ties
 }
 
 export interface CupState {
@@ -809,6 +810,7 @@ export interface MerchState {
   currentSeasonRevenue: number;
   starPlayerDip: number; // weeks remaining of post-sale merch dip
   starSigningBuzz: number; // weeks remaining of post-signing merch boost
+  kitLaunchUsedThisSeason: boolean; // prevents multiple kit launches per season
 }
 
 // ── Cliffhanger System ──

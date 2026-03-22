@@ -191,7 +191,7 @@ const migrations: Record<number, MigrationFn> = {
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
-  let version = data.version || 1;
+  let version = (data.version || 1) as number;
   let migrated = { ...data };
 
   while (version < CURRENT_VERSION) {
@@ -202,9 +202,9 @@ export function migrateSaveData(data: Record<string, unknown>): Record<string, u
     try {
       migrated = migrate(migrated);
     } catch {
-      migrated = { ...migrated, version: (version as number) + 1 };
+      migrated = { ...migrated, version: version + 1 };
     }
-    version = migrated.version;
+    version = migrated.version as number;
   }
 
   return migrated;
