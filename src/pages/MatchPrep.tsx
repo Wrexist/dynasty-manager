@@ -25,7 +25,7 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
-  const { week, season, clubs, players, playerClubId, leagueTable, setScreen } = useGameStore();
+  const { week, season, clubs, players, playerClubId, leagueTable, setScreen, pairFamiliarity } = useGameStore();
 
   const { match, isHome, opponent: oppClub } = useCurrentMatch();
   const oppClubId = match ? (isHome ? match.awayClubId : match.homeClubId) : '';
@@ -297,7 +297,9 @@ const MatchPrep = () => {
           awayPlayerOveralls={oppLineup.map(p => p.overall)}
           showAway
           playerFlags={myLineup.map(p => getFlag(p.nationality))}
+          awayPlayerFlags={oppLineup.map(p => getFlag(p.nationality))}
           chemistryLinks={chemLinks}
+          pairFamiliarity={pairFamiliarity}
         />
       </GlassPanel>
 

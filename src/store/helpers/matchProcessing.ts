@@ -66,12 +66,24 @@ export function processMatchResult(
     }
   });
 
+  // Increment pair familiarity for player's club lineup pairs
+  const newPairFamiliarity = { ...(state.pairFamiliarity || {}) };
+  const pcLineupIds = clubs[playerClubId]?.lineup.filter(id => newPlayers[id]) || [];
+  for (let i = 0; i < pcLineupIds.length; i++) {
+    for (let j = i + 1; j < pcLineupIds.length; j++) {
+      const fKey = pcLineupIds[i] < pcLineupIds[j]
+        ? `${pcLineupIds[i]}-${pcLineupIds[j]}`
+        : `${pcLineupIds[j]}-${pcLineupIds[i]}`;
+      newPairFamiliarity[fKey] = (newPairFamiliarity[fKey] || 0) + 1;
+    }
+  }
+
   // Player club fitness/morale/form
   const isHome = match.homeClubId === playerClubId;
   const won = isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
   const lost = isHome ? result.homeGoals < result.awayGoals : result.awayGoals < result.homeGoals;
   const pc = clubs[playerClubId];
-  if (!pc) return { newPlayers, updatedFixtures: state.fixtures.map(f => f.id === match.id ? result : f), leagueTable: [], confidence: state.boardConfidence || 50, newMessages: messages, managerStats: state.managerStats, playerRatings, won, lost, newMilestones: [] as CareerMilestone[], managerProgression: state.managerProgression };
+  if (!pc) return { newPlayers, updatedFixtures: state.fixtures.map(f => f.id === match.id ? result : f), leagueTable: [], confidence: state.boardConfidence || 50, newMessages: messages, managerStats: state.managerStats, playerRatings, won, lost, newMilestones: [] as CareerMilestone[], managerProgression: state.managerProgression, pairFamiliarity: newPairFamiliarity };
   const matchParticipants = new Set([...hc.lineup, ...ac.lineup]);
   pc.playerIds.forEach(pid => {
     if (newPlayers[pid]) {
@@ -176,5 +188,5 @@ export function processMatchResult(
   }
   const updatedRivalries = { ...(state.rivalries || {}), [oppId]: updatedRivalry };
 
-  return { newPlayers, updatedFixtures, leagueTable, confidence, newMessages, managerStats: ms, playerRatings, won, lost, newMilestones, managerProgression: updatedProgression, xpGain, leaguePosition: pos, updatedRivalries };
+  return { newPlayers, updatedFixtures, leagueTable, confidence, newMessages, managerStats: ms, playerRatings, won, lost, newMilestones, managerProgression: updatedProgression, xpGain, leaguePosition: pos, updatedRivalries, pairFamiliarity: newPairFamiliarity };
 }

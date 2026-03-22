@@ -1,4 +1,5 @@
 import type { FormationSlot, ChemistryLink } from '@/types/game';
+import { getFamiliarityCap } from '@/config/chemistry';
 
 /** Compute formation connection lines between adjacent players by row proximity. */
 export function getFormationLines(slots: FormationSlot[]): [number, number][] {
@@ -59,7 +60,10 @@ export function getFormationLines(slots: FormationSlot[]): [number, number][] {
  * Build a map from sorted player-ID pair key to the strongest chemistry strength.
  * Used to color formation lines by chemistry quality.
  */
-export function buildChemistryStrengthMap(links: ChemistryLink[]): Map<string, number> {
+export function buildChemistryStrengthMap(
+  links: ChemistryLink[],
+  pairFamiliarity?: Record<string, number>,
+): Map<string, number> {
   const map = new Map<string, number>();
   for (const link of links) {
     const key = link.playerIdA < link.playerIdB
@@ -68,6 +72,20 @@ export function buildChemistryStrengthMap(links: ChemistryLink[]): Map<string, n
     const existing = map.get(key);
     if (!existing || link.strength > existing) {
       map.set(key, link.strength);
+    }
+  }
+  // Cap displayed strength by pair familiarity (matches played together)
+  if (pairFamiliarity) {
+    for (const [key, strength] of map) {
+      const familiarity = pairFamiliarity[key] || 0;
+      const cap = getFamiliarityCap(familiarity);
+      if (strength > cap) {
+        if (cap <= 0) {
+          map.delete(key);
+        } else {
+          map.set(key, cap);
+        }
+      }
     }
   }
   return map;

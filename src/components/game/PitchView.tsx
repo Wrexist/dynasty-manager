@@ -24,9 +24,11 @@ interface PitchViewProps {
   awayPlayerIds?: string[];
   awayPlayerOveralls?: number[];
   playerFlags?: string[];
+  awayPlayerFlags?: string[];
+  pairFamiliarity?: Record<string, number>;
 }
 
-export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, awayLabels, highlightIndex, onSlotClick, playerFitness, playerIds, playerOveralls, jerseyNumbers, halfPitch = false, chemistryLinks, awayPlayerIds, awayPlayerOveralls, playerFlags }: PitchViewProps) {
+export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, awayLabels, highlightIndex, onSlotClick, playerFitness, playerIds, playerOveralls, jerseyNumbers, halfPitch = false, chemistryLinks, awayPlayerIds, awayPlayerOveralls, playerFlags, awayPlayerFlags, pairFamiliarity }: PitchViewProps) {
   const homeSlots = FORMATION_POSITIONS[formation];
   const awaySlots = awayFormation ? FORMATION_POSITIONS[awayFormation] : [];
   const resolvedLabels = homeLabels || labels;
@@ -63,7 +65,7 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
         {/* Home formation lines colored by chemistry */}
         {(() => {
           const chemMap = chemistryLinks && playerIds
-            ? buildChemistryStrengthMap(chemistryLinks)
+            ? buildChemistryStrengthMap(chemistryLinks, pairFamiliarity)
             : null;
 
           return homeLines.map(([a, b], idx) => {
@@ -176,7 +178,7 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
               <rect x={cx - 4.5} y={cy + 3.2} width="9" height={awayOvr !== undefined ? 4.2 : 2.8} rx="0.6" fill="rgba(0,0,0,0.6)" />
               {label ? (
                 <text x={cx} y={cy + 5.2} textAnchor="middle" fill="white" fontSize="1.6" fontWeight="bold" fontFamily="sans-serif">
-                  {label}
+                  {awayPlayerFlags?.[i] ? `${awayPlayerFlags[i]} ${label}` : label}
                 </text>
               ) : (
                 <text x={cx} y={cy + 5.2} textAnchor="middle" fill="#6b7280" fontSize="1.4" fontFamily="sans-serif">
