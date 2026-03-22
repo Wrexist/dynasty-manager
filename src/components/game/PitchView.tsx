@@ -1,6 +1,7 @@
-import { FormationType, FORMATION_POSITIONS, FormationSlot, ChemistryLink } from '@/types/game';
+import { FormationType, FORMATION_POSITIONS, ChemistryLink } from '@/types/game';
 import { PITCH_COLORS } from '@/config/ui';
 import { getFitnessHexColor } from '@/utils/uiHelpers';
+import { getFormationLines, buildChemistryStrengthMap, getChemistryLineColor, NEUTRAL_LINE_COLOR } from '@/utils/formationLines';
 import { PlayerAvatar } from './PlayerAvatar';
 
 interface PitchViewProps {
@@ -22,67 +23,6 @@ interface PitchViewProps {
   chemistryLinks?: ChemistryLink[];
   awayPlayerIds?: string[];
   awayPlayerOveralls?: number[];
-}
-
-function getChemistryLineColor(strength: number): string {
-  if (strength >= 3) return '#22c55e';
-  if (strength >= 2) return '#eab308';
-  return '#ef4444';
-}
-
-/** Compute formation connection lines between adjacent players by row proximity. */
-function getFormationLines(slots: FormationSlot[]): [number, number][] {
-  // Group slots into rows by y-coordinate (within 12 units = same row)
-  const indexed = slots.map((s, i) => ({ ...s, idx: i }));
-  indexed.sort((a, b) => a.y - b.y);
-
-  const rows: { idx: number; x: number; y: number }[][] = [];
-  for (const s of indexed) {
-    const lastRow = rows[rows.length - 1];
-    if (lastRow && Math.abs(s.y - lastRow[0].y) < 12) {
-      lastRow.push({ idx: s.idx, x: s.x, y: s.y });
-    } else {
-      rows.push([{ idx: s.idx, x: s.x, y: s.y }]);
-    }
-  }
-
-  // Sort each row by x
-  rows.forEach(row => row.sort((a, b) => a.x - b.x));
-
-  const lines: [number, number][] = [];
-
-  // Connect within each row (adjacent players)
-  for (const row of rows) {
-    for (let i = 0; i < row.length - 1; i++) {
-      lines.push([row[i].idx, row[i + 1].idx]);
-    }
-  }
-
-  // Connect between adjacent rows
-  for (let r = 0; r < rows.length - 1; r++) {
-    const upper = rows[r];
-    const lower = rows[r + 1];
-    for (const u of upper) {
-      // Connect to the 1-2 nearest players in the next row
-      const sorted = [...lower].sort((a, b) => Math.abs(a.x - u.x) - Math.abs(b.x - u.x));
-      const nearest = sorted.slice(0, Math.min(2, sorted.length));
-      for (const n of nearest) {
-        // Only connect if horizontally close enough (within 45 units on the 0-100 scale)
-        if (Math.abs(n.x - u.x) <= 45) {
-          lines.push([u.idx, n.idx]);
-        }
-      }
-    }
-  }
-
-  // Deduplicate
-  const seen = new Set<string>();
-  return lines.filter(([a, b]) => {
-    const key = a < b ? `${a}-${b}` : `${b}-${a}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
 }
 
 export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, awayLabels, highlightIndex, onSlotClick, playerFitness, playerIds, playerOveralls, jerseyNumbers, halfPitch = false, chemistryLinks, awayPlayerIds, awayPlayerOveralls }: PitchViewProps) {
@@ -119,16 +59,39 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
         {!halfPitch && <path d="M 26.85 18.5 A 9.15 9.15 0 0 0 41.15 18.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />}
         <path d="M 26.85 86.5 A 9.15 9.15 0 0 1 41.15 86.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
 
-        {/* Home formation lines (hidden when chemistry links are shown to reduce clutter) */}
-        {!(chemistryLinks && chemistryLinks.length > 0) && homeLines.map(([a, b], idx) => {
-          const sa = homeSlots[a];
-          const sb = homeSlots[b];
-          const x1 = 2 + (sa.x / 100) * 64;
-          const y1 = 95 - (sa.y / 100) * 39;
-          const x2 = 2 + (sb.x / 100) * 64;
-          const y2 = 95 - (sb.y / 100) * 39;
-          return <line key={`hl-${idx}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(255,255,255,0.15)" strokeWidth="0.35" strokeLinecap="round" />;
-        })}
+        {/* Home formation lines colored by chemistry */}
+        {(() => {
+          const chemMap = chemistryLinks && playerIds
+            ? buildChemistryStrengthMap(chemistryLinks)
+            : null;
+
+          return homeLines.map(([a, b], idx) => {
+            const sa = homeSlots[a];
+            const sb = homeSlots[b];
+            const x1 = 2 + (sa.x / 100) * 64;
+            const y1 = 95 - (sa.y / 100) * 39;
+            const x2 = 2 + (sb.x / 100) * 64;
+            const y2 = 95 - (sb.y / 100) * 39;
+
+            let color = NEUTRAL_LINE_COLOR;
+            let width = 0.35;
+            let lineOpacity = 1;
+
+            if (chemMap && playerIds?.[a] && playerIds?.[b]) {
+              const idA = playerIds[a];
+              const idB = playerIds[b];
+              const key = idA < idB ? `${idA}-${idB}` : `${idB}-${idA}`;
+              const strength = chemMap.get(key);
+              if (strength !== undefined) {
+                color = getChemistryLineColor(strength);
+                width = 0.45;
+                lineOpacity = 0.6;
+              }
+            }
+
+            return <line key={`hl-${idx}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke={color} strokeWidth={width} opacity={lineOpacity} strokeLinecap="round" />;
+          });
+        })()}
 
         {/* Away formation lines */}
         {awayLines.map(([a, b], idx) => {
@@ -140,43 +103,6 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
           const y2 = 10 + (sb.y / 100) * 39;
           return <line key={`al-${idx}`} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(255,255,255,0.1)" strokeWidth="0.35" strokeLinecap="round" />;
         })}
-
-        {/* Chemistry links (colored lines between linked players — one line per pair, strongest wins) */}
-        {chemistryLinks && playerIds && (() => {
-          // Consolidate: keep only the strongest link per player pair
-          const consolidated = new Map<string, ChemistryLink>();
-          for (const link of chemistryLinks) {
-            const key = link.playerIdA < link.playerIdB
-              ? `${link.playerIdA}-${link.playerIdB}`
-              : `${link.playerIdB}-${link.playerIdA}`;
-            const existing = consolidated.get(key);
-            if (!existing || link.strength > existing.strength) {
-              consolidated.set(key, link);
-            }
-          }
-          return Array.from(consolidated.values()).map((link, idx) => {
-            const idxA = playerIds.indexOf(link.playerIdA);
-            const idxB = playerIds.indexOf(link.playerIdB);
-            if (idxA < 0 || idxB < 0) return null;
-            const slotA = homeSlots[idxA];
-            const slotB = homeSlots[idxB];
-            if (!slotA || !slotB) return null;
-            const x1 = 2 + (slotA.x / 100) * 64;
-            const y1 = 95 - (slotA.y / 100) * 39;
-            const x2 = 2 + (slotB.x / 100) * 64;
-            const y2 = 95 - (slotB.y / 100) * 39;
-            return (
-              <line
-                key={`chem-${idx}`}
-                x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={getChemistryLineColor(link.strength)}
-                strokeWidth="0.45"
-                opacity="0.6"
-                strokeLinecap="round"
-              />
-            );
-          });
-        })()}
 
         {/* Home team (bottom half) */}
         {homeSlots.map((slot, i) => {
