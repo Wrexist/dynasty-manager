@@ -57,6 +57,34 @@ describe('chemistry', () => {
       const links = calculateChemistryLinks([makePlayer('ST')]);
       expect(links).toHaveLength(0);
     });
+
+    it('should detect loyalty links when both players have 2+ seasons at club', () => {
+      const a = makePlayer('CM', { clubId: 'club-1', joinedSeason: 1 });
+      const b = makePlayer('CAM', { clubId: 'club-1', joinedSeason: 1 });
+      // Season 3: both have been at club for 2 seasons (3 - 1 = 2)
+      const links = calculateChemistryLinks([a, b], undefined, 3);
+      const loyaltyLinks = links.filter(l => l.type === 'loyalty');
+      expect(loyaltyLinks).toHaveLength(1);
+      expect(loyaltyLinks[0].strength).toBeGreaterThanOrEqual(1);
+    });
+
+    it('should NOT detect loyalty links without currentSeason', () => {
+      const a = makePlayer('CM', { clubId: 'club-1', joinedSeason: 1 });
+      const b = makePlayer('CAM', { clubId: 'club-1', joinedSeason: 1 });
+      // No season passed — loyalty bonds should not form
+      const links = calculateChemistryLinks([a, b]);
+      const loyaltyLinks = links.filter(l => l.type === 'loyalty');
+      expect(loyaltyLinks).toHaveLength(0);
+    });
+
+    it('should NOT detect loyalty links for recent signings', () => {
+      const a = makePlayer('CM', { clubId: 'club-1', joinedSeason: 3 });
+      const b = makePlayer('CAM', { clubId: 'club-1', joinedSeason: 3 });
+      // Season 3: both just joined (3 - 3 = 0, below threshold of 2)
+      const links = calculateChemistryLinks([a, b], undefined, 3);
+      const loyaltyLinks = links.filter(l => l.type === 'loyalty');
+      expect(loyaltyLinks).toHaveLength(0);
+    });
   });
 
   describe('getChemistryBonus', () => {

@@ -121,6 +121,7 @@ export function autoFillBestTeam(
   players: Player[],
   formation: FormationType,
   currentWeek?: number,
+  currentSeason?: number,
 ): AutoFillResult {
   const slots = FORMATION_POSITIONS[formation];
   if (!slots || slots.length === 0) {
@@ -188,7 +189,7 @@ export function autoFillBestTeam(
       if (p) total += scores[i].get(p.id) || 0;
     }
     const lp = currentLineup.filter(Boolean) as Player[];
-    total += getChemistryBonus(lp) * CHEMISTRY_SCORE_SCALE;
+    total += getChemistryBonus(lp, undefined, currentSeason) * CHEMISTRY_SCORE_SCALE;
     return total;
   };
 
@@ -308,7 +309,7 @@ export function autoFillBestTeam(
     finalSubs.push(c.player);
   }
 
-  const chemBonus = getChemistryBonus(finalLineup);
+  const chemBonus = getChemistryBonus(finalLineup, formation, currentSeason);
   const chemLabel = getChemistryLabel(chemBonus);
 
   return {

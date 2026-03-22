@@ -26,16 +26,16 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam, setSetPieceTaker, setPenaltyTaker } = useGameStore();
+  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam, setSetPieceTaker, setPenaltyTaker, season } = useGameStore();
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
   const [autoFilling, setAutoFilling] = useState(false);
   if (!club) return null;
 
   const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
-  const chemBonus = getChemistryBonus(lineupPlayers, club.formation);
+  const chemBonus = getChemistryBonus(lineupPlayers, club.formation, season);
   const chemLabel = getChemistryLabel(chemBonus);
-  const chemLinks = calculateChemistryLinks(lineupPlayers, club.formation);
+  const chemLinks = calculateChemistryLinks(lineupPlayers, club.formation, season);
 
   const isPresetActive = (preset: StylePreset): boolean => {
     return (

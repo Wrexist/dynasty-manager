@@ -654,7 +654,7 @@ function finalizeSeason(
   const postLoanPlayers = get().players;
   const mergedPlayers = { ...inputPlayers };
   for (const pid of Object.keys(mergedPlayers)) {
-    if (postLoanPlayers[pid] && postLoanPlayers[pid].clubId !== mergedPlayers[pid].clubId) {
+    if (postLoanPlayers[pid]) {
       mergedPlayers[pid] = { ...mergedPlayers[pid], clubId: postLoanPlayers[pid].clubId };
     }
   }
@@ -1179,7 +1179,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         if (!hc || !ac) continue;
         const hp = hc.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
         const ap = ac.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
-        const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId));
+        const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season);
         divFixtures[idx] = result;
         // Update player stats for other divisions
         result.events.forEach(ev => {
@@ -1217,7 +1217,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         updatedFixtures[idx] = forfeit;
         continue;
       }
-      const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId));
+      const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season);
       updatedFixtures[idx] = result;
 
       result.events.forEach(ev => {
@@ -1263,7 +1263,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         }
         const { result: cupResult } = simulateMatch(
           { id: tie.id, week: tie.week, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
-          hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId)
+          hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season
         );
 
         // Resolve draws via extra time then penalties
@@ -2065,7 +2065,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const matchDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian);
+    const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season);
 
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
 
@@ -2123,7 +2123,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities);
+    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season);
 
     set({ halfTimeState: halfState, matchPhase: 'half_time', matchSubsUsed: 0, preMatchLeaguePosition: preMatchPos, currentCupTieId: cupTie ? cupTie.id : null });
     return halfState;
@@ -2153,7 +2153,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Simulate second half, carrying forward first half state
     const secondHalfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities);
+    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
     // Cup match ended in draw — need extra time
@@ -2248,7 +2248,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
 
     // Simulate extra time as one 30-minute block (91-120)
-    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities);
+    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season);
 
     // Build the extended match result
     const etResult: Match = {

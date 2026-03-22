@@ -225,7 +225,7 @@ function computeStrengths(
   homeClub: Club, awayClub: Club,
   homePlayers: Player[], awayPlayers: Player[],
   homeTactics?: TacticalInstructions, awayTactics?: TacticalInstructions,
-  tacticalFamiliarity?: number, playerClubId?: string,
+  tacticalFamiliarity?: number, playerClubId?: string, currentSeason?: number,
 ) {
   const homeMods = getTacticsModifiers(homeTactics);
   const awayMods = getTacticsModifiers(awayTactics);
@@ -239,8 +239,8 @@ function computeStrengths(
   const homeMatchup = getTacticalMatchupBonus(homeTactics, awayTactics);
   const awayMatchup = getTacticalMatchupBonus(awayTactics, homeTactics);
   // Chemistry bonus (0-8%) based on squad composition
-  const homeChemistry = getChemistryBonus(homePlayers, homeClub.formation);
-  const awayChemistry = getChemistryBonus(awayPlayers, awayClub.formation);
+  const homeChemistry = getChemistryBonus(homePlayers, homeClub.formation, currentSeason);
+  const awayChemistry = getChemistryBonus(awayPlayers, awayClub.formation, currentSeason);
   // Formation-specific attack/defense profiles (e.g. 3-4-3 = +10% attack, -8% defense)
   // Use defensiveFormation for defense bonus when set, otherwise fall back to main formation
   const homeFormAtk = FORMATION_ATTACK_BONUS[homeClub.formation] || 0;
@@ -319,6 +319,7 @@ export function simulateHalf(
   disciplinarianActive?: boolean,
   homeMedicalLevel?: number,
   awayMedicalLevel?: number,
+  currentSeason?: number,
 ): HalfState {
   // Derby matches: more events, more fouls, more cards
   const derbyEventMod = derbyIntensity ? derbyIntensity * DERBY_EVENT_MOD_SCALE : 0;
@@ -326,7 +327,7 @@ export function simulateHalf(
   const derbyCardMod = derbyIntensity ? derbyIntensity * DERBY_CARD_MOD_SCALE : 0;
 
   const _str = computeStrengths(
-    homeClub, awayClub, homePlayers, awayPlayers, homeTactics, awayTactics, tacticalFamiliarity, playerClubId,
+    homeClub, awayClub, homePlayers, awayPlayers, homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason,
   );
   let { homeStr, awayStr } = _str;
   const { homeMods, awayMods } = _str;
@@ -926,6 +927,7 @@ export function simulateMatch(
   playerClubId?: string,
   derbyIntensity?: number,
   disciplinarianActive?: boolean,
+  currentSeason?: number,
 ): { result: Match; playerRatings: PlayerMatchRating[] } {
   // Forfeit if either squad is invalid
   const homeIsPlayer = playerClubId === homeClub.id;
@@ -945,7 +947,7 @@ export function simulateMatch(
   const effectiveAwayTactics = awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS;
 
   // Simulate first half (1-45)
-  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities);
+  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason);
 
   // AI tactical reactivity: adjust tactics for second half based on scoreline
   let secondHalfHomeTactics = effectiveHomeTactics;
@@ -959,7 +961,7 @@ export function simulateMatch(
   }
 
   // Simulate second half (46-90) with potentially adjusted AI tactics
-  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities);
+  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason);
 
   const finalized = finalizeMatch(match, homeClub, awayClub, homePlayers, awayPlayers, fullState);
   return { ...finalized, matchInjuries: fullState.matchInjuries };
