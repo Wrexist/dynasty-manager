@@ -56,7 +56,7 @@ const drawerSections: DrawerSection[] = [
 
 export function MoreDrawer() {
   const [open, setOpen] = useState(false);
-  const { setScreen, messages } = useGameStore();
+  const { setScreen, messages, currentScreen } = useGameStore();
   const unread = messages.filter(m => !m.read).length;
 
   const handleNav = (screen: GameScreen) => {
@@ -100,7 +100,12 @@ export function MoreDrawer() {
                   <button
                     key={screen}
                     onClick={() => handleNav(screen)}
-                    className="flex items-center gap-3 w-full p-3 rounded-xl hover:bg-muted/50 active:scale-[0.98] transition-all"
+                    className={cn(
+                      "flex items-center gap-3 w-full p-3 rounded-xl active:scale-[0.98] transition-all",
+                      currentScreen === screen
+                        ? "bg-primary/10 border border-primary/30"
+                        : "hover:bg-muted/50"
+                    )}
                   >
                     <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
                       <Icon className="w-5 h-5 text-primary" />
