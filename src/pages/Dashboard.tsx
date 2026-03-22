@@ -112,6 +112,7 @@ const Dashboard = () => {
       setCurrentAchievement(remaining[0]);
     } else {
       setCurrentAchievement(null);
+      store.clearPendingAchievements();
     }
   };
 
@@ -399,6 +400,55 @@ const Dashboard = () => {
         </GlassPanel>
       )}
 
+      {/* Next Match */}
+      {!seasonOver && nextMatch && opponent ? (
+        <GlassPanel className="p-5" onClick={() => setScreen('match-prep')}>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">{inPlayoffs ? 'Playoff Match' : 'Match Day'} -- Week {week}</p>
+          <div className="flex items-center justify-between">
+            <div className="text-center flex-1">
+              <div
+                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
+                style={{ backgroundColor: club.color, color: club.secondaryColor }}
+              >
+                {club.shortName}
+              </div>
+              <p className="text-sm font-bold text-foreground">{club.shortName}</p>
+              <p className="text-[10px] text-muted-foreground">{isHome ? 'HOME' : 'AWAY'}</p>
+            </div>
+            <div className="px-4">
+              <p className="text-2xl font-black text-muted-foreground">VS</p>
+            </div>
+            <div className="text-center flex-1">
+              <div
+                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
+                style={{ backgroundColor: opponent.color, color: opponent.secondaryColor }}
+              >
+                {opponent.shortName}
+              </div>
+              <p className="text-sm font-bold text-foreground">{opponent.shortName}</p>
+              <p className="text-[10px] text-muted-foreground">{isHome ? 'AWAY' : 'HOME'}</p>
+            </div>
+          </div>
+          <Button
+            className="w-full mt-4 gap-2"
+            onClick={(e) => { e.stopPropagation(); setScreen('match-prep'); }}
+          >
+            <Play className="w-4 h-4" /> Match Prep
+          </Button>
+        </GlassPanel>
+      ) : !seasonOver && (
+        <GlassPanel className="p-5">
+          <p className="text-sm text-muted-foreground text-center">No match this week</p>
+          <Button className="w-full mt-3" disabled={isAdvancing} onClick={() => {
+            hapticLight();
+            setIsAdvancing(true);
+            setTimeout(() => { advanceWeek(); setIsAdvancing(false); }, 50);
+          }}>
+            {isAdvancing ? 'Advancing...' : `Advance to Week ${week + 1}`}
+          </Button>
+        </GlassPanel>
+      )}
+
       {/* Training Status Chip + Streaks */}
       {!seasonOver && !inPlayoffs && (
         <div className="space-y-2">
@@ -600,55 +650,6 @@ const Dashboard = () => {
             </div>
           </GlassPanel>
         </div>
-      )}
-
-      {/* Next Match */}
-      {!seasonOver && nextMatch && opponent ? (
-        <GlassPanel className="p-5" onClick={() => setScreen('match-prep')}>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">{inPlayoffs ? 'Playoff Match' : 'Match Day'} -- Week {week}</p>
-          <div className="flex items-center justify-between">
-            <div className="text-center flex-1">
-              <div
-                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
-                style={{ backgroundColor: club.color, color: club.secondaryColor }}
-              >
-                {club.shortName}
-              </div>
-              <p className="text-sm font-bold text-foreground">{club.shortName}</p>
-              <p className="text-[10px] text-muted-foreground">{isHome ? 'HOME' : 'AWAY'}</p>
-            </div>
-            <div className="px-4">
-              <p className="text-2xl font-black text-muted-foreground">VS</p>
-            </div>
-            <div className="text-center flex-1">
-              <div
-                className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center font-bold text-xs"
-                style={{ backgroundColor: opponent.color, color: opponent.secondaryColor }}
-              >
-                {opponent.shortName}
-              </div>
-              <p className="text-sm font-bold text-foreground">{opponent.shortName}</p>
-              <p className="text-[10px] text-muted-foreground">{isHome ? 'AWAY' : 'HOME'}</p>
-            </div>
-          </div>
-          <Button
-            className="w-full mt-4 gap-2"
-            onClick={(e) => { e.stopPropagation(); setScreen('match-prep'); }}
-          >
-            <Play className="w-4 h-4" /> Match Prep
-          </Button>
-        </GlassPanel>
-      ) : !seasonOver && (
-        <GlassPanel className="p-5">
-          <p className="text-sm text-muted-foreground text-center">No match this week</p>
-          <Button className="w-full mt-3" disabled={isAdvancing} onClick={() => {
-            hapticLight();
-            setIsAdvancing(true);
-            setTimeout(() => { advanceWeek(); setIsAdvancing(false); }, 50);
-          }}>
-            {isAdvancing ? 'Advancing...' : `Advance to Week ${week + 1}`}
-          </Button>
-        </GlassPanel>
       )}
 
       {/* Week Preview Teasers */}
