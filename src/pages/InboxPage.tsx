@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake } from 'lucide-react';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/game';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
@@ -18,25 +18,88 @@ const typeIcon: Record<Message['type'], React.ElementType> = {
   general: Mail,
 };
 
-const CATEGORY_FILTERS: { label: string; types: Message['type'][] }[] = [
-  { label: 'All', types: [] },
-  { label: 'Board', types: ['board'] },
-  { label: 'Transfer', types: ['transfer'] },
-  { label: 'Match', types: ['match_preview', 'match_result'] },
-  { label: 'Player', types: ['development', 'injury', 'contract'] },
-  { label: 'Sponsors', types: ['sponsorship'] },
+const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.ElementType }[] = [
+  { label: 'Match', types: ['match_preview', 'match_result'], icon: Trophy },
+  { label: 'Board', types: ['board'], icon: Megaphone },
+  { label: 'Transfer', types: ['transfer'], icon: ArrowLeftRight },
+  { label: 'Injury', types: ['injury'], icon: Stethoscope },
+  { label: 'Contract', types: ['contract'], icon: FileText },
+  { label: 'Development', types: ['development'], icon: TrendingUp },
+  { label: 'Sponsorship', types: ['sponsorship'], icon: Handshake },
+  { label: 'General', types: ['general'], icon: Mail },
 ];
 
 const InboxPage = () => {
   const { messages, markMessageRead, markAllRead, activeStorylineChains } = useGameStore();
-  const [category, setCategory] = useState(0);
+  const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const unread = messages.filter(m => !m.read).length;
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    };
+    if (filterOpen) document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [filterOpen]);
 
-  const filtered = CATEGORY_FILTERS[category].types.length > 0
-    ? messages.filter(m => CATEGORY_FILTERS[category].types.includes(m.type))
+  const toggleFilter = (label: string) => {
+    setActiveFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(label)) next.delete(label);
+      else next.add(label);
+      return next;
+    });
+  };
+
+  // Per-category counts (total + unread) for dropdown badges
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, { total: number; unread: number }> = {};
+    for (const opt of FILTER_OPTIONS) {
+      const matching = messages.filter(m => opt.types.includes(m.type));
+      counts[opt.label] = {
+        total: matching.length,
+        unread: matching.filter(m => !m.read).length,
+      };
+    }
+    return counts;
+  }, [messages]);
+
+  // Apply type filters
+  const allowedTypes = activeFilters.size > 0
+    ? FILTER_OPTIONS.filter(o => activeFilters.has(o.label)).flatMap(o => o.types)
+    : [];
+  let filtered = allowedTypes.length > 0
+    ? messages.filter(m => allowedTypes.includes(m.type))
     : messages;
+
+  // Apply unread-only filter
+  if (unreadOnly) {
+    filtered = filtered.filter(m => !m.read);
+  }
+
+  const filteredUnread = filtered.filter(m => !m.read).length;
+  const totalUnread = messages.filter(m => !m.read).length;
+  const hasActiveFilter = activeFilters.size > 0 || unreadOnly;
+  const activeCount = activeFilters.size + (unreadOnly ? 1 : 0);
+
+  // Filter-aware mark all read
+  const handleMarkAllRead = () => {
+    if (hasActiveFilter) {
+      filtered.forEach(m => { if (!m.read) markMessageRead(m.id); });
+    } else {
+      markAllRead();
+    }
+  };
+
+  const clearAllFilters = () => {
+    setActiveFilters(new Set());
+    setUnreadOnly(false);
+  };
 
   // Group by week
   const grouped: Record<string, Message[]> = {};
@@ -56,31 +119,119 @@ const InboxPage = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-foreground font-display">Inbox</h2>
-          <p className="text-xs text-muted-foreground">{unread} unread · {filtered.length} messages</p>
+          <p className="text-xs text-muted-foreground">
+            {hasActiveFilter
+              ? `${filteredUnread} unread · ${filtered.length} of ${messages.length} messages`
+              : `${totalUnread} unread · ${messages.length} messages`}
+          </p>
         </div>
-        {unread > 0 && (
-          <button onClick={markAllRead} className="flex items-center gap-1 text-xs text-primary hover:underline">
-            <CheckCheck className="w-3 h-3" /> Mark all read
+        {(hasActiveFilter ? filteredUnread : totalUnread) > 0 && (
+          <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs text-primary hover:underline">
+            <CheckCheck className="w-3 h-3" />
+            {hasActiveFilter ? 'Mark filtered read' : 'Mark all read'}
           </button>
         )}
       </div>
 
-      {/* Category Filters */}
-      <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-        {CATEGORY_FILTERS.map((cat, i) => (
-          <button
-            key={cat.label}
-            onClick={() => setCategory(i)}
-            className={cn(
-              'px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0',
-              category === i
-                ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+      {/* Filter Dropdown */}
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setFilterOpen(prev => !prev)}
+          className={cn(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all',
+            hasActiveFilter
+              ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
+              : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+          )}
+        >
+          <Filter className="w-3 h-3" />
+          Filter
+          {activeCount > 0 && (
+            <span className="ml-0.5 w-4 h-4 rounded-full bg-primary-foreground/20 text-[10px] flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
+          <ChevronDown className={cn('w-3 h-3 transition-transform', filterOpen && 'rotate-180')} />
+        </button>
+
+        {filterOpen && (
+          <div className="absolute left-0 top-full mt-1.5 z-50 w-60 bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl shadow-xl overflow-hidden">
+            <div className="p-2 space-y-0.5">
+              {/* Unread only toggle */}
+              <button
+                onClick={() => setUnreadOnly(prev => !prev)}
+                className={cn(
+                  'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs transition-colors',
+                  unreadOnly ? 'bg-primary/15 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                )}
+              >
+                <div className={cn(
+                  'w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors',
+                  unreadOnly ? 'bg-primary border-primary' : 'border-border'
+                )}>
+                  {unreadOnly && (
+                    <svg className="w-2.5 h-2.5 text-primary-foreground" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M1.5 5.5L4 8L8.5 2" />
+                    </svg>
+                  )}
+                </div>
+                <BellDot className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-medium">Unread only</span>
+                {totalUnread > 0 && (
+                  <span className="ml-auto text-[10px] text-primary font-semibold">{totalUnread}</span>
+                )}
+              </button>
+
+              <div className="border-t border-border/30 my-1" />
+
+              {/* Category filters */}
+              {FILTER_OPTIONS.map(opt => {
+                const Icon = opt.icon;
+                const checked = activeFilters.has(opt.label);
+                const counts = categoryCounts[opt.label];
+                return (
+                  <button
+                    key={opt.label}
+                    onClick={() => toggleFilter(opt.label)}
+                    className={cn(
+                      'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs transition-colors',
+                      checked ? 'bg-primary/15 text-foreground' : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    )}
+                  >
+                    <div className={cn(
+                      'w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors',
+                      checked ? 'bg-primary border-primary' : 'border-border'
+                    )}>
+                      {checked && (
+                        <svg className="w-2.5 h-2.5 text-primary-foreground" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M1.5 5.5L4 8L8.5 2" />
+                        </svg>
+                      )}
+                    </div>
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="font-medium">{opt.label}</span>
+                    <span className="ml-auto flex items-center gap-1.5">
+                      {counts.unread > 0 && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
+                      )}
+                      <span className="text-[10px] tabular-nums text-muted-foreground">{counts.total}</span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {hasActiveFilter && (
+              <div className="border-t border-border/50 px-2.5 py-2">
+                <button
+                  onClick={clearAllFilters}
+                  className="text-[10px] text-primary hover:underline"
+                >
+                  Clear all
+                </button>
+              </div>
             )}
-          >
-            {cat.label}
-          </button>
-        ))}
+          </div>
+        )}
       </div>
 
       {/* Active Storyline Chains */}
@@ -117,11 +268,11 @@ const InboxPage = () => {
         <GlassPanel className="p-8 text-center">
           <MailOpen className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
-            {category > 0 ? `No ${CATEGORY_FILTERS[category].label.toLowerCase()} messages` : 'No messages'}
+            {hasActiveFilter ? 'No messages match your filters' : 'No messages'}
           </p>
-          {category > 0 && (
-            <button className="text-xs text-primary mt-2 hover:underline" onClick={() => setCategory(0)}>
-              Clear filter
+          {hasActiveFilter && (
+            <button className="text-xs text-primary mt-2 hover:underline" onClick={clearAllFilters}>
+              Clear filters
             </button>
           )}
         </GlassPanel>

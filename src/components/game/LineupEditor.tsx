@@ -42,7 +42,7 @@ export function LineupEditor() {
   const chemLinks = useMemo(() => {
     if (!club) return [];
     const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
-    return calculateChemistryLinks(lineupPlayers);
+    return calculateChemistryLinks(lineupPlayers, club.formation);
   }, [club, players]);
 
   const lineup = useMemo(() => club?.lineup || [], [club?.lineup]);
@@ -70,35 +70,53 @@ export function LineupEditor() {
     const newLineup = [...lineup];
     let newSubs = [...subs];
 
+    // Helper to remove a player from subs (no-op if not in subs — handles benchIds players)
+    const removeFromSubs = (id: string) => {
+      newSubs = newSubs.filter(sid => sid !== id);
+    };
+
+    // Helper to add a player to subs (capped later by MAX_SUBS)
+    const addToSubs = (id: string) => {
+      if (!newSubs.includes(id)) newSubs.push(id);
+    };
+
     if (activeInLineupIdx >= 0 && overInLineupIdx >= 0) {
-      // Swap two lineup players
+      // Lineup ↔ Lineup: swap positions
       newLineup[activeInLineupIdx] = targetId;
       newLineup[overInLineupIdx] = activeId;
     } else if (activeOnBench && overSlotIdx >= 0) {
-      // Bench player into empty slot
+      // Bench → Empty/occupied slot
       const displaced = newLineup[overSlotIdx];
       newLineup[overSlotIdx] = activeId;
-      newSubs = newSubs.filter(id => id !== activeId);
-      if (displaced) newSubs.push(displaced);
+      removeFromSubs(activeId);
+      if (displaced) addToSubs(displaced);
     } else if (activeOnBench && overInLineupIdx >= 0) {
-      // Bench player swaps with lineup player
+      // Bench → Lineup player: swap them
       const displaced = newLineup[overInLineupIdx];
       newLineup[overInLineupIdx] = activeId;
-      newSubs = newSubs.filter(id => id !== activeId);
-      if (displaced) newSubs.push(displaced);
+      removeFromSubs(activeId);
+      if (displaced) addToSubs(displaced);
     } else if (activeInLineupIdx >= 0 && overOnBench) {
-      // Lineup player swaps with bench player
+      // Lineup → Bench player: swap them
       newLineup[activeInLineupIdx] = targetId;
-      newSubs = newSubs.filter(id => id !== targetId);
-      newSubs.push(activeId);
+      removeFromSubs(targetId);
+      addToSubs(activeId);
     } else if (activeOnBench && overOnBench) {
-      // Swap two bench players
-      const activeSubIdx = newSubs.indexOf(activeId);
-      const overSubIdx = newSubs.indexOf(targetId);
-      if (activeSubIdx >= 0 && overSubIdx >= 0) {
-        newSubs[activeSubIdx] = targetId;
-        newSubs[overSubIdx] = activeId;
+      // Bench ↔ Bench: swap positions in subs (handle benchIds players too)
+      const activeInSubs = newSubs.indexOf(activeId);
+      const overInSubs = newSubs.indexOf(targetId);
+      if (activeInSubs >= 0 && overInSubs >= 0) {
+        // Both in subs — direct swap
+        newSubs[activeInSubs] = targetId;
+        newSubs[overInSubs] = activeId;
+      } else if (activeInSubs >= 0) {
+        // Active in subs, over in benchIds — replace active's subs slot with over
+        newSubs[activeInSubs] = targetId;
+      } else if (overInSubs >= 0) {
+        // Active in benchIds, over in subs — replace over's subs slot with active
+        newSubs[overInSubs] = activeId;
       }
+      // Both in benchIds — no subs change needed (purely cosmetic order)
     }
 
     updateLineup(newLineup, newSubs.slice(0, MAX_SUBS));

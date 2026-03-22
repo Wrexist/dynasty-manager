@@ -6,7 +6,7 @@ import { getChemistryBonus, getChemistryLabel, calculateChemistryLinks } from '@
 import { getRatingColor } from '@/utils/uiHelpers';
 import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
-import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft } from 'lucide-react';
+import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft, Wand2 } from 'lucide-react';
 import { getFlag } from '@/utils/nationality';
 import { useState } from 'react';
 import { PageHint } from '@/components/game/PageHint';
@@ -26,15 +26,16 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup } = useGameStore();
+  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam } = useGameStore();
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
+  const [autoFilling, setAutoFilling] = useState(false);
   if (!club) return null;
 
   const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
-  const chemBonus = getChemistryBonus(lineupPlayers);
+  const chemBonus = getChemistryBonus(lineupPlayers, club.formation);
   const chemLabel = getChemistryLabel(chemBonus);
-  const chemLinks = calculateChemistryLinks(lineupPlayers);
+  const chemLinks = calculateChemistryLinks(lineupPlayers, club.formation);
 
   const isPresetActive = (preset: StylePreset): boolean => {
     return (
@@ -104,6 +105,27 @@ const TacticsPage = () => {
           </p>
         )}
       </GlassPanel>
+
+      {/* Smart Auto Fill */}
+      <button
+        onClick={() => {
+          setAutoFilling(true);
+          requestAnimationFrame(() => {
+            autoFillTeam();
+            setAutoFilling(false);
+          });
+        }}
+        disabled={autoFilling}
+        className={cn(
+          'w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]',
+          autoFilling
+            ? 'bg-primary/50 text-primary-foreground/70 cursor-not-allowed'
+            : 'bg-primary/90 hover:bg-primary text-primary-foreground'
+        )}
+      >
+        <Wand2 className={cn('w-4 h-4', autoFilling && 'animate-spin')} />
+        {autoFilling ? 'Optimizing...' : 'Smart Auto Fill'}
+      </button>
 
       {/* Lineup Editor with Drag & Drop */}
       <GlassPanel className="p-4">
