@@ -202,11 +202,11 @@ const Dashboard = () => {
   // Week preview teasers (with fallback so there's always something forward-looking)
   const weekPreviews = useMemo(() => {
     if (!club) return [];
-    const ctx = { playerClubId, players, clubs, fixtures, facilities: store.facilities, scouting: store.scouting, week, season };
+    const ctx = { playerClubId, players, clubs, fixtures, facilities: store.facilities, scouting: store.scouting, week, season, boardObjectives, divisionTables: store.divisionTables, playerDivision: store.playerDivision };
     const items = getWeekPreview(ctx);
     if (items.length > 0) return items;
     return getFallbackPreview(ctx);
-  }, [playerClubId, players, clubs, fixtures, store.facilities, store.scouting, week, season, club]);
+  }, [playerClubId, players, clubs, fixtures, store.facilities, store.scouting, week, season, club, boardObjectives, store.divisionTables, store.playerDivision]);
 
   // XP progress to next level
   const xpProgress = useMemo(() => getXPProgress(store.managerProgression), [store.managerProgression]);
@@ -459,14 +459,35 @@ const Dashboard = () => {
           </Button>
         </GlassPanel>
       ) : !seasonOver && (
-        <GlassPanel className="p-5">
+        <GlassPanel className="p-5 space-y-3">
           <p className="text-sm text-muted-foreground text-center">No match this week</p>
-          <Button className={cn("w-full mt-3 gap-2", isAdvancing && "animate-pulse")} disabled={isAdvancing} onClick={() => {
+          {/* Activity suggestions */}
+          <div className="flex flex-wrap gap-2 justify-center">
+            {store.transferWindowOpen && (
+              <button onClick={() => setScreen('transfers')} className="inline-flex items-center gap-1 bg-primary/10 border border-primary/20 rounded-full px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
+                <UserPlus className="w-3 h-3" /> Scout Transfers
+              </button>
+            )}
+            <button onClick={() => setScreen('training')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+              <Dumbbell className="w-3 h-3" /> Training
+            </button>
+            {store.youthAcademy.prospects.some(p => p.readyToPromote) && (
+              <button onClick={() => setScreen('youth-academy')} className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors">
+                <Users className="w-3 h-3" /> Youth Ready
+              </button>
+            )}
+            {store.scouting.reports.length > 0 && (
+              <button onClick={() => setScreen('scouting')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+                <BarChart3 className="w-3 h-3" /> Scout Reports
+              </button>
+            )}
+          </div>
+          <Button className={cn("w-full gap-2", isAdvancing && "animate-pulse")} disabled={isAdvancing} onClick={() => {
             hapticLight();
             setIsAdvancing(true);
             setTimeout(() => { advanceWeek(); setIsAdvancing(false); }, 50);
           }}>
-            {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : `Advance to Week ${week + 1}`}
+            {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}
           </Button>
         </GlassPanel>
       )}

@@ -1923,6 +1923,35 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     })();
     const digestOffersReceived = newOffers.length - state.incomingOffers.length;
 
+    // Guarantee at least one narrative message per week
+    const newMessageCount = newMessages.length - messages.length;
+    if (newMessageCount <= 1) {
+      const myEntry = leagueTable.find(e => e.clubId === playerClubId);
+      const myPos = myEntry ? leagueTable.indexOf(myEntry) + 1 : 0;
+      const totalTeams = leagueTable.length;
+      const posLabel = myPos > 0 ? `${myPos}${getSuffix(myPos)}` : '';
+      const narrativePool: { title: string; body: string }[] = [];
+
+      // Morale-based
+      if (newAvgMorale >= 75) narrativePool.push({ title: 'Training Ground Buzz', body: 'The mood around the training ground is excellent. Players are focused and spirits are high.' });
+      else if (newAvgMorale <= 40) narrativePool.push({ title: 'Low Spirits', body: 'The atmosphere at training feels flat. The squad could use a morale boost — a good result would help.' });
+      else narrativePool.push({ title: 'Steady Week', body: 'A solid week of training. The squad is ticking over nicely and working hard on the training pitch.' });
+
+      // Position-based
+      if (myPos > 0 && myPos <= 3) narrativePool.push({ title: 'Title Contenders', body: `Sitting in ${posLabel} — the local press are starting to take notice of your title credentials.` });
+      else if (myPos > 0 && myPos > totalTeams - 3) narrativePool.push({ title: 'Relegation Watch', body: `Currently ${posLabel} — pundits are questioning whether you can pull clear of the drop zone.` });
+      else if (myPos > 0) narrativePool.push({ title: 'Mid-Table Report', body: `The club sits ${posLabel} in the table. Fans are looking for a push toward the upper half.` });
+
+      // Board confidence
+      if (newBoardConfidence >= 80) narrativePool.push({ title: 'Board Pleased', body: 'The board are impressed with your work. Keep delivering results and the future looks bright.' });
+      else if (newBoardConfidence <= 30) narrativePool.push({ title: 'Board Concerns', body: 'Whispers in the boardroom suggest patience is running thin. Results need to improve soon.' });
+
+      if (narrativePool.length > 0) {
+        const chosen = pick(narrativePool);
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: chosen.title, body: chosen.body });
+      }
+    }
+
     set({
       week: newWeek, fixtures: updatedFixtures, players: newPlayers,
       leagueTable, transferWindowOpen, currentMatchResult: null,
