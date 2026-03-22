@@ -5,8 +5,10 @@ import { SubNav } from '@/components/game/SubNav';
 import { cn } from '@/lib/utils';
 import { Position } from '@/types/game';
 import { Tag, TrendingUp, TrendingDown, HeartPulse } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { getRatingColor, getFitnessColor, getMoraleBgColor } from '@/utils/uiHelpers';
 import { successToast } from '@/utils/gameToast';
+import { hapticMedium } from '@/utils/haptics';
 import { POSITION_FILTERS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { getFlag } from '@/utils/nationality';
@@ -99,6 +101,7 @@ const SquadPage = () => {
     const player = players[playerId];
     if (!player) return;
     listPlayerForSale(playerId);
+    hapticMedium();
     successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M`);
   };
 
@@ -212,13 +215,16 @@ const SquadPage = () => {
 
         {/* Player List */}
         <GlassPanel className="divide-y divide-border/30">
-          {squad.map(player => {
+          {squad.map((player, i) => {
             const fitnessColor = getFitnessColor(player.fitness);
             const moraleColor = getMoraleBgColor(player.morale);
 
             return (
-              <div
+              <motion.div
                 key={player.id}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: Math.min(i * 0.03, 0.45), duration: 0.2 }}
                 onClick={() => selectPlayer(player.id)}
                 className="flex items-center gap-2 py-2.5 px-3 hover:bg-muted/30 cursor-pointer transition-colors"
               >
@@ -297,7 +303,7 @@ const SquadPage = () => {
                     </button>
                   )}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
 

@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DIVISIONS } from '@/data/league';
 import type { DivisionId } from '@/types/game';
@@ -143,7 +143,17 @@ const LeagueTable = () => {
 
                   return (
                     <tr key={entry.clubId} ref={isPlayer ? playerRowRef : undefined} className={cn('border-b border-border/10', zoneBgClass(zone), isPlayer && 'bg-primary/5')}>
-                      <td className={cn('p-2 text-xs', pos === 1 ? 'text-primary font-bold' : 'text-muted-foreground')}>{pos}</td>
+                      <td className={cn('p-2 text-xs', pos === 1 ? 'text-primary font-bold' : 'text-muted-foreground')}>
+                        <div className="flex items-center gap-0.5">
+                          <span>{pos}</span>
+                          {entry.form.length > 0 && entry.form[entry.form.length - 1] === 'W' && (
+                            <TrendingUp className="w-2.5 h-2.5 text-emerald-400" />
+                          )}
+                          {entry.form.length > 0 && entry.form[entry.form.length - 1] === 'L' && (
+                            <TrendingDown className="w-2.5 h-2.5 text-destructive" />
+                          )}
+                        </div>
+                      </td>
                       <td className="p-2">
                         <div className="flex items-center gap-1.5">
                           <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: club?.color }} />

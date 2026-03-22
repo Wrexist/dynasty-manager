@@ -5,6 +5,8 @@ import { SubNav } from '@/components/game/SubNav';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { hapticMedium } from '@/utils/haptics';
 import { TransferListing } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
@@ -86,6 +88,7 @@ const TransferPage = () => {
       errorToast('Transfer window is closed.');
       return;
     }
+    hapticMedium();
     setNegotiatingListing(listing);
   };
 
@@ -242,7 +245,7 @@ const TransferPage = () => {
       {/* Market / Shortlist Listings */}
       {(tab === 'market' || tab === 'shortlist') && (
         <div className="space-y-2">
-          {listings.map(listing => {
+          {listings.map((listing, i) => {
             const p = players[listing.playerId];
             if (!p) return null;
             const seller = clubs[listing.sellerClubId];
@@ -250,7 +253,13 @@ const TransferPage = () => {
             const top3 = getTop3Attributes(p.attributes);
 
             return (
-              <GlassPanel key={p.id} className="p-4">
+              <motion.div
+                key={p.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.04, 0.4), duration: 0.2 }}
+              >
+              <GlassPanel className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <span className={cn(
@@ -303,6 +312,7 @@ const TransferPage = () => {
                   </Button>
                 </div>
               </GlassPanel>
+              </motion.div>
             );
           })}
           {listings.length === 0 && (

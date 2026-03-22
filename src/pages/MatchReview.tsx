@@ -18,10 +18,13 @@ const MatchReview = () => {
   if (!currentMatchResult) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">
-        <GlassPanel className="p-6 text-center">
-          <p className="text-sm text-muted-foreground">No match to review</p>
-          <Button variant="secondary" className="mt-3" onClick={() => setScreen('dashboard')}>Back to Dashboard</Button>
-        </GlassPanel>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
+          <GlassPanel className="p-6 text-center">
+            <Calendar className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No match to review</p>
+            <Button variant="secondary" className="mt-3" onClick={() => setScreen('dashboard')}>Back to Dashboard</Button>
+          </GlassPanel>
+        </motion.div>
       </div>
     );
   }

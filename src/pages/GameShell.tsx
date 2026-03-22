@@ -1,4 +1,4 @@
-import { useEffect, useCallback, lazy, Suspense } from 'react';
+import { useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
@@ -106,6 +106,20 @@ const GameShell = () => {
 
   const Screen = screens[currentScreen] || Dashboard;
 
+  // Track navigation direction for transition animations
+  const prevScreenRef = useRef(currentScreen);
+  const direction = (() => {
+    const prev = prevScreenRef.current;
+    const prevIdx = MAIN_TABS.indexOf(prev);
+    const curIdx = MAIN_TABS.indexOf(currentScreen);
+    if (prevIdx >= 0 && curIdx >= 0) return curIdx > prevIdx ? 1 : curIdx < prevIdx ? -1 : 0;
+    // Detail screens slide in from right, back slides left
+    if (MAIN_TABS.includes(currentScreen) && !MAIN_TABS.includes(prev)) return -1;
+    if (!MAIN_TABS.includes(currentScreen) && MAIN_TABS.includes(prev)) return 1;
+    return 0;
+  })();
+  useEffect(() => { prevScreenRef.current = currentScreen; }, [currentScreen]);
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-background">
@@ -117,9 +131,9 @@ const GameShell = () => {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentScreen}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, x: direction * 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction * -20 }}
               transition={{ duration: 0.15 }}
             >
               <PageErrorBoundary>
