@@ -60,7 +60,7 @@ export function WeeklyDigest() {
                   <span className="text-[10px] text-muted-foreground">Morale</span>
                 </div>
                 <p className={cn('text-sm font-bold tabular-nums', digest.moraleChange > 0 ? 'text-emerald-400' : digest.moraleChange < 0 ? 'text-destructive' : 'text-muted-foreground')}>
-                  {digest.moraleChange > 0 ? '+' : ''}{digest.moraleChange}%
+                  {digest.moraleChange > 0 ? '+' : ''}{digest.moraleChange} pts
                 </p>
               </div>
             </div>
