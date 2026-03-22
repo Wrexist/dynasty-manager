@@ -691,7 +691,16 @@ const MatchDay = () => {
       )}
 
       {/* Substitution Sheet — used from half-time, key moments, and paused play */}
-      <SubstitutionSheet open={subSheetOpen} onOpenChange={setSubSheetOpen} />
+      <SubstitutionSheet
+        open={subSheetOpen}
+        onOpenChange={setSubSheetOpen}
+        matchMinute={currentMin}
+        homeGoals={homeGoals}
+        awayGoals={awayGoals}
+        homeShortName={homeClub?.shortName}
+        awayShortName={awayClub?.shortName}
+        isPlayerHome={playerClubId === match?.homeClubId}
+      />
     </div>
   );
 };

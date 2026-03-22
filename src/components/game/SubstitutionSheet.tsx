@@ -6,16 +6,22 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { POSITION_COMPATIBILITY, type Position } from '@/types/game';
-import { hapticMedium } from '@/utils/haptics';
+import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { getFlag } from '@/utils/nationality';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRightLeft, Check, X, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Check, X, ChevronDown, AlertCircle } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 
 interface SubstitutionSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubMade?: () => void;
+  matchMinute?: number;
+  homeGoals?: number;
+  awayGoals?: number;
+  homeShortName?: string;
+  awayShortName?: string;
+  isPlayerHome?: boolean;
 }
 
 const POSITION_ORDER: Record<string, number> = {
@@ -69,7 +75,7 @@ function getFitnessColor(fitness: number): string {
   return 'bg-destructive';
 }
 
-export function SubstitutionSheet({ open, onOpenChange, onSubMade }: SubstitutionSheetProps) {
+export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome }: SubstitutionSheetProps) {
   const { players, makeMatchSub, matchSubsUsed, week } = useGameStore();
   const playerClub = usePlayerClub();
 
@@ -128,13 +134,23 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
   const selectedInPlayer = selectedInId ? players[selectedInId] : null;
   const outPos = selectedOutPlayer ? (selectedOutPlayer.position as Position) : null;
 
+  // Count available bench players (not injured/suspended)
+  const availableBenchCount = sortedSubs.filter(id => {
+    const p = players[id];
+    return p && !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week);
+  }).length;
+
+  const hasMatchContext = matchMinute !== undefined && homeGoals !== undefined && awayGoals !== undefined;
+
   const handleLineupPlayerClick = (playerId: string) => {
     if (!playerId) return;
+    hapticLight();
     setSelectedOutId(playerId);
     setSelectedInId(null);
   };
 
   const handleBenchClick = (playerId: string) => {
+    hapticLight();
     setSelectedInId(playerId);
   };
 
@@ -208,6 +224,15 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
               {subsRemaining} remaining
             </span>
           </div>
+          {/* Match context bar */}
+          {hasMatchContext && (
+            <div className="flex items-center justify-center gap-2 text-[11px] mt-1">
+              <span className={cn('font-semibold', isPlayerHome ? 'text-primary' : 'text-foreground')}>{homeShortName}</span>
+              <span className="font-bold text-foreground">{homeGoals} - {awayGoals}</span>
+              <span className={cn('font-semibold', !isPlayerHome ? 'text-primary' : 'text-foreground')}>{awayShortName}</span>
+              <span className="text-muted-foreground">· {matchMinute}'</span>
+            </div>
+          )}
         </SheetHeader>
 
         <AnimatePresence mode="wait">
@@ -280,12 +305,21 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
 
               {/* Bench list */}
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Select Replacement</p>
+
+              {/* Empty state when no bench players available */}
+              {availableBenchCount === 0 && (
+                <div className="flex items-center gap-2 bg-card/40 border border-border/30 rounded-lg px-3 py-4">
+                  <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <p className="text-xs text-muted-foreground">No available substitutes — all bench players are injured or suspended.</p>
+                </div>
+              )}
+
               <div className="space-y-1.5">
                 {(() => { let bestShown = false; return sortedSubs.map((id) => {
                   const p = players[id];
                   if (!p || p.injured || (p.suspendedUntilWeek && p.suspendedUntilWeek > week)) return null;
-                  const isFirst = !bestShown;
-                  if (isFirst) bestShown = true;
+                  const isBest = !bestShown;
+                  bestShown = true;
                   const formInfo = getFormLabel(p.form);
                   const moraleInfo = getMoraleLabel(p.morale);
                   const keyAttrs = getKeyAttributes(p.position as Position, p.attributes);
@@ -296,7 +330,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                       onClick={() => handleBenchClick(id)}
                       className={cn(
                         'w-full flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border transition-all text-left active:scale-[0.98]',
-                        isFirst ? 'bg-primary/10 border-primary/30' : 'bg-card/40 border-border/30 hover:bg-primary/10 hover:border-primary/30'
+                        isBest ? 'bg-primary/10 border-primary/30' : 'bg-card/40 border-border/30 hover:bg-primary/10 hover:border-primary/30'
                       )}
                     >
                       {/* Top row: rating, position, name, age */}
@@ -315,7 +349,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                             <p className="text-xs font-semibold text-foreground truncate">
                               {getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}
                             </p>
-                            {isFirst && (
+                            {isBest && (
                               <span className="text-[8px] font-bold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Best</span>
                             )}
                           </div>
@@ -445,28 +479,31 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                 </div>
               </div>
 
-              {/* Attribute comparison */}
-              <div className="bg-card/40 border border-border/30 rounded-lg px-3 py-2 space-y-1">
+              {/* Attribute comparison — side by side bars */}
+              <div className="bg-card/40 border border-border/30 rounded-lg px-3 py-2 space-y-1.5">
                 <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Key Stats Comparison</p>
                 {(['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'] as const).map(attr => {
                   const outVal = selectedOutPlayer.attributes[attr];
                   const inVal = selectedInPlayer.attributes[attr];
                   const diff = inVal - outVal;
+                  const maxVal = Math.max(outVal, inVal, 1);
                   return (
-                    <div key={attr} className="flex items-center gap-2 text-[10px]">
-                      <span className="w-10 text-muted-foreground uppercase text-[8px]">{attr.slice(0, 3)}</span>
-                      <span className="w-5 text-right text-foreground font-semibold">{outVal}</span>
-                      <div className="flex-1 h-1 bg-muted/30 rounded-full relative overflow-hidden">
-                        <div className="absolute inset-y-0 left-0 bg-destructive/40 rounded-full" style={{ width: `${outVal}%` }} />
-                        <div className="absolute inset-y-0 left-0 bg-emerald-500/40 rounded-full" style={{ width: `${inVal}%` }} />
+                    <div key={attr} className="flex items-center gap-1.5 text-[10px]">
+                      <span className="w-7 text-muted-foreground uppercase text-[8px] shrink-0">{attr.slice(0, 3)}</span>
+                      <span className="w-5 text-right text-foreground font-semibold shrink-0">{outVal}</span>
+                      {/* OUT bar (left, red) */}
+                      <div className="flex-1 flex items-center gap-0.5">
+                        <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden flex justify-end">
+                          <div className="bg-destructive/50 rounded-full" style={{ width: `${(outVal / maxVal) * 100}%` }} />
+                        </div>
+                        <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
+                          <div className="bg-emerald-500/50 rounded-full" style={{ width: `${(inVal / maxVal) * 100}%` }} />
+                        </div>
                       </div>
-                      <span className="w-5 text-foreground font-semibold">{inVal}</span>
-                      {diff !== 0 && (
-                        <span className={cn('w-7 text-[9px] font-bold', diff > 0 ? 'text-emerald-400' : 'text-destructive')}>
-                          {diff > 0 ? '+' : ''}{diff}
-                        </span>
-                      )}
-                      {diff === 0 && <span className="w-7 text-[9px] text-muted-foreground text-center">=</span>}
+                      <span className="w-5 text-foreground font-semibold shrink-0">{inVal}</span>
+                      <span className={cn('w-7 text-[9px] font-bold text-right shrink-0', diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                        {diff > 0 ? `+${diff}` : diff === 0 ? '=' : diff}
+                      </span>
                     </div>
                   );
                 })}

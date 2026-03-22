@@ -21,6 +21,7 @@ interface PitchViewProps {
   halfPitch?: boolean;
   chemistryLinks?: ChemistryLink[];
   awayPlayerIds?: string[];
+  awayPlayerOveralls?: number[];
 }
 
 function getChemistryLineColor(strength: number): string {
@@ -84,7 +85,7 @@ function getFormationLines(slots: FormationSlot[]): [number, number][] {
   });
 }
 
-export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, awayLabels, highlightIndex, onSlotClick, playerFitness, playerIds, playerOveralls, jerseyNumbers, halfPitch = false, chemistryLinks, awayPlayerIds }: PitchViewProps) {
+export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, awayColor = PITCH_COLORS.AWAY_DEFAULT, awayFormation, showAway, labels, homeLabels, awayLabels, highlightIndex, onSlotClick, playerFitness, playerIds, playerOveralls, jerseyNumbers, halfPitch = false, chemistryLinks, awayPlayerIds, awayPlayerOveralls }: PitchViewProps) {
   const homeSlots = FORMATION_POSITIONS[formation];
   const awaySlots = awayFormation ? FORMATION_POSITIONS[awayFormation] : [];
   const resolvedLabels = homeLabels || labels;
@@ -225,13 +226,14 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
           const cx = 2 + ((100 - slot.x) / 100) * 64;
           const cy = 10 + (slot.y / 100) * 39;
           const label = awayLabels?.[i];
+          const awayOvr = awayPlayerOveralls?.[i];
           return (
             <g key={`a${i}`}>
               <g transform={`translate(${cx - 6 / 2}, ${cy - 6 / 2})`}>
                 <PlayerAvatar playerId={awayPlayerIds?.[i] || `away-${i}`} jerseyColor={awayColor} size={6} isAway />
               </g>
               {/* Dark info box for away team */}
-              <rect x={cx - 4.5} y={cy + 3.2} width="9" height="2.8" rx="0.6" fill="rgba(0,0,0,0.6)" />
+              <rect x={cx - 4.5} y={cy + 3.2} width="9" height={awayOvr !== undefined ? 4.2 : 2.8} rx="0.6" fill="rgba(0,0,0,0.6)" />
               {label ? (
                 <text x={cx} y={cy + 5.2} textAnchor="middle" fill="white" fontSize="1.6" fontWeight="bold" fontFamily="sans-serif">
                   {label}
@@ -239,6 +241,11 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
               ) : (
                 <text x={cx} y={cy + 5.2} textAnchor="middle" fill="#6b7280" fontSize="1.4" fontFamily="sans-serif">
                   {slot.pos}
+                </text>
+              )}
+              {awayOvr !== undefined && (
+                <text x={cx} y={cy + 7} textAnchor="middle" fill="#9ca3af" fontSize="1.2" fontFamily="sans-serif">
+                  {slot.pos} {awayOvr}
                 </text>
               )}
             </g>
