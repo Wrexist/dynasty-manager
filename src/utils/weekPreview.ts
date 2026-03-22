@@ -102,6 +102,69 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
   return items.slice(0, 3); // Max 3 preview items
 }
 
+/** Fallback preview items when the main preview is empty.
+ *  Ensures there's always SOMETHING forward-looking on the dashboard. */
+export function getFallbackPreview(ctx: PreviewContext): PreviewItem[] {
+  const items: PreviewItem[] = [];
+  const club = ctx.clubs[ctx.playerClubId];
+  if (!club) return items;
+
+  const squad = club.playerIds.map(id => ctx.players[id]).filter(Boolean);
+
+  // Top scorer approaching milestone
+  const topScorer = squad.filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals)[0];
+  if (topScorer) {
+    const nextMilestone = [5, 10, 15, 20, 25, 30].find(t => t > topScorer.goals);
+    if (nextMilestone) {
+      const remaining = nextMilestone - topScorer.goals;
+      items.push({
+        icon: 'target',
+        text: `${topScorer.lastName} has ${topScorer.goals} goals — ${remaining} more for the ${nextMilestone}-goal club!`,
+        type: 'positive',
+      });
+    }
+  }
+
+  // Youth prospect with high potential gap
+  const prospect = squad
+    .filter(p => p.age <= 21 && (p.potential - p.overall) >= 8)
+    .sort((a, b) => (b.potential - b.overall) - (a.potential - a.overall))[0];
+  if (prospect) {
+    items.push({
+      icon: 'sparkles',
+      text: `${prospect.lastName} (${prospect.overall}) is developing — potential to reach ${prospect.potential}!`,
+      type: 'positive',
+    });
+  }
+
+  // Win rate this season
+  const playedFixtures = ctx.fixtures.filter(
+    m => m.played && (m.homeClubId === ctx.playerClubId || m.awayClubId === ctx.playerClubId)
+  );
+  if (playedFixtures.length >= 5) {
+    const wins = playedFixtures.filter(m => {
+      const isHome = m.homeClubId === ctx.playerClubId;
+      const gf = isHome ? m.homeGoals : m.awayGoals;
+      const ga = isHome ? m.awayGoals : m.homeGoals;
+      return gf > ga;
+    }).length;
+    const winRate = Math.round((wins / playedFixtures.length) * 100);
+    if (winRate >= 60) {
+      items.push({ icon: 'trending-up', text: `${winRate}% win rate this season — keep the momentum going!`, type: 'positive' });
+    } else if (winRate <= 30) {
+      items.push({ icon: 'trending-down', text: `${winRate}% win rate — time to turn the season around.`, type: 'warning' });
+    }
+  }
+
+  // Weeks remaining in season
+  const weeksLeft = 46 - ctx.week;
+  if (weeksLeft > 0 && weeksLeft <= 10) {
+    items.push({ icon: 'calendar', text: `${weeksLeft} weeks left this season — every match counts now.`, type: 'neutral' });
+  }
+
+  return items.slice(0, 2);
+}
+
 // ── Cliffhanger Generation ──
 
 export interface CliffhangerContext {
@@ -114,6 +177,7 @@ export interface CliffhangerContext {
   season: number;
   boardConfidence: number;
   transferWindowOpen: boolean;
+  rivalries?: Record<string, { wins: number; draws: number; losses: number; lastResult: string | null; grudgeLevel: number }>;
 }
 
 /** Generate emotionally provocative cliffhanger hooks for the "one more week" pull */
@@ -266,6 +330,22 @@ export function generateCliffhangers(ctx: CliffhangerContext): CliffhangerItem[]
       category: 'record_chase',
       intensity: topScorer.goals >= 20 ? 'high' : 'medium',
     });
+  }
+
+  // Revenge match — facing a club you've lost to multiple times
+  if (nextMatch && ctx.rivalries) {
+    const isHome = nextMatch.homeClubId === ctx.playerClubId;
+    const nextOppId = isHome ? nextMatch.awayClubId : nextMatch.homeClubId;
+    const record = ctx.rivalries[nextOppId];
+    if (record && record.losses >= 2 && record.grudgeLevel >= 2) {
+      const nextOpp = ctx.clubs[nextOppId];
+      items.push({
+        icon: 'swords',
+        text: `Revenge match! You've lost ${record.losses} times to ${nextOpp?.shortName || 'them'} — time to settle the score.`,
+        category: 'rivalry',
+        intensity: 'high',
+      });
+    }
   }
 
   // Sort by intensity (high first) and return max

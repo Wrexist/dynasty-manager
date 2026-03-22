@@ -117,7 +117,10 @@ export function processMatchResult(
       : `A hard-fought draw against ${oppClub.name}. Onwards.`,
   });
 
-  if (confidence < CONFIDENCE_WARNING_THRESHOLD) {
+  // First-season encouragement: soften early losses for new players
+  if (season === 1 && lost && week <= 10) {
+    newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'The Board Believes in You', body: 'It\'s early days. The board sees your potential and is giving you time to build. Keep pushing — better results will come.' });
+  } else if (confidence < CONFIDENCE_WARNING_THRESHOLD) {
     newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'Board Warning', body: 'The board is growing concerned with recent performances. Results must improve soon or your position may be at risk.' });
   } else if (confidence > CONFIDENCE_PLEASED_THRESHOLD && won) {
     newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'Board Pleased', body: 'The board commends your excellent work. Keep this up!' });
@@ -156,5 +159,22 @@ export function processMatchResult(
   const xpGain = won ? XP_REWARDS.win : !lost ? XP_REWARDS.draw : 0;
   const updatedProgression = xpGain > 0 ? grantXP(state.managerProgression, xpGain) : state.managerProgression;
 
-  return { newPlayers, updatedFixtures, leagueTable, confidence, newMessages, managerStats: ms, playerRatings, won, lost, newMilestones, managerProgression: updatedProgression, xpGain, leaguePosition: pos };
+  // Update head-to-head rivalry records (oppId already declared above)
+  const prevRecord = state.rivalries?.[oppId] || { wins: 0, draws: 0, losses: 0, lastResult: null, grudgeLevel: 0 };
+  const updatedRivalry = { ...prevRecord };
+  if (won) {
+    updatedRivalry.wins++;
+    updatedRivalry.lastResult = 'W' as const;
+    updatedRivalry.grudgeLevel = Math.max(0, updatedRivalry.grudgeLevel - 1);
+  } else if (lost) {
+    updatedRivalry.losses++;
+    updatedRivalry.lastResult = 'L' as const;
+    updatedRivalry.grudgeLevel = Math.min(5, updatedRivalry.grudgeLevel + 1);
+  } else {
+    updatedRivalry.draws++;
+    updatedRivalry.lastResult = 'D' as const;
+  }
+  const updatedRivalries = { ...(state.rivalries || {}), [oppId]: updatedRivalry };
+
+  return { newPlayers, updatedFixtures, leagueTable, confidence, newMessages, managerStats: ms, playerRatings, won, lost, newMilestones, managerProgression: updatedProgression, xpGain, leaguePosition: pos, updatedRivalries };
 }

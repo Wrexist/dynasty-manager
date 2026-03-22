@@ -51,6 +51,14 @@ export interface DerbyRivalry {
   intensity: 1 | 2 | 3;
 }
 
+export interface HeadToHeadRecord {
+  wins: number;
+  draws: number;
+  losses: number;
+  lastResult: 'W' | 'D' | 'L' | null;
+  grudgeLevel: number; // 0-5, increases on losses, decreases on wins
+}
+
 export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LM' | 'RM' | 'LW' | 'RW' | 'ST';
 
 export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' | '3-4-3' | '5-3-2';

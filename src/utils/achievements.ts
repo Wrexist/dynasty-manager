@@ -3,6 +3,12 @@ import { ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } fro
 
 export type AchievementTier = 'bronze' | 'silver' | 'gold';
 
+export interface AchievementProgress {
+  current: number;
+  target: number;
+  label?: string;
+}
+
 export interface Achievement {
   id: string;
   title: string;
@@ -11,6 +17,8 @@ export interface Achievement {
   tier: AchievementTier;
   hidden?: boolean;
   check: (state: GameState) => boolean;
+  /** Optional progress tracker for incomplete achievements */
+  progress?: (state: GameState) => AchievementProgress | null;
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
@@ -18,9 +26,11 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'first-win', title: 'First Victory', description: 'Win your first match', icon: 'trophy', tier: 'bronze',
     check: (s) => { const e = s.leagueTable.find(e => e.clubId === s.playerClubId); return (e?.won || 0) >= 1; } },
   { id: 'wins-10', title: '10 Wins', description: 'Win 10 matches', icon: 'trophy', tier: 'silver',
-    check: (s) => s.managerStats.totalWins >= 10 },
+    check: (s) => s.managerStats.totalWins >= 10,
+    progress: (s) => ({ current: Math.min(s.managerStats.totalWins, 10), target: 10 }) },
   { id: 'wins-50', title: 'Half Century', description: 'Win 50 matches', icon: 'trophy', tier: 'gold',
-    check: (s) => s.managerStats.totalWins >= 50 },
+    check: (s) => s.managerStats.totalWins >= 50,
+    progress: (s) => ({ current: Math.min(s.managerStats.totalWins, 50), target: 50 }) },
 
   // ── League ──
   { id: 'league-champion', title: 'League Champion', description: 'Win the league title', icon: 'medal', tier: 'gold',
@@ -58,25 +68,46 @@ export const ACHIEVEMENTS: Achievement[] = [
     check: (s) => {
       const club = s.clubs[s.playerClubId];
       return club ? club.playerIds.some(id => (s.players[id]?.goals || 0) >= 10) : false;
+    },
+    progress: (s) => {
+      const club = s.clubs[s.playerClubId];
+      if (!club) return null;
+      const best = Math.max(0, ...club.playerIds.map(id => s.players[id]?.goals || 0));
+      return { current: Math.min(best, 10), target: 10, label: 'goals' };
     } },
   { id: 'goal-machine-20', title: 'Goal Machine', description: 'Have a player score 20+ goals in a season', icon: 'circle', tier: 'silver',
     check: (s) => {
       const club = s.clubs[s.playerClubId];
       return club ? club.playerIds.some(id => (s.players[id]?.goals || 0) >= 20) : false;
+    },
+    progress: (s) => {
+      const club = s.clubs[s.playerClubId];
+      if (!club) return null;
+      const best = Math.max(0, ...club.playerIds.map(id => s.players[id]?.goals || 0));
+      return { current: Math.min(best, 20), target: 20, label: 'goals' };
     } },
   { id: 'goal-machine-30', title: 'Golden Boot', description: 'Have a player score 30+ goals in a season', icon: 'footprints', tier: 'gold', hidden: true,
     check: (s) => {
       const club = s.clubs[s.playerClubId];
       return club ? club.playerIds.some(id => (s.players[id]?.goals || 0) >= 30) : false;
+    },
+    progress: (s) => {
+      const club = s.clubs[s.playerClubId];
+      if (!club) return null;
+      const best = Math.max(0, ...club.playerIds.map(id => s.players[id]?.goals || 0));
+      return { current: Math.min(best, 30), target: 30, label: 'goals' };
     } },
 
   // ── Transfers ──
   { id: 'big-spender', title: 'Big Spender', description: 'Spend £50M+ on transfers', icon: 'coins', tier: 'silver',
-    check: (s) => s.managerStats.totalSpent >= 50_000_000 },
+    check: (s) => s.managerStats.totalSpent >= 50_000_000,
+    progress: (s) => ({ current: Math.min(Math.round(s.managerStats.totalSpent / 1_000_000), 50), target: 50, label: '£M spent' }) },
   { id: 'transfer-mogul', title: 'Transfer Mogul', description: 'Spend £200M+ on transfers', icon: 'badge-dollar', tier: 'gold',
-    check: (s) => s.managerStats.totalSpent >= 200_000_000 },
+    check: (s) => s.managerStats.totalSpent >= 200_000_000,
+    progress: (s) => ({ current: Math.min(Math.round(s.managerStats.totalSpent / 1_000_000), 200), target: 200, label: '£M spent' }) },
   { id: 'shrewd-seller', title: 'Shrewd Seller', description: 'Earn £30M+ from player sales', icon: 'trending-up', tier: 'silver',
-    check: (s) => s.managerStats.totalEarned >= 30_000_000 },
+    check: (s) => s.managerStats.totalEarned >= 30_000_000,
+    progress: (s) => ({ current: Math.min(Math.round(s.managerStats.totalEarned / 1_000_000), 30), target: 30, label: '£M earned' }) },
 
   // ── Youth ──
   { id: 'youth-graduate', title: 'Academy Product', description: 'Give a youth player 10+ appearances', icon: 'star', tier: 'bronze',
@@ -106,6 +137,11 @@ export const ACHIEVEMENTS: Achievement[] = [
         if ((isHome ? m.awayGoals : m.homeGoals) === 0) cs++;
       }
       return cs >= 5;
+    },
+    progress: (s) => {
+      const myFixtures = s.fixtures.filter(m => m.played && (m.homeClubId === s.playerClubId || m.awayClubId === s.playerClubId));
+      const cs = myFixtures.filter(m => (m.homeClubId === s.playerClubId ? m.awayGoals : m.homeGoals) === 0).length;
+      return { current: Math.min(cs, 5), target: 5, label: 'clean sheets' };
     } },
   { id: 'clean-sheet-15', title: 'Impenetrable', description: 'Keep 15 clean sheets in a season', icon: 'shield', tier: 'gold',
     check: (s) => {
@@ -116,6 +152,11 @@ export const ACHIEVEMENTS: Achievement[] = [
         if ((isHome ? m.awayGoals : m.homeGoals) === 0) cs++;
       }
       return cs >= 15;
+    },
+    progress: (s) => {
+      const myFixtures = s.fixtures.filter(m => m.played && (m.homeClubId === s.playerClubId || m.awayClubId === s.playerClubId));
+      const cs = myFixtures.filter(m => (m.homeClubId === s.playerClubId ? m.awayGoals : m.homeGoals) === 0).length;
+      return { current: Math.min(cs, 15), target: 15, label: 'clean sheets' };
     } },
 
   // ── Career ──

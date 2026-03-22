@@ -30,8 +30,8 @@ export function generateStorylines(ctx: StorylineContext): { messages: Storyline
   const club = ctx.clubs[ctx.playerClubId];
   if (!club || squad.length === 0) return { messages: [], event: null };
 
-  // Only trigger storylines occasionally (30% chance per week, max 1 per week)
-  if (Math.random() > 0.30) return { messages: [], event: null };
+  // Only trigger storylines occasionally (40% chance per week, max 1 per week)
+  if (Math.random() > 0.40) return { messages: [], event: null };
 
   const candidates: StorylineCandidate[] = [];
 

@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 14;
+const CURRENT_VERSION = 15;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -189,7 +189,7 @@ const migrations: Record<number, MigrationFn> = {
     },
   }),
 
-  // v13 → v14: Added recovery facility
+  // v13 → v14: Added recovery facility + rivalries
   13: (data) => {
     const facilities = (data.facilities || {}) as Record<string, unknown>;
     return {
@@ -201,6 +201,12 @@ const migrations: Record<number, MigrationFn> = {
       },
     };
   },
+  // v14 → v15: Added head-to-head rivalry records
+  14: (data) => ({
+    ...data,
+    version: 15,
+    rivalries: data.rivalries || {},
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

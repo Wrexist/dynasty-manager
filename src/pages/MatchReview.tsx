@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ChevronRight, Flame, Calendar, HeartPulse, Star } from 'lucide-react';
+import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor } from '@/utils/uiHelpers';
@@ -371,6 +371,45 @@ const MatchReview = () => {
           <span className="text-[10px] font-semibold text-foreground tabular-nums">{boardConfidence}%</span>
         </div>
       </GlassPanel>
+
+      {/* League Position Movement */}
+      {(() => {
+        const table = divisionTables[playerDivision] || [];
+        const newPos = table.findIndex(e => e.clubId === playerClubId) + 1;
+        const { preMatchLeaguePosition } = useGameStore.getState();
+        const oldPos = preMatchLeaguePosition || newPos;
+        const delta = oldPos - newPos; // positive = moved up
+        if (newPos <= 0) return null;
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.3 }}
+          >
+            <GlassPanel className={cn(
+              'p-3 flex items-center gap-3',
+              delta > 0 ? 'border-emerald-500/30' : delta < 0 ? 'border-destructive/30' : 'border-border/50'
+            )}>
+              {delta > 0 ? <TrendingUp className="w-5 h-5 text-emerald-400 shrink-0" /> : delta < 0 ? <TrendingDown className="w-5 h-5 text-destructive shrink-0" /> : <Minus className="w-4 h-4 text-muted-foreground shrink-0" />}
+              <div className="flex-1">
+                <p className={cn('text-sm font-bold', delta > 0 ? 'text-emerald-400' : delta < 0 ? 'text-destructive' : 'text-foreground')}>
+                  {delta > 0
+                    ? `Up to ${newPos}${getSuffix(newPos)}!`
+                    : delta < 0
+                    ? `Down to ${newPos}${getSuffix(newPos)}`
+                    : `Holding ${newPos}${getSuffix(newPos)}`}
+                </p>
+                {delta !== 0 && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {oldPos}{getSuffix(oldPos)} → {newPos}{getSuffix(newPos)} in the table
+                  </p>
+                )}
+              </div>
+              <span className="text-xs text-muted-foreground tabular-nums">{table.find(e => e.clubId === playerClubId)?.points ?? 0} pts</span>
+            </GlassPanel>
+          </motion.div>
+        );
+      })()}
 
       {/* Next Up Preview */}
       {(() => {

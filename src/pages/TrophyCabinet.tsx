@@ -8,7 +8,8 @@ import { ACHIEVEMENTS, getTierColor } from '@/utils/achievements';
 import { motion } from 'framer-motion';
 
 const TrophyCabinet = () => {
-  const { seasonHistory, unlockedAchievements, clubRecords } = useGameStore();
+  const store = useGameStore();
+  const { seasonHistory, unlockedAchievements, clubRecords } = store;
 
   const leagueTitles = seasonHistory.filter(h => h.position === 1);
   const cupWins = clubRecords.cupWins;
@@ -158,11 +159,23 @@ const TrophyCabinet = () => {
                           {a.hidden && !unlocked ? 'Hidden achievement' : a.description}
                         </p>
                       </div>
-                      {unlocked && (
+                      {unlocked ? (
                         <span className={cn('text-[10px] font-bold', getTierColor(a.tier))}>
                           ✓
                         </span>
-                      )}
+                      ) : a.progress && !a.hidden ? (() => {
+                        const prog = a.progress(store);
+                        if (!prog || prog.current <= 0) return null;
+                        const pct = Math.min(100, Math.round((prog.current / prog.target) * 100));
+                        return (
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="w-12 h-1.5 bg-muted/50 rounded-full overflow-hidden">
+                              <div className="h-full bg-primary/60 rounded-full" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-[9px] text-muted-foreground tabular-nums">{prog.current}/{prog.target}</span>
+                          </div>
+                        );
+                      })() : null}
                     </div>
                   );
                 })}

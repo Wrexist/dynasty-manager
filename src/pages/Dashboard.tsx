@@ -30,7 +30,7 @@ import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
 import { BoardWarning } from '@/components/game/BoardWarning';
-import { getWeekPreview } from '@/utils/weekPreview';
+import { getWeekPreview, getFallbackPreview } from '@/utils/weekPreview';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { InfoTip } from '@/components/game/InfoTip';
 import { WeeklyDigest } from '@/components/game/WeeklyDigest';
@@ -38,9 +38,12 @@ import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/Finan
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { HELP_TEXTS } from '@/config/ui';
 import { getManagerTips } from '@/utils/managerTips';
+import { getActiveRecordChases } from '@/utils/records';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
+import { MidSeasonReport } from '@/components/game/MidSeasonReport';
 
 const WELCOME_KEY = 'dynasty-welcome-shown';
+const MID_SEASON_WEEK = 23;
 
 const Dashboard = () => {
   const store = useGameStore();
@@ -67,6 +70,9 @@ const Dashboard = () => {
 
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [boardWarningDismissed, setBoardWarningDismissed] = useState(false);
+  const [midSeasonShown, setMidSeasonShown] = useState(() => getFlag(`dynasty-midseason-s${season}`));
+  const showMidSeason = week === MID_SEASON_WEEK && !midSeasonShown;
+  const dismissMidSeason = () => { setMidSeasonShown(true); setFlag(`dynasty-midseason-s${season}`); };
   const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
   const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');
   // Reset board warning dismissal when confidence changes significantly
@@ -193,14 +199,24 @@ const Dashboard = () => {
   const unbeatenRun = useMemo(() => getUnbeatenRun(playerClubId, fixtures), [playerClubId, fixtures]);
   const cleanSheetStreak = useMemo(() => getCleanSheetStreak(playerClubId, fixtures), [playerClubId, fixtures]);
 
-  // Week preview teasers
-  const weekPreviews = useMemo(() => club ? getWeekPreview({
-    playerClubId, players, clubs, fixtures, facilities: store.facilities,
-    scouting: store.scouting, week, season,
-  }) : [], [playerClubId, players, clubs, fixtures, store.facilities, store.scouting, week, season, club]);
+  // Week preview teasers (with fallback so there's always something forward-looking)
+  const weekPreviews = useMemo(() => {
+    if (!club) return [];
+    const ctx = { playerClubId, players, clubs, fixtures, facilities: store.facilities, scouting: store.scouting, week, season };
+    const items = getWeekPreview(ctx);
+    if (items.length > 0) return items;
+    return getFallbackPreview(ctx);
+  }, [playerClubId, players, clubs, fixtures, store.facilities, store.scouting, week, season, club]);
 
   // XP progress to next level
   const xpProgress = useMemo(() => getXPProgress(store.managerProgression), [store.managerProgression]);
+
+  // Record chase — is a player close to a club record?
+  const recordChases = useMemo(() => {
+    if (!club) return [];
+    const squad = club.playerIds.map(id => players[id]).filter(Boolean);
+    return getActiveRecordChases(store.clubRecords, squad, fixtures, playerClubId);
+  }, [club, players, fixtures, playerClubId, store.clubRecords]);
 
   // Season race — top 3 teams nearest to player in table
   const seasonRace = useMemo(() => {
@@ -290,7 +306,10 @@ const Dashboard = () => {
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       {/* Welcome overlay for first-time players */}
-      {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} />}
+      {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} onSkipToMatch={() => { dismissWelcome(); store.autoFillTeam(); setScreen('match'); }} />}
+
+      {/* Mid-Season Report (shown at week 23, once per season) */}
+      {showMidSeason && <MidSeasonReport onDismiss={dismissMidSeason} />}
 
       {/* Weekly Digest (post-advanceWeek summary) */}
       <WeeklyDigest />
@@ -704,11 +723,30 @@ const Dashboard = () => {
       )}
 
       {/* Objective streak XP multiplier notification */}
-      {objectiveStreak >= 3 && (
-        <GlassPanel className="p-3 border-amber-500/30 bg-amber-500/5">
-          <div className="flex items-center gap-2 text-xs text-amber-400">
-            <Flame className="w-4 h-4" />
-            <span className="font-bold">Streak x{objectiveStreak} — 2x XP Multiplier Active!</span>
+      {objectiveStreak >= 2 && (
+        <GlassPanel className={cn('p-3', objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD ? 'border-amber-500/30 bg-amber-500/5' : 'border-primary/20 bg-primary/5')}>
+          <div className="flex items-center gap-2 text-xs">
+            <Flame className={cn('w-4 h-4', objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD ? 'text-amber-400' : 'text-primary')} />
+            <span className={cn('font-bold', objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD ? 'text-amber-400' : 'text-primary')}>
+              {objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD
+                ? `Streak x${objectiveStreak} — 2x XP Multiplier Active!`
+                : `${objectiveStreak}-week objective streak! ${OBJECTIVE_STREAK_THRESHOLD - objectiveStreak} more for 2x XP.`}
+            </span>
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Record Chase — player approaching a club record */}
+      {recordChases.length > 0 && (
+        <GlassPanel className="p-3 border-primary/20">
+          <div className="flex items-center gap-2 text-xs">
+            <Award className="w-4 h-4 text-primary shrink-0" />
+            <span className="text-foreground">
+              <span className="font-bold">{recordChases[0].playerName}</span>
+              {': '}
+              {recordChases[0].current} {recordChases[0].label}. Club record: {recordChases[0].record}.{' '}
+              <span className="text-primary font-semibold">{recordChases[0].record - recordChases[0].current} more to make history!</span>
+            </span>
           </div>
         </GlassPanel>
       )}
@@ -922,27 +960,43 @@ const Dashboard = () => {
         </GlassPanel>
       </div>
 
-      {/* Recent Form */}
-      {lastResults.length > 0 && (
-        <GlassPanel className="p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Recent Form</p>
-          <div className="flex gap-2">
-            {lastResults.map((m, i) => {
-              const isH = m.homeClubId === playerClubId;
-              const won = isH ? m.homeGoals > m.awayGoals : m.awayGoals > m.homeGoals;
-              const lost = isH ? m.homeGoals < m.awayGoals : m.awayGoals < m.homeGoals;
-              return (
-                <div key={i} className={cn(
-                  'w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold',
-                  won ? 'bg-emerald-500/20 text-emerald-400' : lost ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
-                )}>
-                  {won ? 'W' : lost ? 'L' : 'D'}
-                </div>
-              );
-            })}
-          </div>
-        </GlassPanel>
-      )}
+      {/* Recent Form with Momentum */}
+      {lastResults.length > 0 && (() => {
+        const recent = lastResults.slice(0, 5).map(m => {
+          const isH = m.homeClubId === playerClubId;
+          return (isH ? m.homeGoals > m.awayGoals : m.awayGoals > m.homeGoals) ? 'W' : (isH ? m.homeGoals < m.awayGoals : m.awayGoals < m.homeGoals) ? 'L' : 'D';
+        });
+        const recentWins = recent.filter(r => r === 'W').length;
+        const recentLosses = recent.filter(r => r === 'L').length;
+        const momentum = recentWins >= 3 ? 'hot' : recentLosses >= 3 ? 'cold' : 'stable';
+        return (
+          <GlassPanel className={cn('p-4', momentum === 'hot' ? 'border-emerald-500/20' : momentum === 'cold' ? 'border-destructive/20' : '')}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Recent Form</p>
+              {momentum !== 'stable' && (
+                <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', momentum === 'hot' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-destructive/15 text-destructive')}>
+                  {momentum === 'hot' ? 'HOT STREAK' : 'POOR RUN'}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {lastResults.map((m, i) => {
+                const isH = m.homeClubId === playerClubId;
+                const won = isH ? m.homeGoals > m.awayGoals : m.awayGoals > m.homeGoals;
+                const lost = isH ? m.homeGoals < m.awayGoals : m.awayGoals < m.homeGoals;
+                return (
+                  <div key={i} className={cn(
+                    'w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold',
+                    won ? 'bg-emerald-500/20 text-emerald-400' : lost ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
+                  )}>
+                    {won ? 'W' : lost ? 'L' : 'D'}
+                  </div>
+                );
+              })}
+            </div>
+          </GlassPanel>
+        );
+      })()}
 
       {/* Next 3 Fixtures */}
       {upcomingFixtures.length > 0 && (
