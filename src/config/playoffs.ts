@@ -34,5 +34,5 @@ export const VERDICT_ACCEPTABLE_OFFSET = 4;
 export const BOARD_SACKING_THRESHOLD = 20;
 
 // ── Storyline Chains ──
-export const STORYLINE_CHAIN_TRIGGER_CHANCE = 0.15;
+export const STORYLINE_CHAIN_TRIGGER_CHANCE = 0.25;
 export const STORYLINE_CHAIN_MIN_WEEK = 5;

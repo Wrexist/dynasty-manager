@@ -989,6 +989,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       weeklyObjectives: generateWeeklyObjectives(true),
       objectiveStreak: 0,
       weekCliffhangers: [],
+      rivalries: {},
       lastMatchDrama: null,
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null,
@@ -1902,6 +1903,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       fixtures: updatedFixtures, leagueTable, week: newWeek, season,
       boardConfidence: newBoardConfidence,
       transferWindowOpen,
+      rivalries: state.rivalries,
     });
 
     // Update session stats
@@ -2193,6 +2195,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       preMatchLeaguePosition: prePos,
       lastMatchXPGain: processed.xpGain,
       lastMatchDrama: drama,
+      rivalries: processed.updatedRivalries,
       sessionStats,
     });
     return result;
@@ -2314,6 +2317,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         managerProgression: processed.managerProgression,
         lastMatchXPGain: processed.xpGain,
         lastMatchDrama: cupDrama,
+        rivalries: processed.updatedRivalries,
       });
       return result;
     }
@@ -2339,6 +2343,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       managerProgression: processed.managerProgression,
       lastMatchXPGain: processed.xpGain,
       lastMatchDrama: leagueDrama,
+      rivalries: processed.updatedRivalries,
     });
     return result;
   },
@@ -2419,6 +2424,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         lastMatchXPGain: processed.xpGain,
         pendingPressConference: generatePressConference(press),
         lastMatchDrama: etDrama,
+        rivalries: processed.updatedRivalries,
       });
       return result;
     }
@@ -2529,6 +2535,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       lastMatchXPGain: processed.xpGain,
       pendingPressConference: generatePressConference(press),
       lastMatchDrama: penDrama,
+      rivalries: processed.updatedRivalries,
     });
     return { ...result, penaltyShootout };
   },
@@ -2694,7 +2701,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pendingPressConference: null, activeNegotiation: null,
       pendingFarewell: null, pendingStoryline: null,
       activeStorylineChains: [], weeklyObjectives: [],
-      objectiveStreak: 0, weekCliffhangers: [], lastMatchDrama: null,
+      objectiveStreak: 0, weekCliffhangers: [], rivalries: {}, lastMatchDrama: null,
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null, careerTimeline: [],
       sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {},

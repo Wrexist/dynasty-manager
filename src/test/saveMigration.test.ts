@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 14', () => {
-    expect(CURRENT_VERSION).toBe(14);
+  it('should have current version set to 15', () => {
+    expect(CURRENT_VERSION).toBe(15);
   });
 
   it('should migrate v1 data to current version', () => {
@@ -74,7 +74,7 @@ describe('saveMigration', () => {
     const v9Data: Record<string, unknown> = { version: 9, players: {}, clubs: {} };
     const result = migrateSaveData(v9Data);
     expect(result.freeAgents).toEqual([]);
-    expect(result.version).toBe(14);
+    expect(result.version).toBe(15);
   });
 
   it('should add sponsorship system in v10→v11', () => {
@@ -83,7 +83,7 @@ describe('saveMigration', () => {
     expect(result.sponsorDeals).toEqual([]);
     expect(result.sponsorOffers).toEqual([]);
     expect(result.sponsorSlotCooldowns).toEqual({});
-    expect(result.version).toBe(14);
+    expect(result.version).toBe(15);
   });
 
   it('should add unhappiness tracking and cup state in v11→v12', () => {
@@ -92,7 +92,7 @@ describe('saveMigration', () => {
       players: { p1: { id: 'p1', morale: 20 }, p2: { id: 'p2', morale: 80 } },
     };
     const result = migrateSaveData(v11Data);
-    expect(result.version).toBe(14);
+    expect(result.version).toBe(15);
     expect(result.currentCupTieId).toBeNull();
     const players = result.players as Record<string, Record<string, unknown>>;
     expect(players.p1.lowMoraleWeeks).toBe(0);
@@ -106,7 +106,7 @@ describe('saveMigration', () => {
       facilities: { trainingLevel: 5, youthLevel: 4, stadiumLevel: 3, medicalLevel: 6, upgradeInProgress: null },
     };
     const result = migrateSaveData(v13Data);
-    expect(result.version).toBe(14);
+    expect(result.version).toBe(15);
     const facilities = result.facilities as Record<string, unknown>;
     expect(facilities.recoveryLevel).toBe(6);
   });

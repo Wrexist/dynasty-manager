@@ -1,4 +1,4 @@
-import { ClubRecords, Match } from '@/types/game';
+import { ClubRecords, Match, Player } from '@/types/game';
 
 export function createEmptyRecords(): ClubRecords {
   return {
@@ -97,4 +97,50 @@ export function findBiggestWin(fixtures: Match[], clubId: string): { margin: num
     }
   }
   return best;
+}
+
+/** Check if any player is chasing a club record this season */
+export interface RecordChase {
+  playerName: string;
+  current: number;
+  record: number;
+  label: string;
+}
+
+export function getActiveRecordChases(
+  records: ClubRecords,
+  squad: Player[],
+  fixtures: Match[],
+  clubId: string,
+): RecordChase[] {
+  const chases: RecordChase[] = [];
+
+  // Top scorer chasing goal record
+  if (records.allTimeTopScorer) {
+    const record = records.allTimeTopScorer.value;
+    const topScorer = squad.filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals)[0];
+    if (topScorer && topScorer.goals >= record - 3 && topScorer.goals < record) {
+      chases.push({
+        playerName: topScorer.lastName,
+        current: topScorer.goals,
+        record,
+        label: 'season goal record',
+      });
+    }
+  }
+
+  // Clean sheet chase
+  const playedFixtures = fixtures.filter(m => m.played && (m.homeClubId === clubId || m.awayClubId === clubId));
+  const cleanSheets = playedFixtures.filter(m => (m.homeClubId === clubId ? m.awayGoals : m.homeGoals) === 0).length;
+  if (records.fewestGoalsAgainst && cleanSheets >= 10) {
+    // Not a direct comparison, but interesting to surface
+    chases.push({
+      playerName: 'Your defense',
+      current: cleanSheets,
+      record: cleanSheets + 3, // just show progress
+      label: 'clean sheets this season',
+    });
+  }
+
+  return chases.slice(0, 1); // Only show the most interesting one
 }

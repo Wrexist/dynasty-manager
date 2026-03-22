@@ -4,6 +4,7 @@ import {
   INJURY_TYPES, FOUL_INJURY_TYPE_WEIGHTS, NON_FOUL_INJURY_TYPE_WEIGHTS,
   INJURY_SEVERITY_WEIGHTS, MEDICAL_INJURY_PREVENTION_PER_LEVEL,
   UNHAPPY_PERFORMANCE_PENALTY,
+  FIRST_MATCH_ATTACK_BOOST, FIRST_MATCH_DEFENSE_BOOST,
 } from '@/config/gameBalance';
 import type { InjuryType, InjurySeverity, InjuryDetails } from '@/types/game';
 import { getTeamStrength } from '@/utils/playerGen';
@@ -258,9 +259,14 @@ function computeStrengths(
   const awayUnhappyCount = awayPlayers.filter(p => p.wantsToLeave).length;
   const homeUnhappyMod = 1 - (homeUnhappyCount / Math.max(homePlayers.length, 1)) * UNHAPPY_PERFORMANCE_PENALTY;
   const awayUnhappyMod = 1 - (awayUnhappyCount / Math.max(awayPlayers.length, 1)) * UNHAPPY_PERFORMANCE_PENALTY;
+  // First-season confidence boost for the player's team (subtle help during season 1)
+  const homeFirstMatchBoost = (currentSeason === 1 && playerClubId === homeClub.id) ? FIRST_MATCH_ATTACK_BOOST : 0;
+  const awayFirstMatchBoost = (currentSeason === 1 && playerClubId === awayClub.id) ? FIRST_MATCH_ATTACK_BOOST : 0;
+  const homeFirstDefBoost = (currentSeason === 1 && playerClubId === homeClub.id) ? FIRST_MATCH_DEFENSE_BOOST : 0;
+  const awayFirstDefBoost = (currentSeason === 1 && playerClubId === awayClub.id) ? FIRST_MATCH_DEFENSE_BOOST : 0;
   // Strength = base * (attack modifiers) reduced by opponent's defensive modifiers
-  const homeStr = getTeamStrength(homePlayers) * homeUnhappyMod * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup) * (1 - (awayMods.defenseMod + awayFormDef + awayDefFitBonus) * DEFENSE_MODIFIER_SCALE);
-  const awayStr = getTeamStrength(awayPlayers) * awayUnhappyMod * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup) * (1 - (homeMods.defenseMod + homeFormDef + homeDefFitBonus) * DEFENSE_MODIFIER_SCALE);
+  const homeStr = getTeamStrength(homePlayers) * homeUnhappyMod * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayMods.defenseMod + awayFormDef + awayDefFitBonus - awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE);
+  const awayStr = getTeamStrength(awayPlayers) * awayUnhappyMod * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup + awayFirstMatchBoost) * (1 - (homeMods.defenseMod + homeFormDef + homeDefFitBonus - homeFirstDefBoost) * DEFENSE_MODIFIER_SCALE);
   return { homeStr, awayStr, homeMods, awayMods };
 }
 

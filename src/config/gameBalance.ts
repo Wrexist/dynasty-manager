@@ -11,6 +11,10 @@ export const STARTING_BOARD_CONFIDENCE = 50;
 export const LINEUP_SIZE = 11;
 export const LOW_FITNESS_THRESHOLD = 65;
 
+// ── First Match Confidence Boost (Season 1 only) ──
+export const FIRST_MATCH_ATTACK_BOOST = 0.08;
+export const FIRST_MATCH_DEFENSE_BOOST = 0.05;
+
 // ── Player Development: Growth ──
 export const GROWTH_AGE_THRESHOLD = 24;
 export const MAX_SEASON_GROWTH = 8;

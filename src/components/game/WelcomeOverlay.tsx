@@ -1,63 +1,34 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, ArrowLeftRight, ChevronRight, Trophy, Swords, Heart, Users, Zap, PlayCircle } from 'lucide-react';
+import { Target, ChevronRight, Trophy, PlayCircle } from 'lucide-react';
 
 const STEPS = [
   {
     icon: Trophy,
     title: 'Welcome, Manager!',
-    description: 'Build your squad, set tactics, and lead your club to glory. Meet the board\'s objectives to keep your job.',
-    hint: 'Swipe between tabs to navigate. Tap any player to see full details.',
+    description: 'Build your squad, set tactics, and lead your club to glory. Each week brings training, transfers, and matches — your decisions shape everything.',
+    hint: 'Use the bottom tabs to navigate between Squad, Tactics, Market, and more.',
   },
   {
     icon: Target,
-    title: 'Weekly Rhythm',
-    description: 'Each week: check your squad, adjust tactics, then advance. Matches happen automatically when scheduled.',
-    hint: 'Training develops players over time. Heavy training is faster but risks injuries.',
-  },
-  {
-    icon: ArrowLeftRight,
-    title: 'Transfer Market',
-    description: 'Buy and sell players during transfer windows (Weeks 1-8 and 20-24). Scout to find hidden gems.',
-    hint: 'Add players to your shortlist to track them between sessions.',
-  },
-  {
-    icon: Swords,
-    title: 'Match Day',
-    description: 'Watch matches unfold live. Make substitutions, give team talks at half-time, and react to key moments.',
-    hint: 'Check player fitness before matches. Tired players perform worse and risk injuries.',
-  },
-  {
-    icon: Heart,
-    title: 'Keep the Board Happy',
-    description: 'The board sets objectives each season. Meet them to keep your job. Winning boosts confidence, losing drops it.',
-    hint: 'Check the Board page for your objectives. Below 25% confidence, you risk being sacked!',
-  },
-  {
-    icon: Users,
-    title: 'Building Your Lineup',
-    description: 'Go to Squad or Tactics to set your starting 11. Use "Auto Fill" for a quick optimized lineup, or drag players manually.',
-    hint: 'Keep an eye on fitness, injuries, and suspensions. Rotate players to avoid burnout.',
-  },
-  {
-    icon: Zap,
-    title: 'Chemistry & Tactics',
-    description: 'Players with shared nationality or long club tenure form chemistry links that boost performance. Pick a formation that fits your squad.',
-    hint: 'Tactical familiarity builds over weeks — avoid changing formation too often.',
+    title: 'The Weekly Rhythm',
+    description: 'Check your squad, adjust tactics, then hit "Advance Week" to progress. Matches happen when scheduled — make substitutions and tactical changes live.',
+    hint: 'The board sets objectives each season. Meet them to keep your job — below 25% confidence, you risk the sack!',
   },
   {
     icon: PlayCircle,
-    title: 'Your First Match',
-    description: 'Before a match, visit Match Prep to scout your opponent. During the match, you can make up to 5 substitutions and adjust mentality.',
-    hint: 'After the match, review stats in Match Review to learn what worked and what didn\'t. Good luck!',
+    title: 'Your First Match Awaits',
+    description: 'Your lineup is set and ready. Hit "Continue" to head to the dashboard, or jump straight into your first match.',
+    hint: 'You can always explore Squad, Tactics, and Transfers later. For now — let\'s play!',
   },
 ];
 
 interface WelcomeOverlayProps {
   onComplete: () => void;
+  onSkipToMatch?: () => void;
 }
 
-export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
+export function WelcomeOverlay({ onComplete, onSkipToMatch }: WelcomeOverlayProps) {
   const [step, setStep] = useState(0);
   const current = STEPS[step];
   const Icon = current.icon;
@@ -114,11 +85,19 @@ export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
                   Back
                 </button>
               )}
+              {isLast && onSkipToMatch && (
+                <button
+                  onClick={onSkipToMatch}
+                  className="flex items-center gap-1 px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold active:scale-[0.97] transition-transform"
+                >
+                  Play Match
+                </button>
+              )}
               <button
                 onClick={() => isLast ? onComplete() : setStep(s => s + 1)}
                 className="flex items-center gap-1 px-4 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-semibold active:scale-[0.97] transition-transform"
               >
-                {isLast ? 'Get Started' : 'Next'}
+                {isLast ? 'Dashboard' : 'Next'}
                 {!isLast && <ChevronRight className="w-3 h-3" />}
               </button>
             </div>
