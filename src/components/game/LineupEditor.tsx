@@ -1,11 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/types/game';
 import { MAX_SUBS } from '@/config/playerGeneration';
 import { PITCH_COLORS } from '@/config/ui';
 import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { cn } from '@/lib/utils';
-import { DndContext, DragOverlay, useDraggable, useDroppable, useSensor, useSensors, MouseSensor, TouchSensor, type DragEndEvent, type DragStartEvent } from '@dnd-kit/core';
 import { calculateChemistryLinks } from '@/utils/chemistry';
 import { PlayerAvatar } from './PlayerAvatar';
 
@@ -33,32 +32,9 @@ const COMPAT_RING = {
   wrong: 'ring-2 ring-red-500',
 };
 
-function DraggablePlayer({ id, children }: { id: string; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id });
-  return (
-    <div ref={setNodeRef} {...listeners} {...attributes} className={cn('touch-none', isDragging && 'opacity-30')}>
-      {children}
-    </div>
-  );
-}
-
-function DroppableSlot({ id, children, className }: { id: string; children: React.ReactNode; className?: string }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
-  return (
-    <div ref={setNodeRef} className={cn(className, isOver && 'scale-110 transition-transform')}>
-      {children}
-    </div>
-  );
-}
-
 export function LineupEditor() {
   const { playerClubId, clubs, players, updateLineup } = useGameStore();
-  const [draggedId, setDraggedId] = useState<string | null>(null);
-
-  // Sensors must be declared before any early returns (hooks rules)
-  const mouseSensor = useSensor(MouseSensor, { activationConstraint: { distance: 5 } });
-  const touchSensor = useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } });
-  const sensors = useSensors(mouseSensor, touchSensor);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const club = clubs[playerClubId];
 
@@ -69,71 +45,79 @@ export function LineupEditor() {
     return calculateChemistryLinks(lineupPlayers);
   }, [club, players]);
 
-  if (!club) return null;
+  const lineup = club?.lineup || [];
+  const subs = club?.subs || [];
+  const allSquad = club?.playerIds || [];
 
-  const slots = FORMATION_POSITIONS[club.formation];
-  const lineup = club.lineup;
-  const subs = club.subs;
-  const allSquad = club.playerIds;
-  const benchIds = allSquad.filter(id => !lineup.includes(id) && !subs.includes(id) && players[id] && !players[id].injured);
-  const subAndBench = [...subs, ...benchIds];
+  const subAndBench = useMemo(() => {
+    const benchIds = allSquad.filter(id => !lineup.includes(id) && !subs.includes(id) && players[id] && !players[id].injured);
+    return [...subs, ...benchIds];
+  }, [allSquad, lineup, subs, players]);
 
-  const draggedPlayer = draggedId ? players[draggedId] : null;
-
-  const handleDragStart = (event: DragStartEvent) => {
-    setDraggedId(event.active.id as string);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setDraggedId(null);
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
+  const handleSwap = useCallback((activeId: string, targetId: string) => {
     const activeInLineupIdx = lineup.indexOf(activeId);
-    const overInLineupIdx = lineup.indexOf(overId);
+    const overInLineupIdx = lineup.indexOf(targetId);
     const activeOnBench = subAndBench.includes(activeId);
-    const overOnBench = subAndBench.includes(overId);
+    const overOnBench = subAndBench.includes(targetId);
 
-    const overSlotMatch = (overId as string).match(/^slot-(\d+)$/);
+    const overSlotMatch = targetId.match(/^slot-(\d+)$/);
     const overSlotIdx = overSlotMatch ? parseInt(overSlotMatch[1]) : -1;
 
     const newLineup = [...lineup];
     let newSubs = [...subs];
 
     if (activeInLineupIdx >= 0 && overInLineupIdx >= 0) {
-      newLineup[activeInLineupIdx] = overId;
+      // Swap two lineup players
+      newLineup[activeInLineupIdx] = targetId;
       newLineup[overInLineupIdx] = activeId;
     } else if (activeOnBench && overSlotIdx >= 0) {
+      // Bench player into empty slot
       const displaced = newLineup[overSlotIdx];
       newLineup[overSlotIdx] = activeId;
       newSubs = newSubs.filter(id => id !== activeId);
       if (displaced) newSubs.push(displaced);
     } else if (activeOnBench && overInLineupIdx >= 0) {
+      // Bench player swaps with lineup player
       const displaced = newLineup[overInLineupIdx];
       newLineup[overInLineupIdx] = activeId;
       newSubs = newSubs.filter(id => id !== activeId);
       if (displaced) newSubs.push(displaced);
     } else if (activeInLineupIdx >= 0 && overOnBench) {
-      newLineup[activeInLineupIdx] = overId;
-      newSubs = newSubs.filter(id => id !== overId);
+      // Lineup player swaps with bench player
+      newLineup[activeInLineupIdx] = targetId;
+      newSubs = newSubs.filter(id => id !== targetId);
       newSubs.push(activeId);
     } else if (activeOnBench && overOnBench) {
+      // Swap two bench players
       const activeSubIdx = newSubs.indexOf(activeId);
-      const overSubIdx = newSubs.indexOf(overId);
+      const overSubIdx = newSubs.indexOf(targetId);
       if (activeSubIdx >= 0 && overSubIdx >= 0) {
-        newSubs[activeSubIdx] = overId;
+        newSubs[activeSubIdx] = targetId;
         newSubs[overSubIdx] = activeId;
       }
     }
 
     updateLineup(newLineup, newSubs.slice(0, MAX_SUBS));
-  };
+  }, [lineup, subs, subAndBench, updateLineup]);
+
+  const handleTap = useCallback((tappedId: string) => {
+    if (!selectedId) {
+      setSelectedId(tappedId);
+    } else if (selectedId === tappedId) {
+      setSelectedId(null);
+    } else {
+      handleSwap(selectedId, tappedId);
+      setSelectedId(null);
+    }
+  }, [selectedId, handleSwap]);
+
+  if (!club) return null;
+
+  const slots = FORMATION_POSITIONS[club.formation];
+  const selectedPlayer = selectedId ? players[selectedId] : null;
 
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <div>
       {/* Half Pitch (bottom half only — your team) */}
       <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: '24rem' }}>
         <svg viewBox={`0 ${VP_Y} ${VP_W} ${VP_H}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
@@ -172,7 +156,7 @@ export function LineupEditor() {
           })}
         </svg>
 
-        {/* Player Tokens (HTML overlays for drag-and-drop) */}
+        {/* Player Tokens (HTML overlays for tap-to-swap) */}
         {slots.map((slot, i) => {
           const playerId = lineup[i];
           const player = playerId ? players[playerId] : null;
@@ -181,38 +165,41 @@ export function LineupEditor() {
           const left = (cxSvg / VP_W) * 100;
           const top = ((cySvg - VP_Y) / VP_H) * 100;
 
-          const compat = draggedPlayer ? getCompatibility(draggedPlayer.position as Position, slot.pos as Position) : null;
+          const isSelected = selectedId === playerId;
+          const compat = selectedPlayer ? getCompatibility(selectedPlayer.position as Position, slot.pos as Position) : null;
 
           return (
-            <div key={`slot-${i}`} className="absolute" style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}>
-              <DroppableSlot id={playerId || `slot-${i}`}>
-                {player ? (
-                  <DraggablePlayer id={player.id}>
-                    <div className={cn(
-                      'flex flex-col items-center cursor-grab active:cursor-grabbing p-0.5 rounded-lg',
-                      compat ? COMPAT_RING[compat] : ''
-                    )}>
-                      <svg width="28" height="28" viewBox="0 0 28 28" className="pointer-events-none">
-                        <PlayerAvatar playerId={player.id} jerseyColor={club.color} size={28} />
-                      </svg>
-                      <div
-                        className="bg-black/70 rounded px-1 py-px -mt-0.5 text-center min-w-[34px]"
-                        style={{ borderBottom: `2px solid ${getFitnessHexColor(player.fitness)}` }}
-                      >
-                        <span className="text-[7px] text-white font-bold block leading-tight">{player.lastName.slice(0, 3).toUpperCase()}</span>
-                        <span className="text-[6px] text-gray-400 block leading-tight">{slot.pos} {player.overall}</span>
-                      </div>
-                    </div>
-                  </DraggablePlayer>
-                ) : (
-                  <div className={cn(
-                    'w-10 h-10 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center',
-                    compat ? COMPAT_RING[compat] : ''
-                  )}>
-                    <span className="text-[8px] text-white/40">{slot.pos}</span>
+            <div
+              key={`slot-${i}`}
+              className="absolute"
+              style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
+              onClick={() => handleTap(playerId || `slot-${i}`)}
+            >
+              {player ? (
+                <div className={cn(
+                  'flex flex-col items-center cursor-pointer p-0.5 rounded-lg transition-all',
+                  isSelected ? 'ring-2 ring-primary scale-110' : '',
+                  !isSelected && compat ? COMPAT_RING[compat] : ''
+                )}>
+                  <svg width="28" height="28" viewBox="0 0 28 28" className="pointer-events-none">
+                    <PlayerAvatar playerId={player.id} jerseyColor={club.color} size={28} />
+                  </svg>
+                  <div
+                    className="bg-black/70 rounded px-1 py-px -mt-0.5 text-center min-w-[34px]"
+                    style={{ borderBottom: `2px solid ${getFitnessHexColor(player.fitness)}` }}
+                  >
+                    <span className="text-[7px] text-white font-bold block leading-tight">{player.lastName.slice(0, 3).toUpperCase()}</span>
+                    <span className="text-[6px] text-gray-400 block leading-tight">{slot.pos} {player.overall}</span>
                   </div>
-                )}
-              </DroppableSlot>
+                </div>
+              ) : (
+                <div className={cn(
+                  'w-10 h-10 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center cursor-pointer',
+                  compat ? COMPAT_RING[compat] : ''
+                )}>
+                  <span className="text-[8px] text-white/40">{slot.pos}</span>
+                </div>
+              )}
             </div>
           );
         })}
@@ -225,42 +212,41 @@ export function LineupEditor() {
           {subAndBench.map(id => {
             const p = players[id];
             if (!p) return null;
+            const isSelected = selectedId === id;
             return (
-              <DroppableSlot key={`drop-${id}`} id={id}>
-                <DraggablePlayer id={id}>
-                  <div className="flex flex-col items-center shrink-0 cursor-grab active:cursor-grabbing" style={{ opacity: p.injured ? 0.4 : 1 }}>
-                    <svg width="24" height="24" viewBox="0 0 24 24" className="pointer-events-none">
-                      <PlayerAvatar playerId={p.id} jerseyColor={club.color} size={24} />
-                    </svg>
-                    <div
-                      className="bg-black/60 rounded px-1 py-px -mt-0.5 text-center min-w-[28px]"
-                      style={{ borderBottom: `1.5px solid ${getFitnessHexColor(p.fitness)}` }}
-                    >
-                      <span className="text-[6px] text-white font-bold block leading-tight">{p.lastName.slice(0, 3).toUpperCase()}</span>
-                      <span className="text-[5px] text-gray-400 block leading-tight">{p.position} {p.overall}</span>
-                    </div>
-                  </div>
-                </DraggablePlayer>
-              </DroppableSlot>
+              <div
+                key={`bench-${id}`}
+                className={cn(
+                  'flex flex-col items-center shrink-0 cursor-pointer transition-all rounded-lg p-0.5',
+                  isSelected ? 'ring-2 ring-primary scale-110' : ''
+                )}
+                style={{ opacity: p.injured ? 0.4 : 1 }}
+                onClick={() => handleTap(id)}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" className="pointer-events-none">
+                  <PlayerAvatar playerId={p.id} jerseyColor={club.color} size={24} />
+                </svg>
+                <div
+                  className="bg-black/60 rounded px-1 py-px -mt-0.5 text-center min-w-[28px]"
+                  style={{ borderBottom: `1.5px solid ${getFitnessHexColor(p.fitness)}` }}
+                >
+                  <span className="text-[6px] text-white font-bold block leading-tight">{p.lastName.slice(0, 3).toUpperCase()}</span>
+                  <span className="text-[5px] text-gray-400 block leading-tight">{p.position} {p.overall}</span>
+                </div>
+              </div>
             );
           })}
         </div>
       </div>
 
-      {/* Drag Overlay */}
-      <DragOverlay>
-        {draggedPlayer && (
-          <div className="flex flex-col items-center pointer-events-none">
-            <svg width="32" height="32" viewBox="0 0 32 32" className="drop-shadow-lg">
-              <PlayerAvatar playerId={draggedPlayer.id} jerseyColor={club.color} size={32} />
-            </svg>
-            <div className="bg-black/80 rounded px-1.5 py-0.5 -mt-0.5 text-center shadow-lg">
-              <span className="text-[8px] text-white font-bold block leading-tight">{draggedPlayer.lastName.slice(0, 3).toUpperCase()}</span>
-              <span className="text-[7px] text-gray-300 block leading-tight">{draggedPlayer.position} {draggedPlayer.overall}</span>
-            </div>
-          </div>
-        )}
-      </DragOverlay>
-    </DndContext>
+      {/* Selection hint */}
+      {selectedId && (
+        <div className="mt-2 text-center">
+          <p className="text-[10px] text-primary animate-pulse">
+            Tap another player to swap, or tap again to deselect
+          </p>
+        </div>
+      )}
+    </div>
   );
 }

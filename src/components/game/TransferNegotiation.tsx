@@ -65,6 +65,13 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
 
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   const evaluation = useMemo(() => evaluateOffer(listing.playerId, offerFee), [listing.playerId, offerFee, evaluateOffer]);
 
   const top3 = useMemo(() => player ? getTop3Attributes(player.attributes) : [], [player]);
@@ -139,11 +146,12 @@ export function TransferNegotiation({ listing, onClose }: Props) {
         transition={{ duration: 0.2 }}
       >
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={phase === 'negotiate' ? onClose : undefined} />
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" style={{ touchAction: 'none' }} onClick={phase === 'negotiate' ? onClose : undefined} />
 
         {/* Modal */}
         <motion.div
           className="relative w-full max-w-sm mx-4 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+          style={{ overscrollBehavior: 'contain' }}
           initial={{ scale: 0.85, opacity: 0, y: 40 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}

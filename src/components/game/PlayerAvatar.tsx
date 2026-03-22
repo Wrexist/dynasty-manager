@@ -22,10 +22,9 @@ interface PlayerAvatarProps {
   jerseyColor: string;
   jerseyNumber?: number;
   size?: number;
-  isAway?: boolean;
 }
 
-export function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6, isAway = false }: PlayerAvatarProps) {
+export function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6 }: PlayerAvatarProps) {
   const seed = hashId(playerId);
   const skinTone = SKIN_TONES[seed % SKIN_TONES.length];
   const hairColor = HAIR_COLORS[(seed >> 4) % HAIR_COLORS.length];
@@ -37,20 +36,6 @@ export function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6, is
   const bodyW = s * 0.35;
   const bodyH = s * 0.30;
   const bodyY = s * 0.45;
-
-  // Simpler rendering for away team
-  if (isAway) {
-    return (
-      <g>
-        <circle cx={cx} cy={cx} r={s * 0.38} fill={jerseyColor} opacity="0.7" stroke="white" strokeWidth="0.3" />
-        {jerseyNumber !== undefined && (
-          <text x={cx} y={cx + s * 0.06} textAnchor="middle" fill="white" fontSize={s * 0.22} fontWeight="bold" fontFamily="monospace">
-            {jerseyNumber}
-          </text>
-        )}
-      </g>
-    );
-  }
 
   return (
     <g className="player-avatar-idle">
