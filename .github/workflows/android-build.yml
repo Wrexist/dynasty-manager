@@ -1,8 +1,5 @@
 name: Android Build
 on:
-  push:
-    branches: [main]
-    paths-ignore: ['**.md']
   workflow_dispatch:
 
 jobs:
