@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 15;
+const CURRENT_VERSION = 16;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -206,6 +206,12 @@ const migrations: Record<number, MigrationFn> = {
     ...data,
     version: 15,
     rivalries: data.rivalries || {},
+  }),
+  // v15 → v16: Added pair familiarity for gradual chemistry line growth
+  15: (data) => ({
+    ...data,
+    version: 16,
+    pairFamiliarity: data.pairFamiliarity || {},
   }),
 };
 

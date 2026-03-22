@@ -54,3 +54,17 @@ export const CHEMISTRY_AVERAGE_THRESHOLD = 0.02;
 // ── Mentor Growth Bonus ──
 export const MENTOR_GROWTH_BONUS_PER_STRENGTH = 0.01;
 export const MENTOR_GROWTH_MAX_AGE = 22;
+
+// ── Pair Familiarity (visual chemistry line growth) ──
+/** Matches together needed for yellow (strength 2) lines */
+export const FAMILIARITY_YELLOW_THRESHOLD = 3;
+/** Matches together needed for green (strength 3) lines */
+export const FAMILIARITY_GREEN_THRESHOLD = 6;
+
+/** Returns the maximum displayed chemistry strength for a given familiarity count */
+export function getFamiliarityCap(matchesTogether: number): number {
+  if (matchesTogether >= FAMILIARITY_GREEN_THRESHOLD) return Infinity;
+  if (matchesTogether >= FAMILIARITY_YELLOW_THRESHOLD) return 2;
+  if (matchesTogether >= 1) return 1;
+  return 0;
+}

@@ -70,6 +70,7 @@ export interface GameState {
   careerTimeline: CareerMilestone[];
   managerProgression: ManagerProgression;
   cup: CupState;
+  pairFamiliarity: Record<string, number>;
 
   // Press, Storylines & Contracts
   pendingPressConference: PressConference | null;

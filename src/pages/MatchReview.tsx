@@ -87,6 +87,13 @@ const MatchReview = () => {
         </GlassPanel>
       </motion.div>
 
+      {/* Continue — sticky at top so player doesn't have to scroll */}
+      <div className="sticky top-0 z-10 -mx-4 px-4 pt-1 pb-2 bg-gradient-to-b from-background via-background to-transparent">
+        <Button size="lg" className="w-full h-12 text-base font-bold gap-2" disabled={isAdvancing} onClick={handleContinue}>
+          {isAdvancing ? 'Advancing...' : 'Continue'} {!isAdvancing && <ChevronRight className="w-5 h-5" />}
+        </Button>
+      </div>
+
       {/* Key Highlights — animated timeline of the biggest moments */}
       {(() => {
         const highlights = match.events.filter(e => ['goal', 'own_goal', 'penalty_scored', 'penalty_missed', 'red_card', 'injury'].includes(e.type));
@@ -514,10 +521,6 @@ const MatchReview = () => {
         );
       })()}
 
-      {/* Continue */}
-      <Button size="lg" className="w-full h-14 text-lg font-bold gap-3" disabled={isAdvancing} onClick={handleContinue}>
-        {isAdvancing ? 'Advancing...' : 'Continue'} {!isAdvancing && <ChevronRight className="w-5 h-5" />}
-      </Button>
     </div>
   );
 };

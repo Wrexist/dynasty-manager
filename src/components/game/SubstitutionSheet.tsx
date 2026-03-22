@@ -4,13 +4,15 @@ import { usePlayerClub } from '@/hooks/useGameSelectors';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { getRatingBadgeClasses } from '@/utils/uiHelpers';
-import { POSITION_COMPATIBILITY, type Position } from '@/types/game';
+import { getRatingBadgeClasses, getFitnessHexColor } from '@/utils/uiHelpers';
+import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/types/game';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { getFlag } from '@/utils/nationality';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRightLeft, Check, X, ChevronDown, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Check, AlertCircle } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
+import { PITCH_COLORS } from '@/config/ui';
+import { PlayerAvatar } from './PlayerAvatar';
 
 interface SubstitutionSheetProps {
   open: boolean;
@@ -24,26 +26,6 @@ interface SubstitutionSheetProps {
   isPlayerHome?: boolean;
 }
 
-const POSITION_ORDER: Record<string, number> = {
-  'GK': 0, 'CB': 1, 'LB': 2, 'RB': 3,
-  'CDM': 4, 'CM': 5, 'CAM': 6, 'LM': 7, 'RM': 8,
-  'LW': 9, 'RW': 10, 'ST': 11,
-};
-
-const POSITION_GROUP_LABELS: Record<string, string> = {
-  'GK': 'GK', 'CB': 'DEF', 'LB': 'DEF', 'RB': 'DEF',
-  'CDM': 'MID', 'CM': 'MID', 'CAM': 'MID', 'LM': 'MID', 'RM': 'MID',
-  'LW': 'FWD', 'RW': 'FWD', 'ST': 'FWD',
-};
-
-function getPositionFitClass(playerPos: Position, targetPos: Position | null): string {
-  if (!targetPos) return 'bg-muted/50 text-muted-foreground';
-  if (playerPos === targetPos) return 'bg-emerald-500/20 text-emerald-400';
-  const compat = POSITION_COMPATIBILITY[targetPos] || [];
-  if (compat.includes(playerPos)) return 'bg-amber-500/20 text-amber-400';
-  return 'bg-red-500/20 text-red-400';
-}
-
 function getFormLabel(form: number): { text: string; className: string } {
   if (form >= 80) return { text: 'Hot', className: 'text-emerald-400' };
   if (form >= 60) return { text: 'Good', className: 'text-primary' };
@@ -51,29 +33,23 @@ function getFormLabel(form: number): { text: string; className: string } {
   return { text: 'Poor', className: 'text-destructive' };
 }
 
-function getMoraleLabel(morale: number): { text: string; className: string } {
-  if (morale >= 80) return { text: 'Happy', className: 'text-emerald-400' };
-  if (morale >= 55) return { text: 'OK', className: 'text-muted-foreground' };
-  return { text: 'Low', className: 'text-amber-400' };
+function getCompatibility(playerPos: Position, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
+  if (playerPos === slotPos) return 'natural';
+  const compat = POSITION_COMPATIBILITY[slotPos] || [];
+  if (compat.includes(playerPos)) return 'compatible';
+  return 'wrong';
 }
 
-function getKeyAttributes(position: Position, attrs: { pace: number; shooting: number; passing: number; defending: number; physical: number; mental: number }): { label: string; value: number }[] {
-  switch (position) {
-    case 'GK': return [{ label: 'DEF', value: attrs.defending }, { label: 'MEN', value: attrs.mental }];
-    case 'CB': case 'LB': case 'RB': return [{ label: 'DEF', value: attrs.defending }, { label: 'PHY', value: attrs.physical }];
-    case 'CDM': case 'CM': return [{ label: 'PAS', value: attrs.passing }, { label: 'DEF', value: attrs.defending }];
-    case 'CAM': return [{ label: 'PAS', value: attrs.passing }, { label: 'SHO', value: attrs.shooting }];
-    case 'LM': case 'RM': case 'LW': case 'RW': return [{ label: 'PAC', value: attrs.pace }, { label: 'SHO', value: attrs.shooting }];
-    case 'ST': return [{ label: 'SHO', value: attrs.shooting }, { label: 'PAC', value: attrs.pace }];
-    default: return [{ label: 'PAC', value: attrs.pace }, { label: 'PAS', value: attrs.passing }];
-  }
-}
+const COMPAT_RING = {
+  natural: 'ring-2 ring-emerald-400',
+  compatible: 'ring-2 ring-amber-400',
+  wrong: 'ring-2 ring-red-500',
+};
 
-function getFitnessColor(fitness: number): string {
-  if (fitness >= 80) return 'bg-emerald-500';
-  if (fitness >= 60) return 'bg-amber-500';
-  return 'bg-destructive';
-}
+// Half-pitch viewBox constants
+const VP_Y = 46;
+const VP_H = 59;
+const VP_W = 68;
 
 export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome }: SubstitutionSheetProps) {
   const { players, makeMatchSub, matchSubsUsed, week } = useGameStore();
@@ -81,14 +57,12 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
 
   const [selectedOutId, setSelectedOutId] = useState<string | null>(null);
   const [selectedInId, setSelectedInId] = useState<string | null>(null);
-  const [showLineup, setShowLineup] = useState(false);
 
   // Reset selection state when sheet opens/closes
   useEffect(() => {
     if (!open) {
       setSelectedOutId(null);
       setSelectedInId(null);
-      setShowLineup(false);
     }
   }, [open]);
 
@@ -116,23 +90,23 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     });
   }, [playerClub, selectedOutId, players]);
 
-  // Group lineup by position for display
-  const groupedLineup = useMemo(() => {
-    if (!playerClub) return [];
-    return [...playerClub.lineup]
-      .map(id => ({ id, player: players[id] }))
-      .filter(({ player }) => !!player)
-      .sort((a, b) => (POSITION_ORDER[a.player.position] ?? 99) - (POSITION_ORDER[b.player.position] ?? 99));
-  }, [playerClub, players]);
+  const lineup = useMemo(() => playerClub?.lineup || [], [playerClub?.lineup]);
+  const slots = useMemo(() => playerClub ? FORMATION_POSITIONS[playerClub.formation] || [] : [], [playerClub, playerClub?.formation]);
+
+  // Find the formation slot position of the selected out player
+  const selectedSlotPos = useMemo(() => {
+    if (!selectedOutId) return null;
+    const idx = lineup.indexOf(selectedOutId);
+    if (idx < 0 || !slots[idx]) return null;
+    return slots[idx].pos as Position | undefined;
+  }, [selectedOutId, lineup, slots]);
 
   if (!playerClub) return null;
 
-  const lineup = playerClub.lineup;
   const subsRemaining = MAX_SUBSTITUTIONS - matchSubsUsed;
 
   const selectedOutPlayer = selectedOutId ? players[selectedOutId] : null;
   const selectedInPlayer = selectedInId ? players[selectedInId] : null;
-  const outPos = selectedOutPlayer ? (selectedOutPlayer.position as Position) : null;
 
   // Count available bench players (not injured/suspended)
   const availableBenchCount = sortedSubs.filter(id => {
@@ -172,47 +146,130 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     }
   };
 
-  // Render a lineup row for State 1
-  const renderLineupRow = (id: string, player: typeof players[string]) => {
-    if (!player) return null;
-    const formInfo = getFormLabel(player.form);
-    return (
-      <button
-        key={id}
-        onClick={() => handleLineupPlayerClick(id)}
-        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border bg-card/40 border-border/30 hover:bg-destructive/10 hover:border-destructive/30 transition-all text-left active:scale-[0.98]"
-      >
-        <div className={cn(
-          'w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0',
-          getRatingBadgeClasses(player.overall)
-        )}>
-          {player.overall}
-        </div>
-        <div className="w-8 text-center">
-          <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
-            {player.position}
-          </span>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-semibold text-foreground truncate">
-            {getFlag(player.nationality)} {player.firstName[0]}. {player.lastName}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <span className={cn('text-[9px] font-semibold', formInfo.className)}>{formInfo.text}</span>
-          <div className="flex items-center gap-1">
-            <div className="w-8 h-1 bg-muted rounded-full overflow-hidden">
-              <div
-                className={cn('h-full rounded-full', getFitnessColor(player.fitness))}
-                style={{ width: `${player.fitness}%` }}
-              />
+  // Pitch view for States 1 and 2 (select out / select in)
+  const renderPitchView = () => (
+    <div>
+      {/* Half Pitch */}
+      <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: '22rem' }}>
+        <svg viewBox={`0 ${VP_Y} ${VP_W} ${VP_H}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          {/* Pitch background & markings */}
+          <rect x="0" y="0" width="68" height="105" rx="1.5" fill={PITCH_COLORS.FILL} />
+          <rect x="2" y="2" width="64" height="101" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+          <line x1="2" y1="52.5" x2="66" y2="52.5" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+          <circle cx="34" cy="52.5" r="9.15" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+          <circle cx="34" cy="52.5" r="0.5" fill={PITCH_COLORS.LINE} />
+          <rect x="13.85" y="86.5" width="40.3" height="16.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+          <rect x="24.85" y="97.5" width="18.3" height="5.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+          <rect x="29" y="103" width="10" height="2" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+          <path d="M 26.85 86.5 A 9.15 9.15 0 0 1 41.15 86.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+        </svg>
+
+        {/* Player tokens as HTML overlays */}
+        {slots.map((slot, i) => {
+          const playerId = lineup[i];
+          const player = playerId ? players[playerId] : null;
+          if (!player) return null;
+          const cxSvg = 2 + (slot.x / 100) * 64;
+          const cySvg = 95 - (slot.y / 100) * 39;
+          const left = (cxSvg / VP_W) * 100;
+          const top = ((cySvg - VP_Y) / VP_H) * 100;
+
+          const isSelectedOut = selectedOutId === playerId;
+
+          return (
+            <div
+              key={`slot-${i}`}
+              className="absolute"
+              style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
+              onClick={() => handleLineupPlayerClick(playerId)}
+            >
+              <div className={cn(
+                'flex flex-col items-center cursor-pointer p-0.5 rounded-lg transition-all',
+                isSelectedOut ? 'ring-2 ring-destructive scale-110' : 'hover:scale-105',
+              )}>
+                <svg width="26" height="26" viewBox="0 0 26 26" className="pointer-events-none">
+                  <PlayerAvatar playerId={player.id} jerseyColor={playerClub.color} size={26} />
+                </svg>
+                <div
+                  className={cn(
+                    'rounded px-1 py-px -mt-0.5 text-center min-w-[32px]',
+                    isSelectedOut ? 'bg-destructive/80' : 'bg-black/70',
+                  )}
+                  style={{ borderBottom: `2px solid ${getFitnessHexColor(player.fitness)}` }}
+                >
+                  <span className="text-[7px] text-white font-bold block leading-tight">{player.lastName.slice(0, 3).toUpperCase()}</span>
+                  <span className="text-[6px] text-gray-400 block leading-tight">{slot.pos} {player.overall}</span>
+                </div>
+                {isSelectedOut && (
+                  <div className="absolute -inset-1 rounded-lg border-2 border-destructive animate-pulse pointer-events-none" />
+                )}
+              </div>
             </div>
-            <span className="text-[9px] text-muted-foreground w-7 text-right">{Math.round(player.fitness)}%</span>
+          );
+        })}
+      </div>
+
+      {/* Bench section */}
+      <div className="mt-2">
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">
+          {selectedOutId ? 'Select Replacement' : 'Tap a player on the pitch to sub them out'}
+        </p>
+
+        {selectedOutId && availableBenchCount === 0 && (
+          <div className="flex items-center gap-2 bg-card/40 border border-border/30 rounded-lg px-3 py-3">
+            <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+            <p className="text-xs text-muted-foreground">No available substitutes — all bench players are injured or suspended.</p>
           </div>
+        )}
+
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 px-1">
+          {sortedSubs.map(id => {
+            const p = players[id];
+            if (!p) return null;
+            const isUnavailable = p.injured || (p.suspendedUntilWeek && p.suspendedUntilWeek > week);
+            if (isUnavailable) return null;
+            const benchCompat = selectedSlotPos
+              ? getCompatibility(p.position as Position, selectedSlotPos)
+              : null;
+            const formInfo = getFormLabel(p.form);
+            return (
+              <div
+                key={`bench-${id}`}
+                className={cn(
+                  'flex flex-col items-center shrink-0 cursor-pointer transition-all rounded-lg p-0.5',
+                  !selectedOutId ? 'opacity-50 pointer-events-none' : '',
+                  benchCompat ? COMPAT_RING[benchCompat] : '',
+                )}
+                onClick={() => selectedOutId && handleBenchClick(id)}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" className="pointer-events-none">
+                  <PlayerAvatar playerId={p.id} jerseyColor={playerClub.color} size={24} />
+                </svg>
+                <div
+                  className="bg-black/60 rounded px-1 py-px -mt-0.5 text-center min-w-[28px]"
+                  style={{ borderBottom: `1.5px solid ${getFitnessHexColor(p.fitness)}` }}
+                >
+                  <span className="text-[6px] text-white font-bold block leading-tight">{p.lastName.slice(0, 3).toUpperCase()}</span>
+                  <span className="text-[5px] text-gray-400 block leading-tight">{p.position} {p.overall}</span>
+                </div>
+                <span className={cn('text-[7px] font-semibold mt-0.5', formInfo.className)}>{formInfo.text}</span>
+              </div>
+            );
+          })}
         </div>
-      </button>
-    );
-  };
+      </div>
+
+      {/* Back button when a player is selected */}
+      {selectedOutId && !selectedInId && (
+        <button
+          onClick={handleCancel}
+          className="mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+        >
+          <ArrowLeft className="w-3 h-3" /> Back to full lineup
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -236,199 +293,15 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
         </SheetHeader>
 
         <AnimatePresence mode="wait">
-          {/* State 1: Select player to sub out — grouped lineup */}
-          {!selectedOutId && (
+          {/* States 1 & 2: Pitch view with bench — tap on field to select out, tap bench to select in */}
+          {!selectedInId && (
             <motion.div
-              key="lineup-select"
+              key="pitch-select"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="space-y-2"
             >
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                Select Player to Substitute
-              </p>
-
-              {/* Grouped lineup */}
-              <div className="space-y-1">
-                {(() => {
-                  let lastGroup = '';
-                  return groupedLineup.map(({ id, player }) => {
-                    const group = POSITION_GROUP_LABELS[player.position] || 'OTHER';
-                    const showGroupHeader = group !== lastGroup;
-                    lastGroup = group;
-                    return (
-                      <div key={id}>
-                        {showGroupHeader && (
-                          <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-semibold mt-1.5 mb-0.5 pl-1">
-                            {group}
-                          </p>
-                        )}
-                        {renderLineupRow(id, player)}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
-            </motion.div>
-          )}
-
-          {/* State 2: Player selected — show bench replacements */}
-          {selectedOutId && !selectedInId && selectedOutPlayer && (
-            <motion.div
-              key="bench"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 16 }}
-              transition={{ duration: 0.2 }}
-              className="space-y-2"
-            >
-              {/* Selected player bar */}
-              <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
-                <ArrowRightLeft className="w-3.5 h-3.5 text-destructive shrink-0" />
-                <div className={cn(
-                  'w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold shrink-0',
-                  getRatingBadgeClasses(selectedOutPlayer.overall)
-                )}>
-                  {selectedOutPlayer.overall}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold text-foreground truncate">
-                    {getFlag(selectedOutPlayer.nationality)} {selectedOutPlayer.firstName[0]}. {selectedOutPlayer.lastName}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">{selectedOutPlayer.position} · FIT {Math.round(selectedOutPlayer.fitness)}%</p>
-                </div>
-                <button onClick={handleCancel} className="text-muted-foreground hover:text-foreground p-1">
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Bench list */}
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Select Replacement</p>
-
-              {/* Empty state when no bench players available */}
-              {availableBenchCount === 0 && (
-                <div className="flex items-center gap-2 bg-card/40 border border-border/30 rounded-lg px-3 py-4">
-                  <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <p className="text-xs text-muted-foreground">No available substitutes — all bench players are injured or suspended.</p>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                {(() => { let bestShown = false; return sortedSubs.map((id) => {
-                  const p = players[id];
-                  if (!p || p.injured || (p.suspendedUntilWeek && p.suspendedUntilWeek > week)) return null;
-                  const isBest = !bestShown;
-                  bestShown = true;
-                  const formInfo = getFormLabel(p.form);
-                  const moraleInfo = getMoraleLabel(p.morale);
-                  const keyAttrs = getKeyAttributes(p.position as Position, p.attributes);
-                  const posFitClass = getPositionFitClass(p.position as Position, outPos);
-                  return (
-                    <button
-                      key={id}
-                      onClick={() => handleBenchClick(id)}
-                      className={cn(
-                        'w-full flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border transition-all text-left active:scale-[0.98]',
-                        isBest ? 'bg-primary/10 border-primary/30' : 'bg-card/40 border-border/30 hover:bg-primary/10 hover:border-primary/30'
-                      )}
-                    >
-                      {/* Top row: rating, position, name, age */}
-                      <div className="flex items-center gap-2 w-full">
-                        <div className={cn(
-                          'w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0',
-                          getRatingBadgeClasses(p.overall)
-                        )}>
-                          {p.overall}
-                        </div>
-                        <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0', posFitClass)}>
-                          {p.position}
-                        </span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="text-xs font-semibold text-foreground truncate">
-                              {getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}
-                            </p>
-                            {isBest && (
-                              <span className="text-[8px] font-bold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Best</span>
-                            )}
-                          </div>
-                        </div>
-                        <span className="text-[10px] text-muted-foreground shrink-0">Age {p.age}</span>
-                      </div>
-
-                      {/* Bottom row: key attrs, form, morale, stats, fitness */}
-                      <div className="flex items-center gap-2 w-full pl-9">
-                        {keyAttrs.map(attr => (
-                          <div key={attr.label} className="flex items-center gap-0.5">
-                            <span className="text-[8px] text-muted-foreground">{attr.label}</span>
-                            <span className={cn('text-[9px] font-bold', attr.value >= 75 ? 'text-emerald-400' : attr.value >= 60 ? 'text-foreground' : 'text-muted-foreground')}>
-                              {attr.value}
-                            </span>
-                          </div>
-                        ))}
-
-                        <span className="text-[8px] text-border">·</span>
-                        <span className={cn('text-[9px] font-semibold', formInfo.className)}>{formInfo.text}</span>
-                        <span className="text-[8px] text-border">·</span>
-                        <span className={cn('text-[9px]', moraleInfo.className)}>{moraleInfo.text}</span>
-
-                        {(p.goals > 0 || p.assists > 0) && (
-                          <>
-                            <span className="text-[8px] text-border">·</span>
-                            <span className="text-[9px] text-muted-foreground">
-                              {p.goals > 0 ? `${p.goals}G` : ''}{p.goals > 0 && p.assists > 0 ? ' ' : ''}{p.assists > 0 ? `${p.assists}A` : ''}
-                            </span>
-                          </>
-                        )}
-
-                        <div className="flex-1" />
-
-                        <div className="flex items-center gap-1 shrink-0">
-                          <div className="w-10 h-1 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={cn('h-full rounded-full', getFitnessColor(p.fitness))}
-                              style={{ width: `${p.fitness}%` }}
-                            />
-                          </div>
-                          <span className="text-[9px] text-muted-foreground w-7 text-right">{Math.round(p.fitness)}%</span>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                }); })()}
-              </div>
-
-              {/* Collapsible lineup view */}
-              <button
-                onClick={() => setShowLineup(!showLineup)}
-                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors mt-1"
-              >
-                <ChevronDown className={cn('w-3 h-3 transition-transform', showLineup && 'rotate-180')} />
-                {showLineup ? 'Hide' : 'Show'} Current Lineup
-              </button>
-              {showLineup && (
-                <div className="grid grid-cols-2 gap-1 mt-1">
-                  {lineup.map((id) => {
-                    const p = players[id];
-                    if (!p) return null;
-                    const isSelected = id === selectedOutId;
-                    return (
-                      <div
-                        key={id}
-                        className={cn(
-                          'flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px]',
-                          isSelected ? 'bg-destructive/15 border border-destructive/30' : 'bg-card/30'
-                        )}
-                      >
-                        <span className="font-bold text-primary">{p.position}</span>
-                        <span className="text-foreground truncate">{p.lastName}</span>
-                        <span className="text-muted-foreground ml-auto">{p.overall}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {renderPitchView()}
             </motion.div>
           )}
 
