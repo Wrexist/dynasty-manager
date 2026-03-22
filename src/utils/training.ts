@@ -61,8 +61,7 @@ export function applyWeeklyTraining(
   // Fitness recovery/drain (recovery facility bonus: +0.5 fitness per level per week)
   const fitnessDays = moduleCounts['fitness'] || 0;
   const recoveryBonus = recoveryLevel * RECOVERY_FITNESS_BONUS_PER_LEVEL;
-  updated.fitness = Math.min(100, updated.fitness + fitnessDays * FITNESS_RECOVERY_PER_DAY + FITNESS_RECOVERY_BASE + recoveryBonus);
-  updated.fitness = Math.max(FITNESS_MIN, updated.fitness + INTENSITY_FITNESS_COST[training.intensity]);
+  updated.fitness = Math.max(FITNESS_MIN, Math.min(100, updated.fitness + fitnessDays * FITNESS_RECOVERY_PER_DAY + FITNESS_RECOVERY_BASE + recoveryBonus + INTENSITY_FITNESS_COST[training.intensity]));
 
   // Recalculate overall
   const newOverall = calculateOverall(updated.attributes, updated.position);
