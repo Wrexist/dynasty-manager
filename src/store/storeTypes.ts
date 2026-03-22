@@ -103,6 +103,9 @@ export interface GameState {
   // Session stats for session summary
   sessionStats: SessionStats;
 
+  // Newly unlocked achievements (for modal display, cleared after shown)
+  pendingAchievementIds: string[];
+
   // Weekly Digest (post-advanceWeek summary)
   weeklyDigest: {
     incomeEarned: number;

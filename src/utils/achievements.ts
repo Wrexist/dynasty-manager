@@ -1,4 +1,5 @@
 import type { GameState } from '@/store/storeTypes';
+import { ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 
 export type AchievementTier = 'bronze' | 'silver' | 'gold';
 
@@ -159,5 +160,23 @@ export function getTierColor(tier: AchievementTier): string {
     case 'bronze': return 'text-amber-600';
     case 'silver': return 'text-gray-300';
     case 'gold': return 'text-primary';
+  }
+}
+
+/** Get XP reward for an achievement tier */
+export function getAchievementXP(tier: AchievementTier): number {
+  switch (tier) {
+    case 'bronze': return ACHIEVEMENT_XP_BRONZE;
+    case 'silver': return ACHIEVEMENT_XP_SILVER;
+    case 'gold': return ACHIEVEMENT_XP_GOLD;
+  }
+}
+
+/** Get tier badge background color class */
+export function getTierBgColor(tier: AchievementTier): string {
+  switch (tier) {
+    case 'bronze': return 'bg-amber-600/20 border-amber-600/40';
+    case 'silver': return 'bg-gray-300/20 border-gray-300/40';
+    case 'gold': return 'bg-primary/20 border-primary/40';
   }
 }
