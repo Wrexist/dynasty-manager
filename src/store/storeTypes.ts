@@ -1,4 +1,4 @@
-import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, CupState, PressConference, ContractOffer, ActiveChallenge, DivisionId, PlayoffState, PromotionRelegation, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType } from '@/types/game';
+import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, CupState, PressConference, ContractOffer, ActiveChallenge, DivisionId, PlayoffState, PromotionRelegation, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -90,6 +90,18 @@ export interface GameState {
 
   // Merchandise
   merchandise: MerchState;
+
+  // Cliffhangers (post-advanceWeek "one more week" hooks)
+  weekCliffhangers: CliffhangerItem[];
+
+  // Objective streak tracking
+  objectiveStreak: number;
+
+  // Match drama type from last played match
+  lastMatchDrama: MatchDramaType;
+
+  // Session stats for session summary
+  sessionStats: SessionStats;
 
   // Weekly Digest (post-advanceWeek summary)
   weeklyDigest: {

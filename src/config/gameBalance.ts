@@ -384,3 +384,45 @@ export const UNHAPPY_CONTAGION_MORALE_HIT = 3;
 export const FREE_AGENT_POOL_MAX = 40;
 /** Chance per week that an AI club signs a free agent */
 export const AI_FREE_AGENT_SIGN_CHANCE = 0.08;
+
+// ── Cliffhanger System ──
+/** Maximum number of cliffhangers shown per week */
+export const MAX_CLIFFHANGERS = 3;
+/** Points gap to leader that triggers title race cliffhanger */
+export const CLIFFHANGER_TITLE_RACE_GAP = 6;
+/** Minimum reputation gap for "big match" cliffhanger */
+export const CLIFFHANGER_BIG_MATCH_REP_GAP = 2;
+/** Board confidence threshold below which board pressure cliffhangers trigger */
+export const CLIFFHANGER_BOARD_PRESSURE_THRESHOLD = 35;
+/** Youth prospect potential gap that triggers breakthrough cliffhanger */
+export const CLIFFHANGER_YOUTH_POTENTIAL_GAP = 8;
+/** Weeks before transfer window closes that triggers deadline cliffhanger */
+export const CLIFFHANGER_DEADLINE_WEEKS = 2;
+
+// ── Variable Reward Objectives ──
+/** Chance that a rare objective appears (replaces one common objective) */
+export const RARE_OBJECTIVE_CHANCE = 0.15;
+/** Chance that a legendary objective appears (replaces one common objective) */
+export const LEGENDARY_OBJECTIVE_CHANCE = 0.05;
+/** XP multiplier for rare objectives */
+export const RARE_OBJECTIVE_XP_MULTIPLIER = 2;
+/** XP multiplier for legendary objectives */
+export const LEGENDARY_OBJECTIVE_XP_MULTIPLIER = 5;
+/** Streak length required for streak multiplier */
+export const OBJECTIVE_STREAK_THRESHOLD = 3;
+/** XP multiplier when on a streak */
+export const OBJECTIVE_STREAK_MULTIPLIER = 2;
+/** Bonus XP for completing all 3 objectives in a week */
+export const ALL_OBJECTIVES_BONUS_XP = 25;
+
+// ── Match Drama Detection ──
+/** Minute threshold for "late" events */
+export const DRAMA_LATE_MINUTE = 85;
+/** Goal margin threshold for "thrashing" */
+export const DRAMA_THRASHING_MARGIN = 4;
+/** Reputation gap for underdog detection */
+export const DRAMA_UNDERDOG_REP_GAP = 2;
+
+// ── Session Summary ──
+/** Minimum weeks played before showing session summary */
+export const SESSION_SUMMARY_MIN_WEEKS = 5;

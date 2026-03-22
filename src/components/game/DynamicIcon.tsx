@@ -6,6 +6,8 @@ import {
   BarChart3, MapPin, CalendarDays, PenLine, Angry, Phone, Newspaper,
   Mic, Clock, Eye, Sunset, TrendingDown, Home, Plane, Wrench,
   CheckCircle2, Pickaxe,
+  Sparkles, UserMinus, AlertTriangle, AlertCircle, RotateCcw,
+  HeartCrack, Repeat, LayoutGrid, Award,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -55,6 +57,15 @@ const ICON_MAP: Record<string, LucideIcon> = {
   wrench: Wrench,
   'check-circle': CheckCircle2,
   pickaxe: Pickaxe,
+  sparkles: Sparkles,
+  'user-minus': UserMinus,
+  'alert-triangle': AlertTriangle,
+  'alert-circle': AlertCircle,
+  'rotate-ccw': RotateCcw,
+  'heart-crack': HeartCrack,
+  repeat: Repeat,
+  'layout-grid': LayoutGrid,
+  award: Award,
 };
 
 interface DynamicIconProps {

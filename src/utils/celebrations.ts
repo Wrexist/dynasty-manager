@@ -1,4 +1,5 @@
-import { Player, Match, LeagueTableEntry } from '@/types/game';
+import { Player, Match, LeagueTableEntry, Club, MatchDramaType } from '@/types/game';
+import { DRAMA_LATE_MINUTE, DRAMA_THRASHING_MARGIN, DRAMA_UNDERDOG_REP_GAP } from '@/config/gameBalance';
 
 export type CelebrationSeverity = 'minor' | 'major' | 'legendary';
 
@@ -143,6 +144,99 @@ export function checkCelebrations(
   }
 
   return celebrations;
+}
+
+/** Detect the dramatic context of a match result for emotional amplification */
+export function detectMatchDrama(
+  match: Match,
+  playerClubId: string,
+  clubs: Record<string, Club>,
+): MatchDramaType {
+  if (!match.played) return null;
+
+  const isHome = match.homeClubId === playerClubId;
+  const gf = isHome ? match.homeGoals : match.awayGoals;
+  const ga = isHome ? match.awayGoals : match.homeGoals;
+  const won = gf > ga;
+  const lost = gf < ga;
+  const margin = Math.abs(gf - ga);
+
+  const oppId = isHome ? match.awayClubId : match.homeClubId;
+  const playerClub = clubs[playerClubId];
+  const oppClub = clubs[oppId];
+  const repGap = (oppClub?.reputation || 0) - (playerClub?.reputation || 0);
+
+  // Late winner (85+ minute winning goal by player's team)
+  if (won && match.events) {
+    const lateGoals = match.events.filter(
+      e => (e.type === 'goal' || e.type === 'penalty_scored') &&
+        e.clubId === playerClubId && e.minute >= DRAMA_LATE_MINUTE
+    );
+    // Check if the late goal was the decisive one
+    if (lateGoals.length > 0 && margin <= 1) {
+      return 'late_winner';
+    }
+  }
+
+  // Heartbreak loss (opponent scores late winner)
+  if (lost && match.events) {
+    const lateOppGoals = match.events.filter(
+      e => (e.type === 'goal' || e.type === 'penalty_scored') &&
+        e.clubId !== playerClubId && e.minute >= DRAMA_LATE_MINUTE
+    );
+    if (lateOppGoals.length > 0 && margin <= 1) {
+      return 'heartbreak_loss';
+    }
+  }
+
+  // Comeback win (was losing, ended up winning)
+  if (won && match.events) {
+    let playerGoals = 0;
+    let oppGoals = 0;
+    let wasLosing = false;
+    for (const e of match.events) {
+      if (e.type === 'goal' || e.type === 'penalty_scored') {
+        if (e.clubId === playerClubId) playerGoals++;
+        else oppGoals++;
+      } else if (e.type === 'own_goal') {
+        // Own goals benefit the opposing team
+        if (e.clubId === playerClubId) oppGoals++;
+        else playerGoals++;
+      }
+      if (oppGoals > playerGoals) wasLosing = true;
+    }
+    if (wasLosing) return 'comeback_win';
+  }
+
+  // Thrashing (won by 4+ goals)
+  if (won && margin >= DRAMA_THRASHING_MARGIN) {
+    return 'thrashing';
+  }
+
+  // Underdog upset (beat a much higher-rep team)
+  if (won && repGap >= DRAMA_UNDERDOG_REP_GAP) {
+    return 'underdog_upset';
+  }
+
+  return null;
+}
+
+/** Get a celebration-worthy description for a match drama type */
+export function getDramaCelebration(drama: MatchDramaType): Celebration | null {
+  switch (drama) {
+    case 'late_winner':
+      return { title: 'SCENES! Late Winner!', description: 'A dramatic last-gasp winner sends the crowd wild!', type: 'record', severity: 'legendary', icon: 'clock' };
+    case 'comeback_win':
+      return { title: 'What a Comeback!', description: 'Down and out, but never beaten — an incredible turnaround!', type: 'record', severity: 'major', icon: 'rotate-ccw' };
+    case 'thrashing':
+      return { title: 'Total Domination!', description: 'A commanding performance — the opposition had no answer.', type: 'record', severity: 'major', icon: 'zap' };
+    case 'underdog_upset':
+      return { title: 'Giant Killing!', description: 'The underdog triumphs! Nobody saw this coming.', type: 'record', severity: 'major', icon: 'swords' };
+    case 'heartbreak_loss':
+      return { title: 'Heartbreak...', description: 'A cruel last-minute blow. Pick yourselves up and go again.', type: 'record', severity: 'minor', icon: 'heart-crack' };
+    default:
+      return null;
+  }
 }
 
 /** Get current win streak count (useful for streak bonus display) */

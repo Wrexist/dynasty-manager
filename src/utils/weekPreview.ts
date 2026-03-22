@@ -1,4 +1,11 @@
-import { Player, Match, Club, FacilitiesState, ScoutingState } from '@/types/game';
+import { Player, Match, Club, FacilitiesState, ScoutingState, LeagueTableEntry, CliffhangerItem } from '@/types/game';
+import { getSuffix } from '@/utils/helpers';
+import {
+  MAX_CLIFFHANGERS, CLIFFHANGER_TITLE_RACE_GAP, CLIFFHANGER_BIG_MATCH_REP_GAP,
+  CLIFFHANGER_BOARD_PRESSURE_THRESHOLD, CLIFFHANGER_YOUTH_POTENTIAL_GAP,
+  CLIFFHANGER_DEADLINE_WEEKS,
+} from '@/config/gameBalance';
+import { SUMMER_WINDOW_END, WINTER_WINDOW_END } from '@/config/transfers';
 
 export interface PreviewItem {
   icon: string;
@@ -93,4 +100,176 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
   }
 
   return items.slice(0, 3); // Max 3 preview items
+}
+
+// ── Cliffhanger Generation ──
+
+export interface CliffhangerContext {
+  playerClubId: string;
+  players: Record<string, Player>;
+  clubs: Record<string, Club>;
+  fixtures: Match[];
+  leagueTable: LeagueTableEntry[];
+  week: number;
+  season: number;
+  boardConfidence: number;
+  transferWindowOpen: boolean;
+}
+
+/** Generate emotionally provocative cliffhanger hooks for the "one more week" pull */
+export function generateCliffhangers(ctx: CliffhangerContext): CliffhangerItem[] {
+  const items: CliffhangerItem[] = [];
+  const club = ctx.clubs[ctx.playerClubId];
+  if (!club) return items;
+
+  const myEntry = ctx.leagueTable.find(e => e.clubId === ctx.playerClubId);
+  const myPos = myEntry ? ctx.leagueTable.indexOf(myEntry) + 1 : 99;
+
+  // Title race tension
+  if (myPos <= 4 && ctx.leagueTable.length > 0 && ctx.week >= 10) {
+    const leader = ctx.leagueTable[0];
+    if (leader && leader.clubId !== ctx.playerClubId) {
+      const gap = leader.points - (myEntry?.points || 0);
+      if (gap <= CLIFFHANGER_TITLE_RACE_GAP) {
+        const leaderClub = ctx.clubs[leader.clubId];
+        items.push({
+          icon: 'crown',
+          text: gap === 0
+            ? `Level on points with ${leaderClub?.shortName || 'the leaders'} — the title race is ON`
+            : `Just ${gap} point${gap > 1 ? 's' : ''} behind ${leaderClub?.shortName || 'the leaders'} — can you close the gap?`,
+          category: 'title_race',
+          intensity: gap <= 2 ? 'high' : 'medium',
+        });
+      }
+    } else if (leader && leader.clubId === ctx.playerClubId && ctx.leagueTable.length > 1) {
+      const chaser = ctx.leagueTable[1];
+      const gap = (myEntry?.points || 0) - chaser.points;
+      if (gap <= CLIFFHANGER_TITLE_RACE_GAP) {
+        const chaserClub = ctx.clubs[chaser.clubId];
+        items.push({
+          icon: 'crown',
+          text: gap <= 2
+            ? `${chaserClub?.shortName || 'Your rivals'} are breathing down your neck — just ${gap} point${gap > 1 ? 's' : ''} behind!`
+            : `Top of the table but ${chaserClub?.shortName || 'rivals'} are only ${gap} points back — stay focused!`,
+          category: 'title_race',
+          intensity: gap <= 2 ? 'high' : 'medium',
+        });
+      }
+    }
+  }
+
+  // Upcoming big match (next week vs high-rep opponent)
+  const nextMatch = ctx.fixtures.find(
+    m => !m.played && m.week === ctx.week + 1 &&
+      (m.homeClubId === ctx.playerClubId || m.awayClubId === ctx.playerClubId)
+  );
+  if (nextMatch) {
+    const isHome = nextMatch.homeClubId === ctx.playerClubId;
+    const oppId = isHome ? nextMatch.awayClubId : nextMatch.homeClubId;
+    const opp = ctx.clubs[oppId];
+    if (opp && opp.reputation - club.reputation >= CLIFFHANGER_BIG_MATCH_REP_GAP) {
+      items.push({
+        icon: 'swords',
+        text: `${opp.shortName} next week — can your side pull off the upset?`,
+        category: 'big_match',
+        intensity: 'high',
+      });
+    } else if (opp) {
+      // Check if opponent is top of table or a direct rival
+      const oppEntry = ctx.leagueTable.find(e => e.clubId === oppId);
+      const oppPos = oppEntry ? ctx.leagueTable.indexOf(oppEntry) + 1 : 99;
+      if (oppPos <= 3 && myPos <= 6) {
+        items.push({
+          icon: 'swords',
+          text: `Title clash — ${opp.shortName} (${oppPos === 1 ? 'league leaders' : `${oppPos}${getSuffix(oppPos)}`}) are next!`,
+          category: 'big_match',
+          intensity: 'high',
+        });
+      }
+    }
+  }
+
+  // Player drama — star player with expiring contract
+  const squad = club.playerIds.map(id => ctx.players[id]).filter(Boolean);
+  const starWithExpiringContract = squad
+    .filter(p => p.contractEnd <= ctx.season && p.overall >= 70)
+    .sort((a, b) => b.overall - a.overall)[0];
+  if (starWithExpiringContract && ctx.week >= 15) {
+    items.push({
+      icon: 'alert-triangle',
+      text: `${starWithExpiringContract.lastName} (${starWithExpiringContract.overall}) is out of contract soon — will he stay?`,
+      category: 'player_drama',
+      intensity: 'high',
+    });
+  }
+
+  // Player wanting to leave
+  const unhappyStars = squad.filter(p => p.wantsToLeave && p.overall >= 65);
+  if (unhappyStars.length > 0) {
+    const star = unhappyStars.sort((a, b) => b.overall - a.overall)[0];
+    items.push({
+      icon: 'user-minus',
+      text: `${star.lastName} wants out — can you convince him to stay?`,
+      category: 'player_drama',
+      intensity: 'medium',
+    });
+  }
+
+  // Transfer deadline approaching
+  if (ctx.transferWindowOpen) {
+    const summerDeadlineWeek = ctx.week <= SUMMER_WINDOW_END ? SUMMER_WINDOW_END : WINTER_WINDOW_END;
+    const weeksLeft = summerDeadlineWeek - ctx.week;
+    if (weeksLeft > 0 && weeksLeft <= CLIFFHANGER_DEADLINE_WEEKS) {
+      items.push({
+        icon: 'clock',
+        text: weeksLeft === 1
+          ? 'Transfer deadline TOMORROW — last chance to deal!'
+          : `Transfer window closes in ${weeksLeft} weeks — make your moves!`,
+        category: 'transfer_deadline',
+        intensity: weeksLeft === 1 ? 'high' : 'medium',
+      });
+    }
+  }
+
+  // Board pressure
+  if (ctx.boardConfidence < CLIFFHANGER_BOARD_PRESSURE_THRESHOLD) {
+    items.push({
+      icon: 'alert-circle',
+      text: ctx.boardConfidence < 20
+        ? 'The board is losing patience — your job is on the line!'
+        : 'The board is watching closely — results must improve.',
+      category: 'board_pressure',
+      intensity: ctx.boardConfidence < 20 ? 'high' : 'medium',
+    });
+  }
+
+  // Youth breakthrough imminent
+  const youngStars = squad
+    .filter(p => p.age <= 21 && (p.potential - p.overall) >= CLIFFHANGER_YOUTH_POTENTIAL_GAP)
+    .sort((a, b) => (b.potential - b.overall) - (a.potential - a.overall));
+  if (youngStars.length > 0) {
+    const prospect = youngStars[0];
+    items.push({
+      icon: 'sparkles',
+      text: `${prospect.lastName} is on the verge of a breakthrough — keep him developing!`,
+      category: 'youth_breakthrough',
+      intensity: 'medium',
+    });
+  }
+
+  // Record chase — player close to season goal record
+  const topScorer = squad.sort((a, b) => b.goals - a.goals)[0];
+  if (topScorer && topScorer.goals >= 18 && ctx.week >= 30) {
+    items.push({
+      icon: 'target',
+      text: `${topScorer.lastName} has ${topScorer.goals} goals — can he hit 20+ this season?`,
+      category: 'record_chase',
+      intensity: topScorer.goals >= 20 ? 'high' : 'medium',
+    });
+  }
+
+  // Sort by intensity (high first) and return max
+  const intensityOrder = { high: 0, medium: 1, low: 2 };
+  items.sort((a, b) => intensityOrder[a.intensity] - intensityOrder[b.intensity]);
+  return items.slice(0, MAX_CLIFFHANGERS);
 }

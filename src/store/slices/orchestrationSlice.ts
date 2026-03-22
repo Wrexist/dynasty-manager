@@ -77,7 +77,8 @@ import { determineZones, generatePlayoffBracket, populatePlayoffFinal, resolvePl
 import { generateStorylines } from '@/utils/storylines';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
-import { getWinStreak } from '@/utils/celebrations';
+import { getWinStreak, detectMatchDrama } from '@/utils/celebrations';
+import { generateCliffhangers } from '@/utils/weekPreview';
 import { generateWeeklyObjectives, evaluateObjectives } from '@/utils/weeklyObjectives';
 import type { ObjectiveContext } from '@/utils/weeklyObjectives';
 import { generateAIManagerProfile } from '@/config/aiManager';
@@ -984,6 +985,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       managerProgression: createDefaultProgression(),
       cup,
       weeklyObjectives: generateWeeklyObjectives(true),
+      objectiveStreak: 0,
+      weekCliffhangers: [],
+      lastMatchDrama: null,
+      sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null,
       pendingStoryline: null,
       activeStorylineChains: [],
@@ -1841,24 +1846,45 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
-    // Evaluate weekly objectives from the previous week, then generate new ones
+    // Evaluate weekly objectives from the previous week with streak tracking
     const objCtx: ObjectiveContext = {
       playerClubId, players: newPlayers, playerIds: playerClub.playerIds,
       fixtures: updatedFixtures, leagueTable, week, season, lineup: playerClub.lineup,
     };
-    const { updated: evalObjectives, xpEarned: objXP } = evaluateObjectives(state.weeklyObjectives, objCtx);
+    const currentStreak = state.objectiveStreak || 0;
+    const { updated: evalObjectives, xpEarned: objXP, allCompleted: objAllCompleted, newStreak } = evaluateObjectives(state.weeklyObjectives, objCtx, currentStreak);
     let updatedProgression = state.managerProgression;
     if (objXP > 0) {
       updatedProgression = grantXP(updatedProgression, objXP);
       const completedCount = evalObjectives.filter(o => o.completed).length;
+      let objMsg = `You earned ${objXP} XP from this week's objectives!`;
+      if (objAllCompleted) objMsg += ' PERFECT WEEK — all objectives complete!';
+      if (newStreak >= 3) objMsg += ` Streak x${newStreak} — bonus multiplier active!`;
       newMessages = addMsg(newMessages, {
         week: newWeek, season, type: 'general',
         title: `Weekly Objectives: ${completedCount}/${evalObjectives.length} Complete`,
-        body: `You earned ${objXP} XP from this week's objectives!`,
+        body: objMsg,
       });
     }
     const nextWeekHasMatch = updatedFixtures.some(m => !m.played && m.week === newWeek && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
     const newObjectives = generateWeeklyObjectives(nextWeekHasMatch);
+
+    // Generate cliffhangers for "one more week" pull
+    const cliffhangers = generateCliffhangers({
+      playerClubId, players: newPlayers, clubs: newClubs,
+      fixtures: updatedFixtures, leagueTable, week: newWeek, season,
+      boardConfidence: state.boardConfidence || 50,
+      transferWindowOpen,
+    });
+
+    // Update session stats
+    const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
+    const sessionStats = {
+      ...prevSession,
+      weeksPlayed: prevSession.weeksPlayed + 1,
+      xpEarned: prevSession.xpEarned + objXP,
+      objectivesCompleted: prevSession.objectivesCompleted + evalObjectives.filter(o => o.completed).length,
+    };
 
     // Compute digest
     const newAvgMorale = (() => {
@@ -1883,6 +1909,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       divisionFixtures: updatedDivisionFixtures, divisionTables,
       careerTimeline: [...state.careerTimeline, ...newTimeline],
       weeklyObjectives: newObjectives,
+      objectiveStreak: newStreak,
+      weekCliffhangers: cliffhangers,
+      sessionStats,
       managerProgression: updatedProgression,
       pendingStoryline: pendingStorylineEvent || null,
       activeStorylineChains: updatedChains,
@@ -2107,9 +2136,20 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
 
+    // Detect match drama for emotional amplification
+    const drama = detectMatchDrama(result, playerClubId, clubs);
+
     // Generate post-match press conference
     const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
     const press = generatePressConference(pressContext);
+
+    // Update session stats for wins/losses
+    const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
+    const sessionStats = {
+      ...prevSession,
+      matchesWon: prevSession.matchesWon + (processed.won ? 1 : 0),
+      matchesLost: prevSession.matchesLost + (processed.lost ? 1 : 0),
+    };
 
     const syncedDivFixtures = { ...state.divisionFixtures, [state.playerDivision]: processed.updatedFixtures };
     set({
@@ -2124,6 +2164,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       managerProgression: processed.managerProgression,
       preMatchLeaguePosition: prePos,
       lastMatchXPGain: processed.xpGain,
+      lastMatchDrama: drama,
+      sessionStats,
     });
     return result;
   },
@@ -2231,6 +2273,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       if (!playerWon) newCup.eliminated = true;
 
       const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
+      const cupDrama = detectMatchDrama(result, playerClubId, clubs);
       const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
       set({
         currentMatchResult: result, players: processed.newPlayers,
@@ -2242,12 +2285,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
         managerProgression: processed.managerProgression,
         lastMatchXPGain: processed.xpGain,
+        lastMatchDrama: cupDrama,
       });
       return result;
     }
 
     // League match — process as normal
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
+    const leagueDrama = detectMatchDrama(result, playerClubId, clubs);
 
     // Generate post-match press conference
     const pressContext2 = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
@@ -2265,6 +2310,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
       managerProgression: processed.managerProgression,
       lastMatchXPGain: processed.xpGain,
+      lastMatchDrama: leagueDrama,
     });
     return result;
   },
@@ -2325,6 +2371,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
 
       const processed = processMatchResult(state, etResult, result, playerRatings, () => get().week, etState.matchInjuries);
+      const etDrama = detectMatchDrama(result, playerClubId, clubs);
       const press = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
 
       set({
@@ -2343,6 +2390,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         managerProgression: processed.managerProgression,
         lastMatchXPGain: processed.xpGain,
         pendingPressConference: generatePressConference(press),
+        lastMatchDrama: etDrama,
       });
       return result;
     }
@@ -2433,6 +2481,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {});
+    const penDrama = detectMatchDrama(result, playerClubId, clubs);
     const press = winnerId === playerClubId ? 'post_win' : 'post_loss';
 
     set({
@@ -2451,6 +2500,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       managerProgression: processed.managerProgression,
       lastMatchXPGain: processed.xpGain,
       pendingPressConference: generatePressConference(press),
+      lastMatchDrama: penDrama,
     });
     return { ...result, penaltyShootout };
   },
@@ -2507,6 +2557,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       careerTimeline: state.careerTimeline,
       managerProgression: state.managerProgression,
       weeklyObjectives: state.weeklyObjectives,
+      objectiveStreak: state.objectiveStreak,
+      weekCliffhangers: state.weekCliffhangers,
+      lastMatchDrama: state.lastMatchDrama,
+      sessionStats: state.sessionStats,
       pendingStoryline: state.pendingStoryline,
       activeStorylineChains: state.activeStorylineChains,
       preMatchLeaguePosition: state.preMatchLeaguePosition,
@@ -2572,6 +2626,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         playoffs: data.playoffs || [],
         lastPromotionRelegation: data.lastPromotionRelegation || null,
         weeklyObjectives: data.weeklyObjectives || [],
+        objectiveStreak: data.objectiveStreak || 0,
+        weekCliffhangers: data.weekCliffhangers || [],
+        lastMatchDrama: data.lastMatchDrama || null,
+        sessionStats: data.sessionStats || { startWeek: data.week || 1, startSeason: data.season || 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
         weeklyDigest: data.weeklyDigest || null,
         pendingStoryline: data.pendingStoryline || null,
         activeStorylineChains: data.activeStorylineChains || [],
@@ -2606,6 +2664,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pendingPressConference: null, activeNegotiation: null,
       pendingFarewell: null, pendingStoryline: null,
       activeStorylineChains: [], weeklyObjectives: [],
+      objectiveStreak: 0, weekCliffhangers: [], lastMatchDrama: null,
+      sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null, careerTimeline: [],
       sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {},
       merchandise: getDefaultMerchState(),
