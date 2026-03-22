@@ -5,8 +5,8 @@ import { SubstitutionSheet } from '@/components/game/SubstitutionSheet';
 import { Button } from '@/components/ui/button';
 import { MatchEvent, Match, Club } from '@/types/game';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
-import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight } from '@/utils/haptics';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT } from '@/config/matchEngine';
 import type { HalfState } from '@/engine/match';
@@ -298,12 +298,15 @@ const MatchDay = () => {
   if (!match || !homeClub || !awayClub) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">
-        <GlassPanel className="p-8 text-center">
-          <p className="text-muted-foreground">No match scheduled this week.</p>
-          <Button className="mt-4" onClick={() => setScreen('dashboard')}>
-            <ArrowLeft className="w-4 h-4 mr-2" /> Back
-          </Button>
-        </GlassPanel>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
+          <GlassPanel className="p-8 text-center">
+            <Calendar className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+            <p className="text-muted-foreground">No match scheduled this week.</p>
+            <Button className="mt-4" onClick={() => setScreen('dashboard')}>
+              <ArrowLeft className="w-4 h-4 mr-2" /> Back
+            </Button>
+          </GlassPanel>
+        </motion.div>
       </div>
     );
   }
@@ -335,8 +338,28 @@ const MatchDay = () => {
             <p className="text-xs font-bold text-foreground">{homeClub.shortName}</p>
           </div>
           <div className="text-center">
-            <p className="text-4xl font-black text-foreground tabular-nums font-display">
-              {phase === 'half_time' ? htHomeGoals : homeGoals} - {phase === 'half_time' ? htAwayGoals : awayGoals}
+            <p className="text-4xl font-black text-foreground tabular-nums font-display flex items-center justify-center gap-1">
+              <AnimatePresence mode="popLayout">
+                <motion.span
+                  key={phase === 'half_time' ? `ht-h-${htHomeGoals}` : `h-${homeGoals}`}
+                  initial={{ scale: 1.4, color: 'hsl(43, 96%, 46%)' }}
+                  animate={{ scale: 1, color: 'hsl(0, 0%, 95%)' }}
+                  transition={{ duration: 0.4, type: 'spring', stiffness: 300 }}
+                >
+                  {phase === 'half_time' ? htHomeGoals : homeGoals}
+                </motion.span>
+              </AnimatePresence>
+              <span>-</span>
+              <AnimatePresence mode="popLayout">
+                <motion.span
+                  key={phase === 'half_time' ? `ht-a-${htAwayGoals}` : `a-${awayGoals}`}
+                  initial={{ scale: 1.4, color: 'hsl(43, 96%, 46%)' }}
+                  animate={{ scale: 1, color: 'hsl(0, 0%, 95%)' }}
+                  transition={{ duration: 0.4, type: 'spring', stiffness: 300 }}
+                >
+                  {phase === 'half_time' ? htAwayGoals : awayGoals}
+                </motion.span>
+              </AnimatePresence>
             </p>
           </div>
           <div className="text-center">
@@ -362,8 +385,14 @@ const MatchDay = () => {
             <span>{homeMomPct}% - {100 - homeMomPct}%</span>
           </div>
           <div className="flex h-1.5 rounded-full overflow-hidden gap-0.5">
-            <div className="rounded-full transition-all duration-700" style={{ width: `${homeMomPct}%`, backgroundColor: homeClub.color }} />
-            <div className="rounded-full transition-all duration-700 flex-1" style={{ backgroundColor: awayClub.color }} />
+            <div
+              className={cn('rounded-full transition-all duration-700', currentMomentum > 70 && 'animate-pulse')}
+              style={{ width: `${homeMomPct}%`, backgroundColor: homeClub.color, ...(currentMomentum > 70 ? { boxShadow: `0 0 12px ${homeClub.color}` } : {}) }}
+            />
+            <div
+              className={cn('rounded-full transition-all duration-700 flex-1', currentMomentum < -70 && 'animate-pulse')}
+              style={{ backgroundColor: awayClub.color, ...(currentMomentum < -70 ? { boxShadow: `0 0 12px ${awayClub.color}` } : {}) }}
+            />
           </div>
         </div>
       )}

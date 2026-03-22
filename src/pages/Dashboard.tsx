@@ -9,7 +9,7 @@ import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
 import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail,
-  Dumbbell, AlertTriangle, Banknote, Users, Shield, Settings, BarChart3, UserPlus, Award, Flame, Zap,
+  Dumbbell, AlertTriangle, Banknote, Users, Shield, Settings, BarChart3, UserPlus, Award, Flame, Zap, Loader2,
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getRoundName } from '@/data/cup';
@@ -35,6 +35,7 @@ import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { InfoTip } from '@/components/game/InfoTip';
 import { WeeklyDigest } from '@/components/game/WeeklyDigest';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
+import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { HELP_TEXTS } from '@/config/ui';
 import { getManagerTips } from '@/utils/managerTips';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
@@ -363,7 +364,7 @@ const Dashboard = () => {
             <Trophy className="w-8 h-8 text-primary mx-auto mb-2" />
             <p className="text-lg font-black text-foreground font-display">Season {season} Complete!</p>
             <p className="text-sm text-muted-foreground mb-3">Final Position: {pos}{getSuffix(pos)}</p>
-            <Button className="w-full gap-2" onClick={endSeason}>
+            <Button className="w-full gap-2" onClick={() => { hapticHeavy(); endSeason(); }}>
               View Season Summary
             </Button>
           </GlassPanel>
@@ -385,6 +386,7 @@ const Dashboard = () => {
 
       {/* Last Match Result */}
       {lastMatchInfo && !seasonOver && (
+        <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }}>
         <GlassPanel className="p-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className={cn(
@@ -398,6 +400,7 @@ const Dashboard = () => {
             </div>
           </div>
         </GlassPanel>
+        </motion.div>
       )}
 
       {/* Next Match */}
@@ -439,12 +442,12 @@ const Dashboard = () => {
       ) : !seasonOver && (
         <GlassPanel className="p-5">
           <p className="text-sm text-muted-foreground text-center">No match this week</p>
-          <Button className="w-full mt-3" disabled={isAdvancing} onClick={() => {
+          <Button className={cn("w-full mt-3 gap-2", isAdvancing && "animate-pulse")} disabled={isAdvancing} onClick={() => {
             hapticLight();
             setIsAdvancing(true);
             setTimeout(() => { advanceWeek(); setIsAdvancing(false); }, 50);
           }}>
-            {isAdvancing ? 'Advancing...' : `Advance to Week ${week + 1}`}
+            {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : `Advance to Week ${week + 1}`}
           </Button>
         </GlassPanel>
       )}
@@ -833,7 +836,7 @@ const Dashboard = () => {
             <InfoTip text={HELP_TEXTS.budget} />
           </div>
           <p className="text-2xl font-black text-foreground tabular-nums">
-            £{(club.budget / 1e6).toFixed(1)}<span className="text-sm">M</span>
+            £<AnimatedNumber value={club.budget / 1e6} formatFn={(n) => n.toFixed(1)} /><span className="text-sm">M</span>
           </p>
           <p className="text-xs text-muted-foreground tabular-nums">
             Wage: £{(club.wageBill / 1e3).toFixed(0)}K/w
@@ -870,12 +873,13 @@ const Dashboard = () => {
             {boardConfidence}%
           </p>
           <div className="w-full h-1.5 rounded-full bg-muted/40 mt-1.5 overflow-hidden">
-            <div
+            <motion.div
               className={cn(
-                "h-full rounded-full transition-all",
+                "h-full rounded-full",
                 boardConfidence > 50 ? "bg-emerald-500" : boardConfidence > 25 ? "bg-amber-500" : "bg-destructive"
               )}
-              style={{ width: `${boardConfidence}%` }}
+              animate={{ width: `${boardConfidence}%` }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
             />
           </div>
           <p className="text-[10px] text-muted-foreground mt-1">
@@ -1012,17 +1016,23 @@ const Dashboard = () => {
       {/* Quick Links - Horizontal scrollable row */}
       <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
         <div className="flex gap-3 w-max pb-1">
-          {quickLinks.map(link => {
+          {quickLinks.map((link, i) => {
             const Icon = link.icon;
             return (
-              <GlassPanel
+              <motion.div
                 key={link.label}
-                className="px-4 py-3 flex flex-col items-center gap-1.5 min-w-[80px]"
-                onClick={() => setScreen(link.screen)}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04, duration: 0.2 }}
               >
-                <Icon className="w-5 h-5 text-primary" />
-                <span className="text-[11px] font-medium text-foreground whitespace-nowrap">{link.label}</span>
-              </GlassPanel>
+                <GlassPanel
+                  className="px-4 py-3 flex flex-col items-center gap-1.5 min-w-[80px]"
+                  onClick={() => setScreen(link.screen)}
+                >
+                  <Icon className="w-5 h-5 text-primary" />
+                  <span className="text-[11px] font-medium text-foreground whitespace-nowrap">{link.label}</span>
+                </GlassPanel>
+              </motion.div>
             );
           })}
         </div>

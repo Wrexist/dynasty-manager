@@ -1,6 +1,7 @@
 import { useGameStore } from '@/store/gameStore';
 import { GameScreen } from '@/types/game';
 import { LayoutDashboard, Users, Target, ArrowLeftRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MoreDrawer } from './MoreDrawer';
 import { hapticLight } from '@/utils/haptics';
@@ -38,6 +39,13 @@ export function BottomNav() {
             >
               <Icon className={cn('w-5 h-5', active && 'drop-shadow-[0_0_6px_hsl(var(--primary))]')} />
               <span className="text-[10px] font-medium">{label}</span>
+              {active && (
+                <motion.div
+                  layoutId="tab-indicator"
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-0.5 rounded-full bg-primary"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
             </button>
           );
         })}
