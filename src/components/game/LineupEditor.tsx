@@ -33,7 +33,7 @@ const COMPAT_RING = {
 };
 
 export function LineupEditor() {
-  const { playerClubId, clubs, players, updateLineup } = useGameStore();
+  const { playerClubId, clubs, players, updateLineup, week } = useGameStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const club = clubs[playerClubId];
@@ -45,14 +45,18 @@ export function LineupEditor() {
     return calculateChemistryLinks(lineupPlayers);
   }, [club, players]);
 
-  const lineup = club?.lineup || [];
-  const subs = club?.subs || [];
-  const allSquad = club?.playerIds || [];
+  const lineup = useMemo(() => club?.lineup || [], [club?.lineup]);
+  const subs = useMemo(() => club?.subs || [], [club?.subs]);
+  const allSquad = useMemo(() => club?.playerIds || [], [club?.playerIds]);
 
   const subAndBench = useMemo(() => {
-    const benchIds = allSquad.filter(id => !lineup.includes(id) && !subs.includes(id) && players[id] && !players[id].injured);
+    const benchIds = allSquad.filter(id =>
+      !lineup.includes(id) && !subs.includes(id) && players[id]
+      && !players[id].injured
+      && !(players[id].suspendedUntilWeek && players[id].suspendedUntilWeek > week)
+    );
     return [...subs, ...benchIds];
-  }, [allSquad, lineup, subs, players]);
+  }, [allSquad, lineup, subs, players, week]);
 
   const handleSwap = useCallback((activeId: string, targetId: string) => {
     const activeInLineupIdx = lineup.indexOf(activeId);
@@ -101,7 +105,10 @@ export function LineupEditor() {
   }, [lineup, subs, subAndBench, updateLineup]);
 
   const handleTap = useCallback((tappedId: string) => {
+    // Ignore taps on empty slots when nothing is selected (can't select an empty slot)
+    const isEmptySlot = tappedId.startsWith('slot-');
     if (!selectedId) {
+      if (isEmptySlot) return; // Can't select an empty slot
       setSelectedId(tappedId);
     } else if (selectedId === tappedId) {
       setSelectedId(null);
@@ -111,9 +118,19 @@ export function LineupEditor() {
     }
   }, [selectedId, handleSwap]);
 
+  const slots = club ? FORMATION_POSITIONS[club.formation] : [];
+
+  // When a lineup player is selected, find the slot they occupy so bench players
+  // can show compatibility relative to that slot position
+  const selectedSlotPos = useMemo(() => {
+    if (!selectedId) return null;
+    const idx = lineup.indexOf(selectedId);
+    if (idx < 0) return null;
+    return slots[idx]?.pos as Position | undefined;
+  }, [selectedId, lineup, slots]);
+
   if (!club) return null;
 
-  const slots = FORMATION_POSITIONS[club.formation];
   const selectedPlayer = selectedId ? players[selectedId] : null;
 
   return (
@@ -194,7 +211,8 @@ export function LineupEditor() {
                 </div>
               ) : (
                 <div className={cn(
-                  'w-10 h-10 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center cursor-pointer',
+                  'w-10 h-10 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center',
+                  selectedId ? 'cursor-pointer' : '',
                   compat ? COMPAT_RING[compat] : ''
                 )}>
                   <span className="text-[8px] text-white/40">{slot.pos}</span>
@@ -213,12 +231,17 @@ export function LineupEditor() {
             const p = players[id];
             if (!p) return null;
             const isSelected = selectedId === id;
+            // Show compatibility ring when a lineup player is selected
+            const benchCompat = selectedSlotPos
+              ? getCompatibility(p.position as Position, selectedSlotPos)
+              : null;
             return (
               <div
                 key={`bench-${id}`}
                 className={cn(
                   'flex flex-col items-center shrink-0 cursor-pointer transition-all rounded-lg p-0.5',
-                  isSelected ? 'ring-2 ring-primary scale-110' : ''
+                  isSelected ? 'ring-2 ring-primary scale-110' : '',
+                  !isSelected && benchCompat ? COMPAT_RING[benchCompat] : ''
                 )}
                 style={{ opacity: p.injured ? 0.4 : 1 }}
                 onClick={() => handleTap(id)}

@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface CelebrationModalProps {
   open: boolean;
@@ -44,6 +45,8 @@ function Particle({ index: _index }: { index: number }) {
 }
 
 export function CelebrationModal({ open, onClose, title, description, icon, stats }: CelebrationModalProps) {
+  useScrollLock(open);
+
   return (
     <AnimatePresence>
       {open && (
@@ -55,7 +58,7 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
           transition={{ duration: 0.2 }}
         >
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
+          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" style={{ touchAction: 'none' }} onClick={onClose} />
 
           {/* Modal */}
           <motion.div
