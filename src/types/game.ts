@@ -57,7 +57,7 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'playoffs' | 'offseason';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers';
 
 export interface PlayerAttributes {
   pace: number;
@@ -771,4 +771,30 @@ export interface ActiveChallenge {
   seasonsRemaining: number;
   completed: boolean;
   failed: boolean;
+}
+
+// ── Merchandise System ──
+
+export type MerchProductLine = 'matchday_essentials' | 'replica_kits' | 'lifestyle_apparel' | 'memorabilia' | 'digital_global';
+
+export type MerchPricingTier = 'budget' | 'standard' | 'premium';
+
+export type MerchCampaignType = 'kit_launch' | 'title_race' | 'cup_run' | 'end_of_season_sale' | 'star_signing' | 'holiday_special';
+
+export interface MerchCampaign {
+  type: MerchCampaignType;
+  weeksRemaining: number;
+  totalWeeks: number;
+  revenueBoost: number; // e.g. 0.8 = +80%
+}
+
+export interface MerchState {
+  activeProductLines: MerchProductLine[];
+  pricingTier: MerchPricingTier;
+  activeCampaign: MerchCampaign | null;
+  campaignCooldownWeeks: number;
+  lastSeasonRevenue: number;
+  currentSeasonRevenue: number;
+  starPlayerDip: number; // weeks remaining of post-sale merch dip
+  starSigningBuzz: number; // weeks remaining of post-signing merch boost
 }

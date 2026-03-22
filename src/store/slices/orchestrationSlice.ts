@@ -19,6 +19,8 @@ import { calculateSeasonAwards } from '@/utils/seasonAwards';
 import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
 import { getFarewellSummary } from '@/utils/playerNarratives';
+import { calculateWeeklyMerchRevenue, getDefaultMerchState } from '@/utils/merchandise';
+import { MERCH_PRICING_TIERS, MERCH_CAMPAIGN_COOLDOWN_WEEKS } from '@/config/merchandise';
 import {
   TOTAL_WEEKS, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY,
   CONFIDENCE_MIN,
@@ -28,7 +30,7 @@ import {
   CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_MIN,
   MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE, STADIUM_INCOME_PER_LEVEL,
   POSITION_PRIZE_PER_RANK, POSITION_PRIZE_MAX_RANK,
-  MERCHANDISE_FAN_MULTIPLIER, SCOUTING_COST_PER_ASSIGNMENT,
+  SCOUTING_COST_PER_ASSIGNMENT,
   FAN_MOOD_BASE, FAN_MOOD_SCALE,
   STADIUM_LEVEL_DIVISOR, MEDICAL_LEVEL_FACTOR, FACILITY_MAX_LEVEL,
   SEASON_END_CONFIDENCE,
@@ -822,6 +824,13 @@ function finalizeSeason(
     sponsorDeals: sponsorSeasonEnd.sponsorDeals || state.sponsorDeals,
     sponsorOffers: [],
     sponsorSlotCooldowns: {},
+    merchandise: {
+      ...state.merchandise,
+      lastSeasonRevenue: state.merchandise.currentSeasonRevenue,
+      currentSeasonRevenue: 0,
+      activeCampaign: null,
+      campaignCooldownWeeks: 0,
+    },
     youthAcademy: { prospects: newYouthProspects, nextIntakePreview: newIntakePreview },
     staff: { ...state.staff, availableHires: newAvailableHires },
     scouting: { ...state.scouting, assignments: [], reports: [] },
@@ -982,6 +991,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sponsorDeals: generateStarterDeals(pcInit.reputation, 1),
       sponsorOffers: [],
       sponsorSlotCooldowns: {},
+      merchandise: getDefaultMerchState(),
       fanMood: 50,
       pendingPressConference: null,
       halfTimeState: null,
@@ -1675,8 +1685,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const positionPrize = Math.max(0, (POSITION_PRIZE_MAX_RANK - playerTablePos)) * POSITION_PRIZE_PER_RANK;
     // Sponsorship: sum of active sponsor deals
     const sponsorIncome = state.sponsorDeals.reduce((sum, d) => sum + d.weeklyPayment, 0);
-    // Merchandise: scales with fan base
-    const merchandiseIncome = Math.round(playerClub.fanBase * MERCHANDISE_FAN_MULTIPLIER);
+    // Merchandise: strategic system with product lines, pricing, campaigns, star players
+    const merchandiseIncome = calculateWeeklyMerchRevenue(
+      state.merchandise, playerClub, state.players, state.playerDivision, state.managerProgression
+    );
     const weeklyIncome = matchdayIncome + commercialIncome + stadiumIncome + positionPrize + sponsorIncome + merchandiseIncome;
     const staffWages = staff.members.reduce((sum, s) => sum + s.wage, 0);
     // Scouting costs: each active assignment costs money per week
@@ -1701,6 +1713,30 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const newFinanceHistory = [...state.financeHistory, {
       week: newWeek, season, income: weeklyIncome, expenses: totalExpenses, transfers: 0, balance: newClubs[playerClubId].budget,
     }];
+
+    // ── Merchandise weekly tick ──
+    const newMerch = { ...state.merchandise };
+    // Track season revenue
+    newMerch.currentSeasonRevenue += merchandiseIncome;
+    // Decrement campaign timer
+    if (newMerch.activeCampaign) {
+      const remaining = newMerch.activeCampaign.weeksRemaining - 1;
+      if (remaining <= 0) {
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Campaign Ended', body: `Your ${newMerch.activeCampaign.type.replace(/_/g, ' ')} campaign has finished.` });
+        newMerch.activeCampaign = null;
+        newMerch.campaignCooldownWeeks = MERCH_CAMPAIGN_COOLDOWN_WEEKS;
+      } else {
+        newMerch.activeCampaign = { ...newMerch.activeCampaign, weeksRemaining: remaining };
+      }
+    }
+    // Decrement cooldown
+    if (newMerch.campaignCooldownWeeks > 0) newMerch.campaignCooldownWeeks -= 1;
+    // Decrement star player dip / signing buzz
+    if (newMerch.starPlayerDip > 0) newMerch.starPlayerDip -= 1;
+    if (newMerch.starSigningBuzz > 0) newMerch.starSigningBuzz -= 1;
+    // Apply pricing fan mood impact
+    const pricingMoodDelta = MERCH_PRICING_TIERS[newMerch.pricingTier].fanMoodImpact;
+    const merchFanMood = Math.max(0, Math.min(100, state.fanMood + pricingMoodDelta));
 
     // Process sponsorship system (offers, satisfaction, new deals)
     const sponsorUpdates = processSponsorWeek({ ...state, week: newWeek, clubs: newClubs, messages: newMessages, currentMatchResult: thisWeekMatch ? state.currentMatchResult : null });
@@ -1853,6 +1889,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       ...(sponsorUpdates.sponsorDeals ? { sponsorDeals: sponsorUpdates.sponsorDeals } : {}),
       ...(sponsorUpdates.sponsorOffers ? { sponsorOffers: sponsorUpdates.sponsorOffers } : {}),
       ...(sponsorUpdates.sponsorSlotCooldowns ? { sponsorSlotCooldowns: sponsorUpdates.sponsorSlotCooldowns } : {}),
+      merchandise: newMerch,
+      fanMood: merchFanMood,
       weeklyDigest: {
         incomeEarned: weeklyIncome,
         expensesPaid: totalExpenses,
@@ -2477,6 +2515,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sponsorDeals: state.sponsorDeals,
       sponsorOffers: state.sponsorOffers,
       sponsorSlotCooldowns: state.sponsorSlotCooldowns,
+      merchandise: state.merchandise,
       halfTimeState: state.halfTimeState,
       matchPhase: state.matchPhase,
       currentCupTieId: state.currentCupTieId,
@@ -2543,6 +2582,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         sponsorDeals: data.sponsorDeals || [],
         sponsorOffers: data.sponsorOffers || [],
         sponsorSlotCooldowns: data.sponsorSlotCooldowns || {},
+        merchandise: data.merchandise || getDefaultMerchState(),
         halfTimeState: null,
         matchPhase: 'none' as const,
         pendingFarewell: data.pendingFarewell || null,
@@ -2568,6 +2608,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       activeStorylineChains: [], weeklyObjectives: [],
       weeklyDigest: null, careerTimeline: [],
       sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {},
+      merchandise: getDefaultMerchState(),
     });
   },
 

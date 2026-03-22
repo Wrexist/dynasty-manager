@@ -10,6 +10,7 @@ import { createLoanSlice } from './slices/loanSlice';
 import { createCupSlice } from './slices/cupSlice';
 import { createFeatureSlice } from './slices/featureSlice';
 import { createSponsorSlice } from './slices/sponsorSlice';
+import { createMerchandiseSlice } from './slices/merchandiseSlice';
 
 export type { GameState } from './storeTypes';
 
@@ -24,4 +25,5 @@ export const useGameStore = create<GameState>((set, get) => ({
   ...createCupSlice(set, get),
   ...createFeatureSlice(set, get),
   ...createSponsorSlice(set, get),
+  ...createMerchandiseSlice(set, get),
 }));

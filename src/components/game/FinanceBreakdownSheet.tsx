@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
-  const { clubs, playerClubId, facilities, staff, scouting, fanMood, leagueTable, managerProgression, sponsorDeals } = useGameStore();
+  const { clubs, playerClubId, facilities, staff, scouting, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, playerDivision } = useGameStore();
   const club = clubs[playerClubId];
   if (!club) return null;
 
@@ -26,6 +26,9 @@ export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
     leagueTable,
     managerProgression,
     sponsorDeals: sponsorDeals || [],
+    merchandise,
+    players,
+    division: playerDivision,
   });
 
   const maxIncome = Math.max(...breakdown.income.map(i => i.amount), 1);

@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 12;
+const CURRENT_VERSION = 13;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -172,6 +172,22 @@ const migrations: Record<number, MigrationFn> = {
       currentCupTieId: data.currentCupTieId || null,
     };
   },
+
+  // v12 → v13: Added merchandise strategy system
+  12: (data) => ({
+    ...data,
+    version: 13,
+    merchandise: data.merchandise || {
+      activeProductLines: ['matchday_essentials'],
+      pricingTier: 'standard',
+      activeCampaign: null,
+      campaignCooldownWeeks: 0,
+      lastSeasonRevenue: 0,
+      currentSeasonRevenue: 0,
+      starPlayerDip: 0,
+      starSigningBuzz: 0,
+    },
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
