@@ -139,12 +139,61 @@ npm run preview      # Preview production build
 npm run test         # Vitest
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
+npm run typecheck    # TypeScript type-check (standalone)
+npm run preflight    # Run lint + test + build (local CI check)
+
+# Git workflow
+npm run ship -- "commit message"   # Preflight + commit + push (one command)
+npm run branch -- feature-name     # Create branch from latest origin/main
 
 # Mobile (Capacitor)
 npm run cap:sync     # Build + sync to native projects
 npm run cap:ios      # Open Xcode project
 npm run cap:android  # Open Android Studio project
 ```
+
+## Git Workflow for Claude Sessions
+
+**When asked to push, commit, or create a PR, follow this exact flow — no exceptions.**
+
+### Step 1: Preflight
+```bash
+npm run preflight
+```
+This runs lint + test + build. Do NOT push if preflight fails — fix errors first.
+
+### Step 2: Commit
+Stage only the files you changed (never `git add -A` blindly — skip `.env`, credentials, large binaries):
+```bash
+git add <specific files>
+git commit -m "Short descriptive message"
+```
+
+### Step 3: Push with retry
+```bash
+git push -u origin <branch-name>
+```
+If push fails due to network errors, retry up to 4 times with exponential backoff (2s, 4s, 8s, 16s).
+
+### Step 4: Provide the PR link
+After a successful push, git prints a PR creation URL. **Always extract and display it to the user like this:**
+
+> Pushed to `<branch-name>`. Create your PR here:
+> **https://github.com/Wrexist/dynasty-manager/pull/new/<branch-name>**
+
+The `gh` CLI is NOT available in this environment (no GitHub API auth). Do NOT attempt `gh pr create` — it will fail. Always give the user the direct PR link instead.
+
+### Branch naming
+- Branches MUST be based on `origin/main` (not `master`, not detached HEAD)
+- If starting fresh: `git fetch origin main && git checkout -b <branch-name> origin/main`
+- This ensures PRs compare cleanly on GitHub (prevents "nothing to compare" errors)
+
+### One-command alternative
+If you want to do everything in one shot:
+```bash
+npm run ship -- "commit message"
+```
+This runs preflight → stages → commits → pushes with retry — all in one command.
 
 ## CI/CD
 - **`ios-testflight.yml`** — Automated iOS TestFlight deployment
@@ -168,6 +217,10 @@ npm run cap:android  # Open Android Studio project
 - NEVER use localStorage directly — go through store persistence helpers
 - NEVER break mobile-first layout — test at 375px
 - NEVER create type files outside `src/types/game.ts` — single source of truth
+- NEVER use `gh pr create` — GitHub API auth is not available. Give the user the PR URL from git push output instead
+- NEVER push without running `npm run preflight` first (or `npm run ship` which includes it)
+- NEVER branch from `master` or detached HEAD — always branch from `origin/main`
 - ALWAYS run `npm run build` before marking done
 - ALWAYS spread nested objects when using Zustand `set()` — no direct mutation
 - ALWAYS `filter(Boolean)` when mapping player IDs to Player objects
+- ALWAYS provide the GitHub PR creation link after pushing a branch
