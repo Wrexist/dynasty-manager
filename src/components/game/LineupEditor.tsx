@@ -6,6 +6,7 @@ import { PITCH_COLORS } from '@/config/ui';
 import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks } from '@/utils/chemistry';
+import { getFormationLines, buildChemistryStrengthMap, getChemistryLineColor, NEUTRAL_LINE_COLOR } from '@/utils/formationLines';
 import { PlayerAvatar } from './PlayerAvatar';
 
 // Half-pitch viewBox constants (bottom half only — your team)
@@ -18,12 +19,6 @@ function getCompatibility(playerPos: Position, slotPos: Position): 'natural' | '
   const compat = POSITION_COMPATIBILITY[slotPos] || [];
   if (compat.includes(playerPos)) return 'compatible';
   return 'wrong';
-}
-
-function getChemistryLineColor(strength: number): string {
-  if (strength >= 3) return '#22c55e';
-  if (strength >= 2) return '#eab308';
-  return '#ef4444';
 }
 
 const COMPAT_RING = {
@@ -44,6 +39,8 @@ export function LineupEditor() {
     const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
     return calculateChemistryLinks(lineupPlayers, club.formation, season);
   }, [club, players, season]);
+
+  const chemStrengthMap = useMemo(() => buildChemistryStrengthMap(chemLinks), [chemLinks]);
 
   const lineup = useMemo(() => club?.lineup || [], [club?.lineup]);
   const subs = useMemo(() => club?.subs || [], [club?.subs]);
@@ -137,6 +134,7 @@ export function LineupEditor() {
   }, [selectedId, handleSwap]);
 
   const slots = club ? FORMATION_POSITIONS[club.formation] : [];
+  const formationLines = useMemo(() => getFormationLines(slots), [slots]);
 
   // When a lineup player is selected, find the slot they occupy so bench players
   // can show compatibility relative to that slot position
@@ -167,24 +165,38 @@ export function LineupEditor() {
           <rect x="29" y="103" width="10" height="2" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
           <path d="M 26.85 86.5 A 9.15 9.15 0 0 1 41.15 86.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
 
-          {/* Chemistry Lines */}
-          {chemLinks.map((link, idx) => {
-            const idxA = lineup.indexOf(link.playerIdA);
-            const idxB = lineup.indexOf(link.playerIdB);
-            if (idxA < 0 || idxB < 0) return null;
-            const slotA = slots[idxA];
-            const slotB = slots[idxB];
+          {/* Formation lines colored by chemistry */}
+          {formationLines.map(([a, b], idx) => {
+            const slotA = slots[a];
+            const slotB = slots[b];
             const x1 = 2 + (slotA.x / 100) * 64;
             const y1 = 95 - (slotA.y / 100) * 39;
             const x2 = 2 + (slotB.x / 100) * 64;
             const y2 = 95 - (slotB.y / 100) * 39;
+
+            let color = NEUTRAL_LINE_COLOR;
+            let width = 0.35;
+            let lineOpacity = 1;
+
+            const idA = lineup[a];
+            const idB = lineup[b];
+            if (idA && idB) {
+              const key = idA < idB ? `${idA}-${idB}` : `${idB}-${idA}`;
+              const strength = chemStrengthMap.get(key);
+              if (strength !== undefined) {
+                color = getChemistryLineColor(strength);
+                width = 0.45;
+                lineOpacity = 0.6;
+              }
+            }
+
             return (
               <line
-                key={`chem-${idx}`}
+                key={`fl-${idx}`}
                 x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={getChemistryLineColor(link.strength)}
-                strokeWidth="0.45"
-                opacity="0.5"
+                stroke={color}
+                strokeWidth={width}
+                opacity={lineOpacity}
                 strokeLinecap="round"
               />
             );
