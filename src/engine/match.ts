@@ -238,8 +238,8 @@ function computeStrengths(
   const homeMatchup = getTacticalMatchupBonus(homeTactics, awayTactics);
   const awayMatchup = getTacticalMatchupBonus(awayTactics, homeTactics);
   // Chemistry bonus (0-8%) based on squad composition
-  const homeChemistry = getChemistryBonus(homePlayers);
-  const awayChemistry = getChemistryBonus(awayPlayers);
+  const homeChemistry = getChemistryBonus(homePlayers, homeClub.formation);
+  const awayChemistry = getChemistryBonus(awayPlayers, awayClub.formation);
   // Formation-specific attack/defense profiles (e.g. 3-4-3 = +10% attack, -8% defense)
   // Use defensiveFormation for defense bonus when set, otherwise fall back to main formation
   const homeFormAtk = FORMATION_ATTACK_BONUS[homeClub.formation] || 0;

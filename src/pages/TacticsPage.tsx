@@ -33,9 +33,9 @@ const TacticsPage = () => {
   if (!club) return null;
 
   const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
-  const chemBonus = getChemistryBonus(lineupPlayers);
+  const chemBonus = getChemistryBonus(lineupPlayers, club.formation);
   const chemLabel = getChemistryLabel(chemBonus);
-  const chemLinks = calculateChemistryLinks(lineupPlayers);
+  const chemLinks = calculateChemistryLinks(lineupPlayers, club.formation);
 
   const isPresetActive = (preset: StylePreset): boolean => {
     return (

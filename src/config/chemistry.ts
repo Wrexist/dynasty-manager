@@ -16,10 +16,25 @@ export const PARTNERSHIP_STRENGTH_DIVISOR = 20;
 export const PARTNERSHIP_MAX_STRENGTH = 3;
 
 // ── Adjacent Position Pairs ──
+// Defines which positions are close enough on the pitch to form chemistry links.
+// Used by all link types (nationality, mentor, partnership).
 export const ADJACENT_PAIRS: [string, string][] = [
-  ['CB', 'CB'], ['LB', 'LM'], ['RB', 'RM'], ['CM', 'CM'],
-  ['CM', 'CAM'], ['CDM', 'CM'], ['LW', 'ST'], ['RW', 'ST'],
-  ['CAM', 'ST'], ['LM', 'LW'], ['RM', 'RW'],
+  // Goalkeeper to centre-backs
+  ['GK', 'CB'],
+  // Defensive line
+  ['CB', 'CB'], ['CB', 'LB'], ['CB', 'RB'], ['CB', 'CDM'],
+  // Fullbacks to wide midfielders/wingers
+  ['LB', 'LM'], ['LB', 'LW'], ['RB', 'RM'], ['RB', 'RW'],
+  // Defensive midfield
+  ['CDM', 'CDM'], ['CDM', 'CM'],
+  // Central midfield
+  ['CM', 'CM'], ['CM', 'CAM'], ['CM', 'LM'], ['CM', 'RM'],
+  // Wide midfield to wingers
+  ['LM', 'LW'], ['RM', 'RW'],
+  // Attacking connections
+  ['CAM', 'ST'], ['CAM', 'LW'], ['CAM', 'RW'],
+  // Forward line
+  ['ST', 'ST'], ['LW', 'ST'], ['RW', 'ST'],
 ];
 
 // ── Chemistry Bonus ──

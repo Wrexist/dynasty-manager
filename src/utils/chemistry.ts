@@ -1,4 +1,5 @@
-import type { Player, ChemistryLink } from '@/types/game';
+import type { Player, ChemistryLink, FormationType } from '@/types/game';
+import { FORMATION_POSITIONS } from '@/types/game';
 import {
   MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE, MENTOR_QUALITY_OVERALL_BASE, MENTOR_QUALITY_DIVISOR, MENTOR_MAX_STRENGTH,
   PARTNERSHIP_FORM_THRESHOLD, PARTNERSHIP_STRENGTH_DIVISOR, PARTNERSHIP_MAX_STRENGTH,
@@ -8,28 +9,40 @@ import {
   MENTOR_GROWTH_BONUS_PER_STRENGTH, MENTOR_GROWTH_MAX_AGE,
 } from '@/config/chemistry';
 
+/** Check whether two positions are adjacent per ADJACENT_PAIRS config. */
+function areAdjacent(posA: string, posB: string): boolean {
+  return ADJACENT_PAIRS.some(([p1, p2]) =>
+    (posA === p1 && posB === p2) || (posA === p2 && posB === p1)
+  );
+}
+
 /**
  * Calculate chemistry links between players in a lineup.
  * Chemistry affects match performance through a team-wide bonus.
  *
+ * When `formation` is provided, adjacency is checked using the formation slot
+ * position (what the player is deployed as), not the player's natural position.
+ * This correctly handles out-of-position players.
+ *
  * Link types:
  * - nationality: Players sharing nationality build stronger understanding
- * - mentor: Experienced player (28+) paired with young talent (<22) at same position group
+ * - mentor: Experienced player (28+) paired with young talent (<=22) at adjacent position
  * - partnership: Two players who play adjacent positions and have high combined form
  */
-export function calculateChemistryLinks(players: Player[]): ChemistryLink[] {
+export function calculateChemistryLinks(players: Player[], formation?: FormationType): ChemistryLink[] {
   const links: ChemistryLink[] = [];
-
-  const posGroups: Record<string, string[]> = {
-    defense: ['GK', 'CB', 'LB', 'RB'],
-    midfield: ['CDM', 'CM', 'CAM', 'LM', 'RM'],
-    attack: ['LW', 'RW', 'ST'],
-  };
+  const slots = formation ? FORMATION_POSITIONS[formation] : null;
 
   for (let i = 0; i < players.length; i++) {
     for (let j = i + 1; j < players.length; j++) {
       const a = players[i];
       const b = players[j];
+
+      // Use formation slot position when available, otherwise player's natural position
+      const posA = slots && slots[i] ? slots[i].pos : a.position;
+      const posB = slots && slots[j] ? slots[j].pos : b.position;
+
+      if (!areAdjacent(posA, posB)) continue;
 
       // Nationality bond
       if (a.nationality === b.nationality) {
@@ -37,24 +50,16 @@ export function calculateChemistryLinks(players: Player[]): ChemistryLink[] {
         links.push({ playerIdA: a.id, playerIdB: b.id, type: 'nationality', strength });
       }
 
-      // Mentor bond: experienced player mentoring a young one at similar position
-      const aGroup = Object.entries(posGroups).find(([, positions]) => positions.includes(a.position))?.[0];
-      const bGroup = Object.entries(posGroups).find(([, positions]) => positions.includes(b.position))?.[0];
-
-      if (aGroup === bGroup) {
-        const senior = a.age >= MENTOR_SENIOR_AGE && b.age < MENTOR_JUNIOR_AGE ? a : b.age >= MENTOR_SENIOR_AGE && a.age < MENTOR_JUNIOR_AGE ? b : null;
-        const junior = senior === a ? b : a;
-        if (senior && junior) {
-          const mentorQuality = Math.min(MENTOR_MAX_STRENGTH, Math.floor((senior.overall - MENTOR_QUALITY_OVERALL_BASE) / MENTOR_QUALITY_DIVISOR) + 1);
-          links.push({ playerIdA: senior.id, playerIdB: junior.id, type: 'mentor', strength: Math.max(1, mentorQuality) });
-        }
+      // Mentor bond: experienced player mentoring a young one at adjacent position
+      const senior = a.age >= MENTOR_SENIOR_AGE && b.age <= MENTOR_JUNIOR_AGE ? a : b.age >= MENTOR_SENIOR_AGE && a.age <= MENTOR_JUNIOR_AGE ? b : null;
+      const junior = senior === a ? b : a;
+      if (senior && junior) {
+        const mentorQuality = Math.min(MENTOR_MAX_STRENGTH, Math.floor((senior.overall - MENTOR_QUALITY_OVERALL_BASE) / MENTOR_QUALITY_DIVISOR) + 1);
+        links.push({ playerIdA: senior.id, playerIdB: junior.id, type: 'mentor', strength: Math.max(1, mentorQuality) });
       }
 
       // Partnership bond: adjacent position players with high combined form
-      const isAdjacent = ADJACENT_PAIRS.some(([p1, p2]) =>
-        (a.position === p1 && b.position === p2) || (a.position === p2 && b.position === p1)
-      );
-      if (isAdjacent && (a.form + b.form) > PARTNERSHIP_FORM_THRESHOLD) {
+      if ((a.form + b.form) > PARTNERSHIP_FORM_THRESHOLD) {
         links.push({ playerIdA: a.id, playerIdB: b.id, type: 'partnership', strength: Math.min(PARTNERSHIP_MAX_STRENGTH, Math.floor((a.form + b.form - PARTNERSHIP_FORM_THRESHOLD) / PARTNERSHIP_STRENGTH_DIVISOR) + 1) });
       }
     }
@@ -67,8 +72,8 @@ export function calculateChemistryLinks(players: Player[]): ChemistryLink[] {
  * Calculate a team-wide chemistry bonus for match simulation.
  * Returns a modifier between 0.00 and 0.08 (0-8% bonus).
  */
-export function getChemistryBonus(lineupPlayers: Player[]): number {
-  const links = calculateChemistryLinks(lineupPlayers);
+export function getChemistryBonus(lineupPlayers: Player[], formation?: FormationType): number {
+  const links = calculateChemistryLinks(lineupPlayers, formation);
   if (links.length === 0) return 0;
 
   // Sum all link strengths, cap at reasonable max
@@ -91,15 +96,40 @@ export function getChemistryLabel(bonus: number): { label: string; color: string
 }
 
 /**
+ * Find mentor links for a specific player among their teammates.
+ * Optimized: only checks mentor criteria, skips nationality/partnership.
+ * Used by advanceWeek() where full chemistry calculation is wasteful.
+ */
+export function findMentorLinksForPlayer(player: Player, teammates: Player[]): ChemistryLink[] {
+  const links: ChemistryLink[] = [];
+
+  for (const mate of teammates) {
+    if (!areAdjacent(player.position, mate.position)) continue;
+
+    const senior = player.age >= MENTOR_SENIOR_AGE && mate.age <= MENTOR_JUNIOR_AGE ? player
+      : mate.age >= MENTOR_SENIOR_AGE && player.age <= MENTOR_JUNIOR_AGE ? mate
+      : null;
+    const junior = senior === player ? mate : player;
+
+    if (senior && junior) {
+      const mentorQuality = Math.min(MENTOR_MAX_STRENGTH, Math.floor((senior.overall - MENTOR_QUALITY_OVERALL_BASE) / MENTOR_QUALITY_DIVISOR) + 1);
+      links.push({ playerIdA: senior.id, playerIdB: junior.id, type: 'mentor', strength: Math.max(1, mentorQuality) });
+    }
+  }
+
+  return links;
+}
+
+/**
  * Get the effect of a mentor link on youth development.
  * Returns an extra growth chance modifier (0.00-0.03).
  */
 export function getMentorBonus(player: Player, allPlayers: Player[]): number {
-  if (player.age >= MENTOR_GROWTH_MAX_AGE) return 0;
+  if (player.age > MENTOR_GROWTH_MAX_AGE) return 0;
 
   const teammates = allPlayers.filter(p => p.clubId === player.clubId && p.id !== player.id);
-  const mentorLinks = calculateChemistryLinks([player, ...teammates])
-    .filter(l => l.type === 'mentor' && (l.playerIdA === player.id || l.playerIdB === player.id));
+  const mentorLinks = findMentorLinksForPlayer(player, teammates)
+    .filter(l => l.playerIdA === player.id || l.playerIdB === player.id);
 
   if (mentorLinks.length === 0) return 0;
 

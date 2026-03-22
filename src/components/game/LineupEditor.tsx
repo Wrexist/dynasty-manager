@@ -66,7 +66,7 @@ export function LineupEditor() {
   const chemLinks = useMemo(() => {
     if (!club) return [];
     const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
-    return calculateChemistryLinks(lineupPlayers);
+    return calculateChemistryLinks(lineupPlayers, club.formation);
   }, [club, players]);
 
   if (!club) return null;
