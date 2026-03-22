@@ -4,7 +4,7 @@ import { Calendar, Trophy, Save, ArrowLeft, Star } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 
 const DETAIL_SCREENS: GameScreen[] = [
-  'player-detail', 'match-review', 'board', 'finance', 'facilities',
+  'player-detail', 'match-review', 'board', 'finance', 'merchandise', 'facilities',
   'settings', 'season-summary', 'calendar', 'match-prep', 'match',
   'league-table', 'comparison', 'manager-profile', 'cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club',
 ];
@@ -16,6 +16,7 @@ const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
   'match': 'dashboard',
   'board': 'dashboard',
   'finance': 'dashboard',
+  'merchandise': 'finance',
   'facilities': 'dashboard',
   'settings': 'dashboard',
   'season-summary': 'dashboard',

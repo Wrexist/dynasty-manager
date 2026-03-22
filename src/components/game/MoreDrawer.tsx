@@ -5,7 +5,7 @@ import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
   Mail, Trophy, Target, DollarSign, Building2, Calendar, Home,
-  Settings, MoreHorizontal, ChevronRight, GitCompare, User, Star, Award
+  Settings, MoreHorizontal, ChevronRight, GitCompare, User, Star, Award, ShoppingBag
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
 
@@ -37,6 +37,7 @@ const drawerSections: DrawerSection[] = [
       { screen: 'club', label: 'Club', icon: Home, description: 'Club overview & squad info' },
       { screen: 'board', label: 'Board', icon: Target, description: 'Your objectives & job security' },
       { screen: 'finance', label: 'Finance', icon: DollarSign, description: 'Budget, wages & revenue' },
+      { screen: 'merchandise', label: 'Merchandise', icon: ShoppingBag, description: 'Products, pricing & campaigns' },
       { screen: 'facilities', label: 'Facilities', icon: Building2, description: 'Stadium & training upgrades' },
     ],
   },

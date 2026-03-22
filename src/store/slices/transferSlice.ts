@@ -10,6 +10,8 @@ import {
 } from '@/config/transfers';
 import { MIN_SQUAD_SIZE } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
+import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
+import { getStarPlayerMerch } from '@/utils/merchandise';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -132,11 +134,17 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       : state.careerTimeline;
     updatedClubs[oldClub.id] = oldClub;
     updatedClubs[newClub.id] = newClub;
+    // Trigger star signing buzz for big signings
+    const merchUpdate: Partial<GameState> = {};
+    if (player.value >= CAMPAIGN_STAR_SIGNING_MIN_VALUE) {
+      merchUpdate.merchandise = { ...state.merchandise, starSigningBuzz: STAR_SIGNING_BUZZ_WEEKS };
+    }
     set({
       players: { ...state.players, [playerId]: player },
       clubs: updatedClubs,
       transferMarket, messages: newMessages, managerStats: ms,
       careerTimeline: newTimeline,
+      ...merchUpdate,
     });
     return { success: true, message: `${player.firstName} ${player.lastName} signed!${sellOnNote}` };
   },
@@ -243,11 +251,19 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       ? { playerId: offer.playerId, playerName: `${player.firstName} ${player.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats }
       : null;
 
+    // Check if the sold player was a top marketable player — trigger merch dip
+    const starPlayers = getStarPlayerMerch(sellerClub, state.players);
+    const wasStar = starPlayers.some(sp => sp.playerId === offer.playerId);
+    const merchDipUpdate: Partial<GameState> = {};
+    if (wasStar) {
+      merchDipUpdate.merchandise = { ...state.merchandise, starPlayerDip: STAR_PLAYER_SALE_DIP_WEEKS };
+    }
     set({
       players: newPlayers,
       clubs: updatedClubs,
       transferMarket: newMarket, incomingOffers: newOffers.filter(o => o.playerId !== offer.playerId), incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== offer.playerId), messages: msg, managerStats: ms,
       ...(pendingFarewell ? { pendingFarewell } : {}),
+      ...merchDipUpdate,
     });
     return { success: true, message: `${player.firstName} ${player.lastName} sold for £${(offer.fee / 1e6).toFixed(1)}M!${sellOnNote}` };
   },

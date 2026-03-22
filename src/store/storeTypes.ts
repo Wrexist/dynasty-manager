@@ -1,4 +1,4 @@
-import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, CupState, PressConference, ContractOffer, ActiveChallenge, DivisionId, PlayoffState, PromotionRelegation, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId } from '@/types/game';
+import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, CupState, PressConference, ContractOffer, ActiveChallenge, DivisionId, PlayoffState, PromotionRelegation, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -87,6 +87,9 @@ export interface GameState {
   sponsorDeals: SponsorDeal[];
   sponsorOffers: SponsorOffer[];
   sponsorSlotCooldowns: Partial<Record<SponsorSlotId, number>>;
+
+  // Merchandise
+  merchandise: MerchState;
 
   // Weekly Digest (post-advanceWeek summary)
   weeklyDigest: {
@@ -181,6 +184,12 @@ export interface GameState {
   acceptSponsorOffer: (offerId: string) => void;
   rejectSponsorOffer: (offerId: string) => void;
   terminateSponsorDeal: (dealId: string) => void;
+
+  // Actions — Merchandise
+  toggleProductLine: (line: MerchProductLine) => { success: boolean; message: string };
+  setMerchPricing: (tier: MerchPricingTier) => void;
+  launchCampaign: (type: MerchCampaignType) => { success: boolean; message: string };
+  cancelCampaign: () => void;
 
   // Actions — Manager Progression
   unlockPerk: (perkId: PerkId) => { success: boolean; message: string };

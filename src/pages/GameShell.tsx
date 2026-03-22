@@ -40,6 +40,7 @@ const PerksPage = lazy(() => import('./PerksPage'));
 const TrophyCabinet = lazy(() => import('./TrophyCabinet'));
 const PrestigePage = lazy(() => import('./PrestigePage'));
 const HallOfManagers = lazy(() => import('./HallOfManagers'));
+const MerchandisePage = lazy(() => import('./MerchandisePage'));
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -59,6 +60,7 @@ const screens: Record<string, React.ComponentType> = {
   'youth-academy': YouthAcademy,
   facilities: FacilitiesPage,
   finance: FinancePage,
+  merchandise: MerchandisePage,
   'match-prep': MatchPrep,
   'match-review': MatchReview,
   board: BoardPage,

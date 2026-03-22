@@ -9,16 +9,15 @@ import {
   STADIUM_INCOME_PER_LEVEL,
   POSITION_PRIZE_PER_RANK,
   POSITION_PRIZE_MAX_RANK,
-  MERCHANDISE_FAN_MULTIPLIER,
   SCOUTING_COST_PER_ASSIGNMENT,
   FAN_MOOD_BASE,
   FAN_MOOD_SCALE,
 } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
 import { SPONSOR_SLOTS } from '@/config/sponsorship';
+import { calculateWeeklyMerchRevenue, getMerchOperatingCost } from '@/utils/merchandise';
 
-import type { Club, LeagueTableEntry, FacilitiesState, ManagerProgression, SponsorDeal } from '@/types/game';
-import type { StaffMember } from '@/types/game';
+import type { Club, LeagueTableEntry, FacilitiesState, ManagerProgression, SponsorDeal, MerchState, DivisionId, Player, StaffMember } from '@/types/game';
 
 export interface FinanceLineItem {
   label: string;
@@ -53,8 +52,11 @@ export function getFinanceBreakdown(opts: {
   leagueTable: LeagueTableEntry[];
   managerProgression: ManagerProgression;
   sponsorDeals?: SponsorDeal[];
+  merchandise?: MerchState;
+  players?: Record<string, Player>;
+  division?: DivisionId;
 }): FinanceBreakdown {
-  const { club, facilities, staffMembers, scoutingAssignmentCount, fanMood, leagueTable, managerProgression, sponsorDeals } = opts;
+  const { club, facilities, staffMembers, scoutingAssignmentCount, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, division } = opts;
 
   const fanFavMult = hasPerk(managerProgression, 'fan_favourite') ? 1.15 : 1;
   const fanMoodMult = FAN_MOOD_BASE + (fanMood / 100) * FAN_MOOD_SCALE;
@@ -70,7 +72,12 @@ export function getFinanceBreakdown(opts: {
   const sponsorIncome = sponsorDeals ? sponsorDeals.reduce((sum, d) => sum + d.weeklyPayment, 0) : 0;
   const filledSlots = sponsorDeals ? sponsorDeals.length : 0;
   const totalSlots = SPONSOR_SLOTS.length;
-  const merchandiseIncome = Math.round(club.fanBase * MERCHANDISE_FAN_MULTIPLIER);
+
+  // Merchandise: use strategic system if available, otherwise fallback
+  const merchandiseIncome = merchandise && players && division
+    ? calculateWeeklyMerchRevenue(merchandise, club, players, division, managerProgression)
+    : 0;
+  const merchOperatingCost = merchandise ? getMerchOperatingCost(merchandise.activeProductLines) : 0;
 
   const income: FinanceLineItem[] = [
     { label: 'Matchday', amount: matchdayIncome },
@@ -88,6 +95,7 @@ export function getFinanceBreakdown(opts: {
     { label: 'Player Wages', amount: club.wageBill },
     { label: 'Staff Wages', amount: staffWages },
     { label: 'Scouting', amount: scoutingCosts },
+    ...(merchOperatingCost > 0 ? [{ label: 'Merch Operations', amount: merchOperatingCost }] : []),
   ];
 
   const totalIncome = income.reduce((s, i) => s + i.amount, 0);
