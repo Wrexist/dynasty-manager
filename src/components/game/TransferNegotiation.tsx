@@ -143,12 +143,13 @@ export function TransferNegotiation({ listing, onClose }: Props) {
 
         {/* Modal */}
         <motion.div
-          className="relative w-full max-w-sm mx-4 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
+          className="relative w-full max-w-sm mx-4 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden"
           initial={{ scale: 0.85, opacity: 0, y: 40 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
         >
+          <div className="max-h-[85vh] overflow-y-auto overscroll-contain">
           {/* ── NEGOTIATE PHASE ── */}
           <AnimatePresence mode="wait">
             {phase === 'negotiate' && (
@@ -668,6 +669,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
               </motion.div>
             )}
           </AnimatePresence>
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
