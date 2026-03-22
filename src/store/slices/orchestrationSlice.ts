@@ -2077,7 +2077,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playCurrentMatch: () => {
     const state = get();
-    const { week, fixtures, clubs, players, playerClubId, tactics, training } = state;
+    const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
     const match = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
     if (!match) return null;
 
@@ -2130,7 +2130,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playFirstHalf: () => {
     const state = get();
-    const { week, fixtures, clubs, players, playerClubId, tactics, training } = state;
+    const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
     const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
 
     // Check for cup tie if no league match
@@ -2169,7 +2169,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playSecondHalf: () => {
     const state = get();
-    const { week, fixtures, clubs, players, playerClubId, tactics, training, halfTimeState } = state;
+    const { week, fixtures, clubs, players, playerClubId, tactics, training, halfTimeState, season } = state;
     if (!halfTimeState) return null;
 
     // Find league match or cup match
@@ -2271,7 +2271,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playExtraTime: () => {
     const state = get();
-    const { clubs, players, playerClubId, tactics, training, currentMatchResult, halfTimeState, currentCupTieId } = state;
+    const { clubs, players, playerClubId, tactics, training, currentMatchResult, halfTimeState, currentCupTieId, season } = state;
     if (!currentMatchResult || !halfTimeState || !currentCupTieId) return null;
 
     const hc = clubs[currentMatchResult.homeClubId];
