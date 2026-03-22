@@ -18,7 +18,7 @@ export const createClubSlice = (set: Set, get: Get) => ({
     const state = get();
     const club = { ...state.clubs[state.playerClubId] };
     const squad = club.playerIds.map(id => state.players[id]).filter(Boolean);
-    const { lineup, subs } = selectBestLineup(squad, formation, state.currentWeek);
+    const { lineup, subs } = selectBestLineup(squad, formation, state.week);
     club.formation = formation;
     club.lineup = lineup.map(p => p.id);
     club.subs = subs.map(p => p.id);
@@ -44,14 +44,14 @@ export const createClubSlice = (set: Set, get: Get) => ({
     const state = get();
     const club = { ...state.clubs[state.playerClubId] };
     const squad = club.playerIds.map(id => state.players[id]).filter(Boolean);
-    const result = autoFillBestTeam(squad, club.formation, state.currentWeek);
+    const result = autoFillBestTeam(squad, club.formation, state.week, state.season);
     club.lineup = result.lineup.map(p => p.id);
     club.subs = result.subs.map(p => p.id);
     set({ clubs: { ...state.clubs, [club.id]: club } });
 
     if (result.lineup.length < 11) {
       const injuredCount = squad.filter(p => p.injured).length;
-      const suspendedCount = squad.filter(p => p.suspendedUntilWeek && state.currentWeek !== undefined && p.suspendedUntilWeek > state.currentWeek).length;
+      const suspendedCount = squad.filter(p => p.suspendedUntilWeek && state.week !== undefined && p.suspendedUntilWeek > state.week).length;
       const onLoanCount = squad.filter(p => p.onLoan).length;
       toast.warning(`Only ${result.lineup.length}/11 spots filled (${injuredCount} injured, ${suspendedCount} suspended, ${onLoanCount} on loan)`);
     } else {
@@ -60,4 +60,16 @@ export const createClubSlice = (set: Set, get: Get) => ({
   },
 
   setTrainingFocus: (f: GameState['trainingFocus']) => set({ trainingFocus: f }),
+
+  setSetPieceTaker: (playerId: string | undefined) => {
+    const state = get();
+    const club = { ...state.clubs[state.playerClubId], setPieceTakerId: playerId };
+    set({ clubs: { ...state.clubs, [club.id]: club } });
+  },
+
+  setPenaltyTaker: (playerId: string | undefined) => {
+    const state = get();
+    const club = { ...state.clubs[state.playerClubId], penaltyTakerId: playerId };
+    set({ clubs: { ...state.clubs, [club.id]: club } });
+  },
 });

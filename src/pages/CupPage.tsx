@@ -4,6 +4,8 @@ import { getRoundName, getCupWeek, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cu
 import { cn } from '@/lib/utils';
 import { Trophy, Shield, ChevronRight, ChevronDown, Calendar } from 'lucide-react';
 import type { CupRound, CupTie } from '@/types/game';
+import { PAGE_HINTS } from '@/config/ui';
+import { PageHint } from '@/components/game/PageHint';
 
 function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: string; clubs: Record<string, { name: string; shortName: string; color: string }> }) {
   const home = clubs[tie.homeClubId];
@@ -165,6 +167,7 @@ const CupPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      <PageHint screen="cup" title={PAGE_HINTS.cup.title} body={PAGE_HINTS.cup.body} />
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">

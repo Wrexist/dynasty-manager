@@ -174,6 +174,34 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
     title: 'Match Day Guide',
     body: 'Watch the match unfold minute-by-minute. At half-time you can make substitutions, change mentality, and give a team talk.',
   },
+  comparison: {
+    title: 'Player Comparison',
+    body: 'Compare two players side-by-side using radar charts and stats. Great for deciding between transfer targets or lineup picks.',
+  },
+  cup: {
+    title: 'Cup Competition',
+    body: 'Track your cup progress through each round. Win to advance — lose and you\'re out. Cup matches can bring surprise results.',
+  },
+  scouting: {
+    title: 'Scouting Guide',
+    body: 'Assign scouts to regions to discover hidden talent. Better scouts find higher-potential players. Check the watch list for discoveries.',
+  },
+  staff: {
+    title: 'Staff Guide',
+    body: 'Hire coaching staff to boost training quality and match preparation. Each role provides specific bonuses to your squad.',
+  },
+  youthAcademy: {
+    title: 'Youth Academy',
+    body: 'Your academy produces young prospects each season. Promote the best to your first team and release the rest. Upgrade facilities for better prospects.',
+  },
+  perks: {
+    title: 'Manager Perks',
+    body: 'Earn XP from matches and achievements to unlock perks. Each perk provides a permanent bonus — choose wisely to match your playstyle.',
+  },
+  prestige: {
+    title: 'Prestige Mode',
+    body: 'Reset your career with permanent bonuses carried over. The more you achieve before prestiging, the stronger your bonuses for the next run.',
+  },
 } as const;
 
 // ── Team Talk Options (match day half-time) ──

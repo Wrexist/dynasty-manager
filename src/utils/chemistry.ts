@@ -4,6 +4,7 @@ import {
   MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE, MENTOR_QUALITY_OVERALL_BASE, MENTOR_QUALITY_DIVISOR, MENTOR_MAX_STRENGTH,
   PARTNERSHIP_FORM_THRESHOLD, PARTNERSHIP_STRENGTH_DIVISOR, PARTNERSHIP_MAX_STRENGTH,
   ADJACENT_PAIRS,
+  LOYALTY_SEASONS_THRESHOLD, LOYALTY_MAX_STRENGTH,
   CHEMISTRY_BONUS_PER_STRENGTH, CHEMISTRY_BONUS_MAX,
   CHEMISTRY_EXCELLENT_THRESHOLD, CHEMISTRY_GOOD_THRESHOLD, CHEMISTRY_AVERAGE_THRESHOLD,
   MENTOR_GROWTH_BONUS_PER_STRENGTH, MENTOR_GROWTH_MAX_AGE,
@@ -29,7 +30,7 @@ function areAdjacent(posA: string, posB: string): boolean {
  * - mentor: Experienced player (28+) paired with young talent (<=22) at adjacent position
  * - partnership: Two players who play adjacent positions and have high combined form
  */
-export function calculateChemistryLinks(players: Player[], formation?: FormationType): ChemistryLink[] {
+export function calculateChemistryLinks(players: Player[], formation?: FormationType, currentSeason?: number): ChemistryLink[] {
   const links: ChemistryLink[] = [];
   const slots = formation ? FORMATION_POSITIONS[formation] : null;
 
@@ -62,6 +63,16 @@ export function calculateChemistryLinks(players: Player[], formation?: Formation
       if ((a.form + b.form) > PARTNERSHIP_FORM_THRESHOLD) {
         links.push({ playerIdA: a.id, playerIdB: b.id, type: 'partnership', strength: Math.min(PARTNERSHIP_MAX_STRENGTH, Math.floor((a.form + b.form - PARTNERSHIP_FORM_THRESHOLD) / PARTNERSHIP_STRENGTH_DIVISOR) + 1) });
       }
+
+      // Loyalty bond: two players at the same club for 2+ seasons
+      if (currentSeason !== undefined && a.clubId === b.clubId && a.joinedSeason !== undefined && b.joinedSeason !== undefined) {
+        const aTenure = currentSeason - a.joinedSeason;
+        const bTenure = currentSeason - b.joinedSeason;
+        const minTenure = Math.min(aTenure, bTenure);
+        if (minTenure >= LOYALTY_SEASONS_THRESHOLD) {
+          links.push({ playerIdA: a.id, playerIdB: b.id, type: 'loyalty', strength: Math.min(LOYALTY_MAX_STRENGTH, minTenure - LOYALTY_SEASONS_THRESHOLD + 1) });
+        }
+      }
     }
   }
 
@@ -70,10 +81,10 @@ export function calculateChemistryLinks(players: Player[], formation?: Formation
 
 /**
  * Calculate a team-wide chemistry bonus for match simulation.
- * Returns a modifier between 0.00 and 0.08 (0-8% bonus).
+ * Returns a modifier between 0.00 and 0.12 (0-12% bonus).
  */
-export function getChemistryBonus(lineupPlayers: Player[], formation?: FormationType): number {
-  const links = calculateChemistryLinks(lineupPlayers, formation);
+export function getChemistryBonus(lineupPlayers: Player[], formation?: FormationType, currentSeason?: number): number {
+  const links = calculateChemistryLinks(lineupPlayers, formation, currentSeason);
   if (links.length === 0) return 0;
 
   // Sum all link strengths, cap at reasonable max

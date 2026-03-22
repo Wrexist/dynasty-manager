@@ -33,7 +33,7 @@ const COMPAT_RING = {
 };
 
 export function LineupEditor() {
-  const { playerClubId, clubs, players, updateLineup, week } = useGameStore();
+  const { playerClubId, clubs, players, updateLineup, week, season } = useGameStore();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const club = clubs[playerClubId];
@@ -42,8 +42,8 @@ export function LineupEditor() {
   const chemLinks = useMemo(() => {
     if (!club) return [];
     const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
-    return calculateChemistryLinks(lineupPlayers, club.formation);
-  }, [club, players]);
+    return calculateChemistryLinks(lineupPlayers, club.formation, season);
+  }, [club, players, season]);
 
   const lineup = useMemo(() => club?.lineup || [], [club?.lineup]);
   const subs = useMemo(() => club?.subs || [], [club?.subs]);

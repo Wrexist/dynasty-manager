@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, ArrowLeftRight, ChevronRight, Trophy, Swords, Heart } from 'lucide-react';
+import { Target, ArrowLeftRight, ChevronRight, Trophy, Swords, Heart, Users, Zap, PlayCircle } from 'lucide-react';
 
 const STEPS = [
   {
@@ -32,6 +32,24 @@ const STEPS = [
     title: 'Keep the Board Happy',
     description: 'The board sets objectives each season. Meet them to keep your job. Winning boosts confidence, losing drops it.',
     hint: 'Check the Board page for your objectives. Below 25% confidence, you risk being sacked!',
+  },
+  {
+    icon: Users,
+    title: 'Building Your Lineup',
+    description: 'Go to Squad or Tactics to set your starting 11. Use "Auto Fill" for a quick optimized lineup, or drag players manually.',
+    hint: 'Keep an eye on fitness, injuries, and suspensions. Rotate players to avoid burnout.',
+  },
+  {
+    icon: Zap,
+    title: 'Chemistry & Tactics',
+    description: 'Players with shared nationality or long club tenure form chemistry links that boost performance. Pick a formation that fits your squad.',
+    hint: 'Tactical familiarity builds over weeks — avoid changing formation too often.',
+  },
+  {
+    icon: PlayCircle,
+    title: 'Your First Match',
+    description: 'Before a match, visit Match Prep to scout your opponent. During the match, you can make up to 5 substitutions and adjust mentality.',
+    hint: 'After the match, review stats in Match Review to learn what worked and what didn\'t. Good luck!',
   },
 ];
 

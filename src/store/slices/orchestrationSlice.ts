@@ -26,7 +26,7 @@ import {
   PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_INJURY_REDUCTION_PER_QUALITY, ASSISTANT_MANAGER_FAMILIARITY_BOOST,
   CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_OVERALL_THRESHOLD,
   CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_MIN,
-  MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, STADIUM_INCOME_PER_LEVEL,
+  MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE, STADIUM_INCOME_PER_LEVEL,
   POSITION_PRIZE_PER_RANK, POSITION_PRIZE_MAX_RANK,
   MERCHANDISE_FAN_MULTIPLIER, SCOUTING_COST_PER_ASSIGNMENT,
   FAN_MOOD_BASE, FAN_MOOD_SCALE,
@@ -641,12 +641,28 @@ function finalizeSeason(
   if (state.activeLoans.length > 0) get().processLoanReturns();
   set({ activeLoans: [], incomingLoanOffers: [] });
 
+  // Merge loan-return club updates (playerIds, wageBills) into inputClubs
+  const postLoanClubs = get().clubs;
   const newPlayers: Record<string, Player> = {};
   const newClubs = { ...inputClubs };
+  for (const clubId of Object.keys(newClubs)) {
+    if (postLoanClubs[clubId]) {
+      newClubs[clubId] = { ...newClubs[clubId], playerIds: postLoanClubs[clubId].playerIds, wageBill: postLoanClubs[clubId].wageBill };
+    }
+  }
+  // Merge loan-return player updates (clubId for obligatory buys) into inputPlayers
+  const postLoanPlayers = get().players;
+  const mergedPlayers = { ...inputPlayers };
+  for (const pid of Object.keys(mergedPlayers)) {
+    if (postLoanPlayers[pid]) {
+      mergedPlayers[pid] = { ...mergedPlayers[pid], clubId: postLoanPlayers[pid].clubId };
+    }
+  }
+
   const freeAgentIds: string[] = [];
   let bestFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] } | null = null;
 
-  Object.values(inputPlayers).forEach(p => {
+  Object.values(mergedPlayers).forEach(p => {
     const aged = { ...p, age: p.age + 1, goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0, suspendedUntilWeek: undefined, growthDelta: 0, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false };
     if (aged.contractEnd <= season) {
       const club = newClubs[aged.clubId];
@@ -684,7 +700,7 @@ function finalizeSeason(
   };
   Object.values(newClubs).forEach(club => {
     const currentSquadIds = club.playerIds.filter(id => newPlayers[id]);
-    const currentSquad = currentSquadIds.map(id => newPlayers[id]);
+    const currentSquad = currentSquadIds.map(id => newPlayers[id]).filter(Boolean);
     const posCounts: Record<string, number> = {};
     currentSquad.forEach(p => { posCounts[p.position] = (posCounts[p.position] || 0) + 1; });
     const gaps: { pos: Position; deficit: number }[] = [];
@@ -1163,7 +1179,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         if (!hc || !ac) continue;
         const hp = hc.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
         const ap = ac.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
-        const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId));
+        const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season);
         divFixtures[idx] = result;
         // Update player stats for other divisions
         result.events.forEach(ev => {
@@ -1201,7 +1217,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         updatedFixtures[idx] = forfeit;
         continue;
       }
-      const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId));
+      const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season);
       updatedFixtures[idx] = result;
 
       result.events.forEach(ev => {
@@ -1247,7 +1263,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         }
         const { result: cupResult } = simulateMatch(
           { id: tie.id, week: tie.week, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
-          hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId)
+          hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, getDerbyIntensity(tie.homeClubId, tie.awayClubId), undefined, season
         );
 
         // Resolve draws via extra time then penalties
@@ -1652,7 +1668,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const derbyIncomeBonus = derbyIncomeIntensity > 0 ? 1 + 0.25 * derbyIncomeIntensity : 1;
     const streakIncomeMult = currentWinStreak >= STREAK_INCOME_THRESHOLD ? 1 + STREAK_INCOME_MULTIPLIER : 1;
     const matchdayIncome = Math.round(playerClub.fanBase * MATCHDAY_INCOME_PER_FAN * fanMoodMult * derbyIncomeBonus * streakIncomeMult);
-    const commercialIncome = Math.round(playerClub.reputation * COMMERCIAL_INCOME_PER_REP);
+    const commercialIncome = Math.round(COMMERCIAL_INCOME_BASE + playerClub.reputation * COMMERCIAL_INCOME_PER_REP);
     // League position prize money: higher position = more income
     const playerTableIdx = leagueTable.findIndex(e => e.clubId === playerClubId);
     const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;
@@ -2049,7 +2065,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const matchDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian);
+    const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season);
 
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
 
@@ -2107,7 +2123,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities);
+    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season);
 
     set({ halfTimeState: halfState, matchPhase: 'half_time', matchSubsUsed: 0, preMatchLeaguePosition: preMatchPos, currentCupTieId: cupTie ? cupTie.id : null });
     return halfState;
@@ -2137,7 +2153,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Simulate second half, carrying forward first half state
     const secondHalfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities);
+    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
     // Cup match ended in draw — need extra time
@@ -2232,7 +2248,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
 
     // Simulate extra time as one 30-minute block (91-120)
-    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities);
+    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season);
 
     // Build the extended match result
     const etResult: Match = {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
-import { MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP } from '@/config/gameBalance';
+import { MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE } from '@/config/gameBalance';
 import type { Club } from '@/types/game';
 
 function makeClub(overrides: Partial<Club> = {}): Club {
@@ -26,22 +26,22 @@ function makeClub(overrides: Partial<Club> = {}): Club {
 
 describe('financeHelpers', () => {
   describe('getWeeklyIncome', () => {
-    it('calculates income from fanBase and reputation', () => {
+    it('calculates income from fanBase, reputation, and base income', () => {
       const club = makeClub({ fanBase: 80, reputation: 5 });
-      const expected = 80 * MATCHDAY_INCOME_PER_FAN + 5 * COMMERCIAL_INCOME_PER_REP;
+      const expected = 80 * MATCHDAY_INCOME_PER_FAN + COMMERCIAL_INCOME_BASE + 5 * COMMERCIAL_INCOME_PER_REP;
       expect(getWeeklyIncome(club)).toBe(expected);
     });
 
-    it('returns 0 when fanBase and reputation are 0', () => {
+    it('returns base income when fanBase and reputation are 0', () => {
       const club = makeClub({ fanBase: 0, reputation: 0 });
-      expect(getWeeklyIncome(club)).toBe(0);
+      expect(getWeeklyIncome(club)).toBe(COMMERCIAL_INCOME_BASE);
     });
   });
 
   describe('getNetWeeklyIncome', () => {
     it('subtracts wageBill from income', () => {
       const club = makeClub({ fanBase: 80, reputation: 5, wageBill: 1_000_000 });
-      const income = 80 * MATCHDAY_INCOME_PER_FAN + 5 * COMMERCIAL_INCOME_PER_REP;
+      const income = 80 * MATCHDAY_INCOME_PER_FAN + COMMERCIAL_INCOME_BASE + 5 * COMMERCIAL_INCOME_PER_REP;
       expect(getNetWeeklyIncome(club)).toBe(income - 1_000_000);
     });
 

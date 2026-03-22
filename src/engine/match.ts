@@ -50,6 +50,7 @@ import {
   MOMENTUM_GOAL_SWING, MOMENTUM_SAVE_SWING, MOMENTUM_CARD_SWING, MOMENTUM_PENALTY_SWING,
   MOMENTUM_DECAY_PER_MINUTE, MOMENTUM_STRENGTH_SCALE,
   SUB_FRESHNESS_BONUS,
+  SET_PIECE_TAKER_CORNER_BONUS, PENALTY_TAKER_BONUS,
 } from '@/config/matchEngine';
 
 /** State carried between halves so the second half can continue from the first */
@@ -224,7 +225,7 @@ function computeStrengths(
   homeClub: Club, awayClub: Club,
   homePlayers: Player[], awayPlayers: Player[],
   homeTactics?: TacticalInstructions, awayTactics?: TacticalInstructions,
-  tacticalFamiliarity?: number, playerClubId?: string,
+  tacticalFamiliarity?: number, playerClubId?: string, currentSeason?: number,
 ) {
   const homeMods = getTacticsModifiers(homeTactics);
   const awayMods = getTacticsModifiers(awayTactics);
@@ -238,8 +239,8 @@ function computeStrengths(
   const homeMatchup = getTacticalMatchupBonus(homeTactics, awayTactics);
   const awayMatchup = getTacticalMatchupBonus(awayTactics, homeTactics);
   // Chemistry bonus (0-8%) based on squad composition
-  const homeChemistry = getChemistryBonus(homePlayers, homeClub.formation);
-  const awayChemistry = getChemistryBonus(awayPlayers, awayClub.formation);
+  const homeChemistry = getChemistryBonus(homePlayers, homeClub.formation, currentSeason);
+  const awayChemistry = getChemistryBonus(awayPlayers, awayClub.formation, currentSeason);
   // Formation-specific attack/defense profiles (e.g. 3-4-3 = +10% attack, -8% defense)
   // Use defensiveFormation for defense bonus when set, otherwise fall back to main formation
   const homeFormAtk = FORMATION_ATTACK_BONUS[homeClub.formation] || 0;
@@ -318,6 +319,7 @@ export function simulateHalf(
   disciplinarianActive?: boolean,
   homeMedicalLevel?: number,
   awayMedicalLevel?: number,
+  currentSeason?: number,
 ): HalfState {
   // Derby matches: more events, more fouls, more cards
   const derbyEventMod = derbyIntensity ? derbyIntensity * DERBY_EVENT_MOD_SCALE : 0;
@@ -325,7 +327,7 @@ export function simulateHalf(
   const derbyCardMod = derbyIntensity ? derbyIntensity * DERBY_CARD_MOD_SCALE : 0;
 
   const _str = computeStrengths(
-    homeClub, awayClub, homePlayers, awayPlayers, homeTactics, awayTactics, tacticalFamiliarity, playerClubId,
+    homeClub, awayClub, homePlayers, awayPlayers, homeTactics, awayTactics, tacticalFamiliarity, playerClubId, currentSeason,
   );
   let { homeStr, awayStr } = _str;
   const { homeMods, awayMods } = _str;
@@ -648,8 +650,9 @@ export function simulateHalf(
         // Corner chance from saved shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_SAVE_CHANCE + widthCornerBonus) {
           if (isHome) homeCorners++; else awayCorners++;
-          // Corner goal attempt
-          if (Math.random() < CORNER_GOAL_CHANCE) {
+          // Corner goal attempt — designated set-piece taker improves delivery
+          const setPieceBonus = (club.setPieceTakerId && eligibleSquad.some(p => p.id === club.setPieceTakerId)) ? SET_PIECE_TAKER_CORNER_BONUS : 0;
+          if (Math.random() < CORNER_GOAL_CHANCE + setPieceBonus) {
             const headerCandidates = eligibleSquad.filter(p => p.position !== 'GK');
             if (headerCandidates.length > 0) {
               const headerWeights = headerCandidates.map(p => p.attributes.physical * CORNER_GOAL_PHYSICAL_WEIGHT + p.attributes.mental * CORNER_GOAL_DEFENDING_WEIGHT);
@@ -745,9 +748,12 @@ export function simulateHalf(
       if (Math.random() < PENALTY_FROM_FOUL_CHANCE) {
         const oppEligible = oppSquad.filter(p => !unavailable.has(p.id));
         if (oppEligible.length > 0) {
-          const penaltyTaker = pickAttacker(oppEligible);
           const oppClubRef = isHome ? awayClub : homeClub;
-          if (Math.random() < PENALTY_CONVERSION_RATE) {
+          // Prefer designated penalty taker if on the pitch
+          const designatedTaker = oppClubRef.penaltyTakerId ? oppEligible.find(p => p.id === oppClubRef.penaltyTakerId) : null;
+          const penaltyTaker = designatedTaker || pickAttacker(oppEligible);
+          const penaltyBonus = designatedTaker ? PENALTY_TAKER_BONUS : 0;
+          if (Math.random() < PENALTY_CONVERSION_RATE + penaltyBonus) {
             if (isHome) awayGoals++; else homeGoals++;
             if (isHome) { awayShots++; awaySoT++; } else { homeShots++; homeSoT++; }
             if (playerEvents[penaltyTaker.id]) playerEvents[penaltyTaker.id].goals++;
@@ -921,6 +927,7 @@ export function simulateMatch(
   playerClubId?: string,
   derbyIntensity?: number,
   disciplinarianActive?: boolean,
+  currentSeason?: number,
 ): { result: Match; playerRatings: PlayerMatchRating[] } {
   // Forfeit if either squad is invalid
   const homeIsPlayer = playerClubId === homeClub.id;
@@ -940,7 +947,7 @@ export function simulateMatch(
   const effectiveAwayTactics = awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS;
 
   // Simulate first half (1-45)
-  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities);
+  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason);
 
   // AI tactical reactivity: adjust tactics for second half based on scoreline
   let secondHalfHomeTactics = effectiveHomeTactics;
@@ -954,7 +961,7 @@ export function simulateMatch(
   }
 
   // Simulate second half (46-90) with potentially adjusted AI tactics
-  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities);
+  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason);
 
   const finalized = finalizeMatch(match, homeClub, awayClub, homePlayers, awayPlayers, fullState);
   return { ...finalized, matchInjuries: fullState.matchInjuries };

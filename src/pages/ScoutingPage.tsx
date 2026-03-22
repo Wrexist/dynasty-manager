@@ -6,7 +6,8 @@ import { Search, Globe, MapPin, Eye, Clock, Star, StarOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScoutRegion } from '@/types/game';
 import { getPotentialInfo } from '@/utils/uiHelpers';
-import { SCOUTING_KNOWLEDGE_THRESHOLDS } from '@/config/ui';
+import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS } from '@/config/ui';
+import { PageHint } from '@/components/game/PageHint';
 
 const MARKET_SUB_NAV = [
   { screen: 'transfers' as const, label: 'Transfers' },
@@ -30,6 +31,7 @@ const ScoutingPage = () => {
   return (
     <div className="max-w-lg mx-auto">
       <SubNav items={MARKET_SUB_NAV} />
+      <PageHint screen="scouting" title={PAGE_HINTS.scouting.title} body={PAGE_HINTS.scouting.body} />
       <div className="px-4 pb-4 space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-display font-bold text-foreground">Scouting</h2>

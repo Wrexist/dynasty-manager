@@ -24,7 +24,7 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
-  const { week, clubs, players, playerClubId, leagueTable, setScreen } = useGameStore();
+  const { week, season, clubs, players, playerClubId, leagueTable, setScreen } = useGameStore();
 
   const { match, isHome, opponent: oppClub } = useCurrentMatch();
   const oppClubId = match ? (isHome ? match.awayClubId : match.homeClubId) : '';
@@ -72,7 +72,7 @@ const MatchPrep = () => {
   const oppLineup = oppClub.lineup.map(id => players[id]).filter(Boolean);
 
   // Chemistry links for pitch visualization
-  const chemLinks = calculateChemistryLinks(myLineup, myClub.formation);
+  const chemLinks = calculateChemistryLinks(myLineup, myClub.formation, season);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">

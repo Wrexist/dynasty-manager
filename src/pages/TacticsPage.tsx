@@ -26,16 +26,16 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam } = useGameStore();
+  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam, setSetPieceTaker, setPenaltyTaker, season } = useGameStore();
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
   const [autoFilling, setAutoFilling] = useState(false);
   if (!club) return null;
 
   const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
-  const chemBonus = getChemistryBonus(lineupPlayers, club.formation);
+  const chemBonus = getChemistryBonus(lineupPlayers, club.formation, season);
   const chemLabel = getChemistryLabel(chemBonus);
-  const chemLinks = calculateChemistryLinks(lineupPlayers, club.formation);
+  const chemLinks = calculateChemistryLinks(lineupPlayers, club.formation, season);
 
   const isPresetActive = (preset: StylePreset): boolean => {
     return (
@@ -469,6 +469,39 @@ const TacticsPage = () => {
               <span className={cn('text-xs font-mono', getRatingColor(p.overall))}>{p.overall}</span>
             </button>
           ))}
+        </div>
+      </GlassPanel>
+
+      {/* Set-Piece Takers */}
+      <GlassPanel className="p-4">
+        <h3 className="text-sm font-bold text-foreground mb-3">Set-Piece Takers</h3>
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Corner / Free Kick Taker</label>
+            <select
+              value={club.setPieceTakerId || ''}
+              onChange={e => setSetPieceTaker(e.target.value || undefined)}
+              className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm text-foreground"
+            >
+              <option value="">Auto (best available)</option>
+              {lineupPlayers.filter(p => p.position !== 'GK').map(p => (
+                <option key={p.id} value={p.id}>{p.firstName[0]}. {p.lastName} ({p.position}, {p.overall})</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground mb-1 block">Penalty Taker</label>
+            <select
+              value={club.penaltyTakerId || ''}
+              onChange={e => setPenaltyTaker(e.target.value || undefined)}
+              className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm text-foreground"
+            >
+              <option value="">Auto (best attacker)</option>
+              {lineupPlayers.filter(p => p.position !== 'GK').map(p => (
+                <option key={p.id} value={p.id}>{p.firstName[0]}. {p.lastName} ({p.position}, {p.overall})</option>
+              ))}
+            </select>
+          </div>
         </div>
       </GlassPanel>
     </div>
