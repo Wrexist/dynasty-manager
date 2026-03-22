@@ -658,6 +658,7 @@ export interface CupTie {
   awayGoals: number;
   week: number; // which league week this cup match is played
   penaltyShootout?: { home: number; away: number };
+  winnerId?: string; // set on forfeits and resolved cup ties
 }
 
 export interface CupState {

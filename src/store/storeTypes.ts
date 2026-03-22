@@ -138,6 +138,8 @@ export interface GameState {
   updateLineup: (lineup: string[], subs: string[]) => void;
   autoFillTeam: () => void;
   setTrainingFocus: (f: 'fitness' | 'attacking' | 'defending' | 'mentality') => void;
+  setSetPieceTaker: (playerId: string | undefined) => void;
+  setPenaltyTaker: (playerId: string | undefined) => void;
 
   // Actions — Transfer
   executeTransfer: (playerId: string, fee: number) => { success: boolean; message: string };

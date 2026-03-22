@@ -85,7 +85,7 @@ describe('personality', () => {
   describe('wantsTransfer', () => {
     it('should return false when no personality', () => {
       const player = generatePlayer('ST', 80, 'club-1', 1);
-      delete (player as Record<string, unknown>).personality;
+      delete (player as unknown as Record<string, unknown>).personality;
       expect(wantsTransfer(player, 3)).toBe(false);
     });
 

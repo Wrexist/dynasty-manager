@@ -10,6 +10,7 @@ function makeClub(id: string, name: string): Club {
     budget: 50_000_000, wageBill: 200_000,
     reputation: 70, facilities: 5, youthRating: 5, fanBase: 5, boardPatience: 60,
     playerIds: [], formation: '4-3-3', lineup: [], subs: [],
+    divisionId: 'div-1' as const,
   };
 }
 

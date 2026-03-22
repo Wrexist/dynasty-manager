@@ -93,8 +93,8 @@ function getFormationFitBonus(players: Player[], formation: FormationType): numb
 
 /** Pick an attacker weighted by shooting quality and fitness */
 function pickAttacker(players: Player[]): Player {
-  const attackers = players.filter(p => [...ATTACKER_POSITIONS].includes(p.position));
-  const midfielders = players.filter(p => [...MIDFIELDER_POSITIONS].includes(p.position));
+  const attackers = players.filter(p => (ATTACKER_POSITIONS as readonly string[]).includes(p.position));
+  const midfielders = players.filter(p => (MIDFIELDER_POSITIONS as readonly string[]).includes(p.position));
 
   // Weight selection by shooting + fitness
   const weightedPick = (candidates: Player[]): Player => {
@@ -137,8 +137,8 @@ function pickAssist(players: Player[], scorerId: string): Player | undefined {
 function pickFouler(players: Player[]): Player | null {
   if (players.length === 0) return null;
   const weights = players.map(p => {
-    if ([...DEFENDER_POSITIONS].includes(p.position)) return FOULER_DEFENDER_WEIGHT;
-    if ([...MIDFIELDER_POSITIONS].includes(p.position)) return FOULER_MIDFIELDER_WEIGHT;
+    if ((DEFENDER_POSITIONS as readonly string[]).includes(p.position)) return FOULER_DEFENDER_WEIGHT;
+    if ((MIDFIELDER_POSITIONS as readonly string[]).includes(p.position)) return FOULER_MIDFIELDER_WEIGHT;
     return FOULER_ATTACKER_WEIGHT;
   });
   const totalWeight = weights.reduce((a, b) => a + b, 0);
@@ -199,7 +199,7 @@ function getTacticsModifiers(tactics?: TacticalInstructions) {
 
 /** Compute average defensive quality of a squad's defenders (morale-adjusted) */
 function getDefenseQuality(squad: Player[]): number {
-  const defenders = squad.filter(p => [...DEFENDER_POSITIONS].includes(p.position));
+  const defenders = squad.filter(p => (DEFENDER_POSITIONS as readonly string[]).includes(p.position));
   if (defenders.length === 0) return DEFENSE_QUALITY_FALLBACK;
   return defenders.reduce((s, p) => {
     const base = (p.attributes.defending * DEFENSE_DEFENDING_WEIGHT + p.attributes.physical * DEFENSE_PHYSICAL_WEIGHT + p.attributes.mental * DEFENSE_MENTAL_WEIGHT) / 100;
@@ -774,7 +774,7 @@ export function simulateHalf(
     }
     // === OWN GOAL (rare) ===
     else if (Math.random() < OWN_GOAL_CHANCE) {
-      const oppEligible = oppSquad.filter(p => !unavailable.has(p.id) && [...DEFENDER_POSITIONS].includes(p.position));
+      const oppEligible = oppSquad.filter(p => !unavailable.has(p.id) && (DEFENDER_POSITIONS as readonly string[]).includes(p.position));
       if (oppEligible.length > 0) {
         const ownGoalPlayer = pick(oppEligible);
         const oppClubRef = isHome ? awayClub : homeClub;
@@ -928,7 +928,7 @@ export function simulateMatch(
   derbyIntensity?: number,
   disciplinarianActive?: boolean,
   currentSeason?: number,
-): { result: Match; playerRatings: PlayerMatchRating[] } {
+): { result: Match; playerRatings: PlayerMatchRating[]; matchInjuries: Record<string, InjuryDetails> } {
   // Forfeit if either squad is invalid
   const homeIsPlayer = playerClubId === homeClub.id;
   const awayIsPlayer = playerClubId === awayClub.id;
@@ -940,6 +940,7 @@ export function simulateMatch(
     return {
       result: { ...match, played: true, homeGoals: forfeitHome, awayGoals: forfeitAway, events: [{ minute: 0, type: 'full_time', clubId: '', description: `— Forfeit: ${!homeValid ? homeClub.shortName : awayClub.shortName} unable to field a valid squad —` }], stats: { homePossession: 50, awayPossession: 50, homeShots: 0, awayShots: 0, homeShotsOnTarget: 0, awayShotsOnTarget: 0, homeFouls: 0, awayFouls: 0, homeCorners: 0, awayCorners: 0, homeXG: 0, awayXG: 0 } },
       playerRatings: [],
+      matchInjuries: {},
     };
   }
   // Use club-specific AI tactics when available, falling back to balanced defaults

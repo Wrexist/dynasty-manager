@@ -81,7 +81,7 @@ export function TopBar() {
             <Trophy className="w-3 h-3" />
             <span>S{season}</span>
           </div>
-          <button onClick={saveGame} aria-label="Save game" className="p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
+          <button onClick={() => saveGame()} aria-label="Save game" className="p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
             <Save className="w-4 h-4" />
           </button>
         </div>

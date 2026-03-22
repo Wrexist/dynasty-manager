@@ -15,6 +15,7 @@ function makeTable(count: number): LeagueTableEntry[] {
     goalDifference: 20 - 2 * i,
     points: 70 - i * 3,
     form: [],
+    cleanSheets: 0,
   }));
 }
 

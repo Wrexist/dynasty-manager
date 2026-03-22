@@ -1,7 +1,7 @@
 import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, DivisionId, PlayoffState } from '@/types/game';
 import { CLUBS_DATA, buildLeagueTable, getClubsByDivision, generateAllDivisionFixtures, buildAllDivisionTables, DERBIES, DIVISIONS, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
-import { simulateMatch, simulateHalf, finalizeMatch, type HalfState } from '@/engine/match';
+import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
 import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity } from '@/utils/training';
 import { completeAssignment } from '@/utils/scouting';
@@ -846,16 +846,16 @@ function finalizeSeason(
     // Career milestones & manager XP at end of season
     careerTimeline: (() => {
       const milestones = [...state.careerTimeline];
-      if (pos === 1) {
+      if (history.position === 1) {
         const isFirst = !state.seasonHistory.some(h => h.position === 1);
-        milestones.push(createMilestone(isFirst ? 'first_trophy' : 'season_start', isFirst ? 'First League Title!' : 'League Champions!', `Won the league in Season ${season} with ${playerEntry?.points || 0} points.`, season, TOTAL_WEEKS, isFirst ? 'medal' : 'trophy'));
+        milestones.push(createMilestone(isFirst ? 'first_trophy' : 'season_start', isFirst ? 'First League Title!' : 'League Champions!', `Won the league in Season ${season} with ${history.points || 0} points.`, season, TOTAL_WEEKS, isFirst ? 'medal' : 'trophy'));
       }
       if (state.cup.winner === playerClubId) {
         milestones.push(createMilestone('cup_win', 'Cup Winners!', `Won the cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
       }
       return milestones;
     })(),
-    managerProgression: grantXP(state.managerProgression, XP_REWARDS.seasonEnd + (pos === 1 ? XP_REWARDS.titleWin : 0) + (state.cup.winner === playerClubId ? XP_REWARDS.cupWin : 0)),
+    managerProgression: grantXP(state.managerProgression, XP_REWARDS.seasonEnd + (history.position === 1 ? XP_REWARDS.titleWin : 0) + (state.cup.winner === playerClubId ? XP_REWARDS.cupWin : 0)),
   });
 
   // Update Hall of Managers cross-save leaderboard
@@ -1081,7 +1081,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const congestionFactor = (hasCupThisWeek && hasLeagueThisWeek) ? CONGESTED_FIXTURE_INJURY_MULTIPLIER : 1;
         const injuryRisk = baseInjuryRisk * physioReduction * perkReduction * congestionFactor;
         if (Math.random() < injuryRisk && !p.injured) {
-          const injDetails = generateAIInjuryDetails(facilities.medical);
+          const injDetails = generateAIInjuryDetails(facilities.medicalLevel);
           p.injured = true;
           p.injuryWeeks = injDetails.weeksRemaining;
           p.injuryDetails = injDetails;
@@ -1702,14 +1702,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     newClubs[playerClubId] = { ...playerClub, budget: playerClub.budget + weeklyIncome - totalExpenses };
 
     // Financial Fair Play check: warn/penalise when wages are too high relative to income
+    let newBoardConfidence = boardConfidence;
     const wageToRevenueRatio = weeklyIncome > 0 ? totalExpenses / weeklyIncome : 1;
     if (wageToRevenueRatio >= FFP_WAGE_RATIO_CRITICAL) {
-      newConfidence = Math.max(CONFIDENCE_MIN, newConfidence - FFP_CRITICAL_CONFIDENCE_PENALTY);
+      newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - FFP_CRITICAL_CONFIDENCE_PENALTY);
       if (newWeek % 4 === 0) {
         newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Critical Warning!', body: `Your wage bill is ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board demands immediate action to reduce spending or face severe consequences.` });
       }
     } else if (wageToRevenueRatio >= FFP_WAGE_RATIO_WARNING) {
-      newConfidence = Math.max(CONFIDENCE_MIN, newConfidence - FFP_CONFIDENCE_PENALTY);
+      newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - FFP_CONFIDENCE_PENALTY);
       if (newWeek % 8 === 0) {
         newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Spending Warning', body: `Your wage bill is ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board urges you to manage finances more carefully.` });
       }
@@ -1879,7 +1880,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const cliffhangers = generateCliffhangers({
       playerClubId, players: newPlayers, clubs: newClubs,
       fixtures: updatedFixtures, leagueTable, week: newWeek, season,
-      boardConfidence: state.boardConfidence || 50,
+      boardConfidence: newBoardConfidence,
       transferWindowOpen,
     });
 
@@ -1905,7 +1906,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       leagueTable, transferWindowOpen, currentMatchResult: null,
       matchPhase: 'none' as const,
       messages: newMessages, incomingOffers: newOffers, clubs: newClubs,
-      matchSubsUsed: 0, boardObjectives: updatedObjectives,
+      matchSubsUsed: 0, boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
       training: { ...training, tacticalFamiliarity: newTacticalFamiliarity },
       scouting: newScouting, facilities: newFacilities, youthAcademy: newYouthAcademy,
       financeHistory: newFinanceHistory,
@@ -2463,7 +2464,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     };
 
     // Finalize with extra events
-    const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState || { events: [], homeGoals: 0, awayGoals: 0, homeShots: 0, awayShots: 0, homeSoT: 0, awaySoT: 0, homeFouls: 0, awayFouls: 0, homeCorners: 0, awayCorners: 0, homeYellows: 0, awayYellows: 0, homeReds: 0, awayReds: 0, homePossession: 50, awayPossession: 50 } as HalfState);
+    const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState || { events: [], homeGoals: 0, awayGoals: 0, homeShots: 0, awayShots: 0, homeSoT: 0, awaySoT: 0, homeFouls: 0, awayFouls: 0, homeCorners: 0, awayCorners: 0, sentOff: [], injured: [], playerEvents: {}, momentum: 0, homeXG: 0, awayXG: 0, matchInjuries: {} });
 
     // Update cup tie
     const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
@@ -2593,7 +2594,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (!raw) return false;
     try {
       const parsed = JSON.parse(raw);
-      const data = migrateSaveData(parsed);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = migrateSaveData(parsed) as Record<string, any>;
       const clubIds = Object.keys(data.clubs);
       const leagueTable = buildLeagueTable(data.fixtures, clubIds);
 

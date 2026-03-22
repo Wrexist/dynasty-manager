@@ -38,9 +38,9 @@ export function getCommentaryStyle(event: MatchEvent): { textClass: string; pref
       return { textClass: 'text-destructive font-bold', prefix: '' };
     case 'penalty_missed':
       return { textClass: 'text-amber-400', prefix: '' };
-    case 'save':
+    case 'shot_saved':
       return { textClass: 'text-blue-400', prefix: '' };
-    case 'miss':
+    case 'shot_missed':
       return { textClass: 'text-muted-foreground', prefix: '' };
     case 'yellow_card':
       return { textClass: 'text-amber-400', prefix: '' };

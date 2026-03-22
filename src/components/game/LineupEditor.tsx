@@ -133,7 +133,7 @@ export function LineupEditor() {
     }
   }, [selectedId, handleSwap]);
 
-  const slots = club ? FORMATION_POSITIONS[club.formation] : [];
+  const slots = useMemo(() => club ? FORMATION_POSITIONS[club.formation] : [], [club?.formation]);
   const formationLines = useMemo(() => getFormationLines(slots), [slots]);
 
   // When a lineup player is selected, find the slot they occupy so bench players
