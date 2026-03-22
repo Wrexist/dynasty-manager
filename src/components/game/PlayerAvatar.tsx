@@ -10,9 +10,9 @@ const HAIR_COLORS = ['#2C1B0E', '#5C3317', '#8B6914', '#D4A843', '#C0392B', '#1A
 const HAIR_STYLES = ['none', 'short', 'medium', 'mohawk', 'buzz', 'long'] as const;
 
 function hashId(id: string): number {
-  let hash = 0;
+  let hash = 5381;
   for (let i = 0; i < id.length; i++) {
-    hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0;
+    hash = ((hash << 5) + hash + id.charCodeAt(i)) | 0;
   }
   return Math.abs(hash);
 }
@@ -38,7 +38,7 @@ export function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6 }: 
   const bodyY = s * 0.45;
 
   return (
-    <g className="player-avatar-idle">
+    <g className={isAway ? undefined : 'player-avatar-idle'}>
       {/* Body / Jersey */}
       <rect
         x={cx - bodyW / 2}
@@ -47,8 +47,9 @@ export function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6 }: 
         height={bodyH}
         rx={s * 0.06}
         fill={jerseyColor}
-        stroke="rgba(0,0,0,0.2)"
-        strokeWidth="0.15"
+        opacity={isAway ? 0.85 : 1}
+        stroke={isAway ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.2)'}
+        strokeWidth={isAway ? '0.25' : '0.15'}
       />
 
       {/* Jersey number */}

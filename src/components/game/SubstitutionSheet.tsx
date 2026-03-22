@@ -2,35 +2,93 @@ import { useState, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { usePlayerClub } from '@/hooks/useGameSelectors';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { PitchView } from '@/components/game/PitchView';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { POSITION_COMPATIBILITY, type Position } from '@/types/game';
-import { hapticMedium } from '@/utils/haptics';
+import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { getFlag } from '@/utils/nationality';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRightLeft, Check, X } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Check, X, ChevronDown, AlertCircle } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 
 interface SubstitutionSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubMade?: () => void;
+  matchMinute?: number;
+  homeGoals?: number;
+  awayGoals?: number;
+  homeShortName?: string;
+  awayShortName?: string;
+  isPlayerHome?: boolean;
 }
 
-export function SubstitutionSheet({ open, onOpenChange, onSubMade }: SubstitutionSheetProps) {
+const POSITION_ORDER: Record<string, number> = {
+  'GK': 0, 'CB': 1, 'LB': 2, 'RB': 3,
+  'CDM': 4, 'CM': 5, 'CAM': 6, 'LM': 7, 'RM': 8,
+  'LW': 9, 'RW': 10, 'ST': 11,
+};
+
+const POSITION_GROUP_LABELS: Record<string, string> = {
+  'GK': 'GK', 'CB': 'DEF', 'LB': 'DEF', 'RB': 'DEF',
+  'CDM': 'MID', 'CM': 'MID', 'CAM': 'MID', 'LM': 'MID', 'RM': 'MID',
+  'LW': 'FWD', 'RW': 'FWD', 'ST': 'FWD',
+};
+
+function getPositionFitClass(playerPos: Position, targetPos: Position | null): string {
+  if (!targetPos) return 'bg-muted/50 text-muted-foreground';
+  if (playerPos === targetPos) return 'bg-emerald-500/20 text-emerald-400';
+  const compat = POSITION_COMPATIBILITY[targetPos] || [];
+  if (compat.includes(playerPos)) return 'bg-amber-500/20 text-amber-400';
+  return 'bg-red-500/20 text-red-400';
+}
+
+function getFormLabel(form: number): { text: string; className: string } {
+  if (form >= 80) return { text: 'Hot', className: 'text-emerald-400' };
+  if (form >= 60) return { text: 'Good', className: 'text-primary' };
+  if (form >= 40) return { text: 'Avg', className: 'text-muted-foreground' };
+  return { text: 'Poor', className: 'text-destructive' };
+}
+
+function getMoraleLabel(morale: number): { text: string; className: string } {
+  if (morale >= 80) return { text: 'Happy', className: 'text-emerald-400' };
+  if (morale >= 55) return { text: 'OK', className: 'text-muted-foreground' };
+  return { text: 'Low', className: 'text-amber-400' };
+}
+
+function getKeyAttributes(position: Position, attrs: { pace: number; shooting: number; passing: number; defending: number; physical: number; mental: number }): { label: string; value: number }[] {
+  switch (position) {
+    case 'GK': return [{ label: 'DEF', value: attrs.defending }, { label: 'MEN', value: attrs.mental }];
+    case 'CB': case 'LB': case 'RB': return [{ label: 'DEF', value: attrs.defending }, { label: 'PHY', value: attrs.physical }];
+    case 'CDM': case 'CM': return [{ label: 'PAS', value: attrs.passing }, { label: 'DEF', value: attrs.defending }];
+    case 'CAM': return [{ label: 'PAS', value: attrs.passing }, { label: 'SHO', value: attrs.shooting }];
+    case 'LM': case 'RM': case 'LW': case 'RW': return [{ label: 'PAC', value: attrs.pace }, { label: 'SHO', value: attrs.shooting }];
+    case 'ST': return [{ label: 'SHO', value: attrs.shooting }, { label: 'PAC', value: attrs.pace }];
+    default: return [{ label: 'PAC', value: attrs.pace }, { label: 'PAS', value: attrs.passing }];
+  }
+}
+
+function getFitnessColor(fitness: number): string {
+  if (fitness >= 80) return 'bg-emerald-500';
+  if (fitness >= 60) return 'bg-amber-500';
+  return 'bg-destructive';
+}
+
+export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome }: SubstitutionSheetProps) {
   const { players, makeMatchSub, matchSubsUsed, week } = useGameStore();
   const playerClub = usePlayerClub();
 
   const [selectedOutId, setSelectedOutId] = useState<string | null>(null);
   const [selectedInId, setSelectedInId] = useState<string | null>(null);
+  const [showLineup, setShowLineup] = useState(false);
 
   // Reset selection state when sheet opens/closes
   useEffect(() => {
     if (!open) {
       setSelectedOutId(null);
       setSelectedInId(null);
+      setShowLineup(false);
     }
   }, [open]);
 
@@ -58,6 +116,15 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
     });
   }, [playerClub, selectedOutId, players]);
 
+  // Group lineup by position for display
+  const groupedLineup = useMemo(() => {
+    if (!playerClub) return [];
+    return [...playerClub.lineup]
+      .map(id => ({ id, player: players[id] }))
+      .filter(({ player }) => !!player)
+      .sort((a, b) => (POSITION_ORDER[a.player.position] ?? 99) - (POSITION_ORDER[b.player.position] ?? 99));
+  }, [playerClub, players]);
+
   if (!playerClub) return null;
 
   const lineup = playerClub.lineup;
@@ -65,17 +132,25 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
 
   const selectedOutPlayer = selectedOutId ? players[selectedOutId] : null;
   const selectedInPlayer = selectedInId ? players[selectedInId] : null;
+  const outPos = selectedOutPlayer ? (selectedOutPlayer.position as Position) : null;
 
-  const highlightIndex = selectedOutId ? lineup.indexOf(selectedOutId) : undefined;
+  // Count available bench players (not injured/suspended)
+  const availableBenchCount = sortedSubs.filter(id => {
+    const p = players[id];
+    return p && !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week);
+  }).length;
 
-  const handleSlotClick = (index: number) => {
-    const playerId = lineup[index];
+  const hasMatchContext = matchMinute !== undefined && homeGoals !== undefined && awayGoals !== undefined;
+
+  const handleLineupPlayerClick = (playerId: string) => {
     if (!playerId) return;
+    hapticLight();
     setSelectedOutId(playerId);
     setSelectedInId(null);
   };
 
   const handleBenchClick = (playerId: string) => {
+    hapticLight();
     setSelectedInId(playerId);
   };
 
@@ -97,14 +172,51 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
     }
   };
 
-  const lineupLabels = lineup.map(id => {
-    const p = players[id];
-    return p ? p.lastName.slice(0, 3).toUpperCase() : '';
-  });
+  // Render a lineup row for State 1
+  const renderLineupRow = (id: string, player: typeof players[string]) => {
+    if (!player) return null;
+    const formInfo = getFormLabel(player.form);
+    return (
+      <button
+        key={id}
+        onClick={() => handleLineupPlayerClick(id)}
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border bg-card/40 border-border/30 hover:bg-destructive/10 hover:border-destructive/30 transition-all text-left active:scale-[0.98]"
+      >
+        <div className={cn(
+          'w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0',
+          getRatingBadgeClasses(player.overall)
+        )}>
+          {player.overall}
+        </div>
+        <div className="w-8 text-center">
+          <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+            {player.position}
+          </span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-foreground truncate">
+            {getFlag(player.nationality)} {player.firstName[0]}. {player.lastName}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className={cn('text-[9px] font-semibold', formInfo.className)}>{formInfo.text}</span>
+          <div className="flex items-center gap-1">
+            <div className="w-8 h-1 bg-muted rounded-full overflow-hidden">
+              <div
+                className={cn('h-full rounded-full', getFitnessColor(player.fitness))}
+                style={{ width: `${player.fitness}%` }}
+              />
+            </div>
+            <span className="text-[9px] text-muted-foreground w-7 text-right">{Math.round(player.fitness)}%</span>
+          </div>
+        </div>
+      </button>
+    );
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[88vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-t border-border/50 px-4 pb-8">
+      <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-t border-border/50 px-4 pb-8">
         <SheetHeader className="pb-2">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-base font-display">Make Substitution</SheetTitle>
@@ -112,36 +224,56 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
               {subsRemaining} remaining
             </span>
           </div>
+          {/* Match context bar */}
+          {hasMatchContext && (
+            <div className="flex items-center justify-center gap-2 text-[11px] mt-1">
+              <span className={cn('font-semibold', isPlayerHome ? 'text-primary' : 'text-foreground')}>{homeShortName}</span>
+              <span className="font-bold text-foreground">{homeGoals} - {awayGoals}</span>
+              <span className={cn('font-semibold', !isPlayerHome ? 'text-primary' : 'text-foreground')}>{awayShortName}</span>
+              <span className="text-muted-foreground">· {matchMinute}'</span>
+            </div>
+          )}
         </SheetHeader>
 
-        {/* Pitch — tap a player to select them (half-pitch to save space) */}
-        <div className="max-w-[280px] mx-auto">
-          <PitchView
-            formation={playerClub.formation}
-            homeColor={playerClub.color}
-            homeLabels={lineupLabels}
-            playerIds={lineup}
-            playerFitness={lineup.map(id => Math.round(players[id]?.fitness ?? 0))}
-            highlightIndex={highlightIndex}
-            onSlotClick={handleSlotClick}
-            halfPitch
-          />
-        </div>
-
-        {/* Instruction / Selection state */}
         <AnimatePresence mode="wait">
+          {/* State 1: Select player to sub out — grouped lineup */}
           {!selectedOutId && (
-            <motion.p
-              key="instruction"
+            <motion.div
+              key="lineup-select"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="text-xs text-muted-foreground text-center mt-2"
+              className="space-y-2"
             >
-              Tap a player on the pitch to substitute them
-            </motion.p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                Select Player to Substitute
+              </p>
+
+              {/* Grouped lineup */}
+              <div className="space-y-1">
+                {(() => {
+                  let lastGroup = '';
+                  return groupedLineup.map(({ id, player }) => {
+                    const group = POSITION_GROUP_LABELS[player.position] || 'OTHER';
+                    const showGroupHeader = group !== lastGroup;
+                    lastGroup = group;
+                    return (
+                      <div key={id}>
+                        {showGroupHeader && (
+                          <p className="text-[9px] text-muted-foreground/60 uppercase tracking-widest font-semibold mt-1.5 mb-0.5 pl-1">
+                            {group}
+                          </p>
+                        )}
+                        {renderLineupRow(id, player)}
+                      </div>
+                    );
+                  });
+                })()}
+              </div>
+            </motion.div>
           )}
 
+          {/* State 2: Player selected — show bench replacements */}
           {selectedOutId && !selectedInId && selectedOutPlayer && (
             <motion.div
               key="bench"
@@ -149,16 +281,22 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 16 }}
               transition={{ duration: 0.2 }}
-              className="mt-3 space-y-2"
+              className="space-y-2"
             >
               {/* Selected player bar */}
               <div className="flex items-center gap-2 bg-destructive/10 border border-destructive/20 rounded-lg px-3 py-2">
                 <ArrowRightLeft className="w-3.5 h-3.5 text-destructive shrink-0" />
+                <div className={cn(
+                  'w-6 h-6 rounded flex items-center justify-center text-[9px] font-bold shrink-0',
+                  getRatingBadgeClasses(selectedOutPlayer.overall)
+                )}>
+                  {selectedOutPlayer.overall}
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-foreground truncate">
                     {getFlag(selectedOutPlayer.nationality)} {selectedOutPlayer.firstName[0]}. {selectedOutPlayer.lastName}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">{selectedOutPlayer.position} · OVR {selectedOutPlayer.overall} · FIT {Math.round(selectedOutPlayer.fitness)}%</p>
+                  <p className="text-[10px] text-muted-foreground">{selectedOutPlayer.position} · FIT {Math.round(selectedOutPlayer.fitness)}%</p>
                 </div>
                 <button onClick={handleCancel} className="text-muted-foreground hover:text-foreground p-1">
                   <X className="w-3.5 h-3.5" />
@@ -167,54 +305,134 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
 
               {/* Bench list */}
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Select Replacement</p>
-              <div className="space-y-1 max-h-[36vh] overflow-y-auto">
+
+              {/* Empty state when no bench players available */}
+              {availableBenchCount === 0 && (
+                <div className="flex items-center gap-2 bg-card/40 border border-border/30 rounded-lg px-3 py-4">
+                  <AlertCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <p className="text-xs text-muted-foreground">No available substitutes — all bench players are injured or suspended.</p>
+                </div>
+              )}
+
+              <div className="space-y-1.5">
                 {(() => { let bestShown = false; return sortedSubs.map((id) => {
                   const p = players[id];
                   if (!p || p.injured || (p.suspendedUntilWeek && p.suspendedUntilWeek > week)) return null;
-                  const isFirst = !bestShown;
-                  if (isFirst) bestShown = true;
+                  const isBest = !bestShown;
+                  bestShown = true;
+                  const formInfo = getFormLabel(p.form);
+                  const moraleInfo = getMoraleLabel(p.morale);
+                  const keyAttrs = getKeyAttributes(p.position as Position, p.attributes);
+                  const posFitClass = getPositionFitClass(p.position as Position, outPos);
                   return (
                     <button
                       key={id}
                       onClick={() => handleBenchClick(id)}
                       className={cn(
-                        'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg border transition-all text-left active:scale-[0.98]',
-                        isFirst ? 'bg-primary/10 border-primary/30' : 'bg-card/40 border-border/30 hover:bg-primary/10 hover:border-primary/30'
+                        'w-full flex flex-col gap-1.5 px-3 py-2.5 rounded-lg border transition-all text-left active:scale-[0.98]',
+                        isBest ? 'bg-primary/10 border-primary/30' : 'bg-card/40 border-border/30 hover:bg-primary/10 hover:border-primary/30'
                       )}
                     >
-                      <div className={cn(
-                        'w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0',
-                        getRatingBadgeClasses(p.overall)
-                      )}>
-                        {p.overall}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-semibold text-foreground truncate">{getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}</p>
-                          {isFirst && (
-                            <span className="text-[8px] font-bold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Best</span>
-                          )}
+                      {/* Top row: rating, position, name, age */}
+                      <div className="flex items-center gap-2 w-full">
+                        <div className={cn(
+                          'w-7 h-7 rounded-md flex items-center justify-center text-[10px] font-bold shrink-0',
+                          getRatingBadgeClasses(p.overall)
+                        )}>
+                          {p.overall}
                         </div>
-                        <p className="text-[10px] text-muted-foreground">{p.position}</p>
+                        <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0', posFitClass)}>
+                          {p.position}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-semibold text-foreground truncate">
+                              {getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}
+                            </p>
+                            {isBest && (
+                              <span className="text-[8px] font-bold text-primary bg-primary/15 px-1.5 py-0.5 rounded-full shrink-0">Best</span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground shrink-0">Age {p.age}</span>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className="flex items-center gap-1">
-                          <div className="w-12 h-1 bg-muted rounded-full overflow-hidden">
+
+                      {/* Bottom row: key attrs, form, morale, stats, fitness */}
+                      <div className="flex items-center gap-2 w-full pl-9">
+                        {keyAttrs.map(attr => (
+                          <div key={attr.label} className="flex items-center gap-0.5">
+                            <span className="text-[8px] text-muted-foreground">{attr.label}</span>
+                            <span className={cn('text-[9px] font-bold', attr.value >= 75 ? 'text-emerald-400' : attr.value >= 60 ? 'text-foreground' : 'text-muted-foreground')}>
+                              {attr.value}
+                            </span>
+                          </div>
+                        ))}
+
+                        <span className="text-[8px] text-border">·</span>
+                        <span className={cn('text-[9px] font-semibold', formInfo.className)}>{formInfo.text}</span>
+                        <span className="text-[8px] text-border">·</span>
+                        <span className={cn('text-[9px]', moraleInfo.className)}>{moraleInfo.text}</span>
+
+                        {(p.goals > 0 || p.assists > 0) && (
+                          <>
+                            <span className="text-[8px] text-border">·</span>
+                            <span className="text-[9px] text-muted-foreground">
+                              {p.goals > 0 ? `${p.goals}G` : ''}{p.goals > 0 && p.assists > 0 ? ' ' : ''}{p.assists > 0 ? `${p.assists}A` : ''}
+                            </span>
+                          </>
+                        )}
+
+                        <div className="flex-1" />
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <div className="w-10 h-1 bg-muted rounded-full overflow-hidden">
                             <div
-                              className={cn('h-full rounded-full', p.fitness >= 80 ? 'bg-emerald-500' : p.fitness >= 60 ? 'bg-amber-500' : 'bg-destructive')}
+                              className={cn('h-full rounded-full', getFitnessColor(p.fitness))}
                               style={{ width: `${p.fitness}%` }}
                             />
                           </div>
-                          <span className="text-[9px] text-muted-foreground w-7 text-right">{p.fitness}%</span>
+                          <span className="text-[9px] text-muted-foreground w-7 text-right">{Math.round(p.fitness)}%</span>
                         </div>
                       </div>
                     </button>
                   );
                 }); })()}
               </div>
+
+              {/* Collapsible lineup view */}
+              <button
+                onClick={() => setShowLineup(!showLineup)}
+                className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors mt-1"
+              >
+                <ChevronDown className={cn('w-3 h-3 transition-transform', showLineup && 'rotate-180')} />
+                {showLineup ? 'Hide' : 'Show'} Current Lineup
+              </button>
+              {showLineup && (
+                <div className="grid grid-cols-2 gap-1 mt-1">
+                  {lineup.map((id) => {
+                    const p = players[id];
+                    if (!p) return null;
+                    const isSelected = id === selectedOutId;
+                    return (
+                      <div
+                        key={id}
+                        className={cn(
+                          'flex items-center gap-1.5 px-2 py-1.5 rounded text-[10px]',
+                          isSelected ? 'bg-destructive/15 border border-destructive/30' : 'bg-card/30'
+                        )}
+                      >
+                        <span className="font-bold text-primary">{p.position}</span>
+                        <span className="text-foreground truncate">{p.lastName}</span>
+                        <span className="text-muted-foreground ml-auto">{p.overall}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </motion.div>
           )}
 
+          {/* State 3: Confirm swap with attribute comparison */}
           {selectedOutId && selectedInId && selectedOutPlayer && selectedInPlayer && (
             <motion.div
               key="confirm"
@@ -235,8 +453,11 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                   )}>
                     {selectedOutPlayer.overall}
                   </div>
-                  <p className="text-xs font-semibold text-foreground truncate">{selectedOutPlayer.lastName}</p>
+                  <p className="text-xs font-semibold text-foreground truncate">
+                    {getFlag(selectedOutPlayer.nationality)} {selectedOutPlayer.lastName}
+                  </p>
                   <p className="text-[10px] text-muted-foreground">{selectedOutPlayer.position}</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">FIT {Math.round(selectedOutPlayer.fitness)}%</p>
                 </div>
 
                 <ArrowRightLeft className="w-5 h-5 text-primary shrink-0" />
@@ -250,10 +471,57 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade }: Substitutio
                   )}>
                     {selectedInPlayer.overall}
                   </div>
-                  <p className="text-xs font-semibold text-foreground truncate">{selectedInPlayer.lastName}</p>
+                  <p className="text-xs font-semibold text-foreground truncate">
+                    {getFlag(selectedInPlayer.nationality)} {selectedInPlayer.lastName}
+                  </p>
                   <p className="text-[10px] text-muted-foreground">{selectedInPlayer.position}</p>
+                  <p className="text-[9px] text-muted-foreground mt-0.5">FIT {Math.round(selectedInPlayer.fitness)}%</p>
                 </div>
               </div>
+
+              {/* Attribute comparison — side by side bars */}
+              <div className="bg-card/40 border border-border/30 rounded-lg px-3 py-2 space-y-1.5">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Key Stats Comparison</p>
+                {(['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'] as const).map(attr => {
+                  const outVal = selectedOutPlayer.attributes[attr];
+                  const inVal = selectedInPlayer.attributes[attr];
+                  const diff = inVal - outVal;
+                  const maxVal = Math.max(outVal, inVal, 1);
+                  return (
+                    <div key={attr} className="flex items-center gap-1.5 text-[10px]">
+                      <span className="w-7 text-muted-foreground uppercase text-[8px] shrink-0">{attr.slice(0, 3)}</span>
+                      <span className="w-5 text-right text-foreground font-semibold shrink-0">{outVal}</span>
+                      {/* OUT bar (left, red) */}
+                      <div className="flex-1 flex items-center gap-0.5">
+                        <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden flex justify-end">
+                          <div className="bg-destructive/50 rounded-full" style={{ width: `${(outVal / maxVal) * 100}%` }} />
+                        </div>
+                        <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
+                          <div className="bg-emerald-500/50 rounded-full" style={{ width: `${(inVal / maxVal) * 100}%` }} />
+                        </div>
+                      </div>
+                      <span className="w-5 text-foreground font-semibold shrink-0">{inVal}</span>
+                      <span className={cn('w-7 text-[9px] font-bold text-right shrink-0', diff > 0 ? 'text-emerald-400' : diff < 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                        {diff > 0 ? `+${diff}` : diff === 0 ? '=' : diff}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Position fit warning */}
+              {selectedOutPlayer.position !== selectedInPlayer.position && (
+                <p className={cn(
+                  'text-[10px] text-center px-2',
+                  POSITION_COMPATIBILITY[selectedOutPlayer.position as Position]?.includes(selectedInPlayer.position as Position)
+                    ? 'text-amber-400' : 'text-destructive'
+                )}>
+                  {POSITION_COMPATIBILITY[selectedOutPlayer.position as Position]?.includes(selectedInPlayer.position as Position)
+                    ? `${selectedInPlayer.position} is a compatible position for ${selectedOutPlayer.position}`
+                    : `${selectedInPlayer.position} is not a natural fit for ${selectedOutPlayer.position}`
+                  }
+                </p>
+              )}
 
               {/* Action buttons */}
               <div className="flex gap-2">

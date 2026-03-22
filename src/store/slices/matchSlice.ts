@@ -20,6 +20,8 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     const state = get();
     if (state.matchSubsUsed >= MAX_SUBSTITUTIONS) return;
     const club = { ...state.clubs[state.playerClubId] };
+    if (!club.lineup.includes(outId)) return;
+    if (!club.subs.includes(inId)) return;
     club.lineup = club.lineup.map(id => id === outId ? inId : id);
     club.subs = [...club.subs.filter(id => id !== inId), outId];
     set({ clubs: { ...state.clubs, [club.id]: club }, matchSubsUsed: state.matchSubsUsed + 1 });
