@@ -8,7 +8,7 @@ import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { GameScreen } from '@/types/game';
+import { BACK_TARGET, MAIN_TABS, SCREEN_GROUPS } from '@/config/navigation';
 
 // Eagerly load the most-used page
 import Dashboard from './Dashboard';
@@ -75,7 +75,6 @@ const screens: Record<string, React.ComponentType> = {
   'hall-of-managers': HallOfManagers,
 };
 
-const MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'transfers'];
 
 const GameShell = () => {
   const navigate = useNavigate();
@@ -86,6 +85,15 @@ const GameShell = () => {
   }, [gameStarted, navigate]);
 
   const handleSwipeLeft = useCallback(() => {
+    // Check SubNav groups first
+    for (const group of SCREEN_GROUPS) {
+      const gIdx = group.indexOf(currentScreen);
+      if (gIdx >= 0 && gIdx < group.length - 1) {
+        setScreen(group[gIdx + 1]);
+        return;
+      }
+    }
+    // Fall back to main tab swiping
     const idx = MAIN_TABS.indexOf(currentScreen);
     if (idx >= 0 && idx < MAIN_TABS.length - 1) {
       setScreen(MAIN_TABS[idx + 1]);
@@ -93,9 +101,24 @@ const GameShell = () => {
   }, [currentScreen, setScreen]);
 
   const handleSwipeRight = useCallback(() => {
+    // Check SubNav groups first
+    for (const group of SCREEN_GROUPS) {
+      const gIdx = group.indexOf(currentScreen);
+      if (gIdx > 0) {
+        setScreen(group[gIdx - 1]);
+        return;
+      }
+    }
+    // Main tab swiping
     const idx = MAIN_TABS.indexOf(currentScreen);
     if (idx > 0) {
       setScreen(MAIN_TABS[idx - 1]);
+      return;
+    }
+    // Swipe-back on detail screens
+    if (!MAIN_TABS.includes(currentScreen)) {
+      const backTarget = BACK_TARGET[currentScreen] || 'dashboard';
+      setScreen(backTarget);
     }
   }, [currentScreen, setScreen]);
 

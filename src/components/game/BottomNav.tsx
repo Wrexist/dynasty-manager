@@ -17,7 +17,9 @@ const tabs: { screen: GameScreen; label: string; icon: React.ElementType; group?
 ];
 
 export function BottomNav() {
-  const { currentScreen, setScreen } = useGameStore();
+  const { currentScreen, setScreen, messages, incomingOffers } = useGameStore();
+  const unreadCount = messages.filter(m => !m.read).length;
+  const pendingOffers = incomingOffers.length;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border/50 safe-area-bottom">
@@ -37,7 +39,15 @@ export function BottomNav() {
                 active ? 'text-primary' : 'text-muted-foreground'
               )}
             >
-              <Icon className={cn('w-5 h-5', active && 'drop-shadow-[0_0_6px_hsl(var(--primary))]')} />
+              <div className="relative">
+                <Icon className={cn('w-5 h-5', active && 'drop-shadow-[0_0_6px_hsl(var(--primary))]')} />
+                {screen === 'dashboard' && unreadCount > 0 && (
+                  <div className="absolute -top-1 -right-1.5 w-2 h-2 bg-destructive rounded-full" />
+                )}
+                {screen === 'transfers' && pendingOffers > 0 && (
+                  <div className="absolute -top-1 -right-1.5 w-2 h-2 bg-destructive rounded-full" />
+                )}
+              </div>
               <span className="text-[10px] font-medium">{label}</span>
               {active && (
                 <motion.div

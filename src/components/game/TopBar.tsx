@@ -1,37 +1,8 @@
 import { useGameStore } from '@/store/gameStore';
-import { GameScreen } from '@/types/game';
 import { Calendar, Trophy, Save, ArrowLeft, Star } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getSuffix } from '@/utils/helpers';
-
-const DETAIL_SCREENS: GameScreen[] = [
-  'player-detail', 'match-review', 'board', 'finance', 'merchandise', 'facilities',
-  'settings', 'season-summary', 'calendar', 'match-prep', 'match',
-  'league-table', 'comparison', 'manager-profile', 'cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club',
-];
-
-const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
-  'player-detail': 'squad',
-  'match-review': 'dashboard',
-  'match-prep': 'dashboard',
-  'match': 'dashboard',
-  'board': 'dashboard',
-  'finance': 'dashboard',
-  'merchandise': 'finance',
-  'facilities': 'dashboard',
-  'settings': 'dashboard',
-  'season-summary': 'dashboard',
-  'calendar': 'dashboard',
-  'league-table': 'dashboard',
-  'comparison': 'squad',
-  'manager-profile': 'dashboard',
-  'cup': 'dashboard',
-  'perks': 'manager-profile',
-  'trophy-cabinet': 'dashboard',
-  'prestige': 'season-summary',
-  'hall-of-managers': 'dashboard',
-  'club': 'dashboard',
-};
+import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation';
 
 export function TopBar() {
   const { season, week, totalWeeks, playerClubId, clubs, leagueTable, saveGame, currentScreen, previousScreen, setScreen, managerProgression } = useGameStore();
@@ -58,11 +29,20 @@ export function TopBar() {
               <ArrowLeft className="w-4 h-4" />
             </button>
           )}
-          <div className="w-7 h-7 rounded-full shrink-0" style={{ backgroundColor: club.color }} />
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-foreground truncate">{club.shortName}</p>
-            <p className="text-[10px] text-muted-foreground">{pos !== '-' ? `${pos}${getSuffix(Number(pos))}` : ''} in league</p>
-          </div>
+          {showBack && SCREEN_TITLES[currentScreen] ? (
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-foreground truncate">{SCREEN_TITLES[currentScreen]}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{club.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
+            </div>
+          ) : (
+            <>
+              <div className="w-7 h-7 rounded-full shrink-0" style={{ backgroundColor: club.color }} />
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-foreground truncate">{club.shortName}</p>
+                <p className="text-[10px] text-muted-foreground">{pos !== '-' ? `${pos}${getSuffix(Number(pos))}` : ''} in league</p>
+              </div>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {/* XP Level Badge */}

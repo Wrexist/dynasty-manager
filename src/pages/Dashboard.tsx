@@ -492,6 +492,31 @@ const Dashboard = () => {
         </GlassPanel>
       )}
 
+      {/* Quick Links - Horizontal scrollable row */}
+      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
+        <div className="flex gap-3 w-max pb-1">
+          {quickLinks.map((link, i) => {
+            const Icon = link.icon;
+            return (
+              <motion.div
+                key={link.label}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.04, duration: 0.2 }}
+              >
+                <GlassPanel
+                  className="px-4 py-3 flex flex-col items-center gap-1.5 min-w-[80px]"
+                  onClick={() => setScreen(link.screen)}
+                >
+                  <Icon className="w-5 h-5 text-primary" />
+                  <span className="text-[11px] font-medium text-foreground whitespace-nowrap">{link.label}</span>
+                </GlassPanel>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Training Status Chip + Streaks */}
       {!seasonOver && !inPlayoffs && (
         <div className="space-y-2">
@@ -1088,30 +1113,6 @@ const Dashboard = () => {
         </div>
       </GlassPanel>
 
-      {/* Quick Links - Horizontal scrollable row */}
-      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-        <div className="flex gap-3 w-max pb-1">
-          {quickLinks.map((link, i) => {
-            const Icon = link.icon;
-            return (
-              <motion.div
-                key={link.label}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04, duration: 0.2 }}
-              >
-                <GlassPanel
-                  className="px-4 py-3 flex flex-col items-center gap-1.5 min-w-[80px]"
-                  onClick={() => setScreen(link.screen)}
-                >
-                  <Icon className="w-5 h-5 text-primary" />
-                  <span className="text-[11px] font-medium text-foreground whitespace-nowrap">{link.label}</span>
-                </GlassPanel>
-              </motion.div>
-            );
-          })}
-        </div>
-      </div>
     </div>
     <FinanceBreakdownSheet open={financeSheetOpen} onOpenChange={setFinanceSheetOpen} mode={financeSheetMode} />
     </>

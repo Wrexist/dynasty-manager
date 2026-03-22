@@ -17,7 +17,7 @@ export function SubNav({ items }: SubNavProps) {
 
   return (
     <div className="relative">
-      <div className="flex gap-1.5 overflow-x-auto px-4 py-2 scrollbar-hide">
+      <div className="flex gap-1.5 overflow-x-auto px-4 pr-10 py-2 scrollbar-hide">
         {items.map(({ screen, label }) => (
           <button
             key={screen}
