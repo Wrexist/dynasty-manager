@@ -8,6 +8,7 @@ import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
 import { Button } from '@/components/ui/button';
 import { getDerbyIntensity, getDerbyName } from '@/data/league';
+import { getFlag } from '@/utils/nationality';
 import { FormationType } from '@/types/game';
 import { calculateChemistryLinks } from '@/utils/chemistry';
 import { PageHint } from '@/components/game/PageHint';
@@ -53,9 +54,10 @@ const MatchPrep = () => {
   const derbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
   const derbyName = getDerbyName(match.homeClubId, match.awayClubId);
 
-  // Fitness warnings
+  // Fitness warnings — only for starting 11
   const mySquad = myClub.playerIds.map(id => players[id]).filter(Boolean);
-  const fitnessWarnings = mySquad.filter(p => p.fitness < 70 || p.injured);
+  const lineupIds = new Set(myClub.lineup);
+  const fitnessWarnings = mySquad.filter(p => lineupIds.has(p.id) && (p.fitness < 70 || p.injured));
 
   // Tactical analysis
   const myFormation = myClub.formation;
@@ -64,7 +66,6 @@ const MatchPrep = () => {
   const oppHint = FORMATION_HINTS[oppFormation];
 
   // Low-fitness lineup count
-  const lineupIds = new Set(myClub.lineup);
   const lowFitnessInLineup = mySquad.filter(p => lineupIds.has(p.id) && p.fitness < 75 && !p.injured).length;
 
   // Formation labels
@@ -295,6 +296,7 @@ const MatchPrep = () => {
           awayLabels={oppLineup.map(p => p.lastName.slice(0, 3).toUpperCase())}
           awayPlayerOveralls={oppLineup.map(p => p.overall)}
           showAway
+          playerFlags={myLineup.map(p => getFlag(p.nationality))}
           chemistryLinks={chemLinks}
         />
       </GlassPanel>

@@ -140,10 +140,10 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     });
   },
 
-  startUpgrade: (type: 'training' | 'youth' | 'stadium' | 'medical') => {
+  startUpgrade: (type: 'training' | 'youth' | 'stadium' | 'medical' | 'recovery') => {
     const state = get();
     if (state.facilities.upgradeInProgress) return;
-    const key = `${type}Level` as keyof Pick<FacilitiesState, 'trainingLevel' | 'youthLevel' | 'stadiumLevel' | 'medicalLevel'>;
+    const key = `${type}Level` as keyof Pick<FacilitiesState, 'trainingLevel' | 'youthLevel' | 'stadiumLevel' | 'medicalLevel' | 'recoveryLevel'>;
     const currentLevel = state.facilities[key] as number;
     if (currentLevel >= FACILITY_MAX_LEVEL) return;
     const cost = (currentLevel + 1) * FACILITY_COST_PER_LEVEL;

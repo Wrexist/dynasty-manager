@@ -42,6 +42,10 @@ export function getCommentaryStyle(event: MatchEvent): { textClass: string; pref
       return { textClass: 'text-blue-400', prefix: '' };
     case 'shot_missed':
       return { textClass: 'text-muted-foreground', prefix: '' };
+    case 'hit_woodwork':
+      return { textClass: 'text-amber-400 font-semibold', prefix: '' };
+    case 'goal_line_clearance':
+      return { textClass: 'text-amber-400 font-semibold', prefix: '' };
     case 'yellow_card':
       return { textClass: 'text-amber-400', prefix: '' };
     case 'red_card':

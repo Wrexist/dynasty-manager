@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 13;
+const CURRENT_VERSION = 14;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -188,6 +188,19 @@ const migrations: Record<number, MigrationFn> = {
       starSigningBuzz: 0,
     },
   }),
+
+  // v13 → v14: Added recovery facility
+  13: (data) => {
+    const facilities = (data.facilities || {}) as Record<string, unknown>;
+    return {
+      ...data,
+      version: 14,
+      facilities: {
+        ...facilities,
+        recoveryLevel: facilities.medicalLevel || 5,
+      },
+    };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

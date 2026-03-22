@@ -14,7 +14,7 @@ import {
 } from '@/config/training';
 import { VALUE_OVERALL_MULTIPLIER, VALUE_RANDOM_RANGE } from '@/config/playerGeneration';
 import { seasonGrowthTracker } from '@/store/helpers/development';
-import { MAX_SEASON_GROWTH } from '@/config/gameBalance';
+import { MAX_SEASON_GROWTH, RECOVERY_FITNESS_BONUS_PER_LEVEL } from '@/config/gameBalance';
 
 const MODULE_ATTR_MAP = CONFIG_MODULE_ATTR_MAP;
 const INTENSITY_MULTIPLIER = CONFIG_INTENSITY_MULTIPLIER;
@@ -24,7 +24,8 @@ const INTENSITY_INJURY_RISK = CONFIG_INTENSITY_INJURY_RISK;
 export function applyWeeklyTraining(
   player: Player,
   training: TrainingState,
-  staffBonus: number // fitness-coach or first-team-coach quality 0-10
+  staffBonus: number, // fitness-coach or first-team-coach quality 0-10
+  recoveryLevel: number = 0,
 ): Player {
   const updated = { ...player, attributes: { ...player.attributes } };
 
@@ -57,9 +58,10 @@ export function applyWeeklyTraining(
     }
   }
 
-  // Fitness recovery/drain
+  // Fitness recovery/drain (recovery facility bonus: +0.5 fitness per level per week)
   const fitnessDays = moduleCounts['fitness'] || 0;
-  updated.fitness = Math.min(100, updated.fitness + fitnessDays * FITNESS_RECOVERY_PER_DAY + FITNESS_RECOVERY_BASE);
+  const recoveryBonus = recoveryLevel * RECOVERY_FITNESS_BONUS_PER_LEVEL;
+  updated.fitness = Math.min(100, updated.fitness + fitnessDays * FITNESS_RECOVERY_PER_DAY + FITNESS_RECOVERY_BASE + recoveryBonus);
   updated.fitness = Math.max(FITNESS_MIN, updated.fitness + INTENSITY_FITNESS_COST[training.intensity]);
 
   // Recalculate overall

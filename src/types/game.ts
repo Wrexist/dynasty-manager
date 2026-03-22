@@ -181,7 +181,7 @@ export interface ClubData {
 
 export interface MatchEvent {
   minute: number;
-  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout';
+  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout';
   playerId?: string;
   assistPlayerId?: string;
   clubId: string;
@@ -559,6 +559,7 @@ export interface FacilitiesState {
   youthLevel: number;
   stadiumLevel: number;
   medicalLevel: number;
+  recoveryLevel: number;
   upgradeInProgress: { type: string; weeksRemaining: number; totalWeeks: number } | null;
 }
 

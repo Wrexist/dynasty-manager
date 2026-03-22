@@ -32,7 +32,7 @@ import {
   POSITION_PRIZE_PER_RANK, POSITION_PRIZE_MAX_RANK,
   SCOUTING_COST_PER_ASSIGNMENT,
   FAN_MOOD_BASE, FAN_MOOD_SCALE,
-  STADIUM_LEVEL_DIVISOR, MEDICAL_LEVEL_FACTOR, FACILITY_MAX_LEVEL,
+  STADIUM_LEVEL_DIVISOR, MEDICAL_LEVEL_FACTOR, RECOVERY_LEVEL_FACTOR, FACILITY_MAX_LEVEL,
   SEASON_END_CONFIDENCE,
   MIN_SQUAD_SIZE, REPLACEMENT_QUALITY_REP_MULTIPLIER, REPLACEMENT_QUALITY_BASE, REPLACEMENT_QUALITY_VARIANCE,
   GENERIC_FILL_POSITIONS,
@@ -269,7 +269,7 @@ function advancePlayoffWeek(set: Set, get: Get) {
       p.suspendedUntilWeek = undefined;
     }
     if (!p.injured) {
-      p = applyWeeklyTraining(p, training, firstTeamCoachBonus + fitnessCoachBonus * 0.5);
+      p = applyWeeklyTraining(p, training, firstTeamCoachBonus + fitnessCoachBonus * 0.5, state.facilities.recoveryLevel);
     }
     newPlayers[pid] = p;
   });
@@ -976,6 +976,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         trainingLevel: pcInit.facilities, youthLevel: pcInit.youthRating,
         stadiumLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.fanBase / STADIUM_LEVEL_DIVISOR)),
         medicalLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.facilities * MEDICAL_LEVEL_FACTOR)),
+        recoveryLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.facilities * RECOVERY_LEVEL_FACTOR)),
         upgradeInProgress: null,
       },
       financeHistory: [], matchPlayerRatings: [],
@@ -1071,7 +1072,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
 
       if (!p.injured) {
-        p = applyWeeklyTraining(p, training, firstTeamCoachBonus + fitnessCoachBonus * 0.5);
+        p = applyWeeklyTraining(p, training, firstTeamCoachBonus + fitnessCoachBonus * 0.5, facilities.recoveryLevel);
         // Physio reduces training injury risk, age-scaled injury risk
         const baseInjuryRisk = getInjuryRisk(training, p.age);
         const physioReduction = 1 - physioBonus * PHYSIO_INJURY_REDUCTION_PER_QUALITY;
@@ -1632,7 +1633,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const upgrade = { ...newFacilities.upgradeInProgress };
       upgrade.weeksRemaining = Math.max(0, upgrade.weeksRemaining - 1);
       if (upgrade.weeksRemaining === 0) {
-        const key = `${upgrade.type}Level` as keyof Pick<FacilitiesState, 'trainingLevel' | 'youthLevel' | 'stadiumLevel' | 'medicalLevel'>;
+        const key = `${upgrade.type}Level` as keyof Pick<FacilitiesState, 'trainingLevel' | 'youthLevel' | 'stadiumLevel' | 'medicalLevel' | 'recoveryLevel'>;
         newFacilities = { ...newFacilities, [key]: (newFacilities[key] as number) + 1, upgradeInProgress: null };
         newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: `Upgrade Complete`, body: `Your ${upgrade.type} facility has been upgraded to level ${(newFacilities[key] as number)}!` });
       } else {
