@@ -889,7 +889,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const divisionClubs = getClubsByDivision();
     const divisionFixtures = generateAllDivisionFixtures(divisionClubs);
     const divisionTables = buildAllDivisionTables(divisionFixtures, divisionClubs);
-    const playerDivision = clubs[clubId].divisionId;
+    const playerDivision = clubs[clubId]?.divisionId || 'div-1';
     // Backward-compat aliases for the player's division
     const fixtures = divisionFixtures[playerDivision];
     const leagueTable = divisionTables[playerDivision];
