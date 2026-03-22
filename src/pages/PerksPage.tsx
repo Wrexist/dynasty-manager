@@ -25,7 +25,7 @@ const PerksPage = () => {
     }
   };
 
-  const tiers = [1, 2, 3] as const;
+  const tiers = [1, 2, 3, 4, 5] as const;
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">

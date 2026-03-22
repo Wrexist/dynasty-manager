@@ -1,4 +1,5 @@
 import { Player, Match, Club, FacilitiesState, ScoutingState, LeagueTableEntry, CliffhangerItem } from '@/types/game';
+import { getSuffix } from '@/utils/helpers';
 import {
   MAX_CLIFFHANGERS, CLIFFHANGER_TITLE_RACE_GAP, CLIFFHANGER_BIG_MATCH_REP_GAP,
   CLIFFHANGER_BOARD_PRESSURE_THRESHOLD, CLIFFHANGER_YOUTH_POTENTIAL_GAP,
@@ -180,7 +181,7 @@ export function generateCliffhangers(ctx: CliffhangerContext): CliffhangerItem[]
       if (oppPos <= 3 && myPos <= 6) {
         items.push({
           icon: 'swords',
-          text: `Title clash — ${opp.shortName} (${oppPos === 1 ? 'league leaders' : `${oppPos}nd`}) are next!`,
+          text: `Title clash — ${opp.shortName} (${oppPos === 1 ? 'league leaders' : `${oppPos}${getSuffix(oppPos)}`}) are next!`,
           category: 'big_match',
           intensity: 'high',
         });

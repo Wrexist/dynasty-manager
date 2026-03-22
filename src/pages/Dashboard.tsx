@@ -98,7 +98,9 @@ const Dashboard = () => {
       }
 
       const unseen = celebrations.filter(c => {
-        const key = `${c.title}-${season}-${week}`;
+        // Drama celebrations (type 'record' from getDramaCelebration) are per-week;
+        // milestones/streaks are per-season to avoid re-triggering
+        const key = c.type === 'record' ? `${c.title}-${season}-${week}` : `${c.title}-${season}`;
         if (shownCelebrationsRef.current.has(key)) return false;
         shownCelebrationsRef.current.add(key);
         return true;

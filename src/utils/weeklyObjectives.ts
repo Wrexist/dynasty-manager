@@ -262,7 +262,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     id: 'high-possession',
     title: 'Total Control',
     description: 'Win the match with 60%+ possession',
-    icon: 'bar-chart-3',
+    icon: 'bar-chart',
     xpReward: 25,
     rarity: 'rare',
     check: (ctx) => {
@@ -293,16 +293,6 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
       const ga = isHome ? match.awayGoals : match.homeGoals;
       return gf - ga >= 5;
     },
-  },
-  {
-    id: 'perfect-week',
-    title: 'Perfect Week',
-    description: 'Complete all 3 objectives this week',
-    icon: 'award',
-    xpReward: 50,
-    rarity: 'legendary',
-    // This is checked separately after other objectives are evaluated
-    check: () => false,
   },
 ];
 
@@ -344,6 +334,13 @@ export function generateWeeklyObjectives(hasMatch: boolean): ObjectiveInstance[]
   const remaining = 3 - selected.length;
   const availableCommon = shuffle([...commonPool]).filter(o => !selected.some(s => s.id === o.id));
   selected.push(...availableCommon.slice(0, remaining));
+
+  // Fallback: if still under 3 (e.g., non-match week with very few options), pull from full pool
+  if (selected.length < 3) {
+    const allFallback = shuffle([...OBJECTIVE_TEMPLATES])
+      .filter(o => !selected.some(s => s.id === o.id));
+    selected.push(...allFallback.slice(0, 3 - selected.length));
+  }
 
   return selected.map(obj => ({
     objectiveId: obj.id,

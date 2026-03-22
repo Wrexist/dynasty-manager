@@ -17,14 +17,14 @@ export const MANAGER_PERKS: ManagerPerk[] = [
   { id: 'deadline_dealer', name: 'Deadline Dealer', description: 'Transfer fees -20% during deadline week', icon: 'clock', cost: 250, tier: 2, prerequisite: 'fan_favourite' },
 
   // Tier 3 — 500 XP each, require a Tier 2 perk
-  { id: 'transfer_shark', name: 'Transfer Shark', description: 'Transfer fees are 15% lower when buying', icon: 'badge-dollar', cost: 500, tier: 3, prerequisite: 'scout_network' },
+  { id: 'transfer_shark', name: 'Transfer Shark', description: 'Transfer fees are 15% lower when buying', icon: 'badge-dollar', cost: 500, tier: 3, prerequisite: 'loan_master' },
   { id: 'disciplinarian', name: 'Disciplinarian', description: 'Players get 30% fewer yellow/red cards', icon: 'clipboard', cost: 500, tier: 3, prerequisite: 'tactical_genius' },
-  { id: 'iron_will', name: 'Iron Will', description: 'No morale penalty from defeats', icon: 'shield', cost: 500, tier: 3, prerequisite: 'motivator' },
-  { id: 'formation_master', name: 'Formation Master', description: 'Unlock 3 additional formation variations', icon: 'layout-grid', cost: 500, tier: 3, prerequisite: 'tactical_genius' },
+  { id: 'iron_will', name: 'Iron Will', description: 'No morale penalty from defeats', icon: 'shield', cost: 500, tier: 3, prerequisite: 'tactical_genius' },
+  { id: 'formation_master', name: 'Formation Master', description: 'Unlock 3 additional formation variations', icon: 'layout-grid', cost: 500, tier: 3, prerequisite: 'deadline_dealer' },
 
   // Tier 4 — 800 XP each, require a Tier 3 perk
   { id: 'galactico', name: 'Galactico', description: 'Can sign 1 player above budget per season (20% over)', icon: 'star', cost: 800, tier: 4, prerequisite: 'transfer_shark' },
-  { id: 'wonder_coach', name: 'Wonder Coach', description: 'Youth prospect potential +5 on intake', icon: 'sparkles', cost: 800, tier: 4, prerequisite: 'youth_developer' },
+  { id: 'wonder_coach', name: 'Wonder Coach', description: 'Youth prospect potential +5 on intake', icon: 'sparkles', cost: 800, tier: 4, prerequisite: 'iron_will' },
 
   // Tier 5 — 1200 XP each, require a Tier 4 perk
   { id: 'dynasty_builder', name: 'Dynasty Builder', description: 'All perk effects boosted by 10%', icon: 'crown', cost: 1200, tier: 5, prerequisite: 'galactico' },

@@ -198,8 +198,12 @@ export function detectMatchDrama(
       if (e.type === 'goal' || e.type === 'penalty_scored') {
         if (e.clubId === playerClubId) playerGoals++;
         else oppGoals++;
-        if (oppGoals > playerGoals) wasLosing = true;
+      } else if (e.type === 'own_goal') {
+        // Own goals benefit the opposing team
+        if (e.clubId === playerClubId) oppGoals++;
+        else playerGoals++;
       }
+      if (oppGoals > playerGoals) wasLosing = true;
     }
     if (wasLosing) return 'comeback_win';
   }

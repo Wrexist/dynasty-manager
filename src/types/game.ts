@@ -822,7 +822,7 @@ export interface CliffhangerItem {
 }
 
 // ── Match Drama ──
-export type MatchDramaType = 'comeback_win' | 'late_winner' | 'thrashing' | 'underdog_upset' | 'derby_win' | 'cup_giant_killing' | 'heartbreak_loss' | null;
+export type MatchDramaType = 'comeback_win' | 'late_winner' | 'thrashing' | 'underdog_upset' | 'heartbreak_loss' | null;
 
 // ── Objective Rarity ──
 export type ObjectiveRarity = 'common' | 'rare' | 'legendary';

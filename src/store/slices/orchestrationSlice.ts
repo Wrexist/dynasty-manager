@@ -2273,6 +2273,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       if (!playerWon) newCup.eliminated = true;
 
       const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
+      const cupDrama = detectMatchDrama(result, playerClubId, clubs);
       const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
       set({
         currentMatchResult: result, players: processed.newPlayers,
@@ -2284,12 +2285,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
         managerProgression: processed.managerProgression,
         lastMatchXPGain: processed.xpGain,
+        lastMatchDrama: cupDrama,
       });
       return result;
     }
 
     // League match — process as normal
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
+    const leagueDrama = detectMatchDrama(result, playerClubId, clubs);
 
     // Generate post-match press conference
     const pressContext2 = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
@@ -2307,6 +2310,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
       managerProgression: processed.managerProgression,
       lastMatchXPGain: processed.xpGain,
+      lastMatchDrama: leagueDrama,
     });
     return result;
   },
@@ -2367,6 +2371,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
 
       const processed = processMatchResult(state, etResult, result, playerRatings, () => get().week, etState.matchInjuries);
+      const etDrama = detectMatchDrama(result, playerClubId, clubs);
       const press = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
 
       set({
@@ -2385,6 +2390,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         managerProgression: processed.managerProgression,
         lastMatchXPGain: processed.xpGain,
         pendingPressConference: generatePressConference(press),
+        lastMatchDrama: etDrama,
       });
       return result;
     }
@@ -2475,6 +2481,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {});
+    const penDrama = detectMatchDrama(result, playerClubId, clubs);
     const press = winnerId === playerClubId ? 'post_win' : 'post_loss';
 
     set({
@@ -2493,6 +2500,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       managerProgression: processed.managerProgression,
       lastMatchXPGain: processed.xpGain,
       pendingPressConference: generatePressConference(press),
+      lastMatchDrama: penDrama,
     });
     return { ...result, penaltyShootout };
   },
@@ -2552,6 +2560,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       objectiveStreak: state.objectiveStreak,
       weekCliffhangers: state.weekCliffhangers,
       lastMatchDrama: state.lastMatchDrama,
+      sessionStats: state.sessionStats,
       pendingStoryline: state.pendingStoryline,
       activeStorylineChains: state.activeStorylineChains,
       preMatchLeaguePosition: state.preMatchLeaguePosition,
