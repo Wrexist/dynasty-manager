@@ -183,6 +183,9 @@ export interface GameState {
   releaseYouth: (playerId: string) => void;
   startUpgrade: (type: 'training' | 'youth' | 'stadium' | 'medical') => void;
 
+  // Actions — Achievements
+  clearPendingAchievements: () => void;
+
   // Actions — Press Conferences & Storylines
   respondToPress: (tone: 'confident' | 'humble' | 'deflect') => void;
   dismissPress: () => void;

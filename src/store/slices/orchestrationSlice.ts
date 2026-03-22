@@ -1037,6 +1037,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const assistantManagerBonus = getStaffBonus(staff.members, 'assistant-manager');
 
     const playerClub = { ...clubs[playerClubId] };
+    const improvedPlayers: { name: string; overall: number }[] = [];
+    const declinedPlayers: { name: string; overall: number }[] = [];
     playerClub.playerIds.forEach(pid => {
       let p = { ...newPlayers[pid] };
       if (p.injured) {
@@ -1086,9 +1088,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           p.injured = true;
           p.injuryWeeks = injDetails.weeksRemaining;
           p.injuryDetails = injDetails;
-          digestInjuries.push(p.lastName);
-          const injLabel = INJURY_TYPES[injDetails.type].label;
-          newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `${p.lastName} Injured in Training`, body: `${p.firstName} ${p.lastName} picked up a ${injDetails.severity} ${injLabel} during training. Out for ${p.injuryWeeks} week(s).` });
+          digestInjuries.push(`${p.lastName} (${injDetails.severity} ${INJURY_TYPES[injDetails.type].label}, ${p.injuryWeeks}wk)`);
         }
       }
 
@@ -1096,9 +1096,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const mentorBonusVal = getMentorBonus(p, allClubPlayers);
       p = applyPlayerDevelopment(p, training.schedule.mon, mentorBonusVal);
       if (p.growthDelta && p.growthDelta > 0) {
-        newMessages = addMsg(newMessages, { week, season, type: 'development', title: `${p.lastName} Improving!`, body: `${p.firstName} ${p.lastName} (${p.position}) has improved to ${p.overall} overall!` });
+        improvedPlayers.push({ name: p.lastName, overall: p.overall });
       } else if (p.growthDelta && p.growthDelta < 0) {
-        newMessages = addMsg(newMessages, { week, season, type: 'development', title: `${p.lastName} Declining`, body: `${p.firstName} ${p.lastName} (${p.position}) has dropped to ${p.overall} overall. Age is catching up.` });
+        declinedPlayers.push({ name: p.lastName, overall: p.overall });
       }
 
       // Benched players gradually lose morale
@@ -1144,6 +1144,20 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
       newPlayers[pid] = p;
     });
+
+    // Batched development messages
+    if (improvedPlayers.length > 0) {
+      const names = improvedPlayers.map(p => `${p.name} (${p.overall})`).join(', ');
+      newMessages = addMsg(newMessages, { week, season, type: 'development', title: `${improvedPlayers.length} Player${improvedPlayers.length > 1 ? 's' : ''} Improved`, body: `Development progress: ${names}.` });
+    }
+    if (declinedPlayers.length > 0) {
+      const names = declinedPlayers.map(p => `${p.name} (${p.overall})`).join(', ');
+      newMessages = addMsg(newMessages, { week, season, type: 'development', title: `${declinedPlayers.length} Player${declinedPlayers.length > 1 ? 's' : ''} Declining`, body: `Age catching up: ${names}.` });
+    }
+    // Batched training injury message
+    if (digestInjuries.length > 0) {
+      newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `Training Injuries (${digestInjuries.length})`, body: `Injured in training: ${digestInjuries.join(', ')}.` });
+    }
 
     // Leadership bonus: players with high leadership boost entire squad morale
     const squadForLeadership = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
@@ -1389,21 +1403,25 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Build all division tables
     const divisionTables = buildAllDivisionTables(updatedDivisionFixtures, state.divisionClubs);
 
-    // Transfer rumors — foreshadow potential incoming offers
+    // Transfer rumors — foreshadow potential incoming offers (batched into single message)
     if (transferWindowOpen) {
+      const rumorNames: string[] = [];
       const starPlayers = Object.values(newPlayers).filter(p => p.clubId === playerClubId && !p.listedForSale && p.overall >= 70 && !p.onLoan);
       for (const sp of starPlayers) {
         if (Math.random() < RUMOR_CHANCE) {
           const interestedClubs = Object.values(clubs).filter(c => c.id !== playerClubId && c.budget > sp.value * 0.5);
           if (interestedClubs.length > 0) {
             const rumorClub = pick(interestedClubs);
-            newMessages = addMsg(newMessages, {
-              week: newWeek, season, type: 'transfer',
-              title: `Transfer Rumor: ${sp.lastName}`,
-              body: `Reports suggest ${rumorClub.name} are monitoring ${sp.firstName} ${sp.lastName}. No official approach has been made yet.`,
-            });
+            rumorNames.push(`${sp.lastName} (${rumorClub.shortName})`);
           }
         }
+      }
+      if (rumorNames.length > 0) {
+        newMessages = addMsg(newMessages, {
+          week: newWeek, season, type: 'transfer',
+          title: `Transfer Rumor${rumorNames.length > 1 ? 's' : ''}: ${rumorNames.length} Player${rumorNames.length > 1 ? 's' : ''}`,
+          body: `Clubs are monitoring: ${rumorNames.join(', ')}. No official approaches yet.`,
+        });
       }
     }
 
