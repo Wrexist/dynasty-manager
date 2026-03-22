@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+.env.*
+!.env.example
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -22,3 +27,16 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Test & coverage
+coverage
+
+# Capacitor native build artifacts
+android/app/build
+ios/App/Pods
+ios/DerivedData
+*.xcworkspace/xcuserdata
+*.xcodeproj/xcuserdata
+
+# OS files
+Thumbs.db

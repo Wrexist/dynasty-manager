@@ -1,5 +1,39 @@
 # CLAUDE.md — Dynasty Manager
 
+## ⚠️ MANDATORY: Read This First — Git & Shipping Workflow
+
+**These are NON-NEGOTIABLE rules. Every Claude session MUST follow them.**
+
+### When the user asks you to commit, push, ship, or create a PR:
+1. Run `npm run preflight` — validates lint + test + build. Fix any failures before proceeding.
+2. Stage specific changed files with `git add <files>` (NEVER blind `git add -A`).
+3. Commit with a clear message: `git commit -m "descriptive message"`.
+4. Push: `git push -u origin <branch-name>` — retry up to 4x with exponential backoff on network failure.
+5. **Output the PR link** to the user: `https://github.com/Wrexist/dynasty-manager/pull/new/<branch-name>`
+
+**Or use the one-liner:** `npm run ship -- "commit message"` — does ALL of the above automatically.
+
+### When the user asks you to start a new feature/branch:
+```bash
+npm run branch -- <branch-name>
+```
+This fetches latest `origin/main` and creates a clean branch. NEVER branch from `master` or detached HEAD.
+
+### What NOT to do:
+- **NEVER** use `gh pr create` — GitHub API auth is not available in this environment. It WILL fail.
+- **NEVER** push without running preflight first.
+- **NEVER** skip giving the user the PR creation link after pushing.
+
+### Available workflow commands:
+| Command | What it does |
+|---------|-------------|
+| `npm run preflight` | Lint + test + build (local CI mirror) |
+| `npm run ship -- "msg"` | Preflight + stage + commit + push with retry |
+| `npm run branch -- name` | Create feature branch from latest origin/main |
+| `npm run typecheck` | Standalone TypeScript check |
+
+---
+
 ## Project Overview
 Dynasty Manager is a mobile-first football management simulation with native iOS/Android builds via Capacitor. Players pick a club from 92 teams across 4 divisions, manage squads, set tactics, handle transfers/loans, simulate matches, and progress through seasons with promotion/relegation and cup competitions. Dark premium UI with glass-morphism and gold accents.
 
@@ -139,12 +173,29 @@ npm run preview      # Preview production build
 npm run test         # Vitest
 npm run test:watch   # Vitest in watch mode
 npm run lint         # ESLint
+npm run typecheck    # TypeScript type-check (standalone)
+npm run preflight    # Run lint + test + build (local CI check)
+
+# Git workflow
+npm run ship -- "commit message"   # Preflight + commit + push (one command)
+npm run branch -- feature-name     # Create branch from latest origin/main
 
 # Mobile (Capacitor)
 npm run cap:sync     # Build + sync to native projects
 npm run cap:ios      # Open Xcode project
 npm run cap:android  # Open Android Studio project
 ```
+
+## Git Workflow for Claude Sessions
+
+**See the MANDATORY section at the top of this file. The rules there override everything.**
+
+Quick reference:
+- `npm run ship -- "msg"` = preflight + commit + push (preferred one-liner)
+- `npm run branch -- name` = new branch from origin/main
+- `npm run preflight` = lint + test + build
+- After push → always give the user: `https://github.com/Wrexist/dynasty-manager/pull/new/<branch>`
+- `gh pr create` is FORBIDDEN — no GitHub API auth available
 
 ## CI/CD
 - **`ios-testflight.yml`** — Automated iOS TestFlight deployment
@@ -168,6 +219,10 @@ npm run cap:android  # Open Android Studio project
 - NEVER use localStorage directly — go through store persistence helpers
 - NEVER break mobile-first layout — test at 375px
 - NEVER create type files outside `src/types/game.ts` — single source of truth
+- NEVER use `gh pr create` — GitHub API auth is not available. Give the user the PR URL from git push output instead
+- NEVER push without running `npm run preflight` first (or `npm run ship` which includes it)
+- NEVER branch from `master` or detached HEAD — always branch from `origin/main`
 - ALWAYS run `npm run build` before marking done
 - ALWAYS spread nested objects when using Zustand `set()` — no direct mutation
 - ALWAYS `filter(Boolean)` when mapping player IDs to Player objects
+- ALWAYS provide the GitHub PR creation link after pushing a branch
