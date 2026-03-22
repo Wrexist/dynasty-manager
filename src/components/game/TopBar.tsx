@@ -2,6 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { GameScreen } from '@/types/game';
 import { Calendar, Trophy, Save, ArrowLeft, Star } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
+import { getSuffix } from '@/utils/helpers';
 
 const DETAIL_SCREENS: GameScreen[] = [
   'player-detail', 'match-review', 'board', 'finance', 'merchandise', 'facilities',
@@ -60,7 +61,7 @@ export function TopBar() {
           <div className="w-7 h-7 rounded-full shrink-0" style={{ backgroundColor: club.color }} />
           <div className="min-w-0">
             <p className="text-sm font-bold text-foreground truncate">{club.shortName}</p>
-            <p className="text-[10px] text-muted-foreground">{pos !== '-' ? `${pos}${pos === 1 ? 'st' : pos === 2 ? 'nd' : pos === 3 ? 'rd' : 'th'}` : ''} in league</p>
+            <p className="text-[10px] text-muted-foreground">{pos !== '-' ? `${pos}${getSuffix(Number(pos))}` : ''} in league</p>
           </div>
         </div>
         <div className="flex items-center gap-3">

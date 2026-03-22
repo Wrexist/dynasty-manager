@@ -1471,22 +1471,24 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (nextMatch) {
       const isHome = nextMatch.homeClubId === playerClubId;
       const oppClub = clubs[isHome ? nextMatch.awayClubId : nextMatch.homeClubId];
-      const oppEntry = leagueTable.find(e => e.clubId === oppClub.id);
-      const oppPos = oppEntry ? leagueTable.indexOf(oppEntry) + 1 : '?';
-      newMessages = addMsg(newMessages, {
-        week: newWeek, season, type: 'match_preview',
-        title: `Next: ${isHome ? 'vs' : '@'} ${oppClub.shortName}`,
-        body: `Your next match is ${isHome ? 'at home' : 'away'} against ${oppClub.name} (${oppPos}${typeof oppPos === 'number' ? getSuffix(oppPos) : ''} in the table). Prepare your tactics!`,
-      });
-      // Derby day message
-      const derbyInt = getDerbyIntensity(nextMatch.homeClubId, nextMatch.awayClubId);
-      const derbyNm = getDerbyName(nextMatch.homeClubId, nextMatch.awayClubId);
-      if (derbyInt > 0 && derbyNm) {
+      if (oppClub) {
+        const oppEntry = leagueTable.find(e => e.clubId === oppClub.id);
+        const oppPos = oppEntry ? leagueTable.indexOf(oppEntry) + 1 : '?';
         newMessages = addMsg(newMessages, {
           week: newWeek, season, type: 'match_preview',
-          title: `Derby Day: ${derbyNm}`,
-          body: `This is a rivalry match! The ${derbyNm} is one of the most intense fixtures on the calendar. Expect a heated atmosphere, more fouls, and higher stakes.`,
+          title: `Next: ${isHome ? 'vs' : '@'} ${oppClub.shortName}`,
+          body: `Your next match is ${isHome ? 'at home' : 'away'} against ${oppClub.name} (${oppPos}${typeof oppPos === 'number' ? getSuffix(oppPos) : ''} in the table). Prepare your tactics!`,
         });
+        // Derby day message
+        const derbyInt = getDerbyIntensity(nextMatch.homeClubId, nextMatch.awayClubId);
+        const derbyNm = getDerbyName(nextMatch.homeClubId, nextMatch.awayClubId);
+        if (derbyInt > 0 && derbyNm) {
+          newMessages = addMsg(newMessages, {
+            week: newWeek, season, type: 'match_preview',
+            title: `Derby Day: ${derbyNm}`,
+            body: `This is a rivalry match! The ${derbyNm} is one of the most intense fixtures on the calendar. Expect a heated atmosphere, more fouls, and higher stakes.`,
+          });
+        }
       }
     }
 
@@ -1564,7 +1566,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (updatedChains.length === 0 && Math.random() < STORYLINE_CHAIN_TRIGGER_CHANCE && newWeek >= STORYLINE_CHAIN_MIN_WEEK) {
       const playerClub = clubs[playerClubId];
       const squadPlayers = Object.values(newPlayers).filter(p => p.clubId === playerClubId);
-      const avgBudget = Object.values(clubs).reduce((s, c) => s + c.budget, 0) / Object.values(clubs).length;
+      const clubsList = Object.values(clubs);
+      const avgBudget = clubsList.length > 0 ? clubsList.reduce((s, c) => s + c.budget, 0) / clubsList.length : 0;
       const completedChainIds = new Set<string>(); // could track in state later
       for (const chainDef of STORYLINE_CHAINS) {
         if (completedChainIds.has(chainDef.id)) continue;
@@ -1861,7 +1864,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const actualPos = playerTableIdx >= 0 ? playerTableIdx + 1 : 20;
       const diff = expectedPos - actualPos;
       if (diff >= 3) {
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: Impressive', body: `The board acknowledges your excellent work. Finishing ${getSuffix(actualPos)} exceeds expectations. Keep it up!` });
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: Impressive', body: `The board acknowledges your excellent work. Finishing ${actualPos}${getSuffix(actualPos)} exceeds expectations. Keep it up!` });
       } else if (diff >= 0) {
         newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: On Track', body: `The board is satisfied with progress. Current position of ${actualPos}${getSuffix(actualPos)} meets expectations.` });
       } else if (diff >= -3) {
