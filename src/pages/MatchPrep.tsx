@@ -69,6 +69,7 @@ const MatchPrep = () => {
 
   // Formation labels
   const myLineup = myClub.lineup.map(id => players[id]).filter(Boolean);
+  const oppLineup = oppClub.lineup.map(id => players[id]).filter(Boolean);
 
   // Chemistry links for pitch visualization
   const chemLinks = calculateChemistryLinks(myLineup, myClub.formation);
@@ -290,6 +291,9 @@ const MatchPrep = () => {
           playerIds={myLineup.map(p => p.id)}
           awayFormation={oppClub.formation}
           awayColor={oppClub.color}
+          awayPlayerIds={oppClub.lineup}
+          awayLabels={oppLineup.map(p => p.lastName.slice(0, 3).toUpperCase())}
+          awayPlayerOveralls={oppLineup.map(p => p.overall)}
           showAway
           chemistryLinks={chemLinks}
         />
