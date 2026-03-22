@@ -810,6 +810,7 @@ export interface MerchState {
   currentSeasonRevenue: number;
   starPlayerDip: number; // weeks remaining of post-sale merch dip
   starSigningBuzz: number; // weeks remaining of post-signing merch boost
+  kitLaunchUsedThisSeason: boolean; // prevents multiple kit launches per season
 }
 
 // ── Cliffhanger System ──

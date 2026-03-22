@@ -182,5 +182,6 @@ export function getDefaultMerchState(): MerchState {
     currentSeasonRevenue: 0,
     starPlayerDip: 0,
     starSigningBuzz: 0,
+    kitLaunchUsedThisSeason: false,
   };
 }

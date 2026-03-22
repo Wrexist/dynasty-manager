@@ -4,6 +4,7 @@ import {
   RARE_OBJECTIVE_CHANCE, LEGENDARY_OBJECTIVE_CHANCE,
   OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_STREAK_MULTIPLIER,
   ALL_OBJECTIVES_BONUS_XP,
+  RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER,
 } from '@/config/gameBalance';
 
 export interface WeeklyObjective {
@@ -367,7 +368,9 @@ export function evaluateObjectives(
     if (!template) return inst;
     const done = template.check(ctx);
     if (done) {
-      xpEarned += inst.xpReward;
+      const rarityMult = inst.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
+        : inst.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
+      xpEarned += inst.xpReward * rarityMult;
       return { ...inst, completed: true };
     }
     return inst;

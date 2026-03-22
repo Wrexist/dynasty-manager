@@ -831,6 +831,7 @@ function finalizeSeason(
       currentSeasonRevenue: 0,
       activeCampaign: null,
       campaignCooldownWeeks: 0,
+      kitLaunchUsedThisSeason: false,
     },
     youthAcademy: { prospects: newYouthProspects, nextIntakePreview: newIntakePreview },
     staff: { ...state.staff, availableHires: newAvailableHires },

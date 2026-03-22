@@ -62,9 +62,6 @@ export const createMerchandiseSlice = (set: Set, get: Get) => ({
     const playerTableIdx = state.leagueTable.findIndex(e => e.clubId === state.playerClubId);
     const leaguePosition = playerTableIdx >= 0 ? playerTableIdx + 1 : state.leagueTable.length;
 
-    // Check if kit launch was already used this season
-    const kitLaunchUsedThisSeason = type === 'kit_launch' && state.merchandise.activeCampaign?.type === 'kit_launch';
-
     const check = canLaunchCampaign(type, {
       merch: state.merchandise,
       budget: club.budget,
@@ -73,7 +70,7 @@ export const createMerchandiseSlice = (set: Set, get: Get) => ({
       cupEliminated: state.cup.eliminated,
       cupCurrentRound: state.cup.currentRound,
       hasRecentBigSigning: state.merchandise.starSigningBuzz > 0,
-      kitLaunchUsedThisSeason,
+      kitLaunchUsedThisSeason: state.merchandise.kitLaunchUsedThisSeason ?? false,
     });
 
     if (!check.eligible) return { success: false, message: check.reason || 'Cannot launch campaign.' };
@@ -95,6 +92,7 @@ export const createMerchandiseSlice = (set: Set, get: Get) => ({
           totalWeeks: def.durationWeeks,
           revenueBoost: def.revenueBoost,
         },
+        ...(type === 'kit_launch' ? { kitLaunchUsedThisSeason: true } : {}),
       },
       clubs: { ...state.clubs, [state.playerClubId]: newClub },
       messages: newMessages,

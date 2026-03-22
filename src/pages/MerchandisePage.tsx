@@ -257,7 +257,7 @@ const MerchandisePage = () => {
                 cupEliminated: cup.eliminated,
                 cupCurrentRound: cup.currentRound,
                 hasRecentBigSigning: merchandise.starSigningBuzz > 0,
-                kitLaunchUsedThisSeason: false,
+                kitLaunchUsedThisSeason: merchandise.kitLaunchUsedThisSeason ?? false,
               });
 
               return (
