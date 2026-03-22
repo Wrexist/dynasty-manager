@@ -1,4 +1,4 @@
-import { Player, Match, Club, FacilitiesState, ScoutingState, LeagueTableEntry, CliffhangerItem } from '@/types/game';
+import { Player, Match, Club, FacilitiesState, ScoutingState, LeagueTableEntry, CliffhangerItem, BoardObjective, DivisionId } from '@/types/game';
 import { getSuffix } from '@/utils/helpers';
 import {
   MAX_CLIFFHANGERS, CLIFFHANGER_TITLE_RACE_GAP, CLIFFHANGER_BIG_MATCH_REP_GAP,
@@ -22,6 +22,10 @@ interface PreviewContext {
   scouting: ScoutingState;
   week: number;
   season: number;
+  // Optional extended context for richer fallbacks
+  boardObjectives?: BoardObjective[];
+  divisionTables?: Record<DivisionId, LeagueTableEntry[]>;
+  playerDivision?: DivisionId;
 }
 
 /** Generate "Next Week Preview" teaser items from current state */
@@ -160,6 +164,38 @@ export function getFallbackPreview(ctx: PreviewContext): PreviewItem[] {
   const weeksLeft = 46 - ctx.week;
   if (weeksLeft > 0 && weeksLeft <= 10) {
     items.push({ icon: 'calendar', text: `${weeksLeft} weeks left this season — every match counts now.`, type: 'neutral' });
+  }
+
+  // League position context
+  if (ctx.divisionTables && ctx.playerDivision) {
+    const table = ctx.divisionTables[ctx.playerDivision] || [];
+    const myIdx = table.findIndex(e => e.clubId === ctx.playerClubId);
+    if (myIdx >= 0 && table.length > 3) {
+      const myPts = table[myIdx].points;
+      if (myIdx > 0 && myIdx <= 3) {
+        const leaderPts = table[0].points;
+        const gap = leaderPts - myPts;
+        if (gap > 0 && gap <= 6) items.push({ icon: 'trophy', text: `Just ${gap} point${gap !== 1 ? 's' : ''} off the top — the title race is on.`, type: 'positive' });
+      }
+      if (myIdx >= table.length - 4 && myIdx > 0) {
+        const safeIdx = table.length - 4;
+        const safePoints = table[safeIdx]?.points || 0;
+        const gap = safePoints - myPts;
+        if (gap > 0) items.push({ icon: 'alert-triangle', text: `${gap} point${gap !== 1 ? 's' : ''} from safety — every result matters.`, type: 'warning' });
+      }
+    }
+  }
+
+  // Injury return countdown
+  const recovering = squad.filter(p => p.injured && p.injuryWeeks > 0).sort((a, b) => a.injuryWeeks - b.injuryWeeks);
+  if (recovering.length > 0 && recovering[0].injuryWeeks <= 3) {
+    items.push({ icon: 'heart-pulse', text: `${recovering[0].lastName} returns from injury in ${recovering[0].injuryWeeks} week${recovering[0].injuryWeeks !== 1 ? 's' : ''}.`, type: 'neutral' });
+  }
+
+  // Contract expiry warnings
+  const expiring = squad.filter(p => p.contractEnd <= ctx.season);
+  if (expiring.length >= 2) {
+    items.push({ icon: 'file-text', text: `${expiring.length} players' contracts expire this season — consider renewals.`, type: 'warning' });
   }
 
   return items.slice(0, 2);

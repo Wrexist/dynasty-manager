@@ -4,7 +4,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users } from 'lucide-react';
+import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users, Search, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { hapticMedium } from '@/utils/haptics';
 import { TransferListing } from '@/types/game';
@@ -25,6 +25,7 @@ const TransferPage = () => {
     activeLoans, incomingLoanOffers, recallLoan, respondToLoanOffer,
     week, season, totalWeeks,
     freeAgents, signFreeAgent,
+    setScreen, scouting,
   } = useGameStore();
 
   const [posFilter, setPosFilter] = useState(0);
@@ -151,6 +152,38 @@ const TransferPage = () => {
         <span className="text-sm text-muted-foreground">Available Budget</span>
         <span className="text-lg font-black text-primary">{'\u00A3'}{((club?.budget || 0) / 1e6).toFixed(1)}M</span>
       </GlassPanel>
+
+      {/* Closed window planning hints */}
+      {!transferWindowOpen && (
+        <GlassPanel className="p-3 space-y-2">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {week < WINTER_WINDOW_START
+                ? `${WINTER_WINDOW_START - week} weeks until the winter window`
+                : `Transfer window reopens next season`}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {shortlist.length > 0 && (
+              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                {shortlist.length} shortlisted
+              </span>
+            )}
+            {scouting.assignments.length > 0 && (
+              <span className="text-[10px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">
+                {scouting.assignments.length} scout{scouting.assignments.length !== 1 ? 's' : ''} active
+              </span>
+            )}
+            <button
+              onClick={() => setScreen('scouting')}
+              className="text-[10px] text-primary underline underline-offset-2 hover:text-primary/80"
+            >
+              <Search className="w-3 h-3 inline mr-0.5" />Scout ahead
+            </button>
+          </div>
+        </GlassPanel>
+      )}
 
       {/* 4 Tabs */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide">

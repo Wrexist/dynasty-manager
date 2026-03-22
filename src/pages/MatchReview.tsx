@@ -12,7 +12,7 @@ import { getSuffix } from '@/utils/helpers';
 import { motion } from 'framer-motion';
 
 const MatchReview = () => {
-  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, advanceWeek, setScreen, week, divisionFixtures, playerDivision, divisionTables } = useGameStore();
+  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, advanceWeek, setScreen, week, divisionFixtures, playerDivision, divisionTables, boardObjectives } = useGameStore();
   const [isAdvancing, setIsAdvancing] = useState(false);
 
   if (!currentMatchResult) {
@@ -416,7 +416,33 @@ const MatchReview = () => {
         const nextFixture = divisionFixtures[playerDivision]?.find(
           f => !f.played && f.week > week && (f.homeClubId === playerClubId || f.awayClubId === playerClubId)
         );
-        if (!nextFixture) return null;
+        if (!nextFixture) {
+          // Season context when no next fixture
+          const remainingMatches = (divisionFixtures[playerDivision] || [])
+            .filter(f => !f.played && (f.homeClubId === playerClubId || f.awayClubId === playerClubId)).length;
+          const table = divisionTables[playerDivision] || [];
+          const myPos = table.findIndex(e => e.clubId === playerClubId) + 1;
+          if (remainingMatches <= 0 && myPos <= 0) return null;
+          const posLabel = myPos > 0 ? `${myPos}${getSuffix(myPos)} place` : '';
+          return (
+            <GlassPanel className="p-4 border-border/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Season Progress</p>
+              </div>
+              <p className="text-sm text-foreground">
+                {remainingMatches > 0
+                  ? `${remainingMatches} match${remainingMatches !== 1 ? 'es' : ''} remaining${posLabel ? ` — currently ${posLabel}` : ''}`
+                  : `Season complete${posLabel ? ` — finished ${posLabel}` : ''}`}
+              </p>
+              {boardObjectives.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Board target: {boardObjectives[0].description}
+                </p>
+              )}
+            </GlassPanel>
+          );
+        }
 
         const opponentId = nextFixture.homeClubId === playerClubId ? nextFixture.awayClubId : nextFixture.homeClubId;
         const opponent = clubs[opponentId];
