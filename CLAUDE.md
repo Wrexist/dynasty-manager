@@ -1,5 +1,39 @@
 # CLAUDE.md — Dynasty Manager
 
+## ⚠️ MANDATORY: Read This First — Git & Shipping Workflow
+
+**These are NON-NEGOTIABLE rules. Every Claude session MUST follow them.**
+
+### When the user asks you to commit, push, ship, or create a PR:
+1. Run `npm run preflight` — validates lint + test + build. Fix any failures before proceeding.
+2. Stage specific changed files with `git add <files>` (NEVER blind `git add -A`).
+3. Commit with a clear message: `git commit -m "descriptive message"`.
+4. Push: `git push -u origin <branch-name>` — retry up to 4x with exponential backoff on network failure.
+5. **Output the PR link** to the user: `https://github.com/Wrexist/dynasty-manager/pull/new/<branch-name>`
+
+**Or use the one-liner:** `npm run ship -- "commit message"` — does ALL of the above automatically.
+
+### When the user asks you to start a new feature/branch:
+```bash
+npm run branch -- <branch-name>
+```
+This fetches latest `origin/main` and creates a clean branch. NEVER branch from `master` or detached HEAD.
+
+### What NOT to do:
+- **NEVER** use `gh pr create` — GitHub API auth is not available in this environment. It WILL fail.
+- **NEVER** push without running preflight first.
+- **NEVER** skip giving the user the PR creation link after pushing.
+
+### Available workflow commands:
+| Command | What it does |
+|---------|-------------|
+| `npm run preflight` | Lint + test + build (local CI mirror) |
+| `npm run ship -- "msg"` | Preflight + stage + commit + push with retry |
+| `npm run branch -- name` | Create feature branch from latest origin/main |
+| `npm run typecheck` | Standalone TypeScript check |
+
+---
+
 ## Project Overview
 Dynasty Manager is a mobile-first football management simulation with native iOS/Android builds via Capacitor. Players pick a club from 92 teams across 4 divisions, manage squads, set tactics, handle transfers/loans, simulate matches, and progress through seasons with promotion/relegation and cup competitions. Dark premium UI with glass-morphism and gold accents.
 
@@ -154,46 +188,14 @@ npm run cap:android  # Open Android Studio project
 
 ## Git Workflow for Claude Sessions
 
-**When asked to push, commit, or create a PR, follow this exact flow — no exceptions.**
+**See the MANDATORY section at the top of this file. The rules there override everything.**
 
-### Step 1: Preflight
-```bash
-npm run preflight
-```
-This runs lint + test + build. Do NOT push if preflight fails — fix errors first.
-
-### Step 2: Commit
-Stage only the files you changed (never `git add -A` blindly — skip `.env`, credentials, large binaries):
-```bash
-git add <specific files>
-git commit -m "Short descriptive message"
-```
-
-### Step 3: Push with retry
-```bash
-git push -u origin <branch-name>
-```
-If push fails due to network errors, retry up to 4 times with exponential backoff (2s, 4s, 8s, 16s).
-
-### Step 4: Provide the PR link
-After a successful push, git prints a PR creation URL. **Always extract and display it to the user like this:**
-
-> Pushed to `<branch-name>`. Create your PR here:
-> **https://github.com/Wrexist/dynasty-manager/pull/new/<branch-name>**
-
-The `gh` CLI is NOT available in this environment (no GitHub API auth). Do NOT attempt `gh pr create` — it will fail. Always give the user the direct PR link instead.
-
-### Branch naming
-- Branches MUST be based on `origin/main` (not `master`, not detached HEAD)
-- If starting fresh: `git fetch origin main && git checkout -b <branch-name> origin/main`
-- This ensures PRs compare cleanly on GitHub (prevents "nothing to compare" errors)
-
-### One-command alternative
-If you want to do everything in one shot:
-```bash
-npm run ship -- "commit message"
-```
-This runs preflight → stages → commits → pushes with retry — all in one command.
+Quick reference:
+- `npm run ship -- "msg"` = preflight + commit + push (preferred one-liner)
+- `npm run branch -- name` = new branch from origin/main
+- `npm run preflight` = lint + test + build
+- After push → always give the user: `https://github.com/Wrexist/dynasty-manager/pull/new/<branch>`
+- `gh pr create` is FORBIDDEN — no GitHub API auth available
 
 ## CI/CD
 - **`ios-testflight.yml`** — Automated iOS TestFlight deployment
