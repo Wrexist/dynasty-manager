@@ -22,9 +22,10 @@ interface PlayerAvatarProps {
   jerseyColor: string;
   jerseyNumber?: number;
   size?: number;
+  isAway?: boolean;
 }
 
-export function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6 }: PlayerAvatarProps) {
+export function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6, isAway = false }: PlayerAvatarProps) {
   const seed = hashId(playerId);
   const skinTone = SKIN_TONES[seed % SKIN_TONES.length];
   const hairColor = HAIR_COLORS[(seed >> 4) % HAIR_COLORS.length];
