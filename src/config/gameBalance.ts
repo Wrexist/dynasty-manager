@@ -14,9 +14,9 @@ export const LOW_FITNESS_THRESHOLD = 65;
 // ── Player Development: Growth ──
 export const GROWTH_AGE_THRESHOLD = 24;
 export const MAX_SEASON_GROWTH = 8;
-export const GROWTH_BASE_CHANCE = 0.02;
+export const GROWTH_BASE_CHANCE = 0.03;
 export const GROWTH_POTENTIAL_GAP_FACTOR = 0.005;
-export const PLAYING_TIME_BONUS_MAX = 0.08;
+export const PLAYING_TIME_BONUS_MAX = 0.12;
 export const PLAYING_TIME_BONUS_PER_APP = 0.004;
 
 // ── Player Development: Decline ──
@@ -59,10 +59,10 @@ export const VALUE_AGE_MULTIPLIERS = [
 
 // ── Board Confidence ──
 export const CONFIDENCE_WIN_CHANGE = 4;
-export const CONFIDENCE_LOSS_CHANGE = -5;
-export const CONFIDENCE_DRAW_CHANGE = -1;
+export const CONFIDENCE_LOSS_CHANGE = -4;
+export const CONFIDENCE_DRAW_CHANGE = 0;
 export const CONFIDENCE_POSITION_BONUS = 2;
-export const CONFIDENCE_POSITION_PENALTY = -3;
+export const CONFIDENCE_POSITION_PENALTY = -2;
 export const CONFIDENCE_POSITION_PENALTY_THRESHOLD = -3;
 export const CONFIDENCE_BUDGET_PENALTY = -2;
 export const CONFIDENCE_BUDGET_THRESHOLD = -5_000_000;
@@ -123,6 +123,8 @@ export const CONTRACT_MORALE_MIN = 20;
 // ── Income ──
 export const MATCHDAY_INCOME_PER_FAN = 50000;
 export const COMMERCIAL_INCOME_PER_REP = 200000;
+/** Base weekly income floor so lower-league clubs can still compete */
+export const COMMERCIAL_INCOME_BASE = 100000;
 export const STADIUM_INCOME_PER_LEVEL = 20000;
 export const POSITION_PRIZE_PER_RANK = 15000;
 export const POSITION_PRIZE_MAX_RANK = 21;

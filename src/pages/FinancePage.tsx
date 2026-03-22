@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
-import { MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP } from '@/config/gameBalance';
+import { MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE } from '@/config/gameBalance';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { SponsorshipPanel } from '@/components/game/SponsorshipPanel';
@@ -111,7 +111,7 @@ const FinancePage = () => {
             </div>
             <div className="flex justify-between text-[10px]">
               <span className="text-muted-foreground">Commercial</span>
-              <span className="text-foreground">£{(club.reputation * COMMERCIAL_INCOME_PER_REP / 1000).toFixed(0)}K</span>
+              <span className="text-foreground">£{((COMMERCIAL_INCOME_BASE + club.reputation * COMMERCIAL_INCOME_PER_REP) / 1000).toFixed(0)}K</span>
             </div>
           </div>
         </GlassPanel>

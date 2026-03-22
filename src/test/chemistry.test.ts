@@ -79,13 +79,13 @@ describe('chemistry', () => {
         makePlayer(['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'CAM', 'LW', 'RW', 'ST'][i], { nationality: 'Spanish' })
       );
       const bonus = getChemistryBonus(players);
-      expect(bonus).toBeLessThanOrEqual(0.08);
+      expect(bonus).toBeLessThanOrEqual(0.12);
     });
   });
 
   describe('getChemistryLabel', () => {
     it('should return Excellent for high bonus', () => {
-      expect(getChemistryLabel(0.07).label).toBe('Excellent');
+      expect(getChemistryLabel(0.09).label).toBe('Excellent');
     });
 
     it('should return Low for zero bonus', () => {

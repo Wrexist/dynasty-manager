@@ -50,6 +50,7 @@ import {
   MOMENTUM_GOAL_SWING, MOMENTUM_SAVE_SWING, MOMENTUM_CARD_SWING, MOMENTUM_PENALTY_SWING,
   MOMENTUM_DECAY_PER_MINUTE, MOMENTUM_STRENGTH_SCALE,
   SUB_FRESHNESS_BONUS,
+  SET_PIECE_TAKER_CORNER_BONUS, PENALTY_TAKER_BONUS,
 } from '@/config/matchEngine';
 
 /** State carried between halves so the second half can continue from the first */
@@ -648,8 +649,9 @@ export function simulateHalf(
         // Corner chance from saved shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_SAVE_CHANCE + widthCornerBonus) {
           if (isHome) homeCorners++; else awayCorners++;
-          // Corner goal attempt
-          if (Math.random() < CORNER_GOAL_CHANCE) {
+          // Corner goal attempt — designated set-piece taker improves delivery
+          const setPieceBonus = (club.setPieceTakerId && eligibleSquad.some(p => p.id === club.setPieceTakerId)) ? SET_PIECE_TAKER_CORNER_BONUS : 0;
+          if (Math.random() < CORNER_GOAL_CHANCE + setPieceBonus) {
             const headerCandidates = eligibleSquad.filter(p => p.position !== 'GK');
             if (headerCandidates.length > 0) {
               const headerWeights = headerCandidates.map(p => p.attributes.physical * CORNER_GOAL_PHYSICAL_WEIGHT + p.attributes.mental * CORNER_GOAL_DEFENDING_WEIGHT);
@@ -745,9 +747,12 @@ export function simulateHalf(
       if (Math.random() < PENALTY_FROM_FOUL_CHANCE) {
         const oppEligible = oppSquad.filter(p => !unavailable.has(p.id));
         if (oppEligible.length > 0) {
-          const penaltyTaker = pickAttacker(oppEligible);
           const oppClubRef = isHome ? awayClub : homeClub;
-          if (Math.random() < PENALTY_CONVERSION_RATE) {
+          // Prefer designated penalty taker if on the pitch
+          const designatedTaker = oppClubRef.penaltyTakerId ? oppEligible.find(p => p.id === oppClubRef.penaltyTakerId) : null;
+          const penaltyTaker = designatedTaker || pickAttacker(oppEligible);
+          const penaltyBonus = designatedTaker ? PENALTY_TAKER_BONUS : 0;
+          if (Math.random() < PENALTY_CONVERSION_RATE + penaltyBonus) {
             if (isHome) awayGoals++; else homeGoals++;
             if (isHome) { awayShots++; awaySoT++; } else { homeShots++; homeSoT++; }
             if (playerEvents[penaltyTaker.id]) playerEvents[penaltyTaker.id].goals++;

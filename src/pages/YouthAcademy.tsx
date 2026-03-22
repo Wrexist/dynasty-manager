@@ -5,6 +5,8 @@ import { SubNav } from '@/components/game/SubNav';
 import { GraduationCap, Star, TrendingUp, ArrowUpRight, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses, getPotentialInfo } from '@/utils/uiHelpers';
+import { PAGE_HINTS } from '@/config/ui';
+import { PageHint } from '@/components/game/PageHint';
 
 const SQUAD_SUB_NAV = [
   { screen: 'squad' as const, label: 'Squad' },
@@ -21,6 +23,7 @@ const YouthAcademy = () => {
   return (
     <div className="max-w-lg mx-auto">
       <SubNav items={SQUAD_SUB_NAV} />
+      <PageHint screen="youthAcademy" title={PAGE_HINTS.youthAcademy.title} body={PAGE_HINTS.youthAcademy.body} />
       <div className="px-4 pb-4 space-y-3">
         <h2 className="text-lg font-display font-bold text-foreground">Youth Academy</h2>
 

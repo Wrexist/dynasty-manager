@@ -37,13 +37,18 @@ export const ADJACENT_PAIRS: [string, string][] = [
   ['ST', 'ST'], ['LW', 'ST'], ['RW', 'ST'],
 ];
 
+// ── Club Loyalty Bond ──
+/** Seasons at club required for loyalty chemistry link */
+export const LOYALTY_SEASONS_THRESHOLD = 2;
+export const LOYALTY_MAX_STRENGTH = 2;
+
 // ── Chemistry Bonus ──
 export const CHEMISTRY_BONUS_PER_STRENGTH = 0.008;
-export const CHEMISTRY_BONUS_MAX = 0.08;
+export const CHEMISTRY_BONUS_MAX = 0.12;
 
 // ── Chemistry Labels ──
-export const CHEMISTRY_EXCELLENT_THRESHOLD = 0.06;
-export const CHEMISTRY_GOOD_THRESHOLD = 0.04;
+export const CHEMISTRY_EXCELLENT_THRESHOLD = 0.08;
+export const CHEMISTRY_GOOD_THRESHOLD = 0.05;
 export const CHEMISTRY_AVERAGE_THRESHOLD = 0.02;
 
 // ── Mentor Growth Bonus ──

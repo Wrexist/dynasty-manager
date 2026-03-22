@@ -5,6 +5,8 @@ import { ChevronRight, Flame, Calendar, HeartPulse, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor } from '@/utils/uiHelpers';
+import { generateMatchInsights } from '@/utils/matchInsights';
+import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getDerbyName, getDerbyIntensity } from '@/data/league';
 import { getSuffix } from '@/utils/helpers';
 import { motion } from 'framer-motion';
@@ -192,6 +194,30 @@ const MatchReview = () => {
           </div>
         </GlassPanel>
       )}
+
+      {/* Match Insights */}
+      {match.stats && (() => {
+        const insights = generateMatchInsights(match, playerClubId);
+        if (insights.length === 0) return null;
+        return (
+          <GlassPanel className="p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3">Match Insights</h3>
+            <div className="space-y-2">
+              {insights.map((insight, i) => (
+                <div key={i} className={cn(
+                  'flex items-start gap-2 text-xs rounded-lg px-3 py-2 border',
+                  insight.type === 'positive' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' :
+                  insight.type === 'negative' ? 'bg-destructive/10 border-destructive/20 text-red-300' :
+                  'bg-muted/30 border-border/30 text-muted-foreground'
+                )}>
+                  <DynamicIcon name={insight.icon} className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>{insight.text}</span>
+                </div>
+              ))}
+            </div>
+          </GlassPanel>
+        );
+      })()}
 
       {/* Player Ratings */}
       {matchPlayerRatings.length > 0 && (() => {

@@ -84,11 +84,11 @@ export const GK_SAVE_RANGE = 0.40;
 export const TACTICAL_FAMILIARITY_MULTIPLIER = 0.004;
 
 // ── Home Advantage ──
-export const HOME_ADVANTAGE = 1.07;
+export const HOME_ADVANTAGE = 1.10;
 
 // ── Event Generation ──
 export const BASE_EVENT_CHANCE = 0.18;
-export const LATE_GAME_EVENT_BONUS = 0.08;
+export const LATE_GAME_EVENT_BONUS = 0.15;
 export const LATE_GAME_THRESHOLD_MINUTE = 85;
 /** Fraction of event rolls that become shot attempts */
 export const SHOT_ATTEMPT_THRESHOLD = 0.2;
@@ -225,7 +225,7 @@ export const KEY_MOMENT_TIGHT_FINISH_MINUTE = 80;
 export const DISCIPLINARIAN_CARD_REDUCTION = 0.30;
 
 // ── Substitutions ──
-export const MAX_SUBSTITUTIONS = 3;
+export const MAX_SUBSTITUTIONS = 5;
 
 // ── Momentum System ──
 /** How much momentum swings toward the scoring team after a goal (-100 to +100 scale) */
@@ -244,3 +244,9 @@ export const MOMENTUM_STRENGTH_SCALE = 0.15;
 // ── Substitution Freshness ──
 /** Strength bonus for recently substituted players */
 export const SUB_FRESHNESS_BONUS = 0.04;
+
+// ── Set-Piece Taker Bonus ──
+/** Bonus to corner goal chance when a designated set-piece taker delivers */
+export const SET_PIECE_TAKER_CORNER_BONUS = 0.03;
+/** Bonus to penalty conversion when a designated penalty taker shoots */
+export const PENALTY_TAKER_BONUS = 0.05;

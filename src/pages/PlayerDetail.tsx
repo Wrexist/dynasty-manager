@@ -22,9 +22,9 @@ const PlayerDetail = () => {
 
   if (!player) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-8 text-center">
-        <p className="text-muted-foreground">Player not found</p>
-        <Button variant="ghost" className="mt-2" onClick={() => setScreen('squad')}>Back to Squad</Button>
+      <div className="max-w-lg mx-auto px-4 py-8 text-center space-y-3">
+        <p className="text-muted-foreground">This player is no longer in the game — they may have been released, retired, or transferred.</p>
+        <Button variant="secondary" onClick={() => setScreen('squad')}>Back to Squad</Button>
       </div>
     );
   }

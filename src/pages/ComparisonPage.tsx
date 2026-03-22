@@ -3,7 +3,8 @@ import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
-import { CHART_COLORS } from '@/config/ui';
+import { CHART_COLORS, PAGE_HINTS } from '@/config/ui';
+import { PageHint } from '@/components/game/PageHint';
 
 const ComparisonPage = () => {
   const { clubs, players, playerClubId } = useGameStore();
@@ -27,6 +28,7 @@ const ComparisonPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+      <PageHint screen="comparison" title={PAGE_HINTS.comparison.title} body={PAGE_HINTS.comparison.body} />
       <h2 className="text-lg font-display font-bold text-foreground">Player Comparison</h2>
 
       {/* Player Selectors */}

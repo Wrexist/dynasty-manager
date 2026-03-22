@@ -7,6 +7,8 @@ import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { motion } from 'framer-motion';
 import { PRESTIGE_OPTIONS, calculatePrestigeStats } from '@/utils/prestige';
 import type { PrestigeOption } from '@/utils/prestige';
+import { PAGE_HINTS } from '@/config/ui';
+import { PageHint } from '@/components/game/PageHint';
 
 const PrestigePage = () => {
   const { seasonHistory, managerStats, managerProgression, setScreen, startPrestige } = useGameStore();
@@ -16,6 +18,7 @@ const PrestigePage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      <PageHint screen="prestige" title={PAGE_HINTS.prestige.title} body={PAGE_HINTS.prestige.body} />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
         {/* Header */}
         <div className="text-center mb-6">

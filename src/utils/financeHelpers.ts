@@ -6,6 +6,7 @@
 import {
   MATCHDAY_INCOME_PER_FAN,
   COMMERCIAL_INCOME_PER_REP,
+  COMMERCIAL_INCOME_BASE,
   STADIUM_INCOME_PER_LEVEL,
   POSITION_PRIZE_PER_RANK,
   POSITION_PRIZE_MAX_RANK,
@@ -35,7 +36,7 @@ export interface FinanceBreakdown {
 
 /** Simple weekly income estimate (matchday + commercial) */
 export function getWeeklyIncome(club: Club): number {
-  return club.fanBase * MATCHDAY_INCOME_PER_FAN + club.reputation * COMMERCIAL_INCOME_PER_REP;
+  return club.fanBase * MATCHDAY_INCOME_PER_FAN + COMMERCIAL_INCOME_BASE + club.reputation * COMMERCIAL_INCOME_PER_REP;
 }
 
 /** Net weekly income after wage bill */
@@ -60,7 +61,7 @@ export function getFinanceBreakdown(opts: {
   const fanMoodMult = FAN_MOOD_BASE + (fanMood / 100) * FAN_MOOD_SCALE;
 
   const matchdayIncome = Math.round(club.fanBase * MATCHDAY_INCOME_PER_FAN * fanMoodMult);
-  const commercialIncome = Math.round(club.reputation * COMMERCIAL_INCOME_PER_REP);
+  const commercialIncome = Math.round(COMMERCIAL_INCOME_BASE + club.reputation * COMMERCIAL_INCOME_PER_REP);
   const stadiumIncome = Math.round(facilities.stadiumLevel * STADIUM_INCOME_PER_LEVEL * fanFavMult);
 
   const playerTableIdx = leagueTable.findIndex(e => e.clubId === club.id);

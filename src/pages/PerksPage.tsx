@@ -6,6 +6,8 @@ import { MANAGER_PERKS, xpForLevel, getTotalXP, canUnlockPerk, XP_REWARDS } from
 import { toast } from 'sonner';
 import { hapticMedium } from '@/utils/haptics';
 import type { PerkId } from '@/types/game';
+import { PAGE_HINTS } from '@/config/ui';
+import { PageHint } from '@/components/game/PageHint';
 
 const PerksPage = () => {
   const { managerProgression, unlockPerk } = useGameStore();
@@ -27,6 +29,7 @@ const PerksPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+      <PageHint screen="perks" title={PAGE_HINTS.perks.title} body={PAGE_HINTS.perks.body} />
       <h2 className="text-lg font-display font-bold text-foreground">Manager Perks</h2>
 
       {/* Level & XP */}

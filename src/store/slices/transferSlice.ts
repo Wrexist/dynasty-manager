@@ -102,43 +102,41 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
     // New sell-on clause: the selling club gets 10-20% on expensive transfers
     const sellOnPct = fee >= 10_000_000 ? 10 + Math.floor(Math.random() * 11) : fee >= 5_000_000 ? 5 + Math.floor(Math.random() * 6) : 0;
-    player.clubId = state.playerClubId;
-    player.joinedSeason = state.season;
-    player.listedForSale = false;
-    if (sellOnPct > 0) {
-      player.sellOnPercentage = sellOnPct;
-      player.sellOnClubId = listing.sellerClubId;
-    } else {
-      player.sellOnPercentage = undefined;
-      player.sellOnClubId = undefined;
-    }
-    newClub.playerIds.push(playerId);
+    const updatedPlayer = {
+      ...player,
+      clubId: state.playerClubId,
+      joinedSeason: state.season,
+      listedForSale: false,
+      sellOnPercentage: sellOnPct > 0 ? sellOnPct : undefined,
+      sellOnClubId: sellOnPct > 0 ? listing.sellerClubId : undefined,
+    };
+    newClub.playerIds = [...newClub.playerIds, playerId];
     newClub.budget -= fee;
-    newClub.wageBill += player.wage;
+    newClub.wageBill += updatedPlayer.wage;
 
     const transferMarket = state.transferMarket.filter(l => l.playerId !== playerId);
     const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${sellOnClubName})` : '';
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
-      title: `${player.lastName} Signed!`,
-      body: `${player.firstName} ${player.lastName} has joined ${newClub.name} from ${oldClub.name} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}`,
+      title: `${updatedPlayer.lastName} Signed!`,
+      body: `${updatedPlayer.firstName} ${updatedPlayer.lastName} has joined ${newClub.name} from ${oldClub.name} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}`,
     });
 
     const ms = { ...state.managerStats, totalSpent: state.managerStats.totalSpent + fee };
     // Record signing milestone if this is the most expensive signing ever
     const isRecordSigning = fee > ms.totalSpent * 0.4 && fee >= 5_000_000;
     const newTimeline = isRecordSigning
-      ? [...state.careerTimeline, { id: crypto.randomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${player.firstName} ${player.lastName} for £${(fee / 1e6).toFixed(1)}M from ${oldClub.name}.`, season: state.season, week: state.week, icon: 'pen-line' }]
+      ? [...state.careerTimeline, { id: crypto.randomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${updatedPlayer.firstName} ${updatedPlayer.lastName} for £${(fee / 1e6).toFixed(1)}M from ${oldClub.name}.`, season: state.season, week: state.week, icon: 'pen-line' }]
       : state.careerTimeline;
     updatedClubs[oldClub.id] = oldClub;
     updatedClubs[newClub.id] = newClub;
     set({
-      players: { ...state.players, [playerId]: player },
+      players: { ...state.players, [playerId]: updatedPlayer },
       clubs: updatedClubs,
       transferMarket, messages: newMessages, managerStats: ms,
       careerTimeline: newTimeline,
     });
-    return { success: true, message: `${player.firstName} ${player.lastName} signed!${sellOnNote}` };
+    return { success: true, message: `${updatedPlayer.firstName} ${updatedPlayer.lastName} signed!${sellOnNote}` };
   },
 
   makeOffer: (playerId: string, fee: number) => {

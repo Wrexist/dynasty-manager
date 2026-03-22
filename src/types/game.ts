@@ -156,6 +156,10 @@ export interface Club {
   subs: string[];
   divisionId: DivisionId;
   aiManagerProfile?: AIManagerProfile;
+  /** Player ID assigned as corner/free-kick taker */
+  setPieceTakerId?: string;
+  /** Player ID assigned as penalty taker */
+  penaltyTakerId?: string;
 }
 
 export interface ClubData {
@@ -672,7 +676,7 @@ export interface PressConference {
 }
 
 // ── Player Chemistry ──
-export type ChemistryType = 'nationality' | 'mentor' | 'partnership';
+export type ChemistryType = 'nationality' | 'mentor' | 'partnership' | 'loyalty';
 
 export interface ChemistryLink {
   playerIdA: string;
