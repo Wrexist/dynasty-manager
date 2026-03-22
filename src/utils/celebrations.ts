@@ -255,3 +255,36 @@ export function getWinStreak(playerClubId: string, fixtures: Match[]): number {
   }
   return streak;
 }
+
+/** Get current unbeaten run count */
+export function getUnbeatenRun(playerClubId: string, fixtures: Match[]): number {
+  const playedMatches = fixtures
+    .filter(m => m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
+    .sort((a, b) => b.week - a.week);
+
+  let run = 0;
+  for (const m of playedMatches) {
+    const isHome = m.homeClubId === playerClubId;
+    const gf = isHome ? m.homeGoals : m.awayGoals;
+    const ga = isHome ? m.awayGoals : m.homeGoals;
+    if (ga > gf) break;
+    run++;
+  }
+  return run;
+}
+
+/** Get current consecutive clean sheet streak */
+export function getCleanSheetStreak(playerClubId: string, fixtures: Match[]): number {
+  const playedMatches = fixtures
+    .filter(m => m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId))
+    .sort((a, b) => b.week - a.week);
+
+  let streak = 0;
+  for (const m of playedMatches) {
+    const isHome = m.homeClubId === playerClubId;
+    const ga = isHome ? m.awayGoals : m.homeGoals;
+    if (ga > 0) break;
+    streak++;
+  }
+  return streak;
+}

@@ -9,7 +9,7 @@ import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
 import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail,
-  Dumbbell, AlertTriangle, Banknote, Users, Shield, Settings, BarChart3, UserPlus, Award, Flame,
+  Dumbbell, AlertTriangle, Banknote, Users, Shield, Settings, BarChart3, UserPlus, Award, Flame, Zap,
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getRoundName } from '@/data/cup';
@@ -17,13 +17,17 @@ import { DIVISIONS } from '@/data/league';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
-import { checkCelebrations, getWinStreak, getDramaCelebration } from '@/utils/celebrations';
-import { STREAK_MORALE_THRESHOLD } from '@/config/gameBalance';
+import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
+import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD } from '@/config/gameBalance';
+import { getXPProgress } from '@/utils/managerPerks';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_END } from '@/config/transfers';
 import type { Celebration } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
 import { CelebrationModal } from '@/components/game/CelebrationModal';
 import { StorylineModal } from '@/components/game/StorylineModal';
+import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal';
+import { ACHIEVEMENTS } from '@/utils/achievements';
+import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
 import { BoardWarning } from '@/components/game/BoardWarning';
 import { getWeekPreview } from '@/utils/weekPreview';
@@ -78,6 +82,39 @@ const Dashboard = () => {
   const shownCelebrationsRef = useRef<Set<string>>(new Set());
   const prevSeasonRef = useRef(season);
   const [majorCelebration, setMajorCelebration] = useState<Celebration | null>(null);
+  const [pendingAchievementQueue, setPendingAchievementQueue] = useState<Achievement[]>([]);
+  const [currentAchievement, setCurrentAchievement] = useState<Achievement | null>(null);
+  const prevAchievementRef = useRef<string[]>([]);
+
+  // Achievement unlock modal queue — triggers when pendingAchievementIds changes
+  useEffect(() => {
+    const pendingIds = store.pendingAchievementIds;
+    if (!pendingIds || pendingIds.length === 0) return;
+    // Only process if we haven't already queued these
+    const key = pendingIds.join(',');
+    if (prevAchievementRef.current.join(',') === key) return;
+    prevAchievementRef.current = pendingIds;
+
+    const achievements = pendingIds
+      .map(id => ACHIEVEMENTS.find(a => a.id === id))
+      .filter(Boolean) as Achievement[];
+    if (achievements.length > 0) {
+      setPendingAchievementQueue(achievements);
+      setCurrentAchievement(achievements[0]);
+      hapticHeavy();
+    }
+  }, [store.pendingAchievementIds]);
+
+  const dismissAchievement = () => {
+    const remaining = pendingAchievementQueue.slice(1);
+    setPendingAchievementQueue(remaining);
+    if (remaining.length > 0) {
+      setCurrentAchievement(remaining[0]);
+    } else {
+      setCurrentAchievement(null);
+    }
+  };
+
   useEffect(() => {
     if (prevSeasonRef.current !== season) {
       shownCelebrationsRef.current.clear();
@@ -149,14 +186,39 @@ const Dashboard = () => {
   // Net weekly income
   const netWeeklyIncome = useMemo(() => club ? getNetWeeklyIncome(club) : 0, [club]);
 
-  // Win streak
+  // Streak stats
   const winStreak = useMemo(() => getWinStreak(playerClubId, fixtures), [playerClubId, fixtures]);
+  const unbeatenRun = useMemo(() => getUnbeatenRun(playerClubId, fixtures), [playerClubId, fixtures]);
+  const cleanSheetStreak = useMemo(() => getCleanSheetStreak(playerClubId, fixtures), [playerClubId, fixtures]);
 
   // Week preview teasers
   const weekPreviews = useMemo(() => club ? getWeekPreview({
     playerClubId, players, clubs, fixtures, facilities: store.facilities,
     scouting: store.scouting, week, season,
   }) : [], [playerClubId, players, clubs, fixtures, store.facilities, store.scouting, week, season, club]);
+
+  // XP progress to next level
+  const xpProgress = useMemo(() => getXPProgress(store.managerProgression), [store.managerProgression]);
+
+  // Season race — top 3 teams nearest to player in table
+  const seasonRace = useMemo(() => {
+    if (!entry || leagueTable.length < 3) return [];
+    const playerIdx = leagueTable.indexOf(entry);
+    // Show teams within 2 positions above and below, plus the leader if not visible
+    const nearby = new Set<number>();
+    if (playerIdx > 0) nearby.add(0); // Always show leader
+    for (let i = Math.max(0, playerIdx - 2); i <= Math.min(leagueTable.length - 1, playerIdx + 2); i++) {
+      nearby.add(i);
+    }
+    return [...nearby].sort((a, b) => a - b).slice(0, 5).map(i => ({
+      clubId: leagueTable[i].clubId,
+      shortName: clubs[leagueTable[i].clubId]?.shortName || '?',
+      color: clubs[leagueTable[i].clubId]?.color,
+      points: leagueTable[i].points,
+      position: i + 1,
+      isPlayer: leagueTable[i].clubId === playerClubId,
+    }));
+  }, [leagueTable, entry, clubs, playerClubId]);
 
   // Fan confidence
   const _fanConfidence = useMemo(() => club ? getFanConfidence(club.fanBase, boardConfidence) : 0, [club, boardConfidence]);
@@ -254,6 +316,13 @@ const Dashboard = () => {
         icon={majorCelebration?.icon}
       />
 
+      {/* Achievement Unlock Modal */}
+      <AchievementUnlockModal
+        open={!!currentAchievement}
+        onClose={dismissAchievement}
+        achievement={currentAchievement}
+      />
+
       {/* Active Challenge Banner */}
       {store.activeChallenge && !store.activeChallenge.completed && !store.activeChallenge.failed && (
         <div className="bg-primary/10 border border-primary/30 rounded-xl px-3 py-2 flex items-center justify-between">
@@ -330,24 +399,69 @@ const Dashboard = () => {
         </GlassPanel>
       )}
 
-      {/* Training Status Chip + Win Streak */}
+      {/* Training Status Chip + Streaks */}
       {!seasonOver && !inPlayoffs && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-full px-3 py-1">
-            <Dumbbell className="w-3.5 h-3.5 text-primary" />
-            <span className="text-xs font-semibold text-primary">
-              Training: {trainingLabels[trainingFocus] || trainingFocus}
-            </span>
-            <span className="text-[10px] text-primary/60">|</span>
-            <span className="text-[10px] font-medium text-primary/70">Fam {store.training.tacticalFamiliarity}%</span>
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="inline-flex items-center gap-1.5 bg-primary/10 border border-primary/20 rounded-full px-3 py-1">
+              <Dumbbell className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-semibold text-primary">
+                Training: {trainingLabels[trainingFocus] || trainingFocus}
+              </span>
+              <span className="text-[10px] text-primary/60">|</span>
+              <span className="text-[10px] font-medium text-primary/70">Fam {store.training.tacticalFamiliarity}%</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground">Week {week} / Season {season}</span>
           </div>
-          {winStreak >= STREAK_MORALE_THRESHOLD && (
-            <div className="inline-flex items-center gap-1 bg-orange-500/10 border border-orange-500/30 rounded-full px-3 py-1">
-              <Flame className="w-3.5 h-3.5 text-orange-400" />
-              <span className="text-xs font-bold text-orange-400">{winStreak} Win Streak</span>
+
+          {/* Active Streaks */}
+          {(winStreak >= STREAK_MORALE_THRESHOLD || unbeatenRun >= 5 || cleanSheetStreak >= 2 || objectiveStreak >= 2) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              {winStreak >= STREAK_MORALE_THRESHOLD && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="inline-flex items-center gap-1.5 bg-orange-500/10 border border-orange-500/30 rounded-full px-3 py-1.5"
+                >
+                  <Flame className="w-3.5 h-3.5 text-orange-400" />
+                  <span className="text-xs font-bold text-orange-400">{winStreak} Wins</span>
+                </motion.div>
+              )}
+              {unbeatenRun >= 5 && unbeatenRun > winStreak && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.05 }}
+                  className="inline-flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full px-3 py-1.5"
+                >
+                  <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="text-xs font-bold text-emerald-400">{unbeatenRun} Unbeaten</span>
+                </motion.div>
+              )}
+              {cleanSheetStreak >= 2 && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.1 }}
+                  className="inline-flex items-center gap-1.5 bg-sky-500/10 border border-sky-500/30 rounded-full px-3 py-1.5"
+                >
+                  <Shield className="w-3.5 h-3.5 text-sky-400" />
+                  <span className="text-xs font-bold text-sky-400">{cleanSheetStreak} Clean Sheets</span>
+                </motion.div>
+              )}
+              {objectiveStreak >= 2 && (
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.15 }}
+                  className="inline-flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 rounded-full px-3 py-1.5"
+                >
+                  <Award className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="text-xs font-bold text-amber-400">x{objectiveStreak} Obj. Streak</span>
+                </motion.div>
+              )}
             </div>
           )}
-          <span className="text-[10px] text-muted-foreground">Week {week} / Season {season}</span>
         </div>
       )}
 
@@ -382,10 +496,24 @@ const Dashboard = () => {
       {!seasonOver && store.weeklyObjectives.length > 0 && (
         <GlassPanel className="p-4">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-xs font-bold text-foreground uppercase tracking-wider">Weekly Objectives</p>
-            <span className="text-[10px] text-primary font-semibold">
-              {store.weeklyObjectives.filter(o => o.completed).length}/{store.weeklyObjectives.length}
-            </span>
+            <div className="flex items-center gap-2">
+              <p className="text-xs font-bold text-foreground uppercase tracking-wider">Weekly Objectives</p>
+              {objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD && (
+                <span className="text-[9px] font-bold text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded-full">
+                  2x XP
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-primary font-semibold">
+                {store.weeklyObjectives.filter(o => o.completed).length}/{store.weeklyObjectives.length}
+              </span>
+              {objectiveStreak > 0 && (
+                <span className="text-[10px] text-amber-400 font-bold">
+                  Streak: {objectiveStreak}
+                </span>
+              )}
+            </div>
           </div>
           <div className="space-y-2">
             {store.weeklyObjectives.map((obj) => (
@@ -398,16 +526,80 @@ const Dashboard = () => {
               >
                 <DynamicIcon name={obj.icon} className="w-4 h-4 text-primary shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className={cn('text-xs font-semibold truncate', obj.completed ? 'text-emerald-400 line-through' : 'text-foreground')}>{obj.title}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className={cn('text-xs font-semibold truncate', obj.completed ? 'text-emerald-400 line-through' : 'text-foreground')}>{obj.title}</p>
+                    {obj.rarity === 'rare' && (
+                      <span className="text-[8px] font-bold text-blue-400 bg-blue-500/15 px-1 py-0.5 rounded shrink-0">RARE</span>
+                    )}
+                    {obj.rarity === 'legendary' && (
+                      <span className="text-[8px] font-bold text-primary bg-primary/15 px-1 py-0.5 rounded shrink-0 animate-pulse">LEGENDARY</span>
+                    )}
+                  </div>
                   <p className="text-[10px] text-muted-foreground truncate">{obj.description}</p>
                 </div>
-                <span className={cn('text-[10px] font-bold', obj.completed ? 'text-emerald-400' : 'text-primary')}>
+                <span className={cn('text-[10px] font-bold shrink-0', obj.completed ? 'text-emerald-400' : 'text-primary')}>
                   {obj.completed ? '✓' : `+${obj.xpReward} XP`}
                 </span>
               </div>
             ))}
           </div>
         </GlassPanel>
+      )}
+
+      {/* XP Progress + Season Race — engagement widgets */}
+      {!seasonOver && (
+        <div className="grid grid-cols-2 gap-3">
+          {/* XP Progress Widget */}
+          <GlassPanel className="p-4" onClick={() => setScreen('perks')}>
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-4 h-4 text-primary" />
+              <span className="text-xs text-muted-foreground">Manager Level</span>
+            </div>
+            <p className="text-2xl font-black text-primary tabular-nums">
+              {store.managerProgression.level}
+            </p>
+            <div className="mt-1.5">
+              <div className="flex items-center justify-between text-[9px] mb-0.5">
+                <span className="text-muted-foreground">Next level</span>
+                <span className="text-primary font-semibold tabular-nums">{xpProgress.current}/{xpProgress.needed}</span>
+              </div>
+              <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-primary rounded-full"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${xpProgress.percentage}%` }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
+            </div>
+          </GlassPanel>
+
+          {/* Season Race Mini Widget */}
+          <GlassPanel className="p-4" onClick={() => setScreen('league-table')}>
+            <div className="flex items-center gap-2 mb-2">
+              <Trophy className="w-4 h-4 text-primary" />
+              <span className="text-xs text-muted-foreground">Season Race</span>
+            </div>
+            <div className="space-y-1">
+              {seasonRace.slice(0, 4).map((team) => (
+                <div key={team.clubId} className={cn(
+                  'flex items-center justify-between text-[10px] rounded px-1 py-0.5',
+                  team.isPlayer ? 'bg-primary/10 font-bold text-primary' : 'text-muted-foreground'
+                )}>
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-3 text-right tabular-nums">{team.position}</span>
+                    <div
+                      className="w-3 h-3 rounded-full shrink-0"
+                      style={{ backgroundColor: team.color }}
+                    />
+                    <span className="truncate max-w-[60px]">{team.shortName}</span>
+                  </div>
+                  <span className="font-semibold tabular-nums">{team.points}pts</span>
+                </div>
+              ))}
+            </div>
+          </GlassPanel>
+        </div>
       )}
 
       {/* Next Match */}
@@ -507,13 +699,12 @@ const Dashboard = () => {
         </motion.div>
       )}
 
-      {/* Objective streak indicator */}
+      {/* Objective streak XP multiplier notification */}
       {objectiveStreak >= 3 && (
         <GlassPanel className="p-3 border-amber-500/30 bg-amber-500/5">
           <div className="flex items-center gap-2 text-xs text-amber-400">
             <Flame className="w-4 h-4" />
-            <span className="font-bold">Objective Streak x{objectiveStreak}!</span>
-            <span className="text-amber-400/70">XP multiplier active</span>
+            <span className="font-bold">Streak x{objectiveStreak} — 2x XP Multiplier Active!</span>
           </div>
         </GlassPanel>
       )}

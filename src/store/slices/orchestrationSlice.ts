@@ -10,7 +10,7 @@ import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle } from '@/utils/helpers';
 import { migrateLegacySave } from '@/store/helpers/persistence';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
-import { checkAchievements, ACHIEVEMENTS } from '@/utils/achievements';
+import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName } from '@/data/cup';
 import { generatePressConference } from '@/data/pressConferences';
 import { getMentorBonus } from '@/utils/chemistry';
@@ -978,7 +978,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         upgradeInProgress: null,
       },
       financeHistory: [], matchPlayerRatings: [],
-      unlockedAchievements: [],
+      unlockedAchievements: [], pendingAchievementIds: [],
       managerStats: { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
       clubRecords: createEmptyRecords(),
       careerTimeline: [createMilestone('season_start', 'Career Begins', `Started managing ${CLUBS_DATA.find(c => c.id === clubId)?.name || 'a club'}.`, 1, 1, 'calendar')],
@@ -1765,14 +1765,17 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const newAchievements = checkAchievements(pendingState as GameState, state.unlockedAchievements);
     const allUnlocked = [...state.unlockedAchievements, ...newAchievements];
 
-    // Notify newly unlocked achievements
+    // Notify newly unlocked achievements — grant XP + queue for celebration modal
+    let achievementXPTotal = 0;
     for (const id of newAchievements) {
       const ach = ACHIEVEMENTS.find(a => a.id === id);
       if (ach) {
+        const achXP = getAchievementXP(ach.tier);
+        achievementXPTotal += achXP;
         newMessages = addMsg(newMessages, {
           week: newWeek, season, type: 'general',
           title: `Achievement Unlocked: ${ach.title}`,
-          body: `${ach.icon} ${ach.description}`,
+          body: `${ach.description} — Earned ${achXP} XP!`,
         });
       }
     }
@@ -1854,6 +1857,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const currentStreak = state.objectiveStreak || 0;
     const { updated: evalObjectives, xpEarned: objXP, allCompleted: objAllCompleted, newStreak } = evaluateObjectives(state.weeklyObjectives, objCtx, currentStreak);
     let updatedProgression = state.managerProgression;
+    if (achievementXPTotal > 0) {
+      updatedProgression = grantXP(updatedProgression, achievementXPTotal);
+    }
     if (objXP > 0) {
       updatedProgression = grantXP(updatedProgression, objXP);
       const completedCount = evalObjectives.filter(o => o.completed).length;
@@ -1904,6 +1910,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       scouting: newScouting, facilities: newFacilities, youthAcademy: newYouthAcademy,
       financeHistory: newFinanceHistory,
       unlockedAchievements: allUnlocked,
+      pendingAchievementIds: newAchievements,
       cup: newCup,
       activeChallenge: updatedChallenge,
       divisionFixtures: updatedDivisionFixtures, divisionTables,
@@ -2606,6 +2613,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         matchPlayerRatings: [],
         currentCupTieId: null,
         unlockedAchievements: data.unlockedAchievements || [],
+        pendingAchievementIds: [],
         managerStats: data.managerStats || { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
         activeLoans: data.activeLoans || [],
         incomingLoanOffers: data.incomingLoanOffers || [],

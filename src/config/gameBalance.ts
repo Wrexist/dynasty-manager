@@ -415,6 +415,11 @@ export const OBJECTIVE_STREAK_MULTIPLIER = 2;
 /** Bonus XP for completing all 3 objectives in a week */
 export const ALL_OBJECTIVES_BONUS_XP = 25;
 
+// ── Achievement XP Rewards ──
+export const ACHIEVEMENT_XP_BRONZE = 15;
+export const ACHIEVEMENT_XP_SILVER = 30;
+export const ACHIEVEMENT_XP_GOLD = 50;
+
 // ── Match Drama Detection ──
 /** Minute threshold for "late" events */
 export const DRAMA_LATE_MINUTE = 85;
