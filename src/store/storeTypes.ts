@@ -118,6 +118,7 @@ export interface GameState {
   setFormation: (f: FormationType) => void;
   setDefensiveFormation: (f: FormationType | null) => void;
   updateLineup: (lineup: string[], subs: string[]) => void;
+  autoFillTeam: () => void;
   setTrainingFocus: (f: 'fitness' | 'attacking' | 'defending' | 'mentality') => void;
 
   // Actions — Transfer

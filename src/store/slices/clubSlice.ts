@@ -1,6 +1,8 @@
 import { FormationType } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { selectBestLineup } from '@/utils/playerGen';
+import { autoFillBestTeam } from '@/utils/autoFillLineup';
+import { toast } from 'sonner';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -16,7 +18,7 @@ export const createClubSlice = (set: Set, get: Get) => ({
     const state = get();
     const club = { ...state.clubs[state.playerClubId] };
     const squad = club.playerIds.map(id => state.players[id]).filter(Boolean);
-    const { lineup, subs } = selectBestLineup(squad, formation);
+    const { lineup, subs } = selectBestLineup(squad, formation, state.currentWeek);
     club.formation = formation;
     club.lineup = lineup.map(p => p.id);
     club.subs = subs.map(p => p.id);
@@ -36,6 +38,25 @@ export const createClubSlice = (set: Set, get: Get) => ({
     club.lineup = lineup;
     club.subs = subs;
     set({ clubs: { ...state.clubs, [club.id]: club } });
+  },
+
+  autoFillTeam: () => {
+    const state = get();
+    const club = { ...state.clubs[state.playerClubId] };
+    const squad = club.playerIds.map(id => state.players[id]).filter(Boolean);
+    const result = autoFillBestTeam(squad, club.formation, state.currentWeek);
+    club.lineup = result.lineup.map(p => p.id);
+    club.subs = result.subs.map(p => p.id);
+    set({ clubs: { ...state.clubs, [club.id]: club } });
+
+    if (result.lineup.length < 11) {
+      const injuredCount = squad.filter(p => p.injured).length;
+      const suspendedCount = squad.filter(p => p.suspendedUntilWeek && state.currentWeek !== undefined && p.suspendedUntilWeek > state.currentWeek).length;
+      const onLoanCount = squad.filter(p => p.onLoan).length;
+      toast.warning(`Only ${result.lineup.length}/11 spots filled (${injuredCount} injured, ${suspendedCount} suspended, ${onLoanCount} on loan)`);
+    } else {
+      toast.success(`Lineup optimized — Chemistry: ${result.chemistryLabel} (+${(result.chemistryBonus * 100).toFixed(1)}%)`);
+    }
   },
 
   setTrainingFocus: (f: GameState['trainingFocus']) => set({ trainingFocus: f }),
