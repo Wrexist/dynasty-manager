@@ -769,30 +769,29 @@ export function simulateHalf(
         }
       }
 
-      // Penalty: foul in dangerous area
+      // Penalty: defending team fouls attacker in the box
       if (Math.random() < PENALTY_FROM_FOUL_CHANCE) {
-        const oppEligible = oppSquad.filter(p => !unavailable.has(p.id));
-        if (oppEligible.length > 0) {
-          const oppClubRef = isHome ? awayClub : homeClub;
+        const atkEligible = squad.filter(p => !unavailable.has(p.id));
+        if (atkEligible.length > 0) {
           // Prefer designated penalty taker if on the pitch
-          const designatedTaker = oppClubRef.penaltyTakerId ? oppEligible.find(p => p.id === oppClubRef.penaltyTakerId) : null;
-          const penaltyTaker = designatedTaker || pickAttacker(oppEligible);
+          const designatedTaker = club.penaltyTakerId ? atkEligible.find(p => p.id === club.penaltyTakerId) : null;
+          const penaltyTaker = designatedTaker || pickAttacker(atkEligible);
           const penaltyBonus = designatedTaker ? PENALTY_TAKER_BONUS : 0;
           if (Math.random() < PENALTY_CONVERSION_RATE + penaltyBonus) {
-            if (isHome) awayGoals++; else homeGoals++;
-            if (isHome) { awayShots++; awaySoT++; } else { homeShots++; homeSoT++; }
+            if (isHome) homeGoals++; else awayGoals++;
+            if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
             if (playerEvents[penaltyTaker.id]) playerEvents[penaltyTaker.id].goals++;
-            squad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
-            // Momentum swings toward penalty-scoring team (opposite of fouling team)
+            oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
+            // Momentum swings toward penalty-scoring team (the attacking team)
             momentum = isHome
-              ? Math.max(-100, momentum - MOMENTUM_PENALTY_SWING)
-              : Math.min(100, momentum + MOMENTUM_PENALTY_SWING);
+              ? Math.min(100, momentum + MOMENTUM_PENALTY_SWING)
+              : Math.max(-100, momentum - MOMENTUM_PENALTY_SWING);
             // xG for penalty (standard ~0.76)
-            if (isHome) awayXG += PENALTY_CONVERSION_RATE; else homeXG += PENALTY_CONVERSION_RATE;
-            events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: oppClubRef.id, description: pick(penaltyGoalDescs)(penaltyTaker.lastName, oppClubRef.shortName) });
+            if (isHome) homeXG += PENALTY_CONVERSION_RATE; else awayXG += PENALTY_CONVERSION_RATE;
+            events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyGoalDescs)(penaltyTaker.lastName, club.shortName) });
           } else {
-            if (isHome) awayShots++; else homeShots++;
-            events.push({ minute: min, type: 'penalty_missed', playerId: penaltyTaker.id, clubId: oppClubRef.id, description: pick(penaltyMissDescs)(penaltyTaker.lastName) });
+            if (isHome) homeShots++; else awayShots++;
+            events.push({ minute: min, type: 'penalty_missed', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyMissDescs)(penaltyTaker.lastName) });
           }
         }
       }
