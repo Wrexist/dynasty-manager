@@ -297,7 +297,19 @@ export interface CareerMilestone {
   icon?: string;
 }
 
-export type PerkId = 'tactical_genius' | 'youth_developer' | 'transfer_shark' | 'motivator' | 'disciplinarian' | 'fitness_guru' | 'scout_network' | 'fan_favourite';
+export type PerkId =
+  | 'tactical_genius' | 'youth_developer' | 'transfer_shark' | 'motivator'
+  | 'disciplinarian' | 'fitness_guru' | 'scout_network' | 'fan_favourite'
+  // Tier 1 additions
+  | 'set_piece_coach' | 'media_savvy'
+  // Tier 2 additions
+  | 'loan_master' | 'deadline_dealer'
+  // Tier 3 additions
+  | 'iron_will' | 'formation_master'
+  // Tier 4
+  | 'galactico' | 'wonder_coach'
+  // Tier 5
+  | 'dynasty_builder' | 'invincible';
 
 export interface ManagerPerk {
   id: PerkId;
@@ -305,7 +317,7 @@ export interface ManagerPerk {
   description: string;
   icon: string;
   cost: number; // XP cost
-  tier: 1 | 2 | 3;
+  tier: 1 | 2 | 3 | 4 | 5;
   prerequisite?: PerkId;
 }
 
@@ -797,4 +809,31 @@ export interface MerchState {
   currentSeasonRevenue: number;
   starPlayerDip: number; // weeks remaining of post-sale merch dip
   starSigningBuzz: number; // weeks remaining of post-signing merch boost
+}
+
+// ── Cliffhanger System ──
+export type CliffhangerCategory = 'title_race' | 'big_match' | 'player_drama' | 'transfer_deadline' | 'board_pressure' | 'youth_breakthrough' | 'record_chase' | 'rivalry';
+
+export interface CliffhangerItem {
+  icon: string;
+  text: string;
+  category: CliffhangerCategory;
+  intensity: 'low' | 'medium' | 'high';
+}
+
+// ── Match Drama ──
+export type MatchDramaType = 'comeback_win' | 'late_winner' | 'thrashing' | 'underdog_upset' | 'derby_win' | 'cup_giant_killing' | 'heartbreak_loss' | null;
+
+// ── Objective Rarity ──
+export type ObjectiveRarity = 'common' | 'rare' | 'legendary';
+
+// ── Session Stats ──
+export interface SessionStats {
+  startWeek: number;
+  startSeason: number;
+  weeksPlayed: number;
+  xpEarned: number;
+  matchesWon: number;
+  matchesLost: number;
+  objectivesCompleted: number;
 }

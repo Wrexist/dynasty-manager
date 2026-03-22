@@ -17,7 +17,7 @@ import { DIVISIONS } from '@/data/league';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
-import { checkCelebrations, getWinStreak } from '@/utils/celebrations';
+import { checkCelebrations, getWinStreak, getDramaCelebration } from '@/utils/celebrations';
 import { STREAK_MORALE_THRESHOLD } from '@/config/gameBalance';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_END } from '@/config/transfers';
 import type { Celebration } from '@/utils/celebrations';
@@ -43,6 +43,7 @@ const Dashboard = () => {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
     boardConfidence, boardObjectives, setScreen, advanceWeek,
     currentMatchResult, incomingOffers, endSeason, trainingFocus, cup,
+    weekCliffhangers, lastMatchDrama, objectiveStreak,
   } = store;
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent } = useCurrentMatch();
@@ -89,8 +90,15 @@ const Dashboard = () => {
       const celebrations = checkCelebrations(
         playerClubId, players, club.playerIds, fixtures, leagueTable, season
       );
+
+      // Add match drama celebrations
+      if (lastMatchDrama) {
+        const dramaCeleb = getDramaCelebration(lastMatchDrama);
+        if (dramaCeleb) celebrations.push(dramaCeleb);
+      }
+
       const unseen = celebrations.filter(c => {
-        const key = `${c.title}-${season}`;
+        const key = `${c.title}-${season}-${week}`;
         if (shownCelebrationsRef.current.has(key)) return false;
         shownCelebrationsRef.current.add(key);
         return true;
@@ -108,7 +116,7 @@ const Dashboard = () => {
       });
     }
     prevWeekRef.current = week;
-  }, [week, playerClubId, players, club, fixtures, leagueTable, season]);
+  }, [week, playerClubId, players, club, fixtures, leagueTable, season, lastMatchDrama]);
 
   // ── Derived data (memoized) — must be above early return to avoid conditional hooks ──
 
@@ -468,6 +476,42 @@ const Dashboard = () => {
                 <span className="font-medium">{preview.text}</span>
               </div>
             ))}
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Cliffhangers — "one more week" hooks */}
+      {!seasonOver && weekCliffhangers && weekCliffhangers.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <GlassPanel className="p-4 border-primary/20">
+            <p className="text-[10px] text-primary uppercase tracking-wider font-semibold mb-2">What Happens Next...</p>
+            <div className="space-y-2">
+              {weekCliffhangers.map((hook, i) => (
+                <div
+                  key={i}
+                  className={cn(
+                    'flex items-center gap-2 text-xs rounded-lg px-3 py-2',
+                    hook.intensity === 'high' ? 'bg-red-500/10 text-red-400 animate-pulse' :
+                    hook.intensity === 'medium' ? 'bg-amber-500/10 text-amber-400' :
+                    'bg-muted/30 text-muted-foreground'
+                  )}
+                >
+                  <DynamicIcon name={hook.icon} className="w-4 h-4 shrink-0" />
+                  <span className="font-medium">{hook.text}</span>
+                </div>
+              ))}
+            </div>
+          </GlassPanel>
+        </motion.div>
+      )}
+
+      {/* Objective streak indicator */}
+      {objectiveStreak >= 3 && (
+        <GlassPanel className="p-3 border-amber-500/30 bg-amber-500/5">
+          <div className="flex items-center gap-2 text-xs text-amber-400">
+            <Flame className="w-4 h-4" />
+            <span className="font-bold">Objective Streak x{objectiveStreak}!</span>
+            <span className="text-amber-400/70">XP multiplier active</span>
           </div>
         </GlassPanel>
       )}
