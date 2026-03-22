@@ -18,7 +18,7 @@ export const createClubSlice = (set: Set, get: Get) => ({
     const state = get();
     const club = { ...state.clubs[state.playerClubId] };
     const squad = club.playerIds.map(id => state.players[id]).filter(Boolean);
-    const { lineup, subs } = selectBestLineup(squad, formation);
+    const { lineup, subs } = selectBestLineup(squad, formation, state.currentWeek);
     club.formation = formation;
     club.lineup = lineup.map(p => p.id);
     club.subs = subs.map(p => p.id);

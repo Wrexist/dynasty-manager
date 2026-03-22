@@ -110,10 +110,10 @@ const TacticsPage = () => {
       <button
         onClick={() => {
           setAutoFilling(true);
-          setTimeout(() => {
+          requestAnimationFrame(() => {
             autoFillTeam();
             setAutoFilling(false);
-          }, 0);
+          });
         }}
         disabled={autoFilling}
         className={cn(
