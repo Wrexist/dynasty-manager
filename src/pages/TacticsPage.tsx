@@ -403,13 +403,20 @@ const TacticsPage = () => {
 
       {/* Lineup List */}
       <GlassPanel className="p-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Starting XI</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Starting XI</p>
+          {lineupPlayers.length > 0 && (
+            <span className={cn('text-xs font-bold', getRatingColor(Math.round(lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length)))}>
+              {Math.round(lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length)} OVR
+            </span>
+          )}
+        </div>
         <div className="space-y-1">
           {lineupPlayers.map((p, i) => (
             <div key={p.id} className="flex items-center gap-2 py-1">
               <span className="text-xs text-muted-foreground w-5">{i + 1}</span>
               <span className="text-xs font-mono text-primary w-8">{p.position}</span>
-              <span className="text-sm text-foreground flex-1">{p.firstName[0]}. {p.lastName}</span>
+              <span className="text-sm text-foreground flex-1">{getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}</span>
               <span className={cn(
                 'text-xs font-mono',
                 getRatingColor(p.overall)
@@ -446,7 +453,7 @@ const TacticsPage = () => {
                 >
                   <ArrowRightLeft className="w-3 h-3 text-primary" />
                   <span className="text-xs font-mono text-muted-foreground w-8">{p.position}</span>
-                  <span className="text-sm text-foreground flex-1 text-left">{p.firstName[0]}. {p.lastName}</span>
+                  <span className="text-sm text-foreground flex-1 text-left">{getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}</span>
                   <span className={cn('text-xs font-mono', getRatingColor(p.overall))}>{p.overall}</span>
                 </button>
               ))}
@@ -465,7 +472,7 @@ const TacticsPage = () => {
               )}
             >
               <span className="text-xs font-mono text-muted-foreground w-8">{p.position}</span>
-              <span className="text-sm text-foreground/70 flex-1 text-left">{p.firstName[0]}. {p.lastName}</span>
+              <span className="text-sm text-foreground/70 flex-1 text-left">{getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}</span>
               <span className={cn('text-xs font-mono', getRatingColor(p.overall))}>{p.overall}</span>
             </button>
           ))}
