@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { xpForLevel } from '@/utils/managerPerks';
 import { getSuffix } from '@/utils/helpers';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface PostMatchPopupProps {
   onContinue: () => void;
@@ -13,6 +14,8 @@ interface PostMatchPopupProps {
 
 export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
   const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players } = useGameStore();
+
+  useScrollLock(!!currentMatchResult);
 
   if (!currentMatchResult) return null;
 
@@ -50,6 +53,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+      style={{ touchAction: 'none' }}
     >
       <motion.div
         initial={{ scale: 0.9, y: 20 }}

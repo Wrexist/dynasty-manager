@@ -3,9 +3,12 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 export function FarewellModal() {
   const { pendingFarewell, dismissFarewell } = useGameStore();
+
+  useScrollLock(!!pendingFarewell);
 
   if (!pendingFarewell) return null;
 
@@ -16,6 +19,7 @@ export function FarewellModal() {
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center px-4"
+        style={{ touchAction: 'none' }}
         onClick={dismissFarewell}
       >
         <motion.div

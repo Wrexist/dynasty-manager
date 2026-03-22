@@ -4,10 +4,13 @@ import { cn } from '@/lib/utils';
 import { FileText, X, ArrowRight, Check, AlertTriangle } from 'lucide-react';
 import { formatWage } from '@/utils/contracts';
 import { getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
+import { useScrollLock } from '@/hooks/useScrollLock';
 
 export function ContractNegotiation() {
   const { activeNegotiation, submitWageOffer, cancelNegotiation, players } = useGameStore();
   const [customWage, setCustomWage] = useState<number | null>(null);
+
+  useScrollLock(!!activeNegotiation);
 
   if (!activeNegotiation) return null;
 
@@ -25,8 +28,8 @@ export function ContractNegotiation() {
   const moodColor = getMoodColor(activeNegotiation.playerMood);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="bg-card border border-border/50 rounded-2xl w-full max-w-sm overflow-hidden max-h-[85vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" style={{ touchAction: 'none' }}>
+      <div className="bg-card border border-border/50 rounded-2xl w-full max-w-sm overflow-hidden max-h-[85vh] overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/30">
           <div className="flex items-center gap-2">

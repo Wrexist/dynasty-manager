@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useScrollLock } from '@/hooks/useScrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
@@ -64,6 +65,8 @@ export function TransferNegotiation({ listing, onClose }: Props) {
 
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
+
+  useScrollLock();
 
   const evaluation = useMemo(() => evaluateOffer(listing.playerId, offerFee), [listing.playerId, offerFee, evaluateOffer]);
 
@@ -139,7 +142,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
         transition={{ duration: 0.2 }}
       >
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={phase === 'negotiate' ? onClose : undefined} />
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" style={{ touchAction: 'none' }} onClick={phase === 'negotiate' ? onClose : undefined} />
 
         {/* Modal */}
         <motion.div

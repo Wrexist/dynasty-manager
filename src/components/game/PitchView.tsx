@@ -119,8 +119,8 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
         {!halfPitch && <path d="M 26.85 18.5 A 9.15 9.15 0 0 0 41.15 18.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />}
         <path d="M 26.85 86.5 A 9.15 9.15 0 0 1 41.15 86.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
 
-        {/* Home formation lines */}
-        {homeLines.map(([a, b], idx) => {
+        {/* Home formation lines (hidden when chemistry links are shown to reduce clutter) */}
+        {!(chemistryLinks && chemistryLinks.length > 0) && homeLines.map(([a, b], idx) => {
           const sa = homeSlots[a];
           const sb = homeSlots[b];
           const x1 = 2 + (sa.x / 100) * 64;
