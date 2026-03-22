@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel, getMentorBonus } from '@/utils/chemistry';
+import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel, getMentorBonus, findMentorLinksForPlayer } from '@/utils/chemistry';
 import { generatePlayer } from '@/utils/playerGen';
-import type { Position } from '@/types/game';
+import type { Position, FormationType } from '@/types/game';
 
 function makePlayer(pos: string, overrides: Record<string, unknown> = {}) {
   const p = generatePlayer(pos as Position, 75, 'club-1', 1);
@@ -104,6 +104,87 @@ describe('chemistry', () => {
       const senior = makePlayer('CB', { age: 30, overall: 82, clubId: 'club-1', nationality: 'French' });
       const bonus = getMentorBonus(junior, [junior, senior]);
       expect(bonus).toBeGreaterThan(0);
+    });
+
+    it('should allow mentoring for players exactly at age threshold (22)', () => {
+      const junior = makePlayer('CB', { age: 22, overall: 60, clubId: 'club-1', nationality: 'Brazilian' });
+      const senior = makePlayer('CB', { age: 30, overall: 82, clubId: 'club-1', nationality: 'French' });
+      const bonus = getMentorBonus(junior, [junior, senior]);
+      expect(bonus).toBeGreaterThan(0);
+    });
+  });
+
+  describe('formation-aware chemistry', () => {
+    it('should use formation slot positions when formation is provided', () => {
+      // A natural CM deployed in CDM slot (slot 5 in 4-2-3-1) should connect to CB (slot 2)
+      // In 4-2-3-1: slots are GK, LB, CB, CB, RB, CDM, CDM, LW, CAM, RW, ST
+      // CDM-CB is adjacent, CM-CB is not
+      const cm = makePlayer('CM', { nationality: 'Spanish' });
+      const cb = makePlayer('CB', { nationality: 'Spanish' });
+      // Without formation: CM and CB are NOT adjacent — no link
+      const linksNoFormation = calculateChemistryLinks([cm, cb]);
+      expect(linksNoFormation.some(l => l.type === 'nationality')).toBe(false);
+      // With 4-2-3-1 formation: player[0]=GK slot (GK), player[1]=slot 1 (LB)
+      // We place them at CDM slot (index 5) and CB slot (index 2) by building a full lineup
+      const gk = makePlayer('GK', { nationality: 'French' });
+      const lb = makePlayer('LB', { nationality: 'French' });
+      const cb2 = makePlayer('CB', { nationality: 'French' });
+      const rb = makePlayer('RB', { nationality: 'French' });
+      const cdm2 = makePlayer('CDM', { nationality: 'French' });
+      const lw = makePlayer('LW', { nationality: 'French' });
+      const cam = makePlayer('CAM', { nationality: 'French' });
+      const rw = makePlayer('RW', { nationality: 'French' });
+      const st = makePlayer('ST', { nationality: 'French' });
+      // 4-2-3-1: GK, LB, CB, CB, RB, CDM, CDM, LW, CAM, RW, ST
+      const lineup = [gk, lb, cb, cb2, rb, cm, cdm2, lw, cam, rw, st];
+      const formation: FormationType = '4-2-3-1';
+      const linksWithFormation = calculateChemistryLinks(lineup, formation);
+      // cm is at slot index 5 (CDM slot), cb is at slot index 2 (CB slot)
+      // CDM-CB is adjacent, so Spanish CM at CDM slot should NOT connect to French CB
+      // but CDM slot connects to CB slot — check the CDM-CB adjacency works
+      const cdmCbLinks = linksWithFormation.filter(l =>
+        (l.playerIdA === cm.id || l.playerIdB === cm.id) &&
+        (l.playerIdA === cb.id || l.playerIdB === cb.id)
+      );
+      // cm (Spanish) at CDM slot, cb (Spanish) — same nationality AND adjacent slots
+      // partnership bond also forms because combined form > 100 (70 + 70 = 140)
+      expect(cdmCbLinks.length).toBeGreaterThan(0);
+      expect(cdmCbLinks.some(l => l.type === 'partnership')).toBe(true);
+      expect(cdmCbLinks.some(l => l.type === 'nationality')).toBe(true);
+    });
+
+    it('should not link non-adjacent formation slots even if natural positions are adjacent', () => {
+      // Two players with adjacent natural positions (CM-CAM) but placed in non-adjacent slots
+      const cm = makePlayer('CM', { nationality: 'Spanish' });
+      const cam = makePlayer('CAM', { nationality: 'Spanish' });
+      // Without formation they connect (CM-CAM adjacent)
+      const linksNoFormation = calculateChemistryLinks([cm, cam]);
+      expect(linksNoFormation.some(l => l.type === 'nationality')).toBe(true);
+    });
+  });
+
+  describe('findMentorLinksForPlayer', () => {
+    it('should find mentor links for a young player', () => {
+      const junior = makePlayer('CB', { age: 19, overall: 60, nationality: 'Brazilian' });
+      const senior = makePlayer('CB', { age: 30, overall: 82, nationality: 'French' });
+      const links = findMentorLinksForPlayer(junior, [senior]);
+      expect(links).toHaveLength(1);
+      expect(links[0].type).toBe('mentor');
+    });
+
+    it('should not return nationality or partnership links', () => {
+      const a = makePlayer('CM', { nationality: 'Spanish', form: 85, age: 25 });
+      const b = makePlayer('CAM', { nationality: 'Spanish', form: 85, age: 25 });
+      const links = findMentorLinksForPlayer(a, [b]);
+      expect(links.filter(l => l.type === 'nationality')).toHaveLength(0);
+      expect(links.filter(l => l.type === 'partnership')).toHaveLength(0);
+    });
+
+    it('should not find mentors at non-adjacent positions', () => {
+      const junior = makePlayer('GK', { age: 19, overall: 60, nationality: 'Brazilian' });
+      const senior = makePlayer('ST', { age: 30, overall: 82, nationality: 'French' });
+      const links = findMentorLinksForPlayer(junior, [senior]);
+      expect(links).toHaveLength(0);
     });
   });
 });

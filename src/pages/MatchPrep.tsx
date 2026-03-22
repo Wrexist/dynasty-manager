@@ -71,7 +71,7 @@ const MatchPrep = () => {
   const myLineup = myClub.lineup.map(id => players[id]).filter(Boolean);
 
   // Chemistry links for pitch visualization
-  const chemLinks = calculateChemistryLinks(myLineup);
+  const chemLinks = calculateChemistryLinks(myLineup, myClub.formation);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
