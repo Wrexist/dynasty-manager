@@ -8,6 +8,7 @@ import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight
 import { motion } from 'framer-motion';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
+import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { TransferListing } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
@@ -158,6 +159,11 @@ const TransferPage = () => {
           className="text-lg font-black text-primary tabular-nums"
         />
       </GlassPanel>
+
+      {/* Ad Reward: Budget Boost */}
+      {transferWindowOpen && (
+        <AdRewardButton rewardType="transfer_budget" onRewardClaimed={() => { useGameStore.getState().applyTransferBudgetBonus(); }} />
+      )}
 
       {/* Closed window planning hints */}
       {!transferWindowOpen && (

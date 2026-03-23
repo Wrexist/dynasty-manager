@@ -6,6 +6,7 @@ import { Search, Globe, MapPin, Eye, Clock, Star, StarOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScoutRegion } from '@/types/game';
 import { getPotentialInfo } from '@/utils/uiHelpers';
+import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 
@@ -92,6 +93,9 @@ const ScoutingPage = () => {
             })}
           </div>
         )}
+
+        {/* Ad Reward: Reveal Potential */}
+        <AdRewardButton rewardType="scout_potential" onRewardClaimed={() => { /* Potential revealed via UI hint */ }} />
 
         {/* Scout Reports */}
         {scouting.reports.length > 0 && (

@@ -701,7 +701,7 @@ export interface PressConference {
   id: string;
   context: 'post_win' | 'post_loss' | 'post_draw' | 'pre_big_match' | 'transfer_rumour' | 'poor_form' | 'good_form';
   question: string;
-  options: [PressOption, PressOption, PressOption];
+  options: [PressOption, PressOption, PressOption] | [PressOption, PressOption, PressOption, PressOption];
 }
 
 // ── Player Chemistry ──

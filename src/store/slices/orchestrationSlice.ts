@@ -13,6 +13,7 @@ import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName } from '@/data/cup';
 import { generatePressConference } from '@/data/pressConferences';
+import { isPro } from '@/utils/monetization';
 import { getMentorBonus } from '@/utils/chemistry';
 import { checkChallengeComplete, checkChallengeFailed, CHALLENGES } from '@/data/challenges';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
@@ -20,6 +21,7 @@ import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
 import { getFarewellSummary } from '@/utils/playerNarratives';
 import { calculateWeeklyMerchRevenue, getDefaultMerchState } from '@/utils/merchandise';
+import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import { MERCH_PRICING_TIERS, MERCH_CAMPAIGN_COOLDOWN_WEEKS } from '@/config/merchandise';
 import {
   TOTAL_WEEKS, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY,
@@ -1081,6 +1083,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       activeNegotiation: null,
       selectedPlayerId: null,
       lastMatchXPGain: 0,
+      monetization: {
+        ...DEFAULT_MONETIZATION_STATE,
+        // Preserve any existing entitlements (from previous saves)
+        entitlements: get().monetization?.entitlements || [],
+        firstLaunchTimestamp: get().monetization?.firstLaunchTimestamp || Date.now(),
+      },
     });
   },
 
@@ -2286,7 +2294,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Generate post-match press conference
     const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
-    const press = generatePressConference(pressContext);
+    const press = generatePressConference(pressContext, isPro(get().monetization));
 
     // Update session stats for wins/losses
     const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
@@ -2428,7 +2436,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
         halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
         cup: newCup,
-        pendingPressConference: generatePressConference(pressContext),
+        pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
         managerProgression: processed.managerProgression,
         lastMatchXPGain: processed.xpGain,
@@ -2445,7 +2453,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Generate post-match press conference
     const pressContext2 = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
-    const press2 = generatePressConference(pressContext2);
+    const press2 = generatePressConference(pressContext2, isPro(get().monetization));
 
     const syncedDivFixtures2 = { ...state.divisionFixtures, [state.playerDivision]: processed.updatedFixtures };
     set({
@@ -2540,7 +2548,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
         managerProgression: processed.managerProgression,
         lastMatchXPGain: processed.xpGain,
-        pendingPressConference: generatePressConference(press),
+        pendingPressConference: generatePressConference(press, isPro(get().monetization)),
         lastMatchDrama: etDrama,
         rivalries: processed.updatedRivalries,
         pairFamiliarity: processed.pairFamiliarity,
@@ -2652,7 +2660,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
       managerProgression: processed.managerProgression,
       lastMatchXPGain: processed.xpGain,
-      pendingPressConference: generatePressConference(press),
+      pendingPressConference: generatePressConference(press, isPro(get().monetization)),
       lastMatchDrama: penDrama,
       rivalries: processed.updatedRivalries,
       pairFamiliarity: processed.pairFamiliarity,
@@ -2730,6 +2738,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       currentCupTieId: state.currentCupTieId,
       pendingFarewell: state.pendingFarewell,
       freeAgents: state.freeAgents,
+      monetization: state.monetization,
     };
     localStorage.setItem(`dynasty-save-${s}`, JSON.stringify(saveData));
 
@@ -2818,6 +2827,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         halfTimeState: null,
         matchPhase: 'none' as const,
         pendingFarewell: data.pendingFarewell || null,
+        monetization: data.monetization || DEFAULT_MONETIZATION_STATE,
       });
       return true;
     } catch { return false; }
@@ -2843,6 +2853,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       weeklyDigest: null, careerTimeline: [],
       sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {},
       merchandise: getDefaultMerchState(),
+      monetization: {
+        ...DEFAULT_MONETIZATION_STATE,
+        // Preserve purchases across save resets — entitlements survive deletion
+        entitlements: get().monetization.entitlements,
+        firstLaunchTimestamp: get().monetization.firstLaunchTimestamp,
+      },
     });
   },
 

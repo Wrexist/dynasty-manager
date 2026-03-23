@@ -6,10 +6,12 @@ import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { ACHIEVEMENTS, getTierColor } from '@/utils/achievements';
 import { motion } from 'framer-motion';
+import { getActiveCosmetic } from '@/utils/monetization';
 
 const TrophyCabinet = () => {
   const store = useGameStore();
-  const { seasonHistory, unlockedAchievements, clubRecords } = store;
+  const { seasonHistory, unlockedAchievements, clubRecords, monetization } = store;
+  const cabinetStyle = getActiveCosmetic(monetization, 'cabinet_style');
 
   const leagueTitles = seasonHistory.filter(h => h.position === 1);
   const cupWins = clubRecords.cupWins;
@@ -24,7 +26,12 @@ const TrophyCabinet = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+    <div className={cn(
+      "max-w-lg mx-auto px-4 py-4 space-y-4",
+      cabinetStyle === 'cabinet-marble' && 'cabinet-marble',
+      cabinetStyle === 'cabinet-neon' && 'cabinet-neon',
+      cabinetStyle === 'cabinet-vault' && 'cabinet-vault',
+    )}>
       <h2 className="text-lg font-display font-bold text-foreground">Trophy Cabinet</h2>
 
       {/* Trophy Count Header */}

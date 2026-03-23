@@ -3,6 +3,9 @@ import { PITCH_COLORS } from '@/config/ui';
 import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { getFormationLines, buildChemistryStrengthMap, getChemistryLineColor, NEUTRAL_LINE_COLOR } from '@/utils/formationLines';
 import { PlayerAvatar } from './PlayerAvatar';
+import { useGameStore } from '@/store/gameStore';
+import { getActiveCosmetic } from '@/utils/monetization';
+import { cn } from '@/lib/utils';
 
 interface PitchViewProps {
   formation: FormationType;
@@ -39,8 +42,11 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
   const homeLines = getFormationLines(homeSlots);
   const awayLines = showAway && !halfPitch && awaySlots.length ? getFormationLines(awaySlots) : [];
 
+  const pitchSkin = getActiveCosmetic(useGameStore.getState().monetization, 'pitch_skin');
+  const pitchSkinClass = pitchSkin === 'pitch-stripes' ? 'pitch-stripes' : pitchSkin === 'pitch-checkerboard' ? 'pitch-checkerboard' : pitchSkin === 'pitch-diamond' ? 'pitch-diamond' : '';
+
   return (
-    <div className="relative w-full mx-auto" style={{ aspectRatio: `68/${vpH}`, maxWidth: '24rem' }}>
+    <div className={cn("relative w-full mx-auto", pitchSkinClass)} style={{ aspectRatio: `68/${vpH}`, maxWidth: '24rem' }}>
       <svg viewBox={`0 ${vpY} 68 ${vpH}`} className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
         {/* Pitch */}
         <rect x="0" y="0" width="68" height="105" rx="1.5" fill={PITCH_COLORS.FILL} />

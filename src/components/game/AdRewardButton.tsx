@@ -6,6 +6,7 @@ import { isPro, canClaimAdReward } from '@/utils/monetization';
 import { AD_REWARDS } from '@/config/monetization';
 import type { AdRewardType } from '@/types/game';
 import { hapticLight } from '@/utils/haptics';
+import { showRewardedAd } from '@/utils/ads';
 
 interface AdRewardButtonProps {
   rewardType: AdRewardType;
@@ -39,13 +40,16 @@ export function AdRewardButton({ rewardType, onRewardClaimed, className, compact
       if (success) onRewardClaimed();
       setClaiming(false);
     } else {
-      // Free users would see a rewarded ad here via AdMob/AppLovin SDK.
-      // For now, simulate ad completion after a brief delay.
-      setTimeout(() => {
-        const success = claimAdReward(rewardType);
-        if (success) onRewardClaimed();
+      // Free users watch a rewarded ad via AdMob
+      showRewardedAd().then(watched => {
+        if (watched) {
+          const success = claimAdReward(rewardType);
+          if (success) onRewardClaimed();
+        }
         setClaiming(false);
-      }, 500);
+      }).catch(() => {
+        setClaiming(false);
+      });
     }
   };
 

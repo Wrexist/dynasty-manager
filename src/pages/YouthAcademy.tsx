@@ -6,6 +6,7 @@ import { GraduationCap, Star, TrendingUp, ArrowUpRight, Trash2 } from 'lucide-re
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses, getPotentialInfo } from '@/utils/uiHelpers';
 import { PAGE_HINTS } from '@/config/ui';
+import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { PageHint } from '@/components/game/PageHint';
 
 const SQUAD_SUB_NAV = [
@@ -125,6 +126,9 @@ const YouthAcademy = () => {
             <p className="text-xs text-muted-foreground mt-1">New intake arrives at the end of each season</p>
           </GlassPanel>
         )}
+
+        {/* Ad Reward: Youth Preview */}
+        <AdRewardButton rewardType="youth_preview" onRewardClaimed={() => { /* Enhanced youth preview */ }} />
 
         {/* Next Intake */}
         {youthAcademy.nextIntakePreview.length > 0 && (
