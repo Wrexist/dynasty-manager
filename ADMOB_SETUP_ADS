@@ -1,0 +1,49 @@
+Great question. Here's the optimal AdMob setup for Dynasty Manager:
+
+AdMob Ad Unit Setup
+You only need ONE ad unit type: Rewarded Video
+
+Since all ads in Dynasty Manager are opt-in (player chooses to watch for a reward), rewarded video is the only format you need. This is also the highest-paying mobile ad format — typically $10-40 eCPM vs $1-5 for banners.
+
+Step-by-step in AdMob Dashboard:
+Create your app at admob.google.com
+
+Add iOS app (link to App Store listing or enter bundle ID com.dynastymanager.app)
+Add Android app (link to Play Store listing or enter package name)
+Create ONE Rewarded ad unit per platform:
+
+Ad unit name: Dynasty Manager - Rewarded
+Reward type: reward (amount: 1)
+Frequency cap: None (your code already handles limits via AD_REWARD_LIMITS — max 3/day per reward type)
+eCPM floor: Leave at default initially
+Copy the ad unit IDs (format: ca-app-pub-XXXXXXX/YYYYYYY) and replace the placeholders in src/utils/ads.ts:
+
+REWARDED_AD_UNIT_IOS = 'ca-app-pub-YOUR_ID/YOUR_UNIT'
+REWARDED_AD_UNIT_ANDROID = 'ca-app-pub-YOUR_ID/YOUR_UNIT'
+
+Optimal Settings
+Setting	Recommendation	Why
+Ad format	Rewarded Video only	Highest eCPM, player-friendly, no interruptions
+Mediation	Enable AdMob mediation	Higher fill rates by falling back to other networks
+Networks	Add Meta Audience Network + Unity Ads as mediation sources	20-40% higher revenue vs AdMob alone
+Frequency cap	Don't set in AdMob	Already capped in code (3/day per type, 5 types = 15 max/day)
+eCPM floor	$5 initially, adjust after 2 weeks of data	Filters low-quality ads without hurting fill rate
+Test mode	Use test ads during development	Already set: initializeForTesting: true in ads.ts — flip to false before release
+Before Release Checklist
+Flip initializeForTesting: false in src/utils/ads.ts
+Add your real ad unit IDs
+Set up AdMob app-ads.txt (required for monetization)
+Add mediation partners (Meta + Unity Ads minimum)
+Configure GDPR consent (required for EU users) — use Google UMP SDK
+Run npx cap sync to update native projects
+Revenue Estimate
+With rewarded video at ~$15 eCPM average:
+
+Free users watching 2-3 ads/day = ~$0.03-0.05/user/day
+1,000 DAU = ~$30-50/day, ~$900-1500/month
+This supplements IAP revenue from Pro upgrades and cosmetic packs
+Don't Bother With
+Banner ads — Low eCPM ($1-3), clutters the mobile UI, feels cheap for a premium game
+Interstitial ads — Interrupts gameplay, high churn risk, goes against your "player-first" philosophy
+App Open ads — Same issue, annoying on launch
+The current architecture is already optimal — one rewarded unit shared across all 5 reward placements, with per-type daily limits controlled in code. Just create the ad unit, plug in the IDs, and you're live.
