@@ -1,3 +1,7 @@
+# Signing keys
+*.keystore
+*.jks
+
 # Logs
 logs
 *.log
