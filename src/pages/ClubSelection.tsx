@@ -4,10 +4,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { CLUBS_DATA, DIVISIONS } from '@/data/league';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Wallet, Users, Zap, Crown, Shield, TrendingUp, Target, Pickaxe } from 'lucide-react';
+import { ArrowLeft, Star, Wallet, Users, Zap, Crown, Shield, TrendingUp, Target, Pickaxe, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DivisionId } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
+import { toast } from 'sonner';
 
 const divisionMeta: Record<string, {
   icon: React.ElementType;
@@ -53,14 +54,25 @@ const ClubSelection = () => {
   const [step, setStep] = useState<'league' | 'club'>('league');
   const [selectedLeague, setSelectedLeague] = useState<DivisionId | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleStart = () => {
-    if (!selected) return;
-    const pendingSlot = (location.state as { slot?: number })?.slot || 1;
-    initGame(selected);
-    useGameStore.setState({ activeSlot: pendingSlot });
-    useGameStore.getState().saveGame(pendingSlot);
-    navigate('/game');
+    if (!selected || loading) return;
+    setLoading(true);
+    // Defer heavy init to next frame so the loading spinner renders first
+    requestAnimationFrame(() => {
+      try {
+        const pendingSlot = (location.state as { slot?: number })?.slot || 1;
+        initGame(selected);
+        useGameStore.setState({ activeSlot: pendingSlot });
+        try { useGameStore.getState().saveGame(pendingSlot); } catch { /* save failure shouldn't block navigation */ }
+        navigate('/game');
+      } catch (err) {
+        console.error('Failed to start game:', err);
+        toast.error('Something went wrong starting your career. Please try again.');
+        setLoading(false);
+      }
+    });
   };
 
   const handleLeagueSelect = (divisionId: DivisionId) => {
@@ -142,10 +154,11 @@ const ClubSelection = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.1, type: 'spring', stiffness: 300, damping: 30 }}
                   >
-                    <div
+                    <button
+                      type="button"
                       onClick={() => handleLeagueSelect(division.id)}
                       className={cn(
-                        'relative overflow-hidden rounded-2xl border border-border/40 cursor-pointer',
+                        'relative overflow-hidden rounded-2xl border border-border/40 cursor-pointer w-full text-left',
                         'active:scale-[0.98] transition-all duration-200',
                         'bg-card/40 backdrop-blur-xl',
                         meta?.glow,
@@ -153,7 +166,7 @@ const ClubSelection = () => {
                       )}
                     >
                       {/* Gradient overlay */}
-                      <div className={cn('absolute inset-0 bg-gradient-to-br', meta?.gradient)} />
+                      <div className={cn('absolute inset-0 bg-gradient-to-br pointer-events-none', meta?.gradient)} />
 
                       <div className="relative p-5">
                         {/* Top row: icon + difficulty */}
@@ -202,7 +215,7 @@ const ClubSelection = () => {
                           </span>
                         </div>
                       </div>
-                    </div>
+                    </button>
                   </motion.div>
                 );
               })}
@@ -223,10 +236,11 @@ const ClubSelection = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                 >
-                  <div
+                  <button
+                    type="button"
                     onClick={() => setSelected(club.id)}
                     className={cn(
-                      'relative overflow-hidden rounded-xl border cursor-pointer',
+                      'relative overflow-hidden rounded-xl border cursor-pointer w-full text-left',
                       'active:scale-[0.98] transition-all duration-200 p-4',
                       'bg-card/40 backdrop-blur-xl',
                       selected === club.id
@@ -260,7 +274,7 @@ const ClubSelection = () => {
                         <p className="text-[10px] text-muted-foreground mt-0.5">budget</p>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 </motion.div>
               ))}
             </motion.div>
@@ -295,8 +309,8 @@ const ClubSelection = () => {
                   </div>
                 </div>
               </div>
-              <Button className="w-full h-12 text-base font-bold rounded-xl" onClick={handleStart}>
-                Begin Career
+              <Button className="w-full h-12 text-base font-bold rounded-xl" onClick={handleStart} disabled={loading}>
+                {loading ? <><Loader2 className="w-5 h-5 animate-spin mr-2" /> Setting up...</> : 'Begin Career'}
               </Button>
             </div>
           </motion.div>
