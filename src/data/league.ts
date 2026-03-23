@@ -28,7 +28,7 @@ export const DIVISIONS: DivisionInfo[] = [
   },
   {
     id: 'div-4', name: 'Foundation League', shortName: 'FDN', tier: 4,
-    teamCount: 24, totalWeeks: 46, autoPromoteSlots: 3, playoffSlots: 4,
+    teamCount: 24, totalWeeks: 46, autoPromoteSlots: 2, playoffSlots: 4,
     autoRelegateSlots: 0, replacedSlots: 2,
     description: 'Build from nothing. The ultimate test of a dynasty manager.',
     difficulty: 'Very Hard', colorClass: 'text-destructive',

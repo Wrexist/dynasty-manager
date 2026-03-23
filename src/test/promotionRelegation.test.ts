@@ -35,12 +35,12 @@ describe('Promotion/Relegation', () => {
       expect(zones.replaced).toHaveLength(0);
     });
 
-    it('should determine zones for div-4 (3 auto-promote, 4 playoff, 0 relegate, 2 replaced)', () => {
+    it('should determine zones for div-4 (2 auto-promote, 4 playoff, 0 relegate, 2 replaced)', () => {
       const div4 = DIVISIONS.find(d => d.id === 'div-4')!;
       const table = makeTable(24);
       const zones = determineZones(table, div4);
 
-      expect(zones.autoPromoted).toHaveLength(3);
+      expect(zones.autoPromoted).toHaveLength(2);
       expect(zones.playoffContenders).toHaveLength(4);
       expect(zones.autoRelegated).toHaveLength(0);
       expect(zones.replaced).toHaveLength(2);

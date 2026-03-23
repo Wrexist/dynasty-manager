@@ -661,6 +661,13 @@ function finalizeSeason(
       mergedPlayers[pid] = { ...mergedPlayers[pid], clubId: postLoanPlayers[pid].clubId };
     }
   }
+  // Also include players that exist in postLoanPlayers but not inputPlayers
+  // (e.g., players added to the store by external transfers during the season)
+  for (const pid of Object.keys(postLoanPlayers)) {
+    if (!mergedPlayers[pid] && postLoanPlayers[pid]) {
+      mergedPlayers[pid] = postLoanPlayers[pid];
+    }
+  }
 
   const freeAgentIds: string[] = [];
   let bestFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] } | null = null;
@@ -702,7 +709,12 @@ function finalizeSeason(
     'GK': 2, 'CB': 5, 'LB': 2, 'RB': 2, 'CDM': 1, 'CM': 5, 'CAM': 1, 'LW': 2, 'RW': 2, 'ST': 3,
   };
   Object.values(newClubs).forEach(club => {
-    const currentSquadIds = club.playerIds.filter(id => newPlayers[id]);
+    // Clean up stale playerIds — remove any IDs that no longer exist in newPlayers
+    const updatedClub = { ...newClubs[club.id] };
+    updatedClub.playerIds = updatedClub.playerIds.filter(id => newPlayers[id]);
+    newClubs[club.id] = updatedClub;
+
+    const currentSquadIds = updatedClub.playerIds;
     const currentSquad = currentSquadIds.map(id => newPlayers[id]).filter(Boolean);
     const posCounts: Record<string, number> = {};
     currentSquad.forEach(p => { posCounts[p.position] = (posCounts[p.position] || 0) + 1; });
@@ -719,10 +731,10 @@ function finalizeSeason(
       const quality = (club.reputation * REPLACEMENT_QUALITY_REP_MULTIPLIER) + REPLACEMENT_QUALITY_BASE + Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE);
       const newP = generatePlayer(fillPos, quality, club.id, newSeason);
       newPlayers[newP.id] = newP;
-      const updatedClub = { ...newClubs[club.id] };
-      updatedClub.playerIds = [...updatedClub.playerIds, newP.id];
-      updatedClub.wageBill += newP.wage;
-      newClubs[club.id] = updatedClub;
+      const fillClub = { ...newClubs[club.id] };
+      fillClub.playerIds = [...fillClub.playerIds, newP.id];
+      fillClub.wageBill += newP.wage;
+      newClubs[club.id] = fillClub;
     }
   });
 
@@ -734,6 +746,39 @@ function finalizeSeason(
     updatedClub.subs = subs.map(p => p.id);
     newClubs[club.id] = updatedClub;
   });
+
+  // Safety net: ensure every club has at least 11 valid players after gap-fill
+  Object.values(newClubs).forEach(club => {
+    const validIds = club.playerIds.filter(id => newPlayers[id]);
+    if (validIds.length < 11) {
+      const deficitCount = 11 - validIds.length;
+      const safeClub = { ...newClubs[club.id], playerIds: [...validIds] };
+      for (let d = 0; d < deficitCount; d++) {
+        const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), Math.max(35, (club.reputation * 10) + 20), club.id, newSeason);
+        newPlayers[emergencyPlayer.id] = emergencyPlayer;
+        safeClub.playerIds.push(emergencyPlayer.id);
+        safeClub.wageBill += emergencyPlayer.wage;
+      }
+      // Re-select lineup for the patched squad
+      const patchedSquad = safeClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
+      const { lineup, subs } = selectBestLineup(patchedSquad, safeClub.formation);
+      safeClub.lineup = lineup.map(p => p.id);
+      safeClub.subs = subs.map(p => p.id);
+      newClubs[club.id] = safeClub;
+    }
+  });
+
+  // Prune orphaned players: remove players not in any club and not free agents
+  const activePlayerIds = new Set<string>();
+  for (const club of Object.values(newClubs)) {
+    for (const pid of club.playerIds) activePlayerIds.add(pid);
+  }
+  for (const pid of freeAgentIds) activePlayerIds.add(pid);
+  for (const pid of Object.keys(newPlayers)) {
+    if (!activePlayerIds.has(pid)) {
+      delete newPlayers[pid];
+    }
+  }
 
   const clubIds = Object.keys(newClubs);
   const newDivisionFixtures = generateAllDivisionFixtures(newDivisionClubs);
@@ -804,11 +849,23 @@ function finalizeSeason(
   // Process sponsor season-end: evaluate bonuses, expire deals
   const sponsorSeasonEnd = processSponsorSeasonEnd(state);
   if (sponsorSeasonEnd.clubs) {
-    for (const [id, club] of Object.entries(sponsorSeasonEnd.clubs)) {
-      newClubs[id] = club;
+    for (const [id, sponsorClub] of Object.entries(sponsorSeasonEnd.clubs)) {
+      // Only merge budget changes from sponsors — don't overwrite the entire club (which would revert gap-fill)
+      if (newClubs[id]) {
+        newClubs[id] = { ...newClubs[id], budget: sponsorClub.budget };
+      }
     }
   }
   if (sponsorSeasonEnd.messages) newMessages = sponsorSeasonEnd.messages;
+
+  // Final cleanup: ensure all club playerIds, lineups, and subs reference existing players
+  for (const club of Object.values(newClubs)) {
+    const cleanClub = { ...newClubs[club.id] };
+    cleanClub.playerIds = cleanClub.playerIds.filter(id => newPlayers[id]);
+    cleanClub.lineup = cleanClub.lineup.filter(id => newPlayers[id] && cleanClub.playerIds.includes(id));
+    cleanClub.subs = cleanClub.subs.filter(id => newPlayers[id] && cleanClub.playerIds.includes(id));
+    newClubs[club.id] = cleanClub;
+  }
 
   set({
     season: newSeason, week: 1, totalWeeks: TOTAL_WEEKS, transferWindowOpen: true,
@@ -960,6 +1017,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable,
       divisionFixtures, divisionTables, divisionClubs, playerDivision,
       playoffs: [], lastPromotionRelegation: null, derbies: DERBIES,
+      activeLoans: [], incomingLoanOffers: [],
       transferMarket, shortlist: [], scoutWatchList: [], freeAgents: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
       messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', currentCupTieId: null,
