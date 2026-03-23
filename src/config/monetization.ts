@@ -189,7 +189,7 @@ export const STARTER_KIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export const STARTER_KIT = {
   name: 'Starter Kit',
-  description: 'Dynasty Pro (7-day trial) + Manager Identity Pack',
+  description: 'Manager Identity Pack — 12 avatars, 8 title badges & 3 celebration texts. Limited-time offer!',
   priceUsd: 2.99,
   includes: ['com.dynastymanager.pack.manager'] as ProductId[],
 };

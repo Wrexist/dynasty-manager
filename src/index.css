@@ -173,6 +173,12 @@ input[type="range"]::-webkit-slider-thumb {
   background-size: 16px 16px;
 }
 
+/* ── Cosmetic Stadium Themes ── */
+.stadium-fortress { background: linear-gradient(180deg, hsl(220 20% 6%) 0%, hsl(220 15% 10%) 50%, hsl(220 20% 6%) 100%); }
+.stadium-cauldron { background: linear-gradient(180deg, hsl(0 40% 8%) 0%, hsl(0 30% 12%) 50%, hsl(0 40% 8%) 100%); }
+.stadium-theatre { background: radial-gradient(ellipse at 50% 20%, hsl(43 30% 12%) 0%, hsl(222 30% 7%) 60%); }
+.stadium-colosseum { background: linear-gradient(180deg, hsl(35 20% 10%) 0%, hsl(35 15% 8%) 50%, hsl(220 20% 7%) 100%); }
+
 /* ── Cosmetic Cabinet Styles ── */
 .cabinet-marble { background: linear-gradient(135deg, hsl(220 15% 14%) 0%, hsl(220 10% 18%) 100%); }
 .cabinet-neon { box-shadow: 0 0 15px hsl(215 60% 50% / 0.2), inset 0 0 15px hsl(215 60% 50% / 0.05); border-color: hsl(215 60% 50% / 0.4); }

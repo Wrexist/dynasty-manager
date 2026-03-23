@@ -2,19 +2,31 @@ import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
-import { Trophy, Star, ArrowRight, Crown, AlertTriangle } from 'lucide-react';
+import { Trophy, Star, ArrowRight, Crown, AlertTriangle, Award, Diamond, Flame, Shield } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { motion } from 'framer-motion';
 import { PRESTIGE_OPTIONS, calculatePrestigeStats } from '@/utils/prestige';
 import type { PrestigeOption } from '@/utils/prestige';
 import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
+import { getActiveCosmetic } from '@/utils/monetization';
+
+const PRESTIGE_BADGE_ICONS: Record<string, React.ElementType> = {
+  'prestige-crown': Crown,
+  'prestige-laurel': Award,
+  'prestige-diamond': Diamond,
+  'prestige-phoenix': Flame,
+  'prestige-shield': Shield,
+  'prestige-flame': Flame,
+};
 
 const PrestigePage = () => {
-  const { seasonHistory, managerStats, managerProgression, setScreen, startPrestige } = useGameStore();
+  const { seasonHistory, managerStats, managerProgression, setScreen, startPrestige, monetization } = useGameStore();
   const prestigeLevel = managerProgression.prestigeLevel || 0;
   const stats = calculatePrestigeStats(seasonHistory, managerStats, prestigeLevel);
   const [confirmOption, setConfirmOption] = useState<PrestigeOption | null>(null);
+  const prestigeBadgeId = getActiveCosmetic(monetization, 'prestige_badge');
+  const BadgeIcon = (prestigeBadgeId && PRESTIGE_BADGE_ICONS[prestigeBadgeId]) || Star;
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
@@ -30,7 +42,7 @@ const PrestigePage = () => {
           {prestigeLevel > 0 && (
             <div className="flex items-center justify-center gap-1 mt-2">
               {Array.from({ length: prestigeLevel }).map((_, i) => (
-                <Star key={i} className="w-4 h-4 fill-primary text-primary" />
+                <BadgeIcon key={i} className="w-4 h-4 fill-primary text-primary" />
               ))}
               <span className="text-xs text-primary font-bold ml-1">Prestige {prestigeLevel}</span>
             </div>

@@ -16,14 +16,30 @@ interface CelebrationModalProps {
   stats?: { label: string; value: string }[];
 }
 
-const PARTICLE_COUNT = 20;
+interface ConfettiConfig {
+  count: number;
+  hueBase: number;
+  hueRange: number;
+  saturation: number;
+  lightness: number;
+  sizeMin: number;
+  sizeRange: number;
+  speed: number;
+}
 
-function Particle({ index: _index }: { index: number }) {
+const CONFETTI_STYLES: Record<string, ConfettiConfig> = {
+  default: { count: 20, hueBase: 43, hueRange: 20, saturation: 96, lightness: 46, sizeMin: 4, sizeRange: 6, speed: 1 },
+  'confetti-gold': { count: 25, hueBase: 43, hueRange: 15, saturation: 96, lightness: 50, sizeMin: 4, sizeRange: 6, speed: 1 },
+  'confetti-pyro': { count: 30, hueBase: 15, hueRange: 25, saturation: 90, lightness: 50, sizeMin: 5, sizeRange: 8, speed: 1.2 },
+  'confetti-snow': { count: 25, hueBase: 210, hueRange: 30, saturation: 30, lightness: 85, sizeMin: 3, sizeRange: 5, speed: 0.6 },
+};
+
+function Particle({ config }: { config: ConfettiConfig }) {
   const x = Math.random() * 100;
   const delay = Math.random() * 0.5;
-  const duration = 1.5 + Math.random() * 1.5;
-  const size = 4 + Math.random() * 6;
-  const hue = 43 + Math.random() * 20 - 10; // gold range
+  const duration = (1.5 + Math.random() * 1.5) / config.speed;
+  const size = config.sizeMin + Math.random() * config.sizeRange;
+  const hue = config.hueBase + Math.random() * config.hueRange - config.hueRange / 2;
 
   return (
     <motion.div
@@ -33,7 +49,7 @@ function Particle({ index: _index }: { index: number }) {
         height: size,
         left: `${x}%`,
         top: '50%',
-        backgroundColor: `hsl(${hue}, 96%, ${46 + Math.random() * 20}%)`,
+        backgroundColor: `hsl(${hue}, ${config.saturation}%, ${config.lightness + Math.random() * 20}%)`,
       }}
       initial={{ opacity: 1, y: 0, scale: 1 }}
       animate={{
@@ -48,9 +64,12 @@ function Particle({ index: _index }: { index: number }) {
 }
 
 export function CelebrationModal({ open, onClose, title, description, icon, stats }: CelebrationModalProps) {
-  const celebTextId = getActiveCosmetic(useGameStore.getState().monetization, 'celebration_text');
+  const monetization = useGameStore.getState().monetization;
+  const celebTextId = getActiveCosmetic(monetization, 'celebration_text');
   const celebItem = celebTextId ? COSMETIC_ITEMS.find(c => c.id === celebTextId) : null;
   const displayTitle = celebItem ? celebItem.name : title;
+  const confettiId = getActiveCosmetic(monetization, 'confetti_style');
+  const confettiConfig = CONFETTI_STYLES[confettiId || 'default'] || CONFETTI_STYLES.default;
   useScrollLock(open);
 
   return (
@@ -76,8 +95,8 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
           >
             {/* Particles */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {Array.from({ length: PARTICLE_COUNT }).map((_, i) => (
-                <Particle key={i} index={i} />
+              {Array.from({ length: confettiConfig.count }).map((_, i) => (
+                <Particle key={i} config={confettiConfig} />
               ))}
             </div>
 

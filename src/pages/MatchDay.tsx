@@ -17,6 +17,7 @@ import { TEAM_TALK_OPTIONS } from '@/config/ui';
 import { infoToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
+import { getActiveCosmetic } from '@/utils/monetization';
 
 const isGoalEvent = (e: MatchEvent) => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored';
 
@@ -323,9 +324,10 @@ const MatchDay = () => {
   const latestMomentumEvent = [...visibleEvents].reverse().find(e => e.momentum !== undefined);
   const currentMomentum = latestMomentumEvent?.momentum ?? 0; // -100 (away) to +100 (home)
   const homeMomPct = Math.round(50 + currentMomentum / 2); // 0-100 scale
+  const stadiumTheme = getActiveCosmetic(store.monetization, 'stadium_theme');
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+    <div className={cn("max-w-lg mx-auto px-4 py-4 space-y-3", stadiumTheme && `stadium-${stadiumTheme.replace('stadium-', '')}`)}>
       {phase === 'pre' && <PageHint screen="matchDay" title={PAGE_HINTS.matchDay.title} body={PAGE_HINTS.matchDay.body} />}
       {/* Score Header */}
       <GlassPanel className="p-5">

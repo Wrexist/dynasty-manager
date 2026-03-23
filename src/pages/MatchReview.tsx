@@ -4,6 +4,9 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
+import { grantXP } from '@/utils/managerPerks';
+import { isPro } from '@/utils/monetization';
+import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor } from '@/utils/uiHelpers';
 import { generateMatchInsights } from '@/utils/matchInsights';
@@ -13,7 +16,8 @@ import { getSuffix } from '@/utils/helpers';
 import { motion } from 'framer-motion';
 
 const MatchReview = () => {
-  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, advanceWeek, setScreen, week, divisionFixtures, playerDivision, divisionTables, boardObjectives } = useGameStore();
+  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, advanceWeek, setScreen, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization } = useGameStore();
+  const userIsPro = isPro(monetization);
   const [isAdvancing, setIsAdvancing] = useState(false);
 
   if (!currentMatchResult) {
@@ -206,8 +210,11 @@ const MatchReview = () => {
         </GlassPanel>
       )}
 
-      {/* Match Insights */}
-      {match.stats && (() => {
+      {/* Match Insights (Pro) */}
+      {match.stats && !userIsPro && (
+        <ProUpsell feature="Advanced Match Insights" />
+      )}
+      {match.stats && userIsPro && (() => {
         const insights = generateMatchInsights(match, playerClubId);
         if (insights.length === 0) return null;
         return (
@@ -293,8 +300,8 @@ const MatchReview = () => {
         </GlassPanel>
       )}
 
-      {/* Performance Summary */}
-      {match.stats && (
+      {/* Performance Summary (Pro) */}
+      {match.stats && userIsPro && (
         <GlassPanel className="p-4">
           <h3 className="text-sm font-semibold text-foreground mb-2">Performance Summary</h3>
           <div className="space-y-1.5">
@@ -523,7 +530,13 @@ const MatchReview = () => {
       })()}
 
       {/* Ad Reward: Double XP */}
-      <AdRewardButton rewardType="xp_double" onRewardClaimed={() => { /* XP doubling applied via claim tracking */ }} />
+      <AdRewardButton rewardType="xp_double" onRewardClaimed={() => {
+        const s = useGameStore.getState();
+        const bonusXP = s.lastMatchXPGain;
+        if (bonusXP > 0) {
+          useGameStore.setState({ managerProgression: grantXP(s.managerProgression, bonusXP) });
+        }
+      }} />
 
     </div>
   );
