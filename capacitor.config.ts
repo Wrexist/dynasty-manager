@@ -4,6 +4,10 @@ const config: CapacitorConfig = {
   appId: 'com.dynastymanager',
   appName: 'Dynasty Manager',
   webDir: 'dist',
+  ios: {
+    limitsNavigationsToAppBoundDomains: true,
+    preferredContentMode: 'mobile',
+  },
   plugins: {
     SplashScreen: {
       launchAutoHide: false,

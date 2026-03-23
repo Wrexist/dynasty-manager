@@ -10,10 +10,8 @@ import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { BACK_TARGET, MAIN_TABS, SCREEN_GROUPS } from '@/config/navigation';
 
-// Eagerly load the most-used page
-import Dashboard from './Dashboard';
-
-// Lazy-load all other pages for code splitting
+// Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
+const Dashboard = lazy(() => import('./Dashboard'));
 const SquadPage = lazy(() => import('./SquadPage'));
 const TacticsPage = lazy(() => import('./TacticsPage'));
 const TransferPage = lazy(() => import('./TransferPage'));
