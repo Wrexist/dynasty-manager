@@ -1,4 +1,5 @@
 import type { MatchEvent } from '@/types/game';
+import { pick } from '@/utils/helpers';
 
 interface CommentaryContext {
   homeGoals: number;
@@ -132,10 +133,6 @@ const TRAILING_LINES = [
   'Growing urgency from {team} as the clock ticks on.',
   '{team} looking for a way back into the match.',
 ];
-
-function pick<T>(arr: T[]): T {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
 
 export function generateCommentary(
   minute: number,

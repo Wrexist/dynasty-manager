@@ -22,8 +22,8 @@ export const PlayerCard = memo(function PlayerCard({ player, onClick, compact }:
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <p className="font-semibold text-foreground text-sm truncate">{player.firstName[0]}. {player.lastName}</p>
-            {player.growthDelta && player.growthDelta > 0 && <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />}
-            {player.growthDelta && player.growthDelta < 0 && <TrendingDown className="w-3 h-3 text-destructive shrink-0" />}
+            {player.growthDelta > 0 && <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />}
+            {player.growthDelta < 0 && <TrendingDown className="w-3 h-3 text-destructive shrink-0" />}
           </div>
           <p className="text-xs text-muted-foreground">{getFlag(player.nationality)} {player.position} • {player.age}y</p>
         </div>
@@ -45,8 +45,8 @@ export const PlayerCard = memo(function PlayerCard({ player, onClick, compact }:
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <p className="font-bold text-foreground truncate">{player.firstName} {player.lastName}</p>
-            {player.growthDelta && player.growthDelta > 0 && <TrendingUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
-            {player.growthDelta && player.growthDelta < 0 && <TrendingDown className="w-3.5 h-3.5 text-destructive shrink-0" />}
+            {player.growthDelta > 0 && <TrendingUp className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
+            {player.growthDelta < 0 && <TrendingDown className="w-3.5 h-3.5 text-destructive shrink-0" />}
           </div>
           <p className="text-sm text-muted-foreground">{player.position} • {player.age} • {getFlag(player.nationality)} {player.nationality}</p>
         </div>

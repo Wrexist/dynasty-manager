@@ -16,6 +16,8 @@ export function shuffle<T>(arr: T[]): T[] {
 
 export const clamp = (v: number, min = 1, max = 99) => Math.max(min, Math.min(max, Math.round(v)));
 
+export const clamp100 = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
+
 export function getSuffix(n: number): string {
   if (n >= 11 && n <= 13) return 'th';
   switch (n % 10) {

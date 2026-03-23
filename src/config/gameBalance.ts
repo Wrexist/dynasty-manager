@@ -113,6 +113,8 @@ export const RED_CARD_SUSPENSION_RANGE = 2;
 
 // ── Physio / Staff ──
 export const PHYSIO_RECOVERY_BOOST_THRESHOLD = 7;
+/** Probability per week that a good physio triggers +1 recovery (instead of guaranteed) */
+export const PHYSIO_RECOVERY_CHANCE = 0.4;
 export const PHYSIO_INJURY_REDUCTION_PER_QUALITY = 0.05;
 export const ASSISTANT_MANAGER_FAMILIARITY_BOOST = 0.3;
 

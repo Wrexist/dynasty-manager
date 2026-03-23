@@ -1,6 +1,6 @@
 import type { GameState } from '../storeTypes';
 import type { SponsorDeal, SponsorOffer } from '@/types/game';
-import { addMsg, formatMoney } from '@/utils/helpers';
+import { addMsg, formatMoney, clamp100 } from '@/utils/helpers';
 import {
   SPONSOR_SLOTS,
   SPONSOR_OFFER_INTERVAL,
@@ -155,7 +155,7 @@ export function processSponsorWeek(state: GameState): Partial<GameState> {
 
     updatedDeals = updatedDeals.map(d => ({
       ...d,
-      satisfaction: Math.max(0, Math.min(100, d.satisfaction + satDelta)),
+      satisfaction: clamp100(d.satisfaction + satDelta),
     }));
   }
 
@@ -293,7 +293,7 @@ export function processSponsorSeasonEnd(state: GameState): Partial<GameState> {
 
     // Adjust satisfaction for promotion/relegation
     const repDelta = promoted ? SPONSOR_SAT_REP_UP : !avoided ? SPONSOR_SAT_REP_DOWN : 0;
-    const newSat = Math.max(0, Math.min(100, deal.satisfaction + (met ? SPONSOR_SAT_BONUS_MET : 0) + repDelta));
+    const newSat = clamp100(deal.satisfaction + (met ? SPONSOR_SAT_BONUS_MET : 0) + repDelta);
 
     return { ...deal, bonusMet: met, satisfaction: newSat };
   });

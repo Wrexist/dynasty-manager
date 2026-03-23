@@ -5,11 +5,11 @@ import { cn } from '@/lib/utils';
 import { Lock, Handshake, Clock, X, Check, ChevronRight } from 'lucide-react';
 import { SPONSOR_SLOTS, getSponsorById, isSlotUnlocked, getBonusConditionLabel } from '@/config/sponsorship';
 import { SponsorOfferSheet } from '@/components/game/SponsorOfferSheet';
-import { formatMoney } from '@/utils/helpers';
+import { formatMoney, clamp100 } from '@/utils/helpers';
 import type { SponsorDeal, SponsorOffer } from '@/types/game';
 
 function SatisfactionBar({ value }: { value: number }) {
-  const clamped = Math.max(0, Math.min(100, value));
+  const clamped = clamp100(value);
   const color = clamped >= 60 ? 'bg-emerald-500' : clamped >= 30 ? 'bg-amber-500' : 'bg-destructive';
   return (
     <div className="w-full h-1 bg-muted/30 rounded-full overflow-hidden">
