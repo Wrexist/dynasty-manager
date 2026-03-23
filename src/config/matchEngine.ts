@@ -90,6 +90,10 @@ export const HOME_ADVANTAGE = 1.10;
 export const BASE_EVENT_CHANCE = 0.18;
 export const LATE_GAME_EVENT_BONUS = 0.15;
 export const LATE_GAME_THRESHOLD_MINUTE = 85;
+/** Max consecutive minutes without any event before commentary is injected */
+export const COMMENTARY_GAP_MAX = 4;
+/** Chance to generate a commentary event when event roll succeeds but no shot/foul/injury triggers */
+export const COMMENTARY_CHANCE = 0.35;
 /** Fraction of event rolls that become shot attempts */
 export const SHOT_ATTEMPT_THRESHOLD = 0.2;
 /** Fraction of event rolls between shots and fouls (reduced for ~12-16 fouls/game) */

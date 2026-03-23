@@ -113,6 +113,8 @@ export const RED_CARD_SUSPENSION_RANGE = 2;
 
 // ── Physio / Staff ──
 export const PHYSIO_RECOVERY_BOOST_THRESHOLD = 7;
+/** Probability per week that a good physio triggers +1 recovery (instead of guaranteed) */
+export const PHYSIO_RECOVERY_CHANCE = 0.4;
 export const PHYSIO_INJURY_REDUCTION_PER_QUALITY = 0.05;
 export const ASSISTANT_MANAGER_FAMILIARITY_BOOST = 0.3;
 
@@ -146,7 +148,7 @@ export const FACILITY_MAX_LEVEL = 10;
 export const STADIUM_LEVEL_DIVISOR = 10;
 export const MEDICAL_LEVEL_FACTOR = 0.8;
 export const RECOVERY_LEVEL_FACTOR = 0.6;
-export const RECOVERY_FITNESS_BONUS_PER_LEVEL = 0.5;
+export const RECOVERY_FITNESS_BONUS_PER_LEVEL = 1.0;
 
 // ── Season-End Confidence by Verdict ──
 export const SEASON_END_CONFIDENCE: Record<string, number> = {

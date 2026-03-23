@@ -78,7 +78,7 @@ const FinancePage = () => {
       </GlassPanel>
 
       {/* Balance History Chart */}
-      {chartData.length > 0 && (
+      {chartData.length > 0 ? (
         <GlassPanel className="p-4">
           <h3 className="text-sm font-semibold text-foreground mb-3">Budget History</h3>
           <ResponsiveContainer width="100%" height={160}>
@@ -93,6 +93,11 @@ const FinancePage = () => {
               <Line type="monotone" dataKey="balance" stroke="hsl(43, 96%, 46%)" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
+        </GlassPanel>
+      ) : (
+        <GlassPanel className="p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Budget History</h3>
+          <p className="text-sm text-muted-foreground text-center py-6">Chart will appear after a few weeks of play.</p>
         </GlassPanel>
       )}
 

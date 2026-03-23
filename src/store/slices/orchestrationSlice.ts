@@ -25,7 +25,7 @@ import {
   TOTAL_WEEKS, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY,
   CONFIDENCE_MIN,
   RED_CARD_SUSPENSION_MIN, RED_CARD_SUSPENSION_RANGE,
-  PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_INJURY_REDUCTION_PER_QUALITY, ASSISTANT_MANAGER_FAMILIARITY_BOOST,
+  PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, PHYSIO_INJURY_REDUCTION_PER_QUALITY, ASSISTANT_MANAGER_FAMILIARITY_BOOST,
   CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_OVERALL_THRESHOLD,
   CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_MIN,
   MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE, STADIUM_INCOME_PER_LEVEL,
@@ -246,7 +246,7 @@ function advancePlayoffWeek(set: Set, get: Get) {
   playerClub.playerIds.forEach(pid => {
     let p = { ...newPlayers[pid] };
     if (p.injured) {
-      const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD ? 1 : 0;
+      const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD && Math.random() < PHYSIO_RECOVERY_CHANCE ? 1 : 0;
       p.injuryWeeks = Math.max(0, p.injuryWeeks - 1 - recoveryBoost);
       if (p.injuryDetails) {
         p.injuryDetails = { ...p.injuryDetails, weeksRemaining: p.injuryWeeks };
@@ -1103,7 +1103,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     playerClub.playerIds.forEach(pid => {
       let p = { ...newPlayers[pid] };
       if (p.injured) {
-        const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD ? 1 : 0;
+        const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD && Math.random() < PHYSIO_RECOVERY_CHANCE ? 1 : 0;
         p.injuryWeeks = Math.max(0, p.injuryWeeks - 1 - recoveryBoost);
         if (p.injuryDetails) {
           p.injuryDetails = { ...p.injuryDetails, weeksRemaining: p.injuryWeeks };
@@ -1268,8 +1268,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const hc = clubs[m.homeClubId];
         const ac = clubs[m.awayClubId];
         if (!hc || !ac) continue;
-        const hp = hc.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
-        const ap = ac.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
+        const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
+        const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
         const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season);
         divFixtures[idx] = result;
         // Update player stats for other divisions
@@ -1300,8 +1300,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const hc = clubs[m.homeClubId];
       const ac = clubs[m.awayClubId];
       if (!hc || !ac) continue;
-      const hp = hc.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
-      const ap = ac.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
+      const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
+      const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
       // Forfeit if either team has no available players
       if (hp.length === 0 || ap.length === 0) {
         const forfeit = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : 3, awayGoals: ap.length === 0 ? 0 : 3, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };

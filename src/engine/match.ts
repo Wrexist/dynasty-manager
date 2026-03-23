@@ -53,7 +53,9 @@ import {
   MOMENTUM_DECAY_PER_MINUTE, MOMENTUM_STRENGTH_SCALE,
   SUB_FRESHNESS_BONUS,
   SET_PIECE_TAKER_CORNER_BONUS, PENALTY_TAKER_BONUS,
+  COMMENTARY_GAP_MAX, COMMENTARY_CHANCE,
 } from '@/config/matchEngine';
+import { generateCommentary } from '@/utils/matchCommentary';
 
 /** State carried between halves so the second half can continue from the first */
 export interface HalfState {
@@ -504,6 +506,8 @@ export function simulateHalf(
     events.push({ minute: 0, type: 'kickoff', clubId: homeClub.id, description: 'Kick off!' });
   }
 
+  let lastEventMinute = startMin;
+
   // Calculate stoppage time for this half
   const isFirstHalf = startMin <= 45 && endMin <= 50;
   const nominalEnd = isFirstHalf ? 45 : 90;
@@ -551,7 +555,16 @@ export function simulateHalf(
       : homeTactics?.tempo === 'slow' && awayTactics?.tempo === 'slow' ? -0.03 : 0;
     const baseChance = BASE_EVENT_CHANCE + (min > LATE_GAME_THRESHOLD_MINUTE ? LATE_GAME_EVENT_BONUS : 0) + derbyEventMod + tempoEventMod;
     const eventChance = baseChance + (homeMods.shotMod + awayMods.shotMod) * 0.5;
-    if (Math.random() > eventChance) continue;
+    if (Math.random() > eventChance) {
+      // Gap-filler: inject commentary if too many silent minutes have passed
+      if (min - lastEventMinute >= COMMENTARY_GAP_MAX) {
+        const isHome = Math.random() < 0.5;
+        const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum);
+        events.push({ minute: min, type: 'commentary', clubId: isHome ? homeClub.id : awayClub.id, description: desc });
+        lastEventMinute = min;
+      }
+      continue;
+    }
 
     // Apply momentum to strength ratio: positive momentum favours home team
     const momentumFactor = momentum * MOMENTUM_STRENGTH_SCALE / 100;
@@ -834,6 +847,15 @@ export function simulateHalf(
         const sevLabel = details.severity === 'minor' ? 'Minor' : details.severity === 'moderate' ? 'Moderate' : 'Serious';
         events.push({ minute: min, type: 'injury', playerId: candidate.id, clubId: club.id, description: `${pick(injuryDescs)(candidate.lastName)} ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.` });
       }
+    }
+    // === COMMENTARY FALLBACK (event roll passed but no shot/foul/injury triggered) ===
+    else if (Math.random() < COMMENTARY_CHANCE) {
+      const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum);
+      events.push({ minute: min, type: 'commentary', clubId: club.id, description: desc });
+    }
+    // Update last event tracker
+    if (events.length > 0 && events[events.length - 1].minute === min) {
+      lastEventMinute = min;
     }
   }
 

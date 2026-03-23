@@ -195,14 +195,13 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                     'rounded px-1 py-px -mt-0.5 text-center min-w-[32px]',
                     isSelectedOut ? 'bg-destructive/80' : 'bg-black/70',
                   )}
-                  style={{ borderBottom: `2px solid ${getFitnessHexColor(player.fitness)}` }}
                 >
                   <span className="text-[7px] text-white font-bold block leading-tight">{player.lastName.slice(0, 3).toUpperCase()}</span>
                   <span className="text-[6px] text-gray-400 block leading-tight">{slot.pos} {player.overall}</span>
+                  <div className="w-full h-[2px] mt-0.5 rounded-full overflow-hidden bg-muted/40">
+                    <div className="h-full rounded-full" style={{ width: `${player.fitness}%`, backgroundColor: getFitnessHexColor(player.fitness) }} />
+                  </div>
                 </div>
-                {isSelectedOut && (
-                  <div className="absolute -inset-1 rounded-lg border-2 border-destructive animate-pulse pointer-events-none" />
-                )}
               </div>
             </div>
           );
@@ -245,12 +244,12 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 <svg width="24" height="24" viewBox="0 0 24 24" className="pointer-events-none">
                   <PlayerAvatar playerId={p.id} jerseyColor={playerClub.color} size={24} />
                 </svg>
-                <div
-                  className="bg-black/60 rounded px-1 py-px -mt-0.5 text-center min-w-[28px]"
-                  style={{ borderBottom: `1.5px solid ${getFitnessHexColor(p.fitness)}` }}
-                >
-                  <span className="text-[6px] text-white font-bold block leading-tight">{p.lastName.slice(0, 3).toUpperCase()}</span>
-                  <span className="text-[5px] text-gray-400 block leading-tight">{p.position} {p.overall}</span>
+                <div className="bg-black/60 rounded px-1 py-px -mt-0.5 text-center min-w-[28px]">
+                  <span className="text-[7px] text-white font-bold block leading-tight">{p.lastName.slice(0, 3).toUpperCase()}</span>
+                  <span className="text-[6px] text-gray-400 block leading-tight">{p.position} {p.overall}</span>
+                  <div className="w-full h-[2px] mt-0.5 rounded-full overflow-hidden bg-muted/40">
+                    <div className="h-full rounded-full" style={{ width: `${p.fitness}%`, backgroundColor: getFitnessHexColor(p.fitness) }} />
+                  </div>
                 </div>
                 <span className={cn('text-[7px] font-semibold mt-0.5', formInfo.className)}>{formInfo.text}</span>
               </div>
