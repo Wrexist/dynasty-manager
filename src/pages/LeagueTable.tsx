@@ -8,7 +8,7 @@ import { DIVISIONS } from '@/data/league';
 import type { DivisionId } from '@/types/game';
 
 const LeagueTable = () => {
-  const { divisionTables, divisionFixtures, divisionClubs, clubs, players, playerClubId, playerDivision, week, totalWeeks, setScreen } = useGameStore();
+  const { divisionTables, divisionFixtures, divisionClubs, clubs, players, playerClubId, playerDivision, week, totalWeeks, setScreen, selectClub, selectPlayer } = useGameStore();
   const [tab, setTab] = useState<'table' | 'fixtures' | 'stats'>('table');
   const [selectedDiv, setSelectedDiv] = useState<DivisionId>(playerDivision || 'div-1');
   const [browseWeek, setBrowseWeek] = useState(week);
@@ -149,8 +149,9 @@ const LeagueTable = () => {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ delay: Math.min(i * 0.02, 0.4), duration: 0.2 }}
+                      onClick={() => selectClub(entry.clubId)}
                       className={cn(
-                        'border-b border-border/10',
+                        'border-b border-border/10 cursor-pointer active:bg-muted/30 transition-colors',
                         zoneBgClass(zone),
                         isPlayer && 'bg-primary/5 shadow-[inset_0_0_12px_hsl(43_96%_46%/0.05)] border-l-2 border-l-primary'
                       )}
@@ -269,7 +270,7 @@ const LeagueTable = () => {
                 return (
                   <GlassPanel key={match.id} className={cn('p-3', isPlayerMatch && 'border-primary/30')}>
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 flex items-center gap-2 justify-end">
+                      <div className="flex-1 flex items-center gap-2 justify-end cursor-pointer active:opacity-70" onClick={() => selectClub(match.homeClubId)}>
                         <span className={cn(
                           'text-xs font-medium truncate text-right',
                           match.homeClubId === playerClubId ? 'text-primary font-bold' : 'text-foreground'
@@ -287,7 +288,7 @@ const LeagueTable = () => {
                           <span className="text-xs text-muted-foreground font-medium">vs</span>
                         )}
                       </div>
-                      <div className="flex-1 flex items-center gap-2">
+                      <div className="flex-1 flex items-center gap-2 cursor-pointer active:opacity-70" onClick={() => selectClub(match.awayClubId)}>
                         <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: awayClub?.color }} />
                         <span className={cn(
                           'text-xs font-medium truncate',
@@ -317,7 +318,7 @@ const LeagueTable = () => {
                 {topScorers.map((p, i) => {
                   const pClub = clubs[p.clubId];
                   return (
-                    <div key={p.id} className="flex items-center gap-3">
+                    <div key={p.id} className="flex items-center gap-3 cursor-pointer active:opacity-70" onClick={() => selectPlayer(p.id)}>
                       <span className={cn('w-5 text-xs font-bold text-center', i === 0 ? 'text-primary' : 'text-muted-foreground')}>{i + 1}</span>
                       <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: pClub?.color }} />
                       <div className="flex-1 min-w-0">
@@ -343,7 +344,7 @@ const LeagueTable = () => {
                 {topAssisters.map((p, i) => {
                   const pClub = clubs[p.clubId];
                   return (
-                    <div key={p.id} className="flex items-center gap-3">
+                    <div key={p.id} className="flex items-center gap-3 cursor-pointer active:opacity-70" onClick={() => selectPlayer(p.id)}>
                       <span className={cn('w-5 text-xs font-bold text-center', i === 0 ? 'text-primary' : 'text-muted-foreground')}>{i + 1}</span>
                       <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: pClub?.color }} />
                       <div className="flex-1 min-w-0">

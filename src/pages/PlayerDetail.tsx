@@ -14,7 +14,7 @@ import { getPersonalityLabel } from '@/utils/personality';
 
 const PlayerDetail = () => {
   const {
-    selectedPlayerId, players, clubs, playerClubId,
+    selectedPlayerId, players, clubs, playerClubId, previousScreen,
     incomingOffers, setScreen, selectPlayer,
     listPlayerForSale, unlistPlayer, respondToOffer, season, week, facilities, startNegotiation,
   } = useGameStore();
@@ -25,7 +25,7 @@ const PlayerDetail = () => {
     return (
       <div className="max-w-lg mx-auto px-4 py-8 text-center space-y-3">
         <p className="text-muted-foreground">This player is no longer in the game — they may have been released, retired, or transferred.</p>
-        <Button variant="secondary" onClick={() => setScreen('squad')}>Back to Squad</Button>
+        <Button variant="secondary" onClick={() => setScreen(previousScreen === 'team-detail' ? 'team-detail' : 'squad')}>Back</Button>
       </div>
     );
   }
@@ -92,7 +92,7 @@ const PlayerDetail = () => {
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <button
-        onClick={() => { selectPlayer(null); setScreen('squad'); }}
+        onClick={() => { selectPlayer(null); setScreen(previousScreen === 'team-detail' ? 'team-detail' : 'squad'); }}
         className="flex items-center gap-1 text-muted-foreground text-sm"
       >
         <ArrowLeft className="w-4 h-4" /> Back
