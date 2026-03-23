@@ -12,8 +12,8 @@ import { Capacitor } from '@capacitor/core';
 
 // Placeholder ad unit IDs — replace with real IDs from AdMob dashboard
 // Use test IDs during development: https://developers.google.com/admob/android/test-ads
-const REWARDED_AD_UNIT_IOS = 'ca-app-pub-PLACEHOLDER/PLACEHOLDER';
-const REWARDED_AD_UNIT_ANDROID = 'ca-app-pub-PLACEHOLDER/PLACEHOLDER';
+const REWARDED_AD_UNIT_IOS = 'ca-app-pub-2286247955186424~9847041449';
+const REWARDED_AD_UNIT_ANDROID = 'ca-app-pub-2286247955186424~9847041449';
 
 let adInitialized = false;
 
