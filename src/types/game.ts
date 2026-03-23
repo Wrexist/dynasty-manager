@@ -65,7 +65,7 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'playoffs' | 'offseason';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop';
 
 export interface PlayerAttributes {
   pace: number;
@@ -854,4 +854,47 @@ export interface SessionStats {
   matchesWon: number;
   matchesLost: number;
   objectivesCompleted: number;
+}
+
+// ── Monetization System ──
+
+export type ProductId =
+  | 'com.dynastymanager.pro'
+  | 'com.dynastymanager.pack.manager'
+  | 'com.dynastymanager.pack.stadium'
+  | 'com.dynastymanager.pack.legends'
+  | 'com.dynastymanager.bundle.all';
+
+export type ProFeature =
+  | 'ad_free'
+  | 'advanced_analytics'
+  | 'custom_tactics'
+  | 'expanded_press'
+  | 'historical_records'
+  | 'instant_sim'
+  | 'pro_badge';
+
+export type CosmeticCategory = 'avatar' | 'title_badge' | 'celebration_text' | 'stadium_theme' | 'pitch_skin' | 'confetti_style' | 'cabinet_style' | 'prestige_badge' | 'hom_frame';
+
+export interface CosmeticItem {
+  id: string;
+  category: CosmeticCategory;
+  name: string;
+  description: string;
+  pack: ProductId;
+}
+
+export type AdRewardType = 'scout_potential' | 'transfer_budget' | 'xp_double' | 'youth_preview' | 'season_bonus';
+
+export interface MonetizationState {
+  /** Product IDs the player has purchased */
+  entitlements: ProductId[];
+  /** Selected cosmetic per category */
+  activeCosmetics: Partial<Record<CosmeticCategory, string>>;
+  /** Ad rewards claimed this season (keyed by type + context) */
+  adRewardsClaimed: Record<string, number>;
+  /** Timestamp of first app launch (for time-limited offers) */
+  firstLaunchTimestamp: number;
+  /** Whether the starter kit offer has been dismissed or expired */
+  starterKitDismissed: boolean;
 }

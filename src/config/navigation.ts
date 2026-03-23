@@ -3,7 +3,7 @@ import { GameScreen } from '@/types/game';
 export const DETAIL_SCREENS: GameScreen[] = [
   'player-detail', 'match-review', 'board', 'finance', 'merchandise', 'facilities',
   'settings', 'season-summary', 'calendar', 'match-prep', 'match',
-  'league-table', 'comparison', 'manager-profile', 'cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club', 'team-detail',
+  'league-table', 'comparison', 'manager-profile', 'cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club', 'team-detail', 'shop',
 ];
 
 export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
@@ -28,6 +28,7 @@ export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
   'hall-of-managers': 'dashboard',
   'club': 'dashboard',
   'team-detail': 'league-table',
+  'shop': 'dashboard',
 };
 
 export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
@@ -60,6 +61,7 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
   'scouting': 'Scouting',
   'staff': 'Staff',
   'youth-academy': 'Youth Academy',
+  'shop': 'Shop',
 };
 
 export const MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'transfers'];

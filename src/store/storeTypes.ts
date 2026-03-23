@@ -1,4 +1,4 @@
-import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, CupState, PressConference, ContractOffer, ActiveChallenge, DivisionId, PlayoffState, PromotionRelegation, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord } from '@/types/game';
+import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, CupState, PressConference, ContractOffer, ActiveChallenge, DivisionId, PlayoffState, PromotionRelegation, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -112,6 +112,9 @@ export interface GameState {
   // Newly unlocked achievements (for modal display, cleared after shown)
   pendingAchievementIds: string[];
 
+  // Monetization
+  monetization: MonetizationState;
+
   // Weekly Digest (post-advanceWeek summary)
   weeklyDigest: {
     incomeEarned: number;
@@ -223,6 +226,15 @@ export interface GameState {
 
   // Actions — Prestige
   startPrestige: (optionId: 'rival' | 'drop-division' | 'restart-perks') => void;
+
+  // Actions — Monetization
+  grantEntitlement: (productId: ProductId) => void;
+  restoreEntitlements: (productIds: ProductId[]) => void;
+  setCosmetic: (category: CosmeticCategory, cosmeticId: string) => void;
+  clearCosmetic: (category: CosmeticCategory) => void;
+  claimAdReward: (rewardType: AdRewardType) => boolean;
+  dismissStarterKit: () => void;
+  initMonetizationTimestamp: () => void;
 
   // Actions — Farewell
   pendingFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] } | null;
