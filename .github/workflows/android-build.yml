@@ -11,16 +11,6 @@ on:
         required: true
         type: string
         default: '1.0.0'
-      track:
-        description: 'Play Store track'
-        required: true
-        type: choice
-        options:
-          - internal
-          - alpha
-          - beta
-          - production
-        default: 'internal'
 
 jobs:
   build:
@@ -64,11 +54,3 @@ jobs:
         with:
           name: dynasty-manager-release
           path: android/app/build/outputs/bundle/release/*.aab
-
-      - name: Upload to Google Play
-        uses: r0adkll/upload-google-play@v1
-        with:
-          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: com.dynastymanager
-          releaseFiles: android/app/build/outputs/bundle/release/*.aab
-          track: ${{ inputs.track }}
