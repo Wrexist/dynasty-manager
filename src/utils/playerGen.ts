@@ -13,35 +13,42 @@ import {
   STAR_PLAYER_BOOST_MIN, STAR_PLAYER_BOOST_MAX, VETERAN_BOOST_MIN, VETERAN_BOOST_MAX,
   EFFECTIVE_RATING_OVERALL_WEIGHT, EFFECTIVE_RATING_FORM_WEIGHT, EFFECTIVE_RATING_FITNESS_WEIGHT,
   MAX_SUBS, MIN_TEAM_STRENGTH, TEAM_STRENGTH_BASE, TEAM_STRENGTH_FITNESS_SCALE, TEAM_STRENGTH_MORALE_SCALE,
+  NATIONALITY_DISTRIBUTION,
 } from '@/config/playerGeneration';
+import { NATIONALITY_NAME_POOLS, FALLBACK_FIRST_NAMES, FALLBACK_LAST_NAMES } from '@/config/namePool';
 import { CLUB_TEMPLATES } from '@/data/playerTemplates';
 
-const FIRST_NAMES = [
-  'James', 'Marcus', 'Lucas', 'Gabriel', 'Oliver', 'Noah', 'Ethan', 'Liam', 'Mason', 'Logan',
-  'Alexander', 'Sebastian', 'Mateo', 'Daniel', 'Henry', 'Michael', 'Benjamin', 'Samuel', 'David', 'Joseph',
-  'Carlos', 'Diego', 'Rafael', 'Antonio', 'Luis', 'Pedro', 'Marco', 'Andrea', 'Luca', 'Giovanni',
-  'Pierre', 'Jean', 'Antoine', 'Karim', 'Ousmane', 'Kylian', 'Hugo', 'Florian', 'Adrien', 'Paul',
-  'Thomas', 'Felix', 'Kai', 'Leon', 'Timo', 'Joshua', 'Jadon', 'Bukayo', 'Phil', 'Erling',
-  'Mohammed', 'Ibrahim', 'Youssef', 'Omar', 'Sadio', 'Victor', 'Bruno', 'Bernardo', 'Ruben', 'Joao',
-];
-
-const LAST_NAMES = [
-  'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Martinez', 'Rodriguez', 'Lopez', 'Wilson',
-  'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin', 'Lee', 'Thompson', 'White', 'Harris',
-  'Silva', 'Santos', 'Oliveira', 'Souza', 'Pereira', 'Costa', 'Fernandes', 'Rodrigues', 'Almeida', 'Lima',
-  'Mueller', 'Schmidt', 'Schneider', 'Fischer', 'Weber', 'Wagner', 'Becker', 'Schulz', 'Hoffmann', 'Koch',
-  'Dupont', 'Bernard', 'Moreau', 'Laurent', 'Lefevre', 'Roux', 'Girard', 'Bonnet', 'Lambert', 'Fontaine',
-  'Rossi', 'Russo', 'Ferrari', 'Esposito', 'Bianchi', 'Romano', 'Colombo', 'Ricci', 'Marino', 'Greco',
-];
-
-const NATIONALITIES = [
+const ALL_NATIONALITIES = [
   'England', 'Spain', 'France', 'Germany', 'Italy', 'Brazil', 'Argentina', 'Portugal',
   'Netherlands', 'Belgium', 'Colombia', 'Uruguay', 'Croatia', 'Denmark', 'Norway',
   'Sweden', 'Switzerland', 'Nigeria', 'Senegal', 'Morocco', 'Japan', 'South Korea',
-  'Cameroon', 'Ivory Coast', 'Egypt', 'Ghana', 'USA', 'Ukraine', 'Jamaica', 'Ireland',
-  'Scotland', 'Wales', 'Czech Republic', 'Hungary', 'Ecuador', 'Mexico', 'Mali',
-  'Paraguay', 'Poland', 'Turkey', 'Austria', 'Algeria', 'Gabon', 'Serbia',
+  'Scotland', 'Wales', 'Ireland', 'Ghana', 'Ivory Coast', 'Cameroon', 'Poland',
+  'Turkey', 'Serbia', 'Czech Republic', 'Austria', 'USA',
+  'Egypt', 'Ukraine', 'Jamaica', 'Hungary', 'Ecuador', 'Mexico', 'Mali',
+  'Paraguay', 'Algeria', 'Gabon',
 ];
+
+function pickNationality(divisionTier?: number): string {
+  if (divisionTier && NATIONALITY_DISTRIBUTION[divisionTier]) {
+    const pool = NATIONALITY_DISTRIBUTION[divisionTier];
+    const totalWeight = pool.reduce((s, e) => s + e.weight, 0);
+    let r = Math.random() * totalWeight;
+    for (const entry of pool) {
+      r -= entry.weight;
+      if (r <= 0) return entry.nationality;
+    }
+    return pool[pool.length - 1].nationality;
+  }
+  return pick(ALL_NATIONALITIES);
+}
+
+function pickNameForNationality(nationality: string): { firstName: string; lastName: string } {
+  const pool = NATIONALITY_NAME_POOLS[nationality];
+  if (pool) {
+    return { firstName: pick(pool.firstNames), lastName: pick(pool.lastNames) };
+  }
+  return { firstName: pick(FALLBACK_FIRST_NAMES), lastName: pick(FALLBACK_LAST_NAMES) };
+}
 
 const variance = (range = 15) => Math.floor(Math.random() * range * 2) - range;
 
@@ -75,18 +82,20 @@ function calculateOverall(attrs: PlayerAttributes, position: Position): number {
 
 export { calculateOverall };
 
-export function generatePlayer(position: Position, quality: number, clubId: string, season: number): Player {
+export function generatePlayer(position: Position, quality: number, clubId: string, season: number, divisionTier?: number): Player {
   const attrs = generateAttributes(position, quality);
   const overall = calculateOverall(attrs, position);
   const age = PLAYER_MIN_AGE + Math.floor(Math.random() * PLAYER_AGE_RANGE);
   const potential = clamp(overall + Math.floor(Math.random() * (age < YOUNG_AGE_THRESHOLD ? YOUNG_POTENTIAL_GAP : OLD_POTENTIAL_GAP)));
   const value = Math.round(overall * overall * VALUE_OVERALL_MULTIPLIER + Math.random() * VALUE_RANDOM_RANGE);
+  const nationality = pickNationality(divisionTier);
+  const { firstName, lastName } = pickNameForNationality(nationality);
   return {
     id: crypto.randomUUID(),
-    firstName: pick(FIRST_NAMES),
-    lastName: pick(LAST_NAMES),
+    firstName,
+    lastName,
     age,
-    nationality: pick(NATIONALITIES),
+    nationality,
     position,
     attributes: attrs,
     overall,
@@ -134,7 +143,7 @@ function buildAgeTargets(count: number): { min: number; max: number }[] {
   return ageTargets;
 }
 
-export function generateSquad(clubId: string, quality: number, season: number): Player[] {
+export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number): Player[] {
   const templates = CLUB_TEMPLATES[clubId] || [];
   const templatePlayers: Player[] = [];
 
@@ -176,7 +185,7 @@ export function generateSquad(clubId: string, quality: number, season: number): 
   const ageTargets = buildAgeTargets(remainingPositions.length);
   const fillerPlayers = remainingPositions.map((pos, idx) => {
     const q = clamp(quality + variance(SQUAD_QUALITY_VARIANCE), SQUAD_QUALITY_MIN, SQUAD_QUALITY_MAX);
-    const player = generatePlayer(pos, q, clubId, season);
+    const player = generatePlayer(pos, q, clubId, season, divisionTier);
     const ageBucket = ageTargets[idx];
     player.age = ageBucket.min + Math.floor(Math.random() * (ageBucket.max - ageBucket.min + 1));
     if (player.age <= YOUNG_POTENTIAL_AGE_THRESHOLD) {
