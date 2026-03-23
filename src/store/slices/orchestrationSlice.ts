@@ -1085,9 +1085,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       lastMatchXPGain: 0,
       monetization: {
         ...DEFAULT_MONETIZATION_STATE,
-        // Preserve any existing entitlements (from previous saves)
+        // Preserve purchases and subscription across game init
         entitlements: get().monetization?.entitlements || [],
         firstLaunchTimestamp: get().monetization?.firstLaunchTimestamp || Date.now(),
+        subscription: get().monetization?.subscription || null,
       },
     });
   },
@@ -2855,9 +2856,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       merchandise: getDefaultMerchState(),
       monetization: {
         ...DEFAULT_MONETIZATION_STATE,
-        // Preserve purchases across save resets — entitlements survive deletion
+        // Preserve purchases and subscription across save resets
         entitlements: get().monetization.entitlements,
         firstLaunchTimestamp: get().monetization.firstLaunchTimestamp,
+        subscription: get().monetization.subscription,
       },
     });
   },
