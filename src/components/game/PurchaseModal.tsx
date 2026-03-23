@@ -7,9 +7,10 @@ interface PurchaseModalProps {
   productId: ProductId;
   onConfirm: () => void;
   onCancel: () => void;
+  loading?: boolean;
 }
 
-export function PurchaseModal({ productId, onConfirm, onCancel }: PurchaseModalProps) {
+export function PurchaseModal({ productId, onConfirm, onCancel, loading }: PurchaseModalProps) {
   const product = PRODUCTS[productId];
   if (!product) return null;
 
@@ -55,14 +56,16 @@ export function PurchaseModal({ productId, onConfirm, onCancel }: PurchaseModalP
 
             <button
               onClick={onConfirm}
-              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform"
+              disabled={loading}
+              className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform disabled:opacity-50"
             >
-              Purchase
+              {loading ? 'Processing...' : 'Purchase'}
             </button>
 
             <button
               onClick={onCancel}
-              className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              disabled={loading}
+              className="w-full py-2 text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
             >
               Cancel
             </button>

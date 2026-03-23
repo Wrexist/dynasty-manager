@@ -9,6 +9,7 @@ import { isPro, hasProduct, isStarterKitAvailable, getStarterKitRemainingMs, get
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK } from '@/utils/purchases';
+import { hapticMedium } from '@/utils/haptics';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
 
@@ -30,7 +31,7 @@ const FEATURE_ICONS: Record<ProFeature, React.ElementType> = {
 };
 
 const ShopPage = () => {
-  const { monetization, grantEntitlement, restoreEntitlements, setCosmetic, clearCosmetic } = useGameStore();
+  const { monetization, restoreEntitlements, setCosmetic, clearCosmetic } = useGameStore();
   const [purchaseProduct, setPurchaseProduct] = useState<ProductId | null>(null);
   const [restoring, setRestoring] = useState(false);
   const userIsPro = isPro(monetization);
@@ -38,6 +39,7 @@ const ShopPage = () => {
   const starterKitMs = getStarterKitRemainingMs(monetization);
 
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [purchasing, setPurchasing] = useState(false);
 
   const handlePurchase = (productId: ProductId) => {
     setPurchaseError(null);
@@ -45,18 +47,20 @@ const ShopPage = () => {
   };
 
   const handleConfirmPurchase = async () => {
-    if (!purchaseProduct) return;
+    if (!purchaseProduct || purchasing) return;
+    setPurchasing(true);
+    setPurchaseError(null);
     try {
       const granted = await purchaseViaSDK(purchaseProduct);
       if (granted.length > 0) {
         restoreEntitlements(granted);
-      } else {
-        // Fallback: direct grant for dev/web mode
-        grantEntitlement(purchaseProduct);
       }
+      hapticMedium();
       setPurchaseProduct(null);
     } catch {
       setPurchaseError('Purchase failed. Please try again.');
+    } finally {
+      setPurchasing(false);
     }
   };
 
@@ -288,6 +292,7 @@ const ShopPage = () => {
           productId={purchaseProduct}
           onConfirm={handleConfirmPurchase}
           onCancel={() => setPurchaseProduct(null)}
+          loading={purchasing}
         />
       )}
     </div>

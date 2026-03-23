@@ -1,18 +1,39 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
-import { infoToast } from '@/utils/gameToast';
+import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { removeFlag, clearFlagsByPrefix } from '@/store/helpers/persistence';
+import { restorePurchases } from '@/utils/purchases';
+import { isPro } from '@/utils/monetization';
 
 const APP_VERSION = 'v0.2 Alpha · Football Edition';
 
 const SettingsPage = () => {
-  const { settings, updateSettings, saveGame, loadGame, resetGame } = useGameStore();
+  const { settings, updateSettings, saveGame, loadGame, resetGame, monetization, restoreEntitlements } = useGameStore();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [restoringPurchases, setRestoringPurchases] = useState(false);
+  const userIsPro = isPro(monetization);
+
+  const handleRestorePurchases = async () => {
+    setRestoringPurchases(true);
+    try {
+      const granted = await restorePurchases();
+      if (granted.length > 0) {
+        restoreEntitlements(granted);
+        successToast('Purchases Restored', `${granted.length} product${granted.length > 1 ? 's' : ''} restored.`);
+      } else {
+        infoToast('No Purchases Found', 'No previous purchases were found for this account.');
+      }
+    } catch {
+      errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
+    } finally {
+      setRestoringPurchases(false);
+    }
+  };
 
   const handleSave = () => {
     saveGame();
@@ -142,6 +163,30 @@ const SettingsPage = () => {
             </button>
           </div>
         </div>
+      </GlassPanel>
+
+      {/* Purchases */}
+      <GlassPanel className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-foreground">Purchases</h3>
+          {userIsPro && (
+            <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+              <Crown className="w-3 h-3" /> Pro
+            </span>
+          )}
+        </div>
+        <Button
+          variant="secondary"
+          className="w-full justify-start gap-3 h-11"
+          onClick={handleRestorePurchases}
+          disabled={restoringPurchases}
+        >
+          <RefreshCw className={cn('w-4 h-4', restoringPurchases && 'animate-spin')} />
+          {restoringPurchases ? 'Restoring...' : 'Restore Purchases'}
+        </Button>
+        <p className="text-[10px] text-muted-foreground mt-2">
+          Restore previously purchased items from your App Store or Play Store account.
+        </p>
       </GlassPanel>
 
       {/* Help */}

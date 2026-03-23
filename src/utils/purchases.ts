@@ -17,6 +17,7 @@ const REVENUECAT_IOS_KEY = 'sk_bdrlXBxcITpkVTzWngWebytZuBwuO';
 const REVENUECAT_ANDROID_KEY = 'sk_yNMGadnNiakbRbUGPbIUVIEnJbFwC';
 
 let initialized = false;
+let listenerRemover: (() => void) | null = null;
 
 /** Initialize RevenueCat SDK. Call once at app startup. */
 export async function initPurchases(): Promise<void> {
@@ -102,9 +103,8 @@ export async function getEntitlements(): Promise<ProductId[]> {
 }
 
 /** Map RevenueCat CustomerInfo to our ProductId array. */
-function mapEntitlements(customerInfo: { activeSubscriptions: string[]; allPurchasedProductIdentifiers: string[] }): ProductId[] {
-  const allProductIds = customerInfo.allPurchasedProductIdentifiers || [];
-  // Filter to only our known product IDs
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapEntitlements(customerInfo: any): ProductId[] {
   const validIds: ProductId[] = [
     'com.dynastymanager.pro',
     'com.dynastymanager.pack.manager',
@@ -112,5 +112,48 @@ function mapEntitlements(customerInfo: { activeSubscriptions: string[]; allPurch
     'com.dynastymanager.pack.legends',
     'com.dynastymanager.bundle.all',
   ];
-  return allProductIds.filter((id): id is ProductId => validIds.includes(id as ProductId));
+
+  const purchased = new Set<string>();
+
+  // Check entitlements.active (RevenueCat v12 best practice)
+  const activeEntitlements = customerInfo?.entitlements?.active;
+  if (activeEntitlements) {
+    for (const key of Object.keys(activeEntitlements)) {
+      const ent = activeEntitlements[key];
+      if (ent?.productIdentifier) purchased.add(ent.productIdentifier);
+    }
+  }
+
+  // Also check allPurchasedProductIdentifiers (fallback for non-consumables)
+  const allIds = customerInfo?.allPurchasedProductIdentifiers || [];
+  for (const id of allIds) purchased.add(id);
+
+  return Array.from(purchased).filter((id): id is ProductId => validIds.includes(id as ProductId));
+}
+
+/**
+ * Start listening for real-time entitlement changes (e.g. purchases on
+ * another device, family sharing, or subscription renewals).
+ */
+export async function startEntitlementListener(
+  onUpdate: (productIds: ProductId[]) => void
+): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    const { Purchases } = await import('@revenuecat/purchases-capacitor');
+    listenerRemover = Purchases.addCustomerInfoUpdateListener((info) => {
+      const ids = mapEntitlements(info);
+      onUpdate(ids);
+    });
+  } catch (err) {
+    console.warn('[Purchases] Failed to add listener:', err);
+  }
+}
+
+/** Stop listening for entitlement changes. */
+export function stopEntitlementListener(): void {
+  if (listenerRemover) {
+    listenerRemover();
+    listenerRemover = null;
+  }
 }
