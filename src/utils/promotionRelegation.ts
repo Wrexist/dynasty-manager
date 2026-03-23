@@ -228,12 +228,36 @@ export function applyPromotionRelegation(
     }
   }
 
-  // Rebuild divisionClubs from updated club data
-  const updatedDivisionClubs: Record<DivisionId, string[]> = { 'div-1': [], 'div-2': [], 'div-3': [], 'div-4': [] };
-  for (const c of Object.values(newClubs)) {
-    // Skip replaced clubs
-    if (promRel.replacedClubs.includes(c.id)) continue;
-    updatedDivisionClubs[c.divisionId].push(c.id);
+  // Rebuild divisionClubs by applying movements to the input divisionClubs arrays.
+  // This avoids relying on club.divisionId which may be stale for clubs not in any division.
+  const updatedDivisionClubs: Record<DivisionId, string[]> = {
+    'div-1': [...divisionClubs['div-1']],
+    'div-2': [...divisionClubs['div-2']],
+    'div-3': [...divisionClubs['div-3']],
+    'div-4': [...divisionClubs['div-4']],
+  };
+
+  // Remove replaced clubs from div-4
+  for (const cid of promRel.replacedClubs) {
+    updatedDivisionClubs['div-4'] = updatedDivisionClubs['div-4'].filter(id => id !== cid);
+  }
+
+  // Apply promotions: remove from source division, add to target
+  for (const p of promRel.promoted) {
+    updatedDivisionClubs[p.fromDivision] = updatedDivisionClubs[p.fromDivision].filter(id => id !== p.clubId);
+    updatedDivisionClubs[p.toDivision].push(p.clubId);
+  }
+
+  // Apply playoff winners: remove from source division, add to target
+  for (const p of promRel.playoffWinners) {
+    updatedDivisionClubs[p.fromDivision] = updatedDivisionClubs[p.fromDivision].filter(id => id !== p.clubId);
+    updatedDivisionClubs[p.toDivision].push(p.clubId);
+  }
+
+  // Apply relegations: remove from source division, add to target
+  for (const r of promRel.relegated) {
+    updatedDivisionClubs[r.fromDivision] = updatedDivisionClubs[r.fromDivision].filter(id => id !== r.clubId);
+    updatedDivisionClubs[r.toDivision].push(r.clubId);
   }
 
   return { promRel, updatedClubs: newClubs, updatedDivisionClubs };
