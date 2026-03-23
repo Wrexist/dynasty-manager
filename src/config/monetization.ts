@@ -6,7 +6,7 @@
  * transfer values, or any core simulation parameter.
  */
 
-import type { ProductId, ProFeature, CosmeticItem, AdRewardType, MonetizationState } from '@/types/game';
+import type { ProductId, ProFeature, CosmeticItem, AdRewardType, MonetizationState, SubscriptionTier } from '@/types/game';
 
 // ── Product Definitions ──
 
@@ -17,6 +17,12 @@ export interface ProductDef {
   priceUsd: number;
   /** Product IDs included when this bundle is purchased */
   includes?: ProductId[];
+  /** Whether this is a one-time purchase or subscription */
+  type: 'one_time' | 'subscription';
+  /** Subscription tier (only for subscription products) */
+  subscriptionTier?: SubscriptionTier;
+  /** Billing period label for display (e.g. '/month', '/year', 'one-time') */
+  billingPeriod?: string;
 }
 
 export const PRODUCTS: Record<ProductId, ProductDef> = {
@@ -25,30 +31,62 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     name: 'Dynasty Pro',
     description: 'Ad-free play, advanced analytics, custom tactics, expanded press conferences, historical records, instant sim, and a Pro badge.',
     priceUsd: 7.99,
+    type: 'one_time',
+  },
+  'com.dynastymanager.pro.monthly': {
+    id: 'com.dynastymanager.pro.monthly',
+    name: 'Dynasty Pro Monthly',
+    description: 'All Pro features, billed monthly. Cancel anytime.',
+    priceUsd: 1.99,
+    type: 'subscription',
+    subscriptionTier: 'monthly',
+    billingPeriod: '/month',
+  },
+  'com.dynastymanager.pro.yearly': {
+    id: 'com.dynastymanager.pro.yearly',
+    name: 'Dynasty Pro Yearly',
+    description: 'All Pro features, billed yearly. Save 58% vs monthly.',
+    priceUsd: 9.99,
+    type: 'subscription',
+    subscriptionTier: 'yearly',
+    billingPeriod: '/year',
+  },
+  'com.dynastymanager.pro.lifetime': {
+    id: 'com.dynastymanager.pro.lifetime',
+    name: 'Dynasty Pro Lifetime',
+    description: 'All Pro features forever. One-time purchase.',
+    priceUsd: 19.99,
+    type: 'subscription',
+    subscriptionTier: 'lifetime',
+    billingPeriod: 'one-time',
   },
   'com.dynastymanager.pack.manager': {
     id: 'com.dynastymanager.pack.manager',
     name: 'Manager Identity Pack',
     description: '12 avatar styles, 8 title badges, and custom celebration text.',
     priceUsd: 2.99,
+    type: 'one_time',
   },
   'com.dynastymanager.pack.stadium': {
     id: 'com.dynastymanager.pack.stadium',
     name: 'Stadium Atmosphere Pack',
     description: '4 stadium themes, confetti styles, and custom pitch grass patterns.',
     priceUsd: 1.99,
+    type: 'one_time',
   },
   'com.dynastymanager.pack.legends': {
     id: 'com.dynastymanager.pack.legends',
     name: 'Dynasty Legends Pack',
     description: 'Premium trophy cabinet styles, 6 prestige badge designs, animated Hall of Managers frame, and Legacy title.',
     priceUsd: 3.99,
+    type: 'one_time',
   },
   'com.dynastymanager.bundle.all': {
     id: 'com.dynastymanager.bundle.all',
     name: 'Dynasty Edition',
     description: 'Everything — Dynasty Pro plus all cosmetic packs.',
     priceUsd: 9.99,
+    type: 'one_time',
     includes: [
       'com.dynastymanager.pro',
       'com.dynastymanager.pack.manager',
@@ -57,6 +95,15 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     ],
   },
 };
+
+/** Product IDs that grant Pro access (one-time purchases + subscriptions) */
+export const PRO_PRODUCT_IDS: ProductId[] = [
+  'com.dynastymanager.pro',
+  'com.dynastymanager.pro.monthly',
+  'com.dynastymanager.pro.yearly',
+  'com.dynastymanager.pro.lifetime',
+  'com.dynastymanager.bundle.all',
+];
 
 // ── Pro Features ──
 
@@ -202,4 +249,5 @@ export const DEFAULT_MONETIZATION_STATE: MonetizationState = {
   adRewardsClaimed: {},
   firstLaunchTimestamp: 0,
   starterKitDismissed: false,
+  subscription: null,
 };

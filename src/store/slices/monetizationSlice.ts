@@ -1,5 +1,5 @@
 import type { GameState } from '../storeTypes';
-import type { ProductId, CosmeticCategory, AdRewardType } from '@/types/game';
+import type { ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
 import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -158,6 +158,16 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           },
         };
       });
+    },
+
+    /** Update subscription info from RevenueCat */
+    updateSubscription: (info: SubscriptionInfo | null) => {
+      _set((s) => ({
+        monetization: {
+          ...s.monetization,
+          subscription: info,
+        },
+      }));
     },
 
     /** Apply season-end budget bonus from ad reward */

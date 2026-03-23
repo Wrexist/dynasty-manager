@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 19', () => {
-    expect(CURRENT_VERSION).toBe(19);
+  it('should have current version set to 20', () => {
+    expect(CURRENT_VERSION).toBe(20);
   });
 
   it('should migrate v1 data to current version', () => {
@@ -126,6 +126,24 @@ describe('saveMigration', () => {
     expect(clubs['club-1'].stadiumCapacity).toBe(10_000);
     expect(clubs['club-2'].stadiumName).toBe('Community Stadium');
     expect(clubs['club-2'].stadiumCapacity).toBe(10_000);
+  });
+
+  it('should add subscription to monetization in v19→v20', () => {
+    const v19Data: Record<string, unknown> = {
+      version: 19,
+      monetization: {
+        entitlements: ['com.dynastymanager.pro'],
+        activeCosmetics: {},
+        adRewardsClaimed: {},
+        firstLaunchTimestamp: 1000,
+        starterKitDismissed: false,
+      },
+    };
+    const result = migrateSaveData(v19Data);
+    expect(result.version).toBe(CURRENT_VERSION);
+    const monetization = result.monetization as Record<string, unknown>;
+    expect(monetization.subscription).toBeNull();
+    expect(monetization.entitlements).toEqual(['com.dynastymanager.pro']);
   });
 
   it('should survive a corrupted migration step gracefully', () => {

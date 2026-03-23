@@ -1,20 +1,22 @@
 /**
  * RevenueCat payment SDK wrapper for Dynasty Manager.
- * Handles initialization, purchases, restoration, and entitlement mapping.
+ * Handles initialization, purchases, restoration, entitlement mapping,
+ * paywall presentation, subscription info extraction, and subscription management.
  *
  * SETUP REQUIRED:
  * 1. Create a RevenueCat account at https://app.revenuecat.com
  * 2. Set up your app in RevenueCat dashboard for iOS and Android
  * 3. Create products matching the IDs in src/config/monetization.ts
- * 4. Replace the placeholder API keys below with your real keys
+ * 4. For production: replace the test API key below with per-platform keys
  */
 
-import type { ProductId } from '@/types/game';
+import type { ProductId, SubscriptionInfo } from '@/types/game';
+import { PRODUCTS } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
 
-// Placeholder API keys — replace with real keys from RevenueCat dashboard
-const REVENUECAT_IOS_KEY = 'sk_bdrlXBxcITpkVTzWngWebytZuBwuO';
-const REVENUECAT_ANDROID_KEY = 'sk_yNMGadnNiakbRbUGPbIUVIEnJbFwC';
+// Test API key — replace with per-platform production keys before release
+// Production: use 'appl_xxx' for iOS, 'goog_xxx' for Android
+const REVENUECAT_API_KEY = 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF';
 
 let initialized = false;
 let listenerRemover: (() => void) | null = null;
@@ -29,9 +31,10 @@ export async function initPurchases(): Promise<void> {
   }
 
   try {
-    const { Purchases } = await import('@revenuecat/purchases-capacitor');
-    const apiKey = Capacitor.getPlatform() === 'ios' ? REVENUECAT_IOS_KEY : REVENUECAT_ANDROID_KEY;
-    await Purchases.configure({ apiKey });
+    const { Purchases, LOG_LEVEL } = await import('@revenuecat/purchases-capacitor');
+    const logLevel = import.meta.env.DEV ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO;
+    await Purchases.setLogLevel({ level: logLevel });
+    await Purchases.configure({ apiKey: REVENUECAT_API_KEY });
     initialized = true;
   } catch (err) {
     console.warn('[Purchases] Failed to initialize RevenueCat:', err);
@@ -49,8 +52,11 @@ export async function purchaseProduct(productId: ProductId): Promise<ProductId[]
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const offerings = await Purchases.getOfferings();
 
-    // Find the package matching our product ID
-    const allPackages = offerings.current?.availablePackages || [];
+    // Find the package matching our product ID across all offerings
+    const allPackages = [
+      ...(offerings.current?.availablePackages || []),
+      ...Object.values(offerings.all || {}).flatMap(o => o.availablePackages || []),
+    ];
     const pkg = allPackages.find(p => p.product.identifier === productId);
 
     if (!pkg) {
@@ -102,11 +108,31 @@ export async function getEntitlements(): Promise<ProductId[]> {
   }
 }
 
+/** Get raw customer info for subscription extraction. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getCustomerInfo(): Promise<any | null> {
+  if (!Capacitor.isNativePlatform()) {
+    return null;
+  }
+
+  try {
+    const { Purchases } = await import('@revenuecat/purchases-capacitor');
+    const { customerInfo } = await Purchases.getCustomerInfo();
+    return customerInfo;
+  } catch (err) {
+    console.error('[Purchases] Get customer info failed:', err);
+    return null;
+  }
+}
+
 /** Map RevenueCat CustomerInfo to our ProductId array. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapEntitlements(customerInfo: any): ProductId[] {
   const validIds: ProductId[] = [
     'com.dynastymanager.pro',
+    'com.dynastymanager.pro.monthly',
+    'com.dynastymanager.pro.yearly',
+    'com.dynastymanager.pro.lifetime',
     'com.dynastymanager.pack.manager',
     'com.dynastymanager.pack.stadium',
     'com.dynastymanager.pack.legends',
@@ -132,18 +158,132 @@ function mapEntitlements(customerInfo: any): ProductId[] {
 }
 
 /**
+ * Extract subscription info from RevenueCat CustomerInfo.
+ * Returns null if no active subscription is found.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function extractSubscriptionInfo(customerInfo: any): SubscriptionInfo | null {
+  const activeEntitlements = customerInfo?.entitlements?.active;
+  if (!activeEntitlements) return null;
+
+  // Look for a 'pro' or 'dynasty_pro' entitlement (configure in RevenueCat dashboard)
+  const proEntitlement = activeEntitlements['pro'] || activeEntitlements['dynasty_pro'];
+  if (!proEntitlement) return null;
+
+  const productId = proEntitlement.productIdentifier as ProductId;
+  const product = PRODUCTS[productId];
+  if (!product || product.type !== 'subscription') return null;
+
+  return {
+    tier: product.subscriptionTier!,
+    productId,
+    expiresAt: proEntitlement.expirationDate || null,
+    isInGracePeriod: proEntitlement.billingIssueDetectedAt != null,
+    willRenew: !proEntitlement.unsubscribeDetectedAt,
+  };
+}
+
+// ── Paywall Presentation ──
+
+export type PaywallResult = 'purchased' | 'restored' | 'cancelled' | 'error' | 'not_presented';
+
+/** Present the RevenueCat native paywall. Returns the outcome. */
+export async function presentPaywall(offeringIdentifier?: string): Promise<PaywallResult> {
+  if (!Capacitor.isNativePlatform()) {
+    // Web: cannot show native paywall
+    return 'not_presented';
+  }
+
+  try {
+    const { RevenueCatUI } = await import('@revenuecat/purchases-capacitor-ui');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const options: any = {};
+
+    if (offeringIdentifier) {
+      const { Purchases } = await import('@revenuecat/purchases-capacitor');
+      const offerings = await Purchases.getOfferings();
+      const offering = offerings.all?.[offeringIdentifier];
+      if (offering) options.offering = offering;
+    }
+
+    const { result } = await RevenueCatUI.presentPaywall(options);
+    return mapPaywallResult(result);
+  } catch (err) {
+    console.error('[Purchases] Paywall presentation failed:', err);
+    return 'error';
+  }
+}
+
+/** Present the paywall only if the user lacks the specified entitlement. */
+export async function presentPaywallIfNeeded(entitlementId: string = 'pro'): Promise<PaywallResult> {
+  if (!Capacitor.isNativePlatform()) return 'not_presented';
+
+  try {
+    const { RevenueCatUI } = await import('@revenuecat/purchases-capacitor-ui');
+    const { result } = await RevenueCatUI.presentPaywallIfNeeded({
+      requiredEntitlementIdentifier: entitlementId,
+    });
+    return mapPaywallResult(result);
+  } catch (err) {
+    console.error('[Purchases] Paywall presentation failed:', err);
+    return 'error';
+  }
+}
+
+// PAYWALL_RESULT is a string enum exported from @revenuecat/purchases-capacitor-ui
+// Values: "NOT_PRESENTED", "ERROR", "CANCELLED", "PURCHASED", "RESTORED"
+function mapPaywallResult(result: string): PaywallResult {
+  switch (result) {
+    case 'NOT_PRESENTED': return 'not_presented';
+    case 'ERROR': return 'error';
+    case 'CANCELLED': return 'cancelled';
+    case 'PURCHASED': return 'purchased';
+    case 'RESTORED': return 'restored';
+    default: return 'error';
+  }
+}
+
+// ── Subscription Management ──
+
+/**
+ * Open the platform-specific subscription management page.
+ * Uses the managementURL from RevenueCat CustomerInfo.
+ * This serves as a Customer Center fallback since RevenueCat
+ * Customer Center is not yet supported for Capacitor.
+ */
+export async function openSubscriptionManagement(): Promise<boolean> {
+  if (!Capacitor.isNativePlatform()) return false;
+
+  try {
+    const { Purchases } = await import('@revenuecat/purchases-capacitor');
+    const { customerInfo } = await Purchases.getCustomerInfo();
+    const managementUrl = customerInfo?.managementURL;
+    if (managementUrl) {
+      window.open(managementUrl, '_blank');
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.warn('[Purchases] Could not open subscription management:', err);
+    return false;
+  }
+}
+
+// ── Entitlement Listener ──
+
+/**
  * Start listening for real-time entitlement changes (e.g. purchases on
  * another device, family sharing, or subscription renewals).
  */
 export async function startEntitlementListener(
-  onUpdate: (productIds: ProductId[]) => void
+  onUpdate: (productIds: ProductId[], customerInfo: unknown) => void
 ): Promise<void> {
   if (!Capacitor.isNativePlatform()) return;
   try {
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     listenerRemover = Purchases.addCustomerInfoUpdateListener((info) => {
       const ids = mapEntitlements(info);
-      onUpdate(ids);
+      onUpdate(ids, info);
     });
   } catch (err) {
     console.warn('[Purchases] Failed to add listener:', err);
