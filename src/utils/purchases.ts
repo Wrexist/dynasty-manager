@@ -14,7 +14,7 @@ import { Capacitor } from '@capacitor/core';
 
 // Placeholder API keys — replace with real keys from RevenueCat dashboard
 const REVENUECAT_IOS_KEY = 'sk_bdrlXBxcITpkVTzWngWebytZuBwuO';
-const REVENUECAT_ANDROID_KEY = 'sk_bdrlXBxcITpkVTzWngWebytZuBwuO';
+const REVENUECAT_ANDROID_KEY = 'sk_yNMGadnNiakbRbUGPbIUVIEnJbFwC';
 
 let initialized = false;
 
