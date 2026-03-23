@@ -10,6 +10,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   currentScreen: 'dashboard' as GameScreen,
   previousScreen: null as GameScreen | null,
   selectedPlayerId: null as string | null,
+  selectedClubId: null as string | null,
   season: 1,
   week: 1,
   totalWeeks: 46,
@@ -33,6 +34,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
 
   setScreen: (screen: GameScreen) => set(s => ({ currentScreen: screen, previousScreen: s.currentScreen })),
   selectPlayer: (id: string | null) => set({ selectedPlayerId: id, currentScreen: id ? 'player-detail' : get().currentScreen }),
+  selectClub: (id: string | null) => set({ selectedClubId: id, currentScreen: id ? 'team-detail' : get().currentScreen }),
   markMessageRead: (id: string) => set(s => ({ messages: s.messages.map(m => m.id === id ? { ...m, read: true } : m) })),
   markAllRead: () => set(s => ({ messages: s.messages.map(m => ({ ...m, read: true })) })),
   updateSettings: (partial: Partial<GameSettings>) => set(s => ({ settings: { ...s.settings, ...partial } })),

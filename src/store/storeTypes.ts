@@ -9,6 +9,7 @@ export interface GameState {
   currentScreen: GameScreen;
   previousScreen: GameScreen | null;
   selectedPlayerId: string | null;
+  selectedClubId: string | null;
   season: number;
   week: number;
   totalWeeks: number;
@@ -127,6 +128,7 @@ export interface GameState {
   initGame: (clubId: string) => void;
   setScreen: (screen: GameScreen) => void;
   selectPlayer: (id: string | null) => void;
+  selectClub: (id: string | null) => void;
   advanceWeek: () => void;
   endSeason: () => void;
   saveGame: (slot?: number) => void;
