@@ -10,12 +10,15 @@ import { MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_B
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { SponsorshipPanel } from '@/components/game/SponsorshipPanel';
+import { AnimatedNumber } from '@/components/game/AnimatedNumber';
+import { useFlash } from '@/hooks/useFlash';
 
 const FinancePage = () => {
   const { clubs, playerClubId, players, financeHistory } = useGameStore();
   const club = clubs[playerClubId];
   const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
   const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');
+  const budgetFlash = useFlash(club?.budget || 0);
   if (!club) return null;
 
   const weeklyIncome = getWeeklyIncome(club);
@@ -62,9 +65,11 @@ const FinancePage = () => {
           <DollarSign className="w-5 h-5 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Transfer Budget</h3>
         </div>
-        <p className="text-3xl font-black text-foreground font-display tabular-nums">
-          £{(club.budget / 1e6).toFixed(1)}M
-        </p>
+        <AnimatedNumber
+          value={club.budget}
+          formatFn={(n) => '£' + (n / 1e6).toFixed(1) + 'M'}
+          className={cn('text-3xl font-black text-foreground font-display tabular-nums', budgetFlash)}
+        />
         <div className="flex items-center gap-1 mt-1">
           {isPositive ? (
             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />

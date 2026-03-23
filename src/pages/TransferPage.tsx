@@ -101,6 +101,7 @@ const TransferPage = () => {
       const offer = incomingOffers.find(o => o.id === offerId);
       const p = offer ? players[offer.playerId] : null;
       if (p && (p.overall >= 70 || (offer && offer.fee >= 5_000_000))) {
+        hapticMedium();
         setConfirmAction({ offerId, accept, playerName: `${p.firstName} ${p.lastName}`, fee: offer!.fee });
         return;
       }
@@ -199,60 +200,32 @@ const TransferPage = () => {
 
       {/* 4 Tabs */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-        <button
-          onClick={() => setTab('market')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-all',
-            tab === 'market' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-          )}
-        >
-          <ShoppingCart className="w-3.5 h-3.5" /> Market
-        </button>
-        <button
-          onClick={() => setTab('shortlist')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-all',
-            tab === 'shortlist' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-          )}
-        >
-          <BookmarkCheck className="w-3.5 h-3.5" /> Shortlist ({shortlist.length})
-        </button>
-        <button
-          onClick={() => setTab('incoming')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-all',
-            tab === 'incoming' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-          )}
-        >
-          <ArrowDownLeft className="w-3.5 h-3.5" /> Incoming ({incomingOffers.length})
-        </button>
-        <button
-          onClick={() => setTab('outgoing')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-all',
-            tab === 'outgoing' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-          )}
-        >
-          <ArrowUpRight className="w-3.5 h-3.5" /> Outgoing ({outgoingPlayers.length})
-        </button>
-        <button
-          onClick={() => setTab('loans')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-all',
-            tab === 'loans' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-          )}
-        >
-          <Repeat2 className="w-3.5 h-3.5" /> Loans ({activeLoans.length})
-        </button>
-        <button
-          onClick={() => setTab('freeAgents')}
-          className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-all',
-            tab === 'freeAgents' ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-          )}
-        >
-          <Users className="w-3.5 h-3.5" /> Free ({freeAgents.length})
-        </button>
+        {([
+          { id: 'market' as const, icon: ShoppingCart, label: 'Market' },
+          { id: 'shortlist' as const, icon: BookmarkCheck, label: `Shortlist (${shortlist.length})` },
+          { id: 'incoming' as const, icon: ArrowDownLeft, label: `Incoming (${incomingOffers.length})` },
+          { id: 'outgoing' as const, icon: ArrowUpRight, label: `Outgoing (${outgoingPlayers.length})` },
+          { id: 'loans' as const, icon: Repeat2, label: `Loans (${activeLoans.length})` },
+          { id: 'freeAgents' as const, icon: Users, label: `Free (${freeAgents.length})` },
+        ] as const).map(({ id, icon: TabIcon, label }) => (
+          <button
+            key={id}
+            onClick={() => { hapticLight(); setTab(id); }}
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-colors relative',
+              tab === id ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+            )}
+          >
+            <TabIcon className="w-3.5 h-3.5" /> {label}
+            {tab === id && (
+              <motion.div
+                layoutId="transfer-tab-indicator"
+                className="absolute inset-0 rounded-lg bg-primary -z-10"
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+          </button>
+        ))}
       </div>
 
       {/* Search + Position Filter (for market, shortlist, and free agents tabs) */}
@@ -361,9 +334,15 @@ const TransferPage = () => {
             );
           })}
           {listings.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              {tab === 'shortlist' ? 'No players in shortlist' : 'No players available'}
-            </p>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
+              <Bookmark className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">
+                {tab === 'shortlist' ? 'No players in shortlist' : 'No players available'}
+              </p>
+              {tab === 'shortlist' && (
+                <p className="text-xs text-muted-foreground/60 mt-1">Bookmark players from the market to track them here</p>
+              )}
+            </motion.div>
           )}
         </div>
       )}
@@ -371,14 +350,20 @@ const TransferPage = () => {
       {/* Incoming Offers */}
       {tab === 'incoming' && (
         <div className="space-y-2">
-          {incomingOffers.map(offer => {
+          {incomingOffers.map((offer, i) => {
             const p = players[offer.playerId];
             if (!p) return null;
             const buyer = clubs[offer.buyerClubId];
             const top3 = getTop3Attributes(p.attributes);
 
             return (
-              <GlassPanel key={offer.id} className="p-4">
+              <motion.div
+                key={offer.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.04, 0.4), duration: 0.2 }}
+              >
+              <GlassPanel className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <span className={cn(
@@ -422,6 +407,7 @@ const TransferPage = () => {
                   </Button>
                 </div>
               </GlassPanel>
+              </motion.div>
             );
           })}
           {incomingOffers.length === 0 && (
@@ -647,10 +633,16 @@ const TransferPage = () => {
       {/* Free Agents */}
       {tab === 'freeAgents' && (
         <div className="space-y-2">
-          {freeAgentPlayers.map(p => {
+          {freeAgentPlayers.map((p, i) => {
             const top3 = getTop3Attributes(p.attributes);
             return (
-              <GlassPanel key={p.id} className="p-4">
+              <motion.div
+                key={p.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.04, 0.4), duration: 0.2 }}
+              >
+              <GlassPanel className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <span className={cn('font-mono font-black text-lg', getRatingColor(p.overall))}>{p.overall}</span>
@@ -679,6 +671,7 @@ const TransferPage = () => {
                   Sign Player
                 </Button>
               </GlassPanel>
+              </motion.div>
             );
           })}
           {freeAgentPlayers.length === 0 && (
@@ -778,7 +771,7 @@ const TransferPage = () => {
             <div className="flex gap-2">
               <Button
                 size="sm" className="flex-1 h-9 bg-emerald-600 hover:bg-emerald-700"
-                onClick={() => executeOfferResponse(confirmAction.offerId, true)}
+                onClick={() => { hapticHeavy(); executeOfferResponse(confirmAction.offerId, true); }}
               >
                 Confirm Sale
               </Button>

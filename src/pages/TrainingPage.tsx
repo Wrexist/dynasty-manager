@@ -7,6 +7,7 @@ import { TrainingModule } from '@/types/game';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
+import { hapticLight } from '@/utils/haptics';
 
 const SQUAD_SUB_NAV = [
   { screen: 'squad' as const, label: 'Squad' },
@@ -33,10 +34,12 @@ const TrainingPage = () => {
   const club = clubs[playerClubId];
 
   const handleDayChange = (day: typeof DAYS[number], mod: TrainingModule) => {
+    hapticLight();
     updateTraining({ [day]: mod });
   };
 
   const handleIntensity = (val: 'light' | 'medium' | 'heavy') => {
+    hapticLight();
     updateTraining({}, val);
   };
 

@@ -257,14 +257,20 @@ const MatchDay = () => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [phase, allEvents, speed, keyMoment, paused, checkKeyMoment, store.matchPhase]);
 
-  // Haptic feedback for goals and final whistle
+  // Haptic feedback + goal flash for goals and final whistle
   const prevGoalCountRef = useRef(0);
+  const [goalFlash, setGoalFlash] = useState(false);
+  const goalFlashTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => {
     const goalCount = visibleEvents.filter(e => isGoalEvent(e)).length;
     if (goalCount > prevGoalCountRef.current) {
       hapticHeavy();
+      setGoalFlash(true);
+      clearTimeout(goalFlashTimerRef.current);
+      goalFlashTimerRef.current = setTimeout(() => setGoalFlash(false), 600);
     }
     prevGoalCountRef.current = goalCount;
+    return () => clearTimeout(goalFlashTimerRef.current);
   }, [visibleEvents]);
 
   useEffect(() => {
@@ -328,7 +334,7 @@ const MatchDay = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
       {phase === 'pre' && <PageHint screen="matchDay" title={PAGE_HINTS.matchDay.title} body={PAGE_HINTS.matchDay.body} />}
       {/* Score Header */}
-      <GlassPanel className="p-5">
+      <GlassPanel className={cn("p-5 transition-all duration-300", goalFlash && "border-primary/60 shadow-[0_0_20px_hsl(43_96%_46%/0.3)]")}>
         <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center mb-3">
           {phase === 'pre' ? `Week ${week}${isCupMatch ? ' — Cup' : ''}` : phase === 'half_time' ? 'Half Time' : phase === 'extra_time_break' ? 'Extra Time' : phase === 'penalties' ? 'Penalties' : isLive ? `${currentMin}'` : 'Full Time'}
         </p>

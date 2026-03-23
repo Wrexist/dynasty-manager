@@ -110,11 +110,18 @@ const LeagueTable = () => {
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              'px-3 py-1.5 rounded-lg text-sm font-medium transition-all',
-              tab === t ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              'px-3 py-1.5 rounded-lg text-sm font-medium transition-colors relative',
+              tab === t ? 'text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
             )}
           >
             {t === 'table' ? 'Table' : t === 'fixtures' ? 'Fixtures' : 'Stats Leaders'}
+            {tab === t && (
+              <motion.div
+                layoutId="league-tab-indicator"
+                className="absolute inset-0 rounded-lg bg-primary -z-10"
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
           </button>
         ))}
       </div>

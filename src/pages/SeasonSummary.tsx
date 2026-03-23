@@ -10,6 +10,7 @@ import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { VERDICT_COLORS, VERDICT_LABELS } from '@/config/ui';
+import { hapticHeavy } from '@/utils/haptics';
 
 const AWARD_ICONS: Record<string, string> = {
   'Golden Boot': 'footprints',
@@ -77,7 +78,7 @@ const SeasonSummary = () => {
   const bestXI = (latest.awards || []).filter(a => a.name === 'Team of the Season');
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-4">
         <div className="text-center mb-6">
           <Trophy className="w-12 h-12 text-primary mx-auto mb-2" />
           <h2 className="text-2xl font-black text-foreground font-display">Season {latest.season} Complete</h2>
@@ -85,7 +86,7 @@ const SeasonSummary = () => {
 
         {/* Promotion/Relegation Banner */}
         {latest.promoted && (
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.6, type: 'spring' }}>
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }} onAnimationComplete={() => hapticHeavy()}>
             <GlassPanel className="p-5 text-center border-emerald-500/50 bg-emerald-500/10">
               <ArrowUp className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
               <p className="text-2xl font-black text-emerald-400 font-display">PROMOTED!</p>
@@ -98,7 +99,7 @@ const SeasonSummary = () => {
           </motion.div>
         )}
         {latest.relegated && (
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.6, type: 'spring' }}>
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }} onAnimationComplete={() => hapticHeavy()}>
             <GlassPanel className="p-5 text-center border-destructive/50 bg-destructive/10">
               <ArrowDown className="w-10 h-10 text-destructive mx-auto mb-2" />
               <p className="text-2xl font-black text-destructive font-display">RELEGATED</p>
@@ -119,11 +120,13 @@ const SeasonSummary = () => {
         )}
 
         {/* Final Position */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.4 }}>
         <GlassPanel className="p-6 text-center">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Final Position</p>
           <p className="text-6xl font-black text-primary">{latest.position}<span className="text-lg">{getSuffix(latest.position)}</span></p>
           <p className="text-lg font-bold text-foreground mt-1">{latest.points} Points</p>
         </GlassPanel>
+        </motion.div>
 
         {/* Near-Miss Banner */}
         {nearMiss && (
@@ -151,6 +154,7 @@ const SeasonSummary = () => {
         )}
 
         {/* Record */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45, duration: 0.4 }}>
         <GlassPanel className="p-4">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3 text-center">Record</p>
           <div className="grid grid-cols-5 gap-2 text-center">
@@ -168,8 +172,10 @@ const SeasonSummary = () => {
             ))}
           </div>
         </GlassPanel>
+        </motion.div>
 
         {/* Top Scorer */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.4 }}>
         <GlassPanel className="p-4 flex items-center gap-3">
           <Star className="w-5 h-5 text-primary" />
           <div className="flex-1">
@@ -178,6 +184,7 @@ const SeasonSummary = () => {
           </div>
           <p className="text-lg font-black text-primary">{latest.topScorer.goals} goals</p>
         </GlassPanel>
+        </motion.div>
 
         {/* Cup Result */}
         {latest.cupResult && (
@@ -271,12 +278,14 @@ const SeasonSummary = () => {
         )}
 
         {/* Board Verdict */}
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75, duration: 0.4 }}>
         <GlassPanel className="p-4 text-center">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Board Verdict</p>
           <p className={cn('text-xl font-bold', VERDICT_COLORS[latest.boardVerdict])}>
             {VERDICT_LABELS[latest.boardVerdict]}
           </p>
         </GlassPanel>
+        </motion.div>
 
         {/* Season History */}
         {seasonHistory.length > 1 && (
