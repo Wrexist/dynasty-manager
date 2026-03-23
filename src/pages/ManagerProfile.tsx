@@ -1,13 +1,14 @@
 import { useGameStore } from '@/store/gameStore';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Trophy, Star, TrendingUp, Shield, ScrollText, Clock, BarChart3 } from 'lucide-react';
+import { Trophy, Star, TrendingUp, Shield, ScrollText, Clock, BarChart3, Crown } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import { cn } from '@/lib/utils';
 import type { RecordEntry } from '@/types/game';
 import { getMilestoneIcon } from '@/utils/milestones';
+import { isPro, getActiveCosmetic } from '@/utils/monetization';
 
 const RecordRow = ({ label, record }: { label: string; record: RecordEntry | null }) => {
   if (!record) return null;
@@ -24,7 +25,7 @@ const RecordRow = ({ label, record }: { label: string; record: RecordEntry | nul
 };
 
 const ManagerProfile = () => {
-  const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline } = useGameStore();
+  const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, monetization } = useGameStore();
   const club = clubs[playerClubId];
 
   const totalMatches = managerStats.totalWins + managerStats.totalDraws + managerStats.totalLosses;
@@ -43,7 +44,13 @@ const ManagerProfile = () => {
             <Shield className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <p className="text-sm font-bold text-foreground">{club?.name || 'Manager'}</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-bold text-foreground">{club?.name || 'Manager'}</p>
+              {isPro(monetization) && <Crown className="w-3.5 h-3.5 text-primary" />}
+            </div>
+            {getActiveCosmetic(monetization, 'title_badge') && (
+              <p className="text-[10px] text-primary font-semibold">{getActiveCosmetic(monetization, 'title_badge')?.replace('badge-', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</p>
+            )}
             <p className="text-xs text-muted-foreground">Season {season} · {seasonHistory.length} season{seasonHistory.length !== 1 ? 's' : ''} managed</p>
           </div>
         </div>

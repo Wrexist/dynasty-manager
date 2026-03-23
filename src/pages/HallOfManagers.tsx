@@ -4,6 +4,8 @@ import { Trophy, Star, Crown, Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { loadHall, type HallEntry } from '@/utils/hallOfManagers';
+import { useGameStore } from '@/store/gameStore';
+import { isPro, getActiveCosmetic } from '@/utils/monetization';
 
 const getRankIcon = (rank: number) => {
   if (rank === 1) return <Crown className="w-5 h-5 text-primary" />;
@@ -13,7 +15,10 @@ const getRankIcon = (rank: number) => {
 };
 
 const HallOfManagers = () => {
+  const { monetization } = useGameStore();
   const [entries, setEntries] = useState<HallEntry[]>([]);
+  const userIsPro = isPro(monetization);
+  const homFrame = getActiveCosmetic(monetization, 'hom_frame');
 
   useEffect(() => {
     setEntries(loadHall());
@@ -45,7 +50,9 @@ const HallOfManagers = () => {
               >
                 <GlassPanel className={cn(
                   'p-4',
-                  i === 0 && 'border-primary/40 bg-primary/5'
+                  i === 0 && 'border-primary/40 bg-primary/5',
+                  homFrame === 'hom-frame-gold' && 'border-primary/60 shadow-[0_0_12px_hsl(43_96%_46%/0.15)]',
+                  homFrame === 'hom-frame-holographic' && 'border-accent/60 shadow-[0_0_12px_hsl(215_60%_50%/0.2)]',
                 )}>
                   <div className="flex items-center gap-3">
                     <div className="flex items-center justify-center w-8">
@@ -54,6 +61,7 @@ const HallOfManagers = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-bold text-foreground truncate">{entry.clubName}</p>
+                        {userIsPro && <Crown className="w-3 h-3 text-primary shrink-0" />}
                         {entry.prestigeLevel > 0 && (
                           <div className="flex items-center gap-0.5">
                             {Array.from({ length: Math.min(entry.prestigeLevel, 5) }).map((_, j) => (

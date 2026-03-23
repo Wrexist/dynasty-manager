@@ -1,6 +1,6 @@
 import type { GameState } from '../storeTypes';
 import type { ProductId, CosmeticCategory, AdRewardType } from '@/types/game';
-import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
+import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -138,6 +138,40 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
           monetization: {
             ...s.monetization,
             firstLaunchTimestamp: Date.now(),
+          },
+        };
+      });
+    },
+
+    /** Apply transfer budget bonus from ad reward */
+    applyTransferBudgetBonus: () => {
+      _set((s) => {
+        const club = s.clubs[s.playerClubId];
+        if (!club) return {};
+        return {
+          clubs: {
+            ...s.clubs,
+            [s.playerClubId]: {
+              ...club,
+              budget: club.budget + AD_REWARD_VALUES.TRANSFER_BUDGET_BONUS,
+            },
+          },
+        };
+      });
+    },
+
+    /** Apply season-end budget bonus from ad reward */
+    applySeasonBonus: () => {
+      _set((s) => {
+        const club = s.clubs[s.playerClubId];
+        if (!club) return {};
+        return {
+          clubs: {
+            ...s.clubs,
+            [s.playerClubId]: {
+              ...club,
+              budget: club.budget + AD_REWARD_VALUES.SEASON_END_BONUS,
+            },
           },
         };
       });

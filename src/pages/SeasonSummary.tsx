@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { DIVISIONS } from '@/data/league';
+import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { VERDICT_COLORS, VERDICT_LABELS } from '@/config/ui';
@@ -307,6 +308,9 @@ const SeasonSummary = () => {
             </GlassPanel>
           </motion.div>
         )}
+
+        {/* Ad Reward: Season Bonus */}
+        <AdRewardButton rewardType="season_bonus" onRewardClaimed={() => { useGameStore.getState().applySeasonBonus(); }} />
 
         <Button className="w-full h-12 text-base font-bold" onClick={() => setScreen('dashboard')}>
           Start Season {season}

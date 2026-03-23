@@ -2,8 +2,14 @@ import type { PressConference, PressOption, PressResponseTone } from '@/types/ga
 import { pick } from '@/utils/helpers';
 import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_WINS, PRESS_BIG_MATCH_REP_GAP } from '@/config/gameBalance';
 
+interface QuestionDef {
+  question: string;
+  options: Record<PressResponseTone, { text: string; effects: PressOption['effects'] }>;
+  proOption?: { tone: string; text: string; effects: PressOption['effects'] };
+}
+
 // Pool of press conference questions by context
-const QUESTIONS: Record<PressConference['context'], { question: string; options: Record<PressResponseTone, { text: string; effects: PressOption['effects'] }> }[]> = {
+const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
   post_win: [
     {
       question: 'A great result today. How do you feel about the team\'s performance?',
@@ -12,6 +18,7 @@ const QUESTIONS: Record<PressConference['context'], { question: string; options:
         humble: { text: 'The lads worked incredibly hard. Credit to every single one of them.', effects: { morale: 12, boardConfidence: 3, fanMood: 5 } },
         deflect: { text: 'It\'s just three points. We focus on the next game now.', effects: { morale: 4, boardConfidence: 2, fanMood: 2 } },
       },
+      proOption: { tone: 'strategic', text: 'We identified their weaknesses in prep and executed perfectly. That\'s what elite analysis gives you.', effects: { morale: 10, boardConfidence: 7, fanMood: 6 } },
     },
     {
       question: 'The fans seem delighted. Is this the turning point of the season?',
@@ -30,6 +37,7 @@ const QUESTIONS: Record<PressConference['context'], { question: string; options:
         humble: { text: 'I take full responsibility. We weren\'t good enough today.', effects: { morale: -3, boardConfidence: 2, fanMood: 5 } },
         deflect: { text: 'Some decisions didn\'t go our way. I won\'t say more than that.', effects: { morale: 0, boardConfidence: -4, fanMood: -3 } },
       },
+      proOption: { tone: 'analytical', text: 'I\'ve already reviewed the data. We lost control in the middle third — that\'s fixable by Tuesday.', effects: { morale: 6, boardConfidence: 3, fanMood: 4 } },
     },
     {
       question: 'The fans are frustrated. Are you worried about your position?',
@@ -93,18 +101,29 @@ const QUESTIONS: Record<PressConference['context'], { question: string; options:
 };
 
 /** Pick a press conference appropriate to the context */
-export function generatePressConference(context: PressConference['context']): PressConference {
+export function generatePressConference(context: PressConference['context'], proUser = false): PressConference {
   const pool = QUESTIONS[context];
   const chosen = pick(pool);
+  const baseOptions: [PressOption, PressOption, PressOption] = [
+    { tone: 'confident', text: chosen.options.confident.text, effects: chosen.options.confident.effects },
+    { tone: 'humble', text: chosen.options.humble.text, effects: chosen.options.humble.effects },
+    { tone: 'deflect', text: chosen.options.deflect.text, effects: chosen.options.deflect.effects },
+  ];
+
+  if (proUser && chosen.proOption) {
+    return {
+      id: crypto.randomUUID(),
+      context,
+      question: chosen.question,
+      options: [...baseOptions, { tone: chosen.proOption.tone as PressResponseTone, text: chosen.proOption.text, effects: chosen.proOption.effects }],
+    };
+  }
+
   return {
     id: crypto.randomUUID(),
     context,
     question: chosen.question,
-    options: [
-      { tone: 'confident', text: chosen.options.confident.text, effects: chosen.options.confident.effects },
-      { tone: 'humble', text: chosen.options.humble.text, effects: chosen.options.humble.effects },
-      { tone: 'deflect', text: chosen.options.deflect.text, effects: chosen.options.deflect.effects },
-    ],
+    options: baseOptions,
   };
 }
 

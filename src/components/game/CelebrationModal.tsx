@@ -3,6 +3,9 @@ import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useGameStore } from '@/store/gameStore';
+import { getActiveCosmetic } from '@/utils/monetization';
+import { COSMETIC_ITEMS } from '@/config/monetization';
 
 interface CelebrationModalProps {
   open: boolean;
@@ -45,6 +48,9 @@ function Particle({ index: _index }: { index: number }) {
 }
 
 export function CelebrationModal({ open, onClose, title, description, icon, stats }: CelebrationModalProps) {
+  const celebTextId = getActiveCosmetic(useGameStore.getState().monetization, 'celebration_text');
+  const celebItem = celebTextId ? COSMETIC_ITEMS.find(c => c.id === celebTextId) : null;
+  const displayTitle = celebItem ? celebItem.name : title;
   useScrollLock(open);
 
   return (
@@ -104,7 +110,7 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                {title}
+                {displayTitle}
               </motion.h2>
 
               {/* Description */}

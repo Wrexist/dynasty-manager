@@ -2,7 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PitchView } from '@/components/game/PitchView';
-import { Swords, AlertTriangle, Flame, Info, Shield, Pencil } from 'lucide-react';
+import { Swords, AlertTriangle, Flame, Info, Shield, Pencil, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
@@ -13,6 +13,7 @@ import { FormationType } from '@/types/game';
 import { calculateChemistryLinks } from '@/utils/chemistry';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
+import { isPro } from '@/utils/monetization';
 
 const FORMATION_HINTS: Record<FormationType, string> = {
   '4-4-2': 'Balanced and direct. Strong in midfield and up front.',
@@ -25,7 +26,7 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
-  const { week, season, clubs, players, playerClubId, leagueTable, setScreen, pairFamiliarity } = useGameStore();
+  const { week, season, clubs, players, playerClubId, leagueTable, setScreen, pairFamiliarity, monetization, playCurrentMatch } = useGameStore();
 
   const { match, isHome, opponent: oppClub } = useCurrentMatch();
   const oppClubId = match ? (isHome ? match.awayClubId : match.homeClubId) : '';
@@ -304,13 +305,28 @@ const MatchPrep = () => {
       </GlassPanel>
 
       {/* Ready Button */}
-      <Button
-        size="lg"
-        className="w-full h-14 text-lg font-bold gap-3"
-        onClick={() => setScreen('match')}
-      >
-        <Swords className="w-5 h-5" /> Ready to Play
-      </Button>
+      <div className="flex gap-2">
+        <Button
+          size="lg"
+          className="flex-1 h-14 text-lg font-bold gap-3"
+          onClick={() => setScreen('match')}
+        >
+          <Swords className="w-5 h-5" /> Ready to Play
+        </Button>
+        {isPro(monetization) && (
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-14 px-4 font-bold gap-2 border-primary/30 text-primary"
+            onClick={() => {
+              playCurrentMatch();
+              setScreen('match-review');
+            }}
+          >
+            <Zap className="w-5 h-5" /> Sim
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

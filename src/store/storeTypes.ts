@@ -235,6 +235,8 @@ export interface GameState {
   claimAdReward: (rewardType: AdRewardType) => boolean;
   dismissStarterKit: () => void;
   initMonetizationTimestamp: () => void;
+  applyTransferBudgetBonus: () => void;
+  applySeasonBonus: () => void;
 
   // Actions — Farewell
   pendingFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] } | null;

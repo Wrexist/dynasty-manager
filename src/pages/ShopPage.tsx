@@ -5,8 +5,10 @@ import { PurchaseModal } from '@/components/game/PurchaseModal';
 import { Crown, Check, Sparkles, Package, Shield, Timer } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT } from '@/config/monetization';
-import { isPro, hasProduct, isStarterKitAvailable, getStarterKitRemainingMs } from '@/utils/monetization';
+import { isPro, hasProduct, isStarterKitAvailable, getStarterKitRemainingMs, getOwnedCosmetics, getActiveCosmetic } from '@/utils/monetization';
+import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
+import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK } from '@/utils/purchases';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
 
@@ -28,31 +30,49 @@ const FEATURE_ICONS: Record<ProFeature, React.ElementType> = {
 };
 
 const ShopPage = () => {
-  const { monetization, grantEntitlement } = useGameStore();
+  const { monetization, grantEntitlement, restoreEntitlements, setCosmetic, clearCosmetic } = useGameStore();
   const [purchaseProduct, setPurchaseProduct] = useState<ProductId | null>(null);
   const [restoring, setRestoring] = useState(false);
   const userIsPro = isPro(monetization);
   const starterKitAvailable = isStarterKitAvailable(monetization);
   const starterKitMs = getStarterKitRemainingMs(monetization);
 
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+
   const handlePurchase = (productId: ProductId) => {
-    // In production, this would go through RevenueCat SDK.
-    // For now, directly grant the entitlement for development.
+    setPurchaseError(null);
     setPurchaseProduct(productId);
   };
 
-  const handleConfirmPurchase = () => {
-    if (purchaseProduct) {
-      grantEntitlement(purchaseProduct);
+  const handleConfirmPurchase = async () => {
+    if (!purchaseProduct) return;
+    try {
+      const granted = await purchaseViaSDK(purchaseProduct);
+      if (granted.length > 0) {
+        restoreEntitlements(granted);
+      } else {
+        // Fallback: direct grant for dev/web mode
+        grantEntitlement(purchaseProduct);
+      }
       setPurchaseProduct(null);
+    } catch {
+      setPurchaseError('Purchase failed. Please try again.');
     }
   };
 
   const handleRestore = async () => {
     setRestoring(true);
-    // In production: await Purchases.restorePurchases()
-    // For now, simulate a brief delay
-    setTimeout(() => setRestoring(false), 1000);
+    setPurchaseError(null);
+    try {
+      const granted = await restoreViaSDK();
+      if (granted.length > 0) {
+        restoreEntitlements(granted);
+      }
+    } catch {
+      setPurchaseError('Restore failed. Please try again.');
+    } finally {
+      setRestoring(false);
+    }
   };
 
   return (
@@ -67,6 +87,13 @@ const ShopPage = () => {
           {restoring ? 'Restoring...' : 'Restore Purchases'}
         </button>
       </div>
+
+      {/* Error Display */}
+      {purchaseError && (
+        <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 text-xs text-destructive">
+          {purchaseError}
+        </div>
+      )}
 
       {/* Starter Kit Time-Limited Offer */}
       {starterKitAvailable && (
@@ -190,6 +217,64 @@ const ShopPage = () => {
           </button>
         </GlassPanel>
       )}
+
+      {/* My Cosmetics Selector */}
+      {(() => {
+        const categories: { key: CosmeticCategory; label: string }[] = [
+          { key: 'avatar', label: 'Avatar' },
+          { key: 'title_badge', label: 'Title Badge' },
+          { key: 'celebration_text', label: 'Celebration Text' },
+          { key: 'stadium_theme', label: 'Stadium Theme' },
+          { key: 'pitch_skin', label: 'Pitch Skin' },
+          { key: 'confetti_style', label: 'Confetti Style' },
+          { key: 'cabinet_style', label: 'Cabinet Style' },
+          { key: 'prestige_badge', label: 'Prestige Badge' },
+          { key: 'hom_frame', label: 'HoM Frame' },
+        ];
+        const ownedCategories = categories.filter(c => getOwnedCosmetics(monetization, c.key).length > 0);
+        if (ownedCategories.length === 0) return null;
+        return (
+          <div>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">
+              My Cosmetics
+            </p>
+            <div className="space-y-3">
+              {ownedCategories.map(({ key, label }) => {
+                const items = getOwnedCosmetics(monetization, key);
+                const active = getActiveCosmetic(monetization, key);
+                return (
+                  <GlassPanel key={key} className="p-3">
+                    <p className="text-xs font-semibold text-foreground mb-2">{label}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        onClick={() => clearCosmetic(key)}
+                        className={cn(
+                          'px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all',
+                          !active ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground'
+                        )}
+                      >
+                        Default
+                      </button>
+                      {items.map(item => (
+                        <button
+                          key={item.id}
+                          onClick={() => setCosmetic(key, item.id)}
+                          className={cn(
+                            'px-2.5 py-1 rounded-md text-[10px] font-semibold transition-all',
+                            active === item.id ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                          )}
+                        >
+                          {item.name}
+                        </button>
+                      ))}
+                    </div>
+                  </GlassPanel>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Fine print */}
       <p className="text-[10px] text-muted-foreground/60 text-center px-4 pb-4">

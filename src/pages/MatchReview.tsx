@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor } from '@/utils/uiHelpers';
@@ -520,6 +521,9 @@ const MatchReview = () => {
           </GlassPanel>
         );
       })()}
+
+      {/* Ad Reward: Double XP */}
+      <AdRewardButton rewardType="xp_double" onRewardClaimed={() => { /* XP doubling applied via claim tracking */ }} />
 
     </div>
   );
