@@ -11,14 +11,19 @@ import { validateGameState } from './stateValidator';
 const CLUB_ID = 'crown-city'; // div-1 club for most tests
 const TOTAL_WEEKS = 46;
 
+/** Yield to event loop so the Vitest worker can process RPC heartbeats. */
+const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+
 /** Advance one full season: 46 advanceWeek() calls + playCurrentMatch() + endSeason + playoffs. */
-function advanceFullSeason() {
+async function advanceFullSeason() {
   const store = useGameStore;
 
   for (let w = 0; w < TOTAL_WEEKS; w++) {
     store.getState().advanceWeek();
     // Play the player's match if one exists this week
     store.getState().playCurrentMatch();
+    // Yield every 10 weeks to let the worker process RPC messages
+    if (w % 10 === 9) await tick();
   }
 
   // Call endSeason to trigger promotion/relegation + playoffs
@@ -74,13 +79,13 @@ describe('1A: Season Lifecycle Stress Test (10 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('runs 10 full seasons without state corruption', { timeout: 120_000 }, () => {
+  it('runs 10 full seasons without state corruption', { timeout: 120_000 }, async () => {
     for (let s = 0; s < 10; s++) {
       const expectedSeason = s + 1;
       const state = useGameStore.getState();
       expect(state.season).toBe(expectedSeason);
 
-      advanceFullSeason();
+      await advanceFullSeason();
 
       const postState = useGameStore.getState();
 
@@ -124,11 +129,11 @@ describe('1B: Promotion/Relegation Integrity (15 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('maintains 92-club invariant and correct division sizes across 15 seasons', { timeout: 180_000 }, () => {
+  it('maintains 92-club invariant and correct division sizes across 15 seasons', { timeout: 180_000 }, async () => {
     const seenReplacementIds = new Set<string>();
 
     for (let s = 0; s < 15; s++) {
-      advanceFullSeason();
+      await advanceFullSeason();
       const state = useGameStore.getState();
 
       // 92-club invariant
@@ -178,11 +183,11 @@ describe('1C: Player Lifecycle (20 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('tracks player aging, generation, and retirement correctly over 20 seasons', { timeout: 300_000 }, () => {
+  it('tracks player aging, generation, and retirement correctly over 20 seasons', { timeout: 300_000 }, async () => {
     let _previousPlayerCount = Object.keys(useGameStore.getState().players).length;
 
     for (let s = 0; s < 20; s++) {
-      advanceFullSeason();
+      await advanceFullSeason();
       const state = useGameStore.getState();
       const allPlayers = Object.values(state.players).filter(p => p && p.clubId);
 
@@ -229,9 +234,9 @@ describe('1D: Financial Sustainability (15 seasons)', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('maintains financial sanity across 15 seasons', { timeout: 180_000 }, () => {
+  it('maintains financial sanity across 15 seasons', { timeout: 180_000 }, async () => {
     for (let s = 0; s < 15; s++) {
-      advanceFullSeason();
+      await advanceFullSeason();
       const state = useGameStore.getState();
 
       const allDivClubs = Object.values(state.divisionClubs).flat();
@@ -268,7 +273,7 @@ describe('1E: Cup Competition Integrity', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('cup competition works correctly across 5 seasons', { timeout: 60_000 }, () => {
+  it('cup competition works correctly across 5 seasons', { timeout: 60_000 }, async () => {
     for (let s = 0; s < 5; s++) {
       const preState = useGameStore.getState();
       const cup = preState.cup;
@@ -300,7 +305,7 @@ describe('1E: Cup Competition Integrity', () => {
         }
       }
 
-      advanceFullSeason();
+      await advanceFullSeason();
 
       // Cup state should reset for next season
       const postState = useGameStore.getState();
@@ -314,11 +319,11 @@ describe('State Size & Growth Tracking', () => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('tracks state size growth over 10 seasons', { timeout: 120_000 }, () => {
+  it('tracks state size growth over 10 seasons', { timeout: 120_000 }, async () => {
     const sizes: { season: number; totalPlayers: number; activePlayers: number; stateKeys: number; messagesLength: number; financeHistoryLength: number; careerTimelineLength: number }[] = [];
 
     for (let s = 0; s < 10; s++) {
-      advanceFullSeason();
+      await advanceFullSeason();
       const state = useGameStore.getState();
 
       const totalPlayers = Object.keys(state.players).length;
