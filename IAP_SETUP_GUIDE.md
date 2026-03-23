@@ -393,7 +393,7 @@ lets you design it in their dashboard — no code changes needed.
 7. **Attach the paywall to your Default offering:**
    - Go to **"Offerings"** → **"Default"** → **"Current Paywall"** → Select your paywall
 
----
+---************************************************************************************************************************************************************************************************************************
 
 ## 10. Fix Android launchMode
 
