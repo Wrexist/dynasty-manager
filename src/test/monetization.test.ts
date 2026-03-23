@@ -49,6 +49,42 @@ describe('monetization utils', () => {
         entitlements: ['com.dynastymanager.bundle.all', 'com.dynastymanager.pro'],
       }))).toBe(true);
     });
+
+    it('returns true when an active subscription is present', () => {
+      expect(isPro(makeState({
+        subscription: {
+          tier: 'monthly',
+          productId: 'com.dynastymanager.pro.monthly',
+          expiresAt: new Date(Date.now() + 86400000).toISOString(),
+          isInGracePeriod: false,
+          willRenew: true,
+        },
+      }))).toBe(true);
+    });
+
+    it('returns false when subscription is expired', () => {
+      expect(isPro(makeState({
+        subscription: {
+          tier: 'monthly',
+          productId: 'com.dynastymanager.pro.monthly',
+          expiresAt: new Date(Date.now() - 86400000).toISOString(),
+          isInGracePeriod: false,
+          willRenew: false,
+        },
+      }))).toBe(false);
+    });
+
+    it('returns true for lifetime subscription (no expiry)', () => {
+      expect(isPro(makeState({
+        subscription: {
+          tier: 'lifetime',
+          productId: 'com.dynastymanager.pro.lifetime',
+          expiresAt: null,
+          isInGracePeriod: false,
+          willRenew: false,
+        },
+      }))).toBe(true);
+    });
   });
 
   describe('hasProduct', () => {

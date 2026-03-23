@@ -32,7 +32,8 @@ export async function initPurchases(): Promise<void> {
 
   try {
     const { Purchases, LOG_LEVEL } = await import('@revenuecat/purchases-capacitor');
-    await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+    const logLevel = import.meta.env.DEV ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO;
+    await Purchases.setLogLevel({ level: logLevel });
     await Purchases.configure({ apiKey: REVENUECAT_API_KEY });
     initialized = true;
   } catch (err) {
@@ -229,15 +230,15 @@ export async function presentPaywallIfNeeded(entitlementId: string = 'pro'): Pro
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapPaywallResult(result: any): PaywallResult {
-  // PAYWALL_RESULT enum values: NOT_PRESENTED=0, ERROR=1, CANCELLED=2, PURCHASED=3, RESTORED=4
+// PAYWALL_RESULT is a string enum exported from @revenuecat/purchases-capacitor-ui
+// Values: "NOT_PRESENTED", "ERROR", "CANCELLED", "PURCHASED", "RESTORED"
+function mapPaywallResult(result: string): PaywallResult {
   switch (result) {
-    case 0: return 'not_presented';
-    case 1: return 'error';
-    case 2: return 'cancelled';
-    case 3: return 'purchased';
-    case 4: return 'restored';
+    case 'NOT_PRESENTED': return 'not_presented';
+    case 'ERROR': return 'error';
+    case 'CANCELLED': return 'cancelled';
+    case 'PURCHASED': return 'purchased';
+    case 'RESTORED': return 'restored';
     default: return 'error';
   }
 }

@@ -95,10 +95,8 @@ const GameShell = () => {
     initMonetizationTimestamp();
 
     // Sync entitlements and subscription from RevenueCat (no-op on web)
-    getEntitlements().then(ids => {
+    Promise.all([getEntitlements(), getCustomerInfo()]).then(([ids, info]) => {
       if (ids.length > 0) restoreEntitlements(ids);
-    });
-    getCustomerInfo().then(info => {
       if (info) updateSubscription(extractSubscriptionInfo(info));
     });
 

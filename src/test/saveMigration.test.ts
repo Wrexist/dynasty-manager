@@ -128,6 +128,24 @@ describe('saveMigration', () => {
     expect(clubs['club-2'].stadiumCapacity).toBe(10_000);
   });
 
+  it('should add subscription to monetization in v19→v20', () => {
+    const v19Data: Record<string, unknown> = {
+      version: 19,
+      monetization: {
+        entitlements: ['com.dynastymanager.pro'],
+        activeCosmetics: {},
+        adRewardsClaimed: {},
+        firstLaunchTimestamp: 1000,
+        starterKitDismissed: false,
+      },
+    };
+    const result = migrateSaveData(v19Data);
+    expect(result.version).toBe(CURRENT_VERSION);
+    const monetization = result.monetization as Record<string, unknown>;
+    expect(monetization.subscription).toBeNull();
+    expect(monetization.entitlements).toEqual(['com.dynastymanager.pro']);
+  });
+
   it('should survive a corrupted migration step gracefully', () => {
     // Data at version 1 with a property that could cause issues
     const corruptData: Record<string, unknown> = { version: 1 };
