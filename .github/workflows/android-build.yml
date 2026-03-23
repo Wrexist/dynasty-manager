@@ -1,6 +1,26 @@
 name: Android Build
 on:
   workflow_dispatch:
+    inputs:
+      version_code:
+        description: 'Version code (integer, must increment each release)'
+        required: true
+        type: number
+      version_name:
+        description: 'Version name (e.g. 1.0.0, 1.1.0)'
+        required: true
+        type: string
+        default: '1.0.0'
+      track:
+        description: 'Play Store track'
+        required: true
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+        default: 'internal'
 
 jobs:
   build:
@@ -23,14 +43,32 @@ jobs:
       - run: npm run build
       - run: npx cap sync android
 
-      - name: Build debug APK
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/dynasty-manager.keystore
+
+      - name: Build signed release AAB
+        env:
+          KEYSTORE_FILE: dynasty-manager.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          VERSION_CODE: ${{ inputs.version_code }}
+          VERSION_NAME: ${{ inputs.version_name }}
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew bundleRelease
 
-      - name: Upload APK artifact
+      - name: Upload AAB artifact
         uses: actions/upload-artifact@v4
         with:
-          name: dynasty-manager-debug
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: dynasty-manager-release
+          path: android/app/build/outputs/bundle/release/*.aab
+
+      - name: Upload to Google Play
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.dynastymanager
+          releaseFiles: android/app/build/outputs/bundle/release/*.aab
+          track: ${{ inputs.track }}
