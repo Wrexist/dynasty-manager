@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users, Search, Calendar } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { hapticMedium } from '@/utils/haptics';
+import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
+import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { TransferListing } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
@@ -109,6 +110,7 @@ const TransferPage = () => {
   const executeOfferResponse = (offerId: string, accept: boolean) => {
     const result = respondToOffer(offerId, accept);
     if (result.success) {
+      if (accept) { hapticMedium(); } else { hapticLight(); }
       successToast(result.message);
     } else {
       errorToast(result.message);
@@ -150,7 +152,11 @@ const TransferPage = () => {
       {/* Budget */}
       <GlassPanel className="p-3 flex items-center justify-between">
         <span className="text-sm text-muted-foreground">Available Budget</span>
-        <span className="text-lg font-black text-primary">{'\u00A3'}{((club?.budget || 0) / 1e6).toFixed(1)}M</span>
+        <AnimatedNumber
+          value={club?.budget || 0}
+          formatFn={(n) => '\u00A3' + (n / 1e6).toFixed(1) + 'M'}
+          className="text-lg font-black text-primary tabular-nums"
+        />
       </GlassPanel>
 
       {/* Closed window planning hints */}
@@ -262,9 +268,9 @@ const TransferPage = () => {
             {POSITION_FILTERS.map((f, i) => (
               <button
                 key={f.label}
-                onClick={() => setPosFilter(i)}
+                onClick={() => { hapticLight(); setPosFilter(i); }}
                 className={cn(
-                  'px-2.5 py-1 rounded text-xs font-medium transition-all',
+                  'px-2.5 py-1 rounded text-xs font-medium transition-all active:scale-[0.95]',
                   posFilter === i ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
@@ -339,7 +345,7 @@ const TransferPage = () => {
                   </Button>
                   <Button
                     size="sm" variant="ghost" className="h-8 w-8 p-0"
-                    onClick={() => inShortlist ? removeFromShortlist(p.id) : addToShortlist(p.id)}
+                    onClick={() => { hapticLight(); if (inShortlist) { removeFromShortlist(p.id); } else { addToShortlist(p.id); } }}
                   >
                     {inShortlist ? <BookmarkCheck className="w-4 h-4 text-primary" /> : <Bookmark className="w-4 h-4" />}
                   </Button>
@@ -732,7 +738,7 @@ const TransferPage = () => {
                   disabled={!canAfford}
                   onClick={() => {
                     const result = signFreeAgent(signingPlayer, offerWage, offerYears);
-                    if (result.success) { successToast(result.message); } else { errorToast(result.message); }
+                    if (result.success) { hapticHeavy(); successToast(result.message); } else { errorToast(result.message); }
                     setSigningPlayer(null);
                   }}
                 >

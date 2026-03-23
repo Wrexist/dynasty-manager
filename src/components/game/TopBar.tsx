@@ -1,8 +1,11 @@
+import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
-import { Calendar, Trophy, Save, ArrowLeft, Star } from 'lucide-react';
+import { Calendar, Trophy, Save, ArrowLeft, Star, Check } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getSuffix } from '@/utils/helpers';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation';
+import { hapticMedium } from '@/utils/haptics';
+import { cn } from '@/lib/utils';
 
 export function TopBar() {
   const { season, week, totalWeeks, playerClubId, clubs, leagueTable, saveGame, currentScreen, previousScreen, setScreen, managerProgression } = useGameStore();
@@ -10,6 +13,28 @@ export function TopBar() {
   const entry = leagueTable.find(e => e.clubId === playerClubId);
   const pos = entry ? leagueTable.indexOf(entry) + 1 : '-';
   const xpProgress = getXPProgress(managerProgression);
+
+  // Save button feedback state
+  const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
+
+  const handleSave = () => {
+    saveGame();
+    hapticMedium();
+    setSaveState('saved');
+    setTimeout(() => setSaveState('idle'), 1200);
+  };
+
+  // XP bar glow on gain
+  const prevXpRef = useRef(xpProgress.percentage);
+  const [xpGlow, setXpGlow] = useState(false);
+  useEffect(() => {
+    if (xpProgress.percentage > prevXpRef.current) {
+      setXpGlow(true);
+      const timer = setTimeout(() => setXpGlow(false), 1500);
+      return () => clearTimeout(timer);
+    }
+    prevXpRef.current = xpProgress.percentage;
+  }, [xpProgress.percentage]);
 
   if (!club) return null;
 
@@ -62,8 +87,15 @@ export function TopBar() {
             <Trophy className="w-3 h-3" />
             <span>S{season}</span>
           </div>
-          <button onClick={() => saveGame()} aria-label="Save game" className="p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center">
-            <Save className="w-4 h-4" />
+          <button
+            onClick={handleSave}
+            aria-label="Save game"
+            className={cn(
+              'p-3 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center',
+              saveState === 'saved' ? 'text-emerald-400' : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {saveState === 'saved' ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
           </button>
         </div>
       </div>
@@ -71,7 +103,10 @@ export function TopBar() {
       <div className="max-w-lg mx-auto px-4 pb-1">
         <div className="h-1 bg-muted/30 rounded-full overflow-hidden">
           <div
-            className="h-full bg-primary rounded-full transition-all duration-500"
+            className={cn(
+              'h-full bg-primary rounded-full transition-all duration-500',
+              xpGlow && 'shadow-[0_0_8px_hsl(43_96%_46%/0.5)] transition-shadow duration-700'
+            )}
             style={{ width: `${xpProgress.percentage}%` }}
           />
         </div>

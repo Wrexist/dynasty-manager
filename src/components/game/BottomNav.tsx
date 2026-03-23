@@ -42,10 +42,20 @@ export function BottomNav() {
               <div className="relative">
                 <Icon className={cn('w-5 h-5', active && 'drop-shadow-[0_0_6px_hsl(var(--primary))]')} />
                 {screen === 'dashboard' && unreadCount > 0 && (
-                  <div className="absolute -top-1 -right-1.5 w-2 h-2 bg-destructive rounded-full" />
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    className="absolute -top-1 -right-1.5 w-2 h-2 bg-destructive rounded-full animate-pulse"
+                  />
                 )}
                 {screen === 'transfers' && pendingOffers > 0 && (
-                  <div className="absolute -top-1 -right-1.5 w-2 h-2 bg-destructive rounded-full" />
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    className="absolute -top-1 -right-1.5 w-2 h-2 bg-destructive rounded-full animate-pulse"
+                  />
                 )}
               </div>
               <span className="text-[10px] font-medium">{label}</span>

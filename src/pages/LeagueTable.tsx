@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { DIVISIONS } from '@/data/league';
 import type { DivisionId } from '@/types/game';
@@ -142,7 +143,18 @@ const LeagueTable = () => {
                   const zone = getZone(pos, currentTable.length);
 
                   return (
-                    <tr key={entry.clubId} ref={isPlayer ? playerRowRef : undefined} className={cn('border-b border-border/10', zoneBgClass(zone), isPlayer && 'bg-primary/5')}>
+                    <motion.tr
+                      key={entry.clubId}
+                      ref={isPlayer ? playerRowRef : undefined}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: Math.min(i * 0.02, 0.4), duration: 0.2 }}
+                      className={cn(
+                        'border-b border-border/10',
+                        zoneBgClass(zone),
+                        isPlayer && 'bg-primary/5 shadow-[inset_0_0_12px_hsl(43_96%_46%/0.05)] border-l-2 border-l-primary'
+                      )}
+                    >
                       <td className={cn('p-2 text-xs', pos === 1 ? 'text-primary font-bold' : 'text-muted-foreground')}>
                         <div className="flex items-center gap-0.5">
                           <span>{pos}</span>
@@ -176,7 +188,7 @@ const LeagueTable = () => {
                           ))}
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   );
                 })}
               </tbody>

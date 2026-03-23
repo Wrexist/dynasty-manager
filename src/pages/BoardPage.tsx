@@ -1,6 +1,7 @@
 import { useGameStore } from '@/store/gameStore';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { Target, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getConfidenceColor, getConfidenceRisk } from '@/utils/uiHelpers';
@@ -22,11 +23,13 @@ const BoardPage = () => {
       <GlassPanel className={cn('p-4', riskLevel === 'danger' && 'border-destructive/30')}>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold text-foreground">Board Confidence</h3>
-          <span className={cn('text-2xl font-black font-display tabular-nums',
-            getConfidenceColor(boardConfidence).textClass
-          )}>
-            {boardConfidence}%
-          </span>
+          <AnimatedNumber
+            value={boardConfidence}
+            formatFn={(n) => Math.round(n) + '%'}
+            className={cn('text-2xl font-black font-display tabular-nums',
+              getConfidenceColor(boardConfidence).textClass
+            )}
+          />
         </div>
         <div className="w-full h-3 bg-muted/50 rounded-full overflow-hidden">
           <div

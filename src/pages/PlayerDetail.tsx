@@ -4,6 +4,7 @@ import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
 import { POSITION_COMPATIBILITY, Position } from '@/types/game';
 import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
@@ -98,6 +99,7 @@ const PlayerDetail = () => {
       </button>
 
       {/* Header */}
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25 }}>
       <GlassPanel className="p-5">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center relative">
@@ -123,6 +125,7 @@ const PlayerDetail = () => {
           </div>
         </div>
       </GlassPanel>
+      </motion.div>
 
       {/* Narrative Tags */}
       {narratives.length > 0 && (

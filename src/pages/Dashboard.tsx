@@ -31,7 +31,7 @@ import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
 import { BoardWarning } from '@/components/game/BoardWarning';
 import { getWeekPreview, getFallbackPreview } from '@/utils/weekPreview';
-import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
+import { hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { InfoTip } from '@/components/game/InfoTip';
 import { WeeklyDigest } from '@/components/game/WeeklyDigest';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
@@ -482,10 +482,10 @@ const Dashboard = () => {
               </button>
             )}
           </div>
-          <Button className={cn("w-full gap-2", isAdvancing && "animate-pulse")} disabled={isAdvancing} onClick={() => {
-            hapticLight();
+          <Button className={cn("w-full gap-2 active:scale-[0.97] transition-transform", isAdvancing && "animate-pulse shadow-[0_0_12px_hsl(43_96%_46%/0.3)]")} disabled={isAdvancing} onClick={() => {
+            hapticMedium();
             setIsAdvancing(true);
-            setTimeout(() => { advanceWeek(); setIsAdvancing(false); }, 50);
+            setTimeout(() => { advanceWeek(); setIsAdvancing(false); hapticHeavy(); }, 50);
           }}>
             {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}
           </Button>
@@ -666,7 +666,12 @@ const Dashboard = () => {
 
       {/* XP Progress + Season Race — engagement widgets */}
       {!seasonOver && (
-        <div className="grid grid-cols-2 gap-3">
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05, duration: 0.2 }}
+          className="grid grid-cols-2 gap-3"
+        >
           {/* XP Progress Widget */}
           <GlassPanel className="p-4" onClick={() => setScreen('perks')}>
             <div className="flex items-center gap-2 mb-2">
@@ -717,11 +722,12 @@ const Dashboard = () => {
               ))}
             </div>
           </GlassPanel>
-        </div>
+        </motion.div>
       )}
 
       {/* Week Preview Teasers */}
       {!seasonOver && weekPreviews.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1, duration: 0.2 }}>
         <GlassPanel className="p-4">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Coming Up</p>
           <div className="space-y-2">
@@ -741,6 +747,7 @@ const Dashboard = () => {
             ))}
           </div>
         </GlassPanel>
+        </motion.div>
       )}
 
       {/* Cliffhangers — "one more week" hooks */}
