@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
 import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD } from '@/config/gameBalance';
-import { getXPProgress } from '@/utils/managerPerks';
+import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_END } from '@/config/transfers';
 import type { Celebration } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
@@ -29,6 +29,8 @@ import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
+import { GemRevealModal } from '@/components/game/GemRevealModal';
+import { SessionRecap } from '@/components/game/SessionRecap';
 import { BoardWarning } from '@/components/game/BoardWarning';
 import { getWeekPreview, getFallbackPreview } from '@/utils/weekPreview';
 import { hapticMedium, hapticHeavy } from '@/utils/haptics';
@@ -211,6 +213,24 @@ const Dashboard = () => {
   // XP progress to next level
   const xpProgress = useMemo(() => getXPProgress(store.managerProgression), [store.managerProgression]);
 
+  // Next unlockable perk preview
+  const nextPerk = useMemo(() => {
+    const totalXP = getTotalXP(store.managerProgression);
+    // Find cheapest perk that can be unlocked (has prerequisite met, not yet owned)
+    const available = MANAGER_PERKS
+      .filter(p => !store.managerProgression.unlockedPerks.includes(p.id))
+      .filter(p => {
+        const { canUnlock, reason } = canUnlockPerk(p, store.managerProgression);
+        // Show perks that are either unlockable or only blocked by XP (not by prerequisites)
+        return canUnlock || (reason && reason.startsWith('Need'));
+      })
+      .sort((a, b) => a.cost - b.cost);
+    if (available.length === 0) return null;
+    const perk = available[0];
+    const xpNeeded = Math.max(0, perk.cost - totalXP);
+    return { name: perk.name, xpNeeded, icon: perk.icon };
+  }, [store.managerProgression]);
+
   // Record chase — is a player close to a club record?
   const recordChases = useMemo(() => {
     if (!club) return [];
@@ -280,6 +300,24 @@ const Dashboard = () => {
     return !inPlayoffs && (week > store.totalWeeks || (allMatchesPlayed && fixtures.filter(m => m.played).length > 0));
   }, [fixtures, playerClubId, week, inPlayoffs, store.totalWeeks]);
 
+  // Title race / relegation battle mode — special UI in final 10 weeks
+  const raceMode = useMemo(() => {
+    if (seasonOver || inPlayoffs) return null;
+    const weeksLeft = store.totalWeeks - week;
+    if (weeksLeft > 10 || !entry) return null;
+    const playerPos = leagueTable.indexOf(entry) + 1;
+    const totalTeams = leagueTable.length;
+    // Title contender: top 2 and within 6 points of leader
+    if (playerPos <= 2) {
+      const leaderPts = leagueTable[0]?.points || 0;
+      const gap = leaderPts - (entry.points || 0);
+      if (gap <= 6) return 'title' as const;
+    }
+    // Relegation battle: bottom 3
+    if (playerPos >= totalTeams - 2) return 'relegation' as const;
+    return null;
+  }, [seasonOver, inPlayoffs, store.totalWeeks, week, entry, leagueTable]);
+
   if (!club) return null;
 
   // Training focus label map
@@ -323,6 +361,12 @@ const Dashboard = () => {
       {/* Farewell Modal (shown when a long-serving player departs) */}
       <FarewellModal />
 
+      {/* Hidden Gem Scouting Reveal */}
+      <GemRevealModal />
+
+      {/* Session Start Recap — "Welcome back" overlay */}
+      <SessionRecap />
+
       {/* Board Warning (low confidence) */}
       {!boardWarningDismissed && boardConfidence <= 35 && (
         <BoardWarning confidence={boardConfidence} onDismiss={() => setBoardWarningDismissed(true)} />
@@ -343,6 +387,37 @@ const Dashboard = () => {
         onClose={dismissAchievement}
         achievement={currentAchievement}
       />
+
+      {/* Title Race / Relegation Battle Banner */}
+      {raceMode && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(
+            'rounded-xl px-3 py-2 flex items-center justify-between border',
+            raceMode === 'title'
+              ? 'bg-primary/10 border-primary/40 shadow-[0_0_12px_hsl(43_96%_46%/0.15)]'
+              : 'bg-destructive/10 border-destructive/40 shadow-[0_0_12px_hsl(0_84%_60%/0.15)]'
+          )}
+        >
+          <div className="flex items-center gap-2">
+            {raceMode === 'title' ? (
+              <Trophy className="w-4 h-4 text-primary" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 text-destructive" />
+            )}
+            <span className={cn(
+              'text-xs font-black uppercase tracking-wider',
+              raceMode === 'title' ? 'text-primary' : 'text-destructive'
+            )}>
+              {raceMode === 'title' ? 'Title Race' : 'Relegation Battle'}
+            </span>
+          </div>
+          <span className="text-[10px] text-muted-foreground">
+            {store.totalWeeks - week} weeks left
+          </span>
+        </motion.div>
+      )}
 
       {/* Active Challenge Banner */}
       {store.activeChallenge && !store.activeChallenge.completed && !store.activeChallenge.failed && (
@@ -695,6 +770,13 @@ const Dashboard = () => {
                 />
               </div>
             </div>
+            {nextPerk && (
+              <p className="text-[9px] text-muted-foreground mt-1.5 truncate">
+                Next: <span className="text-primary font-semibold">{nextPerk.name}</span>
+                {nextPerk.xpNeeded > 0 && <span> ({nextPerk.xpNeeded} XP)</span>}
+                {nextPerk.xpNeeded === 0 && <span className="text-emerald-400"> Ready!</span>}
+              </p>
+            )}
           </GlassPanel>
 
           {/* Season Race Mini Widget */}
@@ -976,6 +1058,11 @@ const Dashboard = () => {
           <p className="text-[10px] text-muted-foreground mt-1">
             {boardConfidence > 70 ? 'Secure' : boardConfidence > 40 ? 'Under pressure' : 'Sacking risk!'}
           </p>
+          {boardConfidence <= 50 && boardConfidence > 25 && (
+            <p className="text-[9px] text-destructive/80 mt-0.5">
+              ~{Math.max(1, Math.ceil((boardConfidence - 25) / 4))} more loss{Math.ceil((boardConfidence - 25) / 4) !== 1 ? 'es' : ''} could mean the sack
+            </p>
+          )}
         </GlassPanel>
       </div>
 
@@ -1022,6 +1109,24 @@ const Dashboard = () => {
         const recentWins = recent.filter(r => r === 'W').length;
         const recentLosses = recent.filter(r => r === 'L').length;
         const momentum = recentWins >= 3 ? 'hot' : recentLosses >= 3 ? 'cold' : 'stable';
+        // Form guide narrative — compute best win streak this season for context
+        const allForm = entry?.form || [];
+        let bestStreak = 0;
+        let currentStreak = 0;
+        for (const r of allForm) {
+          if (r === 'W') { currentStreak++; bestStreak = Math.max(bestStreak, currentStreak); } else { currentStreak = 0; }
+        }
+        const formNarrative = winStreak >= 5 && winStreak >= bestStreak
+          ? `Your best run this season — ${winStreak} wins in a row!`
+          : winStreak >= 3 && bestStreak > winStreak
+          ? `${winStreak} wins in a row (season best: ${bestStreak})`
+          : unbeatenRun >= 8
+          ? `${unbeatenRun} matches unbeaten — an incredible run`
+          : recentLosses >= 4
+          ? 'Time to turn things around — fans are worried'
+          : allForm.length >= 10 && recentWins >= 4
+          ? `Strong form — ${recentWins} wins in last 5`
+          : null;
         return (
           <GlassPanel className={cn('p-4', momentum === 'hot' ? 'border-emerald-500/20' : momentum === 'cold' ? 'border-destructive/20' : '')}>
             <div className="flex items-center justify-between mb-2">
@@ -1047,6 +1152,14 @@ const Dashboard = () => {
                 );
               })}
             </div>
+            {formNarrative && (
+              <p className={cn(
+                'text-[10px] mt-2 font-medium',
+                momentum === 'hot' ? 'text-emerald-400' : momentum === 'cold' ? 'text-destructive' : 'text-muted-foreground'
+              )}>
+                {formNarrative}
+              </p>
+            )}
           </GlassPanel>
         );
       })()}

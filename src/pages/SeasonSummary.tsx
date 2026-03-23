@@ -28,9 +28,39 @@ const AWARD_STAT_LABELS: Record<string, string> = {
 };
 
 const SeasonSummary = () => {
-  const { seasonHistory, season, setScreen, playerClubId, clubs } = useGameStore();
+  const { seasonHistory, season, setScreen, playerClubId, clubs, leagueTable } = useGameStore();
   const latest = seasonHistory[seasonHistory.length - 1];
   const [showBestXI, setShowBestXI] = useState(false);
+
+  // Near-miss detection: check if player barely missed a milestone
+  const nearMiss = (() => {
+    if (!latest || !leagueTable || leagueTable.length === 0) return null;
+    const pos = latest.position;
+    const pts = latest.points;
+    // Find the team just above in the final table
+    const aboveEntry = leagueTable[pos - 2]; // pos-1 is 0-indexed player, pos-2 is team above
+    if (!aboveEntry) return null;
+    const gap = aboveEntry.points - pts;
+    if (gap > 3 || gap <= 0) return null;
+
+    // Missed the title by 1-3 points
+    if (pos === 2 && gap <= 3) {
+      return { text: `Missed the title by just ${gap} point${gap !== 1 ? 's' : ''}`, type: 'title' as const };
+    }
+    // Missed auto-promotion (positions 1-2 for div-2/3, 1-3 for div-4)
+    const div = DIVISIONS.find(d => d.id === latest.divisionId);
+    const autoPromoSlots = div?.id === 'div-4' ? 3 : 2;
+    if (pos === autoPromoSlots + 1 && gap <= 3 && !latest.promoted) {
+      return { text: `Missed automatic promotion by ${gap} point${gap !== 1 ? 's' : ''}`, type: 'promotion' as const };
+    }
+    // Narrowly avoided relegation
+    const totalClubs = leagueTable.length;
+    const relegationLine = totalClubs - 2; // bottom 3 get relegated
+    if (pos === relegationLine && gap <= 3 && !latest.relegated) {
+      return { text: `Survived relegation by just ${gap} point${gap !== 1 ? 's' : ''}`, type: 'survival' as const };
+    }
+    return null;
+  })();
 
   if (!latest) {
     return (
@@ -93,6 +123,31 @@ const SeasonSummary = () => {
           <p className="text-6xl font-black text-primary">{latest.position}<span className="text-lg">{getSuffix(latest.position)}</span></p>
           <p className="text-lg font-bold text-foreground mt-1">{latest.points} Points</p>
         </GlassPanel>
+
+        {/* Near-Miss Banner */}
+        {nearMiss && (
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.3, duration: 0.5, type: 'spring' }}>
+            <GlassPanel className={cn(
+              'p-4 text-center',
+              nearMiss.type === 'title' ? 'border-primary/50 bg-primary/5' :
+              nearMiss.type === 'promotion' ? 'border-amber-500/50 bg-amber-500/5' :
+              'border-emerald-500/50 bg-emerald-500/5'
+            )}>
+              <p className={cn(
+                'text-lg font-black font-display uppercase tracking-wide',
+                nearMiss.type === 'title' ? 'text-primary' :
+                nearMiss.type === 'promotion' ? 'text-amber-400' :
+                'text-emerald-400'
+              )}>
+                {nearMiss.type === 'survival' ? 'GREAT ESCAPE!' : 'SO CLOSE!'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">{nearMiss.text}</p>
+              {nearMiss.type !== 'survival' && (
+                <p className="text-[10px] text-primary/70 mt-2 font-medium">Next season is your chance.</p>
+              )}
+            </GlassPanel>
+          </motion.div>
+        )}
 
         {/* Record */}
         <GlassPanel className="p-4">

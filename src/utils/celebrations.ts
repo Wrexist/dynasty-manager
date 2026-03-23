@@ -143,6 +143,44 @@ export function checkCelebrations(
     });
   }
 
+  // Career-cumulative player milestones (goals + appearances for the club)
+  const careerGoalMilestones = [50, 100, 200];
+  const careerAppMilestones = [100, 200, 500];
+  for (const pid of playerIds) {
+    const p = players[pid];
+    if (!p) continue;
+    const totalGoals = (p.careerGoals || 0) + p.goals;
+    const totalApps = (p.careerAppearances || 0) + p.appearances;
+
+    for (let i = 0; i < careerGoalMilestones.length; i++) {
+      const t = careerGoalMilestones[i];
+      const nextT = careerGoalMilestones[i + 1] ?? t * 2;
+      if (totalGoals >= t && totalGoals < nextT) {
+        celebrations.push({
+          title: `${p.lastName} — ${t} Career Goals!`,
+          description: `${p.firstName} ${p.lastName} has scored ${t} goals for the club across all seasons.`,
+          type: 'milestone',
+          severity: t >= 100 ? 'major' : 'minor',
+          icon: 'circle',
+        });
+      }
+    }
+
+    for (let i = 0; i < careerAppMilestones.length; i++) {
+      const t = careerAppMilestones[i];
+      const nextT = careerAppMilestones[i + 1] ?? t * 2;
+      if (totalApps >= t && totalApps < nextT) {
+        celebrations.push({
+          title: `${p.lastName} — ${t} Appearances!`,
+          description: `${p.firstName} ${p.lastName} has made ${t} appearances for the club. A true servant!`,
+          type: 'milestone',
+          severity: t >= 200 ? 'major' : 'minor',
+          icon: 'user',
+        });
+      }
+    }
+  }
+
   return celebrations;
 }
 

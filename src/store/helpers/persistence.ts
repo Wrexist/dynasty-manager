@@ -24,6 +24,38 @@ export function clearFlagsByPrefix(prefix: string): void {
   catch { /* storage unavailable */ }
 }
 
+// ── Session Snapshot (for "Welcome back" recap) ──
+
+export interface SessionSnapshot {
+  week: number;
+  season: number;
+  leaguePosition: number;
+  boardConfidence: number;
+  budget: number;
+  injuredCount: number;
+  timestamp: number;
+}
+
+const SNAPSHOT_KEY = 'dynasty-session-snapshot';
+
+export function saveSessionSnapshot(snap: SessionSnapshot): void {
+  try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(snap)); }
+  catch { /* storage full */ }
+}
+
+export function loadSessionSnapshot(): SessionSnapshot | null {
+  try {
+    const raw = localStorage.getItem(SNAPSHOT_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw) as SessionSnapshot;
+  } catch { return null; }
+}
+
+export function clearSessionSnapshot(): void {
+  try { localStorage.removeItem(SNAPSHOT_KEY); }
+  catch { /* storage unavailable */ }
+}
+
 /** Migrate legacy single-slot save to slot 1 */
 export function migrateLegacySave() {
   const legacy = localStorage.getItem('dynasty-save');

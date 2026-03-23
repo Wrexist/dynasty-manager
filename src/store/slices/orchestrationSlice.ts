@@ -8,7 +8,7 @@ import { completeAssignment } from '@/utils/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle } from '@/utils/helpers';
-import { migrateLegacySave } from '@/store/helpers/persistence';
+import { migrateLegacySave, saveSessionSnapshot } from '@/store/helpers/persistence';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName } from '@/data/cup';
@@ -673,7 +673,16 @@ function finalizeSeason(
   let bestFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] } | null = null;
 
   Object.values(mergedPlayers).forEach(p => {
-    const aged = { ...p, age: p.age + 1, goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0, suspendedUntilWeek: undefined, growthDelta: 0, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false };
+    const aged = {
+      ...p, age: p.age + 1,
+      // Accumulate career stats before resetting season stats
+      careerGoals: (p.careerGoals || 0) + p.goals,
+      careerAssists: (p.careerAssists || 0) + p.assists,
+      careerAppearances: (p.careerAppearances || 0) + p.appearances,
+      goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0,
+      suspendedUntilWeek: undefined, growthDelta: 0, onLoan: false,
+      loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false,
+    };
     if (aged.contractEnd <= season) {
       const club = newClubs[aged.clubId];
       if (club) {
@@ -1686,6 +1695,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const newScouting = { ...scouting, assignments: [...scouting.assignments], reports: [...scouting.reports], discoveredPlayers: [...scouting.discoveredPlayers] };
     const scoutQuality = getStaffBonus(staff.members, 'scout');
     const completedAssignments: string[] = [];
+    const gemReveals: { playerId: string; region: string }[] = [];
     for (let i = 0; i < newScouting.assignments.length; i++) {
       const a = { ...newScouting.assignments[i] };
       const scoutReduction = hasPerk(state.managerProgression, 'scout_network') ? 2 : 1;
@@ -1695,10 +1705,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         completedAssignments.push(a.id);
         const { reports: newReports, players: scoutedPlayers } = completeAssignment(a, scoutQuality, season, newWeek);
         newScouting.reports.push(...newReports);
+        let gemReveal: { playerId: string; region: string } | null = null;
         scoutedPlayers.forEach(p => {
           newPlayers[p.id] = p;
           newScouting.discoveredPlayers.push(p.id);
+          // Detect hidden gem: potential 80+ player
+          if (p.potential >= 80 && !gemReveal) {
+            gemReveal = { playerId: p.id, region: a.region };
+          }
         });
+        if (gemReveal) {
+          gemReveals.push(gemReveal);
+        }
         newMessages = addMsg(newMessages, {
           week: newWeek, season, type: 'general',
           title: `Scout Report: ${a.region}`,
@@ -2022,6 +2040,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       matchSubsUsed: 0, boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
       training: { ...training, tacticalFamiliarity: newTacticalFamiliarity },
       scouting: newScouting, facilities: newFacilities, youthAcademy: newYouthAcademy,
+      pendingGemReveal: gemReveals.length > 0 ? gemReveals[0] : null,
       financeHistory: newFinanceHistory,
       unlockedAchievements: allUnlocked,
       pendingAchievementIds: newAchievements,
@@ -2708,6 +2727,23 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       freeAgents: state.freeAgents,
     };
     localStorage.setItem(`dynasty-save-${s}`, JSON.stringify(saveData));
+
+    // Save session snapshot for "Welcome back" recap
+    const myEntry = state.leagueTable.find(e => e.clubId === state.playerClubId);
+    const myPos = myEntry ? state.leagueTable.indexOf(myEntry) + 1 : 0;
+    const playerClub = state.clubs[state.playerClubId];
+    const injuredCount = playerClub
+      ? playerClub.playerIds.filter(id => state.players[id]?.injured).length
+      : 0;
+    saveSessionSnapshot({
+      week: state.week,
+      season: state.season,
+      leaguePosition: myPos,
+      boardConfidence: state.boardConfidence,
+      budget: playerClub?.budget || 0,
+      injuredCount,
+      timestamp: Date.now(),
+    });
   },
 
   loadGame: (slot?: number) => {

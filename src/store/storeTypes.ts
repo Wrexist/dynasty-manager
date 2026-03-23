@@ -76,6 +76,7 @@ export interface GameState {
   // Press, Storylines & Contracts
   pendingPressConference: PressConference | null;
   pendingStoryline: StorylineEvent | null;
+  pendingGemReveal: { playerId: string; region: string } | null;
   fanMood: number; // 0-100, affects stadium income
   activeNegotiation: ContractOffer | null;
 
