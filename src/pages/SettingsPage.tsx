@@ -1,22 +1,24 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { removeFlag, clearFlagsByPrefix } from '@/store/helpers/persistence';
-import { restorePurchases } from '@/utils/purchases';
-import { isPro } from '@/utils/monetization';
+import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
+import { isPro, isSubscriptionActive } from '@/utils/monetization';
+import { PRODUCTS } from '@/config/monetization';
 
 const APP_VERSION = 'v0.2 Alpha · Football Edition';
 
 const SettingsPage = () => {
-  const { settings, updateSettings, saveGame, loadGame, resetGame, monetization, restoreEntitlements } = useGameStore();
+  const { settings, updateSettings, saveGame, loadGame, resetGame, monetization, restoreEntitlements, updateSubscription } = useGameStore();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [saved, setSaved] = useState(false);
   const [restoringPurchases, setRestoringPurchases] = useState(false);
   const userIsPro = isPro(monetization);
+  const hasActiveSub = isSubscriptionActive(monetization);
 
   const handleRestorePurchases = async () => {
     setRestoringPurchases(true);
@@ -28,10 +30,20 @@ const SettingsPage = () => {
       } else {
         infoToast('No Purchases Found', 'No previous purchases were found for this account.');
       }
+      // Also sync subscription info
+      const info = await getCustomerInfo();
+      if (info) updateSubscription(extractSubscriptionInfo(info));
     } catch {
       errorToast('Restore Failed', 'Could not restore purchases. Please try again.');
     } finally {
       setRestoringPurchases(false);
+    }
+  };
+
+  const handleManageSubscription = async () => {
+    const opened = await openSubscriptionManagement();
+    if (!opened) {
+      errorToast('Not Available', 'Please visit your App Store or Play Store settings to manage your subscription.');
     }
   };
 
@@ -165,7 +177,7 @@ const SettingsPage = () => {
         </div>
       </GlassPanel>
 
-      {/* Purchases */}
+      {/* Purchases & Subscription */}
       <GlassPanel className="p-4">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-semibold text-foreground">Purchases</h3>
@@ -175,17 +187,71 @@ const SettingsPage = () => {
             </span>
           )}
         </div>
+
+        {/* Active Subscription Info */}
+        {hasActiveSub && monetization.subscription && (
+          <div className="bg-muted/20 rounded-lg p-3 mb-3 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-foreground">
+                {PRODUCTS[monetization.subscription.productId]?.name || 'Dynasty Pro'}
+              </span>
+              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold capitalize">
+                {monetization.subscription.tier}
+              </span>
+            </div>
+            {monetization.subscription.expiresAt && (
+              <p className="text-[10px] text-muted-foreground">
+                {monetization.subscription.willRenew ? 'Renews' : 'Expires'}:{' '}
+                {new Date(monetization.subscription.expiresAt).toLocaleDateString()}
+              </p>
+            )}
+            {monetization.subscription.isInGracePeriod && (
+              <p className="text-[10px] text-amber-400">
+                Payment issue detected. Please update your payment method.
+              </p>
+            )}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          {hasActiveSub && (
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-3 h-11"
+              onClick={handleManageSubscription}
+            >
+              <ExternalLink className="w-4 h-4" />
+              Manage Subscription
+            </Button>
+          )}
+          <Button
+            variant="secondary"
+            className="w-full justify-start gap-3 h-11"
+            onClick={handleRestorePurchases}
+            disabled={restoringPurchases}
+          >
+            <RefreshCw className={cn('w-4 h-4', restoringPurchases && 'animate-spin')} />
+            {restoringPurchases ? 'Restoring...' : 'Restore Purchases'}
+          </Button>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-2">
+          Restore previously purchased items from your App Store or Play Store account.
+        </p>
+      </GlassPanel>
+
+      {/* Support (Customer Center Fallback) */}
+      <GlassPanel className="p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Support</h3>
         <Button
           variant="secondary"
           className="w-full justify-start gap-3 h-11"
-          onClick={handleRestorePurchases}
-          disabled={restoringPurchases}
+          onClick={() => window.open('mailto:support@dynastymanager.com?subject=Dynasty%20Manager%20Support', '_blank')}
         >
-          <RefreshCw className={cn('w-4 h-4', restoringPurchases && 'animate-spin')} />
-          {restoringPurchases ? 'Restoring...' : 'Restore Purchases'}
+          <Mail className="w-4 h-4" />
+          Contact Support
         </Button>
         <p className="text-[10px] text-muted-foreground mt-2">
-          Restore previously purchased items from your App Store or Play Store account.
+          Having trouble with a purchase or subscription? Contact us for help.
         </p>
       </GlassPanel>
 

@@ -9,7 +9,7 @@ import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { BACK_TARGET, MAIN_TABS, SCREEN_GROUPS } from '@/config/navigation';
-import { getEntitlements, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
+import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
 const Dashboard = lazy(() => import('./Dashboard'));
@@ -89,19 +89,24 @@ const GameShell = () => {
 
   // Sync monetization state on game load
   useEffect(() => {
-    const { restoreEntitlements, initMonetizationTimestamp } = useGameStore.getState();
+    const { restoreEntitlements, initMonetizationTimestamp, updateSubscription } = useGameStore.getState();
 
     // Start the starter kit countdown timer
     initMonetizationTimestamp();
 
-    // Sync entitlements from RevenueCat (no-op on web)
+    // Sync entitlements and subscription from RevenueCat (no-op on web)
     getEntitlements().then(ids => {
       if (ids.length > 0) restoreEntitlements(ids);
     });
+    getCustomerInfo().then(info => {
+      if (info) updateSubscription(extractSubscriptionInfo(info));
+    });
 
-    // Listen for real-time entitlement changes (cross-device, family sharing)
-    startEntitlementListener((ids) => {
-      useGameStore.getState().restoreEntitlements(ids);
+    // Listen for real-time entitlement changes (cross-device, family sharing, subscription renewals)
+    startEntitlementListener((ids, customerInfo) => {
+      const state = useGameStore.getState();
+      state.restoreEntitlements(ids);
+      state.updateSubscription(extractSubscriptionInfo(customerInfo));
     });
 
     return () => { stopEntitlementListener(); };

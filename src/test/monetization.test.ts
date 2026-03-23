@@ -256,13 +256,14 @@ describe('save migration v19', () => {
     const { migrateSaveData } = await import('@/utils/saveMigration');
     const oldSave = { version: 18 };
     const migrated = migrateSaveData(oldSave);
-    expect(migrated.version).toBe(19);
+    expect(migrated.version).toBe(20);
     expect(migrated.monetization).toEqual({
       entitlements: [],
       activeCosmetics: {},
       adRewardsClaimed: {},
       firstLaunchTimestamp: 0,
       starterKitDismissed: false,
+      subscription: null,
     });
   });
 
@@ -277,6 +278,9 @@ describe('save migration v19', () => {
     };
     const oldSave = { version: 18, monetization: existingMonetization };
     const migrated = migrateSaveData(oldSave);
-    expect(migrated.monetization).toEqual(existingMonetization);
+    expect(migrated.monetization).toEqual({
+      ...existingMonetization,
+      subscription: null,
+    });
   });
 });

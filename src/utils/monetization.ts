@@ -6,12 +6,27 @@
  * transfer values, or any core simulation parameter.
  */
 
-import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType } from '@/types/game';
-import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS } from '@/config/monetization';
+import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
+import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_PRODUCT_IDS } from '@/config/monetization';
 
-/** Check if the player has Dynasty Pro */
+/** Check if a subscription has expired */
+export function isSubscriptionExpired(sub: SubscriptionInfo): boolean {
+  if (!sub.expiresAt) return false; // lifetime never expires
+  return new Date(sub.expiresAt) < new Date();
+}
+
+/** Check if the player has an active subscription */
+export function isSubscriptionActive(state: MonetizationState): boolean {
+  return state.subscription != null && !isSubscriptionExpired(state.subscription);
+}
+
+/** Check if the player has Dynasty Pro (via one-time purchase OR active subscription) */
 export function isPro(state: MonetizationState): boolean {
-  return state.entitlements.includes('com.dynastymanager.pro');
+  // One-time purchase or bundle
+  if (PRO_PRODUCT_IDS.some(id => state.entitlements.includes(id))) return true;
+  // Active subscription
+  if (isSubscriptionActive(state)) return true;
+  return false;
 }
 
 /** Check if the player owns a specific product */

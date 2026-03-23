@@ -860,10 +860,26 @@ export interface SessionStats {
 
 export type ProductId =
   | 'com.dynastymanager.pro'
+  | 'com.dynastymanager.pro.monthly'
+  | 'com.dynastymanager.pro.yearly'
+  | 'com.dynastymanager.pro.lifetime'
   | 'com.dynastymanager.pack.manager'
   | 'com.dynastymanager.pack.stadium'
   | 'com.dynastymanager.pack.legends'
   | 'com.dynastymanager.bundle.all';
+
+export type SubscriptionTier = 'monthly' | 'yearly' | 'lifetime';
+
+export interface SubscriptionInfo {
+  tier: SubscriptionTier;
+  productId: ProductId;
+  /** ISO date string of expiration, or null for lifetime */
+  expiresAt: string | null;
+  /** Whether the subscription has a billing issue (grace period) */
+  isInGracePeriod: boolean;
+  /** Whether the subscription will auto-renew */
+  willRenew: boolean;
+}
 
 export type ProFeature =
   | 'ad_free'
@@ -897,4 +913,6 @@ export interface MonetizationState {
   firstLaunchTimestamp: number;
   /** Whether the starter kit offer has been dismissed or expired */
   starterKitDismissed: boolean;
+  /** Active subscription info, null if no subscription */
+  subscription: SubscriptionInfo | null;
 }

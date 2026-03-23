@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 19;
+const CURRENT_VERSION = 20;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -257,6 +257,19 @@ const migrations: Record<number, MigrationFn> = {
       starterKitDismissed: false,
     },
   }),
+
+  // v19 → v20: Added subscription support to monetization
+  19: (data) => {
+    const monetization = (data.monetization || {}) as Record<string, unknown>;
+    return {
+      ...data,
+      version: 20,
+      monetization: {
+        ...monetization,
+        subscription: monetization.subscription ?? null,
+      },
+    };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
