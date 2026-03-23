@@ -13,8 +13,8 @@ import type { ProductId } from '@/types/game';
 import { Capacitor } from '@capacitor/core';
 
 // Placeholder API keys — replace with real keys from RevenueCat dashboard
-const REVENUECAT_IOS_KEY = 'appl_PLACEHOLDER_IOS_KEY';
-const REVENUECAT_ANDROID_KEY = 'goog_PLACEHOLDER_ANDROID_KEY';
+const REVENUECAT_IOS_KEY = 'sk_bdrlXBxcITpkVTzWngWebytZuBwuO';
+const REVENUECAT_ANDROID_KEY = 'sk_bdrlXBxcITpkVTzWngWebytZuBwuO';
 
 let initialized = false;
 
