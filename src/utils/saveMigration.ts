@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 18;
+const CURRENT_VERSION = 19;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -245,6 +245,18 @@ const migrations: Record<number, MigrationFn> = {
     }
     return { ...data, version: 18 };
   },
+  // v18 → v19: Added monetization system (shop, entitlements, cosmetics, ad rewards)
+  18: (data) => ({
+    ...data,
+    version: 19,
+    monetization: data.monetization || {
+      entitlements: [],
+      activeCosmetics: {},
+      adRewardsClaimed: {},
+      firstLaunchTimestamp: 0,
+      starterKitDismissed: false,
+    },
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
