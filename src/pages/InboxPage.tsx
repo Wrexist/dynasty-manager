@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message } from '@/types/game';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
@@ -265,8 +266,9 @@ const InboxPage = () => {
 
       {/* Messages grouped by week */}
       {filtered.length === 0 ? (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <GlassPanel className="p-8 text-center">
-          <MailOpen className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+          <MailOpen className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
             {hasActiveFilter ? 'No messages match your filters' : 'No messages'}
           </p>
@@ -276,17 +278,23 @@ const InboxPage = () => {
             </button>
           )}
         </GlassPanel>
+        </motion.div>
       ) : (
         Object.entries(grouped).map(([weekKey, msgs]) => (
           <div key={weekKey}>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">{weekKey}</p>
             <div className="space-y-1.5">
-              {msgs.map(msg => {
+              {msgs.map((msg, msgIdx) => {
                 const Icon = typeIcon[msg.type] || Mail;
                 const expanded = expandedId === msg.id;
                 return (
-                  <GlassPanel
+                  <motion.div
                     key={msg.id}
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: Math.min(msgIdx * 0.03, 0.45), duration: 0.2 }}
+                  >
+                  <GlassPanel
                     className={cn('transition-all', !msg.read && 'border-primary/30')}
                     onClick={() => toggleExpand(msg.id)}
                   >
@@ -314,6 +322,7 @@ const InboxPage = () => {
                       )}
                     </div>
                   </GlassPanel>
+                  </motion.div>
                 );
               })}
             </div>

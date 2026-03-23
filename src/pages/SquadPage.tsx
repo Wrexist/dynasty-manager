@@ -4,11 +4,11 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { cn } from '@/lib/utils';
 import { Position } from '@/types/game';
-import { Tag, TrendingUp, TrendingDown, HeartPulse } from 'lucide-react';
+import { Tag, TrendingUp, TrendingDown, HeartPulse, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, getFitnessColor, getMoraleBgColor } from '@/utils/uiHelpers';
 import { successToast } from '@/utils/gameToast';
-import { hapticMedium } from '@/utils/haptics';
+import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { POSITION_FILTERS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { getFlag } from '@/utils/nationality';
@@ -164,9 +164,9 @@ const SquadPage = () => {
           {POSITION_FILTERS.map((f, i) => (
             <button
               key={f.label}
-              onClick={() => setPosFilter(i)}
+              onClick={() => { hapticLight(); setPosFilter(i); }}
               className={cn(
-                'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                'px-3 py-1.5 rounded-lg text-xs font-medium transition-colors active:scale-[0.95]',
                 posFilter === i ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground'
               )}
             >
@@ -202,9 +202,9 @@ const SquadPage = () => {
           {SORT_OPTIONS.map(s => (
             <button
               key={s}
-              onClick={() => setSortBy(s)}
+              onClick={() => { hapticLight(); setSortBy(s); }}
               className={cn(
-                'px-2 py-1 rounded text-[10px] uppercase tracking-wider transition-colors whitespace-nowrap shrink-0',
+                'px-2 py-1 rounded text-[10px] uppercase tracking-wider transition-colors whitespace-nowrap shrink-0 active:scale-[0.95]',
                 sortBy === s ? 'text-primary font-bold' : 'text-muted-foreground'
               )}
             >
@@ -308,7 +308,15 @@ const SquadPage = () => {
           })}
 
           {squad.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">No players found</p>
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center gap-2 py-8"
+            >
+              <Users className="w-8 h-8 text-muted-foreground/40" />
+              <p className="text-sm text-muted-foreground">No players found</p>
+            </motion.div>
           )}
         </GlassPanel>
       </div>

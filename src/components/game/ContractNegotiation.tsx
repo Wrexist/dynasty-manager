@@ -1,16 +1,22 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { FileText, X, ArrowRight, Check, AlertTriangle } from 'lucide-react';
 import { formatWage } from '@/utils/contracts';
 import { getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { motion } from 'framer-motion';
+import { hapticMedium } from '@/utils/haptics';
 
 export function ContractNegotiation() {
   const { activeNegotiation, submitWageOffer, cancelNegotiation, players } = useGameStore();
   const [customWage, setCustomWage] = useState<number | null>(null);
 
   useScrollLock(!!activeNegotiation);
+
+  useEffect(() => {
+    if (activeNegotiation) hapticMedium();
+  }, [activeNegotiation]);
 
   if (!activeNegotiation) return null;
 
@@ -28,8 +34,20 @@ export function ContractNegotiation() {
   const moodColor = getMoodColor(activeNegotiation.playerMood);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" style={{ touchAction: 'none' }}>
-      <div className="bg-card border border-border/50 rounded-2xl w-full max-w-sm overflow-hidden max-h-[85vh] overflow-y-auto" style={{ overscrollBehavior: 'contain' }}>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+      style={{ touchAction: 'none' }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 40, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+        className="bg-card border border-border/50 rounded-2xl w-full max-w-sm overflow-hidden max-h-[85vh] overflow-y-auto"
+        style={{ overscrollBehavior: 'contain' }}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/30">
           <div className="flex items-center gap-2">
@@ -151,7 +169,7 @@ export function ContractNegotiation() {
             </button>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

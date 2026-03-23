@@ -1,15 +1,27 @@
+import { useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { X, BookOpen } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
+import { motion } from 'framer-motion';
+import { hapticMedium } from '@/utils/haptics';
 
 export function StorylineModal() {
   const { pendingStoryline, respondToStoryline, dismissStoryline } = useGameStore();
 
+  useEffect(() => {
+    if (pendingStoryline) hapticMedium();
+  }, [pendingStoryline]);
+
   if (!pendingStoryline) return null;
 
   return (
-    <div className="bg-card/80 backdrop-blur-xl border border-amber-500/30 rounded-xl p-4 space-y-3">
+    <motion.div
+      initial={{ opacity: 0, y: 12, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+      className="bg-card/80 backdrop-blur-xl border border-amber-500/30 rounded-xl p-4 space-y-3"
+    >
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -42,8 +54,11 @@ export function StorylineModal() {
       <div className="space-y-2">
         {pendingStoryline.options.map((option, index) => {
           return (
-            <button
+            <motion.button
               key={index}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + index * 0.05, duration: 0.2 }}
               onClick={() => respondToStoryline(index)}
               className={cn(
                 'w-full text-left p-3 rounded-lg border transition-all active:scale-[0.98]',
@@ -66,10 +81,10 @@ export function StorylineModal() {
                   {option.effects.fanMood && option.effects.fanMood < 0 && <span className="text-[9px] text-destructive">Fans {option.effects.fanMood}</span>}
                 </div>
               </div>
-            </button>
+            </motion.button>
           );
         })}
       </div>
-    </div>
+    </motion.div>
   );
 }
