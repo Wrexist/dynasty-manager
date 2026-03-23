@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Play, Settings, RotateCcw, Trash2, Save, Info, Swords } from 'lucide-react';
 import { getSuffix } from '@/utils/helpers';
+import { signalReady } from '@/main';
 
 interface FloatingCircle {
   id: number;
@@ -25,6 +26,17 @@ const TitleScreen = () => {
   const { loadGame, resetGame } = useGameStore();
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Signal to main.tsx that the first screen is mounted (hides splash)
+  useEffect(() => { signalReady?.(); }, []);
+
+  // Prefetch the Dashboard chunk while the user reads the title screen
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      import('./Dashboard').catch(() => {});
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const slots = useMemo(() => getSlotSummaries(), [refreshKey]);
@@ -63,11 +75,11 @@ const TitleScreen = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 overflow-hidden relative safe-area-top safe-area-bottom">
-      {/* Animated floating background circles */}
+      {/* Floating background circles — pure CSS animation for GPU efficiency */}
       {floatingCircles.map((circle) => (
-        <motion.div
+        <div
           key={circle.id}
-          className="absolute rounded-full blur-3xl pointer-events-none"
+          className="absolute rounded-full blur-2xl pointer-events-none will-change-transform"
           style={{
             width: circle.size,
             height: circle.size,
@@ -75,19 +87,10 @@ const TitleScreen = () => {
             top: `${circle.y}%`,
             backgroundColor: circle.color,
             opacity: circle.opacity,
-            translateX: '-50%',
-            translateY: '-50%',
-          }}
-          animate={{
-            x: [0, circle.driftX, -circle.driftX * 0.6, circle.driftX * 0.3, 0],
-            y: [0, -circle.driftY, circle.driftY * 0.7, -circle.driftY * 0.4, 0],
-          }}
-          transition={{
-            duration: circle.duration,
-            repeat: Infinity,
-            repeatType: 'loop',
-            ease: 'easeInOut',
-          }}
+            '--drift-x': `${circle.driftX}px`,
+            '--drift-y': `${circle.driftY}px`,
+            animation: `floatDrift ${circle.duration}s ease-in-out infinite`,
+          } as React.CSSProperties}
         />
       ))}
 
