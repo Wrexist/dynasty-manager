@@ -26,6 +26,18 @@ export const NATIONALITY_DATA: Record<string, { flag: string; code: string }> = 
   'Morocco': { flag: '\u{1F1F2}\u{1F1E6}', code: 'MAR' },
   'Japan': { flag: '\u{1F1EF}\u{1F1F5}', code: 'JPN' },
   'South Korea': { flag: '\u{1F1F0}\u{1F1F7}', code: 'KOR' },
+  'Scotland': { flag: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0073}\u{E0063}\u{E0074}\u{E007F}', code: 'SCO' },
+  'Wales': { flag: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0077}\u{E006C}\u{E0073}\u{E007F}', code: 'WAL' },
+  'Ireland': { flag: '\u{1F1EE}\u{1F1EA}', code: 'IRL' },
+  'Ghana': { flag: '\u{1F1EC}\u{1F1ED}', code: 'GHA' },
+  'Ivory Coast': { flag: '\u{1F1E8}\u{1F1EE}', code: 'CIV' },
+  'Cameroon': { flag: '\u{1F1E8}\u{1F1F2}', code: 'CMR' },
+  'Poland': { flag: '\u{1F1F5}\u{1F1F1}', code: 'POL' },
+  'Turkey': { flag: '\u{1F1F9}\u{1F1F7}', code: 'TUR' },
+  'Serbia': { flag: '\u{1F1F7}\u{1F1F8}', code: 'SRB' },
+  'Czech Republic': { flag: '\u{1F1E8}\u{1F1FF}', code: 'CZE' },
+  'Austria': { flag: '\u{1F1E6}\u{1F1F9}', code: 'AUT' },
+  'USA': { flag: '\u{1F1FA}\u{1F1F8}', code: 'USA' },
 };
 
 /** Get emoji flag for a nationality string */

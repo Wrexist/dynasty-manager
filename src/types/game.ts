@@ -171,6 +171,8 @@ export interface Club {
   setPieceTakerId?: string;
   /** Player ID assigned as penalty taker */
   penaltyTakerId?: string;
+  stadiumName?: string;
+  stadiumCapacity?: number;
 }
 
 export interface ClubData {
@@ -188,6 +190,8 @@ export interface ClubData {
   squadQuality: number;
   league: string;
   divisionId: DivisionId;
+  stadiumName: string;
+  stadiumCapacity: number;
 }
 
 export interface MatchEvent {

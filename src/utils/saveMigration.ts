@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 17;
+const CURRENT_VERSION = 18;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -231,6 +231,19 @@ const migrations: Record<number, MigrationFn> = {
       players: updatedPlayers,
       pendingGemReveal: null,
     };
+  },
+  // v17 → v18: Added stadiumName and stadiumCapacity to clubs
+  17: (data) => {
+    const clubs = data.clubs as Record<string, Record<string, unknown>> | undefined;
+    if (clubs) {
+      // Lazy-import avoidance: inline lookup from CLUBS_DATA would create a circular dep.
+      // Instead, provide sensible defaults — the stadium data will be correct for new games.
+      Object.values(clubs).forEach(club => {
+        if (club.stadiumName === undefined) club.stadiumName = 'Community Stadium';
+        if (club.stadiumCapacity === undefined) club.stadiumCapacity = 10_000;
+      });
+    }
+    return { ...data, version: 18 };
   },
 };
 

@@ -572,7 +572,7 @@ function endSeasonImpl(set: Set, get: Get) {
       playerIds: [], formation: '4-4-2', lineup: [], subs: [],
       divisionId: 'div-4',
     };
-    const squad = generateSquad(clubId, clubData.squadQuality, season);
+    const squad = generateSquad(clubId, clubData.squadQuality, season, 4);
     let totalWages = 0;
     squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
     newClub.wageBill = totalWages;
@@ -738,7 +738,8 @@ function finalizeSeason(
     while (toFill.length < totalNeeded) toFill.push({ pos: pick(GENERIC_FILL_POSITIONS), deficit: 0 });
     for (const { pos: fillPos } of toFill) {
       const quality = (club.reputation * REPLACEMENT_QUALITY_REP_MULTIPLIER) + REPLACEMENT_QUALITY_BASE + Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE);
-      const newP = generatePlayer(fillPos, quality, club.id, newSeason);
+      const clubTier = parseInt(club.divisionId.split('-')[1]);
+      const newP = generatePlayer(fillPos, quality, club.id, newSeason, clubTier);
       newPlayers[newP.id] = newP;
       const fillClub = { ...newClubs[club.id] };
       fillClub.playerIds = [...fillClub.playerIds, newP.id];
@@ -763,7 +764,8 @@ function finalizeSeason(
       const deficitCount = 11 - validIds.length;
       const safeClub = { ...newClubs[club.id], playerIds: [...validIds] };
       for (let d = 0; d < deficitCount; d++) {
-        const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), Math.max(35, (club.reputation * 10) + 20), club.id, newSeason);
+        const emergencyTier = parseInt(club.divisionId.split('-')[1]);
+        const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), Math.max(35, (club.reputation * 10) + 20), club.id, newSeason, emergencyTier);
         newPlayers[emergencyPlayer.id] = emergencyPlayer;
         safeClub.playerIds.push(emergencyPlayer.id);
         safeClub.wageBill += emergencyPlayer.wage;
@@ -956,9 +958,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         fanBase: cd.fanBase, boardPatience: cd.boardPatience,
         playerIds: [], formation: '4-3-3', lineup: [], subs: [],
         divisionId: cd.divisionId,
+        stadiumName: cd.stadiumName,
+        stadiumCapacity: cd.stadiumCapacity,
       };
 
-      const squad = generateSquad(club.id, cd.squadQuality, 1);
+      const tier = parseInt(cd.divisionId.split('-')[1]);
+      const squad = generateSquad(club.id, cd.squadQuality, 1, tier);
       let totalWages = 0;
       squad.forEach(p => {
         allPlayers[p.id] = p;
