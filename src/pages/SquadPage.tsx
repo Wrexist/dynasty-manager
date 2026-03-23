@@ -239,10 +239,10 @@ const SquadPage = () => {
                     <p className="font-semibold text-foreground text-sm truncate">
                       {getFlag(player.nationality)} {player.firstName[0]}. {player.lastName}
                     </p>
-                    {player.growthDelta && player.growthDelta > 0 && (
+                    {player.growthDelta > 0 && (
                       <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
                     )}
-                    {player.growthDelta && player.growthDelta < 0 && (
+                    {player.growthDelta < 0 && (
                       <TrendingDown className="w-3 h-3 text-destructive shrink-0" />
                     )}
                   </div>

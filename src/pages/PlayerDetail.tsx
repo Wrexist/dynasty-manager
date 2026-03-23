@@ -11,6 +11,7 @@ import { getRatingColor, getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
 import { getFlag } from '@/utils/nationality';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel } from '@/utils/personality';
+import { PlayerAvatar } from '@/components/game/PlayerAvatar';
 
 const PlayerDetail = () => {
   const {
@@ -102,15 +103,18 @@ const PlayerDetail = () => {
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25 }}>
       <GlassPanel className="p-5">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center relative">
-            <span className={cn('font-mono font-black text-3xl tabular-nums', ratingColor)}>
+          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center relative overflow-hidden">
+            <svg width="52" height="52" viewBox="0 0 52 52">
+              <PlayerAvatar playerId={player.id} jerseyColor={club?.color || '#888'} size={52} />
+            </svg>
+            <span className={cn('absolute -bottom-0.5 -right-0.5 text-[10px] font-black bg-background rounded-full w-6 h-6 flex items-center justify-center border border-border tabular-nums', ratingColor)}>
               {player.overall}
             </span>
-            {player.growthDelta && player.growthDelta > 0 && (
-              <TrendingUp className="absolute -top-1 -right-1 w-4 h-4 text-emerald-400" />
+            {player.growthDelta > 0 && (
+              <TrendingUp className="absolute -top-1 -left-1 w-4 h-4 text-emerald-400" />
             )}
-            {player.growthDelta && player.growthDelta < 0 && (
-              <TrendingDown className="absolute -top-1 -right-1 w-4 h-4 text-destructive" />
+            {player.growthDelta < 0 && (
+              <TrendingDown className="absolute -top-1 -left-1 w-4 h-4 text-destructive" />
             )}
           </div>
           <div className="flex-1">

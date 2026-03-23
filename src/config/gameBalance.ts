@@ -146,7 +146,7 @@ export const FACILITY_MAX_LEVEL = 10;
 export const STADIUM_LEVEL_DIVISOR = 10;
 export const MEDICAL_LEVEL_FACTOR = 0.8;
 export const RECOVERY_LEVEL_FACTOR = 0.6;
-export const RECOVERY_FITNESS_BONUS_PER_LEVEL = 0.5;
+export const RECOVERY_FITNESS_BONUS_PER_LEVEL = 1.0;
 
 // ── Season-End Confidence by Verdict ──
 export const SEASON_END_CONFIDENCE: Record<string, number> = {

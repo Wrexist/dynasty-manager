@@ -26,8 +26,8 @@ export const INDIVIDUAL_TRAINING_BONUS = 1.5;
 export const STAFF_BONUS_MULTIPLIER = 0.05;
 
 // ── Fitness Recovery ──
-export const FITNESS_RECOVERY_PER_DAY = 2;
-export const FITNESS_RECOVERY_BASE = 2;
+export const FITNESS_RECOVERY_PER_DAY = 3;
+export const FITNESS_RECOVERY_BASE = 8;
 export const FITNESS_MIN = 30;
 
 // ── Training Injury Age Scaling ──
