@@ -16,6 +16,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   activeChallenge: null as ActiveChallenge | null,
   weeklyObjectives: [] as import('@/utils/weeklyObjectives').ObjectiveInstance[],
   pendingStoryline: null as StorylineEvent | null,
+  pendingGemReveal: null as { playerId: string; region: string } | null,
   activeStorylineChains: [] as ActiveStorylineChain[],
   freeAgents: [] as string[],
   unlockedAchievements: [] as string[],

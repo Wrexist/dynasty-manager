@@ -126,6 +126,9 @@ export interface Player {
   goals: number;
   assists: number;
   appearances: number;
+  careerGoals: number;
+  careerAssists: number;
+  careerAppearances: number;
   yellowCards: number;
   redCards: number;
   suspendedUntilWeek?: number;

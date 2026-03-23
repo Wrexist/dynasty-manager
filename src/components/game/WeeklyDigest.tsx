@@ -17,6 +17,21 @@ export function WeeklyDigest() {
   const netIncome = digest.incomeEarned - digest.expensesPaid;
   const hasEvents = digest.injuriesThisWeek.length > 0 || digest.recoveriesThisWeek.length > 0 || digest.offersReceived > 0;
 
+  // Emotional headline based on the week's events
+  const headline = digest.injuriesThisWeek.length >= 2
+    ? 'Tough week — multiple injuries'
+    : digest.moraleChange >= 8
+    ? 'Spirits are soaring!'
+    : digest.moraleChange <= -8
+    ? 'Morale took a hit this week'
+    : netIncome >= 200_000
+    ? 'A great week for the finances'
+    : digest.recoveriesThisWeek.length >= 2
+    ? 'Good news from the treatment room'
+    : digest.offersReceived >= 3
+    ? 'Phones ringing off the hook!'
+    : null;
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
@@ -42,6 +57,19 @@ export function WeeklyDigest() {
               <h3 className="text-sm font-bold text-foreground font-display">Week {week} Summary</h3>
               <span className="text-[10px] text-muted-foreground">Weekly Digest</span>
             </div>
+
+            {headline && (
+              <p className={cn(
+                'text-xs font-semibold',
+                digest.moraleChange >= 8 || netIncome >= 200_000 || digest.recoveriesThisWeek.length >= 2
+                  ? 'text-emerald-400'
+                  : digest.injuriesThisWeek.length >= 2 || digest.moraleChange <= -8
+                  ? 'text-destructive'
+                  : 'text-primary'
+              )}>
+                {headline}
+              </p>
+            )}
 
             {/* Finance Row */}
             <div className="flex gap-2">

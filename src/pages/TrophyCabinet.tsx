@@ -34,6 +34,43 @@ const TrophyCabinet = () => {
         <p className="text-xs text-muted-foreground">Total Honours</p>
       </GlassPanel>
 
+      {/* Achievement Completion Tracker */}
+      {(() => {
+        const totalVisible = ACHIEVEMENTS.filter(a => !a.hidden || unlockedAchievements.includes(a.id)).length;
+        const unlocked = unlockedAchievements.length;
+        const pct = totalVisible > 0 ? Math.round((unlocked / totalVisible) * 100) : 0;
+        const goldDone = achievementsByTier.gold.filter(a => unlockedAchievements.includes(a.id)).length;
+        const silverDone = achievementsByTier.silver.filter(a => unlockedAchievements.includes(a.id)).length;
+        const bronzeDone = achievementsByTier.bronze.filter(a => unlockedAchievements.includes(a.id)).length;
+        return (
+          <GlassPanel className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Medal className="w-4 h-4 text-primary" />
+                <span className="text-xs font-bold text-foreground">Achievement Progress</span>
+              </div>
+              <span className="text-sm font-black text-primary tabular-nums">{pct}%</span>
+            </div>
+            <div className="h-2 bg-muted/30 rounded-full overflow-hidden mb-2">
+              <motion.div
+                className="h-full bg-primary rounded-full"
+                initial={{ width: 0 }}
+                animate={{ width: `${pct}%` }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+              />
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>{unlocked}/{totalVisible} unlocked</span>
+              <div className="flex items-center gap-3">
+                <span className="text-primary">{goldDone} gold</span>
+                <span className="text-gray-300">{silverDone} silver</span>
+                <span className="text-amber-600">{bronzeDone} bronze</span>
+              </div>
+            </div>
+          </GlassPanel>
+        );
+      })()}
+
       {/* Trophy Shelf: League Titles */}
       <GlassPanel className="p-4">
         <div className="flex items-center gap-2 mb-3">

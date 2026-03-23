@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 16;
+const CURRENT_VERSION = 17;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -213,6 +213,25 @@ const migrations: Record<number, MigrationFn> = {
     version: 16,
     pairFamiliarity: data.pairFamiliarity || {},
   }),
+  // v16 → v17: Added career-cumulative player stats + pendingGemReveal
+  16: (data) => {
+    const players = (data.players || {}) as Record<string, Record<string, unknown>>;
+    const updatedPlayers: Record<string, Record<string, unknown>> = {};
+    for (const [id, p] of Object.entries(players)) {
+      updatedPlayers[id] = {
+        ...p,
+        careerGoals: (p.careerGoals as number) || 0,
+        careerAssists: (p.careerAssists as number) || 0,
+        careerAppearances: (p.careerAppearances as number) || 0,
+      };
+    }
+    return {
+      ...data,
+      version: 17,
+      players: updatedPlayers,
+      pendingGemReveal: null,
+    };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
