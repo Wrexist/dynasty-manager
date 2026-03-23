@@ -38,6 +38,7 @@ import { InfoTip } from '@/components/game/InfoTip';
 import { WeeklyDigest } from '@/components/game/WeeklyDigest';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
+import { useFlash } from '@/hooks/useFlash';
 import { HELP_TEXTS } from '@/config/ui';
 import { getManagerTips } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
@@ -59,6 +60,7 @@ const Dashboard = () => {
   const { match: nextMatch, isHome, opponent } = useCurrentMatch();
   const pos = useLeaguePosition();
   const unread = useUnreadCount();
+  const budgetFlash = useFlash(club?.budget || 0);
 
   const [showWelcome, setShowWelcome] = useState(() => {
     if (season === 1 && week === 1 && !getFlag(WELCOME_KEY)) return true;
@@ -71,6 +73,7 @@ const Dashboard = () => {
   };
 
   const [isAdvancing, setIsAdvancing] = useState(false);
+  const [advanceDone, setAdvanceDone] = useState(false);
   const [boardWarningDismissed, setBoardWarningDismissed] = useState(false);
   const [midSeasonShown, setMidSeasonShown] = useState(() => getFlag(`dynasty-midseason-s${season}`));
   const showMidSeason = week === MID_SEASON_WEEK && !midSeasonShown;
@@ -557,10 +560,20 @@ const Dashboard = () => {
               </button>
             )}
           </div>
-          <Button className={cn("w-full gap-2 active:scale-[0.97] transition-transform", isAdvancing && "animate-pulse shadow-[0_0_12px_hsl(43_96%_46%/0.3)]")} disabled={isAdvancing} onClick={() => {
+          <Button className={cn(
+            "w-full gap-2 active:scale-[0.97] transition-all",
+            isAdvancing && "animate-pulse shadow-[0_0_12px_hsl(43_96%_46%/0.3)]",
+            advanceDone && "scale-[1.03] shadow-[0_0_16px_hsl(43_96%_46%/0.4)]"
+          )} disabled={isAdvancing} onClick={() => {
             hapticMedium();
             setIsAdvancing(true);
-            setTimeout(() => { advanceWeek(); setIsAdvancing(false); hapticHeavy(); }, 50);
+            setTimeout(() => {
+              advanceWeek();
+              setIsAdvancing(false);
+              setAdvanceDone(true);
+              hapticHeavy();
+              setTimeout(() => setAdvanceDone(false), 300);
+            }, 50);
           }}>
             {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}
           </Button>
@@ -1008,7 +1021,7 @@ const Dashboard = () => {
             <span className="text-xs text-muted-foreground">Budget</span>
             <InfoTip text={HELP_TEXTS.budget} />
           </div>
-          <p className="text-2xl font-black text-foreground tabular-nums">
+          <p className={cn("text-2xl font-black text-foreground tabular-nums", budgetFlash)}>
             £<AnimatedNumber value={club.budget / 1e6} formatFn={(n) => n.toFixed(1)} /><span className="text-sm">M</span>
           </p>
           <p className="text-xs text-muted-foreground tabular-nums">

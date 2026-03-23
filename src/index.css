@@ -112,6 +112,15 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
+  .flash-highlight {
+    animation: flashGlow 0.6s ease-out;
+  }
+
+  @keyframes flashGlow {
+    0% { text-shadow: 0 0 8px hsl(43 96% 46% / 0.8); color: hsl(43 96% 46%); }
+    100% { text-shadow: none; }
+  }
 }
 
 /* Match event fade-in animation */

@@ -6,6 +6,7 @@ import { getSuffix } from '@/utils/helpers';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
+import { useFlash } from '@/hooks/useFlash';
 
 export function TopBar() {
   const { season, week, totalWeeks, playerClubId, clubs, leagueTable, saveGame, currentScreen, previousScreen, setScreen, managerProgression } = useGameStore();
@@ -13,6 +14,7 @@ export function TopBar() {
   const entry = leagueTable.find(e => e.clubId === playerClubId);
   const pos = entry ? leagueTable.indexOf(entry) + 1 : '-';
   const xpProgress = getXPProgress(managerProgression);
+  const posFlash = useFlash(typeof pos === 'number' ? pos : 0);
 
   // Save button feedback state
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
@@ -57,14 +59,14 @@ export function TopBar() {
           {showBack && SCREEN_TITLES[currentScreen] ? (
             <div className="min-w-0">
               <p className="text-sm font-bold text-foreground truncate">{SCREEN_TITLES[currentScreen]}</p>
-              <p className="text-[10px] text-muted-foreground truncate">{club.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
+              <p className={cn('text-[10px] text-muted-foreground truncate', posFlash)}>{club.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
             </div>
           ) : (
             <>
               <div className="w-7 h-7 rounded-full shrink-0" style={{ backgroundColor: club.color }} />
               <div className="min-w-0">
                 <p className="text-sm font-bold text-foreground truncate">{club.shortName}</p>
-                <p className="text-[10px] text-muted-foreground">{pos !== '-' ? `${pos}${getSuffix(Number(pos))}` : ''} in league</p>
+                <p className={cn('text-[10px] text-muted-foreground', posFlash)}>{pos !== '-' ? `${pos}${getSuffix(Number(pos))}` : ''} in league</p>
               </div>
             </>
           )}
