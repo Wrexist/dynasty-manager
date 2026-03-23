@@ -16,6 +16,7 @@ import {
   NATIONALITY_DISTRIBUTION,
 } from '@/config/playerGeneration';
 import { NATIONALITY_NAME_POOLS, FALLBACK_FIRST_NAMES, FALLBACK_LAST_NAMES } from '@/config/namePool';
+import { CLUB_TEMPLATES } from '@/data/playerTemplates';
 
 const ALL_NATIONALITIES = [
   'England', 'Spain', 'France', 'Germany', 'Italy', 'Brazil', 'Argentina', 'Portugal',
@@ -23,6 +24,8 @@ const ALL_NATIONALITIES = [
   'Sweden', 'Switzerland', 'Nigeria', 'Senegal', 'Morocco', 'Japan', 'South Korea',
   'Scotland', 'Wales', 'Ireland', 'Ghana', 'Ivory Coast', 'Cameroon', 'Poland',
   'Turkey', 'Serbia', 'Czech Republic', 'Austria', 'USA',
+  'Egypt', 'Ukraine', 'Jamaica', 'Hungary', 'Ecuador', 'Mexico', 'Mali',
+  'Paraguay', 'Algeria', 'Gabon',
 ];
 
 function pickNationality(divisionTier?: number): string {
@@ -123,65 +126,105 @@ const SQUAD_TEMPLATE = CONFIG_SQUAD_TEMPLATE;
 
 const AGE_BUCKETS = CONFIG_AGE_BUCKETS;
 
-export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number): Player[] {
-  // Build age targets: assign each squad slot an age bucket
+function buildAgeTargets(count: number): { min: number; max: number }[] {
   const ageTargets: { min: number; max: number }[] = [];
   for (const bucket of AGE_BUCKETS) {
-    for (let i = 0; i < bucket.count; i++) {
+    for (let i = 0; i < bucket.count && ageTargets.length < count; i++) {
       ageTargets.push({ min: bucket.min, max: bucket.max });
     }
   }
-  // Fill remaining slots with peak ages
-  while (ageTargets.length < SQUAD_TEMPLATE.length) {
+  while (ageTargets.length < count) {
     ageTargets.push(PEAK_AGE_BUCKET);
   }
-  // Shuffle so age distribution is spread across positions
   for (let i = ageTargets.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [ageTargets[i], ageTargets[j]] = [ageTargets[j], ageTargets[i]];
   }
+  return ageTargets;
+}
 
-  const squad = SQUAD_TEMPLATE.map((pos, idx) => {
+export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number): Player[] {
+  const templates = CLUB_TEMPLATES[clubId] || [];
+  const templatePlayers: Player[] = [];
+
+  // ── Step 1: Generate template players with recognizable names ──
+  for (const t of templates) {
+    const player = generatePlayer(t.pos, t.ovr, clubId, season);
+    player.firstName = t.fn;
+    player.lastName = t.ln;
+    player.age = t.age;
+    player.nationality = t.nat;
+    if (t.pot !== undefined) {
+      player.potential = t.pot;
+    } else if (t.age >= 30) {
+      player.potential = player.overall;
+    } else if (t.age <= YOUNG_POTENTIAL_AGE_THRESHOLD) {
+      player.potential = clamp(player.overall + YOUNG_POTENTIAL_BOOST_BASE + Math.floor(Math.random() * YOUNG_POTENTIAL_BOOST_RANGE));
+    }
+    player.value = Math.round(player.overall * player.overall * VALUE_OVERALL_MULTIPLIER + Math.random() * VALUE_RANDOM_RANGE);
+    player.wage = Math.round(player.value / WAGE_DIVISOR);
+    templatePlayers.push(player);
+  }
+
+  // ── Step 2: Determine remaining positions to fill ──
+  const positionsFilled: Record<string, number> = {};
+  for (const t of templates) {
+    positionsFilled[t.pos] = (positionsFilled[t.pos] || 0) + 1;
+  }
+  const remainingPositions: Position[] = [];
+  const tempCounts = { ...positionsFilled };
+  for (const pos of SQUAD_TEMPLATE) {
+    if ((tempCounts[pos] || 0) > 0) {
+      tempCounts[pos]--;
+    } else {
+      remainingPositions.push(pos);
+    }
+  }
+
+  // ── Step 3: Generate random filler players for remaining slots ──
+  const ageTargets = buildAgeTargets(remainingPositions.length);
+  const fillerPlayers = remainingPositions.map((pos, idx) => {
     const q = clamp(quality + variance(SQUAD_QUALITY_VARIANCE), SQUAD_QUALITY_MIN, SQUAD_QUALITY_MAX);
     const player = generatePlayer(pos, q, clubId, season, divisionTier);
-    // Override age with structured distribution
     const ageBucket = ageTargets[idx];
     player.age = ageBucket.min + Math.floor(Math.random() * (ageBucket.max - ageBucket.min + 1));
-    // Young players get higher potential gap
     if (player.age <= YOUNG_POTENTIAL_AGE_THRESHOLD) {
       player.potential = clamp(player.overall + YOUNG_POTENTIAL_BOOST_BASE + Math.floor(Math.random() * YOUNG_POTENTIAL_BOOST_RANGE));
     }
     return player;
   });
 
-  // ── Star player: boost the best player significantly ──
-  const starIdx = squad.reduce((best, p, i) => p.overall > squad[best].overall ? i : best, 0);
-  const star = squad[starIdx];
-  const starBoost = STAR_PLAYER_BOOST_MIN + Math.floor(Math.random() * (STAR_PLAYER_BOOST_MAX - STAR_PLAYER_BOOST_MIN + 1));
-  const starAttrs = { ...star.attributes };
-  for (const key of Object.keys(starAttrs) as (keyof PlayerAttributes)[]) {
-    starAttrs[key] = clamp(starAttrs[key] + starBoost, 1, 99);
-  }
-  star.attributes = starAttrs;
-  star.overall = calculateOverall(starAttrs, star.position);
-  star.potential = clamp(star.overall + 3 + Math.floor(Math.random() * 3));
-  star.value = star.overall * star.overall * VALUE_OVERALL_MULTIPLIER + Math.floor(Math.random() * VALUE_RANDOM_RANGE);
+  const squad = [...templatePlayers, ...fillerPlayers];
 
-  // ── Aging veteran: boost one 30+ player with experience ──
-  const veterans = squad.filter(p => p.age >= 30 && p !== star);
-  if (veterans.length > 0) {
-    const vet = veterans[Math.floor(Math.random() * veterans.length)];
-    const vetBoost = VETERAN_BOOST_MIN + Math.floor(Math.random() * (VETERAN_BOOST_MAX - VETERAN_BOOST_MIN + 1));
-    const vetAttrs = { ...vet.attributes };
-    for (const key of Object.keys(vetAttrs) as (keyof PlayerAttributes)[]) {
-      vetAttrs[key] = clamp(vetAttrs[key] + vetBoost, 1, 99);
+  // ── Step 4: Star/veteran boosts — only for non-template filler players ──
+  if (fillerPlayers.length > 0) {
+    const starIdx = fillerPlayers.reduce((best, p, i) => p.overall > fillerPlayers[best].overall ? i : best, 0);
+    const star = fillerPlayers[starIdx];
+    const starBoost = STAR_PLAYER_BOOST_MIN + Math.floor(Math.random() * (STAR_PLAYER_BOOST_MAX - STAR_PLAYER_BOOST_MIN + 1));
+    const starAttrs = { ...star.attributes };
+    for (const key of Object.keys(starAttrs) as (keyof PlayerAttributes)[]) {
+      starAttrs[key] = clamp(starAttrs[key] + starBoost, 1, 99);
     }
-    vetAttrs.mental = clamp(vetAttrs.mental + 10, 1, 99);
-    vet.attributes = vetAttrs;
-    vet.overall = calculateOverall(vetAttrs, vet.position);
-    vet.potential = vet.overall; // no growth left
-    vet.value = vet.overall * vet.overall * VALUE_OVERALL_MULTIPLIER + Math.floor(Math.random() * VALUE_RANDOM_RANGE);
-    if (vet.personality) vet.personality.leadership = Math.max(vet.personality.leadership, 16);
+    star.attributes = starAttrs;
+    star.overall = calculateOverall(starAttrs, star.position);
+    star.potential = clamp(star.overall + 3 + Math.floor(Math.random() * 3));
+    star.value = star.overall * star.overall * VALUE_OVERALL_MULTIPLIER + Math.floor(Math.random() * VALUE_RANDOM_RANGE);
+
+    const veterans = fillerPlayers.filter(p => p.age >= 30 && p !== star);
+    if (veterans.length > 0) {
+      const vet = veterans[Math.floor(Math.random() * veterans.length)];
+      const vetBoost = VETERAN_BOOST_MIN + Math.floor(Math.random() * (VETERAN_BOOST_MAX - VETERAN_BOOST_MIN + 1));
+      const vetAttrs = { ...vet.attributes };
+      for (const key of Object.keys(vetAttrs) as (keyof PlayerAttributes)[]) {
+        vetAttrs[key] = clamp(vetAttrs[key] + vetBoost, 1, 99);
+      }
+      vetAttrs.mental = clamp(vetAttrs.mental + 10, 1, 99);
+      vet.attributes = vetAttrs;
+      vet.overall = calculateOverall(vetAttrs, vet.position);
+      vet.potential = vet.overall;
+      vet.value = vet.overall * vet.overall * VALUE_OVERALL_MULTIPLIER + Math.floor(Math.random() * VALUE_RANDOM_RANGE);
+      if (vet.personality) vet.personality.leadership = Math.max(vet.personality.leadership, 16);
+    }
   }
 
   return squad;
