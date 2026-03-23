@@ -1,11 +1,20 @@
 import { useState, useEffect } from 'react';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Trophy, Star, Crown, Medal } from 'lucide-react';
+import { Trophy, Star, Crown, Medal, Award, Diamond, Flame, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { loadHall, type HallEntry } from '@/utils/hallOfManagers';
 import { useGameStore } from '@/store/gameStore';
 import { isPro, getActiveCosmetic } from '@/utils/monetization';
+
+const PRESTIGE_BADGE_ICONS: Record<string, React.ElementType> = {
+  'prestige-crown': Crown,
+  'prestige-laurel': Award,
+  'prestige-diamond': Diamond,
+  'prestige-phoenix': Flame,
+  'prestige-shield': Shield,
+  'prestige-flame': Flame,
+};
 
 const getRankIcon = (rank: number) => {
   if (rank === 1) return <Crown className="w-5 h-5 text-primary" />;
@@ -19,6 +28,8 @@ const HallOfManagers = () => {
   const [entries, setEntries] = useState<HallEntry[]>([]);
   const userIsPro = isPro(monetization);
   const homFrame = getActiveCosmetic(monetization, 'hom_frame');
+  const prestigeBadgeId = getActiveCosmetic(monetization, 'prestige_badge');
+  const BadgeIcon = (prestigeBadgeId && PRESTIGE_BADGE_ICONS[prestigeBadgeId]) || Star;
 
   useEffect(() => {
     setEntries(loadHall());
@@ -65,7 +76,7 @@ const HallOfManagers = () => {
                         {entry.prestigeLevel > 0 && (
                           <div className="flex items-center gap-0.5">
                             {Array.from({ length: Math.min(entry.prestigeLevel, 5) }).map((_, j) => (
-                              <Star key={j} className="w-2.5 h-2.5 fill-primary text-primary" />
+                              <BadgeIcon key={j} className="w-2.5 h-2.5 fill-primary text-primary" />
                             ))}
                           </div>
                         )}

@@ -1,6 +1,8 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { initPurchases } from '@/utils/purchases';
+import { initAds } from '@/utils/ads';
 
 // Promise that resolves once the first screen has mounted
 let signalReady: () => void;
@@ -19,6 +21,10 @@ async function initNative() {
 
       await StatusBar.setStyle({ style: Style.Dark });
       await StatusBar.setBackgroundColor({ color: '#0f1524' });
+
+      // Initialize monetization SDKs (idempotent, no-op on web)
+      await initPurchases();
+      await initAds();
 
       // Wait for React to paint before hiding splash (3s safety timeout)
       await Promise.race([

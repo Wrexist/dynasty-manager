@@ -1,7 +1,7 @@
 import { useGameStore } from '@/store/gameStore';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Trophy, Star, TrendingUp, Shield, ScrollText, Clock, BarChart3, Crown } from 'lucide-react';
+import { Trophy, Star, TrendingUp, Shield, ScrollText, Clock, BarChart3, Crown, User, Shirt, Glasses, UserCircle, Briefcase, Sparkles, Globe, Eye, Flame, GraduationCap, Compass, Award } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { ACHIEVEMENTS } from '@/utils/achievements';
@@ -9,6 +9,22 @@ import { cn } from '@/lib/utils';
 import type { RecordEntry } from '@/types/game';
 import { getMilestoneIcon } from '@/utils/milestones';
 import { isPro, getActiveCosmetic } from '@/utils/monetization';
+import { ProUpsell } from '@/components/game/ProUpsell';
+
+const AVATAR_ICONS: Record<string, React.ElementType> = {
+  'avatar-classic': User,
+  'avatar-tracksuit': Shirt,
+  'avatar-tactical': Glasses,
+  'avatar-veteran': UserCircle,
+  'avatar-modern': Briefcase,
+  'avatar-youth': Sparkles,
+  'avatar-continental': Globe,
+  'avatar-stoic': Eye,
+  'avatar-fiery': Flame,
+  'avatar-professor': GraduationCap,
+  'avatar-pioneer': Compass,
+  'avatar-legend': Award,
+};
 
 const RecordRow = ({ label, record }: { label: string; record: RecordEntry | null }) => {
   if (!record) return null;
@@ -27,6 +43,9 @@ const RecordRow = ({ label, record }: { label: string; record: RecordEntry | nul
 const ManagerProfile = () => {
   const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, monetization } = useGameStore();
   const club = clubs[playerClubId];
+  const avatarId = getActiveCosmetic(monetization, 'avatar');
+  const AvatarIcon = (avatarId && AVATAR_ICONS[avatarId]) || Shield;
+  const userIsPro = isPro(monetization);
 
   const totalMatches = managerStats.totalWins + managerStats.totalDraws + managerStats.totalLosses;
   const winRate = totalMatches > 0 ? Math.round((managerStats.totalWins / totalMatches) * 100) : 0;
@@ -41,7 +60,7 @@ const ManagerProfile = () => {
       <GlassPanel className="p-4">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-            <Shield className="w-6 h-6 text-primary" />
+            <AvatarIcon className="w-6 h-6 text-primary" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">
@@ -172,14 +191,20 @@ const ManagerProfile = () => {
               <p className="text-[10px] text-muted-foreground">Seasons</p>
             </div>
           </div>
-          <RecordRow label="Top Scorer" record={clubRecords.allTimeTopScorer} />
-          <RecordRow label="Top Assister" record={clubRecords.allTimeTopAssister} />
-          <RecordRow label="Best Points" record={clubRecords.bestSeasonPoints} />
-          <RecordRow label="Worst Points" record={clubRecords.worstSeasonPoints} />
-          <RecordRow label="Most Goals" record={clubRecords.mostGoalsInSeason} />
-          <RecordRow label="Best Defence" record={clubRecords.fewestGoalsAgainst} />
-          <RecordRow label="Best Position" record={clubRecords.highestLeaguePosition} />
-          <RecordRow label="Biggest Win" record={clubRecords.biggestWin} />
+          {userIsPro ? (
+            <>
+              <RecordRow label="Top Scorer" record={clubRecords.allTimeTopScorer} />
+              <RecordRow label="Top Assister" record={clubRecords.allTimeTopAssister} />
+              <RecordRow label="Best Points" record={clubRecords.bestSeasonPoints} />
+              <RecordRow label="Worst Points" record={clubRecords.worstSeasonPoints} />
+              <RecordRow label="Most Goals" record={clubRecords.mostGoalsInSeason} />
+              <RecordRow label="Best Defence" record={clubRecords.fewestGoalsAgainst} />
+              <RecordRow label="Best Position" record={clubRecords.highestLeaguePosition} />
+              <RecordRow label="Biggest Win" record={clubRecords.biggestWin} />
+            </>
+          ) : (
+            <ProUpsell feature="Historical Record Book" className="mt-2" />
+          )}
 
           {clubRecords.hallOfFame.length > 0 && (
             <div className="mt-3 pt-3 border-t border-border/30">
