@@ -1,7 +1,7 @@
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import type { LoanDeal } from '@/types/game';
-import { TOTAL_WEEKS } from '@/config/gameBalance';
+import { TOTAL_WEEKS, LOAN_MIN_WEEKS_BEFORE_RECALL } from '@/config/gameBalance';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -80,9 +80,8 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     if (!loan) return { success: false, message: 'Loan not found.' };
     if (!loan.recallClause) return { success: false, message: 'No recall clause in this loan.' };
 
-    // Must have been on loan for at least 4 weeks
     const elapsed = (state.season - loan.startSeason) * TOTAL_WEEKS + (state.week - loan.startWeek);
-    if (elapsed < 4) return { success: false, message: 'Must wait at least 4 weeks before recalling.' };
+    if (elapsed < LOAN_MIN_WEEKS_BEFORE_RECALL) return { success: false, message: `Must wait at least ${LOAN_MIN_WEEKS_BEFORE_RECALL} weeks before recalling.` };
 
     const player = state.players[loan.playerId];
     if (!player) return { success: false, message: 'Player not found.' };

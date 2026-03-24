@@ -1,6 +1,7 @@
 import type { Message } from '@/types/game';
 
 export const pick = <T>(arr: T[]): T => {
+  if (arr.length === 0) throw new Error('pick() called with empty array');
   return arr[Math.floor(Math.random() * arr.length)];
 };
 
@@ -19,7 +20,8 @@ export const clamp = (v: number, min = 1, max = 99) => Math.max(min, Math.min(ma
 export const clamp100 = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
 
 export function getSuffix(n: number): string {
-  if (n >= 11 && n <= 13) return 'th';
+  const lastTwo = n % 100;
+  if (lastTwo >= 11 && lastTwo <= 13) return 'th';
   switch (n % 10) {
     case 1: return 'st';
     case 2: return 'nd';

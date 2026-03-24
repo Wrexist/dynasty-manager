@@ -43,6 +43,7 @@ const HallOfManagers = lazy(() => import('./HallOfManagers'));
 const MerchandisePage = lazy(() => import('./MerchandisePage'));
 const TeamDetailPage = lazy(() => import('./TeamDetailPage'));
 const ShopPage = lazy(() => import('./ShopPage'));
+const HelpPage = lazy(() => import('./HelpPage'));
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -76,6 +77,7 @@ const screens: Record<string, React.ComponentType> = {
   'hall-of-managers': HallOfManagers,
   'team-detail': TeamDetailPage,
   'shop': ShopPage,
+  'help': HelpPage,
 };
 
 

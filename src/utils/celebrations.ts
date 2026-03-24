@@ -1,5 +1,9 @@
 import { Player, Match, LeagueTableEntry, Club, MatchDramaType } from '@/types/game';
-import { DRAMA_LATE_MINUTE, DRAMA_THRASHING_MARGIN, DRAMA_UNDERDOG_REP_GAP } from '@/config/gameBalance';
+import {
+  DRAMA_LATE_MINUTE, DRAMA_THRASHING_MARGIN, DRAMA_UNDERDOG_REP_GAP,
+  GOAL_MILESTONES, ASSIST_MILESTONES, UNBEATEN_MILESTONES, WIN_MILESTONES,
+  CLEAN_SHEET_MILESTONES, CAREER_GOAL_MILESTONES, CAREER_APP_MILESTONES,
+} from '@/config/gameBalance';
 
 export type CelebrationSeverity = 'minor' | 'major' | 'legendary';
 
@@ -23,10 +27,10 @@ export function checkCelebrations(
 ): Celebration[] {
   const celebrations: Celebration[] = [];
 
-  // Player goal milestones (10, 15, 20, 25, 30)
+  // Player goal milestones
   // Use >= with upper bound to handle cases where a player scores multiple goals
   // in one match and jumps past the exact threshold (e.g., 9 → 11 skips 10).
-  const goalThresholds = [10, 15, 20, 25, 30];
+  const goalThresholds = GOAL_MILESTONES;
   for (const pid of playerIds) {
     const p = players[pid];
     if (!p) continue;
@@ -43,8 +47,8 @@ export function checkCelebrations(
         });
       }
     }
-    // Assists milestones (10, 15, 20)
-    const assistThresholds = [10, 15, 20];
+    // Assists milestones
+    const assistThresholds = ASSIST_MILESTONES;
     for (let i = 0; i < assistThresholds.length; i++) {
       const t = assistThresholds[i];
       const nextT = assistThresholds[i + 1] ?? t + 5;
@@ -74,7 +78,7 @@ export function checkCelebrations(
     unbeatenRun++;
   }
   // Streaks use >= so milestones fire even if a bye week caused a skip
-  const unbeatenMilestones = [5, 10, 15, 20];
+  const unbeatenMilestones = UNBEATEN_MILESTONES;
   for (const t of unbeatenMilestones) {
     const nextT = unbeatenMilestones[unbeatenMilestones.indexOf(t) + 1] || t + 5;
     if (unbeatenRun >= t && unbeatenRun < nextT) {
@@ -97,7 +101,7 @@ export function checkCelebrations(
     if (gf <= ga) break;
     winStreak++;
   }
-  const winMilestones = [3, 5, 8, 10];
+  const winMilestones = WIN_MILESTONES;
   for (const t of winMilestones) {
     const nextT = winMilestones[winMilestones.indexOf(t) + 1] || t + 5;
     if (winStreak >= t && winStreak < nextT) {
@@ -116,7 +120,7 @@ export function checkCelebrations(
     const isHome = m.homeClubId === playerClubId;
     return isHome ? m.awayGoals === 0 : m.homeGoals === 0;
   }).length;
-  const csMilestones = [5, 10, 15];
+  const csMilestones = CLEAN_SHEET_MILESTONES;
   for (const t of csMilestones) {
     const nextT = csMilestones[csMilestones.indexOf(t) + 1] || t + 5;
     if (cleanSheets >= t && cleanSheets < nextT) {
@@ -144,8 +148,8 @@ export function checkCelebrations(
   }
 
   // Career-cumulative player milestones (goals + appearances for the club)
-  const careerGoalMilestones = [50, 100, 200];
-  const careerAppMilestones = [100, 200, 500];
+  const careerGoalMilestones = CAREER_GOAL_MILESTONES;
+  const careerAppMilestones = CAREER_APP_MILESTONES;
   for (const pid of playerIds) {
     const p = players[pid];
     if (!p) continue;

@@ -1,5 +1,6 @@
 import { ManagerPerk, PerkId, ManagerProgression } from '@/types/game';
 import { getPrestigeXPMultiplier } from '@/utils/prestige';
+import { MANAGER_XP_BASE, MANAGER_XP_PER_LEVEL } from '@/config/gameBalance';
 
 export const MANAGER_PERKS: ManagerPerk[] = [
   // Tier 1 — 100 XP each (entry-level perks)
@@ -37,7 +38,7 @@ export function createDefaultProgression(): ManagerProgression {
 
 /** XP needed for next level */
 export function xpForLevel(level: number): number {
-  return 50 + level * 30;
+  return MANAGER_XP_BASE + level * MANAGER_XP_PER_LEVEL;
 }
 
 /** Grant XP and handle level-ups. Returns updated progression. */

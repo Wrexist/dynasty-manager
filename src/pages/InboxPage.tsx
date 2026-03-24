@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot } from 'lucide-react';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { Message } from '@/types/game';
+import { Message, GameScreen } from '@/types/game';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 
 const typeIcon: Record<Message['type'], React.ElementType> = {
@@ -31,7 +31,7 @@ const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.Ele
 ];
 
 const InboxPage = () => {
-  const { messages, markMessageRead, markAllRead, activeStorylineChains } = useGameStore();
+  const { messages, markMessageRead, markAllRead, activeStorylineChains, setScreen } = useGameStore();
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -317,7 +317,26 @@ const InboxPage = () => {
                       {expanded && (
                         <div className="mt-2 ml-11">
                           <p className="text-xs text-foreground/80 leading-relaxed">{msg.body}</p>
-                          <p className="text-[10px] text-muted-foreground/60 mt-2">Season {msg.season} · Week {msg.week}</p>
+                          <div className="flex items-center justify-between mt-2">
+                            <p className="text-[10px] text-muted-foreground/60">Season {msg.season} · Week {msg.week}</p>
+                            {(() => {
+                              const actions: { label: string; screen: GameScreen }[] = [];
+                              if (msg.type === 'contract') actions.push({ label: 'View Squad', screen: 'squad' });
+                              if (msg.type === 'transfer') actions.push({ label: 'Transfers', screen: 'transfers' });
+                              if (msg.type === 'injury') actions.push({ label: 'View Squad', screen: 'squad' });
+                              if (msg.type === 'development') actions.push({ label: 'Youth Academy', screen: 'youth-academy' });
+                              if (msg.type === 'board') actions.push({ label: 'Board', screen: 'board' });
+                              if (actions.length === 0) return null;
+                              return (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); setScreen(actions[0].screen); }}
+                                  className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 font-semibold transition-colors"
+                                >
+                                  {actions[0].label} <ExternalLink className="w-3 h-3" />
+                                </button>
+                              );
+                            })()}
+                          </div>
                         </div>
                       )}
                     </div>

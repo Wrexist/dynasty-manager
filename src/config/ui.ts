@@ -202,6 +202,22 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
     title: 'Prestige Mode',
     body: 'Reset your career with permanent bonuses carried over. The more you achieve before prestiging, the stronger your bonuses for the next run.',
   },
+  facilities: {
+    title: 'Facilities Guide',
+    body: 'Upgrade your stadium, training ground, medical centre, and youth academy. Higher levels improve revenue, player development, and injury recovery.',
+  },
+  inbox: {
+    title: 'Inbox',
+    body: 'All club communications arrive here — transfer offers, contract alerts, board messages, and injury updates. Filter by type to find what you need.',
+  },
+  playerDetail: {
+    title: 'Player Profile',
+    body: 'View detailed stats, personality traits, and contract info. Personality affects training, morale stability, and transfer demands.',
+  },
+  leagueTable: {
+    title: 'League Table',
+    body: 'Track your division standings. Promotion zones are highlighted in green, relegation in red. Playoff contenders are marked in amber.',
+  },
 } as const;
 
 // ── Dashboard Thresholds ──

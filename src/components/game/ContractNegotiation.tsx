@@ -9,7 +9,7 @@ import { motion } from 'framer-motion';
 import { hapticMedium } from '@/utils/haptics';
 
 export function ContractNegotiation() {
-  const { activeNegotiation, submitWageOffer, cancelNegotiation, players } = useGameStore();
+  const { activeNegotiation, submitWageOffer, cancelNegotiation, players, clubs, playerClubId } = useGameStore();
   const [customWage, setCustomWage] = useState<number | null>(null);
 
   useScrollLock(!!activeNegotiation);
@@ -149,6 +149,36 @@ export function ContractNegotiation() {
                   <span>{formatWage(Math.round(activeNegotiation.demandedWage * 1.5))}</span>
                 </div>
               </div>
+
+              {/* Budget Impact */}
+              {(() => {
+                const club = clubs[playerClubId];
+                if (!club) return null;
+                const offeredWage = customWage || activeNegotiation.offeredWage;
+                const wageDiff = offeredWage - player.wage;
+                const totalCost = activeNegotiation.agentFee + (activeNegotiation.loyaltyBonus || 0);
+                return (
+                  <div className="bg-muted/20 rounded-lg p-3 space-y-1.5 text-xs">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Budget Impact</p>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Wage bill change</span>
+                      <span className={cn('font-semibold', wageDiff > 0 ? 'text-amber-400' : wageDiff < 0 ? 'text-emerald-400' : 'text-foreground')}>
+                        {wageDiff > 0 ? '+' : ''}{formatWage(wageDiff)}/wk
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Upfront cost</span>
+                      <span className="text-foreground">£{(totalCost / 1000).toFixed(0)}K</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Budget after</span>
+                      <span className={cn('font-semibold', club.budget - totalCost < 0 ? 'text-red-400' : 'text-foreground')}>
+                        £{((club.budget - totalCost) / 1e6).toFixed(1)}M
+                      </span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Submit */}
               <button

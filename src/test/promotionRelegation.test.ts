@@ -85,10 +85,40 @@ describe('Promotion/Relegation', () => {
       expect(bracket.promotedClubId).toBeNull();
     });
 
-    it('should return empty bracket with fewer than 4 contenders', () => {
+    it('should auto-promote highest-ranked contender with fewer than 4 contenders', () => {
       const bracket = generatePlayoffBracket(['club-3', 'club-4'], 'div-2');
       expect(bracket.bracket).toHaveLength(0);
       expect(bracket.currentRound).toBeNull();
+      expect(bracket.promotedClubId).toBe('club-3');
+    });
+
+    it('should auto-promote the only contender when just 1 exists', () => {
+      const bracket = generatePlayoffBracket(['club-3'], 'div-3');
+      expect(bracket.bracket).toHaveLength(0);
+      expect(bracket.promotedClubId).toBe('club-3');
+    });
+
+    it('should return null promotedClubId with 0 contenders', () => {
+      const bracket = generatePlayoffBracket([], 'div-2');
+      expect(bracket.bracket).toHaveLength(0);
+      expect(bracket.promotedClubId).toBeNull();
+    });
+
+    it('should create 5 ties (2 semi-leg1, 2 semi-leg2, 1 final) with 4 contenders', () => {
+      const bracket = generatePlayoffBracket(['a', 'b', 'c', 'd'], 'div-2');
+      expect(bracket.bracket).toHaveLength(5);
+      expect(bracket.bracket.filter(t => t.round === 'semi-leg1')).toHaveLength(2);
+      expect(bracket.bracket.filter(t => t.round === 'semi-leg2')).toHaveLength(2);
+      expect(bracket.bracket.filter(t => t.round === 'final')).toHaveLength(1);
+    });
+
+    it('should seed 1st vs 4th and 2nd vs 3rd in semis', () => {
+      const bracket = generatePlayoffBracket(['a', 'b', 'c', 'd'], 'div-2');
+      const semis = bracket.bracket.filter(t => t.round === 'semi-leg1');
+      expect(semis[0].homeClubId).toBe('a');
+      expect(semis[0].awayClubId).toBe('d');
+      expect(semis[1].homeClubId).toBe('b');
+      expect(semis[1].awayClubId).toBe('c');
     });
   });
 });
