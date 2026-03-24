@@ -15,12 +15,15 @@ import { Capacitor } from '@capacitor/core';
 const REWARDED_AD_UNIT_IOS = 'ca-app-pub-3940256099942544/1712485313';
 const REWARDED_AD_UNIT_ANDROID = 'ca-app-pub-3940256099942544/5224354917';
 
+/** Set to true once production AdMob IDs are configured and native plugin restored. */
+const NATIVE_ADS_READY = false;
+
 let adInitialized = false;
 
 /** Initialize the AdMob SDK. Call once at app startup. */
 export async function initAds(): Promise<void> {
   if (adInitialized) return;
-  if (!Capacitor.isNativePlatform()) {
+  if (!Capacitor.isNativePlatform() || !NATIVE_ADS_READY) {
     adInitialized = true;
     return;
   }
@@ -48,8 +51,7 @@ export async function initAds(): Promise<void> {
 
 /** Show a rewarded ad. Resolves true if the user watched the full ad. */
 export async function showRewardedAd(): Promise<boolean> {
-  if (!Capacitor.isNativePlatform()) {
-    // Web/dev mode: simulate a successful ad view
+  if (!Capacitor.isNativePlatform() || !NATIVE_ADS_READY) {
     return true;
   }
 

@@ -18,14 +18,16 @@ import { Capacitor } from '@capacitor/core';
 // Production: use 'appl_xxx' for iOS, 'goog_xxx' for Android
 const REVENUECAT_API_KEY = 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF';
 
+/** Set to true once production RevenueCat keys are configured and native plugins restored. */
+const NATIVE_MONETIZATION_READY = false;
+
 let initialized = false;
 let listenerRemover: (() => void) | null = null;
 
 /** Initialize RevenueCat SDK. Call once at app startup. */
 export async function initPurchases(): Promise<void> {
   if (initialized) return;
-  if (!Capacitor.isNativePlatform()) {
-    // Web: skip initialization, use mock mode
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
     initialized = true;
     return;
   }
@@ -48,8 +50,7 @@ export async function initPurchases(): Promise<void> {
 
 /** Purchase a product. Returns the list of granted entitlement product IDs. */
 export async function purchaseProduct(productId: ProductId): Promise<ProductId[]> {
-  if (!Capacitor.isNativePlatform()) {
-    // Web/dev mode: return the product as if purchased (for testing)
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
     return [productId];
   }
 
@@ -83,7 +84,7 @@ export async function purchaseProduct(productId: ProductId): Promise<ProductId[]
 
 /** Restore previously purchased products. Returns granted entitlement product IDs. */
 export async function restorePurchases(): Promise<ProductId[]> {
-  if (!Capacitor.isNativePlatform()) {
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
     return [];
   }
 
@@ -99,7 +100,7 @@ export async function restorePurchases(): Promise<ProductId[]> {
 
 /** Get current customer entitlements without making a purchase. */
 export async function getEntitlements(): Promise<ProductId[]> {
-  if (!Capacitor.isNativePlatform()) {
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
     return [];
   }
 
@@ -116,7 +117,7 @@ export async function getEntitlements(): Promise<ProductId[]> {
 /** Get raw customer info for subscription extraction. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getCustomerInfo(): Promise<any | null> {
-  if (!Capacitor.isNativePlatform()) {
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
     return null;
   }
 
@@ -194,8 +195,7 @@ export type PaywallResult = 'purchased' | 'restored' | 'cancelled' | 'error' | '
 
 /** Present the RevenueCat native paywall. Returns the outcome. */
 export async function presentPaywall(offeringIdentifier?: string): Promise<PaywallResult> {
-  if (!Capacitor.isNativePlatform()) {
-    // Web: cannot show native paywall
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
     return 'not_presented';
   }
 
@@ -221,7 +221,7 @@ export async function presentPaywall(offeringIdentifier?: string): Promise<Paywa
 
 /** Present the paywall only if the user lacks the specified entitlement. */
 export async function presentPaywallIfNeeded(entitlementId: string = 'pro'): Promise<PaywallResult> {
-  if (!Capacitor.isNativePlatform()) return 'not_presented';
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return 'not_presented';
 
   try {
     const { RevenueCatUI } = await import('@revenuecat/purchases-capacitor-ui');
@@ -257,7 +257,7 @@ function mapPaywallResult(result: string): PaywallResult {
  * Customer Center is not yet supported for Capacitor.
  */
 export async function openSubscriptionManagement(): Promise<boolean> {
-  if (!Capacitor.isNativePlatform()) return false;
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return false;
 
   try {
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
@@ -283,7 +283,7 @@ export async function openSubscriptionManagement(): Promise<boolean> {
 export async function startEntitlementListener(
   onUpdate: (productIds: ProductId[], customerInfo: unknown) => void
 ): Promise<void> {
-  if (!Capacitor.isNativePlatform()) return;
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) return;
   try {
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
     const callbackId = await Purchases.addCustomerInfoUpdateListener((info) => {
