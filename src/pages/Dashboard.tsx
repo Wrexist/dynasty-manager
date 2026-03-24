@@ -41,6 +41,7 @@ import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/Finan
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
 import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_LOW_THRESHOLD, FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD, HOT_STREAK_MIN_WINS } from '@/config/ui';
+import { CONFIDENCE_CHANGE_DISMISS_THRESHOLD } from '@/config/gameBalance';
 import { getManagerTips } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
@@ -83,7 +84,7 @@ const Dashboard = () => {
   // Reset board warning dismissal when confidence changes significantly
   const prevConfRef = useRef(boardConfidence);
   useEffect(() => {
-    if (Math.abs(prevConfRef.current - boardConfidence) >= 5) {
+    if (Math.abs(prevConfRef.current - boardConfidence) >= CONFIDENCE_CHANGE_DISMISS_THRESHOLD) {
       setBoardWarningDismissed(false);
       prevConfRef.current = boardConfidence;
     }
@@ -1232,15 +1233,34 @@ const Dashboard = () => {
 
       {/* Board Objectives */}
       <GlassPanel className="p-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Board Objectives</p>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Board Objectives</p>
+          <span className="text-xs text-muted-foreground">
+            {boardObjectives.filter(o => o.completed).length}/{boardObjectives.length} completed
+          </span>
+        </div>
+        {/* Progress bar */}
+        <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden mb-3">
+          <div
+            className="h-full bg-primary rounded-full transition-all duration-500"
+            style={{ width: `${boardObjectives.length > 0 ? (boardObjectives.filter(o => o.completed).length / boardObjectives.length) * 100 : 0}%` }}
+          />
+        </div>
         <div className="space-y-2">
           {boardObjectives.map(obj => (
             <div key={obj.id} className="flex items-center gap-2">
               <div className={cn(
-                'w-2 h-2 rounded-full',
-                obj.priority === 'critical' ? 'bg-destructive' : obj.priority === 'important' ? 'bg-primary' : 'bg-muted-foreground'
-              )} />
-              <span className="text-sm text-foreground">{obj.description}</span>
+                'w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0',
+                obj.completed
+                  ? 'bg-emerald-500 border-emerald-500'
+                  : obj.priority === 'critical' ? 'border-destructive' : obj.priority === 'important' ? 'border-primary' : 'border-muted-foreground'
+              )}>
+                {obj.completed && <span className="text-[8px] text-white font-bold">✓</span>}
+              </div>
+              <span className={cn(
+                'text-sm',
+                obj.completed ? 'text-muted-foreground line-through' : 'text-foreground'
+              )}>{obj.description}</span>
             </div>
           ))}
         </div>

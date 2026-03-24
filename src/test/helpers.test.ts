@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pick, clamp, getSuffix } from '@/utils/helpers';
+import { pick, clamp, getSuffix, shuffle } from '@/utils/helpers';
 
 describe('helpers', () => {
   describe('pick', () => {
@@ -7,6 +7,34 @@ describe('helpers', () => {
       const arr = [1, 2, 3, 4, 5];
       const result = pick(arr);
       expect(arr).toContain(result);
+    });
+
+    it('throws when called with empty array', () => {
+      expect(() => pick([])).toThrow('pick() called with empty array');
+    });
+
+    it('returns the only element from single-element array', () => {
+      expect(pick([42])).toBe(42);
+    });
+  });
+
+  describe('shuffle', () => {
+    it('returns empty array for empty input', () => {
+      expect(shuffle([])).toEqual([]);
+    });
+
+    it('returns array with same elements', () => {
+      const arr = [1, 2, 3, 4, 5];
+      const result = shuffle(arr);
+      expect(result).toHaveLength(arr.length);
+      expect(result.sort()).toEqual(arr.sort());
+    });
+
+    it('does not mutate original array', () => {
+      const arr = [1, 2, 3];
+      const copy = [...arr];
+      shuffle(arr);
+      expect(arr).toEqual(copy);
     });
   });
 
@@ -37,6 +65,22 @@ describe('helpers', () => {
       expect(getSuffix(21)).toBe('st');
       expect(getSuffix(22)).toBe('nd');
       expect(getSuffix(23)).toBe('rd');
+    });
+
+    it('handles triple-digit teen numbers', () => {
+      expect(getSuffix(111)).toBe('th');
+      expect(getSuffix(112)).toBe('th');
+      expect(getSuffix(113)).toBe('th');
+    });
+
+    it('handles zero', () => {
+      expect(getSuffix(0)).toBe('th');
+    });
+
+    it('handles large numbers', () => {
+      expect(getSuffix(101)).toBe('st');
+      expect(getSuffix(102)).toBe('nd');
+      expect(getSuffix(103)).toBe('rd');
     });
   });
 });

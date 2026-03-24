@@ -415,9 +415,11 @@ const TransferPage = () => {
             );
           })}
           {incomingOffers.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No incoming offers. List players for sale to attract bids.
-            </p>
+            <GlassPanel className="p-8 text-center">
+              <ArrowDownLeft className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No incoming offers.</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">List players for sale to attract bids from other clubs.</p>
+            </GlassPanel>
           )}
         </div>
       )}
@@ -473,9 +475,11 @@ const TransferPage = () => {
             );
           })}
           {outgoingPlayers.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No players listed for sale. Go to Squad to list players.
-            </p>
+            <GlassPanel className="p-8 text-center">
+              <ArrowUpRight className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No players listed for sale.</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Go to Squad to list players on the transfer market.</p>
+            </GlassPanel>
           )}
         </div>
       )}
@@ -624,9 +628,11 @@ const TransferPage = () => {
                 )}
 
                 {loansOut.length === 0 && loansIn.length === 0 && incomingLoanOffers.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    No active loans. AI clubs may offer loan deals for your fringe players during the transfer window.
-                  </p>
+                  <GlassPanel className="p-8 text-center">
+                    <Repeat2 className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No active loans.</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">AI clubs may offer loan deals for your fringe players during the transfer window.</p>
+                  </GlassPanel>
                 )}
               </>
             );
@@ -679,9 +685,11 @@ const TransferPage = () => {
             );
           })}
           {freeAgentPlayers.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              {freeAgents.length === 0 ? 'No free agents available. Players become free agents when their contracts expire at season end.' : 'No free agents match your filters.'}
-            </p>
+            <GlassPanel className="p-8 text-center">
+              <Users className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">{freeAgents.length === 0 ? 'No free agents available.' : 'No free agents match your filters.'}</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">{freeAgents.length === 0 ? 'Players become free agents when their contracts expire at season end.' : 'Try adjusting your position or search filters.'}</p>
+            </GlassPanel>
           )}
         </div>
       )}

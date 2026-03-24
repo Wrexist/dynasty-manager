@@ -41,8 +41,12 @@ export function determineZones(table: LeagueTableEntry[], division: DivisionInfo
  * For div-4: 4th vs 7th, 5th vs 6th.
  */
 export function generatePlayoffBracket(contenderIds: string[], divisionId: DivisionId): PlayoffState {
-  if (contenderIds.length < 4) {
+  if (contenderIds.length === 0) {
     return { divisionId, bracket: [], currentRound: null, promotedClubId: null };
+  }
+  // If fewer than 4 contenders, auto-promote the highest-ranked one (first in the array)
+  if (contenderIds.length < 4) {
+    return { divisionId, bracket: [], currentRound: null, promotedClubId: contenderIds[0] };
   }
 
   // Standard: 1st seed (3rd place) vs 4th seed (6th place), 2nd vs 3rd

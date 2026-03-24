@@ -5,7 +5,7 @@ import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
   Mail, Trophy, Target, DollarSign, Building2, Calendar, Home,
-  Settings, MoreHorizontal, ChevronRight, GitCompare, User, Star, Award, ShoppingBag, Crown
+  Settings, MoreHorizontal, ChevronRight, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
 
@@ -50,6 +50,7 @@ const drawerSections: DrawerSection[] = [
       { screen: 'comparison', label: 'Compare', icon: GitCompare, description: 'Side-by-side player stats' },
       { screen: 'hall-of-managers', label: 'Hall of Fame', icon: Trophy, description: 'Cross-save leaderboard' },
       { screen: 'shop', label: 'Shop', icon: Crown, description: 'Dynasty Pro & cosmetics' },
+      { screen: 'help', label: 'Game Guide', icon: HelpCircle, description: 'How to play & glossary' },
       { screen: 'settings', label: 'Settings', icon: Settings, description: 'Save, load & preferences' },
     ],
   },
@@ -57,8 +58,9 @@ const drawerSections: DrawerSection[] = [
 
 export function MoreDrawer() {
   const [open, setOpen] = useState(false);
-  const { setScreen, messages, currentScreen } = useGameStore();
+  const { setScreen, messages, currentScreen, cupState } = useGameStore();
   const unread = messages.filter(m => !m.read).length;
+  const hasPendingCupMatch = cupState?.bracket?.some(t => !t.played && (t.homeClubId || t.awayClubId));
 
   const handleNav = (screen: GameScreen) => {
     hapticLight();
@@ -77,9 +79,9 @@ export function MoreDrawer() {
         >
           <div className="relative">
             <MoreHorizontal className={cn('w-5 h-5', open && 'drop-shadow-[0_0_6px_hsl(var(--primary))]')} />
-            {unread > 0 && (
+            {(unread > 0 || hasPendingCupMatch) && (
               <div className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-destructive rounded-full flex items-center justify-center">
-                <span className="text-[8px] font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread}</span>
+                <span className="text-[8px] font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread || '!'}</span>
               </div>
             )}
           </div>
@@ -117,6 +119,11 @@ export function MoreDrawer() {
                         {screen === 'inbox' && unread > 0 && (
                           <span className="text-[10px] bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full font-bold">
                             {unread}
+                          </span>
+                        )}
+                        {screen === 'cup' && hasPendingCupMatch && (
+                          <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
+                            LIVE
                           </span>
                         )}
                       </div>

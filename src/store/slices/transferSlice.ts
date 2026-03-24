@@ -12,6 +12,7 @@ import {
   SELL_ON_EVAL_HIGH_PCT, SELL_ON_EVAL_LOW_PCT,
   COUNTER_OFFER_BASE_RATIO, COUNTER_OFFER_RANDOM_RANGE,
   RECORD_SIGNING_SPEND_RATIO, RECORD_SIGNING_MIN_FEE,
+  LISTING_PRICE_FLOOR,
 } from '@/config/transfers';
 import { MIN_SQUAD_SIZE } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
@@ -170,7 +171,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const player = state.players[playerId];
     if (!player || player.clubId !== state.playerClubId) return;
     const newPlayers = { ...state.players, [playerId]: { ...player, listedForSale: true } };
-    const askingPrice = Math.max(50_000, Math.round(player.value * LIST_PRICE_MULTIPLIER));
+    const askingPrice = Math.max(LISTING_PRICE_FLOOR, Math.round(player.value * LIST_PRICE_MULTIPLIER));
     const newMarket = [...state.transferMarket, { playerId, askingPrice, sellerClubId: state.playerClubId }];
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
@@ -254,17 +255,21 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       ? { playerId: offer.playerId, playerName: `${player.firstName} ${player.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats }
       : null;
 
-    // Check if the sold player was a top marketable player — trigger merch dip
+    // Check if the sold player was a top marketable player — trigger/extend merch dip
     const starPlayers = getStarPlayerMerch(sellerClub, state.players);
     const wasStar = starPlayers.some(sp => sp.playerId === offer.playerId);
     const merchDipUpdate: Partial<GameState> = {};
     if (wasStar) {
-      merchDipUpdate.merchandise = { ...state.merchandise, starPlayerDip: STAR_PLAYER_SALE_DIP_WEEKS };
+      const currentDip = state.merchandise?.starPlayerDip || 0;
+      merchDipUpdate.merchandise = { ...state.merchandise, starPlayerDip: Math.max(currentDip, STAR_PLAYER_SALE_DIP_WEEKS) };
     }
+    // Clean up any active loans involving the sold player
+    const cleanedLoans = state.activeLoans.filter(l => l.playerId !== offer.playerId);
+
     set({
       players: newPlayers,
       clubs: updatedClubs,
-      transferMarket: newMarket, incomingOffers: newOffers.filter(o => o.playerId !== offer.playerId), incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== offer.playerId), messages: msg, managerStats: ms,
+      transferMarket: newMarket, incomingOffers: newOffers.filter(o => o.playerId !== offer.playerId), incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== offer.playerId), activeLoans: cleanedLoans, messages: msg, managerStats: ms,
       ...(farewellEntry ? { pendingFarewell: [...state.pendingFarewell, farewellEntry] } : {}),
       ...merchDipUpdate,
     });

@@ -442,3 +442,22 @@ export const DRAMA_UNDERDOG_REP_GAP = 2;
 // ── Session Summary ──
 /** Minimum weeks played before showing session summary */
 export const SESSION_SUMMARY_MIN_WEEKS = 5;
+
+// ── Celebration Milestones ──
+export const GOAL_MILESTONES = [10, 15, 20, 25, 30] as const;
+export const ASSIST_MILESTONES = [10, 15, 20] as const;
+export const UNBEATEN_MILESTONES = [5, 10, 15, 20] as const;
+export const WIN_MILESTONES = [3, 5, 8, 10] as const;
+export const CLEAN_SHEET_MILESTONES = [5, 10, 15] as const;
+export const CAREER_GOAL_MILESTONES = [50, 100, 200] as const;
+export const CAREER_APP_MILESTONES = [100, 200, 500] as const;
+
+// ── Loan Recall ──
+export const LOAN_MIN_WEEKS_BEFORE_RECALL = 4;
+
+// ── Manager XP ──
+export const MANAGER_XP_BASE = 50;
+export const MANAGER_XP_PER_LEVEL = 30;
+
+// ── Dashboard UI ──
+export const CONFIDENCE_CHANGE_DISMISS_THRESHOLD = 5;
