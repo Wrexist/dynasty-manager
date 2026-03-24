@@ -25,7 +25,7 @@ export const CONTRACT_MORALE_HIGH = 80;
 export const CONTRACT_MORALE_LOW_FACTOR = 0.85;
 export const CONTRACT_MORALE_HIGH_FACTOR = 1.05;
 export const CONTRACT_REP_MULTIPLIER = 0.03;
-export const CONTRACT_MINIMUM_WAGE = 1000;
+export const CONTRACT_MINIMUM_WAGE = 500;
 
 // ── Agent Fees ──
 export const CONTRACT_AGENT_FEE_BASE = 0.05;

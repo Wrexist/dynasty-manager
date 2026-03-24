@@ -63,7 +63,7 @@ import {
   RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM,
 } from '@/config/transfers';
 import { PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
-import { VALUE_OVERALL_MULTIPLIER, VALUE_RANDOM_RANGE } from '@/config/playerGeneration';
+import { calculatePlayerValue } from '@/config/playerGeneration';
 import {
   PLAYOFF_HOME_ADVANTAGE, PLAYOFF_GOAL_RANGE, PLAYOFF_STRONG_BONUS, PLAYOFF_WEAK_BONUS,
   PLAYOFF_FINAL_STRONG_BONUS, PLAYOFF_FINAL_WEAK_BONUS, PLAYOFF_EXTRA_TIME_CHANCE, PLAYOFF_FALLBACK_OVERALL,
@@ -2223,7 +2223,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             for (const tier of VALUE_AGE_MULTIPLIERS) {
               if (lp.age <= tier.maxAge) { ageMult = tier.multiplier; break; }
             }
-            lp.value = Math.round(lp.overall * lp.overall * VALUE_OVERALL_MULTIPLIER * ageMult + Math.random() * VALUE_RANDOM_RANGE);
+            lp.value = Math.round(calculatePlayerValue(lp.overall) * ageMult);
           }
         }
         newPlayers[loan.playerId] = lp;

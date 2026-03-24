@@ -31,7 +31,7 @@ export const ACCEPT_80_PERCENT_THRESHOLD = 0.8;
 
 // ── Listing ──
 export const LIST_PRICE_MULTIPLIER = 1.2;
-export const LISTING_PRICE_FLOOR = 50_000;
+export const LISTING_PRICE_FLOOR = 25_000;
 
 // ── Counter-Offer Negotiation ──
 export const COUNTER_OFFER_MIN_THRESHOLD = 0.7;
