@@ -7,7 +7,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Install a global exception handler so plugin init crashes produce
+        // a console log instead of a hard abort in TestFlight / production.
+        NSSetUncaughtExceptionHandler { exception in
+            NSLog("[DynastyManager] Uncaught exception: %@ — %@", exception.name.rawValue, exception.reason ?? "no reason")
+            NSLog("[DynastyManager] Stack trace: %@", exception.callStackSymbols.joined(separator: "\n"))
+        }
         return true
     }
 

@@ -7,10 +7,12 @@ const config: CapacitorConfig = {
   ios: {
     limitsNavigationsToAppBoundDomains: true,
     preferredContentMode: 'mobile',
+    webContentsDebuggingEnabled: false,
   },
   plugins: {
     SplashScreen: {
       launchAutoHide: false,
+      launchFadeOutDuration: 300,
       backgroundColor: '#0f1524',
       showSpinner: false,
     },

@@ -15,32 +15,40 @@ createRoot(document.getElementById("root")!).render(<App />);
 async function initNative() {
   try {
     const { Capacitor } = await import('@capacitor/core');
-    if (Capacitor.isNativePlatform()) {
-      const { SplashScreen } = await import('@capacitor/splash-screen');
-      const { StatusBar, Style } = await import('@capacitor/status-bar');
+    if (!Capacitor.isNativePlatform()) {
+      // Web only — register service worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      }
+      return;
+    }
 
+    // Status bar — isolated so failure doesn't block splash hide
+    try {
+      const { StatusBar, Style } = await import('@capacitor/status-bar');
       await StatusBar.setStyle({ style: Style.Dark });
       await StatusBar.setBackgroundColor({ color: '#0f1524' });
-
-      // Initialize monetization SDKs (idempotent, no-op on web)
-      await initPurchases();
-      await initAds();
-
-      // Wait for React to paint before hiding splash (3s safety timeout)
-      await Promise.race([
-        appReady,
-        new Promise<void>(resolve => setTimeout(resolve, 3000)),
-      ]);
-      await SplashScreen.hide();
-      return; // Native — skip service worker
+    } catch (err) {
+      console.warn('[initNative] StatusBar init failed:', err);
     }
+
+    // RevenueCat — isolated from AdMob
+    try { await initPurchases(); }
+    catch (err) { console.warn('[initNative] Purchases init failed:', err); }
+
+    // AdMob — isolated from other SDKs
+    try { await initAds(); }
+    catch (err) { console.warn('[initNative] Ads init failed:', err); }
+
+    // Wait for React to paint before hiding splash (3s safety timeout)
+    const { SplashScreen } = await import('@capacitor/splash-screen');
+    await Promise.race([
+      appReady,
+      new Promise<void>(resolve => setTimeout(resolve, 3000)),
+    ]);
+    await SplashScreen.hide();
   } catch (err) {
     console.error('[initNative] Native initialization failed:', err);
-  }
-
-  // Only register service worker on web (not native)
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
   }
 }
 
