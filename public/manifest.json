@@ -1,7 +1,8 @@
 {
-  "name": "Dynasty Manager",
-  "short_name": "Dynasty",
-  "description": "Premium football management simulation",
+  "name": "Dynasty Manager: Football",
+  "short_name": "Dynasty Manager",
+  "description": "Manage 92 football clubs across 4 divisions. Set tactics, sign players, develop youth, and build your football empire.",
+  "categories": ["games", "sports"],
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f1524",

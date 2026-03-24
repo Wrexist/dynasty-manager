@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.dynastymanager',
-  appName: 'Dynasty Manager',
+  appName: 'Dynasty Manager: Football',
   webDir: 'dist',
   plugins: {
     SplashScreen: {

@@ -1,7 +1,8 @@
 {
-  "name": "vite_react_shadcn_ts",
+  "name": "dynasty-manager",
   "private": true,
   "version": "1.0.0",
+  "description": "Dynasty Manager: Football — Deep football management simulation with 92 clubs across 4 divisions",
   "type": "module",
   "scripts": {
     "dev": "vite",
