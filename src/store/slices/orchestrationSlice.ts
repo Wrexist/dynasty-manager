@@ -3,7 +3,7 @@ import { CLUBS_DATA, buildLeagueTable, getClubsByDivision, generateAllDivisionFi
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
-import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity } from '@/utils/training';
+import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity, getDominantTrainingFocus } from '@/utils/training';
 import { completeAssignment } from '@/utils/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
@@ -1515,7 +1515,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
       const allClubPlayers = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
       const mentorBonusVal = getMentorBonus(p, allClubPlayers);
-      p = applyPlayerDevelopment(p, training.schedule.mon, mentorBonusVal);
+      p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal);
       if (p.growthDelta && p.growthDelta > 0) {
         improvedPlayers.push({ name: p.lastName, overall: p.overall });
       } else if (p.growthDelta && p.growthDelta < 0) {

@@ -2,8 +2,8 @@ import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
-import { POSITION_COMPATIBILITY, Position } from '@/types/game';
-import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle } from 'lucide-react';
+import { POSITION_COMPATIBILITY, Position, TrainingModule } from '@/types/game';
+import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
 import { cn } from '@/lib/utils';
@@ -13,12 +13,28 @@ import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel } from '@/utils/personality';
 import { PlayerAvatar } from '@/components/game/PlayerAvatar';
 import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW } from '@/config/ui';
+import { MODULE_ATTR_MAP } from '@/config/training';
+import { hapticLight } from '@/utils/haptics';
+
+const TRAINING_MODULE_INFO: { module: TrainingModule; label: string; icon: React.ElementType; color: string }[] = [
+  { module: 'fitness', label: 'Fitness', icon: Dumbbell, color: 'text-emerald-400' },
+  { module: 'attacking', label: 'Attacking', icon: Flame, color: 'text-red-400' },
+  { module: 'defending', label: 'Defending', icon: Shield, color: 'text-blue-400' },
+  { module: 'mentality', label: 'Mentality', icon: Brain, color: 'text-purple-400' },
+  { module: 'set-pieces', label: 'Set Pieces', icon: Target, color: 'text-amber-400' },
+  { module: 'tactical', label: 'Tactical', icon: Zap, color: 'text-primary' },
+];
+
+const ATTR_LABELS: Record<string, string> = {
+  pace: 'PAC', shooting: 'SHO', passing: 'PAS', defending: 'DEF', physical: 'PHY', mental: 'MEN',
+};
 
 const PlayerDetail = () => {
   const {
     selectedPlayerId, players, clubs, playerClubId, previousScreen,
     incomingOffers, setScreen, selectPlayer,
     listPlayerForSale, unlistPlayer, respondToOffer, season, week, facilities, startNegotiation,
+    training, setIndividualTraining,
   } = useGameStore();
 
   const player = selectedPlayerId ? players[selectedPlayerId] : null;
@@ -233,6 +249,52 @@ const PlayerDetail = () => {
           <span className="text-[10px] text-muted-foreground">Potential</span>
         </div>
       </GlassPanel>
+
+      {/* Individual Training Focus */}
+      {isOwnPlayer && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Dumbbell className="w-3.5 h-3.5 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Training Focus</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {TRAINING_MODULE_INFO.map(({ module, label, icon: Icon, color }) => {
+              const currentFocus = (training.individualPlans || []).find(p => p.playerId === player.id)?.focus;
+              const isActive = currentFocus === module;
+              return (
+                <button
+                  key={module}
+                  onClick={() => {
+                    hapticLight();
+                    setIndividualTraining(player.id, isActive ? null : module);
+                  }}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border',
+                    isActive
+                      ? 'bg-primary/20 text-primary border-primary/30'
+                      : 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50'
+                  )}
+                >
+                  <Icon className={cn('w-3 h-3', isActive ? color : '')} />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          {(() => {
+            const currentFocus = (training.individualPlans || []).find(p => p.playerId === player.id)?.focus;
+            if (!currentFocus) return (
+              <p className="text-[10px] text-muted-foreground mt-2">No individual focus set. Assign one for +50% training gain.</p>
+            );
+            const attrs = MODULE_ATTR_MAP[currentFocus] || [];
+            return (
+              <p className="text-[10px] text-emerald-400/80 mt-2">
+                +50% gain for {attrs.map(a => ATTR_LABELS[a] || a).join(', ')}
+              </p>
+            );
+          })()}
+        </GlassPanel>
+      )}
 
       {/* Role Suitability */}
       <GlassPanel className="p-4">

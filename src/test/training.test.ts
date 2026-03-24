@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getInjuryRisk, updateTacticalFamiliarity } from '@/utils/training';
+import { getInjuryRisk, updateTacticalFamiliarity, getDominantTrainingFocus, getTrainingRecommendation } from '@/utils/training';
 import {
   INTENSITY_INJURY_RISK,
   TRAINING_INJURY_AGE_THRESHOLD,
@@ -7,8 +7,10 @@ import {
   TACTICAL_FAMILIARITY_DECAY,
   TACTICAL_FAMILIARITY_MAX,
   TACTICAL_FAMILIARITY_MIN,
+  MODULE_ATTR_MAP,
+  TRAINING_PRESETS,
 } from '@/config/training';
-import type { TrainingState } from '@/types/game';
+import type { TrainingState, Player, TrainingModule } from '@/types/game';
 
 function makeTraining(overrides: Partial<TrainingState> = {}): TrainingState {
   return {
@@ -91,6 +93,105 @@ describe('training', () => {
       });
       const result = updateTacticalFamiliarity(training, 0);
       expect(result).toBeGreaterThanOrEqual(TACTICAL_FAMILIARITY_MIN);
+    });
+  });
+
+  describe('getDominantTrainingFocus', () => {
+    it('returns the most-scheduled module', () => {
+      const schedule = { mon: 'attacking' as const, tue: 'attacking' as const, wed: 'attacking' as const, thu: 'fitness' as const, fri: 'defending' as const };
+      expect(getDominantTrainingFocus(schedule)).toBe('attacking');
+    });
+
+    it('breaks ties by picking the first occurring module', () => {
+      const schedule = { mon: 'defending' as const, tue: 'attacking' as const, wed: 'defending' as const, thu: 'attacking' as const, fri: 'fitness' as const };
+      // defending and attacking both have 2 days, defending comes first
+      expect(getDominantTrainingFocus(schedule)).toBe('defending');
+    });
+
+    it('works with all same module', () => {
+      const schedule = { mon: 'tactical' as const, tue: 'tactical' as const, wed: 'tactical' as const, thu: 'tactical' as const, fri: 'tactical' as const };
+      expect(getDominantTrainingFocus(schedule)).toBe('tactical');
+    });
+
+    it('works with all different modules', () => {
+      const schedule = { mon: 'fitness' as const, tue: 'attacking' as const, wed: 'defending' as const, thu: 'mentality' as const, fri: 'tactical' as const };
+      // All have count 1, first one wins
+      expect(getDominantTrainingFocus(schedule)).toBe('fitness');
+    });
+  });
+
+  describe('MODULE_ATTR_MAP', () => {
+    const allModules: TrainingModule[] = ['fitness', 'attacking', 'defending', 'mentality', 'set-pieces', 'tactical'];
+    const validAttrs = ['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'];
+
+    it('contains all 6 training modules', () => {
+      for (const mod of allModules) {
+        expect(MODULE_ATTR_MAP[mod]).toBeDefined();
+        expect(MODULE_ATTR_MAP[mod].length).toBeGreaterThan(0);
+      }
+    });
+
+    it('maps to valid PlayerAttributes keys', () => {
+      for (const mod of allModules) {
+        for (const attr of MODULE_ATTR_MAP[mod]) {
+          expect(validAttrs).toContain(attr);
+        }
+      }
+    });
+  });
+
+  describe('TRAINING_PRESETS', () => {
+    const validModules: TrainingModule[] = ['fitness', 'attacking', 'defending', 'mentality', 'set-pieces', 'tactical'];
+
+    it('has at least 3 presets', () => {
+      expect(TRAINING_PRESETS.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('each preset has valid modules for all 5 days', () => {
+      for (const preset of TRAINING_PRESETS) {
+        expect(validModules).toContain(preset.schedule.mon);
+        expect(validModules).toContain(preset.schedule.tue);
+        expect(validModules).toContain(preset.schedule.wed);
+        expect(validModules).toContain(preset.schedule.thu);
+        expect(validModules).toContain(preset.schedule.fri);
+      }
+    });
+  });
+
+  describe('getTrainingRecommendation', () => {
+    function makePlayer(attrs: Partial<Record<string, number>> = {}): Player {
+      return {
+        id: '1', firstName: 'Test', lastName: 'Player', age: 22, position: 'ST',
+        overall: 70, potential: 80, fitness: 100, morale: 70, form: 50,
+        nationality: 'English', clubId: 'c1', wage: 10000, value: 1000000,
+        contractEnd: 3, goals: 0, assists: 0, appearances: 0,
+        careerGoals: 0, careerAssists: 0, careerAppearances: 0,
+        yellowCards: 0, redCards: 0,
+        attributes: {
+          pace: 12, shooting: 12, passing: 12, defending: 12, physical: 12, mental: 12,
+          ...attrs,
+        },
+      } as Player;
+    }
+
+    it('returns null for empty squad', () => {
+      expect(getTrainingRecommendation([])).toBeNull();
+    });
+
+    it('recommends module for weakest attribute', () => {
+      const squad = [
+        makePlayer({ defending: 5, physical: 5 }),
+        makePlayer({ defending: 6, physical: 6 }),
+      ];
+      const rec = getTrainingRecommendation(squad);
+      expect(rec).not.toBeNull();
+      expect(rec!.module).toBe('defending');
+    });
+
+    it('recommends fitness when pace is weakest', () => {
+      const squad = [makePlayer({ pace: 3 })];
+      const rec = getTrainingRecommendation(squad);
+      expect(rec!.module).toBe('fitness');
     });
   });
 });
