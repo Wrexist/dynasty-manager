@@ -39,7 +39,7 @@ export function completeAssignment(
   const positions: Position[] = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST'];
 
   for (let i = 0; i < numPlayers; i++) {
-    const quality = minQ + Math.floor(Math.random() * (maxQ - minQ));
+    const quality = minQ + Math.floor(Math.random() * (maxQ - minQ + 1));
     const pos = pick(positions);
     const player = generatePlayer(pos, quality, '', season);
 

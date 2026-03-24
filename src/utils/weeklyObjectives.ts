@@ -313,8 +313,8 @@ function getThisWeekMatch(ctx: ObjectiveContext): Match | undefined {
 /** Generate 3 random weekly objectives, with variable rarity */
 export function generateWeeklyObjectives(hasMatch: boolean): ObjectiveInstance[] {
   const pool = hasMatch
-    ? OBJECTIVE_TEMPLATES.filter(o => o.id !== 'perfect-week')
-    : OBJECTIVE_TEMPLATES.filter(o => !MATCH_OBJECTIVE_IDS.includes(o.id) && o.id !== 'perfect-week');
+    ? OBJECTIVE_TEMPLATES
+    : OBJECTIVE_TEMPLATES.filter(o => !MATCH_OBJECTIVE_IDS.includes(o.id));
 
   const commonPool = pool.filter(o => o.rarity === 'common');
   const rarePool = pool.filter(o => o.rarity === 'rare');
