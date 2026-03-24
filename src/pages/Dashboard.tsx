@@ -485,7 +485,7 @@ const Dashboard = () => {
       {/* Last Match Result */}
       {lastMatchInfo && !seasonOver && (
         <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }}>
-        <GlassPanel className="p-3 flex items-center justify-between">
+        <GlassPanel className="p-3 flex items-center justify-between" onClick={() => setScreen('match-review')} aria-label="View match review">
           <div className="flex items-center gap-2">
             <span className={cn(
               'w-6 h-6 rounded-md flex items-center justify-center text-xs font-black',
@@ -497,6 +497,7 @@ const Dashboard = () => {
               <p className="text-xs font-semibold text-foreground">Last Result: {lastMatchInfo.score} vs {lastMatchInfo.oppName}</p>
             </div>
           </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
         </GlassPanel>
         </motion.div>
       )}
