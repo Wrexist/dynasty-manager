@@ -140,6 +140,7 @@ function makePlayer(id: string, clubId: string, position: Player['position'], ov
     fitness: 100, morale: 70, form: 70,
     injured: false, injuryWeeks: 0,
     goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0,
+    careerGoals: 0, careerAssists: 0, careerAppearances: 0,
   };
 }
 

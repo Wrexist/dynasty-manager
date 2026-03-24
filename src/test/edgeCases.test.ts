@@ -9,8 +9,6 @@ import { useGameStore } from '@/store/gameStore';
 import { assertValidGameState } from './stateValidator';
 import { generatePlayoffBracket, getSemiWinner, populatePlayoffFinal, resolvePlayoffFinal, determineZones } from '@/utils/promotionRelegation';
 import { DIVISIONS } from '@/data/league';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
-
 const CLUB_ID = 'crown-city';
 const TOTAL_WEEKS = 46;
 
@@ -225,8 +223,6 @@ describe('2C: Loan Edge Cases', () => {
 
     const fee = 5_000_000;
     const preBudget = state.clubs[CLUB_ID].budget;
-    const destPreBudget = state.clubs[destClubId].budget;
-
     const loanResult = useGameStore.getState().loanOut(benchedPlayer, destClubId, 4, 50, false, fee);
     expect(loanResult.success).toBe(true);
 
@@ -394,7 +390,7 @@ describe('2E: Division Boundary Integrity', () => {
       goalsAgainst: 20 + i,
       goalDifference: 30 - 2 * i,
       points: (24 - i) * 3,
-      form: [] as string[],
+      form: [] as ('W' | 'D' | 'L')[],
       cleanSheets: 0,
     }));
 
@@ -421,7 +417,7 @@ describe('2E: Division Boundary Integrity', () => {
       goalsAgainst: 20 + i,
       goalDifference: 30 - 2 * i,
       points: (24 - i) * 3,
-      form: [] as string[],
+      form: [] as ('W' | 'D' | 'L')[],
       cleanSheets: 0,
     }));
 
@@ -439,8 +435,6 @@ describe('2E: Division Boundary Integrity', () => {
 
     // Run 3 seasons and verify after each
     for (let s = 0; s < 3; s++) {
-      const preDivClubs = { ...useGameStore.getState().divisionClubs };
-
       advanceFullSeason();
 
       const state = useGameStore.getState();

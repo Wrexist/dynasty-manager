@@ -9,7 +9,7 @@ import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { CHALLENGES } from '@/data/challenges';
 import { generateFixtures } from '@/data/league';
 import { ACHIEVEMENTS } from '@/utils/achievements';
-import { MANAGER_PERKS, xpForLevel, XP_REWARDS } from '@/utils/managerPerks';
+import { MANAGER_PERKS, xpForLevel } from '@/utils/managerPerks';
 
 describe('3A: Storyline Chain Content', () => {
   it('has at least 4 unique storyline chains', () => {
@@ -50,7 +50,7 @@ describe('3A: Storyline Chain Content', () => {
 describe('3B: Press Conference Variety', () => {
   it('has questions for all expected contexts', () => {
     // Import dynamically to check the structure
-    const expectedContexts = ['post_win', 'post_loss', 'post_draw', 'pre_big_match', 'transfer_rumour', 'poor_form', 'good_form'];
+    const _expectedContexts = ['post_win', 'post_loss', 'post_draw', 'pre_big_match', 'transfer_rumour', 'poor_form', 'good_form'];
     // We know from exploration there are 7 contexts with 11 total questions
     // Each has 3 tone options (confident/humble/deflect) = 33 unique responses
     const totalQuestions = 11;

@@ -91,7 +91,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
   }, [playerClub, selectedOutId, players]);
 
   const lineup = useMemo(() => playerClub?.lineup || [], [playerClub?.lineup]);
-  const slots = useMemo(() => playerClub ? FORMATION_POSITIONS[playerClub.formation] || [] : [], [playerClub, playerClub?.formation]);
+  const slots = useMemo(() => playerClub ? FORMATION_POSITIONS[playerClub.formation] || [] : [], [playerClub]);
 
   // Find the formation slot position of the selected out player
   const selectedSlotPos = useMemo(() => {

@@ -281,10 +281,13 @@ export async function startEntitlementListener(
   if (!Capacitor.isNativePlatform()) return;
   try {
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
-    listenerRemover = Purchases.addCustomerInfoUpdateListener((info) => {
+    const callbackId = await Purchases.addCustomerInfoUpdateListener((info) => {
       const ids = mapEntitlements(info);
       onUpdate(ids, info);
     });
+    listenerRemover = () => {
+      void Purchases.removeCustomerInfoUpdateListener({ listenerToRemove: callbackId });
+    };
   } catch (err) {
     console.warn('[Purchases] Failed to add listener:', err);
   }
