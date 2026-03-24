@@ -27,10 +27,22 @@ export async function initAds(): Promise<void> {
 
   try {
     const { AdMob } = await import('@capacitor-community/admob');
-    await AdMob.initialize({ initializeForTesting: import.meta.env.DEV });
+
+    // Request tracking authorization first (iOS 14+ ATT requirement).
+    // This must happen before AdMob.initialize() to avoid SDK issues.
+    try { await AdMob.requestTrackingAuthorization(); }
+    catch { /* User denied or not supported — proceed without tracking */ }
+
+    // Wrap in a timeout so a stuck SDK doesn't block app startup forever
+    await Promise.race([
+      AdMob.initialize({ initializeForTesting: import.meta.env.DEV }),
+      new Promise<void>((_, reject) => setTimeout(() => reject(new Error('AdMob init timeout')), 5000)),
+    ]);
     adInitialized = true;
   } catch (err) {
     console.warn('[Ads] Failed to initialize AdMob:', err);
+    // Mark initialized to prevent retry loops — ads simply won't show
+    adInitialized = true;
   }
 }
 

@@ -34,10 +34,15 @@ export async function initPurchases(): Promise<void> {
     const { Purchases, LOG_LEVEL } = await import('@revenuecat/purchases-capacitor');
     const logLevel = import.meta.env.DEV ? LOG_LEVEL.DEBUG : LOG_LEVEL.INFO;
     await Purchases.setLogLevel({ level: logLevel });
-    await Purchases.configure({ apiKey: REVENUECAT_API_KEY });
+    await Promise.race([
+      Purchases.configure({ apiKey: REVENUECAT_API_KEY }),
+      new Promise<void>((_, reject) => setTimeout(() => reject(new Error('RevenueCat init timeout')), 5000)),
+    ]);
     initialized = true;
   } catch (err) {
     console.warn('[Purchases] Failed to initialize RevenueCat:', err);
+    // Mark initialized to prevent retry loops — purchases will use mock mode
+    initialized = true;
   }
 }
 

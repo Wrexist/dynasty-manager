@@ -47,8 +47,17 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+	</dict>
 	<key>GADApplicationIdentifier</key>
 	<string>ca-app-pub-2286247955186424~9847041449</string>
+	<key>GADDelayAppMeasurementInit</key>
+	<true/>
 	<key>NSUserTrackingUsageDescription</key>
 	<string>This allows us to show you relevant ads and support free features.</string>
 	<key>SKAdNetworkItems</key>
