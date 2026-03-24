@@ -64,6 +64,13 @@ export default defineConfig(() => ({
   build: {
     target: 'es2020',
     rollupOptions: {
+      // Monetization plugins removed from build until production keys are ready.
+      // Dynamic imports in purchases.ts / ads.ts are guarded and never reached.
+      external: [
+        '@revenuecat/purchases-capacitor',
+        '@revenuecat/purchases-capacitor-ui',
+        '@capacitor-community/admob',
+      ],
       output: {
         manualChunks: {
           'framer-motion': ['framer-motion'],
