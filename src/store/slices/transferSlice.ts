@@ -38,6 +38,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const player = state.players[playerId];
     if (!player) return null;
     const club = state.clubs[state.playerClubId];
+    if (!club) return null;
     const ratio = fee / listing.askingPrice;
     const acceptChance = fee >= listing.askingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= listing.askingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
     const wouldTriggerSellOn = fee >= SELL_ON_LOW_FEE_THRESHOLD;

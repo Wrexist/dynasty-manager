@@ -130,6 +130,33 @@ function generateAIInjuryDetails(_medicalLevel: number = 5): InjuryDetails {
   };
 }
 
+/** Apply AI match events to players: goals, assists, injuries, cards, suspensions. */
+function applyAIMatchEvents(
+  events: { type: string; playerId?: string; assistPlayerId?: string; clubId: string }[],
+  newPlayers: Record<string, Player>,
+  clubs: Record<string, Club>,
+  week: number,
+) {
+  for (const ev of events) {
+    if (ev.type === 'goal' && ev.playerId && newPlayers[ev.playerId]) {
+      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], goals: newPlayers[ev.playerId].goals + 1 };
+    }
+    if (ev.type === 'goal' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
+      newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
+    }
+    if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
+      const injDetails = generateAIInjuryDetails(clubs[newPlayers[ev.playerId].clubId]?.facilities);
+      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: injDetails.weeksRemaining, injuryDetails: injDetails };
+    }
+    if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
+      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
+    }
+    if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
+      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: week + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
+    }
+  }
+}
+
 function generateObjectives(club: Club, divisionId?: DivisionId): BoardObjective[] {
   const objectives: BoardObjective[] = [];
   const div = divisionId || club.divisionId || 'div-1';
@@ -1294,25 +1321,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
         const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season);
         divFixtures[idx] = result;
-        // Update player stats for other divisions
-        result.events.forEach(ev => {
-          if (ev.type === 'goal' && ev.playerId && newPlayers[ev.playerId]) {
-            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], goals: newPlayers[ev.playerId].goals + 1 };
-          }
-          if (ev.type === 'goal' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
-            newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
-          }
-          if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
-            const injDetails = generateAIInjuryDetails(clubs[newPlayers[ev.playerId].clubId]?.facilities);
-            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: injDetails.weeksRemaining, injuryDetails: injDetails };
-          }
-          if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
-            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
-          }
-          if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
-            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: week + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
-          }
-        });
+        applyAIMatchEvents(result.events, newPlayers, clubs, week);
       }
       updatedDivisionFixtures[divId] = divFixtures;
     }
@@ -1332,25 +1341,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season);
       updatedFixtures[idx] = result;
-
-      result.events.forEach(ev => {
-        if (ev.type === 'goal' && ev.playerId && newPlayers[ev.playerId]) {
-          newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], goals: newPlayers[ev.playerId].goals + 1 };
-        }
-        if (ev.type === 'goal' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
-          newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
-        }
-        if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
-          const injDetails = generateAIInjuryDetails(clubs[newPlayers[ev.playerId].clubId]?.facilities);
-          newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: injDetails.weeksRemaining, injuryDetails: injDetails };
-        }
-        if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
-          newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
-        }
-        if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
-          newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: week + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
-        }
-      });
+      applyAIMatchEvents(result.events, newPlayers, clubs, week);
     }
 
     // Simulate cup matches for this week
@@ -1421,25 +1412,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
         newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout };
 
-        // Track cup match stats for players
-        cupResult.events.forEach(ev => {
-          if (ev.type === 'goal' && ev.playerId && newPlayers[ev.playerId]) {
-            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], goals: newPlayers[ev.playerId].goals + 1 };
-          }
-          if (ev.type === 'goal' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
-            newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
-          }
-          if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
-            const injDetails = generateAIInjuryDetails(clubs[newPlayers[ev.playerId].clubId]?.facilities);
-            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: injDetails.weeksRemaining, injuryDetails: injDetails };
-          }
-          if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {
-            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
-          }
-          if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
-            newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: week + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
-          }
-        });
+        applyAIMatchEvents(cupResult.events, newPlayers, clubs, week);
 
         // Cup match result message for player
         if (isPlayerMatch) {
