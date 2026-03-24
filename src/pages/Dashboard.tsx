@@ -828,7 +828,7 @@ const Dashboard = () => {
           <div className="space-y-2">
             {weekPreviews.map((preview, i) => (
               <div
-                key={i}
+                key={`${preview.type}-${i}`}
                 className={cn(
                   'flex items-center gap-2 text-xs rounded-lg px-3 py-2',
                   preview.type === 'positive' ? 'bg-emerald-500/10 text-emerald-400' :
@@ -853,7 +853,7 @@ const Dashboard = () => {
             <div className="space-y-2">
               {weekCliffhangers.map((hook, i) => (
                 <div
-                  key={i}
+                  key={`${hook.intensity}-${i}`}
                   className={cn(
                     'flex items-center gap-2 text-xs rounded-lg px-3 py-2',
                     hook.intensity === 'high' ? 'bg-red-500/10 text-red-400 animate-pulse' :
@@ -940,7 +940,7 @@ const Dashboard = () => {
           </div>
           <div className="space-y-1.5">
             {injuredPlayers.map(p => (
-              <div key={p.id} className="flex items-center justify-between cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition-colors" onClick={() => store.selectPlayer(p.id)}>
+              <div key={p.id} role="button" tabIndex={0} className="flex items-center justify-between cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition-colors" onClick={() => store.selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); store.selectPlayer(p.id); } }}>
                 <span className="text-sm text-foreground">
                   {p.firstName[0]}. {p.lastName}
                   <span className="text-xs text-muted-foreground ml-1.5">({p.position})</span>
@@ -1151,12 +1151,12 @@ const Dashboard = () => {
               )}
             </div>
             <div className="flex gap-2">
-              {lastResults.map((m, i) => {
+              {lastResults.map((m) => {
                 const isH = m.homeClubId === playerClubId;
                 const won = isH ? m.homeGoals > m.awayGoals : m.awayGoals > m.homeGoals;
                 const lost = isH ? m.homeGoals < m.awayGoals : m.awayGoals < m.homeGoals;
                 return (
-                  <div key={i} className={cn(
+                  <div key={m.id} className={cn(
                     'w-8 h-8 rounded-md flex items-center justify-center text-xs font-bold',
                     won ? 'bg-emerald-500/20 text-emerald-400' : lost ? 'bg-destructive/20 text-destructive' : 'bg-muted text-muted-foreground'
                   )}>

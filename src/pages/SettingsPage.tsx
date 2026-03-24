@@ -3,7 +3,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { removeFlag, clearFlagsByPrefix } from '@/store/helpers/persistence';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
@@ -16,6 +16,8 @@ const SettingsPage = () => {
   const { settings, updateSettings, saveGame, loadGame, resetGame, monetization, restoreEntitlements, updateSubscription } = useGameStore();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [saved, setSaved] = useState(false);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => { clearTimeout(savedTimerRef.current); }, []);
   const [restoringPurchases, setRestoringPurchases] = useState(false);
   const userIsPro = isPro(monetization);
   const hasActiveSub = isSubscriptionActive(monetization);
@@ -50,7 +52,8 @@ const SettingsPage = () => {
   const handleSave = () => {
     saveGame();
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    clearTimeout(savedTimerRef.current);
+    savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
   };
 
   const handleReset = () => {

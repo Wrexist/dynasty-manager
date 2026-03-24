@@ -112,7 +112,7 @@ const MatchReview = () => {
                 const evClub = clubs[ev.clubId];
                 return (
                   <motion.div
-                    key={i}
+                    key={`${ev.type}-${ev.minute}-${i}`}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.15, duration: 0.3 }}
@@ -161,7 +161,7 @@ const MatchReview = () => {
               const scorer = g.playerId ? players[g.playerId] : null;
               const assister = g.assistPlayerId ? players[g.assistPlayerId] : null;
               return (
-                <div key={i} className="flex items-center gap-2">
+                <div key={`goal-${g.minute}-${g.playerId || i}`} className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground tabular-nums w-6 shrink-0">{g.minute}'</span>
                   <span className="text-xs text-foreground">
                     {scorer ? `${scorer.firstName} ${scorer.lastName}` : 'Unknown'}
@@ -222,7 +222,7 @@ const MatchReview = () => {
             <h3 className="text-sm font-semibold text-foreground mb-3">Match Insights</h3>
             <div className="space-y-2">
               {insights.map((insight, i) => (
-                <div key={i} className={cn(
+                <div key={`${insight.type}-${i}`} className={cn(
                   'flex items-start gap-2 text-xs rounded-lg px-3 py-2 border',
                   insight.type === 'positive' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' :
                   insight.type === 'negative' ? 'bg-destructive/10 border-destructive/20 text-red-300' :
@@ -329,7 +329,7 @@ const MatchReview = () => {
               if (insights.length === 0) insights.push({ text: 'A balanced contest with nothing to separate the sides.', tone: 'neutral' });
 
               return insights.map((ins, i) => (
-                <div key={i} className="flex items-start gap-2">
+                <div key={`${ins.tone}-${i}`} className="flex items-start gap-2">
                   <span className={cn('text-xs mt-0.5', ins.tone === 'good' ? 'text-emerald-400' : ins.tone === 'bad' ? 'text-amber-400' : 'text-muted-foreground')}>
                     {ins.tone === 'good' ? '▲' : ins.tone === 'bad' ? '▼' : '—'}
                   </span>
@@ -511,7 +511,7 @@ const MatchReview = () => {
               {oppForm.length > 0 && (
                 <div className="flex gap-0.5">
                   {oppForm.map((f, i) => (
-                    <span key={i} className={cn(
+                    <span key={`${f}-${i}`} className={cn(
                       'w-4 h-4 rounded-sm flex items-center justify-center text-[8px] font-bold',
                       f === 'W' ? 'bg-emerald-500/20 text-emerald-400' :
                       f === 'L' ? 'bg-destructive/20 text-destructive' :
