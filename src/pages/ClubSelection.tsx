@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { CLUBS_DATA, DIVISIONS } from '@/data/league';
-import { NATIONS } from '@/data/nations';
+import { NATIONS, NATION_STARS } from '@/data/nations';
+import { getFlag } from '@/utils/nationality';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Wallet, Users, Zap, Crown, Shield, TrendingUp, Target, Pickaxe, Loader2, Globe, Search } from 'lucide-react';
+import { ArrowLeft, Star, Wallet, Users, Zap, Crown, Shield, TrendingUp, Target, Pickaxe, Loader2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DivisionId } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
@@ -190,41 +191,70 @@ const ClubSelection = () => {
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
                       {label}
                     </h3>
-                    <div className="grid grid-cols-2 gap-2">
-                      {nations.map((nation, i) => (
-                        <motion.div
-                          key={nation.name}
-                          initial={{ opacity: 0, y: 12 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.02 }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleNationalitySelect(nation.name)}
-                            className={cn(
-                              'relative overflow-hidden rounded-xl border cursor-pointer w-full text-left',
-                              'active:scale-[0.97] transition-all duration-200 p-3',
-                              'bg-card/40 backdrop-blur-xl',
-                              selectedNationality === nation.name
-                                ? 'ring-2 ring-primary border-primary/30 bg-primary/5'
-                                : 'border-border/30 hover:border-border/60'
-                            )}
+                    <div className="space-y-2">
+                      {nations.map((nation, i) => {
+                        const stars = NATION_STARS[nation.name] || [];
+                        const flag = getFlag(nation.name);
+                        return (
+                          <motion.div
+                            key={nation.name}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.02 }}
                           >
-                            <div className="flex items-center gap-2.5">
-                              <div
-                                className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center shadow-md"
-                                style={{ backgroundColor: nation.color }}
-                              >
-                                <Globe className="w-4 h-4" style={{ color: nation.secondaryColor }} />
+                            <button
+                              type="button"
+                              onClick={() => handleNationalitySelect(nation.name)}
+                              className={cn(
+                                'relative overflow-hidden rounded-xl border cursor-pointer w-full text-left',
+                                'active:scale-[0.97] transition-all duration-200 p-3',
+                                'bg-card/40 backdrop-blur-xl',
+                                selectedNationality === nation.name
+                                  ? 'ring-2 ring-primary border-primary/30 bg-primary/5'
+                                  : 'border-border/30 hover:border-border/60'
+                              )}
+                            >
+                              <div className="flex items-center gap-3">
+                                {/* Flag */}
+                                <span className="text-3xl leading-none shrink-0" role="img" aria-label={nation.name}>{flag}</span>
+                                {/* Name + ranking */}
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[10px] font-medium text-muted-foreground bg-white/5 rounded px-1.5 py-0.5">
+                                      #{nation.baseRanking} FIFA
+                                    </span>
+                                    {nation.baseRanking <= 10 && (
+                                      <span className="text-[10px] font-medium text-primary bg-primary/10 rounded px-1.5 py-0.5">
+                                        Top 10
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
-                                <p className="text-[10px] text-muted-foreground">Rank #{nation.baseRanking}</p>
-                              </div>
-                            </div>
-                          </button>
-                        </motion.div>
-                      ))}
+                              {/* Star players */}
+                              {stars.length > 0 && (
+                                <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-border/20">
+                                  {stars.map((player) => (
+                                    <div key={player.name} className="flex-1 min-w-0">
+                                      <p className="text-[11px] text-foreground/80 font-medium truncate">{player.name}</p>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[10px] text-muted-foreground/60">{player.position}</span>
+                                        <span className={cn(
+                                          'text-[10px] font-bold',
+                                          player.rating >= 90 ? 'text-emerald-400' :
+                                          player.rating >= 85 ? 'text-primary' :
+                                          player.rating >= 80 ? 'text-amber-400' : 'text-muted-foreground'
+                                        )}>{player.rating}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </button>
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   </div>
                 );

@@ -48,6 +48,13 @@ export const NATIONALITY_DATA: Record<string, { flag: string; code: string }> = 
   'Paraguay': { flag: '\u{1F1F5}\u{1F1FE}', code: 'PAR' },
   'Algeria': { flag: '\u{1F1E9}\u{1F1FF}', code: 'ALG' },
   'Gabon': { flag: '\u{1F1EC}\u{1F1E6}', code: 'GAB' },
+  'Saudi Arabia': { flag: '\u{1F1F8}\u{1F1E6}', code: 'KSA' },
+  'Australia': { flag: '\u{1F1E6}\u{1F1FA}', code: 'AUS' },
+  'Canada': { flag: '\u{1F1E8}\u{1F1E6}', code: 'CAN' },
+  'Costa Rica': { flag: '\u{1F1E8}\u{1F1F7}', code: 'CRC' },
+  'Chile': { flag: '\u{1F1E8}\u{1F1F1}', code: 'CHI' },
+  'Peru': { flag: '\u{1F1F5}\u{1F1EA}', code: 'PER' },
+  'Greece': { flag: '\u{1F1EC}\u{1F1F7}', code: 'GRE' },
 };
 
 /** Get emoji flag for a nationality string */
