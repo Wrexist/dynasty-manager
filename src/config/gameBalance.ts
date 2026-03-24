@@ -461,3 +461,27 @@ export const MANAGER_XP_PER_LEVEL = 30;
 
 // ── Dashboard UI ──
 export const CONFIDENCE_CHANGE_DISMISS_THRESHOLD = 5;
+
+// ── International / National Team ──
+/** Total number of international weeks appended after season end (weeks 47-52) */
+export const INTERNATIONAL_BREAK_WEEKS = 6;
+/** World Cup occurs every N seasons */
+export const WORLD_CUP_FREQUENCY = 4;
+/** Continental cup occurs every N seasons (offset by 2 from WC) */
+export const CONTINENTAL_CUP_FREQUENCY = 4;
+/** Number of groups in the World Cup */
+export const WORLD_CUP_GROUPS = 8;
+/** Teams per group */
+export const WORLD_CUP_TEAMS_PER_GROUP = 4;
+/** Number of groups in Continental Cup */
+export const CONTINENTAL_CUP_GROUPS = 4;
+/** National team squad size */
+export const NATIONAL_SQUAD_SIZE = 23;
+/** Morale boost for players called up to national team */
+export const NATIONAL_CALLUP_MORALE_BOOST = 5;
+/** Injury risk per international match (base) */
+export const INTERNATIONAL_INJURY_RISK = 0.04;
+/** Fitness cost per international match */
+export const INTERNATIONAL_FITNESS_COST = 8;
+/** Number of total nations in the world pool */
+export const TOTAL_NATIONS = 51;

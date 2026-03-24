@@ -292,7 +292,7 @@ describe('save migration v19', () => {
     const { migrateSaveData } = await import('@/utils/saveMigration');
     const oldSave = { version: 18 };
     const migrated = migrateSaveData(oldSave);
-    expect(migrated.version).toBe(20);
+    expect(migrated.version).toBe(21);
     expect(migrated.monetization).toEqual({
       entitlements: [],
       activeCosmetics: {},

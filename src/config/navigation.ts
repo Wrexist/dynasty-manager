@@ -4,6 +4,7 @@ export const DETAIL_SCREENS: GameScreen[] = [
   'player-detail', 'match-review', 'board', 'finance', 'merchandise', 'facilities',
   'settings', 'season-summary', 'calendar', 'match-prep', 'match',
   'league-table', 'comparison', 'manager-profile', 'cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club', 'team-detail', 'shop', 'help',
+  'national-team', 'international-tournament',
 ];
 
 export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
@@ -30,6 +31,8 @@ export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
   'team-detail': 'league-table',
   'shop': 'dashboard',
   'help': 'dashboard',
+  'national-team': 'dashboard',
+  'international-tournament': 'dashboard',
 };
 
 export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
@@ -64,6 +67,8 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
   'youth-academy': 'Youth Academy',
   'shop': 'Shop',
   'help': 'Game Guide',
+  'national-team': 'National Team',
+  'international-tournament': 'Tournament',
 };
 
 export const MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'transfers'];
