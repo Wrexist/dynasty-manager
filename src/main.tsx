@@ -34,8 +34,8 @@ async function initNative() {
       await SplashScreen.hide();
       return; // Native — skip service worker
     }
-  } catch {
-    // Not running in Capacitor (browser dev mode)
+  } catch (err) {
+    console.error('[initNative] Native initialization failed:', err);
   }
 
   // Only register service worker on web (not native)
