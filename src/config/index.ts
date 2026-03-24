@@ -14,3 +14,4 @@ export * from './chemistry';
 export * from './ui';
 export * from './contracts';
 export * from './playoffs';
+export * from './lineupOptimization';

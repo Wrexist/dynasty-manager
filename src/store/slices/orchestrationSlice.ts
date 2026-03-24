@@ -43,7 +43,6 @@ import {
   LOAN_PLAY_CHANCE_HIGH, LOAN_PLAY_CHANCE_LOW, LOAN_DEV_BASE_CHANCE, LOAN_DEV_REP_FACTOR,
   LOAN_QUALITY_FORMULA_REP_MULT, LOAN_QUALITY_FORMULA_BASE, LOAN_FITNESS_DRAIN, LOAN_YOUNG_AGE_THRESHOLD,
   AI_LOAN_OFFER_CHANCE, AI_LOAN_DURATIONS, AI_LOAN_WAGE_SPLITS, AI_LOAN_RECALL_CLAUSE_CHANCE, AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER,
-  AI_TRANSFER_CHANCE, AI_TRANSFER_FEE_BASE, AI_TRANSFER_FEE_RANGE, AI_TRANSFER_MAX_BUDGET_RATIO, AI_TRANSFER_MIN_BUDGET,
   getExpectedPosition,
   STREAK_MORALE_THRESHOLD, STREAK_MORALE_BONUS, STREAK_INCOME_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_FORM_THRESHOLD, STREAK_FORM_BONUS,
   BOARD_REVIEW_WEEKS,
@@ -53,12 +52,11 @@ import {
   MOTIVATOR_MORALE_BOOST, YOUTH_DEVELOPER_BOOST,
   VALUE_AGE_MULTIPLIERS,
   FFP_WAGE_RATIO_WARNING, FFP_WAGE_RATIO_CRITICAL, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY,
-  FREE_AGENT_POOL_MAX, AI_FREE_AGENT_SIGN_CHANCE,
+  FREE_AGENT_POOL_MAX,
   UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_CONTAGION_MORALE_HIT,
 } from '@/config/gameBalance';
 import {
   SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END,
-  WINDOW_CLOSING_WEEK, WINDOW_OPENING_WEEK,
   AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD,
   URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS,
   OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
@@ -84,6 +82,7 @@ import { generateCliffhangers } from '@/utils/weekPreview';
 import { generateWeeklyObjectives, evaluateObjectives } from '@/utils/weeklyObjectives';
 import type { ObjectiveContext } from '@/utils/weeklyObjectives';
 import { generateAIManagerProfile } from '@/config/aiManager';
+import { processAIWeekly } from '@/utils/aiSimulation';
 import {
   INJURY_TYPES, NON_FOUL_INJURY_TYPE_WEIGHTS,
   INJURY_SEVERITY_WEIGHTS,
@@ -911,7 +910,7 @@ function finalizeSeason(
     activeChallenge: endChallenge,
     activeStorylineChains: [],
     pendingStoryline: null,
-    freeAgents: freeAgentIds,
+    freeAgents: freeAgentIds, transferNews: [],
     ...(farewells.length > 0 ? { pendingFarewell: farewells.sort((a, b) => b.seasonsServed - a.seasonsServed) } : {}),
     playoffs, lastPromotionRelegation: promRel,
     // Career milestones & manager XP at end of season
@@ -1034,7 +1033,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       divisionFixtures, divisionTables, divisionClubs, playerDivision,
       playoffs: [], lastPromotionRelegation: null, derbies: DERBIES,
       activeLoans: [], incomingLoanOffers: [],
-      transferMarket, shortlist: [], scoutWatchList: [], freeAgents: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
+      transferMarket, shortlist: [], scoutWatchList: [], freeAgents: [], transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
       messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', currentCupTieId: null,
       settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: false },
@@ -1601,20 +1600,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // ── Multi-week Storyline Chains ──
-    const updatedChains: ActiveStorylineChain[] = [...(state.activeStorylineChains || [])];
-
-    // Advance existing chains — check if a step is due this week
-    for (let ci = updatedChains.length - 1; ci >= 0; ci--) {
-      const chain = updatedChains[ci];
+    const updatedChains: ActiveStorylineChain[] = (state.activeStorylineChains || []).reduce<ActiveStorylineChain[]>((kept, chain) => {
       const chainDef = STORYLINE_CHAINS.find(c => c.id === chain.chainId);
-      if (!chainDef) { updatedChains.splice(ci, 1); continue; }
+      if (!chainDef) return kept; // Remove chains with no definition
 
       const nextStepIdx = chain.currentStep + 1;
-      if (nextStepIdx >= chainDef.steps.length) {
-        // Chain complete — remove
-        updatedChains.splice(ci, 1);
-        continue;
-      }
+      if (nextStepIdx >= chainDef.steps.length) return kept; // Chain complete — remove
 
       const nextStep = chainDef.steps[nextStepIdx];
       const dueWeek = chain.startWeek + nextStep.weekOffset;
@@ -1625,8 +1616,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           const prevChoice = chain.choices[chain.choices.length - 1];
           if (prevChoice !== nextStep.requiredPrevChoice) {
             // Skip this step — try the next one or end the chain
-            updatedChains[ci] = { ...chain, currentStep: nextStepIdx };
-            continue;
+            kept.push({ ...chain, currentStep: nextStepIdx });
+            return kept;
           }
         }
 
@@ -1639,10 +1630,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             icon: nextStep.icon,
             options: nextStep.options,
           };
-          updatedChains[ci] = { ...chain, currentStep: nextStepIdx };
+          kept.push({ ...chain, currentStep: nextStepIdx });
+        } else {
+          kept.push(chain);
         }
+      } else {
+        kept.push(chain);
       }
-    }
+      return kept;
+    }, []);
 
     // Try to start a new chain (max 1 active, 15% chance per week)
     if (updatedChains.length === 0 && Math.random() < STORYLINE_CHAIN_TRIGGER_CHANCE && newWeek >= STORYLINE_CHAIN_MIN_WEEK) {
@@ -1700,9 +1696,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // Transfer window messages
-    if (newWeek === WINDOW_CLOSING_WEEK - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Transfer Deadline Approaching', body: 'The summer transfer window closes next week. Finalise any deals now!' });
-    if (newWeek === WINDOW_CLOSING_WEEK) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Window Closing', body: 'The transfer window closes this week. Make your final moves!' });
-    if (newWeek === WINDOW_OPENING_WEEK) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'January Window Opens', body: 'The winter transfer window is now open until Week 24.' });
+    if (newWeek === SUMMER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Transfer Deadline Approaching', body: 'The summer transfer window closes next week. Finalise any deals now!' });
+    if (newWeek === SUMMER_WINDOW_END) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Window Closing', body: 'The transfer window closes this week. Make your final moves!' });
+    if (newWeek === WINTER_WINDOW_START) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'January Window Opens', body: 'The winter transfer window is now open until Week 24.' });
     if (newWeek === WINTER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Winter Deadline Approaching', body: 'The winter transfer window closes next week. Last chance for January deals!' });
     if (newWeek === WINTER_WINDOW_END) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Winter Window Closed', body: 'The January transfer window has closed. No more transfers until next season.' });
 
@@ -2149,110 +2145,32 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
-    // AI inter-club transfers: during transfer windows, AI clubs buy from each other
-    // Transfer chance is influenced by manager profile's transferAggression
-    if (transferWindowOpen && Math.random() < AI_TRANSFER_CHANCE) {
-      const latestState = get();
-      const latestPlayers = { ...latestState.players };
-      const latestClubs = { ...latestState.clubs };
-      const aiClubIds = Object.keys(latestClubs).filter(id => id !== playerClubId);
-      const buyerClubId = pick(aiClubIds);
-      const buyerClub = { ...latestClubs[buyerClubId] };
-      const buyerProfile = buyerClub.aiManagerProfile;
-
-      // Profile-driven transfer aggression: skip if manager isn't aggressive enough
-      const aggressionThreshold = buyerProfile ? (1 - buyerProfile.transferAggression) : 0.5;
-      if (Math.random() >= aggressionThreshold) {
-        // Find weakest position in buyer's squad
-        const buyerSquad = buyerClub.playerIds.map(id => latestPlayers[id]).filter(Boolean);
-        const positionCounts: Record<string, number> = {};
-        buyerSquad.forEach(p => { positionCounts[p.position] = (positionCounts[p.position] || 0) + 1; });
-        const weakPos = (['GK', 'CB', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'] as Position[])
-          .filter(pos => (positionCounts[pos] || 0) < 2)
-          .sort((a, b) => (positionCounts[a] || 0) - (positionCounts[b] || 0))[0];
-        if (weakPos) {
-          // Find a seller with surplus at that position
-          const sellerIds = aiClubIds.filter(id => id !== buyerClubId);
-          for (const sellerId of sellerIds) {
-            const seller = latestClubs[sellerId];
-            const sellerSquad = seller.playerIds.map(id => latestPlayers[id]).filter(Boolean);
-            const surplus = sellerSquad.filter(p => p.position === weakPos && !seller.lineup.includes(p.id));
-            if (surplus.length > 0 && buyerClub.budget > AI_TRANSFER_MIN_BUDGET) {
-              // Youth-focused managers prefer younger, cheaper targets
-              const youthFocus = buyerProfile?.youthFocus ?? 0.5;
-              const sortedSurplus = [...surplus].sort((a, b) => {
-                if (youthFocus > 0.6) {
-                  // Prefer younger players, weight potential over overall
-                  return (b.potential - a.potential) || (a.age - b.age);
-                }
-                // Default: prefer best overall
-                return b.overall - a.overall;
-              });
-              const target = sortedSurplus[0];
-
-              // Youth-focused managers skip old players; experience-focused skip low-overall
-              if (youthFocus > 0.6 && target.age > 26) continue;
-              if (youthFocus < 0.3 && target.overall < 70) continue;
-
-              const fee = Math.round(target.value * (AI_TRANSFER_FEE_BASE + Math.random() * AI_TRANSFER_FEE_RANGE));
-              if (fee <= buyerClub.budget * AI_TRANSFER_MAX_BUDGET_RATIO) {
-                // Execute transfer
-                const updSeller = { ...latestClubs[sellerId] };
-                updSeller.playerIds = updSeller.playerIds.filter(id => id !== target.id);
-                updSeller.lineup = updSeller.lineup.filter(id => id !== target.id);
-                updSeller.subs = updSeller.subs.filter(id => id !== target.id);
-                updSeller.budget += fee;
-                updSeller.wageBill -= target.wage;
-                buyerClub.playerIds = [...buyerClub.playerIds, target.id];
-                buyerClub.budget -= fee;
-                buyerClub.wageBill += target.wage;
-                latestPlayers[target.id] = { ...target, clubId: buyerClubId };
-                latestClubs[sellerId] = updSeller;
-                latestClubs[buyerClubId] = buyerClub;
-                set({ players: latestPlayers, clubs: latestClubs });
-                break;
-              }
-            }
-          }
-        }
-      }
-    }
-
-    // AI free agent signings: AI clubs occasionally sign from the free agent pool
+    // Advanced AI simulation: income, contracts, transfers, loans, free agents
     {
-      const faState = get();
-      if (faState.freeAgents.length > 0) {
-        let updatedFreeAgents = [...faState.freeAgents];
-        const faPlayers = { ...faState.players };
-        const faClubs = { ...faState.clubs };
-        let changed = false;
-        const aiClubIds = Object.keys(faClubs).filter(id => id !== playerClubId);
-        for (const aiClubId of aiClubIds) {
-          if (updatedFreeAgents.length === 0) break;
-          if (Math.random() >= AI_FREE_AGENT_SIGN_CHANCE) continue;
-          const club = { ...faClubs[aiClubId] };
-          const squad = club.playerIds.map(id => faPlayers[id]).filter(Boolean);
-          const posCounts: Record<string, number> = {};
-          squad.forEach(p => { posCounts[p.position] = (posCounts[p.position] || 0) + 1; });
-          const weakPos = (['GK', 'CB', 'LB', 'RB', 'CM', 'LW', 'RW', 'ST'] as Position[])
-            .filter(pos => (posCounts[pos] || 0) < 2)[0];
-          if (!weakPos) continue;
-          const candidate = updatedFreeAgents
-            .map(id => faPlayers[id]).filter(Boolean)
-            .find(p => p.position === weakPos);
-          if (!candidate) continue;
-          // Sign the free agent
-          faPlayers[candidate.id] = { ...candidate, clubId: aiClubId, contractEnd: faState.season + 1 + Math.floor(Math.random() * 2) };
-          club.playerIds = [...club.playerIds, candidate.id];
-          club.wageBill += candidate.wage;
-          faClubs[aiClubId] = club;
-          updatedFreeAgents = updatedFreeAgents.filter(id => id !== candidate.id);
-          changed = true;
-        }
-        if (changed) {
-          set({ players: faPlayers, clubs: faClubs, freeAgents: updatedFreeAgents });
-        }
-      }
+      const aiState = get();
+      const aiResult = processAIWeekly(
+        aiState.clubs,
+        aiState.players,
+        aiState.messages,
+        aiState.transferMarket,
+        aiState.freeAgents,
+        aiState.activeLoans,
+        aiState.transferNews || [],
+        aiState.divisionTables,
+        newWeek,
+        season,
+        playerClubId,
+        transferWindowOpen,
+      );
+      set({
+        clubs: aiResult.clubs,
+        players: aiResult.players,
+        messages: aiResult.messages,
+        transferMarket: aiResult.transferMarket,
+        freeAgents: aiResult.freeAgents,
+        activeLoans: aiResult.activeLoans,
+        transferNews: aiResult.transferNews,
+      });
     }
 
     // Auto-save after advancing week
@@ -2735,6 +2653,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sponsorOffers: state.sponsorOffers,
       sponsorSlotCooldowns: state.sponsorSlotCooldowns,
       merchandise: state.merchandise,
+      transferNews: state.transferNews || [],
       halfTimeState: state.halfTimeState,
       matchPhase: state.matchPhase,
       currentCupTieId: state.currentCupTieId,
@@ -2822,6 +2741,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         lastMatchXPGain: data.lastMatchXPGain ?? 0,
         scoutWatchList: data.scoutWatchList || [],
         freeAgents: data.freeAgents || [],
+        transferNews: data.transferNews || [],
         sponsorDeals: data.sponsorDeals || [],
         sponsorOffers: data.sponsorOffers || [],
         sponsorSlotCooldowns: data.sponsorSlotCooldowns || {},
@@ -2844,7 +2764,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       messages: [], seasonHistory: [], incomingOffers: [],
       matchPlayerRatings: [], halfTimeState: null, matchPhase: 'none' as const,
       currentMatchResult: null, matchSubsUsed: 0, currentCupTieId: null,
-      transferMarket: [], shortlist: [], scoutWatchList: [],
+      transferMarket: [], shortlist: [], scoutWatchList: [], transferNews: [],
       activeLoans: [], incomingLoanOffers: [],
       cup: { ties: [], currentRound: null, eliminated: false, winner: null },
       pendingPressConference: null, activeNegotiation: null,

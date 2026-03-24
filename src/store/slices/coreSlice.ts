@@ -1,4 +1,4 @@
-import { GameScreen, GameSettings, DivisionId, SeasonPhase } from '@/types/game';
+import { GameScreen, GameSettings, DivisionId, SeasonPhase, TransferNewsEntry } from '@/types/game';
 import type { GameState } from '../storeTypes';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -21,6 +21,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   seasonHistory: [] as GameState['seasonHistory'],
   settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: false } as GameSettings,
   activeSlot: 1,
+  transferNews: [] as TransferNewsEntry[],
 
   // Division system defaults
   seasonPhase: 'regular' as SeasonPhase,
