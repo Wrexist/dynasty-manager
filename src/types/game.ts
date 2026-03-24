@@ -285,6 +285,21 @@ export interface IncomingLoanOffer {
   obligatoryBuyFee?: number;
 }
 
+export interface TransferNewsEntry {
+  id: string;
+  week: number;
+  season: number;
+  type: 'transfer' | 'loan' | 'free_agent';
+  playerName: string;
+  playerPosition: Position;
+  playerOverall: number;
+  playerAge: number;
+  fromClubId: string;
+  toClubId: string;
+  fee?: number;
+  loanDuration?: number;
+}
+
 export interface BoardObjective {
   id: string;
   description: string;

@@ -4,7 +4,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users, Search, Calendar } from 'lucide-react';
+import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users, Search, Calendar, Newspaper } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
@@ -17,6 +17,7 @@ import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
+import { formatMoney } from '@/utils/helpers';
 import { SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE } from '@/config/ui';
 import { getFlag } from '@/utils/nationality';
 
@@ -29,10 +30,11 @@ const TransferPage = () => {
     week, season, totalWeeks,
     freeAgents, signFreeAgent,
     setScreen, scouting,
+    transferNews,
   } = useGameStore();
 
   const [posFilter, setPosFilter] = useState(0);
-  const [tab, setTab] = useState<'market' | 'shortlist' | 'incoming' | 'outgoing' | 'loans' | 'freeAgents'>('market');
+  const [tab, setTab] = useState<'market' | 'shortlist' | 'incoming' | 'outgoing' | 'loans' | 'freeAgents' | 'news'>('market');
   const [signingPlayer, setSigningPlayer] = useState<string | null>(null);
   const [offerWage, setOfferWage] = useState(0);
   const [offerYears, setOfferYears] = useState(2);
@@ -208,6 +210,7 @@ const TransferPage = () => {
           { id: 'outgoing' as const, icon: ArrowUpRight, label: `Outgoing (${outgoingPlayers.length})` },
           { id: 'loans' as const, icon: Repeat2, label: `Loans (${activeLoans.length})` },
           { id: 'freeAgents' as const, icon: Users, label: `Free (${freeAgents.length})` },
+          { id: 'news' as const, icon: Newspaper, label: `News (${(transferNews || []).length})` },
         ] as const).map(({ id, icon: TabIcon, label }) => (
           <button
             key={id}
@@ -679,6 +682,75 @@ const TransferPage = () => {
             <p className="text-sm text-muted-foreground text-center py-8">
               {freeAgents.length === 0 ? 'No free agents available. Players become free agents when their contracts expire at season end.' : 'No free agents match your filters.'}
             </p>
+          )}
+        </div>
+      )}
+
+      {/* Transfer News Feed */}
+      {tab === 'news' && (
+        <div className="space-y-2">
+          {(transferNews || []).length > 0 ? (
+            [...(transferNews || [])].reverse().map((entry, i) => {
+              const fromClub = clubs[entry.fromClubId];
+              const toClub = clubs[entry.toClubId];
+              return (
+                <motion.div
+                  key={entry.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.2 }}
+                >
+                  <GlassPanel className="p-3">
+                    <div className="flex items-start gap-3">
+                      <div className={cn(
+                        'w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold',
+                        entry.type === 'transfer' ? 'bg-primary/15 text-primary' :
+                        entry.type === 'loan' ? 'bg-amber-500/15 text-amber-400' :
+                        'bg-emerald-500/15 text-emerald-400'
+                      )}>
+                        {entry.type === 'transfer' ? <ArrowUpRight className="w-4 h-4" /> :
+                         entry.type === 'loan' ? <Repeat2 className="w-4 h-4" /> :
+                         <Users className="w-4 h-4" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-foreground">{entry.playerName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {entry.playerPosition} {'\u2022'} {entry.playerAge}y {'\u2022'} {entry.playerOverall} OVR
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {entry.type === 'free_agent' ? (
+                            <>Signed by <span className="text-foreground">{toClub?.shortName || '?'}</span> (free agent)</>
+                          ) : (
+                            <>
+                              <span className="text-foreground">{fromClub?.shortName || '?'}</span>
+                              {' → '}
+                              <span className="text-foreground">{toClub?.shortName || '?'}</span>
+                              {entry.type === 'loan' && entry.loanDuration && ` (${entry.loanDuration}wk loan)`}
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        {entry.fee ? (
+                          <span className="text-sm font-bold text-primary">{formatMoney(entry.fee)}</span>
+                        ) : entry.type === 'loan' ? (
+                          <span className="text-xs font-medium text-amber-400">LOAN</span>
+                        ) : (
+                          <span className="text-xs font-medium text-emerald-400">FREE</span>
+                        )}
+                        <p className="text-[10px] text-muted-foreground">Wk {entry.week}</p>
+                      </div>
+                    </div>
+                  </GlassPanel>
+                </motion.div>
+              );
+            })
+          ) : (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
+              <Newspaper className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+              <p className="text-sm text-muted-foreground">No transfer activity yet this season</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">AI club transfers and loans will appear here</p>
+            </motion.div>
           )}
         </div>
       )}
