@@ -23,6 +23,7 @@ import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils
 import { SUMMER_WINDOW_END, WINTER_WINDOW_END } from '@/config/transfers';
 import type { Celebration } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
+import { CELEBRATION_STAGGER_MS, ADVANCE_DONE_MS } from '@/config/ui';
 import { CelebrationModal } from '@/components/game/CelebrationModal';
 import { StorylineModal } from '@/components/game/StorylineModal';
 import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal';
@@ -164,7 +165,7 @@ const Dashboard = () => {
       }
       if (minorOnes.length > 0) hapticMedium();
       minorOnes.forEach((c, i) => {
-        setTimeout(() => celebrationToast(c.title, c.description), i * 800);
+        setTimeout(() => celebrationToast(c.title, c.description), i * CELEBRATION_STAGGER_MS);
       });
     }
     prevWeekRef.current = week;
@@ -572,7 +573,7 @@ const Dashboard = () => {
               setIsAdvancing(false);
               setAdvanceDone(true);
               hapticHeavy();
-              setTimeout(() => setAdvanceDone(false), 300);
+              setTimeout(() => setAdvanceDone(false), ADVANCE_DONE_MS);
             }, 50);
           }}>
             {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}

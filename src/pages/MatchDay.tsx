@@ -16,7 +16,7 @@ import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
 import { infoToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
-import { PAGE_HINTS } from '@/config/ui';
+import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
 import { getActiveCosmetic } from '@/utils/monetization';
 
 const isGoalEvent = (e: MatchEvent) => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored';
@@ -268,7 +268,7 @@ const MatchDay = () => {
       hapticHeavy();
       setGoalFlash(true);
       clearTimeout(goalFlashTimerRef.current);
-      goalFlashTimerRef.current = setTimeout(() => setGoalFlash(false), 600);
+      goalFlashTimerRef.current = setTimeout(() => setGoalFlash(false), GOAL_FLASH_MS);
     }
     prevGoalCountRef.current = goalCount;
     return () => clearTimeout(goalFlashTimerRef.current);

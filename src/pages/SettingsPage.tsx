@@ -9,6 +9,7 @@ import { removeFlag, clearFlagsByPrefix } from '@/store/helpers/persistence';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
+import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 
 const APP_VERSION = 'v0.2 Alpha · Football Edition';
 
@@ -53,7 +54,7 @@ const SettingsPage = () => {
     saveGame();
     setSaved(true);
     clearTimeout(savedTimerRef.current);
-    savedTimerRef.current = setTimeout(() => setSaved(false), 2000);
+    savedTimerRef.current = setTimeout(() => setSaved(false), SAVE_CONFIRMATION_MS);
   };
 
   const handleReset = () => {

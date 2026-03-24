@@ -7,14 +7,18 @@ import { useScrollLock } from '@/hooks/useScrollLock';
 
 export function FarewellModal() {
   const { pendingFarewell, dismissFarewell } = useGameStore();
+  const current = pendingFarewell[0];
 
-  useScrollLock(!!pendingFarewell);
+  useScrollLock(!!current);
 
-  if (!pendingFarewell) return null;
+  if (!current) return null;
+
+  const remaining = pendingFarewell.length - 1;
 
   return (
     <AnimatePresence>
       <motion.div
+        key={current.playerId}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -33,17 +37,17 @@ export function FarewellModal() {
               <Heart className="w-10 h-10 text-primary mx-auto mb-2" />
               <h3 className="text-lg font-black font-display text-foreground">Farewell</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                {pendingFarewell.playerName} has left the club.
+                {current.playerName} has left the club.
               </p>
-              {pendingFarewell.seasonsServed > 0 && (
+              {current.seasonsServed > 0 && (
                 <p className="text-xs text-primary mt-1 font-semibold">
-                  {pendingFarewell.seasonsServed} season{pendingFarewell.seasonsServed !== 1 ? 's' : ''} of service
+                  {current.seasonsServed} season{current.seasonsServed !== 1 ? 's' : ''} of service
                 </p>
               )}
             </div>
 
             <div className="grid grid-cols-4 gap-2 mb-4">
-              {pendingFarewell.stats.map((stat) => (
+              {current.stats.map((stat) => (
                 <div key={stat.label} className="text-center">
                   <p className="text-lg font-black text-foreground tabular-nums">{stat.value}</p>
                   <p className="text-[10px] text-muted-foreground">{stat.label}</p>
@@ -56,7 +60,7 @@ export function FarewellModal() {
             </p>
 
             <Button variant="outline" className="w-full" onClick={dismissFarewell}>
-              Farewell
+              {remaining > 0 ? `Farewell (${remaining} more)` : 'Farewell'}
             </Button>
           </GlassPanel>
         </motion.div>

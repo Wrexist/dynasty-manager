@@ -7,6 +7,7 @@ import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation'
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 import { useFlash } from '@/hooks/useFlash';
+import { SAVE_INDICATOR_MS, XP_GLOW_MS } from '@/config/ui';
 
 export function TopBar() {
   const { season, week, totalWeeks, playerClubId, clubs, leagueTable, saveGame, currentScreen, previousScreen, setScreen, managerProgression } = useGameStore();
@@ -23,7 +24,7 @@ export function TopBar() {
     saveGame();
     hapticMedium();
     setSaveState('saved');
-    setTimeout(() => setSaveState('idle'), 1200);
+    setTimeout(() => setSaveState('idle'), SAVE_INDICATOR_MS);
   };
 
   // XP bar glow on gain
@@ -32,7 +33,7 @@ export function TopBar() {
   useEffect(() => {
     if (xpProgress.percentage > prevXpRef.current) {
       setXpGlow(true);
-      const timer = setTimeout(() => setXpGlow(false), 1500);
+      const timer = setTimeout(() => setXpGlow(false), XP_GLOW_MS);
       return () => clearTimeout(timer);
     }
     prevXpRef.current = xpProgress.percentage;

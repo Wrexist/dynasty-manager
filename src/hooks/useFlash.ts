@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
+import { FLASH_DURATION_MS } from '@/config/ui';
 
 /**
  * Returns a CSS class that briefly highlights when the watched value changes.
- * Uses a gold glow that fades out over 600ms.
+ * Uses a gold glow that fades out over FLASH_DURATION_MS.
  */
 export function useFlash(value: number | string): string {
   const prevRef = useRef(value);
@@ -14,7 +15,7 @@ export function useFlash(value: number | string): string {
       prevRef.current = value;
       setFlashing(true);
       clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => setFlashing(false), 600);
+      timeoutRef.current = setTimeout(() => setFlashing(false), FLASH_DURATION_MS);
     }
     return () => clearTimeout(timeoutRef.current);
   }, [value]);
