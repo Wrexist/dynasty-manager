@@ -151,7 +151,7 @@ src/
 - **Loans:** Separate loan system via `loanSlice.ts` — incoming/outgoing loan offers and deals.
 - **Season end:** `endSeason()` — age, contracts, replacements, new fixtures, reset stats, promotion/relegation.
 - **Promotion/Relegation:** Handled by `utils/promotionRelegation.ts` and `utils/playoffs.ts`. Playoff system for lower divisions.
-- **Persistence:** `saveGame()`/`loadGame()` via localStorage key `'dynasty-save'` (save version: **9**, migration in `utils/saveMigration.ts`).
+- **Persistence:** `saveGame()`/`loadGame()` via localStorage key `'dynasty-save'` (save version: **20**, migration in `utils/saveMigration.ts`).
 - **Progression:** Manager perks, prestige system, achievements, milestones, Hall of Managers.
 - **Narratives:** Storyline chains (`data/storylineChains.ts`), press conferences, player narratives.
 
