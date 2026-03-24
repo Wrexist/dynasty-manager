@@ -4,7 +4,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { cn } from '@/lib/utils';
 import { Position } from '@/types/game';
-import { Tag, TrendingUp, TrendingDown, HeartPulse, Users } from 'lucide-react';
+import { Tag, TrendingUp, TrendingDown, HeartPulse, Users, Dumbbell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, getFitnessColor, getMoraleBgColor } from '@/utils/uiHelpers';
 import { successToast } from '@/utils/gameToast';
@@ -26,7 +26,7 @@ type StatusFilter = 'injured' | 'listed' | 'expiring';
 const SORT_OPTIONS: SortKey[] = ['overall', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
 
 const SquadPage = () => {
-  const { playerClubId, clubs, players, selectPlayer, listPlayerForSale, season } = useGameStore();
+  const { playerClubId, clubs, players, selectPlayer, listPlayerForSale, season, training } = useGameStore();
   const [posFilter, setPosFilter] = useState(0);
   const [sortBy, setSortBy] = useState<SortKey>('overall');
   const [statusFilters, setStatusFilters] = useState<Set<StatusFilter>>(new Set());
@@ -253,6 +253,9 @@ const SquadPage = () => {
                       {player.position}
                     </span>
                     <span className="text-[10px] text-muted-foreground tabular-nums">{player.age}y</span>
+                    {(training.individualPlans || []).some(p => p.playerId === player.id) && (
+                      <Dumbbell className="w-3 h-3 text-primary/70 shrink-0" title="Individual training plan set" />
+                    )}
                   </div>
                 </div>
 

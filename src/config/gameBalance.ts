@@ -366,17 +366,7 @@ export const FFP_CONFIDENCE_PENALTY = 3;
 export const FFP_CRITICAL_CONFIDENCE_PENALTY = 6;
 
 // ── Training Focus Development ──
-/** Extra growth chance for attributes matching the player's training focus */
-export const TRAINING_FOCUS_BONUS = 0.03;
-/** Map training modules to boosted attribute groups */
-export const TRAINING_FOCUS_ATTR_MAP: Record<string, string[]> = {
-  attacking: ['shooting', 'passing'],
-  defending: ['defending', 'physical'],
-  fitness: ['pace', 'physical'],
-  mentality: ['mental', 'passing'],
-  'set-pieces': ['shooting', 'passing'],
-  tactical: ['mental', 'passing'],
-};
+// MODULE_ATTR_MAP and TRAINING_FOCUS_BONUS are now in src/config/training.ts (single source of truth)
 
 // ── Player Unhappiness ──
 /** Morale threshold below which unhappiness weeks accumulate */

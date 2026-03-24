@@ -1,4 +1,4 @@
-import { Player, TrainingState, TrainingModule } from '@/types/game';
+import { Player, PlayerAttributes, TrainingState, TrainingModule } from '@/types/game';
 import { clamp } from './helpers';
 import { calculateOverall } from './playerGen';
 import { getTrainingMultiplier } from './personality';
@@ -38,6 +38,7 @@ export function applyWeeklyTraining(
   const staffMult = 1 + staffBonus * STAFF_BONUS_MULTIPLIER; // up to 1.5x with quality 10
 
   // Apply attribute gains per module (respecting season growth cap)
+  const gains: Partial<Record<keyof PlayerAttributes, number>> = {};
   const priorGrowth = seasonGrowthTracker[player.id] || 0;
   if (priorGrowth < MAX_SEASON_GROWTH) {
     for (const [mod, count] of Object.entries(moduleCounts) as [TrainingModule, number][]) {
@@ -53,10 +54,12 @@ export function applyWeeklyTraining(
         const gainChance = BASE_GAIN_CHANCE * count * mult * staffMult * individualBonus * personalityMult;
         if (Math.random() < gainChance) {
           updated.attributes[attr] = clamp(updated.attributes[attr] + 1);
+          gains[attr] = (gains[attr] || 0) + 1;
         }
       }
     }
   }
+  updated.lastTrainingGains = Object.keys(gains).length > 0 ? gains : undefined;
 
   // Fitness recovery/drain (recovery facility bonus: +0.5 fitness per level per week)
   const fitnessDays = moduleCounts['fitness'] || 0;
@@ -82,6 +85,61 @@ export function getInjuryRisk(training: TrainingState, playerAge?: number): numb
   const baseRisk = INTENSITY_INJURY_RISK[training.intensity];
   const ageFactor = playerAge && playerAge > TRAINING_INJURY_AGE_THRESHOLD ? 1 + (playerAge - TRAINING_INJURY_AGE_THRESHOLD) * TRAINING_INJURY_AGE_FACTOR : 1;
   return baseRisk * ageFactor;
+}
+
+/** Returns the most-scheduled training module across the 5-day week (ties broken by earliest day) */
+export function getDominantTrainingFocus(schedule: TrainingState['schedule']): TrainingModule {
+  const days: TrainingModule[] = [schedule.mon, schedule.tue, schedule.wed, schedule.thu, schedule.fri];
+  const counts: Partial<Record<TrainingModule, number>> = {};
+  days.forEach(mod => { counts[mod] = (counts[mod] || 0) + 1; });
+  let maxMod: TrainingModule = days[0];
+  let maxCount = 0;
+  for (const [mod, count] of Object.entries(counts) as [TrainingModule, number][]) {
+    if (count > maxCount) { maxCount = count; maxMod = mod; }
+  }
+  return maxMod;
+}
+
+/** Suggests a training module based on the squad's weakest attribute area */
+export function getTrainingRecommendation(squadPlayers: Player[]): { module: TrainingModule; reason: string } | null {
+  if (squadPlayers.length === 0) return null;
+
+  const attrAvgs: Record<string, number> = {};
+  const attrKeys: (keyof PlayerAttributes)[] = ['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'];
+  for (const attr of attrKeys) {
+    const sum = squadPlayers.reduce((acc, p) => acc + (p.attributes[attr] || 0), 0);
+    attrAvgs[attr] = sum / squadPlayers.length;
+  }
+
+  // Find the weakest attribute and map it to a training module
+  let weakestAttr = attrKeys[0];
+  let weakestAvg = attrAvgs[weakestAttr];
+  for (const attr of attrKeys) {
+    if (attrAvgs[attr] < weakestAvg) {
+      weakestAvg = attrAvgs[attr];
+      weakestAttr = attr;
+    }
+  }
+
+  // Map attribute to best training module
+  const attrToModule: Record<string, TrainingModule> = {
+    pace: 'fitness', shooting: 'attacking', passing: 'mentality',
+    defending: 'defending', physical: 'fitness', mental: 'mentality',
+  };
+  const moduleLabels: Record<TrainingModule, string> = {
+    fitness: 'Fitness', attacking: 'Attacking', defending: 'Defending',
+    mentality: 'Mentality', 'set-pieces': 'Set Pieces', tactical: 'Tactical',
+  };
+  const attrLabels: Record<string, string> = {
+    pace: 'pace', shooting: 'shooting', passing: 'passing',
+    defending: 'defending', physical: 'physicality', mental: 'mentality',
+  };
+
+  const module = attrToModule[weakestAttr];
+  return {
+    module,
+    reason: `${moduleLabels[module]} — squad ${attrLabels[weakestAttr]} average is ${weakestAvg.toFixed(1)}`,
+  };
 }
 
 export function updateTacticalFamiliarity(training: TrainingState, current: number): number {
