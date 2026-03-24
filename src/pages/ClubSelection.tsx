@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { CLUBS_DATA, DIVISIONS } from '@/data/league';
+import { NATIONS } from '@/data/nations';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Wallet, Users, Zap, Crown, Shield, TrendingUp, Target, Pickaxe, Loader2 } from 'lucide-react';
+import { ArrowLeft, Star, Wallet, Users, Zap, Crown, Shield, TrendingUp, Target, Pickaxe, Loader2, Globe, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { DivisionId } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
@@ -47,23 +48,34 @@ const divisionMeta: Record<string, {
   },
 };
 
+// Group nations by confederation for display
+const CONFEDERATION_LABELS: Record<string, string> = {
+  UEFA: 'Europe',
+  CONMEBOL: 'South America',
+  CAF: 'Africa',
+  AFC: 'Asia',
+  CONCACAF: 'North & Central America',
+};
+
 const ClubSelection = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { initGame } = useGameStore();
-  const [step, setStep] = useState<'league' | 'club'>('league');
+  const { initGame, initNationalTeam } = useGameStore();
+  const [step, setStep] = useState<'nationality' | 'league' | 'club'>('nationality');
+  const [selectedNationality, setSelectedNationality] = useState<string | null>(null);
   const [selectedLeague, setSelectedLeague] = useState<DivisionId | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [nationSearch, setNationSearch] = useState('');
 
   const handleStart = () => {
-    if (!selected || loading) return;
+    if (!selected || !selectedNationality || loading) return;
     setLoading(true);
-    // Defer heavy init to next frame so the loading spinner renders first
     requestAnimationFrame(() => {
       try {
         const pendingSlot = (location.state as { slot?: number })?.slot || 1;
         initGame(selected);
+        initNationalTeam(selectedNationality);
         useGameStore.setState({ activeSlot: pendingSlot });
         try { useGameStore.getState().saveGame(pendingSlot); } catch { /* save failure shouldn't block navigation */ }
         navigate('/game');
@@ -73,6 +85,12 @@ const ClubSelection = () => {
         setLoading(false);
       }
     });
+  };
+
+  const handleNationalitySelect = (name: string) => {
+    setSelectedNationality(name);
+    setStep('league');
+    window.scrollTo(0, 0);
   };
 
   const handleLeagueSelect = (divisionId: DivisionId) => {
@@ -86,6 +104,9 @@ const ClubSelection = () => {
     if (step === 'club') {
       setStep('league');
       setSelected(null);
+      setSelectedLeague(null);
+    } else if (step === 'league') {
+      setStep('nationality');
       setSelectedLeague(null);
     } else {
       navigate('/');
@@ -112,7 +133,12 @@ const ClubSelection = () => {
               exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.2 }}
             >
-              {step === 'league' ? (
+              {step === 'nationality' ? (
+                <>
+                  <h1 className="text-lg font-bold text-foreground font-display">Your Nationality</h1>
+                  <p className="text-xs text-muted-foreground">You'll manage this national team too</p>
+                </>
+              ) : step === 'league' ? (
                 <>
                   <h1 className="text-lg font-bold text-foreground font-display">Choose Your Challenge</h1>
                   <p className="text-xs text-muted-foreground">Where does your story begin?</p>
@@ -131,7 +157,80 @@ const ClubSelection = () => {
       {/* Content */}
       <div className="max-w-lg mx-auto px-4 py-5 pb-32">
         <AnimatePresence mode="wait">
-          {step === 'league' ? (
+          {step === 'nationality' ? (
+            <motion.div
+              key="nationality-step"
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -30 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-4"
+            >
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search nations..."
+                  value={nationSearch}
+                  onChange={e => setNationSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-card/60 border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
+
+              {Object.entries(CONFEDERATION_LABELS).map(([conf, label]) => {
+                const nations = NATIONS
+                  .filter(n => n.confederation === conf)
+                  .filter(n => !nationSearch || n.name.toLowerCase().includes(nationSearch.toLowerCase()))
+                  .sort((a, b) => a.baseRanking - b.baseRanking);
+                if (nations.length === 0) return null;
+
+                return (
+                  <div key={conf}>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
+                      {label}
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2">
+                      {nations.map((nation, i) => (
+                        <motion.div
+                          key={nation.name}
+                          initial={{ opacity: 0, y: 12 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.02 }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => handleNationalitySelect(nation.name)}
+                            className={cn(
+                              'relative overflow-hidden rounded-xl border cursor-pointer w-full text-left',
+                              'active:scale-[0.97] transition-all duration-200 p-3',
+                              'bg-card/40 backdrop-blur-xl',
+                              selectedNationality === nation.name
+                                ? 'ring-2 ring-primary border-primary/30 bg-primary/5'
+                                : 'border-border/30 hover:border-border/60'
+                            )}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div
+                                className="w-8 h-8 rounded-lg shrink-0 flex items-center justify-center shadow-md"
+                                style={{ backgroundColor: nation.color }}
+                              >
+                                <Globe className="w-4 h-4" style={{ color: nation.secondaryColor }} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
+                                <p className="text-[10px] text-muted-foreground">Rank #{nation.baseRanking}</p>
+                              </div>
+                            </div>
+                          </button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </motion.div>
+          ) : step === 'league' ? (
             <motion.div
               key="league-step"
               initial={{ opacity: 0, x: -30 }}

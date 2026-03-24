@@ -63,9 +63,9 @@ export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LM' |
 
 export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' | '3-4-3' | '5-3-2';
 
-export type SeasonPhase = 'regular' | 'playoffs' | 'offseason';
+export type SeasonPhase = 'regular' | 'playoffs' | 'offseason' | 'international';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament';
 
 export interface PlayerAttributes {
   pace: number;
@@ -145,6 +145,8 @@ export interface Player {
   isFromYouthAcademy?: boolean; // true if player was promoted from youth academy
   wantsToLeave?: boolean; // player has submitted a transfer request
   lowMoraleWeeks?: number; // consecutive weeks with morale below threshold
+  internationalCaps?: number;
+  internationalGoals?: number;
 }
 
 export interface Club {
@@ -930,4 +932,87 @@ export interface MonetizationState {
   starterKitDismissed: boolean;
   /** Active subscription info, null if no subscription */
   subscription: SubscriptionInfo | null;
+}
+
+// ── National Team System ──
+
+export interface NationalTeamState {
+  nationality: string;
+  squad: string[];                        // player IDs called up (max 23)
+  lineup: string[];                       // starting 11 player IDs
+  subs: string[];                         // bench player IDs (up to 7)
+  formation: FormationType;
+  fifaRanking: number;                    // 1-51, used for seeding
+  caps: Record<string, number>;           // playerId -> total caps
+  internationalGoals: Record<string, number>; // playerId -> intl goals
+  results: NationalTeamResult[];
+}
+
+export interface NationalTeamResult {
+  season: number;
+  opponent: string;                       // nationality name
+  goalsFor: number;
+  goalsAgainst: number;
+  tournament: string;                     // "World Cup Group A", "Friendly", etc.
+  round: string;
+}
+
+// ── International Tournament ──
+
+export type InternationalTournamentType = 'world-cup' | 'continental';
+
+export type InternationalKnockoutRound = 'R16' | 'QF' | 'SF' | 'F';
+
+export interface InternationalTournamentState {
+  type: InternationalTournamentType;
+  name: string;                           // "World Cup Season 4", "Continental Cup Season 2"
+  season: number;
+  phase: 'group' | 'knockout' | 'complete';
+  groups: InternationalGroup[];
+  knockoutTies: InternationalKnockoutTie[];
+  currentRound: InternationalKnockoutRound | null;
+  playerEliminated: boolean;
+  winner: string | null;                  // nationality name
+  currentWeek: number;                    // tracks which international week we're on (47-52)
+}
+
+export interface InternationalGroup {
+  name: string;                           // "Group A", "Group B", etc.
+  teams: string[];                        // nationality names
+  fixtures: InternationalFixture[];
+  table: InternationalGroupEntry[];
+}
+
+export interface InternationalGroupEntry {
+  nationality: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  points: number;
+}
+
+export interface InternationalFixture {
+  id: string;
+  homeNation: string;
+  awayNation: string;
+  played: boolean;
+  homeGoals: number;
+  awayGoals: number;
+  week: number;                           // international break week (47-52)
+}
+
+export interface InternationalKnockoutTie {
+  id: string;
+  round: InternationalKnockoutRound;
+  homeNation: string;
+  awayNation: string;
+  played: boolean;
+  homeGoals: number;
+  awayGoals: number;
+  penaltyShootout?: { home: number; away: number };
+  winnerId?: string;                      // nationality name of winner
+  week: number;
 }

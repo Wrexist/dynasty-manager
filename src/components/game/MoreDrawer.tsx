@@ -5,7 +5,7 @@ import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
   Mail, Trophy, Target, DollarSign, Building2, Calendar, Home,
-  Settings, MoreHorizontal, ChevronRight, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle
+  Settings, MoreHorizontal, ChevronRight, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
 
@@ -28,6 +28,7 @@ const drawerSections: DrawerSection[] = [
       { screen: 'inbox', label: 'Inbox', icon: Mail, description: 'Messages & news' },
       { screen: 'league-table', label: 'League', icon: Trophy, description: 'Standings & results' },
       { screen: 'cup', label: 'Cup', icon: Award, description: 'Knockout tournament' },
+      { screen: 'national-team', label: 'National Team', icon: Globe, description: 'International management' },
       { screen: 'calendar', label: 'Calendar', icon: Calendar, description: 'Season schedule' },
     ],
   },

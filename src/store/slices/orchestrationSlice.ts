@@ -77,6 +77,8 @@ import { determineZones, generatePlayoffBracket, populatePlayoffFinal, resolvePl
 import { generateStorylines } from '@/utils/storylines';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
+import { getTournamentForSeason, generateTournament, processGroupWeek, generateKnockoutBracket, processKnockoutRound, autoSelectNationalSquad } from '@/utils/international';
+import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST } from '@/config/gameBalance';
 import { getWinStreak, detectMatchDrama } from '@/utils/celebrations';
 import { generateCliffhangers } from '@/utils/weekPreview';
 import { generateWeeklyObjectives, evaluateObjectives } from '@/utils/weeklyObjectives';
@@ -462,6 +464,276 @@ function advancePlayoffWeek(set: Set, get: Get) {
     sponsorOffers: sponsorUpdates.sponsorOffers || state.sponsorOffers,
     sponsorSlotCooldowns: sponsorUpdates.sponsorSlotCooldowns || state.sponsorSlotCooldowns,
   });
+}
+
+/** International break week implementation */
+function advanceInternationalWeekImpl(set: Set, get: Get) {
+  const state = get();
+  const tournament = state.internationalTournament;
+  if (!tournament || !state.nationalTeam || !state.managerNationality) {
+    // No tournament active — finalize season
+    endSeasonImpl(set, get);
+    return;
+  }
+
+  const nationality = state.managerNationality;
+  const currentWeek = tournament.currentWeek;
+
+  if (tournament.phase === 'group') {
+    // Process group stage
+    const { groups, playerMatchThisWeek } = processGroupWeek(
+      tournament.groups, currentWeek, nationality
+    );
+
+    if (playerMatchThisWeek) {
+      // Player has a match this week — auto-sim it (they manage via the UI later in full version)
+      // For now, auto-sim all matches including the player's
+      const { homeGoals, awayGoals } = (() => {
+        // Simple sim based on ranking
+        const isHome = playerMatchThisWeek.homeNation === nationality;
+        const homeStr = isHome ? 0.6 : 0.5;
+        const awayStr = isHome ? 0.5 : 0.6;
+        const hg = Math.floor(Math.random() * 3 * homeStr + Math.random());
+        const ag = Math.floor(Math.random() * 3 * awayStr + Math.random());
+        return { homeGoals: hg, awayGoals: ag };
+      })();
+
+      // Mark the player's match as played
+      const finalGroups = groups.map(group => ({
+        ...group,
+        fixtures: group.fixtures.map(f =>
+          f.id === playerMatchThisWeek.id
+            ? { ...f, played: true, homeGoals, awayGoals }
+            : f
+        ),
+        table: group.table, // Will be rebuilt below
+      }));
+
+      // Rebuild tables for groups that had the player match
+      const rebuiltGroups = finalGroups.map(group => {
+        const allPlayed = group.fixtures.every(f => f.played || f.week > currentWeek);
+        if (!allPlayed && group.fixtures.some(f => f.id === playerMatchThisWeek.id)) {
+          // Need to rebuild this group's table
+          const entries: Record<string, { nationality: string; played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; points: number }> = {};
+          group.teams.forEach(t => { entries[t] = { nationality: t, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 }; });
+          group.fixtures.filter(f => f.played).forEach(f => {
+            const h = entries[f.homeNation]; const a = entries[f.awayNation];
+            if (!h || !a) return;
+            h.played++; a.played++;
+            h.goalsFor += f.homeGoals; h.goalsAgainst += f.awayGoals;
+            a.goalsFor += f.awayGoals; a.goalsAgainst += f.homeGoals;
+            if (f.homeGoals > f.awayGoals) { h.won++; h.points += 3; a.lost++; }
+            else if (f.homeGoals < f.awayGoals) { a.won++; a.points += 3; h.lost++; }
+            else { h.drawn++; h.points += 1; a.drawn++; a.points += 1; }
+          });
+          return { ...group, table: Object.values(entries).sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst) || b.goalsFor - a.goalsFor) };
+        }
+        return group;
+      });
+
+      // Record result for player's national team
+      const isHome = playerMatchThisWeek.homeNation === nationality;
+      const nt = { ...state.nationalTeam };
+      nt.results = [...nt.results, {
+        season: state.season,
+        opponent: isHome ? playerMatchThisWeek.awayNation : playerMatchThisWeek.homeNation,
+        goalsFor: isHome ? homeGoals : awayGoals,
+        goalsAgainst: isHome ? awayGoals : homeGoals,
+        tournament: tournament.name,
+        round: 'Group Stage',
+      }];
+
+      // Apply fitness cost to called-up players
+      const newPlayers = { ...state.players };
+      for (const pid of nt.squad) {
+        if (newPlayers[pid]) {
+          newPlayers[pid] = { ...newPlayers[pid], fitness: Math.max(40, newPlayers[pid].fitness - INTERNATIONAL_FITNESS_COST) };
+          newPlayers[pid].internationalCaps = (newPlayers[pid].internationalCaps || 0) + 1;
+        }
+      }
+
+      const nextWeek = currentWeek + 1;
+
+      // Check if group stage is complete (all group fixtures played)
+      const allGroupFixturesPlayed = rebuiltGroups.every(g => g.fixtures.every(f => f.played));
+
+      if (allGroupFixturesPlayed) {
+        // Move to knockout
+        const knockoutTies = generateKnockoutBracket(rebuiltGroups);
+        const firstRound = knockoutTies.length > 0 ? knockoutTies[0].round : null;
+        const eliminated = !rebuiltGroups.some(g => g.table.slice(0, 2).some(e => e.nationality === nationality));
+
+        set({
+          internationalTournament: {
+            ...tournament,
+            groups: rebuiltGroups,
+            phase: eliminated ? 'complete' : 'knockout',
+            knockoutTies,
+            currentRound: firstRound,
+            playerEliminated: eliminated,
+            currentWeek: nextWeek,
+          },
+          nationalTeam: nt,
+          players: newPlayers,
+        });
+      } else {
+        set({
+          internationalTournament: { ...tournament, groups: rebuiltGroups, currentWeek: nextWeek },
+          nationalTeam: nt,
+          players: newPlayers,
+        });
+      }
+    } else {
+      // No player match this week — just advance
+      const allGroupFixturesPlayed = groups.every(g => g.fixtures.every(f => f.played));
+      if (allGroupFixturesPlayed) {
+        const knockoutTies = generateKnockoutBracket(groups);
+        const firstRound = knockoutTies.length > 0 ? knockoutTies[0].round : null;
+        const eliminated = !groups.some(g => g.table.slice(0, 2).some(e => e.nationality === nationality));
+        set({
+          internationalTournament: {
+            ...tournament, groups, phase: eliminated ? 'complete' : 'knockout',
+            knockoutTies, currentRound: firstRound, playerEliminated: eliminated,
+            currentWeek: currentWeek + 1,
+          },
+        });
+      } else {
+        set({ internationalTournament: { ...tournament, groups, currentWeek: currentWeek + 1 } });
+      }
+    }
+
+    return;
+  }
+
+  if (tournament.phase === 'knockout' && tournament.currentRound) {
+    const { updatedTies, nextRoundTies, playerTie, roundComplete, tournamentComplete, winner } = processKnockoutRound(
+      tournament.knockoutTies, tournament.currentRound, nationality
+    );
+
+    // Handle player's knockout tie (auto-sim for now)
+    let finalTies = updatedTies;
+    if (playerTie && !playerTie.played) {
+      const isHome = playerTie.homeNation === nationality;
+      const hg = Math.floor(Math.random() * 2 + Math.random());
+      const ag = Math.floor(Math.random() * 2 + Math.random());
+      let updatedPlayerTie = { ...playerTie, played: true, homeGoals: hg, awayGoals: ag };
+      if (hg === ag) {
+        const homeWins = Math.random() > 0.5;
+        updatedPlayerTie = { ...updatedPlayerTie, penaltyShootout: { home: homeWins ? 5 : 3, away: homeWins ? 3 : 5 }, winnerId: homeWins ? playerTie.homeNation : playerTie.awayNation };
+      } else {
+        updatedPlayerTie.winnerId = hg > ag ? playerTie.homeNation : playerTie.awayNation;
+      }
+      finalTies = finalTies.map(t => t.id === playerTie.id ? updatedPlayerTie : t);
+
+      // Record result
+      const nt = { ...state.nationalTeam! };
+      nt.results = [...nt.results, {
+        season: state.season,
+        opponent: isHome ? playerTie.awayNation : playerTie.homeNation,
+        goalsFor: isHome ? hg : ag,
+        goalsAgainst: isHome ? ag : hg,
+        tournament: tournament.name,
+        round: tournament.currentRound,
+      }];
+
+      // Apply fitness cost
+      const newPlayers = { ...state.players };
+      for (const pid of nt.squad) {
+        if (newPlayers[pid]) {
+          newPlayers[pid] = { ...newPlayers[pid], fitness: Math.max(40, newPlayers[pid].fitness - INTERNATIONAL_FITNESS_COST) };
+          newPlayers[pid].internationalCaps = (newPlayers[pid].internationalCaps || 0) + 1;
+        }
+      }
+
+      const playerEliminated = updatedPlayerTie.winnerId !== nationality;
+
+      // Re-check if round is now complete
+      const allRoundPlayed = finalTies.filter(t => t.round === tournament.currentRound).every(t => t.played);
+
+      if (allRoundPlayed) {
+        if (tournament.currentRound === 'F') {
+          // Final played — tournament over
+          const finalMatch = finalTies.find(t => t.round === 'F' && t.played);
+          set({
+            internationalTournament: {
+              ...tournament, knockoutTies: finalTies, phase: 'complete',
+              winner: finalMatch?.winnerId || null, playerEliminated,
+              currentWeek: currentWeek + 1,
+            },
+            nationalTeam: nt, players: newPlayers,
+          });
+        } else {
+          // Generate next round
+          const roundWinners = finalTies.filter(t => t.round === tournament.currentRound).map(t => t.winnerId!).filter(Boolean);
+          const roundOrder = ['R16', 'QF', 'SF', 'F'] as const;
+          const curIdx = roundOrder.indexOf(tournament.currentRound as typeof roundOrder[number]);
+          const nextRound = curIdx < roundOrder.length - 1 ? roundOrder[curIdx + 1] : null;
+          const newKnockoutTies = [...finalTies];
+          if (nextRound) {
+            for (let i = 0; i < roundWinners.length; i += 2) {
+              if (roundWinners[i + 1]) {
+                newKnockoutTies.push({
+                  id: `intl-ko-${Date.now()}-${i}`,
+                  round: nextRound,
+                  homeNation: roundWinners[i],
+                  awayNation: roundWinners[i + 1],
+                  played: false, homeGoals: 0, awayGoals: 0,
+                  week: currentWeek + 1,
+                });
+              }
+            }
+          }
+          set({
+            internationalTournament: {
+              ...tournament, knockoutTies: newKnockoutTies, currentRound: nextRound || tournament.currentRound,
+              playerEliminated, currentWeek: currentWeek + 1,
+            },
+            nationalTeam: nt, players: newPlayers,
+          });
+        }
+      } else {
+        set({
+          internationalTournament: { ...tournament, knockoutTies: finalTies, playerEliminated, currentWeek: currentWeek + 1 },
+          nationalTeam: nt, players: newPlayers,
+        });
+      }
+    } else if (roundComplete) {
+      // All AI matches done, no player match
+      const allTies = [...finalTies, ...nextRoundTies];
+      if (tournamentComplete) {
+        set({
+          internationalTournament: { ...tournament, knockoutTies: allTies, phase: 'complete', winner, currentWeek: currentWeek + 1 },
+        });
+      } else {
+        const nextRound = nextRoundTies.length > 0 ? nextRoundTies[0].round : tournament.currentRound;
+        set({
+          internationalTournament: { ...tournament, knockoutTies: allTies, currentRound: nextRound, currentWeek: currentWeek + 1 },
+        });
+      }
+    } else {
+      set({ internationalTournament: { ...tournament, knockoutTies: finalTies, currentWeek: currentWeek + 1 } });
+    }
+
+    return;
+  }
+
+  // Tournament complete — transition to endSeason
+  if (tournament.phase === 'complete') {
+    // Add tournament result message
+    let newMessages = [...state.messages];
+    if (tournament.winner) {
+      const isWinner = tournament.winner === nationality;
+      newMessages = addMsg(newMessages, {
+        week: state.week, season: state.season, type: 'general',
+        title: isWinner ? `${tournament.name} Champions!` : `${tournament.name} Complete`,
+        body: isWinner
+          ? `Congratulations! ${nationality} won the ${tournament.name}! What an achievement!`
+          : `${tournament.winner} won the ${tournament.name}. ${state.nationalTeam?.results.length ? 'Your national team gave it their best.' : ''}`,
+      });
+    }
+    set({ messages: newMessages, seasonPhase: 'regular', internationalTournament: null });
+    endSeasonImpl(set, get);
+  }
 }
 
 /** endSeason implementation — extracted to keep the slice method thin. */
@@ -942,6 +1214,40 @@ function finalizeSeason(
     saveToHall(hallEntry);
   }
 
+  // Check if an international tournament should start this season
+  const postState = get();
+  const tournamentType = getTournamentForSeason(season);
+  if (tournamentType && postState.managerNationality) {
+    const tournament = generateTournament(tournamentType, season, postState.managerNationality);
+    // Auto-select national squad
+    const squad = autoSelectNationalSquad(postState.managerNationality, postState.players);
+    const nt = postState.nationalTeam ? { ...postState.nationalTeam, squad } : null;
+
+    // Apply morale boost to called-up players
+    const boostedPlayers = { ...postState.players };
+    for (const pid of squad) {
+      if (boostedPlayers[pid]) {
+        boostedPlayers[pid] = { ...boostedPlayers[pid], morale: Math.min(100, boostedPlayers[pid].morale + NATIONAL_CALLUP_MORALE_BOOST) };
+      }
+    }
+
+    const tournamentMsg = addMsg(postState.messages, {
+      week: 1, season: newSeason, type: 'general',
+      title: `${tournament.name} Begins!`,
+      body: `The ${tournament.name} is about to start! You'll manage ${postState.managerNationality} through the tournament. ${squad.length} players have been called up.`,
+    });
+
+    set({
+      seasonPhase: 'international',
+      internationalTournament: tournament,
+      nationalTeam: nt,
+      players: boostedPlayers,
+      messages: tournamentMsg,
+      currentScreen: 'international-tournament',
+    });
+    return;
+  }
+
   if (get().settings.autoSave) get().saveGame();
 }
 
@@ -1097,6 +1403,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Playoff phase: separate flow
     if (state.seasonPhase === 'playoffs') {
       advancePlayoffWeek(set, get);
+      return;
+    }
+    // International phase: separate flow
+    if (state.seasonPhase === 'international') {
+      advanceInternationalWeekImpl(set, get);
       return;
     }
     const { week, season, fixtures, clubs, players, playerClubId, training, staff, scouting, facilities, messages, boardConfidence } = state;
@@ -2660,6 +2971,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pendingFarewell: state.pendingFarewell,
       freeAgents: state.freeAgents,
       monetization: state.monetization,
+      nationalTeam: state.nationalTeam,
+      internationalTournament: state.internationalTournament,
+      managerNationality: state.managerNationality,
     };
     localStorage.setItem(`dynasty-save-${s}`, JSON.stringify(saveData));
 
@@ -2750,6 +3064,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         matchPhase: 'none' as const,
         pendingFarewell: Array.isArray(data.pendingFarewell) ? data.pendingFarewell : data.pendingFarewell ? [data.pendingFarewell] : [],
         monetization: data.monetization || DEFAULT_MONETIZATION_STATE,
+        nationalTeam: data.nationalTeam || null,
+        internationalTournament: data.internationalTournament || null,
+        managerNationality: data.managerNationality || null,
       });
       return true;
     } catch { return false; }
