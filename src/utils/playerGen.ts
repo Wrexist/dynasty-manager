@@ -208,7 +208,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     star.attributes = starAttrs;
     star.overall = calculateOverall(starAttrs, star.position);
     star.potential = clamp(star.overall + 3 + Math.floor(Math.random() * 3));
-    star.value = star.overall * star.overall * VALUE_OVERALL_MULTIPLIER + Math.floor(Math.random() * VALUE_RANDOM_RANGE);
+    star.value = Math.round(star.overall * star.overall * VALUE_OVERALL_MULTIPLIER + Math.random() * VALUE_RANDOM_RANGE);
 
     const veterans = fillerPlayers.filter(p => p.age >= 30 && p !== star);
     if (veterans.length > 0) {
@@ -222,7 +222,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
       vet.attributes = vetAttrs;
       vet.overall = calculateOverall(vetAttrs, vet.position);
       vet.potential = vet.overall;
-      vet.value = vet.overall * vet.overall * VALUE_OVERALL_MULTIPLIER + Math.floor(Math.random() * VALUE_RANDOM_RANGE);
+      vet.value = Math.round(vet.overall * vet.overall * VALUE_OVERALL_MULTIPLIER + Math.random() * VALUE_RANDOM_RANGE);
       if (vet.personality) vet.personality.leadership = Math.max(vet.personality.leadership, 16);
     }
   }

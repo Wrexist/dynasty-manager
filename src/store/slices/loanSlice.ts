@@ -229,8 +229,8 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         continue;
       }
 
-      if (loan.obligatoryBuyFee) {
-        // Convert to permanent transfer
+      if (loan.obligatoryBuyFee && newClubs[loan.toClubId].budget >= loan.obligatoryBuyFee) {
+        // Convert to permanent transfer (only if buying club can afford it)
         const fromClub = { ...newClubs[loan.fromClubId] };
         const toClub = { ...newClubs[loan.toClubId] };
 

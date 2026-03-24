@@ -289,7 +289,7 @@ const TransferPage = () => {
                       getRatingColor(p.overall)
                     )}>{p.overall}</span>
                   </div>
-                  <div className="flex-1 min-w-0" onClick={() => selectPlayer(p.id)}>
+                  <div className="flex-1 min-w-0" role="button" tabIndex={0} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
                     <p className="font-bold text-foreground text-sm">{getFlag(p.nationality)} {p.firstName} {p.lastName}</p>
                     <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} {p.nationality}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">From: {seller?.shortName || '?'}</p>
@@ -375,7 +375,7 @@ const TransferPage = () => {
                       getRatingColor(p.overall)
                     )}>{p.overall}</span>
                   </div>
-                  <div className="flex-1 min-w-0" onClick={() => selectPlayer(p.id)}>
+                  <div className="flex-1 min-w-0" role="button" tabIndex={0} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
                     <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
                     <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y</p>
                     <p className="text-xs text-muted-foreground mt-0.5">Bid from: <span className="text-foreground">{buyer?.name || '?'}</span></p>
@@ -438,7 +438,7 @@ const TransferPage = () => {
                       getRatingColor(p.overall)
                     )}>{p.overall}</span>
                   </div>
-                  <div className="flex-1 min-w-0" onClick={() => selectPlayer(p.id)}>
+                  <div className="flex-1 min-w-0" role="button" tabIndex={0} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
                     <p className="font-bold text-foreground text-sm">{getFlag(p.nationality)} {p.firstName} {p.lastName}</p>
                     <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} {p.nationality}</p>
                     <div className="flex gap-2 mt-1.5">
@@ -651,7 +651,7 @@ const TransferPage = () => {
                   <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
                     <span className={cn('font-mono font-black text-lg', getRatingColor(p.overall))}>{p.overall}</span>
                   </div>
-                  <div className="flex-1 min-w-0" onClick={() => selectPlayer(p.id)}>
+                  <div className="flex-1 min-w-0" role="button" tabIndex={0} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
                     <p className="font-bold text-foreground text-sm">{getFlag(p.nationality)} {p.firstName} {p.lastName}</p>
                     <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} {p.nationality}</p>
                     <div className="flex gap-2 mt-1.5">

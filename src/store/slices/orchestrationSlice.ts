@@ -28,7 +28,7 @@ import {
   CONFIDENCE_MIN,
   RED_CARD_SUSPENSION_MIN, RED_CARD_SUSPENSION_RANGE,
   PHYSIO_RECOVERY_BOOST_THRESHOLD, PHYSIO_RECOVERY_CHANCE, PHYSIO_INJURY_REDUCTION_PER_QUALITY, ASSISTANT_MANAGER_FAMILIARITY_BOOST,
-  CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_OVERALL_THRESHOLD,
+  CONTRACT_WARNING_WEEKS, CONTRACT_WARNING_OVERALL_THRESHOLD, CONTRACT_WARNING_YOUTH_AGE_MAX, CONTRACT_WARNING_YOUTH_POTENTIAL_MIN,
   CONTRACT_MORALE_HIT_WEEK_THRESHOLD, CONTRACT_MORALE_HIT_OVERALL_THRESHOLD, CONTRACT_MORALE_HIT_AMOUNT, CONTRACT_MORALE_MIN,
   MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE, STADIUM_INCOME_PER_LEVEL,
   POSITION_PRIZE_PER_RANK, POSITION_PRIZE_MAX_RANK,
@@ -671,7 +671,7 @@ function finalizeSeason(
   }
 
   const freeAgentIds: string[] = [];
-  let bestFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] } | null = null;
+  const farewells: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] }[] = [];
 
   Object.values(mergedPlayers).forEach(p => {
     const aged = {
@@ -693,11 +693,11 @@ function finalizeSeason(
         updatedClub.subs = updatedClub.subs.filter(id => id !== aged.id);
         updatedClub.wageBill -= aged.wage;
         newClubs[updatedClub.id] = updatedClub;
-        // Track farewell for most significant departing player from user's club
+        // Track farewells for departing players from user's club
         if (p.clubId === playerClubId) {
           const farewell = getFarewellSummary(p, season, p.joinedSeason);
-          if (farewell.shouldShow && (!bestFarewell || farewell.seasonsServed > bestFarewell.seasonsServed)) {
-            bestFarewell = { playerId: p.id, playerName: `${p.firstName} ${p.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats };
+          if (farewell.shouldShow) {
+            farewells.push({ playerId: p.id, playerName: `${p.firstName} ${p.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats });
           }
         }
       }
@@ -911,7 +911,7 @@ function finalizeSeason(
     activeStorylineChains: [],
     pendingStoryline: null,
     freeAgents: freeAgentIds, transferNews: [],
-    ...(bestFarewell ? { pendingFarewell: bestFarewell } : {}),
+    ...(farewells.length > 0 ? { pendingFarewell: farewells.sort((a, b) => b.seasonsServed - a.seasonsServed) } : {}),
     playoffs, lastPromotionRelegation: promRel,
     // Career milestones & manager XP at end of season
     careerTimeline: (() => {
@@ -1069,7 +1069,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       weeklyDigest: null,
       pendingStoryline: null,
       activeStorylineChains: [],
-      pendingFarewell: null,
+      pendingFarewell: [],
       sponsorDeals: generateStarterDeals(pcInit.reputation, 1),
       sponsorOffers: [],
       sponsorSlotCooldowns: {},
@@ -1362,8 +1362,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const hClub = clubs[tie.homeClubId];
         const aClub = clubs[tie.awayClubId];
         if (!hClub || !aClub) continue;
-        const hPlayers = hClub.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
-        const aPlayers = aClub.playerIds.map(id => newPlayers[id]).filter(p => p && !p.injured).slice(0, 11);
+        const hPlayers = hClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
+        const aPlayers = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
 
         const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
         const hasLeagueMatch = updatedFixtures.some(f => f.week === week && (f.homeClubId === playerClubId || f.awayClubId === playerClubId));
@@ -1683,10 +1683,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Contract expiry warnings — escalating urgency + morale impact for unhappy players
     if ((CONTRACT_WARNING_WEEKS as readonly number[]).includes(newWeek)) {
-      const expiring = Object.values(newPlayers).filter(ep => ep.clubId === playerClubId && ep.contractEnd <= season && ep.overall > CONTRACT_WARNING_OVERALL_THRESHOLD);
+      const expiring = Object.values(newPlayers).filter(ep => ep.clubId === playerClubId && ep.contractEnd <= season && (ep.overall > CONTRACT_WARNING_OVERALL_THRESHOLD || (ep.age <= CONTRACT_WARNING_YOUTH_AGE_MAX && ep.potential >= CONTRACT_WARNING_YOUTH_POTENTIAL_MIN)));
       const urgency = newWeek >= 35 ? 'URGENT: ' : newWeek >= 30 ? '' : 'Reminder: ';
       for (const ep of expiring) {
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'contract', title: `${urgency}${ep.lastName}'s Contract`, body: `${ep.firstName} ${ep.lastName}'s contract expires at the end of this season. ${newWeek >= 35 ? 'This player will leave for free!' : 'Consider renewing or selling.'}` });
+        const youthNote = ep.overall <= CONTRACT_WARNING_OVERALL_THRESHOLD ? ' This prospect has high potential!' : '';
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'contract', title: `${urgency}${ep.lastName}'s Contract`, body: `${ep.firstName} ${ep.lastName}'s contract expires at the end of this season. ${newWeek >= 35 ? 'This player will leave for free!' : 'Consider renewing or selling.'}${youthNote}` });
         // Players with expiring contracts lose morale after week 25 — they want clarity
         if (newWeek >= CONTRACT_MORALE_HIT_WEEK_THRESHOLD && ep.overall >= CONTRACT_MORALE_HIT_OVERALL_THRESHOLD) {
           newPlayers[ep.id] = { ...newPlayers[ep.id], morale: Math.max(CONTRACT_MORALE_MIN, newPlayers[ep.id].morale + CONTRACT_MORALE_HIT_AMOUNT) };
@@ -2747,7 +2748,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         merchandise: data.merchandise || getDefaultMerchState(),
         halfTimeState: null,
         matchPhase: 'none' as const,
-        pendingFarewell: data.pendingFarewell || null,
+        pendingFarewell: Array.isArray(data.pendingFarewell) ? data.pendingFarewell : data.pendingFarewell ? [data.pendingFarewell] : [],
         monetization: data.monetization || DEFAULT_MONETIZATION_STATE,
       });
       return true;
@@ -2767,7 +2768,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       activeLoans: [], incomingLoanOffers: [],
       cup: { ties: [], currentRound: null, eliminated: false, winner: null },
       pendingPressConference: null, activeNegotiation: null,
-      pendingFarewell: null, pendingStoryline: null,
+      pendingFarewell: [], pendingStoryline: null,
       activeStorylineChains: [], weeklyObjectives: [],
       objectiveStreak: 0, weekCliffhangers: [], rivalries: {}, lastMatchDrama: null,
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
@@ -2871,9 +2872,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   },
 
   // ── Farewell ──
-  pendingFarewell: null as GameState['pendingFarewell'],
+  pendingFarewell: [] as GameState['pendingFarewell'],
 
   dismissFarewell: () => {
-    set({ pendingFarewell: null });
+    const remaining = get().pendingFarewell.slice(1);
+    set({ pendingFarewell: remaining });
   },
 });

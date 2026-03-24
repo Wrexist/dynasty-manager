@@ -153,6 +153,9 @@ const GameShell = () => {
     onSwipeRight: handleSwipeRight,
   });
 
+  if (import.meta.env.DEV && !screens[currentScreen]) {
+    console.warn(`[GameShell] Unrecognized screen: "${currentScreen}", falling back to Dashboard`);
+  }
   const Screen = screens[currentScreen] || Dashboard;
 
   // Track navigation direction for transition animations

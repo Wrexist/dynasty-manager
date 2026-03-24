@@ -243,6 +243,6 @@ export interface GameState {
   updateSubscription: (info: SubscriptionInfo | null) => void;
 
   // Actions — Farewell
-  pendingFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] } | null;
+  pendingFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] }[];
   dismissFarewell: () => void;
 }
