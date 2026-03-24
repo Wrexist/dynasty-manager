@@ -79,7 +79,7 @@ const migrations: Record<number, MigrationFn> = {
     fanMood: data.fanMood ?? 50,
     activeChallenge: data.activeChallenge || null,
     seasonPhase: data.seasonPhase || 'regular',
-    pendingFarewell: null,
+    pendingFarewell: [],
   }),
 
   // v6 → v7: Added preMatchLeaguePosition, lastMatchXPGain for post-match popup

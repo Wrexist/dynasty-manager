@@ -245,7 +245,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
     // Check for farewell
     const farewell = getFarewellSummary(player, state.season, player.joinedSeason);
-    const pendingFarewell = farewell.shouldShow
+    const farewellEntry = farewell.shouldShow
       ? { playerId: offer.playerId, playerName: `${player.firstName} ${player.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats }
       : null;
 
@@ -260,7 +260,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       players: newPlayers,
       clubs: updatedClubs,
       transferMarket: newMarket, incomingOffers: newOffers.filter(o => o.playerId !== offer.playerId), incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== offer.playerId), messages: msg, managerStats: ms,
-      ...(pendingFarewell ? { pendingFarewell } : {}),
+      ...(farewellEntry ? { pendingFarewell: [...state.pendingFarewell, farewellEntry] } : {}),
       ...merchDipUpdate,
     });
     return { success: true, message: `${player.firstName} ${player.lastName} sold for £${(offer.fee / 1e6).toFixed(1)}M!${sellOnNote}` };

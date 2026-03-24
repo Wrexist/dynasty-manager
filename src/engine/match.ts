@@ -695,7 +695,7 @@ export function simulateHalf(
           if (Math.random() < CORNER_GOAL_CHANCE + setPieceBonus) {
             const headerCandidates = eligibleSquad.filter(p => p.position !== 'GK');
             if (headerCandidates.length > 0) {
-              const headerWeights = headerCandidates.map(p => p.attributes.physical * CORNER_GOAL_PHYSICAL_WEIGHT + p.attributes.mental * CORNER_GOAL_DEFENDING_WEIGHT);
+              const headerWeights = headerCandidates.map(p => p.attributes.physical * CORNER_GOAL_PHYSICAL_WEIGHT + p.attributes.defending * CORNER_GOAL_DEFENDING_WEIGHT);
               const tw = headerWeights.reduce((a, b) => a + b, 0);
               let rr = Math.random() * tw;
               let header = headerCandidates[0];

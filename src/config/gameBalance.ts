@@ -121,6 +121,9 @@ export const ASSISTANT_MANAGER_FAMILIARITY_BOOST = 0.3;
 // ── Contract Warnings ──
 export const CONTRACT_WARNING_WEEKS = [15, 25, 30, 35] as const;
 export const CONTRACT_WARNING_OVERALL_THRESHOLD = 60;
+/** Warn about high-potential youth even if below overall threshold */
+export const CONTRACT_WARNING_YOUTH_AGE_MAX = 23;
+export const CONTRACT_WARNING_YOUTH_POTENTIAL_MIN = 70;
 export const CONTRACT_MORALE_HIT_WEEK_THRESHOLD = 25;
 export const CONTRACT_MORALE_HIT_OVERALL_THRESHOLD = 70;
 export const CONTRACT_MORALE_HIT_AMOUNT = -5;
