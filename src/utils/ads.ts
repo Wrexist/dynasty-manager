@@ -10,10 +10,10 @@
 
 import { Capacitor } from '@capacitor/core';
 
-// Placeholder ad unit IDs — replace with real IDs from AdMob dashboard
-// Use test IDs during development: https://developers.google.com/admob/android/test-ads
-const REWARDED_AD_UNIT_IOS = 'ca-app-pub-2286247955186424~9847041449';
-const REWARDED_AD_UNIT_ANDROID = 'ca-app-pub-2286247955186424~9847041449';
+// TODO: Replace with real ad unit IDs from AdMob dashboard before monetization launch
+// Currently using Google's official test rewarded ad unit IDs
+const REWARDED_AD_UNIT_IOS = 'ca-app-pub-3940256099942544/1712485313';
+const REWARDED_AD_UNIT_ANDROID = 'ca-app-pub-3940256099942544/5224354917';
 
 let adInitialized = false;
 
@@ -27,7 +27,7 @@ export async function initAds(): Promise<void> {
 
   try {
     const { AdMob } = await import('@capacitor-community/admob');
-    await AdMob.initialize({ initializeForTesting: true });
+    await AdMob.initialize({ initializeForTesting: import.meta.env.DEV });
     adInitialized = true;
   } catch (err) {
     console.warn('[Ads] Failed to initialize AdMob:', err);

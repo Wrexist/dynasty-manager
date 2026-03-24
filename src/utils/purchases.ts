@@ -14,7 +14,7 @@ import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { PRODUCTS } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
 
-// Test API key — replace with per-platform production keys before release
+// TODO: Replace with per-platform production keys before monetization launch
 // Production: use 'appl_xxx' for iOS, 'goog_xxx' for Android
 const REVENUECAT_API_KEY = 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF';
 
