@@ -485,7 +485,7 @@ const Dashboard = () => {
       {/* Last Match Result */}
       {lastMatchInfo && !seasonOver && (
         <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }}>
-        <GlassPanel className="p-3 flex items-center justify-between">
+        <GlassPanel className="p-3 flex items-center justify-between" onClick={() => setScreen('match-review')} aria-label="View match review">
           <div className="flex items-center gap-2">
             <span className={cn(
               'w-6 h-6 rounded-md flex items-center justify-center text-xs font-black',
@@ -497,6 +497,7 @@ const Dashboard = () => {
               <p className="text-xs font-semibold text-foreground">Last Result: {lastMatchInfo.score} vs {lastMatchInfo.oppName}</p>
             </div>
           </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
         </GlassPanel>
         </motion.div>
       )}
@@ -903,7 +904,7 @@ const Dashboard = () => {
       {/* Last match result */}
       {currentMatchResult && (
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-          <GlassPanel className="p-4 border-primary/30">
+          <GlassPanel className="p-4 border-primary/30" onClick={() => setScreen('match-review')}>
             <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Last Result</p>
             <p className="text-lg font-black text-foreground tabular-nums">
               {clubs[currentMatchResult.homeClubId]?.shortName} {currentMatchResult.homeGoals} - {currentMatchResult.awayGoals} {clubs[currentMatchResult.awayClubId]?.shortName}
@@ -932,7 +933,7 @@ const Dashboard = () => {
 
       {/* Injury Alert Panel */}
       {injuredPlayers.length > 0 && (
-        <GlassPanel className="p-4 border-destructive/30">
+        <GlassPanel className="p-4 border-destructive/30" onClick={() => setScreen('squad')}>
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="w-4 h-4 text-destructive" />
             <p className="text-xs text-destructive uppercase tracking-wider font-semibold">
@@ -1030,7 +1031,7 @@ const Dashboard = () => {
           </p>
         </GlassPanel>
 
-        <GlassPanel className="p-4">
+        <GlassPanel className="p-4" onClick={() => setScreen('squad')}>
           <div className="flex items-center gap-2 mb-1">
             <Heart className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">Morale</span>
@@ -1047,7 +1048,7 @@ const Dashboard = () => {
           </p>
         </GlassPanel>
 
-        <GlassPanel className={cn("p-4", boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD && "border-destructive/50 animate-pulse")}>
+        <GlassPanel className={cn("p-4 cursor-pointer", boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD && "border-destructive/50 animate-pulse")} onClick={() => setScreen('board')}>
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">Board</span>
@@ -1096,7 +1097,7 @@ const Dashboard = () => {
           <p className="text-[10px] text-muted-foreground">per week</p>
         </GlassPanel>
 
-        <GlassPanel className="p-4">
+        <GlassPanel className="p-4" onClick={() => setScreen('club')}>
           <div className="flex items-center gap-2 mb-1">
             <Users className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">Fan Mood</span>
@@ -1142,7 +1143,7 @@ const Dashboard = () => {
           ? `Strong form — ${recentWins} wins in last 5`
           : null;
         return (
-          <GlassPanel className={cn('p-4', momentum === 'hot' ? 'border-emerald-500/20' : momentum === 'cold' ? 'border-destructive/20' : '')}>
+          <GlassPanel className={cn('p-4', momentum === 'hot' ? 'border-emerald-500/20' : momentum === 'cold' ? 'border-destructive/20' : '')} onClick={() => setScreen('league-table')}>
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs text-muted-foreground uppercase tracking-wider">Recent Form</p>
               {momentum !== 'stable' && (
@@ -1180,7 +1181,7 @@ const Dashboard = () => {
 
       {/* Next 3 Fixtures */}
       {upcomingFixtures.length > 0 && (
-        <GlassPanel className="p-4">
+        <GlassPanel className="p-4" onClick={() => setScreen('calendar')}>
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Upcoming Fixtures</p>
           <div className="space-y-2">
             {upcomingFixtures.map((fix) => {
@@ -1232,12 +1233,15 @@ const Dashboard = () => {
       )}
 
       {/* Board Objectives */}
-      <GlassPanel className="p-4">
+      <GlassPanel className="p-4" onClick={() => setScreen('board')}>
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Board Objectives</p>
-          <span className="text-xs text-muted-foreground">
-            {boardObjectives.filter(o => o.completed).length}/{boardObjectives.length} completed
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {boardObjectives.filter(o => o.completed).length}/{boardObjectives.length} completed
+            </span>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
         </div>
         {/* Progress bar */}
         <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden mb-3">

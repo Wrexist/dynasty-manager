@@ -1,18 +1,20 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { DollarSign, Users, Building2, GraduationCap, TrendingUp, TrendingDown, Star, HeartPulse } from 'lucide-react';
+import { DollarSign, Users, Building2, GraduationCap, TrendingUp, TrendingDown, Star, HeartPulse, Smile, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getConfidenceColor } from '@/utils/uiHelpers';
+import { getConfidenceColor, getFanConfidenceColor } from '@/utils/uiHelpers';
 import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
+import { FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD } from '@/config/ui';
 
 const ClubPage = () => {
-  const { playerClubId, clubs, players, season, boardConfidence, boardObjectives } = useGameStore();
+  const { playerClubId, clubs, players, season, boardConfidence, boardObjectives, setScreen, fanMood } = useGameStore();
   const club = clubs[playerClubId];
   if (!club) return null;
 
   const squad = club.playerIds.map(id => players[id]).filter(Boolean);
   const avgAge = squad.length > 0 ? (squad.reduce((s, p) => s + p.age, 0) / squad.length).toFixed(1) : '0';
   const avgOvr = squad.length > 0 ? Math.round(squad.reduce((s, p) => s + p.overall, 0) / squad.length) : 0;
+  const avgMorale = squad.length > 0 ? Math.round(squad.reduce((s, p) => s + (p.morale ?? 50), 0) / squad.length) : 50;
   const injuries = squad.filter(p => p.injured).length;
   const weeklyIncome = getWeeklyIncome(club);
   const netWeekly = getNetWeeklyIncome(club);
@@ -30,11 +32,58 @@ const ClubPage = () => {
         </div>
       </div>
 
-      {/* Finances */}
+      {/* Fan Mood & Atmosphere */}
       <GlassPanel className="p-4">
         <div className="flex items-center gap-2 mb-3">
-          <DollarSign className="w-4 h-4 text-primary" />
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Finances</p>
+          <Smile className="w-4 h-4 text-primary" />
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Fan Mood & Atmosphere</p>
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className={cn('text-2xl font-black tabular-nums', getFanConfidenceColor(fanMood))}>
+              {fanMood}%
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {fanMood >= FAN_MOOD_HIGH_THRESHOLD ? 'Buzzing' : fanMood >= FAN_MOOD_MID_THRESHOLD ? 'Content' : 'Restless'}
+            </p>
+          </div>
+          <div>
+            <p className={cn('text-2xl font-black tabular-nums', avgMorale > 70 ? 'text-emerald-400' : avgMorale > 40 ? 'text-amber-400' : 'text-destructive')}>
+              {avgMorale}%
+            </p>
+            <p className="text-xs text-muted-foreground">Squad Morale</p>
+          </div>
+        </div>
+        <div className="mt-3 space-y-1.5">
+          <div>
+            <div className="flex justify-between text-[10px] mb-0.5">
+              <span className="text-muted-foreground">Fan Mood</span>
+              <span className="text-muted-foreground">{fanMood}%</span>
+            </div>
+            <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden">
+              <div className={cn('h-full rounded-full transition-all', fanMood >= FAN_MOOD_HIGH_THRESHOLD ? 'bg-emerald-500' : fanMood >= FAN_MOOD_MID_THRESHOLD ? 'bg-amber-500' : 'bg-destructive')} style={{ width: `${fanMood}%` }} />
+            </div>
+          </div>
+          <div>
+            <div className="flex justify-between text-[10px] mb-0.5">
+              <span className="text-muted-foreground">Squad Morale</span>
+              <span className="text-muted-foreground">{avgMorale}%</span>
+            </div>
+            <div className="w-full h-1.5 bg-muted/30 rounded-full overflow-hidden">
+              <div className={cn('h-full rounded-full transition-all', avgMorale > 70 ? 'bg-emerald-500' : avgMorale > 40 ? 'bg-amber-500' : 'bg-destructive')} style={{ width: `${avgMorale}%` }} />
+            </div>
+          </div>
+        </div>
+      </GlassPanel>
+
+      {/* Finances */}
+      <GlassPanel className="p-4" onClick={() => setScreen('finance')} aria-label="View finances">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Finances</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -60,10 +109,13 @@ const ClubPage = () => {
       </GlassPanel>
 
       {/* Squad Summary */}
-      <GlassPanel className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Users className="w-4 h-4 text-primary" />
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Squad</p>
+      <GlassPanel className="p-4" onClick={() => setScreen('squad')} aria-label="View squad">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Squad</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </div>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
@@ -85,10 +137,13 @@ const ClubPage = () => {
       </GlassPanel>
 
       {/* Facilities */}
-      <GlassPanel className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <Building2 className="w-4 h-4 text-primary" />
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Facilities</p>
+      <GlassPanel className="p-4" onClick={() => setScreen('facilities')} aria-label="View facilities">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Facilities</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </div>
         <div className="space-y-2">
           {[
@@ -109,10 +164,13 @@ const ClubPage = () => {
       </GlassPanel>
 
       {/* Board */}
-      <GlassPanel className="p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <GraduationCap className="w-4 h-4 text-primary" />
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Board</p>
+      <GlassPanel className="p-4" onClick={() => setScreen('board')} aria-label="View board room">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="w-4 h-4 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Board</p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </div>
         <div className="flex items-center gap-3 mb-3">
           <span className="text-sm text-foreground">Confidence</span>

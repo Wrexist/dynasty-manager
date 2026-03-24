@@ -9,6 +9,7 @@ import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { BACK_TARGET, MAIN_TABS, SCREEN_GROUPS } from '@/config/navigation';
+import { InfoTipProvider } from '@/components/game/InfoTip';
 import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 
 // Lazy-load all pages for code splitting (Dashboard prefetched from TitleScreen)
@@ -176,6 +177,7 @@ const GameShell = () => {
 
   return (
     <ErrorBoundary>
+      <InfoTipProvider>
       <div className="min-h-screen bg-background">
         <TopBar />
         <div
@@ -201,6 +203,7 @@ const GameShell = () => {
         <BottomNav />
         <ContractNegotiation />
       </div>
+      </InfoTipProvider>
     </ErrorBoundary>
   );
 };
