@@ -1047,7 +1047,7 @@ const Dashboard = () => {
           </p>
         </GlassPanel>
 
-        <GlassPanel className={cn("p-4", boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD && "border-destructive/50 animate-pulse")}>
+        <GlassPanel className={cn("p-4 cursor-pointer", boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD && "border-destructive/50 animate-pulse")} onClick={() => setScreen('board')}>
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">Board</span>
