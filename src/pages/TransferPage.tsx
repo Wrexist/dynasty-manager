@@ -17,6 +17,7 @@ import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
+import { SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE } from '@/config/ui';
 import { getFlag } from '@/utils/nationality';
 
 const TransferPage = () => {
@@ -100,7 +101,7 @@ const TransferPage = () => {
     if (accept) {
       const offer = incomingOffers.find(o => o.id === offerId);
       const p = offer ? players[offer.playerId] : null;
-      if (p && (p.overall >= 70 || (offer && offer.fee >= 5_000_000))) {
+      if (p && (p.overall >= SIGNIFICANT_OFFER_OVERALL || (offer && offer.fee >= SIGNIFICANT_OFFER_FEE))) {
         hapticMedium();
         setConfirmAction({ offerId, accept, playerName: `${p.firstName} ${p.lastName}`, fee: offer!.fee });
         return;

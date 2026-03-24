@@ -10,7 +10,7 @@ import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft, Wand2 } from '
 import { getFlag } from '@/utils/nationality';
 import { useState } from 'react';
 import { PageHint } from '@/components/game/PageHint';
-import { PAGE_HINTS } from '@/config/ui';
+import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD } from '@/config/ui';
 
 const STYLE_PRESETS: StylePreset[] = [
   { label: 'Park the Bus', values: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 } },
@@ -20,8 +20,8 @@ const STYLE_PRESETS: StylePreset[] = [
 ];
 
 function pressingLabel(v: number): string {
-  if (v <= 30) return 'Low';
-  if (v <= 60) return 'Medium';
+  if (v <= PRESSING_LOW_THRESHOLD) return 'Low';
+  if (v <= PRESSING_MED_THRESHOLD) return 'Medium';
   return 'High';
 }
 

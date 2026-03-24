@@ -39,14 +39,13 @@ import { WeeklyDigest } from '@/components/game/WeeklyDigest';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
-import { HELP_TEXTS } from '@/config/ui';
+import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_LOW_THRESHOLD, FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD, HOT_STREAK_MIN_WINS } from '@/config/ui';
 import { getManagerTips } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
 import { MidSeasonReport } from '@/components/game/MidSeasonReport';
 
 const WELCOME_KEY = 'dynasty-welcome-shown';
-const MID_SEASON_WEEK = 23;
 
 const Dashboard = () => {
   const store = useGameStore();
@@ -371,7 +370,7 @@ const Dashboard = () => {
       <SessionRecap />
 
       {/* Board Warning (low confidence) */}
-      {!boardWarningDismissed && boardConfidence <= 35 && (
+      {!boardWarningDismissed && boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD && (
         <BoardWarning confidence={boardConfidence} onDismiss={() => setBoardWarningDismissed(true)} />
       )}
 
@@ -1046,7 +1045,7 @@ const Dashboard = () => {
           </p>
         </GlassPanel>
 
-        <GlassPanel className={cn("p-4", boardConfidence <= 35 && "border-destructive/50 animate-pulse")}>
+        <GlassPanel className={cn("p-4", boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD && "border-destructive/50 animate-pulse")}>
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">Board</span>
@@ -1071,7 +1070,7 @@ const Dashboard = () => {
           <p className="text-[10px] text-muted-foreground mt-1">
             {boardConfidence > 70 ? 'Secure' : boardConfidence > 40 ? 'Under pressure' : 'Sacking risk!'}
           </p>
-          {boardConfidence <= 50 && boardConfidence > 25 && (
+          {boardConfidence <= CONFIDENCE_LOW_THRESHOLD && boardConfidence > 25 && (
             <p className="text-[9px] text-destructive/80 mt-0.5">
               ~{Math.max(1, Math.ceil((boardConfidence - 25) / 4))} more loss{Math.ceil((boardConfidence - 25) / 4) !== 1 ? 'es' : ''} could mean the sack
             </p>
@@ -1108,7 +1107,7 @@ const Dashboard = () => {
             {store.fanMood}%
           </p>
           <p className="text-[10px] text-muted-foreground">
-            {store.fanMood >= 70 ? 'Buzzing' : store.fanMood >= 40 ? 'Content' : 'Restless'}
+            {store.fanMood >= FAN_MOOD_HIGH_THRESHOLD ? 'Buzzing' : store.fanMood >= FAN_MOOD_MID_THRESHOLD ? 'Content' : 'Restless'}
           </p>
         </GlassPanel>
       </div>
@@ -1137,7 +1136,7 @@ const Dashboard = () => {
           ? `${unbeatenRun} matches unbeaten — an incredible run`
           : recentLosses >= 4
           ? 'Time to turn things around — fans are worried'
-          : allForm.length >= 10 && recentWins >= 4
+          : allForm.length >= 10 && recentWins >= HOT_STREAK_MIN_WINS
           ? `Strong form — ${recentWins} wins in last 5`
           : null;
         return (

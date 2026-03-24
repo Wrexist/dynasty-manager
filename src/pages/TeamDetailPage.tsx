@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { getRatingColor } from '@/utils/uiHelpers';
 import { getFlag } from '@/utils/nationality';
 import { DIVISIONS } from '@/data/league';
+import { getSuffix } from '@/utils/helpers';
 import type { Player, Position } from '@/types/game';
 
 const POSITION_GROUPS: { label: string; positions: Position[] }[] = [
@@ -78,16 +79,6 @@ const TeamDetailPage = () => {
     : null;
 
   const handleBack = () => { selectClub(null); setScreen('league-table'); };
-
-  const getSuffix = (n: number) => {
-    if (n >= 11 && n <= 13) return 'th';
-    switch (n % 10) {
-      case 1: return 'st';
-      case 2: return 'nd';
-      case 3: return 'rd';
-      default: return 'th';
-    }
-  };
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">

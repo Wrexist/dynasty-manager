@@ -58,7 +58,6 @@ import {
 } from '@/config/gameBalance';
 import {
   SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END,
-  WINDOW_CLOSING_WEEK, WINDOW_OPENING_WEEK,
   AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD,
   URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS,
   OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
@@ -1601,20 +1600,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // ── Multi-week Storyline Chains ──
-    const updatedChains: ActiveStorylineChain[] = [...(state.activeStorylineChains || [])];
-
-    // Advance existing chains — check if a step is due this week
-    for (let ci = updatedChains.length - 1; ci >= 0; ci--) {
-      const chain = updatedChains[ci];
+    const updatedChains: ActiveStorylineChain[] = (state.activeStorylineChains || []).reduce<ActiveStorylineChain[]>((kept, chain) => {
       const chainDef = STORYLINE_CHAINS.find(c => c.id === chain.chainId);
-      if (!chainDef) { updatedChains.splice(ci, 1); continue; }
+      if (!chainDef) return kept; // Remove chains with no definition
 
       const nextStepIdx = chain.currentStep + 1;
-      if (nextStepIdx >= chainDef.steps.length) {
-        // Chain complete — remove
-        updatedChains.splice(ci, 1);
-        continue;
-      }
+      if (nextStepIdx >= chainDef.steps.length) return kept; // Chain complete — remove
 
       const nextStep = chainDef.steps[nextStepIdx];
       const dueWeek = chain.startWeek + nextStep.weekOffset;
@@ -1625,8 +1616,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           const prevChoice = chain.choices[chain.choices.length - 1];
           if (prevChoice !== nextStep.requiredPrevChoice) {
             // Skip this step — try the next one or end the chain
-            updatedChains[ci] = { ...chain, currentStep: nextStepIdx };
-            continue;
+            kept.push({ ...chain, currentStep: nextStepIdx });
+            return kept;
           }
         }
 
@@ -1639,10 +1630,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             icon: nextStep.icon,
             options: nextStep.options,
           };
-          updatedChains[ci] = { ...chain, currentStep: nextStepIdx };
+          kept.push({ ...chain, currentStep: nextStepIdx });
+        } else {
+          kept.push(chain);
         }
+      } else {
+        kept.push(chain);
       }
-    }
+      return kept;
+    }, []);
 
     // Try to start a new chain (max 1 active, 15% chance per week)
     if (updatedChains.length === 0 && Math.random() < STORYLINE_CHAIN_TRIGGER_CHANCE && newWeek >= STORYLINE_CHAIN_MIN_WEEK) {
@@ -1699,9 +1695,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // Transfer window messages
-    if (newWeek === WINDOW_CLOSING_WEEK - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Transfer Deadline Approaching', body: 'The summer transfer window closes next week. Finalise any deals now!' });
-    if (newWeek === WINDOW_CLOSING_WEEK) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Window Closing', body: 'The transfer window closes this week. Make your final moves!' });
-    if (newWeek === WINDOW_OPENING_WEEK) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'January Window Opens', body: 'The winter transfer window is now open until Week 24.' });
+    if (newWeek === SUMMER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Transfer Deadline Approaching', body: 'The summer transfer window closes next week. Finalise any deals now!' });
+    if (newWeek === SUMMER_WINDOW_END) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Window Closing', body: 'The transfer window closes this week. Make your final moves!' });
+    if (newWeek === WINTER_WINDOW_START) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'January Window Opens', body: 'The winter transfer window is now open until Week 24.' });
     if (newWeek === WINTER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Winter Deadline Approaching', body: 'The winter transfer window closes next week. Last chance for January deals!' });
     if (newWeek === WINTER_WINDOW_END) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Winter Window Closed', body: 'The January transfer window has closed. No more transfers until next season.' });
 

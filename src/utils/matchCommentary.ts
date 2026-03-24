@@ -1,5 +1,6 @@
 import type { MatchEvent } from '@/types/game';
 import { pick } from '@/utils/helpers';
+import { COMMENTARY_LATE_MINUTE } from '@/config/matchEngine';
 
 interface CommentaryContext {
   homeGoals: number;
@@ -9,7 +10,7 @@ interface CommentaryContext {
   minute: number;
 }
 
-const LATE_MINUTE = 80;
+const LATE_MINUTE = COMMENTARY_LATE_MINUTE;
 
 function getScoreContext(ctx: CommentaryContext, scoringClubIsHome: boolean): string {
   const { homeGoals, awayGoals, minute } = ctx;

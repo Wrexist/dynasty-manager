@@ -7,8 +7,6 @@
 export const SUMMER_WINDOW_END = 8;
 export const WINTER_WINDOW_START = 20;
 export const WINTER_WINDOW_END = 24;
-export const WINDOW_CLOSING_WEEK = 8;
-export const WINDOW_OPENING_WEEK = 20;
 
 // ── AI Incoming Offers ──
 export const AI_OFFER_CHANCE = 0.2;
@@ -49,6 +47,24 @@ export const RUMOR_TO_OFFER_CHANCE = 0.6;
 // ── Deadline Day ──
 export const DEADLINE_DAY_OFFER_MULTIPLIER = 2.0;
 export const DEADLINE_DAY_BID_PREMIUM = 0.15;
+
+// ── Sell-On Clauses ──
+export const SELL_ON_HIGH_FEE_THRESHOLD = 10_000_000;
+export const SELL_ON_LOW_FEE_THRESHOLD = 5_000_000;
+export const SELL_ON_HIGH_BASE_PCT = 10;
+export const SELL_ON_HIGH_RANGE_PCT = 11;
+export const SELL_ON_LOW_BASE_PCT = 5;
+export const SELL_ON_LOW_RANGE_PCT = 6;
+export const SELL_ON_EVAL_HIGH_PCT = 15;
+export const SELL_ON_EVAL_LOW_PCT = 7;
+
+// ── Counter-Offer Fee Calculation ──
+export const COUNTER_OFFER_BASE_RATIO = 0.5;
+export const COUNTER_OFFER_RANDOM_RANGE = 0.3;
+
+// ── Record Signing ──
+export const RECORD_SIGNING_SPEND_RATIO = 0.4;
+export const RECORD_SIGNING_MIN_FEE = 5_000_000;
 
 // ── Contract Renewal ──
 export const CONTRACT_MIN_YEARS = 1;

@@ -266,3 +266,7 @@ export const SUB_FRESHNESS_BONUS = 0.04;
 export const SET_PIECE_TAKER_CORNER_BONUS = 0.03;
 /** Bonus to penalty conversion when a designated penalty taker shoots */
 export const PENALTY_TAKER_BONUS = 0.05;
+
+// ── Commentary ──
+/** Minute threshold for "late game" commentary (slightly earlier than drama triggers) */
+export const COMMENTARY_LATE_MINUTE = 80;

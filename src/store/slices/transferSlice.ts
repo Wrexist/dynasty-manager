@@ -7,6 +7,11 @@ import {
   CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS, SIGNING_BONUS_WEEKS_PER_YEAR, RENEWAL_MORALE_BOOST,
   COUNTER_OFFER_MIN_THRESHOLD, COUNTER_OFFER_MAX_THRESHOLD, COUNTER_OFFER_CHANCE,
   TRANSFER_SHARK_DISCOUNT,
+  SELL_ON_HIGH_FEE_THRESHOLD, SELL_ON_LOW_FEE_THRESHOLD,
+  SELL_ON_HIGH_BASE_PCT, SELL_ON_HIGH_RANGE_PCT, SELL_ON_LOW_BASE_PCT, SELL_ON_LOW_RANGE_PCT,
+  SELL_ON_EVAL_HIGH_PCT, SELL_ON_EVAL_LOW_PCT,
+  COUNTER_OFFER_BASE_RATIO, COUNTER_OFFER_RANDOM_RANGE,
+  RECORD_SIGNING_SPEND_RATIO, RECORD_SIGNING_MIN_FEE,
 } from '@/config/transfers';
 import { MIN_SQUAD_SIZE } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
@@ -34,8 +39,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const club = state.clubs[state.playerClubId];
     const ratio = fee / listing.askingPrice;
     const acceptChance = fee >= listing.askingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= listing.askingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
-    const wouldTriggerSellOn = fee >= 5_000_000;
-    const sellOnPct = fee >= 10_000_000 ? 15 : fee >= 5_000_000 ? 7 : 0;
+    const wouldTriggerSellOn = fee >= SELL_ON_LOW_FEE_THRESHOLD;
+    const sellOnPct = fee >= SELL_ON_HIGH_FEE_THRESHOLD ? SELL_ON_EVAL_HIGH_PCT : fee >= SELL_ON_LOW_FEE_THRESHOLD ? SELL_ON_EVAL_LOW_PCT : 0;
     const budgetAfter = club.budget - fee;
     const wageImpact = player.wage;
     const positionCount = club.playerIds.filter(id => state.players[id]?.position === player.position).length;
@@ -65,7 +70,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
     // Check for counter-offer
     if (ratio >= COUNTER_OFFER_MIN_THRESHOLD && ratio < COUNTER_OFFER_MAX_THRESHOLD && Math.random() < COUNTER_OFFER_CHANCE) {
-      const counterFee = Math.round(fee + (listing.askingPrice - fee) * (0.5 + Math.random() * 0.3));
+      const counterFee = Math.round(fee + (listing.askingPrice - fee) * (COUNTER_OFFER_BASE_RATIO + Math.random() * COUNTER_OFFER_RANDOM_RANGE));
       return { outcome: 'counter', counterFee, message: `${state.clubs[listing.sellerClubId]?.shortName || 'The club'} want more — they counter with £${(counterFee / 1e6).toFixed(1)}M.` };
     }
 
@@ -103,7 +108,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     oldClub.budget += fee - sellOnFee;
 
     // New sell-on clause: the selling club gets 10-20% on expensive transfers
-    const sellOnPct = fee >= 10_000_000 ? 10 + Math.floor(Math.random() * 11) : fee >= 5_000_000 ? 5 + Math.floor(Math.random() * 6) : 0;
+    const sellOnPct = fee >= SELL_ON_HIGH_FEE_THRESHOLD ? SELL_ON_HIGH_BASE_PCT + Math.floor(Math.random() * SELL_ON_HIGH_RANGE_PCT) : fee >= SELL_ON_LOW_FEE_THRESHOLD ? SELL_ON_LOW_BASE_PCT + Math.floor(Math.random() * SELL_ON_LOW_RANGE_PCT) : 0;
     const updatedPlayer = {
       ...player,
       clubId: state.playerClubId,
@@ -126,7 +131,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
     const ms = { ...state.managerStats, totalSpent: state.managerStats.totalSpent + fee };
     // Record signing milestone if this is the most expensive signing ever
-    const isRecordSigning = fee > ms.totalSpent * 0.4 && fee >= 5_000_000;
+    const isRecordSigning = fee > ms.totalSpent * RECORD_SIGNING_SPEND_RATIO && fee >= RECORD_SIGNING_MIN_FEE;
     const newTimeline = isRecordSigning
       ? [...state.careerTimeline, { id: crypto.randomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${updatedPlayer.firstName} ${updatedPlayer.lastName} for £${(fee / 1e6).toFixed(1)}M from ${oldClub.name}.`, season: state.season, week: state.week, icon: 'pen-line' }]
       : state.careerTimeline;
@@ -229,7 +234,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     sellerClub.budget += netFee;
     sellerClub.wageBill -= player.wage;
 
-    buyer.playerIds.push(offer.playerId);
+    buyer.playerIds = [...buyer.playerIds, offer.playerId];
     buyer.budget -= offer.fee;
     buyer.wageBill += player.wage;
 

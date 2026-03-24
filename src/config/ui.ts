@@ -204,6 +204,28 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
   },
 } as const;
 
+// ── Dashboard Thresholds ──
+export const MID_SEASON_WEEK = 23;
+export const CONFIDENCE_CRITICAL_THRESHOLD = 35;
+export const CONFIDENCE_LOW_THRESHOLD = 50;
+export const CONFIDENCE_HIGH_THRESHOLD = 70;
+export const FAN_MOOD_HIGH_THRESHOLD = 70;
+export const FAN_MOOD_MID_THRESHOLD = 40;
+export const HOT_STREAK_MIN_WINS = 4;
+
+// ── Tactics Thresholds ──
+export const PRESSING_LOW_THRESHOLD = 30;
+export const PRESSING_MED_THRESHOLD = 60;
+
+// ── Transfer Page Thresholds ──
+export const SIGNIFICANT_OFFER_OVERALL = 70;
+export const SIGNIFICANT_OFFER_FEE = 5_000_000;
+
+// ── Attribute Rating Thresholds (for per-attribute color coding in PlayerDetail/TeamDetail) ──
+export const ATTR_RATING_HIGH = 15;
+export const ATTR_RATING_MID = 10;
+export const ATTR_RATING_LOW = 7;
+
 // ── Team Talk Options (match day half-time) ──
 export const TEAM_TALK_OPTIONS = [
   { id: 'motivate', label: 'Motivate', icon: 'Flame', description: "Let's show them what we're made of!" },
