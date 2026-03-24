@@ -59,9 +59,12 @@ jobs:
             -project App.xcodeproj \
             -scheme App \
             -archivePath $RUNNER_TEMP/App.xcarchive \
+            -destination 'generic/platform=iOS' \
             -configuration Release \
             DEVELOPMENT_TEAM=S3U8B8HH96 \
-            CODE_SIGN_IDENTITY="Apple Distribution"
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            OTHER_CODE_SIGN_FLAGS="--keychain build.keychain"
 
       - name: Export IPA
         run: |
