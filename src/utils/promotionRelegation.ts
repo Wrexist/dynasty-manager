@@ -306,6 +306,8 @@ export function generateReplacementClub(season: number): { clubData: ClubData; c
     squadQuality: 42 + Math.floor(Math.random() * 6),
     league: 'foundation',
     divisionId: 'div-4',
+    stadiumName: `${template.name} Stadium`,
+    stadiumCapacity: 4000 + Math.floor(Math.random() * 3000),
   };
 
   return { clubData, clubId: id };

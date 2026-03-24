@@ -12,7 +12,7 @@ interface MidSeasonReportProps {
 }
 
 export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
-  const { playerClubId, clubs, players, leagueTable, fixtures, boardConfidence, boardObjectives, season } = useGameStore();
+  const { playerClubId, clubs, players, leagueTable, fixtures, boardConfidence, season } = useGameStore();
   const club = clubs[playerClubId];
   if (!club) return null;
 
@@ -37,7 +37,6 @@ export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
   const topScorer = squad.filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals)[0];
 
   // Board objective status
-  const criticalObj = boardObjectives.filter(o => o.priority === 'critical');
   const onTrack = pos <= expectedPos;
 
   // Motivational message

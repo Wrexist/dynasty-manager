@@ -39,7 +39,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
 
 function makeFacilities(overrides: Partial<FacilitiesState> = {}): FacilitiesState {
   return {
-    trainingLevel: 5, youthLevel: 5, stadiumLevel: 5, medicalLevel: 5,
+    trainingLevel: 5, youthLevel: 5, stadiumLevel: 5, medicalLevel: 5, recoveryLevel: 1,
     upgradeInProgress: null,
     ...overrides,
   };
