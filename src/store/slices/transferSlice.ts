@@ -241,7 +241,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     newPlayers[offer.playerId] = { ...player, clubId: offer.buyerClubId, listedForSale: false, sellOnPercentage: undefined, sellOnClubId: undefined };
 
     const newMarket = state.transferMarket.filter(l => l.playerId !== offer.playerId);
-    const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${state.clubs[player.sellOnClubId!]?.name || 'former club'})` : '';
+    const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${(player.sellOnClubId && state.clubs[player.sellOnClubId]?.name) || 'former club'})` : '';
     const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `${player.lastName} Sold!`, body: `${player.firstName} ${player.lastName} has been sold to ${buyerClub.name} for £${(offer.fee / 1e6).toFixed(1)}M.${sellOnNote}` });
 
     updatedClubs[sellerClub.id] = sellerClub;
