@@ -4,8 +4,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { ReputationBadge } from '@/components/game/ReputationBadge';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
-import { Briefcase, MapPin, DollarSign, Clock, Send, Check, X, LogOut } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Briefcase, DollarSign, Clock, Send, Check, X, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import type { JobVacancy, JobOffer } from '@/types/game';
 

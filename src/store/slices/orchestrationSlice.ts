@@ -63,7 +63,7 @@ import {
   FFP_WAGE_RATIO_WARNING, FFP_WAGE_RATIO_CRITICAL, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY,
   FREE_AGENT_POOL_MAX,
   UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_CONTAGION_MORALE_HIT,
-  MEDICAL_INJURY_PREVENTION_PER_LEVEL,
+  MEDICAL_REINJURY_REDUCTION_PER_LEVEL,
 } from '@/config/gameBalance';
 import {
   SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END,
@@ -134,7 +134,7 @@ function generateAIInjuryDetails(medicalLevel: number = 5): InjuryDetails {
   const weeks = Math.max(1, weeksRaw - medicalReduction);
   return {
     type, severity, weeksRemaining: weeks, totalWeeks: weeks,
-    reinjuryRisk: Math.max(0, config.reinjuryRisk[severity] - medicalLevel * MEDICAL_INJURY_PREVENTION_PER_LEVEL),
+    reinjuryRisk: Math.max(0, config.reinjuryRisk[severity] - medicalLevel * MEDICAL_REINJURY_REDUCTION_PER_LEVEL),
     reinjuryWeeksRemaining: config.reinjuryDuration[severity],
     fitnessOnReturn: config.fitnessOnReturn[severity],
   };
@@ -155,7 +155,9 @@ function applyAIMatchEvents(
       newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
     }
     if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
-      const injDetails = generateAIInjuryDetails(clubs[newPlayers[ev.playerId].clubId]?.facilities?.medicalLevel ?? 5);
+      const clubFacilities = clubs[newPlayers[ev.playerId].clubId]?.facilities ?? 5;
+      const aiMedicalLevel = Math.min(FACILITY_MAX_LEVEL, Math.round(clubFacilities * MEDICAL_LEVEL_FACTOR));
+      const injDetails = generateAIInjuryDetails(aiMedicalLevel);
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: injDetails.weeksRemaining, injuryDetails: injDetails };
     }
     if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {

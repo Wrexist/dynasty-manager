@@ -331,13 +331,13 @@ export function simulateHalf(
   currentSeason?: number,
   careerDisciplineMod?: number,
 ): HalfState {
-  // Guard against empty squads — return a forfeit-like state with no events
+  // Guard against empty squads — return a forfeit-like state (clone refs to avoid mutation)
   if (homePlayers.length === 0 || awayPlayers.length === 0) {
     const forfeitHome = homePlayers.length === 0;
     return {
-      events: prevState?.events ?? [],
-      homeGoals: prevState?.homeGoals ?? (forfeitHome ? 0 : 3),
-      awayGoals: prevState?.awayGoals ?? (forfeitHome ? 3 : 0),
+      events: [...(prevState?.events ?? [])],
+      homeGoals: forfeitHome ? 0 : 3,
+      awayGoals: forfeitHome ? 3 : 0,
       homeShots: prevState?.homeShots ?? 0,
       awayShots: prevState?.awayShots ?? 0,
       homeSoT: prevState?.homeSoT ?? 0,
@@ -346,13 +346,13 @@ export function simulateHalf(
       awayFouls: prevState?.awayFouls ?? 0,
       homeCorners: prevState?.homeCorners ?? 0,
       awayCorners: prevState?.awayCorners ?? 0,
-      sentOff: prevState?.sentOff ?? [],
-      injured: prevState?.injured ?? [],
-      matchInjuries: prevState?.matchInjuries ?? {},
+      sentOff: [...(prevState?.sentOff ?? [])],
+      injured: [...(prevState?.injured ?? [])],
+      matchInjuries: { ...(prevState?.matchInjuries ?? {}) },
       momentum: prevState?.momentum ?? 0,
       homeXG: prevState?.homeXG ?? 0,
       awayXG: prevState?.awayXG ?? 0,
-      playerEvents: prevState?.playerEvents ?? {},
+      playerEvents: { ...(prevState?.playerEvents ?? {}) },
     };
   }
 
