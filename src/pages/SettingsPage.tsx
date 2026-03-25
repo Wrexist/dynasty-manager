@@ -1,6 +1,7 @@
+import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -16,7 +17,9 @@ const APP_VERSION = 'v0.2 Alpha · Football Edition';
 
 const SettingsPage = () => {
   const { settings, updateSettings, saveGame, loadGame, resetGame, monetization, restoreEntitlements, updateSubscription } = useGameStore();
+  const navigate = useNavigate();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showMenuConfirm, setShowMenuConfirm] = useState(false);
   const [saved, setSaved] = useState(false);
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => { clearTimeout(savedTimerRef.current); }, []);
@@ -72,6 +75,11 @@ const SettingsPage = () => {
     setFeedbackOpen(false);
   };
 
+  const handleReturnToMenu = () => {
+    saveGame();
+    navigate('/');
+  };
+
   const handleReset = () => {
     resetGame();
     setShowResetConfirm(false);
@@ -101,11 +109,37 @@ const SettingsPage = () => {
             <Download className="w-4 h-4" />
             Load Game
           </Button>
+          {!showMenuConfirm ? (
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-3 h-11 text-amber-400 hover:text-amber-400 hover:bg-amber-400/10"
+              onClick={() => { setShowMenuConfirm(true); setShowResetConfirm(false); }}
+            >
+              <Home className="w-4 h-4" />
+              Main Menu
+            </Button>
+          ) : (
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 h-11"
+                onClick={handleReturnToMenu}
+              >
+                Save & Exit
+              </Button>
+              <Button
+                variant="secondary"
+                className="flex-1 h-11"
+                onClick={() => setShowMenuConfirm(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          )}
           {!showResetConfirm ? (
             <Button
               variant="ghost"
               className="w-full justify-start gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10"
-              onClick={() => setShowResetConfirm(true)}
+              onClick={() => { setShowResetConfirm(true); setShowMenuConfirm(false); }}
             >
               <Trash2 className="w-4 h-4" />
               Reset Game
