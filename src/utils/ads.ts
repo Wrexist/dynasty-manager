@@ -10,10 +10,9 @@
 
 import { Capacitor } from '@capacitor/core';
 
-// TODO: Replace with real ad unit IDs from AdMob dashboard before monetization launch
-// Currently using Google's official test rewarded ad unit IDs
-const REWARDED_AD_UNIT_IOS = 'ca-app-pub-3940256099942544/1712485313';
-const REWARDED_AD_UNIT_ANDROID = 'ca-app-pub-3940256099942544/5224354917';
+// Ad unit IDs — set via environment variables for production, falls back to Google's test IDs
+const REWARDED_AD_UNIT_IOS = import.meta.env.VITE_ADMOB_REWARDED_IOS || 'ca-app-pub-3940256099942544/1712485313';
+const REWARDED_AD_UNIT_ANDROID = import.meta.env.VITE_ADMOB_REWARDED_ANDROID || 'ca-app-pub-3940256099942544/5224354917';
 
 /** Set to true once production AdMob IDs are configured and native plugin restored. */
 const NATIVE_ADS_READY = false;

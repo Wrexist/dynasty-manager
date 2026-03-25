@@ -272,7 +272,17 @@ export function generateAllDivisionFixtures(
 }
 
 // ── League Table ──
+// Simple cache for buildLeagueTable — keyed by played count + first club ID
+const _btlCache = new Map<string, LeagueTableEntry[]>();
+
 export function buildLeagueTable(fixtures: Match[], clubIds: string[]): LeagueTableEntry[] {
+  const playedCount = fixtures.filter(m => m.played).length;
+  const cacheKey = `${playedCount}:${clubIds.length}:${clubIds[0] || ''}`;
+  const cached = _btlCache.get(cacheKey);
+  if (cached) return cached;
+  // Keep cache bounded (max 8 entries — 4 divisions × 2 states)
+  if (_btlCache.size >= 8) _btlCache.clear();
+
   const table: Record<string, LeagueTableEntry> = {};
   clubIds.forEach(id => {
     table[id] = { clubId: id, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0, form: [], cleanSheets: 0 };
@@ -305,7 +315,9 @@ export function buildLeagueTable(fixtures: Match[], clubIds: string[]): LeagueTa
     if (a.form.length > 5) a.form = a.form.slice(-5);
   }
 
-  return Object.values(table).sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
+  const result = Object.values(table).sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
+  _btlCache.set(cacheKey, result);
+  return result;
 }
 
 /**

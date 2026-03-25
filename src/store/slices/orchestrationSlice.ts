@@ -1370,7 +1370,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       transferMarket, shortlist: [], scoutWatchList: [], freeAgents: [], transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
       messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', currentCupTieId: null,
-      settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: false },
+      settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: false, hapticsEnabled: true },
       tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
       training: {
         schedule: { mon: 'fitness', tue: 'attacking', wed: 'defending', thu: 'mentality', fri: 'tactical' },
@@ -2950,7 +2950,17 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       internationalTournament: state.internationalTournament,
       managerNationality: state.managerNationality,
     };
-    localStorage.setItem(`dynasty-save-${s}`, JSON.stringify(saveData));
+    const json = JSON.stringify(saveData);
+    try {
+      // Write backup before overwriting primary save
+      const existing = localStorage.getItem(`dynasty-save-${s}`);
+      if (existing) {
+        localStorage.setItem(`dynasty-save-${s}-backup`, existing);
+      }
+      localStorage.setItem(`dynasty-save-${s}`, json);
+    } catch (err) {
+      console.error('[Save] Failed to write save data:', err);
+    }
 
     // Save session snapshot for "Welcome back" recap
     const myEntry = state.leagueTable.find(e => e.clubId === state.playerClubId);
@@ -2973,10 +2983,25 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   loadGame: (slot?: number) => {
     migrateLegacySave();
     const s = slot ?? get().activeSlot;
-    const raw = localStorage.getItem(`dynasty-save-${s}`);
+    let raw = localStorage.getItem(`dynasty-save-${s}`);
     if (!raw) return false;
+
+    // Try to parse primary save; if corrupted, fall back to backup
+    let parsed;
     try {
-      const parsed = JSON.parse(raw);
+      parsed = JSON.parse(raw);
+    } catch {
+      console.warn('[Load] Primary save corrupted, trying backup...');
+      raw = localStorage.getItem(`dynasty-save-${s}-backup`);
+      if (!raw) return false;
+      try {
+        parsed = JSON.parse(raw);
+        // Restore backup as primary
+        localStorage.setItem(`dynasty-save-${s}`, raw);
+      } catch { return false; }
+    }
+
+    try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = migrateSaveData(parsed) as Record<string, any>;
       const clubIds = Object.keys(data.clubs);

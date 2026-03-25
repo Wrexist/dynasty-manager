@@ -267,6 +267,16 @@ const TransferPage = () => {
       {/* Market / Shortlist Listings */}
       {(tab === 'market' || tab === 'shortlist') && (
         <div className="space-y-2">
+          {listings.length === 0 && (
+            <GlassPanel className="p-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                {tab === 'shortlist' ? 'No players in your shortlist' : 'No players on the transfer market'}
+              </p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">
+                {tab === 'shortlist' ? 'Tap the star icon on a player to add them' : 'Check back during the transfer window'}
+              </p>
+            </GlassPanel>
+          )}
           {listings.map((listing, i) => {
             const p = players[listing.playerId];
             if (!p) return null;

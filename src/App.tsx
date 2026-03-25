@@ -1,8 +1,10 @@
 import { Component, type ReactNode, lazy, Suspense } from "react";
+import * as Sentry from "@sentry/react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HashRouter, Routes, Route } from "react-router-dom";
+import { MotionConfig } from "framer-motion";
 import TitleScreen from "./pages/TitleScreen";
 import NotFound from "./pages/NotFound";
 
@@ -27,6 +29,10 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 
   static getDerivedStateFromError() {
     return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    Sentry.captureException(error, { extra: { componentStack: errorInfo.componentStack } });
   }
 
   render() {
@@ -57,21 +63,23 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
 
 const App = () => (
   <ErrorBoundary>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <HashRouter>
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="/" element={<TitleScreen />} />
-            <Route path="/select-club" element={<ClubSelection />} />
-            <Route path="/challenge" element={<ChallengePicker />} />
-            <Route path="/game" element={<GameShell />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </HashRouter>
-    </TooltipProvider>
+    <MotionConfig reducedMotion="user">
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <HashRouter>
+          <Suspense fallback={<LoadingFallback />}>
+            <Routes>
+              <Route path="/" element={<TitleScreen />} />
+              <Route path="/select-club" element={<ClubSelection />} />
+              <Route path="/challenge" element={<ChallengePicker />} />
+              <Route path="/game" element={<GameShell />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </HashRouter>
+      </TooltipProvider>
+    </MotionConfig>
   </ErrorBoundary>
 );
 
