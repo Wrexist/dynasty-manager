@@ -274,6 +274,7 @@ function advancePlayoffWeek(set: Set, get: Get) {
   if (!playerClub) return set({ week: newWeek });
 
   playerClub.playerIds.forEach(pid => {
+    if (!newPlayers[pid]) return;
     let p = { ...newPlayers[pid] };
     if (p.injured) {
       const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD && Math.random() < PHYSIO_RECOVERY_CHANCE ? 1 : 0;
@@ -895,8 +896,8 @@ function endSeasonImpl(set: Set, get: Get) {
   if (history.promoted) {
     const toDivName = DIVISIONS.find(d => d.id === newPlayerDivision)?.name || newPlayerDivision;
     newMessages = addMsg(newMessages, { week: state.week, season, type: 'board', title: 'PROMOTED!', body: `Congratulations! Your club has been promoted to the ${toDivName}!` });
-    if (playerClub) playerClub.budget = Math.round(playerClub.budget * PROMOTION_BUDGET_MULTIPLIER);
-    playerClub?.playerIds.forEach(pid => {
+    if (playerClub) workingClubs[playerClubId] = { ...playerClub, budget: Math.round(playerClub.budget * PROMOTION_BUDGET_MULTIPLIER) };
+    workingClubs[playerClubId]?.playerIds.forEach(pid => {
       if (workingPlayers[pid]) workingPlayers[pid] = { ...workingPlayers[pid], morale: Math.min(100, workingPlayers[pid].morale + PROMOTION_MORALE_BONUS) };
     });
     fanMoodDelta = PROMOTION_FAN_MOOD_BONUS;
@@ -904,7 +905,7 @@ function endSeasonImpl(set: Set, get: Get) {
   if (history.relegated) {
     const toDivName = DIVISIONS.find(d => d.id === newPlayerDivision)?.name || newPlayerDivision;
     newMessages = addMsg(newMessages, { week: state.week, season, type: 'board', title: 'Relegated', body: `Your club has been relegated to the ${toDivName}. Time to rebuild and fight for promotion.` });
-    if (playerClub) playerClub.budget = Math.round(playerClub.budget * RELEGATION_BUDGET_MULTIPLIER);
+    if (playerClub) workingClubs[playerClubId] = { ...playerClub, budget: Math.round(playerClub.budget * RELEGATION_BUDGET_MULTIPLIER) };
     playerClub?.playerIds.forEach(pid => {
       const p = workingPlayers[pid];
       if (!p) return;
@@ -1461,6 +1462,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const improvedPlayers: { name: string; overall: number }[] = [];
     const declinedPlayers: { name: string; overall: number }[] = [];
     playerClub.playerIds.forEach(pid => {
+      if (!newPlayers[pid]) return;
       let p = { ...newPlayers[pid] };
       if (p.injured) {
         const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD && Math.random() < PHYSIO_RECOVERY_CHANCE ? 1 : 0;
