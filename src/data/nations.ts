@@ -14,7 +14,7 @@ export interface NationData {
 export const NATIONS: NationData[] = [
   // UEFA (Europe) — 24 nations
   { name: 'England', confederation: 'UEFA', baseRanking: 4, color: '#FFFFFF', secondaryColor: '#CF081F' },
-  { name: 'France', confederation: 'UEFA', baseRanking: 2, color: '#002395', secondaryColor: '#FFFFFF' },
+  { name: 'France', confederation: 'UEFA', baseRanking: 1, color: '#002395', secondaryColor: '#FFFFFF' },
   { name: 'Spain', confederation: 'UEFA', baseRanking: 3, color: '#AA151B', secondaryColor: '#F1BF00' },
   { name: 'Germany', confederation: 'UEFA', baseRanking: 5, color: '#000000', secondaryColor: '#FFFFFF' },
   { name: 'Italy', confederation: 'UEFA', baseRanking: 6, color: '#009246', secondaryColor: '#FFFFFF' },
@@ -39,8 +39,8 @@ export const NATIONS: NationData[] = [
   { name: 'Greece', confederation: 'UEFA', baseRanking: 40, color: '#0D5EAF', secondaryColor: '#FFFFFF' },
 
   // CONMEBOL (South America) — 8 nations
-  { name: 'Brazil', confederation: 'CONMEBOL', baseRanking: 1, color: '#009C3B', secondaryColor: '#FFDF00' },
-  { name: 'Argentina', confederation: 'CONMEBOL', baseRanking: 1, color: '#75AADB', secondaryColor: '#FFFFFF' },
+  { name: 'Brazil', confederation: 'CONMEBOL', baseRanking: 2, color: '#009C3B', secondaryColor: '#FFDF00' },
+  { name: 'Argentina', confederation: 'CONMEBOL', baseRanking: 2, color: '#75AADB', secondaryColor: '#FFFFFF' },
   { name: 'Uruguay', confederation: 'CONMEBOL', baseRanking: 12, color: '#5CBFEB', secondaryColor: '#FFFFFF' },
   { name: 'Colombia', confederation: 'CONMEBOL', baseRanking: 13, color: '#FCD116', secondaryColor: '#003893' },
   { name: 'Ecuador', confederation: 'CONMEBOL', baseRanking: 36, color: '#FFD100', secondaryColor: '#034EA2' },
