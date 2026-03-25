@@ -63,6 +63,7 @@ import {
   FFP_WAGE_RATIO_WARNING, FFP_WAGE_RATIO_CRITICAL, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY,
   FREE_AGENT_POOL_MAX,
   UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_CONTAGION_MORALE_HIT,
+  MEDICAL_INJURY_PREVENTION_PER_LEVEL,
 } from '@/config/gameBalance';
 import {
   SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END,
@@ -123,15 +124,17 @@ function weightedPickFromRecord<T extends string>(weights: Record<T, number>): T
 }
 
 /** Generate injury details for AI match processing */
-function generateAIInjuryDetails(_medicalLevel: number = 5): InjuryDetails {
+function generateAIInjuryDetails(medicalLevel: number = 5): InjuryDetails {
   const type = weightedPickFromRecord(NON_FOUL_INJURY_TYPE_WEIGHTS) as InjuryType;
   const severity = weightedPickFromRecord(INJURY_SEVERITY_WEIGHTS) as InjurySeverity;
   const config = INJURY_TYPES[type];
   const [minWeeks, maxWeeks] = config.weeks[severity];
-  const weeks = Math.max(1, minWeeks + Math.floor(Math.random() * (maxWeeks - minWeeks + 1)));
+  const weeksRaw = Math.max(1, minWeeks + Math.floor(Math.random() * (maxWeeks - minWeeks + 1)));
+  const medicalReduction = Math.max(0, Math.floor(medicalLevel / 5));
+  const weeks = Math.max(1, weeksRaw - medicalReduction);
   return {
     type, severity, weeksRemaining: weeks, totalWeeks: weeks,
-    reinjuryRisk: config.reinjuryRisk[severity],
+    reinjuryRisk: Math.max(0, config.reinjuryRisk[severity] - medicalLevel * MEDICAL_INJURY_PREVENTION_PER_LEVEL),
     reinjuryWeeksRemaining: config.reinjuryDuration[severity],
     fitnessOnReturn: config.fitnessOnReturn[severity],
   };
@@ -152,7 +155,7 @@ function applyAIMatchEvents(
       newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
     }
     if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
-      const injDetails = generateAIInjuryDetails(clubs[newPlayers[ev.playerId].clubId]?.facilities);
+      const injDetails = generateAIInjuryDetails(clubs[newPlayers[ev.playerId].clubId]?.facilities?.medicalLevel ?? 5);
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], injured: true, injuryWeeks: injDetails.weeksRemaining, injuryDetails: injDetails };
     }
     if (ev.type === 'yellow_card' && ev.playerId && newPlayers[ev.playerId]) {

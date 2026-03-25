@@ -331,6 +331,31 @@ export function simulateHalf(
   currentSeason?: number,
   careerDisciplineMod?: number,
 ): HalfState {
+  // Guard against empty squads — return a forfeit-like state with no events
+  if (homePlayers.length === 0 || awayPlayers.length === 0) {
+    const forfeitHome = homePlayers.length === 0;
+    return {
+      events: prevState?.events ?? [],
+      homeGoals: prevState?.homeGoals ?? (forfeitHome ? 0 : 3),
+      awayGoals: prevState?.awayGoals ?? (forfeitHome ? 3 : 0),
+      homeShots: prevState?.homeShots ?? 0,
+      awayShots: prevState?.awayShots ?? 0,
+      homeSoT: prevState?.homeSoT ?? 0,
+      awaySoT: prevState?.awaySoT ?? 0,
+      homeFouls: prevState?.homeFouls ?? 0,
+      awayFouls: prevState?.awayFouls ?? 0,
+      homeCorners: prevState?.homeCorners ?? 0,
+      awayCorners: prevState?.awayCorners ?? 0,
+      sentOff: prevState?.sentOff ?? [],
+      injured: prevState?.injured ?? [],
+      matchInjuries: prevState?.matchInjuries ?? {},
+      momentum: prevState?.momentum ?? 0,
+      homeXG: prevState?.homeXG ?? 0,
+      awayXG: prevState?.awayXG ?? 0,
+      playerEvents: prevState?.playerEvents ?? {},
+    };
+  }
+
   // Derby matches: more events, more fouls, more cards
   const derbyEventMod = derbyIntensity ? derbyIntensity * DERBY_EVENT_MOD_SCALE : 0;
   const derbyFoulMod = derbyIntensity ? derbyIntensity * DERBY_FOUL_MOD_SCALE : 0;

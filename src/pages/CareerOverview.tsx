@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ReputationBadge } from '@/components/game/ReputationBadge';
+import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { User, Trophy, Briefcase, Calendar, Award, LogOut, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,6 +12,7 @@ import { calculateLegacyScore, getRetirementAge } from '@/utils/managerCareer';
 
 const CareerOverview = () => {
   const { careerManager, season, setScreen, resignFromClub } = useGameStore();
+  const [showResignConfirm, setShowResignConfirm] = useState(false);
 
   if (!careerManager) {
     return (
@@ -27,9 +30,7 @@ const CareerOverview = () => {
     : 0;
 
   const handleResign = () => {
-    if (window.confirm('Are you sure you want to resign? You will enter the job market.')) {
-      resignFromClub();
-    }
+    setShowResignConfirm(true);
   };
 
   return (
@@ -218,6 +219,15 @@ const CareerOverview = () => {
           <LogOut className="w-4 h-4" /> Resign from Club
         </Button>
       )}
+
+      <ConfirmDialog
+        open={showResignConfirm}
+        onOpenChange={setShowResignConfirm}
+        title="Resign from Club"
+        description="Are you sure you want to resign? You will enter the job market."
+        confirmLabel="Resign"
+        onConfirm={resignFromClub}
+      />
     </div>
   );
 };
