@@ -1,4 +1,5 @@
 import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats } from '@/types/game';
+import { MOD_MEDIA_PRESS, GROWTH_MEDIA_PER_CONFERENCE, STAT_MAX } from '@/config/managerCareer';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
@@ -46,14 +47,14 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
 
     // Career mode: apply media handling modifier to press effects
     if (state.gameMode === 'career' && state.careerManager) {
-      const mediaMod = 1 + state.careerManager.attributes.mediaHandling * 0.04;
+      const mediaMod = 1 + state.careerManager.attributes.mediaHandling * MOD_MEDIA_PRESS;
       moraleEffect = Math.round(moraleEffect * mediaMod);
       boardEffect = Math.round(boardEffect * mediaMod);
       fanEffect = Math.round(fanEffect * mediaMod);
 
       // Grow media handling stat
       const cm = { ...state.careerManager, attributes: { ...state.careerManager.attributes } };
-      cm.attributes.mediaHandling = Math.min(20, cm.attributes.mediaHandling + 0.2);
+      cm.attributes.mediaHandling = Math.min(STAT_MAX, cm.attributes.mediaHandling + GROWTH_MEDIA_PER_CONFERENCE);
       set({ careerManager: cm });
     }
 

@@ -10,7 +10,7 @@ import { useFlash } from '@/hooks/useFlash';
 import { SAVE_INDICATOR_MS, XP_GLOW_MS } from '@/config/ui';
 
 export function TopBar() {
-  const { season, week, totalWeeks, playerClubId, clubs, leagueTable, saveGame, currentScreen, previousScreen, setScreen, managerProgression } = useGameStore();
+  const { season, week, totalWeeks, playerClubId, clubs, leagueTable, saveGame, currentScreen, previousScreen, setScreen, managerProgression, gameMode, careerManager } = useGameStore();
   const club = clubs[playerClubId];
   const entry = leagueTable.find(e => e.clubId === playerClubId);
   const pos = entry ? leagueTable.indexOf(entry) + 1 : '-';
@@ -73,15 +73,26 @@ export function TopBar() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          {/* XP Level Badge */}
-          <button
-            onClick={() => setScreen('perks')}
-            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-            title={`Level ${managerProgression.level} — ${xpProgress.current}/${xpProgress.needed} XP`}
-          >
-            <Star className="w-3 h-3 fill-primary" />
-            <span className="font-bold">Lv.{managerProgression.level}</span>
-          </button>
+          {/* Career mode: reputation badge or XP Level */}
+          {gameMode === 'career' && careerManager ? (
+            <button
+              onClick={() => setScreen('career-overview')}
+              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+              title={`${careerManager.reputationTier.replace('_', ' ')} (${Math.round(careerManager.reputationScore)})`}
+            >
+              <Star className="w-3 h-3 fill-primary" />
+              <span className="font-bold capitalize">{careerManager.reputationTier === 'world_class' ? 'World' : careerManager.reputationTier.charAt(0).toUpperCase() + careerManager.reputationTier.slice(1, 3)}</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setScreen('perks')}
+              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+              title={`Level ${managerProgression.level} — ${xpProgress.current}/${xpProgress.needed} XP`}
+            >
+              <Star className="w-3 h-3 fill-primary" />
+              <span className="font-bold">Lv.{managerProgression.level}</span>
+            </button>
+          )}
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="w-3 h-3" />
             <span>Week {week}/{totalWeeks}</span>

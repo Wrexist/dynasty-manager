@@ -1,5 +1,11 @@
 import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, LeagueId, SeasonTurnover, LeagueTableEntry, JobVacancy } from '@/types/game';
 import { calculateReputationTier, generateJobVacancies, getRetirementAge, calculateLegacyScore } from '@/utils/managerCareer';
+import {
+  GROWTH_TACTICAL_PER_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT,
+  GROWTH_DISCIPLINE_PER_CLEAN_MATCH, MOD_DISCIPLINE_CARDS, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH,
+  MOD_SCOUTING_SPEED, JOB_MARKET_REFRESH_WEEKS, STAT_MAX, MOTM_CHECK_INTERVAL, MOTM_MIN_MATCHES,
+  REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY,
+} from '@/config/managerCareer';
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
@@ -1008,6 +1014,60 @@ function finalizeSeason(
           cm.cupsWon += 1;
           cm.reputationScore = Math.min(1000, cm.reputationScore + 40);
         }
+
+        // Promotion/relegation reputation
+        const leagueInfo = LEAGUES.find(l => l.id === cs.playerDivision);
+        if (leagueInfo) {
+          const teamCount = leagueInfo.teamCount;
+          const replacedSlots = leagueInfo.replacedSlots;
+          // Promotion: finished in top auto-promotion slots (position <= teamCount - replacedSlots is safe, but top 2-3 = promoted)
+          if (replacedSlots > 0 && latestHistory.position <= Math.min(3, replacedSlots)) {
+            cm.promotionsWon += 1;
+            cm.reputationScore = Math.min(1000, cm.reputationScore + REP_PROMOTION);
+          }
+          // Relegation: finished in bottom replacedSlots
+          if (replacedSlots > 0 && latestHistory.position > teamCount - replacedSlots) {
+            cm.reputationScore = Math.max(0, cm.reputationScore + REP_RELEGATION);
+          }
+        }
+
+        // Overachievement / underachievement
+        const expectedPos = getExpectedPosition(cs.clubs[cs.playerClubId]?.reputation || 3);
+        if (latestHistory.position < expectedPos) {
+          cm.reputationScore = Math.min(1000, cm.reputationScore + (expectedPos - latestHistory.position) * REP_OVERACHIEVE_BONUS);
+        } else if (latestHistory.position > expectedPos) {
+          cm.reputationScore = Math.max(0, cm.reputationScore + (expectedPos - latestHistory.position) * Math.abs(REP_UNDERACHIEVE_PENALTY));
+        }
+
+        // Contract bonus tracking
+        if (cm.contract && cm.contract.bonuses.length > 0) {
+          let bonusPayout = 0;
+          cm.contract = { ...cm.contract, bonuses: cm.contract.bonuses.map(b => {
+            if (b.met) return b;
+            let met = false;
+            if (b.condition === 'title' && latestHistory.position === 1) met = true;
+            if (b.condition === 'top_half' && leagueInfo && latestHistory.position <= leagueInfo.teamCount / 2) met = true;
+            if (b.condition === 'promotion' && cm.promotionsWon > (cs.careerManager?.promotionsWon || 0)) met = true;
+            if (b.condition === 'cup_win' && cs.cup.winner === cs.playerClubId) met = true;
+            if (b.condition === 'avoid_relegation' && leagueInfo && latestHistory.position <= leagueInfo.teamCount - leagueInfo.replacedSlots) met = true;
+            if (met) bonusPayout += b.amount;
+            return met ? { ...b, met: true } : b;
+          })};
+          if (bonusPayout > 0) {
+            const bonusMsg = addMsg(get().messages, {
+              week: TOTAL_WEEKS, season, type: 'general',
+              title: 'Contract Bonuses Earned!',
+              body: `You earned £${(bonusPayout / 1000).toFixed(0)}k in performance bonuses this season.`,
+            });
+            set({ messages: bonusMsg });
+          }
+        }
+
+        // Manager of the Season (overachievement ≥ 3 positions)
+        if (expectedPos - latestHistory.position >= 3) {
+          cm.awardsWon = [...cm.awardsWon, { type: 'manager_of_season', season, divisionId: cs.playerDivision }];
+          cm.reputationScore = Math.min(1000, cm.reputationScore + 15);
+        }
       }
 
       // Handle sacking in career mode
@@ -1236,6 +1296,44 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   advanceWeek: () => {
     const state = get();
+
+    // Career mode: unemployed managers skip gameplay, only process job market
+    if (state.gameMode === 'career' && state.careerManager && !state.careerManager.contract) {
+      const cm = { ...state.careerManager, attributes: { ...state.careerManager.attributes } };
+      cm.unemployedWeeks = (cm.unemployedWeeks || 0) + 1;
+      const newWeek = state.week + 1;
+
+      // Refresh job market on configured weeks
+      let vacancies = state.jobVacancies;
+      if (JOB_MARKET_REFRESH_WEEKS.includes(newWeek)) {
+        vacancies = generateJobVacancies(state.clubs, cm.reputationScore, state.season, newWeek);
+      }
+      // Expire old vacancies
+      vacancies = vacancies.filter(v => v.expiresSeason > state.season || (v.expiresSeason === state.season && v.expiresWeek > newWeek));
+
+      // Desperation vacancies
+      if (cm.unemployedWeeks >= 12 && vacancies.length === 0) {
+        const desperate = Object.values(state.clubs).filter(c => c.id !== state.playerClubId).slice(0, 2);
+        vacancies = desperate.map(club => ({
+          id: `desperation-${club.id}-${state.season}-${newWeek}`,
+          clubId: club.id, clubName: club.name, divisionId: club.divisionId || '',
+          minReputation: 0, salary: 1500, contractLength: 1,
+          boardExpectations: 'Survive and stabilize the club',
+          expiresWeek: newWeek + 8, expiresSeason: state.season, applied: false,
+        }));
+      }
+
+      const msgs = addMsg(state.messages, {
+        week: newWeek, season: state.season, type: 'general',
+        title: 'Between Jobs',
+        body: `Week ${cm.unemployedWeeks} without a club. Visit the Job Market to find your next opportunity.`,
+      });
+
+      set({ week: newWeek, careerManager: cm, jobVacancies: vacancies, messages: msgs, currentScreen: 'job-market' });
+      if (state.settings.autoSave) get().saveGame();
+      return;
+    }
+
     // International phase: separate flow
     if (state.seasonPhase === 'international') {
       advanceInternationalWeekImpl(set, get);
@@ -1414,7 +1512,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const baseTactFam = updateTacticalFamiliarity(training, training.tacticalFamiliarity);
     const amBoost = assistantManagerBonus > 0 ? Math.round(assistantManagerBonus * ASSISTANT_MANAGER_FAMILIARITY_BOOST) : 0;
     const tactGeniusBoost = hasPerk(state.managerProgression, 'tactical_genius') ? Math.round((baseTactFam - training.tacticalFamiliarity) * 0.3) : 0;
-    const newTacticalFamiliarity = Math.min(100, baseTactFam + amBoost + tactGeniusBoost);
+    const careerTactBoost = (state.gameMode === 'career' && state.careerManager) ? Math.round((baseTactFam - training.tacticalFamiliarity) * state.careerManager.attributes.tacticalKnowledge * MOD_TACTICAL_FAMILIARITY) : 0;
+    const newTacticalFamiliarity = Math.min(100, baseTactFam + amBoost + tactGeniusBoost + careerTactBoost);
 
     // Simulate AI matches for player's division
     const weekMatches = fixtures.filter(m => m.week === week && !m.played);
@@ -1782,7 +1881,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     for (let i = 0; i < newScouting.assignments.length; i++) {
       const a = { ...newScouting.assignments[i] };
       const scoutReduction = hasPerk(state.managerProgression, 'scout_network') ? 2 : 1;
-      a.weeksRemaining = Math.max(0, a.weeksRemaining - scoutReduction);
+      const careerScoutBoost = (state.gameMode === 'career' && state.careerManager) ? Math.floor(state.careerManager.attributes.scoutingEye * MOD_SCOUTING_SPEED) : 0;
+      a.weeksRemaining = Math.max(0, a.weeksRemaining - scoutReduction - careerScoutBoost);
       newScouting.assignments[i] = a;
       if (a.weeksRemaining === 0) {
         completedAssignments.push(a.id);
@@ -1836,7 +1936,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           // No development gain this week — prospect stalled
         } else {
           const baseDevGain = 1 + youthCoachQuality * 0.3 + newFacilities.youthLevel * 0.2;
-          const devGain = hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST) : baseDevGain;
+          const careerYouthMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.youthDevelopment * MOD_YOUTH_GROWTH : 0;
+          const devGain = hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST + careerYouthMod) : baseDevGain * (1 + careerYouthMod);
           prospect.developmentScore = Math.min(100, prospect.developmentScore + devGain);
         }
         // Bust risk: low-potential prospects can lose potential permanently (1% per week)
@@ -2250,39 +2351,121 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const careerState = get();
       if (careerState.gameMode === 'career' && careerState.careerManager) {
         const cm = { ...careerState.careerManager };
-
-        // Grow tactical knowledge each match week
         cm.attributes = { ...cm.attributes };
-        cm.attributes.tacticalKnowledge = Math.min(20, cm.attributes.tacticalKnowledge + 0.15);
+        let careerMessages = [...careerState.messages];
+        const oldTier = cm.reputationTier;
 
-        // Track unemployed weeks
+        // --- Stat Growth ---
+        // Tactical: grows each match week
+        cm.attributes.tacticalKnowledge = Math.min(STAT_MAX, cm.attributes.tacticalKnowledge + GROWTH_TACTICAL_PER_MATCH);
+
+        // Motivation: grows when morale swing is significant this week
+        const avgMorale = (() => {
+          const pc = careerState.clubs[playerClubId];
+          if (!pc || pc.playerIds.length === 0) return 50;
+          return pc.playerIds.reduce((s, id) => s + (careerState.players[id]?.morale || 0), 0) / pc.playerIds.length;
+        })();
+        if (Math.abs(avgMorale - prevMorale) >= 5) {
+          cm.attributes.motivation = Math.min(STAT_MAX, cm.attributes.motivation + GROWTH_MOTIVATION_PER_MORALE_EVENT);
+        }
+
+        // Scouting: grows when scout reports were generated this week
+        const scoutReports = careerState.scouting.reports.filter(r => r.week === week);
+        if (scoutReports.length > 0) {
+          cm.attributes.scoutingEye = Math.min(STAT_MAX, cm.attributes.scoutingEye + GROWTH_SCOUTING_PER_ASSIGNMENT * scoutReports.length);
+        }
+
+        // Discipline: grows when the last match had no cards for player's team
+        const lastMatch = careerState.fixtures.find(m => m.week === week && m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+        if (lastMatch) {
+          const playerTeamCards = (lastMatch.events || []).filter(e =>
+            (e.type === 'yellow_card' || e.type === 'red_card') && e.clubId === playerClubId
+          );
+          if (playerTeamCards.length === 0) {
+            cm.attributes.discipline = Math.min(STAT_MAX, cm.attributes.discipline + GROWTH_DISCIPLINE_PER_CLEAN_MATCH);
+          }
+        }
+
+        // --- Job Market Refresh ---
+        if (JOB_MARKET_REFRESH_WEEKS.includes(newWeek)) {
+          const vacancies = generateJobVacancies(careerState.clubs, cm.reputationScore, season, newWeek);
+          set({ jobVacancies: vacancies });
+        }
+
+        // Expire old vacancies
+        const activeVacancies = careerState.jobVacancies.filter(v =>
+          v.expiresSeason > season || (v.expiresSeason === season && v.expiresWeek > newWeek)
+        );
+        if (activeVacancies.length !== careerState.jobVacancies.length) {
+          set({ jobVacancies: activeVacancies });
+        }
+
+        // --- Unemployed tracking ---
         if (!cm.contract) {
           cm.unemployedWeeks = (cm.unemployedWeeks || 0) + 1;
 
-          // Generate desperation vacancies after prolonged unemployment
-          if (cm.unemployedWeeks >= 12 && careerState.jobVacancies.length === 0) {
+          // Desperation vacancies after 12 unemployed weeks
+          if (cm.unemployedWeeks >= 12 && get().jobVacancies.length === 0) {
             const allClubs = Object.values(careerState.clubs);
             const desperate = allClubs.filter(c => c.id !== careerState.playerClubId).slice(0, 2);
-            const desVacancies: JobVacancy[] = desperate.map(club => {
-              return {
-                id: `desperation-${club.id}-${careerState.season}-${newWeek}`,
-                clubId: club.id,
-                clubName: club.name,
-                divisionId: club.divisionId || '',
-                minReputation: 0,
-                salary: 1500,
-                contractLength: 1,
-                boardExpectations: 'Survive and stabilize the club',
-                expiresWeek: newWeek + 8,
-                expiresSeason: careerState.season,
-                applied: false,
-              };
-            });
+            const desVacancies: JobVacancy[] = desperate.map(club => ({
+              id: `desperation-${club.id}-${season}-${newWeek}`,
+              clubId: club.id, clubName: club.name, divisionId: club.divisionId || '',
+              minReputation: 0, salary: 1500, contractLength: 1,
+              boardExpectations: 'Survive and stabilize the club',
+              expiresWeek: newWeek + 8, expiresSeason: season, applied: false,
+            }));
             set({ jobVacancies: desVacancies });
           }
         }
 
-        set({ careerManager: cm });
+        // --- Contract expiry warning ---
+        if (cm.contract && cm.contract.endSeason === season && newWeek >= 40) {
+          const alreadyWarned = careerMessages.some(m => m.title === 'Contract Expiring');
+          if (!alreadyWarned) {
+            careerMessages = addMsg(careerMessages, {
+              week: newWeek, season, type: 'general',
+              title: 'Contract Expiring',
+              body: `Your contract expires at the end of this season. Perform well to earn a renewal.`,
+            });
+          }
+        }
+
+        // --- Manager of the Month check ---
+        if (newWeek > 0 && newWeek % MOTM_CHECK_INTERVAL === 0 && cm.contract) {
+          const recentMatches = careerState.fixtures.filter(m =>
+            m.played && m.week > newWeek - MOTM_CHECK_INTERVAL && m.week <= newWeek &&
+            (m.homeClubId === playerClubId || m.awayClubId === playerClubId)
+          );
+          if (recentMatches.length >= MOTM_MIN_MATCHES) {
+            const wins = recentMatches.filter(m => {
+              const isHome = m.homeClubId === playerClubId;
+              return isHome ? m.homeGoals > m.awayGoals : m.awayGoals > m.homeGoals;
+            }).length;
+            if (wins / recentMatches.length >= 0.75) {
+              cm.awardsWon = [...cm.awardsWon, { type: 'manager_of_month', season, week: newWeek, divisionId: careerState.playerDivision }];
+              cm.reputationScore = Math.min(1000, cm.reputationScore + 5);
+              careerMessages = addMsg(careerMessages, {
+                week: newWeek, season, type: 'general',
+                title: 'Manager of the Month!',
+                body: `Congratulations! You have been named Manager of the Month after winning ${wins} of ${recentMatches.length} matches.`,
+              });
+            }
+          }
+        }
+
+        // --- Reputation tier change notification ---
+        cm.reputationTier = calculateReputationTier(cm.reputationScore);
+        if (cm.reputationTier !== oldTier) {
+          const tierLabels = { unknown: 'Unknown', regional: 'Regional', national: 'National', continental: 'Continental', world_class: 'World Class', legendary: 'Legendary' };
+          careerMessages = addMsg(careerMessages, {
+            week: newWeek, season, type: 'general',
+            title: 'Reputation Changed!',
+            body: `Your reputation has ${cm.reputationScore > (careerState.careerManager?.reputationScore || 0) ? 'grown' : 'declined'} to ${tierLabels[cm.reputationTier]}.`,
+          });
+        }
+
+        set({ careerManager: cm, messages: careerMessages });
       }
     }
 
@@ -2292,6 +2475,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playCurrentMatch: () => {
     const state = get();
+    // Career mode: block match play when unemployed
+    if (state.gameMode === 'career' && !state.careerManager?.contract) return null;
     const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
     const match = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
     if (!match) return null;
@@ -2328,7 +2513,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const matchDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const careerDisciplineMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * 0.015 : 0;
+    const careerDisciplineMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
     const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season, careerDisciplineMod);
 
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
@@ -2426,7 +2611,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * 0.015 : 0;
+    const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
     const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, halfCareerMod);
 
     set({ halfTimeState: halfState, matchPhase: 'half_time', matchSubsUsed: 0, preMatchLeaguePosition: preMatchPos, currentCupTieId: cupTie ? cupTie.id : null });
@@ -2457,7 +2642,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Simulate second half, carrying forward first half state
     const secondHalfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
-    const secondHalfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * 0.015 : 0;
+    const secondHalfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
     const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
@@ -2561,7 +2746,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
 
     // Simulate extra time as one 30-minute block (91-120)
-    const etCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * 0.015 : 0;
+    const etCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
     const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod);
 
     // Build the extended match result

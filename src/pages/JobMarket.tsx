@@ -101,15 +101,33 @@ const JobMarket = () => {
         )}
       </div>
 
-      {/* Wait button */}
+      {/* Wait & Retire buttons */}
       {!careerManager.contract && (
-        <div className="pt-2">
+        <div className="pt-2 space-y-2">
           <Button
             variant="outline"
             className="w-full h-11 gap-2"
             onClick={handleWait}
           >
             <Clock className="w-4 h-4" /> Wait for Offers (Advance Week)
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full h-11 gap-2 text-muted-foreground border-muted-foreground/30 hover:bg-muted/10"
+            onClick={() => {
+              if (window.confirm(`Retire from management? Your legacy score is ${careerManager.legacyScore}. This cannot be undone.`)) {
+                // Close career history and navigate to title screen
+                const cm = { ...careerManager };
+                cm.careerHistory = cm.careerHistory.map(e =>
+                  e.endSeason === null ? { ...e, endSeason: season, reason: 'retired' as const } : e
+                );
+                cm.contract = null;
+                // Navigate to hall of managers to see legacy
+                useGameStore.setState({ careerManager: cm, currentScreen: 'hall-of-managers' });
+              }
+            }}
+          >
+            <LogOut className="w-4 h-4" /> Retire from Management
           </Button>
         </div>
       )}

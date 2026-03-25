@@ -126,6 +126,13 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       messages: newMessages,
       careerTimeline: youthMilestone ? [...state.careerTimeline, youthMilestone] : state.careerTimeline,
     });
+    // Career mode: grow youth development stat
+    const postState = get();
+    if (postState.gameMode === 'career' && postState.careerManager) {
+      const cm = { ...postState.careerManager, attributes: { ...postState.careerManager.attributes } };
+      cm.attributes.youthDevelopment = Math.min(20, cm.attributes.youthDevelopment + 0.4);
+      set({ careerManager: cm });
+    }
   },
 
   releaseYouth: (playerId: string) => {
