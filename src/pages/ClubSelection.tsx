@@ -26,9 +26,9 @@ const COUNTRY_FLAGS: Record<string, string> = {
 const LEAGUE_REGIONS = [
   { label: 'Top 5 Leagues', ids: ['eng', 'esp', 'ita', 'ger', 'fra'] },
   { label: 'Strong Leagues', ids: ['ned', 'por', 'bel', 'tur', 'sco'] },
-  { label: 'Central & Eastern Europe', ids: ['cze', 'pol', 'hun', 'rou', 'ukr', 'srb', 'bul', 'svk', 'cro'] },
+  { label: 'Central & Eastern Europe', ids: ['cze', 'pol', 'hun', 'rou', 'ukr', 'srb', 'bgr', 'svk', 'cro'] },
   { label: 'Nordic Leagues', ids: ['den', 'nor', 'swe', 'fin', 'isl'] },
-  { label: 'Other Leagues', ids: ['gre', 'sui', 'aut', 'irl', 'isr', 'cyp'] },
+  { label: 'Other Leagues', ids: ['gre', 'che', 'aut', 'irl', 'isr', 'cyp'] },
 ];
 
 // Group nations by confederation for display

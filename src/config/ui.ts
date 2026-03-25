@@ -123,12 +123,13 @@ export const POTENTIAL_COLOR_THRESHOLDS = [
 // ── Club Selection Difficulty Config ──
 export const DIFFICULTY_CONFIG: Record<string, { color: string; bg: string; bar: string; label: string }> = {
   Easy: { color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/20', bar: 'bg-emerald-400/50', label: 'Recommended' },
+  'Medium-Low': { color: 'text-teal-400', bg: 'bg-teal-400/10 border-teal-400/20', bar: 'bg-teal-400/50', label: 'Moderate' },
   Medium: { color: 'text-blue-400', bg: 'bg-blue-400/10 border-blue-400/20', bar: 'bg-blue-400/50', label: 'Medium' },
   Hard: { color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/20', bar: 'bg-amber-400/50', label: 'Hard' },
   'Very Hard': { color: 'text-red-400', bg: 'bg-red-400/10 border-red-400/20', bar: 'bg-red-400/50', label: 'Expert' },
 } as const;
 
-export const DIFFICULTY_BARS: Record<string, number> = { Easy: 1, Medium: 2, Hard: 3, 'Very Hard': 4 } as const;
+export const DIFFICULTY_BARS: Record<string, number> = { Easy: 1, 'Medium-Low': 2, Medium: 2, Hard: 3, 'Very Hard': 4 } as const;
 
 // ── Help Texts (used by InfoTip component) ──
 export const HELP_TEXTS = {

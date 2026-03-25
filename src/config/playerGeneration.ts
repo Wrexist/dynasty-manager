@@ -374,7 +374,7 @@ export const NATIONALITY_DISTRIBUTION: Record<string, { nationality: string; wei
     { nationality: 'USA', weight: 1 },
     { nationality: 'Finland', weight: 1 },
   ],
-  sui: [
+  che: [
     { nationality: 'Switzerland', weight: 40 },
     { nationality: 'Germany', weight: 6 },
     { nationality: 'France', weight: 5 },
@@ -493,7 +493,7 @@ export const NATIONALITY_DISTRIBUTION: Record<string, { nationality: string; wei
     { nationality: 'Argentina', weight: 1 },
     { nationality: 'Ghana', weight: 1 },
   ],
-  bul: [
+  bgr: [
     { nationality: 'Bulgaria', weight: 75 },
     { nationality: 'Brazil', weight: 3 },
     { nationality: 'Nigeria', weight: 3 },

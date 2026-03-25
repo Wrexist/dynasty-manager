@@ -17,10 +17,10 @@ export const DERBIES: DerbyRivalry[] = [
   // England
   { clubIdA: 'manchester-city', clubIdB: 'manchester-united', name: 'Manchester Derby', intensity: 3 },
   { clubIdA: 'liverpool', clubIdB: 'everton', name: 'Merseyside Derby', intensity: 3 },
-  { clubIdA: 'arsenal', clubIdB: 'tottenham', name: 'North London Derby', intensity: 3 },
+  { clubIdA: 'arsenal', clubIdB: 'tottenham-hotspur', name: 'North London Derby', intensity: 3 },
   { clubIdA: 'chelsea', clubIdB: 'fulham', name: 'West London Derby', intensity: 2 },
   { clubIdA: 'crystal-palace', clubIdB: 'brighton', name: 'M23 Derby', intensity: 2 },
-  { clubIdA: 'newcastle', clubIdB: 'sunderland', name: 'Tyne–Wear Derby', intensity: 3 },
+  { clubIdA: 'newcastle-united', clubIdB: 'nottingham-forest', name: 'East Midlands Rivalry', intensity: 1 },
   // Spain
   { clubIdA: 'barcelona', clubIdB: 'real-madrid', name: 'El Clásico', intensity: 3 },
   { clubIdA: 'atletico-madrid', clubIdB: 'real-madrid', name: 'Madrid Derby', intensity: 3 },
@@ -32,13 +32,13 @@ export const DERBIES: DerbyRivalry[] = [
   { clubIdA: 'genoa', clubIdB: 'fiorentina', name: 'Derby dell\'Appennino', intensity: 1 },
   // Germany
   { clubIdA: 'bayern-munich', clubIdB: 'borussia-dortmund', name: 'Der Klassiker', intensity: 3 },
-  { clubIdA: 'borussia-dortmund', clubIdB: 'schalke-04', name: 'Revierderby', intensity: 3 },
+  { clubIdA: 'borussia-dortmund', clubIdB: 'eintracht-frankfurt', name: 'Bundesliga Rivalry', intensity: 2 },
   // France
   { clubIdA: 'paris-saint-germain', clubIdB: 'marseille', name: 'Le Classique', intensity: 3 },
   { clubIdA: 'lyon', clubIdB: 'saint-etienne', name: 'Derby Rhône-Alpes', intensity: 3 },
   // Netherlands
   { clubIdA: 'ajax', clubIdB: 'feyenoord', name: 'De Klassieker', intensity: 3 },
-  { clubIdA: 'ajax', clubIdB: 'psv', name: 'De Topper', intensity: 2 },
+  { clubIdA: 'ajax', clubIdB: 'psv-eindhoven', name: 'De Topper', intensity: 2 },
   // Portugal
   { clubIdA: 'benfica', clubIdB: 'porto', name: 'O Clássico', intensity: 3 },
   { clubIdA: 'benfica', clubIdB: 'sporting-cp', name: 'Derby de Lisboa', intensity: 3 },
