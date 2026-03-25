@@ -75,13 +75,14 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   const displayChance = useMemo(() => getInterpolatedChance(offerFee / listing.askingPrice), [offerFee, listing.askingPrice]);
 
   const particles = useMemo(() =>
-    Array.from({ length: 16 }, (_, i) => ({
-      color: i % 3 === 0 ? '#eab308' : i % 3 === 1 ? '#22c55e' : '#3b82f6',
-      left: 30 + Math.random() * 40,
-      yTarget: -120 - Math.random() * 140,
-      xTarget: (Math.random() - 0.5) * 120,
-      duration: 1.5 + Math.random(),
-      delay: Math.random() * 0.4,
+    Array.from({ length: 24 }, (_, i) => ({
+      color: i % 4 === 0 ? '#eab308' : i % 4 === 1 ? '#22c55e' : i % 4 === 2 ? '#3b82f6' : '#f59e0b',
+      left: 15 + Math.random() * 70,
+      yTarget: -140 - Math.random() * 180,
+      xTarget: (Math.random() - 0.5) * 160,
+      duration: 1.5 + Math.random() * 0.8,
+      delay: Math.random() * 0.5,
+      size: 4 + Math.random() * 4,
     })),
   []);
 
@@ -231,7 +232,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Wage</span>
-                      <span className="text-foreground">{formatWage(player.wage)}/wk</span>
+                      <span className="text-foreground">{formatWage(player.wage)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Form / Morale</span>
@@ -355,7 +356,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                         <div>
                           <p className="text-[10px] text-muted-foreground">Wage Bill</p>
                           <p className="text-xs font-bold text-foreground tabular-nums">
-                            +{formatWage(evaluation.wageImpact)}/wk
+                            +{formatWage(evaluation.wageImpact)}
                           </p>
                         </div>
                       </div>
@@ -456,32 +457,44 @@ export function TransferNegotiation({ listing, onClose }: Props) {
             {phase === 'result' && outcome === 'accepted' && (
               <motion.div
                 key="accepted"
-                className="relative p-6 flex flex-col items-center justify-center gap-4 min-h-[320px] overflow-hidden"
+                className="relative p-6 flex flex-col items-center justify-center gap-4 min-h-[380px] overflow-hidden"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                {/* Particles */}
+                {/* Celebration Particles */}
                 {particles.map((p, i) => (
                   <motion.div
                     key={i}
-                    className="absolute w-1.5 h-1.5 rounded-full"
+                    className="absolute rounded-full"
                     style={{
                       backgroundColor: p.color,
                       left: `${p.left}%`,
-                      top: '60%',
+                      top: '55%',
+                      width: p.size,
+                      height: p.size,
                     }}
                     animate={{
                       opacity: [1, 1, 0],
                       y: [0, p.yTarget],
                       x: [0, p.xTarget],
-                      scale: [1, 0.4],
+                      scale: [1, 0.3],
+                      rotate: [0, 360],
                     }}
                     transition={{ duration: p.duration, delay: p.delay }}
                   />
                 ))}
 
+                {/* Glow ring behind rating */}
                 <motion.div
-                  className="w-20 h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center"
+                  className="absolute top-12 w-28 h-28 rounded-full"
+                  style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)' }}
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                />
+
+                {/* Rating badge */}
+                <motion.div
+                  className="relative w-20 h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center"
                   initial={{ scale: 0, rotate: -20 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 15, delay: 0.1 }}
@@ -491,14 +504,15 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   </span>
                 </motion.div>
 
+                {/* Title & Player info */}
                 <motion.div
                   className="text-center"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.25 }}
                 >
-                  <p className="text-lg font-black text-emerald-400 font-display">Deal Complete!</p>
-                  <p className="text-sm text-foreground font-semibold mt-1">
+                  <p className="text-xl font-black text-emerald-400 font-display tracking-wide">Deal Complete!</p>
+                  <p className="text-base text-foreground font-bold mt-1.5 font-display">
                     {player.firstName} {player.lastName}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
@@ -506,20 +520,80 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   </p>
                 </motion.div>
 
+                {/* Player quick stats */}
                 <motion.div
-                  className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 w-full text-center"
+                  className="flex items-center gap-2"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <span className="text-[10px] font-mono bg-muted/50 px-2 py-0.5 rounded-full text-muted-foreground">
+                    {player.position}
+                  </span>
+                  <span className="text-[10px] font-mono bg-muted/50 px-2 py-0.5 rounded-full text-muted-foreground">
+                    {player.age}y
+                  </span>
+                  <span className="text-[10px] font-mono bg-muted/50 px-2 py-0.5 rounded-full text-muted-foreground">
+                    {player.nationality}
+                  </span>
+                  {player.potential > player.overall && (
+                    <span className="text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full text-emerald-400">
+                      {player.potential} pot
+                    </span>
+                  )}
+                </motion.div>
+
+                {/* Deal summary card */}
+                <motion.div
+                  className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 w-full space-y-3"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.35 }}
                 >
-                  <p className="text-xs text-muted-foreground">Transfer Fee</p>
-                  <p className="text-xl font-black text-primary tabular-nums">£{(finalFee / 1e6).toFixed(1)}M</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">{formatWage(player.wage)}/wk wages</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Transfer Fee</span>
+                    <span className="text-xl font-black text-primary tabular-nums">£{(finalFee / 1e6).toFixed(1)}M</span>
+                  </div>
+                  <div className="h-px bg-emerald-500/20" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Wages</span>
+                    <span className="text-sm font-bold text-foreground tabular-nums">{formatWage(player.wage)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Contract</span>
+                    <span className="text-sm font-bold text-foreground">
+                      {player.contractEnd - season} year{player.contractEnd - season !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  {finalFee < listing.askingPrice && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Saved vs Asking</span>
+                      <span className="text-sm font-bold text-emerald-400 tabular-nums">
+                        £{((listing.askingPrice - finalFee) / 1e6).toFixed(1)}M
+                      </span>
+                    </div>
+                  )}
+                  {top3.length > 0 && (
+                    <>
+                      <div className="h-px bg-emerald-500/20" />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Top Skills</span>
+                        <div className="flex gap-1.5">
+                          {top3.map(attr => (
+                            <span key={attr.label} className="text-[10px] font-mono bg-muted/50 px-1.5 py-0.5 rounded">
+                              <span className="text-muted-foreground">{attr.label}</span>{' '}
+                              <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </motion.div>
 
                 <motion.button
                   onClick={handleCloseAfterAccepted}
-                  className="w-full py-2.5 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all mt-2"
+                  className="w-full py-3 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all mt-1 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
