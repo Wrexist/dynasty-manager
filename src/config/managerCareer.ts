@@ -75,6 +75,7 @@ export const CAREER_SACKING_CONFIDENCE_THRESHOLD = 15;
 // ── Retirement ──
 export const DEFAULT_RETIREMENT_AGE = 65;
 export const LEGENDARY_RETIREMENT_EXTENSION = 10;
+export const FORCED_RETIREMENT_UNEMPLOYED_WEEKS = 24;
 
 // ── Legacy Score Weights ──
 export const LEGACY_TITLE_WEIGHT = 100;

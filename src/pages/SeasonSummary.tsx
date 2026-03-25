@@ -30,7 +30,7 @@ const AWARD_STAT_LABELS: Record<string, string> = {
 };
 
 const SeasonSummary = () => {
-  const { seasonHistory, season, setScreen, playerClubId, clubs, leagueTable } = useGameStore();
+  const { seasonHistory, season, setScreen, playerClubId, clubs, leagueTable, gameMode, careerManager } = useGameStore();
   const latest = seasonHistory[seasonHistory.length - 1];
   const [showBestXI, setShowBestXI] = useState(false);
 
@@ -300,8 +300,54 @@ const SeasonSummary = () => {
         {/* Ad Reward: Season Bonus */}
         <AdRewardButton rewardType="season_bonus" onRewardClaimed={() => { useGameStore.getState().applySeasonBonus(); }} />
 
-        <Button className="w-full h-12 text-base font-bold" onClick={() => setScreen('dashboard')}>
-          Start Season {season}
+        {/* Career Mode: Season-End Update */}
+        {gameMode === 'career' && careerManager && (
+          <GlassPanel className="p-4 space-y-3">
+            <p className="text-xs font-bold text-foreground uppercase tracking-wider">Career Update</p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span className="text-muted-foreground">Reputation: </span>
+                <span className="text-foreground font-semibold capitalize">{careerManager.reputationTier.replace('_', ' ')}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Age: </span>
+                <span className="text-foreground font-semibold">{careerManager.age}</span>
+              </div>
+            </div>
+            {careerManager.contract ? (
+              <p className="text-xs text-muted-foreground">
+                Contract runs until end of Season {careerManager.contract.endSeason}
+              </p>
+            ) : (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5">
+                <p className="text-xs text-amber-400 font-semibold mb-2">You are currently without a club</p>
+                <Button size="sm" className="w-full h-8 text-xs" onClick={() => setScreen('job-market')}>
+                  Enter Job Market
+                </Button>
+              </div>
+            )}
+            {careerManager.awardsWon.filter(a => a.season === season - 1).length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {careerManager.awardsWon.filter(a => a.season === season - 1).map((award, idx) => (
+                  <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg font-semibold">
+                    {award.type === 'manager_of_month' ? 'Manager of the Month' : 'Manager of the Season'}
+                  </span>
+                ))}
+              </div>
+            )}
+            {careerManager.contract?.bonuses.some(b => b.met) && (
+              <p className="text-[10px] text-emerald-400 font-semibold">
+                Bonuses earned: {careerManager.contract.bonuses.filter(b => b.met).map(b => b.condition.replace('_', ' ')).join(', ')}
+              </p>
+            )}
+          </GlassPanel>
+        )}
+
+        <Button
+          className="w-full h-12 text-base font-bold"
+          onClick={() => setScreen(gameMode === 'career' && careerManager && !careerManager.contract ? 'job-market' : 'dashboard')}
+        >
+          {gameMode === 'career' && careerManager && !careerManager.contract ? 'Find a New Club' : `Start Season ${season}`}
         </Button>
       </motion.div>
     </div>

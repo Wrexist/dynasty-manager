@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ReputationBadge } from '@/components/game/ReputationBadge';
 import { Briefcase, MapPin, DollarSign, Clock, Send, Check, X, LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import type { JobVacancy, JobOffer } from '@/types/game';
 
 const JobMarket = () => {
@@ -14,6 +15,7 @@ const JobMarket = () => {
     applyForJob,
     respondToJobOffer,
     advanceWeek,
+    retireManager,
     season,
     week,
   } = useGameStore();
@@ -22,7 +24,11 @@ const JobMarket = () => {
 
   const handleApply = (vacancyId: string) => {
     const result = applyForJob(vacancyId);
-    // Result will show via toast or message system
+    if (result.success) {
+      toast.success('Application Accepted!', { description: result.message });
+    } else {
+      toast.error('Application Rejected', { description: result.message });
+    }
   };
 
   const handleAcceptOffer = (offerId: string) => {
@@ -116,14 +122,7 @@ const JobMarket = () => {
             className="w-full h-11 gap-2 text-muted-foreground border-muted-foreground/30 hover:bg-muted/10"
             onClick={() => {
               if (window.confirm(`Retire from management? Your legacy score is ${careerManager.legacyScore}. This cannot be undone.`)) {
-                // Close career history and navigate to title screen
-                const cm = { ...careerManager };
-                cm.careerHistory = cm.careerHistory.map(e =>
-                  e.endSeason === null ? { ...e, endSeason: season, reason: 'retired' as const } : e
-                );
-                cm.contract = null;
-                // Navigate to hall of managers to see legacy
-                useGameStore.setState({ careerManager: cm, currentScreen: 'hall-of-managers' });
+                retireManager();
               }
             }}
           >

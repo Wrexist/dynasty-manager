@@ -1,6 +1,7 @@
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { getFarewellSummary } from '@/utils/playerNarratives';
+import { GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_NEGOTIATION_GROWTH, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import {
   ACCEPT_CHANCE_AT_ASKING, ACCEPT_CHANCE_AT_80_PERCENT, ACCEPT_CHANCE_BELOW, ACCEPT_80_PERCENT_THRESHOLD,
   LIST_PRICE_MULTIPLIER,
@@ -177,7 +178,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const postState = get();
     if (postState.gameMode === 'career' && postState.careerManager) {
       const cm = { ...postState.careerManager, attributes: { ...postState.careerManager.attributes } };
-      cm.attributes.negotiation = Math.min(20, cm.attributes.negotiation + 0.3);
+      cm.attributes.negotiation = Math.min(CAREER_STAT_MAX, cm.attributes.negotiation + CAREER_NEGOTIATION_GROWTH);
       set({ careerManager: cm });
     }
     return { success: true, message: `${updatedPlayer.firstName} ${updatedPlayer.lastName} signed!${sellOnNote}` };

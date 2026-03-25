@@ -1,6 +1,7 @@
 import { TacticalInstructions, TrainingState, TrainingModule, ScoutRegion, FacilitiesState } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
+import { GROWTH_YOUTH_PER_PROMOTION, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import { createAssignment } from '@/utils/scouting';
 import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL } from '@/config/gameBalance';
 
@@ -130,7 +131,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const postState = get();
     if (postState.gameMode === 'career' && postState.careerManager) {
       const cm = { ...postState.careerManager, attributes: { ...postState.careerManager.attributes } };
-      cm.attributes.youthDevelopment = Math.min(20, cm.attributes.youthDevelopment + 0.4);
+      cm.attributes.youthDevelopment = Math.min(CAREER_STAT_MAX, cm.attributes.youthDevelopment + GROWTH_YOUTH_PER_PROMOTION);
       set({ careerManager: cm });
     }
   },

@@ -269,6 +269,7 @@ export interface GameState {
   respondToJobOffer: (offerId: string, accept: boolean) => void;
   resignFromClub: () => void;
   moveToNewClub: (clubId: string, offer: JobOffer) => void;
+  retireManager: () => void;
 
   // Actions — Farewell
   pendingFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] }[];

@@ -5,6 +5,7 @@ import {
   GROWTH_DISCIPLINE_PER_CLEAN_MATCH, MOD_DISCIPLINE_CARDS, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH,
   MOD_SCOUTING_SPEED, JOB_MARKET_REFRESH_WEEKS, STAT_MAX, MOTM_CHECK_INTERVAL, MOTM_MIN_MATCHES,
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY,
+  FORCED_RETIREMENT_UNEMPLOYED_WEEKS,
 } from '@/config/managerCareer';
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
@@ -1095,24 +1096,24 @@ function finalizeSeason(
           currentScreen: 'job-market',
         });
       } else {
-        // Check retirement
-
+        // Not sacked — check retirement, contract expiry
         cm.reputationTier = calculateReputationTier(cm.reputationScore);
         cm.legacyScore = calculateLegacyScore(cm);
+
+        const careerUpdate: Partial<GameState> = {};
 
         // Check if manager should retire
         const retAge = getRetirementAge(cm);
         if (cm.age >= retAge) {
-          // Close career history
           cm.careerHistory = cm.careerHistory.map(e =>
             e.endSeason === null ? { ...e, endSeason: cs.season, reason: 'retired' as const } : e
           );
           cm.contract = null;
+          careerUpdate.currentScreen = 'hall-of-managers';
         }
 
         // Check contract expiry
         if (cm.contract && cm.contract.endSeason <= cs.season) {
-          // Contract expired — if verdict was good, offer renewal
           if (latestHistory && (latestHistory.boardVerdict === 'excellent' || latestHistory.boardVerdict === 'good')) {
             // Auto-renew with better terms
             cm.contract = {
@@ -1121,18 +1122,20 @@ function finalizeSeason(
               salary: Math.round(cm.contract.salary * 1.15),
             };
           } else {
-            // Contract not renewed
+            // Contract not renewed — enter job market
             cm.careerHistory = cm.careerHistory.map(e =>
               e.endSeason === null ? { ...e, endSeason: cs.season, reason: 'resigned' as const } : e
             );
             cm.contract = null;
             cm.unemployedWeeks = 0;
-            const vacancies = generateJobVacancies(cs.clubs, cm.reputationScore, cs.season + 1, 1);
-            set({ jobVacancies: vacancies, jobOffers: [], currentScreen: 'job-market' });
+            careerUpdate.jobVacancies = generateJobVacancies(cs.clubs, cm.reputationScore, cs.season + 1, 1);
+            careerUpdate.jobOffers = [];
+            careerUpdate.currentScreen = 'job-market';
           }
         }
 
-        set({ careerManager: cm });
+        // Single consolidated set() call
+        set({ ...careerUpdate, careerManager: cm });
       }
     }
   }
@@ -1302,6 +1305,17 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const cm = { ...state.careerManager, attributes: { ...state.careerManager.attributes } };
       cm.unemployedWeeks = (cm.unemployedWeeks || 0) + 1;
       const newWeek = state.week + 1;
+
+      // Forced retirement after extended unemployment
+      if (cm.unemployedWeeks >= FORCED_RETIREMENT_UNEMPLOYED_WEEKS) {
+        cm.careerHistory = cm.careerHistory.map(e =>
+          e.endSeason === null ? { ...e, endSeason: state.season, reason: 'retired' as const } : e
+        );
+        cm.contract = null;
+        set({ week: newWeek, careerManager: cm, currentScreen: 'hall-of-managers' });
+        if (state.settings.autoSave) get().saveGame();
+        return;
+      }
 
       // Refresh job market on configured weeks
       let vacancies = state.jobVacancies;
@@ -2998,6 +3012,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       nationalTeam: state.nationalTeam,
       internationalTournament: state.internationalTournament,
       managerNationality: state.managerNationality,
+      // Career Mode
+      gameMode: state.gameMode,
+      careerManager: state.careerManager,
+      jobVacancies: state.jobVacancies,
+      jobOffers: state.jobOffers,
     };
     const json = JSON.stringify(saveData);
     try {
@@ -3125,6 +3144,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         nationalTeam: data.nationalTeam || null,
         internationalTournament: data.internationalTournament || null,
         managerNationality: data.managerNationality || null,
+        // Career Mode
+        gameMode: data.gameMode || 'sandbox',
+        careerManager: data.careerManager || null,
+        jobVacancies: data.jobVacancies || [],
+        jobOffers: data.jobOffers || [],
       });
       return true;
     } catch { return false; }
@@ -3148,6 +3172,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       objectiveStreak: 0, weekCliffhangers: [], rivalries: {}, lastMatchDrama: null,
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null, careerTimeline: [],
+      gameMode: 'sandbox', careerManager: null, jobVacancies: [], jobOffers: [],
       sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {},
       merchandise: getDefaultMerchState(),
       monetization: {

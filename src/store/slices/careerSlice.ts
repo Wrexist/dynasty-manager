@@ -1,6 +1,6 @@
 import type { GameState } from '../storeTypes';
 import type { CareerManager, JobVacancy, JobOffer, GameMode } from '@/types/game';
-import { generateJobVacancies } from '@/utils/managerCareer';
+import { generateJobVacancies, getRetirementAge } from '@/utils/managerCareer';
 import { STARTING_BOARD_CONFIDENCE } from '@/config/gameBalance';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -109,6 +109,9 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       return;
     }
 
+    // Block retired managers from accepting
+    if (manager.age >= getRetirementAge(manager)) return;
+
     // Accept — move to new club
     state.moveToNewClub(offer.clubId, offer);
   },
@@ -199,6 +202,23 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       jobOffers: [],
       boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard',
+    });
+  },
+
+  retireManager: () => {
+    const state = get();
+    const manager = state.careerManager;
+    if (!manager) return;
+
+    const updatedHistory = manager.careerHistory.map(entry =>
+      entry.endSeason === null
+        ? { ...entry, endSeason: state.season, reason: 'retired' as const }
+        : entry
+    );
+
+    set({
+      careerManager: { ...manager, contract: null, careerHistory: updatedHistory },
+      currentScreen: 'hall-of-managers',
     });
   },
 });
