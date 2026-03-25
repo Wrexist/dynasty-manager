@@ -1,8 +1,23 @@
+import * as Sentry from "@sentry/react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { initPurchases } from '@/utils/purchases';
 import { initAds } from '@/utils/ads';
+
+// Initialize Sentry for crash reporting (only if DSN is configured)
+const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
+if (sentryDsn) {
+  Sentry.init({
+    dsn: sentryDsn,
+    environment: import.meta.env.DEV ? 'development' : 'production',
+    // Only send errors in production, reduce noise in dev
+    enabled: !import.meta.env.DEV,
+    // Sample 100% of errors, 10% of transactions
+    sampleRate: 1.0,
+    tracesSampleRate: 0.1,
+  });
+}
 
 // Promise that resolves once the first screen has mounted
 let signalReady: () => void;

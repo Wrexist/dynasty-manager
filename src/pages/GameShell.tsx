@@ -184,7 +184,8 @@ const GameShell = () => {
       <InfoTipProvider>
       <div className="min-h-screen bg-background">
         <TopBar />
-        <div
+        <main
+          role="main"
           style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}
           {...swipeHandlers}
         >
@@ -203,7 +204,7 @@ const GameShell = () => {
               </PageErrorBoundary>
             </motion.div>
           </AnimatePresence>
-        </div>
+        </main>
         <BottomNav />
         <ContractNegotiation />
       </div>

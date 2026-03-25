@@ -648,7 +648,7 @@ const MatchDay = () => {
 
           {/* Event Log */}
           <GlassPanel className="p-4 max-h-[30vh] overflow-y-auto">
-            <div className="space-y-2">
+            <div className="space-y-2" aria-live="polite" aria-label="Match events">
               {visibleEvents.filter(e => e.type !== 'kickoff').map((ev, i) => {
                 const style = getCommentaryStyle(ev);
                 return (

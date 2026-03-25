@@ -1,6 +1,6 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -193,6 +193,24 @@ const SettingsPage = () => {
               )} />
             </button>
           </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Vibrate className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-foreground">Haptic feedback</span>
+            </div>
+            <button
+              onClick={() => updateSettings({ hapticsEnabled: !settings.hapticsEnabled })}
+              className={cn(
+                'w-10 h-6 rounded-full transition-colors relative',
+                settings.hapticsEnabled !== false ? 'bg-primary' : 'bg-muted/50'
+              )}
+            >
+              <div className={cn(
+                'w-4 h-4 bg-white rounded-full absolute top-1 transition-transform',
+                settings.hapticsEnabled !== false ? 'translate-x-5' : 'translate-x-1'
+              )} />
+            </button>
+          </div>
         </div>
       </GlassPanel>
 
@@ -305,6 +323,29 @@ const SettingsPage = () => {
           <HelpCircle className="w-4 h-4" />
           Replay Tutorial
         </Button>
+      </GlassPanel>
+
+      {/* Legal */}
+      <GlassPanel className="p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Legal</h3>
+        <div className="space-y-2">
+          <Button
+            variant="secondary"
+            className="w-full justify-start gap-3 h-11"
+            onClick={() => window.open('/privacy-policy.html', '_blank')}
+          >
+            <Shield className="w-4 h-4" />
+            Privacy Policy
+          </Button>
+          <Button
+            variant="secondary"
+            className="w-full justify-start gap-3 h-11"
+            onClick={() => window.open('/terms-of-service.html', '_blank')}
+          >
+            <FileText className="w-4 h-4" />
+            Terms of Service
+          </Button>
+        </div>
       </GlassPanel>
 
       {/* About */}

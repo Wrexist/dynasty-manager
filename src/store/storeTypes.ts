@@ -251,8 +251,8 @@ export interface GameState {
   initNationalTeam: (nationality: string) => void;
   updateNationalSquad: (squad: string[], lineup: string[], subs: string[]) => void;
   setNationalFormation: (f: FormationType) => void;
-  advanceInternationalWeek: () => void;
-  playInternationalMatch: () => Match | null;
+  // advanceInternationalWeek and playInternationalMatch are handled
+  // internally by orchestrationSlice.advanceWeek() — no public actions needed.
 
   // Actions — Farewell
   pendingFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] }[];

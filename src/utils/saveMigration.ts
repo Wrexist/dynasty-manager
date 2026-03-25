@@ -24,7 +24,7 @@ const migrations: Record<number, MigrationFn> = {
     return {
       ...data,
       version: 3,
-      settings: data.settings || { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: false },
+      settings: data.settings || { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: false, hapticsEnabled: true },
       tactics: data.tactics || { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
       training: data.training || {
         schedule: { mon: tf, tue: tf, wed: tf, thu: tf, fri: tf },

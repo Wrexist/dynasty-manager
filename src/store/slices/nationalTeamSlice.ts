@@ -50,13 +50,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     });
   },
 
-  advanceInternationalWeek: () => {
-    // Stub — orchestration logic will call into internationalUtils
-    // This is wired up in Phase 5
-  },
-
-  playInternationalMatch: () => {
-    // Stub — will be implemented in Phase 5
-    return null;
-  },
+  // advanceInternationalWeek and playInternationalMatch are handled by
+  // orchestrationSlice (advanceInternationalWeekImpl). These slice-level
+  // stubs are intentionally omitted — orchestration owns the game loop.
 });

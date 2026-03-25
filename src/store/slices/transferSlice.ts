@@ -216,6 +216,14 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       return { success: false, message: `Cannot sell — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
     }
 
+    // Validate buyer can afford the transfer
+    const buyerData = state.clubs[offer.buyerClubId];
+    if (buyerData && buyerData.budget < offer.fee) {
+      const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: 'Bid Withdrawn', body: `${buyerData.name} can no longer afford their £${(offer.fee / 1e6).toFixed(1)}M bid for ${player.lastName}.` });
+      set({ incomingOffers: newOffers, messages: msg });
+      return { success: false, message: `${buyerData.name} can no longer afford the transfer fee.` };
+    }
+
     const newPlayers = { ...state.players };
     const sellerClub = { ...state.clubs[state.playerClubId] };
     const buyer = { ...state.clubs[offer.buyerClubId] };

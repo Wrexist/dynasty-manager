@@ -98,6 +98,12 @@ const ScoutingPage = () => {
         <AdRewardButton rewardType="scout_potential" onRewardClaimed={() => { /* Potential revealed via UI hint */ }} />
 
         {/* Scout Reports */}
+        {scouting.reports.length === 0 && (
+          <GlassPanel className="p-8 text-center">
+            <p className="text-sm text-muted-foreground">No scout reports yet</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">Assign scouts to regions above to discover new talent</p>
+          </GlassPanel>
+        )}
         {scouting.reports.length > 0 && (
           <div className="space-y-2">
             <h3 className="text-sm font-semibold text-foreground">Scout Reports</h3>

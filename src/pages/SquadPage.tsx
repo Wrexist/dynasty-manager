@@ -215,6 +215,12 @@ const SquadPage = () => {
 
         {/* Player List */}
         <GlassPanel className="divide-y divide-border/30">
+          {squad.length === 0 && (
+            <div className="p-8 text-center">
+              <p className="text-sm text-muted-foreground">No players in your squad</p>
+              <p className="text-[10px] text-muted-foreground/60 mt-1">Sign players from the transfer market</p>
+            </div>
+          )}
           {squad.map((player, i) => {
             const fitnessColor = getFitnessColor(player.fitness);
             const moraleColor = getMoraleBgColor(player.morale);

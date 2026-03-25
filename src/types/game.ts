@@ -480,6 +480,7 @@ export interface GameSettings {
   matchSpeed: 'normal' | 'fast' | 'instant';
   showOverallOnPitch: boolean;
   autoSave: boolean;
+  hapticsEnabled: boolean;
 }
 
 // ── Tactics ──
