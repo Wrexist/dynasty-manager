@@ -35,8 +35,15 @@ import {
   LEGACY_AWARD_WEIGHT,
   MANAGER_TRAITS,
   AI_SACKING_POSITION_THRESHOLD,
+  MAX_NEGOTIATION_ROUNDS,
+  SALARY_COUNTER_MAX_INCREASE,
+  BOARD_ACCEPTANCE_BASE,
+  BOARD_PATIENCE_MODIFIER,
+  NEGOTIATION_PUSHBACK_FACTOR,
+  NEGOTIATION_SKILL_MODIFIER,
 } from '@/config/managerCareer';
-import { LEAGUES } from '@/data/league';
+import { LEAGUES, CLUBS_DATA } from '@/data/league';
+import { VALUE_EXP_BASE, VALUE_EXP_RATE } from '@/config/playerGeneration';
 
 // ── Helpers ──
 
@@ -191,6 +198,93 @@ export function generateJobVacancies(
   });
 }
 
+// ── Squad Value Estimation ──
+
+/** Estimate total squad market value from squadQuality (deterministic, no random). */
+export function estimateSquadValue(squadQuality: number, squadSize: number = 25): number {
+  let total = 0;
+  for (let i = 0; i < squadSize; i++) {
+    // Distribute players around squadQuality with fixed variance
+    const offset = (i % 5) * 3 - 6; // -6, -3, 0, 3, 6
+    const ovr = clamp(squadQuality + offset, 30, 99);
+    total += Math.round(VALUE_EXP_BASE * Math.exp(VALUE_EXP_RATE * ovr));
+  }
+  return total;
+}
+
+/** Calculate expected league position range based on squadQuality relative to peers. */
+export function calculateExpectedPosition(clubId: string, leagueId: string): string {
+  const leagueClubs = CLUBS_DATA.filter(c => c.divisionId === leagueId);
+  if (leagueClubs.length === 0) return 'Unknown';
+
+  const sorted = [...leagueClubs].sort((a, b) => b.squadQuality - a.squadQuality);
+  const rank = sorted.findIndex(c => c.id === clubId) + 1;
+  const total = sorted.length;
+
+  if (rank <= 2) return '1st - 2nd';
+  if (rank <= Math.ceil(total * 0.25)) return `${rank - 1}th - ${rank + 1}th`;
+  if (rank <= Math.ceil(total * 0.5)) return 'Top half';
+  if (rank <= Math.ceil(total * 0.75)) return 'Lower half';
+  return 'Bottom quarter';
+}
+
+/** Negotiate salary counter-offer. Returns updated offer. */
+export function negotiateSalary(
+  offer: JobOffer,
+  requestedSalary: number,
+  managerNegotiationSkill: number = 5,
+): JobOffer {
+  const round = (offer.negotiationRound || 0) + 1;
+  if (round > MAX_NEGOTIATION_ROUNDS) {
+    return { ...offer, negotiationStatus: 'final' };
+  }
+
+  const initialSalary = offer.initialSalary || offer.salary;
+  const maxAllowed = initialSalary * (1 + SALARY_COUNTER_MAX_INCREASE);
+  const capped = Math.min(requestedSalary, maxAllowed);
+
+  const increaseRatio = (capped - initialSalary) / initialSalary;
+  const boardPatience = offer.boardPatience || 5;
+
+  // Acceptance probability
+  let acceptChance = BOARD_ACCEPTANCE_BASE
+    + boardPatience * BOARD_PATIENCE_MODIFIER
+    + managerNegotiationSkill * NEGOTIATION_SKILL_MODIFIER
+    - increaseRatio * 2 // higher ask = lower chance
+    - (round - 1) * NEGOTIATION_PUSHBACK_FACTOR;
+  acceptChance = clamp(acceptChance, 0.1, 0.95);
+
+  const roll = Math.random();
+
+  if (roll < acceptChance) {
+    // Board accepts
+    return {
+      ...offer,
+      salary: Math.round(capped),
+      negotiationRound: round,
+      negotiationStatus: 'accepted',
+    };
+  } else if (roll < acceptChance + 0.3) {
+    // Board compromises — meet halfway between current and requested
+    const compromise = Math.round((offer.salary + capped) / 2);
+    return {
+      ...offer,
+      salary: compromise,
+      negotiationRound: round,
+      negotiationStatus: round >= MAX_NEGOTIATION_ROUNDS ? 'final' : 'pending',
+    };
+  } else {
+    // Board rejects — keep current salary
+    return {
+      ...offer,
+      negotiationRound: round,
+      negotiationStatus: round >= MAX_NEGOTIATION_ROUNDS ? 'final' : 'pending',
+    };
+  }
+}
+
+// ── Starting Offers (enriched) ──
+
 export function generateStartingOffers(
   clubs: Record<string, Pick<Club, 'id' | 'name' | 'divisionId' | 'reputation'>>,
 ): JobOffer[] {
@@ -209,18 +303,43 @@ export function generateStartingOffers(
 
   return selected.map(club => {
     const league = LEAGUES.find(l => l.id === club.divisionId);
+    const qualityTier = league?.qualityTier || 4;
+    const salary = generateManagerSalary(qualityTier, club.reputation);
+
+    // Find full ClubData for enrichment
+    const clubData = CLUBS_DATA.find(c => c.id === club.id);
 
     return {
       id: `start-offer-${club.id}`,
       clubId: club.id,
       clubName: club.name,
       divisionId: club.divisionId || '',
-      salary: generateManagerSalary(league?.qualityTier || 4, club.reputation),
+      salary,
       contractLength: 2,
-      bonuses: generateDefaultBonuses(league?.qualityTier || 4),
-      boardExpectations: generateBoardExpectation(league?.qualityTier || 4, club.reputation),
+      bonuses: generateDefaultBonuses(qualityTier),
+      boardExpectations: generateBoardExpectation(qualityTier, club.reputation),
       expiresWeek: 99,
       expiresSeason: 1,
+
+      // Enriched club profile
+      leagueName: league?.name || '',
+      country: league?.country || '',
+      clubColor: clubData?.color || '#888888',
+      reputation: club.reputation,
+      budget: clubData?.budget || 0,
+      estimatedSquadValue: estimateSquadValue(clubData?.squadQuality || 50),
+      expectedPosition: calculateExpectedPosition(club.id, club.divisionId || ''),
+      facilities: clubData?.facilities || 5,
+      youthRating: clubData?.youthRating || 5,
+      boardPatience: clubData?.boardPatience || 5,
+      stadiumName: clubData?.stadiumName || '',
+      stadiumCapacity: clubData?.stadiumCapacity || 0,
+      fanBase: clubData?.fanBase || 50,
+
+      // Negotiation defaults
+      initialSalary: salary,
+      negotiationRound: 0,
+      negotiationStatus: 'pending',
     };
   });
 }

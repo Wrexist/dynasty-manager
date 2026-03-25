@@ -5,13 +5,14 @@ import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ReputationBadge } from '@/components/game/ReputationBadge';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { Button } from '@/components/ui/button';
-import { User, Trophy, Briefcase, Calendar, Award, LogOut, TrendingUp } from 'lucide-react';
+import { User, Trophy, Briefcase, Calendar, Award, LogOut, TrendingUp, GitBranch } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { MANAGER_TRAITS } from '@/config/managerCareer';
 import { calculateLegacyScore, getRetirementAge } from '@/utils/managerCareer';
+import { getSpecializationTitle } from '@/utils/managerPerks';
 
 const CareerOverview = () => {
-  const { careerManager, season, setScreen, resignFromClub } = useGameStore();
+  const { careerManager, setScreen, resignFromClub, managerProgression } = useGameStore();
   const [showResignConfirm, setShowResignConfirm] = useState(false);
 
   if (!careerManager) {
@@ -23,6 +24,7 @@ const CareerOverview = () => {
   }
 
   const legacyScore = calculateLegacyScore(careerManager);
+  const specTitle = getSpecializationTitle(managerProgression);
   const retirementAge = getRetirementAge(careerManager);
   const seasonsLeft = retirementAge - careerManager.age;
   const winRate = careerManager.totalCareerMatches > 0
@@ -43,9 +45,14 @@ const CareerOverview = () => {
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold text-foreground">{careerManager.name}</h2>
-            <p className="text-xs text-muted-foreground">
-              Age {careerManager.age} — {careerManager.nationality}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted-foreground">
+                Age {careerManager.age} — {careerManager.nationality}
+              </p>
+              {specTitle && (
+                <span className="text-[9px] font-bold text-primary italic">{specTitle}</span>
+              )}
+            </div>
           </div>
           <ReputationBadge tier={careerManager.reputationTier} score={Math.round(careerManager.reputationScore)} size="md" />
         </div>
@@ -129,6 +136,15 @@ const CareerOverview = () => {
           ))}
         </div>
       </GlassPanel>
+
+      {/* Talent Tree Quick Access */}
+      <Button
+        variant="outline"
+        className="w-full h-11 gap-2 border-primary/30 text-primary hover:bg-primary/10"
+        onClick={() => setScreen('perks')}
+      >
+        <GitBranch className="w-4 h-4" /> Talent Tree
+      </Button>
 
       {/* Traits */}
       <GlassPanel className="p-4">

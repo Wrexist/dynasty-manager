@@ -16,7 +16,7 @@ import { calculatePlayerValue } from '@/config/playerGeneration';
 // Per-season growth tracking to cap total growth
 export const seasonGrowthTracker: Record<string, number> = {};
 
-export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorBonus: number = 0): Player {
+export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorBonus: number = 0, trainingGroundBoost: number = 0): Player {
   const updated = { ...p, attributes: { ...p.attributes }, growthDelta: 0 };
   const oldOverall = p.overall;
 
@@ -28,7 +28,7 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
       // Playing time scales growth: 0% at 0 apps, up to +8% at 20+ apps
       const playingTimeBonus = Math.min(PLAYING_TIME_BONUS_MAX, p.appearances * PLAYING_TIME_BONUS_PER_APP);
       const devMultiplier = getDevelopmentMultiplier(p.personality);
-      const growthChance = (GROWTH_BASE_CHANCE + potentialGap * GROWTH_POTENTIAL_GAP_FACTOR + playingTimeBonus + mentorBonus) * devMultiplier;
+      const growthChance = (GROWTH_BASE_CHANCE + potentialGap * GROWTH_POTENTIAL_GAP_FACTOR + playingTimeBonus + mentorBonus) * devMultiplier * (1 + trainingGroundBoost);
       const posBonus = POSITION_DEV_BONUS[p.position] || {};
       const trainedAttrs = MODULE_ATTR_MAP[trainingFocus as keyof typeof MODULE_ATTR_MAP] || [];
       const attrs = Object.keys(updated.attributes) as (keyof PlayerAttributes)[];

@@ -4,14 +4,14 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { NATIONS } from '@/data/nations';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getFlag } from '@/utils/nationality';
 import type { ManagerTraitId, JobOffer } from '@/types/game';
 import { ManagerTraitPicker } from '@/components/game/ManagerTraitPicker';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
-import { createDefaultManager, generateStartingOffers } from '@/utils/managerCareer';
-import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK } from '@/config/managerCareer';
+import { createDefaultManager, generateStartingOffers, negotiateSalary } from '@/utils/managerCareer';
+import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROUNDS, SALARY_COUNTER_MAX_INCREASE } from '@/config/managerCareer';
 import { CLUBS_DATA } from '@/data/league';
 import { toast } from 'sonner';
 
@@ -51,6 +51,9 @@ const ManagerCreation = () => {
   const [startingOffers, setStartingOffers] = useState<JobOffer[]>([]);
   const [loading, setLoading] = useState(false);
   const [nationSearch, setNationSearch] = useState('');
+  const [negotiatingOfferId, setNegotiatingOfferId] = useState<string | null>(null);
+  const [counterSalary, setCounterSalary] = useState<number>(0);
+  const [negotiationMessage, setNegotiationMessage] = useState<string | null>(null);
 
   const stepIdx = STEPS.indexOf(step);
   const canProceed = (() => {
@@ -331,46 +334,262 @@ const ManagerCreation = () => {
                 ) : (
                   startingOffers.map(offer => {
                     const isSelected = selectedOffer?.id === offer.id;
+                    const isNegotiating = negotiatingOfferId === offer.id;
+                    const canNegotiate = (offer.negotiationRound || 0) < MAX_NEGOTIATION_ROUNDS
+                      && offer.negotiationStatus !== 'final'
+                      && offer.negotiationStatus !== 'accepted';
+                    const formatMoney = (val: number) => {
+                      if (val >= 1_000_000) return `£${(val / 1_000_000).toFixed(1)}M`;
+                      if (val >= 1_000) return `£${(val / 1_000).toFixed(0)}k`;
+                      return `£${val}`;
+                    };
+                    const renderStars = (value: number, max: number = 10) => {
+                      const stars = Math.round(value / (max / 5));
+                      return (
+                        <div className="flex gap-0.5">
+                          {Array.from({ length: 5 }, (_, i) => (
+                            <Star key={i} className={cn('w-2.5 h-2.5', i < stars ? 'text-primary fill-primary' : 'text-muted-foreground/30')} />
+                          ))}
+                        </div>
+                      );
+                    };
+
                     return (
                       <button
                         key={offer.id}
-                        onClick={() => setSelectedOffer(offer)}
+                        onClick={() => {
+                          setSelectedOffer(offer);
+                          if (negotiatingOfferId && negotiatingOfferId !== offer.id) {
+                            setNegotiatingOfferId(null);
+                            setNegotiationMessage(null);
+                          }
+                        }}
                         className={cn(
-                          'w-full text-left rounded-xl p-4 border transition-all duration-200',
+                          'w-full text-left rounded-xl border transition-all duration-200 overflow-hidden',
                           'bg-card/60 backdrop-blur-xl',
                           isSelected
-                            ? 'border-primary/50 bg-primary/10'
+                            ? 'border-primary/50 bg-primary/5'
                             : 'border-border/50 hover:border-border active:scale-[0.98]',
                         )}
                       >
-                        <div className="flex items-center justify-between mb-2">
-                          <h3 className={cn('text-sm font-bold', isSelected ? 'text-primary' : 'text-foreground')}>
-                            {offer.clubName}
-                          </h3>
-                          {isSelected && <Check className="w-4 h-4 text-primary" />}
+                        {/* Club color accent bar */}
+                        <div className="h-1 w-full" style={{ backgroundColor: offer.clubColor || '#888' }} />
+
+                        <div className="p-4 space-y-3">
+                          {/* Header: Club name + league */}
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className={cn('text-sm font-bold', isSelected ? 'text-primary' : 'text-foreground')}>
+                                {offer.clubName}
+                              </h3>
+                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                {offer.leagueName}{offer.country ? ` · ${offer.country}` : ''}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              {offer.reputation !== undefined && renderStars(offer.reputation, 5)}
+                              {isSelected && <Check className="w-4 h-4 text-primary ml-1" />}
+                            </div>
+                          </div>
+
+                          {/* Contract section */}
+                          <div className="bg-muted/20 rounded-lg p-2.5">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <HandCoins className="w-3 h-3 text-primary/70" />
+                              <span className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider">Your Contract</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-[10px]">
+                              <div>
+                                <span className="text-muted-foreground">Salary: </span>
+                                <span className={cn('font-bold', offer.negotiationStatus === 'accepted' ? 'text-emerald-400' : 'text-foreground')}>
+                                  £{(offer.salary / 1000).toFixed(1)}k/wk
+                                </span>
+                                {offer.negotiationStatus === 'accepted' && (
+                                  <span className="text-[8px] text-emerald-400/70 ml-1">negotiated</span>
+                                )}
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground">Contract: </span>
+                                <span className="text-foreground font-bold">{offer.contractLength} year{offer.contractLength > 1 ? 's' : ''}</span>
+                              </div>
+                            </div>
+                            {offer.bonuses.length > 0 && (
+                              <div className="mt-1.5 flex flex-wrap gap-1">
+                                {offer.bonuses.map((b, i) => (
+                                  <span key={i} className="text-[9px] bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded">
+                                    {b.condition.replace(/_/g, ' ')}: {formatMoney(b.amount)}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Negotiate button */}
+                            {isSelected && canNegotiate && !isNegotiating && (
+                              <div
+                                role="button"
+                                tabIndex={0}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setNegotiatingOfferId(offer.id);
+                                  setCounterSalary(Math.round(offer.salary * 1.1));
+                                  setNegotiationMessage(null);
+                                }}
+                                onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setNegotiatingOfferId(offer.id); setCounterSalary(Math.round(offer.salary * 1.1)); setNegotiationMessage(null); } }}
+                                className="mt-2 text-[10px] text-primary font-semibold flex items-center gap-1 hover:text-primary/80 cursor-pointer"
+                              >
+                                <TrendingUp className="w-3 h-3" /> Negotiate Salary ({MAX_NEGOTIATION_ROUNDS - (offer.negotiationRound || 0)} attempt{MAX_NEGOTIATION_ROUNDS - (offer.negotiationRound || 0) !== 1 ? 's' : ''} left)
+                              </div>
+                            )}
+                            {offer.negotiationStatus === 'final' && (
+                              <p className="mt-1.5 text-[9px] text-amber-400/80 italic">Board has made their final offer</p>
+                            )}
+                          </div>
+
+                          {/* Inline negotiation UI */}
+                          {isSelected && isNegotiating && (
+                            <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2" onClick={e => e.stopPropagation()}>
+                              <p className="text-[10px] font-semibold text-foreground">Counter-offer</p>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">£{(offer.salary / 1000).toFixed(1)}k</span>
+                                <input
+                                  type="range"
+                                  min={offer.salary}
+                                  max={Math.round((offer.initialSalary || offer.salary) * (1 + SALARY_COUNTER_MAX_INCREASE))}
+                                  step={100}
+                                  value={counterSalary}
+                                  onChange={e => setCounterSalary(Number(e.target.value))}
+                                  className="flex-1 accent-primary h-1.5"
+                                  onClick={e => e.stopPropagation()}
+                                />
+                                <span className="text-[10px] text-primary font-bold whitespace-nowrap">£{(counterSalary / 1000).toFixed(1)}k</span>
+                              </div>
+                              <div className="flex gap-2">
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    const managerSkill = previewManager?.attributes.negotiation || 5;
+                                    const result = negotiateSalary(offer, counterSalary, managerSkill);
+                                    // Update the offer in the list
+                                    setStartingOffers(prev => prev.map(o => o.id === offer.id ? result : o));
+                                    setSelectedOffer(result);
+                                    setNegotiatingOfferId(null);
+
+                                    if (result.negotiationStatus === 'accepted') {
+                                      setNegotiationMessage(`Board accepts £${(result.salary / 1000).toFixed(1)}k/wk!`);
+                                    } else if (result.salary > offer.salary) {
+                                      setNegotiationMessage(`Board counters with £${(result.salary / 1000).toFixed(1)}k/wk`);
+                                    } else {
+                                      setNegotiationMessage(`Board insists on £${(result.salary / 1000).toFixed(1)}k/wk`);
+                                    }
+                                  }}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.click(); }}
+                                  className="flex-1 bg-primary text-primary-foreground text-[10px] font-bold py-1.5 rounded text-center cursor-pointer hover:bg-primary/90"
+                                >
+                                  Submit Counter
+                                </div>
+                                <div
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={(e) => { e.stopPropagation(); setNegotiatingOfferId(null); }}
+                                  onKeyDown={(e) => { if (e.key === 'Enter') { e.stopPropagation(); setNegotiatingOfferId(null); } }}
+                                  className="bg-muted/30 text-muted-foreground text-[10px] font-semibold py-1.5 px-3 rounded cursor-pointer hover:bg-muted/50"
+                                >
+                                  Cancel
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Negotiation result message */}
+                          {isSelected && negotiationMessage && !isNegotiating && (
+                            <p className={cn(
+                              'text-[10px] font-semibold px-2 py-1 rounded',
+                              offer.negotiationStatus === 'accepted'
+                                ? 'bg-emerald-500/10 text-emerald-400'
+                                : 'bg-amber-500/10 text-amber-400',
+                            )}>
+                              {negotiationMessage}
+                            </p>
+                          )}
+
+                          {/* Club Profile grid */}
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-muted/15 rounded-lg p-2 text-center">
+                              <p className="text-[8px] text-muted-foreground uppercase tracking-wider mb-0.5">Budget</p>
+                              <p className="text-[11px] font-bold text-foreground">{formatMoney(offer.budget || 0)}</p>
+                            </div>
+                            <div className="bg-muted/15 rounded-lg p-2 text-center">
+                              <p className="text-[8px] text-muted-foreground uppercase tracking-wider mb-0.5">Squad Value</p>
+                              <p className="text-[11px] font-bold text-foreground">{formatMoney(offer.estimatedSquadValue || 0)}</p>
+                            </div>
+                            <div className="bg-muted/15 rounded-lg p-2 text-center">
+                              <p className="text-[8px] text-muted-foreground uppercase tracking-wider mb-0.5">Expected</p>
+                              <p className="text-[11px] font-bold text-foreground">{offer.expectedPosition || '—'}</p>
+                            </div>
+                          </div>
+
+                          {/* Club details row */}
+                          <div className="grid grid-cols-3 gap-2 text-[10px]">
+                            <div>
+                              <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+                                <Building2 className="w-2.5 h-2.5" />
+                                <span className="text-[8px] uppercase tracking-wider">Facilities</span>
+                              </div>
+                              {renderStars(offer.facilities || 5)}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+                                <Trophy className="w-2.5 h-2.5" />
+                                <span className="text-[8px] uppercase tracking-wider">Youth</span>
+                              </div>
+                              {renderStars(offer.youthRating || 5)}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1 text-muted-foreground mb-0.5">
+                                <Users className="w-2.5 h-2.5" />
+                                <span className="text-[8px] uppercase tracking-wider">Fans</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                                  <div className="h-full bg-primary/60 rounded-full" style={{ width: `${offer.fanBase || 0}%` }} />
+                                </div>
+                                <span className="text-[8px] text-muted-foreground">{offer.fanBase || 0}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Board expectations + patience */}
+                          <div className="flex items-center justify-between">
+                            <p className="text-[10px] text-primary/70 italic flex-1">"{offer.boardExpectations}"</p>
+                            <div className="flex items-center gap-1 ml-2">
+                              <span className="text-[8px] text-muted-foreground uppercase">Patience</span>
+                              <div className="flex gap-px">
+                                {Array.from({ length: 10 }, (_, i) => (
+                                  <div
+                                    key={i}
+                                    className={cn(
+                                      'w-1.5 h-3 rounded-[1px]',
+                                      i < (offer.boardPatience || 5)
+                                        ? (offer.boardPatience || 5) >= 7 ? 'bg-emerald-500/70' : (offer.boardPatience || 5) >= 4 ? 'bg-amber-500/70' : 'bg-red-500/70'
+                                        : 'bg-muted/20',
+                                    )}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Stadium footer */}
+                          {offer.stadiumName && (
+                            <div className="flex items-center gap-1 text-[9px] text-muted-foreground/60">
+                              <MapPin className="w-2.5 h-2.5" />
+                              {offer.stadiumName}
+                              {offer.stadiumCapacity ? ` (${offer.stadiumCapacity.toLocaleString()})` : ''}
+                            </div>
+                          )}
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-[10px]">
-                          <div>
-                            <span className="text-muted-foreground">Salary: </span>
-                            <span className="text-foreground font-semibold">
-                              £{(offer.salary / 1000).toFixed(1)}k/wk
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-muted-foreground">Contract: </span>
-                            <span className="text-foreground font-semibold">{offer.contractLength} year{offer.contractLength > 1 ? 's' : ''}</span>
-                          </div>
-                        </div>
-                        <p className="text-[10px] text-primary/70 mt-2 italic">"{offer.boardExpectations}"</p>
-                        {offer.bonuses.length > 0 && (
-                          <div className="mt-2 flex flex-wrap gap-1">
-                            {offer.bonuses.map((b, i) => (
-                              <span key={i} className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded">
-                                {b.condition.replace('_', ' ')}: £{(b.amount / 1000).toFixed(0)}k
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </button>
                     );
                   })
