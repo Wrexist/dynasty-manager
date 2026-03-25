@@ -64,6 +64,14 @@ export const JOB_MARKET_REFRESH_WEEKS = [1, 24, 46];
 export const AI_SACKING_POSITION_THRESHOLD = 6;     // positions below expected = sacked
 export const STARTING_JOB_OFFERS = 3;
 
+// ── Starting Offer Negotiation ──
+export const MAX_NEGOTIATION_ROUNDS = 2;
+export const SALARY_COUNTER_MAX_INCREASE = 0.40;    // can ask up to 40% more
+export const BOARD_ACCEPTANCE_BASE = 0.6;            // 60% base chance to accept
+export const BOARD_PATIENCE_MODIFIER = 0.05;         // +5% per boardPatience point
+export const NEGOTIATION_PUSHBACK_FACTOR = 0.15;     // per round, acceptance drops 15%
+export const NEGOTIATION_SKILL_MODIFIER = 0.02;      // +2% per manager negotiation attribute point
+
 // ── Manager Contract ──
 
 // ── Retirement ──

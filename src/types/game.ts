@@ -1106,6 +1106,26 @@ export interface JobOffer {
   boardExpectations: string;
   expiresWeek: number;
   expiresSeason: number;
+
+  // Club profile info
+  leagueName?: string;
+  country?: string;
+  clubColor?: string;
+  reputation?: number;
+  budget?: number;
+  estimatedSquadValue?: number;
+  expectedPosition?: string;
+  facilities?: number;
+  youthRating?: number;
+  boardPatience?: number;
+  stadiumName?: string;
+  stadiumCapacity?: number;
+  fanBase?: number;
+
+  // Negotiation state
+  initialSalary?: number;
+  negotiationRound?: number;
+  negotiationStatus?: 'pending' | 'accepted' | 'final';
 }
 
 export interface ManagerAward {
