@@ -22,8 +22,27 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     const club = { ...state.clubs[state.playerClubId] };
     if (!club.lineup.includes(outId)) return;
     if (!club.subs.includes(inId)) return;
+    const inPlayer = state.players[inId];
+    if (!inPlayer) return;
+    if (inPlayer.injured) return;
+    if (inPlayer.suspendedUntilWeek != null && inPlayer.suspendedUntilWeek > state.week) return;
     club.lineup = club.lineup.map(id => id === outId ? inId : id);
     club.subs = [...club.subs.filter(id => id !== inId), outId];
-    set({ clubs: { ...state.clubs, [club.id]: club }, matchSubsUsed: state.matchSubsUsed + 1 });
+    const updates: Partial<GameState> = { clubs: { ...state.clubs, [club.id]: club }, matchSubsUsed: state.matchSubsUsed + 1 };
+    if (state.currentMatchResult) {
+      const outPlayer = state.players[outId];
+      updates.currentMatchResult = {
+        ...state.currentMatchResult,
+        events: [...state.currentMatchResult.events, {
+          minute: 0,
+          type: 'substitution' as const,
+          playerId: inId,
+          assistPlayerId: outId,
+          clubId: state.playerClubId,
+          description: `${inPlayer.name} replaces ${outPlayer?.name || 'Unknown'}`,
+        }],
+      };
+    }
+    set(updates);
   },
 });

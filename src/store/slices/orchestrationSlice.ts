@@ -571,14 +571,29 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         round: 'Group Stage',
       }];
 
-      // Apply fitness cost to called-up players
+      // Apply fitness cost to called-up players and attribute goals
       const newPlayers = { ...state.players };
+      const playerGoals = isHome ? homeGoals : awayGoals;
+      const updatedCaps = { ...nt.caps };
+      const updatedIntlGoals = { ...nt.internationalGoals };
       for (const pid of nt.squad) {
         if (newPlayers[pid]) {
           newPlayers[pid] = { ...newPlayers[pid], fitness: Math.max(40, newPlayers[pid].fitness - INTERNATIONAL_FITNESS_COST) };
           newPlayers[pid].internationalCaps = (newPlayers[pid].internationalCaps || 0) + 1;
+          updatedCaps[pid] = (updatedCaps[pid] || 0) + 1;
         }
       }
+      // Distribute goals among lineup players randomly
+      const lineupIds = nt.lineup.filter(pid => newPlayers[pid]);
+      for (let g = 0; g < playerGoals; g++) {
+        const scorerId = lineupIds[Math.floor(Math.random() * lineupIds.length)];
+        if (scorerId && newPlayers[scorerId]) {
+          newPlayers[scorerId] = { ...newPlayers[scorerId], internationalGoals: (newPlayers[scorerId].internationalGoals || 0) + 1 };
+          updatedIntlGoals[scorerId] = (updatedIntlGoals[scorerId] || 0) + 1;
+        }
+      }
+      nt.caps = updatedCaps;
+      nt.internationalGoals = updatedIntlGoals;
 
       const nextWeek = currentWeek + 1;
 
@@ -664,14 +679,28 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         round: tournament.currentRound,
       }];
 
-      // Apply fitness cost
+      // Apply fitness cost and attribute goals
       const newPlayers = { ...state.players };
+      const playerGoalsKO = isHome ? hg : ag;
+      const updatedCapsKO = { ...nt.caps };
+      const updatedIntlGoalsKO = { ...nt.internationalGoals };
       for (const pid of nt.squad) {
         if (newPlayers[pid]) {
           newPlayers[pid] = { ...newPlayers[pid], fitness: Math.max(40, newPlayers[pid].fitness - INTERNATIONAL_FITNESS_COST) };
           newPlayers[pid].internationalCaps = (newPlayers[pid].internationalCaps || 0) + 1;
+          updatedCapsKO[pid] = (updatedCapsKO[pid] || 0) + 1;
         }
       }
+      const lineupIdsKO = nt.lineup.filter(pid => newPlayers[pid]);
+      for (let g = 0; g < playerGoalsKO; g++) {
+        const scorerId = lineupIdsKO[Math.floor(Math.random() * lineupIdsKO.length)];
+        if (scorerId && newPlayers[scorerId]) {
+          newPlayers[scorerId] = { ...newPlayers[scorerId], internationalGoals: (newPlayers[scorerId].internationalGoals || 0) + 1 };
+          updatedIntlGoalsKO[scorerId] = (updatedIntlGoalsKO[scorerId] || 0) + 1;
+        }
+      }
+      nt.caps = updatedCapsKO;
+      nt.internationalGoals = updatedIntlGoalsKO;
 
       const playerEliminated = updatedPlayerTie.winnerId !== nationality;
 
@@ -2471,8 +2500,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const hc = clubs[match.homeClubId];
     const ac = clubs[match.awayClubId];
-    let hp = hc.lineup.map(id => players[id]).filter(Boolean);
-    let ap = ac.lineup.map(id => players[id]).filter(Boolean);
+    const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
+    const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
+      const availableSubs = club.subs.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+      const ids = new Set(lineup.map(p => p.id));
+      for (const sub of availableSubs) {
+        if (lineup.length >= 11) break;
+        if (!ids.has(sub.id)) { lineup.push(sub); ids.add(sub.id); }
+      }
+      return lineup;
+    };
+    let hp = backfillFromSubs(hc.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
+    let ap = backfillFromSubs(ac.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
 
     // Motivator perk: boost player team morale before match
     if (hasPerk(state.managerProgression, 'motivator')) {
@@ -2543,8 +2582,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const hc = clubs[match.homeClubId];
     const ac = clubs[match.awayClubId];
-    let hp = hc.lineup.map(id => players[id]).filter(Boolean);
-    let ap = ac.lineup.map(id => players[id]).filter(Boolean);
+    const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
+    const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
+      const availableSubs = club.subs.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+      const ids = new Set(lineup.map(p => p.id));
+      for (const sub of availableSubs) {
+        if (lineup.length >= 11) break;
+        if (!ids.has(sub.id)) { lineup.push(sub); ids.add(sub.id); }
+      }
+      return lineup;
+    };
+    let hp = backfillFromSubs(hc.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
+    let ap = backfillFromSubs(ac.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
 
     // Motivator perk: boost player team morale before match
     if (hasPerk(state.managerProgression, 'motivator')) {
@@ -2960,6 +3009,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       localStorage.setItem(`dynasty-save-${s}`, json);
     } catch (err) {
       console.error('[Save] Failed to write save data:', err);
+      // Notify user via in-game message
+      const msgs = addMsg(state.messages, {
+        id: `save-fail-${Date.now()}`,
+        type: 'warning',
+        title: 'Save Failed',
+        body: 'Your game could not be saved — storage may be full. Try freeing up space on your device.',
+        week: state.week,
+        season: state.season,
+      });
+      set({ messages: msgs });
     }
 
     // Save session snapshot for "Welcome back" recap

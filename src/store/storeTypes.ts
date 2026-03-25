@@ -176,6 +176,8 @@ export interface GameState {
   recallLoan: (loanId: string) => { success: boolean; message: string };
   respondToLoanOffer: (offerId: string, accept: boolean) => { success: boolean; message: string };
   processLoanReturns: () => void;
+  buyLoanedPlayer: (loanId: string) => { success: boolean; message: string };
+  terminateLoan: (loanId: string) => { success: boolean; message: string };
   renewContract: (playerId: string, years: number, newWage: number) => { success: boolean; message: string };
 
   // Actions — Match

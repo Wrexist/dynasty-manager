@@ -1270,6 +1270,16 @@ const Dashboard = () => {
         </div>
       </GlassPanel>
 
+      {/* Session Stats */}
+      {store.sessionStats && store.sessionStats.weeksPlayed > 0 && (
+        <div className="flex items-center justify-center gap-4 py-2 text-xs text-muted-foreground">
+          <span>{store.sessionStats.weeksPlayed}w played</span>
+          <span className="text-emerald-400">{store.sessionStats.matchesWon}W</span>
+          <span className="text-destructive">{store.sessionStats.matchesLost}L</span>
+          <span className="text-primary">+{store.sessionStats.xpEarned} XP</span>
+        </div>
+      )}
+
     </div>
     <FinanceBreakdownSheet open={financeSheetOpen} onOpenChange={setFinanceSheetOpen} mode={financeSheetMode} />
     </>

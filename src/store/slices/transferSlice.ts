@@ -18,9 +18,20 @@ import { MIN_SQUAD_SIZE } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
 import { getStarPlayerMerch } from '@/utils/merchandise';
+import { CHALLENGES } from '@/data/challenges';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
+
+/** Check if an active challenge blocks this transfer. Returns error message or null if allowed. */
+const checkChallengeBlock = (state: GameState, playerAge?: number): string | null => {
+  if (!state.activeChallenge || state.activeChallenge.completed || state.activeChallenge.failed) return null;
+  const scenario = CHALLENGES.find(c => c.id === state.activeChallenge!.scenarioId);
+  if (!scenario) return null;
+  if (scenario.noTransfers) return 'Transfers are disabled in this challenge.';
+  if (scenario.youthOnly && playerAge != null && playerAge > 23) return 'Challenge restricts signings to players aged 23 or under.';
+  return null;
+};
 
 export const createTransferSlice = (set: Set, get: Get) => ({
   transferMarket: [] as GameState['transferMarket'],
@@ -52,11 +63,20 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
   makeOfferWithNegotiation: (playerId: string, fee: number): { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string } => {
     const state = get();
+    const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
+    if (challengeBlock) return { outcome: 'rejected', message: challengeBlock };
     if (!state.transferWindowOpen) return { outcome: 'rejected', message: 'Transfer window is closed.' };
     const listing = state.transferMarket.find(l => l.playerId === playerId);
     if (!listing) return { outcome: 'rejected', message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
     if (fee > club.budget) return { outcome: 'rejected', message: 'Insufficient funds.' };
+
+    // Release clause: if fee meets or exceeds it, auto-accept
+    const player = state.players[playerId];
+    if (player?.releaseClause && fee >= player.releaseClause) {
+      const result = get().executeTransfer(playerId, fee);
+      return { outcome: result.success ? 'accepted' : 'rejected', message: result.success ? `Release clause triggered — ${player.name} joins for £${(fee / 1e6).toFixed(1)}M!` : result.message };
+    }
 
     // Transfer Shark perk: treat asking price as 15% lower for acceptance calculation
     const effectiveAskingPrice = hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT) : listing.askingPrice;
@@ -81,6 +101,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
   executeTransfer: (playerId: string, fee: number) => {
     const state = get();
+    const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
+    if (challengeBlock) return { success: false, message: challengeBlock };
     if (!state.transferWindowOpen) return { success: false, message: 'Transfer window is closed.' };
     const listing = state.transferMarket.find(l => l.playerId === playerId);
     if (!listing) return { success: false, message: 'Player not available.' };
@@ -156,6 +178,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
   makeOffer: (playerId: string, fee: number) => {
     const state = get();
+    const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
+    if (challengeBlock) return { success: false, message: challengeBlock };
     if (!state.transferWindowOpen) return { success: false, message: 'Transfer window is closed.' };
     const listing = state.transferMarket.find(l => l.playerId === playerId);
     if (!listing) return { success: false, message: 'Player not available.' };
@@ -287,6 +311,13 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
   signFreeAgent: (playerId: string, wage: number, years: number) => {
     const state = get();
+    // Challenge constraints: noTransfers blocks paid signings but allows free agents for penny-pincher
+    const challenge = state.activeChallenge && !state.activeChallenge.completed && !state.activeChallenge.failed
+      ? CHALLENGES.find(c => c.id === state.activeChallenge!.scenarioId) : null;
+    if (challenge?.youthOnly) {
+      const p = state.players[playerId];
+      if (p && p.age > 23) return { success: false, message: 'Challenge restricts signings to players aged 23 or under.' };
+    }
     if (!state.freeAgents.includes(playerId)) return { success: false, message: 'Player is not a free agent.' };
     const player = state.players[playerId];
     if (!player) return { success: false, message: 'Player not found.' };
