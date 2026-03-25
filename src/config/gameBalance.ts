@@ -452,6 +452,14 @@ export const LOAN_MIN_WEEKS_BEFORE_RECALL = 4;
 export const MANAGER_XP_BASE = 50;
 export const MANAGER_XP_PER_LEVEL = 30;
 
+// ── Talent Tree ──
+export const TALENT_TREE_ROW_COSTS = [100, 200, 400, 600, 800] as const;
+export const CAPSTONE_COST = 1200;
+export const CAPSTONE_MIN_BRANCHES = 2;
+export const FORTRESS_HOME_MORALE = 3;
+export const TRAINING_GROUND_BOOST = 0.2;
+export const GOLDEN_GEN_MIN_POTENTIAL = 75;
+
 // ── Dashboard UI ──
 export const CONFIDENCE_CHANGE_DISMISS_THRESHOLD = 5;
 

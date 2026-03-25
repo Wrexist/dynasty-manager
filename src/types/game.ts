@@ -323,16 +323,15 @@ export interface CareerMilestone {
 export type PerkId =
   | 'tactical_genius' | 'youth_developer' | 'transfer_shark' | 'motivator'
   | 'disciplinarian' | 'fitness_guru' | 'scout_network' | 'fan_favourite'
-  // Tier 1 additions
   | 'set_piece_coach' | 'media_savvy'
-  // Tier 2 additions
   | 'loan_master' | 'deadline_dealer'
-  // Tier 3 additions
   | 'iron_will' | 'formation_master'
-  // Tier 4
   | 'galactico' | 'wonder_coach'
-  // Tier 5
-  | 'dynasty_builder' | 'invincible';
+  | 'dynasty_builder' | 'invincible'
+  // Talent tree additions
+  | 'fortress_mentality' | 'training_ground' | 'golden_generation';
+
+export type TalentBranch = 'tactician' | 'motivator' | 'dealmaker' | 'developer';
 
 export interface ManagerPerk {
   id: PerkId;
@@ -342,6 +341,8 @@ export interface ManagerPerk {
   cost: number; // XP cost
   tier: 1 | 2 | 3 | 4 | 5;
   prerequisite?: PerkId;
+  branch: TalentBranch | 'capstone';
+  row: number; // 0-4 within branch, 5 for capstone
 }
 
 export interface ManagerProgression {

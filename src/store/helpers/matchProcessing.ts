@@ -16,7 +16,7 @@ import {
   getExpectedPosition,
 } from '@/config/gameBalance';
 import { createMilestone, checkMatchMilestones } from '@/utils/milestones';
-import { grantXP, XP_REWARDS } from '@/utils/managerPerks';
+import { grantXP, XP_REWARDS, hasPerk } from '@/utils/managerPerks';
 import { getMoraleStability } from '@/utils/personality';
 import type { GameState } from '@/store/storeTypes';
 
@@ -92,7 +92,11 @@ export function processMatchResult(
       if (matchParticipants.has(pid)) {
         p.fitness = Math.max(FITNESS_MIN_POST_MATCH, p.fitness + FITNESS_DRAIN_PER_MATCH);
       }
-      const moraleDelta = won ? MORALE_WIN_CHANGE : lost ? MORALE_LOSS_CHANGE : 0;
+      let moraleDelta = won ? MORALE_WIN_CHANGE : lost ? MORALE_LOSS_CHANGE : 0;
+      // Iron Will perk: no morale penalty from defeats
+      if (lost && hasPerk(state.managerProgression, 'iron_will')) moraleDelta = 0;
+      // Fortress Mentality perk: home wins give extra morale
+      if (won && isHome && hasPerk(state.managerProgression, 'fortress_mentality')) moraleDelta += 3;
       // Career mode: motivation stat amplifies morale swings
       const motivationMod = (state.gameMode === 'career' && state.careerManager)
         ? 1 + state.careerManager.attributes.motivation * 0.025

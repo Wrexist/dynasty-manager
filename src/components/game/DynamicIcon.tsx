@@ -8,6 +8,7 @@ import {
   CheckCircle2, Pickaxe,
   Sparkles, UserMinus, AlertTriangle, AlertCircle, RotateCcw,
   HeartCrack, Repeat, LayoutGrid, Award,
+  Castle, Gem,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -66,6 +67,8 @@ const ICON_MAP: Record<string, LucideIcon> = {
   repeat: Repeat,
   'layout-grid': LayoutGrid,
   award: Award,
+  castle: Castle,
+  gem: Gem,
 };
 
 interface DynamicIconProps {
