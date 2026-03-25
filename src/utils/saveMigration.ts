@@ -296,8 +296,8 @@ const migrations: Record<number, MigrationFn> = {
       for (const t of AGE_MULTS) { if (age <= t.maxAge) return t.m; }
       return 0.15;
     };
-    const players = Array.isArray(data.players) ? data.players as Record<string, unknown>[] : [];
-    const clubs = Array.isArray(data.clubs) ? data.clubs as Record<string, unknown>[] : [];
+    const players = (data.players && typeof data.players === 'object' && !Array.isArray(data.players)) ? Object.values(data.players as Record<string, Record<string, unknown>>) : [];
+    const clubs = (data.clubs && typeof data.clubs === 'object' && !Array.isArray(data.clubs)) ? Object.values(data.clubs as Record<string, Record<string, unknown>>) : [];
     for (const p of players) {
       const ovr = (p.overall || 50) as number;
       const age = (p.age || 25) as number;
