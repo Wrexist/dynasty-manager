@@ -13,7 +13,7 @@ import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
 import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 
-const APP_VERSION = 'v0.2 Alpha · Football Edition';
+const APP_VERSION = 'v1.0.0 · Football Edition';
 
 const SettingsPage = () => {
   const { settings, updateSettings, saveGame, loadGame, resetGame, monetization, restoreEntitlements, updateSubscription } = useGameStore();
