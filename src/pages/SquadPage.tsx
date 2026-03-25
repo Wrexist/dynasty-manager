@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
@@ -32,17 +32,16 @@ const SquadPage = () => {
   const [statusFilters, setStatusFilters] = useState<Set<StatusFilter>>(new Set());
 
   const club = clubs[playerClubId];
-  if (!club) return null;
 
-  const fullSquad = club.playerIds.map(id => players[id]).filter(Boolean);
+  const fullSquad = useMemo(() => (club?.playerIds || []).map(id => players[id]).filter(Boolean), [club?.playerIds, players]);
 
   // Position group counts for depth summary
-  const depthCounts = {
+  const depthCounts = useMemo(() => ({
     GK: fullSquad.filter(p => p.position === 'GK').length,
     DEF: fullSquad.filter(p => ['CB', 'LB', 'RB'].includes(p.position)).length,
     MID: fullSquad.filter(p => ['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(p.position)).length,
     ATT: fullSquad.filter(p => ['LW', 'RW', 'ST'].includes(p.position)).length,
-  };
+  }), [fullSquad]);
   const maxDepth = Math.max(...Object.values(depthCounts), 1);
 
   const depthColors: Record<string, string> = {
@@ -52,40 +51,45 @@ const SquadPage = () => {
     ATT: 'bg-red-500',
   };
 
-  // Apply filters
-  let squad = [...fullSquad];
+  // Apply filters and sort
+  const squad = useMemo(() => {
+    let filtered = [...fullSquad];
 
-  if (POSITION_FILTERS[posFilter].positions.length > 0) {
-    squad = squad.filter(p => POSITION_FILTERS[posFilter].positions.includes(p.position));
-  }
-
-  if (statusFilters.has('injured')) {
-    squad = squad.filter(p => p.injured);
-  }
-  if (statusFilters.has('listed')) {
-    squad = squad.filter(p => p.listedForSale);
-  }
-  if (statusFilters.has('expiring')) {
-    squad = squad.filter(p => p.contractEnd <= season);
-  }
-
-  // Sort
-  squad.sort((a, b) => {
-    switch (sortBy) {
-      case 'overall': return b.overall - a.overall;
-      case 'age': return a.age - b.age;
-      case 'value': return b.value - a.value;
-      case 'fitness': return b.fitness - a.fitness;
-      case 'morale': return b.morale - a.morale;
-      case 'wage': return b.wage - a.wage;
-      case 'form': return b.form - a.form;
-      default: return 0;
+    if (POSITION_FILTERS[posFilter].positions.length > 0) {
+      filtered = filtered.filter(p => POSITION_FILTERS[posFilter].positions.includes(p.position));
     }
-  });
 
-  const avgOverall = fullSquad.length > 0
+    if (statusFilters.has('injured')) {
+      filtered = filtered.filter(p => p.injured);
+    }
+    if (statusFilters.has('listed')) {
+      filtered = filtered.filter(p => p.listedForSale);
+    }
+    if (statusFilters.has('expiring')) {
+      filtered = filtered.filter(p => p.contractEnd <= season);
+    }
+
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'overall': return b.overall - a.overall;
+        case 'age': return a.age - b.age;
+        case 'value': return b.value - a.value;
+        case 'fitness': return b.fitness - a.fitness;
+        case 'morale': return b.morale - a.morale;
+        case 'wage': return b.wage - a.wage;
+        case 'form': return b.form - a.form;
+        default: return 0;
+      }
+    });
+
+    return filtered;
+  }, [fullSquad, posFilter, statusFilters, sortBy, season]);
+
+  const avgOverall = useMemo(() => fullSquad.length > 0
     ? Math.round(fullSquad.reduce((s, p) => s + p.overall, 0) / fullSquad.length)
-    : 0;
+    : 0, [fullSquad]);
+
+  if (!club) return null;
 
   const toggleStatus = (key: StatusFilter) => {
     setStatusFilters(prev => {
