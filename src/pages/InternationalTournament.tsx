@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
-import { getNation } from '@/data/nations';
+import { getFlag } from '@/utils/nationality';
 import { cn } from '@/lib/utils';
 import { Globe, Trophy, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -86,7 +86,6 @@ const InternationalTournament = () => {
                   <span className="text-center font-bold">Pts</span>
                 </div>
                 {group.table.map((entry, i) => {
-                  const nation = getNation(entry.nationality);
                   const isPlayer = entry.nationality === managerNationality;
                   const qualifies = i < 2;
                   return (
@@ -100,10 +99,7 @@ const InternationalTournament = () => {
                       )}
                     >
                       <span className="flex items-center gap-1.5 min-w-0">
-                        <div
-                          className="w-4 h-4 rounded shrink-0"
-                          style={{ backgroundColor: nation?.color || '#555' }}
-                        />
+                        <span className="text-sm shrink-0 leading-none">{getFlag(entry.nationality)}</span>
                         <span className={cn('truncate', isPlayer ? 'font-bold text-foreground' : 'text-foreground/80')}>
                           {entry.nationality}
                         </span>
@@ -122,8 +118,6 @@ const InternationalTournament = () => {
               {/* Fixtures */}
               <div className="border-t border-border/20 px-4 py-2 space-y-1">
                 {group.fixtures.map(fix => {
-                  const homeNation = getNation(fix.homeNation);
-                  const awayNation = getNation(fix.awayNation);
                   const isPlayerMatch = fix.homeNation === managerNationality || fix.awayNation === managerNationality;
                   return (
                     <div
@@ -135,7 +129,7 @@ const InternationalTournament = () => {
                       )}
                     >
                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                        <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: homeNation?.color || '#555' }} />
+                        <span className="text-xs shrink-0 leading-none">{getFlag(fix.homeNation)}</span>
                         <span className="truncate">{fix.homeNation}</span>
                       </div>
                       <span className="font-mono px-2 shrink-0">
@@ -143,7 +137,7 @@ const InternationalTournament = () => {
                       </span>
                       <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
                         <span className="truncate text-right">{fix.awayNation}</span>
-                        <div className="w-3 h-3 rounded-sm shrink-0" style={{ backgroundColor: awayNation?.color || '#555' }} />
+                        <span className="text-xs shrink-0 leading-none">{getFlag(fix.awayNation)}</span>
                       </div>
                     </div>
                   );
@@ -169,8 +163,6 @@ const InternationalTournament = () => {
                 </div>
                 <div className="px-4 py-2 space-y-2">
                   {roundTies.map(tie => {
-                    const homeNation = getNation(tie.homeNation);
-                    const awayNation = getNation(tie.awayNation);
                     const isPlayerMatch = tie.homeNation === managerNationality || tie.awayNation === managerNationality;
                     const isWinner = (nation: string) => tie.winnerId === nation;
                     return (
@@ -182,7 +174,7 @@ const InternationalTournament = () => {
                         )}
                       >
                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <div className="w-4 h-4 rounded shrink-0" style={{ backgroundColor: homeNation?.color || '#555' }} />
+                          <span className="text-sm shrink-0 leading-none">{getFlag(tie.homeNation)}</span>
                           <span className={cn(
                             'truncate',
                             isWinner(tie.homeNation) ? 'font-bold text-foreground' : 'text-foreground/70'
@@ -209,7 +201,7 @@ const InternationalTournament = () => {
                           )}>
                             {tie.awayNation}
                           </span>
-                          <div className="w-4 h-4 rounded shrink-0" style={{ backgroundColor: awayNation?.color || '#555' }} />
+                          <span className="text-sm shrink-0 leading-none">{getFlag(tie.awayNation)}</span>
                         </div>
                       </div>
                     );
