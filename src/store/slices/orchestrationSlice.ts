@@ -59,7 +59,7 @@ import {
   CUP_EXTRA_TIME_GOAL_CHANCE, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS,
   CONGESTED_FIXTURE_INJURY_MULTIPLIER,
   MOTIVATOR_MORALE_BOOST, YOUTH_DEVELOPER_BOOST,
-  VALUE_AGE_MULTIPLIERS,
+  VALUE_AGE_MULTIPLIERS, TRAINING_GROUND_BOOST, GOLDEN_GEN_MIN_POTENTIAL,
   FFP_WAGE_RATIO_WARNING, FFP_WAGE_RATIO_CRITICAL, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY,
   FREE_AGENT_POOL_MAX,
   UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_CONTAGION_MORALE_HIT,
@@ -825,6 +825,14 @@ function finalizeSeason(
   const { prospects: newYouthProspects, players: youthPlayers } = generateYouthProspects(
     playerClubId, pcForYouth.youthRating, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE)
   );
+  // Golden Generation perk: guarantee at least one high-potential youth
+  if (hasPerk(state.managerProgression, 'golden_generation') && youthPlayers.length > 0) {
+    const hasHighPotential = youthPlayers.some(p => p.potential >= GOLDEN_GEN_MIN_POTENTIAL);
+    if (!hasHighPotential) {
+      const luckyIdx = Math.floor(Math.random() * youthPlayers.length);
+      youthPlayers[luckyIdx] = { ...youthPlayers[luckyIdx], potential: GOLDEN_GEN_MIN_POTENTIAL + Math.floor(Math.random() * 10) };
+    }
+  }
   youthPlayers.forEach(p => { newPlayers[p.id] = p; });
   const newIntakePreview = generateIntakePreview(pcForYouth.youthRating);
 
@@ -1433,7 +1441,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
       const allClubPlayers = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
       const mentorBonusVal = getMentorBonus(p, allClubPlayers);
-      p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal);
+      const trainingPerkBoost = hasPerk(state.managerProgression, 'training_ground') ? TRAINING_GROUND_BOOST : 0;
+      p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost);
       if (p.growthDelta && p.growthDelta > 0) {
         improvedPlayers.push({ name: p.lastName, overall: p.overall });
       } else if (p.growthDelta && p.growthDelta < 0) {

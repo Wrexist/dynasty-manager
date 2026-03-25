@@ -1,8 +1,8 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { DynamicIcon } from '@/components/game/DynamicIcon';
+import { TalentTree } from '@/components/game/TalentTree';
 import { cn } from '@/lib/utils';
-import { MANAGER_PERKS, xpForLevel, getTotalXP, canUnlockPerk, XP_REWARDS } from '@/utils/managerPerks';
+import { xpForLevel, getTotalXP, XP_REWARDS, TALENT_BRANCHES, getBranchPerks, getSpecializationTitle } from '@/utils/managerPerks';
 import { toast } from 'sonner';
 import { hapticMedium } from '@/utils/haptics';
 import type { PerkId } from '@/types/game';
@@ -10,35 +10,15 @@ import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 
 const PerksPage = () => {
-  const { managerProgression, unlockPerk, gameMode, setScreen } = useGameStore();
+  const { managerProgression, unlockPerk } = useGameStore();
 
-  // In career mode, perks are replaced by manager attributes
-  if (gameMode === 'career') {
-    return (
-      <div className="space-y-4 pb-24">
-        <GlassPanel className="p-6 text-center">
-          <DynamicIcon name="briefcase" className="w-10 h-10 text-primary mx-auto mb-3" />
-          <h2 className="text-lg font-bold text-foreground mb-2">Career Mode Active</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            In Career Mode, your management abilities come from your attributes and traits — not perks.
-            Grow your stats by managing matches, completing transfers, and developing players.
-          </p>
-          <button
-            onClick={() => setScreen('career-overview')}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
-          >
-            View Career Overview
-          </button>
-        </GlassPanel>
-      </div>
-    );
-  }
   const availableXP = getTotalXP(managerProgression);
   const xpNeeded = xpForLevel(managerProgression.level);
   const xpProgress = Math.round((managerProgression.xp / xpNeeded) * 100);
+  const specTitle = getSpecializationTitle(managerProgression);
 
-  const handleUnlock = (perkId: string) => {
-    const result = unlockPerk(perkId as PerkId);
+  const handleUnlock = (perkId: PerkId) => {
+    const result = unlockPerk(perkId);
     if (result.success) {
       hapticMedium();
       toast.success(result.message);
@@ -47,12 +27,16 @@ const PerksPage = () => {
     }
   };
 
-  const tiers = [1, 2, 3, 4, 5] as const;
-
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
       <PageHint screen="perks" title={PAGE_HINTS.perks.title} body={PAGE_HINTS.perks.body} />
-      <h2 className="text-lg font-display font-bold text-foreground">Manager Perks</h2>
+
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-display font-bold text-foreground">Talent Tree</h2>
+        {specTitle && (
+          <span className="text-xs font-bold text-primary italic">{specTitle}</span>
+        )}
+      </div>
 
       {/* Level & XP */}
       <GlassPanel className="p-4">
@@ -74,63 +58,28 @@ const PerksPage = () => {
         <p className="text-[9px] text-muted-foreground mt-1">Earn XP from wins (+{XP_REWARDS.win}), draws (+{XP_REWARDS.draw}), season end (+{XP_REWARDS.seasonEnd}), titles (+{XP_REWARDS.titleWin}), cup wins (+{XP_REWARDS.cupWin})</p>
       </GlassPanel>
 
-      {/* Perk Tree */}
-      {tiers.map(tier => {
-        const tierPerks = MANAGER_PERKS.filter(p => p.tier === tier);
-        return (
-          <div key={tier}>
-            <p className="text-[10px] font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">
-              Tier {tier} ({tierPerks[0]?.cost || 0} XP)
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {tierPerks.map(perk => {
-                const isUnlocked = managerProgression.unlockedPerks.includes(perk.id);
-                const check = canUnlockPerk(perk, managerProgression);
-                const canBuy = check.canUnlock;
+      {/* Branch Summary */}
+      <div className="grid grid-cols-4 gap-1.5">
+        {TALENT_BRANCHES.map(branch => {
+          const perks = getBranchPerks(branch.id);
+          const unlocked = perks.filter(p => managerProgression.unlockedPerks.includes(p.id)).length;
+          const spent = perks
+            .filter(p => managerProgression.unlockedPerks.includes(p.id))
+            .reduce((sum, p) => sum + p.cost, 0);
+          return (
+            <GlassPanel key={branch.id} className="p-2 text-center">
+              <p className={cn('text-[10px] font-bold', branch.color)}>{unlocked}/{perks.length}</p>
+              <p className="text-[8px] text-muted-foreground">{spent} XP</p>
+            </GlassPanel>
+          );
+        })}
+      </div>
 
-                return (
-                  <GlassPanel
-                    key={perk.id}
-                    className={cn(
-                      'p-3 cursor-pointer transition-all',
-                      isUnlocked
-                        ? 'border-primary/50 bg-primary/10'
-                        : canBuy
-                          ? 'border-primary/30 hover:border-primary/60'
-                          : 'opacity-50'
-                    )}
-                    onClick={() => !isUnlocked && canBuy && handleUnlock(perk.id)}
-                  >
-                    <div className="flex items-start gap-2">
-                      <DynamicIcon name={perk.icon} className="w-5 h-5 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <p className={cn(
-                          'text-xs font-semibold',
-                          isUnlocked ? 'text-primary' : 'text-foreground'
-                        )}>
-                          {perk.name}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{perk.description}</p>
-                        {!isUnlocked && (
-                          <p className={cn(
-                            'text-[9px] mt-1',
-                            canBuy ? 'text-primary' : 'text-muted-foreground'
-                          )}>
-                            {isUnlocked ? 'Unlocked' : check.reason || `${perk.cost} XP`}
-                          </p>
-                        )}
-                        {isUnlocked && (
-                          <p className="text-[9px] text-emerald-400 mt-1">Active</p>
-                        )}
-                      </div>
-                    </div>
-                  </GlassPanel>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+      {/* Talent Tree */}
+      <TalentTree
+        progression={managerProgression}
+        onUnlock={handleUnlock}
+      />
     </div>
   );
 };
