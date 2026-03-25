@@ -3,9 +3,9 @@ import { useGameStore } from '@/store/gameStore';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
-import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ArrowUp, ArrowDown } from 'lucide-react';
+import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ArrowDown } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
-import { DIVISIONS } from '@/data/league';
+import { LEAGUES } from '@/data/league';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -49,17 +49,13 @@ const SeasonSummary = () => {
     if (pos === 2 && gap <= 3) {
       return { text: `Missed the title by just ${gap} point${gap !== 1 ? 's' : ''}`, type: 'title' as const };
     }
-    // Missed auto-promotion (positions 1-2 for div-2/3, 1-3 for div-4)
-    const div = DIVISIONS.find(d => d.id === latest.divisionId);
-    const autoPromoSlots = div?.id === 'div-4' ? 3 : 2;
-    if (pos === autoPromoSlots + 1 && gap <= 3 && !latest.promoted) {
-      return { text: `Missed automatic promotion by ${gap} point${gap !== 1 ? 's' : ''}`, type: 'promotion' as const };
-    }
-    // Narrowly avoided relegation
+    // Narrowly avoided being replaced (bottom N clubs)
+    const league = LEAGUES.find(l => l.id === latest.divisionId);
+    const replacedSlots = league?.replacedSlots || 3;
     const totalClubs = leagueTable.length;
-    const relegationLine = totalClubs - 2; // bottom 3 get relegated
-    if (pos === relegationLine && gap <= 3 && !latest.relegated) {
-      return { text: `Survived relegation by just ${gap} point${gap !== 1 ? 's' : ''}`, type: 'survival' as const };
+    const replacedLine = totalClubs - replacedSlots;
+    if (pos === replacedLine && gap <= 3 && !latest.replaced) {
+      return { text: `Survived replacement by just ${gap} point${gap !== 1 ? 's' : ''}`, type: 'survival' as const };
     }
     return null;
   })();
@@ -84,38 +80,23 @@ const SeasonSummary = () => {
           <h2 className="text-2xl font-black text-foreground font-display">Season {latest.season} Complete</h2>
         </div>
 
-        {/* Promotion/Relegation Banner */}
-        {latest.promoted && (
-          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }} onAnimationComplete={() => hapticHeavy()}>
-            <GlassPanel className="p-5 text-center border-emerald-500/50 bg-emerald-500/10">
-              <ArrowUp className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
-              <p className="text-2xl font-black text-emerald-400 font-display">PROMOTED!</p>
-              {latest.divisionId && (
-                <p className="text-sm text-emerald-300/80 mt-1">
-                  Moving up to the {DIVISIONS.find(d => d.tier === (DIVISIONS.find(dd => dd.id === latest.divisionId)?.tier || 2) - 1)?.name || 'higher division'}
-                </p>
-              )}
-            </GlassPanel>
-          </motion.div>
-        )}
-        {latest.relegated && (
+        {/* Replaced Clubs Banner */}
+        {latest.replaced && (
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }} onAnimationComplete={() => hapticHeavy()}>
             <GlassPanel className="p-5 text-center border-destructive/50 bg-destructive/10">
               <ArrowDown className="w-10 h-10 text-destructive mx-auto mb-2" />
-              <p className="text-2xl font-black text-destructive font-display">RELEGATED</p>
-              {latest.divisionId && (
-                <p className="text-sm text-destructive/80 mt-1">
-                  Dropping to the {DIVISIONS.find(d => d.tier === (DIVISIONS.find(dd => dd.id === latest.divisionId)?.tier || 1) + 1)?.name || 'lower division'}
-                </p>
-              )}
+              <p className="text-2xl font-black text-destructive font-display">REPLACED</p>
+              <p className="text-sm text-destructive/80 mt-1">
+                Your club finished in the replacement zone and has been replaced for next season.
+              </p>
             </GlassPanel>
           </motion.div>
         )}
 
-        {/* Division */}
+        {/* League */}
         {latest.divisionId && (
           <p className="text-xs text-center text-muted-foreground">
-            {DIVISIONS.find(d => d.id === latest.divisionId)?.name}
+            {LEAGUES.find(l => l.id === latest.divisionId)?.name}
           </p>
         )}
 
@@ -134,19 +115,17 @@ const SeasonSummary = () => {
             <GlassPanel className={cn(
               'p-4 text-center',
               nearMiss.type === 'title' ? 'border-primary/50 bg-primary/5' :
-              nearMiss.type === 'promotion' ? 'border-amber-500/50 bg-amber-500/5' :
               'border-emerald-500/50 bg-emerald-500/5'
             )}>
               <p className={cn(
                 'text-lg font-black font-display uppercase tracking-wide',
                 nearMiss.type === 'title' ? 'text-primary' :
-                nearMiss.type === 'promotion' ? 'text-amber-400' :
                 'text-emerald-400'
               )}>
                 {nearMiss.type === 'survival' ? 'GREAT ESCAPE!' : 'SO CLOSE!'}
               </p>
               <p className="text-xs text-muted-foreground mt-1">{nearMiss.text}</p>
-              {nearMiss.type !== 'survival' && (
+              {nearMiss.type === 'title' && (
                 <p className="text-[10px] text-primary/70 mt-2 font-medium">Next season is your chance.</p>
               )}
             </GlassPanel>

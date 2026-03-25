@@ -3,6 +3,7 @@
  * Call validateGameState(state) at any point to verify all invariants hold.
  */
 import type { GameState } from '@/store/storeTypes';
+import { LEAGUES } from '@/data/league';
 
 export interface ValidationError {
   field: string;
@@ -24,36 +25,39 @@ export function validateGameState(state: GameState): ValidationError[] {
     errors.push({ field: 'week', message: `week is ${state.week}, expected 1-46`, severity: 'critical' });
   }
 
-  // ── Division club counts ──
-  const expectedSizes: Record<string, number> = { 'div-1': 20, 'div-2': 24, 'div-3': 24, 'div-4': 24 };
-  let totalDivisionClubs = 0;
-  for (const [divId, expected] of Object.entries(expectedSizes)) {
-    const clubs = state.divisionClubs[divId as keyof typeof state.divisionClubs];
+  // ── League club counts ──
+  // The player's league must exist in divisionClubs with the correct club count
+  const playerLeague = state.playerDivision;
+  if (playerLeague) {
+    const leagueInfo = LEAGUES.find(l => l.id === playerLeague);
+    const clubs = state.divisionClubs[playerLeague];
     if (!clubs) {
-      errors.push({ field: `divisionClubs.${divId}`, message: `division ${divId} missing from divisionClubs`, severity: 'critical' });
-      continue;
+      errors.push({ field: `divisionClubs.${playerLeague}`, message: `player's league ${playerLeague} missing from divisionClubs`, severity: 'critical' });
+    } else if (leagueInfo && clubs.length !== leagueInfo.teamCount) {
+      errors.push({ field: `divisionClubs.${playerLeague}`, message: `${playerLeague} has ${clubs.length} clubs, expected ${leagueInfo.teamCount}`, severity: 'critical' });
     }
-    if (clubs.length !== expected) {
-      errors.push({ field: `divisionClubs.${divId}`, message: `${divId} has ${clubs.length} clubs, expected ${expected}`, severity: 'critical' });
-    }
-    totalDivisionClubs += clubs.length;
-  }
-  if (totalDivisionClubs !== 92) {
-    errors.push({ field: 'divisionClubs', message: `total clubs across divisions is ${totalDivisionClubs}, expected 92`, severity: 'critical' });
   }
 
-  // ── No club in multiple divisions ──
+  // Validate all loaded leagues have correct sizes
+  for (const [leagueId, clubs] of Object.entries(state.divisionClubs)) {
+    const leagueInfo = LEAGUES.find(l => l.id === leagueId);
+    if (leagueInfo && clubs.length !== leagueInfo.teamCount) {
+      errors.push({ field: `divisionClubs.${leagueId}`, message: `${leagueId} has ${clubs.length} clubs, expected ${leagueInfo.teamCount}`, severity: 'critical' });
+    }
+  }
+
+  // ── No club in multiple leagues ──
   const allDivClubIds = new Set<string>();
-  for (const [divId, clubs] of Object.entries(state.divisionClubs)) {
+  for (const [leagueId, clubs] of Object.entries(state.divisionClubs)) {
     for (const clubId of clubs) {
       if (allDivClubIds.has(clubId)) {
-        errors.push({ field: `divisionClubs.${divId}`, message: `club ${clubId} appears in multiple divisions`, severity: 'critical' });
+        errors.push({ field: `divisionClubs.${leagueId}`, message: `club ${clubId} appears in multiple leagues`, severity: 'critical' });
       }
       allDivClubIds.add(clubId);
     }
   }
 
-  // ── Every division club exists in state.clubs ──
+  // ── Every league club exists in state.clubs ──
   for (const clubId of allDivClubIds) {
     if (!state.clubs[clubId]) {
       errors.push({ field: `clubs.${clubId}`, message: `club ${clubId} is in divisionClubs but not in state.clubs`, severity: 'critical' });
@@ -161,10 +165,10 @@ export function validateGameState(state: GameState): ValidationError[] {
   }
 
   // ── League table row counts ──
-  for (const [divId, expected] of Object.entries(expectedSizes)) {
-    const table = state.divisionTables[divId as keyof typeof state.divisionTables];
-    if (table && table.length !== expected) {
-      errors.push({ field: `divisionTables.${divId}`, message: `table has ${table.length} rows, expected ${expected}`, severity: 'warning' });
+  for (const [leagueId, table] of Object.entries(state.divisionTables)) {
+    const leagueInfo = LEAGUES.find(l => l.id === leagueId);
+    if (leagueInfo && table && table.length !== leagueInfo.teamCount) {
+      errors.push({ field: `divisionTables.${leagueId}`, message: `table has ${table.length} rows, expected ${leagueInfo.teamCount}`, severity: 'warning' });
     }
   }
 
@@ -172,9 +176,9 @@ export function validateGameState(state: GameState): ValidationError[] {
   if (!state.fixtures || state.fixtures.length === 0) {
     errors.push({ field: 'fixtures', message: 'fixtures array is empty', severity: 'warning' });
   }
-  for (const [divId, fixtures] of Object.entries(state.divisionFixtures)) {
+  for (const [leagueId, fixtures] of Object.entries(state.divisionFixtures)) {
     if (!fixtures || fixtures.length === 0) {
-      errors.push({ field: `divisionFixtures.${divId}`, message: `divisionFixtures for ${divId} is empty`, severity: 'warning' });
+      errors.push({ field: `divisionFixtures.${leagueId}`, message: `divisionFixtures for ${leagueId} is empty`, severity: 'warning' });
     }
   }
 

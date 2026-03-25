@@ -3,7 +3,7 @@
  * Product lines, pricing tiers, campaign definitions, and balance constants.
  */
 
-import type { DivisionId, MerchProductLine, MerchPricingTier, MerchCampaignType } from '@/types/game';
+import type { MerchProductLine, MerchPricingTier, MerchCampaignType } from '@/types/game';
 
 // ── Product Line Definitions ──
 
@@ -13,7 +13,6 @@ export interface MerchProductLineDef {
   baseRevenueFactor: number;
   weeklyOperatingCost: number;
   unlockRequirement: {
-    minDivision?: DivisionId;
     minReputation?: number;
     minStadiumLevel?: number;
   };
@@ -32,21 +31,21 @@ export const MERCH_PRODUCT_LINES: Record<MerchProductLine, MerchProductLineDef> 
     icon: 'shirt',
     baseRevenueFactor: 2.5,
     weeklyOperatingCost: 25_000,
-    unlockRequirement: { minDivision: 'div-3', minReputation: 2 },
+    unlockRequirement: { minReputation: 2 },
   },
   lifestyle_apparel: {
     label: 'Lifestyle Apparel',
     icon: 'shopping-bag',
     baseRevenueFactor: 1.8,
     weeklyOperatingCost: 20_000,
-    unlockRequirement: { minDivision: 'div-2', minReputation: 3 },
+    unlockRequirement: { minReputation: 3 },
   },
   memorabilia: {
     label: 'Memorabilia & Collectibles',
     icon: 'gem',
     baseRevenueFactor: 1.5,
     weeklyOperatingCost: 15_000,
-    unlockRequirement: { minDivision: 'div-1', minReputation: 4 },
+    unlockRequirement: { minReputation: 4 },
   },
   digital_global: {
     label: 'Digital & Global',
@@ -146,20 +145,16 @@ export const MERCH_CAMPAIGNS: Record<MerchCampaignType, MerchCampaignDef> = {
 
 export const MERCH_BASE_INCOME_PER_FAN = 8_000;
 
-export const MERCH_DIVISION_SCALE: Record<DivisionId, number> = {
-  'div-1': 1.0,
-  'div-2': 0.8,
-  'div-3': 0.6,
-  'div-4': 0.4,
+/** Scale merch revenue by league quality tier (1=elite, 4=developing) */
+export const MERCH_QUALITY_TIER_SCALE: Record<number, number> = {
+  1: 1.0,
+  2: 0.8,
+  3: 0.6,
+  4: 0.4,
 };
 
-/** Division tier number for unlock comparisons (lower = higher division) */
-export const DIVISION_TIER: Record<DivisionId, number> = {
-  'div-1': 1,
-  'div-2': 2,
-  'div-3': 3,
-  'div-4': 4,
-};
+/** @deprecated Use MERCH_QUALITY_TIER_SCALE with league qualityTier */
+export const MERCH_DIVISION_SCALE = MERCH_QUALITY_TIER_SCALE;
 
 export const MERCH_CAMPAIGN_COOLDOWN_WEEKS = 4;
 export const STAR_PLAYER_MERCH_FACTOR = 3_000;

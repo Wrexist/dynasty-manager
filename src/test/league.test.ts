@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateFixtures, buildLeagueTable, CLUBS_DATA, getDivision } from '@/data/league';
+import { generateFixtures, buildLeagueTable, CLUBS_DATA, ALL_CLUBS, LEAGUES, getLeague } from '@/data/league';
 
 describe('league', () => {
   describe('generateFixtures', () => {
@@ -90,32 +90,66 @@ describe('league', () => {
     });
   });
 
-  describe('CLUBS_DATA', () => {
-    it('has 92 clubs across 4 divisions', () => {
-      expect(CLUBS_DATA.length).toBe(92);
+  describe('LEAGUES', () => {
+    it('has 30 leagues', () => {
+      expect(LEAGUES.length).toBe(30);
     });
 
-    it('div-1 has 20 clubs', () => {
-      expect(CLUBS_DATA.filter(c => c.divisionId === 'div-1').length).toBe(20);
+    it('all league ids are unique', () => {
+      const ids = LEAGUES.map(l => l.id);
+      expect(new Set(ids).size).toBe(ids.length);
     });
 
-    it('div-2, div-3, div-4 each have 24 clubs', () => {
-      for (const div of ['div-2', 'div-3', 'div-4']) {
-        expect(CLUBS_DATA.filter(c => c.divisionId === div).length).toBe(24);
+    it('every league has required fields', () => {
+      for (const league of LEAGUES) {
+        expect(league.id).toBeTruthy();
+        expect(league.name).toBeTruthy();
+        expect(league.country).toBeTruthy();
+        expect(league.teamCount).toBeGreaterThanOrEqual(8);
+        expect(league.replacedSlots).toBeGreaterThanOrEqual(0);
+        expect(league.replacedSlots).toBeLessThan(league.teamCount);
+        expect([1, 2, 3, 4]).toContain(league.qualityTier);
       }
+    });
+  });
+
+  describe('ALL_CLUBS / CLUBS_DATA', () => {
+    it('ALL_CLUBS and CLUBS_DATA reference the same data', () => {
+      expect(ALL_CLUBS).toBe(CLUBS_DATA);
     });
 
     it('all club ids are unique', () => {
       const ids = CLUBS_DATA.map(c => c.id);
       expect(new Set(ids).size).toBe(ids.length);
     });
+
+    it('every club belongs to a valid league', () => {
+      const leagueIds = new Set(LEAGUES.map(l => l.id));
+      for (const club of CLUBS_DATA) {
+        expect(leagueIds.has(club.divisionId), `Club ${club.name} has invalid divisionId ${club.divisionId}`).toBe(true);
+      }
+    });
+
+    it('each league has the correct number of clubs', () => {
+      for (const league of LEAGUES) {
+        const clubCount = CLUBS_DATA.filter(c => c.divisionId === league.id).length;
+        expect(clubCount, `League ${league.name} (${league.id}) has ${clubCount} clubs, expected ${league.teamCount}`).toBe(league.teamCount);
+      }
+    });
   });
 
-  describe('getDivision', () => {
-    it('returns correct division by id', () => {
-      const div = getDivision('div-1');
-      expect(div.name).toBe('Monarch Premier League');
-      expect(div.teamCount).toBe(20);
+  describe('getLeague', () => {
+    it('returns correct league by id', () => {
+      const eng = getLeague('eng');
+      expect(eng.name).toBe('Premier League');
+      expect(eng.teamCount).toBe(20);
+      expect(eng.country).toBe('England');
+    });
+
+    it('returns correct league for esp', () => {
+      const esp = getLeague('esp');
+      expect(esp.name).toBeTruthy();
+      expect(esp.teamCount).toBeGreaterThanOrEqual(8);
     });
   });
 });

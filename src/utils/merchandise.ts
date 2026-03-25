@@ -7,12 +7,13 @@ import type {
   Club, Player, DivisionId, FacilitiesState, ManagerProgression,
   MerchProductLine, MerchState, MerchCampaignType,
 } from '@/types/game';
+import { LEAGUES } from '@/data/league';
 import {
   MERCH_PRODUCT_LINES, MERCH_PRICING_TIERS, MERCH_BASE_INCOME_PER_FAN,
-  MERCH_DIVISION_SCALE, MERCH_TOTAL_REVENUE_FACTORS,
+  MERCH_QUALITY_TIER_SCALE, MERCH_TOTAL_REVENUE_FACTORS,
   STAR_PLAYER_MERCH_FACTOR, STAR_PLAYER_COUNT,
   STAR_PLAYER_SALE_DIP_FACTOR, STAR_SIGNING_BUZZ_FACTOR,
-  MERCH_CAMPAIGNS, DIVISION_TIER,
+  MERCH_CAMPAIGNS,
   CAMPAIGN_KIT_LAUNCH_MAX_WEEK, CAMPAIGN_TITLE_RACE_MAX_POSITION,
   CAMPAIGN_END_OF_SEASON_MIN_WEEK, CAMPAIGN_HOLIDAY_MIN_WEEK, CAMPAIGN_HOLIDAY_MAX_WEEK,
   CAMPAIGN_STAR_SIGNING_MIN_VALUE,
@@ -53,18 +54,11 @@ export function getStarPlayerMerch(
 
 /** Check if a product line is unlocked for a given club */
 export function isProductLineUnlocked(
-  line: MerchProductLine, club: Club, division: DivisionId, facilities: FacilitiesState
+  line: MerchProductLine, club: Club, _division: DivisionId, facilities: FacilitiesState
 ): boolean {
   const req = MERCH_PRODUCT_LINES[line].unlockRequirement;
-  // Division check: the club's division must be at or above the required tier
-  if (req.minDivision) {
-    const clubTier = DIVISION_TIER[division];
-    const reqTier = DIVISION_TIER[req.minDivision];
-    // Both rep and division can unlock — need at least one
-    const divOk = clubTier <= reqTier;
-    const repOk = req.minReputation ? club.reputation >= req.minReputation : false;
-    if (!divOk && !repOk) return false;
-  } else if (req.minReputation && club.reputation < req.minReputation) {
+  // Reputation-based unlock (division-based tiers removed in league migration)
+  if (req.minReputation && club.reputation < req.minReputation) {
     return false;
   }
   if (req.minStadiumLevel && facilities.stadiumLevel < req.minStadiumLevel) return false;
@@ -86,7 +80,9 @@ export function calculateWeeklyMerchRevenue(
 ): number {
   if (merch.activeProductLines.length === 0) return 0;
 
-  const divisionScale = MERCH_DIVISION_SCALE[division] || 0.4;
+  const leagueInfo = LEAGUES.find(l => l.id === division);
+  const qualityTier = leagueInfo?.qualityTier || 3;
+  const divisionScale = MERCH_QUALITY_TIER_SCALE[qualityTier] || 0.4;
   const baseRevenue = club.fanBase * MERCH_BASE_INCOME_PER_FAN * divisionScale;
 
   // Product line factor: fraction of total possible revenue factors

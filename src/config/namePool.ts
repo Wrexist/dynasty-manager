@@ -145,6 +145,91 @@ export const NATIONALITY_NAME_POOLS: Record<string, NationalityNamePool> = {
     firstNames: ['Christian', 'Weston', 'Tyler', 'Giovanni', 'Brenden', 'Sergino', 'Yunus', 'Timothy', 'Josh', 'Malik', 'Jordan', 'Brandon', 'Ricardo', 'DeAndre', 'Matt', 'Ethan', 'Folarin', 'Haji', 'Chris', 'Walker'],
     lastNames: ['Pulisic', 'McKennie', 'Adams', 'Reyna', 'Aaronson', 'Dest', 'Musah', 'Weah', 'Sargent', 'Tillman', 'Morris', 'Pepi', 'Robinson', 'Yedlin', 'Turner', 'Horvath', 'Balogun', 'Wright', 'Richards', 'Zimmerman'],
   },
+  // ── Additional European nationalities for real leagues ──
+  'Bulgaria': {
+    firstNames: ['Ivan', 'Georgi', 'Dimitar', 'Kiril', 'Todor', 'Atanas', 'Vasil', 'Bozhidar', 'Martin', 'Kristiyan', 'Stanislav', 'Aleksandar', 'Nikolay', 'Petar', 'Hristo'],
+    lastNames: ['Petrov', 'Ivanov', 'Dimitrov', 'Georgiev', 'Todorov', 'Nikolov', 'Stoyanov', 'Angelov', 'Kolev', 'Marinov', 'Popov', 'Hristov', 'Iliev', 'Bozhikov', 'Despodov'],
+  },
+  'Finland': {
+    firstNames: ['Teemu', 'Jari', 'Mikael', 'Joel', 'Robin', 'Fredrik', 'Rasmus', 'Daniel', 'Lukas', 'Oliver', 'Pyry', 'Urho', 'Joona', 'Kaan', 'Riku'],
+    lastNames: ['Pukki', 'Laine', 'Raitala', 'Kamara', 'Pohjanpalo', 'Hradecky', 'Sparv', 'Jensen', 'Soiri', 'Valakari', 'Forss', 'Niskanen', 'Ojala', 'Lod', 'Karjalainen'],
+  },
+  'Greece': {
+    firstNames: ['Giorgos', 'Kostas', 'Dimitris', 'Sotiris', 'Vangelis', 'Anastasios', 'Petros', 'Manolis', 'Panagiotis', 'Thanasis', 'Christos', 'Nikos', 'Alexandros', 'Efthymis', 'Lazaros'],
+    lastNames: ['Papadopoulos', 'Nikolaou', 'Mavropanos', 'Tzolis', 'Bakasetas', 'Pelkas', 'Fortounis', 'Mantalos', 'Vlachodimos', 'Tzavellas', 'Giannoulis', 'Limnios', 'Kourbelis', 'Svarnas', 'Ioannidis'],
+  },
+  'Hungary': {
+    firstNames: ['Dominik', 'Roland', 'Ádám', 'Willi', 'Attila', 'Dániel', 'László', 'Zsolt', 'Barnabás', 'Loïc', 'Milos', 'Bendegúz', 'Péter', 'Márton', 'Tamás'],
+    lastNames: ['Szoboszlai', 'Szalai', 'Gulácsi', 'Fiola', 'Orbán', 'Kecskés', 'Nagy', 'Botka', 'Varga', 'Kleinheisler', 'Schäfer', 'Gazdag', 'Bolla', 'Nego', 'Csonka'],
+  },
+  'Iceland': {
+    firstNames: ['Aron', 'Birkir', 'Gylfi', 'Ragnar', 'Jón', 'Kolbeinn', 'Alfreð', 'Rúnar', 'Víðir', 'Mikael', 'Daníel', 'Hólmar', 'Arnór', 'Stefán', 'Sveinn'],
+    lastNames: ['Sigurdsson', 'Gunnarsson', 'Finnbogason', 'Bjarnason', 'Árnason', 'Magnússon', 'Sigþórsson', 'Sævarsson', 'Halldórsson', 'Hermannsson', 'Guðmundsson', 'Ingason', 'Andersen', 'Traustason', 'Pálsson'],
+  },
+  'Israel': {
+    firstNames: ['Eran', 'Yossi', 'Dor', 'Manor', 'Shon', 'Nir', 'Eli', 'Omer', 'Tal', 'Lior', 'Hatem', 'Sagiv', 'Raz', 'Gadi', 'Dan'],
+    lastNames: ['Zahavi', 'Peretz', 'Dabbur', 'Solomon', 'Weissman', 'Haziza', 'Atzili', 'Bitton', 'Natcho', 'Tibi', 'Arad', 'Elhamed', 'Golasa', 'Glazer', 'Lavi'],
+  },
+  'Romania': {
+    firstNames: ['Nicolae', 'Alexandru', 'Florin', 'Denis', 'Ianis', 'Răzvan', 'Valentin', 'George', 'Adrian', 'Ciprian', 'Marius', 'Bogdan', 'Claudiu', 'Andrei', 'Ionuț'],
+    lastNames: ['Popescu', 'Ionescu', 'Stanciu', 'Hagi', 'Marin', 'Mitriță', 'Drăgușin', 'Radu', 'Nedelcu', 'Tătărușanu', 'Chiricheș', 'Bancu', 'Coman', 'Maxim', 'Keșerü'],
+  },
+  'Slovakia': {
+    firstNames: ['Marek', 'Ondrej', 'Milan', 'Stanislav', 'Peter', 'Juraj', 'Dávid', 'Róbert', 'Vladimír', 'Tomáš', 'Norbert', 'Lukáš', 'Martin', 'Erik', 'Patrik'],
+    lastNames: ['Hamšík', 'Škriniar', 'Dúbravka', 'Lobotka', 'Kucka', 'Mak', 'Valjent', 'Hancko', 'Gyömbér', 'Boženik', 'Suslov', 'Haraslín', 'Pekarík', 'Schranz', 'Strelec'],
+  },
+  'Ukraine': {
+    firstNames: ['Andriy', 'Oleksandr', 'Taras', 'Mykola', 'Vitaliy', 'Ruslan', 'Artem', 'Viktor', 'Serhiy', 'Roman', 'Illia', 'Bohdan', 'Eduard', 'Denys', 'Yevhen'],
+    lastNames: ['Shevchenko', 'Zinchenko', 'Mudryk', 'Malinovskyi', 'Yarmolenko', 'Mykolenko', 'Tsygankov', 'Dovbyk', 'Bondar', 'Zabarnyi', 'Sydorchuk', 'Stepanenko', 'Matviyenko', 'Shaparenko', 'Lunin'],
+  },
+  'Bosnia': {
+    firstNames: ['Edin', 'Miralem', 'Sead', 'Anel', 'Ermedin', 'Haris', 'Gojko', 'Smail', 'Kenan', 'Riad', 'Amar', 'Ivan', 'Eldar', 'Luka', 'Denis'],
+    lastNames: ['Džeko', 'Pjanić', 'Kolašinac', 'Ahmedhodžić', 'Demirović', 'Hajradinović', 'Cimirot', 'Prevljak', 'Kodro', 'Bešić', 'Mehmedović', 'Kvržić', 'Hadžić', 'Šunjić', 'Hasanović'],
+  },
+  'Cyprus': {
+    firstNames: ['Giorgos', 'Pieros', 'Kostas', 'Grigoris', 'Ioannis', 'Fanos', 'Marios', 'Nicholas', 'Christos', 'Alexandros', 'Michalis', 'Andronikos', 'Loizos', 'Charalambos', 'Stelios'],
+    lastNames: ['Sotiriou', 'Laifis', 'Kastanos', 'Pittas', 'Loizou', 'Kyriakou', 'Papoulis', 'Artymatas', 'Ioannou', 'Christofi', 'Makris', 'Katelaris', 'Spoljaric', 'Wheeler', 'Panayiotou'],
+  },
+  'Montenegro': {
+    firstNames: ['Stefan', 'Stevan', 'Marko', 'Nikola', 'Adam', 'Mirko', 'Igor', 'Fatos', 'Ilija', 'Filip', 'Luka', 'Damir', 'Nemanja', 'Vladimir', 'Žarko'],
+    lastNames: ['Savić', 'Jovetić', 'Marušić', 'Vujačić', 'Janković', 'Bećiraj', 'Ivanović', 'Mugosa', 'Raičković', 'Haksabanovic', 'Đurđević', 'Simić', 'Tomašević', 'Boljević', 'Krstović'],
+  },
+  'Slovenia': {
+    firstNames: ['Jan', 'Benjamin', 'Josip', 'Miha', 'Andraž', 'Petar', 'Žan', 'Adam', 'Jasmin', 'Domen', 'Sandi', 'Aljaz', 'Erik', 'Timi', 'Luka'],
+    lastNames: ['Oblak', 'Iličić', 'Kurtić', 'Šeško', 'Čerin', 'Bijol', 'Balkovec', 'Verbič', 'Mevlja', 'Stojinović', 'Zajc', 'Blažič', 'Lovrić', 'Gnezda Čerin', 'Horvat'],
+  },
+  'Albania': {
+    firstNames: ['Elseid', 'Armando', 'Berat', 'Myrto', 'Nedim', 'Thomas', 'Amir', 'Kristjan', 'Ermir', 'Jasir', 'Ardian', 'Qazim', 'Keidi', 'Taulant', 'Ylber'],
+    lastNames: ['Hysaj', 'Broja', 'Djimsiti', 'Uzuni', 'Bajrami', 'Strakosha', 'Abrashi', 'Asani', 'Lenjani', 'Roshi', 'Ismajli', 'Kumbulla', 'Bare', 'Xhaka', 'Ramadani'],
+  },
+  'Algeria': {
+    firstNames: ['Riyad', 'Ismaël', 'Saïd', 'Yacine', 'Baghdad', 'Aïssa', 'Adlène', 'Hicham', 'Ramy', 'Adam', 'Youcef', 'Mohamed', 'Amir', 'Djamel', 'Sofiane'],
+    lastNames: ['Mahrez', 'Bennacer', 'Brahimi', 'Feghouli', 'Slimani', 'Bounedjah', 'Guedioura', 'Boudaoui', 'Atal', 'Bensebaini', 'Delort', 'Belaïli', 'Mandi', 'Benrahma', 'Ounas'],
+  },
+  'Egypt': {
+    firstNames: ['Mohamed', 'Ahmed', 'Mahmoud', 'Mostafa', 'Omar', 'Tarek', 'Ramadan', 'Amr', 'Karim', 'Trezeguet', 'Ibrahim', 'Ali', 'Marwan', 'Hamdi', 'Fathi'],
+    lastNames: ['Salah', 'Hegazi', 'Elneny', 'Trezeguet', 'Sobhi', 'Warda', 'Kamal', 'Ashraf', 'Hassan', 'El Shenawy', 'Mohsen', 'Gaber', 'Hamdi', 'Fathy', 'Marmoush'],
+  },
+  'Mexico': {
+    firstNames: ['Raúl', 'Hirving', 'Edson', 'Jesús', 'César', 'Diego', 'Héctor', 'Guillermo', 'Orbelín', 'Alexis', 'Uriel', 'Roberto', 'Luis', 'Carlos', 'Jorge'],
+    lastNames: ['Jiménez', 'Lozano', 'Álvarez', 'Corona', 'Montes', 'Lainez', 'Herrera', 'Ochoa', 'Pineda', 'Vega', 'Antuna', 'Alvarado', 'Romo', 'Gutiérrez', 'Araujo'],
+  },
+  'Chile': {
+    firstNames: ['Arturo', 'Alexis', 'Claudio', 'Gary', 'Mauricio', 'Eduardo', 'Charles', 'Erick', 'Guillermo', 'Pablo', 'Ben', 'Marcelino', 'Joaquín', 'Darío', 'Felipe'],
+    lastNames: ['Vidal', 'Sánchez', 'Bravo', 'Medel', 'Isla', 'Vargas', 'Aránguiz', 'Pulgar', 'Maripán', 'Galdames', 'Brereton', 'Núñez', 'Montecinos', 'Osorio', 'Mora'],
+  },
+  'Tunisia': {
+    firstNames: ['Youssef', 'Wahbi', 'Hannibal', 'Ellyes', 'Aïssa', 'Mohamed', 'Ali', 'Naïm', 'Saâd', 'Ferjani', 'Hamza', 'Aymen', 'Ghaylen', 'Seifeddine', 'Bilel'],
+    lastNames: ['Msakni', 'Khazri', 'Mejbri', 'Skhiri', 'Laidouni', 'Sliti', 'Maaloul', 'Bronn', 'Bguir', 'Sassi', 'Mathlouthi', 'Jaziri', 'Chaalali', 'Meriah', 'Khenissi'],
+  },
+  'Jamaica': {
+    firstNames: ['Leon', 'Michail', 'Bobby', 'Kemar', 'Shamar', 'Ravel', 'Damion', 'Andre', 'Daniel', 'Joel', 'Oniel', 'Javain', 'Dillon', 'Lamar', 'Ethan'],
+    lastNames: ['Bailey', 'Antonio', 'Reid', 'Roofe', 'Nicholson', 'Morrison', 'Lowe', 'Gray', 'Johnson', 'Malcolm', 'Fisher', 'Brown', 'Pinnock', 'Walker', 'Beckford'],
+  },
+  'Ecuador': {
+    firstNames: ['Moisés', 'Enner', 'Gonzalo', 'Piero', 'Pervis', 'Carlos', 'Byron', 'Ángel', 'Jeremy', 'Jhegson', 'Alan', 'Michael', 'Jackson', 'Romario', 'Jordy'],
+    lastNames: ['Caicedo', 'Valencia', 'Plata', 'Hincapié', 'Estupiñán', 'Gruezo', 'Castillo', 'Mena', 'Sarmiento', 'Méndez', 'Franco', 'Estrada', 'Porozo', 'Ibarra', 'Caicedo'],
+  },
 };
 
 /** Generic fallback names for nationalities not in the pools */

@@ -1,5 +1,5 @@
-import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, DivisionId, PlayoffState } from '@/types/game';
-import { CLUBS_DATA, buildLeagueTable, getClubsByDivision, generateAllDivisionFixtures, buildAllDivisionTables, DERBIES, DIVISIONS, getDerbyIntensity, getDerbyName } from '@/data/league';
+import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, LeagueId, SeasonTurnover, LeagueTableEntry } from '@/types/game';
+import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
@@ -65,15 +65,11 @@ import {
 import { PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
 import { calculatePlayerValue } from '@/config/playerGeneration';
 import {
-  PLAYOFF_HOME_ADVANTAGE, PLAYOFF_GOAL_RANGE, PLAYOFF_STRONG_BONUS, PLAYOFF_WEAK_BONUS,
-  PLAYOFF_FINAL_STRONG_BONUS, PLAYOFF_FINAL_WEAK_BONUS, PLAYOFF_EXTRA_TIME_CHANCE, PLAYOFF_FALLBACK_OVERALL,
-  PROMOTION_BUDGET_MULTIPLIER, PROMOTION_MORALE_BONUS, PROMOTION_FAN_MOOD_BONUS,
-  RELEGATION_BUDGET_MULTIPLIER, RELEGATION_MORALE_PENALTY, RELEGATION_FAN_MOOD_PENALTY, RELEGATION_UNHAPPY_OVERALL,
   VERDICT_EXCELLENT_OFFSET, VERDICT_ACCEPTABLE_OFFSET, BOARD_SACKING_THRESHOLD,
   STORYLINE_CHAIN_TRIGGER_CHANCE, STORYLINE_CHAIN_MIN_WEEK,
 } from '@/config/playoffs';
 import { applyPlayerDevelopment, resetSeasonGrowth } from '@/store/helpers/development';
-import { determineZones, generatePlayoffBracket, populatePlayoffFinal, resolvePlayoffFinal, applyPromotionRelegation, generateReplacementClub, isPlayerInPlayoffs, getNextPlayoffMatch } from '@/utils/promotionRelegation';
+import { applySeasonTurnover, generateReplacementClub } from '@/utils/promotionRelegation';
 import { generateStorylines } from '@/utils/storylines';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
@@ -159,36 +155,25 @@ function applyAIMatchEvents(
   }
 }
 
-function generateObjectives(club: Club, divisionId?: DivisionId): BoardObjective[] {
+function generateObjectives(club: Club, leagueId?: LeagueId): BoardObjective[] {
   const objectives: BoardObjective[] = [];
-  const div = divisionId || club.divisionId || 'div-1';
-  const divInfo = DIVISIONS.find(d => d.id === div);
-  const teamCount = divInfo?.teamCount || 20;
-  const hasPromotion = divInfo ? divInfo.autoPromoteSlots > 0 || divInfo.playoffSlots > 0 : false;
-  const hasRelegation = divInfo ? divInfo.autoRelegateSlots > 0 || divInfo.replacedSlots > 0 : false;
+  const lid = leagueId || club.divisionId;
+  const league = LEAGUES.find(l => l.id === lid);
+  const teamCount = league?.teamCount || 20;
+  const replacedSlots = league?.replacedSlots || 0;
+  const safePos = teamCount - replacedSlots;
 
-  if (div === 'div-1') {
-    // Top flight: win / top N / avoid relegation
-    if (club.reputation >= 5) {
-      objectives.push({ id: '1', description: 'Win the League', priority: 'critical', completed: false });
-      objectives.push({ id: '2', description: 'Finish in Top 3', priority: 'important', completed: false });
-    } else if (club.reputation >= 4) {
-      objectives.push({ id: '1', description: 'Finish in Top 6', priority: 'critical', completed: false });
-      objectives.push({ id: '2', description: 'Reach Top Half', priority: 'important', completed: false });
-    } else {
-      objectives.push({ id: '1', description: `Avoid Relegation (Top ${teamCount - (divInfo?.autoRelegateSlots || 3)})`, priority: 'critical', completed: false });
-    }
-  } else if (hasPromotion) {
-    // Lower divisions: promotion objectives
-    if (club.reputation >= 3) {
-      objectives.push({ id: '1', description: 'Win Promotion', priority: 'critical', completed: false });
-      objectives.push({ id: '2', description: 'Automatic Promotion (Top 2)', priority: 'important', completed: false });
-    } else if (club.reputation >= 2) {
-      objectives.push({ id: '1', description: 'Make the Playoffs', priority: 'critical', completed: false });
-    } else {
-      const safePos = teamCount - (divInfo?.autoRelegateSlots || 0) - (divInfo?.replacedSlots || 0);
-      objectives.push({ id: '1', description: hasRelegation ? `Survive (Top ${safePos})` : 'Finish in Top Half', priority: 'critical', completed: false });
-    }
+  // League objectives based on reputation
+  if (club.reputation >= 5) {
+    objectives.push({ id: '1', description: 'Win the League', priority: 'critical', completed: false });
+    objectives.push({ id: '2', description: 'Finish in Top 3', priority: 'important', completed: false });
+  } else if (club.reputation >= 4) {
+    objectives.push({ id: '1', description: 'Finish in Top 6', priority: 'critical', completed: false });
+    objectives.push({ id: '2', description: 'Reach Top Half', priority: 'important', completed: false });
+  } else if (club.reputation >= 3) {
+    objectives.push({ id: '1', description: 'Reach Top Half', priority: 'critical', completed: false });
+  } else {
+    objectives.push({ id: '1', description: replacedSlots > 0 ? `Avoid Replacement (Top ${safePos})` : 'Finish in Top Half', priority: 'critical', completed: false });
   }
   // Cup objectives based on reputation
   if (club.reputation >= 5) {
@@ -202,297 +187,6 @@ function generateObjectives(club: Club, divisionId?: DivisionId): BoardObjective
   return objectives;
 }
 
-/** Calculate average overall strength for a club's players. */
-function getClubAvgStrength(club: Club, players: Record<string, Player>): number {
-  return club.playerIds.reduce((s, id) => s + (players[id]?.overall || PLAYOFF_FALLBACK_OVERALL), 0) / Math.max(club.playerIds.length, 1);
-}
-
-/** Simulate playoff goals for a single tie. */
-function simulatePlayoffGoals(hStrength: number, aStrength: number, homeAdv: number, isFinal: boolean): { homeGoals: number; awayGoals: number } {
-  const strongBonus = isFinal ? PLAYOFF_FINAL_STRONG_BONUS : PLAYOFF_STRONG_BONUS;
-  const weakBonus = isFinal ? PLAYOFF_FINAL_WEAK_BONUS : PLAYOFF_WEAK_BONUS;
-  const homeGoals = Math.floor(Math.random() * PLAYOFF_GOAL_RANGE + (hStrength + homeAdv > aStrength ? strongBonus : weakBonus));
-  const awayGoals = Math.floor(Math.random() * PLAYOFF_GOAL_RANGE + (aStrength > hStrength + homeAdv ? strongBonus : weakBonus));
-  return { homeGoals, awayGoals };
-}
-
-/** Simulate a single playoff tie (leg or final). */
-function simulatePlayoffTie(tie: PlayoffState['bracket'][number], clubs: Record<string, Club>, players: Record<string, Player>) {
-  const hc = clubs[tie.homeClubId];
-  const ac = clubs[tie.awayClubId];
-  if (!hc || !ac) return;
-  const hStrength = getClubAvgStrength(hc, players);
-  const aStrength = getClubAvgStrength(ac, players);
-  const isFinal = tie.round === 'final';
-  const homeAdv = isFinal ? 0 : PLAYOFF_HOME_ADVANTAGE;
-  const goals = simulatePlayoffGoals(hStrength, aStrength, homeAdv, isFinal);
-  tie.homeGoals = goals.homeGoals;
-  tie.awayGoals = goals.awayGoals;
-  if (isFinal && tie.homeGoals === tie.awayGoals) {
-    if (Math.random() < PLAYOFF_EXTRA_TIME_CHANCE) tie.homeGoals++; else tie.awayGoals++;
-  }
-  tie.played = true;
-}
-
-/** Simulate an entire playoff bracket instantly (for AI divisions). */
-function simulatePlayoffBracket(
-  playoff: PlayoffState,
-  clubs: Record<string, Club>,
-  players: Record<string, Player>,
-) {
-  // Simulate semi-final legs
-  for (const tie of playoff.bracket.filter(t => (t.round === 'semi-leg1' || t.round === 'semi-leg2') && !t.played)) {
-    simulatePlayoffTie(tie, clubs, players);
-  }
-  // Populate final from semi winners
-  const updated = populatePlayoffFinal(playoff);
-  playoff.bracket = updated.bracket;
-  playoff.currentRound = updated.currentRound;
-  // Simulate final
-  const final = playoff.bracket.find(t => t.round === 'final');
-  if (final && !final.played && final.homeClubId && final.awayClubId) {
-    simulatePlayoffTie(final, clubs, players);
-  }
-  const resolved = resolvePlayoffFinal(playoff);
-  playoff.promotedClubId = resolved.promotedClubId;
-  playoff.currentRound = resolved.currentRound;
-}
-
-/** Handle advanceWeek during the playoff phase. */
-function advancePlayoffWeek(set: Set, get: Get) {
-  const state = get();
-  const { week, season, fixtures, clubs, players, playerClubId, training, staff, messages, playoffs } = state;
-  const newPlayers = { ...players };
-  let newMessages = [...messages];
-  const newWeek = week + 1;
-
-  // ── Basic squad maintenance (recovery + training) ──
-  const physioBonus = getStaffBonus(staff.members, 'physio');
-  const fitnessCoachBonus = getStaffBonus(staff.members, 'fitness-coach');
-  const firstTeamCoachBonus = getStaffBonus(staff.members, 'first-team-coach');
-  const playerClub = clubs[playerClubId];
-  if (!playerClub) return set({ week: newWeek });
-
-  playerClub.playerIds.forEach(pid => {
-    if (!newPlayers[pid]) return;
-    let p = { ...newPlayers[pid] };
-    if (p.injured) {
-      const recoveryBoost = physioBonus >= PHYSIO_RECOVERY_BOOST_THRESHOLD && Math.random() < PHYSIO_RECOVERY_CHANCE ? 1 : 0;
-      p.injuryWeeks = Math.max(0, p.injuryWeeks - 1 - recoveryBoost);
-      if (p.injuryDetails) {
-        p.injuryDetails = { ...p.injuryDetails, weeksRemaining: p.injuryWeeks };
-      }
-      if (p.injuryWeeks === 0) {
-        p.injured = false;
-        if (p.injuryDetails) {
-          p.fitness = p.injuryDetails.fitnessOnReturn;
-          p.injuryDetails = { ...p.injuryDetails, weeksRemaining: 0 };
-        }
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'injury', title: `${p.lastName} Returns`, body: `${p.firstName} ${p.lastName} has recovered and is available for the playoffs.` });
-      }
-    }
-    // Decrement re-injury risk window
-    if (!p.injured && p.injuryDetails && p.injuryDetails.reinjuryWeeksRemaining > 0) {
-      p.injuryDetails = { ...p.injuryDetails, reinjuryWeeksRemaining: p.injuryDetails.reinjuryWeeksRemaining - 1 };
-      if (p.injuryDetails.reinjuryWeeksRemaining === 0) p.injuryDetails = undefined;
-    }
-    if (p.suspendedUntilWeek && p.suspendedUntilWeek <= newWeek) {
-      p.suspendedUntilWeek = undefined;
-    }
-    if (!p.injured) {
-      p = applyWeeklyTraining(p, training, firstTeamCoachBonus + fitnessCoachBonus * 0.5, state.facilities.recoveryLevel);
-    }
-    newPlayers[pid] = p;
-  });
-
-  // ── Deep-copy playoffs ──
-  const updatedPlayoffs = playoffs.map(p => ({ ...p, bracket: p.bracket.map(t => ({ ...t })) }));
-
-  // ── Sync played fixture results back to playoff bracket ──
-  for (const m of fixtures) {
-    if (!m.played) continue;
-    for (const playoff of updatedPlayoffs) {
-      const tieIdx = playoff.bracket.findIndex(t => t.id === m.id && !t.played);
-      if (tieIdx >= 0) {
-        playoff.bracket[tieIdx] = { ...playoff.bracket[tieIdx], played: true, homeGoals: m.homeGoals, awayGoals: m.awayGoals };
-      }
-    }
-  }
-
-  // ── Advance completed rounds ──
-  function advanceRounds(poffs: PlayoffState[]) {
-    for (let i = 0; i < poffs.length; i++) {
-      const playoff = poffs[i];
-      if (!playoff.currentRound) continue;
-      const roundTies = playoff.bracket.filter(t => t.round === playoff.currentRound);
-      if (roundTies.every(t => t.played)) {
-        if (playoff.currentRound === 'semi-leg1') {
-          poffs[i] = { ...playoff, currentRound: 'semi-leg2' };
-        } else if (playoff.currentRound === 'semi-leg2') {
-          poffs[i] = populatePlayoffFinal(playoff);
-        } else if (playoff.currentRound === 'final') {
-          poffs[i] = resolvePlayoffFinal(playoff);
-        }
-      }
-    }
-  }
-
-  advanceRounds(updatedPlayoffs);
-
-  // ── If player has no more playoff matches, fast-forward all remaining AI playoffs ──
-  const playerStillIn = isPlayerInPlayoffs(playerClubId, updatedPlayoffs);
-  if (!playerStillIn) {
-    for (const playoff of updatedPlayoffs) {
-      if (playoff.currentRound) simulatePlayoffBracket(playoff, clubs, newPlayers);
-    }
-    // All playoffs now resolved — apply promotion/relegation and finalize
-    const finalTables = buildAllDivisionTables(state.divisionFixtures, state.divisionClubs);
-    const { promRel, updatedClubs: promRelClubs, updatedDivisionClubs: postPromRelDivClubs } = applyPromotionRelegation(
-      state.divisionClubs, finalTables, updatedPlayoffs, clubs,
-    );
-
-    // Replace div-4 bottom 2
-    const workingClubs = { ...promRelClubs };
-    const workingPlayers = { ...newPlayers };
-    for (const replacedId of promRel.replacedClubs) {
-      const rClub = workingClubs[replacedId];
-      if (rClub) {
-        rClub.playerIds.forEach(pid => { delete workingPlayers[pid]; });
-        delete workingClubs[replacedId];
-      }
-    }
-    for (let i = 0; i < promRel.replacedClubs.length; i++) {
-      const { clubData, clubId } = generateReplacementClub(season);
-      const newClub: Club = {
-        id: clubId, name: clubData.name, shortName: clubData.shortName,
-        color: clubData.color, secondaryColor: clubData.secondaryColor,
-        budget: clubData.budget, wageBill: 0, reputation: clubData.reputation,
-        facilities: clubData.facilities, youthRating: clubData.youthRating,
-        fanBase: clubData.fanBase, boardPatience: clubData.boardPatience,
-        playerIds: [], formation: '4-4-2', lineup: [], subs: [],
-        divisionId: 'div-4',
-      };
-      const squad = generateSquad(clubId, clubData.squadQuality, season);
-      let totalWages = 0;
-      squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
-      newClub.wageBill = totalWages;
-      const { lineup, subs } = selectBestLineup(squad, '4-4-2');
-      newClub.lineup = lineup.map(p => p.id);
-      newClub.subs = subs.map(p => p.id);
-      newClub.aiManagerProfile = generateAIManagerProfile(clubId, clubData.reputation);
-      workingClubs[clubId] = newClub;
-      postPromRelDivClubs['div-4'].push(clubId);
-      promRel.newClubs.push(clubId);
-    }
-
-    const playerClubObj = workingClubs[playerClubId];
-    const newPlayerDivision = playerClubObj ? playerClubObj.divisionId : state.playerDivision;
-
-    // Update the history entry already saved in seasonHistory (from endSeasonImpl)
-    const updatedHistory = state.seasonHistory.map((h, i) =>
-      i === state.seasonHistory.length - 1
-        ? { ...h, promoted: promRel.promoted.some(p => p.clubId === playerClubId) || promRel.playoffWinners.some(p => p.clubId === playerClubId), relegated: promRel.relegated.some(r => r.clubId === playerClubId) }
-        : h
-    );
-    // Pop last entry to pass to finalizeSeason (which will re-push it)
-    const history = updatedHistory[updatedHistory.length - 1];
-    const historyWithoutLast = updatedHistory.slice(0, -1);
-    set({ seasonHistory: historyWithoutLast, players: workingPlayers });
-
-    let fanMoodDelta = 0;
-    const playerClubForConseq = workingClubs[playerClubId];
-    if (history.promoted) {
-      const toDivName = DIVISIONS.find(d => d.id === newPlayerDivision)?.name || newPlayerDivision;
-      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'PROMOTED!', body: `Congratulations! You won the playoffs and earned promotion to the ${toDivName}!` });
-      if (playerClubForConseq) playerClubForConseq.budget = Math.round(playerClubForConseq.budget * PROMOTION_BUDGET_MULTIPLIER);
-      playerClubForConseq?.playerIds.forEach(pid => {
-        if (workingPlayers[pid]) workingPlayers[pid] = { ...workingPlayers[pid], morale: Math.min(100, workingPlayers[pid].morale + PROMOTION_MORALE_BONUS) };
-      });
-      fanMoodDelta = PROMOTION_FAN_MOOD_BONUS;
-    }
-    if (history.relegated) {
-      const toDivName = DIVISIONS.find(d => d.id === newPlayerDivision)?.name || newPlayerDivision;
-      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Relegated', body: `Your club has been relegated to the ${toDivName}. Time to rebuild.` });
-      if (playerClubForConseq) playerClubForConseq.budget = Math.round(playerClubForConseq.budget * RELEGATION_BUDGET_MULTIPLIER);
-      playerClubForConseq?.playerIds.forEach(pid => {
-        const p = workingPlayers[pid];
-        if (!p) return;
-        workingPlayers[pid] = { ...p, morale: Math.max(0, p.morale - RELEGATION_MORALE_PENALTY) };
-        if (p.overall > RELEGATION_UNHAPPY_OVERALL) {
-          workingPlayers[pid] = { ...workingPlayers[pid], listedForSale: true };
-          newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: `${p.lastName} Wants Out`, body: `${p.firstName} ${p.lastName} is unhappy after relegation and wants to leave.` });
-        }
-      });
-      fanMoodDelta = RELEGATION_FAN_MOOD_PENALTY;
-    }
-    if (fanMoodDelta !== 0) {
-      set(s => ({ fanMood: Math.max(0, Math.min(100, s.fanMood + fanMoodDelta)) }));
-    }
-
-    finalizeSeason(set, get, history, state.clubRecords, workingClubs, workingPlayers, updatedPlayoffs, promRel, postPromRelDivClubs, newPlayerDivision, newMessages);
-    return;
-  }
-
-  // ── Player still in playoffs: simulate non-player ties for current round ──
-  for (const playoff of updatedPlayoffs) {
-    if (!playoff.currentRound) continue;
-    for (const tie of playoff.bracket) {
-      if (tie.round !== playoff.currentRound || tie.played) continue;
-      if (tie.homeClubId === playerClubId || tie.awayClubId === playerClubId) continue;
-      if (!tie.homeClubId || !tie.awayClubId) continue;
-      simulatePlayoffTie(tie, clubs, newPlayers);
-    }
-  }
-
-  // Re-advance rounds after AI simulation
-  advanceRounds(updatedPlayoffs);
-
-  // ── Create next playoff match for player as a fixture ──
-  const nextPlayoff = getNextPlayoffMatch(playerClubId, updatedPlayoffs);
-  let updatedFixtures = [...fixtures];
-  if (nextPlayoff) {
-    const { tie } = nextPlayoff;
-    const roundLabel = tie.round === 'semi-leg1' ? 'Playoff Semi-Final (1st Leg)' :
-      tie.round === 'semi-leg2' ? 'Playoff Semi-Final (2nd Leg)' : 'Playoff Final';
-    const oppId = tie.homeClubId === playerClubId ? tie.awayClubId : tie.homeClubId;
-    const oppClub = clubs[oppId];
-
-    const playoffMatch: Match = {
-      id: tie.id,
-      week: newWeek,
-      homeClubId: tie.homeClubId,
-      awayClubId: tie.awayClubId,
-      played: false,
-      homeGoals: 0,
-      awayGoals: 0,
-      events: [],
-    };
-    updatedFixtures = [...updatedFixtures, playoffMatch];
-
-    newMessages = addMsg(newMessages, {
-      week: newWeek, season, type: 'match_preview',
-      title: roundLabel,
-      body: `${roundLabel}: ${tie.homeClubId === playerClubId ? 'Home' : 'Away'} vs ${oppClub?.name || 'TBD'}. This is a must-win playoff match!`,
-    });
-  }
-
-  // Process sponsorship system during playoffs
-  const sponsorUpdates = processSponsorWeek({ ...state, week: newWeek, players: newPlayers, messages: newMessages, currentMatchResult: state.currentMatchResult });
-  if (sponsorUpdates.messages) newMessages = sponsorUpdates.messages;
-
-  set({
-    week: newWeek,
-    fixtures: updatedFixtures,
-    players: newPlayers,
-    messages: newMessages,
-    playoffs: updatedPlayoffs,
-    currentMatchResult: null,
-    matchSubsUsed: 0,
-    sponsorDeals: sponsorUpdates.sponsorDeals || state.sponsorDeals,
-    sponsorOffers: sponsorUpdates.sponsorOffers || state.sponsorOffers,
-    sponsorSlotCooldowns: sponsorUpdates.sponsorSlotCooldowns || state.sponsorSlotCooldowns,
-  });
-}
 
 /** International break week implementation */
 function advanceInternationalWeekImpl(set: Set, get: Get) {
@@ -797,6 +491,8 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
 function endSeasonImpl(set: Set, get: Get) {
   const state = get();
   const { season, leagueTable, players, clubs, playerClubId, boardConfidence, messages } = state;
+  const playerDiv = state.playerDivision;
+  const league = LEAGUES.find(l => l.id === playerDiv);
 
   const playerEntry = leagueTable.find(e => e.clubId === playerClubId);
   const pos = playerEntry ? leagueTable.indexOf(playerEntry) + 1 : 20;
@@ -821,7 +517,7 @@ function endSeasonImpl(set: Set, get: Get) {
     topScorer: topScorer ? { name: `${topScorer.firstName} ${topScorer.lastName}`, goals: topScorer.goals } : { name: 'N/A', goals: 0 },
     boardVerdict: verdict,
     cupResult: getCupResultForClub(state.cup, playerClubId),
-    divisionId: state.playerDivision,
+    divisionId: playerDiv,
     awards: seasonAwards,
   };
 
@@ -838,61 +534,44 @@ function endSeasonImpl(set: Set, get: Get) {
     state.cup.winner === playerClubId,
   );
 
-  // Generate playoff brackets for div-2, div-3, div-4
-  const finalTables = buildAllDivisionTables(state.divisionFixtures, state.divisionClubs);
-  const newPlayoffs: PlayoffState[] = [];
-  for (const divId of ['div-2', 'div-3', 'div-4'] as DivisionId[]) {
-    const div = DIVISIONS.find(d => d.id === divId);
-    if (!div) continue;
-    const table = finalTables[divId] || [];
-    const zones = determineZones(table, div);
-    if (zones.playoffContenders.length >= 4) {
-      newPlayoffs.push(generatePlayoffBracket(zones.playoffContenders, divId));
-    }
-  }
-
-  // Check if player's club is in any playoff
-  if (isPlayerInPlayoffs(playerClubId, newPlayoffs)) {
-    const playerDiv = state.playerDivision;
-    const divName = DIVISIONS.find(d => d.id === playerDiv)?.name || playerDiv;
-    const newMessages = addMsg(messages, {
-      week: state.week, season, type: 'board',
-      title: 'Playoffs!',
-      body: `You finished ${pos}${getSuffix(pos)} in the ${divName} — you're in the promotion playoffs! Win to earn promotion.`,
-    });
-    set({
-      seasonPhase: 'playoffs',
-      playoffs: newPlayoffs,
-      seasonHistory: [...state.seasonHistory, history],
-      clubRecords: updatedRecords,
-      messages: newMessages,
-      currentScreen: 'dashboard',
-    });
-    return;
-  }
-
-  // Player NOT in playoffs: simulate all playoffs instantly
-  for (const playoff of newPlayoffs) {
-    simulatePlayoffBracket(playoff, clubs, players);
-  }
-
-  // Apply promotion/relegation
-  const { promRel, updatedClubs: promRelClubs, updatedDivisionClubs: postPromRelDivClubs } = applyPromotionRelegation(
-    state.divisionClubs, finalTables, newPlayoffs, clubs,
+  // Apply season turnover: replace bottom N clubs in the player's league
+  // (but never replace the player's own club)
+  const finalTable = buildLeagueTable(state.divisionFixtures[playerDiv] || [], state.divisionClubs[playerDiv] || []);
+  const { turnover, updatedClubs: turnoverClubs, updatedLeagueClubs } = applySeasonTurnover(
+    playerDiv,
+    state.divisionClubs[playerDiv] || [],
+    finalTable,
+    clubs,
   );
 
-  // Replace div-4 bottom 2
-  const workingClubs = { ...promRelClubs };
+  // Protect the player's club from being replaced
+  if (turnover.replacedClubs.includes(playerClubId)) {
+    turnover.replacedClubs = turnover.replacedClubs.filter(id => id !== playerClubId);
+  }
+
+  // Remove replaced clubs' players and generate replacement clubs
+  const workingClubs = { ...turnoverClubs };
+  // Re-add the player's club if it was removed by turnover
+  if (!workingClubs[playerClubId] && clubs[playerClubId]) {
+    workingClubs[playerClubId] = clubs[playerClubId];
+  }
   const workingPlayers = { ...players };
-  for (const replacedId of promRel.replacedClubs) {
-    const rClub = workingClubs[replacedId];
+  // Clean up players from replaced clubs
+  for (const replacedId of turnover.replacedClubs) {
+    const rClub = clubs[replacedId];
     if (rClub) {
       rClub.playerIds.forEach(pid => { delete workingPlayers[pid]; });
-      delete workingClubs[replacedId];
     }
   }
-  for (let i = 0; i < promRel.replacedClubs.length; i++) {
-    const { clubData, clubId } = generateReplacementClub(season);
+  // Generate replacement clubs with squads
+  const qualityTier = league?.qualityTier || 2;
+  const newLeagueClubs = [...updatedLeagueClubs];
+  // Ensure the player's club is in the league even if turnover removed it
+  if (!newLeagueClubs.includes(playerClubId)) {
+    newLeagueClubs.push(playerClubId);
+  }
+  for (let i = 0; i < turnover.replacedClubs.length; i++) {
+    const { clubData, clubId } = generateReplacementClub(season, playerDiv);
     const newClub: Club = {
       id: clubId, name: clubData.name, shortName: clubData.shortName,
       color: clubData.color, secondaryColor: clubData.secondaryColor,
@@ -900,9 +579,9 @@ function endSeasonImpl(set: Set, get: Get) {
       facilities: clubData.facilities, youthRating: clubData.youthRating,
       fanBase: clubData.fanBase, boardPatience: clubData.boardPatience,
       playerIds: [], formation: '4-4-2', lineup: [], subs: [],
-      divisionId: 'div-4',
+      divisionId: playerDiv,
     };
-    const squad = generateSquad(clubId, clubData.squadQuality, season, 4);
+    const squad = generateSquad(clubId, clubData.squadQuality, season, qualityTier);
     let totalWages = 0;
     squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
     newClub.wageBill = totalWages;
@@ -911,46 +590,26 @@ function endSeasonImpl(set: Set, get: Get) {
     newClub.subs = subs.map(p => p.id);
     newClub.aiManagerProfile = generateAIManagerProfile(clubId, clubData.reputation);
     workingClubs[clubId] = newClub;
-    postPromRelDivClubs['div-4'].push(clubId);
-    promRel.newClubs.push(clubId);
+    newLeagueClubs.push(clubId);
+    turnover.newClubs.push(clubId);
   }
 
-  const playerClub = workingClubs[playerClubId];
-  const newPlayerDivision = playerClub ? playerClub.divisionId : state.playerDivision;
-  history.promoted = promRel.promoted.some(p => p.clubId === playerClubId) || promRel.playoffWinners.some(p => p.clubId === playerClubId);
-  history.relegated = promRel.relegated.some(r => r.clubId === playerClubId);
+  // Check if player's club was replaced (bottom of table)
+  const wasReplaced = turnover.replacedClubs.includes(playerClubId);
+  history.replaced = wasReplaced;
 
   let newMessages = [...messages];
-  let fanMoodDelta = 0;
-  if (history.promoted) {
-    const toDivName = DIVISIONS.find(d => d.id === newPlayerDivision)?.name || newPlayerDivision;
-    newMessages = addMsg(newMessages, { week: state.week, season, type: 'board', title: 'PROMOTED!', body: `Congratulations! Your club has been promoted to the ${toDivName}!` });
-    if (playerClub) workingClubs[playerClubId] = { ...playerClub, budget: Math.round(playerClub.budget * PROMOTION_BUDGET_MULTIPLIER) };
-    workingClubs[playerClubId]?.playerIds.forEach(pid => {
-      if (workingPlayers[pid]) workingPlayers[pid] = { ...workingPlayers[pid], morale: Math.min(100, workingPlayers[pid].morale + PROMOTION_MORALE_BONUS) };
-    });
-    fanMoodDelta = PROMOTION_FAN_MOOD_BONUS;
-  }
-  if (history.relegated) {
-    const toDivName = DIVISIONS.find(d => d.id === newPlayerDivision)?.name || newPlayerDivision;
-    newMessages = addMsg(newMessages, { week: state.week, season, type: 'board', title: 'Relegated', body: `Your club has been relegated to the ${toDivName}. Time to rebuild and fight for promotion.` });
-    if (playerClub) workingClubs[playerClubId] = { ...playerClub, budget: Math.round(playerClub.budget * RELEGATION_BUDGET_MULTIPLIER) };
-    playerClub?.playerIds.forEach(pid => {
-      const p = workingPlayers[pid];
-      if (!p) return;
-      workingPlayers[pid] = { ...p, morale: Math.max(0, p.morale - RELEGATION_MORALE_PENALTY) };
-      if (p.overall > RELEGATION_UNHAPPY_OVERALL) {
-        workingPlayers[pid] = { ...workingPlayers[pid], listedForSale: true };
-        newMessages = addMsg(newMessages, { week: state.week, season, type: 'transfer', title: `${p.lastName} Wants Out`, body: `${p.firstName} ${p.lastName} is unhappy after relegation and wants to leave.` });
-      }
-    });
-    fanMoodDelta = RELEGATION_FAN_MOOD_PENALTY;
-  }
-  if (fanMoodDelta !== 0) {
-    set(s => ({ fanMood: Math.max(0, Math.min(100, s.fanMood + fanMoodDelta)) }));
+  const newDivisionClubs = { ...state.divisionClubs, [playerDiv]: newLeagueClubs };
+
+  if (turnover.replacedClubs.length > 0) {
+    const replacedNames = turnover.replacedClubs.map(id => clubs[id]?.name || id).join(', ');
+    const newNames = turnover.newClubs.map(id => workingClubs[id]?.name || id).join(', ');
+    if (replacedNames && newNames) {
+      newMessages = addMsg(newMessages, { week: state.week, season, type: 'general', title: 'League Turnover', body: `${replacedNames} departed the league. Newcomers: ${newNames}.` });
+    }
   }
 
-  finalizeSeason(set, get, history, updatedRecords, workingClubs, workingPlayers, newPlayoffs, promRel, postPromRelDivClubs, newPlayerDivision, newMessages);
+  finalizeSeason(set, get, history, updatedRecords, workingClubs, workingPlayers, turnover, newDivisionClubs, playerDiv, newMessages);
 }
 
 /** Standard season-end processing: aging, contracts, squad regen, fixtures, etc. */
@@ -960,10 +619,9 @@ function finalizeSeason(
   updatedRecords: ReturnType<typeof createEmptyRecords>,
   inputClubs: Record<string, Club>,
   inputPlayers: Record<string, Player>,
-  playoffs: PlayoffState[],
-  promRel: ReturnType<typeof applyPromotionRelegation>['promRel'],
-  newDivisionClubs: Record<DivisionId, string[]>,
-  newPlayerDivision: DivisionId,
+  turnover: SeasonTurnover,
+  newDivisionClubs: Record<string, string[]>,
+  newPlayerDivision: LeagueId,
   inputMessages: GameState['messages'],
 ) {
   const state = get();
@@ -1068,8 +726,7 @@ function finalizeSeason(
     while (toFill.length < totalNeeded) toFill.push({ pos: pick(GENERIC_FILL_POSITIONS), deficit: 0 });
     for (const { pos: fillPos } of toFill) {
       const quality = (club.reputation * REPLACEMENT_QUALITY_REP_MULTIPLIER) + REPLACEMENT_QUALITY_BASE + Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE);
-      const clubTier = parseInt(club.divisionId.split('-')[1]);
-      const newP = generatePlayer(fillPos, quality, club.id, newSeason, clubTier);
+      const newP = generatePlayer(fillPos, quality, club.id, newSeason, club.divisionId);
       newPlayers[newP.id] = newP;
       const fillClub = { ...newClubs[club.id] };
       fillClub.playerIds = [...fillClub.playerIds, newP.id];
@@ -1094,8 +751,7 @@ function finalizeSeason(
       const deficitCount = 11 - validIds.length;
       const safeClub = { ...newClubs[club.id], playerIds: [...validIds] };
       for (let d = 0; d < deficitCount; d++) {
-        const emergencyTier = parseInt(club.divisionId.split('-')[1]);
-        const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), Math.max(35, (club.reputation * 10) + 20), club.id, newSeason, emergencyTier);
+        const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), Math.max(35, (club.reputation * 10) + 20), club.id, newSeason, club.divisionId);
         newPlayers[emergencyPlayer.id] = emergencyPlayer;
         safeClub.playerIds.push(emergencyPlayer.id);
         safeClub.wageBill += emergencyPlayer.wage;
@@ -1121,12 +777,14 @@ function finalizeSeason(
     }
   }
 
-  const clubIds = Object.keys(newClubs);
-  const newDivisionFixtures = generateAllDivisionFixtures(newDivisionClubs);
-  const newDivisionTables = buildAllDivisionTables(newDivisionFixtures, newDivisionClubs);
+  const leagueClubIds = newDivisionClubs[newPlayerDivision] || [];
+  const leagueInfo = LEAGUES.find(l => l.id === newPlayerDivision);
+  const leagueTotalWeeks = leagueInfo?.totalWeeks || TOTAL_WEEKS;
+  const newDivisionFixtures: Record<string, Match[]> = { [newPlayerDivision]: generateDivisionFixtures(leagueClubIds, leagueTotalWeeks) };
+  const newDivisionTables: Record<string, LeagueTableEntry[]> = { [newPlayerDivision]: buildLeagueTable(newDivisionFixtures[newPlayerDivision], leagueClubIds) };
   const newFixtures = newDivisionFixtures[newPlayerDivision];
   const newLeagueTable = newDivisionTables[newPlayerDivision];
-  const newCup = generateCupDraw(clubIds, newClubs);
+  const newCup = generateCupDraw(leagueClubIds);
 
   const transferMarket: TransferListing[] = [];
   Object.values(newClubs).forEach(c => {
@@ -1140,7 +798,8 @@ function finalizeSeason(
     }
   });
 
-  const objectives = generateObjectives(newClubs[playerClubId], newPlayerDivision);
+  const playerClubForObjectives = newClubs[playerClubId];
+  const objectives = playerClubForObjectives ? generateObjectives(playerClubForObjectives, newPlayerDivision) : [];
   const verdict = history.boardVerdict;
   const newConfidence = SEASON_END_CONFIDENCE[verdict] || CONFIDENCE_MIN;
 
@@ -1241,7 +900,7 @@ function finalizeSeason(
     pendingStoryline: null,
     freeAgents: freeAgentIds, transferNews: [],
     ...(farewells.length > 0 ? { pendingFarewell: farewells.sort((a, b) => b.seasonsServed - a.seasonsServed) } : {}),
-    playoffs, lastPromotionRelegation: promRel,
+    lastSeasonTurnover: turnover,
     // Career milestones & manager XP at end of season
     careerTimeline: (() => {
       const milestones = [...state.careerTimeline];
@@ -1313,7 +972,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const allPlayers: Record<string, Player> = {};
     const clubs: Record<string, Club> = {};
 
-    CLUBS_DATA.forEach(cd => {
+    // Find which league the selected club belongs to
+    const selectedClubData = ALL_CLUBS.find(c => c.id === clubId);
+    const playerDivision = selectedClubData?.divisionId || 'eng';
+    const league = LEAGUES.find(l => l.id === playerDivision);
+
+    // Only load clubs for the player's league
+    const leagueClubData = ALL_CLUBS.filter(cd => cd.divisionId === playerDivision);
+
+    leagueClubData.forEach(cd => {
       const club: Club = {
         id: cd.id, name: cd.name, shortName: cd.shortName,
         color: cd.color, secondaryColor: cd.secondaryColor,
@@ -1326,8 +993,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         stadiumCapacity: cd.stadiumCapacity,
       };
 
-      const tier = parseInt(cd.divisionId.split('-')[1]);
-      const squad = generateSquad(club.id, cd.squadQuality, 1, tier);
+      const squad = generateSquad(club.id, cd.squadQuality, 1, playerDivision);
       let totalWages = 0;
       squad.forEach(p => {
         allPlayers[p.id] = p;
@@ -1346,13 +1012,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       clubs[club.id] = club;
     });
 
-    const clubIds = Object.keys(clubs);
-    // Build per-division structures
-    const divisionClubs = getClubsByDivision();
-    const divisionFixtures = generateAllDivisionFixtures(divisionClubs);
-    const divisionTables = buildAllDivisionTables(divisionFixtures, divisionClubs);
-    const playerDivision = clubs[clubId]?.divisionId || 'div-1';
-    // Backward-compat aliases for the player's division
+    // Build league structures (single league only)
+    const leagueClubIds = leagueClubData.map(cd => cd.id);
+    const leagueTotalWeeks = league?.totalWeeks || TOTAL_WEEKS;
+    const divisionClubs: Record<string, string[]> = { [playerDivision]: leagueClubIds };
+    const divisionFixtures: Record<string, Match[]> = { [playerDivision]: generateDivisionFixtures(leagueClubIds, leagueTotalWeeks) };
+    const divisionTables: Record<string, LeagueTableEntry[]> = { [playerDivision]: buildLeagueTable(divisionFixtures[playerDivision], leagueClubIds) };
     const fixtures = divisionFixtures[playerDivision];
     const leagueTable = divisionTables[playerDivision];
 
@@ -1388,13 +1053,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const scoutCount = initialStaff.filter(s => s.role === 'scout').length;
 
     // Generate cup draw
-    const cup = generateCupDraw(clubIds, clubs);
+    const cup = generateCupDraw(leagueClubIds);
 
     set({
       gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: TOTAL_WEEKS,
       transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable,
       divisionFixtures, divisionTables, divisionClubs, playerDivision,
-      playoffs: [], lastPromotionRelegation: null, derbies: DERBIES,
+      lastSeasonTurnover: null, derbies: DERBIES,
       activeLoans: [], incomingLoanOffers: [],
       transferMarket, shortlist: [], scoutWatchList: [], freeAgents: [], transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
@@ -1419,7 +1084,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       unlockedAchievements: [], pendingAchievementIds: [],
       managerStats: { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
       clubRecords: createEmptyRecords(),
-      careerTimeline: [createMilestone('season_start', 'Career Begins', `Started managing ${CLUBS_DATA.find(c => c.id === clubId)?.name || 'a club'}.`, 1, 1, 'calendar')],
+      careerTimeline: [createMilestone('season_start', 'Career Begins', `Started managing ${ALL_CLUBS.find(c => c.id === clubId)?.name || 'a club'}.`, 1, 1, 'calendar')],
       managerProgression: createDefaultProgression(),
       cup,
       weeklyObjectives: generateWeeklyObjectives(true),
@@ -1457,11 +1122,6 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   advanceWeek: () => {
     const state = get();
-    // Playoff phase: separate flow
-    if (state.seasonPhase === 'playoffs') {
-      advancePlayoffWeek(set, get);
-      return;
-    }
     // International phase: separate flow
     if (state.seasonPhase === 'international') {
       advanceInternationalWeekImpl(set, get);
@@ -1647,26 +1307,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const updatedFixtures = [...fixtures];
     const aiMatches = weekMatches.filter(m => m.homeClubId !== playerClubId && m.awayClubId !== playerClubId);
 
-    // Simulate ALL other divisions' matches for this week
+    // Only one league — no other divisions to simulate
     const updatedDivisionFixtures = { ...state.divisionFixtures };
     const playerDiv = state.playerDivision;
-    for (const divId of ['div-1', 'div-2', 'div-3', 'div-4'] as DivisionId[]) {
-      if (divId === playerDiv) continue; // handled below via updatedFixtures
-      const divFixtures = [...(updatedDivisionFixtures[divId] || [])];
-      const divWeekMatches = divFixtures.filter(m => m.week === week && !m.played);
-      for (const m of divWeekMatches) {
-        const idx = divFixtures.findIndex(f => f.id === m.id);
-        const hc = clubs[m.homeClubId];
-        const ac = clubs[m.awayClubId];
-        if (!hc || !ac) continue;
-        const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
-        const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
-        const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season);
-        divFixtures[idx] = result;
-        applyAIMatchEvents(result.events, newPlayers, clubs, week);
-      }
-      updatedDivisionFixtures[divId] = divFixtures;
-    }
 
     for (const m of aiMatches) {
       const idx = updatedFixtures.findIndex(f => f.id === m.id);
@@ -2969,8 +2612,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       playerDivision: state.playerDivision,
       derbies: state.derbies,
       seasonPhase: state.seasonPhase,
-      playoffs: state.playoffs,
-      lastPromotionRelegation: state.lastPromotionRelegation,
+      lastSeasonTurnover: state.lastSeasonTurnover,
       clubRecords: state.clubRecords,
       careerTimeline: state.careerTimeline,
       managerProgression: state.managerProgression,
@@ -3067,9 +2709,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const leagueTable = buildLeagueTable(data.fixtures, clubIds);
 
       // Ensure division data exists (backward compat for old saves)
-      const playerDivision: DivisionId = data.playerDivision || 'div-1';
-      const divisionClubs: Record<DivisionId, string[]> = data.divisionClubs || { 'div-1': clubIds, 'div-2': [], 'div-3': [], 'div-4': [] };
-      const divisionFixtures: Record<DivisionId, Match[]> = data.divisionFixtures || { 'div-1': data.fixtures, 'div-2': [], 'div-3': [], 'div-4': [] };
+      const playerDivision: LeagueId = data.playerDivision || 'eng';
+      const divisionClubs: Record<string, string[]> = data.divisionClubs || { [playerDivision]: clubIds };
+      const divisionFixtures: Record<string, Match[]> = data.divisionFixtures || { [playerDivision]: data.fixtures };
       const divisionTables = buildAllDivisionTables(divisionFixtures, divisionClubs);
 
       set({
@@ -3086,7 +2728,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         managerStats: data.managerStats || { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
         activeLoans: data.activeLoans || [],
         incomingLoanOffers: data.incomingLoanOffers || [],
-        cup: data.cup || generateCupDraw(clubIds, data.clubs),
+        cup: data.cup || generateCupDraw(clubIds),
         fanMood: data.fanMood ?? 50,
         activeChallenge: data.activeChallenge || null,
         pendingPressConference: null,
@@ -3100,8 +2742,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         clubRecords: data.clubRecords || createEmptyRecords(),
         careerTimeline: data.careerTimeline || [],
         managerProgression: data.managerProgression || createDefaultProgression(),
-        playoffs: data.playoffs || [],
-        lastPromotionRelegation: data.lastPromotionRelegation || null,
+        lastSeasonTurnover: data.lastSeasonTurnover || null,
         weeklyObjectives: data.weeklyObjectives || [],
         objectiveStreak: data.objectiveStreak || 0,
         weekCliffhangers: data.weekCliffhangers || [],
@@ -3182,22 +2823,24 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Determine new club based on prestige option
     const currentClubId = state.playerClubId;
-    const allClubs = CLUBS_DATA;
+    const allClubData = ALL_CLUBS;
 
     let newClubId: string;
     let budgetMultiplier = 1;
     let preserveProgression = true;
 
     if (optionId === 'rival') {
-      // Pick a random different club in the same division
-      const sameDivision = allClubs.filter(c => c.divisionId === state.playerDivision && c.id !== currentClubId);
-      newClubId = sameDivision.length > 0 ? sameDivision[Math.floor(Math.random() * sameDivision.length)].id : currentClubId;
+      // Pick a random different club in the same league
+      const sameLeague = allClubData.filter(c => c.divisionId === state.playerDivision && c.id !== currentClubId);
+      newClubId = sameLeague.length > 0 ? sameLeague[Math.floor(Math.random() * sameLeague.length)].id : currentClubId;
     } else if (optionId === 'drop-division') {
-      // Pick a random club from a lower division
-      const currentDiv = state.playerDivision;
-      const divNum = parseInt(currentDiv.split('-')[1] || '1', 10) || 1;
-      const lowerDiv = `div-${Math.min(divNum + 1, 4)}` as DivisionId;
-      const lowerClubs = allClubs.filter(c => c.divisionId === lowerDiv);
+      // Pick a random club from a different league (lower quality tier if possible)
+      const currentLeague = LEAGUES.find(l => l.id === state.playerDivision);
+      const currentTier = currentLeague?.qualityTier || 1;
+      const lowerLeagues = LEAGUES.filter(l => l.qualityTier > currentTier);
+      const targetLeague = lowerLeagues.length > 0 ? lowerLeagues[Math.floor(Math.random() * lowerLeagues.length)] : currentLeague;
+      const targetLeagueId = targetLeague?.id || state.playerDivision;
+      const lowerClubs = allClubData.filter(c => c.divisionId === targetLeagueId);
       newClubId = lowerClubs.length > 0 ? lowerClubs[Math.floor(Math.random() * lowerClubs.length)].id : currentClubId;
       budgetMultiplier = 1.5;
     } else {

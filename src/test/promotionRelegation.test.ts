@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { determineZones, generatePlayoffBracket } from '@/utils/promotionRelegation';
-import { DIVISIONS } from '@/data/league';
-import type { LeagueTableEntry } from '@/types/game';
+import { determineZones, generateReplacementClub, applySeasonTurnover } from '@/utils/promotionRelegation';
+import { LEAGUES } from '@/data/league';
+import type { LeagueTableEntry, LeagueInfo, Club } from '@/types/game';
 
 function makeTable(count: number): LeagueTableEntry[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -19,106 +19,154 @@ function makeTable(count: number): LeagueTableEntry[] {
   }));
 }
 
-describe('Promotion/Relegation', () => {
+function makeLeague(overrides: Partial<LeagueInfo> = {}): LeagueInfo {
+  return {
+    id: 'test',
+    name: 'Test League',
+    shortName: 'TST',
+    country: 'Testland',
+    countryCode: 'TS',
+    teamCount: 20,
+    totalWeeks: 46,
+    replacedSlots: 3,
+    description: 'A test league',
+    difficulty: 'Medium',
+    colorClass: 'text-blue-400',
+    prizeMoney: 1_000_000,
+    averageWage: 50_000,
+    qualityTier: 2,
+    ...overrides,
+  } as LeagueInfo;
+}
+
+describe('Season Turnover', () => {
   describe('determineZones', () => {
-    it('should determine zones for div-2 (2 auto-promote, 4 playoff, 3 auto-relegate)', () => {
-      const div2 = DIVISIONS.find(d => d.id === 'div-2')!;
-      const table = makeTable(24);
-      const zones = determineZones(table, div2);
+    it('should determine zones for eng (20 teams, 3 replaced)', () => {
+      const eng = LEAGUES.find(l => l.id === 'eng')!;
+      const table = makeTable(eng.teamCount);
+      const zones = determineZones(table, eng);
 
-      expect(zones.autoPromoted).toHaveLength(2);
-      expect(zones.autoPromoted).toEqual(['club-1', 'club-2']);
-      expect(zones.playoffContenders).toHaveLength(4);
-      expect(zones.playoffContenders).toEqual(['club-3', 'club-4', 'club-5', 'club-6']);
-      expect(zones.autoRelegated).toHaveLength(3);
-      expect(zones.autoRelegated).toEqual(['club-22', 'club-23', 'club-24']);
-      expect(zones.replaced).toHaveLength(0);
+      expect(zones.replaced).toHaveLength(eng.replacedSlots);
+      expect(zones.safe).toHaveLength(eng.teamCount - eng.replacedSlots);
+      // Bottom 3 clubs should be replaced
+      expect(zones.replaced).toEqual([`club-${eng.teamCount - 2}`, `club-${eng.teamCount - 1}`, `club-${eng.teamCount}`]);
     });
 
-    it('should determine zones for div-4 (2 auto-promote, 4 playoff, 0 relegate, 2 replaced)', () => {
-      const div4 = DIVISIONS.find(d => d.id === 'div-4')!;
-      const table = makeTable(24);
-      const zones = determineZones(table, div4);
+    it('should determine zones for a league with 2 replaced slots', () => {
+      const league = makeLeague({ replacedSlots: 2, teamCount: 18 });
+      const table = makeTable(18);
+      const zones = determineZones(table, league);
 
-      expect(zones.autoPromoted).toHaveLength(2);
-      expect(zones.playoffContenders).toHaveLength(4);
-      expect(zones.autoRelegated).toHaveLength(0);
       expect(zones.replaced).toHaveLength(2);
-      expect(zones.replaced).toEqual(['club-23', 'club-24']);
+      expect(zones.safe).toHaveLength(16);
+      expect(zones.replaced).toEqual(['club-17', 'club-18']);
     });
 
-    it('should determine zones for div-1 (top flight, no promotion, 3 relegate)', () => {
-      const div1 = DIVISIONS.find(d => d.id === 'div-1')!;
-      const table = makeTable(20);
-      const zones = determineZones(table, div1);
+    it('should handle a league with 0 replaced slots', () => {
+      const league = makeLeague({ replacedSlots: 0, teamCount: 12 });
+      const table = makeTable(12);
+      const zones = determineZones(table, league);
 
-      expect(zones.autoPromoted).toHaveLength(0);
-      expect(zones.playoffContenders).toHaveLength(0);
-      expect(zones.autoRelegated).toHaveLength(3);
-      expect(zones.autoRelegated).toEqual(['club-18', 'club-19', 'club-20']);
+      expect(zones.replaced).toHaveLength(0);
+      expect(zones.safe).toHaveLength(12);
     });
 
     it('should place all clubs in exactly one zone', () => {
-      const div3 = DIVISIONS.find(d => d.id === 'div-3')!;
-      const table = makeTable(24);
-      const zones = determineZones(table, div3);
-      const allIds = [
-        ...zones.autoPromoted,
-        ...zones.playoffContenders,
-        ...zones.midTable,
-        ...zones.autoRelegated,
-        ...zones.replaced,
-      ];
-      expect(allIds).toHaveLength(24);
-      expect(new Set(allIds).size).toBe(24);
+      const league = makeLeague({ replacedSlots: 3, teamCount: 20 });
+      const table = makeTable(20);
+      const zones = determineZones(table, league);
+      const allIds = [...zones.safe, ...zones.replaced];
+      expect(allIds).toHaveLength(20);
+      expect(new Set(allIds).size).toBe(20);
+    });
+
+    it('works with every configured league', () => {
+      for (const league of LEAGUES) {
+        const table = makeTable(league.teamCount);
+        const zones = determineZones(table, league);
+        expect(zones.replaced).toHaveLength(league.replacedSlots);
+        expect(zones.safe).toHaveLength(league.teamCount - league.replacedSlots);
+        // No overlap
+        const allIds = [...zones.safe, ...zones.replaced];
+        expect(new Set(allIds).size).toBe(league.teamCount);
+      }
     });
   });
 
-  describe('generatePlayoffBracket', () => {
-    it('should generate a valid bracket with 4 contenders', () => {
-      const contenders = ['club-3', 'club-4', 'club-5', 'club-6'];
-      const bracket = generatePlayoffBracket(contenders, 'div-2');
-
-      expect(bracket.divisionId).toBe('div-2');
-      expect(bracket.bracket.length).toBeGreaterThanOrEqual(2);
-      expect(bracket.currentRound).toBe('semi-leg1');
-      expect(bracket.promotedClubId).toBeNull();
+  describe('generateReplacementClub', () => {
+    it('generates a valid replacement club for eng', () => {
+      const { clubData, clubId } = generateReplacementClub(2, 'eng');
+      expect(clubId).toContain('replaced-eng-2-');
+      expect(clubData.name).toBeTruthy();
+      expect(clubData.shortName).toBeTruthy();
+      expect(clubData.budget).toBeGreaterThan(0);
+      expect(clubData.squadQuality).toBeGreaterThan(0);
+      expect(clubData.divisionId).toBe('eng');
     });
 
-    it('should auto-promote highest-ranked contender with fewer than 4 contenders', () => {
-      const bracket = generatePlayoffBracket(['club-3', 'club-4'], 'div-2');
-      expect(bracket.bracket).toHaveLength(0);
-      expect(bracket.currentRound).toBeNull();
-      expect(bracket.promotedClubId).toBe('club-3');
+    it('generates a valid replacement club for a non-pool league', () => {
+      const { clubData, clubId } = generateReplacementClub(3, 'cyp');
+      expect(clubId).toContain('replaced-cyp-3-');
+      expect(clubData.name).toBeTruthy();
+      expect(clubData.budget).toBeGreaterThan(0);
     });
 
-    it('should auto-promote the only contender when just 1 exists', () => {
-      const bracket = generatePlayoffBracket(['club-3'], 'div-3');
-      expect(bracket.bracket).toHaveLength(0);
-      expect(bracket.promotedClubId).toBe('club-3');
+    it('generates unique IDs for successive calls', () => {
+      const ids = new Set<string>();
+      for (let i = 0; i < 10; i++) {
+        const { clubId } = generateReplacementClub(1, 'esp');
+        expect(ids.has(clubId)).toBe(false);
+        ids.add(clubId);
+      }
+    });
+  });
+
+  describe('applySeasonTurnover', () => {
+    it('removes bottom clubs from the league', () => {
+      const leagueId = 'eng';
+      const league = LEAGUES.find(l => l.id === leagueId)!;
+      const table = makeTable(league.teamCount);
+      const leagueClubs = table.map(e => e.clubId);
+
+      // Create minimal club records
+      const clubs: Record<string, Club> = {};
+      for (const clubId of leagueClubs) {
+        clubs[clubId] = {
+          id: clubId, name: clubId, shortName: clubId.slice(0, 3).toUpperCase(),
+          color: '#fff', secondaryColor: '#000',
+          budget: 10_000_000, wageBill: 100_000,
+          reputation: 3, facilities: 5, youthRating: 5, fanBase: 30, boardPatience: 60,
+          playerIds: [], formation: '4-3-3', lineup: [], subs: [],
+          divisionId: leagueId,
+        } as Club;
+      }
+
+      const { turnover, updatedClubs, updatedLeagueClubs } = applySeasonTurnover(
+        leagueId, leagueClubs, table, clubs
+      );
+
+      // Bottom 3 should be replaced
+      expect(turnover.replacedClubs).toHaveLength(league.replacedSlots);
+      expect(turnover.leagueId).toBe(leagueId);
+
+      // Replaced clubs should be removed from the clubs record
+      for (const replacedId of turnover.replacedClubs) {
+        expect(updatedClubs[replacedId]).toBeUndefined();
+      }
+
+      // Updated league clubs should not contain replaced clubs
+      expect(updatedLeagueClubs).toHaveLength(league.teamCount - league.replacedSlots);
+      for (const replacedId of turnover.replacedClubs) {
+        expect(updatedLeagueClubs).not.toContain(replacedId);
+      }
     });
 
-    it('should return null promotedClubId with 0 contenders', () => {
-      const bracket = generatePlayoffBracket([], 'div-2');
-      expect(bracket.bracket).toHaveLength(0);
-      expect(bracket.promotedClubId).toBeNull();
-    });
-
-    it('should create 5 ties (2 semi-leg1, 2 semi-leg2, 1 final) with 4 contenders', () => {
-      const bracket = generatePlayoffBracket(['a', 'b', 'c', 'd'], 'div-2');
-      expect(bracket.bracket).toHaveLength(5);
-      expect(bracket.bracket.filter(t => t.round === 'semi-leg1')).toHaveLength(2);
-      expect(bracket.bracket.filter(t => t.round === 'semi-leg2')).toHaveLength(2);
-      expect(bracket.bracket.filter(t => t.round === 'final')).toHaveLength(1);
-    });
-
-    it('should seed 1st vs 4th and 2nd vs 3rd in semis', () => {
-      const bracket = generatePlayoffBracket(['a', 'b', 'c', 'd'], 'div-2');
-      const semis = bracket.bracket.filter(t => t.round === 'semi-leg1');
-      expect(semis[0].homeClubId).toBe('a');
-      expect(semis[0].awayClubId).toBe('d');
-      expect(semis[1].homeClubId).toBe('b');
-      expect(semis[1].awayClubId).toBe('c');
+    it('handles unknown league gracefully', () => {
+      const { turnover, updatedClubs, updatedLeagueClubs } = applySeasonTurnover(
+        'nonexistent', ['a', 'b'], [], {}
+      );
+      expect(turnover.replacedClubs).toHaveLength(0);
+      expect(updatedLeagueClubs).toEqual(['a', 'b']);
     });
   });
 });

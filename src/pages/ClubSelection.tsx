@@ -1,53 +1,35 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
-import { CLUBS_DATA, DIVISIONS } from '@/data/league';
+import { CLUBS_DATA, LEAGUES } from '@/data/league';
 import { NATIONS, NATION_STARS } from '@/data/nations';
 import { getFlag } from '@/utils/nationality';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Star, Wallet, Users, Zap, Crown, Shield, TrendingUp, Target, Pickaxe, Loader2, Search } from 'lucide-react';
+import { ArrowLeft, Star, Wallet, Users, Zap, Loader2, Search, Globe, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { DivisionId } from '@/types/game';
+import type { LeagueId } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
 import { toast } from 'sonner';
 
-const divisionMeta: Record<string, {
-  icon: React.ElementType;
-  gradient: string;
-  glow: string;
-  tagline: string;
-  emoji: string;
-}> = {
-  'div-1': {
-    icon: Crown,
-    gradient: 'from-amber-500/20 via-yellow-600/10 to-transparent',
-    glow: 'shadow-[0_0_60px_-15px_rgba(234,179,8,0.3)]',
-    tagline: 'Big budgets. World-class squads. Glory awaits.',
-    emoji: 'crown',
-  },
-  'div-2': {
-    icon: TrendingUp,
-    gradient: 'from-blue-500/20 via-blue-600/10 to-transparent',
-    glow: 'shadow-[0_0_60px_-15px_rgba(59,130,246,0.3)]',
-    tagline: 'Rising clubs hungry for the top flight.',
-    emoji: 'trending-up',
-  },
-  'div-3': {
-    icon: Target,
-    gradient: 'from-amber-400/20 via-orange-500/10 to-transparent',
-    glow: 'shadow-[0_0_60px_-15px_rgba(245,158,11,0.3)]',
-    tagline: 'Smart tactics and shrewd deals win here.',
-    emoji: 'target',
-  },
-  'div-4': {
-    icon: Pickaxe,
-    gradient: 'from-red-500/20 via-rose-600/10 to-transparent',
-    glow: 'shadow-[0_0_60px_-15px_rgba(239,68,68,0.3)]',
-    tagline: 'Start from nothing. Build a legacy.',
-    emoji: 'pickaxe',
-  },
+// Country flags by country code
+const COUNTRY_FLAGS: Record<string, string> = {
+  GB: '🇬🇧', ES: '🇪🇸', IT: '🇮🇹', DE: '🇩🇪', FR: '🇫🇷',
+  NL: '🇳🇱', PT: '🇵🇹', BE: '🇧🇪', TR: '🇹🇷', CZ: '🇨🇿',
+  GR: '🇬🇷', PL: '🇵🇱', DK: '🇩🇰', NO: '🇳🇴', CH: '🇨🇭',
+  AT: '🇦🇹', SCO: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', SE: '🇸🇪', HR: '🇭🇷', HU: '🇭🇺',
+  RS: '🇷🇸', RO: '🇷🇴', UA: '🇺🇦', BG: '🇧🇬', SK: '🇸🇰',
+  FI: '🇫🇮', IS: '🇮🇸', IE: '🇮🇪', IL: '🇮🇱', CY: '🇨🇾',
 };
+
+// Group leagues by region for display
+const LEAGUE_REGIONS = [
+  { label: 'Top 5 Leagues', ids: ['eng', 'esp', 'ita', 'ger', 'fra'] },
+  { label: 'Strong Leagues', ids: ['ned', 'por', 'bel', 'tur', 'sco'] },
+  { label: 'Central & Eastern Europe', ids: ['cze', 'pol', 'hun', 'rou', 'ukr', 'srb', 'bgr', 'svk', 'cro'] },
+  { label: 'Nordic Leagues', ids: ['den', 'nor', 'swe', 'fin', 'isl'] },
+  { label: 'Other Leagues', ids: ['gre', 'che', 'aut', 'irl', 'isr', 'cyp'] },
+];
 
 // Group nations by confederation for display
 const CONFEDERATION_LABELS: Record<string, string> = {
@@ -64,10 +46,11 @@ const ClubSelection = () => {
   const { initGame, initNationalTeam } = useGameStore();
   const [step, setStep] = useState<'nationality' | 'league' | 'club'>('nationality');
   const [selectedNationality, setSelectedNationality] = useState<string | null>(null);
-  const [selectedLeague, setSelectedLeague] = useState<DivisionId | null>(null);
+  const [selectedLeague, setSelectedLeague] = useState<LeagueId | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [nationSearch, setNationSearch] = useState('');
+  const [leagueSearch, setLeagueSearch] = useState('');
 
   const handleStart = () => {
     if (!selected || !selectedNationality || loading) return;
@@ -94,8 +77,8 @@ const ClubSelection = () => {
     window.scrollTo(0, 0);
   };
 
-  const handleLeagueSelect = (divisionId: DivisionId) => {
-    setSelectedLeague(divisionId);
+  const handleLeagueSelect = (leagueId: LeagueId) => {
+    setSelectedLeague(leagueId);
     setSelected(null);
     setStep('club');
     window.scrollTo(0, 0);
@@ -114,9 +97,22 @@ const ClubSelection = () => {
     }
   };
 
-  const divisionData = DIVISIONS.find(d => d.id === selectedLeague);
-  const leagueClubs = CLUBS_DATA.filter(c => c.divisionId === selectedLeague);
+  const leagueInfo = LEAGUES.find(l => l.id === selectedLeague);
+  const leagueClubs = useMemo(() =>
+    CLUBS_DATA.filter(c => c.divisionId === selectedLeague).sort((a, b) => b.squadQuality - a.squadQuality),
+    [selectedLeague]
+  );
   const selectedClub = CLUBS_DATA.find(c => c.id === selected);
+
+  // Filter leagues by search
+  const filteredLeagues = useMemo(() => {
+    if (!leagueSearch) return null;
+    const q = leagueSearch.toLowerCase();
+    return LEAGUES.filter(l =>
+      l.name.toLowerCase().includes(q) ||
+      l.country.toLowerCase().includes(q)
+    );
+  }, [leagueSearch]);
 
   return (
     <div className="min-h-screen bg-background safe-area-top">
@@ -141,12 +137,14 @@ const ClubSelection = () => {
                 </>
               ) : step === 'league' ? (
                 <>
-                  <h1 className="text-lg font-bold text-foreground font-display">Choose Your Challenge</h1>
-                  <p className="text-xs text-muted-foreground">Where does your story begin?</p>
+                  <h1 className="text-lg font-bold text-foreground font-display">Choose Your League</h1>
+                  <p className="text-xs text-muted-foreground">30 leagues across Europe</p>
                 </>
               ) : (
                 <>
-                  <h1 className={cn('text-lg font-bold font-display', divisionData?.colorClass)}>{divisionData?.name}</h1>
+                  <h1 className={cn('text-lg font-bold font-display', leagueInfo?.colorClass)}>
+                    {COUNTRY_FLAGS[leagueInfo?.countryCode || ''] || ''} {leagueInfo?.name}
+                  </h1>
                   <p className="text-xs text-muted-foreground">Pick your club</p>
                 </>
               )}
@@ -215,9 +213,7 @@ const ClubSelection = () => {
                               )}
                             >
                               <div className="flex items-center gap-3">
-                                {/* Flag */}
                                 <span className="text-3xl leading-none shrink-0" role="img" aria-label={nation.name}>{flag}</span>
-                                {/* Name + ranking */}
                                 <div className="flex-1 min-w-0">
                                   <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
                                   <div className="flex items-center gap-2 mt-0.5">
@@ -232,7 +228,6 @@ const ClubSelection = () => {
                                   </div>
                                 </div>
                               </div>
-                              {/* Star players */}
                               {stars.length > 0 && (
                                 <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-border/20">
                                   {stars.map((player) => (
@@ -267,87 +262,49 @@ const ClubSelection = () => {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -30 }}
               transition={{ duration: 0.25 }}
-              className="space-y-4"
+              className="space-y-5"
             >
-              {DIVISIONS.map((division, i) => {
-                const meta = divisionMeta[division.id];
-                const Icon = meta?.icon || Shield;
-                const difficulty = DIFFICULTY_CONFIG[division.difficulty];
-                const bars = DIFFICULTY_BARS[division.difficulty] || 1;
-                const clubsInDiv = CLUBS_DATA.filter(c => c.divisionId === division.id);
+              {/* League search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search leagues or countries..."
+                  value={leagueSearch}
+                  onChange={e => setLeagueSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-card/60 border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                />
+              </div>
 
-                return (
-                  <motion.div
-                    key={division.id}
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1, type: 'spring', stiffness: 300, damping: 30 }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleLeagueSelect(division.id)}
-                      className={cn(
-                        'relative overflow-hidden rounded-2xl border border-border/40 cursor-pointer w-full text-left',
-                        'active:scale-[0.98] transition-all duration-200',
-                        'bg-card/40 backdrop-blur-xl',
-                        meta?.glow,
-                        'hover:border-border/70'
-                      )}
-                    >
-                      {/* Gradient overlay */}
-                      <div className={cn('absolute inset-0 bg-gradient-to-br pointer-events-none', meta?.gradient)} />
-
-                      <div className="relative p-5">
-                        {/* Top row: icon + difficulty */}
-                        <div className="flex items-center justify-between mb-4">
-                          <div className={cn(
-                            'w-14 h-14 rounded-2xl flex items-center justify-center',
-                            'bg-white/5 border border-white/10',
-                          )}>
-                            <Icon className={cn('w-7 h-7', division.colorClass)} />
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            {/* Difficulty bars */}
-                            <div className="flex gap-1">
-                              {[1, 2, 3, 4].map(n => (
-                                <div
-                                  key={n}
-                                  className={cn(
-                                    'w-1.5 h-4 rounded-full transition-colors',
-                                    n <= bars ? difficulty?.bar || 'bg-muted' : 'bg-white/5'
-                                  )}
-                                />
-                              ))}
-                            </div>
-                            <span className={cn('text-xs font-semibold', difficulty?.color)}>
-                              {difficulty?.label}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Name + tagline */}
-                        <h2 className={cn('font-display font-bold text-xl text-foreground mb-1')}>
-                          {division.name}
-                        </h2>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {meta?.tagline}
-                        </p>
-
-                        {/* Stats chips */}
-                        <div className="flex items-center gap-3 mt-4">
-                          <span className="text-xs text-muted-foreground/70 bg-white/5 rounded-lg px-2.5 py-1 border border-white/5">
-                            {clubsInDiv.length} clubs
-                          </span>
-                          <span className="text-xs text-muted-foreground/70 bg-white/5 rounded-lg px-2.5 py-1 border border-white/5">
-                            {division.totalWeeks} weeks
-                          </span>
-                        </div>
+              {filteredLeagues ? (
+                /* Search results */
+                <div className="space-y-3">
+                  {filteredLeagues.map((league, i) => (
+                    <LeagueCard key={league.id} league={league} index={i} onSelect={handleLeagueSelect} />
+                  ))}
+                  {filteredLeagues.length === 0 && (
+                    <p className="text-center text-muted-foreground text-sm py-8">No leagues found</p>
+                  )}
+                </div>
+              ) : (
+                /* Grouped by region */
+                LEAGUE_REGIONS.map(region => {
+                  const regionLeagues = region.ids.map(id => LEAGUES.find(l => l.id === id)).filter(Boolean);
+                  return (
+                    <div key={region.label}>
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2.5 px-1 flex items-center gap-1.5">
+                        <Globe className="w-3.5 h-3.5" />
+                        {region.label}
+                      </h3>
+                      <div className="space-y-3">
+                        {regionLeagues.map((league, i) => league && (
+                          <LeagueCard key={league.id} league={league} index={i} onSelect={handleLeagueSelect} />
+                        ))}
                       </div>
-                    </button>
-                  </motion.div>
-                );
-              })}
+                    </div>
+                  );
+                })
+              )}
             </motion.div>
           ) : (
             <motion.div
@@ -396,6 +353,9 @@ const ClubSelection = () => {
                               )}
                             />
                           ))}
+                          {club.stadiumName && (
+                            <span className="text-[10px] text-muted-foreground/60 ml-2 truncate">{club.stadiumName}</span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right shrink-0">
@@ -448,5 +408,78 @@ const ClubSelection = () => {
     </div>
   );
 };
+
+// ── League Card Component ──
+function LeagueCard({ league, index, onSelect }: { league: typeof LEAGUES[number]; index: number; onSelect: (id: LeagueId) => void }) {
+  const difficulty = DIFFICULTY_CONFIG[league.difficulty];
+  const bars = DIFFICULTY_BARS[league.difficulty] || 1;
+  const flag = COUNTRY_FLAGS[league.countryCode] || '';
+  const clubCount = CLUBS_DATA.filter(c => c.divisionId === league.id).length;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05, type: 'spring', stiffness: 300, damping: 30 }}
+    >
+      <button
+        type="button"
+        onClick={() => onSelect(league.id)}
+        className={cn(
+          'relative overflow-hidden rounded-2xl border border-border/40 cursor-pointer w-full text-left',
+          'active:scale-[0.98] transition-all duration-200',
+          'bg-card/40 backdrop-blur-xl',
+          'hover:border-border/70'
+        )}
+      >
+        <div className="relative p-4">
+          <div className="flex items-center gap-3">
+            {/* Country flag */}
+            <span className="text-3xl leading-none shrink-0">{flag}</span>
+
+            {/* League info */}
+            <div className="flex-1 min-w-0">
+              <h2 className="font-display font-bold text-base text-foreground truncate">
+                {league.name}
+              </h2>
+              <p className="text-xs text-muted-foreground mt-0.5">{league.country}</p>
+            </div>
+
+            {/* Difficulty */}
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4].map(n => (
+                  <div
+                    key={n}
+                    className={cn(
+                      'w-1.5 h-4 rounded-full transition-colors',
+                      n <= bars ? difficulty?.bar || 'bg-muted' : 'bg-white/5'
+                    )}
+                  />
+                ))}
+              </div>
+              <span className={cn('text-xs font-semibold', difficulty?.color)}>
+                {difficulty?.label}
+              </span>
+            </div>
+          </div>
+
+          {/* Stats chips */}
+          <div className="flex items-center gap-2 mt-3">
+            <span className="text-[11px] text-muted-foreground/70 bg-white/5 rounded-lg px-2 py-0.5 border border-white/5">
+              {clubCount || league.teamCount} clubs
+            </span>
+            <span className="text-[11px] text-muted-foreground/70 bg-white/5 rounded-lg px-2 py-0.5 border border-white/5">
+              {league.totalWeeks} weeks
+            </span>
+            <span className="text-[11px] text-muted-foreground/70 bg-white/5 rounded-lg px-2 py-0.5 border border-white/5 flex items-center gap-1">
+              <Trophy className="w-3 h-3" /> {'\u00A3'}{(league.prizeMoney / 1_000_000).toFixed(league.prizeMoney >= 1_000_000 ? 0 : 1)}M
+            </span>
+          </div>
+        </div>
+      </button>
+    </motion.div>
+  );
+}
 
 export default ClubSelection;

@@ -11,7 +11,7 @@ interface HelpSection {
 const HELP_SECTIONS: HelpSection[] = [
   {
     title: 'Getting Started',
-    content: 'Pick a club from 92 teams across 4 divisions. Each club has different budgets, reputations, and facilities. Lower-division clubs are harder but more rewarding. Your goal: build a dynasty through promotions, transfers, and tactical mastery.',
+    content: 'Pick a club from 30 European leagues. Each club has different budgets, reputations, and facilities. Lower-tier leagues are harder but more rewarding. Your goal: build a dynasty through smart management, transfers, and tactical mastery.',
   },
   {
     title: 'Weekly Game Loop',
@@ -46,8 +46,8 @@ const HELP_SECTIONS: HelpSection[] = [
     content: 'The board sets seasonal objectives (critical/important/optional). Confidence changes based on match results, league position, and financial health. If confidence drops below 25, you get a warning. Below 10 = sacked. Win streaks boost confidence.',
   },
   {
-    title: 'Promotion & Relegation',
-    content: 'Top 2-3 teams auto-promote. Teams in playoff positions (3rd-6th) play two-legged semi-finals and a final for one promotion spot. Bottom 3 teams in each division are relegated (div-4 bottom 2 are replaced by new clubs).',
+    title: 'Season Turnover',
+    content: 'Each league operates independently — there is no promotion or relegation between leagues. At the end of each season, the bottom clubs in each league are replaced by newly generated clubs, keeping the competition fresh.',
   },
   {
     title: 'Cup Competition',
