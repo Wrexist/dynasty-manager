@@ -7,9 +7,10 @@ import type {
   Club, Player, DivisionId, FacilitiesState, ManagerProgression,
   MerchProductLine, MerchState, MerchCampaignType,
 } from '@/types/game';
+import { LEAGUES } from '@/data/league';
 import {
   MERCH_PRODUCT_LINES, MERCH_PRICING_TIERS, MERCH_BASE_INCOME_PER_FAN,
-  MERCH_DIVISION_SCALE, MERCH_TOTAL_REVENUE_FACTORS,
+  MERCH_QUALITY_TIER_SCALE, MERCH_TOTAL_REVENUE_FACTORS,
   STAR_PLAYER_MERCH_FACTOR, STAR_PLAYER_COUNT,
   STAR_PLAYER_SALE_DIP_FACTOR, STAR_SIGNING_BUZZ_FACTOR,
   MERCH_CAMPAIGNS,
@@ -79,7 +80,9 @@ export function calculateWeeklyMerchRevenue(
 ): number {
   if (merch.activeProductLines.length === 0) return 0;
 
-  const divisionScale = MERCH_DIVISION_SCALE[division] || 0.4;
+  const leagueInfo = LEAGUES.find(l => l.id === division);
+  const qualityTier = leagueInfo?.qualityTier || 3;
+  const divisionScale = MERCH_QUALITY_TIER_SCALE[qualityTier] || 0.4;
   const baseRevenue = club.fanBase * MERCH_BASE_INCOME_PER_FAN * divisionScale;
 
   // Product line factor: fraction of total possible revenue factors
