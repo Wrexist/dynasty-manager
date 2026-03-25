@@ -39,7 +39,6 @@ export const REP_MAX = 1000;
 
 // ── Manager Stat Growth Per Activity ──
 export const GROWTH_TACTICAL_PER_MATCH = 0.15;
-export const GROWTH_TACTICAL_PER_FORMATION_CHANGE = 0.05;
 export const GROWTH_MOTIVATION_PER_MORALE_EVENT = 0.1;
 export const GROWTH_NEGOTIATION_PER_TRANSFER = 0.3;
 export const GROWTH_SCOUTING_PER_ASSIGNMENT = 0.15;
@@ -62,15 +61,10 @@ export const MOD_MEDIA_PRESS = 0.04;                // +4% press effects per poi
 export const MAX_VACANCIES = 5;
 export const VACANCY_DURATION_WEEKS = 8;
 export const JOB_MARKET_REFRESH_WEEKS = [1, 24, 46];
-export const DESPERATION_VACANCY_WEEKS = 12;
-export const OFFER_CHANCE_BASE = 0.02;              // per week per club
 export const AI_SACKING_POSITION_THRESHOLD = 6;     // positions below expected = sacked
 export const STARTING_JOB_OFFERS = 3;
 
 // ── Manager Contract ──
-export const MIN_CONTRACT_LENGTH = 1;
-export const MAX_CONTRACT_LENGTH = 5;
-export const CAREER_SACKING_CONFIDENCE_THRESHOLD = 15;
 
 // ── Retirement ──
 export const DEFAULT_RETIREMENT_AGE = 65;

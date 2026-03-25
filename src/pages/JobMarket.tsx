@@ -44,7 +44,7 @@ const JobMarket = () => {
   };
 
   const availableVacancies = jobVacancies.filter(v =>
-    !v.applied && (v.expiresSeason > season || (v.expiresSeason === season && v.expiresWeek > week))
+    v.expiresSeason > season || (v.expiresSeason === season && v.expiresWeek > week)
   );
 
   return (
@@ -158,9 +158,14 @@ function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canA
     <GlassPanel className="p-3">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-sm font-bold text-foreground">{vacancy.clubName}</h3>
-        {!canApply && (
-          <span className="text-[9px] bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded-full font-semibold">Rep too low</span>
-        )}
+        <div className="flex gap-1">
+          {vacancy.applied && (
+            <span className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded-full font-semibold">Applied</span>
+          )}
+          {!canApply && !vacancy.applied && (
+            <span className="text-[9px] bg-red-500/10 text-red-400 px-1.5 py-0.5 rounded-full font-semibold">Rep too low</span>
+          )}
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-1.5 text-[10px] mb-2">
         <div className="flex items-center gap-1 text-muted-foreground">
@@ -176,7 +181,7 @@ function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canA
       <Button
         size="sm"
         className="w-full h-8 text-xs gap-1.5"
-        disabled={!canApply}
+        disabled={!canApply || vacancy.applied}
         onClick={() => onApply(vacancy.id)}
       >
         <Send className="w-3 h-3" /> Apply

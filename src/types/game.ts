@@ -1076,7 +1076,7 @@ export interface ManagerCareerEntry {
   divisionId: string;
   startSeason: number;
   endSeason: number | null;            // null if still managing
-  reason: 'hired' | 'sacked' | 'resigned' | 'retired' | 'moved';
+  reason: 'hired' | 'sacked' | 'resigned' | 'retired' | 'moved' | 'contract_expired';
   bestFinish: number;
   titlesWon: number;
 }

@@ -111,14 +111,21 @@ const CareerOverview = () => {
           <TrendingUp className="w-4 h-4 text-primary" />
           <h3 className="text-sm font-bold text-foreground">Manager Attributes</h3>
         </div>
-        <div className="space-y-2">
-          <ManagerStatBar label="Tactical Knowledge" value={careerManager.attributes.tacticalKnowledge} />
-          <ManagerStatBar label="Motivation" value={careerManager.attributes.motivation} />
-          <ManagerStatBar label="Negotiation" value={careerManager.attributes.negotiation} />
-          <ManagerStatBar label="Scouting Eye" value={careerManager.attributes.scoutingEye} />
-          <ManagerStatBar label="Youth Development" value={careerManager.attributes.youthDevelopment} />
-          <ManagerStatBar label="Discipline" value={careerManager.attributes.discipline} />
-          <ManagerStatBar label="Media Handling" value={careerManager.attributes.mediaHandling} />
+        <div className="space-y-3">
+          {([
+            ['Tactical Knowledge', careerManager.attributes.tacticalKnowledge, 'Boosts tactical familiarity gain rate'],
+            ['Motivation', careerManager.attributes.motivation, 'Amplifies squad morale from results & talks'],
+            ['Negotiation', careerManager.attributes.negotiation, 'Reduces transfer fees when buying players'],
+            ['Scouting Eye', careerManager.attributes.scoutingEye, 'Speeds up scouting assignments'],
+            ['Youth Development', careerManager.attributes.youthDevelopment, 'Boosts youth prospect growth rate'],
+            ['Discipline', careerManager.attributes.discipline, 'Reduces card probability in matches'],
+            ['Media Handling', careerManager.attributes.mediaHandling, 'Amplifies press conference effects'],
+          ] as [string, number, string][]).map(([label, value, desc]) => (
+            <div key={label}>
+              <ManagerStatBar label={label} value={value} />
+              <p className="text-[9px] text-muted-foreground/60 italic mt-0.5 pl-0.5">{desc}</p>
+            </div>
+          ))}
         </div>
       </GlassPanel>
 
@@ -165,9 +172,9 @@ const CareerOverview = () => {
                   {entry.reason !== 'hired' && entry.endSeason && (
                     <span className={cn(
                       'text-[9px] font-semibold capitalize',
-                      entry.reason === 'sacked' ? 'text-red-400' : entry.reason === 'moved' ? 'text-blue-400' : 'text-muted-foreground'
+                      entry.reason === 'sacked' ? 'text-red-400' : entry.reason === 'moved' ? 'text-blue-400' : entry.reason === 'contract_expired' ? 'text-amber-400' : 'text-muted-foreground'
                     )}>
-                      {entry.reason}
+                      {entry.reason === 'contract_expired' ? 'expired' : entry.reason}
                     </span>
                   )}
                 </div>

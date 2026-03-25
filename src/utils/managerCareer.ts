@@ -33,13 +33,6 @@ import {
   LEGACY_MATCH_WIN_WEIGHT,
   LEGACY_REPUTATION_WEIGHT,
   LEGACY_AWARD_WEIGHT,
-  MOD_TACTICAL_FAMILIARITY,
-  MOD_MOTIVATION_MORALE,
-  MOD_NEGOTIATION_FEE,
-  MOD_SCOUTING_SPEED,
-  MOD_YOUTH_GROWTH,
-  MOD_DISCIPLINE_CARDS,
-  MOD_MEDIA_PRESS,
   MANAGER_TRAITS,
   AI_SACKING_POSITION_THRESHOLD,
 } from '@/config/managerCareer';
@@ -264,7 +257,7 @@ function generateBoardExpectation(qualityTier: 1 | 2 | 3 | 4, clubRep: number): 
   return 'Survive and stabilize the club';
 }
 
-function generateDefaultBonuses(qualityTier: 1 | 2 | 3 | 4): ManagerBonus[] {
+export function generateDefaultBonuses(qualityTier: 1 | 2 | 3 | 4): ManagerBonus[] {
   const bonuses: ManagerBonus[] = [];
 
   if (qualityTier >= 2) {
@@ -290,33 +283,6 @@ export function growAttribute(currentValue: number, growthAmount: number): numbe
   // Fractional growth: accumulate and apply when integer threshold crossed
   const newValue = currentValue + growthAmount;
   return clamp(newValue, STAT_MIN, STAT_MAX);
-}
-
-// ── Gameplay Modifiers ──
-
-export interface ManagerGameplayModifiers {
-  tacticalFamiliarityRate: number;
-  moraleEffectMultiplier: number;
-  transferFeeReduction: number;
-  scoutingSpeedMultiplier: number;
-  youthGrowthMultiplier: number;
-  cardReduction: number;
-  pressEffectMultiplier: number;
-}
-
-export function getManagerModifiers(
-  attributes: ManagerAttributes,
-  _traits: ManagerTraitId[]
-): ManagerGameplayModifiers {
-  return {
-    tacticalFamiliarityRate: 1 + attributes.tacticalKnowledge * MOD_TACTICAL_FAMILIARITY,
-    moraleEffectMultiplier: 1 + attributes.motivation * MOD_MOTIVATION_MORALE,
-    transferFeeReduction: attributes.negotiation * MOD_NEGOTIATION_FEE,
-    scoutingSpeedMultiplier: 1 - attributes.scoutingEye * MOD_SCOUTING_SPEED,
-    youthGrowthMultiplier: 1 + attributes.youthDevelopment * MOD_YOUTH_GROWTH,
-    cardReduction: attributes.discipline * MOD_DISCIPLINE_CARDS,
-    pressEffectMultiplier: 1 + attributes.mediaHandling * MOD_MEDIA_PRESS,
-  };
 }
 
 // ── Legacy Score ──

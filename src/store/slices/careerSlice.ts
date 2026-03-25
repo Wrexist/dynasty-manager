@@ -1,6 +1,7 @@
 import type { GameState } from '../storeTypes';
 import type { CareerManager, JobVacancy, JobOffer, GameMode } from '@/types/game';
-import { generateJobVacancies, getRetirementAge } from '@/utils/managerCareer';
+import { generateJobVacancies, getRetirementAge, generateDefaultBonuses } from '@/utils/managerCareer';
+import { LEAGUES } from '@/data/league';
 import { STARTING_BOARD_CONFIDENCE } from '@/config/gameBalance';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -74,7 +75,8 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       return { success: false, message: `${vacancy.clubName} has chosen another candidate.` };
     }
 
-    // Convert vacancy to offer
+    // Convert vacancy to offer with bonuses
+    const league = LEAGUES.find(l => l.id === vacancy.divisionId);
     const offer: JobOffer = {
       id: `offer-${Date.now()}`,
       clubId: vacancy.clubId,
@@ -82,7 +84,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       divisionId: vacancy.divisionId,
       salary: vacancy.salary,
       contractLength: vacancy.contractLength,
-      bonuses: [],
+      bonuses: generateDefaultBonuses(league?.qualityTier || 4),
       boardExpectations: vacancy.boardExpectations,
       expiresWeek: vacancy.expiresWeek,
       expiresSeason: vacancy.expiresSeason,

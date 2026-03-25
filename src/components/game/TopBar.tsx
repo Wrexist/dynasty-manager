@@ -81,7 +81,7 @@ export function TopBar() {
               title={`${careerManager.reputationTier.replace('_', ' ')} (${Math.round(careerManager.reputationScore)})`}
             >
               <Star className="w-3 h-3 fill-primary" />
-              <span className="font-bold capitalize">{careerManager.reputationTier === 'world_class' ? 'World' : careerManager.reputationTier.charAt(0).toUpperCase() + careerManager.reputationTier.slice(1, 3)}</span>
+              <span className="font-bold capitalize">{{ unknown: 'Unk', regional: 'Reg', national: 'Nat', continental: 'Con', world_class: 'World', legendary: 'Leg' }[careerManager.reputationTier] || careerManager.reputationTier}</span>
             </button>
           ) : (
             <button

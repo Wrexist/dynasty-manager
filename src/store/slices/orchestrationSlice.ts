@@ -5,6 +5,7 @@ import {
   GROWTH_DISCIPLINE_PER_CLEAN_MATCH, MOD_DISCIPLINE_CARDS, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH,
   MOD_SCOUTING_SPEED, JOB_MARKET_REFRESH_WEEKS, STAT_MAX, MOTM_CHECK_INTERVAL, MOTM_MIN_MATCHES,
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY,
+  REP_WIN, REP_DRAW, REP_LOSS, REP_TITLE, REP_CUP_WIN, REP_SACKING,
   FORCED_RETIREMENT_UNEMPLOYED_WEEKS,
 } from '@/config/managerCareer';
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
@@ -1002,7 +1003,7 @@ function finalizeSeason(
         // Title won
         if (latestHistory.position === 1) {
           cm.titlesWon += 1;
-          cm.reputationScore = Math.min(1000, cm.reputationScore + 80);
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_TITLE);
           if (cm.careerHistory.length > 0) {
             cm.careerHistory = cm.careerHistory.map(e =>
               e.endSeason === null ? { ...e, titlesWon: e.titlesWon + 1 } : e
@@ -1013,7 +1014,7 @@ function finalizeSeason(
         // Cup win
         if (cs.cup.winner === cs.playerClubId) {
           cm.cupsWon += 1;
-          cm.reputationScore = Math.min(1000, cm.reputationScore + 40);
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CUP_WIN);
         }
 
         // Promotion/relegation reputation
@@ -1074,7 +1075,7 @@ function finalizeSeason(
       // Handle sacking in career mode
       if (latestHistory?.boardVerdict === 'sacked') {
         cm.sackedCount += 1;
-        cm.reputationScore = Math.max(0, cm.reputationScore - 30);
+        cm.reputationScore = Math.max(0, cm.reputationScore + REP_SACKING);
         cm.careerHistory = cm.careerHistory.map(e =>
           e.endSeason === null ? { ...e, endSeason: cs.season, reason: 'sacked' as const } : e
         );
@@ -1124,7 +1125,7 @@ function finalizeSeason(
           } else {
             // Contract not renewed — enter job market
             cm.careerHistory = cm.careerHistory.map(e =>
-              e.endSeason === null ? { ...e, endSeason: cs.season, reason: 'resigned' as const } : e
+              e.endSeason === null ? { ...e, endSeason: cs.season, reason: 'contract_expired' as const } : e
             );
             cm.contract = null;
             cm.unemployedWeeks = 0;
@@ -2571,7 +2572,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const postMatch = get();
       if (postMatch.gameMode === 'career' && postMatch.careerManager) {
         const cm = { ...postMatch.careerManager };
-        const repDelta = processed.won ? 2 : processed.lost ? -1 : 0.5;
+        const repDelta = processed.won ? REP_WIN : processed.lost ? REP_LOSS : REP_DRAW;
         cm.reputationScore = Math.max(0, Math.min(1000, cm.reputationScore + repDelta));
 
         cm.reputationTier = calculateReputationTier(cm.reputationScore);
