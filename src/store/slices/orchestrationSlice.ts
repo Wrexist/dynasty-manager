@@ -2471,8 +2471,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const hc = clubs[match.homeClubId];
     const ac = clubs[match.awayClubId];
-    let hp = hc.lineup.map(id => players[id]).filter(Boolean);
-    let ap = ac.lineup.map(id => players[id]).filter(Boolean);
+    const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
+    const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
+      const availableSubs = club.subs.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+      const ids = new Set(lineup.map(p => p.id));
+      for (const sub of availableSubs) {
+        if (lineup.length >= 11) break;
+        if (!ids.has(sub.id)) { lineup.push(sub); ids.add(sub.id); }
+      }
+      return lineup;
+    };
+    let hp = backfillFromSubs(hc.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
+    let ap = backfillFromSubs(ac.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
 
     // Motivator perk: boost player team morale before match
     if (hasPerk(state.managerProgression, 'motivator')) {
@@ -2543,8 +2553,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const hc = clubs[match.homeClubId];
     const ac = clubs[match.awayClubId];
-    let hp = hc.lineup.map(id => players[id]).filter(Boolean);
-    let ap = ac.lineup.map(id => players[id]).filter(Boolean);
+    const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
+    const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
+      const availableSubs = club.subs.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+      const ids = new Set(lineup.map(p => p.id));
+      for (const sub of availableSubs) {
+        if (lineup.length >= 11) break;
+        if (!ids.has(sub.id)) { lineup.push(sub); ids.add(sub.id); }
+      }
+      return lineup;
+    };
+    let hp = backfillFromSubs(hc.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
+    let ap = backfillFromSubs(ac.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
 
     // Motivator perk: boost player team morale before match
     if (hasPerk(state.managerProgression, 'motivator')) {
