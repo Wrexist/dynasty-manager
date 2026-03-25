@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { ReputationBadge } from '@/components/game/ReputationBadge';
-import { Briefcase, MapPin, DollarSign, Clock, Send, Check, X, LogOut } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ConfirmDialog } from '@/components/game/ConfirmDialog';
+import { Briefcase, DollarSign, Clock, Send, Check, X, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import type { JobVacancy, JobOffer } from '@/types/game';
 
 const JobMarket = () => {
+  const [showRetireConfirm, setShowRetireConfirm] = useState(false);
   const {
     careerManager,
     jobVacancies,
@@ -120,16 +122,21 @@ const JobMarket = () => {
           <Button
             variant="outline"
             className="w-full h-11 gap-2 text-muted-foreground border-muted-foreground/30 hover:bg-muted/10"
-            onClick={() => {
-              if (window.confirm(`Retire from management? Your legacy score is ${careerManager.legacyScore}. This cannot be undone.`)) {
-                retireManager();
-              }
-            }}
+            onClick={() => setShowRetireConfirm(true)}
           >
             <LogOut className="w-4 h-4" /> Retire from Management
           </Button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showRetireConfirm}
+        onOpenChange={setShowRetireConfirm}
+        title="Retire from Management"
+        description={`Retire from management? Your legacy score is ${careerManager.legacyScore}. This cannot be undone.`}
+        confirmLabel="Retire"
+        onConfirm={retireManager}
+      />
 
       {/* Career Summary */}
       <GlassPanel className="p-4">

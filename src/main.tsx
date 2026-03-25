@@ -4,6 +4,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { initPurchases } from '@/utils/purchases';
 import { initAds } from '@/utils/ads';
+import { useGameStore } from '@/store/gameStore';
 
 // Initialize Sentry for crash reporting (only if DSN is configured)
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
@@ -54,6 +55,19 @@ async function initNative() {
     // AdMob — isolated from other SDKs
     try { await initAds(); }
     catch (err) { console.warn('[initNative] Ads init failed:', err); }
+
+    // Auto-save game state when app is backgrounded (iOS may reclaim WebView)
+    try {
+      const { App: CapApp } = await import('@capacitor/app');
+      CapApp.addListener('pause', () => {
+        const state = useGameStore.getState();
+        if (state.gameStarted && state.settings?.autoSave) {
+          state.saveGame();
+        }
+      });
+    } catch (err) {
+      console.warn('[initNative] App lifecycle init failed:', err);
+    }
 
     // Wait for React to paint before hiding splash (3s safety timeout)
     const { SplashScreen } = await import('@capacitor/splash-screen');
