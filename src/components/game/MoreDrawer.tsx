@@ -5,7 +5,7 @@ import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
   Mail, Trophy, Target, DollarSign, Building2, Calendar, Home,
-  Settings, MoreHorizontal, ChevronRight, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe
+  Settings, MoreHorizontal, ChevronRight, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
 
@@ -57,9 +57,15 @@ const drawerSections: DrawerSection[] = [
   },
 ];
 
+// Career mode items to prepend to the Career section
+const CAREER_MODE_ITEMS: DrawerItem[] = [
+  { screen: 'career-overview', label: 'Career Overview', icon: Briefcase, description: 'Your stats, traits & reputation' },
+  { screen: 'job-market', label: 'Job Market', icon: Globe, description: 'Browse vacancies & offers' },
+];
+
 export function MoreDrawer() {
   const [open, setOpen] = useState(false);
-  const { setScreen, messages, currentScreen, cupState } = useGameStore();
+  const { setScreen, messages, currentScreen, cupState, gameMode } = useGameStore();
   const unread = messages.filter(m => !m.read).length;
   const hasPendingCupMatch = cupState?.bracket?.some(t => !t.played && (t.homeClubId || t.awayClubId));
 
@@ -94,13 +100,18 @@ export function MoreDrawer() {
           <SheetTitle className="text-foreground font-display text-lg">Quick Access</SheetTitle>
         </SheetHeader>
         <div className="space-y-4">
-          {drawerSections.map(section => (
+          {drawerSections.map(section => {
+            // In career mode, prepend career-specific items to the Career section
+            const items = (section.title === 'Career' && gameMode === 'career')
+              ? [...CAREER_MODE_ITEMS, ...section.items.filter(i => i.screen !== 'perks')]
+              : section.items;
+            return (
             <div key={section.title}>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold px-3 mb-1">
                 {section.title}
               </p>
               <div className="space-y-0.5">
-                {section.items.map(({ screen, label, icon: Icon, description }) => (
+                {items.map(({ screen, label, icon: Icon, description }) => (
                   <button
                     key={screen}
                     onClick={() => handleNav(screen)}
@@ -135,7 +146,8 @@ export function MoreDrawer() {
                 ))}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       </SheetContent>
     </Sheet>

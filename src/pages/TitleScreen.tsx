@@ -54,7 +54,7 @@ const TitleScreen = () => {
   };
 
   const handleNewGame = (slot: number) => {
-    navigate('/select-club', { state: { slot } });
+    navigate('/mode-select', { state: { slot } });
   };
 
   const handleDelete = (slot: number) => {
@@ -169,7 +169,12 @@ const TitleScreen = () => {
                     <Save className="w-4 h-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground truncate">{slot.clubName}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-bold text-foreground truncate">{slot.clubName}</p>
+                      {slot.gameMode === 'career' && (
+                        <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold shrink-0">Career</span>
+                      )}
+                    </div>
                     <p className="text-[10px] text-muted-foreground">
                       Season {slot.season} — Week {slot.week}
                       {slot.position && ` — ${slot.position}${getSuffix(Number(slot.position))} place`}

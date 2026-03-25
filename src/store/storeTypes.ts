@@ -1,4 +1,4 @@
-import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, InternationalTournamentState } from '@/types/game';
+import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -130,6 +130,14 @@ export interface GameState {
   // Challenge Mode
   activeChallenge: ActiveChallenge | null;
 
+  // Game Mode
+  gameMode: GameMode;
+
+  // Career Mode (null in sandbox)
+  careerManager: CareerManager | null;
+  jobVacancies: JobVacancy[];
+  jobOffers: JobOffer[];
+
   // National Team
   nationalTeam: NationalTeamState | null;
   internationalTournament: InternationalTournamentState | null;
@@ -254,6 +262,14 @@ export interface GameState {
   setNationalFormation: (f: FormationType) => void;
   // advanceInternationalWeek and playInternationalMatch are handled
   // internally by orchestrationSlice.advanceWeek() — no public actions needed.
+
+  // Actions — Career Mode
+  initCareerGame: (manager: CareerManager, clubId: string) => void;
+  applyForJob: (vacancyId: string) => { success: boolean; message: string };
+  respondToJobOffer: (offerId: string, accept: boolean) => void;
+  resignFromClub: () => void;
+  moveToNewClub: (clubId: string, offer: JobOffer) => void;
+  retireManager: () => void;
 
   // Actions — Farewell
   pendingFarewell: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] }[];

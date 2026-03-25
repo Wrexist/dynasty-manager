@@ -93,8 +93,12 @@ export function processMatchResult(
         p.fitness = Math.max(FITNESS_MIN_POST_MATCH, p.fitness + FITNESS_DRAIN_PER_MATCH);
       }
       const moraleDelta = won ? MORALE_WIN_CHANGE : lost ? MORALE_LOSS_CHANGE : 0;
+      // Career mode: motivation stat amplifies morale swings
+      const motivationMod = (state.gameMode === 'career' && state.careerManager)
+        ? 1 + state.careerManager.attributes.motivation * 0.025
+        : 1;
       const moraleStability = getMoraleStability(p.personality);
-      p.morale = Math.min(100, Math.max(10, p.morale + Math.round(moraleDelta * moraleStability)));
+      p.morale = Math.min(100, Math.max(10, p.morale + Math.round(moraleDelta * moraleStability * motivationMod)));
       p.form = Math.min(100, Math.max(10, p.form + (won ? FORM_WIN_CHANGE : lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE)));
       newPlayers[pid] = p;
     }

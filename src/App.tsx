@@ -12,6 +12,8 @@ import NotFound from "./pages/NotFound";
 const ClubSelection = lazy(() => import("./pages/ClubSelection"));
 const GameShell = lazy(() => import("./pages/GameShell"));
 const ChallengePicker = lazy(() => import("./pages/ChallengePicker"));
+const ModeSelect = lazy(() => import("./pages/ModeSelect"));
+const ManagerCreation = lazy(() => import("./pages/ManagerCreation"));
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -71,7 +73,9 @@ const App = () => (
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={<TitleScreen />} />
+              <Route path="/mode-select" element={<ModeSelect />} />
               <Route path="/select-club" element={<ClubSelection />} />
+              <Route path="/create-manager" element={<ManagerCreation />} />
               <Route path="/challenge" element={<ChallengePicker />} />
               <Route path="/game" element={<GameShell />} />
               <Route path="*" element={<NotFound />} />

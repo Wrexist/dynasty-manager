@@ -40,8 +40,17 @@ const RecordRow = ({ label, record }: { label: string; record: RecordEntry | nul
   );
 };
 
+// Lazy-load career overview to avoid circular imports
+import { lazy, Suspense } from 'react';
+const CareerOverviewLazy = lazy(() => import('./CareerOverview'));
+
 const ManagerProfile = () => {
-  const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, monetization } = useGameStore();
+  const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, monetization, gameMode, careerManager } = useGameStore();
+
+  // In career mode, show the career overview page instead
+  if (gameMode === 'career' && careerManager) {
+    return <Suspense fallback={null}><CareerOverviewLazy /></Suspense>;
+  }
   const club = clubs[playerClubId];
   const avatarId = getActiveCosmetic(monetization, 'avatar');
   const AvatarIcon = (avatarId && AVATAR_ICONS[avatarId]) || Shield;

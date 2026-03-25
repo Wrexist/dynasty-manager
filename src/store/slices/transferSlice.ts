@@ -1,6 +1,7 @@
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { getFarewellSummary } from '@/utils/playerNarratives';
+import { GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_NEGOTIATION_GROWTH, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import {
   ACCEPT_CHANCE_AT_ASKING, ACCEPT_CHANCE_AT_80_PERCENT, ACCEPT_CHANCE_BELOW, ACCEPT_80_PERCENT_THRESHOLD,
   LIST_PRICE_MULTIPLIER,
@@ -173,6 +174,13 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       careerTimeline: newTimeline,
       ...merchUpdate,
     });
+    // Career mode: grow negotiation stat on successful transfer
+    const postState = get();
+    if (postState.gameMode === 'career' && postState.careerManager) {
+      const cm = { ...postState.careerManager, attributes: { ...postState.careerManager.attributes } };
+      cm.attributes.negotiation = Math.min(CAREER_STAT_MAX, cm.attributes.negotiation + CAREER_NEGOTIATION_GROWTH);
+      set({ careerManager: cm });
+    }
     return { success: true, message: `${updatedPlayer.firstName} ${updatedPlayer.lastName} signed!${sellOnNote}` };
   },
 
@@ -185,7 +193,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (!listing) return { success: false, message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
     if (fee > club.budget) return { success: false, message: 'Insufficient funds.' };
-    const effAsk = hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT) : listing.askingPrice;
+    const careerFeeDiscount = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.negotiation * 0.005 : 0;
+    const effAsk = (hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT) : listing.askingPrice) * (1 - careerFeeDiscount);
     const acceptChance = fee >= effAsk ? ACCEPT_CHANCE_AT_ASKING : fee >= effAsk * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
     if (Math.random() > acceptChance) return { success: false, message: 'Offer rejected. Try a higher fee.' };
     return get().executeTransfer(playerId, fee);

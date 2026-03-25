@@ -356,6 +356,43 @@ const Dashboard = () => {
       {/* Weekly Digest (post-advanceWeek summary) */}
       <WeeklyDigest />
 
+      {/* Career Mode Info Panel */}
+      {store.gameMode === 'career' && store.careerManager && (
+        <GlassPanel className="p-3" onClick={() => setScreen('career-overview')}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Award className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-foreground">{store.careerManager.name}</p>
+                <p className="text-[10px] text-muted-foreground">
+                  Age {store.careerManager.age} — {store.careerManager.reputationTier.replace('_', ' ')}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              {store.careerManager.contract ? (
+                <p className="text-[10px] text-muted-foreground">
+                  Contract ends S{store.careerManager.contract.endSeason}
+                </p>
+              ) : (
+                <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-semibold">
+                  Unemployed
+                </span>
+              )}
+            </div>
+          </div>
+          {store.jobOffers.length > 0 && (
+            <div className="mt-2 bg-primary/10 rounded-lg px-3 py-1.5">
+              <p className="text-[10px] text-primary font-semibold">
+                {store.jobOffers.length} job offer{store.jobOffers.length > 1 ? 's' : ''} waiting
+              </p>
+            </div>
+          )}
+        </GlassPanel>
+      )}
+
       {/* Press Conference (shown after matches) */}
       {store.pendingPressConference && <PressConference />}
 

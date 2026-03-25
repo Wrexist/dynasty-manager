@@ -329,6 +329,7 @@ export function simulateHalf(
   homeMedicalLevel?: number,
   awayMedicalLevel?: number,
   currentSeason?: number,
+  careerDisciplineMod?: number,
 ): HalfState {
   // Derby matches: more events, more fouls, more cards
   const derbyEventMod = derbyIntensity ? derbyIntensity * DERBY_EVENT_MOD_SCALE : 0;
@@ -736,7 +737,8 @@ export function simulateHalf(
       if (isHome) homeFouls++; else awayFouls++;
       const isPlayerTeamFouling = (isHome && homeClub.id === playerClubId) || (!isHome && awayClub.id === playerClubId);
       const disciplinarianMod = (disciplinarianActive && isPlayerTeamFouling) ? (1 - DISCIPLINARIAN_CARD_REDUCTION) : 1;
-      const cardChance = (CARD_BASE_CHANCE + atkMods.foulMod + derbyCardMod) * getCardRiskMultiplier(fouler.personality) * disciplinarianMod;
+      const careerMod = (careerDisciplineMod && isPlayerTeamFouling) ? (1 - careerDisciplineMod) : 1;
+      const cardChance = (CARD_BASE_CHANCE + atkMods.foulMod + derbyCardMod) * getCardRiskMultiplier(fouler.personality) * disciplinarianMod * careerMod;
       if (Math.random() < cardChance) {
         const pe = playerEvents[fouler.id];
         if (pe) {
@@ -980,6 +982,7 @@ export function simulateMatch(
   derbyIntensity?: number,
   disciplinarianActive?: boolean,
   currentSeason?: number,
+  careerDisciplineMod?: number,
 ): { result: Match; playerRatings: PlayerMatchRating[]; matchInjuries: Record<string, InjuryDetails> } {
   // Forfeit if either squad is invalid
   const homeIsPlayer = playerClubId === homeClub.id;
@@ -1000,7 +1003,7 @@ export function simulateMatch(
   const effectiveAwayTactics = awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS;
 
   // Simulate first half (1-45)
-  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason);
+  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod);
 
   // AI tactical reactivity: adjust tactics for second half based on scoreline
   let secondHalfHomeTactics = effectiveHomeTactics;
@@ -1014,7 +1017,7 @@ export function simulateMatch(
   }
 
   // Simulate second half (46-90) with potentially adjusted AI tactics
-  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason);
+  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod);
 
   const finalized = finalizeMatch(match, homeClub, awayClub, homePlayers, awayPlayers, fullState);
   return { ...finalized, matchInjuries: fullState.matchInjuries };

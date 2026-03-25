@@ -10,7 +10,29 @@ import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 
 const PerksPage = () => {
-  const { managerProgression, unlockPerk } = useGameStore();
+  const { managerProgression, unlockPerk, gameMode, setScreen } = useGameStore();
+
+  // In career mode, perks are replaced by manager attributes
+  if (gameMode === 'career') {
+    return (
+      <div className="space-y-4 pb-24">
+        <GlassPanel className="p-6 text-center">
+          <DynamicIcon name="briefcase" className="w-10 h-10 text-primary mx-auto mb-3" />
+          <h2 className="text-lg font-bold text-foreground mb-2">Career Mode Active</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            In Career Mode, your management abilities come from your attributes and traits — not perks.
+            Grow your stats by managing matches, completing transfers, and developing players.
+          </p>
+          <button
+            onClick={() => setScreen('career-overview')}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors"
+          >
+            View Career Overview
+          </button>
+        </GlassPanel>
+      </div>
+    );
+  }
   const availableXP = getTotalXP(managerProgression);
   const xpNeeded = xpForLevel(managerProgression.level);
   const xpProgress = Math.round((managerProgression.xp / xpNeeded) * 100);
