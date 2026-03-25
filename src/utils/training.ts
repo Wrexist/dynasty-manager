@@ -12,7 +12,7 @@ import {
   TRAINING_INJURY_AGE_THRESHOLD, TRAINING_INJURY_AGE_FACTOR,
   TACTICAL_FAMILIARITY_GAIN_PER_DAY, TACTICAL_FAMILIARITY_DECAY, TACTICAL_FAMILIARITY_MAX, TACTICAL_FAMILIARITY_MIN,
 } from '@/config/training';
-import { VALUE_OVERALL_MULTIPLIER, VALUE_RANDOM_RANGE } from '@/config/playerGeneration';
+import { calculatePlayerValue } from '@/config/playerGeneration';
 import { seasonGrowthTracker } from '@/store/helpers/development';
 import { MAX_SEASON_GROWTH, RECOVERY_FITNESS_BONUS_PER_LEVEL } from '@/config/gameBalance';
 
@@ -70,7 +70,7 @@ export function applyWeeklyTraining(
   const newOverall = calculateOverall(updated.attributes, updated.position);
   updated.growthDelta = newOverall - player.overall;
   updated.overall = newOverall;
-  updated.value = Math.round(updated.overall * updated.overall * VALUE_OVERALL_MULTIPLIER + Math.random() * VALUE_RANDOM_RANGE);
+  updated.value = calculatePlayerValue(updated.overall);
 
   // Track training growth toward season cap
   if (updated.growthDelta > 0) {

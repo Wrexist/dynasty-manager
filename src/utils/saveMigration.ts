@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 21;
+const CURRENT_VERSION = 22;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -279,6 +279,39 @@ const migrations: Record<number, MigrationFn> = {
     internationalTournament: data.internationalTournament ?? null,
     managerNationality: data.managerNationality ?? null,
   }),
+
+  // v21 → v22: Rebalanced player values and wages (exponential curve)
+  21: (data) => {
+    const VALUE_EXP_BASE = 550;
+    const VALUE_EXP_RATE = 0.136;
+    const WAGE_EXP_BASE = 10;
+    const WAGE_EXP_RATE = 0.116;
+    const WAGE_FLOOR = 500;
+    const AGE_MULTS = [
+      { maxAge: 18, m: 0.30 }, { maxAge: 20, m: 0.50 }, { maxAge: 22, m: 0.75 },
+      { maxAge: 24, m: 0.90 }, { maxAge: 27, m: 1.00 }, { maxAge: 29, m: 0.85 },
+      { maxAge: 31, m: 0.60 }, { maxAge: 33, m: 0.35 }, { maxAge: Infinity, m: 0.15 },
+    ];
+    const getAgeMult = (age: number) => {
+      for (const t of AGE_MULTS) { if (age <= t.maxAge) return t.m; }
+      return 0.15;
+    };
+    const players = Array.isArray(data.players) ? data.players as Record<string, unknown>[] : [];
+    const clubs = Array.isArray(data.clubs) ? data.clubs as Record<string, unknown>[] : [];
+    for (const p of players) {
+      const ovr = (p.overall || 50) as number;
+      const age = (p.age || 25) as number;
+      const baseValue = Math.round(VALUE_EXP_BASE * Math.exp(VALUE_EXP_RATE * ovr) * (1 + Math.random() * 0.15));
+      p.value = Math.round(baseValue * getAgeMult(age));
+      p.wage = Math.max(WAGE_FLOOR, Math.round(WAGE_EXP_BASE * Math.exp(WAGE_EXP_RATE * ovr) * (1 + Math.random() * 0.10)));
+    }
+    for (const c of clubs) {
+      const clubId = c.id as string;
+      const clubPlayers = players.filter((p) => p.clubId === clubId);
+      c.wageBill = clubPlayers.reduce((sum: number, p) => sum + ((p.wage || 0) as number), 0);
+    }
+    return { ...data, version: 22 };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

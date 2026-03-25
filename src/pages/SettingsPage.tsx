@@ -1,7 +1,8 @@
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
@@ -20,6 +21,9 @@ const SettingsPage = () => {
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => { clearTimeout(savedTimerRef.current); }, []);
   const [restoringPurchases, setRestoringPurchases] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
+  const [feedbackMessage, setFeedbackMessage] = useState('');
   const userIsPro = isPro(monetization);
   const hasActiveSub = isSubscriptionActive(monetization);
 
@@ -55,6 +59,17 @@ const SettingsPage = () => {
     setSaved(true);
     clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => setSaved(false), SAVE_CONFIRMATION_MS);
+  };
+
+  const handleSendFeedback = () => {
+    const categoryLabels = { bug: 'Bug Report', feature: 'Feature Request', general: 'General Feedback' };
+    const subject = encodeURIComponent(`[${categoryLabels[feedbackCategory]}] Dynasty Manager Feedback`);
+    const body = encodeURIComponent(feedbackMessage.trim());
+    window.open(`mailto:support@dynastymanager.com?subject=${subject}&body=${body}`, '_blank');
+    successToast('Thank You!', 'Your email client has been opened with your feedback.');
+    setFeedbackMessage('');
+    setFeedbackCategory('general');
+    setFeedbackOpen(false);
   };
 
   const handleReset = () => {
@@ -259,6 +274,22 @@ const SettingsPage = () => {
         </p>
       </GlassPanel>
 
+      {/* Feedback */}
+      <GlassPanel className="p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Feedback</h3>
+        <Button
+          variant="secondary"
+          className="w-full justify-start gap-3 h-11"
+          onClick={() => setFeedbackOpen(true)}
+        >
+          <MessageSquare className="w-4 h-4" />
+          Send Feedback
+        </Button>
+        <p className="text-[10px] text-muted-foreground mt-2">
+          Report a bug, request a feature, or share your thoughts.
+        </p>
+      </GlassPanel>
+
       {/* Help */}
       <GlassPanel className="p-4">
         <h3 className="text-sm font-semibold text-foreground mb-3">Help</h3>
@@ -282,6 +313,53 @@ const SettingsPage = () => {
         <p className="text-xs text-muted-foreground">{APP_VERSION}</p>
         <p className="text-[10px] text-muted-foreground mt-2">Built with React, TypeScript, and Tailwind CSS</p>
       </GlassPanel>
+
+      {/* Feedback Sheet */}
+      <Sheet open={feedbackOpen} onOpenChange={setFeedbackOpen}>
+        <SheetContent side="bottom" className="rounded-t-2xl">
+          <SheetHeader>
+            <SheetTitle>Send Feedback</SheetTitle>
+          </SheetHeader>
+
+          <div className="px-1 pb-6">
+            {/* Category pills */}
+            <div className="flex gap-2 mt-4">
+              {(['bug', 'feature', 'general'] as const).map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setFeedbackCategory(cat)}
+                  className={cn(
+                    'flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all',
+                    feedbackCategory === cat
+                      ? 'bg-primary/20 text-primary border border-primary/30'
+                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                  )}
+                >
+                  {cat === 'bug' ? 'Bug Report' : cat === 'feature' ? 'Feature Request' : 'General'}
+                </button>
+              ))}
+            </div>
+
+            {/* Message textarea */}
+            <textarea
+              value={feedbackMessage}
+              onChange={(e) => setFeedbackMessage(e.target.value)}
+              placeholder="Tell us what's on your mind..."
+              className="w-full mt-4 p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+              rows={4}
+            />
+
+            {/* Send button */}
+            <Button
+              className="w-full mt-4 h-11"
+              disabled={!feedbackMessage.trim()}
+              onClick={handleSendFeedback}
+            >
+              Send Feedback
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
