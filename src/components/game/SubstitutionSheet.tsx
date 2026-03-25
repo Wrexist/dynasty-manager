@@ -9,7 +9,7 @@ import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/ty
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { getFlag } from '@/utils/nationality';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRightLeft, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 import { PITCH_COLORS } from '@/config/ui';
 import { PlayerAvatar } from './PlayerAvatar';
@@ -100,6 +100,51 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     if (idx < 0 || !slots[idx]) return null;
     return slots[idx].pos as Position | undefined;
   }, [selectedOutId, lineup, slots]);
+
+  // Smart Sub recommendation — find best (out, in) pair
+  const smartSub = useMemo(() => {
+    if (!playerClub) return null;
+    const allSubs = playerClub.subs;
+    let bestScore = -Infinity;
+    let best: { outId: string; inId: string; reason: string } | null = null;
+
+    for (let i = 0; i < lineup.length; i++) {
+      const outId = lineup[i];
+      const outP = outId ? players[outId] : null;
+      if (!outP) continue;
+      const slotPos = slots[i]?.pos as Position;
+
+      // How much does this starter need replacing? Higher = more urgent
+      const fitnessNeed = Math.max(0, 75 - outP.fitness) * 2;
+      const formNeed = Math.max(0, 65 - outP.form) * 0.8;
+      const outNeed = fitnessNeed + formNeed;
+      // Skip if starter is in great shape
+      if (outNeed < 5) continue;
+
+      for (const inId of allSubs) {
+        const inP = players[inId];
+        if (!inP || inP.injured || (inP.suspendedUntilWeek && inP.suspendedUntilWeek > week)) continue;
+
+        const posCompat = inP.position === slotPos ? 1
+          : (POSITION_COMPATIBILITY[slotPos] || []).includes(inP.position as Position) ? 0.7
+          : 0.2;
+
+        const inStrength = inP.overall * posCompat + inP.fitness * 0.3 + inP.form * 0.2;
+        const score = outNeed + inStrength;
+
+        if (score > bestScore) {
+          bestScore = score;
+          const reason = outP.fitness < 60
+            ? `${outP.lastName} tired (${Math.round(outP.fitness)}%) → ${inP.lastName}`
+            : outP.form < 55
+            ? `${outP.lastName} poor form → ${inP.lastName}`
+            : `Fresh legs: ${inP.lastName} for ${outP.lastName}`;
+          best = { outId, inId, reason };
+        }
+      }
+    }
+    return best;
+  }, [playerClub, lineup, slots, players, week]);
 
   if (!playerClub) return null;
 
@@ -207,6 +252,26 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
           );
         })}
       </div>
+
+      {/* Smart Sub recommendation */}
+      {!selectedOutId && smartSub && (
+        <button
+          type="button"
+          onClick={() => {
+            hapticMedium();
+            setSelectedOutId(smartSub.outId);
+            setSelectedInId(smartSub.inId);
+          }}
+          className="w-full flex items-center gap-2.5 bg-primary/10 border border-primary/30 rounded-xl px-3 py-2.5 mt-2 active:scale-[0.98] transition-all"
+        >
+          <Zap className="w-4 h-4 text-primary shrink-0" />
+          <div className="flex-1 text-left min-w-0">
+            <p className="text-xs font-bold text-primary">Smart Sub</p>
+            <p className="text-[10px] text-muted-foreground truncate">{smartSub.reason}</p>
+          </div>
+          <ArrowRight className="w-3.5 h-3.5 text-primary shrink-0" />
+        </button>
+      )}
 
       {/* Bench section */}
       <div className="mt-2">

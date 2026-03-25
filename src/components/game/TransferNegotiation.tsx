@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { TransferListing } from '@/types/game';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
+import { getFlag } from '@/utils/nationality';
 import {
   X, TrendingUp, TrendingDown, Minus, Users, Banknote,
   Shield, ArrowRight, RotateCcw, Handshake, XCircle, CalendarClock, Star, AlertTriangle,
@@ -190,7 +191,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
-                      <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · {player.nationality}</p>
+                      <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · {getFlag(player.nationality)} {player.nationality}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         From <span className="text-foreground">{sellerClub.name}</span>
                       </p>
@@ -386,34 +387,6 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     </div>
                   )}
 
-                  {/* Actions */}
-                  <motion.div
-                    className="flex gap-2 pt-1"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.35 }}
-                  >
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleSubmitOffer(offerFee)}
-                      disabled={evaluation ? evaluation.budgetAfter < 0 : false}
-                      className={cn(
-                        'flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold active:scale-[0.98] transition-all',
-                        evaluation && evaluation.budgetAfter < 0
-                          ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
-                          : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_rgba(234,179,8,0.15)]'
-                      )}
-                    >
-                      Submit Offer <ArrowRight className="w-4 h-4" />
-                    </button>
-                  </motion.div>
                 </div>
               </motion.div>
             )}
@@ -484,63 +457,57 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   />
                 ))}
 
-                {/* Glow ring behind rating */}
-                <motion.div
-                  className="absolute top-12 w-28 h-28 rounded-full"
-                  style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.15) 0%, transparent 70%)' }}
-                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                />
-
-                {/* Rating badge */}
-                <motion.div
-                  className="relative w-20 h-20 rounded-full bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center"
-                  initial={{ scale: 0, rotate: -20 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 15, delay: 0.1 }}
-                >
-                  <span className={cn('font-mono font-black text-3xl', getRatingColor(player.overall))}>
-                    {player.overall}
-                  </span>
-                </motion.div>
-
-                {/* Title & Player info */}
-                <motion.div
-                  className="text-center"
+                {/* Title */}
+                <motion.p
+                  className="text-xl font-black text-emerald-400 font-display tracking-wide"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
+                  transition={{ delay: 0.1 }}
                 >
-                  <p className="text-xl font-black text-emerald-400 font-display tracking-wide">Deal Complete!</p>
-                  <p className="text-base text-foreground font-bold mt-1.5 font-display">
-                    {player.firstName} {player.lastName}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Welcome to {buyerClub.name}
-                  </p>
-                </motion.div>
+                  Deal Complete!
+                </motion.p>
 
-                {/* Player quick stats */}
+                {/* New Signing Card */}
                 <motion.div
-                  className="flex items-center gap-2"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
+                  className="w-full bg-emerald-500/5 border border-emerald-500/30 rounded-xl p-4"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.15 }}
                 >
-                  <span className="text-[10px] font-mono bg-muted/50 px-2 py-0.5 rounded-full text-muted-foreground">
-                    {player.position}
-                  </span>
-                  <span className="text-[10px] font-mono bg-muted/50 px-2 py-0.5 rounded-full text-muted-foreground">
-                    {player.age}y
-                  </span>
-                  <span className="text-[10px] font-mono bg-muted/50 px-2 py-0.5 rounded-full text-muted-foreground">
-                    {player.nationality}
-                  </span>
-                  {player.potential > player.overall && (
-                    <span className="text-[10px] font-mono bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full text-emerald-400">
-                      {player.potential} pot
-                    </span>
-                  )}
+                  <div className="flex items-start gap-3">
+                    <div className="w-14 h-14 rounded-xl bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center shrink-0">
+                      <span className={cn('font-mono font-black text-2xl', getRatingColor(player.overall))}>
+                        {player.overall}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground font-display text-base">
+                        {player.firstName} {player.lastName}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {player.position} · {player.age}y · {getFlag(player.nationality)} {player.nationality}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Welcome to <span className="text-foreground font-medium">{buyerClub.name}</span>
+                      </p>
+                      {player.potential > player.overall && (
+                        <div className="flex items-center gap-1 mt-1.5">
+                          <Star className="w-3 h-3 text-primary" />
+                          <span className="text-xs font-bold text-primary">{player.potential}</span>
+                          <span className="text-[10px] text-muted-foreground">potential</span>
+                          <span className="text-[10px] font-bold text-emerald-400">+{player.potential - player.overall}</span>
+                        </div>
+                      )}
+                      <div className="flex gap-1.5 mt-2">
+                        {top3.map(attr => (
+                          <span key={attr.label} className="text-[10px] font-mono bg-muted/50 px-1.5 py-0.5 rounded">
+                            <span className="text-muted-foreground">{attr.label}</span>{' '}
+                            <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </motion.div>
 
                 {/* Deal summary card */}
@@ -747,6 +714,34 @@ export function TransferNegotiation({ listing, onClose }: Props) {
             )}
           </AnimatePresence>
           </div>
+
+          {/* Sticky action buttons — always visible at bottom */}
+          {phase === 'negotiate' && (
+            <div className="border-t border-border/30 bg-card/95 px-4 py-3">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="flex-1 py-3 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSubmitOffer(offerFee)}
+                  disabled={evaluation ? evaluation.budgetAfter < 0 : false}
+                  className={cn(
+                    'flex-[2] flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-black active:scale-[0.98] transition-all',
+                    evaluation && evaluation.budgetAfter < 0
+                      ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
+                      : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_24px_rgba(234,179,8,0.25)]'
+                  )}
+                >
+                  Submit Offer <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
         </motion.div>
       </motion.div>
     </AnimatePresence>
