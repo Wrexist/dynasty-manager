@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 23', () => {
-    expect(CURRENT_VERSION).toBe(23);
+  it('should have current version set to 24', () => {
+    expect(CURRENT_VERSION).toBe(24);
   });
 
   it('should migrate v1 data to current version', () => {
@@ -21,7 +21,7 @@ describe('saveMigration', () => {
       playerDivision: 'div-1',
     };
     const result = migrateSaveData(v22Data);
-    expect(result.version).toBe(23);
+    expect(result.version).toBe(CURRENT_VERSION);
     // Clean break: game state is reset
     expect(result.gameStarted).toBe(false);
     expect(result.playerClubId).toBe('');

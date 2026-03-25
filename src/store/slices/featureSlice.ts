@@ -42,7 +42,20 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     const option = press.options.find(o => o.tone === tone);
     if (!option) return;
 
-    const { morale: moraleEffect, boardConfidence: boardEffect, fanMood: fanEffect } = option.effects;
+    let { morale: moraleEffect, boardConfidence: boardEffect, fanMood: fanEffect } = option.effects;
+
+    // Career mode: apply media handling modifier to press effects
+    if (state.gameMode === 'career' && state.careerManager) {
+      const mediaMod = 1 + state.careerManager.attributes.mediaHandling * 0.04;
+      moraleEffect = Math.round(moraleEffect * mediaMod);
+      boardEffect = Math.round(boardEffect * mediaMod);
+      fanEffect = Math.round(fanEffect * mediaMod);
+
+      // Grow media handling stat
+      const cm = { ...state.careerManager, attributes: { ...state.careerManager.attributes } };
+      cm.attributes.mediaHandling = Math.min(20, cm.attributes.mediaHandling + 0.2);
+      set({ careerManager: cm });
+    }
 
     // Apply morale to all squad players
     const newPlayers = { ...state.players };

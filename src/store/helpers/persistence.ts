@@ -93,7 +93,7 @@ export function getSlotSummaries(): SlotSummary[] {
         const pos = sorted.indexOf(data.playerClubId) + 1;
         position = `${pos}`;
       }
-      return { slot, exists: true, clubName: club?.name, season: data.season, week: data.week, position };
+      return { slot, exists: true, clubName: club?.name, season: data.season, week: data.week, position, gameMode: data.gameMode || 'sandbox' };
     } catch {
       return { slot, exists: false };
     }

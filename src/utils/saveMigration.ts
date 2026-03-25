@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 23;
+const CURRENT_VERSION = 24;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -335,6 +335,15 @@ const migrations: Record<number, MigrationFn> = {
       seasonHistory: [],
     };
   },
+  // v23 → v24: Added game modes (sandbox/career) and career manager state
+  23: (data) => ({
+    ...data,
+    version: 24,
+    gameMode: data.gameMode || 'sandbox',
+    careerManager: data.careerManager || null,
+    jobVacancies: data.jobVacancies || [],
+    jobOffers: data.jobOffers || [],
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

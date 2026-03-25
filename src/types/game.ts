@@ -55,7 +55,7 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview';
 
 export interface PlayerAttributes {
   pace: number;
@@ -667,6 +667,7 @@ export interface SlotSummary {
   season?: number;
   position?: string;
   week?: number;
+  gameMode?: GameMode;
 }
 
 // Cup competition types
@@ -1006,4 +1007,110 @@ export interface InternationalKnockoutTie {
   penaltyShootout?: { home: number; away: number };
   winnerId?: string;                      // nationality name of winner
   week: number;
+}
+
+// ── Game Modes ──
+
+export type GameMode = 'sandbox' | 'career';
+
+// ── Manager Career Mode ──
+
+export interface ManagerAttributes {
+  tacticalKnowledge: number;  // 1-20
+  motivation: number;         // 1-20
+  negotiation: number;        // 1-20
+  scoutingEye: number;        // 1-20
+  youthDevelopment: number;   // 1-20
+  discipline: number;         // 1-20
+  mediaHandling: number;      // 1-20
+}
+
+export type ManagerTraitId =
+  | 'tactician' | 'motivator' | 'youth_developer' | 'transfer_guru'
+  | 'disciplinarian' | 'media_darling' | 'fitness_fanatic' | 'scout_master';
+
+export type ReputationTier = 'unknown' | 'regional' | 'national' | 'continental' | 'world_class' | 'legendary';
+
+export interface ManagerContract {
+  clubId: string;
+  salary: number;              // weekly salary
+  startSeason: number;
+  endSeason: number;           // contract expires after this season
+  bonuses: ManagerBonus[];
+}
+
+export interface ManagerBonus {
+  condition: 'promotion' | 'top_half' | 'title' | 'cup_win' | 'avoid_relegation';
+  amount: number;
+  met: boolean;
+}
+
+export interface CareerManager {
+  name: string;
+  nationality: string;
+  age: number;
+  retirementAge: number;               // 65 default, 75 if legendary
+  attributes: ManagerAttributes;
+  traits: ManagerTraitId[];            // 2 picked at creation
+  contract: ManagerContract | null;    // null = between jobs
+  careerHistory: ManagerCareerEntry[];
+  reputationScore: number;             // 0-1000
+  reputationTier: ReputationTier;
+  totalCareerWins: number;
+  totalCareerDraws: number;
+  totalCareerLosses: number;
+  totalCareerMatches: number;
+  promotionsWon: number;
+  titlesWon: number;
+  cupsWon: number;
+  sackedCount: number;
+  resignedCount: number;
+  awardsWon: ManagerAward[];
+  legacyScore: number;
+  unemployedWeeks: number;             // tracks how long between jobs
+}
+
+export interface ManagerCareerEntry {
+  clubId: string;
+  clubName: string;
+  divisionId: string;
+  startSeason: number;
+  endSeason: number | null;            // null if still managing
+  reason: 'hired' | 'sacked' | 'resigned' | 'retired' | 'moved';
+  bestFinish: number;
+  titlesWon: number;
+}
+
+export interface JobVacancy {
+  id: string;
+  clubId: string;
+  clubName: string;
+  divisionId: string;
+  minReputation: number;               // 0-1000
+  salary: number;
+  contractLength: number;
+  boardExpectations: string;
+  expiresWeek: number;
+  expiresSeason: number;
+  applied: boolean;
+}
+
+export interface JobOffer {
+  id: string;
+  clubId: string;
+  clubName: string;
+  divisionId: string;
+  salary: number;
+  contractLength: number;
+  bonuses: ManagerBonus[];
+  boardExpectations: string;
+  expiresWeek: number;
+  expiresSeason: number;
+}
+
+export interface ManagerAward {
+  type: 'manager_of_month' | 'manager_of_season';
+  season: number;
+  week?: number;
+  divisionId: string;
 }
