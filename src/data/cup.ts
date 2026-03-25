@@ -1,121 +1,68 @@
-import { CupTie, CupRound, CupState, Club } from '@/types/game';
+import { CupTie, CupRound, CupState } from '@/types/game';
 import { shuffle } from '@/utils/helpers';
 
 export const CUP_BYE_MARKER = '__BYE__';
 
 const CUP_WEEKS: Record<CupRound, number> = {
-  R1: 4,   // Lower-league clubs enter
-  R2: 8,   // 64 → 32
-  R3: 14,  // Div-1 clubs typically enter here
-  R4: 20,  // Round of 16
-  QF: 28,  // Quarter-finals
-  SF: 36,  // Semi-finals
-  F: 42,   // Final (after regular season)
+  R1: 4,
+  R2: 8,
+  R3: 14,
+  R4: 20,
+  QF: 28,
+  SF: 36,
+  F: 42,
 };
 
 const ROUND_ORDER: CupRound[] = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
 
 /**
- * Generate a 92-club cup draw with staggered entry.
- * - Div-1 (20 clubs) + top 16 div-2 clubs by reputation get byes to R2 (36 byes).
- * - Remaining 56 clubs play R1 (28 matches), producing 28 winners.
- * - R2: 28 winners + 36 bye clubs = 64 → 32 matches.
- * - R3 onwards: standard knockout.
- *
- * If fewer than 92 clubs, falls back to a simple all-in first round.
+ * Generate a domestic cup draw for all clubs in the player's league.
+ * Simple knockout bracket — all clubs enter at R1.
+ * For leagues with 10-20 teams, the bracket naturally fits within the available rounds.
  */
-export function generateCupDraw(clubIds: string[], clubs?: Record<string, Club>): CupState {
+export function generateCupDraw(clubIds: string[]): CupState {
   const ties: CupTie[] = [];
+  const shuffled = shuffle([...clubIds]);
 
-  if (clubs && clubIds.length >= 60) {
-    // Categorize clubs by division
-    const div1Clubs: string[] = [];
-    const div2Clubs: string[] = [];
-    const lowerClubs: string[] = [];
+  // Determine the starting round based on the number of clubs
+  // We want the final to happen in the later rounds
+  // For 20 teams: R1 (20→10), R2 (10→...), etc.
+  // For 10 teams: Start at R2 so the final lands at QF/SF
+  let startRound: CupRound = 'R1';
+  if (shuffled.length <= 8) startRound = 'R3';
+  else if (shuffled.length <= 16) startRound = 'R2';
 
-    for (const id of clubIds) {
-      const c = clubs[id];
-      if (!c) continue;
-      if (c.divisionId === 'div-1') div1Clubs.push(id);
-      else if (c.divisionId === 'div-2') div2Clubs.push(id);
-      else lowerClubs.push(id);
-    }
+  // Pair up clubs
+  for (let i = 0; i + 1 < shuffled.length; i += 2) {
+    ties.push({
+      id: crypto.randomUUID(),
+      round: startRound,
+      homeClubId: shuffled[i],
+      awayClubId: shuffled[i + 1],
+      played: false,
+      homeGoals: 0,
+      awayGoals: 0,
+      week: CUP_WEEKS[startRound],
+    });
+  }
 
-    // Top 16 div-2 clubs by reputation get byes
-    const div2Sorted = [...div2Clubs].sort((a, b) => (clubs[b]?.reputation || 0) - (clubs[a]?.reputation || 0));
-    const div2Byes = div2Sorted.slice(0, 16);
-    const div2Playing = div2Sorted.slice(16);
-
-    // Bye clubs: all div-1 + top 16 div-2
-    const byeClubs = shuffle([...div1Clubs, ...div2Byes]);
-
-    // R1 entrants: remaining div-2 + all div-3/4
-    const r1Entrants = shuffle([...div2Playing, ...lowerClubs]);
-
-    // Create R1 ties (pair up R1 entrants)
-    for (let i = 0; i + 1 < r1Entrants.length; i += 2) {
-      ties.push({
-        id: crypto.randomUUID(),
-        round: 'R1',
-        homeClubId: r1Entrants[i],
-        awayClubId: r1Entrants[i + 1],
-        played: false,
-        homeGoals: 0,
-        awayGoals: 0,
-        week: CUP_WEEKS.R1,
-      });
-    }
-    // If odd number, last club gets a bye (treated as R1 winner)
-    const r1OddByeClub = r1Entrants.length % 2 === 1 ? r1Entrants[r1Entrants.length - 1] : null;
-
-    // Store bye clubs for R2 draw generation in advanceCupRound
-    // We encode them as "pre-generated" R2 entries with placeholder opponents
-    // Actually, we'll generate R2 ties when R1 completes in advanceCupRound
-    // Store bye clubs in a special way: create dummy "bye" ties that are auto-played
-    for (const id of byeClubs) {
-      ties.push({
-        id: crypto.randomUUID(),
-        round: 'R1',
-        homeClubId: id,
-        awayClubId: CUP_BYE_MARKER,
-        played: true,
-        homeGoals: 1,
-        awayGoals: 0,
-        week: CUP_WEEKS.R1,
-      });
-    }
-    if (r1OddByeClub) {
-      ties.push({
-        id: crypto.randomUUID(),
-        round: 'R1',
-        homeClubId: r1OddByeClub,
-        awayClubId: CUP_BYE_MARKER,
-        played: true,
-        homeGoals: 1,
-        awayGoals: 0,
-        week: CUP_WEEKS.R1,
-      });
-    }
-  } else {
-    // Fallback: simple all-in first round (legacy / small club count)
-    const shuffled = shuffle([...clubIds]);
-    for (let i = 0; i + 1 < shuffled.length; i += 2) {
-      ties.push({
-        id: crypto.randomUUID(),
-        round: 'R1',
-        homeClubId: shuffled[i],
-        awayClubId: shuffled[i + 1],
-        played: false,
-        homeGoals: 0,
-        awayGoals: 0,
-        week: CUP_WEEKS.R1,
-      });
-    }
+  // Handle odd number: last club gets a bye
+  if (shuffled.length % 2 === 1) {
+    ties.push({
+      id: crypto.randomUUID(),
+      round: startRound,
+      homeClubId: shuffled[shuffled.length - 1],
+      awayClubId: CUP_BYE_MARKER,
+      played: true,
+      homeGoals: 1,
+      awayGoals: 0,
+      week: CUP_WEEKS[startRound],
+    });
   }
 
   return {
     ties,
-    currentRound: 'R1',
+    currentRound: startRound,
     eliminated: false,
     winner: null,
   };
@@ -129,20 +76,17 @@ export function advanceCupRound(cup: CupState): CupState {
   const nextRound = ROUND_ORDER[roundIdx + 1];
   if (!nextRound) return cup;
 
-  // Get winners from current round (draws decided by penalties — random)
+  // Get winners from current round
   const currentTies = cup.ties.filter(t => t.round === currentRound && t.played);
   const winners = currentTies.map(t => {
-    // Bye ties: home club always wins
     if (t.awayClubId === CUP_BYE_MARKER) return t.homeClubId;
     return t.homeGoals > t.awayGoals ? t.homeClubId :
       t.awayGoals > t.homeGoals ? t.awayClubId :
       Math.random() < 0.5 ? t.homeClubId : t.awayClubId;
   });
 
-  // Shuffle winners for next round draw
   const shuffled = shuffle([...winners]);
 
-  // Generate next round fixtures
   const newTies: CupTie[] = [];
   for (let i = 0; i + 1 < shuffled.length; i += 2) {
     newTies.push({
@@ -156,7 +100,6 @@ export function advanceCupRound(cup: CupState): CupState {
       week: CUP_WEEKS[nextRound],
     });
   }
-  // Handle odd number of winners: last club gets a bye
   if (shuffled.length % 2 === 1) {
     newTies.push({
       id: crypto.randomUUID(),

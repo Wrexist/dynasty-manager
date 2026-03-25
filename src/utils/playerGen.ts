@@ -28,9 +28,9 @@ const ALL_NATIONALITIES = [
   'Paraguay', 'Algeria', 'Gabon',
 ];
 
-function pickNationality(divisionTier?: number): string {
-  if (divisionTier && NATIONALITY_DISTRIBUTION[divisionTier]) {
-    const pool = NATIONALITY_DISTRIBUTION[divisionTier];
+function pickNationality(leagueId?: string): string {
+  const pool = (leagueId && NATIONALITY_DISTRIBUTION[leagueId]) || NATIONALITY_DISTRIBUTION['DEFAULT'];
+  if (pool) {
     const totalWeight = pool.reduce((s, e) => s + e.weight, 0);
     let r = Math.random() * totalWeight;
     for (const entry of pool) {
@@ -82,13 +82,14 @@ function calculateOverall(attrs: PlayerAttributes, position: Position): number {
 
 export { calculateOverall };
 
-export function generatePlayer(position: Position, quality: number, clubId: string, season: number, divisionTier?: number): Player {
+export function generatePlayer(position: Position, quality: number, clubId: string, season: number, divisionTier?: number | string): Player {
   const attrs = generateAttributes(position, quality);
   const overall = calculateOverall(attrs, position);
   const age = PLAYER_MIN_AGE + Math.floor(Math.random() * PLAYER_AGE_RANGE);
   const potential = clamp(overall + Math.floor(Math.random() * (age < YOUNG_AGE_THRESHOLD ? YOUNG_POTENTIAL_GAP : OLD_POTENTIAL_GAP)));
   const value = calculatePlayerValue(overall);
-  const nationality = pickNationality(divisionTier);
+  const leagueKey = typeof divisionTier === 'string' ? divisionTier : undefined;
+  const nationality = pickNationality(leagueKey);
   const { firstName, lastName } = pickNameForNationality(nationality);
   return {
     id: crypto.randomUUID(),
@@ -143,7 +144,7 @@ function buildAgeTargets(count: number): { min: number; max: number }[] {
   return ageTargets;
 }
 
-export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number): Player[] {
+export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number | string): Player[] {
   const templates = CLUB_TEMPLATES[clubId] || [];
   const templatePlayers: Player[] = [];
 

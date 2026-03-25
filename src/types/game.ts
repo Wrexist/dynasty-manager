@@ -1,48 +1,38 @@
-// ── Division System ──
-export type DivisionId = 'div-1' | 'div-2' | 'div-3' | 'div-4';
+// ── League System ──
+// LeagueId is a string identifier for each national league (e.g. 'eng', 'esp', 'ita')
+export type LeagueId = string;
+/** @deprecated Use LeagueId instead */
+export type DivisionId = LeagueId;
 
-export interface DivisionInfo {
-  id: DivisionId;
+export interface LeagueInfo {
+  id: LeagueId;
   name: string;
   shortName: string;
-  tier: 1 | 2 | 3 | 4;
+  country: string;
+  countryCode: string;
   teamCount: number;
   totalWeeks: number;
-  autoPromoteSlots: number;
-  playoffSlots: number;
-  autoRelegateSlots: number;
   replacedSlots: number;
   description: string;
   difficulty: string;
   colorClass: string;
   prizeMoney: number;
   averageWage: number;
+  /** Quality tier for squad generation (1=elite, 2=strong, 3=mid, 4=developing) */
+  qualityTier: 1 | 2 | 3 | 4;
 }
 
-export interface PlayoffTie {
-  id: string;
-  round: 'semi-leg1' | 'semi-leg2' | 'final';
-  homeClubId: string;
-  awayClubId: string;
-  played: boolean;
-  homeGoals: number;
-  awayGoals: number;
-}
+/** @deprecated Use LeagueInfo instead */
+export type DivisionInfo = LeagueInfo;
 
-export interface PlayoffState {
-  divisionId: DivisionId;
-  bracket: PlayoffTie[];
-  currentRound: 'semi-leg1' | 'semi-leg2' | 'final' | null;
-  promotedClubId: string | null;
-}
-
-export interface PromotionRelegation {
-  promoted: { clubId: string; fromDivision: DivisionId; toDivision: DivisionId }[];
-  relegated: { clubId: string; fromDivision: DivisionId; toDivision: DivisionId }[];
-  playoffWinners: { clubId: string; fromDivision: DivisionId; toDivision: DivisionId }[];
+export interface SeasonTurnover {
   replacedClubs: string[];
   newClubs: string[];
+  leagueId: LeagueId;
 }
+
+/** @deprecated Use SeasonTurnover instead */
+export type PromotionRelegation = SeasonTurnover;
 
 export interface DerbyRivalry {
   clubIdA: string;
@@ -63,7 +53,7 @@ export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LM' |
 
 export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' | '3-4-3' | '5-3-2';
 
-export type SeasonPhase = 'regular' | 'playoffs' | 'offseason' | 'international';
+export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
 export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament';
 
@@ -168,7 +158,7 @@ export interface Club {
   defensiveFormation?: FormationType; // out-of-possession formation
   lineup: string[];
   subs: string[];
-  divisionId: DivisionId;
+  divisionId: LeagueId;
   aiManagerProfile?: AIManagerProfile;
   /** Player ID assigned as corner/free-kick taker */
   setPieceTakerId?: string;
@@ -192,7 +182,7 @@ export interface ClubData {
   boardPatience: number;
   squadQuality: number;
   league: string;
-  divisionId: DivisionId;
+  divisionId: LeagueId;
   stadiumName: string;
   stadiumCapacity: number;
 }
@@ -401,9 +391,8 @@ export interface SeasonHistory {
   topScorer: { name: string; goals: number };
   boardVerdict: 'excellent' | 'good' | 'acceptable' | 'poor' | 'sacked';
   cupResult?: string;
-  divisionId?: DivisionId;
-  promoted?: boolean;
-  relegated?: boolean;
+  divisionId?: LeagueId;
+  replaced?: boolean;
   awards?: SeasonAward[];
 }
 

@@ -117,14 +117,14 @@ describe('3E: Fixture Determinism', () => {
     expect(fixtures1.length).toBe(fixtures2.length);
   });
 
-  it('generates correct number of fixtures for each division', () => {
-    // div-1: 20 clubs → 20×19 = 380 matches
-    // div-2/3/4: 24 clubs → 24×23 = 552 matches each
-    const div1Fixtures = generateFixtures(Array.from({ length: 20 }, (_, i) => `c${i}`));
-    const div2Fixtures = generateFixtures(Array.from({ length: 24 }, (_, i) => `c${i}`));
+  it('generates correct number of fixtures for various league sizes', () => {
+    // 20-club league → 20×19 = 380 matches
+    // 18-club league → 18×17 = 306 matches
+    const league20 = generateFixtures(Array.from({ length: 20 }, (_, i) => `c${i}`));
+    const league18 = generateFixtures(Array.from({ length: 18 }, (_, i) => `c${i}`));
 
-    expect(div1Fixtures.length).toBe(20 * 19); // 380
-    expect(div2Fixtures.length).toBe(24 * 23); // 552
+    expect(league20.length).toBe(20 * 19); // 380
+    expect(league18.length).toBe(18 * 17); // 306
   });
 });
 

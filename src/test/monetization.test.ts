@@ -262,15 +262,15 @@ describe('product catalog', () => {
 });
 
 describe('economy balance guarantees', () => {
-  it('ad transfer budget bonus is less than 5% of a div-2 mid-table weekly income', () => {
-    // Mid-table div-2 club: fanBase ~40, reputation ~3
+  it('ad transfer budget bonus is less than 5% of a mid-tier league weekly income', () => {
+    // Mid-tier league club: fanBase ~40, reputation ~3
     const weeklyIncome = 40 * MATCHDAY_INCOME_PER_FAN + COMMERCIAL_INCOME_BASE + 3 * COMMERCIAL_INCOME_PER_REP;
     const ratio = AD_REWARD_VALUES.TRANSFER_BUDGET_BONUS / weeklyIncome;
     expect(ratio).toBeLessThan(0.35); // Budget bonus is a one-time injection vs weekly income, generous threshold
   });
 
-  it('ad season bonus is less than 2 weeks of div-4 income', () => {
-    // Div-4 club: fanBase ~20, reputation ~1
+  it('ad season bonus is less than 2 weeks of small league income', () => {
+    // Small league club: fanBase ~20, reputation ~1
     const weeklyIncome = 20 * MATCHDAY_INCOME_PER_FAN + COMMERCIAL_INCOME_BASE + 1 * COMMERCIAL_INCOME_PER_REP;
     const twoWeeks = weeklyIncome * 2;
     expect(AD_REWARD_VALUES.SEASON_END_BONUS).toBeLessThanOrEqual(twoWeeks);
@@ -287,23 +287,19 @@ describe('economy balance guarantees', () => {
   });
 });
 
-describe('save migration v19', () => {
-  it('migrateSaveData adds monetization defaults', async () => {
+describe('save migration (v22→v23 clean break)', () => {
+  it('migrateSaveData performs clean break from pre-v23 saves', async () => {
     const { migrateSaveData } = await import('@/utils/saveMigration');
     const oldSave = { version: 18 };
     const migrated = migrateSaveData(oldSave);
-    expect(migrated.version).toBe(22);
-    expect(migrated.monetization).toEqual({
-      entitlements: [],
-      activeCosmetics: {},
-      adRewardsClaimed: {},
-      firstLaunchTimestamp: 0,
-      starterKitDismissed: false,
-      subscription: null,
-    });
+    expect(migrated.version).toBe(23);
+    // Clean break resets game state — old fictional league data is incompatible
+    expect(migrated.gameStarted).toBe(false);
+    expect(migrated.playerClubId).toBe('');
+    expect(migrated.playerDivision).toBe('eng');
   });
 
-  it('preserves existing monetization state during migration', async () => {
+  it('clean break resets state even with existing monetization', async () => {
     const { migrateSaveData } = await import('@/utils/saveMigration');
     const existingMonetization = {
       entitlements: ['com.dynastymanager.pro'],
@@ -314,9 +310,8 @@ describe('save migration v19', () => {
     };
     const oldSave = { version: 18, monetization: existingMonetization };
     const migrated = migrateSaveData(oldSave);
-    expect(migrated.monetization).toEqual({
-      ...existingMonetization,
-      subscription: null,
-    });
+    expect(migrated.version).toBe(23);
+    // Clean break at v22→v23 resets everything
+    expect(migrated.gameStarted).toBe(false);
   });
 });

@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 22;
+const CURRENT_VERSION = 23;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -311,6 +311,29 @@ const migrations: Record<number, MigrationFn> = {
       c.wageBill = clubPlayers.reduce((sum: number, p) => sum + ((p.wage || 0) as number), 0);
     }
     return { ...data, version: 22 };
+  },
+  22: (_data: Record<string, unknown>) => {
+    // v22 → v23: European leagues expansion (clean break)
+    // Old saves used fictional English clubs (div-1/2/3/4) that no longer exist.
+    // Force a new game by clearing all game state.
+    return {
+      version: 23,
+      gameStarted: false,
+      playerClubId: '',
+      season: 1,
+      week: 1,
+      clubs: {},
+      players: {},
+      fixtures: [],
+      leagueTable: [],
+      divisionFixtures: {},
+      divisionTables: {},
+      divisionClubs: {},
+      playerDivision: 'eng',
+      messages: [],
+      transferMarket: [],
+      seasonHistory: [],
+    };
   },
 };
 

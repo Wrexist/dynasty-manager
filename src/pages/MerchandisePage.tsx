@@ -9,6 +9,7 @@ import {
 import {
   MERCH_PRODUCT_LINES, MERCH_PRICING_TIERS, MERCH_CAMPAIGNS,
 } from '@/config/merchandise';
+import { LEAGUES } from '@/data/league';
 import {
   isProductLineUnlocked, getStarPlayerMerch, canLaunchCampaign,
   calculateWeeklyMerchRevenue, getMerchOperatingCost,
@@ -333,8 +334,8 @@ function getUnlockText(line: MerchProductLine): string {
   const req = MERCH_PRODUCT_LINES[line].unlockRequirement;
   const parts: string[] = [];
   if (req.minDivision) {
-    const divNames: Record<string, string> = { 'div-1': 'Div 1', 'div-2': 'Div 2', 'div-3': 'Div 3', 'div-4': 'Div 4' };
-    parts.push(divNames[req.minDivision] || req.minDivision);
+    const league = LEAGUES.find(l => l.id === req.minDivision);
+    parts.push(league?.shortName || req.minDivision);
   }
   if (req.minReputation) parts.push(`Rep ${req.minReputation}+`);
   if (req.minStadiumLevel) parts.push(`Stadium Lv${req.minStadiumLevel}+`);

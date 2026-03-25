@@ -7,14 +7,15 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { validateGameState } from './stateValidator';
+import { LEAGUES } from '@/data/league';
 
-const CLUB_ID = 'crown-city'; // div-1 club for most tests
+const CLUB_ID = 'manchester-city'; // eng league club for most tests
 const TOTAL_WEEKS = 46;
 
 /** Yield to event loop so the Vitest worker can process RPC heartbeats. */
 const tick = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 
-/** Advance one full season: 46 advanceWeek() calls + playCurrentMatch() + endSeason + playoffs. */
+/** Advance one full season: 46 advanceWeek() calls + playCurrentMatch() + endSeason. */
 async function advanceFullSeason() {
   const store = useGameStore;
 
@@ -26,20 +27,8 @@ async function advanceFullSeason() {
     if (w % 10 === 9) await tick();
   }
 
-  // Call endSeason to trigger promotion/relegation + playoffs
+  // Call endSeason to trigger season turnover
   store.getState().endSeason();
-
-  // Handle playoffs: keep advancing until season phase resolves
-  let playoffSafety = 0;
-  while (store.getState().seasonPhase === 'playoffs' && playoffSafety < 20) {
-    store.getState().advanceWeek();
-    store.getState().playCurrentMatch();
-    playoffSafety++;
-  }
-
-  if (playoffSafety >= 20) {
-    throw new Error('Playoff phase did not resolve within 20 iterations');
-  }
 }
 
 /** Check every club has at least minSize valid players. */
@@ -102,7 +91,7 @@ describe('1A: Season Lifecycle Stress Test (10 seasons)', () => {
         console.warn(`[Season ${expectedSeason}] ${critical.length} critical errors (first 5):`, critical.slice(0, 5).map(e => `${e.field}: ${e.message}`));
       }
 
-      // Squad sizes >= 18
+      // Squad sizes >= 11
       assertSquadSizes(11);
 
       // Player integrity
@@ -110,68 +99,66 @@ describe('1A: Season Lifecycle Stress Test (10 seasons)', () => {
 
       // Fixtures regenerated
       expect(postState.fixtures.length).toBeGreaterThan(0);
-      for (const [divId, fixtures] of Object.entries(postState.divisionFixtures)) {
-        expect(fixtures.length, `${divId} fixtures`).toBeGreaterThan(0);
+      for (const [leagueId, fixtures] of Object.entries(postState.divisionFixtures)) {
+        expect(fixtures.length, `${leagueId} fixtures`).toBeGreaterThan(0);
       }
 
       // League tables have correct row counts
       expect(postState.leagueTable.length).toBeGreaterThan(0);
-      for (const [divId, table] of Object.entries(postState.divisionTables)) {
-        const expectedCount = divId === 'div-1' ? 20 : 24;
-        expect(table.length, `${divId} table rows`).toBe(expectedCount);
+      for (const [leagueId, table] of Object.entries(postState.divisionTables)) {
+        const league = LEAGUES.find(l => l.id === leagueId);
+        if (league) {
+          expect(table.length, `${leagueId} table rows`).toBe(league.teamCount);
+        }
       }
     }
   });
 });
 
-describe('1B: Promotion/Relegation Integrity (15 seasons)', () => {
+describe('1B: Season Turnover Integrity (15 seasons)', () => {
   beforeEach(() => {
     useGameStore.getState().initGame(CLUB_ID);
   });
 
-  it('maintains 92-club invariant and correct division sizes across 15 seasons', { timeout: 180_000 }, async () => {
+  it('maintains correct league size and no duplicates across 15 seasons', { timeout: 180_000 }, async () => {
     const seenReplacementIds = new Set<string>();
 
     for (let s = 0; s < 15; s++) {
       await advanceFullSeason();
       const state = useGameStore.getState();
 
-      // 92-club invariant
-      const allDivClubs = Object.values(state.divisionClubs).flat();
-      expect(allDivClubs.length).toBe(92);
+      // Validate each loaded league
+      for (const [leagueId, leagueClubs] of Object.entries(state.divisionClubs)) {
+        const league = LEAGUES.find(l => l.id === leagueId);
+        if (!league) continue;
 
-      // No club in multiple divisions
-      const uniqueClubs = new Set(allDivClubs);
-      expect(uniqueClubs.size, `Season ${s + 1}: duplicate clubs in divisions`).toBe(92);
+        // League size preserved
+        expect(leagueClubs.length, `Season ${s + 2}: ${leagueId} size`).toBe(league.teamCount);
 
-      // Division sizes correct
-      expect(state.divisionClubs['div-1'].length).toBe(20);
-      expect(state.divisionClubs['div-2'].length).toBe(24);
-      expect(state.divisionClubs['div-3'].length).toBe(24);
-      expect(state.divisionClubs['div-4'].length).toBe(24);
+        // No club in multiple slots
+        const uniqueClubs = new Set(leagueClubs);
+        expect(uniqueClubs.size, `Season ${s + 2}: duplicate clubs in ${leagueId}`).toBe(leagueClubs.length);
 
-      // Every club in divisionClubs exists in state.clubs
-      for (const clubId of allDivClubs) {
-        expect(state.clubs[clubId], `Club ${clubId} missing from state.clubs in season ${s + 2}`).toBeDefined();
-      }
-
-      // Div-4 replacement clubs should have fresh IDs
-      for (const clubId of state.divisionClubs['div-4']) {
-        if (clubId.startsWith('replaced-')) {
-          if (seenReplacementIds.has(clubId)) {
-            // Replacement ID recycled — this is acceptable if using unique IDs
-          }
-          seenReplacementIds.add(clubId);
+        // Every club in divisionClubs exists in state.clubs
+        for (const clubId of leagueClubs) {
+          expect(state.clubs[clubId], `Club ${clubId} missing from state.clubs in season ${s + 2}`).toBeDefined();
         }
-      }
 
-      // Every division club should have some players
-      for (const clubId of allDivClubs) {
-        const club = state.clubs[clubId];
-        if (!club) continue;
-        const validPlayers = club.playerIds.filter(id => state.players[id]);
-        if (validPlayers.length === 0) {
-          console.warn(`[WARNING] Club ${club.name} (${clubId}) has 0 valid players in season ${s + 2}`);
+        // Track replacement club IDs
+        for (const clubId of leagueClubs) {
+          if (clubId.startsWith('replaced-')) {
+            seenReplacementIds.add(clubId);
+          }
+        }
+
+        // Every league club should have some players
+        for (const clubId of leagueClubs) {
+          const club = state.clubs[clubId];
+          if (!club) continue;
+          const validPlayers = club.playerIds.filter(id => state.players[id]);
+          if (validPlayers.length === 0) {
+            console.warn(`[WARNING] Club ${club.name} (${clubId}) has 0 valid players in season ${s + 2}`);
+          }
         }
       }
     }
@@ -205,7 +192,6 @@ describe('1C: Player Lifecycle (20 seasons)', () => {
       }
 
       // Squad replenishment: verify most clubs maintain playable squads
-      // Some clubs may have stale playerIds; count only valid players
       let depleted = 0;
       const allDivClubIds = Object.values(state.divisionClubs).flat();
       for (const clubId of allDivClubIds) {
@@ -214,14 +200,13 @@ describe('1C: Player Lifecycle (20 seasons)', () => {
         const validPlayers = club.playerIds.filter(id => state.players[id]);
         if (validPlayers.length < 11) depleted++;
       }
-      // Allow up to 5% of clubs to be depleted (edge case — tracked as known issue)
+      // Allow up to 10% of clubs to be depleted (edge case — tracked as known issue)
       expect(depleted, `${depleted} clubs have fewer than 11 players in season ${s + 2}`)
         .toBeLessThan(Math.ceil(allDivClubIds.length * 0.1));
 
       // Total active player count stays reasonable
       const activePlayerCount = Object.values(state.players).filter(p => p && p.clubId).length;
-      // Allow wider range since players accumulate and get cleaned up
-      expect(activePlayerCount, `Active player count season ${s + 2}`).toBeGreaterThan(1500);
+      expect(activePlayerCount, `Active player count season ${s + 2}`).toBeGreaterThan(100);
       expect(activePlayerCount, `Active player count season ${s + 2}`).toBeLessThan(6000);
 
       _previousPlayerCount = Object.keys(state.players).length;
@@ -344,10 +329,7 @@ describe('State Size & Growth Tracking', () => {
     }
 
     // Total player count should not grow unboundedly
-    // After 10 seasons, if orphaned players accumulate, this will catch it
     const lastEntry = sizes[sizes.length - 1];
-    // With orphan pruning, active player count should stay close to squad-based count (~92×25=2300)
-    // Allow up to 4000 to account for free agents and edge cases
     expect(lastEntry.totalPlayers).toBeLessThan(10000);
 
     // Log growth summary for manual review

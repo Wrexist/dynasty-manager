@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 22', () => {
-    expect(CURRENT_VERSION).toBe(22);
+  it('should have current version set to 23', () => {
+    expect(CURRENT_VERSION).toBe(23);
   });
 
   it('should migrate v1 data to current version', () => {
@@ -12,142 +12,23 @@ describe('saveMigration', () => {
     expect(result.version).toBe(CURRENT_VERSION);
   });
 
-  it('should add messages, seasonHistory, incomingOffers in v1→v2', () => {
-    const v1Data: Record<string, unknown> = { version: 1 };
-    const result = migrateSaveData(v1Data);
-    expect(result.messages).toEqual([]);
-    expect(result.seasonHistory).toEqual([]);
-    expect(result.incomingOffers).toEqual([]);
-  });
-
-  it('should add systems in v2→v3', () => {
-    const v2Data: Record<string, unknown> = { version: 2 };
-    const result = migrateSaveData(v2Data);
-    expect(result.settings).toBeDefined();
-    expect(result.tactics).toBeDefined();
-    expect(result.training).toBeDefined();
-    expect(result.staff).toBeDefined();
-    expect(result.scouting).toBeDefined();
-    expect(result.youthAcademy).toBeDefined();
-    expect(result.facilities).toBeDefined();
-    expect(result.financeHistory).toBeDefined();
-  });
-
-  it('should add save slots and loans in v3→v4', () => {
-    const v3Data: Record<string, unknown> = { version: 3 };
-    const result = migrateSaveData(v3Data);
-    expect(result.activeSlot).toBe(1);
-    expect(result.activeLoans).toEqual([]);
-    expect(result.incomingLoanOffers).toEqual([]);
-  });
-
-  it('should add manager progression and achievements in v5→v6', () => {
-    const v5Data: Record<string, unknown> = { version: 5 };
-    const result = migrateSaveData(v5Data);
-    expect(result.managerProgression).toBeDefined();
-    expect(result.careerTimeline).toEqual([]);
-    expect(result.unlockedAchievements).toEqual([]);
-    expect(result.managerStats).toBeDefined();
-    expect(result.weeklyObjectives).toEqual([]);
-  });
-
-  it('should add preMatchLeaguePosition and lastMatchXPGain in v6→v7', () => {
-    const v6Data: Record<string, unknown> = { version: 6 };
-    const result = migrateSaveData(v6Data);
-    expect(result.preMatchLeaguePosition).toBe(10);
-    expect(result.lastMatchXPGain).toBe(0);
-  });
-
-  it('should add scoutWatchList in v7→v8', () => {
-    const v7Data: Record<string, unknown> = { version: 7 };
-    const result = migrateSaveData(v7Data);
-    expect(result.scoutWatchList).toEqual([]);
-  });
-
-  it('should add weeklyDigest in v8→v9', () => {
-    const v8Data: Record<string, unknown> = { version: 8 };
-    const result = migrateSaveData(v8Data);
-    expect(result.weeklyDigest).toBeNull();
-  });
-
-  it('should add freeAgents and aiManagerProfiles in v9→v10', () => {
-    const v9Data: Record<string, unknown> = { version: 9, players: {}, clubs: {} };
-    const result = migrateSaveData(v9Data);
-    expect(result.freeAgents).toEqual([]);
-    expect(result.version).toBe(CURRENT_VERSION);
-  });
-
-  it('should add sponsorship system in v10→v11', () => {
-    const v10Data: Record<string, unknown> = { version: 10 };
-    const result = migrateSaveData(v10Data);
-    expect(result.sponsorDeals).toEqual([]);
-    expect(result.sponsorOffers).toEqual([]);
-    expect(result.sponsorSlotCooldowns).toEqual({});
-    expect(result.version).toBe(CURRENT_VERSION);
-  });
-
-  it('should add unhappiness tracking and cup state in v11→v12', () => {
-    const v11Data: Record<string, unknown> = {
-      version: 11,
-      players: { p1: { id: 'p1', morale: 20 }, p2: { id: 'p2', morale: 80 } },
+  it('should perform clean break at v22→v23 (European leagues expansion)', () => {
+    const v22Data: Record<string, unknown> = {
+      version: 22,
+      playerClubId: 'crown-city',
+      season: 5,
+      clubs: { 'crown-city': { id: 'crown-city' } },
+      playerDivision: 'div-1',
     };
-    const result = migrateSaveData(v11Data);
-    expect(result.version).toBe(CURRENT_VERSION);
-    expect(result.currentCupTieId).toBeNull();
-    const players = result.players as Record<string, Record<string, unknown>>;
-    expect(players.p1.lowMoraleWeeks).toBe(0);
-    expect(players.p1.wantsToLeave).toBe(false);
-    expect(players.p2.lowMoraleWeeks).toBe(0);
-  });
-
-  it('should add recoveryLevel in v13→v14', () => {
-    const v13Data: Record<string, unknown> = {
-      version: 13,
-      facilities: { trainingLevel: 5, youthLevel: 4, stadiumLevel: 3, medicalLevel: 6, upgradeInProgress: null },
-    };
-    const result = migrateSaveData(v13Data);
-    expect(result.version).toBe(CURRENT_VERSION);
-    const facilities = result.facilities as Record<string, unknown>;
-    expect(facilities.recoveryLevel).toBe(6);
-  });
-
-  it('should add stadiumName and stadiumCapacity in v17→v18', () => {
-    const v17Data: Record<string, unknown> = {
-      version: 17,
-      clubs: {
-        'club-1': { id: 'club-1', name: 'Test FC' },
-        'club-2': { id: 'club-2', name: 'Test Utd' },
-      },
-    };
-    const result = migrateSaveData(v17Data);
-    expect(result.version).toBe(CURRENT_VERSION);
-    const clubs = result.clubs as Record<string, Record<string, unknown>>;
-    expect(clubs['club-1'].stadiumName).toBe('Community Stadium');
-    expect(clubs['club-1'].stadiumCapacity).toBe(10_000);
-    expect(clubs['club-2'].stadiumName).toBe('Community Stadium');
-    expect(clubs['club-2'].stadiumCapacity).toBe(10_000);
-  });
-
-  it('should add subscription to monetization in v19→v20', () => {
-    const v19Data: Record<string, unknown> = {
-      version: 19,
-      monetization: {
-        entitlements: ['com.dynastymanager.pro'],
-        activeCosmetics: {},
-        adRewardsClaimed: {},
-        firstLaunchTimestamp: 1000,
-        starterKitDismissed: false,
-      },
-    };
-    const result = migrateSaveData(v19Data);
-    expect(result.version).toBe(CURRENT_VERSION);
-    const monetization = result.monetization as Record<string, unknown>;
-    expect(monetization.subscription).toBeNull();
-    expect(monetization.entitlements).toEqual(['com.dynastymanager.pro']);
+    const result = migrateSaveData(v22Data);
+    expect(result.version).toBe(23);
+    // Clean break: game state is reset
+    expect(result.gameStarted).toBe(false);
+    expect(result.playerClubId).toBe('');
+    expect(result.playerDivision).toBe('eng');
   });
 
   it('should survive a corrupted migration step gracefully', () => {
-    // Data at version 1 with a property that could cause issues
     const corruptData: Record<string, unknown> = { version: 1 };
     const result = migrateSaveData(corruptData);
     expect(result.version).toBe(CURRENT_VERSION);
@@ -160,11 +41,11 @@ describe('saveMigration', () => {
     expect(result.foo).toBe('bar');
   });
 
-  it('should preserve existing data through migrations', () => {
+  it('should reset old saves from pre-v22 through clean break', () => {
     const v1Data: Record<string, unknown> = { version: 1, playerClubId: 'abc', season: 3 };
     const result = migrateSaveData(v1Data);
-    expect(result.playerClubId).toBe('abc');
-    expect(result.season).toBe(3);
+    // After v22→v23 clean break, old data is wiped
     expect(result.version).toBe(CURRENT_VERSION);
+    expect(result.gameStarted).toBe(false);
   });
 });

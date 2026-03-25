@@ -4,14 +4,13 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { DIVISIONS } from '@/data/league';
-import type { DivisionId } from '@/types/game';
+import { LEAGUES } from '@/data/league';
 
 const LeagueTable = () => {
   const { divisionTables, divisionFixtures, divisionClubs, clubs, players, playerClubId, playerDivision, week, totalWeeks, setScreen, selectClub, selectPlayer } = useGameStore();
   const [tab, setTab] = useState<'table' | 'fixtures' | 'stats'>('table');
-  const [selectedDiv, setSelectedDiv] = useState<DivisionId>(playerDivision || 'div-1');
   const [browseWeek, setBrowseWeek] = useState(week);
+  const selectedDiv = playerDivision || 'eng';
 
   const playerRowRef = useRef<HTMLTableRowElement>(null);
   const scrolledRef = useRef(false);
@@ -22,10 +21,10 @@ const LeagueTable = () => {
     }
   }, []);
   useEffect(() => { scrolledRef.current = false; }, [selectedDiv]);
-  useEffect(() => { if (tab === 'table' && selectedDiv === playerDivision) scrollToPlayer(); }, [tab, selectedDiv, playerDivision, scrollToPlayer]);
+  useEffect(() => { if (tab === 'table') scrollToPlayer(); }, [tab, scrollToPlayer]);
 
   const currentTable = divisionTables[selectedDiv] || [];
-  const currentDivision = DIVISIONS.find(d => d.id === selectedDiv);
+  const currentLeague = LEAGUES.find(l => l.id === selectedDiv);
 
   // Fixtures for the browsed week
   const weekFixtures = useMemo(() => {
@@ -51,26 +50,17 @@ const LeagueTable = () => {
     return { topScorers: scorers, topAssisters: assisters };
   }, [players, divisionClubs, selectedDiv]);
 
-  // Zone boundaries for current division
-  const getZone = (pos: number, tableLen: number): 'champion' | 'promotion' | 'playoff' | 'relegation' | 'replaced' | null => {
-    if (!currentDivision) return null;
+  // Zone boundaries for current league
+  const getZone = (pos: number, tableLen: number): 'champion' | 'replaced' | null => {
+    if (!currentLeague) return null;
     if (pos === 1) return 'champion';
-    if (currentDivision.autoPromoteSlots > 0 && pos <= currentDivision.autoPromoteSlots) return 'promotion';
-    if (currentDivision.playoffSlots > 0) {
-      const playoffEnd = currentDivision.autoPromoteSlots + currentDivision.playoffSlots;
-      if (pos > currentDivision.autoPromoteSlots && pos <= playoffEnd) return 'playoff';
-    }
-    if (currentDivision.replacedSlots > 0 && pos > tableLen - currentDivision.replacedSlots) return 'replaced';
-    if (currentDivision.autoRelegateSlots > 0 && pos > tableLen - currentDivision.autoRelegateSlots - currentDivision.replacedSlots) return 'relegation';
+    if (currentLeague.replacedSlots > 0 && pos > tableLen - currentLeague.replacedSlots) return 'replaced';
     return null;
   };
 
   const zoneBgClass = (zone: ReturnType<typeof getZone>) => {
     switch (zone) {
       case 'champion': return 'bg-primary/10 border-l-2 border-l-primary';
-      case 'promotion': return 'bg-emerald-500/5 border-l-2 border-l-emerald-500/40';
-      case 'playoff': return 'bg-blue-500/5 border-l-2 border-l-blue-500/40';
-      case 'relegation': return 'bg-destructive/5 border-l-2 border-l-destructive/40';
       case 'replaced': return 'bg-destructive/10 border-l-2 border-l-destructive/60';
       default: return '';
     }
@@ -82,26 +72,7 @@ const LeagueTable = () => {
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
 
-      <h2 className="text-lg font-bold text-foreground font-display">League</h2>
-
-      {/* Division Selector */}
-      <div className="flex gap-1 overflow-x-auto scrollbar-hide">
-        {DIVISIONS.map(div => (
-          <button
-            key={div.id}
-            onClick={() => { setSelectedDiv(div.id); setBrowseWeek(week); }}
-            className={cn(
-              'px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap shrink-0',
-              selectedDiv === div.id
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted/50 text-muted-foreground hover:bg-muted',
-              div.id === playerDivision && selectedDiv !== div.id && 'ring-1 ring-primary/30'
-            )}
-          >
-            {div.shortName}
-          </button>
-        ))}
-      </div>
+      <h2 className="text-lg font-bold text-foreground font-display">{currentLeague?.name || 'League'}</h2>
 
       {/* Tabs */}
       <div className="flex gap-2">
@@ -209,25 +180,7 @@ const LeagueTable = () => {
               <div className="w-2.5 h-2.5 rounded-sm bg-primary/40" />
               <span className="text-[10px] text-muted-foreground">Champion</span>
             </div>
-            {currentDivision && currentDivision.autoPromoteSlots > 0 && (
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500/30" />
-                <span className="text-[10px] text-muted-foreground">Promotion</span>
-              </div>
-            )}
-            {currentDivision && currentDivision.playoffSlots > 0 && (
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-blue-500/30" />
-                <span className="text-[10px] text-muted-foreground">Playoffs</span>
-              </div>
-            )}
-            {currentDivision && currentDivision.autoRelegateSlots > 0 && (
-              <div className="flex items-center gap-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-destructive/30" />
-                <span className="text-[10px] text-muted-foreground">Relegation</span>
-              </div>
-            )}
-            {currentDivision && currentDivision.replacedSlots > 0 && (
+            {currentLeague && currentLeague.replacedSlots > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-destructive/50" />
                 <span className="text-[10px] text-muted-foreground">Replaced</span>

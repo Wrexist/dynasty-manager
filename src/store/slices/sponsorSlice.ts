@@ -1,6 +1,7 @@
 import type { GameState } from '../storeTypes';
 import type { SponsorDeal, SponsorOffer } from '@/types/game';
 import { addMsg, formatMoney, clamp100 } from '@/utils/helpers';
+import { LEAGUES } from '@/data/league';
 import {
   SPONSOR_SLOTS,
   SPONSOR_OFFER_INTERVAL,
@@ -261,10 +262,12 @@ export function processSponsorSeasonEnd(state: GameState): Partial<GameState> {
   const goalDiff = (entry?.goalsFor || 0) - (entry?.goalsAgainst || 0);
   const cleanSheets = entry?.cleanSheets || 0;
 
-  // Determine relegation zone (bottom 3 for div-1, bottom 4 for others)
-  const relegationZone = playerDivision === 'div-1' ? totalTeams - 3 : totalTeams - 4;
+  // Determine relegation zone (bottom N teams based on league's replacedSlots)
+  const currentLeague = LEAGUES.find(l => l.id === playerDivision);
+  const replacedSlots = currentLeague?.replacedSlots || 3;
+  const relegationZone = totalTeams - replacedSlots;
   const avoided = position <= relegationZone;
-  const promoted = playerDivision !== 'div-1' && position <= 2;
+  const promoted = false; // No cross-league promotion in single-league mode
 
   // Cup state
   const cupWon = cup.winner === playerClubId;

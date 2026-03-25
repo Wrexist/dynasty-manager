@@ -1,4 +1,4 @@
-import { GameScreen, GameSettings, DivisionId, SeasonPhase, TransferNewsEntry } from '@/types/game';
+import { GameScreen, GameSettings, LeagueId, SeasonPhase, TransferNewsEntry } from '@/types/game';
 import type { GameState } from '../storeTypes';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -23,14 +23,13 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   activeSlot: 1,
   transferNews: [] as TransferNewsEntry[],
 
-  // Division system defaults
+  // League system defaults
   seasonPhase: 'regular' as SeasonPhase,
   divisionFixtures: {} as GameState['divisionFixtures'],
   divisionTables: {} as GameState['divisionTables'],
   divisionClubs: {} as GameState['divisionClubs'],
-  playerDivision: 'div-1' as DivisionId,
-  playoffs: [] as GameState['playoffs'],
-  lastPromotionRelegation: null as GameState['lastPromotionRelegation'],
+  playerDivision: 'eng' as LeagueId,
+  lastSeasonTurnover: null as GameState['lastSeasonTurnover'],
   derbies: [] as GameState['derbies'],
 
   setScreen: (screen: GameScreen) => set(s => ({ currentScreen: screen, previousScreen: s.currentScreen })),

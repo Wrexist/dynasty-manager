@@ -2,14 +2,14 @@
  * Edge Case & Boundary Tests
  *
  * Tests for dangerous scenarios: mass contract expiry, transfer window boundaries,
- * loan edge cases, playoff bracket integrity, and division boundary movements.
+ * loan edge cases, and season turnover integrity.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { assertValidGameState } from './stateValidator';
-import { generatePlayoffBracket, getSemiWinner, populatePlayoffFinal, resolvePlayoffFinal, determineZones } from '@/utils/promotionRelegation';
-import { DIVISIONS } from '@/data/league';
-const CLUB_ID = 'crown-city';
+import { determineZones } from '@/utils/promotionRelegation';
+import { LEAGUES } from '@/data/league';
+const CLUB_ID = 'manchester-city';
 const TOTAL_WEEKS = 46;
 
 /** Advance one full season. */
@@ -19,12 +19,6 @@ function advanceFullSeason() {
     useGameStore.getState().playCurrentMatch();
   }
   useGameStore.getState().endSeason();
-  let safety = 0;
-  while (useGameStore.getState().seasonPhase === 'playoffs' && safety < 20) {
-    useGameStore.getState().advanceWeek();
-    useGameStore.getState().playCurrentMatch();
-    safety++;
-  }
 }
 
 describe('2A: Mass Contract Expiry', () => {
@@ -245,7 +239,7 @@ describe('2C: Loan Edge Cases', () => {
         expect(player.onLoan).toBe(false);
         expect(player.clubId).toBe(destClubId);
         // Source club should have received the fee
-        expect(postState.clubs[CLUB_ID].budget).toBeGreaterThan(preBudget - 10_000_000); // account for weekly expenses (realistic wages)
+        expect(postState.clubs[CLUB_ID].budget).toBeGreaterThan(preBudget - 100_000_000); // account for weekly expenses (realistic wages for top-tier clubs)
       }
     }
   });
@@ -285,152 +279,39 @@ describe('2C: Loan Edge Cases', () => {
   });
 });
 
-describe('2D: Playoff Bracket Integrity', () => {
-  it('generates valid 4-club bracket', () => {
-    const contenders = ['club-a', 'club-b', 'club-c', 'club-d'];
-    const playoff = generatePlayoffBracket(contenders, 'div-2');
-
-    // 5 ties: 2 semi-leg1, 2 semi-leg2, 1 final
-    expect(playoff.bracket.length).toBe(5);
-
-    const semiLeg1 = playoff.bracket.filter(t => t.round === 'semi-leg1');
-    const semiLeg2 = playoff.bracket.filter(t => t.round === 'semi-leg2');
-    const finals = playoff.bracket.filter(t => t.round === 'final');
-
-    expect(semiLeg1.length).toBe(2);
-    expect(semiLeg2.length).toBe(2);
-    expect(finals.length).toBe(1);
-
-    // Semi-finals pair 1st vs 4th, 2nd vs 3rd
-    expect(semiLeg1[0].homeClubId).toBe('club-a');
-    expect(semiLeg1[0].awayClubId).toBe('club-d');
-    expect(semiLeg1[1].homeClubId).toBe('club-b');
-    expect(semiLeg1[1].awayClubId).toBe('club-c');
-
-    // Second legs are reversed
-    expect(semiLeg2[0].homeClubId).toBe('club-d');
-    expect(semiLeg2[0].awayClubId).toBe('club-a');
-    expect(semiLeg2[1].homeClubId).toBe('club-c');
-    expect(semiLeg2[1].awayClubId).toBe('club-b');
-
-    // Final starts with empty clubs (TBD)
-    expect(finals[0].homeClubId).toBe('');
-    expect(finals[0].awayClubId).toBe('');
-
-    expect(playoff.currentRound).toBe('semi-leg1');
-    expect(playoff.promotedClubId).toBeNull();
-  });
-
-  it('away goals rule resolves ties correctly', () => {
-    const playoff = generatePlayoffBracket(['A', 'B', 'C', 'D'], 'div-2');
-
-    // Simulate semi 1: A vs D
-    // Leg 1 (A home): A 2-1 D (D scored 1 away goal)
-    // Leg 2 (D home): D 1-0 A (A scored 0 away goals)
-    // Aggregate: A 2-2 D. Away goals: D has 1, A has 0. D wins.
-    const leg1 = playoff.bracket.find(t => t.round === 'semi-leg1' && t.homeClubId === 'A')!;
-    leg1.played = true;
-    leg1.homeGoals = 2;
-    leg1.awayGoals = 1;
-
-    const leg2 = playoff.bracket.find(t => t.round === 'semi-leg2' && t.homeClubId === 'D')!;
-    leg2.played = true;
-    leg2.homeGoals = 1;
-    leg2.awayGoals = 0;
-
-    const winner = getSemiWinner(playoff.bracket, leg1.id);
-    expect(winner).toBe('D'); // D wins on away goals
-  });
-
-  it('resolves final correctly', () => {
-    const playoff = generatePlayoffBracket(['A', 'B', 'C', 'D'], 'div-2');
-
-    // Simulate all semis: A and B win
-    const semis1 = playoff.bracket.filter(t => t.round === 'semi-leg1');
-    const semis2 = playoff.bracket.filter(t => t.round === 'semi-leg2');
-
-    // Semi 1: A beats D (3-0 agg)
-    semis1[0].played = true; semis1[0].homeGoals = 2; semis1[0].awayGoals = 0;
-    semis2[0].played = true; semis2[0].homeGoals = 0; semis2[0].awayGoals = 1;
-
-    // Semi 2: B beats C (2-1 agg)
-    semis1[1].played = true; semis1[1].homeGoals = 1; semis1[1].awayGoals = 0;
-    semis2[1].played = true; semis2[1].homeGoals = 1; semis2[1].awayGoals = 1;
-
-    // Populate final
-    const afterPopulate = populatePlayoffFinal(playoff);
-    const final = afterPopulate.bracket.find(t => t.round === 'final')!;
-    expect(final.homeClubId).toBe('A');
-    expect(final.awayClubId).toBe('B');
-    expect(afterPopulate.currentRound).toBe('final');
-
-    // Play final: A wins 2-1
-    final.played = true;
-    final.homeGoals = 2;
-    final.awayGoals = 1;
-
-    const resolved = resolvePlayoffFinal(afterPopulate);
-    expect(resolved.promotedClubId).toBe('A');
-    expect(resolved.currentRound).toBeNull();
-  });
-});
-
-describe('2E: Division Boundary Integrity', () => {
+describe('2D: Season Turnover Integrity', () => {
   it('determines correct zones from league table', () => {
-    const div2 = DIVISIONS.find(d => d.id === 'div-2')!;
+    const eng = LEAGUES.find(l => l.id === 'eng')!;
 
-    // Create a mock table with 24 entries
-    const table = Array.from({ length: 24 }, (_, i) => ({
+    // Create a mock table with the correct number of entries
+    const table = Array.from({ length: eng.teamCount }, (_, i) => ({
       clubId: `club-${i + 1}`,
       played: 46,
-      won: 24 - i,
+      won: eng.teamCount - i,
       drawn: 0,
       lost: i,
       goalsFor: 50 - i,
       goalsAgainst: 20 + i,
       goalDifference: 30 - 2 * i,
-      points: (24 - i) * 3,
+      points: (eng.teamCount - i) * 3,
       form: [] as ('W' | 'D' | 'L')[],
       cleanSheets: 0,
     }));
 
-    const zones = determineZones(table, div2);
+    const zones = determineZones(table, eng);
 
-    // div-2: 2 auto-promote, 4 playoff, 3 auto-relegate, 0 replaced
-    expect(zones.autoPromoted).toEqual(['club-1', 'club-2']);
-    expect(zones.playoffContenders).toEqual(['club-3', 'club-4', 'club-5', 'club-6']);
-    expect(zones.autoRelegated).toEqual(['club-22', 'club-23', 'club-24']);
-    expect(zones.replaced.length).toBe(0);
-    expect(zones.midTable.length).toBe(15); // 24 - 2 - 4 - 3 = 15
+    // eng: 3 replaced slots
+    expect(zones.safe).toHaveLength(eng.teamCount - eng.replacedSlots);
+    expect(zones.replaced).toHaveLength(eng.replacedSlots);
+    // Bottom 3 should be replaced
+    expect(zones.replaced).toEqual([
+      `club-${eng.teamCount - 2}`,
+      `club-${eng.teamCount - 1}`,
+      `club-${eng.teamCount}`,
+    ]);
   });
 
-  it('determines correct zones for div-4 (with replacements)', () => {
-    const div4 = DIVISIONS.find(d => d.id === 'div-4')!;
-
-    const table = Array.from({ length: 24 }, (_, i) => ({
-      clubId: `club-${i + 1}`,
-      played: 46,
-      won: 24 - i,
-      drawn: 0,
-      lost: i,
-      goalsFor: 50 - i,
-      goalsAgainst: 20 + i,
-      goalDifference: 30 - 2 * i,
-      points: (24 - i) * 3,
-      form: [] as ('W' | 'D' | 'L')[],
-      cleanSheets: 0,
-    }));
-
-    const zones = determineZones(table, div4);
-
-    // div-4: 2 auto-promote, 4 playoff, 0 auto-relegate, 2 replaced
-    expect(zones.autoPromoted).toEqual(['club-1', 'club-2']);
-    expect(zones.playoffContenders).toEqual(['club-3', 'club-4', 'club-5', 'club-6']);
-    expect(zones.autoRelegated.length).toBe(0);
-    expect(zones.replaced).toEqual(['club-23', 'club-24']);
-  });
-
-  it('maintains division integrity through promotion/relegation cycle', { timeout: 60_000 }, () => {
+  it('maintains league integrity through season turnover cycle', { timeout: 60_000 }, () => {
     useGameStore.getState().initGame(CLUB_ID);
 
     // Run 3 seasons and verify after each
@@ -438,25 +319,21 @@ describe('2E: Division Boundary Integrity', () => {
       advanceFullSeason();
 
       const state = useGameStore.getState();
-      const postDivClubs = state.divisionClubs;
+      const playerLeague = state.playerDivision;
+      const leagueClubs = state.divisionClubs[playerLeague];
+      const leagueInfo = LEAGUES.find(l => l.id === playerLeague)!;
 
-      // Division sizes preserved
-      // Verify total
-      const total = Object.values(postDivClubs).flat().length;
-      expect(total).toBe(92);
-      expect(postDivClubs['div-1'].length).toBe(20);
-      expect(postDivClubs['div-2'].length).toBe(24);
-      expect(postDivClubs['div-3'].length).toBe(24);
-      expect(postDivClubs['div-4'].length).toBe(24);
+      // League size preserved
+      expect(leagueClubs.length).toBe(leagueInfo.teamCount);
+
+      // No duplicate clubs
+      expect(new Set(leagueClubs).size).toBe(leagueClubs.length);
 
       // Every club has a valid squad
-      for (const clubId of Object.values(postDivClubs).flat()) {
+      for (const clubId of leagueClubs) {
         const club = state.clubs[clubId];
         expect(club, `Club ${clubId} missing`).toBeDefined();
         const validPlayers = club.playerIds.filter(id => state.players[id]);
-        // Division counts are the critical invariant — squad sizes are tested in longevity tests
-        // Some clubs may have stale playerIds that reference deleted players; the valid count matters
-        // This is a known issue tracked separately — just verify the club exists and has some players
         expect(validPlayers.length, `Club ${club.name} (${clubId}) has zero valid players`)
           .toBeGreaterThan(0);
       }
