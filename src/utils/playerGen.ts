@@ -4,7 +4,7 @@ import { pick, clamp } from '@/utils/helpers';
 import {
   PLAYER_MIN_AGE, PLAYER_AGE_RANGE, YOUNG_AGE_THRESHOLD, YOUNG_POTENTIAL_GAP, OLD_POTENTIAL_GAP,
   PROFILE_ATTRIBUTE_VARIANCE, POSITION_WEIGHTS as CONFIG_POSITION_WEIGHTS, DEFAULT_POSITION_WEIGHTS,
-  VALUE_OVERALL_MULTIPLIER, VALUE_RANDOM_RANGE, WAGE_DIVISOR,
+  calculatePlayerValue, calculatePlayerWage,
   CONTRACT_BASE_YEARS, CONTRACT_RANDOM_YEARS,
   FITNESS_BASE, FITNESS_RANGE, MORALE_BASE, MORALE_RANGE, FORM_BASE, FORM_RANGE,
   SQUAD_TEMPLATE as CONFIG_SQUAD_TEMPLATE, AGE_BUCKETS as CONFIG_AGE_BUCKETS, PEAK_AGE_BUCKET,
@@ -87,7 +87,7 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
   const overall = calculateOverall(attrs, position);
   const age = PLAYER_MIN_AGE + Math.floor(Math.random() * PLAYER_AGE_RANGE);
   const potential = clamp(overall + Math.floor(Math.random() * (age < YOUNG_AGE_THRESHOLD ? YOUNG_POTENTIAL_GAP : OLD_POTENTIAL_GAP)));
-  const value = Math.round(overall * overall * VALUE_OVERALL_MULTIPLIER + Math.random() * VALUE_RANDOM_RANGE);
+  const value = calculatePlayerValue(overall);
   const nationality = pickNationality(divisionTier);
   const { firstName, lastName } = pickNameForNationality(nationality);
   return {
@@ -101,7 +101,7 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
     overall,
     potential,
     clubId,
-    wage: Math.round(value / WAGE_DIVISOR),
+    wage: calculatePlayerWage(overall),
     value,
     contractEnd: season + CONTRACT_BASE_YEARS + Math.floor(Math.random() * CONTRACT_RANDOM_YEARS),
     fitness: FITNESS_BASE + Math.floor(Math.random() * FITNESS_RANGE),
@@ -161,8 +161,8 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     } else if (t.age <= YOUNG_POTENTIAL_AGE_THRESHOLD) {
       player.potential = clamp(player.overall + YOUNG_POTENTIAL_BOOST_BASE + Math.floor(Math.random() * YOUNG_POTENTIAL_BOOST_RANGE));
     }
-    player.value = Math.round(player.overall * player.overall * VALUE_OVERALL_MULTIPLIER + Math.random() * VALUE_RANDOM_RANGE);
-    player.wage = Math.round(player.value / WAGE_DIVISOR);
+    player.value = calculatePlayerValue(player.overall);
+    player.wage = calculatePlayerWage(player.overall);
     templatePlayers.push(player);
   }
 
@@ -208,7 +208,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     star.attributes = starAttrs;
     star.overall = calculateOverall(starAttrs, star.position);
     star.potential = clamp(star.overall + 3 + Math.floor(Math.random() * 3));
-    star.value = Math.round(star.overall * star.overall * VALUE_OVERALL_MULTIPLIER + Math.random() * VALUE_RANDOM_RANGE);
+    star.value = calculatePlayerValue(star.overall);
 
     const veterans = fillerPlayers.filter(p => p.age >= 30 && p !== star);
     if (veterans.length > 0) {
@@ -222,7 +222,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
       vet.attributes = vetAttrs;
       vet.overall = calculateOverall(vetAttrs, vet.position);
       vet.potential = vet.overall;
-      vet.value = Math.round(vet.overall * vet.overall * VALUE_OVERALL_MULTIPLIER + Math.random() * VALUE_RANDOM_RANGE);
+      vet.value = calculatePlayerValue(vet.overall);
       if (vet.personality) vet.personality.leadership = Math.max(vet.personality.leadership, 16);
     }
   }

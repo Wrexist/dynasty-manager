@@ -11,7 +11,7 @@ import {
   VALUE_AGE_MULTIPLIERS,
 } from '@/config/gameBalance';
 import { TRAINING_FOCUS_BONUS, MODULE_ATTR_MAP } from '@/config/training';
-import { VALUE_OVERALL_MULTIPLIER, VALUE_RANDOM_RANGE } from '@/config/playerGeneration';
+import { calculatePlayerValue } from '@/config/playerGeneration';
 
 // Per-season growth tracking to cap total growth
 export const seasonGrowthTracker: Record<string, number> = {};
@@ -67,7 +67,7 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
   for (const tier of VALUE_AGE_MULTIPLIERS) {
     if (p.age <= tier.maxAge) { ageMult = tier.multiplier; break; }
   }
-  updated.value = Math.round(updated.overall * updated.overall * VALUE_OVERALL_MULTIPLIER * ageMult + Math.random() * VALUE_RANDOM_RANGE);
+  updated.value = Math.round(calculatePlayerValue(updated.overall) * ageMult);
   return updated;
 }
 

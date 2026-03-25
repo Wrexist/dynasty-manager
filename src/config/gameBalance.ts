@@ -51,14 +51,17 @@ export const POSITION_DEV_BONUS: Record<string, Partial<Record<keyof PlayerAttri
   'ST':  { shooting: 0.03, physical: 0.01, pace: 0.01 },
 };
 
-// ── Value Age Multipliers ──
+// ── Value Age Multipliers (calibrated to real transfer market age curves) ──
 export const VALUE_AGE_MULTIPLIERS = [
-  { maxAge: 20, multiplier: 0.6 },
-  { maxAge: 24, multiplier: 0.85 },
-  { maxAge: 28, multiplier: 1.0 },
-  { maxAge: 30, multiplier: 0.8 },
-  { maxAge: 33, multiplier: 0.5 },
-  { maxAge: Infinity, multiplier: 0.25 },
+  { maxAge: 18, multiplier: 0.30 },   // Very young prospect
+  { maxAge: 20, multiplier: 0.50 },   // Young prospect
+  { maxAge: 22, multiplier: 0.75 },   // Emerging talent
+  { maxAge: 24, multiplier: 0.90 },   // Rising player
+  { maxAge: 27, multiplier: 1.00 },   // Prime peak
+  { maxAge: 29, multiplier: 0.85 },   // Late prime
+  { maxAge: 31, multiplier: 0.60 },   // Declining
+  { maxAge: 33, multiplier: 0.35 },   // Veteran
+  { maxAge: Infinity, multiplier: 0.15 },  // End of career
 ] as const;
 
 // ── Board Confidence ──
@@ -222,8 +225,8 @@ export const AI_LOAN_OBLIGATORY_BUY_MULTIPLIER = 0.8;
 export const AI_TRANSFER_CHANCE = 0.10;
 export const AI_TRANSFER_FEE_BASE = 0.9;
 export const AI_TRANSFER_FEE_RANGE = 0.3;
-export const AI_TRANSFER_MAX_BUDGET_RATIO = 0.4;
-export const AI_TRANSFER_MIN_BUDGET = 5_000_000;
+export const AI_TRANSFER_MAX_BUDGET_RATIO = 0.35;
+export const AI_TRANSFER_MIN_BUDGET = 2_000_000;
 
 // ── Win Streak Bonuses ──
 export const STREAK_MORALE_THRESHOLD = 3;

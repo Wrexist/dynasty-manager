@@ -52,7 +52,28 @@ export const POSITION_WEIGHTS: Record<string, number[]> = {
 
 export const DEFAULT_POSITION_WEIGHTS = [1/6, 1/6, 1/6, 1/6, 1/6, 1/6];
 
-// ── Value & Wage Formulas ──
+// ── Value & Wage Formulas (exponential curves calibrated to Transfermarkt 2024-25) ──
+// Value curve: ~£137K at OVR 40  →  ~£130M at OVR 91
+// Wage curve:  ~£1.1K/wk at OVR 40  →  ~£390K/wk at OVR 91
+export const VALUE_EXP_BASE = 550;
+export const VALUE_EXP_RATE = 0.136;
+export const VALUE_RANDOM_FACTOR = 0.15;
+export const WAGE_EXP_BASE = 10;
+export const WAGE_EXP_RATE = 0.116;
+export const WAGE_RANDOM_FACTOR = 0.10;
+export const WAGE_FLOOR = 500;
+
+/** Calculate realistic market value from overall rating using an exponential curve. */
+export function calculatePlayerValue(overall: number): number {
+  return Math.round(VALUE_EXP_BASE * Math.exp(VALUE_EXP_RATE * overall) * (1 + Math.random() * VALUE_RANDOM_FACTOR));
+}
+
+/** Calculate realistic weekly wage from overall rating using an exponential curve. */
+export function calculatePlayerWage(overall: number): number {
+  return Math.max(WAGE_FLOOR, Math.round(WAGE_EXP_BASE * Math.exp(WAGE_EXP_RATE * overall) * (1 + Math.random() * WAGE_RANDOM_FACTOR)));
+}
+
+// Legacy aliases kept for save migration (these are used nowhere else now)
 export const VALUE_OVERALL_MULTIPLIER = 500;
 export const VALUE_RANDOM_RANGE = 500000;
 export const WAGE_DIVISOR = 520;
