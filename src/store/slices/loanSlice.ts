@@ -291,4 +291,100 @@ export const createLoanSlice = (set: Set, get: Get) => ({
 
     set({ players: newPlayers, clubs: newClubs, activeLoans: remaining, messages: newMessages });
   },
+
+  buyLoanedPlayer: (loanId: string) => {
+    const state = get();
+    const loan = state.activeLoans.find(l => l.id === loanId);
+    if (!loan) return { success: false, message: 'Loan not found.' };
+    if (loan.toClubId !== state.playerClubId) return { success: false, message: 'Player is not on loan to your club.' };
+
+    const player = state.players[loan.playerId];
+    if (!player) return { success: false, message: 'Player not found.' };
+
+    // Fee: obligatory buy fee if set, otherwise 1.2x player value
+    const fee = loan.obligatoryBuyFee || Math.round(player.value * 1.2);
+    const buyerClub = { ...state.clubs[state.playerClubId] };
+    if (fee > buyerClub.budget) return { success: false, message: `Insufficient funds — need £${(fee / 1e6).toFixed(1)}M.` };
+
+    const sellerClub = { ...state.clubs[loan.fromClubId] };
+
+    // Transfer finances
+    buyerClub.budget -= fee;
+    sellerClub.budget += fee;
+
+    // Fix wages: remove loan split, add full wage to buyer
+    buyerClub.wageBill += Math.round(player.wage * (100 - loan.wageSplit) / 100);
+    sellerClub.wageBill -= Math.round(player.wage * (100 - loan.wageSplit) / 100);
+
+    // Remove from seller's roster (already at buyer from loan)
+    sellerClub.playerIds = sellerClub.playerIds.filter(id => id !== loan.playerId);
+
+    const updatedPlayer = { ...player, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, clubId: state.playerClubId };
+
+    const newMessages = addMsg(state.messages, {
+      week: state.week, season: state.season, type: 'transfer',
+      title: `${player.lastName} Signed Permanently`,
+      body: `${player.firstName} ${player.lastName}'s loan has been converted to a permanent deal for £${(fee / 1e6).toFixed(1)}M.`,
+    });
+
+    set({
+      players: { ...state.players, [loan.playerId]: updatedPlayer },
+      clubs: { ...state.clubs, [buyerClub.id]: buyerClub, [sellerClub.id]: sellerClub },
+      activeLoans: state.activeLoans.filter(l => l.id !== loanId),
+      messages: newMessages,
+    });
+
+    return { success: true, message: `${player.firstName} ${player.lastName} signed permanently for £${(fee / 1e6).toFixed(1)}M!` };
+  },
+
+  terminateLoan: (loanId: string) => {
+    const state = get();
+    const loan = state.activeLoans.find(l => l.id === loanId);
+    if (!loan) return { success: false, message: 'Loan not found.' };
+
+    // Only the lending club (fromClub) or the borrowing club can terminate
+    const isLender = loan.fromClubId === state.playerClubId;
+    const isBorrower = loan.toClubId === state.playerClubId;
+    if (!isLender && !isBorrower) return { success: false, message: 'Not involved in this loan.' };
+
+    const player = state.players[loan.playerId];
+    if (!player) return { success: false, message: 'Player not found.' };
+
+    const fromClub = { ...state.clubs[loan.fromClubId] };
+    const toClub = { ...state.clubs[loan.toClubId] };
+
+    // Return player to parent club
+    toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
+    toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
+    toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
+    toClub.wageBill -= Math.round(player.wage * loan.wageSplit / 100);
+
+    fromClub.playerIds = [...fromClub.playerIds, loan.playerId];
+    fromClub.wageBill += Math.round(player.wage * loan.wageSplit / 100);
+
+    // Small morale penalty for early termination
+    const updatedPlayer = {
+      ...player,
+      onLoan: false,
+      loanFromClubId: undefined,
+      loanToClubId: undefined,
+      clubId: loan.fromClubId,
+      morale: Math.max(0, player.morale - 10),
+    };
+
+    const newMessages = addMsg(state.messages, {
+      week: state.week, season: state.season, type: 'transfer',
+      title: `${player.lastName} Loan Terminated`,
+      body: `${player.firstName} ${player.lastName}'s loan at ${toClub.name} has been terminated early by mutual consent.`,
+    });
+
+    set({
+      players: { ...state.players, [loan.playerId]: updatedPlayer },
+      clubs: { ...state.clubs, [fromClub.id]: fromClub, [toClub.id]: toClub },
+      activeLoans: state.activeLoans.filter(l => l.id !== loanId),
+      messages: newMessages,
+    });
+
+    return { success: true, message: `${player.firstName} ${player.lastName}'s loan terminated.` };
+  },
 });
