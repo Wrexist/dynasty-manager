@@ -10,12 +10,11 @@ export interface PlayerTemplate {
   pot?: number;
 }
 
+import { ALL_TEMPLATES } from './templates';
+
 /**
  * Club-specific player templates for squad generation.
- * Players are procedurally generated, but templates allow seeding
- * recognizable archetypes at specific clubs.
- *
- * Currently empty — all squads are fully procedurally generated
- * with nationality-appropriate names from the name pool system.
+ * Templates seed recognizable real-world players at specific clubs.
+ * Remaining squad slots are filled with procedurally generated players.
  */
-export const CLUB_TEMPLATES: Record<string, PlayerTemplate[]> = {};
+export const CLUB_TEMPLATES: Record<string, PlayerTemplate[]> = ALL_TEMPLATES;
