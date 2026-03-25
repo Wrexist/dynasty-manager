@@ -10,12 +10,11 @@ export interface PlayerTemplate {
   pot?: number;
 }
 
+import { ALL_SQUAD_TEMPLATES } from '@/data/squads';
+
 /**
  * Club-specific player templates for squad generation.
  * Players are procedurally generated, but templates allow seeding
- * recognizable archetypes at specific clubs.
- *
- * Currently empty — all squads are fully procedurally generated
- * with nationality-appropriate names from the name pool system.
+ * recognizable players at specific clubs from real-life 2024-25 rosters.
  */
-export const CLUB_TEMPLATES: Record<string, PlayerTemplate[]> = {};
+export const CLUB_TEMPLATES: Record<string, PlayerTemplate[]> = ALL_SQUAD_TEMPLATES;
