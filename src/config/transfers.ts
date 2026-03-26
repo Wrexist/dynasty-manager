@@ -67,6 +67,15 @@ export const COUNTER_OFFER_RANDOM_RANGE = 0.3;
 export const RECORD_SIGNING_SPEND_RATIO = 0.4;
 export const RECORD_SIGNING_MIN_FEE = 5_000_000;
 
+// ── Incoming Offer Negotiation (Selling) ──
+export const INCOMING_NEGOTIATE_MAX_MULTIPLIER = 1.5;
+export const INCOMING_NEGOTIATE_ACCEPT_AT_OFFER = 0.90;
+export const INCOMING_NEGOTIATE_ACCEPT_AT_120 = 0.45;
+export const INCOMING_NEGOTIATE_ACCEPT_AT_MAX = 0.08;
+export const INCOMING_NEGOTIATE_COUNTER_CHANCE = 0.35;
+export const INCOMING_NEGOTIATE_COUNTER_BASE = 0.4;
+export const INCOMING_NEGOTIATE_COUNTER_RANGE = 0.3;
+
 // ── Contract Renewal ──
 export const CONTRACT_MIN_YEARS = 1;
 export const CONTRACT_MAX_YEARS = 5;
