@@ -12,6 +12,7 @@ import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUT
 import type { HalfState } from '@/engine/match';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
+import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
 import { infoToast } from '@/utils/gameToast';
@@ -478,45 +479,8 @@ const MatchDay = () => {
           )}
 
           {/* Tactical changes at half-time */}
-          <GlassPanel className="p-4 space-y-3">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Mentality</p>
-              <div className="flex gap-1.5">
-                {(['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'] as const).map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setTactics({ mentality: m })}
-                    className={cn(
-                      'flex-1 py-2 rounded-lg text-[10px] font-semibold capitalize transition-all',
-                      tactics.mentality === m
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                    )}
-                  >
-                    {m === 'all-out-attack' ? 'All Out' : m}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Tempo</p>
-              <div className="flex gap-1.5">
-                {(['slow', 'normal', 'fast'] as const).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setTactics({ tempo: t })}
-                    className={cn(
-                      'flex-1 py-2 rounded-lg text-[10px] font-semibold capitalize transition-all',
-                      tactics.tempo === t
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                    )}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <GlassPanel className="p-4">
+            <TacticalPanel variant="full" tactics={tactics} setTactics={setTactics} />
           </GlassPanel>
 
           {/* First half events recap */}
@@ -559,45 +523,8 @@ const MatchDay = () => {
           )}
 
           {/* Tactical changes before extra time */}
-          <GlassPanel className="p-4 space-y-3">
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Mentality</p>
-              <div className="flex gap-1.5">
-                {(['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'] as const).map(m => (
-                  <button
-                    key={m}
-                    onClick={() => setTactics({ mentality: m })}
-                    className={cn(
-                      'flex-1 py-2 rounded-lg text-[10px] font-semibold capitalize transition-all',
-                      tactics.mentality === m
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                    )}
-                  >
-                    {m === 'all-out-attack' ? 'All Out' : m}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Tempo</p>
-              <div className="flex gap-1.5">
-                {(['slow', 'normal', 'fast'] as const).map(t => (
-                  <button
-                    key={t}
-                    onClick={() => setTactics({ tempo: t })}
-                    className={cn(
-                      'flex-1 py-2 rounded-lg text-[10px] font-semibold capitalize transition-all',
-                      tactics.tempo === t
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                    )}
-                  >
-                    {t}
-                  </button>
-                ))}
-              </div>
-            </div>
+          <GlassPanel className="p-4">
+            <TacticalPanel variant="full" tactics={tactics} setTactics={setTactics} />
           </GlassPanel>
 
           <Button className="w-full h-12 text-base font-bold gap-2" onClick={resumeExtraTime}>
@@ -622,29 +549,54 @@ const MatchDay = () => {
       {/* Live Controls (first or second half) — hidden during key moments */}
       {isLive && !keyMoment && (
         <>
-          <div className="flex justify-between items-center">
-            <div className="flex gap-3">
-              {paused ? (
-                <>
-                  <button onClick={handleResume} className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 font-semibold">
-                    <Play className="w-3 h-3" /> Resume
+          {paused ? (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
+              <GlassPanel className="p-4 border-primary/40 space-y-3">
+                <div className="flex items-center gap-2">
+                  <Pause className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-bold text-foreground">Match Paused — {currentMin}'</p>
+                </div>
+
+                <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
+
+                {matchSubsUsed < MAX_SUBSTITUTIONS && (
+                  <button
+                    onClick={() => setSubSheetOpen(true)}
+                    className="w-full py-2 rounded-lg bg-muted/30 text-xs text-muted-foreground hover:bg-muted/50 flex items-center justify-center gap-1.5"
+                  >
+                    <RefreshCw className="w-3 h-3" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
                   </button>
-                  {matchSubsUsed < MAX_SUBSTITUTIONS && (
-                    <button onClick={() => setSubSheetOpen(true)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                      <RefreshCw className="w-3 h-3" /> Sub ({MAX_SUBSTITUTIONS - matchSubsUsed})
-                    </button>
-                  )}
-                </>
-              ) : (
-                <button onClick={handlePause} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                  <Pause className="w-3 h-3" /> Pause
-                </button>
-              )}
+                )}
+
+                <div className="flex gap-2">
+                  <Button size="sm" className="flex-1" onClick={handleResume}>
+                    <Play className="w-3.5 h-3.5 mr-1.5" /> Resume
+                  </Button>
+                  <button
+                    onClick={() => setSpeed(s => s === 200 ? 50 : 200)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 border border-border/30 transition-all"
+                  >
+                    <FastForward className="w-3.5 h-3.5" /> {speed === 50 ? 'Normal' : 'Fast'}
+                  </button>
+                </div>
+              </GlassPanel>
+            </motion.div>
+          ) : (
+            <div className="flex justify-between items-center">
+              <button
+                onClick={handlePause}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 active:scale-[0.97] border border-border/30 transition-all"
+              >
+                <Pause className="w-3.5 h-3.5" /> Pause
+              </button>
+              <button
+                onClick={() => setSpeed(s => s === 200 ? 50 : 200)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 active:scale-[0.97] border border-border/30 transition-all"
+              >
+                <FastForward className="w-3.5 h-3.5" /> {speed === 50 ? 'Normal' : 'Fast'}
+              </button>
             </div>
-            <button onClick={() => setSpeed(s => s === 200 ? 50 : 200)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-              <FastForward className="w-3 h-3" /> {speed === 50 ? 'Normal' : 'Fast'}
-            </button>
-          </div>
+          )}
 
           {/* Event Log */}
           <GlassPanel className="p-4 max-h-[30vh] overflow-y-auto">
@@ -681,43 +633,7 @@ const MatchDay = () => {
             </div>
             <p className="text-xs text-muted-foreground mb-3">{keyMoment.description}</p>
 
-            {/* Quick mentality change */}
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Mentality</p>
-            <div className="flex gap-1 mb-2">
-              {(['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'] as const).map(m => (
-                <button
-                  key={m}
-                  onClick={() => setTactics({ mentality: m })}
-                  className={cn(
-                    'flex-1 py-1.5 rounded-lg text-[9px] font-semibold capitalize transition-all',
-                    tactics.mentality === m
-                      ? 'bg-primary/20 text-primary border border-primary/30'
-                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                  )}
-                >
-                  {m === 'all-out-attack' ? 'All Out' : m}
-                </button>
-              ))}
-            </div>
-
-            {/* Quick tempo change */}
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Tempo</p>
-            <div className="flex gap-1 mb-3">
-              {(['slow', 'normal', 'fast'] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setTactics({ tempo: t })}
-                  className={cn(
-                    'flex-1 py-1.5 rounded-lg text-[9px] font-semibold capitalize transition-all',
-                    tactics.tempo === t
-                      ? 'bg-primary/20 text-primary border border-primary/30'
-                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                  )}
-                >
-                  {t}
-                </button>
-              ))}
-            </div>
+            <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
 
             {/* Quick sub button */}
             {matchSubsUsed < MAX_SUBSTITUTIONS && (
