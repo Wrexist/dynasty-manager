@@ -13,6 +13,7 @@ import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight } from '
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 import { PITCH_COLORS } from '@/config/ui';
 import { PlayerAvatar } from './PlayerAvatar';
+import { computeSmartSub } from '@/utils/substitutionLogic';
 
 interface SubstitutionSheetProps {
   open: boolean;
@@ -24,6 +25,18 @@ interface SubstitutionSheetProps {
   homeShortName?: string;
   awayShortName?: string;
   isPlayerHome?: boolean;
+  /** Pre-select this player as OUT (e.g. injured player) */
+  preSelectedOutId?: string;
+  /** When true, sheet cannot be dismissed without explicit action */
+  forceMode?: boolean;
+  /** Callback for "Continue without sub" in force mode */
+  onDismissWithoutSub?: () => void;
+  /** IDs of players injured during this match (from match events) */
+  injuredPlayerIds?: string[];
+  /** Current player goals for match context */
+  playerGoals?: number;
+  /** Current opponent goals for match context */
+  opponentGoals?: number;
 }
 
 function getFormLabel(form: number): { text: string; className: string } {
@@ -51,20 +64,23 @@ const VP_Y = 46;
 const VP_H = 59;
 const VP_W = 68;
 
-export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome }: SubstitutionSheetProps) {
+export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome, preSelectedOutId, forceMode, onDismissWithoutSub, injuredPlayerIds, playerGoals, opponentGoals }: SubstitutionSheetProps) {
   const { players, makeMatchSub, matchSubsUsed, week } = useGameStore();
   const playerClub = usePlayerClub();
 
   const [selectedOutId, setSelectedOutId] = useState<string | null>(null);
   const [selectedInId, setSelectedInId] = useState<string | null>(null);
 
-  // Reset selection state when sheet opens/closes
+  // Reset selection state when sheet opens/closes; pre-select if provided
   useEffect(() => {
     if (!open) {
       setSelectedOutId(null);
       setSelectedInId(null);
+    } else if (preSelectedOutId) {
+      setSelectedOutId(preSelectedOutId);
+      setSelectedInId(null);
     }
-  }, [open]);
+  }, [open, preSelectedOutId]);
 
   // Sort bench by position compatibility, then overall, then fitness
   const sortedSubs = useMemo(() => {
@@ -101,50 +117,21 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     return slots[idx].pos as Position | undefined;
   }, [selectedOutId, lineup, slots]);
 
-  // Smart Sub recommendation — find best (out, in) pair
+  // Smart Sub recommendation — delegated to utility
   const smartSub = useMemo(() => {
     if (!playerClub) return null;
-    const allSubs = playerClub.subs;
-    let bestScore = -Infinity;
-    let best: { outId: string; inId: string; reason: string } | null = null;
-
-    for (let i = 0; i < lineup.length; i++) {
-      const outId = lineup[i];
-      const outP = outId ? players[outId] : null;
-      if (!outP) continue;
-      const slotPos = slots[i]?.pos as Position;
-
-      // How much does this starter need replacing? Higher = more urgent
-      const fitnessNeed = Math.max(0, 75 - outP.fitness) * 2;
-      const formNeed = Math.max(0, 65 - outP.form) * 0.8;
-      const outNeed = fitnessNeed + formNeed;
-      // Skip if starter is in great shape
-      if (outNeed < 5) continue;
-
-      for (const inId of allSubs) {
-        const inP = players[inId];
-        if (!inP || inP.injured || (inP.suspendedUntilWeek && inP.suspendedUntilWeek > week)) continue;
-
-        const posCompat = inP.position === slotPos ? 1
-          : (POSITION_COMPATIBILITY[slotPos] || []).includes(inP.position as Position) ? 0.7
-          : 0.2;
-
-        const inStrength = inP.overall * posCompat + inP.fitness * 0.3 + inP.form * 0.2;
-        const score = outNeed + inStrength;
-
-        if (score > bestScore) {
-          bestScore = score;
-          const reason = outP.fitness < 60
-            ? `${outP.lastName} tired (${Math.round(outP.fitness)}%) → ${inP.lastName}`
-            : outP.form < 55
-            ? `${outP.lastName} poor form → ${inP.lastName}`
-            : `Fresh legs: ${inP.lastName} for ${outP.lastName}`;
-          best = { outId, inId, reason };
-        }
-      }
-    }
-    return best;
-  }, [playerClub, lineup, slots, players, week]);
+    return computeSmartSub({
+      lineup,
+      subs: playerClub.subs,
+      slots,
+      players,
+      week,
+      matchMinute,
+      playerGoals,
+      opponentGoals,
+      injuredPlayerIds,
+    });
+  }, [playerClub, lineup, slots, players, week, matchMinute, playerGoals, opponentGoals, injuredPlayerIds]);
 
   if (!playerClub) return null;
 
@@ -335,9 +322,44 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     </div>
   );
 
+  // Force mode: no subs remaining — show acknowledgment panel
+  if (forceMode && subsRemaining <= 0) {
+    const injuredPlayer = preSelectedOutId ? players[preSelectedOutId] : null;
+    return (
+      <Sheet open={open} onOpenChange={() => { /* blocked */ }}>
+        <SheetContent
+          side="bottom"
+          className="max-h-[92vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-t border-border/50 px-4 pb-8"
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <div className="flex flex-col items-center gap-4 py-6 text-center">
+            <AlertCircle className="w-10 h-10 text-destructive" />
+            <p className="text-sm font-bold text-foreground">No Substitutions Remaining</p>
+            <p className="text-xs text-muted-foreground px-4">
+              {injuredPlayer
+                ? `${injuredPlayer.lastName} is injured but you have no substitutions left. Your team will continue with 10 players.`
+                : 'All 5 substitutions have been used. No more changes can be made.'}
+            </p>
+            <Button className="w-full max-w-xs" onClick={() => onDismissWithoutSub?.()}>
+              Acknowledge
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+    );
+  }
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-t border-border/50 px-4 pb-8">
+    <Sheet open={open} onOpenChange={forceMode ? () => { /* blocked in force mode */ } : onOpenChange}>
+      <SheetContent
+        side="bottom"
+        className="max-h-[92vh] overflow-y-auto bg-background/95 backdrop-blur-xl border-t border-border/50 px-4 pb-8"
+        {...(forceMode ? {
+          onInteractOutside: (e: Event) => e.preventDefault(),
+          onEscapeKeyDown: (e: Event) => e.preventDefault(),
+        } : {})}
+      >
         <SheetHeader className="pb-2">
           <div className="flex items-center justify-between">
             <SheetTitle className="text-base font-display">Make Substitution</SheetTitle>
@@ -366,6 +388,16 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               exit={{ opacity: 0 }}
             >
               {renderPitchView()}
+
+              {/* Force mode: "Continue without sub" option */}
+              {forceMode && (
+                <button
+                  onClick={() => onDismissWithoutSub?.()}
+                  className="w-full mt-3 py-2.5 rounded-lg bg-muted/20 border border-border/30 text-xs text-muted-foreground hover:bg-muted/40 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <AlertCircle className="w-3 h-3" /> Continue without substitution
+                </button>
+              )}
             </motion.div>
           )}
 

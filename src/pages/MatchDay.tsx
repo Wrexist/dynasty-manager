@@ -47,7 +47,8 @@ const MatchDay = () => {
   const [paused, setPaused] = useState(false);
   const [subSheetOpen, setSubSheetOpen] = useState(false);
   // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
-  const [keyMoment, setKeyMoment] = useState<{ type: string; description: string } | null>(null);
+  const [keyMoment, setKeyMoment] = useState<{ type: string; description: string; playerId?: string } | null>(null);
+  const [injurySubMode, setInjurySubMode] = useState(false);
   // Full Time screen removed — PostMatchPopup navigates directly to Match Review
   const dismissedMomentsRef = useRef<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -142,13 +143,13 @@ const MatchDay = () => {
       }
     }
 
-    // Injury to a player on your team — offer substitution
+    // Injury to a player on your team — always notify, auto-open sub sheet
     const injury = events.filter(e => e.type === 'injury' && e.clubId === playerClubId && e.minute === minute);
-    if (injury.length > 0 && matchSubsUsed < MAX_SUBSTITUTIONS) {
+    if (injury.length > 0) {
       const key = `injury-${minute}`;
       if (!dismissedMomentsRef.current.has(key)) {
         dismissedMomentsRef.current.add(key);
-        return { type: 'injury', description: `${injury[0].description} Consider making a substitution.` };
+        return { type: 'injury', description: `${injury[0].description} Make a substitution.`, playerId: injury[0].playerId };
       }
     }
 
@@ -216,7 +217,7 @@ const MatchDay = () => {
     }
 
     return false;
-  }, [match, playerClubId, keyMoment, matchSubsUsed]);
+  }, [match, playerClubId, keyMoment]);
 
   // Animate events for current half
   useEffect(() => {
@@ -302,6 +303,14 @@ const MatchDay = () => {
     setKeyMoment(null);
     // Resume will happen via useEffect since keyMoment becomes null
   };
+
+  // Auto-open substitution sheet when an injury key moment fires
+  useEffect(() => {
+    if (keyMoment?.type === 'injury' && keyMoment.playerId) {
+      setSubSheetOpen(true);
+      setInjurySubMode(true);
+    }
+  }, [keyMoment]);
 
   if (!match || !homeClub || !awayClub) {
     return (
@@ -623,8 +632,8 @@ const MatchDay = () => {
         </>
       )}
 
-      {/* Key Moment Decision Overlay */}
-      {keyMoment && (
+      {/* Key Moment Decision Overlay — injury moments handled by SubstitutionSheet directly */}
+      {keyMoment && keyMoment.type !== 'injury' && (
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.2 }}>
           <GlassPanel className="p-4 border-primary/40">
             <div className="flex items-center gap-2 mb-2">
@@ -657,10 +666,29 @@ const MatchDay = () => {
         <PostMatchPopup onContinue={handleContinue} />
       )}
 
-      {/* Substitution Sheet — used from half-time, key moments, and paused play */}
+      {/* Substitution Sheet — used from half-time, key moments, injuries, and paused play */}
       <SubstitutionSheet
         open={subSheetOpen}
-        onOpenChange={setSubSheetOpen}
+        onOpenChange={(open) => {
+          if (!open && injurySubMode) return; // prevent dismissal in injury mode
+          setSubSheetOpen(open);
+        }}
+        onSubMade={() => {
+          if (injurySubMode) {
+            setInjurySubMode(false);
+            dismissKeyMoment();
+          }
+        }}
+        preSelectedOutId={keyMoment?.type === 'injury' ? keyMoment.playerId : undefined}
+        forceMode={injurySubMode}
+        onDismissWithoutSub={() => {
+          setInjurySubMode(false);
+          setSubSheetOpen(false);
+          dismissKeyMoment();
+        }}
+        injuredPlayerIds={visibleEvents.filter(e => e.type === 'injury' && e.clubId === playerClubId && e.playerId).map(e => e.playerId!)}
+        playerGoals={playerClubId === match?.homeClubId ? homeGoals : awayGoals}
+        opponentGoals={playerClubId === match?.homeClubId ? awayGoals : homeGoals}
         matchMinute={currentMin}
         homeGoals={homeGoals}
         awayGoals={awayGoals}
