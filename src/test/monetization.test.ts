@@ -292,7 +292,7 @@ describe('save migration (v22→v23 clean break)', () => {
     const { migrateSaveData } = await import('@/utils/saveMigration');
     const oldSave = { version: 18 };
     const migrated = migrateSaveData(oldSave);
-    expect(migrated.version).toBe(24);
+    expect(migrated.version).toBe(25);
     // Clean break resets game state — old fictional league data is incompatible
     expect(migrated.gameStarted).toBe(false);
     expect(migrated.playerClubId).toBe('');
@@ -310,7 +310,7 @@ describe('save migration (v22→v23 clean break)', () => {
     };
     const oldSave = { version: 18, monetization: existingMonetization };
     const migrated = migrateSaveData(oldSave);
-    expect(migrated.version).toBe(24);
+    expect(migrated.version).toBe(25);
     // Clean break at v22→v23 resets everything
     expect(migrated.gameStarted).toBe(false);
   });

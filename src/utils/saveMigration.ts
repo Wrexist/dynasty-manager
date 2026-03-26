@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 24;
+const CURRENT_VERSION = 25;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -344,6 +344,22 @@ const migrations: Record<number, MigrationFn> = {
     jobVacancies: data.jobVacancies || [],
     jobOffers: data.jobOffers || [],
   }),
+  // v24 → v25: Seed pair familiarity for existing lineup pairs
+  24: (data) => {
+    const pairFamiliarity = { ...(data.pairFamiliarity as Record<string, number> || {}) };
+    const clubs = data.clubs as Record<string, { lineup?: string[] }> | undefined;
+    const playerClubId = data.playerClubId as string;
+    const lineup = clubs?.[playerClubId]?.lineup || [];
+    const SEED = 2;
+    for (let i = 0; i < lineup.length; i++) {
+      for (let j = i + 1; j < lineup.length; j++) {
+        if (!lineup[i] || !lineup[j]) continue;
+        const key = lineup[i] < lineup[j] ? `${lineup[i]}-${lineup[j]}` : `${lineup[j]}-${lineup[i]}`;
+        if (!pairFamiliarity[key]) pairFamiliarity[key] = SEED;
+      }
+    }
+    return { ...data, version: 25, pairFamiliarity };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

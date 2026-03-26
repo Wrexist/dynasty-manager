@@ -3,6 +3,8 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { cn } from '@/lib/utils';
 import { getChemistryBonus, getChemistryLabel, calculateChemistryLinks } from '@/utils/chemistry';
+import { buildChemistryStrengthMap } from '@/utils/formationLines';
+import { CHEMISTRY_LINE_COLOR_STRONG, CHEMISTRY_LINE_COLOR_ESTABLISHED, CHEMISTRY_LINE_COLOR_DEVELOPING } from '@/config/chemistry';
 import { getRatingColor } from '@/utils/uiHelpers';
 import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
@@ -26,7 +28,7 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam, setSetPieceTaker, setPenaltyTaker, season } = useGameStore();
+  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam, setSetPieceTaker, setPenaltyTaker, season, pairFamiliarity } = useGameStore();
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
   const [autoFilling, setAutoFilling] = useState(false);
@@ -36,6 +38,15 @@ const TacticsPage = () => {
   const chemBonus = getChemistryBonus(lineupPlayers, club.formation, season);
   const chemLabel = getChemistryLabel(chemBonus);
   const chemLinks = calculateChemistryLinks(lineupPlayers, club.formation, season);
+  const chemStrengthMap = buildChemistryStrengthMap(chemLinks, pairFamiliarity);
+
+  // Helper to get the familiarity-capped strength for a link pair
+  const getCappedStrength = (link: { playerIdA: string; playerIdB: string; strength: number }) => {
+    const key = link.playerIdA < link.playerIdB
+      ? `${link.playerIdA}-${link.playerIdB}`
+      : `${link.playerIdB}-${link.playerIdA}`;
+    return chemStrengthMap.get(key) ?? link.strength;
+  };
 
   const isPresetActive = (preset: StylePreset): boolean => {
     return (
@@ -150,6 +161,23 @@ const TacticsPage = () => {
               </div>
             </div>
 
+            {/* Color legend */}
+            <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-0.5 rounded-full inline-block" style={{ backgroundColor: CHEMISTRY_LINE_COLOR_STRONG }} />
+                <span className="text-[9px] text-muted-foreground">Strong</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-0.5 rounded-full inline-block" style={{ backgroundColor: CHEMISTRY_LINE_COLOR_ESTABLISHED }} />
+                <span className="text-[9px] text-muted-foreground">Established</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-0.5 rounded-full inline-block" style={{ backgroundColor: CHEMISTRY_LINE_COLOR_DEVELOPING }} />
+                <span className="text-[9px] text-muted-foreground">Developing</span>
+              </div>
+              <span className="text-[9px] text-muted-foreground/60 ml-auto">Grows with matches played</span>
+            </div>
+
             {chemLinks.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-2">No chemistry links detected. Try players with shared nationality or compatible positions.</p>
             )}
@@ -167,13 +195,14 @@ const TacticsPage = () => {
                       const a = players[link.playerIdA];
                       const b = players[link.playerIdB];
                       if (!a || !b) return null;
+                      const capped = getCappedStrength(link);
                       return (
                         <div key={`nat-${i}`} className="flex items-center gap-2 bg-muted/20 rounded-lg px-2.5 py-1.5">
                           <span className="text-sm">{getFlag(a.nationality)}</span>
                           <span className="text-[11px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
                           <div className="flex gap-0.5">
                             {Array.from({ length: link.strength }).map((_, si) => (
-                              <Star key={si} className="w-2.5 h-2.5 text-primary fill-primary" />
+                              <Star key={si} className={cn('w-2.5 h-2.5', si < capped ? 'text-primary fill-primary' : 'text-primary/30')} />
                             ))}
                           </div>
                         </div>
@@ -197,6 +226,7 @@ const TacticsPage = () => {
                       if (!a || !b) return null;
                       const senior = a.age >= 28 ? a : b;
                       const junior = senior === a ? b : a;
+                      const capped = getCappedStrength(link);
                       return (
                         <div key={`men-${i}`} className="flex items-center gap-2 bg-muted/20 rounded-lg px-2.5 py-1.5">
                           <BookOpen className="w-3 h-3 text-emerald-400 shrink-0" />
@@ -206,7 +236,7 @@ const TacticsPage = () => {
                           </div>
                           <div className="flex gap-0.5">
                             {Array.from({ length: link.strength }).map((_, si) => (
-                              <Star key={si} className="w-2.5 h-2.5 text-emerald-400 fill-emerald-400" />
+                              <Star key={si} className={cn('w-2.5 h-2.5', si < capped ? 'text-emerald-400 fill-emerald-400' : 'text-emerald-400/30')} />
                             ))}
                           </div>
                         </div>
@@ -228,13 +258,14 @@ const TacticsPage = () => {
                       const a = players[link.playerIdA];
                       const b = players[link.playerIdB];
                       if (!a || !b) return null;
+                      const capped = getCappedStrength(link);
                       return (
                         <div key={`part-${i}`} className="flex items-center gap-2 bg-muted/20 rounded-lg px-2.5 py-1.5">
                           <Handshake className="w-3 h-3 text-amber-400 shrink-0" />
                           <span className="text-[11px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
                           <div className="flex gap-0.5">
                             {Array.from({ length: link.strength }).map((_, si) => (
-                              <Star key={si} className="w-2.5 h-2.5 text-amber-400 fill-amber-400" />
+                              <Star key={si} className={cn('w-2.5 h-2.5', si < capped ? 'text-amber-400 fill-amber-400' : 'text-amber-400/30')} />
                             ))}
                           </div>
                         </div>

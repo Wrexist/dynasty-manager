@@ -1,7 +1,7 @@
 import { FormationType, FORMATION_POSITIONS, ChemistryLink } from '@/types/game';
 import { PITCH_COLORS } from '@/config/ui';
 import { getFitnessHexColor } from '@/utils/uiHelpers';
-import { getFormationLines, buildChemistryStrengthMap, getChemistryLineColor, NEUTRAL_LINE_COLOR } from '@/utils/formationLines';
+import { getFormationStructureLines, getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor, NEUTRAL_LINE_COLOR } from '@/utils/formationLines';
 import { PlayerAvatar } from './PlayerAvatar';
 import { useGameStore } from '@/store/gameStore';
 import { getActiveCosmetic } from '@/utils/monetization';
@@ -39,8 +39,11 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
   const vpY = halfPitch ? 46 : 0;
   const vpH = halfPitch ? 59 : 105;
 
-  const homeLines = getFormationLines(homeSlots);
-  const awayLines = showAway && !halfPitch && awaySlots.length ? getFormationLines(awaySlots) : [];
+  // Use chemistry-driven lines for home team when chemistry data is available, else structural lines
+  const homeLines = chemistryLinks && playerIds
+    ? getChemistryLines(homeSlots, chemistryLinks, playerIds)
+    : getFormationStructureLines(homeSlots);
+  const awayLines = showAway && !halfPitch && awaySlots.length ? getFormationStructureLines(awaySlots) : [];
 
   const pitchSkin = getActiveCosmetic(useGameStore.getState().monetization, 'pitch_skin');
   const pitchSkinClass = pitchSkin === 'pitch-stripes' ? 'pitch-stripes' : pitchSkin === 'pitch-checkerboard' ? 'pitch-checkerboard' : pitchSkin === 'pitch-diamond' ? 'pitch-diamond' : '';
