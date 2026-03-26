@@ -283,7 +283,7 @@ function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailShe
 
   return (
     <motion.div
-      className="fixed inset-0 z-[60] flex items-end justify-center"
+      className="fixed inset-0 z-[60] flex items-end justify-center px-4 pb-20 safe-area-bottom"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -293,11 +293,19 @@ function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailShe
 
       {/* Sheet */}
       <motion.div
-        className="relative w-full max-w-lg bg-card border-t border-border/50 rounded-t-2xl p-5 pb-24 z-10"
-        initial={{ y: '100%' }}
-        animate={{ y: 0 }}
-        exit={{ y: '100%' }}
+        className="relative w-full max-w-lg bg-card border border-border/50 rounded-2xl p-5 z-10 max-h-[80vh] overflow-y-auto"
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 60, opacity: 0 }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={{ top: 0, bottom: 0.4 }}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 100 || info.velocity.y > 500) {
+            onClose();
+          }
+        }}
       >
         {/* Handle */}
         <div className="w-10 h-1 bg-muted-foreground/20 rounded-full mx-auto mb-4" />
