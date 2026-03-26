@@ -176,6 +176,9 @@ export interface GameState {
   listPlayerForSale: (playerId: string) => void;
   unlistPlayer: (playerId: string) => void;
   respondToOffer: (offerId: string, accept: boolean) => { success: boolean; message: string };
+  negotiateIncomingOffer: (offerId: string, counterFee: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string };
+  acceptIncomingOfferAtFee: (offerId: string, fee: number) => { success: boolean; message: string };
+  evaluateIncomingCounter: (offerId: string, counterFee: number) => { acceptChance: number; budgetAfter: number; squadSizeAfter: number; positionCountAfter: number } | null;
   signFreeAgent: (playerId: string, wage: number, years: number) => { success: boolean; message: string };
 
   // Actions — Loans

@@ -134,3 +134,24 @@ export function getPotentialInfo(value: number): { bgClass: string; fillClass: s
 export function getFanConfidence(fanBase: number, boardConfidence: number): number {
   return Math.min(100, Math.round(fanBase * FAN_CONFIDENCE_FAN_WEIGHT + boardConfidence * FAN_CONFIDENCE_BOARD_WEIGHT));
 }
+
+// ── Negotiation Chance Helpers ──
+
+export function getChanceColor(chance: number): string {
+  if (chance >= 0.7) return 'text-emerald-400';
+  if (chance >= 0.35) return 'text-amber-400';
+  return 'text-red-400';
+}
+
+export function getChanceBarColor(chance: number): string {
+  if (chance >= 0.7) return 'bg-emerald-500';
+  if (chance >= 0.35) return 'bg-amber-500';
+  return 'bg-red-500';
+}
+
+export function getChanceLabel(chance: number): string {
+  if (chance >= 0.7) return 'Very Likely';
+  if (chance >= 0.35) return 'Possible';
+  if (chance >= 0.08) return 'Unlikely';
+  return 'Very Unlikely';
+}

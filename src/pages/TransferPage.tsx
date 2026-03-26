@@ -9,11 +9,12 @@ import { motion } from 'framer-motion';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
-import { TransferListing } from '@/types/game';
+import { TransferListing, IncomingOffer } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { POSITION_FILTERS } from '@/config/ui';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
+import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
@@ -41,6 +42,7 @@ const TransferPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ offerId: string; accept: boolean; playerName: string; fee: number } | null>(null);
+  const [negotiatingOffer, setNegotiatingOffer] = useState<IncomingOffer | null>(null);
 
   const club = clubs[playerClubId];
 
@@ -412,6 +414,12 @@ const TransferPage = () => {
                     onClick={() => handleRespondToOffer(offer.id, true)}
                   >
                     Accept
+                  </Button>
+                  <Button
+                    size="sm" className="flex-1 h-8 text-xs bg-amber-600 hover:bg-amber-700"
+                    onClick={() => { hapticMedium(); setNegotiatingOffer(offer); }}
+                  >
+                    Negotiate
                   </Button>
                   <Button
                     size="sm" variant="destructive" className="flex-1 h-8 text-xs"
@@ -848,6 +856,13 @@ const TransferPage = () => {
         <TransferNegotiation
           listing={negotiatingListing}
           onClose={() => setNegotiatingListing(null)}
+        />
+      )}
+
+      {negotiatingOffer && (
+        <IncomingOfferNegotiation
+          offer={negotiatingOffer}
+          onClose={() => setNegotiatingOffer(null)}
         />
       )}
 

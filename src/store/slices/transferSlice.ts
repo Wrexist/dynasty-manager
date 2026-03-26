@@ -14,6 +14,8 @@ import {
   COUNTER_OFFER_BASE_RATIO, COUNTER_OFFER_RANDOM_RANGE,
   RECORD_SIGNING_SPEND_RATIO, RECORD_SIGNING_MIN_FEE,
   LISTING_PRICE_FLOOR,
+  INCOMING_NEGOTIATE_ACCEPT_AT_OFFER, INCOMING_NEGOTIATE_ACCEPT_AT_120, INCOMING_NEGOTIATE_ACCEPT_AT_MAX,
+  INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
 } from '@/config/transfers';
 import { MIN_SQUAD_SIZE } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
@@ -32,6 +34,82 @@ const checkChallengeBlock = (state: GameState, playerAge?: number): string | nul
   if (scenario.noTransfers) return 'Transfers are disabled in this challenge.';
   if (scenario.youthOnly && playerAge != null && playerAge > 23) return 'Challenge restricts signings to players aged 23 or under.';
   return null;
+};
+
+/** Interpolate acceptance chance for incoming offer negotiation based on counter/offer ratio. */
+const getIncomingAcceptChance = (ratio: number): number => {
+  if (ratio <= 1.0) return INCOMING_NEGOTIATE_ACCEPT_AT_OFFER;
+  if (ratio <= 1.2) return INCOMING_NEGOTIATE_ACCEPT_AT_OFFER - (ratio - 1.0) / 0.2 * (INCOMING_NEGOTIATE_ACCEPT_AT_OFFER - INCOMING_NEGOTIATE_ACCEPT_AT_120);
+  return INCOMING_NEGOTIATE_ACCEPT_AT_120 - (ratio - 1.2) / 0.3 * (INCOMING_NEGOTIATE_ACCEPT_AT_120 - INCOMING_NEGOTIATE_ACCEPT_AT_MAX);
+};
+
+/** Shared sale execution for incoming offers — used by respondToOffer and negotiateIncomingOffer. */
+const executeSale = (state: GameState, offer: { id: string; playerId: string; buyerClubId: string; fee: number }, fee: number, set: Set): { success: boolean; message: string } => {
+  const player = state.players[offer.playerId];
+  const buyerClub = state.clubs[offer.buyerClubId];
+  if (!player || !buyerClub) return { success: false, message: 'Invalid offer.' };
+
+  const newPlayers = { ...state.players };
+  const sellerClub = { ...state.clubs[state.playerClubId] };
+  const buyer = { ...state.clubs[offer.buyerClubId] };
+
+  sellerClub.playerIds = sellerClub.playerIds.filter(id => id !== offer.playerId);
+  sellerClub.lineup = sellerClub.lineup.filter(id => id !== offer.playerId);
+  sellerClub.subs = sellerClub.subs.filter(id => id !== offer.playerId);
+  // Sell-on clause: pay percentage to previous club if applicable
+  let sellOnFee = 0;
+  const updatedClubs = { ...state.clubs };
+  if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== state.playerClubId) {
+    sellOnFee = Math.round(fee * (player.sellOnPercentage / 100));
+    const sellOnClub = { ...updatedClubs[player.sellOnClubId] };
+    sellOnClub.budget += sellOnFee;
+    updatedClubs[player.sellOnClubId] = sellOnClub;
+  }
+  const netFee = fee - sellOnFee;
+  sellerClub.budget += netFee;
+  sellerClub.wageBill -= player.wage;
+
+  buyer.playerIds = [...buyer.playerIds, offer.playerId];
+  buyer.budget -= fee;
+  buyer.wageBill += player.wage;
+
+  newPlayers[offer.playerId] = { ...player, clubId: offer.buyerClubId, listedForSale: false, sellOnPercentage: undefined, sellOnClubId: undefined };
+
+  const newMarket = state.transferMarket.filter(l => l.playerId !== offer.playerId);
+  const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${(player.sellOnClubId && state.clubs[player.sellOnClubId]?.name) || 'former club'})` : '';
+  const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `${player.lastName} Sold!`, body: `${player.firstName} ${player.lastName} has been sold to ${buyerClub.name} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}` });
+
+  updatedClubs[sellerClub.id] = sellerClub;
+  updatedClubs[buyer.id] = buyer;
+  const ms = { ...state.managerStats, totalEarned: state.managerStats.totalEarned + netFee };
+
+  // Check for farewell
+  const farewell = getFarewellSummary(player, state.season, player.joinedSeason);
+  const farewellEntry = farewell.shouldShow
+    ? { playerId: offer.playerId, playerName: `${player.firstName} ${player.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats }
+    : null;
+
+  // Check if the sold player was a top marketable player — trigger/extend merch dip
+  const starPlayers = getStarPlayerMerch(sellerClub, state.players);
+  const wasStar = starPlayers.some(sp => sp.playerId === offer.playerId);
+  const merchDipUpdate: Partial<GameState> = {};
+  if (wasStar) {
+    const currentDip = state.merchandise?.starPlayerDip || 0;
+    merchDipUpdate.merchandise = { ...state.merchandise, starPlayerDip: Math.max(currentDip, STAR_PLAYER_SALE_DIP_WEEKS) };
+  }
+  // Clean up any active loans involving the sold player
+  const cleanedLoans = state.activeLoans.filter(l => l.playerId !== offer.playerId);
+  // Remove this offer + all offers for same player
+  const cleanedOffers = state.incomingOffers.filter(o => o.playerId !== offer.playerId);
+
+  set({
+    players: newPlayers,
+    clubs: updatedClubs,
+    transferMarket: newMarket, incomingOffers: cleanedOffers, incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== offer.playerId), activeLoans: cleanedLoans, messages: msg, managerStats: ms,
+    ...(farewellEntry ? { pendingFarewell: [...state.pendingFarewell, farewellEntry] } : {}),
+    ...merchDipUpdate,
+  });
+  return { success: true, message: `${player.firstName} ${player.lastName} sold for £${(fee / 1e6).toFixed(1)}M!${sellOnNote}` };
 };
 
 export const createTransferSlice = (set: Set, get: Get) => ({
@@ -257,65 +335,80 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       return { success: false, message: `${buyerData.name} can no longer afford the transfer fee.` };
     }
 
-    const newPlayers = { ...state.players };
-    const sellerClub = { ...state.clubs[state.playerClubId] };
-    const buyer = { ...state.clubs[offer.buyerClubId] };
+    return executeSale(state, offer, offer.fee, set);
+  },
 
-    sellerClub.playerIds = sellerClub.playerIds.filter(id => id !== offer.playerId);
-    sellerClub.lineup = sellerClub.lineup.filter(id => id !== offer.playerId);
-    sellerClub.subs = sellerClub.subs.filter(id => id !== offer.playerId);
-    // Sell-on clause: pay percentage to previous club if applicable
-    let sellOnFee = 0;
-    const updatedClubs = { ...state.clubs };
-    if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== state.playerClubId) {
-      sellOnFee = Math.round(offer.fee * (player.sellOnPercentage / 100));
-      const sellOnClub = { ...updatedClubs[player.sellOnClubId] };
-      sellOnClub.budget += sellOnFee;
-      updatedClubs[player.sellOnClubId] = sellOnClub;
+  negotiateIncomingOffer: (offerId: string, counterFee: number) => {
+    const state = get();
+    const offer = state.incomingOffers.find(o => o.id === offerId);
+    if (!offer) return { outcome: 'rejected' as const, message: 'Offer not found.' };
+
+    const player = state.players[offer.playerId];
+    const buyerClub = state.clubs[offer.buyerClubId];
+    if (!player || !buyerClub) return { outcome: 'rejected' as const, message: 'Invalid offer.' };
+
+    // Prevent selling if squad would drop below minimum
+    const sellerClubData = state.clubs[state.playerClubId];
+    if (sellerClubData && sellerClubData.playerIds.length <= MIN_SQUAD_SIZE) {
+      return { outcome: 'rejected' as const, message: `Cannot sell — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
     }
-    const netFee = offer.fee - sellOnFee;
-    sellerClub.budget += netFee;
-    sellerClub.wageBill -= player.wage;
 
-    buyer.playerIds = [...buyer.playerIds, offer.playerId];
-    buyer.budget -= offer.fee;
-    buyer.wageBill += player.wage;
-
-    newPlayers[offer.playerId] = { ...player, clubId: offer.buyerClubId, listedForSale: false, sellOnPercentage: undefined, sellOnClubId: undefined };
-
-    const newMarket = state.transferMarket.filter(l => l.playerId !== offer.playerId);
-    const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${(player.sellOnClubId && state.clubs[player.sellOnClubId]?.name) || 'former club'})` : '';
-    const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `${player.lastName} Sold!`, body: `${player.firstName} ${player.lastName} has been sold to ${buyerClub.name} for £${(offer.fee / 1e6).toFixed(1)}M.${sellOnNote}` });
-
-    updatedClubs[sellerClub.id] = sellerClub;
-    updatedClubs[buyer.id] = buyer;
-    const ms = { ...state.managerStats, totalEarned: state.managerStats.totalEarned + netFee };
-
-    // Check for farewell
-    const farewell = getFarewellSummary(player, state.season, player.joinedSeason);
-    const farewellEntry = farewell.shouldShow
-      ? { playerId: offer.playerId, playerName: `${player.firstName} ${player.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats }
-      : null;
-
-    // Check if the sold player was a top marketable player — trigger/extend merch dip
-    const starPlayers = getStarPlayerMerch(sellerClub, state.players);
-    const wasStar = starPlayers.some(sp => sp.playerId === offer.playerId);
-    const merchDipUpdate: Partial<GameState> = {};
-    if (wasStar) {
-      const currentDip = state.merchandise?.starPlayerDip || 0;
-      merchDipUpdate.merchandise = { ...state.merchandise, starPlayerDip: Math.max(currentDip, STAR_PLAYER_SALE_DIP_WEEKS) };
+    // Validate buyer can afford the counter fee
+    if (buyerClub.budget < counterFee) {
+      return { outcome: 'rejected' as const, message: `${buyerClub.name} cannot afford £${(counterFee / 1e6).toFixed(1)}M.` };
     }
-    // Clean up any active loans involving the sold player
-    const cleanedLoans = state.activeLoans.filter(l => l.playerId !== offer.playerId);
 
-    set({
-      players: newPlayers,
-      clubs: updatedClubs,
-      transferMarket: newMarket, incomingOffers: newOffers.filter(o => o.playerId !== offer.playerId), incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== offer.playerId), activeLoans: cleanedLoans, messages: msg, managerStats: ms,
-      ...(farewellEntry ? { pendingFarewell: [...state.pendingFarewell, farewellEntry] } : {}),
-      ...merchDipUpdate,
-    });
-    return { success: true, message: `${player.firstName} ${player.lastName} sold for £${(offer.fee / 1e6).toFixed(1)}M!${sellOnNote}` };
+    // Acceptance curve: ratio of counter to original offer
+    const ratio = counterFee / offer.fee;
+    const acceptChance = getIncomingAcceptChance(ratio);
+    const roll = Math.random();
+
+    if (roll <= acceptChance) {
+      const result = executeSale(state, offer, counterFee, set);
+      return { outcome: result.success ? 'accepted' as const : 'rejected' as const, message: result.message };
+    }
+
+    // Check for buyer counter-offer
+    if (ratio <= 1.4 && Math.random() < INCOMING_NEGOTIATE_COUNTER_CHANCE) {
+      const buyerCounterFee = Math.round(offer.fee + (counterFee - offer.fee) * (INCOMING_NEGOTIATE_COUNTER_BASE + Math.random() * INCOMING_NEGOTIATE_COUNTER_RANGE));
+      return { outcome: 'counter' as const, counterFee: buyerCounterFee, message: `${buyerClub.shortName || buyerClub.name} revised their offer to £${(buyerCounterFee / 1e6).toFixed(1)}M.` };
+    }
+
+    return { outcome: 'rejected' as const, message: `${buyerClub.shortName || buyerClub.name} rejected your counter-offer. They won't pay that much.` };
+  },
+
+  acceptIncomingOfferAtFee: (offerId: string, fee: number) => {
+    const state = get();
+    const offer = state.incomingOffers.find(o => o.id === offerId);
+    if (!offer) return { success: false, message: 'Offer not found.' };
+    const player = state.players[offer.playerId];
+    const buyerClub = state.clubs[offer.buyerClubId];
+    if (!player || !buyerClub) return { success: false, message: 'Invalid offer.' };
+    const sellerClubData = state.clubs[state.playerClubId];
+    if (sellerClubData && sellerClubData.playerIds.length <= MIN_SQUAD_SIZE) {
+      return { success: false, message: `Cannot sell — squad would drop below minimum size (${MIN_SQUAD_SIZE}).` };
+    }
+    if (buyerClub.budget < fee) {
+      return { success: false, message: `${buyerClub.name} cannot afford £${(fee / 1e6).toFixed(1)}M.` };
+    }
+    return executeSale(state, offer, fee, set);
+  },
+
+  evaluateIncomingCounter: (offerId: string, counterFee: number) => {
+    const state = get();
+    const offer = state.incomingOffers.find(o => o.id === offerId);
+    if (!offer) return null;
+    const player = state.players[offer.playerId];
+    if (!player) return null;
+    const club = state.clubs[state.playerClubId];
+    if (!club) return null;
+
+    const ratio = counterFee / offer.fee;
+    const acceptChance = getIncomingAcceptChance(ratio);
+    const budgetAfter = club.budget + counterFee;
+    const squadSizeAfter = club.playerIds.length - 1;
+    const positionCountAfter = club.playerIds.filter(id => state.players[id]?.position === player.position).length - 1;
+    return { acceptChance, budgetAfter, squadSizeAfter, positionCountAfter };
   },
 
   signFreeAgent: (playerId: string, wage: number, years: number) => {
