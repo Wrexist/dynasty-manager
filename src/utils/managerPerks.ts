@@ -152,6 +152,30 @@ export function hasPerk(prog: ManagerProgression, perkId: PerkId): boolean {
   return prog.unlockedPerks.includes(perkId);
 }
 
+/** Get the full prerequisite chain for a perk (bottom to top, excluding the perk itself) */
+export function getPrerequisiteChain(perk: ManagerPerk): ManagerPerk[] {
+  const chain: ManagerPerk[] = [];
+  let current = perk;
+  while (current.prerequisite) {
+    const prereq = MANAGER_PERKS.find(p => p.id === current.prerequisite);
+    if (!prereq) break;
+    chain.unshift(prereq);
+    current = prereq;
+  }
+  return chain;
+}
+
+/** Get the perk that requires this perk as a prerequisite (the "next" perk in the branch) */
+export function getNextPerk(perk: ManagerPerk): ManagerPerk | undefined {
+  return MANAGER_PERKS.find(p => p.prerequisite === perk.id);
+}
+
+/** Check if a branch has reached row 3+ (needed for capstone tracking) */
+export function branchHasHighTier(branch: TalentBranch, prog: ManagerProgression): boolean {
+  const branchPerks = MANAGER_PERKS.filter(p => p.branch === branch && p.row >= 3);
+  return branchPerks.some(p => prog.unlockedPerks.includes(p.id));
+}
+
 /** Get XP progress toward next level */
 export function getXPProgress(prog: ManagerProgression): { current: number; needed: number; percentage: number } {
   const needed = xpForLevel(prog.level);
