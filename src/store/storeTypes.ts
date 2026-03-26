@@ -206,6 +206,7 @@ export interface GameState {
   // Actions — Systems
   setTactics: (partial: Partial<TacticalInstructions>) => void;
   updateTraining: (schedule: Partial<TrainingState['schedule']>, intensity?: TrainingState['intensity']) => void;
+  updateDrillSchedule: (drills: Partial<TrainingState['drillSchedule']>) => void;
   setIndividualTraining: (playerId: string, focus: TrainingModule | null) => void;
   hireStaff: (staffId: string) => void;
   fireStaff: (staffId: string) => void;

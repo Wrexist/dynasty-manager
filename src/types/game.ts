@@ -534,11 +534,42 @@ export interface IndividualTraining {
   focus: TrainingModule;
 }
 
+export interface TrainingDrill {
+  id: string;
+  moduleId: TrainingModule;
+  name: string;
+  description: string;
+  attrWeights: Partial<Record<keyof PlayerAttributes, number>>;
+}
+
+export interface DrillSchedule {
+  mon?: string;
+  tue?: string;
+  wed?: string;
+  thu?: string;
+  fri?: string;
+}
+
+export type TrainingStreaks = Partial<Record<TrainingModule, number>>;
+
+export interface TrainingReport {
+  week: number;
+  season: number;
+  starPerformers: { playerId: string; attrGained: string; newValue: number }[];
+  totalGains: number;
+  injuries: string[];
+  streakProgress: TrainingStreaks;
+  fitnessChange: number;
+}
+
 export interface TrainingState {
   schedule: TrainingSchedule;
   intensity: TrainingIntensity;
   individualPlans: IndividualTraining[];
   tacticalFamiliarity: number;
+  drillSchedule?: DrillSchedule;
+  streaks?: TrainingStreaks;
+  lastReport?: TrainingReport;
 }
 
 // ── Staff ──

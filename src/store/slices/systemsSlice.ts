@@ -22,11 +22,28 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
 
   setTactics: (partial: Partial<TacticalInstructions>) => set(s => ({ tactics: { ...s.tactics, ...partial } })),
 
-  updateTraining: (schedule: Partial<TrainingState['schedule']>, intensity?: TrainingState['intensity']) => set(s => ({
+  updateTraining: (schedule: Partial<TrainingState['schedule']>, intensity?: TrainingState['intensity']) => set(s => {
+    // Clear drill for any day whose module changed
+    const newDrillSchedule = { ...(s.training.drillSchedule || {}) };
+    for (const day of Object.keys(schedule) as (keyof TrainingState['schedule'])[]) {
+      if (schedule[day] !== s.training.schedule[day]) {
+        delete newDrillSchedule[day];
+      }
+    }
+    return {
+      training: {
+        ...s.training,
+        schedule: { ...s.training.schedule, ...schedule },
+        intensity: intensity || s.training.intensity,
+        drillSchedule: newDrillSchedule,
+      },
+    };
+  }),
+
+  updateDrillSchedule: (drills: Partial<TrainingState['drillSchedule']>) => set(s => ({
     training: {
       ...s.training,
-      schedule: { ...s.training.schedule, ...schedule },
-      intensity: intensity || s.training.intensity,
+      drillSchedule: { ...(s.training.drillSchedule || {}), ...drills },
     },
   })),
 
