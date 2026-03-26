@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel, getMentorBonus, findMentorLinksForPlayer } from '@/utils/chemistry';
+import { getChemistryLines, getChemistryLineColor, buildChemistryStrengthMap } from '@/utils/formationLines';
+import { CHEMISTRY_LINE_COLOR_STRONG, CHEMISTRY_LINE_COLOR_ESTABLISHED, CHEMISTRY_LINE_COLOR_DEVELOPING } from '@/config/chemistry';
 import { generatePlayer } from '@/utils/playerGen';
 import type { Position, FormationType } from '@/types/game';
+import { FORMATION_POSITIONS } from '@/types/game';
 
 function makePlayer(pos: string, overrides: Record<string, unknown> = {}) {
   const p = generatePlayer(pos as Position, 75, 'club-1', 1);
@@ -213,6 +216,96 @@ describe('chemistry', () => {
       const senior = makePlayer('ST', { age: 30, overall: 82, nationality: 'French' });
       const links = findMentorLinksForPlayer(junior, [senior]);
       expect(links).toHaveLength(0);
+    });
+  });
+
+  describe('getChemistryLines', () => {
+    it('should generate lines only for pairs with chemistry links', () => {
+      const slots = FORMATION_POSITIONS['4-4-2'];
+      const players = Array.from({ length: 11 }, (_, i) =>
+        makePlayer(slots[i].pos, { nationality: 'French' })
+      );
+      // Two Spanish CMs — only they share nationality
+      players[5] = makePlayer(slots[5].pos, { nationality: 'Spanish', form: 40, age: 25 });
+      players[6] = makePlayer(slots[6].pos, { nationality: 'Spanish', form: 40, age: 25 });
+      const links = calculateChemistryLinks(players);
+      const chemLines = getChemistryLines(slots, links, players.map(p => p.id));
+      // Should have lines — at least one for the Spanish pair
+      expect(chemLines.length).toBeGreaterThan(0);
+      // The Spanish pair (indices 5,6) should be connected
+      const hasPair = chemLines.some(([a, b]) =>
+        (a === 5 && b === 6) || (a === 6 && b === 5)
+      );
+      expect(hasPair).toBe(true);
+    });
+
+    it('should return empty for no chemistry links', () => {
+      const slots = FORMATION_POSITIONS['4-4-2'];
+      const chemLines = getChemistryLines(slots, [], ['a', 'b', 'c']);
+      expect(chemLines).toHaveLength(0);
+    });
+
+    it('should deduplicate lines for multiple link types between same pair', () => {
+      const slots = FORMATION_POSITIONS['4-4-2'];
+      const a = makePlayer(slots[5].pos, { nationality: 'Spanish', form: 85 });
+      const b = makePlayer(slots[6].pos, { nationality: 'Spanish', form: 85 });
+      const links = calculateChemistryLinks([a, b]);
+      // Should have nationality + partnership but only one line
+      expect(links.length).toBeGreaterThanOrEqual(2);
+      const chemLines = getChemistryLines(slots, links, [a.id, b.id]);
+      // Only 1 unique line between them
+      expect(chemLines.filter(([x, y]) =>
+        (x === 0 && y === 1) || (x === 1 && y === 0)
+      )).toHaveLength(1);
+    });
+  });
+
+  describe('getChemistryLineColor', () => {
+    it('should return green for strength >= 3', () => {
+      expect(getChemistryLineColor(3)).toBe(CHEMISTRY_LINE_COLOR_STRONG);
+      expect(getChemistryLineColor(5)).toBe(CHEMISTRY_LINE_COLOR_STRONG);
+    });
+
+    it('should return yellow for strength 2', () => {
+      expect(getChemistryLineColor(2)).toBe(CHEMISTRY_LINE_COLOR_ESTABLISHED);
+    });
+
+    it('should return dim white for strength 1', () => {
+      expect(getChemistryLineColor(1)).toBe(CHEMISTRY_LINE_COLOR_DEVELOPING);
+    });
+  });
+
+  describe('buildChemistryStrengthMap with familiarity', () => {
+    it('should cap strength based on familiarity thresholds', () => {
+      // Use low form to avoid partnership links (only nationality link at strength 2)
+      const a = makePlayer('CM', { nationality: 'Spanish', form: 40 });
+      const b = makePlayer('CAM', { nationality: 'Spanish', form: 40 });
+      const links = calculateChemistryLinks([a, b]);
+      const natLink = links.find(l => l.type === 'nationality')!;
+      expect(natLink.strength).toBe(2); // same club
+      expect(links).toHaveLength(1); // only nationality, no partnership
+
+      // 1 match together → capped at 1
+      const key = a.id < b.id ? `${a.id}-${b.id}` : `${b.id}-${a.id}`;
+      const map1 = buildChemistryStrengthMap(links, { [key]: 1 });
+      expect(map1.get(key)).toBe(1);
+
+      // 2 matches → capped at 2 (FAMILIARITY_YELLOW_THRESHOLD = 2)
+      const map2 = buildChemistryStrengthMap(links, { [key]: 2 });
+      expect(map2.get(key)).toBe(2);
+
+      // 4 matches → uncapped (FAMILIARITY_GREEN_THRESHOLD = 4)
+      const map4 = buildChemistryStrengthMap(links, { [key]: 4 });
+      expect(map4.get(key)).toBe(2); // raw strength is 2, so uncapped stays at 2
+    });
+
+    it('should remove pairs with 0 familiarity', () => {
+      const a = makePlayer('CM', { nationality: 'Spanish' });
+      const b = makePlayer('CAM', { nationality: 'Spanish' });
+      const links = calculateChemistryLinks([a, b]);
+      const key = a.id < b.id ? `${a.id}-${b.id}` : `${b.id}-${a.id}`;
+      const map = buildChemistryStrengthMap(links, { [key]: 0 });
+      expect(map.has(key)).toBe(false);
     });
   });
 });

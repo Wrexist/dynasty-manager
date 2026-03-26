@@ -57,9 +57,11 @@ export const MENTOR_GROWTH_MAX_AGE = 22;
 
 // ── Pair Familiarity (visual chemistry line growth) ──
 /** Matches together needed for yellow (strength 2) lines */
-export const FAMILIARITY_YELLOW_THRESHOLD = 3;
+export const FAMILIARITY_YELLOW_THRESHOLD = 2;
 /** Matches together needed for green (strength 3) lines */
-export const FAMILIARITY_GREEN_THRESHOLD = 6;
+export const FAMILIARITY_GREEN_THRESHOLD = 4;
+/** Familiarity value seeded for starting squad pairs at game init */
+export const INITIAL_FAMILIARITY_SEED = 2;
 
 /** Returns the maximum displayed chemistry strength for a given familiarity count */
 export function getFamiliarityCap(matchesTogether: number): number {
@@ -68,3 +70,11 @@ export function getFamiliarityCap(matchesTogether: number): number {
   if (matchesTogether >= 1) return 1;
   return 0;
 }
+
+// ── Chemistry Line Colors ──
+/** Green — strong chemistry (strength >= 3) */
+export const CHEMISTRY_LINE_COLOR_STRONG = '#22c55e';
+/** Yellow — established chemistry (strength >= 2) */
+export const CHEMISTRY_LINE_COLOR_ESTABLISHED = '#eab308';
+/** Dim white — developing chemistry (strength 1) */
+export const CHEMISTRY_LINE_COLOR_DEVELOPING = 'rgba(255,255,255,0.35)';

@@ -1,8 +1,16 @@
 import type { FormationSlot, ChemistryLink } from '@/types/game';
-import { getFamiliarityCap } from '@/config/chemistry';
+import {
+  getFamiliarityCap,
+  CHEMISTRY_LINE_COLOR_STRONG,
+  CHEMISTRY_LINE_COLOR_ESTABLISHED,
+  CHEMISTRY_LINE_COLOR_DEVELOPING,
+} from '@/config/chemistry';
 
-/** Compute formation connection lines between adjacent players by row proximity. */
-export function getFormationLines(slots: FormationSlot[]): [number, number][] {
+/**
+ * Compute formation connection lines between adjacent players by row proximity.
+ * Used for away-team display and fallback when no chemistry data is available.
+ */
+export function getFormationStructureLines(slots: FormationSlot[]): [number, number][] {
   // Group slots into rows by y-coordinate (within 12 units = same row)
   const indexed = slots.map((s, i) => ({ ...s, idx: i }));
   indexed.sort((a, b) => a.y - b.y);
@@ -57,6 +65,38 @@ export function getFormationLines(slots: FormationSlot[]): [number, number][] {
 }
 
 /**
+ * Generate lines only between slot pairs that have actual chemistry links.
+ * Maps chemistry links back to lineup slot indices for SVG rendering.
+ */
+export function getChemistryLines(
+  slots: FormationSlot[],
+  links: ChemistryLink[],
+  playerIds: string[],
+): [number, number][] {
+  const idToIndex = new Map<string, number>();
+  for (let i = 0; i < playerIds.length; i++) {
+    if (playerIds[i]) idToIndex.set(playerIds[i], i);
+  }
+
+  const seen = new Set<string>();
+  const lines: [number, number][] = [];
+
+  for (const link of links) {
+    const idxA = idToIndex.get(link.playerIdA);
+    const idxB = idToIndex.get(link.playerIdB);
+    if (idxA === undefined || idxB === undefined) continue;
+    if (idxA >= slots.length || idxB >= slots.length) continue;
+
+    const key = idxA < idxB ? `${idxA}-${idxB}` : `${idxB}-${idxA}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    lines.push([idxA, idxB]);
+  }
+
+  return lines;
+}
+
+/**
  * Build a map from sorted player-ID pair key to the strongest chemistry strength.
  * Used to color formation lines by chemistry quality.
  */
@@ -91,12 +131,12 @@ export function buildChemistryStrengthMap(
   return map;
 }
 
-/** FIFA-style line color: green (strong), yellow (moderate), red (weak). */
+/** Chemistry line color: green (strong), yellow (established), dim white (developing). */
 export function getChemistryLineColor(strength: number): string {
-  if (strength >= 3) return '#22c55e';
-  if (strength >= 2) return '#eab308';
-  return '#ef4444';
+  if (strength >= 3) return CHEMISTRY_LINE_COLOR_STRONG;
+  if (strength >= 2) return CHEMISTRY_LINE_COLOR_ESTABLISHED;
+  return CHEMISTRY_LINE_COLOR_DEVELOPING;
 }
 
-/** Neutral color for formation lines with no chemistry data. */
+/** Neutral color for structural formation lines with no chemistry data. */
 export const NEUTRAL_LINE_COLOR = 'rgba(255,255,255,0.18)';

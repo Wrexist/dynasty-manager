@@ -24,6 +24,7 @@ import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName } f
 import { generatePressConference } from '@/data/pressConferences';
 import { isPro } from '@/utils/monetization';
 import { getMentorBonus } from '@/utils/chemistry';
+import { INITIAL_FAMILIARITY_SEED } from '@/config/chemistry';
 import { checkChallengeComplete, checkChallengeFailed, CHALLENGES } from '@/data/challenges';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
 import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
@@ -1282,7 +1283,17 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       objectiveStreak: 0,
       weekCliffhangers: [],
       rivalries: {},
-      pairFamiliarity: {},
+      pairFamiliarity: (() => {
+        const fam: Record<string, number> = {};
+        const ids = initClub.lineup.filter(id => allPlayers[id]);
+        for (let i = 0; i < ids.length; i++) {
+          for (let j = i + 1; j < ids.length; j++) {
+            const key = ids[i] < ids[j] ? `${ids[i]}-${ids[j]}` : `${ids[j]}-${ids[i]}`;
+            fam[key] = INITIAL_FAMILIARITY_SEED;
+          }
+        }
+        return fam;
+      })(),
       lastMatchDrama: null,
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null,

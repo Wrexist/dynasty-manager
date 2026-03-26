@@ -6,7 +6,7 @@ import { PITCH_COLORS } from '@/config/ui';
 import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks } from '@/utils/chemistry';
-import { getFormationLines, buildChemistryStrengthMap, getChemistryLineColor, NEUTRAL_LINE_COLOR } from '@/utils/formationLines';
+import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor, NEUTRAL_LINE_COLOR } from '@/utils/formationLines';
 import { PlayerAvatar } from './PlayerAvatar';
 
 // Half-pitch viewBox constants (bottom half only — your team)
@@ -135,7 +135,7 @@ export function LineupEditor() {
 
   const formation = club?.formation;
   const slots = useMemo(() => formation ? FORMATION_POSITIONS[formation] : [], [formation]);
-  const formationLines = useMemo(() => getFormationLines(slots), [slots]);
+  const formationLines = useMemo(() => getChemistryLines(slots, chemLinks, lineup), [slots, chemLinks, lineup]);
 
   // When a lineup player is selected, find the slot they occupy so bench players
   // can show compatibility relative to that slot position
