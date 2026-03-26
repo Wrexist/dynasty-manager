@@ -1256,7 +1256,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       transferMarket, shortlist: [], scoutWatchList: [], freeAgents: [], transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
       messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', currentCupTieId: null,
-      settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: false, hapticsEnabled: true },
+      settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: true, hapticsEnabled: true },
       tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
       training: {
         schedule: { mon: 'fitness', tue: 'attacking', wed: 'defending', thu: 'mentality', fri: 'tactical' },
@@ -2617,6 +2617,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         set({ careerManager: cm });
       }
     }
+
+    // Auto-save after match completes
+    if (get().settings.autoSave) get().saveGame();
 
     return result;
   },
