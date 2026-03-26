@@ -277,9 +277,9 @@ describe('chemistry', () => {
 
   describe('buildChemistryStrengthMap with familiarity', () => {
     it('should cap strength based on familiarity thresholds', () => {
-      // Use low form to avoid partnership links (only nationality link at strength 2)
-      const a = makePlayer('CM', { nationality: 'Spanish', form: 40 });
-      const b = makePlayer('CAM', { nationality: 'Spanish', form: 40 });
+      // Use low form to avoid partnership links, and same age to avoid mentor links (only nationality link at strength 2)
+      const a = makePlayer('CM', { nationality: 'Spanish', form: 40, age: 25 });
+      const b = makePlayer('CAM', { nationality: 'Spanish', form: 40, age: 25 });
       const links = calculateChemistryLinks([a, b]);
       const natLink = links.find(l => l.type === 'nationality')!;
       expect(natLink.strength).toBe(2); // same club
