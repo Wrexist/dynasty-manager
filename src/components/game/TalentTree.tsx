@@ -8,7 +8,13 @@ import {
   getBranchPerks,
   getCapstonePerk,
   canUnlockPerk,
+  getTotalXP,
+  countHighBranches,
+  getPrerequisiteChain,
+  getNextPerk,
+  branchHasHighTier,
 } from '@/utils/managerPerks';
+import { CAPSTONE_MIN_BRANCHES } from '@/config/gameBalance';
 import type { ManagerPerk, ManagerProgression, PerkId } from '@/types/game';
 
 interface TalentTreeProps {
@@ -18,32 +24,56 @@ interface TalentTreeProps {
 
 export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
   const [selectedPerk, setSelectedPerk] = useState<ManagerPerk | null>(null);
+  const [justUnlocked, setJustUnlocked] = useState<PerkId | null>(null);
   const capstone = getCapstonePerk();
   const isCapstoneUnlocked = progression.unlockedPerks.includes(capstone.id);
+  const highBranches = countHighBranches(progression);
+
+  const handleUnlock = (perkId: PerkId) => {
+    onUnlock(perkId);
+    setJustUnlocked(perkId);
+    setSelectedPerk(null);
+    // Clear highlight after animation
+    setTimeout(() => setJustUnlocked(null), 1500);
+  };
 
   return (
     <div className="space-y-3">
       {/* Capstone Node */}
-      <div className="flex justify-center mb-1">
+      <div className="flex flex-col items-center gap-1 mb-1">
         <TalentNode
           perk={capstone}
           progression={progression}
           isCapstone
+          justUnlocked={justUnlocked === capstone.id}
           onClick={() => setSelectedPerk(capstone)}
         />
+        {/* Capstone progress indicator */}
+        {!isCapstoneUnlocked && (
+          <p className="text-[9px] text-muted-foreground">
+            {highBranches}/{CAPSTONE_MIN_BRANCHES} branches at tier 4+
+          </p>
+        )}
       </div>
 
       {/* Connection lines from capstone to branches */}
       <div className="flex justify-center">
         <svg width="100%" height="16" viewBox="0 0 320 16" preserveAspectRatio="xMidYMid meet" className="max-w-[320px]">
-          {[0, 1, 2, 3].map(i => {
+          {TALENT_BRANCHES.map((branch, i) => {
             const x = 40 + i * 80;
+            const branchReady = branchHasHighTier(branch.id, progression);
             return (
               <line
                 key={i}
                 x1={160} y1={0} x2={x} y2={16}
-                stroke={isCapstoneUnlocked ? 'hsl(43 96% 46%)' : 'hsl(215 20% 25%)'}
-                strokeWidth={isCapstoneUnlocked ? 2 : 1}
+                stroke={
+                  isCapstoneUnlocked
+                    ? 'hsl(43 96% 46%)'
+                    : branchReady
+                      ? 'hsl(43 96% 46% / 0.5)'
+                      : 'hsl(215 20% 25%)'
+                }
+                strokeWidth={isCapstoneUnlocked || branchReady ? 2 : 1}
                 strokeDasharray={isCapstoneUnlocked ? undefined : '4 3'}
               />
             );
@@ -56,11 +86,15 @@ export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
         {TALENT_BRANCHES.map(branch => {
           const branchPerks = getBranchPerks(branch.id);
           const unlockedCount = branchPerks.filter(p => progression.unlockedPerks.includes(p.id)).length;
+          const hasHigh = branchHasHighTier(branch.id, progression);
           return (
             <div key={branch.id} className="text-center">
               <DynamicIcon name={branch.icon} className={cn('w-4 h-4 mx-auto mb-0.5', branch.color)} />
               <p className={cn('text-[9px] font-bold uppercase tracking-wider', branch.color)}>{branch.name}</p>
-              <p className="text-[8px] text-muted-foreground">{unlockedCount}/{branchPerks.length}</p>
+              <p className="text-[8px] text-muted-foreground">
+                {unlockedCount}/{branchPerks.length}
+                {hasHigh && !isCapstoneUnlocked && ' \u2713'}
+              </p>
             </div>
           );
         })}
@@ -104,6 +138,7 @@ export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
                   perk={perk}
                   progression={progression}
                   branchColor={branch.color}
+                  justUnlocked={justUnlocked === perk.id}
                   onClick={() => setSelectedPerk(perk)}
                 />
               );
@@ -118,7 +153,7 @@ export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
           <PerkDetailSheet
             perk={selectedPerk}
             progression={progression}
-            onUnlock={onUnlock}
+            onUnlock={handleUnlock}
             onClose={() => setSelectedPerk(null)}
           />
         )}
@@ -134,10 +169,11 @@ interface TalentNodeProps {
   progression: ManagerProgression;
   branchColor?: string;
   isCapstone?: boolean;
+  justUnlocked?: boolean;
   onClick: () => void;
 }
 
-function TalentNode({ perk, progression, branchColor, isCapstone, onClick }: TalentNodeProps) {
+function TalentNode({ perk, progression, branchColor, isCapstone, justUnlocked, onClick }: TalentNodeProps) {
   const isUnlocked = progression.unlockedPerks.includes(perk.id);
   const check = canUnlockPerk(perk, progression);
   const canBuy = check.canUnlock;
@@ -153,6 +189,10 @@ function TalentNode({ perk, progression, branchColor, isCapstone, onClick }: Tal
         !isUnlocked && !canBuy && 'opacity-40',
       )}
       whileTap={{ scale: 0.95 }}
+      animate={justUnlocked ? {
+        scale: [1, 1.15, 1],
+        transition: { duration: 0.5 },
+      } : undefined}
     >
       {/* Node circle */}
       <div
@@ -182,25 +222,34 @@ function TalentNode({ perk, progression, branchColor, isCapstone, onClick }: Tal
             transition={{ duration: 2, repeat: Infinity }}
           />
         )}
+        {/* Unlock celebration burst */}
+        {justUnlocked && (
+          <motion.div
+            className="absolute inset-0 rounded-full bg-primary/30"
+            initial={{ scale: 1, opacity: 0.8 }}
+            animate={{ scale: 2.5, opacity: 0 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+          />
+        )}
       </div>
       {/* Name */}
       <p className={cn(
-        'text-[8px] font-semibold leading-tight text-center line-clamp-2 w-full',
+        'text-[9px] font-semibold leading-tight text-center line-clamp-2 w-full',
         isUnlocked ? (branchColor || 'text-primary') : canBuy ? 'text-foreground' : 'text-muted-foreground/50',
       )}>
         {perk.name}
       </p>
-      {/* Cost */}
+      {/* Cost / Status */}
       {!isUnlocked && (
         <p className={cn(
-          'text-[7px]',
+          'text-[8px]',
           canBuy ? 'text-blue-400' : 'text-muted-foreground/40',
         )}>
           {perk.cost} XP
         </p>
       )}
       {isUnlocked && (
-        <p className="text-[7px] text-emerald-400 font-bold">Active</p>
+        <p className="text-[8px] text-emerald-400 font-bold">Active</p>
       )}
     </motion.button>
   );
@@ -216,10 +265,21 @@ interface PerkDetailSheetProps {
 }
 
 function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailSheetProps) {
+  const [confirming, setConfirming] = useState(false);
   const isUnlocked = progression.unlockedPerks.includes(perk.id);
   const check = canUnlockPerk(perk, progression);
   const canBuy = check.canUnlock;
   const branchMeta = TALENT_BRANCHES.find(b => b.id === perk.branch);
+  const availableXP = getTotalXP(progression);
+  const xpAfterUnlock = availableXP - perk.cost;
+
+  // Prerequisite chain info
+  const prereqChain = getPrerequisiteChain(perk);
+  const nextPerk = getNextPerk(perk);
+
+  // Capstone-specific info
+  const isCapstone = perk.branch === 'capstone';
+  const highBranches = isCapstone ? countHighBranches(progression) : 0;
 
   return (
     <motion.div
@@ -242,6 +302,7 @@ function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailShe
         {/* Handle */}
         <div className="w-10 h-1 bg-muted-foreground/20 rounded-full mx-auto mb-4" />
 
+        {/* Header */}
         <div className="flex items-start gap-4">
           <div className={cn(
             'w-14 h-14 rounded-full flex items-center justify-center border-2 shrink-0',
@@ -269,34 +330,121 @@ function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailShe
                   {branchMeta.name}
                 </span>
               )}
-              {perk.branch === 'capstone' && (
+              {isCapstone && (
                 <span className="text-[9px] font-bold uppercase text-primary">Capstone</span>
               )}
             </div>
             <p className="text-sm text-muted-foreground">{perk.description}</p>
+            {!isUnlocked && !isCapstone && perk.tier && (
+              <p className="text-[10px] text-muted-foreground/60 mt-1">Tier {perk.tier} &middot; {perk.cost} XP</p>
+            )}
           </div>
         </div>
 
+        {/* Info Section */}
+        <div className="mt-3 space-y-2">
+          {/* Prerequisite chain (only for locked perks with prerequisites) */}
+          {!isUnlocked && prereqChain.length > 0 && (
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-[10px] text-muted-foreground">Path:</span>
+              {prereqChain.map((p, i) => {
+                const unlocked = progression.unlockedPerks.includes(p.id);
+                return (
+                  <span key={p.id} className="flex items-center gap-1">
+                    <span className={cn(
+                      'text-[10px] font-medium',
+                      unlocked ? 'text-emerald-400' : 'text-muted-foreground/60',
+                    )}>
+                      {p.name}
+                    </span>
+                    {i < prereqChain.length - 1 && (
+                      <span className="text-[10px] text-muted-foreground/30">&rarr;</span>
+                    )}
+                  </span>
+                );
+              })}
+              <span className="text-[10px] text-muted-foreground/30">&rarr;</span>
+              <span className="text-[10px] font-bold text-foreground">{perk.name}</span>
+            </div>
+          )}
+
+          {/* Next perk in branch */}
+          {isUnlocked && nextPerk && (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground">Unlocks next:</span>
+              <span className="text-[10px] font-medium text-foreground">{nextPerk.name}</span>
+              <span className="text-[10px] text-muted-foreground/60">({nextPerk.cost} XP)</span>
+            </div>
+          )}
+
+          {/* Capstone branch progress */}
+          {isCapstone && !isUnlocked && (
+            <div className="space-y-1.5">
+              <p className="text-[10px] text-muted-foreground">
+                Requires {CAPSTONE_MIN_BRANCHES} branches at tier 4+: {highBranches}/{CAPSTONE_MIN_BRANCHES}
+              </p>
+              <div className="flex gap-1.5">
+                {TALENT_BRANCHES.map(branch => {
+                  const ready = branchHasHighTier(branch.id, progression);
+                  return (
+                    <div key={branch.id} className={cn(
+                      'flex-1 py-1 rounded text-center text-[9px] font-bold',
+                      ready ? 'bg-primary/15 text-primary' : 'bg-muted/20 text-muted-foreground/40',
+                    )}>
+                      {branch.name}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
         <div className="mt-4 flex items-center gap-3">
           {isUnlocked ? (
             <div className="flex-1 text-center py-2.5 bg-emerald-500/10 rounded-lg">
               <p className="text-sm font-bold text-emerald-400">Active</p>
             </div>
-          ) : canBuy ? (
+          ) : canBuy && !confirming ? (
             <Button
-              className="flex-1 h-11 bg-primary text-primary-foreground font-bold"
-              onClick={() => { onUnlock(perk.id); onClose(); }}
+              className="flex-1 h-11 bg-blue-500/20 border border-blue-400/50 text-blue-400 font-bold hover:bg-blue-500/30"
+              variant="outline"
+              onClick={() => setConfirming(true)}
             >
               Unlock — {perk.cost} XP
             </Button>
+          ) : canBuy && confirming ? (
+            <div className="flex-1 space-y-2">
+              <p className="text-[10px] text-center text-muted-foreground">
+                Spend {perk.cost} XP? You'll have {xpAfterUnlock} XP remaining.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  className="flex-1 h-10 bg-primary text-primary-foreground font-bold"
+                  onClick={() => onUnlock(perk.id)}
+                >
+                  Confirm
+                </Button>
+                <Button
+                  variant="outline"
+                  className="h-10 px-4"
+                  onClick={() => setConfirming(false)}
+                >
+                  Back
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="flex-1 text-center py-2.5 bg-muted/20 rounded-lg">
               <p className="text-xs text-muted-foreground">{check.reason}</p>
             </div>
           )}
-          <Button variant="outline" className="h-11 px-4" onClick={onClose}>
-            Close
-          </Button>
+          {!confirming && (
+            <Button variant="outline" className="h-11 px-4" onClick={onClose}>
+              Close
+            </Button>
+          )}
         </div>
       </motion.div>
     </motion.div>
