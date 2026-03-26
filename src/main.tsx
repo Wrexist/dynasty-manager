@@ -27,6 +27,14 @@ export { signalReady };
 
 createRoot(document.getElementById("root")!).render(<App />);
 
+// Auto-save when the browser tab / window is closed
+window.addEventListener('beforeunload', () => {
+  const state = useGameStore.getState();
+  if (state.gameStarted) {
+    state.saveGame();
+  }
+});
+
 // Initialize Capacitor plugins when running as native app
 async function initNative() {
   try {
@@ -61,7 +69,7 @@ async function initNative() {
       const { App: CapApp } = await import('@capacitor/app');
       CapApp.addListener('pause', () => {
         const state = useGameStore.getState();
-        if (state.gameStarted && state.settings?.autoSave) {
+        if (state.gameStarted) {
           state.saveGame();
         }
       });
