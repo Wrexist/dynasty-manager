@@ -66,47 +66,49 @@ export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
         })}
       </div>
 
-      {/* Talent Tree Grid — rows 4 down to 0 */}
+      {/* Talent Tree Grid — rows 4 down to 0, with connection lines between */}
       {[4, 3, 2, 1, 0].map(row => (
-        <div key={row} className="grid grid-cols-4 gap-1.5">
-          {TALENT_BRANCHES.map(branch => {
-            const perk = getBranchPerks(branch.id).find(p => p.row === row);
-            if (!perk) return <div key={branch.id} />;
-            return (
-              <TalentNode
-                key={perk.id}
-                perk={perk}
-                progression={progression}
-                branchColor={branch.color}
-                onClick={() => setSelectedPerk(perk)}
-              />
-            );
-          })}
-        </div>
-      ))}
-
-      {/* Connection Lines between rows */}
-      {[4, 3, 2, 1].map(row => (
-        <div key={`lines-${row}`} className="grid grid-cols-4 gap-1.5 -my-2.5 pointer-events-none" aria-hidden>
-          {TALENT_BRANCHES.map(branch => {
-            const upper = getBranchPerks(branch.id).find(p => p.row === row);
-            const lower = getBranchPerks(branch.id).find(p => p.row === row - 1);
-            if (!upper || !lower) return <div key={branch.id} />;
-            const upperUnlocked = progression.unlockedPerks.includes(upper.id);
-            const lowerUnlocked = progression.unlockedPerks.includes(lower.id);
-            const connected = upperUnlocked || lowerUnlocked;
-            return (
-              <div key={branch.id} className="flex justify-center">
-                <div
-                  className={cn(
-                    'w-0.5 h-3',
-                    connected ? 'bg-primary' : 'bg-border/30',
-                    !connected && 'border-l border-dashed border-border/50 w-0'
-                  )}
+        <div key={row}>
+          {/* Connection line from the row above to this row */}
+          {row < 4 && (
+            <div className="grid grid-cols-4 gap-1.5 -mb-1 pointer-events-none" aria-hidden>
+              {TALENT_BRANCHES.map(branch => {
+                const upper = getBranchPerks(branch.id).find(p => p.row === row + 1);
+                const lower = getBranchPerks(branch.id).find(p => p.row === row);
+                if (!upper || !lower) return <div key={branch.id} />;
+                const upperUnlocked = progression.unlockedPerks.includes(upper.id);
+                const lowerUnlocked = progression.unlockedPerks.includes(lower.id);
+                const connected = upperUnlocked || lowerUnlocked;
+                return (
+                  <div key={branch.id} className="flex justify-center">
+                    <div
+                      className={cn(
+                        'w-0.5 h-3',
+                        connected ? 'bg-primary' : 'bg-border/30',
+                        !connected && 'border-l border-dashed border-border/50 w-0'
+                      )}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {/* Perk nodes for this row */}
+          <div className="grid grid-cols-4 gap-1.5">
+            {TALENT_BRANCHES.map(branch => {
+              const perk = getBranchPerks(branch.id).find(p => p.row === row);
+              if (!perk) return <div key={branch.id} />;
+              return (
+                <TalentNode
+                  key={perk.id}
+                  perk={perk}
+                  progression={progression}
+                  branchColor={branch.color}
+                  onClick={() => setSelectedPerk(perk)}
                 />
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       ))}
 
@@ -221,7 +223,7 @@ function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailShe
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center"
+      className="fixed inset-0 z-[60] flex items-end justify-center"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -231,7 +233,7 @@ function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailShe
 
       {/* Sheet */}
       <motion.div
-        className="relative w-full max-w-lg bg-card border-t border-border/50 rounded-t-2xl p-5 pb-8 z-10"
+        className="relative w-full max-w-lg bg-card border-t border-border/50 rounded-t-2xl p-5 pb-24 z-10"
         initial={{ y: '100%' }}
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
