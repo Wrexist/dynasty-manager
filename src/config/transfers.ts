@@ -81,3 +81,12 @@ export const CONTRACT_MIN_YEARS = 1;
 export const CONTRACT_MAX_YEARS = 5;
 export const SIGNING_BONUS_WEEKS_PER_YEAR = 2;
 export const RENEWAL_MORALE_BOOST = 10;
+
+// ── Outgoing Loan Requests ──
+export const LOAN_REQUEST_BASE_ACCEPT = 0.6;
+export const LOAN_REQUEST_LINEUP_PENALTY = 0.4;
+export const LOAN_REQUEST_WAGE_BONUS = 0.003;  // per % of wage offered
+export const LOAN_REQUEST_AGE_BONUS = 0.03;    // per year under 23
+export const LOAN_REQUEST_COUNTER_CHANCE = 0.35;
+export const LOAN_REQUEST_MIN_DURATION = 4;
+export const LOAN_REQUEST_MAX_DURATION = 46;

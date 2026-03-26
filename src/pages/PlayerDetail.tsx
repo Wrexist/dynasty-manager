@@ -1,9 +1,12 @@
+import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
 import { POSITION_COMPATIBILITY, Position, TrainingModule } from '@/types/game';
-import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield } from 'lucide-react';
+import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2 } from 'lucide-react';
+import { TransferApproach } from '@/components/game/TransferApproach';
+import { LoanNegotiation } from '@/components/game/LoanNegotiation';
 import { motion } from 'framer-motion';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
 import { cn } from '@/lib/utils';
@@ -34,8 +37,11 @@ const PlayerDetail = () => {
     selectedPlayerId, players, clubs, playerClubId, previousScreen,
     incomingOffers, setScreen, selectPlayer,
     listPlayerForSale, unlistPlayer, respondToOffer, season, week, facilities, startNegotiation,
-    training, setIndividualTraining,
+    training, setIndividualTraining, transferWindowOpen,
   } = useGameStore();
+
+  const [showApproach, setShowApproach] = useState(false);
+  const [showLoanRequest, setShowLoanRequest] = useState(false);
 
   const player = selectedPlayerId ? players[selectedPlayerId] : null;
 
@@ -576,6 +582,26 @@ const PlayerDetail = () => {
         </Button>
       )}
 
+      {/* Rival Player Actions */}
+      {!isOwnPlayer && transferWindowOpen && !player.onLoan && (
+        <div className="space-y-2">
+          <Button
+            variant="secondary"
+            className="w-full gap-2"
+            onClick={() => { hapticLight(); setShowApproach(true); }}
+          >
+            <Banknote className="w-4 h-4" /> Make Transfer Offer
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full gap-2 border-blue-500/30 text-blue-400"
+            onClick={() => { hapticLight(); setShowLoanRequest(true); }}
+          >
+            <Repeat2 className="w-4 h-4" /> Request Loan
+          </Button>
+        </div>
+      )}
+
       {/* Incoming Offers */}
       {playerOffers.length > 0 && (
         <GlassPanel className="p-4">
@@ -605,6 +631,14 @@ const PlayerDetail = () => {
             })}
           </div>
         </GlassPanel>
+      )}
+
+      {/* Approach / Loan Modals */}
+      {showApproach && (
+        <TransferApproach playerId={player.id} onClose={() => setShowApproach(false)} />
+      )}
+      {showLoanRequest && (
+        <LoanNegotiation playerId={player.id} onClose={() => setShowLoanRequest(false)} />
       )}
     </div>
   );

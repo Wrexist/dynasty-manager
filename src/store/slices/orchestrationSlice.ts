@@ -645,7 +645,7 @@ function finalizeSeason(
   resetSeasonGrowth();
 
   if (state.activeLoans.length > 0) get().processLoanReturns();
-  set({ activeLoans: [], incomingLoanOffers: [] });
+  set({ activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [] });
 
   // Merge loan-return club updates (playerIds, wageBills) into inputClubs
   const postLoanClubs = get().clubs;
@@ -1252,7 +1252,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable,
       divisionFixtures, divisionTables, divisionClubs, playerDivision,
       lastSeasonTurnover: null, derbies: DERBIES,
-      activeLoans: [], incomingLoanOffers: [],
+      activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
       transferMarket, shortlist: [], scoutWatchList: [], freeAgents: [], transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
       messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', currentCupTieId: null,
@@ -3000,7 +3000,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       staff: state.staff, scouting: state.scouting, youthAcademy: state.youthAcademy,
       facilities: state.facilities, financeHistory: state.financeHistory,
       unlockedAchievements: state.unlockedAchievements, managerStats: state.managerStats,
-      activeLoans: state.activeLoans, incomingLoanOffers: state.incomingLoanOffers,
+      activeLoans: state.activeLoans, incomingLoanOffers: state.incomingLoanOffers, outgoingLoanRequests: state.outgoingLoanRequests,
       cup: state.cup,
       fanMood: state.fanMood,
       activeChallenge: state.activeChallenge,
@@ -3131,6 +3131,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         managerStats: data.managerStats || { totalWins: 0, totalDraws: 0, totalLosses: 0, totalSpent: 0, totalEarned: 0 },
         activeLoans: data.activeLoans || [],
         incomingLoanOffers: data.incomingLoanOffers || [],
+        outgoingLoanRequests: data.outgoingLoanRequests || [],
         cup: data.cup || generateCupDraw(clubIds),
         fanMood: data.fanMood ?? 50,
         activeChallenge: data.activeChallenge || null,
@@ -3190,7 +3191,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       matchPlayerRatings: [], halfTimeState: null, matchPhase: 'none' as const,
       currentMatchResult: null, matchSubsUsed: 0, currentCupTieId: null,
       transferMarket: [], shortlist: [], scoutWatchList: [], transferNews: [],
-      activeLoans: [], incomingLoanOffers: [],
+      activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
       cup: { ties: [], currentRound: null, eliminated: false, winner: null },
       pendingPressConference: null, activeNegotiation: null,
       pendingFarewell: [], pendingStoryline: null,

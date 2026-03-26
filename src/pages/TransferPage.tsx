@@ -27,7 +27,7 @@ const TransferPage = () => {
     transferMarket, players, clubs, playerClubId, shortlist, transferWindowOpen,
     addToShortlist, removeFromShortlist, selectPlayer,
     incomingOffers, respondToOffer, unlistPlayer,
-    activeLoans, incomingLoanOffers, recallLoan, respondToLoanOffer,
+    activeLoans, incomingLoanOffers, outgoingLoanRequests, recallLoan, respondToLoanOffer,
     week, season, totalWeeks,
     freeAgents, signFreeAgent,
     setScreen, scouting,
@@ -561,6 +561,48 @@ const TransferPage = () => {
             </div>
           )}
 
+          {/* Pending Loan Requests (Outgoing) */}
+          {outgoingLoanRequests.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Pending Loan Requests</p>
+              {outgoingLoanRequests.map(req => {
+                const p = players[req.playerId];
+                if (!p) return null;
+                const ownerClub = clubs[req.toClubId];
+                return (
+                  <GlassPanel key={req.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-11 h-11 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                        <Clock className="w-5 h-5 text-amber-400" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
+                        <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} OVR {p.overall}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          From: <span className="text-foreground">{ownerClub?.name || '?'}</span>
+                        </p>
+                        <div className="flex gap-3 mt-1 text-[10px] text-muted-foreground">
+                          <span>{req.durationWeeks} weeks</span>
+                          <span>Wage: {req.wageSplit}%</span>
+                          {req.recallClause && <span className="text-blue-400">Recall</span>}
+                          <span className={cn(
+                            'font-semibold',
+                            req.status === 'accepted' ? 'text-emerald-400' :
+                            req.status === 'rejected' ? 'text-red-400' :
+                            req.status === 'counter' ? 'text-amber-400' :
+                            'text-muted-foreground'
+                          )}>
+                            {req.status === 'pending' ? 'Awaiting Response' : req.status.charAt(0).toUpperCase() + req.status.slice(1)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </GlassPanel>
+                );
+              })}
+            </div>
+          )}
+
           {/* Active Loans Out */}
           {(() => {
             const loansOut = activeLoans.filter(l => l.fromClubId === playerClubId);
@@ -645,7 +687,7 @@ const TransferPage = () => {
                   </div>
                 )}
 
-                {loansOut.length === 0 && loansIn.length === 0 && incomingLoanOffers.length === 0 && (
+                {loansOut.length === 0 && loansIn.length === 0 && incomingLoanOffers.length === 0 && outgoingLoanRequests.length === 0 && (
                   <GlassPanel className="p-8 text-center">
                     <Repeat2 className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
                     <p className="text-sm text-muted-foreground">No active loans.</p>
