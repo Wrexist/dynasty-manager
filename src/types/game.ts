@@ -278,6 +278,21 @@ export interface IncomingLoanOffer {
   obligatoryBuyFee?: number;
 }
 
+export interface OutgoingLoanRequest {
+  id: string;
+  playerId: string;
+  toClubId: string;       // club that owns the player
+  durationWeeks: number;
+  wageSplit: number;
+  recallClause: boolean;
+  obligatoryBuyFee?: number;
+  week: number;
+  season: number;
+  status: 'pending' | 'accepted' | 'rejected' | 'counter';
+  counterWageSplit?: number;
+  counterDuration?: number;
+}
+
 export interface TransferNewsEntry {
   id: string;
   week: number;

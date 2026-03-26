@@ -1,7 +1,12 @@
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
-import type { LoanDeal } from '@/types/game';
+import type { LoanDeal, OutgoingLoanRequest } from '@/types/game';
 import { TOTAL_WEEKS, LOAN_MIN_WEEKS_BEFORE_RECALL } from '@/config/gameBalance';
+import {
+  LOAN_REQUEST_BASE_ACCEPT, LOAN_REQUEST_LINEUP_PENALTY,
+  LOAN_REQUEST_WAGE_BONUS, LOAN_REQUEST_AGE_BONUS,
+  LOAN_REQUEST_COUNTER_CHANCE,
+} from '@/config/transfers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -9,6 +14,7 @@ type Get = () => GameState;
 export const createLoanSlice = (set: Set, get: Get) => ({
   activeLoans: [] as LoanDeal[],
   incomingLoanOffers: [] as GameState['incomingLoanOffers'],
+  outgoingLoanRequests: [] as OutgoingLoanRequest[],
 
   loanOut: (playerId: string, toClubId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => {
     const state = get();
@@ -386,5 +392,133 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     });
 
     return { success: true, message: `${player.firstName} ${player.lastName}'s loan terminated.` };
+  },
+
+  evaluateLoanRequest: (playerId: string, duration: number, wageSplit: number) => {
+    const state = get();
+    const player = state.players[playerId];
+    if (!player) return null;
+
+    const ownerClub = state.clubs[player.clubId];
+    if (!ownerClub) return null;
+
+    // Base chance
+    let chance = LOAN_REQUEST_BASE_ACCEPT;
+
+    // Penalty if player is in the owner's starting lineup
+    const inLineup = ownerClub.lineup.includes(playerId);
+    if (inLineup) chance -= LOAN_REQUEST_LINEUP_PENALTY;
+
+    // Bonus for higher wage split (user pays more)
+    chance += wageSplit * LOAN_REQUEST_WAGE_BONUS;
+
+    // Bonus for younger players (under 23)
+    if (player.age < 23) chance += (23 - player.age) * LOAN_REQUEST_AGE_BONUS;
+
+    // Penalty for high-rated players
+    if (player.overall >= 80) chance -= 0.15;
+    else if (player.overall >= 75) chance -= 0.05;
+
+    // Shorter loans are easier to accept
+    if (duration <= 12) chance += 0.05;
+    else if (duration >= 36) chance -= 0.1;
+
+    chance = Math.max(0.05, Math.min(0.95, chance));
+
+    return { acceptChance: chance, ownerClubName: ownerClub.name };
+  },
+
+  requestLoan: (playerId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => {
+    const state = get();
+    if (!state.transferWindowOpen) return { outcome: 'rejected' as const, message: 'The transfer window is closed.' };
+
+    const player = state.players[playerId];
+    if (!player) return { outcome: 'rejected' as const, message: 'Player not found.' };
+    if (player.clubId === state.playerClubId) return { outcome: 'rejected' as const, message: 'Cannot loan your own player to yourself.' };
+    if (player.onLoan) return { outcome: 'rejected' as const, message: 'Player is already on loan.' };
+
+    const ownerClub = state.clubs[player.clubId];
+    const userClub = state.clubs[state.playerClubId];
+    if (!ownerClub || !userClub) return { outcome: 'rejected' as const, message: 'Invalid club.' };
+
+    // Check for duplicate request
+    const existing = state.outgoingLoanRequests.find(r => r.playerId === playerId && r.status === 'pending');
+    if (existing) return { outcome: 'rejected' as const, message: 'You already have a pending loan request for this player.' };
+
+    // Evaluate acceptance
+    const eval_ = get().evaluateLoanRequest(playerId, duration, wageSplit);
+    if (!eval_) return { outcome: 'rejected' as const, message: 'Unable to evaluate loan request.' };
+
+    const roll = Math.random();
+
+    if (roll < eval_.acceptChance) {
+      // Accepted — execute the loan
+      const loan: LoanDeal = {
+        id: crypto.randomUUID(),
+        playerId,
+        fromClubId: player.clubId,
+        toClubId: state.playerClubId,
+        startWeek: state.week,
+        startSeason: state.season,
+        durationWeeks: duration,
+        wageSplit,
+        recallClause,
+        obligatoryBuyFee,
+      };
+
+      const updatedPlayer = {
+        ...player,
+        onLoan: true,
+        loanFromClubId: player.clubId,
+        loanToClubId: state.playerClubId,
+        clubId: state.playerClubId,
+      };
+
+      const updatedOwner = { ...ownerClub };
+      updatedOwner.playerIds = updatedOwner.playerIds.filter(id => id !== playerId);
+      updatedOwner.lineup = updatedOwner.lineup.filter(id => id !== playerId);
+      updatedOwner.subs = updatedOwner.subs.filter(id => id !== playerId);
+      updatedOwner.wageBill -= Math.round(player.wage * wageSplit / 100);
+
+      const updatedUser = { ...userClub };
+      updatedUser.playerIds = [...updatedUser.playerIds, playerId];
+      updatedUser.wageBill += Math.round(player.wage * wageSplit / 100);
+
+      const newMessages = addMsg(state.messages, {
+        week: state.week, season: state.season, type: 'transfer',
+        title: `${player.lastName} Loan Agreed`,
+        body: `${player.firstName} ${player.lastName} has joined on loan from ${ownerClub.name} for ${duration} weeks. Wage split: ${wageSplit}%.${recallClause ? ' Recall clause included.' : ''}`,
+      });
+
+      set({
+        players: { ...state.players, [playerId]: updatedPlayer },
+        clubs: { ...state.clubs, [updatedOwner.id]: updatedOwner, [updatedUser.id]: updatedUser },
+        activeLoans: [...state.activeLoans, loan],
+        messages: newMessages,
+      });
+
+      return { outcome: 'accepted' as const, message: `${ownerClub.name} have agreed to loan ${player.firstName} ${player.lastName} to your club!` };
+    }
+
+    // Check for counter-offer
+    if (roll < eval_.acceptChance + LOAN_REQUEST_COUNTER_CHANCE) {
+      const counterWageSplit = Math.min(100, wageSplit + 10 + Math.floor(Math.random() * 15));
+      const counterDuration = duration > 12 ? Math.max(4, duration - Math.floor(Math.random() * 8) - 4) : duration;
+
+      return {
+        outcome: 'counter' as const,
+        counterWageSplit,
+        counterDuration,
+        message: `${ownerClub.name} are interested but want better terms: ${counterWageSplit}% wage contribution${counterDuration !== duration ? ` and a shorter ${counterDuration}-week loan` : ''}.`,
+      };
+    }
+
+    // Rejected
+    return { outcome: 'rejected' as const, message: `${ownerClub.name} have rejected your loan request for ${player.lastName}. The club considers the player too important.` };
+  },
+
+  cancelLoanRequest: (requestId: string) => {
+    const state = get();
+    set({ outgoingLoanRequests: state.outgoingLoanRequests.filter(r => r.id !== requestId) });
   },
 });

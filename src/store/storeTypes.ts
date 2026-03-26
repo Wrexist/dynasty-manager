@@ -1,4 +1,4 @@
-import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer } from '@/types/game';
+import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -44,6 +44,7 @@ export interface GameState {
   incomingOffers: IncomingOffer[];
   activeLoans: LoanDeal[];
   incomingLoanOffers: IncomingLoanOffer[];
+  outgoingLoanRequests: OutgoingLoanRequest[];
   freeAgents: string[];
 
   // Transfer News Feed
@@ -188,6 +189,9 @@ export interface GameState {
   processLoanReturns: () => void;
   buyLoanedPlayer: (loanId: string) => { success: boolean; message: string };
   terminateLoan: (loanId: string) => { success: boolean; message: string };
+  requestLoan: (playerId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterWageSplit?: number; counterDuration?: number; message: string };
+  evaluateLoanRequest: (playerId: string, duration: number, wageSplit: number) => { acceptChance: number; ownerClubName: string } | null;
+  cancelLoanRequest: (requestId: string) => void;
   renewContract: (playerId: string, years: number, newWage: number) => { success: boolean; message: string };
 
   // Actions — Match

@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 25;
+const CURRENT_VERSION = 26;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -360,6 +360,12 @@ const migrations: Record<number, MigrationFn> = {
     }
     return { ...data, version: 25, pairFamiliarity };
   },
+  // v25 → v26: Add outgoingLoanRequests array
+  25: (data) => ({
+    ...data,
+    version: 26,
+    outgoingLoanRequests: data.outgoingLoanRequests || [],
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
