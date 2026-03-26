@@ -10,6 +10,7 @@ import { SQUADS as NED_SQUADS } from './netherlands';
 
 // Remaining European leagues
 import { SQUADS as CRO_SQUADS } from './croatia';
+import { SQUADS as IRL_SQUADS } from './ireland';
 
 /** All club squad templates, keyed by club ID */
 export const ALL_SQUAD_TEMPLATES: Record<string, PlayerTemplate[]> = {
@@ -20,4 +21,5 @@ export const ALL_SQUAD_TEMPLATES: Record<string, PlayerTemplate[]> = {
   ...FRA_SQUADS,
   ...NED_SQUADS,
   ...CRO_SQUADS,
+  ...IRL_SQUADS,
 };
