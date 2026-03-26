@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
-import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronUp, Trophy, AlertTriangle, TrendingUp, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TrainingModule } from '@/types/game';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
 import { hapticLight } from '@/utils/haptics';
-import { TRAINING_PRESETS } from '@/config/training';
-import { getTrainingRecommendation } from '@/utils/training';
+import { TRAINING_PRESETS, DRILLS_BY_MODULE, STREAK_THRESHOLDS, STREAK_MULTIPLIERS } from '@/config/training';
+import { getTrainingRecommendation, getTrainingEffectivenessPreview, getSquadFitnessDistribution, getStreakTier, getDominantTrainingFocus } from '@/utils/training';
+import { getTrainingMultiplier } from '@/utils/personality';
+import { getStaffBonus } from '@/utils/staff';
+import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const SQUAD_SUB_NAV = [
   { screen: 'squad' as const, label: 'Squad' },
@@ -36,14 +40,34 @@ const ATTR_LABELS: Record<string, string> = {
 };
 
 const TrainingPage = () => {
-  const { training, updateTraining, players, clubs, playerClubId, selectPlayer, setScreen } = useGameStore();
+  const { training, updateTraining, updateDrillSchedule, setIndividualTraining, players, clubs, playerClubId, selectPlayer, setScreen, staff } = useGameStore();
   const { schedule, intensity, tacticalFamiliarity } = training;
   const club = clubs[playerClubId];
   const [showAllDev, setShowAllDev] = useState(false);
+  const [expandedDay, setExpandedDay] = useState<typeof DAYS[number] | null>(null);
+  const [showIndividualTraining, setShowIndividualTraining] = useState(false);
+  const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
+
+  const squadPlayers = useMemo(() => {
+    if (!club) return [];
+    return club.playerIds.map(id => players[id]).filter(Boolean);
+  }, [club, players]);
+
+  const staffBonus = useMemo(() => {
+    const ftc = getStaffBonus(staff.members, 'first-team-coach');
+    const fc = getStaffBonus(staff.members, 'fitness-coach');
+    return ftc + fc * 0.5;
+  }, [staff.members]);
 
   const handleDayChange = (day: typeof DAYS[number], mod: TrainingModule) => {
     hapticLight();
     updateTraining({ [day]: mod });
+    setExpandedDay(day); // Open drill picker for this day
+  };
+
+  const handleDrillChange = (day: typeof DAYS[number], drillId: string) => {
+    hapticLight();
+    updateDrillSchedule({ [day]: drillId });
   };
 
   const handleIntensity = (val: 'light' | 'medium' | 'heavy') => {
@@ -56,6 +80,31 @@ const TrainingPage = () => {
     updateTraining(preset.schedule);
   };
 
+  const handleSetIndividualFocus = (playerId: string, focus: TrainingModule | null) => {
+    hapticLight();
+    setIndividualTraining(playerId, focus);
+    setExpandedPlayerId(null);
+  };
+
+  // Computed data
+  const report = training.lastReport;
+  const dominantModule = getDominantTrainingFocus(schedule);
+  const dominantInfo = MODULE_INFO.find(m => m.module === dominantModule);
+  const streakCount = training.streaks?.[dominantModule] || 0;
+  const streakTier = getStreakTier(streakCount);
+  const preview = getTrainingEffectivenessPreview(training, staffBonus, squadPlayers);
+  const fitnessDistribution = getSquadFitnessDistribution(squadPlayers);
+
+  // Radar chart data
+  const radarData = useMemo(() => {
+    if (squadPlayers.length === 0) return [];
+    const attrs = ['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'] as const;
+    return attrs.map(attr => ({
+      attr: ATTR_LABELS[attr],
+      value: Math.round(squadPlayers.reduce((s, p) => s + (p.attributes[attr] || 0), 0) / squadPlayers.length),
+    }));
+  }, [squadPlayers]);
+
   return (
     <div className="max-w-lg mx-auto">
       <SubNav items={SQUAD_SUB_NAV} />
@@ -63,10 +112,74 @@ const TrainingPage = () => {
         <PageHint screen="training" title={PAGE_HINTS.training.title} body={PAGE_HINTS.training.body} />
         <h2 className="text-lg font-display font-bold text-foreground">Training</h2>
 
+        {/* Training Report Card */}
+        <AnimatePresence>
+          {report && report.totalGains > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <GlassPanel className="p-3 border-primary/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <Trophy className="w-4 h-4 text-primary" />
+                  <h3 className="text-xs font-semibold text-foreground">Last Week's Training Report</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <div className="text-lg font-bold text-emerald-400 tabular-nums">{report.totalGains}</div>
+                    <div className="text-[9px] text-muted-foreground">Attr Gains</div>
+                  </div>
+                  <div>
+                    <div className={cn('text-lg font-bold tabular-nums', report.injuries.length > 0 ? 'text-destructive' : 'text-emerald-400')}>
+                      {report.injuries.length}
+                    </div>
+                    <div className="text-[9px] text-muted-foreground">Injuries</div>
+                  </div>
+                  <div>
+                    <div className={cn('text-lg font-bold tabular-nums', report.fitnessChange >= 0 ? 'text-emerald-400' : 'text-amber-400')}>
+                      {report.fitnessChange >= 0 ? '+' : ''}{report.fitnessChange}
+                    </div>
+                    <div className="text-[9px] text-muted-foreground">Avg Fitness</div>
+                  </div>
+                </div>
+                {report.starPerformers.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-border/30">
+                    <div className="text-[9px] text-muted-foreground mb-1">Star Performers</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {report.starPerformers.map((sp, i) => {
+                        const p = players[sp.playerId];
+                        if (!p) return null;
+                        return (
+                          <span key={i} className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                            {p.lastName} +{ATTR_LABELS[sp.attrGained] || sp.attrGained}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </GlassPanel>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Squad Attribute Radar Chart */}
+        {radarData.length > 0 && (
+          <GlassPanel className="p-3">
+            <h3 className="text-xs font-semibold text-foreground mb-1">Squad Attributes</h3>
+            <ResponsiveContainer width="100%" height={180}>
+              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
+                <PolarGrid stroke="hsl(var(--border))" />
+                <PolarAngleAxis dataKey="attr" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                <Radar dataKey="value" stroke="hsl(43 96% 46%)" fill="hsl(43 96% 46%)" fillOpacity={0.2} strokeWidth={2} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </GlassPanel>
+        )}
+
         {/* Training Recommendation */}
         {(() => {
-          if (!club) return null;
-          const squadPlayers = club.playerIds.map(id => players[id]).filter(Boolean);
           const rec = getTrainingRecommendation(squadPlayers);
           if (!rec) return null;
           const recInfo = MODULE_INFO.find(m => m.module === rec.module);
@@ -103,39 +216,86 @@ const TrainingPage = () => {
           })}
         </div>
 
-        {/* Weekly Schedule */}
+        {/* Weekly Schedule with Drills */}
         <GlassPanel className="p-4">
           <h3 className="text-sm font-semibold text-foreground mb-3">Weekly Schedule</h3>
           <div className="space-y-2">
             {DAYS.map((day, i) => {
               const current = schedule[day];
+              const currentDrill = training.drillSchedule?.[day];
+              const drills = DRILLS_BY_MODULE[current];
+              const isExpanded = expandedDay === day;
               return (
-                <div key={day} className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground w-8 shrink-0">{DAY_LABELS[i]}</span>
-                  <div className="flex gap-1.5 flex-1 overflow-x-auto">
-                    {MODULE_INFO.map(({ module, label, icon: Icon, color: _color }) => (
-                      <button
-                        key={module}
-                        onClick={() => handleDayChange(day, module)}
-                        className={cn(
-                          'flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all shrink-0',
-                          current === module
-                            ? 'bg-primary/20 text-primary border border-primary/30'
-                            : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                        )}
-                      >
-                        <Icon className="w-3 h-3" />
-                        {label}
-                      </button>
-                    ))}
+                <div key={day}>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => { hapticLight(); setExpandedDay(isExpanded ? null : day); }}
+                      className="text-xs text-muted-foreground w-8 shrink-0 hover:text-foreground transition-colors"
+                    >
+                      {DAY_LABELS[i]}
+                    </button>
+                    <div className="flex gap-1.5 flex-1 overflow-x-auto">
+                      {MODULE_INFO.map(({ module, label, icon: Icon }) => (
+                        <button
+                          key={module}
+                          onClick={() => handleDayChange(day, module)}
+                          className={cn(
+                            'flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all shrink-0',
+                            current === module
+                              ? 'bg-primary/20 text-primary border border-primary/30'
+                              : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
+                          )}
+                        >
+                          <Icon className="w-3 h-3" />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                  {/* Drill sub-selector */}
+                  <AnimatePresence>
+                    {isExpanded && drills.length > 0 && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                      >
+                        <div className="flex gap-1.5 ml-11 mt-1.5 overflow-x-auto pb-1">
+                          {drills.map(drill => {
+                            const isSelected = currentDrill === drill.id;
+                            const weights = Object.entries(drill.attrWeights)
+                              .map(([a, w]) => `${ATTR_LABELS[a] || a} ${Math.round((w || 0) * 100)}%`)
+                              .join(' · ');
+                            return (
+                              <button
+                                key={drill.id}
+                                onClick={() => handleDrillChange(day, drill.id)}
+                                className={cn(
+                                  'flex flex-col items-start px-2.5 py-1.5 rounded-lg text-left transition-all shrink-0 min-w-[120px]',
+                                  isSelected
+                                    ? 'bg-primary/15 border border-primary/30'
+                                    : 'bg-muted/20 border border-transparent hover:bg-muted/40'
+                                )}
+                              >
+                                <span className={cn('text-[10px] font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>
+                                  {drill.name}
+                                </span>
+                                <span className="text-[8px] text-muted-foreground mt-0.5">{weights}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })}
           </div>
         </GlassPanel>
 
-        {/* Intensity */}
+        {/* Intensity + Effectiveness Preview */}
         <GlassPanel className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <h3 className="text-sm font-semibold text-foreground">Training Intensity</h3>
@@ -159,13 +319,130 @@ const TrainingPage = () => {
               </button>
             ))}
           </div>
-          <div className="mt-2 flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground">Injury Risk:</span>
-            <span className={cn('text-[10px] font-semibold',
-              intensity === 'heavy' ? 'text-destructive' : intensity === 'light' ? 'text-emerald-400' : 'text-amber-400'
-            )}>
-              {intensity === 'heavy' ? 'High' : intensity === 'light' ? 'Low' : 'Medium'}
-            </span>
+          {/* Effectiveness Preview */}
+          <div className="mt-3 pt-3 border-t border-border/30 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <TrendingUp className="w-3 h-3 text-primary" />
+              <span className="text-[10px] font-medium text-foreground">Effectiveness Preview</span>
+            </div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              {preview.moduleGainRates.map(m => {
+                const info = MODULE_INFO.find(mi => mi.module === m.module);
+                return (
+                  <div key={m.module} className="flex items-center justify-between">
+                    <span className={cn('text-[10px]', info?.color || 'text-muted-foreground')}>
+                      {info?.label || m.module} ({m.daysScheduled}d)
+                    </span>
+                    <span className="text-[10px] text-foreground font-medium tabular-nums">{m.expectedGainPct}%</span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-4 text-[10px]">
+              <div className="flex items-center gap-1">
+                <AlertTriangle className={cn('w-3 h-3', preview.injuryRiskPct > 2 ? 'text-destructive' : 'text-muted-foreground')} />
+                <span className="text-muted-foreground">Injury:</span>
+                <span className={cn('font-medium', preview.injuryRiskPct > 2 ? 'text-destructive' : preview.injuryRiskPct > 1 ? 'text-amber-400' : 'text-emerald-400')}>
+                  {preview.injuryRiskPct}%
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Heart className="w-3 h-3 text-muted-foreground" />
+                <span className="text-muted-foreground">Fitness:</span>
+                <span className={cn('font-medium', preview.fitnessImpact >= 0 ? 'text-emerald-400' : 'text-amber-400')}>
+                  {preview.fitnessImpact >= 0 ? '+' : ''}{preview.fitnessImpact}
+                </span>
+              </div>
+              {preview.streakBonus > 0 && (
+                <div className="flex items-center gap-1">
+                  <Flame className="w-3 h-3 text-primary" />
+                  <span className="text-primary font-medium">+{preview.streakBonus}%</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </GlassPanel>
+
+        {/* Squad Fitness Overview */}
+        <GlassPanel className="p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-foreground">Squad Fitness</h3>
+            <span className="text-[10px] text-muted-foreground">Avg: <span className="text-foreground font-medium">{fitnessDistribution.avgFitness}</span></span>
+          </div>
+          <div className="w-full h-4 bg-muted/30 rounded-full overflow-hidden flex">
+            {fitnessDistribution.green > 0 && (
+              <div
+                className="h-full bg-emerald-500/70 transition-all duration-500"
+                style={{ width: `${(fitnessDistribution.green / fitnessDistribution.total) * 100}%` }}
+              />
+            )}
+            {fitnessDistribution.yellow > 0 && (
+              <div
+                className="h-full bg-amber-500/70 transition-all duration-500"
+                style={{ width: `${(fitnessDistribution.yellow / fitnessDistribution.total) * 100}%` }}
+              />
+            )}
+            {fitnessDistribution.red > 0 && (
+              <div
+                className="h-full bg-destructive/70 transition-all duration-500"
+                style={{ width: `${(fitnessDistribution.red / fitnessDistribution.total) * 100}%` }}
+              />
+            )}
+          </div>
+          <div className="flex justify-between mt-1.5 text-[9px]">
+            <span className="text-emerald-400">{fitnessDistribution.green} fit</span>
+            <span className="text-amber-400">{fitnessDistribution.yellow} tired</span>
+            <span className="text-destructive">{fitnessDistribution.red} exhausted</span>
+          </div>
+        </GlassPanel>
+
+        {/* Training Streak */}
+        <GlassPanel className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Flame className={cn('w-4 h-4', streakCount >= 2 ? 'text-primary' : 'text-muted-foreground')} />
+              <h3 className="text-sm font-semibold text-foreground">Training Streak</h3>
+            </div>
+            {dominantInfo && (
+              <div className="flex items-center gap-1.5">
+                {(() => { const DIcon = dominantInfo.icon; return <DIcon className={cn('w-3 h-3', dominantInfo.color)} />; })()}
+                <span className={cn('text-[10px] font-medium', dominantInfo.color)}>{dominantInfo.label}</span>
+              </div>
+            )}
+          </div>
+          <div className="mt-2 flex items-center gap-3">
+            <div className="flex-1">
+              <div className="flex gap-0.5">
+                {Array.from({ length: Math.max(streakCount, STREAK_THRESHOLDS[STREAK_THRESHOLDS.length - 1]) }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      'h-2 flex-1 rounded-full transition-all',
+                      i < streakCount ? 'bg-primary' : 'bg-muted/30',
+                      i < STREAK_THRESHOLDS[0] ? '' : i < STREAK_THRESHOLDS[1] ? 'bg-primary/80' : 'bg-primary/60'
+                    )}
+                    style={i < streakCount ? { backgroundColor: undefined } : undefined}
+                  />
+                ))}
+              </div>
+              <div className="flex justify-between mt-1">
+                <span className="text-[9px] text-muted-foreground">{streakCount} week{streakCount !== 1 ? 's' : ''}</span>
+                {streakTier.nextThreshold && (
+                  <span className="text-[9px] text-muted-foreground">
+                    Next bonus at {streakTier.nextThreshold}w (+{Math.round((STREAK_MULTIPLIERS[streakTier.tier + 1] - 1) * 100)}%)
+                  </span>
+                )}
+                {!streakTier.nextThreshold && streakCount >= STREAK_THRESHOLDS[STREAK_THRESHOLDS.length - 1] && (
+                  <span className="text-[9px] text-primary font-medium">Max bonus active!</span>
+                )}
+              </div>
+            </div>
+            {streakTier.tier > 0 && (
+              <div className="text-center shrink-0">
+                <div className="text-lg font-bold text-primary">+{Math.round((STREAK_MULTIPLIERS[streakTier.tier] - 1) * 100)}%</div>
+                <div className="text-[8px] text-muted-foreground">bonus</div>
+              </div>
+            )}
           </div>
         </GlassPanel>
 
@@ -189,57 +466,99 @@ const TrainingPage = () => {
           </p>
         </GlassPanel>
 
-        {/* Individual Training Plans */}
-        {(() => {
-          if (!club) return null;
-          const plans = (training.individualPlans || [])
-            .map(plan => {
-              const p = players[plan.playerId];
-              if (!p) return null;
-              const info = MODULE_INFO.find(m => m.module === plan.focus);
-              return { player: p, focus: plan.focus, info };
-            })
-            .filter(Boolean);
-          const totalPlayers = club.playerIds.length;
-          return (
-            <GlassPanel className="p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <Dumbbell className="w-3.5 h-3.5 text-primary" />
-                  <h3 className="text-sm font-semibold text-foreground">Individual Plans</h3>
-                </div>
-                <span className="text-[10px] text-muted-foreground">{plans.length}/{totalPlayers} players</span>
-              </div>
-              {plans.length === 0 ? (
-                <p className="text-[10px] text-muted-foreground">
-                  Set individual training focuses from player detail pages for +50% targeted gains.
+        {/* Individual Training Plans — Inline */}
+        <GlassPanel className="p-4">
+          <button
+            onClick={() => { hapticLight(); setShowIndividualTraining(!showIndividualTraining); }}
+            className="flex items-center justify-between w-full"
+          >
+            <div className="flex items-center gap-2">
+              <Dumbbell className="w-3.5 h-3.5 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">Individual Plans</h3>
+              <span className="text-[10px] text-muted-foreground">
+                {(training.individualPlans || []).length}/{squadPlayers.length}
+              </span>
+            </div>
+            {showIndividualTraining ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
+          </button>
+          <AnimatePresence>
+            {showIndividualTraining && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <p className="text-[10px] text-muted-foreground mt-2 mb-2">
+                  Assign a focus for +50% targeted gains. Tap a player to set or change.
                 </p>
-              ) : (
-                <div className="space-y-1.5">
-                  {plans.map(item => {
-                    const Icon = item.info?.icon || Dumbbell;
-                    return (
-                      <button
-                        key={item.player.id}
-                        onClick={() => { selectPlayer(item.player.id); setScreen('player-detail'); }}
-                        className="flex items-center gap-2 w-full text-left hover:bg-muted/30 rounded-md px-1.5 py-1 transition-colors"
-                      >
-                        <span className="text-xs text-foreground font-medium truncate flex-1">
-                          {item.player.firstName[0]}. {item.player.lastName}
-                        </span>
-                        <span className="text-[10px] text-muted-foreground">{item.player.position}</span>
-                        <div className={cn('flex items-center gap-1 text-[10px] font-medium', item.info?.color || 'text-primary')}>
-                          <Icon className="w-3 h-3" />
-                          {item.info?.label || item.focus}
+                <div className="space-y-1 max-h-72 overflow-y-auto">
+                  {squadPlayers
+                    .sort((a, b) => b.overall - a.overall)
+                    .map(p => {
+                      const plan = (training.individualPlans || []).find(ip => ip.playerId === p.id);
+                      const planInfo = plan ? MODULE_INFO.find(m => m.module === plan.focus) : null;
+                      const isExpanded = expandedPlayerId === p.id;
+                      const personalityMult = getTrainingMultiplier(p.personality);
+                      const multLabel = personalityMult >= 1.15 ? 'text-emerald-400' : personalityMult <= 0.85 ? 'text-destructive' : 'text-muted-foreground';
+                      return (
+                        <div key={p.id}>
+                          <button
+                            onClick={() => { hapticLight(); setExpandedPlayerId(isExpanded ? null : p.id); }}
+                            className="flex items-center gap-2 w-full text-left hover:bg-muted/30 rounded-md px-1.5 py-1.5 transition-colors"
+                          >
+                            <span className="text-[10px] text-muted-foreground w-6 text-center tabular-nums">{p.overall}</span>
+                            <span className="text-xs text-foreground font-medium truncate flex-1">
+                              {p.firstName[0]}. {p.lastName}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground w-8">{p.position}</span>
+                            <span className={cn('text-[9px] w-8 text-right tabular-nums', multLabel)}>
+                              {personalityMult.toFixed(1)}x
+                            </span>
+                            {planInfo ? (
+                              <span className={cn('text-[10px] font-medium w-16 text-right', planInfo.color)}>
+                                {planInfo.label}
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground/50 w-16 text-right">None</span>
+                            )}
+                          </button>
+                          <AnimatePresence>
+                            {isExpanded && (
+                              <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="flex gap-1 ml-8 mb-1 flex-wrap">
+                                  {MODULE_INFO.map(({ module, label, icon: Icon, color: _color }) => (
+                                    <button
+                                      key={module}
+                                      onClick={() => handleSetIndividualFocus(p.id, plan?.focus === module ? null : module)}
+                                      className={cn(
+                                        'flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all',
+                                        plan?.focus === module
+                                          ? 'bg-primary/20 text-primary border border-primary/30'
+                                          : 'bg-muted/20 text-muted-foreground hover:bg-muted/40'
+                                      )}
+                                    >
+                                      <Icon className="w-3 h-3" />
+                                      {label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
-                      </button>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
-              )}
-            </GlassPanel>
-          );
-        })()}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </GlassPanel>
 
         {/* Recent Development */}
         {(() => {
@@ -259,7 +578,11 @@ const TrainingPage = () => {
                   const gains = p.lastTrainingGains || {};
                   const gainLabels = Object.keys(gains).map(a => ATTR_LABELS[a] || a);
                   return (
-                    <div key={p.id} className="flex items-center justify-between">
+                    <button
+                      key={p.id}
+                      onClick={() => { selectPlayer(p.id); setScreen('player-detail'); }}
+                      className="flex items-center justify-between w-full hover:bg-muted/30 rounded-md px-1 py-0.5 transition-colors"
+                    >
                       <div className="flex items-center gap-2 min-w-0 flex-1">
                         <span className="text-xs text-foreground font-medium truncate">{p.firstName[0]}. {p.lastName}</span>
                         <span className="text-[10px] text-muted-foreground shrink-0">({p.position})</span>
@@ -283,7 +606,7 @@ const TrainingPage = () => {
                           {(p.growthDelta || 0) > 0 ? '↑' : '↓'}
                         </span>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>

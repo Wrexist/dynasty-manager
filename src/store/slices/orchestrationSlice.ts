@@ -12,7 +12,7 @@ import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivision
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
-import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity, getDominantTrainingFocus } from '@/utils/training';
+import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity, getDominantTrainingFocus, getStreakMultiplier, updateStreaks, generateTrainingReport } from '@/utils/training';
 import { completeAssignment } from '@/utils/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
@@ -1401,6 +1401,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const playerClub = { ...clubs[playerClubId] };
     const improvedPlayers: { name: string; overall: number }[] = [];
     const declinedPlayers: { name: string; overall: number }[] = [];
+
+    // Snapshot pre-training state for report generation
+    const preTrainingPlayers: Record<string, Player> = {};
+    for (const pid of playerClub.playerIds) {
+      if (players[pid]) preTrainingPlayers[pid] = players[pid];
+    }
+    // Compute streak multiplier for dominant training module
+    const dominantModule = getDominantTrainingFocus(training.schedule);
+    const streakMult = getStreakMultiplier(training.streaks, dominantModule);
     playerClub.playerIds.forEach(pid => {
       if (!newPlayers[pid]) return;
       let p = { ...newPlayers[pid] };
@@ -1436,7 +1445,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
 
       if (!p.injured) {
-        p = applyWeeklyTraining(p, training, firstTeamCoachBonus + fitnessCoachBonus * 0.5, facilities.recoveryLevel);
+        p = applyWeeklyTraining(p, training, firstTeamCoachBonus + fitnessCoachBonus * 0.5, facilities.recoveryLevel, streakMult);
         // Physio reduces training injury risk, age-scaled injury risk
         const baseInjuryRisk = getInjuryRisk(training, p.age);
         const physioReduction = 1 - physioBonus * PHYSIO_INJURY_REDUCTION_PER_QUALITY;
@@ -1522,6 +1531,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (digestInjuries.length > 0) {
       newMessages = addMsg(newMessages, { week, season, type: 'injury', title: `Training Injuries (${digestInjuries.length})`, body: `Injured in training: ${digestInjuries.join(', ')}.` });
     }
+
+    // Update training streaks and generate training report
+    const newStreaks = updateStreaks(training.streaks, training.schedule);
+    const trainingReport = generateTrainingReport(preTrainingPlayers, newPlayers, playerClub.playerIds, digestInjuries, newStreaks, week, season);
 
     // Leadership bonus: players with high leadership boost entire squad morale
     const squadForLeadership = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
@@ -2262,7 +2275,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       matchPhase: 'none' as const,
       messages: newMessages, incomingOffers: newOffers, clubs: newClubs,
       matchSubsUsed: 0, boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
-      training: { ...training, tacticalFamiliarity: newTacticalFamiliarity },
+      training: { ...training, tacticalFamiliarity: newTacticalFamiliarity, streaks: newStreaks, lastReport: trainingReport },
       scouting: newScouting, facilities: newFacilities, youthAcademy: newYouthAcademy,
       pendingGemReveal: gemReveals.length > 0 ? gemReveals[0] : null,
       financeHistory: newFinanceHistory,

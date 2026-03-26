@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { getInjuryRisk, updateTacticalFamiliarity, getDominantTrainingFocus, getTrainingRecommendation } from '@/utils/training';
+import {
+  getInjuryRisk, updateTacticalFamiliarity, getDominantTrainingFocus, getTrainingRecommendation,
+  getStreakMultiplier, updateStreaks, getStreakTier, generateTrainingReport, getSquadFitnessDistribution, getTrainingEffectivenessPreview,
+} from '@/utils/training';
 import {
   INTENSITY_INJURY_RISK,
   TRAINING_INJURY_AGE_THRESHOLD,
@@ -9,8 +12,12 @@ import {
   TACTICAL_FAMILIARITY_MIN,
   MODULE_ATTR_MAP,
   TRAINING_PRESETS,
+  STREAK_THRESHOLDS,
+  STREAK_MULTIPLIERS,
+  TRAINING_DRILLS,
+  DRILLS_BY_MODULE,
 } from '@/config/training';
-import type { TrainingState, Player, TrainingModule } from '@/types/game';
+import type { TrainingState, Player, TrainingModule, TrainingStreaks } from '@/types/game';
 
 function makeTraining(overrides: Partial<TrainingState> = {}): TrainingState {
   return {
@@ -192,6 +199,219 @@ describe('training', () => {
       const squad = [makePlayer({ pace: 3 })];
       const rec = getTrainingRecommendation(squad);
       expect(rec!.module).toBe('fitness');
+    });
+  });
+
+  describe('getStreakMultiplier', () => {
+    it('returns base multiplier for no streak', () => {
+      expect(getStreakMultiplier(undefined, 'attacking')).toBe(STREAK_MULTIPLIERS[0]);
+      expect(getStreakMultiplier({}, 'attacking')).toBe(STREAK_MULTIPLIERS[0]);
+    });
+
+    it('returns base for streak below first threshold', () => {
+      const streaks: TrainingStreaks = { attacking: 1 };
+      expect(getStreakMultiplier(streaks, 'attacking')).toBe(STREAK_MULTIPLIERS[0]);
+    });
+
+    it('returns tier 1 bonus at first threshold', () => {
+      const streaks: TrainingStreaks = { attacking: STREAK_THRESHOLDS[0] };
+      expect(getStreakMultiplier(streaks, 'attacking')).toBe(STREAK_MULTIPLIERS[1]);
+    });
+
+    it('returns tier 2 bonus at second threshold', () => {
+      const streaks: TrainingStreaks = { attacking: STREAK_THRESHOLDS[1] };
+      expect(getStreakMultiplier(streaks, 'attacking')).toBe(STREAK_MULTIPLIERS[2]);
+    });
+
+    it('returns max bonus at highest threshold', () => {
+      const streaks: TrainingStreaks = { attacking: STREAK_THRESHOLDS[2] };
+      expect(getStreakMultiplier(streaks, 'attacking')).toBe(STREAK_MULTIPLIERS[3]);
+    });
+
+    it('returns base for different module than streak', () => {
+      const streaks: TrainingStreaks = { attacking: 5 };
+      expect(getStreakMultiplier(streaks, 'defending')).toBe(STREAK_MULTIPLIERS[0]);
+    });
+  });
+
+  describe('updateStreaks', () => {
+    it('increments streak for dominant module', () => {
+      const schedule = { mon: 'attacking' as const, tue: 'attacking' as const, wed: 'attacking' as const, thu: 'fitness' as const, fri: 'defending' as const };
+      const result = updateStreaks({ attacking: 3 }, schedule);
+      expect(result.attacking).toBe(4);
+    });
+
+    it('resets other modules when dominant changes', () => {
+      const schedule = { mon: 'defending' as const, tue: 'defending' as const, wed: 'defending' as const, thu: 'fitness' as const, fri: 'fitness' as const };
+      const result = updateStreaks({ attacking: 5 }, schedule);
+      expect(result.defending).toBe(1);
+      expect(result.attacking).toBeUndefined();
+    });
+
+    it('starts at 1 for new dominant module', () => {
+      const schedule = { mon: 'fitness' as const, tue: 'fitness' as const, wed: 'fitness' as const, thu: 'fitness' as const, fri: 'fitness' as const };
+      const result = updateStreaks(undefined, schedule);
+      expect(result.fitness).toBe(1);
+    });
+  });
+
+  describe('getStreakTier', () => {
+    it('returns tier 0 for no streak', () => {
+      expect(getStreakTier(0).tier).toBe(0);
+      expect(getStreakTier(1).tier).toBe(0);
+    });
+
+    it('returns tier 1 at first threshold', () => {
+      expect(getStreakTier(STREAK_THRESHOLDS[0]).tier).toBe(1);
+    });
+
+    it('returns correct next threshold', () => {
+      const result = getStreakTier(0);
+      expect(result.nextThreshold).toBe(STREAK_THRESHOLDS[0]);
+    });
+
+    it('returns null next threshold at max tier', () => {
+      const result = getStreakTier(STREAK_THRESHOLDS[2]);
+      expect(result.nextThreshold).toBeNull();
+    });
+  });
+
+  describe('getSquadFitnessDistribution', () => {
+    function makePlayerWithFitness(fitness: number): Player {
+      return {
+        id: Math.random().toString(), firstName: 'T', lastName: 'P', age: 25, position: 'CM',
+        overall: 70, potential: 80, fitness, morale: 70, form: 50,
+        nationality: 'English', clubId: 'c1', wage: 10000, value: 1000000,
+        contractEnd: 3, goals: 0, assists: 0, appearances: 0,
+        careerGoals: 0, careerAssists: 0, careerAppearances: 0,
+        yellowCards: 0, redCards: 0,
+        attributes: { pace: 50, shooting: 50, passing: 50, defending: 50, physical: 50, mental: 50 },
+      } as Player;
+    }
+
+    it('correctly categorizes fitness zones', () => {
+      const squad = [
+        makePlayerWithFitness(90),  // green
+        makePlayerWithFitness(75),  // green
+        makePlayerWithFitness(60),  // yellow
+        makePlayerWithFitness(40),  // red
+      ];
+      const dist = getSquadFitnessDistribution(squad);
+      expect(dist.green).toBe(2);
+      expect(dist.yellow).toBe(1);
+      expect(dist.red).toBe(1);
+      expect(dist.total).toBe(4);
+    });
+
+    it('returns zero for empty squad', () => {
+      const dist = getSquadFitnessDistribution([]);
+      expect(dist.total).toBe(0);
+      expect(dist.avgFitness).toBe(0);
+    });
+
+    it('calculates average fitness', () => {
+      const squad = [makePlayerWithFitness(80), makePlayerWithFitness(60)];
+      const dist = getSquadFitnessDistribution(squad);
+      expect(dist.avgFitness).toBe(70);
+    });
+  });
+
+  describe('generateTrainingReport', () => {
+    function makePlayer(id: string, overrides: Partial<Player> = {}): Player {
+      return {
+        id, firstName: 'T', lastName: `Player${id}`, age: 22, position: 'CM',
+        overall: 70, potential: 80, fitness: 80, morale: 70, form: 50,
+        nationality: 'English', clubId: 'c1', wage: 10000, value: 1000000,
+        contractEnd: 3, goals: 0, assists: 0, appearances: 0,
+        careerGoals: 0, careerAssists: 0, careerAppearances: 0,
+        yellowCards: 0, redCards: 0,
+        attributes: { pace: 50, shooting: 50, passing: 50, defending: 50, physical: 50, mental: 50 },
+        ...overrides,
+      } as Player;
+    }
+
+    it('counts total gains correctly', () => {
+      const pre = { p1: makePlayer('p1'), p2: makePlayer('p2') };
+      const post = {
+        p1: makePlayer('p1', { lastTrainingGains: { shooting: 1 } }),
+        p2: makePlayer('p2', { lastTrainingGains: { pace: 1, defending: 1 } }),
+      };
+      const report = generateTrainingReport(pre, post, ['p1', 'p2'], [], {}, 5, 1);
+      expect(report.totalGains).toBe(3);
+    });
+
+    it('includes injuries', () => {
+      const pre = { p1: makePlayer('p1') };
+      const post = { p1: makePlayer('p1') };
+      const report = generateTrainingReport(pre, post, ['p1'], ['Player1 (minor knock, 1wk)'], {}, 5, 1);
+      expect(report.injuries.length).toBe(1);
+    });
+
+    it('limits star performers to 3', () => {
+      const pre: Record<string, Player> = {};
+      const post: Record<string, Player> = {};
+      for (let i = 0; i < 5; i++) {
+        pre[`p${i}`] = makePlayer(`p${i}`);
+        post[`p${i}`] = makePlayer(`p${i}`, { lastTrainingGains: { shooting: 1 } });
+      }
+      const report = generateTrainingReport(pre, post, ['p0', 'p1', 'p2', 'p3', 'p4'], [], {}, 5, 1);
+      expect(report.starPerformers.length).toBeLessThanOrEqual(3);
+    });
+  });
+
+  describe('TRAINING_DRILLS', () => {
+    const validModules: TrainingModule[] = ['fitness', 'attacking', 'defending', 'mentality', 'set-pieces', 'tactical'];
+
+    it('has 3 drills per module', () => {
+      for (const mod of validModules) {
+        expect(DRILLS_BY_MODULE[mod].length).toBe(3);
+      }
+    });
+
+    it('drill weights sum to approximately 1.0', () => {
+      for (const drill of TRAINING_DRILLS) {
+        const sum = Object.values(drill.attrWeights).reduce((s, w) => s + (w || 0), 0);
+        expect(sum).toBeCloseTo(1.0, 1);
+      }
+    });
+
+    it('each drill has unique id', () => {
+      const ids = TRAINING_DRILLS.map(d => d.id);
+      expect(new Set(ids).size).toBe(ids.length);
+    });
+  });
+
+  describe('getTrainingEffectivenessPreview', () => {
+    function makePlayer(attrs: Partial<Record<string, number>> = {}): Player {
+      return {
+        id: '1', firstName: 'Test', lastName: 'Player', age: 25, position: 'CM',
+        overall: 70, potential: 80, fitness: 80, morale: 70, form: 50,
+        nationality: 'English', clubId: 'c1', wage: 10000, value: 1000000,
+        contractEnd: 3, goals: 0, assists: 0, appearances: 0,
+        careerGoals: 0, careerAssists: 0, careerAppearances: 0,
+        yellowCards: 0, redCards: 0,
+        attributes: { pace: 50, shooting: 50, passing: 50, defending: 50, physical: 50, mental: 50, ...attrs },
+      } as Player;
+    }
+
+    it('returns preview with module gain rates', () => {
+      const training = makeTraining();
+      const preview = getTrainingEffectivenessPreview(training, 5, [makePlayer()]);
+      expect(preview.moduleGainRates.length).toBeGreaterThan(0);
+    });
+
+    it('heavy intensity shows higher injury risk', () => {
+      const heavy = getTrainingEffectivenessPreview(makeTraining({ intensity: 'heavy' }), 0, [makePlayer()]);
+      const light = getTrainingEffectivenessPreview(makeTraining({ intensity: 'light' }), 0, [makePlayer()]);
+      expect(heavy.injuryRiskPct).toBeGreaterThan(light.injuryRiskPct);
+    });
+
+    it('streak bonus reflects current streak', () => {
+      const withStreak = makeTraining({ streaks: { fitness: 5 } });
+      const noStreak = makeTraining();
+      const previewStreak = getTrainingEffectivenessPreview(withStreak, 0, [makePlayer()]);
+      const previewNone = getTrainingEffectivenessPreview(noStreak, 0, [makePlayer()]);
+      expect(previewStreak.streakBonus).toBeGreaterThan(previewNone.streakBonus);
     });
   });
 });
