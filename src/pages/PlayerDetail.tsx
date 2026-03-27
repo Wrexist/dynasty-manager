@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
@@ -16,7 +16,7 @@ import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel, getTrainingMultiplier } from '@/utils/personality';
 import { PlayerAvatar } from '@/components/game/PlayerAvatar';
 import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW } from '@/config/ui';
-import { MODULE_ATTR_MAP, STREAK_MULTIPLIERS } from '@/config/training';
+import { MODULE_ATTR_MAP, STREAK_MULTIPLIERS, INDIVIDUAL_TRAINING_BONUS } from '@/config/training';
 import { getTrainingEffectivenessPreview, getStreakTier } from '@/utils/training';
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
@@ -46,6 +46,22 @@ const PlayerDetail = () => {
   const [showLoanRequest, setShowLoanRequest] = useState(false);
 
   const player = selectedPlayerId ? players[selectedPlayerId] : null;
+
+  // Training widget data (memoized, must be before early return to satisfy hooks rules)
+  const trainingWidgetData = useMemo(() => {
+    if (!player || player.clubId !== playerClubId) return null;
+    const currentFocus = (training.individualPlans || []).find(p => p.playerId === player.id)?.focus;
+    const personalityMult = getTrainingMultiplier(player.personality);
+    const multColor = personalityMult >= 1.15 ? 'text-emerald-400' : personalityMult <= 0.85 ? 'text-destructive' : 'text-muted-foreground';
+    const ftc = getStaffBonus(staff.members, 'first-team-coach');
+    const fc = getStaffBonus(staff.members, 'fitness-coach');
+    const staffBonus = ftc + fc * 0.5;
+    const preview = getTrainingEffectivenessPreview(training, staffBonus, [player]);
+    const dominantModule = training.streaks ? Object.entries(training.streaks).sort((a, b) => (b[1] || 0) - (a[1] || 0))[0] : null;
+    const streakCount = dominantModule ? (dominantModule[1] || 0) : 0;
+    const streakTier = getStreakTier(streakCount);
+    return { currentFocus, personalityMult, multColor, preview, streakTier };
+  }, [player, playerClubId, training, staff]);
 
   if (!player) {
     return (
@@ -259,122 +275,134 @@ const PlayerDetail = () => {
       </GlassPanel>
 
       {/* Individual Training Focus */}
-      {isOwnPlayer && (() => {
-        const currentFocus = (training.individualPlans || []).find(p => p.playerId === player.id)?.focus;
-        const personalityMult = getTrainingMultiplier(player.personality);
-        const multColor = personalityMult >= 1.15 ? 'text-emerald-400' : personalityMult <= 0.85 ? 'text-destructive' : 'text-muted-foreground';
-        const ftc = getStaffBonus(staff.members, 'first-team-coach');
-        const fc = getStaffBonus(staff.members, 'fitness-coach');
-        const staffBonus = ftc + fc * 0.5;
-        const preview = getTrainingEffectivenessPreview(training, staffBonus, [player]);
-        const dominantModule = training.streaks ? Object.entries(training.streaks).sort((a, b) => (b[1] || 0) - (a[1] || 0))[0] : null;
-        const streakCount = dominantModule ? (dominantModule[1] || 0) : 0;
-        const streakTier = getStreakTier(streakCount);
+      {isOwnPlayer && trainingWidgetData && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Dumbbell className="w-3.5 h-3.5 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Training Focus</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {TRAINING_MODULE_INFO.map(({ module, label, icon: Icon, color }) => {
+              const isActive = trainingWidgetData.currentFocus === module;
+              return (
+                <button
+                  key={module}
+                  onClick={() => {
+                    hapticLight();
+                    setIndividualTraining(player.id, isActive ? null : module);
+                  }}
+                  className={cn(
+                    'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border',
+                    isActive
+                      ? 'bg-primary/20 text-primary border-primary/30'
+                      : 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50'
+                  )}
+                >
+                  <Icon className={cn('w-3 h-3', isActive ? color : '')} />
+                  {label}
+                </button>
+              );
+            })}
+          </div>
 
-        return (
-          <GlassPanel className="p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Dumbbell className="w-3.5 h-3.5 text-primary" />
-              <p className="text-xs text-muted-foreground uppercase tracking-wider">Training Focus</p>
+          {/* Focus bonus description */}
+          {trainingWidgetData.currentFocus ? (
+            <p className="text-[10px] text-emerald-400/80 mt-2">
+              +50% gain for {(MODULE_ATTR_MAP[trainingWidgetData.currentFocus] || []).map(a => ATTR_LABELS[a] || a).join(', ')}
+            </p>
+          ) : (
+            <p className="text-[10px] text-muted-foreground mt-2">No individual focus set. Assign one for +50% training gain.</p>
+          )}
+
+          {/* Divider */}
+          <div className="border-t border-border/30 mt-3 pt-3 space-y-2">
+            {/* Personality multiplier */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">Training Multiplier</span>
+              <span className={cn('text-[11px] font-semibold tabular-nums', trainingWidgetData.multColor)}>
+                {trainingWidgetData.personalityMult.toFixed(2)}x
+              </span>
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {TRAINING_MODULE_INFO.map(({ module, label, icon: Icon, color }) => {
-                const isActive = currentFocus === module;
+
+            {/* Expected gain rates for focused attributes */}
+            {trainingWidgetData.currentFocus && (() => {
+              const focusAttrs = MODULE_ATTR_MAP[trainingWidgetData.currentFocus] || [];
+              const moduleRate = trainingWidgetData.preview.moduleGainRates.find(r => r.module === trainingWidgetData.currentFocus);
+
+              if (!moduleRate) {
                 return (
-                  <button
-                    key={module}
-                    onClick={() => {
-                      hapticLight();
-                      setIndividualTraining(player.id, isActive ? null : module);
-                    }}
-                    className={cn(
-                      'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-all border',
-                      isActive
-                        ? 'bg-primary/20 text-primary border-primary/30'
-                        : 'bg-muted/30 text-muted-foreground border-transparent hover:bg-muted/50'
-                    )}
-                  >
-                    <Icon className={cn('w-3 h-3', isActive ? color : '')} />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Focus bonus description */}
-            {currentFocus ? (
-              <p className="text-[10px] text-emerald-400/80 mt-2">
-                +50% gain for {(MODULE_ATTR_MAP[currentFocus] || []).map(a => ATTR_LABELS[a] || a).join(', ')}
-              </p>
-            ) : (
-              <p className="text-[10px] text-muted-foreground mt-2">No individual focus set. Assign one for +50% training gain.</p>
-            )}
-
-            {/* Divider */}
-            <div className="border-t border-border/30 mt-3 pt-3 space-y-2">
-              {/* Personality multiplier */}
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Training Multiplier</span>
-                <span className={cn('text-[11px] font-semibold tabular-nums', multColor)}>
-                  {personalityMult.toFixed(2)}x
-                </span>
-              </div>
-
-              {/* Expected gain rates for focused attributes */}
-              {currentFocus && (() => {
-                const focusAttrs = MODULE_ATTR_MAP[currentFocus] || [];
-                const moduleRate = preview.moduleGainRates.find(r => r.module === currentFocus);
-                return focusAttrs.length > 0 && (
                   <div className="space-y-1">
                     <span className="text-[10px] text-muted-foreground">Expected Gain Rate</span>
-                    {focusAttrs.map(attr => {
-                      const baseRate = moduleRate ? moduleRate.expectedGainPct : 0;
-                      const effectiveRate = Math.min(100, baseRate * personalityMult * 1.5);
-                      return (
-                        <div key={attr} className="flex items-center gap-2">
-                          <span className="text-[10px] text-muted-foreground w-6">{ATTR_LABELS[attr] || attr}</span>
-                          <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-emerald-500/70 rounded-full transition-all"
-                              style={{ width: `${Math.min(100, effectiveRate)}%` }}
-                            />
-                          </div>
-                          <span className="text-[10px] text-emerald-400 tabular-nums w-10 text-right">{effectiveRate.toFixed(1)}%</span>
-                        </div>
-                      );
-                    })}
+                    <p className="text-[10px] text-amber-400/80">
+                      Not in the weekly schedule. Add sessions to see gains.
+                    </p>
                   </div>
                 );
-              })()}
+              }
 
-              {/* Intensity & fitness impact */}
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Intensity</span>
-                <span className="text-[11px] font-medium text-foreground capitalize">{training.intensity}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-muted-foreground">Weekly Fitness Impact</span>
-                <span className={cn('text-[11px] font-semibold tabular-nums', preview.fitnessImpact >= 0 ? 'text-emerald-400' : 'text-destructive')}>
-                  {preview.fitnessImpact >= 0 ? '+' : ''}{preview.fitnessImpact}
-                </span>
-              </div>
-
-              {/* Streak info */}
-              {streakCount > 0 && (
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] text-muted-foreground">Training Streak</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-medium text-foreground">{streakTier.label}</span>
-                    <span className="text-[10px] text-amber-400 tabular-nums">
-                      +{((STREAK_MULTIPLIERS[streakTier.tier] - 1) * 100).toFixed(0)}%
-                    </span>
-                  </div>
+              return focusAttrs.length > 0 && (
+                <div className="space-y-1">
+                  <span className="text-[10px] text-muted-foreground">Expected Gain Rate</span>
+                  {focusAttrs.map(attr => {
+                    const effectiveRate = Math.min(100, moduleRate.expectedGainPct * trainingWidgetData.personalityMult * INDIVIDUAL_TRAINING_BONUS);
+                    const barWidth = Math.min(100, effectiveRate * 4);
+                    return (
+                      <div key={attr} className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground w-6">{ATTR_LABELS[attr] || attr}</span>
+                        <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500/70 rounded-full transition-all"
+                            style={{ width: `${barWidth}%` }}
+                          />
+                        </div>
+                        <span className="text-[10px] text-emerald-400 tabular-nums w-10 text-right">{effectiveRate.toFixed(1)}%</span>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
+              );
+            })()}
+
+            {/* Intensity & fitness impact */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">Intensity</span>
+              <span className="text-[11px] font-medium text-foreground capitalize">{training.intensity}</span>
             </div>
-          </GlassPanel>
-        );
-      })()}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground">Weekly Fitness Impact</span>
+              <span className={cn('text-[11px] font-semibold tabular-nums', trainingWidgetData.preview.fitnessImpact >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+                {trainingWidgetData.preview.fitnessImpact >= 0 ? '+' : ''}{trainingWidgetData.preview.fitnessImpact}
+              </span>
+            </div>
+
+            {/* Injury risk */}
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                <AlertTriangle className={cn('w-3 h-3', trainingWidgetData.preview.injuryRiskPct > 2 ? 'text-destructive' : 'text-muted-foreground')} />
+                Injury Risk
+              </span>
+              <span className={cn('text-[11px] font-semibold tabular-nums',
+                trainingWidgetData.preview.injuryRiskPct > 2 ? 'text-destructive' : trainingWidgetData.preview.injuryRiskPct > 1 ? 'text-amber-400' : 'text-emerald-400'
+              )}>
+                {trainingWidgetData.preview.injuryRiskPct}%
+              </span>
+            </div>
+
+            {/* Streak info */}
+            {trainingWidgetData.streakTier.tier > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] text-muted-foreground">Training Streak</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-medium text-foreground">{trainingWidgetData.streakTier.label}</span>
+                  <span className="text-[10px] text-amber-400 tabular-nums">
+                    +{((STREAK_MULTIPLIERS[trainingWidgetData.streakTier.tier] - 1) * 100).toFixed(0)}%
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Role Suitability */}
       <GlassPanel className="p-4">
