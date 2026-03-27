@@ -109,6 +109,9 @@ export interface GameState {
   // Match drama type from last played match
   lastMatchDrama: MatchDramaType;
 
+  // Competition name for the last played match (e.g. 'Champions Cup - Group A, MD3')
+  lastMatchCompetition: string | null;
+
   // Session stats for session summary
   sessionStats: SessionStats;
 

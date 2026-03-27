@@ -16,7 +16,7 @@ import { getSuffix } from '@/utils/helpers';
 import { motion } from 'framer-motion';
 
 const MatchReview = () => {
-  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, advanceWeek, setScreen, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization } = useGameStore();
+  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, advanceWeek, setScreen, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition } = useGameStore();
   const userIsPro = isPro(monetization);
   const [isAdvancing, setIsAdvancing] = useState(false);
 
@@ -73,6 +73,9 @@ const MatchReview = () => {
           >
             {won ? 'VICTORY' : lost ? 'DEFEAT' : 'DRAW'}
           </motion.p>
+          {lastMatchCompetition && (
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{lastMatchCompetition}</p>
+          )}
           {/* Home/Away + Venue */}
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className={cn(

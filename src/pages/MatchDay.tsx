@@ -48,10 +48,10 @@ function findPlayerContinentalMatchForUI(
     const roundNames: Record<string, string> = { R16: 'Round of 16', QF: 'Quarter-Final', SF: 'Semi-Final', F: 'Final' };
     const roundLabel = roundNames[tie.round] || tie.round;
     if (tie.round === 'F') {
-      if (!tie.leg1Played && tie.leg1Week === week) return { id: tie.id, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, roundLabel };
+      if (!tie.leg1Played && tie.week1 === week) return { id: tie.id, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, roundLabel };
     } else {
-      if (!tie.leg1Played && tie.leg1Week === week) return { id: tie.id, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, roundLabel: `${roundLabel} - Leg 1` };
-      if (tie.leg1Played && !tie.leg2Played && tie.leg2Week === week) return { id: tie.id, homeClubId: tie.awayClubId, awayClubId: tie.homeClubId, roundLabel: `${roundLabel} - Leg 2` };
+      if (!tie.leg1Played && tie.week1 === week) return { id: tie.id, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, roundLabel: `${roundLabel} - Leg 1` };
+      if (tie.leg1Played && !tie.leg2Played && tie.week2 === week) return { id: tie.id, homeClubId: tie.awayClubId, awayClubId: tie.homeClubId, roundLabel: `${roundLabel} - Leg 2` };
     }
   }
   return null;

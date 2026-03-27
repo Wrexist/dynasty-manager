@@ -59,7 +59,7 @@ const Dashboard = () => {
     weekCliffhangers, lastMatchDrama, objectiveStreak,
   } = store;
   const club = usePlayerClub();
-  const { match: nextMatch, isHome, opponent } = useCurrentMatch();
+  const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
   const pos = useLeaguePosition();
   const unread = useUnreadCount();
   const budgetFlash = useFlash(club?.budget || 0);
@@ -543,7 +543,7 @@ const Dashboard = () => {
       {/* Next Match */}
       {!seasonOver && nextMatch && opponent ? (
         <GlassPanel className="p-5" onClick={() => setScreen('match-prep')}>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">{inPlayoffs ? 'Playoff Match' : 'Match Day'} -- Week {week}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">{competition || (inPlayoffs ? 'Playoff Match' : 'Match Day')} — Week {week}</p>
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
               <div
