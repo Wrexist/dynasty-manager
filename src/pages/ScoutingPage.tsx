@@ -2,13 +2,20 @@ import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
-import { Search, Globe, MapPin, Eye, Clock, Star, StarOff } from 'lucide-react';
+import { Search, Globe, MapPin, Eye, Clock, Star, StarOff, Banknote, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ScoutRegion } from '@/types/game';
+import { ScoutRegion, TransferListing } from '@/types/game';
 import { getPotentialInfo } from '@/utils/uiHelpers';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
+import { TransferNegotiation } from '@/components/game/TransferNegotiation';
+
+function formatValue(v: number): string {
+  if (v >= 1_000_000) return `£${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000) return `£${(v / 1_000).toFixed(0)}K`;
+  return `£${v}`;
+}
 
 const MARKET_SUB_NAV = [
   { screen: 'transfers' as const, label: 'Transfers' },
@@ -26,8 +33,11 @@ const REGION_INFO: { region: ScoutRegion; label: string; weeks: number; descript
 const SCOUTING_TABS = ['Overview', 'Watch List'] as const;
 
 const ScoutingPage = () => {
-  const { scouting, players, scoutWatchList, assignScout, cancelAssignment, addToWatchList, removeFromWatchList } = useGameStore();
+  const { scouting, players, scoutWatchList, transferMarket, assignScout, cancelAssignment, addToWatchList, removeFromWatchList } = useGameStore();
   const [activeTab, setActiveTab] = useState<typeof SCOUTING_TABS[number]>('Overview');
+  const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
+
+  const findListing = (playerId: string) => transferMarket.find(l => l.playerId === playerId) || null;
 
   return (
     <div className="max-w-lg mx-auto">
@@ -110,23 +120,26 @@ const ScoutingPage = () => {
             {scouting.reports.slice(0, 10).map(report => {
               const player = players[report.playerId];
               if (!player) return null;
+              const listing = findListing(report.playerId);
+              const showIdentity = report.knowledgeLevel >= SCOUTING_KNOWLEDGE_THRESHOLDS.REVEAL_IDENTITY;
+              const showOverall = report.knowledgeLevel >= SCOUTING_KNOWLEDGE_THRESHOLDS.REVEAL_OVERALL;
               return (
-                <GlassPanel key={report.id} className="p-3">
+                <GlassPanel key={report.id} className="p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         'w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold',
                         getPotentialInfo(report.estimatedOverall).bgClass
                       )}>
-                        {report.knowledgeLevel >= SCOUTING_KNOWLEDGE_THRESHOLDS.REVEAL_OVERALL ? report.estimatedOverall : '??'}
+                        {showOverall ? report.estimatedOverall : '??'}
                       </div>
                       <div>
                         <p className="text-sm font-semibold text-foreground">
-                          {report.knowledgeLevel >= SCOUTING_KNOWLEDGE_THRESHOLDS.REVEAL_IDENTITY ? `${player.firstName} ${player.lastName}` : 'Unknown Player'}
+                          {showIdentity ? `${player.firstName} ${player.lastName}` : 'Unknown Player'}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           {player.position} · Age {player.age}
-                          {report.knowledgeLevel < SCOUTING_KNOWLEDGE_THRESHOLDS.REVEAL_OVERALL && ' · Partially scouted'}
+                          {!showOverall && ' · Partially scouted'}
                         </p>
                       </div>
                     </div>
@@ -152,6 +165,30 @@ const ScoutingPage = () => {
                         <Star className={cn('w-4 h-4', scoutWatchList.includes(report.playerId) ? 'text-primary fill-primary' : 'text-muted-foreground')} />
                       </button>
                     </div>
+                  </div>
+
+                  {/* Value & Sign button row */}
+                  <div className="flex items-center justify-between pt-1 border-t border-border/20">
+                    <div className="flex items-center gap-3">
+                      {showOverall && (
+                        <div className="flex items-center gap-1">
+                          <Banknote className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">{formatValue(player.value)}</span>
+                        </div>
+                      )}
+                      {listing && showOverall && (
+                        <span className="text-[10px] text-primary font-medium">Ask: {formatValue(listing.askingPrice)}</span>
+                      )}
+                    </div>
+                    {listing && (
+                      <button
+                        onClick={() => setNegotiatingListing(listing)}
+                        className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all"
+                      >
+                        <UserCheck className="w-3 h-3" />
+                        Sign
+                      </button>
+                    )}
                   </div>
                 </GlassPanel>
               );
@@ -199,8 +236,9 @@ const ScoutingPage = () => {
               scoutWatchList.map(pid => {
                 const player = players[pid];
                 if (!player) return null;
+                const listing = findListing(pid);
                 return (
-                  <GlassPanel key={pid} className="p-3">
+                  <GlassPanel key={pid} className="p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className={cn(
@@ -222,6 +260,28 @@ const ScoutingPage = () => {
                         <StarOff className="w-4 h-4 text-destructive" />
                       </button>
                     </div>
+
+                    {/* Value & Sign button row */}
+                    <div className="flex items-center justify-between pt-1 border-t border-border/20">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1">
+                          <Banknote className="w-3 h-3 text-muted-foreground" />
+                          <span className="text-[10px] text-muted-foreground">{formatValue(player.value)}</span>
+                        </div>
+                        {listing && (
+                          <span className="text-[10px] text-primary font-medium">Ask: {formatValue(listing.askingPrice)}</span>
+                        )}
+                      </div>
+                      {listing && (
+                        <button
+                          onClick={() => setNegotiatingListing(listing)}
+                          className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all"
+                        >
+                          <UserCheck className="w-3 h-3" />
+                          Sign
+                        </button>
+                      )}
+                    </div>
                   </GlassPanel>
                 );
               })
@@ -235,6 +295,14 @@ const ScoutingPage = () => {
           </div>
         )}
       </div>
+
+      {/* Transfer Negotiation Overlay */}
+      {negotiatingListing && (
+        <TransferNegotiation
+          listing={negotiatingListing}
+          onClose={() => setNegotiatingListing(null)}
+        />
+      )}
     </div>
   );
 };

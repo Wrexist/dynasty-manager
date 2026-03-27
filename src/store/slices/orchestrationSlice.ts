@@ -1932,6 +1932,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const scoutQuality = getStaffBonus(staff.members, 'scout');
     const completedAssignments: string[] = [];
     const gemReveals: { playerId: string; region: string }[] = [];
+    const scoutedListings: TransferListing[] = [];
     for (let i = 0; i < newScouting.assignments.length; i++) {
       const a = { ...newScouting.assignments[i] };
       const scoutReduction = hasPerk(state.managerProgression, 'scout_network') ? 2 : 1;
@@ -1946,6 +1947,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         scoutedPlayers.forEach(p => {
           newPlayers[p.id] = p;
           newScouting.discoveredPlayers.push(p.id);
+          // Add scouted player to transfer market so user can sign via standard flow
+          scoutedListings.push({
+            playerId: p.id,
+            askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)),
+            sellerClubId: p.clubId,
+          });
           // Detect hidden gem: potential 80+ player
           if (p.potential >= 80 && !gemReveal) {
             gemReveal = { playerId: p.id, region: a.region };
@@ -1962,6 +1969,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
     newScouting.assignments = newScouting.assignments.filter(a => !completedAssignments.includes(a.id));
+    // Add scouted player listings to the transfer market
+    if (scoutedListings.length > 0) {
+      const currentMarket = get().transferMarket;
+      set({ transferMarket: [...currentMarket, ...scoutedListings] });
+    }
 
     // Facility upgrade tick
     let newFacilities = { ...facilities };
