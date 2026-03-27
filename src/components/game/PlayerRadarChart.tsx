@@ -1,5 +1,5 @@
-import { memo } from 'react';
-import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
+import { memo, useCallback } from 'react';
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer } from 'recharts';
 import { CHART_COLORS, PLAYER_RADAR } from '@/config/ui';
 import type { PlayerAttributes } from '@/types/game';
 
@@ -24,7 +24,7 @@ export const PlayerRadarChart = memo(function PlayerRadarChart({ attributes, cha
     value: attributes[key],
   }));
 
-  const renderTick = ({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => {
+  const renderTick = useCallback(({ x, y, payload }: { x: number; y: number; payload: { value: string } }) => {
     const item = ATTR_MAP.find(d => d.attr === payload.value);
     const change = item ? changes?.[item.key] : undefined;
 
@@ -45,13 +45,14 @@ export const PlayerRadarChart = memo(function PlayerRadarChart({ attributes, cha
             fontWeight="bold"
             fill={change > 0 ? PLAYER_RADAR.CHANGE_POSITIVE_COLOR : PLAYER_RADAR.CHANGE_NEGATIVE_COLOR}
             dy={12}
+            aria-label={change > 0 ? `Increased by ${change}` : `Decreased by ${Math.abs(change)}`}
           >
             {change > 0 ? `▲+${change}` : `▼${change}`}
           </text>
         )}
       </g>
     );
-  };
+  }, [changes]);
 
   return (
     <div style={{ width: '100%', height: PLAYER_RADAR.HEIGHT }}>
@@ -59,6 +60,7 @@ export const PlayerRadarChart = memo(function PlayerRadarChart({ attributes, cha
         <RadarChart data={radarData} cx="50%" cy="50%" outerRadius={PLAYER_RADAR.OUTER_RADIUS}>
           <PolarGrid stroke="hsl(var(--border))" />
           <PolarAngleAxis dataKey="attr" tick={renderTick} />
+          <PolarRadiusAxis domain={[0, 99]} tick={false} axisLine={false} />
           <Radar
             dataKey="value"
             stroke={CHART_COLORS.PRIMARY}

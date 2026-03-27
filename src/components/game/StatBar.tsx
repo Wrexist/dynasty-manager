@@ -22,10 +22,13 @@ export const StatBar = memo(function StatBar({ label, value, max = 99, size = 'm
       </div>
       <span className="font-mono font-bold text-foreground w-7 text-right">{value}</span>
       {change != null && change !== 0 && (
-        <span className={cn(
-          'text-[10px] font-bold w-7 shrink-0',
-          change > 0 ? 'text-emerald-400' : 'text-destructive'
-        )}>
+        <span
+          className={cn(
+            'text-[10px] font-bold w-7 shrink-0',
+            change > 0 ? 'text-emerald-400' : 'text-destructive'
+          )}
+          aria-label={change > 0 ? `Increased by ${change}` : `Decreased by ${Math.abs(change)}`}
+        >
           {change > 0 ? `▲+${change}` : `▼${change}`}
         </span>
       )}
