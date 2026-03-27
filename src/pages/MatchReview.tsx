@@ -36,8 +36,8 @@ const MatchReview = () => {
   }
 
   const match = currentMatchResult;
-  const homeClub = clubs[match.homeClubId] || (virtualClubs?.[match.homeClubId] ? { id: match.homeClubId, name: virtualClubs[match.homeClubId].name, shortName: virtualClubs[match.homeClubId].shortName, color: virtualClubs[match.homeClubId].color, secondaryColor: virtualClubs[match.homeClubId].secondaryColor } as Club : null);
-  const awayClub = clubs[match.awayClubId] || (virtualClubs?.[match.awayClubId] ? { id: match.awayClubId, name: virtualClubs[match.awayClubId].name, shortName: virtualClubs[match.awayClubId].shortName, color: virtualClubs[match.awayClubId].color, secondaryColor: virtualClubs[match.awayClubId].secondaryColor } as Club : null);
+  const homeClub = clubs[match.homeClubId] || (virtualClubs?.[match.homeClubId] ? { id: match.homeClubId, name: virtualClubs[match.homeClubId].name, shortName: virtualClubs[match.homeClubId].shortName, color: virtualClubs[match.homeClubId].color, secondaryColor: virtualClubs[match.homeClubId].secondaryColor, stadiumName: '' } as Club : null);
+  const awayClub = clubs[match.awayClubId] || (virtualClubs?.[match.awayClubId] ? { id: match.awayClubId, name: virtualClubs[match.awayClubId].name, shortName: virtualClubs[match.awayClubId].shortName, color: virtualClubs[match.awayClubId].color, secondaryColor: virtualClubs[match.awayClubId].secondaryColor, stadiumName: '' } as Club : null);
   if (!homeClub || !awayClub) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">

@@ -73,7 +73,7 @@ function getEnrichedDescription(ev: MatchEvent, events: MatchEvent[], homeClubId
 function buildVirtualClubFallback(virtualClubs: Record<string, VirtualClub> | undefined, clubId: string): Club | null {
   const vc = virtualClubs?.[clubId];
   if (!vc) return null;
-  return { id: clubId, name: vc.name, shortName: vc.shortName, color: vc.color, secondaryColor: vc.secondaryColor } as Club;
+  return { id: clubId, name: vc.name, shortName: vc.shortName, color: vc.color, secondaryColor: vc.secondaryColor, stadiumName: '' } as Club;
 }
 
 const MatchDay = () => {
