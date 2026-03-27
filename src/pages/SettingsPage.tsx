@@ -1,13 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, Home } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, Home, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
-import { removeFlag, clearFlagsByPrefix } from '@/store/helpers/persistence';
+import { removeFlag, clearFlagsByPrefix, deleteAllDynastyData } from '@/store/helpers/persistence';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
@@ -24,6 +24,7 @@ const SettingsPage = () => {
   const savedTimerRef = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => { clearTimeout(savedTimerRef.current); }, []);
   const [restoringPurchases, setRestoringPurchases] = useState(false);
+  const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -83,6 +84,16 @@ const SettingsPage = () => {
   const handleReset = () => {
     resetGame();
     setShowResetConfirm(false);
+  };
+
+  const handleDeleteAllData = () => {
+    deleteAllDynastyData();
+    setShowDeleteDataConfirm(false);
+    navigate('/');
+    // Small delay to ensure navigation completes before showing toast
+    setTimeout(() => {
+      successToast('Data Deleted', 'All game data has been permanently removed from this device.');
+    }, 100);
   };
 
   return (
@@ -357,6 +368,49 @@ const SettingsPage = () => {
           <HelpCircle className="w-4 h-4" />
           Replay Tutorial
         </Button>
+      </GlassPanel>
+
+      {/* Delete All Data (Apple account deletion requirement) */}
+      <GlassPanel className="p-4">
+        <h3 className="text-sm font-semibold text-foreground mb-3">Data Management</h3>
+        {!showDeleteDataConfirm ? (
+          <Button
+            variant="ghost"
+            className="w-full justify-start gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => { setShowDeleteDataConfirm(true); setShowResetConfirm(false); setShowMenuConfirm(false); }}
+          >
+            <AlertTriangle className="w-4 h-4" />
+            Delete All My Data
+          </Button>
+        ) : (
+          <div className="space-y-3">
+            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
+              <p className="text-xs text-destructive font-semibold mb-1">This cannot be undone</p>
+              <p className="text-[10px] text-muted-foreground">
+                This will permanently delete all save games, career history, Hall of Managers records, and preferences from this device.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="destructive"
+                className="flex-1 h-11"
+                onClick={handleDeleteAllData}
+              >
+                Delete Everything
+              </Button>
+              <Button
+                variant="secondary"
+                className="flex-1 h-11"
+                onClick={() => setShowDeleteDataConfirm(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+        <p className="text-[10px] text-muted-foreground mt-2">
+          Remove all game data stored on this device. Subscription status is managed by your App Store or Play Store account.
+        </p>
       </GlassPanel>
 
       {/* Legal */}

@@ -17,7 +17,7 @@ import { completeAssignment } from '@/utils/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle } from '@/utils/helpers';
-import { migrateLegacySave, saveSessionSnapshot } from '@/store/helpers/persistence';
+import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot } from '@/store/helpers/persistence';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName } from '@/data/cup';
@@ -3064,11 +3064,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const json = JSON.stringify(saveData);
     try {
       // Write backup before overwriting primary save
-      const existing = localStorage.getItem(`dynasty-save-${s}`);
-      if (existing) {
-        localStorage.setItem(`dynasty-save-${s}-backup`, existing);
-      }
-      localStorage.setItem(`dynasty-save-${s}`, json);
+      writeSaveSlot(s, json);
     } catch (err) {
       console.error('[Save] Failed to write save data:', err);
       // Notify user via in-game message
@@ -3105,7 +3101,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     resetSeasonGrowth();
     migrateLegacySave();
     const s = slot ?? get().activeSlot;
-    let raw = localStorage.getItem(`dynasty-save-${s}`);
+    let raw = readSaveSlot(s);
     if (!raw) return false;
 
     // Try to parse primary save; if corrupted, fall back to backup
@@ -3114,12 +3110,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       parsed = JSON.parse(raw);
     } catch {
       console.warn('[Load] Primary save corrupted, trying backup...');
-      raw = localStorage.getItem(`dynasty-save-${s}-backup`);
+      raw = readSaveSlotBackup(s);
       if (!raw) return false;
       try {
         parsed = JSON.parse(raw);
         // Restore backup as primary
-        localStorage.setItem(`dynasty-save-${s}`, raw);
+        promoteSaveBackup(s, raw);
       } catch { return false; }
     }
 
@@ -3201,7 +3197,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   resetGame: (slot?: number) => {
     const s = slot ?? get().activeSlot;
-    localStorage.removeItem(`dynasty-save-${s}`);
+    removeSaveSlot(s);
     set({
       gameStarted: false, playerClubId: '', currentScreen: 'dashboard',
       clubs: {}, players: {}, fixtures: [], leagueTable: [],
