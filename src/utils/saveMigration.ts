@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 27;
+const CURRENT_VERSION = 28;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -378,6 +378,19 @@ const migrations: Record<number, MigrationFn> = {
         streaks: {},
         lastReport: undefined,
       },
+    };
+  },
+
+  // v27 → v28: Added manager appearance to CareerManager
+  27: (data) => {
+    const cm = data.careerManager as Record<string, unknown> | null;
+    return {
+      ...data,
+      version: 28,
+      careerManager: cm ? {
+        ...cm,
+        appearance: cm.appearance ?? { skinTone: 0, hairStyle: 1, hairColor: 0, suitColor: '#1a1a2e' },
+      } : null,
     };
   },
 };
