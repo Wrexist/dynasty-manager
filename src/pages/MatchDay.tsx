@@ -187,7 +187,7 @@ const MatchDay = () => {
 
   // Detect key moments that should pause the match for player decisions
   const checkKeyMoment = useCallback((minute: number, events: MatchEvent[]) => {
-    if (!match || keyMoment) return false;
+    if (!match) return false;
     const playerGoals = events.filter(e => isGoalEvent(e) && e.clubId === playerClubId).length;
     const opponentGoals = events.filter(e => isGoalEvent(e) && e.clubId !== playerClubId).length;
     const isLosing = opponentGoals > playerGoals;
@@ -287,7 +287,15 @@ const MatchDay = () => {
     }
 
     return false;
-  }, [match, playerClubId, keyMoment]);
+  }, [match, playerClubId]);
+
+  // Use refs to avoid unstable dependencies in the animation effect.
+  // checkKeyMoment and matchPhase are read inside the interval callback,
+  // but we don't want changes to them to tear down and re-create the interval.
+  const checkKeyMomentRef = useRef(checkKeyMoment);
+  checkKeyMomentRef.current = checkKeyMoment;
+  const matchPhaseRef = useRef(store.matchPhase);
+  matchPhaseRef.current = store.matchPhase;
 
   // Animate events for current half
   useEffect(() => {
@@ -305,11 +313,11 @@ const MatchDay = () => {
             setPhase('half_time');
           } else if (phase === 'second_half') {
             // Check if cup match needs extra time
-            const storePhase = store.matchPhase;
+            const storePhase = matchPhaseRef.current;
             setPhase(storePhase === 'extra_time' ? 'extra_time_break' : 'post');
           } else {
             // extra_time animation finished
-            const storePhase = store.matchPhase;
+            const storePhase = matchPhaseRef.current;
             setPhase(storePhase === 'penalties' ? 'penalties' : 'post');
           }
           return maxMin;
@@ -318,7 +326,7 @@ const MatchDay = () => {
         setVisibleEvents(events);
 
         // Check for key moment at this minute
-        const moment = checkKeyMoment(next, events);
+        const moment = checkKeyMomentRef.current(next, events);
         if (moment) {
           clearInterval(intervalRef.current!);
           setKeyMoment(moment);
@@ -328,23 +336,22 @@ const MatchDay = () => {
       });
     }, speed);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [phase, allEvents, speed, keyMoment, paused, checkKeyMoment, store.matchPhase]);
+  }, [phase, allEvents, speed, keyMoment, paused]);
 
   // Haptic feedback + goal flash for goals and final whistle
   const prevGoalCountRef = useRef(0);
   const [goalFlash, setGoalFlash] = useState(false);
   const goalFlashTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const currentGoalCount = visibleEvents.filter(e => isGoalEvent(e)).length;
   useEffect(() => {
-    const goalCount = visibleEvents.filter(e => isGoalEvent(e)).length;
-    if (goalCount > prevGoalCountRef.current) {
+    if (currentGoalCount > prevGoalCountRef.current) {
       hapticHeavy();
       setGoalFlash(true);
       clearTimeout(goalFlashTimerRef.current);
       goalFlashTimerRef.current = setTimeout(() => setGoalFlash(false), GOAL_FLASH_MS);
     }
-    prevGoalCountRef.current = goalCount;
-    return () => clearTimeout(goalFlashTimerRef.current);
-  }, [visibleEvents]);
+    prevGoalCountRef.current = currentGoalCount;
+  }, [currentGoalCount]);
 
   useEffect(() => {
     if (phase === 'post') hapticMedium();
