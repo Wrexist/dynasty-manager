@@ -37,6 +37,9 @@ const SettingsPage = lazy(() => import('./SettingsPage'));
 const ComparisonPage = lazy(() => import('./ComparisonPage'));
 const ManagerProfile = lazy(() => import('./ManagerProfile'));
 const CupPage = lazy(() => import('./CupPage'));
+const LeagueCupPage = lazy(() => import('./LeagueCupPage'));
+const ContinentalPage = lazy(() => import('./ContinentalPage'));
+const SuperCupPage = lazy(() => import('./SuperCupPage'));
 const PerksPage = lazy(() => import('./PerksPage'));
 const TrophyCabinet = lazy(() => import('./TrophyCabinet'));
 const PrestigePage = lazy(() => import('./PrestigePage'));
@@ -76,6 +79,10 @@ const screens: Record<string, React.ComponentType> = {
   comparison: ComparisonPage,
   'manager-profile': ManagerProfile,
   cup: CupPage,
+  'league-cup': LeagueCupPage,
+  'champions-cup': ContinentalPage,
+  'shield-cup': ContinentalPage,
+  'super-cup': SuperCupPage,
   perks: PerksPage,
   'trophy-cabinet': TrophyCabinet,
   'prestige': PrestigePage,

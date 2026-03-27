@@ -55,7 +55,7 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview';
 
 export interface PlayerAttributes {
   pace: number;
@@ -409,6 +409,9 @@ export interface SeasonHistory {
   topScorer: { name: string; goals: number };
   boardVerdict: 'excellent' | 'good' | 'acceptable' | 'poor' | 'sacked';
   cupResult?: string;
+  leagueCupResult?: string;
+  championsCupResult?: string;
+  shieldCupResult?: string;
   divisionId?: LeagueId;
   replaced?: boolean;
   awards?: SeasonAward[];
@@ -740,6 +743,102 @@ export interface CupState {
   currentRound: CupRound | null;
   eliminated: boolean;
   winner: string | null;
+}
+
+// ── League Cup (Secondary Domestic Cup) ──
+export interface LeagueCupState {
+  ties: CupTie[];
+  currentRound: CupRound | null;
+  eliminated: boolean;
+  winner: string | null;
+}
+
+// ── Continental Club Competitions ──
+export type ContinentalCompetition = 'champions_cup' | 'shield_cup';
+export type ContinentalRound = 'group' | 'R16' | 'QF' | 'SF' | 'F';
+
+export interface ContinentalGroupMatch {
+  id: string;
+  matchday: number; // 1-6
+  week: number;
+  homeClubId: string;
+  awayClubId: string;
+  played: boolean;
+  homeGoals: number;
+  awayGoals: number;
+}
+
+export interface ContinentalGroupStanding {
+  clubId: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  points: number;
+}
+
+export interface ContinentalGroup {
+  id: string; // 'A' through 'H'
+  clubIds: string[];
+  matches: ContinentalGroupMatch[];
+  standings: ContinentalGroupStanding[];
+}
+
+export interface ContinentalKnockoutTie {
+  id: string;
+  round: 'R16' | 'QF' | 'SF' | 'F';
+  homeClubId: string;
+  awayClubId: string;
+  leg1Played: boolean;
+  leg1HomeGoals: number;
+  leg1AwayGoals: number;
+  leg2Played: boolean;
+  leg2HomeGoals: number;
+  leg2AwayGoals: number;
+  week1: number;
+  week2: number;
+  winnerId: string | null;
+  penaltyShootout?: { home: number; away: number };
+}
+
+export interface ContinentalTournamentState {
+  competition: ContinentalCompetition;
+  season: number;
+  groups: ContinentalGroup[];
+  knockoutTies: ContinentalKnockoutTie[];
+  currentPhase: 'group' | 'knockout' | 'complete';
+  currentRound: ContinentalRound | null;
+  playerEliminated: boolean;
+  playerGroupId: string | null;
+  winnerId: string | null;
+}
+
+// Virtual club for continental opponents from other leagues
+export interface VirtualClub {
+  id: string;
+  name: string;
+  shortName: string;
+  color: string;
+  secondaryColor: string;
+  leagueId: string;
+  reputation: number;
+  country: string;
+  countryCode: string;
+}
+
+// ── Super Cup ──
+export interface SuperCupMatch {
+  type: 'domestic' | 'continental';
+  homeClubId: string;
+  awayClubId: string;
+  played: boolean;
+  homeGoals: number;
+  awayGoals: number;
+  week: number;
+  winnerId: string | null;
+  penaltyShootout?: { home: number; away: number };
 }
 
 // ── Press Conferences ──

@@ -15,8 +15,11 @@ const TrophyCabinet = () => {
 
   const leagueTitles = seasonHistory.filter(h => h.position === 1);
   const cupWins = clubRecords.cupWins;
+  const leagueCupWins = seasonHistory.filter(h => h.leagueCupResult === 'Winner').length;
+  const championsCupWins = seasonHistory.filter(h => h.championsCupResult === 'Winner').length;
+  const shieldCupWins = seasonHistory.filter(h => h.shieldCupResult === 'Winner').length;
   const promotions = seasonHistory.filter(h => h.promoted);
-  const totalTrophies = leagueTitles.length + cupWins + promotions.length;
+  const totalTrophies = leagueTitles.length + cupWins + leagueCupWins + championsCupWins + shieldCupWins + promotions.length;
 
   // Group achievements by tier
   const achievementsByTier = {
@@ -142,6 +145,63 @@ const TrophyCabinet = () => {
           </div>
         )}
       </GlassPanel>
+
+      {/* League Cup Wins */}
+      {leagueCupWins > 0 && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Award className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-sm font-semibold text-foreground">League Cup Wins</h3>
+            <span className="text-xs text-emerald-400 font-bold ml-auto">{leagueCupWins}</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {seasonHistory.filter(h => h.leagueCupResult === 'Winner').map((h, i) => (
+              <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2 text-center">
+                <Award className="w-5 h-5 text-emerald-400 mx-auto mb-1" />
+                <p className="text-[10px] font-bold text-emerald-400">S{h.season}</p>
+              </motion.div>
+            ))}
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Champions Cup Wins */}
+      {championsCupWins > 0 && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Trophy className="w-4 h-4 text-blue-400" />
+            <h3 className="text-sm font-semibold text-foreground">Champions Cup Wins</h3>
+            <span className="text-xs text-blue-400 font-bold ml-auto">{championsCupWins}</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {seasonHistory.filter(h => h.championsCupResult === 'Winner').map((h, i) => (
+              <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-2 text-center">
+                <Trophy className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                <p className="text-[10px] font-bold text-blue-400">S{h.season}</p>
+              </motion.div>
+            ))}
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Shield Cup Wins */}
+      {shieldCupWins > 0 && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Award className="w-4 h-4 text-orange-400" />
+            <h3 className="text-sm font-semibold text-foreground">Shield Cup Wins</h3>
+            <span className="text-xs text-orange-400 font-bold ml-auto">{shieldCupWins}</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {seasonHistory.filter(h => h.shieldCupResult === 'Winner').map((h, i) => (
+              <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 text-center">
+                <Award className="w-5 h-5 text-orange-400 mx-auto mb-1" />
+                <p className="text-[10px] font-bold text-orange-400">S{h.season}</p>
+              </motion.div>
+            ))}
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Promotions */}
       {promotions.length > 0 && (
