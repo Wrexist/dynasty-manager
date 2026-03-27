@@ -17,7 +17,7 @@ import { completeAssignment } from '@/utils/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle } from '@/utils/helpers';
-import { migrateLegacySave, saveSessionSnapshot } from '@/store/helpers/persistence';
+import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot } from '@/store/helpers/persistence';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName } from '@/data/cup';
@@ -1932,6 +1932,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const scoutQuality = getStaffBonus(staff.members, 'scout');
     const completedAssignments: string[] = [];
     const gemReveals: { playerId: string; region: string }[] = [];
+    const scoutedListings: TransferListing[] = [];
     for (let i = 0; i < newScouting.assignments.length; i++) {
       const a = { ...newScouting.assignments[i] };
       const scoutReduction = hasPerk(state.managerProgression, 'scout_network') ? 2 : 1;
@@ -1946,6 +1947,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         scoutedPlayers.forEach(p => {
           newPlayers[p.id] = p;
           newScouting.discoveredPlayers.push(p.id);
+          // Add scouted player to transfer market so user can sign via standard flow
+          scoutedListings.push({
+            playerId: p.id,
+            askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)),
+            sellerClubId: p.clubId,
+            scoutedPlayer: true,
+          });
           // Detect hidden gem: potential 80+ player
           if (p.potential >= 80 && !gemReveal) {
             gemReveal = { playerId: p.id, region: a.region };
@@ -1962,6 +1970,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
     newScouting.assignments = newScouting.assignments.filter(a => !completedAssignments.includes(a.id));
+    // Add scouted player listings to the transfer market
+    if (scoutedListings.length > 0) {
+      const currentMarket = get().transferMarket;
+      set({ transferMarket: [...currentMarket, ...scoutedListings] });
+    }
 
     // Facility upgrade tick
     let newFacilities = { ...facilities };
@@ -2273,7 +2286,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     set({
       week: newWeek, fixtures: updatedFixtures, players: newPlayers,
       leagueTable, transferWindowOpen, currentMatchResult: null,
-      matchPhase: 'none' as const,
+      matchPhase: 'none' as const, pendingPressConference: null,
       messages: newMessages, incomingOffers: newOffers, clubs: newClubs,
       matchSubsUsed: 0, boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
       training: { ...training, tacticalFamiliarity: newTacticalFamiliarity, streaks: newStreaks, lastReport: trainingReport },
@@ -3064,11 +3077,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const json = JSON.stringify(saveData);
     try {
       // Write backup before overwriting primary save
-      const existing = localStorage.getItem(`dynasty-save-${s}`);
-      if (existing) {
-        localStorage.setItem(`dynasty-save-${s}-backup`, existing);
-      }
-      localStorage.setItem(`dynasty-save-${s}`, json);
+      writeSaveSlot(s, json);
     } catch (err) {
       console.error('[Save] Failed to write save data:', err);
       // Notify user via in-game message
@@ -3105,7 +3114,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     resetSeasonGrowth();
     migrateLegacySave();
     const s = slot ?? get().activeSlot;
-    let raw = localStorage.getItem(`dynasty-save-${s}`);
+    let raw = readSaveSlot(s);
     if (!raw) return false;
 
     // Try to parse primary save; if corrupted, fall back to backup
@@ -3114,12 +3123,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       parsed = JSON.parse(raw);
     } catch {
       console.warn('[Load] Primary save corrupted, trying backup...');
-      raw = localStorage.getItem(`dynasty-save-${s}-backup`);
+      raw = readSaveSlotBackup(s);
       if (!raw) return false;
       try {
         parsed = JSON.parse(raw);
         // Restore backup as primary
-        localStorage.setItem(`dynasty-save-${s}`, raw);
+        promoteSaveBackup(s, raw);
       } catch { return false; }
     }
 
@@ -3201,7 +3210,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   resetGame: (slot?: number) => {
     const s = slot ?? get().activeSlot;
-    localStorage.removeItem(`dynasty-save-${s}`);
+    removeSaveSlot(s);
     set({
       gameStarted: false, playerClubId: '', currentScreen: 'dashboard',
       clubs: {}, players: {}, fixtures: [], leagueTable: [],

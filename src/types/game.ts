@@ -243,6 +243,7 @@ export interface TransferListing {
   playerId: string;
   askingPrice: number;
   sellerClubId: string;
+  scoutedPlayer?: boolean;
 }
 
 export interface IncomingOffer {
@@ -741,7 +742,7 @@ export interface CupState {
 }
 
 // ── Press Conferences ──
-export type PressResponseTone = 'confident' | 'humble' | 'deflect';
+export type PressResponseTone = 'confident' | 'humble' | 'deflect' | 'strategic' | 'analytical';
 
 export interface PressOption {
   tone: PressResponseTone;
@@ -1092,11 +1093,19 @@ export interface ManagerBonus {
   met: boolean;
 }
 
+export interface ManagerAppearance {
+  skinTone: number;    // index into SKIN_TONES (0-3)
+  hairStyle: number;   // index into HAIR_STYLES (0-5)
+  hairColor: number;   // index into HAIR_COLORS (0-5)
+  suitColor: string;   // hex color for the suit/blazer
+}
+
 export interface CareerManager {
   name: string;
   nationality: string;
   age: number;
   retirementAge: number;               // 65 default, 75 if legendary
+  appearance: ManagerAppearance;
   attributes: ManagerAttributes;
   traits: ManagerTraitId[];            // 2 picked at creation
   contract: ManagerContract | null;    // null = between jobs

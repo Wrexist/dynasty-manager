@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 import { grantXP } from '@/utils/managerPerks';
 import { isPro } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
-import { getConfidenceColor, getMatchRatingColor } from '@/utils/uiHelpers';
+import { getConfidenceColor, getMatchRatingColor, areColorsSimilar } from '@/utils/uiHelpers';
 import { generateMatchInsights } from '@/utils/matchInsights';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getDerbyName, getDerbyIntensity } from '@/data/league';
@@ -38,6 +38,8 @@ const MatchReview = () => {
   const homeClub = clubs[match.homeClubId];
   const awayClub = clubs[match.awayClubId];
   const isHome = match.homeClubId === playerClubId;
+  const homeBarColor = homeClub.color;
+  const awayBarColor = areColorsSimilar(homeClub.color, awayClub.color) ? '#FFFFFF' : awayClub.color;
   const won = isHome ? match.homeGoals > match.awayGoals : match.awayGoals > match.homeGoals;
   const drew = match.homeGoals === match.awayGoals;
   const lost = !won && !drew;
@@ -71,6 +73,22 @@ const MatchReview = () => {
           >
             {won ? 'VICTORY' : lost ? 'DEFEAT' : 'DRAW'}
           </motion.p>
+          {/* Home/Away + Venue */}
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <span className={cn(
+              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest',
+              isHome
+                ? 'bg-primary/15 text-primary border border-primary/30'
+                : 'bg-muted/40 text-muted-foreground border border-border/50'
+            )}>
+              {isHome ? <><Shield className="w-2.5 h-2.5" /> Home</> : <><ArrowLeft className="w-2.5 h-2.5" /> Away</>}
+            </span>
+            {homeClub.stadiumName && (
+              <span className="inline-flex items-center gap-1 text-[9px] text-muted-foreground/60">
+                <MapPin className="w-2.5 h-2.5" /> {homeClub.stadiumName}
+              </span>
+            )}
+          </div>
           <div className="flex items-center justify-center gap-4 my-3">
             <div className="text-center">
               <div className="w-12 h-12 rounded-full mx-auto mb-1" style={{ backgroundColor: homeClub.color }} />
@@ -195,13 +213,13 @@ const MatchReview = () => {
               return (
                 <div key={label}>
                   <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-foreground tabular-nums">{home}</span>
+                    <span className="tabular-nums font-medium" style={{ color: homeBarColor }}>{home}</span>
                     <span className="text-muted-foreground text-[10px]">{label}</span>
-                    <span className="text-foreground tabular-nums">{away}</span>
+                    <span className="tabular-nums font-medium" style={{ color: awayBarColor }}>{away}</span>
                   </div>
-                  <div className="flex h-1 rounded-full overflow-hidden gap-0.5">
-                    <div className="bg-primary/60 rounded-full" style={{ width: `${homePct}%` }} />
-                    <div className="bg-muted-foreground/30 rounded-full flex-1" />
+                  <div className="flex h-1.5 rounded-full overflow-hidden gap-0.5">
+                    <div className="rounded-full transition-all duration-500" style={{ width: `${homePct}%`, backgroundColor: homeBarColor }} />
+                    <div className="rounded-full flex-1 transition-all duration-500" style={{ backgroundColor: `${awayBarColor}40` }} />
                   </div>
                 </div>
               );

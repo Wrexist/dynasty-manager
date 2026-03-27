@@ -151,7 +151,7 @@ describe('merchandise', () => {
       expect(premiumRev).toBeGreaterThan(standardRev);
     });
 
-    it.skip('lower quality leagues earn less (TODO: fix MERCH_DIVISION_SCALE to use qualityTier lookup)', () => {
+    it('lower quality leagues earn less', () => {
       const merch = getDefaultMerchState();
       const club = makeClub({ fanBase: 50, playerIds: [] });
       const eng = calculateWeeklyMerchRevenue(merch, club, {}, 'eng', defaultProgression);

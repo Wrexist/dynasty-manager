@@ -26,7 +26,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     if (!inPlayer) return;
     if (inPlayer.injured) return;
     if (inPlayer.suspendedUntilWeek != null && inPlayer.suspendedUntilWeek > state.week) return;
-    club.lineup = club.lineup.map(id => id === outId ? inId : id);
+    club.lineup = [...club.lineup.map(id => id === outId ? inId : id)];
     club.subs = [...club.subs.filter(id => id !== inId), outId];
     const updates: Partial<GameState> = { clubs: { ...state.clubs, [club.id]: club }, matchSubsUsed: state.matchSubsUsed + 1 };
     if (state.currentMatchResult) {

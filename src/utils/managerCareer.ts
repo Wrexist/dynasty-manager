@@ -5,6 +5,7 @@
 
 import type {
   CareerManager,
+  ManagerAppearance,
   ManagerAttributes,
   ManagerTraitId,
   ReputationTier,
@@ -87,7 +88,8 @@ export function createDefaultManager(
   name: string,
   nationality: string,
   age: number,
-  traits: ManagerTraitId[]
+  traits: ManagerTraitId[],
+  appearance: ManagerAppearance = { skinTone: 0, hairStyle: 1, hairColor: 0, suitColor: '#1a1a2e' },
 ): CareerManager {
   const attributes = generateStartingAttributes(traits);
   const reputationScore = 30; // Start just above unknown tier
@@ -99,6 +101,7 @@ export function createDefaultManager(
     nationality,
     age,
     retirementAge,
+    appearance,
     attributes,
     traits,
     contract: null,

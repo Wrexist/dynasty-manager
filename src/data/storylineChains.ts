@@ -174,6 +174,240 @@ export const STORYLINE_CHAINS: StorylineChainDef[] = [
       },
     ],
   },
+  {
+    id: 'media-scandal',
+    name: 'Media Scandal',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Tabloid Exposé',
+        body: 'A national tabloid has published a damaging story about your club — allegations of internal dysfunction and poor culture behind the scenes. The press are swarming the training ground.',
+        icon: 'newspaper',
+        options: [
+          { label: 'Issue a strong denial', text: 'You release a statement calling the story fabricated and threaten legal action.', effects: { morale: 3, boardConfidence: 2, fanMood: 4 } },
+          { label: 'Decline to comment', text: 'You refuse to engage with the media and instruct staff to do the same.', effects: { morale: -1, boardConfidence: 1 } },
+          { label: 'Address it head-on', text: 'You hold a press conference admitting some issues exist but are being resolved.', effects: { morale: -3, boardConfidence: -2, fanMood: -3 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Investigation Launched',
+        body: 'The story has gained traction. Pundits are debating it on every talk show. The board has launched an internal investigation to get to the bottom of things.',
+        icon: 'megaphone',
+        options: [
+          { label: 'Cooperate fully', text: 'You open your door to the investigation and provide everything asked for.', effects: { morale: 2, boardConfidence: 5 } },
+          { label: 'Protect your staff', text: 'You shield your coaching team and insist the blame lies elsewhere.', effects: { morale: 5, boardConfidence: -3 } },
+          { label: 'Deflect to results', text: 'You point to recent performances and say the pitch is all that matters.', effects: { morale: 3, fanMood: 2, boardConfidence: -1 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'The Verdict',
+        body: 'The investigation is complete. The board wants to move forward, and the media have largely moved on. How do you close this chapter?',
+        icon: 'file-text',
+        options: [
+          { label: 'Implement new standards', text: 'You introduce a code of conduct and media training for all staff.', effects: { morale: 4, boardConfidence: 7, fanMood: 5 } },
+          { label: 'Make an example', text: 'You dismiss a junior staff member linked to the leak as a warning.', effects: { morale: -5, boardConfidence: 5, fanMood: 2 } },
+          { label: 'Simply move on', text: 'You tell everyone to forget it and focus on football.', effects: { morale: 6, boardConfidence: 2, fanMood: 1 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'injury-crisis',
+    name: 'Injury Crisis',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'First Wave',
+        body: 'Disaster strikes — three first-team players have picked up injuries in the same training session. The medical staff are stretched thin and the next match is just days away.',
+        icon: 'heart-pulse',
+        options: [
+          { label: 'Call up youth players', text: 'You promote youngsters from the academy to fill the gaps.', effects: { morale: -2, boardConfidence: 2, fanMood: 3 } },
+          { label: 'Reshape the formation', text: 'You adapt your tactics to work around the missing players.', effects: { morale: 1, boardConfidence: 3 } },
+          { label: 'Rush players back', text: 'You push the less-injured players to declare themselves fit early.', effects: { morale: -4, boardConfidence: -1, fanMood: -2 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Squad Depth Tested',
+        body: 'The injuries are mounting and squad depth is being tested like never before. Fringe players are getting their chance, but fatigue is becoming a real concern.',
+        icon: 'users',
+        options: [
+          { label: 'Rotate heavily', text: 'You manage workloads carefully, even if it means weaker starting elevens.', effects: { morale: 3, boardConfidence: 1, fanMood: -2 } },
+          { label: 'Demand maximum effort', text: 'You push the remaining fit players to give everything in every match.', effects: { morale: -3, boardConfidence: 2, fanMood: 4 } },
+          { label: 'Sign an emergency loan', text: 'You petition the board for an emergency loan signing to cover the crisis.', effects: { morale: 2, boardConfidence: -2, fanMood: 2 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'Recovery and Adaptation',
+        body: 'Players are starting to return from injury. The crisis has tested the squad, but it has also revealed unexpected heroes among the fringe players.',
+        icon: 'award',
+        options: [
+          { label: 'Reward the stand-ins', text: 'You offer extended contracts to the players who stepped up during the crisis.', effects: { morale: 8, boardConfidence: 4, fanMood: 5 } },
+          { label: 'Return to the first-choice XI', text: 'You slot the returning stars straight back in and thank the deputies.', effects: { morale: -2, boardConfidence: 3, fanMood: 3 } },
+          { label: 'Overhaul the medical setup', text: 'You demand investment in sports science to prevent future crises.', effects: { morale: 3, boardConfidence: 5, fanMood: 2 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'board-takeover',
+    name: 'Board Takeover',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Takeover Rumours',
+        body: 'Whispers are circulating that a wealthy consortium is interested in buying the club. Nothing official yet, but the uncertainty is unsettling everyone.',
+        icon: 'building',
+        options: [
+          { label: 'Reassure the squad', text: 'You tell the players to ignore the rumours and focus on their jobs.', effects: { morale: 3, boardConfidence: 1 } },
+          { label: 'Welcome the prospect', text: 'You publicly say new investment could be great for the club.', effects: { morale: 1, boardConfidence: -4, fanMood: 5 } },
+          { label: 'Stay silent', text: 'You refuse to comment on matters above your pay grade.', effects: { morale: -1, boardConfidence: 2 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Formal Bid Tabled',
+        body: 'It\'s official — a formal takeover bid has been submitted to the current owners. The new group wants to meet you to discuss their vision for the club.',
+        icon: 'file-text',
+        options: [
+          { label: 'Meet the new owners', text: 'You sit down with the consortium to hear their plans and pitch your own vision.', effects: { morale: 2, boardConfidence: 3, fanMood: 4 } },
+          { label: 'Stay loyal to current board', text: 'You publicly back the existing ownership and decline the meeting.', effects: { morale: -1, boardConfidence: 6, fanMood: -3 } },
+          { label: 'Demand assurances', text: 'You agree to meet but insist on written guarantees about your position and transfer funds.', effects: { morale: 1, boardConfidence: -2, fanMood: 2 } },
+        ],
+      },
+      {
+        weekOffset: 3,
+        title: 'New Era Begins',
+        body: 'The takeover is complete. New owners are in place and the club is entering a new chapter. They want to discuss the immediate future with you.',
+        icon: 'trending-down',
+        options: [
+          { label: 'Present an ambitious plan', text: 'You lay out a bold strategy for promotion and squad investment.', effects: { morale: 7, boardConfidence: 6, fanMood: 8 } },
+          { label: 'Ask for patience', text: 'You explain that success takes time and urge the new owners to be realistic.', effects: { morale: 3, boardConfidence: 4, fanMood: 2 } },
+          { label: 'Request full control', text: 'You ask for total autonomy over football decisions with no board interference.', effects: { morale: 5, boardConfidence: -3, fanMood: 4 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'fan-protests',
+    name: 'Fan Protests',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Social Media Backlash',
+        body: 'Fan accounts on social media are flooding with criticism. Hashtags calling for change are trending locally. The supporters trust is demanding answers from the club.',
+        icon: 'megaphone',
+        options: [
+          { label: 'Engage with the fans', text: 'You post a heartfelt message on the club\'s channels acknowledging their frustration.', effects: { morale: -1, boardConfidence: 2, fanMood: 5 } },
+          { label: 'Ignore social media', text: 'You tell the squad to delete their apps and focus on training.', effects: { morale: 3, boardConfidence: 1, fanMood: -5 } },
+          { label: 'Blame the players', text: 'You publicly call out individual performances to deflect the anger.', effects: { morale: -8, boardConfidence: -2, fanMood: 2 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Organised Protest',
+        body: 'Fans have organised a protest march before the next home match. Banners are being made, and local media will be covering it. The atmosphere at the stadium will be toxic.',
+        icon: 'users',
+        options: [
+          { label: 'Meet the supporters\' group', text: 'You agree to a face-to-face meeting with fan representatives before the match.', effects: { morale: 2, boardConfidence: 3, fanMood: 6 } },
+          { label: 'Use it as motivation', text: 'You tell the players to win the fans back with a performance on the pitch.', effects: { morale: 5, boardConfidence: 1, fanMood: -1 } },
+          { label: 'Ask the board to intervene', text: 'You suggest the board release a statement to calm things down.', effects: { morale: -1, boardConfidence: -3, fanMood: 3 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'Rebuilding Trust',
+        body: 'The protests have died down, but the relationship between club and fans remains fragile. A gesture of goodwill could go a long way.',
+        icon: 'heart-pulse',
+        options: [
+          { label: 'Open training sessions', text: 'You invite fans to watch training and meet the players afterwards.', effects: { morale: 6, boardConfidence: 4, fanMood: 10 } },
+          { label: 'Launch a community programme', text: 'You start free coaching clinics for local kids under the club\'s banner.', effects: { morale: 4, boardConfidence: 6, fanMood: 8 } },
+          { label: 'Let results do the talking', text: 'You believe winning matches is the only way to truly win back the fans.', effects: { morale: 5, boardConfidence: 2, fanMood: 2 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'rival-manager-feud',
+    name: 'Rival Manager Feud',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Pre-Match Provocation',
+        body: 'The opposing manager has made inflammatory comments in his press conference, calling your team "limited" and questioning your tactical ability. The media are loving it.',
+        icon: 'swords',
+        options: [
+          { label: 'Fire back publicly', text: 'You deliver a cutting response in your own press conference.', effects: { morale: 5, boardConfidence: -2, fanMood: 6 } },
+          { label: 'Take the high road', text: 'You dismiss the comments with a smile and say your team will answer on the pitch.', effects: { morale: 3, boardConfidence: 3, fanMood: 3 } },
+          { label: 'Use it in the dressing room', text: 'You pin the quotes on the dressing room wall and let the players stew.', effects: { morale: 7, boardConfidence: 1 } },
+        ],
+      },
+      {
+        weekOffset: 1,
+        title: 'Match Day Tension',
+        body: 'The match against your rival is here. The atmosphere is electric. Both sets of fans are fired up by the war of words, and the touchline will be a cauldron of tension.',
+        icon: 'shield',
+        options: [
+          { label: 'Refuse to shake hands', text: 'You snub the opposing manager\'s handshake to send a message.', effects: { morale: 4, boardConfidence: -3, fanMood: 5 } },
+          { label: 'Show respect', text: 'You shake hands warmly and demonstrate class under pressure.', effects: { morale: 2, boardConfidence: 5, fanMood: 2 } },
+          { label: 'Wind him up on the touchline', text: 'You celebrate every tackle and goal with exaggerated passion right in front of him.', effects: { morale: 6, boardConfidence: -2, fanMood: 7 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'The Aftermath',
+        body: 'The dust has settled after a heated encounter. The football world is still talking about the feud. How do you close this chapter?',
+        icon: 'newspaper',
+        options: [
+          { label: 'Offer an olive branch', text: 'You publicly wish the rival manager well and call for mutual respect.', effects: { morale: 2, boardConfidence: 6, fanMood: -2 } },
+          { label: 'Keep the rivalry alive', text: 'You drop one more pointed comment to keep the fans entertained.', effects: { morale: 4, boardConfidence: -2, fanMood: 8 } },
+          { label: 'Focus on the next game', text: 'You move on completely and refuse to discuss it any further.', effects: { morale: 5, boardConfidence: 3, fanMood: 1 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'contract-holdout',
+    name: 'Contract Holdout',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Agent Makes Demands',
+        body: 'Your key player\'s agent has contacted the club demanding a significant pay rise. He says other clubs are offering double the wages, and his client feels undervalued.',
+        icon: 'file-text',
+        options: [
+          { label: 'Open negotiations', text: 'You sit down with the agent to discuss a new deal.', effects: { morale: 2, boardConfidence: -1, fanMood: 1 } },
+          { label: 'Reject outright', text: 'You tell the agent the current contract is fair and there will be no renegotiation.', effects: { morale: -4, boardConfidence: 4, fanMood: 3 } },
+          { label: 'Stall for time', text: 'You say you\'ll discuss it after the next few matches and delay the conversation.', effects: { morale: -1, boardConfidence: 1 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Negotiations Stall',
+        body: 'The situation has deteriorated. The player is visibly unhappy in training and there are rumours he\'s considering handing in a transfer request if his demands aren\'t met.',
+        icon: 'trending-down',
+        options: [
+          { label: 'Offer a compromise', text: 'You propose a modest increase with performance bonuses to bridge the gap.', effects: { morale: 4, boardConfidence: 2, fanMood: 2 } },
+          { label: 'Call his bluff', text: 'You tell the player he\'s free to leave if he can find a club willing to pay those wages.', effects: { morale: -6, boardConfidence: 3, fanMood: -3 } },
+          { label: 'Appeal to his loyalty', text: 'You have a personal conversation about what the club means to him and his legacy here.', effects: { morale: 5, boardConfidence: 1, fanMood: 4 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'Deadline Decision',
+        body: 'The contract situation must be resolved. The player\'s camp has set a deadline — agree terms this week or he goes public with a transfer request.',
+        icon: 'clock',
+        options: [
+          { label: 'Meet his demands', text: 'You cave to the pressure and give him the contract he wants.', effects: { morale: 7, boardConfidence: -4, fanMood: 3 } },
+          { label: 'Find a middle ground', text: 'A final round of negotiations produces a deal both sides can live with.', effects: { morale: 5, boardConfidence: 4, fanMood: 5 } },
+          { label: 'Let him walk', text: 'You tell him to hand in the request. No player is bigger than the club.', effects: { morale: -8, boardConfidence: 5, fanMood: -5 } },
+        ],
+      },
+    ],
+  },
 ];
 
 /** Check if a chain should trigger based on game context */
@@ -199,6 +433,18 @@ export function shouldTriggerChain(
       return ctx.hasYouthProspect && ctx.week >= 6;
     case 'financial-crisis':
       return ctx.budget < ctx.averageBudget * 0.5 && ctx.boardConfidence < 50 && ctx.week >= 10;
+    case 'media-scandal':
+      return ctx.week >= 10;
+    case 'injury-crisis':
+      return ctx.recentLosses >= 1 && ctx.week >= 5;
+    case 'board-takeover':
+      return ctx.boardConfidence < 40 && ctx.week >= 15;
+    case 'fan-protests':
+      return ctx.boardConfidence < 35 && ctx.week >= 8;
+    case 'rival-manager-feud':
+      return ctx.recentLosses >= 1 && ctx.week >= 8;
+    case 'contract-holdout':
+      return ctx.hasStarPlayer && ctx.week >= 12;
     default:
       return false;
   }

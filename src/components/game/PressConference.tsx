@@ -8,6 +8,8 @@ const TONE_STYLES: Record<PressResponseTone, { label: string; color: string; ico
   confident: { label: 'Bold', color: 'border-primary/50 hover:bg-primary/10', icon: 'dumbbell' },
   humble: { label: 'Humble', color: 'border-emerald-500/50 hover:bg-emerald-500/10', icon: 'handshake' },
   deflect: { label: 'Deflect', color: 'border-muted-foreground/50 hover:bg-muted/30', icon: 'shield' },
+  strategic: { label: 'Strategic', color: 'border-blue-500/50 hover:bg-blue-500/10', icon: 'target' },
+  analytical: { label: 'Analytical', color: 'border-violet-500/50 hover:bg-violet-500/10', icon: 'bar-chart-2' },
 };
 
 export function PressConference() {
@@ -48,7 +50,7 @@ export function PressConference() {
       {/* Response Options */}
       <div className="space-y-2">
         {pendingPressConference.options.map((option) => {
-          const style = TONE_STYLES[option.tone];
+          const style = TONE_STYLES[option.tone] ?? { label: option.tone, color: 'border-muted-foreground/50 hover:bg-muted/30', icon: 'help-circle' };
           return (
             <button
               key={option.tone}
