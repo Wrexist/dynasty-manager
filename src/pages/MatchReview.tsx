@@ -15,6 +15,17 @@ import { getDerbyName, getDerbyIntensity } from '@/data/league';
 import { getSuffix } from '@/utils/helpers';
 import { motion } from 'framer-motion';
 
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+function areColorsSimilar(c1: string, c2: string, threshold = 80): boolean {
+  const [r1, g1, b1] = hexToRgb(c1);
+  const [r2, g2, b2] = hexToRgb(c2);
+  return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2) < threshold;
+}
+
 const MatchReview = () => {
   const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, advanceWeek, setScreen, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization } = useGameStore();
   const userIsPro = isPro(monetization);
@@ -38,6 +49,8 @@ const MatchReview = () => {
   const homeClub = clubs[match.homeClubId];
   const awayClub = clubs[match.awayClubId];
   const isHome = match.homeClubId === playerClubId;
+  const homeBarColor = homeClub.color;
+  const awayBarColor = areColorsSimilar(homeClub.color, awayClub.color) ? '#FFFFFF' : awayClub.color;
   const won = isHome ? match.homeGoals > match.awayGoals : match.awayGoals > match.homeGoals;
   const drew = match.homeGoals === match.awayGoals;
   const lost = !won && !drew;
@@ -199,9 +212,9 @@ const MatchReview = () => {
                     <span className="text-muted-foreground text-[10px]">{label}</span>
                     <span className="text-foreground tabular-nums">{away}</span>
                   </div>
-                  <div className="flex h-1 rounded-full overflow-hidden gap-0.5">
-                    <div className="bg-primary/60 rounded-full" style={{ width: `${homePct}%` }} />
-                    <div className="bg-muted-foreground/30 rounded-full flex-1" />
+                  <div className="flex h-1.5 rounded-full overflow-hidden gap-0.5">
+                    <div className="rounded-full transition-all duration-500" style={{ width: `${homePct}%`, backgroundColor: homeBarColor }} />
+                    <div className="rounded-full flex-1 transition-all duration-500" style={{ backgroundColor: `${awayBarColor}40` }} />
                   </div>
                 </div>
               );

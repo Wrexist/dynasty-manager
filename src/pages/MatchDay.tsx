@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { MatchEvent, Match, Club } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar } from 'lucide-react';
+import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight } from '@/utils/haptics';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT } from '@/config/matchEngine';
 import type { HalfState } from '@/engine/match';
@@ -341,6 +341,8 @@ const MatchDay = () => {
   const currentMomentum = latestMomentumEvent?.momentum ?? 0; // -100 (away) to +100 (home)
   const homeMomPct = Math.round(50 + currentMomentum / 2); // 0-100 scale
   const stadiumTheme = getActiveCosmetic(store.monetization, 'stadium_theme');
+  const isPlayerHome = match?.homeClubId === playerClubId;
+  const venueClub = match ? clubs[match.homeClubId] : null;
 
   return (
     <div className={cn("max-w-lg mx-auto px-4 py-4 space-y-3", stadiumTheme && `stadium-${stadiumTheme.replace('stadium-', '')}`)}>
@@ -418,8 +420,45 @@ const MatchDay = () => {
       {/* Pre-match — Ready to Kick Off */}
       {phase === 'pre' && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <GlassPanel className="p-5 space-y-4">
+          <GlassPanel className="p-5 space-y-4 overflow-hidden relative">
+            {/* Club-colored accent line */}
+            <div className="absolute top-0 left-0 right-0 h-0.5" style={{ backgroundColor: clubs[playerClubId]?.color }} />
+
+            {/* Home/Away Badge */}
+            <div className="text-center space-y-1.5">
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest',
+                  isPlayerHome
+                    ? 'bg-primary/15 text-primary border border-primary/30'
+                    : 'bg-muted/40 text-muted-foreground border border-border/50'
+                )}
+              >
+                {isPlayerHome ? (
+                  <><Shield className="w-3 h-3" /> Home</>
+                ) : (
+                  <><ArrowLeft className="w-3 h-3" /> Away</>
+                )}
+              </span>
+            </div>
+
+            {/* Stadium info */}
+            {venueClub?.stadiumName && (
+              <div className="text-center space-y-0.5">
+                <div className="flex items-center justify-center gap-1.5 text-xs text-foreground/80">
+                  <MapPin className="w-3.5 h-3.5 text-primary/70" />
+                  <span className="font-medium">{venueClub.stadiumName}</span>
+                </div>
+                {venueClub.stadiumCapacity && (
+                  <p className="text-[10px] text-muted-foreground/60">
+                    Capacity: {venueClub.stadiumCapacity.toLocaleString()}
+                  </p>
+                )}
+              </div>
+            )}
+
             <p className="text-sm font-bold text-foreground text-center">Ready to Kick Off?</p>
+
             <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
               <span>{homeClub.shortName}: {store.clubs[match.homeClubId]?.formation || '4-3-3'}</span>
               <span className="text-primary font-bold">vs</span>
