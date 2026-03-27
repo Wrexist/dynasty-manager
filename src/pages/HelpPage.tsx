@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronDown, ChevronUp, Search, HelpCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface HelpSection {
   title: string;
@@ -115,7 +114,7 @@ const HelpPage = () => {
 
       {/* Sections */}
       <div className="space-y-1.5">
-        {filtered.map((section, idx) => {
+        {filtered.map((section) => {
           const originalIdx = HELP_SECTIONS.indexOf(section);
           const expanded = expandedIdx === originalIdx;
           return (
