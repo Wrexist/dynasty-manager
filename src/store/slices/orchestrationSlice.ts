@@ -2273,7 +2273,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     set({
       week: newWeek, fixtures: updatedFixtures, players: newPlayers,
       leagueTable, transferWindowOpen, currentMatchResult: null,
-      matchPhase: 'none' as const,
+      matchPhase: 'none' as const, pendingPressConference: null,
       messages: newMessages, incomingOffers: newOffers, clubs: newClubs,
       matchSubsUsed: 0, boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
       training: { ...training, tacticalFamiliarity: newTacticalFamiliarity, streaks: newStreaks, lastReport: trainingReport },

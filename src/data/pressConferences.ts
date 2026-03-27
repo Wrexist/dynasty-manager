@@ -5,7 +5,7 @@ import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_W
 interface QuestionDef {
   question: string;
   options: Record<PressResponseTone, { text: string; effects: PressOption['effects'] }>;
-  proOption?: { tone: string; text: string; effects: PressOption['effects'] };
+  proOption?: { tone: PressResponseTone; text: string; effects: PressOption['effects'] };
 }
 
 // Pool of press conference questions by context
@@ -115,7 +115,7 @@ export function generatePressConference(context: PressConference['context'], pro
       id: crypto.randomUUID(),
       context,
       question: chosen.question,
-      options: [...baseOptions, { tone: chosen.proOption.tone as PressResponseTone, text: chosen.proOption.text, effects: chosen.proOption.effects }],
+      options: [...baseOptions, { tone: chosen.proOption.tone, text: chosen.proOption.text, effects: chosen.proOption.effects }],
     };
   }
 

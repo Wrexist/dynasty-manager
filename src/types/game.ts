@@ -741,7 +741,7 @@ export interface CupState {
 }
 
 // ── Press Conferences ──
-export type PressResponseTone = 'confident' | 'humble' | 'deflect';
+export type PressResponseTone = 'confident' | 'humble' | 'deflect' | 'strategic' | 'analytical';
 
 export interface PressOption {
   tone: PressResponseTone;

@@ -1,16 +1,15 @@
+import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { PitchView } from '@/components/game/PitchView';
-import { Swords, AlertTriangle, Flame, Info, Shield, Pencil, Zap } from 'lucide-react';
+import { LineupEditor } from '@/components/game/LineupEditor';
+import { Swords, AlertTriangle, Flame, Info, Shield, Wand2, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
 import { Button } from '@/components/ui/button';
 import { getDerbyIntensity, getDerbyName } from '@/data/league';
-import { getFlag } from '@/utils/nationality';
 import { FormationType } from '@/types/game';
-import { calculateChemistryLinks } from '@/utils/chemistry';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { isPro } from '@/utils/monetization';
@@ -26,7 +25,8 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
-  const { week, season, clubs, players, playerClubId, leagueTable, setScreen, pairFamiliarity, monetization, playCurrentMatch } = useGameStore();
+  const { week, clubs, players, playerClubId, leagueTable, setScreen, monetization, playCurrentMatch, autoFillTeam } = useGameStore();
+  const [autoFilling, setAutoFilling] = useState(false);
 
   const { match, isHome, opponent: oppClub } = useCurrentMatch();
   const oppClubId = match ? (isHome ? match.awayClubId : match.homeClubId) : '';
@@ -69,12 +69,6 @@ const MatchPrep = () => {
   // Low-fitness lineup count
   const lowFitnessInLineup = mySquad.filter(p => lineupIds.has(p.id) && p.fitness < 75 && !p.injured).length;
 
-  // Formation labels
-  const myLineup = myClub.lineup.map(id => players[id]).filter(Boolean);
-  const oppLineup = oppClub.lineup.map(id => players[id]).filter(Boolean);
-
-  // Chemistry links for pitch visualization
-  const chemLinks = calculateChemistryLinks(myLineup, myClub.formation, season);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
@@ -273,35 +267,31 @@ const MatchPrep = () => {
         </GlassPanel>
       )}
 
-      {/* Formation Preview */}
+      {/* Lineup & Bench */}
       <GlassPanel className="p-4">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-sm font-semibold text-foreground">Your Formation: {myClub.formation}</h3>
           <button
-            onClick={() => setScreen('tactics')}
-            className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 font-semibold"
+            onClick={() => {
+              setAutoFilling(true);
+              requestAnimationFrame(() => {
+                autoFillTeam();
+                setAutoFilling(false);
+              });
+            }}
+            disabled={autoFilling}
+            className={cn(
+              'flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg transition-all',
+              autoFilling
+                ? 'bg-primary/30 text-primary/70 cursor-not-allowed'
+                : 'bg-primary/20 hover:bg-primary/30 text-primary'
+            )}
           >
-            <Pencil className="w-3 h-3" /> Edit Lineup
+            <Wand2 className={cn('w-3 h-3', autoFilling && 'animate-spin')} />
+            {autoFilling ? 'Filling...' : 'Smart Fill'}
           </button>
         </div>
-        <PitchView
-          formation={myClub.formation}
-          homeColor={myClub.color}
-          homeLabels={myLineup.map(p => p.lastName.slice(0, 3).toUpperCase())}
-          playerOveralls={myLineup.map(p => p.overall)}
-          playerFitness={myLineup.map(p => Math.round(p.fitness))}
-          playerIds={myLineup.map(p => p.id)}
-          awayFormation={oppClub.formation}
-          awayColor={oppClub.color}
-          awayPlayerIds={oppClub.lineup}
-          awayLabels={oppLineup.map(p => p.lastName.slice(0, 3).toUpperCase())}
-          awayPlayerOveralls={oppLineup.map(p => p.overall)}
-          showAway
-          playerFlags={myLineup.map(p => getFlag(p.nationality))}
-          awayPlayerFlags={oppLineup.map(p => getFlag(p.nationality))}
-          chemistryLinks={chemLinks}
-          pairFamiliarity={pairFamiliarity}
-        />
+        <LineupEditor />
       </GlassPanel>
 
       {/* Ready Button */}
