@@ -47,6 +47,7 @@ import { VALUE_EXP_BASE, VALUE_EXP_RATE } from '@/config/playerGeneration';
 
 // ── Helpers ──
 
+/** Local clamp without rounding (unlike helpers.ts clamp which rounds to integer) */
 function clamp(val: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, val));
 }

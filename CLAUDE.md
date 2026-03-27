@@ -205,8 +205,7 @@ Quick reference:
 ## Known Tech Debt
 - `orchestrationSlice.ts` is ~1,970 lines — could be further split
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`)
-- `getSuffix()` helper duplicated across Dashboard, SeasonSummary
-- `pick()` and `clamp()` helpers duplicated across multiple files
+- `getSuffix()`, `pick()`, `clamp()` are centralized in `src/utils/helpers.ts` (previously duplicated, now resolved)
 - framer-motion v12 is heavy (~30kb gzipped)
 - Vite config has manual chunk splitting for framer-motion, recharts, radix
 

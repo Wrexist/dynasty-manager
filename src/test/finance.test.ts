@@ -15,11 +15,13 @@ function makeClub(overrides: Partial<Club> = {}): Club {
     fanBase: 50,
     wageBill: 500_000,
     formation: '4-3-3',
-    players: [],
+    playerIds: [],
+    lineup: [],
+    subs: [],
+    divisionId: 'eng',
     facilities: 5,
     youthRating: 5,
     boardPatience: 5,
-    squadQuality: 70,
     ...overrides,
   } as Club;
 }
