@@ -318,7 +318,7 @@ const MatchPrep = () => {
             <Button
               size="lg"
               variant="outline"
-              className="h-14 px-4 font-bold gap-2 border-primary/30 text-primary"
+              className="h-14 px-4 font-bold gap-2 border-primary/50 text-primary bg-primary/10 hover:bg-primary/20 active:bg-primary/30"
               onClick={() => {
                 playCurrentMatch();
                 setScreen('match-review');
