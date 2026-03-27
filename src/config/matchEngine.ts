@@ -77,8 +77,8 @@ export const DEFENSE_QUALITY_FALLBACK = 0.3;
 export const GK_DEFENDING_WEIGHT = 0.4;
 export const GK_MENTAL_WEIGHT = 0.3;
 export const GK_PHYSICAL_WEIGHT = 0.3;
-export const GK_SAVE_BASE = 0.30;
-export const GK_SAVE_RANGE = 0.40;
+export const GK_SAVE_BASE = 0.22;
+export const GK_SAVE_RANGE = 0.35;
 
 // ── Tactical Familiarity ──
 export const TACTICAL_FAMILIARITY_MULTIPLIER = 0.004;
@@ -88,18 +88,18 @@ export const HOME_ADVANTAGE = 1.10;
 
 // ── Event Generation ──
 export const BASE_EVENT_CHANCE = 0.18;
-export const LATE_GAME_EVENT_BONUS = 0.15;
+export const LATE_GAME_EVENT_BONUS = 0.20;
 export const LATE_GAME_THRESHOLD_MINUTE = 85;
 /** Max consecutive minutes without any event before commentary is injected */
 export const COMMENTARY_GAP_MAX = 4;
 /** Chance to generate a commentary event when event roll succeeds but no shot/foul/injury triggers */
 export const COMMENTARY_CHANCE = 0.35;
 /** Fraction of event rolls that become shot attempts */
-export const SHOT_ATTEMPT_THRESHOLD = 0.2;
+export const SHOT_ATTEMPT_THRESHOLD = 0.28;
 /** Fraction of event rolls between shots and fouls (reduced for ~12-16 fouls/game) */
-export const FOUL_THRESHOLD = 0.30;
+export const FOUL_THRESHOLD = 0.38;
 /** Fraction of event rolls between fouls and non-foul injuries */
-export const INJURY_EVENT_THRESHOLD = 0.33;
+export const INJURY_EVENT_THRESHOLD = 0.41;
 
 // ── Shot Quality Weights ──
 export const SHOT_QUALITY_WEIGHTS = {
@@ -115,11 +115,11 @@ export const FITNESS_FACTOR_BASE = 0.7;
 export const FITNESS_FACTOR_SCALE = 0.3;
 
 // ── Goal Chance Formula ──
-export const GOAL_CHANCE_ATTACK_MULT = 0.45;
+export const GOAL_CHANCE_ATTACK_MULT = 0.55;
 export const GOAL_CHANCE_DEFENSE_MULT = 0.20;
 export const GOAL_CHANCE_ATTACK_MOD_SCALE = 0.35;
 export const GOAL_CHANCE_COUNTER_VULN_SCALE = 0.18;
-export const GOAL_CHANCE_MIN = 0.005;
+export const GOAL_CHANCE_MIN = 0.008;
 
 // ── Corner Chances ──
 export const CORNER_FROM_SAVE_CHANCE = 0.35;
