@@ -1952,6 +1952,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             playerId: p.id,
             askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)),
             sellerClubId: p.clubId,
+            scoutedPlayer: true,
           });
           // Detect hidden gem: potential 80+ player
           if (p.potential >= 80 && !gemReveal) {

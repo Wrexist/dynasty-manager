@@ -243,6 +243,7 @@ export interface TransferListing {
   playerId: string;
   askingPrice: number;
   sellerClubId: string;
+  scoutedPlayer?: boolean;
 }
 
 export interface IncomingOffer {

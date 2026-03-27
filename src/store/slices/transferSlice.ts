@@ -144,8 +144,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
     if (challengeBlock) return { outcome: 'rejected', message: challengeBlock };
-    if (!state.transferWindowOpen) return { outcome: 'rejected', message: 'Transfer window is closed.' };
     const listing = state.transferMarket.find(l => l.playerId === playerId);
+    if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { outcome: 'rejected', message: 'Transfer window is closed.' };
     if (!listing) return { outcome: 'rejected', message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
     if (fee > club.budget) return { outcome: 'rejected', message: 'Insufficient funds.' };
@@ -182,8 +182,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
     if (challengeBlock) return { success: false, message: challengeBlock };
-    if (!state.transferWindowOpen) return { success: false, message: 'Transfer window is closed.' };
     const listing = state.transferMarket.find(l => l.playerId === playerId);
+    if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { success: false, message: 'Transfer window is closed.' };
     if (!listing) return { success: false, message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
     if (fee > club.budget) return { success: false, message: 'Insufficient funds.' };
@@ -266,8 +266,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const challengeBlock = checkChallengeBlock(state, state.players[playerId]?.age);
     if (challengeBlock) return { success: false, message: challengeBlock };
-    if (!state.transferWindowOpen) return { success: false, message: 'Transfer window is closed.' };
     const listing = state.transferMarket.find(l => l.playerId === playerId);
+    if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { success: false, message: 'Transfer window is closed.' };
     if (!listing) return { success: false, message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
     if (fee > club.budget) return { success: false, message: 'Insufficient funds.' };

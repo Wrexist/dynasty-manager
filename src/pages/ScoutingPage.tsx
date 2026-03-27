@@ -10,12 +10,7 @@ import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
-
-function formatValue(v: number): string {
-  if (v >= 1_000_000) return `£${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `£${(v / 1_000).toFixed(0)}K`;
-  return `£${v}`;
-}
+import { formatMoney } from '@/utils/helpers';
 
 const MARKET_SUB_NAV = [
   { screen: 'transfers' as const, label: 'Transfers' },
@@ -33,7 +28,7 @@ const REGION_INFO: { region: ScoutRegion; label: string; weeks: number; descript
 const SCOUTING_TABS = ['Overview', 'Watch List'] as const;
 
 const ScoutingPage = () => {
-  const { scouting, players, scoutWatchList, transferMarket, assignScout, cancelAssignment, addToWatchList, removeFromWatchList } = useGameStore();
+  const { scouting, players, scoutWatchList, transferMarket, transferWindowOpen, assignScout, cancelAssignment, addToWatchList, removeFromWatchList } = useGameStore();
   const [activeTab, setActiveTab] = useState<typeof SCOUTING_TABS[number]>('Overview');
   const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
 
@@ -173,22 +168,31 @@ const ScoutingPage = () => {
                       {showOverall && (
                         <div className="flex items-center gap-1">
                           <Banknote className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">{formatValue(player.value)}</span>
+                          <span className="text-[10px] text-muted-foreground">{formatMoney(player.value)}</span>
                         </div>
                       )}
                       {listing && showOverall && (
-                        <span className="text-[10px] text-primary font-medium">Ask: {formatValue(listing.askingPrice)}</span>
+                        <span className="text-[10px] text-primary font-medium">Ask: {formatMoney(listing.askingPrice)}</span>
                       )}
                     </div>
-                    {listing && (
+                    {listing ? (
                       <button
                         onClick={() => setNegotiatingListing(listing)}
-                        className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all"
+                        disabled={!transferWindowOpen && !listing.scoutedPlayer}
+                        className={cn(
+                          'flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-md transition-all',
+                          !transferWindowOpen && !listing.scoutedPlayer
+                            ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
+                            : 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97]'
+                        )}
+                        title={!transferWindowOpen && !listing.scoutedPlayer ? 'Transfer window closed' : undefined}
                       >
                         <UserCheck className="w-3 h-3" />
-                        Sign
+                        {!transferWindowOpen && !listing.scoutedPlayer ? 'Window Closed' : 'Sign'}
                       </button>
-                    )}
+                    ) : showOverall ? (
+                      <span className="text-[10px] text-muted-foreground/60 italic">Unavailable</span>
+                    ) : null}
                   </div>
                 </GlassPanel>
               );
@@ -266,20 +270,29 @@ const ScoutingPage = () => {
                       <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1">
                           <Banknote className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-[10px] text-muted-foreground">{formatValue(player.value)}</span>
+                          <span className="text-[10px] text-muted-foreground">{formatMoney(player.value)}</span>
                         </div>
                         {listing && (
-                          <span className="text-[10px] text-primary font-medium">Ask: {formatValue(listing.askingPrice)}</span>
+                          <span className="text-[10px] text-primary font-medium">Ask: {formatMoney(listing.askingPrice)}</span>
                         )}
                       </div>
-                      {listing && (
+                      {listing ? (
                         <button
                           onClick={() => setNegotiatingListing(listing)}
-                          className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97] transition-all"
+                          disabled={!transferWindowOpen && !listing.scoutedPlayer}
+                          className={cn(
+                            'flex items-center gap-1 text-[10px] font-semibold px-2.5 py-1 rounded-md transition-all',
+                            !transferWindowOpen && !listing.scoutedPlayer
+                              ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
+                              : 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.97]'
+                          )}
+                          title={!transferWindowOpen && !listing.scoutedPlayer ? 'Transfer window closed' : undefined}
                         >
                           <UserCheck className="w-3 h-3" />
-                          Sign
+                          {!transferWindowOpen && !listing.scoutedPlayer ? 'Window Closed' : 'Sign'}
                         </button>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/60 italic">Unavailable</span>
                       )}
                     </div>
                   </GlassPanel>

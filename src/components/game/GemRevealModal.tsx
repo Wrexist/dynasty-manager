@@ -9,12 +9,7 @@ import { PlayerAvatar } from '@/components/game/PlayerAvatar';
 import { calculateWageDemand, formatWage } from '@/utils/contracts';
 import { getPersonalityLabel } from '@/utils/personality';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
-
-function formatValue(v: number): string {
-  if (v >= 1_000_000) return `£${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000) return `£${(v / 1_000).toFixed(0)}K`;
-  return `£${v}`;
-}
+import { formatMoney } from '@/utils/helpers';
 
 export function GemRevealModal() {
   const gem = useGameStore(s => s.pendingGemReveal);
@@ -41,7 +36,7 @@ export function GemRevealModal() {
 
   const myClub = clubs[playerClubId];
   const playerClub = clubs[player.clubId];
-  const jerseyColor = playerClub?.primaryColor || '#d4a843';
+  const jerseyColor = playerClub?.color || '#d4a843';
 
   const potentialGap = player.potential - player.overall;
   const wageDemand = myClub ? calculateWageDemand(player, myClub.reputation) : player.wage;
@@ -150,7 +145,9 @@ export function GemRevealModal() {
               </div>
               <div className="bg-muted/30 rounded-lg p-2 text-center">
                 <p className="text-[10px] text-muted-foreground">Growth</p>
-                <p className="text-lg font-black text-emerald-400 tabular-nums">+{potentialGap}</p>
+                <p className={cn('text-lg font-black tabular-nums', potentialGap > 0 ? 'text-emerald-400' : 'text-muted-foreground')}>
+                  {potentialGap > 0 ? `+${potentialGap}` : potentialGap === 0 ? 'Max' : `${potentialGap}`}
+                </p>
               </div>
             </div>
 
@@ -160,7 +157,7 @@ export function GemRevealModal() {
                 <Banknote className="w-4 h-4 text-primary/60 shrink-0" />
                 <div>
                   <p className="text-[10px] text-muted-foreground">Market Value</p>
-                  <p className="text-sm font-bold text-foreground">{formatValue(player.value)}</p>
+                  <p className="text-sm font-bold text-foreground">{formatMoney(player.value)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2">
@@ -176,7 +173,7 @@ export function GemRevealModal() {
             {listing && (
               <div className="flex items-center justify-between bg-muted/20 rounded-lg px-3 py-2">
                 <span className="text-xs text-muted-foreground">Asking Price</span>
-                <span className="text-sm font-bold text-primary">{formatValue(listing.askingPrice)}</span>
+                <span className="text-sm font-bold text-primary">{formatMoney(listing.askingPrice)}</span>
               </div>
             )}
 
@@ -184,7 +181,8 @@ export function GemRevealModal() {
             <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
               <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0" />
               <p className="text-xs text-emerald-400 font-medium">
-                {potentialGap >= 15 ? 'Generational talent — sign immediately!' :
+                {potentialGap <= 0 ? 'Already at peak — ready to contribute now' :
+                 potentialGap >= 15 ? 'Generational talent — sign immediately!' :
                  potentialGap >= 10 ? 'Exceptional potential — a star in the making' :
                  'Quality prospect — could become a key player'}
               </p>
