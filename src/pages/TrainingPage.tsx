@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
-import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronUp, Trophy, AlertTriangle, TrendingUp, Heart } from 'lucide-react';
+import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronUp, Trophy, AlertTriangle, TrendingUp, Heart, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TrainingModule } from '@/types/game';
 import { PageHint } from '@/components/game/PageHint';
@@ -39,12 +39,21 @@ const ATTR_LABELS: Record<string, string> = {
   pace: 'PAC', shooting: 'SHO', passing: 'PAS', defending: 'DEF', physical: 'PHY', mental: 'MEN',
 };
 
+const MODULE_COLORS: Record<string, { bg: string; border: string; text: string; dot: string }> = {
+  'fitness': { bg: 'bg-emerald-500/15', border: 'border-emerald-500/40', text: 'text-emerald-400', dot: 'bg-emerald-400' },
+  'attacking': { bg: 'bg-red-500/15', border: 'border-red-500/40', text: 'text-red-400', dot: 'bg-red-400' },
+  'defending': { bg: 'bg-blue-500/15', border: 'border-blue-500/40', text: 'text-blue-400', dot: 'bg-blue-400' },
+  'mentality': { bg: 'bg-purple-500/15', border: 'border-purple-500/40', text: 'text-purple-400', dot: 'bg-purple-400' },
+  'set-pieces': { bg: 'bg-amber-500/15', border: 'border-amber-500/40', text: 'text-amber-400', dot: 'bg-amber-400' },
+  'tactical': { bg: 'bg-primary/15', border: 'border-primary/40', text: 'text-primary', dot: 'bg-primary' },
+};
+
 const TrainingPage = () => {
   const { training, updateTraining, updateDrillSchedule, setIndividualTraining, players, clubs, playerClubId, selectPlayer, setScreen, staff } = useGameStore();
   const { schedule, intensity, tacticalFamiliarity } = training;
   const club = clubs[playerClubId];
   const [showAllDev, setShowAllDev] = useState(false);
-  const [expandedDay, setExpandedDay] = useState<typeof DAYS[number] | null>(null);
+  const [activeDay, setActiveDay] = useState<typeof DAYS[number]>('mon');
   const [showIndividualTraining, setShowIndividualTraining] = useState(false);
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
 
@@ -62,12 +71,12 @@ const TrainingPage = () => {
   const handleDayChange = (day: typeof DAYS[number], mod: TrainingModule) => {
     hapticLight();
     updateTraining({ [day]: mod });
-    setExpandedDay(day); // Open drill picker for this day
   };
 
   const handleDrillChange = (day: typeof DAYS[number], drillId: string) => {
     hapticLight();
-    updateDrillSchedule({ [day]: drillId });
+    const isAlreadySelected = training.drillSchedule?.[day] === drillId;
+    updateDrillSchedule({ [day]: isAlreadySelected ? undefined : drillId });
   };
 
   const handleIntensity = (val: 'light' | 'medium' | 'heavy') => {
@@ -78,6 +87,7 @@ const TrainingPage = () => {
   const handlePreset = (preset: typeof TRAINING_PRESETS[number]) => {
     hapticLight();
     updateTraining(preset.schedule);
+    setActiveDay('mon');
   };
 
   const handleSetIndividualFocus = (playerId: string, focus: TrainingModule | null) => {
@@ -219,79 +229,150 @@ const TrainingPage = () => {
         {/* Weekly Schedule with Drills */}
         <GlassPanel className="p-4">
           <h3 className="text-sm font-semibold text-foreground mb-3">Weekly Schedule</h3>
-          <div className="space-y-2">
+
+          {/* Day Tab Bar */}
+          <div className="flex relative">
             {DAYS.map((day, i) => {
-              const current = schedule[day];
-              const currentDrill = training.drillSchedule?.[day];
-              const drills = DRILLS_BY_MODULE[current];
-              const isExpanded = expandedDay === day;
+              const isActive = activeDay === day;
+              const dayModule = schedule[day];
+              const dayInfo = MODULE_INFO.find(m => m.module === dayModule);
+              const DayIcon = dayInfo?.icon || Dumbbell;
+              const colors = MODULE_COLORS[dayModule] || MODULE_COLORS['fitness'];
               return (
-                <div key={day}>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => { hapticLight(); setExpandedDay(isExpanded ? null : day); }}
-                      className="text-xs text-muted-foreground w-8 shrink-0 hover:text-foreground transition-colors"
-                    >
-                      {DAY_LABELS[i]}
-                    </button>
-                    <div className="flex gap-1.5 flex-1 overflow-x-auto">
-                      {MODULE_INFO.map(({ module, label, icon: Icon }) => (
-                        <button
-                          key={module}
-                          onClick={() => handleDayChange(day, module)}
-                          className={cn(
-                            'flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all shrink-0',
-                            current === module
-                              ? 'bg-primary/20 text-primary border border-primary/30'
-                              : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                          )}
-                        >
-                          <Icon className="w-3 h-3" />
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                <button
+                  key={day}
+                  onClick={() => { hapticLight(); setActiveDay(day); }}
+                  className={cn(
+                    'flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-lg transition-all relative',
+                    isActive ? 'bg-muted/40' : 'hover:bg-muted/20'
+                  )}
+                >
+                  <span className={cn(
+                    'text-[11px] font-semibold transition-colors',
+                    isActive ? 'text-foreground' : 'text-muted-foreground'
+                  )}>
+                    {DAY_LABELS[i]}
+                  </span>
+                  <div className={cn(
+                    'w-7 h-7 rounded-full flex items-center justify-center transition-all',
+                    colors.bg, 'border', colors.border
+                  )}>
+                    <DayIcon className={cn('w-3.5 h-3.5', colors.text)} />
                   </div>
-                  {/* Drill sub-selector */}
-                  <AnimatePresence>
-                    {isExpanded && drills.length > 0 && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="flex gap-1.5 ml-11 mt-1.5 overflow-x-auto pb-1">
-                          {drills.map(drill => {
-                            const isSelected = currentDrill === drill.id;
-                            const weights = Object.entries(drill.attrWeights)
-                              .map(([a, w]) => `${ATTR_LABELS[a] || a} ${Math.round((w || 0) * 100)}%`)
-                              .join(' · ');
-                            return (
-                              <button
-                                key={drill.id}
-                                onClick={() => handleDrillChange(day, drill.id)}
-                                className={cn(
-                                  'flex flex-col items-start px-2.5 py-1.5 rounded-lg text-left transition-all shrink-0 min-w-[120px]',
-                                  isSelected
-                                    ? 'bg-primary/15 border border-primary/30'
-                                    : 'bg-muted/20 border border-transparent hover:bg-muted/40'
-                                )}
-                              >
-                                <span className={cn('text-[10px] font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>
-                                  {drill.name}
-                                </span>
-                                <span className="text-[8px] text-muted-foreground mt-0.5">{weights}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                  {isActive && (
+                    <motion.div
+                      layoutId="dayIndicator"
+                      className="absolute -bottom-0.5 left-2 right-2 h-0.5 bg-primary rounded-full"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </button>
               );
             })}
+          </div>
+
+          {/* Module Picker Grid — 3 columns × 2 rows */}
+          <div className="grid grid-cols-3 gap-2 mt-4">
+            {MODULE_INFO.map(({ module, label, icon: Icon }) => {
+              const isSelected = schedule[activeDay] === module;
+              const colors = MODULE_COLORS[module] || MODULE_COLORS['fitness'];
+              return (
+                <motion.button
+                  key={module}
+                  onClick={() => handleDayChange(activeDay, module)}
+                  whileTap={{ scale: 0.95 }}
+                  className={cn(
+                    'flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all',
+                    isSelected
+                      ? cn(colors.bg, colors.border)
+                      : 'bg-muted/20 border-transparent hover:bg-muted/40'
+                  )}
+                >
+                  <Icon className={cn('w-5 h-5', isSelected ? colors.text : 'text-muted-foreground')} />
+                  <span className={cn(
+                    'text-[11px] font-semibold',
+                    isSelected ? colors.text : 'text-muted-foreground'
+                  )}>
+                    {label}
+                  </span>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Drill Picker — vertical stack */}
+          {DRILLS_BY_MODULE[schedule[activeDay]]?.length > 0 && (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`${activeDay}-${schedule[activeDay]}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-1.5 mt-3"
+              >
+                <p className="text-[10px] text-muted-foreground mb-1">Optional: pick a specific drill focus</p>
+                {DRILLS_BY_MODULE[schedule[activeDay]].map(drill => {
+                  const isSelected = training.drillSchedule?.[activeDay] === drill.id;
+                  const weights = Object.entries(drill.attrWeights)
+                    .map(([a, w]) => `${ATTR_LABELS[a] || a} ${Math.round((w || 0) * 100)}%`)
+                    .join(' · ');
+                  return (
+                    <motion.button
+                      key={drill.id}
+                      onClick={() => handleDrillChange(activeDay, drill.id)}
+                      whileTap={{ scale: 0.98 }}
+                      className={cn(
+                        'flex items-center justify-between w-full px-3 py-2.5 rounded-lg border transition-all text-left',
+                        isSelected
+                          ? 'bg-primary/10 border-primary/30'
+                          : 'bg-muted/15 border-transparent hover:bg-muted/30'
+                      )}
+                    >
+                      <div className="flex flex-col">
+                        <span className={cn('text-xs font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>
+                          {drill.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground mt-0.5">{weights}</span>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-primary shrink-0" />
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </motion.div>
+            </AnimatePresence>
+          )}
+
+          {/* Week Summary Strip */}
+          <div className="border-t border-border/30 pt-3 mt-3">
+            <div className="flex">
+              {DAYS.map((day, i) => {
+                const dayModule = schedule[day];
+                const dayInfo = MODULE_INFO.find(m => m.module === dayModule);
+                const colors = MODULE_COLORS[dayModule] || MODULE_COLORS['fitness'];
+                const isActive = activeDay === day;
+                return (
+                  <button
+                    key={day}
+                    onClick={() => { hapticLight(); setActiveDay(day); }}
+                    className={cn(
+                      'flex-1 flex flex-col items-center gap-0.5 py-1 rounded transition-colors',
+                      isActive ? 'bg-muted/30' : 'hover:bg-muted/20'
+                    )}
+                  >
+                    <span className="text-[9px] text-muted-foreground">{DAY_LABELS[i]}</span>
+                    <div className="flex items-center gap-1">
+                      <div className={cn('w-1.5 h-1.5 rounded-full', colors.dot)} />
+                      <span className={cn('text-[9px] font-medium', colors.text)}>
+                        {dayInfo?.label.slice(0, 3) || '???'}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </GlassPanel>
 
