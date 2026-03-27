@@ -14,9 +14,10 @@ import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getDerbyName, getDerbyIntensity } from '@/data/league';
 import { getSuffix } from '@/utils/helpers';
 import { motion } from 'framer-motion';
+import type { Club } from '@/types/game';
 
 const MatchReview = () => {
-  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, advanceWeek, setScreen, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition } = useGameStore();
+  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, advanceWeek, setScreen, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs } = useGameStore();
   const userIsPro = isPro(monetization);
   const [isAdvancing, setIsAdvancing] = useState(false);
 
@@ -35,8 +36,19 @@ const MatchReview = () => {
   }
 
   const match = currentMatchResult;
-  const homeClub = clubs[match.homeClubId];
-  const awayClub = clubs[match.awayClubId];
+  const homeClub = clubs[match.homeClubId] || (virtualClubs?.[match.homeClubId] ? { id: match.homeClubId, name: virtualClubs[match.homeClubId].name, shortName: virtualClubs[match.homeClubId].shortName, color: virtualClubs[match.homeClubId].color, secondaryColor: virtualClubs[match.homeClubId].secondaryColor } as Club : null);
+  const awayClub = clubs[match.awayClubId] || (virtualClubs?.[match.awayClubId] ? { id: match.awayClubId, name: virtualClubs[match.awayClubId].name, shortName: virtualClubs[match.awayClubId].shortName, color: virtualClubs[match.awayClubId].color, secondaryColor: virtualClubs[match.awayClubId].secondaryColor } as Club : null);
+  if (!homeClub || !awayClub) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-4">
+        <GlassPanel className="p-6 text-center">
+          <Calendar className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+          <p className="text-sm text-muted-foreground">Unable to load match data</p>
+          <Button variant="secondary" className="mt-3" onClick={() => setScreen('dashboard')}>Back to Dashboard</Button>
+        </GlassPanel>
+      </div>
+    );
+  }
   const isHome = match.homeClubId === playerClubId;
   const homeBarColor = homeClub.color;
   const awayBarColor = areColorsSimilar(homeClub.color, awayClub.color) ? '#FFFFFF' : awayClub.color;
@@ -130,7 +142,7 @@ const MatchReview = () => {
             <div className="relative pl-4 border-l border-border/50 space-y-3">
               {highlights.map((ev, i) => {
                 const evPlayer = ev.playerId ? players[ev.playerId] : null;
-                const evClub = clubs[ev.clubId];
+                const evClub = clubs[ev.clubId] || (virtualClubs?.[ev.clubId] ? { color: virtualClubs[ev.clubId].color } as Partial<Club> : null);
                 return (
                   <motion.div
                     key={`${ev.type}-${ev.minute}-${i}`}

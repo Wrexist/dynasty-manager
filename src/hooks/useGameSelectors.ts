@@ -71,7 +71,7 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
       const syntheticMatch = { id: 'tournament', week: s.week, homeClubId: tourneyMatch.homeClubId, awayClubId: tourneyMatch.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
       const isHome = tourneyMatch.homeClubId === s.playerClubId;
       const oppId = isHome ? tourneyMatch.awayClubId : tourneyMatch.homeClubId;
-      const opponent = s.clubs[oppId] || (s.virtualClubs?.[oppId] ? { id: oppId, name: s.virtualClubs[oppId].name, shortName: s.virtualClubs[oppId].shortName, color: s.virtualClubs[oppId].color } as Club : undefined);
+      const opponent = s.clubs[oppId] || (s.virtualClubs?.[oppId] ? { id: oppId, name: s.virtualClubs[oppId].name, shortName: s.virtualClubs[oppId].shortName, color: s.virtualClubs[oppId].color, secondaryColor: s.virtualClubs[oppId].secondaryColor } as Club : undefined);
       return { match: syntheticMatch, isHome, opponent, competition: tourneyMatch.competition };
     }
     return { match: undefined, isHome: false, opponent: undefined };

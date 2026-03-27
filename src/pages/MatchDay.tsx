@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubstitutionSheet } from '@/components/game/SubstitutionSheet';
 import { Button } from '@/components/ui/button';
-import { MatchEvent, Match, Club, ContinentalTournamentState } from '@/types/game';
+import { MatchEvent, Match, Club, ContinentalTournamentState, VirtualClub } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy } from 'lucide-react';
@@ -69,6 +69,13 @@ function getEnrichedDescription(ev: MatchEvent, events: MatchEvent[], homeClubId
   return enrichDescription(ev, { homeGoals: hg, awayGoals: ag, homeClubId, isPlayerHome, minute: ev.minute });
 }
 
+/** Build a minimal Club object from virtualClubs data when clubs[] doesn't have the entry */
+function buildVirtualClubFallback(virtualClubs: Record<string, VirtualClub> | undefined, clubId: string): Club | null {
+  const vc = virtualClubs?.[clubId];
+  if (!vc) return null;
+  return { id: clubId, name: vc.name, shortName: vc.shortName, color: vc.color, secondaryColor: vc.secondaryColor } as Club;
+}
+
 const MatchDay = () => {
   const store = useGameStore();
   const { playerClubId, week, clubs, playFirstHalf, playSecondHalf, playExtraTime, playPenalties, setScreen, matchSubsUsed, tactics, setTactics, cup } = store;
@@ -129,8 +136,8 @@ const MatchDay = () => {
   const matchCacheRef = useRef<{ match: Match; homeClub: Club; awayClub: Club } | null>(null);
 
   const match = matchCacheRef.current?.match ?? liveMatch ?? cupMatch ?? leagueCupMatch ?? continentalMatch ?? superCupMatch;
-  const homeClub = matchCacheRef.current?.homeClub ?? (match ? clubs[match.homeClubId] : null);
-  const awayClub = matchCacheRef.current?.awayClub ?? (match ? clubs[match.awayClubId] : null);
+  const homeClub = matchCacheRef.current?.homeClub ?? (match ? (clubs[match.homeClubId] || buildVirtualClubFallback(store.virtualClubs, match.homeClubId)) : null);
+  const awayClub = matchCacheRef.current?.awayClub ?? (match ? (clubs[match.awayClubId] || buildVirtualClubFallback(store.virtualClubs, match.awayClubId)) : null);
   // No useEffect needed — PostMatchPopup now navigates directly to Match Review
 
   // No auto-start — show "Ready to Kick Off?" screen instead
