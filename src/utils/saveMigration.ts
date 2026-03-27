@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 29;
+const CURRENT_VERSION = 30;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -389,7 +389,7 @@ const migrations: Record<number, MigrationFn> = {
       version: 28,
       careerManager: cm ? {
         ...cm,
-        appearance: cm.appearance ?? { skinTone: 0, hairStyle: 1, hairColor: 0, suitColor: '#1a1a2e' },
+        appearance: cm.appearance ?? { gender: 'male', skinTone: 0, faceShape: 1, eyeStyle: 0, hairStyle: 1, hairColor: 0, facialHair: 0, glasses: 0, outfit: 0, outfitColor: '#1a1a2e', tieColor: '#D4A017', accessory: 0 },
       } : null,
     };
   },
@@ -406,6 +406,29 @@ const migrations: Record<number, MigrationFn> = {
     domesticSuperCup: data.domesticSuperCup || null,
     continentalSuperCup: data.continentalSuperCup || null,
   }),
+
+  // v29 → v30: Expanded manager appearance (gender, face shape, eyes, facial hair, glasses, outfit, accessories)
+  29: (data) => {
+    const cm = data.careerManager as Record<string, unknown> | null;
+    if (cm?.appearance) {
+      const old = cm.appearance as Record<string, unknown>;
+      cm.appearance = {
+        gender: 'male',
+        skinTone: old.skinTone ?? 0,
+        faceShape: 1,           // oval default
+        eyeStyle: 0,            // default
+        hairStyle: old.hairStyle ?? 1,
+        hairColor: old.hairColor ?? 0,
+        facialHair: 0,          // none
+        glasses: 0,             // none
+        outfit: 0,              // suit (preserves current look)
+        outfitColor: old.suitColor || '#1a1a2e',
+        tieColor: '#D4A017',    // gold (matches previous hardcoded tie)
+        accessory: 0,           // none
+      };
+    }
+    return { ...data, version: 30 };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
