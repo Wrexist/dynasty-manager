@@ -155,3 +155,14 @@ export function getChanceLabel(chance: number): string {
   if (chance >= 0.08) return 'Unlikely';
   return 'Very Unlikely';
 }
+
+export function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+
+export function areColorsSimilar(c1: string, c2: string, threshold = 80): boolean {
+  const [r1, g1, b1] = hexToRgb(c1);
+  const [r2, g2, b2] = hexToRgb(c2);
+  return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2) < threshold;
+}

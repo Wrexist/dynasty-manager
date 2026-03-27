@@ -19,6 +19,7 @@ import { infoToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
 import { getActiveCosmetic } from '@/utils/monetization';
+import { areColorsSimilar } from '@/utils/uiHelpers';
 
 const isGoalEvent = (e: MatchEvent) => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored';
 
@@ -343,6 +344,7 @@ const MatchDay = () => {
   const stadiumTheme = getActiveCosmetic(store.monetization, 'stadium_theme');
   const isPlayerHome = match?.homeClubId === playerClubId;
   const venueClub = match ? clubs[match.homeClubId] : null;
+  const awayBarColor = homeClub && awayClub && areColorsSimilar(homeClub.color, awayClub.color) ? '#FFFFFF' : awayClub?.color;
 
   return (
     <div className={cn("max-w-lg mx-auto px-4 py-4 space-y-3", stadiumTheme && `stadium-${stadiumTheme.replace('stadium-', '')}`)}>
@@ -411,7 +413,7 @@ const MatchDay = () => {
             />
             <div
               className={cn('rounded-full transition-all duration-700 flex-1', currentMomentum < -70 && 'animate-pulse')}
-              style={{ backgroundColor: awayClub.color, ...(currentMomentum < -70 ? { boxShadow: `0 0 12px ${awayClub.color}` } : {}) }}
+              style={{ backgroundColor: awayBarColor, ...(currentMomentum < -70 ? { boxShadow: `0 0 12px ${awayBarColor}` } : {}) }}
             />
           </div>
         </div>
