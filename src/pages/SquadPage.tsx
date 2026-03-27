@@ -20,20 +20,24 @@ const SUBNAV_ITEMS = [
   { screen: 'youth-academy' as const, label: 'Youth' },
 ];
 
-type SortKey = 'overall' | 'age' | 'value' | 'fitness' | 'morale' | 'wage' | 'form';
-type StatusFilter = 'injured' | 'listed' | 'expiring';
+type SortKey = 'overall' | 'potential' | 'age' | 'value' | 'fitness' | 'morale' | 'wage' | 'form';
+type StatusFilter = 'injured' | 'listed' | 'expiring' | 'onLoan' | 'youth' | 'starters' | 'bench' | 'unhappy';
 
-const SORT_OPTIONS: SortKey[] = ['overall', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
+const SORT_OPTIONS: SortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
 
 const SquadPage = () => {
   const { playerClubId, clubs, players, selectPlayer, listPlayerForSale, season, training } = useGameStore();
   const [posFilter, setPosFilter] = useState(0);
   const [sortBy, setSortBy] = useState<SortKey>('overall');
+  const [sortAsc, setSortAsc] = useState(false);
   const [statusFilters, setStatusFilters] = useState<Set<StatusFilter>>(new Set());
 
   const club = clubs[playerClubId];
 
   const fullSquad = useMemo(() => (club?.playerIds || []).map(id => players[id]).filter(Boolean), [club?.playerIds, players]);
+
+  const lineupSet = useMemo(() => new Set(club?.lineup || []), [club?.lineup]);
+  const subsSet = useMemo(() => new Set(club?.subs || []), [club?.subs]);
 
   // Position group counts for depth summary
   const depthCounts = useMemo(() => ({
@@ -68,22 +72,40 @@ const SquadPage = () => {
     if (statusFilters.has('expiring')) {
       filtered = filtered.filter(p => p.contractEnd <= season);
     }
+    if (statusFilters.has('onLoan')) {
+      filtered = filtered.filter(p => p.onLoan);
+    }
+    if (statusFilters.has('youth')) {
+      filtered = filtered.filter(p => p.isFromYouthAcademy);
+    }
+    if (statusFilters.has('starters')) {
+      filtered = filtered.filter(p => lineupSet.has(p.id));
+    }
+    if (statusFilters.has('bench')) {
+      filtered = filtered.filter(p => subsSet.has(p.id));
+    }
+    if (statusFilters.has('unhappy')) {
+      filtered = filtered.filter(p => p.wantsToLeave);
+    }
 
     filtered.sort((a, b) => {
+      let cmp: number;
       switch (sortBy) {
-        case 'overall': return b.overall - a.overall;
-        case 'age': return a.age - b.age;
-        case 'value': return b.value - a.value;
-        case 'fitness': return b.fitness - a.fitness;
-        case 'morale': return b.morale - a.morale;
-        case 'wage': return b.wage - a.wage;
-        case 'form': return b.form - a.form;
-        default: return 0;
+        case 'overall': cmp = b.overall - a.overall; break;
+        case 'potential': cmp = b.potential - a.potential; break;
+        case 'age': cmp = a.age - b.age; break;
+        case 'value': cmp = b.value - a.value; break;
+        case 'fitness': cmp = b.fitness - a.fitness; break;
+        case 'morale': cmp = b.morale - a.morale; break;
+        case 'wage': cmp = b.wage - a.wage; break;
+        case 'form': cmp = b.form - a.form; break;
+        default: cmp = 0;
       }
+      return sortAsc ? -cmp : cmp;
     });
 
     return filtered;
-  }, [fullSquad, posFilter, statusFilters, sortBy, season]);
+  }, [fullSquad, posFilter, statusFilters, sortBy, sortAsc, season, lineupSet, subsSet]);
 
   const avgOverall = useMemo(() => fullSquad.length > 0
     ? Math.round(fullSquad.reduce((s, p) => s + p.overall, 0) / fullSquad.length)
@@ -180,17 +202,22 @@ const SquadPage = () => {
         </div>
 
         {/* Status Filters */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           {([
             { key: 'injured' as StatusFilter, label: 'Injured' },
             { key: 'listed' as StatusFilter, label: 'Listed' },
             { key: 'expiring' as StatusFilter, label: 'Expiring' },
+            { key: 'starters' as StatusFilter, label: 'Starters' },
+            { key: 'bench' as StatusFilter, label: 'Bench' },
+            { key: 'onLoan' as StatusFilter, label: 'On Loan' },
+            { key: 'youth' as StatusFilter, label: 'Youth' },
+            { key: 'unhappy' as StatusFilter, label: 'Unhappy' },
           ]).map(({ key, label }) => (
             <button
               key={key}
               onClick={() => toggleStatus(key)}
               className={cn(
-                'px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors border',
+                'px-2.5 py-1 rounded-lg text-[10px] font-medium transition-colors border whitespace-nowrap shrink-0',
                 statusFilters.has(key)
                   ? 'border-primary/50 bg-primary/10 text-primary'
                   : 'border-border/30 bg-muted/30 text-muted-foreground'
@@ -206,13 +233,21 @@ const SquadPage = () => {
           {SORT_OPTIONS.map(s => (
             <button
               key={s}
-              onClick={() => { hapticLight(); setSortBy(s); }}
+              onClick={() => {
+                hapticLight();
+                if (sortBy === s) {
+                  setSortAsc(prev => !prev);
+                } else {
+                  setSortBy(s);
+                  setSortAsc(s === 'age');
+                }
+              }}
               className={cn(
                 'px-2 py-1 rounded text-[10px] uppercase tracking-wider transition-colors whitespace-nowrap shrink-0 active:scale-[0.95]',
                 sortBy === s ? 'text-primary font-bold' : 'text-muted-foreground'
               )}
             >
-              {s}
+              {s}{sortBy === s ? (sortAsc ? ' ↑' : ' ↓') : ''}
             </button>
           ))}
         </div>
@@ -263,6 +298,12 @@ const SquadPage = () => {
                       {player.position}
                     </span>
                     <span className="text-[10px] text-muted-foreground tabular-nums">{player.age}y</span>
+                    {lineupSet.has(player.id) && (
+                      <span className="text-[8px] font-bold text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">XI</span>
+                    )}
+                    {subsSet.has(player.id) && (
+                      <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded">SUB</span>
+                    )}
                     {(training.individualPlans || []).some(p => p.playerId === player.id) && (
                       <Dumbbell className="w-3 h-3 text-primary/70 shrink-0" title="Individual training plan set" />
                     )}
