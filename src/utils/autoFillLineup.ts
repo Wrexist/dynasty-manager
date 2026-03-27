@@ -22,6 +22,21 @@ import {
   LINEUP_CHEMISTRY_SCORE_SCALE as CHEMISTRY_SCORE_SCALE,
   LINEUP_SWAP_OPTIMIZATION_PASSES as SWAP_OPTIMIZATION_PASSES,
   LINEUP_BENCH_POSITION_PRIORITY as BENCH_POSITION_PRIORITY,
+  BENCH_VERSATILITY_BONUS_PER_SLOT,
+  BENCH_FRESHNESS_DIFF_WEIGHT,
+  BENCH_HIGH_FORM_THRESHOLD,
+  BENCH_HIGH_FORM_BONUS,
+  BENCH_YELLOW_CARD_COVER_BONUS,
+  BENCH_REINJURY_COVER_BONUS,
+  BENCH_ATTACKER_IMPACT_BONUS,
+  BENCH_DEFENDER_INSURANCE_BONUS,
+  BENCH_ATTRIBUTE_IMPACT_WEIGHT,
+  BENCH_YOUNG_ENERGY_THRESHOLD,
+  BENCH_YOUNG_ENERGY_BONUS,
+  BENCH_TIER_EMERGENCY,
+  BENCH_TIER_IMPACT,
+  BENCH_VULNERABLE_STARTER_COUNT,
+  BENCH_STARTER_TIRED_THRESHOLD,
 } from '@/config/lineupOptimization';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 
@@ -246,61 +261,218 @@ export function autoFillBestTeam(
     }
   }
 
-  // ── Phase 5: Smart bench selection ──
+  // ── Phase 5: Smart bench selection with strategic ordering ──
   const finalLineup = lineup.filter(Boolean) as Player[];
   const lineupPositions = new Set(finalLineup.map(p => p.position));
   const remaining = available.filter(p => !used.has(p.id));
 
-  // Positions used in the current formation (for formation-aware gap detection)
+  // Positions used in the current formation
   const formationPositions = new Set(slots.map(s => s.pos));
+  const uniqueFormationPositions = [...formationPositions] as Position[];
 
-  // Find starters with lowest fitness (most likely to need subbing)
-  const startersByFitness = [...finalLineup].sort((a, b) => a.fitness - b.fitness);
-  const subNeedPositions = new Set(startersByFitness.slice(0, 3).map(p => p.position));
+  // ── Starter vulnerability analysis ──
+  // Map each formation slot position to the starter occupying it and their vulnerability
+  const starterInSlot: { player: Player; slotPos: Position }[] = [];
+  for (let i = 0; i < slots.length; i++) {
+    const p = lineup[i];
+    if (p) starterInSlot.push({ player: p, slotPos: slots[i].pos });
+  }
 
-  // Ensure GK backup
+  // Find the most vulnerable starters (low fitness, yellow card risk, reinjury risk)
+  const starterVulnerability = starterInSlot.map(({ player: p, slotPos }) => {
+    let vulnerability = 0;
+    if (p.fitness < BENCH_STARTER_TIRED_THRESHOLD) vulnerability += (BENCH_STARTER_TIRED_THRESHOLD - p.fitness);
+    if (p.yellowCards >= YELLOW_CARD_HIGH_THRESHOLD) vulnerability += 20;
+    if (p.injuryDetails?.reinjuryWeeksRemaining && p.injuryDetails.reinjuryWeeksRemaining > 0) vulnerability += 15;
+    if (p.morale < LOW_MORALE_THRESHOLD) vulnerability += 10;
+    return { player: p, slotPos, vulnerability };
+  }).sort((a, b) => b.vulnerability - a.vulnerability);
+
+  const mostVulnerableStarters = starterVulnerability.slice(0, BENCH_VULNERABLE_STARTER_COUNT);
+  const subNeedPositions = new Set(mostVulnerableStarters.map(s => s.slotPos));
+
+  // Starters with yellow card suspension risk
+  const yellowCardRiskSlots = starterInSlot
+    .filter(s => s.player.yellowCards >= YELLOW_CARD_HIGH_THRESHOLD)
+    .map(s => s.slotPos);
+
+  // Starters with reinjury risk
+  const reinjuryRiskSlots = starterInSlot
+    .filter(s => s.player.injuryDetails?.reinjuryWeeksRemaining && s.player.injuryDetails.reinjuryWeeksRemaining > 0)
+    .map(s => s.slotPos);
+
+  // Attacking and defensive position sets (mirrors match engine)
+  const attackingPositions: Position[] = ['ST', 'LW', 'RW', 'CAM'];
+  const defensivePositions: Position[] = ['CB', 'CDM', 'LB', 'RB'];
+
   const hasGKInLineup = finalLineup.some(p => p.position === 'GK');
-  const backupGKAvailable = remaining.find(p => p.position === 'GK');
 
+  // ── Helper: check if a player can cover a specific formation slot position ──
+  const canCoverPosition = (playerPos: Position, targetPos: Position): boolean => {
+    if (playerPos === targetPos) return true;
+    const compat = POSITION_COMPATIBILITY[playerPos];
+    return compat ? compat.includes(targetPos) : false;
+  };
+
+  // ── Helper: count how many unique formation positions this player can fill ──
+  const countFormationCoverage = (playerPos: Position): number => {
+    let count = 0;
+    for (const pos of uniqueFormationPositions) {
+      if (canCoverPosition(playerPos, pos)) count++;
+    }
+    return count;
+  };
+
+  // ── Helper: best freshness differential vs starters this player could replace ──
+  const getBestFreshnessDiff = (player: Player): number => {
+    let bestDiff = 0;
+    for (const { player: starter, slotPos } of starterInSlot) {
+      if (canCoverPosition(player.position, slotPos)) {
+        const diff = player.fitness - starter.fitness;
+        if (diff > bestDiff) bestDiff = diff;
+      }
+    }
+    return bestDiff;
+  };
+
+  // ── Helper: attribute-based impact score based on position role in match engine ──
+  const getAttributeImpact = (p: Player): number => {
+    const a = p.attributes;
+    if (attackingPositions.includes(p.position)) {
+      return (a.shooting + a.pace) * BENCH_ATTRIBUTE_IMPACT_WEIGHT;
+    }
+    if (defensivePositions.includes(p.position)) {
+      return (a.defending + a.physical) * BENCH_ATTRIBUTE_IMPACT_WEIGHT;
+    }
+    // Midfield (CM, LM, RM)
+    return (a.passing + a.mental) * BENCH_ATTRIBUTE_IMPACT_WEIGHT;
+  };
+
+  // ── Score every bench candidate ──
   const benchCandidates = remaining.map(p => {
     const isGKBackup = p.position === 'GK' && hasGKInLineup;
 
-    // Only count as covering a gap if the position is actually used in the formation
+    // Base quality rating
+    const baseRating = p.overall * 0.7 + (p.form / 100) * 15 + (p.fitness / 100) * 10 + (p.morale / 100) * 5;
+
+    // Positional versatility: how many formation slots can this player cover?
+    const formationCoverage = countFormationCoverage(p.position);
+    const versatilityScore = formationCoverage * BENCH_VERSATILITY_BONUS_PER_SLOT;
+
+    // Freshness differential: how much fitter is this sub vs the weakest starter they'd replace?
+    const freshnessDiff = getBestFreshnessDiff(p);
+    const freshnessScore = Math.max(0, freshnessDiff) * BENCH_FRESHNESS_DIFF_WEIGHT;
+
+    // Form momentum: in-form players are impact subs
+    const formBonus = p.form >= BENCH_HIGH_FORM_THRESHOLD ? BENCH_HIGH_FORM_BONUS : 0;
+
+    // Yellow card insurance: can this player cover a starter at suspension risk?
+    const coversYellowRisk = yellowCardRiskSlots.some(pos => canCoverPosition(p.position, pos));
+    const yellowCoverScore = coversYellowRisk ? BENCH_YELLOW_CARD_COVER_BONUS : 0;
+
+    // Reinjury risk coverage: can this player cover a starter with reinjury risk?
+    const coversReinjury = reinjuryRiskSlots.some(pos => canCoverPosition(p.position, pos));
+    const reinjuryCoverScore = coversReinjury ? BENCH_REINJURY_COVER_BONUS : 0;
+
+    // Tactical role bonus: attackers for chasing games, defenders for protecting leads
+    const isAttacker = attackingPositions.includes(p.position);
+    const isDefender = defensivePositions.includes(p.position);
+    const tacticalRoleBonus = isAttacker ? BENCH_ATTACKER_IMPACT_BONUS : isDefender ? BENCH_DEFENDER_INSURANCE_BONUS : 0;
+
+    // Attribute-based impact (mirrors match engine scoring weights)
+    const attributeImpact = getAttributeImpact(p);
+
+    // Sub-need coverage: covers one of the most vulnerable starters
+    const coversSubNeed = [...subNeedPositions].some(pos => canCoverPosition(p.position, pos));
+
+    // Formation gap: position not represented in lineup but exists in formation
     const coversFormationGap = !lineupPositions.has(p.position) && formationPositions.has(p.position);
 
-    // Can substitute for a low-fitness starter
-    const coversSubNeed = subNeedPositions.has(p.position) ||
-      (POSITION_COMPATIBILITY[p.position] || []).some(pos => subNeedPositions.has(pos));
-
+    // Position priority (base value from config)
     const positionPriority = BENCH_POSITION_PRIORITY[p.position] || 1;
 
-    const priority =
-      (isGKBackup ? 100 : 0) +
-      (coversFormationGap ? 15 : 0) +
+    // Young energy: younger players have more stamina for late-game impact
+    const youngBonus = p.age <= BENCH_YOUNG_ENERGY_THRESHOLD ? BENCH_YOUNG_ENERGY_BONUS : 0;
+
+    // ── Total bench score ──
+    const totalScore =
+      (isGKBackup ? 1000 : 0) +  // GK backup is non-negotiable
+      baseRating +
+      versatilityScore +
+      freshnessScore +
+      formBonus +
+      yellowCoverScore +
+      reinjuryCoverScore +
+      tacticalRoleBonus +
+      attributeImpact +
       (coversSubNeed ? 8 : 0) +
-      positionPriority;
+      (coversFormationGap ? 15 : 0) +
+      positionPriority +
+      youngBonus;
 
-    // Bench rating: overall-dominant since bench players are insurance
-    const rating = p.overall * 0.7 + (p.form / 100) * 15 + (p.fitness / 100) * 10 + (p.morale / 100) * 5;
+    // ── Determine bench tier for strategic ordering ──
+    // Tier 0: Backup GK (always first)
+    // Tier 1: Emergency coverage — high versatility + covers a vulnerable starter
+    // Tier 2: Tactical impact — high form + quality + freshness (game-changers)
+    // Tier 3: Remaining quality depth
+    let tier = 3;
+    if (isGKBackup) {
+      tier = 0;
+    } else if (
+      (coversYellowRisk || coversReinjury || coversSubNeed) &&
+      formationCoverage >= 2
+    ) {
+      tier = 1;
+    } else if (
+      (p.form >= BENCH_HIGH_FORM_THRESHOLD || freshnessDiff >= 15) &&
+      p.overall >= (finalLineup.reduce((sum, s) => sum + s.overall, 0) / finalLineup.length) - 5
+    ) {
+      tier = 2;
+    }
 
-    return { player: p, priority, rating };
+    // Tier bonus ensures strategic ordering: emergency subs before impact subs before depth
+    const tierBonus = tier === 0 ? 1000 : tier === 1 ? BENCH_TIER_EMERGENCY : tier === 2 ? BENCH_TIER_IMPACT : 0;
+
+    return { player: p, totalScore, tierBonus, tier };
   });
 
+  // Sort: by tier (ascending = GK first, then emergency, then impact, then depth),
+  // then within each tier by totalScore (descending = best first)
   benchCandidates.sort((a, b) => {
-    if (b.priority !== a.priority) return b.priority - a.priority;
-    return b.rating - a.rating;
+    if (a.tier !== b.tier) return a.tier - b.tier;
+    return b.totalScore - a.totalScore;
   });
 
-  // Always include backup GK first if available
+  // ── Greedy bench filling with positional diversity ──
+  // Ensure we don't stack 3+ players of the same position on the bench
   const finalSubs: Player[] = [];
-  if (backupGKAvailable && hasGKInLineup) {
-    finalSubs.push(backupGKAvailable);
-  }
+  const benchPositionCounts: Record<string, number> = {};
 
   for (const c of benchCandidates) {
     if (finalSubs.length >= MAX_SUBS) break;
-    if (finalSubs.some(s => s.id === c.player.id)) continue;
+
+    const pos = c.player.position;
+
+    // Allow max 2 of any non-GK position on bench (GK always gets exactly 1 slot)
+    if (pos === 'GK') {
+      if (benchPositionCounts['GK']) continue; // Only 1 backup GK
+    } else if ((benchPositionCounts[pos] || 0) >= 2) {
+      continue; // Skip if we already have 2 of this position on bench
+    }
+
     finalSubs.push(c.player);
+    benchPositionCounts[pos] = (benchPositionCounts[pos] || 0) + 1;
+  }
+
+  // If we still have room after diversity cap, fill with remaining best scorers
+  if (finalSubs.length < MAX_SUBS) {
+    const subsSet = new Set(finalSubs.map(s => s.id));
+    for (const c of benchCandidates) {
+      if (finalSubs.length >= MAX_SUBS) break;
+      if (subsSet.has(c.player.id)) continue;
+      finalSubs.push(c.player);
+      subsSet.add(c.player.id);
+    }
   }
 
   const chemBonus = getChemistryBonus(finalLineup, formation, currentSeason);

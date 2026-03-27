@@ -40,3 +40,35 @@ export const LINEUP_BENCH_POSITION_PRIORITY: Record<string, number> = {
   'CDM': 3, 'CM': 3, 'CAM': 2,
   'LM': 2, 'RM': 2, 'LW': 1, 'RW': 1, 'ST': 2,
 };
+
+// ── Smart Bench Sorting ──
+/** Bonus per additional formation slot a bench player can cover (natural or compatible) */
+export const BENCH_VERSATILITY_BONUS_PER_SLOT = 3;
+/** Weight for fitness gap between bench player and the weakest positional starter they'd replace */
+export const BENCH_FRESHNESS_DIFF_WEIGHT = 0.12;
+/** Form threshold above which a bench player is considered "hot" / in-form */
+export const BENCH_HIGH_FORM_THRESHOLD = 70;
+/** Bonus for bench players with form above the hot threshold */
+export const BENCH_HIGH_FORM_BONUS = 6;
+/** Bonus for covering a starter who has 2+ yellow cards (suspension risk) */
+export const BENCH_YELLOW_CARD_COVER_BONUS = 12;
+/** Bonus for covering a starter with active reinjury risk */
+export const BENCH_REINJURY_COVER_BONUS = 10;
+/** Bonus for attacking-position bench players (game-changers when chasing) */
+export const BENCH_ATTACKER_IMPACT_BONUS = 5;
+/** Bonus for defensive-position bench players (protect-the-lead insurance) */
+export const BENCH_DEFENDER_INSURANCE_BONUS = 4;
+/** Weight for position-specific attribute impact score (shooting+pace for attackers, etc.) */
+export const BENCH_ATTRIBUTE_IMPACT_WEIGHT = 0.08;
+/** Age threshold below which bench players get a stamina/energy bonus */
+export const BENCH_YOUNG_ENERGY_THRESHOLD = 26;
+/** Bonus for younger bench players (more stamina for late-game impact) */
+export const BENCH_YOUNG_ENERGY_BONUS = 2;
+/** Tier score for emergency/coverage subs (high versatility + covers vulnerable starters) */
+export const BENCH_TIER_EMERGENCY = 200;
+/** Tier score for tactical impact subs (high form + freshness + quality) */
+export const BENCH_TIER_IMPACT = 100;
+/** Number of starters to consider as "most vulnerable" for sub-need analysis */
+export const BENCH_VULNERABLE_STARTER_COUNT = 3;
+/** Fitness threshold below which a starter is considered tired and needs cover */
+export const BENCH_STARTER_TIRED_THRESHOLD = 70;
