@@ -67,6 +67,78 @@ export function migrateLegacySave() {
   }
 }
 
+// ── Save Slot Helpers (used by orchestrationSlice) ──
+
+const MAX_SLOTS = 3;
+
+/** Read a raw save string from a slot */
+export function readSaveSlot(slot: number): string | null {
+  try { return localStorage.getItem(`dynasty-save-${slot}`); }
+  catch { return null; }
+}
+
+/** Write a raw save string to a slot, creating a backup first */
+export function writeSaveSlot(slot: number, json: string): void {
+  const existing = localStorage.getItem(`dynasty-save-${slot}`);
+  if (existing) {
+    localStorage.setItem(`dynasty-save-${slot}-backup`, existing);
+  }
+  localStorage.setItem(`dynasty-save-${slot}`, json);
+}
+
+/** Read the backup save for a slot */
+export function readSaveSlotBackup(slot: number): string | null {
+  try { return localStorage.getItem(`dynasty-save-${slot}-backup`); }
+  catch { return null; }
+}
+
+/** Promote backup to primary for a slot */
+export function promoteSaveBackup(slot: number, raw: string): void {
+  try { localStorage.setItem(`dynasty-save-${slot}`, raw); }
+  catch { /* storage unavailable */ }
+}
+
+/** Remove a save slot */
+export function removeSaveSlot(slot: number): void {
+  try { localStorage.removeItem(`dynasty-save-${slot}`); }
+  catch { /* storage unavailable */ }
+}
+
+// ── Hall of Managers persistence ──
+
+const HALL_KEY = 'dynasty-hall-of-managers';
+
+/** Read the Hall of Managers JSON string */
+export function readHallData(): string | null {
+  try { return localStorage.getItem(HALL_KEY); }
+  catch { return null; }
+}
+
+/** Write the Hall of Managers JSON string */
+export function writeHallData(json: string): void {
+  try { localStorage.setItem(HALL_KEY, json); }
+  catch { /* storage full */ }
+}
+
+// ── Delete All Data (Apple account deletion requirement) ──
+
+/** Wipe all Dynasty Manager data from localStorage */
+export function deleteAllDynastyData(): void {
+  try {
+    for (let i = 1; i <= MAX_SLOTS; i++) {
+      localStorage.removeItem(`dynasty-save-${i}`);
+      localStorage.removeItem(`dynasty-save-${i}-backup`);
+    }
+    localStorage.removeItem(HALL_KEY);
+    localStorage.removeItem(SNAPSHOT_KEY);
+    localStorage.removeItem('dynasty-save'); // legacy key
+    // Clear all flags (hints, welcome, etc.)
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('dynasty-'))
+      .forEach(k => localStorage.removeItem(k));
+  } catch { /* storage unavailable */ }
+}
+
 /** Get summaries for all 3 save slots */
 export function getSlotSummaries(): SlotSummary[] {
   migrateLegacySave();

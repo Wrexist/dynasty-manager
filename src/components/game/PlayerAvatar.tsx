@@ -17,6 +17,8 @@ function hashId(id: string): number {
   return Math.abs(hash);
 }
 
+import { memo } from 'react';
+
 interface PlayerAvatarProps {
   playerId: string;
   jerseyColor: string;
@@ -25,7 +27,7 @@ interface PlayerAvatarProps {
   isAway?: boolean;
 }
 
-export function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6, isAway = false }: PlayerAvatarProps) {
+export const PlayerAvatar = memo(function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6, isAway = false }: PlayerAvatarProps) {
   const seed = hashId(playerId);
   const skinTone = SKIN_TONES[seed % SKIN_TONES.length];
   const hairColor = HAIR_COLORS[(seed >> 4) % HAIR_COLORS.length];
@@ -125,4 +127,4 @@ export function PlayerAvatar({ playerId, jerseyColor, jerseyNumber, size = 6, is
       )}
     </g>
   );
-}
+});
