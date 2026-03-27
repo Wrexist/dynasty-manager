@@ -380,7 +380,7 @@ const ManagerCreation = () => {
 
             {/* Step: Nationality */}
             {step === 'nationality' && (
-              <div className="space-y-3">
+              <div className="space-y-3 pb-20">
                 <div className="relative mb-3">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <input
@@ -415,7 +415,6 @@ const ManagerCreation = () => {
                     </div>
                   </div>
                 ))}
-                {actionButton}
               </div>
             )}
 
@@ -765,6 +764,18 @@ const ManagerCreation = () => {
           </motion.div>
         </AnimatePresence>
       </div>
+
+      {/* Floating continue button for nationality step */}
+      {step === 'nationality' && nationality && (
+        <div className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-6">
+          <Button
+            className="w-full h-12 text-base font-bold gap-2"
+            onClick={handleNext}
+          >
+            Continue <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
