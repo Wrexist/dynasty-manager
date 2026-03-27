@@ -15,6 +15,7 @@ import { getFlag } from '@/utils/nationality';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel, getTrainingMultiplier } from '@/utils/personality';
 import { PlayerAvatar } from '@/components/game/PlayerAvatar';
+import { PlayerRadarChart } from '@/components/game/PlayerRadarChart';
 import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW } from '@/config/ui';
 import { MODULE_ATTR_MAP, STREAK_MULTIPLIERS, INDIVIDUAL_TRAINING_BONUS } from '@/config/training';
 import { getTrainingEffectivenessPreview, getStreakTier } from '@/utils/training';
@@ -445,12 +446,14 @@ const PlayerDetail = () => {
       <GlassPanel className="p-4 space-y-4">
         <p className="text-xs text-muted-foreground uppercase tracking-wider">Attributes</p>
 
+        <PlayerRadarChart attributes={player.attributes} changes={player.lastAttributeChanges} />
+
         {/* Attack */}
         <div>
           <p className="text-[10px] text-red-400/80 uppercase tracking-wider font-semibold mb-2">Attack</p>
           <div className="space-y-2">
-            <StatBar label="Pace" value={player.attributes.pace} />
-            <StatBar label="Shooting" value={player.attributes.shooting} />
+            <StatBar label="Pace" value={player.attributes.pace} change={player.lastAttributeChanges?.pace} />
+            <StatBar label="Shooting" value={player.attributes.shooting} change={player.lastAttributeChanges?.shooting} />
           </div>
         </div>
 
@@ -458,8 +461,8 @@ const PlayerDetail = () => {
         <div>
           <p className="text-[10px] text-emerald-400/80 uppercase tracking-wider font-semibold mb-2">Playmaking</p>
           <div className="space-y-2">
-            <StatBar label="Passing" value={player.attributes.passing} />
-            <StatBar label="Mental" value={player.attributes.mental} />
+            <StatBar label="Passing" value={player.attributes.passing} change={player.lastAttributeChanges?.passing} />
+            <StatBar label="Mental" value={player.attributes.mental} change={player.lastAttributeChanges?.mental} />
           </div>
         </div>
 
@@ -467,8 +470,8 @@ const PlayerDetail = () => {
         <div>
           <p className="text-[10px] text-blue-400/80 uppercase tracking-wider font-semibold mb-2">Defense</p>
           <div className="space-y-2">
-            <StatBar label="Defending" value={player.attributes.defending} />
-            <StatBar label="Physical" value={player.attributes.physical} />
+            <StatBar label="Defending" value={player.attributes.defending} change={player.lastAttributeChanges?.defending} />
+            <StatBar label="Physical" value={player.attributes.physical} change={player.lastAttributeChanges?.physical} />
           </div>
         </div>
       </GlassPanel>
