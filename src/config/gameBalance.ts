@@ -382,6 +382,10 @@ export const UNHAPPY_CONTAGION_WEEKS = 6;
 export const UNHAPPY_PERFORMANCE_PENALTY = 0.05;
 /** Morale hit to random teammates from contagion */
 export const UNHAPPY_CONTAGION_MORALE_HIT = 3;
+/** Chance (0-1) that listing an unhappy player appeases them (loyalty-weighted) */
+export const APPEASE_BASE_CHANCE = 0.12;
+/** Morale boost when an unhappy player is appeased by being listed */
+export const APPEASE_MORALE_BOOST = 25;
 
 // ── Free Agent Market ──
 /** Maximum free agents in the pool at any time */

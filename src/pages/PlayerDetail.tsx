@@ -21,6 +21,10 @@ import { MODULE_ATTR_MAP, STREAK_MULTIPLIERS, INDIVIDUAL_TRAINING_BONUS } from '
 import { getTrainingEffectivenessPreview, getStreakTier } from '@/utils/training';
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
+import { hasPerk } from '@/utils/managerPerks';
+import { getWinStreak } from '@/utils/celebrations';
+import { getLeadershipBonus } from '@/utils/personality';
+import { UNHAPPY_CONTAGION_WEEKS, STREAK_MORALE_THRESHOLD } from '@/config/gameBalance';
 
 const TRAINING_MODULE_INFO: { module: TrainingModule; label: string; icon: React.ElementType; color: string }[] = [
   { module: 'fitness', label: 'Fitness', icon: Dumbbell, color: 'text-emerald-400' },
@@ -41,12 +45,16 @@ const PlayerDetail = () => {
     incomingOffers, setScreen, selectPlayer,
     listPlayerForSale, unlistPlayer, respondToOffer, season, week, facilities, startNegotiation,
     training, setIndividualTraining, transferWindowOpen, staff,
+    fixtures, managerProgression,
   } = useGameStore();
 
   const [showApproach, setShowApproach] = useState(false);
   const [showLoanRequest, setShowLoanRequest] = useState(false);
 
   const player = selectedPlayerId ? players[selectedPlayerId] : null;
+
+  // Win streak for recovery guide (must be before early return to satisfy hook rules)
+  const currentWinStreak = useMemo(() => getWinStreak(playerClubId, fixtures), [playerClubId, fixtures]);
 
   // Training widget data (memoized, must be before early return to satisfy hooks rules)
   const trainingWidgetData = useMemo(() => {
@@ -84,8 +92,12 @@ const PlayerDetail = () => {
       unlistPlayer(player.id);
       infoToast(`${player.lastName} removed from transfer list.`);
     } else {
-      listPlayerForSale(player.id);
-      successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M`);
+      const result = listPlayerForSale(player.id);
+      if (result.appeased) {
+        successToast(`${player.lastName} appreciates your honesty!`, 'Transfer request withdrawn — morale improved.');
+      } else {
+        successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M`);
+      }
     }
   };
 
@@ -190,9 +202,147 @@ const PlayerDetail = () => {
         <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-destructive" />
           <span className="text-xs font-bold text-destructive">Transfer Request Submitted</span>
+          {(player.lowMoraleWeeks || 0) >= UNHAPPY_CONTAGION_WEEKS && (
+            <span className="text-[8px] font-bold text-destructive bg-destructive/20 px-1 py-0.5 rounded">CONTAGIOUS</span>
+          )}
           <span className="text-[10px] text-muted-foreground ml-auto">Low morale for {player.lowMoraleWeeks || 0} weeks</span>
         </div>
       )}
+
+      {/* Happiness Recovery Guide */}
+      {isOwnPlayer && (player.wantsToLeave || player.morale < 50) && (() => {
+        const playerClub = clubs[playerClubId];
+        const isInLineup = playerClub?.lineup?.includes(player.id);
+        const isInSubs = playerClub?.subs?.includes(player.id);
+        const isSuspended = player.suspendedUntilWeek && player.suspendedUntilWeek > week;
+        const playingTimePct = player.appearances / Math.max(1, week) * 100;
+
+        const tips: { text: string; actionable: boolean; done: boolean; warning?: boolean }[] = [];
+
+        // Contagion warning (show first — most urgent)
+        const lowWeeks = player.lowMoraleWeeks || 0;
+        if (lowWeeks >= UNHAPPY_CONTAGION_WEEKS) {
+          tips.push({
+            text: 'Spreading unhappiness to teammates — 2 random players lose 3 morale per week',
+            actionable: false,
+            done: false,
+            warning: true,
+          });
+        } else if (lowWeeks >= UNHAPPY_CONTAGION_WEEKS - 2 && lowWeeks > 0) {
+          tips.push({
+            text: `${UNHAPPY_CONTAGION_WEEKS - lowWeeks} more week${UNHAPPY_CONTAGION_WEEKS - lowWeeks === 1 ? '' : 's'} until unhappiness spreads to teammates`,
+            actionable: true,
+            done: false,
+            warning: true,
+          });
+        }
+
+        // Playing time (skip if injured or suspended)
+        if (player.injured) {
+          tips.push({ text: 'Wait for injury recovery before giving playing time', actionable: false, done: false });
+        } else if (isSuspended) {
+          tips.push({ text: 'Player is suspended — playing time will resume after suspension ends', actionable: false, done: false });
+        } else if (!isInLineup) {
+          tips.push({
+            text: isInSubs
+              ? 'Promote to starting XI — regular starts boost morale significantly'
+              : 'Select in squad — excluded players lose 3 morale per week',
+            actionable: true,
+            done: false,
+          });
+        } else if (playingTimePct > 50) {
+          tips.push({ text: 'Getting regular playing time', actionable: false, done: true });
+        }
+
+        // Poor form
+        if (player.form < 40) {
+          tips.push({ text: 'Poor form is hurting morale — play in winnable matches to rebuild confidence', actionable: true, done: false });
+        }
+
+        // Winning matches
+        tips.push({
+          text: 'Win matches — each win gives +8 morale to all squad members',
+          actionable: true,
+          done: false,
+        });
+
+        // Win streak
+        tips.push({
+          text: `Build a win streak — ${STREAK_MORALE_THRESHOLD}+ consecutive wins gives +2 morale per week`,
+          actionable: true,
+          done: currentWinStreak >= STREAK_MORALE_THRESHOLD,
+        });
+
+        // Leadership
+        const squadPlayers = playerClub?.playerIds?.map(id => players[id]).filter(Boolean) || [];
+        const totalLeadership = squadPlayers.reduce((sum, p) => sum + getLeadershipBonus(p.personality), 0);
+        if (totalLeadership >= 0.15) {
+          tips.push({ text: 'Strong squad leaders — +1 morale per week for everyone', actionable: false, done: true });
+        } else {
+          tips.push({ text: 'Sign or develop high-leadership players to boost squad morale weekly', actionable: true, done: false });
+        }
+
+        // Contract
+        if (player.contractEnd <= season) {
+          tips.push({
+            text: 'Offer a contract renewal — expiring contracts cause morale drops',
+            actionable: true,
+            done: false,
+          });
+        }
+
+        // Manager perk tips
+        if (hasPerk(managerProgression, 'motivator')) {
+          tips.push({ text: 'Motivator perk active — +5 morale boost before each match', actionable: false, done: true });
+        } else {
+          tips.push({ text: 'Unlock the Motivator perk for +5 pre-match morale boost', actionable: true, done: false });
+        }
+
+        if (hasPerk(managerProgression, 'iron_will')) {
+          tips.push({ text: 'Iron Will perk active — no morale penalty from defeats', actionable: false, done: true });
+        }
+
+        if (hasPerk(managerProgression, 'fortress_mentality')) {
+          tips.push({ text: 'Fortress Mentality active — home wins give +3 extra morale', actionable: false, done: true });
+        }
+
+        // Listing for sale (appease mechanic hint)
+        if (player.wantsToLeave && !player.listedForSale) {
+          tips.push({
+            text: 'List for sale — rarely, players respect being allowed to leave and withdraw their request',
+            actionable: true,
+            done: false,
+          });
+        }
+
+        // Recovery target
+        tips.push({
+          text: player.wantsToLeave
+            ? 'Raise morale to 50+ to withdraw the transfer request'
+            : 'Keep morale above 30 to prevent a transfer request',
+          actionable: false,
+          done: false,
+        });
+
+        return (
+          <GlassPanel className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">How to Improve Happiness</p>
+            <div className="space-y-2">
+              {tips.map((tip, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs">
+                  <span className={cn(
+                    'w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
+                    tip.warning ? 'bg-destructive' : tip.done ? 'bg-emerald-400' : tip.actionable ? 'bg-primary' : 'bg-muted-foreground'
+                  )} />
+                  <span className={cn(
+                    tip.warning ? 'text-destructive font-semibold' : tip.done ? 'text-emerald-400' : 'text-muted-foreground'
+                  )}>{tip.text}</span>
+                </div>
+              ))}
+            </div>
+          </GlassPanel>
+        );
+      })()}
 
       {/* Key Stats */}
       <div className="grid grid-cols-3 gap-3">
