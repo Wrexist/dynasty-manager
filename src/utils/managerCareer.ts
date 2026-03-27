@@ -44,6 +44,7 @@ import {
 } from '@/config/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { VALUE_EXP_BASE, VALUE_EXP_RATE } from '@/config/playerGeneration';
+import { shuffle } from '@/utils/helpers';
 
 // ── Helpers ──
 
@@ -176,7 +177,7 @@ export function generateJobVacancies(
     return managerReputation >= minRep * 0.5; // Show vacancies slightly above reach too
   });
 
-  const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(candidates);
   const selected = shuffled.slice(0, MAX_VACANCIES);
 
   return selected.map(club => {
@@ -299,7 +300,7 @@ export function generateStartingOffers(
 
   if (lowerTierClubs.length === 0) return [];
 
-  const shuffled = [...lowerTierClubs].sort(() => Math.random() - 0.5);
+  const shuffled = shuffle(lowerTierClubs);
   const selected = shuffled.slice(0, STARTING_JOB_OFFERS);
 
   return selected.map(club => {

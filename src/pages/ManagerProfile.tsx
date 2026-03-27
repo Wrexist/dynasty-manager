@@ -129,8 +129,8 @@ const ManagerProfile = () => {
             <h3 className="text-sm font-semibold text-foreground">Season History</h3>
           </div>
           <div className="space-y-2">
-            {seasonHistory.map((h, i) => (
-              <div key={i} className="flex items-center justify-between text-xs">
+            {seasonHistory.map((h) => (
+              <div key={h.season} className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Season {h.season}</span>
                 <span className={cn(
                   'font-semibold',

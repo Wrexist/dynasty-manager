@@ -174,8 +174,8 @@ const CareerOverview = () => {
             <h3 className="text-sm font-bold text-foreground">Career History</h3>
           </div>
           <div className="space-y-2">
-            {[...careerManager.careerHistory].reverse().map((entry, idx) => (
-              <div key={idx} className="bg-muted/20 rounded-lg p-2.5 flex items-center justify-between">
+            {[...careerManager.careerHistory].reverse().map((entry) => (
+              <div key={`${entry.startSeason}-${entry.clubId}`} className="bg-muted/20 rounded-lg p-2.5 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold text-foreground">{entry.clubName}</p>
                   <p className="text-[10px] text-muted-foreground">
@@ -210,7 +210,7 @@ const CareerOverview = () => {
           </div>
           <div className="flex flex-wrap gap-1.5">
             {careerManager.awardsWon.map((award, idx) => (
-              <span key={idx} className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg font-semibold">
+              <span key={`${award.season}-${award.type}-${idx}`} className="text-[10px] bg-primary/10 text-primary px-2 py-1 rounded-lg font-semibold">
                 {award.type === 'manager_of_month' ? 'MOTM' : 'MOTY'} S{award.season}
               </span>
             ))}

@@ -1495,7 +1495,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         if (p.lowMoraleWeeks >= UNHAPPY_CONTAGION_WEEKS) {
           // Morale contagion: affect 2 random teammates
           const teammates = playerClub.playerIds.filter(id => id !== pid);
-          const shuffled = [...teammates].sort(() => Math.random() - 0.5);
+          const shuffled = shuffle(teammates);
           for (let ti = 0; ti < Math.min(2, shuffled.length); ti++) {
             const tmId = shuffled[ti];
             if (newPlayers[tmId]) {
