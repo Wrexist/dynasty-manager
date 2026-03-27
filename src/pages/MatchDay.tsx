@@ -78,7 +78,7 @@ function buildVirtualClubFallback(virtualClubs: Record<string, VirtualClub> | un
 
 const MatchDay = () => {
   const store = useGameStore();
-  const { playerClubId, week, clubs, playFirstHalf, playSecondHalf, playExtraTime, playPenalties, setScreen, matchSubsUsed, tactics, setTactics, cup } = store;
+  const { playerClubId, week, clubs, playFirstHalf, playSecondHalf, playExtraTime, playPenalties, setScreen, matchSubsUsed, tactics, setTactics, cup, cleanupAbandonedMatch } = store;
 
   const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'extra_time_break' | 'extra_time' | 'penalties' | 'post'>('pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
@@ -95,6 +95,17 @@ const MatchDay = () => {
   const dismissedMomentsRef = useRef<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
+
+  // Clean up ephemeral club data if user navigates away mid-match
+  useEffect(() => {
+    return () => {
+      if (phaseRef.current !== 'pre' && phaseRef.current !== 'post') {
+        cleanupAbandonedMatch();
+      }
+    };
+  }, [cleanupAbandonedMatch]);
 
   const { match: liveMatch } = useCurrentMatch();
 

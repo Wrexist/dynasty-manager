@@ -54,6 +54,7 @@ import {
   SUB_FRESHNESS_BONUS,
   SET_PIECE_TAKER_CORNER_BONUS, PENALTY_TAKER_BONUS,
   COMMENTARY_GAP_MAX, COMMENTARY_CHANCE,
+  MIN_PLAYERS_TO_CONTINUE,
 } from '@/config/matchEngine';
 import { generateCommentary } from '@/utils/matchCommentary';
 
@@ -540,7 +541,9 @@ export function simulateHalf(
   let stoppageTime = 0;
 
   const MAX_MATCH_MINUTES = 150; // Safety cap to prevent infinite loops
+  let abandonMatch = false;
   for (let min = startMin; min <= endMin + stoppageTime && min < MAX_MATCH_MINUTES; min++) {
+    if (abandonMatch) break;
     // Calculate stoppage at the nominal end of each half
     if (min === nominalEnd && stoppageTime === 0) {
       stoppageTime = calcStoppageTime(events, startMin, nominalEnd);
@@ -776,6 +779,16 @@ export function simulateHalf(
             // Rebalance strength after red card
             const recomputed = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = recomputed.homeStr; awayStr = recomputed.awayStr;
+            // Abandon match if a team falls below minimum viable size (FIFA Law 3)
+            const homeAvail = homePlayers.filter(p => !unavailable.has(p.id)).length;
+            const awayAvail = awayPlayers.filter(p => !unavailable.has(p.id)).length;
+            if (homeAvail < MIN_PLAYERS_TO_CONTINUE || awayAvail < MIN_PLAYERS_TO_CONTINUE) {
+              const forfeitSide = homeAvail < MIN_PLAYERS_TO_CONTINUE ? 'home' : 'away';
+              events.push({ minute: min, type: 'commentary', clubId: forfeitSide === 'home' ? homeClub.id : awayClub.id, description: `Match abandoned — ${forfeitSide === 'home' ? homeClub.shortName : awayClub.shortName} reduced below ${MIN_PLAYERS_TO_CONTINUE} players.` });
+              if (forfeitSide === 'home') { homeGoals = Math.min(homeGoals, awayGoals); awayGoals = Math.max(awayGoals, homeGoals + 3); }
+              else { awayGoals = Math.min(awayGoals, homeGoals); homeGoals = Math.max(homeGoals, awayGoals + 3); }
+              abandonMatch = true;
+            }
           } else {
             // Momentum swings toward the non-fouling team on yellow cards
             momentum = isHome
@@ -794,6 +807,16 @@ export function simulateHalf(
             // Rebalance strength after red card
             const recomputed2 = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = recomputed2.homeStr; awayStr = recomputed2.awayStr;
+            // Abandon match if a team falls below minimum viable size (FIFA Law 3)
+            const homeAvail2 = homePlayers.filter(p => !unavailable.has(p.id)).length;
+            const awayAvail2 = awayPlayers.filter(p => !unavailable.has(p.id)).length;
+            if (homeAvail2 < MIN_PLAYERS_TO_CONTINUE || awayAvail2 < MIN_PLAYERS_TO_CONTINUE) {
+              const forfeitSide2 = homeAvail2 < MIN_PLAYERS_TO_CONTINUE ? 'home' : 'away';
+              events.push({ minute: min, type: 'commentary', clubId: forfeitSide2 === 'home' ? homeClub.id : awayClub.id, description: `Match abandoned — ${forfeitSide2 === 'home' ? homeClub.shortName : awayClub.shortName} reduced below ${MIN_PLAYERS_TO_CONTINUE} players.` });
+              if (forfeitSide2 === 'home') { homeGoals = Math.min(homeGoals, awayGoals); awayGoals = Math.max(awayGoals, homeGoals + 3); }
+              else { awayGoals = Math.min(awayGoals, homeGoals); homeGoals = Math.max(homeGoals, awayGoals + 3); }
+              abandonMatch = true;
+            }
         }
       } else {
         events.push({ minute: min, type: 'foul', playerId: fouler.id, clubId: club.id, description: pick(foulDescs)(fouler.lastName) });

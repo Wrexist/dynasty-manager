@@ -230,7 +230,7 @@ export function buildLeagueTable(fixtures: Match[], clubIds: string[]): LeagueTa
     if (a.form.length > 5) a.form = a.form.slice(-5);
   }
 
-  const result = Object.values(table).sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
+  const result = Object.values(table).sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor || a.clubId.localeCompare(b.clubId));
   _btlCache.set(cacheKey, result);
   return result;
 }

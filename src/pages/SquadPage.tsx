@@ -4,7 +4,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { cn } from '@/lib/utils';
 import { Position } from '@/types/game';
-import { Tag, TrendingUp, TrendingDown, HeartPulse, Users, Dumbbell } from 'lucide-react';
+import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, getFitnessColor, getMoraleBgColor } from '@/utils/uiHelpers';
 import { successToast } from '@/utils/gameToast';
@@ -275,6 +275,10 @@ const SquadPage = () => {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: Math.min(i * 0.03, 0.45), duration: 0.2 }}
                 onClick={() => selectPlayer(player.id)}
+                role="button"
+                tabIndex={0}
+                aria-label={`View ${player.firstName} ${player.lastName}`}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(player.id); } }}
                 className="flex items-center gap-2 py-2.5 px-3 hover:bg-muted/30 cursor-pointer transition-colors"
               >
                 {/* Overall */}
@@ -365,17 +369,6 @@ const SquadPage = () => {
             );
           })}
 
-          {squad.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col items-center gap-2 py-8"
-            >
-              <Users className="w-8 h-8 text-muted-foreground/40" />
-              <p className="text-sm text-muted-foreground">No players found</p>
-            </motion.div>
-          )}
         </GlassPanel>
       </div>
     </div>

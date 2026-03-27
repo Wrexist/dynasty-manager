@@ -72,6 +72,9 @@ const PlayerDetail = () => {
     return { currentFocus, personalityMult, multColor, preview, streakTier };
   }, [player, playerClubId, training, staff]);
 
+  // Narrative tags (must be before early return to satisfy hook rules)
+  const narratives = useMemo(() => player ? getPlayerNarratives(player, season, player.joinedSeason, player.isFromYouthAcademy) : [], [player, season]);
+
   if (!player) {
     return (
       <div className="max-w-lg mx-auto px-4 py-8 text-center space-y-3">
@@ -110,9 +113,6 @@ const PlayerDetail = () => {
       errorToast(result.message);
     }
   };
-
-  // Narrative tags
-  const narratives = getPlayerNarratives(player, season, player.joinedSeason, player.isFromYouthAcademy);
 
   // Development curve
   const isGrowing = player.age < 24;
@@ -174,12 +174,10 @@ const PlayerDetail = () => {
           <div className="flex-1">
             <p className="text-xl font-black text-foreground">{player.firstName} {player.lastName}</p>
             <p className="text-sm text-muted-foreground">{player.position} · {player.age} · {getFlag(player.nationality)} {player.nationality}</p>
-            {club && (
-              <div className="flex items-center gap-1.5 mt-1">
-                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: club.color }} />
-                <span className="text-xs text-muted-foreground">{club.name}</span>
-              </div>
-            )}
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: club?.color || '#888' }} />
+              <span className="text-xs text-muted-foreground">{club?.name || 'Unknown'}</span>
+            </div>
           </div>
         </div>
       </GlassPanel>

@@ -222,6 +222,7 @@ export interface GameState {
   playExtraTime: () => Match | null;
   playPenalties: () => Match | null;
   clearMatchResult: () => void;
+  cleanupAbandonedMatch: () => void;
   makeMatchSub: (outId: string, inId: string) => void;
 
   // Actions — Systems

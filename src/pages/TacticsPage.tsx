@@ -10,7 +10,7 @@ import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTI
 import type { StylePreset } from '@/config/tactics';
 import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft, Wand2 } from 'lucide-react';
 import { getFlag } from '@/utils/nationality';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD } from '@/config/ui';
 
@@ -32,13 +32,18 @@ const TacticsPage = () => {
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
   const [autoFilling, setAutoFilling] = useState(false);
+  const { chemBonus, chemLabel, chemLinks, chemStrengthMap } = useMemo(() => {
+    if (!club) return { chemBonus: 0, chemLabel: getChemistryLabel(0), chemLinks: [] as ReturnType<typeof calculateChemistryLinks>, chemStrengthMap: new Map<string, number>() };
+    const lp = club.lineup.map(id => players[id]).filter(Boolean);
+    const chemBonus = getChemistryBonus(lp, club.formation, season);
+    const chemLabel = getChemistryLabel(chemBonus);
+    const chemLinks = calculateChemistryLinks(lp, club.formation, season);
+    const chemStrengthMap = buildChemistryStrengthMap(chemLinks, pairFamiliarity);
+    return { chemBonus, chemLabel, chemLinks, chemStrengthMap };
+  }, [club, players, season, pairFamiliarity]);
   if (!club) return null;
 
   const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
-  const chemBonus = getChemistryBonus(lineupPlayers, club.formation, season);
-  const chemLabel = getChemistryLabel(chemBonus);
-  const chemLinks = calculateChemistryLinks(lineupPlayers, club.formation, season);
-  const chemStrengthMap = buildChemistryStrengthMap(chemLinks, pairFamiliarity);
 
   // Helper to get the familiarity-capped strength for a link pair
   const getCappedStrength = (link: { playerIdA: string; playerIdB: string; strength: number }) => {

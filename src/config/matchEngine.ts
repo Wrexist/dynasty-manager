@@ -205,6 +205,10 @@ export const CORNER_HEADER_MIN_CHANCE = 0.25;
 /** Physical attribute scaling for corner header goal chance */
 export const CORNER_HEADER_PHYSICAL_SCALE = 0.5;
 
+// ── Team Viability ──
+/** Minimum available players for a team to continue (FIFA Law 3: match abandoned below 7) */
+export const MIN_PLAYERS_TO_CONTINUE = 7;
+
 // ── Own Goals ──
 /** Chance of an own goal per match event cycle (very low) */
 export const OWN_GOAL_CHANCE = 0.003;
