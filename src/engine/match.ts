@@ -336,8 +336,8 @@ export function simulateHalf(
     const forfeitHome = homePlayers.length === 0;
     return {
       events: [...(prevState?.events ?? [])],
-      homeGoals: forfeitHome ? 0 : 3,
-      awayGoals: forfeitHome ? 3 : 0,
+      homeGoals: (prevState?.homeGoals ?? 0) + (forfeitHome ? 0 : 3),
+      awayGoals: (prevState?.awayGoals ?? 0) + (forfeitHome ? 3 : 0),
       homeShots: prevState?.homeShots ?? 0,
       awayShots: prevState?.awayShots ?? 0,
       homeSoT: prevState?.homeSoT ?? 0,
@@ -823,6 +823,8 @@ export function simulateHalf(
           const designatedTaker = club.penaltyTakerId ? atkEligible.find(p => p.id === club.penaltyTakerId) : null;
           const penaltyTaker = designatedTaker || pickAttacker(atkEligible);
           const penaltyBonus = designatedTaker ? PENALTY_TAKER_BONUS : 0;
+          // xG for penalty attempt (standard ~0.76) — added regardless of outcome
+          if (isHome) homeXG += PENALTY_CONVERSION_RATE; else awayXG += PENALTY_CONVERSION_RATE;
           if (Math.random() < PENALTY_CONVERSION_RATE + penaltyBonus) {
             if (isHome) homeGoals++; else awayGoals++;
             if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
@@ -832,8 +834,6 @@ export function simulateHalf(
             momentum = isHome
               ? Math.min(100, momentum + MOMENTUM_PENALTY_SWING)
               : Math.max(-100, momentum - MOMENTUM_PENALTY_SWING);
-            // xG for penalty (standard ~0.76)
-            if (isHome) homeXG += PENALTY_CONVERSION_RATE; else awayXG += PENALTY_CONVERSION_RATE;
             events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyGoalDescs)(penaltyTaker.lastName, club.shortName) });
           } else {
             if (isHome) homeShots++; else awayShots++;
