@@ -550,6 +550,25 @@ function generateLeagueCupDraw(clubIds: string[]): import('@/types/game').League
  * Advance the League Cup to the next round (mirrors advanceCupRound but uses LEAGUE_CUP_WEEKS).
  */
 /**
+ * Check if a continental knockout leg 2 aggregate is already decided (not tied).
+ * Returns true if the aggregate is NOT tied (i.e., extra time is NOT needed).
+ * For non-knockout, non-leg-2, or missing data, returns false (allow normal extra time logic).
+ */
+function isAggregateDecided(state: ReturnType<typeof get>, leg2HomeGoals: number, leg2AwayGoals: number): boolean {
+  if (!state.currentContinentalMatchId || !state.currentContinentalCompetition) return false;
+  const tourney = state.currentContinentalCompetition === 'champions_cup' ? state.championsCup : state.shieldCup;
+  if (!tourney) return false;
+  const matchInfo = findPlayerContinentalMatch(tourney, state.week, state.playerClubId);
+  if (!matchInfo || matchInfo.type !== 'knockout' || matchInfo.leg !== 2) return false;
+  const tie = tourney.knockoutTies[matchInfo.tieIdx];
+  // Aggregate: tie.homeClubId's total = leg1Home + leg2Away, tie.awayClubId's total = leg1Away + leg2Home
+  // In leg 2, home/away are swapped from the tie's perspective
+  const homeAgg = tie.leg1HomeGoals + leg2AwayGoals;
+  const awayAgg = tie.leg1AwayGoals + leg2HomeGoals;
+  return homeAgg !== awayAgg;
+}
+
+/**
  * Process tournament match result: updates the correct tournament state and cleans up ephemeral players.
  * Returns state updates to spread into the set() call.
  */
@@ -3515,8 +3534,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
-    // Cup match ended in draw — need extra time
-    if (state.currentCupTieId && result.homeGoals === result.awayGoals) {
+    // Cup match ended in draw — need extra time (unless aggregate is already decided for 2-leg ties)
+    if (state.currentCupTieId && result.homeGoals === result.awayGoals && !isAggregateDecided(state, result.homeGoals, result.awayGoals)) {
       set({
         currentMatchResult: result,
         halfTimeState: fullState, // carry forward for extra time continuation
@@ -3607,8 +3626,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       events: etState.events,
     };
 
-    if (etState.homeGoals !== etState.awayGoals) {
-      // Extra time decided the match — finalize
+    if (etState.homeGoals !== etState.awayGoals || isAggregateDecided(state, etState.homeGoals, etState.awayGoals)) {
+      // Extra time decided the match (or aggregate decided for 2-leg ties) — finalize
       const { result, playerRatings } = finalizeMatch(etResult, hc, ac, hp, ap, etState);
       const processed = processMatchResult(state, etResult, result, playerRatings, () => get().week, etState.matchInjuries);
       const etDrama = detectMatchDrama(result, playerClubId, clubs);
