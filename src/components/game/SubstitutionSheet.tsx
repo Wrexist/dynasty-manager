@@ -9,7 +9,7 @@ import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/ty
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { getFlag } from '@/utils/nationality';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight, Wand2 } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 import { PITCH_COLORS } from '@/config/ui';
 import { PlayerAvatar } from './PlayerAvatar';
@@ -65,11 +65,12 @@ const VP_H = 59;
 const VP_W = 68;
 
 export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome, preSelectedOutId, forceMode, onDismissWithoutSub, injuredPlayerIds, playerGoals, opponentGoals }: SubstitutionSheetProps) {
-  const { players, makeMatchSub, matchSubsUsed, week } = useGameStore();
+  const { players, makeMatchSub, matchSubsUsed, week, autoFillTeam } = useGameStore();
   const playerClub = usePlayerClub();
 
   const [selectedOutId, setSelectedOutId] = useState<string | null>(null);
   const [selectedInId, setSelectedInId] = useState<string | null>(null);
+  const [autoFilling, setAutoFilling] = useState(false);
 
   // Reset selection state when sheet opens/closes; pre-select if provided
   useEffect(() => {
@@ -257,6 +258,31 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
             <p className="text-[10px] text-muted-foreground truncate">{smartSub.reason}</p>
           </div>
           <ArrowRight className="w-3.5 h-3.5 text-primary shrink-0" />
+        </button>
+      )}
+
+      {/* Smart Auto Fill — optimize entire lineup */}
+      {!selectedOutId && (
+        <button
+          type="button"
+          onClick={() => {
+            setAutoFilling(true);
+            hapticMedium();
+            requestAnimationFrame(() => {
+              autoFillTeam();
+              setAutoFilling(false);
+            });
+          }}
+          disabled={autoFilling}
+          className={cn(
+            'w-full flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 mt-2 font-semibold text-sm transition-all active:scale-[0.98]',
+            autoFilling
+              ? 'bg-primary/50 text-primary-foreground/70 cursor-not-allowed'
+              : 'bg-primary/90 hover:bg-primary text-primary-foreground'
+          )}
+        >
+          <Wand2 className={cn('w-4 h-4', autoFilling && 'animate-spin')} />
+          {autoFilling ? 'Optimizing...' : 'Smart Auto Fill'}
         </button>
       )}
 

@@ -604,7 +604,7 @@ const MatchDay = () => {
 
           {/* Sub button at half-time */}
           {matchSubsUsed < MAX_SUBSTITUTIONS && (
-            <Button variant="outline" className="w-full gap-2" onClick={() => setSubSheetOpen(true)}>
+            <Button className="w-full gap-2" onClick={() => setSubSheetOpen(true)}>
               <RefreshCw className="w-4 h-4" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
             </Button>
           )}
@@ -633,7 +633,7 @@ const MatchDay = () => {
           )}
 
           <div className="h-16" /> {/* spacer for sticky button */}
-          <div className="fixed bottom-16 left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent">
+          <div className="fixed left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
             <div className="max-w-lg mx-auto">
               <Button className="w-full h-12 text-base font-bold gap-2" onClick={resumeSecondHalf}>
                 <Play className="w-5 h-5" /> Start 2nd Half
@@ -653,7 +653,7 @@ const MatchDay = () => {
 
           {/* Sub button before extra time */}
           {matchSubsUsed < MAX_SUBSTITUTIONS && (
-            <Button variant="outline" className="w-full gap-2" onClick={() => setSubSheetOpen(true)}>
+            <Button className="w-full gap-2" onClick={() => setSubSheetOpen(true)}>
               <RefreshCw className="w-4 h-4" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
             </Button>
           )}
