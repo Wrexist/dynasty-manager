@@ -77,7 +77,7 @@ const MatchPrep = () => {
   const chemLinks = calculateChemistryLinks(myLineup, myClub.formation, season);
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+    <div className="max-w-lg mx-auto px-4 py-4 pb-20 space-y-3">
       <h2 className="text-lg font-display font-bold text-foreground">Match Preparation</h2>
       <PageHint screen="matchPrep" title={PAGE_HINTS.matchPrep.title} body={PAGE_HINTS.matchPrep.body} />
 
@@ -304,28 +304,30 @@ const MatchPrep = () => {
         />
       </GlassPanel>
 
-      {/* Ready Button */}
-      <div className="flex gap-2">
-        <Button
-          size="lg"
-          className="flex-1 h-14 text-lg font-bold gap-3"
-          onClick={() => setScreen('match')}
-        >
-          <Swords className="w-5 h-5" /> Ready to Play
-        </Button>
-        {isPro(monetization) && (
+      {/* Ready Button — sticky at bottom */}
+      <div className="fixed bottom-16 left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent">
+        <div className="max-w-lg mx-auto flex gap-2">
           <Button
             size="lg"
-            variant="outline"
-            className="h-14 px-4 font-bold gap-2 border-primary/30 text-primary"
-            onClick={() => {
-              playCurrentMatch();
-              setScreen('match-review');
-            }}
+            className="flex-1 h-14 text-lg font-bold gap-3"
+            onClick={() => setScreen('match')}
           >
-            <Zap className="w-5 h-5" /> Sim
+            <Swords className="w-5 h-5" /> Ready to Play
           </Button>
-        )}
+          {isPro(monetization) && (
+            <Button
+              size="lg"
+              variant="outline"
+              className="h-14 px-4 font-bold gap-2 border-primary/50 text-primary bg-primary/10 hover:bg-primary/20 active:bg-primary/30"
+              onClick={() => {
+                playCurrentMatch();
+                setScreen('match-review');
+              }}
+            >
+              <Zap className="w-5 h-5" /> Sim
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -510,9 +510,14 @@ const MatchDay = () => {
             </GlassPanel>
           )}
 
-          <Button className="w-full h-12 text-base font-bold gap-2" onClick={resumeSecondHalf}>
-            <Play className="w-5 h-5" /> Start 2nd Half
-          </Button>
+          <div className="h-16" /> {/* spacer for sticky button */}
+          <div className="fixed bottom-16 left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent">
+            <div className="max-w-lg mx-auto">
+              <Button className="w-full h-12 text-base font-bold gap-2" onClick={resumeSecondHalf}>
+                <Play className="w-5 h-5" /> Start 2nd Half
+              </Button>
+            </div>
+          </div>
         </>
       )}
 
