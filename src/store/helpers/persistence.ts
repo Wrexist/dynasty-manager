@@ -58,12 +58,16 @@ export function clearSessionSnapshot(): void {
 
 /** Migrate legacy single-slot save to slot 1 */
 export function migrateLegacySave() {
-  const legacy = localStorage.getItem('dynasty-save');
-  if (legacy && !localStorage.getItem('dynasty-save-1')) {
-    localStorage.setItem('dynasty-save-1', legacy);
-  }
-  if (legacy) {
-    localStorage.removeItem('dynasty-save');
+  try {
+    const legacy = localStorage.getItem('dynasty-save');
+    if (legacy && !localStorage.getItem('dynasty-save-1')) {
+      localStorage.setItem('dynasty-save-1', legacy);
+    }
+    if (legacy) {
+      localStorage.removeItem('dynasty-save');
+    }
+  } catch {
+    // storage unavailable
   }
 }
 
@@ -79,11 +83,15 @@ export function readSaveSlot(slot: number): string | null {
 
 /** Write a raw save string to a slot, creating a backup first */
 export function writeSaveSlot(slot: number, json: string): void {
-  const existing = localStorage.getItem(`dynasty-save-${slot}`);
-  if (existing) {
-    localStorage.setItem(`dynasty-save-${slot}-backup`, existing);
+  try {
+    const existing = localStorage.getItem(`dynasty-save-${slot}`);
+    if (existing) {
+      localStorage.setItem(`dynasty-save-${slot}-backup`, existing);
+    }
+    localStorage.setItem(`dynasty-save-${slot}`, json);
+  } catch {
+    throw new Error('SAVE_WRITE_FAILED');
   }
-  localStorage.setItem(`dynasty-save-${slot}`, json);
 }
 
 /** Read the backup save for a slot */
@@ -143,7 +151,12 @@ export function deleteAllDynastyData(): void {
 export function getSlotSummaries(): SlotSummary[] {
   migrateLegacySave();
   return [1, 2, 3].map(slot => {
-    const raw = localStorage.getItem(`dynasty-save-${slot}`);
+    let raw: string | null = null;
+    try {
+      raw = localStorage.getItem(`dynasty-save-${slot}`);
+    } catch {
+      return { slot, exists: false };
+    }
     if (!raw) return { slot, exists: false };
     try {
       const data = JSON.parse(raw);

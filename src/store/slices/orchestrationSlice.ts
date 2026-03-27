@@ -109,6 +109,7 @@ import { processSponsorWeek, processSponsorSeasonEnd, generateStarterDeals } fro
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
+let lastSaveErrorLogAt = 0;
 
 // migrateLegacySave and getSlotSummaries extracted to @/store/helpers/persistence
 export { getSlotSummaries } from '@/store/helpers/persistence';
@@ -3906,17 +3907,27 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       // Write backup before overwriting primary save
       writeSaveSlot(s, json);
     } catch (err) {
-      console.error('[Save] Failed to write save data:', err);
-      // Notify user via in-game message
-      const msgs = addMsg(state.messages, {
-        id: `save-fail-${Date.now()}`,
-        type: 'warning',
-        title: 'Save Failed',
-        body: 'Your game could not be saved — storage may be full. Try freeing up space on your device.',
-        week: state.week,
-        season: state.season,
-      });
-      set({ messages: msgs });
+      const now = Date.now();
+      // Avoid log spam during repeated autosave attempts.
+      if (now - lastSaveErrorLogAt > 10000) {
+        console.error('[Save] Failed to write save data:', err);
+        lastSaveErrorLogAt = now;
+      }
+      // Notify user once per week to keep the inbox readable.
+      const hasSaveWarningThisWeek = state.messages.some(
+        m => m.title === 'Save Failed' && m.week === state.week && m.season === state.season,
+      );
+      if (!hasSaveWarningThisWeek) {
+        const msgs = addMsg(state.messages, {
+          id: `save-fail-${Date.now()}`,
+          type: 'warning',
+          title: 'Save Failed',
+          body: 'Your game could not be saved — storage may be full. Try freeing up space on your device.',
+          week: state.week,
+          season: state.season,
+        });
+        set({ messages: msgs });
+      }
     }
 
     // Save session snapshot for "Welcome back" recap
