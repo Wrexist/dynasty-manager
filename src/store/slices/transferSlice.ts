@@ -17,7 +17,7 @@ import {
   INCOMING_NEGOTIATE_ACCEPT_AT_OFFER, INCOMING_NEGOTIATE_ACCEPT_AT_120, INCOMING_NEGOTIATE_ACCEPT_AT_MAX,
   INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
 } from '@/config/transfers';
-import { MIN_SQUAD_SIZE } from '@/config/gameBalance';
+import { MIN_SQUAD_SIZE, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
 import { getStarPlayerMerch } from '@/utils/merchandise';
@@ -282,14 +282,34 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const player = state.players[playerId];
     if (!player || player.clubId !== state.playerClubId) return;
-    const newPlayers = { ...state.players, [playerId]: { ...player, listedForSale: true } };
+    const updatedPlayer = { ...player, listedForSale: true };
+
+    // Rare appease mechanic: unhappy player feels respected when you agree to let them go
+    if (player.wantsToLeave && player.morale < 50) {
+      const loyaltyBonus = (player.personality?.loyalty || 10) / 20; // higher loyalty = more grateful
+      const appeaseChance = APPEASE_BASE_CHANCE + loyaltyBonus * 0.08;
+      if (Math.random() < appeaseChance) {
+        updatedPlayer.morale = Math.min(100, updatedPlayer.morale + APPEASE_MORALE_BOOST);
+        updatedPlayer.wantsToLeave = false;
+        updatedPlayer.lowMoraleWeeks = 0;
+      }
+    }
+
+    const newPlayers = { ...state.players, [playerId]: updatedPlayer };
     const askingPrice = Math.max(LISTING_PRICE_FLOOR, Math.round(player.value * LIST_PRICE_MULTIPLIER));
     const newMarket = [...state.transferMarket, { playerId, askingPrice, sellerClubId: state.playerClubId }];
-    const newMessages = addMsg(state.messages, {
+    let newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Listed`,
       body: `${player.firstName} ${player.lastName} has been listed for sale at £${(askingPrice / 1e6).toFixed(1)}M.`,
     });
+    if (!updatedPlayer.wantsToLeave && player.wantsToLeave) {
+      newMessages = addMsg(newMessages, {
+        week: state.week, season: state.season, type: 'general',
+        title: `${player.lastName} Appreciates Honesty`,
+        body: `${player.firstName} ${player.lastName} feels respected by your willingness to let them move on. Their morale has improved and they've withdrawn the transfer request.`,
+      });
+    }
     set({ players: newPlayers, transferMarket: newMarket, messages: newMessages });
   },
 

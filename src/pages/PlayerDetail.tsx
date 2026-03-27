@@ -175,6 +175,80 @@ const PlayerDetail = () => {
         </div>
       )}
 
+      {/* Happiness Recovery Guide */}
+      {isOwnPlayer && (player.wantsToLeave || player.morale < 50) && (() => {
+        const playerClub = clubs[playerClubId];
+        const isInLineup = playerClub?.lineup?.includes(player.id);
+        const isInSubs = playerClub?.subs?.includes(player.id);
+        const playingTimePct = player.appearances / Math.max(1, week) * 100;
+
+        const tips: { text: string; actionable: boolean; done: boolean }[] = [];
+
+        // Playing time
+        if (!isInLineup) {
+          tips.push({
+            text: isInSubs
+              ? 'Promote to starting XI — regular starts boost morale significantly'
+              : 'Add to lineup or bench — benched players lose 3 morale per week',
+            actionable: true,
+            done: false,
+          });
+        } else if (playingTimePct > 50) {
+          tips.push({ text: 'Getting regular playing time', actionable: false, done: true });
+        }
+
+        // Winning matches
+        tips.push({
+          text: 'Win matches — each win gives +8 morale to all squad members',
+          actionable: true,
+          done: false,
+        });
+
+        // Contract
+        if (player.contractEnd <= season) {
+          tips.push({
+            text: 'Offer a contract renewal — expiring contracts cause morale drops',
+            actionable: true,
+            done: false,
+          });
+        }
+
+        // Listing for sale (appease mechanic hint)
+        if (player.wantsToLeave && !player.listedForSale) {
+          tips.push({
+            text: 'List for sale — rarely, players respect being allowed to leave and withdraw their request',
+            actionable: true,
+            done: false,
+          });
+        }
+
+        // Recovery target
+        tips.push({
+          text: player.wantsToLeave
+            ? 'Raise morale to 50+ to withdraw the transfer request'
+            : 'Keep morale above 30 to prevent a transfer request',
+          actionable: false,
+          done: false,
+        });
+
+        return (
+          <GlassPanel className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">How to Improve Happiness</p>
+            <div className="space-y-2">
+              {tips.map((tip, i) => (
+                <div key={i} className="flex items-start gap-2 text-xs">
+                  <span className={cn(
+                    'w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
+                    tip.done ? 'bg-emerald-400' : tip.actionable ? 'bg-primary' : 'bg-muted-foreground'
+                  )} />
+                  <span className={tip.done ? 'text-emerald-400' : 'text-muted-foreground'}>{tip.text}</span>
+                </div>
+              ))}
+            </div>
+          </GlassPanel>
+        );
+      })()}
+
       {/* Key Stats */}
       <div className="grid grid-cols-3 gap-3">
         <GlassPanel className="p-3 text-center">
