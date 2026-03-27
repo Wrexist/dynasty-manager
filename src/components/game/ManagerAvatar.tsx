@@ -15,9 +15,9 @@ interface ManagerAvatarProps {
 }
 
 export function ManagerAvatar({ appearance, size = 120, className }: ManagerAvatarProps) {
-  const skinTone = SKIN_TONES[appearance.skinTone] || SKIN_TONES[0];
-  const hairColor = HAIR_COLORS[appearance.hairColor] || HAIR_COLORS[0];
-  const hairStyle = HAIR_STYLES[appearance.hairStyle] || HAIR_STYLES[1];
+  const skinTone = SKIN_TONES[Math.max(0, Math.min(appearance.skinTone, SKIN_TONES.length - 1))];
+  const hairColor = HAIR_COLORS[Math.max(0, Math.min(appearance.hairColor, HAIR_COLORS.length - 1))];
+  const hairStyle = HAIR_STYLES[Math.max(0, Math.min(appearance.hairStyle, HAIR_STYLES.length - 1))];
   const suitColor = appearance.suitColor || '#1a1a2e';
 
   // All coordinates in a 100x100 viewBox
@@ -130,7 +130,7 @@ export function ManagerAvatar({ appearance, size = 120, className }: ManagerAvat
         <path
           d={`M ${cx - headR * 0.8} ${headY - headR * 0.5} Q ${cx} ${headY - headR * 1.2} ${cx + headR * 0.8} ${headY - headR * 0.5}`}
           fill={hairColor}
-          opacity="0.6"
+          opacity={0.6}
         />
       )}
       {hairStyle === 'long' && (
