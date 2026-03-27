@@ -68,16 +68,16 @@ export const CONTINENTAL_PENALTY_CONVERSION = 0.75;
 
 // ── Prize Money ──
 export const CONTINENTAL_PRIZE_MONEY = {
-  champions_group: 500_000,
-  champions_r16: 250_000,
-  champions_qf: 500_000,
+  champions_group: 300_000,       // per match (6 matches = 1.8M potential)
+  champions_r16: 500_000,
+  champions_qf: 750_000,
   champions_sf: 1_000_000,
   champions_winner: 3_000_000,
   champions_runner_up: 1_500_000,
-  shield_group: 200_000,
-  shield_r16: 100_000,
-  shield_qf: 200_000,
-  shield_sf: 400_000,
+  shield_group: 150_000,          // per match (6 matches = 900k potential)
+  shield_r16: 250_000,
+  shield_qf: 400_000,
+  shield_sf: 600_000,
   shield_winner: 1_000_000,
   shield_runner_up: 500_000,
   league_cup_winner: 300_000,

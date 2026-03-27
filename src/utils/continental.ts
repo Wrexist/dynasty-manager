@@ -354,8 +354,8 @@ function simulatePenalties(): { home: number; away: number } {
   }
   // Sudden death
   while (home === away) {
-    if (Math.random() < CONTINENTAL_PENALTY_CONVERSION) home++; else home += 0;
-    if (Math.random() < CONTINENTAL_PENALTY_CONVERSION) away++; else away += 0;
+    if (Math.random() < CONTINENTAL_PENALTY_CONVERSION) home++;
+    if (Math.random() < CONTINENTAL_PENALTY_CONVERSION) away++;
     // If both score or both miss, continue
     if (home === away) continue;
   }
@@ -368,9 +368,6 @@ function simulatePenalties(): { home: number; away: number } {
 export function isKnockoutRoundComplete(tournament: ContinentalTournamentState, round: 'R16' | 'QF' | 'SF' | 'F'): boolean {
   const roundTies = tournament.knockoutTies.filter(t => t.round === round);
   if (roundTies.length === 0) return false;
-  if (round === 'F') {
-    return roundTies.every(t => t.winnerId !== null);
-  }
   return roundTies.every(t => t.winnerId !== null);
 }
 

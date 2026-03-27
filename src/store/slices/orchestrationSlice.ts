@@ -550,6 +550,24 @@ function generateLeagueCupDraw(clubIds: string[]): import('@/types/game').League
  * Advance the League Cup to the next round (mirrors advanceCupRound but uses LEAGUE_CUP_WEEKS).
  */
 /**
+ * Build a descriptive label for a continental match (e.g. "Champions Cup — Group A MD3").
+ */
+function getContinentalMatchLabel(
+  compName: string,
+  matchInfo: { type: 'group'; groupIdx: number; matchIdx: number } | { type: 'knockout'; tieIdx: number; leg: 1 | 2 },
+  tourney: import('@/types/game').ContinentalTournamentState,
+): string {
+  if (matchInfo.type === 'group') {
+    return `${compName} — Group ${String.fromCharCode(65 + matchInfo.groupIdx)} MD${matchInfo.matchIdx + 1}`;
+  }
+  const tie = tourney.knockoutTies[matchInfo.tieIdx];
+  const roundNames: Record<string, string> = { R16: 'Round of 16', QF: 'Quarter-Final', SF: 'Semi-Final', F: 'Final' };
+  const roundLabel = roundNames[tie.round] || tie.round;
+  if (tie.round === 'F') return `${compName} — ${roundLabel}`;
+  return `${compName} — ${roundLabel} Leg ${matchInfo.leg}`;
+}
+
+/**
  * Check if a continental knockout leg 2 aggregate is already decided (not tied).
  * Returns true if the aggregate is NOT tied (i.e., extra time is NOT needed).
  * For non-knockout, non-leg-2, or missing data, returns false (allow normal extra time logic).
@@ -3459,7 +3477,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
     const matchCompetition = cupTie ? `Dynasty Cup — ${cupTie.round}`
       : leagueCupTie ? `League Cup — ${leagueCupTie.round}`
-      : champMatch ? 'Champions Cup' : shieldMatch ? 'Shield Cup'
+      : champMatch && continentalTourney ? getContinentalMatchLabel('Champions Cup', champMatch, continentalTourney)
+      : shieldMatch && continentalTourney ? getContinentalMatchLabel('Shield Cup', shieldMatch, continentalTourney)
       : superCup ? (superCup.type === 'domestic' ? 'Super Cup' : 'Continental Super Cup')
       : null;
     set({
