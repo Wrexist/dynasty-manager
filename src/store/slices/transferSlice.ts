@@ -288,7 +288,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Listed`,
-      body: `${player.firstName} ${player.lastName} has been listed for sale at £${(Math.round(player.value * LIST_PRICE_MULTIPLIER) / 1e6).toFixed(1)}M.`,
+      body: `${player.firstName} ${player.lastName} has been listed for sale at £${(askingPrice / 1e6).toFixed(1)}M.`,
     });
     set({ players: newPlayers, transferMarket: newMarket, messages: newMessages });
   },

@@ -8,8 +8,7 @@
 - `advanceWeek()` is the most complex action — it handles training, AI matches, injuries, income, messages, offers, and transfer window logic all in one call.
 - `advanceWeek()` resets `matchSubsUsed` to 0 at the end of the action.
 - There are 20 clubs in the league (not 24). All defined in `src/data/league.ts`.
-- `getSuffix()` helper is duplicated in `gameStore.ts`, `Dashboard.tsx`, and `SeasonSummary.tsx`.
-- `pick()` and `clamp()` helpers are duplicated across `gameStore.ts`, `playerGen.ts`, and `match.ts`.
+- `getSuffix()`, `pick()`, and `clamp()` are centralized in `src/utils/helpers.ts` and imported where needed.
 
 ## Type System Notes
 - TypeScript strict mode is OFF. `noImplicitAny: false`. This means TS won't catch missing types, so be extra careful.

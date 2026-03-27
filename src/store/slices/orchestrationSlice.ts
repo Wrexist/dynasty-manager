@@ -1160,6 +1160,7 @@ function finalizeSeason(
 
 export const createOrchestrationSlice = (set: Set, get: Get) => ({
   initGame: (clubId: string) => {
+    resetSeasonGrowth();
     const allPlayers: Record<string, Player> = {};
     const clubs: Record<string, Club> = {};
 
@@ -1494,7 +1495,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         if (p.lowMoraleWeeks >= UNHAPPY_CONTAGION_WEEKS) {
           // Morale contagion: affect 2 random teammates
           const teammates = playerClub.playerIds.filter(id => id !== pid);
-          const shuffled = [...teammates].sort(() => Math.random() - 0.5);
+          const shuffled = shuffle(teammates);
           for (let ti = 0; ti < Math.min(2, shuffled.length); ti++) {
             const tmId = shuffled[ti];
             if (newPlayers[tmId]) {
@@ -1582,8 +1583,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const hc = clubs[m.homeClubId];
       const ac = clubs[m.awayClubId];
       if (!hc || !ac) continue;
-      const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
-      const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
+      const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)).slice(0, 11);
+      const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)).slice(0, 11);
       // Forfeit if either team has no available players
       if (hp.length === 0 || ap.length === 0) {
         const forfeit = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : 3, awayGoals: ap.length === 0 ? 0 : 3, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
@@ -1604,8 +1605,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const hClub = clubs[tie.homeClubId];
         const aClub = clubs[tie.awayClubId];
         if (!hClub || !aClub) continue;
-        const hPlayers = hClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
-        const aPlayers = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
+        const hPlayers = hClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)).slice(0, 11);
+        const aPlayers = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)).slice(0, 11);
 
         const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
         const hasLeagueMatch = updatedFixtures.some(f => f.week === week && (f.homeClubId === playerClubId || f.awayClubId === playerClubId));
@@ -3101,6 +3102,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   },
 
   loadGame: (slot?: number) => {
+    resetSeasonGrowth();
     migrateLegacySave();
     const s = slot ?? get().activeSlot;
     let raw = localStorage.getItem(`dynasty-save-${s}`);
