@@ -1,4 +1,4 @@
-import type { Player, FormationType, Position, PlayerAttributes } from '@/types/game';
+import type { Player, FormationType, Position, PlayerAttributes, TacticalInstructions, AIManagerStyle } from '@/types/game';
 import { FORMATION_POSITIONS, POSITION_COMPATIBILITY } from '@/types/game';
 import { POSITION_WEIGHTS } from '@/config/playerGeneration';
 import { MAX_SUBS } from '@/config/playerGeneration';
@@ -22,6 +22,7 @@ import {
   LINEUP_CHEMISTRY_SCORE_SCALE as CHEMISTRY_SCORE_SCALE,
   LINEUP_SWAP_OPTIMIZATION_PASSES as SWAP_OPTIMIZATION_PASSES,
   LINEUP_BENCH_POSITION_PRIORITY as BENCH_POSITION_PRIORITY,
+  POSITION_FITNESS_OVERRIDE,
   BENCH_VERSATILITY_BONUS_PER_SLOT,
   BENCH_FRESHNESS_DIFF_WEIGHT,
   BENCH_HIGH_FORM_THRESHOLD,
@@ -33,10 +34,28 @@ import {
   BENCH_ATTRIBUTE_IMPACT_WEIGHT,
   BENCH_YOUNG_ENERGY_THRESHOLD,
   BENCH_YOUNG_ENERGY_BONUS,
-  BENCH_TIER_EMERGENCY,
-  BENCH_TIER_IMPACT,
   BENCH_VULNERABLE_STARTER_COUNT,
   BENCH_STARTER_TIRED_THRESHOLD,
+  CONTEXT_DERBY_TEMPERAMENT_PENALTY_PER_INTENSITY,
+  CONTEXT_DERBY_TEMPERAMENT_THRESHOLD,
+  CONTEXT_AWAY_DEFENSIVE_BONUS,
+  CONTEXT_AWAY_MORALE_EXTRA_WEIGHT,
+  CONTEXT_CUP_EXPERIENCE_BONUS,
+  CONTEXT_CUP_EXPERIENCE_THRESHOLD,
+  CONTEXT_CONGESTED_FITNESS_PENALTY_THRESHOLD,
+  CONTEXT_CONGESTED_FITNESS_PENALTY,
+  CONTEXT_VS_ATTACKING_DEFENSIVE_BONUS,
+  CONTEXT_VS_DEFENSIVE_CREATIVE_BONUS,
+  CONTEXT_VS_POSSESSION_PRESSING_BONUS,
+  CONTEXT_VS_COUNTER_DEFENSIVE_BONUS,
+  CONTEXT_LEADERSHIP_BONUS_THRESHOLD,
+  CONTEXT_LEADERSHIP_STARTER_BONUS,
+  BENCH_DERBY_CALM_BONUS_PER_INTENSITY,
+  BENCH_DERBY_CALM_THRESHOLD,
+  BENCH_CONGESTED_HIGH_FITNESS_BONUS,
+  BENCH_CONGESTED_FITNESS_THRESHOLD,
+  BENCH_CUP_ATTACKER_BONUS,
+  BENCH_AWAY_DEFENDER_BONUS,
 } from '@/config/lineupOptimization';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 
@@ -46,6 +65,22 @@ export interface AutoFillResult {
   chemistryBonus: number;
   chemistryLabel: string;
 }
+
+/** Match context for opponent-aware and situation-aware lineup optimization. */
+export interface AutoFillContext {
+  tactics?: TacticalInstructions;
+  opponentFormation?: FormationType;
+  opponentStyle?: AIManagerStyle;
+  opponentReputation?: number;
+  isHome?: boolean;
+  derbyIntensity?: number;
+  isCupMatch?: boolean;
+  hasMatchNextWeek?: boolean;
+}
+
+// Position role sets (mirrors match engine categories)
+const ATTACKING_POSITIONS: Position[] = ['ST', 'LW', 'RW', 'CAM'];
+const DEFENSIVE_POSITIONS: Position[] = ['CB', 'CDM', 'LB', 'RB'];
 
 /**
  * Calculate a player's effective overall for a specific target position
@@ -63,7 +98,7 @@ function positionalOverall(attrs: PlayerAttributes, targetPosition: Position): n
 
 /**
  * Determine position fit bonus/penalty for a player in a target slot.
- * Natural position: +5, Compatible: +2, Incompatible: -20
+ * Natural position: +8, Compatible: +4, Incompatible: -30
  */
 function positionFitScore(playerPosition: Position, slotPosition: Position): number {
   if (playerPosition === slotPosition) return NATURAL_POSITION_BONUS;
@@ -74,15 +109,20 @@ function positionFitScore(playerPosition: Position, slotPosition: Position): num
 
 /**
  * Score a player for a specific formation slot.
- * Considers: positional overall, form, fitness, morale, position fit,
- * wantsToLeave, yellow card suspension risk, re-injury risk, and threshold penalties.
+ * Considers: positional overall, form, fitness (position-specific), morale, position fit,
+ * wantsToLeave, yellow card suspension risk, re-injury risk, threshold penalties,
+ * and match context (opponent style, derby, home/away, cup, congestion, leadership).
  */
-function scorePlayerForSlot(player: Player, slotPosition: Position): number {
+function scorePlayerForSlot(player: Player, slotPosition: Position, context?: AutoFillContext): number {
   const posOverall = positionalOverall(player.attributes, slotPosition);
+
+  // Position-specific fitness weight: attackers need more fitness (40% of goal selection in match engine)
+  const fitnessWeight = POSITION_FITNESS_OVERRIDE[slotPosition] ?? FITNESS_WEIGHT;
+
   let score =
     posOverall * POSITIONAL_OVERALL_WEIGHT +
     (player.form / 100) * FORM_WEIGHT +
-    (player.fitness / 100) * FITNESS_WEIGHT +
+    (player.fitness / 100) * fitnessWeight +
     (player.morale / 100) * MORALE_WEIGHT +
     positionFitScore(player.position, slotPosition);
 
@@ -113,6 +153,67 @@ function scorePlayerForSlot(player: Player, slotPosition: Position): number {
     score += REINJURY_RISK_PENALTY_SCALE * (player.injuryDetails.reinjuryRisk || 0);
   }
 
+  // ── Match Context Adjustments ──
+  if (context) {
+    // Derby: penalize hot-headed players (low temperament → more cards in derby matches)
+    if (context.derbyIntensity && context.derbyIntensity > 0 && player.personality?.temperament != null) {
+      if (player.personality.temperament < CONTEXT_DERBY_TEMPERAMENT_THRESHOLD) {
+        const tempGap = CONTEXT_DERBY_TEMPERAMENT_THRESHOLD - player.personality.temperament;
+        score -= tempGap * context.derbyIntensity * CONTEXT_DERBY_TEMPERAMENT_PENALTY_PER_INTENSITY;
+      }
+    }
+
+    // Away matches: boost defensive positions + reward high morale (mental resilience)
+    if (context.isHome === false) {
+      if (DEFENSIVE_POSITIONS.includes(slotPosition)) score += CONTEXT_AWAY_DEFENSIVE_BONUS;
+      score += (player.morale / 100) * CONTEXT_AWAY_MORALE_EXTRA_WEIGHT;
+    }
+
+    // Cup matches: experienced players handle pressure better
+    if (context.isCupMatch && player.appearances >= CONTEXT_CUP_EXPERIENCE_THRESHOLD) {
+      score += CONTEXT_CUP_EXPERIENCE_BONUS;
+    }
+
+    // Congested fixtures: penalize fatigued players who'll be exhausted for next match
+    if (context.hasMatchNextWeek && player.fitness < CONTEXT_CONGESTED_FITNESS_PENALTY_THRESHOLD) {
+      score += CONTEXT_CONGESTED_FITNESS_PENALTY;
+    }
+
+    // Opponent style counter bonuses
+    if (context.opponentStyle) {
+      const isDefPos = DEFENSIVE_POSITIONS.includes(slotPosition);
+      const isCreativePos = slotPosition === 'CAM' || slotPosition === 'CM';
+      const isMidfield = ['CM', 'CDM', 'CAM', 'LM', 'RM'].includes(slotPosition);
+
+      switch (context.opponentStyle) {
+        case 'attacking':
+        case 'direct':
+          // Need defensive solidity against attacking teams
+          if (isDefPos) score += CONTEXT_VS_ATTACKING_DEFENSIVE_BONUS;
+          break;
+        case 'defensive':
+          // Need creative players to break down defensive teams
+          if (isCreativePos) score += CONTEXT_VS_DEFENSIVE_CREATIVE_BONUS;
+          break;
+        case 'possession':
+          // Need physical + mentally strong midfielders to press and disrupt
+          if (isMidfield && player.attributes.physical > 65 && player.attributes.mental > 65) {
+            score += CONTEXT_VS_POSSESSION_PRESSING_BONUS;
+          }
+          break;
+        case 'counter-attack':
+          // Need solid defence to prevent counters
+          if (isDefPos) score += CONTEXT_VS_COUNTER_DEFENSIVE_BONUS;
+          break;
+      }
+    }
+
+    // Leadership bonus: high-leadership players boost team cohesion
+    if (player.personality?.leadership != null && player.personality.leadership >= CONTEXT_LEADERSHIP_BONUS_THRESHOLD) {
+      score += CONTEXT_LEADERSHIP_STARTER_BONUS;
+    }
+  }
+
   return score;
 }
 
@@ -120,17 +221,18 @@ function scorePlayerForSlot(player: Player, slotPosition: Position): number {
  * Smart auto-fill: produces the optimal starting XI and bench for a given formation.
  *
  * Algorithm:
- * 1. Score every available player for every formation slot
+ * 1. Score every available player for every formation slot (context-aware)
  * 2. Greedy assignment (constrained slots first: GK, then fewest-candidate slots)
  * 3. Chemistry-aware pairwise swap optimization
  * 4. Chemistry-aware bench-to-starter refinement
- * 5. Smart bench selection: GK priority, formation-aware coverage, sub-need awareness
+ * 5. Smart bench selection: tiered ordering, vulnerability coverage, match context
  */
 export function autoFillBestTeam(
   players: Player[],
   formation: FormationType,
   currentWeek?: number,
   currentSeason?: number,
+  context?: AutoFillContext,
 ): AutoFillResult {
   const slots = FORMATION_POSITIONS[formation];
   if (!slots || slots.length === 0) {
@@ -148,11 +250,11 @@ export function autoFillBestTeam(
     return { lineup: [], subs: [], chemistryBonus: 0, chemistryLabel: 'Low' };
   }
 
-  // ── Phase 1: Precompute scores ──
+  // ── Phase 1: Precompute scores (context-aware) ──
   const scores: Map<string, number>[] = slots.map(slot => {
     const map = new Map<string, number>();
     for (const p of available) {
-      map.set(p.id, scorePlayerForSlot(p, slot.pos));
+      map.set(p.id, scorePlayerForSlot(p, slot.pos, context));
     }
     return map;
   });
@@ -271,14 +373,12 @@ export function autoFillBestTeam(
   const uniqueFormationPositions = [...formationPositions] as Position[];
 
   // ── Starter vulnerability analysis ──
-  // Map each formation slot position to the starter occupying it and their vulnerability
   const starterInSlot: { player: Player; slotPos: Position }[] = [];
   for (let i = 0; i < slots.length; i++) {
     const p = lineup[i];
     if (p) starterInSlot.push({ player: p, slotPos: slots[i].pos });
   }
 
-  // Find the most vulnerable starters (low fitness, yellow card risk, reinjury risk)
   const starterVulnerability = starterInSlot.map(({ player: p, slotPos }) => {
     let vulnerability = 0;
     if (p.fitness < BENCH_STARTER_TIRED_THRESHOLD) vulnerability += (BENCH_STARTER_TIRED_THRESHOLD - p.fitness);
@@ -291,19 +391,13 @@ export function autoFillBestTeam(
   const mostVulnerableStarters = starterVulnerability.slice(0, BENCH_VULNERABLE_STARTER_COUNT);
   const subNeedPositions = new Set(mostVulnerableStarters.map(s => s.slotPos));
 
-  // Starters with yellow card suspension risk
   const yellowCardRiskSlots = starterInSlot
     .filter(s => s.player.yellowCards >= YELLOW_CARD_HIGH_THRESHOLD)
     .map(s => s.slotPos);
 
-  // Starters with reinjury risk
   const reinjuryRiskSlots = starterInSlot
     .filter(s => s.player.injuryDetails?.reinjuryWeeksRemaining && s.player.injuryDetails.reinjuryWeeksRemaining > 0)
     .map(s => s.slotPos);
-
-  // Attacking and defensive position sets (mirrors match engine)
-  const attackingPositions: Position[] = ['ST', 'LW', 'RW', 'CAM'];
-  const defensivePositions: Position[] = ['CB', 'CDM', 'LB', 'RB'];
 
   const hasGKInLineup = finalLineup.some(p => p.position === 'GK');
 
@@ -338,15 +432,20 @@ export function autoFillBestTeam(
   // ── Helper: attribute-based impact score based on position role in match engine ──
   const getAttributeImpact = (p: Player): number => {
     const a = p.attributes;
-    if (attackingPositions.includes(p.position)) {
+    if (ATTACKING_POSITIONS.includes(p.position)) {
       return (a.shooting + a.pace) * BENCH_ATTRIBUTE_IMPACT_WEIGHT;
     }
-    if (defensivePositions.includes(p.position)) {
+    if (DEFENSIVE_POSITIONS.includes(p.position)) {
       return (a.defending + a.physical) * BENCH_ATTRIBUTE_IMPACT_WEIGHT;
     }
     // Midfield (CM, LM, RM)
     return (a.passing + a.mental) * BENCH_ATTRIBUTE_IMPACT_WEIGHT;
   };
+
+  // Compute average lineup overall for tier 2 threshold
+  const avgLineupOverall = finalLineup.length > 0
+    ? finalLineup.reduce((sum, s) => sum + s.overall, 0) / finalLineup.length
+    : 0;
 
   // ── Score every bench candidate ──
   const benchCandidates = remaining.map(p => {
@@ -359,44 +458,70 @@ export function autoFillBestTeam(
     const formationCoverage = countFormationCoverage(p.position);
     const versatilityScore = formationCoverage * BENCH_VERSATILITY_BONUS_PER_SLOT;
 
-    // Freshness differential: how much fitter is this sub vs the weakest starter they'd replace?
+    // Freshness differential
     const freshnessDiff = getBestFreshnessDiff(p);
     const freshnessScore = Math.max(0, freshnessDiff) * BENCH_FRESHNESS_DIFF_WEIGHT;
 
-    // Form momentum: in-form players are impact subs
+    // Form momentum
     const formBonus = p.form >= BENCH_HIGH_FORM_THRESHOLD ? BENCH_HIGH_FORM_BONUS : 0;
 
-    // Yellow card insurance: can this player cover a starter at suspension risk?
+    // Yellow card insurance
     const coversYellowRisk = yellowCardRiskSlots.some(pos => canCoverPosition(p.position, pos));
     const yellowCoverScore = coversYellowRisk ? BENCH_YELLOW_CARD_COVER_BONUS : 0;
 
-    // Reinjury risk coverage: can this player cover a starter with reinjury risk?
+    // Reinjury risk coverage
     const coversReinjury = reinjuryRiskSlots.some(pos => canCoverPosition(p.position, pos));
     const reinjuryCoverScore = coversReinjury ? BENCH_REINJURY_COVER_BONUS : 0;
 
-    // Tactical role bonus: attackers for chasing games, defenders for protecting leads
-    const isAttacker = attackingPositions.includes(p.position);
-    const isDefender = defensivePositions.includes(p.position);
+    // Tactical role bonus
+    const isAttacker = ATTACKING_POSITIONS.includes(p.position);
+    const isDefender = DEFENSIVE_POSITIONS.includes(p.position);
     const tacticalRoleBonus = isAttacker ? BENCH_ATTACKER_IMPACT_BONUS : isDefender ? BENCH_DEFENDER_INSURANCE_BONUS : 0;
 
-    // Attribute-based impact (mirrors match engine scoring weights)
+    // Attribute-based impact
     const attributeImpact = getAttributeImpact(p);
 
-    // Sub-need coverage: covers one of the most vulnerable starters
+    // Sub-need coverage
     const coversSubNeed = [...subNeedPositions].some(pos => canCoverPosition(p.position, pos));
 
-    // Formation gap: position not represented in lineup but exists in formation
+    // Formation gap
     const coversFormationGap = !lineupPositions.has(p.position) && formationPositions.has(p.position);
 
-    // Position priority (base value from config)
+    // Position priority
     const positionPriority = BENCH_POSITION_PRIORITY[p.position] || 1;
 
-    // Young energy: younger players have more stamina for late-game impact
+    // Young energy
     const youngBonus = p.age <= BENCH_YOUNG_ENERGY_THRESHOLD ? BENCH_YOUNG_ENERGY_BONUS : 0;
+
+    // ── Match context bench adjustments ──
+    let contextBenchBonus = 0;
+    if (context) {
+      // Derby: calm subs are valuable (won't get carded when brought on)
+      if (context.derbyIntensity && context.derbyIntensity > 0 && p.personality?.temperament != null) {
+        if (p.personality.temperament >= BENCH_DERBY_CALM_THRESHOLD) {
+          contextBenchBonus += context.derbyIntensity * BENCH_DERBY_CALM_BONUS_PER_INTENSITY;
+        }
+      }
+
+      // Congested fixtures: high-fitness bench players stay fresh for next match
+      if (context.hasMatchNextWeek && p.fitness >= BENCH_CONGESTED_FITNESS_THRESHOLD) {
+        contextBenchBonus += BENCH_CONGESTED_HIGH_FITNESS_BONUS;
+      }
+
+      // Cup matches: attacking bench options for late-game drama
+      if (context.isCupMatch && isAttacker) {
+        contextBenchBonus += BENCH_CUP_ATTACKER_BONUS;
+      }
+
+      // Away matches: defensive depth is crucial
+      if (context.isHome === false && isDefender) {
+        contextBenchBonus += BENCH_AWAY_DEFENDER_BONUS;
+      }
+    }
 
     // ── Total bench score ──
     const totalScore =
-      (isGKBackup ? 1000 : 0) +  // GK backup is non-negotiable
+      (isGKBackup ? 1000 : 0) +
       baseRating +
       versatilityScore +
       freshnessScore +
@@ -408,13 +533,10 @@ export function autoFillBestTeam(
       (coversSubNeed ? 8 : 0) +
       (coversFormationGap ? 15 : 0) +
       positionPriority +
-      youngBonus;
+      youngBonus +
+      contextBenchBonus;
 
     // ── Determine bench tier for strategic ordering ──
-    // Tier 0: Backup GK (always first)
-    // Tier 1: Emergency coverage — high versatility + covers a vulnerable starter
-    // Tier 2: Tactical impact — high form + quality + freshness (game-changers)
-    // Tier 3: Remaining quality depth
     let tier = 3;
     if (isGKBackup) {
       tier = 0;
@@ -425,15 +547,12 @@ export function autoFillBestTeam(
       tier = 1;
     } else if (
       (p.form >= BENCH_HIGH_FORM_THRESHOLD || freshnessDiff >= 15) &&
-      p.overall >= (finalLineup.reduce((sum, s) => sum + s.overall, 0) / finalLineup.length) - 5
+      p.overall >= avgLineupOverall - 5
     ) {
       tier = 2;
     }
 
-    // Tier bonus ensures strategic ordering: emergency subs before impact subs before depth
-    const tierBonus = tier === 0 ? 1000 : tier === 1 ? BENCH_TIER_EMERGENCY : tier === 2 ? BENCH_TIER_IMPACT : 0;
-
-    return { player: p, totalScore, tierBonus, tier };
+    return { player: p, totalScore, tier };
   });
 
   // Sort: by tier (ascending = GK first, then emergency, then impact, then depth),
@@ -444,7 +563,6 @@ export function autoFillBestTeam(
   });
 
   // ── Greedy bench filling with positional diversity ──
-  // Ensure we don't stack 3+ players of the same position on the bench
   const finalSubs: Player[] = [];
   const benchPositionCounts: Record<string, number> = {};
 
@@ -455,9 +573,9 @@ export function autoFillBestTeam(
 
     // Allow max 2 of any non-GK position on bench (GK always gets exactly 1 slot)
     if (pos === 'GK') {
-      if (benchPositionCounts['GK']) continue; // Only 1 backup GK
+      if (benchPositionCounts['GK']) continue;
     } else if ((benchPositionCounts[pos] || 0) >= 2) {
-      continue; // Skip if we already have 2 of this position on bench
+      continue;
     }
 
     finalSubs.push(c.player);

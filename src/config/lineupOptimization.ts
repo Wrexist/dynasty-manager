@@ -5,14 +5,15 @@
 
 // ── Player Scoring Weights ──
 export const LINEUP_POSITIONAL_OVERALL_WEIGHT = 0.55;
-export const LINEUP_FORM_WEIGHT = 20;
+export const LINEUP_FORM_WEIGHT = 12;
 export const LINEUP_FITNESS_WEIGHT = 15;
 export const LINEUP_MORALE_WEIGHT = 10;
 
 // ── Position Match Bonuses/Penalties ──
-export const LINEUP_NATURAL_POSITION_BONUS = 5;
-export const LINEUP_COMPATIBLE_POSITION_BONUS = 2;
-export const LINEUP_INCOMPATIBLE_POSITION_PENALTY = -20;
+// Match engine: formation fit = 0-18% team strength. Mispositioned players cost ~1.6% per slot.
+export const LINEUP_NATURAL_POSITION_BONUS = 8;
+export const LINEUP_COMPATIBLE_POSITION_BONUS = 4;
+export const LINEUP_INCOMPATIBLE_POSITION_PENALTY = -30;
 
 // ── Fitness & Morale ──
 export const LINEUP_LOW_FITNESS_EXTRA_PENALTY = -8;
@@ -29,7 +30,8 @@ export const LINEUP_YELLOW_CARD_HIGH_THRESHOLD = 2;
 
 // ── Injury & Chemistry ──
 export const LINEUP_REINJURY_RISK_PENALTY_SCALE = -5;
-export const LINEUP_CHEMISTRY_SCORE_SCALE = 50;
+// Chemistry is 0-12% of match team strength — scale accordingly
+export const LINEUP_CHEMISTRY_SCORE_SCALE = 100;
 
 // ── Optimization ──
 export const LINEUP_SWAP_OPTIMIZATION_PASSES = 3;
@@ -72,3 +74,60 @@ export const BENCH_TIER_IMPACT = 100;
 export const BENCH_VULNERABLE_STARTER_COUNT = 3;
 /** Fitness threshold below which a starter is considered tired and needs cover */
 export const BENCH_STARTER_TIRED_THRESHOLD = 70;
+
+// ── Position-Specific Fitness Overrides ──
+// Match engine: attackers use shooting*0.6 + fitness*0.4 for goal selection → fitness is critical
+export const POSITION_FITNESS_OVERRIDE: Record<string, number> = {
+  'ST': 22, 'LW': 20, 'RW': 20, 'CAM': 18,   // Attackers: fitness = 40% of goal selection
+  'CM': 15, 'CDM': 14, 'LM': 16, 'RM': 16,    // Midfield: balanced
+  'CB': 12, 'LB': 14, 'RB': 14,                // Defenders: less fitness-dependent
+  'GK': 8,                                       // GK: barely degrades in-match
+};
+
+// ── Match Context Adjustments ──
+/** Per derby intensity level, penalty per low-temperament point (hot-headed = more cards in derbies) */
+export const CONTEXT_DERBY_TEMPERAMENT_PENALTY_PER_INTENSITY = 2;
+/** Temperament below this triggers penalty in derby matches */
+export const CONTEXT_DERBY_TEMPERAMENT_THRESHOLD = 10;
+/** Bonus for defensive positions in away matches (need solidity without home advantage) */
+export const CONTEXT_AWAY_DEFENSIVE_BONUS = 2;
+/** Extra morale weight for away matches (mental resilience) */
+export const CONTEXT_AWAY_MORALE_EXTRA_WEIGHT = 3;
+/** Bonus for high-appearance players in cup matches (experience under pressure) */
+export const CONTEXT_CUP_EXPERIENCE_BONUS = 2;
+/** Min appearances for cup experience bonus */
+export const CONTEXT_CUP_EXPERIENCE_THRESHOLD = 30;
+/** Fitness below this gets penalized when there's another match next week */
+export const CONTEXT_CONGESTED_FITNESS_PENALTY_THRESHOLD = 75;
+/** Penalty for tired players in congested fixture weeks */
+export const CONTEXT_CONGESTED_FITNESS_PENALTY = -4;
+
+// ── Opponent Style Counter Bonuses ──
+/** Boost CBs/CDMs vs attacking/direct opponents */
+export const CONTEXT_VS_ATTACKING_DEFENSIVE_BONUS = 3;
+/** Boost CAM/CM creative players vs defensive opponents who park the bus */
+export const CONTEXT_VS_DEFENSIVE_CREATIVE_BONUS = 3;
+/** Boost physical+mental midfielders vs possession-based opponents */
+export const CONTEXT_VS_POSSESSION_PRESSING_BONUS = 3;
+/** Boost defenders vs counter-attack opponents */
+export const CONTEXT_VS_COUNTER_DEFENSIVE_BONUS = 3;
+
+// ── Leadership & Personality ──
+/** Leadership trait above this gives starter bonus */
+export const CONTEXT_LEADERSHIP_BONUS_THRESHOLD = 15;
+/** Flat bonus for high-leadership starters (morale + cohesion) */
+export const CONTEXT_LEADERSHIP_STARTER_BONUS = 2;
+
+// ── Bench Context Adjustments ──
+/** Bonus for calm bench players (temperament >= 14) per derby intensity level */
+export const BENCH_DERBY_CALM_BONUS_PER_INTENSITY = 2;
+/** Temperament threshold for a bench player to be considered "calm" in derby context */
+export const BENCH_DERBY_CALM_THRESHOLD = 14;
+/** Bonus for high-fitness bench players when congested fixtures detected */
+export const BENCH_CONGESTED_HIGH_FITNESS_BONUS = 3;
+/** Fitness threshold for congested fixture bench bonus */
+export const BENCH_CONGESTED_FITNESS_THRESHOLD = 85;
+/** Bonus for attacking bench players in cup matches (late-game drama potential) */
+export const BENCH_CUP_ATTACKER_BONUS = 3;
+/** Bonus for defensive bench players in away matches */
+export const BENCH_AWAY_DEFENDER_BONUS = 2;
