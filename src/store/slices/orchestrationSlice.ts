@@ -1445,6 +1445,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         newMessages = addMsg(newMessages, { week, season, type: 'general', title: `${p.lastName} Available`, body: `${p.firstName} ${p.lastName}'s suspension has ended. Available for selection.` });
       }
 
+      // Snapshot attributes before training + development to track per-attribute changes
+      const attrsBefore = { ...p.attributes };
+
       if (!p.injured) {
         p = applyWeeklyTraining(p, training, firstTeamCoachBonus + fitnessCoachBonus * 0.5, facilities.recoveryLevel, streakMult);
         // Physio reduces training injury risk, age-scaled injury risk
@@ -1474,6 +1477,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       } else if (p.growthDelta && p.growthDelta < 0) {
         declinedPlayers.push({ name: p.lastName, overall: p.overall });
       }
+
+      // Compute combined per-attribute changes from training + development
+      const attrChanges: Partial<Record<keyof PlayerAttributes, number>> = {};
+      for (const attr of Object.keys(attrsBefore) as (keyof PlayerAttributes)[]) {
+        const delta = p.attributes[attr] - attrsBefore[attr];
+        if (delta !== 0) attrChanges[attr] = delta;
+      }
+      p.lastAttributeChanges = Object.keys(attrChanges).length > 0 ? attrChanges : undefined;
 
       // Benched players gradually lose morale
       if (!playerClub.lineup.includes(pid) && !playerClub.subs.includes(pid) && !p.injured) {

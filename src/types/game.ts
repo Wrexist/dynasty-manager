@@ -124,6 +124,7 @@ export interface Player {
   suspendedUntilWeek?: number;
   growthDelta?: number;
   lastTrainingGains?: Partial<Record<keyof PlayerAttributes, number>>;
+  lastAttributeChanges?: Partial<Record<keyof PlayerAttributes, number>>;
   listedForSale?: boolean;
   onLoan?: boolean;
   loanFromClubId?: string;

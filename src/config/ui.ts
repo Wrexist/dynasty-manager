@@ -100,6 +100,16 @@ export const CHART_COLORS = {
   STROKE_WIDTH: 2,
 } as const;
 
+// ── Player Radar Chart ──
+export const PLAYER_RADAR = {
+  HEIGHT: 180,
+  OUTER_RADIUS: '70%',
+  LABEL_FONT_SIZE: 10,
+  CHANGE_FONT_SIZE: 9,
+  CHANGE_POSITIVE_COLOR: '#34d399',
+  CHANGE_NEGATIVE_COLOR: '#f87171',
+} as const;
+
 // ── Player Mood Thresholds (used in ContractNegotiation) ──
 export const MOOD_COLOR_THRESHOLDS = [
   { min: 60, textClass: 'text-emerald-400', label: 'Positive' },
