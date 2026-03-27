@@ -165,7 +165,7 @@ const SeasonSummary = () => {
         </GlassPanel>
         </motion.div>
 
-        {/* Cup Result */}
+        {/* Cup Results */}
         {latest.cupResult && (
           <GlassPanel className="p-4 flex items-center gap-3">
             <Trophy className="w-5 h-5 text-primary" />
@@ -175,6 +175,42 @@ const SeasonSummary = () => {
             </div>
             {latest.cupResult === 'Winner' && (
               <Trophy className="w-5 h-5 text-primary" />
+            )}
+          </GlassPanel>
+        )}
+        {latest.leagueCupResult && (
+          <GlassPanel className="p-4 flex items-center gap-3">
+            <Trophy className="w-5 h-5 text-emerald-400" />
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground">League Cup</p>
+              <p className="text-sm font-bold text-foreground">{latest.leagueCupResult}</p>
+            </div>
+            {latest.leagueCupResult === 'Winner' && (
+              <Trophy className="w-5 h-5 text-emerald-400" />
+            )}
+          </GlassPanel>
+        )}
+        {latest.championsCupResult && (
+          <GlassPanel className="p-4 flex items-center gap-3">
+            <Trophy className="w-5 h-5 text-blue-400" />
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground">Champions Cup</p>
+              <p className="text-sm font-bold text-foreground">{latest.championsCupResult}</p>
+            </div>
+            {latest.championsCupResult === 'Winner' && (
+              <Trophy className="w-5 h-5 text-blue-400" />
+            )}
+          </GlassPanel>
+        )}
+        {latest.shieldCupResult && (
+          <GlassPanel className="p-4 flex items-center gap-3">
+            <Trophy className="w-5 h-5 text-orange-400" />
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground">Shield Cup</p>
+              <p className="text-sm font-bold text-foreground">{latest.shieldCupResult}</p>
+            </div>
+            {latest.shieldCupResult === 'Winner' && (
+              <Trophy className="w-5 h-5 text-orange-400" />
             )}
           </GlassPanel>
         )}
@@ -277,6 +313,9 @@ const SeasonSummary = () => {
                   <span className="font-bold text-foreground">
                     {sh.position}{getSuffix(sh.position)} · {sh.points}pts
                     {sh.cupResult === 'Winner' ? ' · Cup Winner' : sh.cupResult === 'Final' ? ' · Cup Final' : ''}
+                    {sh.championsCupResult === 'Winner' ? ' · CC Winner' : ''}
+                    {sh.shieldCupResult === 'Winner' ? ' · SC Winner' : ''}
+                    {sh.leagueCupResult === 'Winner' ? ' · LC Winner' : ''}
                   </span>
                 </div>
               ))}

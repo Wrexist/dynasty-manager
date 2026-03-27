@@ -26,7 +26,7 @@ export function updateRecords(
   topScorer: { name: string; goals: number } | null,
   topAssister: { name: string; assists: number } | null,
   biggestWinMargin: { margin: number; description: string } | null,
-  cupWon: boolean,
+  cupWon: boolean | number,
 ): ClubRecords {
   const updated = { ...records };
   updated.seasonsManaged++;
@@ -64,7 +64,7 @@ export function updateRecords(
   }
 
   if (cupWon) {
-    updated.cupWins++;
+    updated.cupWins += typeof cupWon === 'number' ? cupWon : 1;
   }
 
   // Hall of Fame: top scorer each season with 10+ goals

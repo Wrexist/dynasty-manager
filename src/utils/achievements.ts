@@ -173,6 +173,20 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'cup-winner', title: 'Cup Winner', description: 'Win the Dynasty Cup', icon: 'medal', tier: 'gold',
     check: (s) => s.cup?.winner === s.playerClubId },
 
+  // ── Tournaments ──
+  { id: 'league-cup-winner', title: 'Cup Collector', description: 'Win the League Cup', icon: 'medal', tier: 'bronze',
+    check: (s) => s.seasonHistory.some(h => h.leagueCupResult === 'Winner') },
+  { id: 'champions-cup-winner', title: 'European Champion', description: 'Win the Champions Cup', icon: 'trophy', tier: 'gold',
+    check: (s) => s.seasonHistory.some(h => h.championsCupResult === 'Winner') },
+  { id: 'shield-cup-winner', title: 'Shield Bearer', description: 'Win the Shield Cup', icon: 'shield', tier: 'silver',
+    check: (s) => s.seasonHistory.some(h => h.shieldCupResult === 'Winner') },
+  { id: 'continental-debut', title: 'Continental Debut', description: 'Play in a continental competition', icon: 'globe', tier: 'bronze',
+    check: (s) => !!((s.championsCup && !s.championsCup.playerEliminated) || (s.shieldCup && !s.shieldCup.playerEliminated)) },
+  { id: 'continental-treble', title: 'The Treble', description: 'Win League + Domestic Cup + Champions Cup in one season', icon: 'star', tier: 'gold', hidden: true,
+    check: (s) => {
+      return s.seasonHistory.some(h => h.position === 1 && h.cupResult === 'Winner' && h.championsCupResult === 'Winner');
+    } },
+
   // ── Staff ──
   { id: 'full-house', title: 'Full House', description: 'Hire staff for all 7 roles', icon: 'building', tier: 'bronze',
     check: (s) => new Set(s.staff.members.map(m => m.role)).size >= 7 },

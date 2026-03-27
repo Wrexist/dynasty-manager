@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 28;
+const CURRENT_VERSION = 29;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -393,6 +393,19 @@ const migrations: Record<number, MigrationFn> = {
       } : null,
     };
   },
+
+  // v28 → v29: Added League Cup, Continental Tournaments, Super Cups
+  28: (data) => ({
+    ...data,
+    version: 29,
+    leagueCup: data.leagueCup || { ties: [], currentRound: null, eliminated: false, winner: null },
+    championsCup: data.championsCup || null,
+    shieldCup: data.shieldCup || null,
+    virtualClubs: data.virtualClubs || {},
+    continentalQualification: data.continentalQualification || null,
+    domesticSuperCup: data.domesticSuperCup || null,
+    continentalSuperCup: data.continentalSuperCup || null,
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

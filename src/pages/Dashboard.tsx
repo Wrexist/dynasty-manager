@@ -55,10 +55,11 @@ const Dashboard = () => {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
     boardConfidence, boardObjectives, setScreen, advanceWeek,
     currentMatchResult, incomingOffers, endSeason, trainingFocus, cup,
+    leagueCup, championsCup, shieldCup, virtualClubs,
     weekCliffhangers, lastMatchDrama, objectiveStreak,
   } = store;
   const club = usePlayerClub();
-  const { match: nextMatch, isHome, opponent } = useCurrentMatch();
+  const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
   const pos = useLeaguePosition();
   const unread = useUnreadCount();
   const budgetFlash = useFlash(club?.budget || 0);
@@ -542,7 +543,7 @@ const Dashboard = () => {
       {/* Next Match */}
       {!seasonOver && nextMatch && opponent ? (
         <GlassPanel className="p-5" onClick={() => setScreen('match-prep')}>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">{inPlayoffs ? 'Playoff Match' : 'Match Day'} -- Week {week}</p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">{competition || (inPlayoffs ? 'Playoff Match' : 'Match Day')} — Week {week}</p>
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
               <div
@@ -1258,9 +1259,71 @@ const Dashboard = () => {
             <div className="flex items-center gap-3">
               <Award className={cn('w-5 h-5', cup.winner === playerClubId ? 'text-primary' : cup.eliminated ? 'text-destructive' : 'text-muted-foreground')} />
               <div>
-                <p className="text-sm font-semibold text-foreground">League Cup</p>
+                <p className="text-sm font-semibold text-foreground">Domestic Cup</p>
                 <p className="text-xs text-muted-foreground">
                   {cup.winner ? `Winner: ${clubs[cup.winner]?.shortName}` : cup.eliminated ? 'Eliminated' : getRoundName(cup.currentRound)}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* League Cup Status */}
+      {leagueCup && leagueCup.currentRound && (
+        <GlassPanel className="p-4" onClick={() => setScreen('league-cup')}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Award className={cn('w-5 h-5', leagueCup.winner === playerClubId ? 'text-emerald-400' : leagueCup.eliminated ? 'text-destructive' : 'text-muted-foreground')} />
+              <div>
+                <p className="text-sm font-semibold text-foreground">League Cup</p>
+                <p className="text-xs text-muted-foreground">
+                  {leagueCup.winner ? `Winner: ${clubs[leagueCup.winner]?.shortName}` : leagueCup.eliminated ? 'Eliminated' : getRoundName(leagueCup.currentRound)}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Champions Cup Status */}
+      {championsCup && (
+        <GlassPanel className="p-4" onClick={() => setScreen('champions-cup')}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Trophy className={cn('w-5 h-5', championsCup.winnerId === playerClubId ? 'text-primary' : championsCup.playerEliminated ? 'text-destructive' : 'text-primary/70')} />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Champions Cup</p>
+                <p className="text-xs text-muted-foreground">
+                  {championsCup.winnerId
+                    ? `Winner: ${(clubs[championsCup.winnerId] || virtualClubs[championsCup.winnerId])?.shortName || '?'}`
+                    : championsCup.playerEliminated ? 'Eliminated'
+                    : championsCup.currentPhase === 'group' ? 'Group Stage'
+                    : championsCup.currentRound || 'Knockout'}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Shield Cup Status */}
+      {shieldCup && (
+        <GlassPanel className="p-4" onClick={() => setScreen('shield-cup')}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Shield className={cn('w-5 h-5', shieldCup.winnerId === playerClubId ? 'text-accent' : shieldCup.playerEliminated ? 'text-destructive' : 'text-accent/70')} />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Shield Cup</p>
+                <p className="text-xs text-muted-foreground">
+                  {shieldCup.winnerId
+                    ? `Winner: ${(clubs[shieldCup.winnerId] || virtualClubs[shieldCup.winnerId])?.shortName || '?'}`
+                    : shieldCup.playerEliminated ? 'Eliminated'
+                    : shieldCup.currentPhase === 'group' ? 'Group Stage'
+                    : shieldCup.currentRound || 'Knockout'}
                 </p>
               </div>
             </div>

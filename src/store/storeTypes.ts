@@ -1,4 +1,4 @@
-import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer } from '@/types/game';
+import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -109,6 +109,9 @@ export interface GameState {
   // Match drama type from last played match
   lastMatchDrama: MatchDramaType;
 
+  // Competition name for the last played match (e.g. 'Champions Cup - Group A, MD3')
+  lastMatchCompetition: string | null;
+
   // Session stats for session summary
   sessionStats: SessionStats;
 
@@ -143,6 +146,24 @@ export interface GameState {
   nationalTeam: NationalTeamState | null;
   internationalTournament: InternationalTournamentState | null;
   managerNationality: string | null;
+
+  // Continental Tournaments
+  championsCup: ContinentalTournamentState | null;
+  shieldCup: ContinentalTournamentState | null;
+  virtualClubs: Record<string, VirtualClub>;
+  continentalQualification: { champions: string[]; shield: string[] } | null;
+
+  // League Cup (secondary domestic cup)
+  leagueCup: LeagueCupState;
+
+  // Super Cups
+  domesticSuperCup: SuperCupMatch | null;
+  continentalSuperCup: SuperCupMatch | null;
+
+  // Current continental match tracking
+  currentContinentalMatchId: string | null;
+  currentContinentalCompetition: ContinentalCompetition | null;
+  currentLeagueCupTieId: string | null;
 
   // Actions — Core
   initGame: (clubId: string) => void;
