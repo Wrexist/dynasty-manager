@@ -102,6 +102,87 @@ function scorePlayerForSlot(player: Player, slotPosition: Position): number {
 }
 
 /**
+ * Optimize the positions of current starters within their formation slots.
+ * Does NOT swap bench players in — only rearranges the given starters for best positional fit.
+ * Safe to use mid-match since it doesn't change WHO is playing, only WHERE they play.
+ *
+ * Uses a greedy assignment (constrained-slots-first) + pairwise swap optimization.
+ * Returns a new lineup array (same player IDs, potentially reordered).
+ */
+export function optimizeStarterPositions(
+  starterIds: string[],
+  playersMap: Record<string, Player>,
+  formation: FormationType,
+): string[] {
+  const slots = FORMATION_POSITIONS[formation];
+  if (!slots || slots.length === 0) return starterIds;
+
+  const starters = starterIds.map(id => playersMap[id]).filter(Boolean);
+  if (starters.length === 0) return starterIds;
+
+  // Score every starter for every slot
+  const scores: number[][] = [];
+  for (let si = 0; si < slots.length; si++) {
+    scores[si] = [];
+    for (let pi = 0; pi < starters.length; pi++) {
+      scores[si][pi] = scorePlayerForSlot(starters[pi], slots[si].pos as Position);
+    }
+  }
+
+  // Greedy assignment: constrained slots first (fewest high-scoring players)
+  const assigned: (Player | null)[] = new Array(slots.length).fill(null);
+  const used = new Set<number>();
+
+  // Order slots by number of compatible players (ascending = most constrained first)
+  const slotOrder = slots.map((_, i) => i).sort((a, b) => {
+    const countA = starters.filter((p, pi) => !used.has(pi) && scores[a][pi] > 0).length;
+    const countB = starters.filter((p, pi) => !used.has(pi) && scores[b][pi] > 0).length;
+    return countA - countB;
+  });
+
+  for (const si of slotOrder) {
+    let bestPi = -1;
+    let bestScore = -Infinity;
+    for (let pi = 0; pi < starters.length; pi++) {
+      if (used.has(pi)) continue;
+      if (scores[si][pi] > bestScore) {
+        bestScore = scores[si][pi];
+        bestPi = pi;
+      }
+    }
+    if (bestPi >= 0) {
+      assigned[si] = starters[bestPi];
+      used.add(bestPi);
+    }
+  }
+
+  // Pairwise swap optimization (3 passes)
+  for (let pass = 0; pass < SWAP_OPTIMIZATION_PASSES; pass++) {
+    let improved = false;
+    for (let i = 0; i < slots.length; i++) {
+      for (let j = i + 1; j < slots.length; j++) {
+        const pi = assigned[i];
+        const pj = assigned[j];
+        if (!pi || !pj) continue;
+        const piIdx = starters.indexOf(pi);
+        const pjIdx = starters.indexOf(pj);
+        const currentScore = scores[i][piIdx] + scores[j][pjIdx];
+        const swappedScore = scores[i][pjIdx] + scores[j][piIdx];
+        if (swappedScore > currentScore) {
+          assigned[i] = pj;
+          assigned[j] = pi;
+          improved = true;
+        }
+      }
+    }
+    if (!improved) break;
+  }
+
+  // Build result: maintain original IDs for any unassigned slots
+  return assigned.map((p, i) => p?.id || starterIds[i]);
+}
+
+/**
  * Smart auto-fill: produces the optimal starting XI and bench for a given formation.
  *
  * Algorithm:
