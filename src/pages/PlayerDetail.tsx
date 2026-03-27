@@ -20,6 +20,7 @@ import { MODULE_ATTR_MAP } from '@/config/training';
 import { hapticLight } from '@/utils/haptics';
 import { hasPerk } from '@/utils/managerPerks';
 import { getWinStreak } from '@/utils/celebrations';
+import { getLeadershipBonus } from '@/utils/personality';
 import { UNHAPPY_CONTAGION_WEEKS, STREAK_MORALE_THRESHOLD } from '@/config/gameBalance';
 
 const TRAINING_MODULE_INFO: { module: TrainingModule; label: string; icon: React.ElementType; color: string }[] = [
@@ -200,10 +201,18 @@ const PlayerDetail = () => {
         const tips: { text: string; actionable: boolean; done: boolean; warning?: boolean }[] = [];
 
         // Contagion warning (show first — most urgent)
-        if ((player.lowMoraleWeeks || 0) >= UNHAPPY_CONTAGION_WEEKS) {
+        const lowWeeks = player.lowMoraleWeeks || 0;
+        if (lowWeeks >= UNHAPPY_CONTAGION_WEEKS) {
           tips.push({
             text: 'Spreading unhappiness to teammates — 2 random players lose 3 morale per week',
             actionable: false,
+            done: false,
+            warning: true,
+          });
+        } else if (lowWeeks >= UNHAPPY_CONTAGION_WEEKS - 2 && lowWeeks > 0) {
+          tips.push({
+            text: `${UNHAPPY_CONTAGION_WEEKS - lowWeeks} more week${UNHAPPY_CONTAGION_WEEKS - lowWeeks === 1 ? '' : 's'} until unhappiness spreads to teammates`,
+            actionable: true,
             done: false,
             warning: true,
           });
@@ -245,6 +254,15 @@ const PlayerDetail = () => {
           done: currentWinStreak >= STREAK_MORALE_THRESHOLD,
         });
 
+        // Leadership
+        const squadPlayers = playerClub?.playerIds?.map(id => players[id]).filter(Boolean) || [];
+        const totalLeadership = squadPlayers.reduce((sum, p) => sum + getLeadershipBonus(p.personality), 0);
+        if (totalLeadership >= 0.15) {
+          tips.push({ text: 'Strong squad leaders — +1 morale per week for everyone', actionable: false, done: true });
+        } else {
+          tips.push({ text: 'Sign or develop high-leadership players to boost squad morale weekly', actionable: true, done: false });
+        }
+
         // Contract
         if (player.contractEnd <= season) {
           tips.push({
@@ -263,6 +281,10 @@ const PlayerDetail = () => {
 
         if (hasPerk(managerProgression, 'iron_will')) {
           tips.push({ text: 'Iron Will perk active — no morale penalty from defeats', actionable: false, done: true });
+        }
+
+        if (hasPerk(managerProgression, 'fortress_mentality')) {
+          tips.push({ text: 'Fortress Mentality active — home wins give +3 extra morale', actionable: false, done: true });
         }
 
         // Listing for sale (appease mechanic hint)

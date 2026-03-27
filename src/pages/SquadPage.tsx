@@ -126,9 +126,13 @@ const SquadPage = () => {
     e.stopPropagation();
     const player = players[playerId];
     if (!player) return;
-    listPlayerForSale(playerId);
+    const result = listPlayerForSale(playerId);
     hapticMedium();
-    successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M`);
+    if (result.appeased) {
+      successToast(`${player.lastName} appreciates your honesty!`, 'Transfer request withdrawn — morale improved.');
+    } else {
+      successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M`);
+    }
   };
 
   const posGroupLabel = (pos: Position): string => {
