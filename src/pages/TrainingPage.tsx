@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
-import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronUp, Trophy, AlertTriangle, TrendingUp, Heart } from 'lucide-react';
+import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronUp, Trophy, AlertTriangle, TrendingUp, Heart, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TrainingModule } from '@/types/game';
 import { PageHint } from '@/components/game/PageHint';
@@ -75,7 +75,8 @@ const TrainingPage = () => {
 
   const handleDrillChange = (day: typeof DAYS[number], drillId: string) => {
     hapticLight();
-    updateDrillSchedule({ [day]: drillId });
+    const isAlreadySelected = training.drillSchedule?.[day] === drillId;
+    updateDrillSchedule({ [day]: isAlreadySelected ? undefined : drillId });
   };
 
   const handleIntensity = (val: 'light' | 'medium' | 'heavy') => {
@@ -86,6 +87,7 @@ const TrainingPage = () => {
   const handlePreset = (preset: typeof TRAINING_PRESETS[number]) => {
     hapticLight();
     updateTraining(preset.schedule);
+    setActiveDay('mon');
   };
 
   const handleSetIndividualFocus = (playerId: string, focus: TrainingModule | null) => {
@@ -235,7 +237,7 @@ const TrainingPage = () => {
               const dayModule = schedule[day];
               const dayInfo = MODULE_INFO.find(m => m.module === dayModule);
               const DayIcon = dayInfo?.icon || Dumbbell;
-              const colors = MODULE_COLORS[dayModule];
+              const colors = MODULE_COLORS[dayModule] || MODULE_COLORS['fitness'];
               return (
                 <button
                   key={day}
@@ -273,7 +275,7 @@ const TrainingPage = () => {
           <div className="grid grid-cols-3 gap-2 mt-4">
             {MODULE_INFO.map(({ module, label, icon: Icon }) => {
               const isSelected = schedule[activeDay] === module;
-              const colors = MODULE_COLORS[module];
+              const colors = MODULE_COLORS[module] || MODULE_COLORS['fitness'];
               return (
                 <motion.button
                   key={module}
@@ -299,46 +301,79 @@ const TrainingPage = () => {
           </div>
 
           {/* Drill Picker — vertical stack */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`${activeDay}-${schedule[activeDay]}`}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.15 }}
-              className="space-y-1.5 mt-3"
-            >
-              <p className="text-[10px] text-muted-foreground mb-1">Optional: pick a specific drill focus</p>
-              {DRILLS_BY_MODULE[schedule[activeDay]]?.map(drill => {
-                const isSelected = training.drillSchedule?.[activeDay] === drill.id;
-                const weights = Object.entries(drill.attrWeights)
-                  .map(([a, w]) => `${ATTR_LABELS[a] || a} ${Math.round((w || 0) * 100)}%`)
-                  .join(' · ');
+          {DRILLS_BY_MODULE[schedule[activeDay]]?.length > 0 && (
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`${activeDay}-${schedule[activeDay]}`}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+                className="space-y-1.5 mt-3"
+              >
+                <p className="text-[10px] text-muted-foreground mb-1">Optional: pick a specific drill focus</p>
+                {DRILLS_BY_MODULE[schedule[activeDay]].map(drill => {
+                  const isSelected = training.drillSchedule?.[activeDay] === drill.id;
+                  const weights = Object.entries(drill.attrWeights)
+                    .map(([a, w]) => `${ATTR_LABELS[a] || a} ${Math.round((w || 0) * 100)}%`)
+                    .join(' · ');
+                  return (
+                    <motion.button
+                      key={drill.id}
+                      onClick={() => handleDrillChange(activeDay, drill.id)}
+                      whileTap={{ scale: 0.98 }}
+                      className={cn(
+                        'flex items-center justify-between w-full px-3 py-2.5 rounded-lg border transition-all text-left',
+                        isSelected
+                          ? 'bg-primary/10 border-primary/30'
+                          : 'bg-muted/15 border-transparent hover:bg-muted/30'
+                      )}
+                    >
+                      <div className="flex flex-col">
+                        <span className={cn('text-xs font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>
+                          {drill.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground mt-0.5">{weights}</span>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-primary shrink-0" />
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </motion.div>
+            </AnimatePresence>
+          )}
+
+          {/* Week Summary Strip */}
+          <div className="border-t border-border/30 pt-3 mt-3">
+            <div className="flex">
+              {DAYS.map((day, i) => {
+                const dayModule = schedule[day];
+                const dayInfo = MODULE_INFO.find(m => m.module === dayModule);
+                const colors = MODULE_COLORS[dayModule] || MODULE_COLORS['fitness'];
+                const isActive = activeDay === day;
                 return (
                   <button
-                    key={drill.id}
-                    onClick={() => handleDrillChange(activeDay, drill.id)}
+                    key={day}
+                    onClick={() => { hapticLight(); setActiveDay(day); }}
                     className={cn(
-                      'flex items-center justify-between w-full px-3 py-2.5 rounded-lg border transition-all text-left',
-                      isSelected
-                        ? 'bg-primary/10 border-primary/30'
-                        : 'bg-muted/15 border-transparent hover:bg-muted/30'
+                      'flex-1 flex flex-col items-center gap-0.5 py-1 rounded transition-colors',
+                      isActive ? 'bg-muted/30' : 'hover:bg-muted/20'
                     )}
                   >
-                    <div className="flex flex-col">
-                      <span className={cn('text-xs font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>
-                        {drill.name}
+                    <span className="text-[9px] text-muted-foreground">{DAY_LABELS[i]}</span>
+                    <div className="flex items-center gap-1">
+                      <div className={cn('w-1.5 h-1.5 rounded-full', colors.dot)} />
+                      <span className={cn('text-[9px] font-medium', colors.text)}>
+                        {dayInfo?.label.slice(0, 3) || '???'}
                       </span>
-                      <span className="text-[10px] text-muted-foreground mt-0.5">{weights}</span>
                     </div>
-                    {isSelected && (
-                      <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
-                    )}
                   </button>
                 );
               })}
-            </motion.div>
-          </AnimatePresence>
+            </div>
+          </div>
         </GlassPanel>
 
         {/* Intensity + Effectiveness Preview */}
