@@ -1,12 +1,13 @@
 /**
  * Continental tournament logic: match simulation, group advancement, knockout resolution.
  */
-import type { ContinentalTournamentState, ContinentalKnockoutTie, VirtualClub, ContinentalCompetition } from '@/types/game';
+import type { ContinentalTournamentState, ContinentalKnockoutTie, VirtualClub, ContinentalCompetition, Club, Player, FormationType } from '@/types/game';
 import {
   CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK,
   CONTINENTAL_EXTRA_TIME_GOAL_CHANCE,
   CONTINENTAL_PENALTY_KICKS, CONTINENTAL_PENALTY_CONVERSION,
 } from '@/config/continental';
+import { generateSquad } from '@/utils/playerGen';
 import { shuffle } from '@/utils/helpers';
 
 // ── Simplified Match Simulation ──
@@ -469,4 +470,98 @@ export function getCompetitionName(competition: ContinentalCompetition): string 
 export function getKnockoutRoundName(round: string): string {
   const names: Record<string, string> = { R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'Final' };
   return names[round] || round;
+}
+
+// ── Ephemeral Club for Interactive Continental Play ──
+
+/**
+ * Create a temporary Club + Player[] from a VirtualClub for interactive match simulation.
+ * Quality mapping: rep 5 → quality 80, rep 4 → 72, rep 3 → 64, rep 2 → 56, rep 1 → 48
+ */
+export function createEphemeralClub(
+  vc: VirtualClub,
+  season: number,
+): { club: Club; players: Record<string, Player> } {
+  const quality = 32 + vc.reputation * 10; // rep 1→42, 2→52, 3→62, 4→72, 5→82
+  const squad = generateSquad(vc.id, quality, season, vc.leagueId);
+
+  const playerMap: Record<string, Player> = {};
+  const playerIds: string[] = [];
+  const lineup: string[] = [];
+  const subs: string[] = [];
+
+  for (const p of squad) {
+    // Prefix with 'vc-' to distinguish from real players
+    p.id = `vc-${vc.id}-${p.id}`;
+    p.clubId = vc.id;
+    playerMap[p.id] = p;
+    playerIds.push(p.id);
+  }
+
+  // Sort by overall descending, pick best 11 for lineup, rest as subs
+  const sorted = [...squad].sort((a, b) => b.overall - a.overall);
+  for (let i = 0; i < sorted.length; i++) {
+    if (i < 11) lineup.push(sorted[i].id);
+    else subs.push(sorted[i].id);
+  }
+
+  const club: Club = {
+    id: vc.id,
+    name: vc.name,
+    shortName: vc.shortName,
+    color: vc.color,
+    secondaryColor: vc.secondaryColor,
+    budget: 0,
+    wageBill: 0,
+    reputation: vc.reputation,
+    facilities: Math.min(5, Math.max(1, vc.reputation)),
+    youthRating: vc.reputation,
+    fanBase: vc.reputation * 20,
+    boardPatience: 50,
+    playerIds,
+    formation: '4-3-3' as FormationType,
+    lineup,
+    subs,
+    divisionId: vc.leagueId as Club['divisionId'],
+  };
+
+  return { club, players: playerMap };
+}
+
+/**
+ * Find the player's continental match for the current week, if any.
+ * Returns match info or null.
+ */
+export function findPlayerContinentalMatch(
+  tournament: ContinentalTournamentState | null,
+  week: number,
+  playerClubId: string,
+): { type: 'group'; groupIdx: number; matchIdx: number } | { type: 'knockout'; tieIdx: number; leg: 1 | 2 } | null {
+  if (!tournament || tournament.playerEliminated) return null;
+
+  // Check group stage
+  if (tournament.currentPhase === 'group') {
+    for (let gi = 0; gi < tournament.groups.length; gi++) {
+      const group = tournament.groups[gi];
+      for (let mi = 0; mi < group.matches.length; mi++) {
+        const m = group.matches[mi];
+        if (m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) {
+          return { type: 'group', groupIdx: gi, matchIdx: mi };
+        }
+      }
+    }
+  }
+
+  // Check knockout
+  if (tournament.currentPhase === 'knockout') {
+    for (let ti = 0; ti < tournament.knockoutTies.length; ti++) {
+      const tie = tournament.knockoutTies[ti];
+      if (tie.homeClubId !== playerClubId && tie.awayClubId !== playerClubId) continue;
+      if (tie.winnerId) continue; // already resolved
+      if (tie.week1 === week && !tie.leg1Played) return { type: 'knockout', tieIdx: ti, leg: 1 };
+      if (tie.week2 === week && !tie.leg2Played && tie.round !== 'F') return { type: 'knockout', tieIdx: ti, leg: 2 };
+    }
+  }
+
+  return null;
 }

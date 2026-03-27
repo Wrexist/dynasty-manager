@@ -3,10 +3,10 @@ import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubstitutionSheet } from '@/components/game/SubstitutionSheet';
 import { Button } from '@/components/ui/button';
-import { MatchEvent, Match, Club } from '@/types/game';
+import { MatchEvent, Match, Club, ContinentalTournamentState } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin } from 'lucide-react';
+import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight } from '@/utils/haptics';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT } from '@/config/matchEngine';
 import type { HalfState } from '@/engine/match';
@@ -22,6 +22,40 @@ import { getActiveCosmetic } from '@/utils/monetization';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 
 const isGoalEvent = (e: MatchEvent) => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored';
+
+/** Find player's continental match this week and return display-friendly info */
+function findPlayerContinentalMatchForUI(
+  tournament: ContinentalTournamentState | null,
+  week: number,
+  playerClubId: string,
+): { id: string; homeClubId: string; awayClubId: string; roundLabel: string } | null {
+  if (!tournament) return null;
+  // Check group stage
+  for (let gi = 0; gi < tournament.groups.length; gi++) {
+    const group = tournament.groups[gi];
+    for (let mi = 0; mi < group.matches.length; mi++) {
+      const m = group.matches[mi];
+      if (m.played || m.week !== week) continue;
+      if (m.homeClubId === playerClubId || m.awayClubId === playerClubId) {
+        return { id: m.id, homeClubId: m.homeClubId, awayClubId: m.awayClubId, roundLabel: `Group ${String.fromCharCode(65 + gi)} - MD${mi + 1}` };
+      }
+    }
+  }
+  // Check knockout
+  for (let ti = 0; ti < tournament.knockoutTies.length; ti++) {
+    const tie = tournament.knockoutTies[ti];
+    if (tie.homeClubId !== playerClubId && tie.awayClubId !== playerClubId) continue;
+    const roundNames: Record<string, string> = { R16: 'Round of 16', QF: 'Quarter-Final', SF: 'Semi-Final', F: 'Final' };
+    const roundLabel = roundNames[tie.round] || tie.round;
+    if (tie.round === 'F') {
+      if (!tie.leg1Played && tie.leg1Week === week) return { id: tie.id, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, roundLabel };
+    } else {
+      if (!tie.leg1Played && tie.leg1Week === week) return { id: tie.id, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, roundLabel: `${roundLabel} - Leg 1` };
+      if (tie.leg1Played && !tie.leg2Played && tie.leg2Week === week) return { id: tie.id, homeClubId: tie.awayClubId, awayClubId: tie.homeClubId, roundLabel: `${roundLabel} - Leg 2` };
+    }
+  }
+  return null;
+}
 
 /** Compute enriched description with running score context */
 function getEnrichedDescription(ev: MatchEvent, events: MatchEvent[], homeClubId: string, isPlayerHome: boolean): string {
@@ -60,13 +94,41 @@ const MatchDay = () => {
   // Detect cup match if no league match this week
   const cupTie = !liveMatch ? cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
   const cupMatch = cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
-  const isCupMatch = !!cupTie || !!store.currentCupTieId;
+
+  // Detect League Cup match
+  const leagueCupTie = !liveMatch && !cupTie ? store.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  const leagueCupMatch = leagueCupTie ? { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
+
+  // Detect continental match (Champions Cup / Shield Cup)
+  const champMatch = !liveMatch && !cupTie && !leagueCupTie ? findPlayerContinentalMatchForUI(store.championsCup, week, playerClubId) : null;
+  const shieldMatch = !liveMatch && !cupTie && !leagueCupTie && !champMatch ? findPlayerContinentalMatchForUI(store.shieldCup, week, playerClubId) : null;
+  const continentalMatchInfo = champMatch || shieldMatch;
+  const continentalMatch = continentalMatchInfo ? { id: continentalMatchInfo.id, week, homeClubId: continentalMatchInfo.homeClubId, awayClubId: continentalMatchInfo.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
+
+  // Detect super cup match
+  const superCupMatch = !liveMatch && !cupTie && !leagueCupTie && !continentalMatch ? (() => {
+    const dsc = store.domesticSuperCup;
+    const csc = store.continentalSuperCup;
+    const sc = dsc && !dsc.played && dsc.week === week && (dsc.homeClubId === playerClubId || dsc.awayClubId === playerClubId) ? dsc
+      : csc && !csc.played && csc.week === week && (csc.homeClubId === playerClubId || csc.awayClubId === playerClubId) ? csc : null;
+    return sc ? { id: `super-cup-${sc.type}`, week, homeClubId: sc.homeClubId, awayClubId: sc.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
+  })() : null;
+
+  const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCupMatch || !!store.currentCupTieId;
+
+  // Competition context for display
+  const competitionInfo = cupTie ? { name: 'Dynasty Cup', round: cupTie.round, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' }
+    : leagueCupTie ? { name: 'League Cup', round: leagueCupTie.round, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' }
+    : champMatch ? { name: 'Champions Cup', round: champMatch.roundLabel, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/30' }
+    : shieldMatch ? { name: 'Shield Cup', round: shieldMatch.roundLabel, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30' }
+    : superCupMatch ? { name: store.domesticSuperCup?.week === week ? 'Super Cup' : 'Continental Super Cup', round: 'Final', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/30' }
+    : null;
 
   // Cache match data when kickoff starts — playSecondHalf() marks the fixture
   // as played which makes useCurrentMatch() return undefined mid-animation.
   const matchCacheRef = useRef<{ match: Match; homeClub: Club; awayClub: Club } | null>(null);
 
-  const match = matchCacheRef.current?.match ?? liveMatch ?? cupMatch;
+  const match = matchCacheRef.current?.match ?? liveMatch ?? cupMatch ?? leagueCupMatch ?? continentalMatch ?? superCupMatch;
   const homeClub = matchCacheRef.current?.homeClub ?? (match ? clubs[match.homeClubId] : null);
   const awayClub = matchCacheRef.current?.awayClub ?? (match ? clubs[match.awayClubId] : null);
   // No useEffect needed — PostMatchPopup now navigates directly to Match Review
@@ -425,6 +487,18 @@ const MatchDay = () => {
           <GlassPanel className="p-5 space-y-4 overflow-hidden relative">
             {/* Club-colored accent line */}
             <div className="absolute top-0 left-0 right-0 h-0.5" style={{ backgroundColor: clubs[playerClubId]?.color }} />
+
+            {/* Competition Badge */}
+            {competitionInfo && (
+              <div className="text-center mb-1">
+                <span className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border', competitionInfo.bg)}>
+                  <Trophy className="w-3 h-3" />
+                  <span className={competitionInfo.color}>{competitionInfo.name}</span>
+                  <span className="text-muted-foreground/60">—</span>
+                  <span className={competitionInfo.color}>{competitionInfo.round}</span>
+                </span>
+              </div>
+            )}
 
             {/* Home/Away Badge */}
             <div className="text-center space-y-1.5">

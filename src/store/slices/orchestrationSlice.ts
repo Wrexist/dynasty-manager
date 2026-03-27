@@ -22,8 +22,8 @@ import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getChampionsCupQualifiers, getShieldCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
-import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, getContinentalResultForClub } from '@/utils/continental';
-import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK } from '@/config/continental';
+import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, getContinentalResultForClub, createEphemeralClub, findPlayerContinentalMatch } from '@/utils/continental';
+import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
 import { generatePressConference } from '@/data/pressConferences';
 import { isPro } from '@/utils/monetization';
 import { getMentorBonus } from '@/utils/chemistry';
@@ -549,6 +549,271 @@ function generateLeagueCupDraw(clubIds: string[]): import('@/types/game').League
 /**
  * Advance the League Cup to the next round (mirrors advanceCupRound but uses LEAGUE_CUP_WEEKS).
  */
+/**
+ * Process tournament match result: updates the correct tournament state and cleans up ephemeral players.
+ * Returns state updates to spread into the set() call.
+ */
+function processTournamentResult(
+  state: ReturnType<typeof get>,
+  result: Match,
+  playerClubId: string,
+  processed: { newPlayers: Record<string, import('@/types/game').Player> },
+  season: number,
+  week: number,
+): { stateUpdates: Record<string, unknown>; cleanedPlayers?: Record<string, import('@/types/game').Player> } {
+  const updates: Record<string, unknown> = {};
+
+  // Clean up ephemeral virtual club players (prefixed with 'vc-')
+  const realPlayers = { ...processed.newPlayers };
+  for (const pid of Object.keys(realPlayers)) {
+    if (pid.startsWith('vc-')) delete realPlayers[pid];
+  }
+  // Also clean ephemeral club from clubs
+  const realClubs = { ...state.clubs };
+  for (const cid of Object.keys(realClubs)) {
+    if ((state.virtualClubs || {})[cid] && !state.fixtures.some(f => f.homeClubId === cid || f.awayClubId === cid)) {
+      delete realClubs[cid];
+    }
+  }
+  const cleanedPlayers = realPlayers;
+
+  // Helper to award prize money to player's club
+  const awardPrizeMoney = (amount: number) => {
+    if (amount > 0 && realClubs[playerClubId]) {
+      realClubs[playerClubId] = { ...realClubs[playerClubId], budget: realClubs[playerClubId].budget + amount };
+    }
+  };
+  updates.clubs = realClubs;
+
+  // Domestic cup (not __tournament__)
+  if (state.currentCupTieId && state.currentCupTieId !== '__tournament__') {
+    const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
+      t.id === state.currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals } : t
+    )};
+    const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
+    if (allPlayed) {
+      if (newCup.currentRound === 'F') {
+        const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
+        if (finalTie) { newCup.winner = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId; newCup.currentRound = null; }
+      } else { Object.assign(newCup, advanceCupRound(newCup)); }
+    }
+    const isHome = result.homeClubId === playerClubId;
+    const playerWon = isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
+    if (!playerWon) newCup.eliminated = true;
+    updates.cup = newCup;
+    return { stateUpdates: updates, cleanedPlayers };
+  }
+
+  // League Cup
+  if (state.currentLeagueCupTieId && state.leagueCup) {
+    const newLC = { ...state.leagueCup, ties: [...state.leagueCup.ties] };
+    const tieIdx = newLC.ties.findIndex(t => t.id === state.currentLeagueCupTieId);
+    if (tieIdx >= 0) {
+      const winnerId = result.homeGoals > result.awayGoals ? result.homeClubId : result.awayGoals > result.homeGoals ? result.awayClubId : null;
+      newLC.ties[tieIdx] = { ...newLC.ties[tieIdx], played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId };
+      if (winnerId && winnerId !== playerClubId) newLC.eliminated = true;
+      const lcRoundTies = newLC.ties.filter(t => t.round === newLC.currentRound);
+      if (lcRoundTies.every(t => t.played)) {
+        if (newLC.currentRound === 'F') {
+          newLC.winner = winnerId; newLC.currentRound = null;
+          // Award League Cup final prize money
+          if (winnerId === playerClubId) awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.league_cup_winner);
+          else awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.league_cup_runner_up);
+        } else {
+          Object.assign(newLC, advanceLeagueCupRound(newLC));
+        }
+      }
+    }
+    updates.leagueCup = newLC;
+    return { stateUpdates: updates, cleanedPlayers };
+  }
+
+  // Continental match
+  if (state.currentContinentalMatchId && state.currentContinentalCompetition) {
+    const compKey = state.currentContinentalCompetition === 'champions_cup' ? 'championsCup' : 'shieldCup';
+    const isChampions = state.currentContinentalCompetition === 'champions_cup';
+    const tourney = state[compKey];
+    if (tourney) {
+      const matchInfo = findPlayerContinentalMatch(tourney, week, playerClubId);
+      if (matchInfo) {
+        const newTourney = { ...tourney, groups: [...tourney.groups], knockoutTies: [...tourney.knockoutTies] };
+        if (matchInfo.type === 'group') {
+          const newGroup = { ...newTourney.groups[matchInfo.groupIdx], matches: [...newTourney.groups[matchInfo.groupIdx].matches] };
+          newGroup.matches[matchInfo.matchIdx] = { ...newGroup.matches[matchInfo.matchIdx], played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals };
+          // Recalculate standings
+          const stats: Record<string, { played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; points: number }> = {};
+          for (const cid of newGroup.clubIds) stats[cid] = { played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, points: 0 };
+          for (const m of newGroup.matches) {
+            if (!m.played) continue;
+            stats[m.homeClubId].played++; stats[m.awayClubId].played++;
+            stats[m.homeClubId].goalsFor += m.homeGoals; stats[m.homeClubId].goalsAgainst += m.awayGoals;
+            stats[m.awayClubId].goalsFor += m.awayGoals; stats[m.awayClubId].goalsAgainst += m.homeGoals;
+            if (m.homeGoals > m.awayGoals) { stats[m.homeClubId].won++; stats[m.homeClubId].points += 3; stats[m.awayClubId].lost++; }
+            else if (m.awayGoals > m.homeGoals) { stats[m.awayClubId].won++; stats[m.awayClubId].points += 3; stats[m.homeClubId].lost++; }
+            else { stats[m.homeClubId].drawn++; stats[m.homeClubId].points++; stats[m.awayClubId].drawn++; stats[m.awayClubId].points++; }
+          }
+          newGroup.standings = newGroup.clubIds.map(cid => ({ clubId: cid, ...stats[cid] }))
+            .sort((a, b) => b.points - a.points || (b.goalsFor - b.goalsAgainst) - (a.goalsFor - a.goalsAgainst) || b.goalsFor - a.goalsFor);
+          newTourney.groups[matchInfo.groupIdx] = newGroup;
+
+          // Award group stage match prize money
+          awardPrizeMoney(isChampions ? CONTINENTAL_PRIZE_MONEY.champions_group : CONTINENTAL_PRIZE_MONEY.shield_group);
+
+          // Check if all groups complete → generate knockout
+          if (isGroupStageComplete(newTourney)) {
+            const advanced = generateKnockoutFromGroups(newTourney, playerClubId);
+            Object.assign(newTourney, advanced);
+          }
+        } else {
+          // Knockout: record leg result
+          const tie = { ...newTourney.knockoutTies[matchInfo.tieIdx] };
+          if (matchInfo.leg === 1 || tie.round === 'F') {
+            tie.leg1Played = true; tie.leg1HomeGoals = result.homeGoals; tie.leg1AwayGoals = result.awayGoals;
+            // For finals (single leg), resolve immediately if not drawn
+            if (tie.round === 'F' && result.homeGoals !== result.awayGoals) {
+              tie.winnerId = result.homeGoals > result.awayGoals ? tie.homeClubId : tie.awayClubId;
+            }
+          } else {
+            tie.leg2Played = true; tie.leg2HomeGoals = result.homeGoals; tie.leg2AwayGoals = result.awayGoals;
+            // Resolve 2-leg tie
+            const homeAgg = tie.leg1HomeGoals + tie.leg2AwayGoals;
+            const awayAgg = tie.leg1AwayGoals + tie.leg2HomeGoals;
+            if (homeAgg !== awayAgg) {
+              tie.winnerId = homeAgg > awayAgg ? tie.homeClubId : tie.awayClubId;
+            }
+          }
+          newTourney.knockoutTies[matchInfo.tieIdx] = tie;
+          // Check if knockout round complete
+          if (tie.winnerId) {
+            const round = tie.round;
+            if (tie.winnerId !== playerClubId) newTourney.playerEliminated = true;
+            // Award knockout round advancement / final prize money
+            const prizeMap = isChampions
+              ? { R16: CONTINENTAL_PRIZE_MONEY.champions_r16, QF: CONTINENTAL_PRIZE_MONEY.champions_qf, SF: CONTINENTAL_PRIZE_MONEY.champions_sf }
+              : { R16: CONTINENTAL_PRIZE_MONEY.shield_r16, QF: CONTINENTAL_PRIZE_MONEY.shield_qf, SF: CONTINENTAL_PRIZE_MONEY.shield_sf };
+            if (round === 'F') {
+              const winPrize = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_winner : CONTINENTAL_PRIZE_MONEY.shield_winner;
+              const losePrize = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_runner_up : CONTINENTAL_PRIZE_MONEY.shield_runner_up;
+              awardPrizeMoney(tie.winnerId === playerClubId ? winPrize : losePrize);
+            } else if (tie.winnerId === playerClubId) {
+              awardPrizeMoney(prizeMap[round as keyof typeof prizeMap] || 0);
+            }
+            if (isKnockoutRoundComplete(newTourney, round)) {
+              if (round === 'F') {
+                newTourney.winnerId = tie.winnerId; newTourney.currentPhase = 'complete';
+              } else {
+                const advanced = advanceKnockoutRound(newTourney, playerClubId);
+                Object.assign(newTourney, advanced);
+              }
+            }
+          }
+        }
+        updates[compKey] = newTourney;
+      }
+    }
+    return { stateUpdates: updates, cleanedPlayers };
+  }
+
+  // Super Cup
+  const dsc = state.domesticSuperCup;
+  const csc = state.continentalSuperCup;
+  if (dsc && !dsc.played && dsc.week === week && (dsc.homeClubId === playerClubId || dsc.awayClubId === playerClubId)) {
+    const winnerId = result.homeGoals > result.awayGoals ? dsc.homeClubId : result.awayGoals > result.homeGoals ? dsc.awayClubId : (Math.random() < 0.5 ? dsc.homeClubId : dsc.awayClubId);
+    updates.domesticSuperCup = { ...dsc, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId };
+    awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.domestic_super_cup);
+  } else if (csc && !csc.played && csc.week === week && (csc.homeClubId === playerClubId || csc.awayClubId === playerClubId)) {
+    const winnerId = result.homeGoals > result.awayGoals ? csc.homeClubId : result.awayGoals > result.homeGoals ? csc.awayClubId : (Math.random() < 0.5 ? csc.homeClubId : csc.awayClubId);
+    updates.continentalSuperCup = { ...csc, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId };
+    awardPrizeMoney(CONTINENTAL_PRIZE_MONEY.continental_super_cup);
+  }
+
+  return { stateUpdates: updates, cleanedPlayers };
+}
+
+/** Variant of processTournamentResult for penalty shootout results — takes explicit winnerId */
+function processTournamentResultWithWinner(
+  state: ReturnType<typeof get>,
+  result: Match,
+  playerClubId: string,
+  processed: { newPlayers: Record<string, import('@/types/game').Player> },
+  season: number,
+  week: number,
+  winnerId: string,
+  penaltyShootout: { home: number; away: number },
+): { stateUpdates: Record<string, unknown>; cleanedPlayers?: Record<string, import('@/types/game').Player> } {
+  const updates: Record<string, unknown> = {};
+
+  // Clean up ephemeral virtual club players
+  const realPlayers = { ...processed.newPlayers };
+  for (const pid of Object.keys(realPlayers)) {
+    if (pid.startsWith('vc-')) delete realPlayers[pid];
+  }
+  const realClubs = { ...state.clubs };
+  for (const cid of Object.keys(realClubs)) {
+    if ((state.virtualClubs || {})[cid] && !state.fixtures.some(f => f.homeClubId === cid || f.awayClubId === cid)) {
+      delete realClubs[cid];
+    }
+  }
+  const cleanedPlayers = realPlayers;
+  updates.clubs = realClubs;
+
+  // League Cup
+  if (state.currentLeagueCupTieId && state.leagueCup) {
+    const newLC = { ...state.leagueCup, ties: [...state.leagueCup.ties] };
+    const tieIdx = newLC.ties.findIndex(t => t.id === state.currentLeagueCupTieId);
+    if (tieIdx >= 0) {
+      newLC.ties[tieIdx] = { ...newLC.ties[tieIdx], played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId, penaltyShootout };
+      if (winnerId !== playerClubId) newLC.eliminated = true;
+      const lcRoundTies = newLC.ties.filter(t => t.round === newLC.currentRound);
+      if (lcRoundTies.every(t => t.played)) {
+        if (newLC.currentRound === 'F') { newLC.winner = winnerId; newLC.currentRound = null; }
+        else { Object.assign(newLC, advanceLeagueCupRound(newLC)); }
+      }
+    }
+    updates.leagueCup = newLC;
+    return { stateUpdates: updates, cleanedPlayers };
+  }
+
+  // Continental knockout (penalties only happen in knockout/finals)
+  if (state.currentContinentalMatchId && state.currentContinentalCompetition) {
+    const compKey = state.currentContinentalCompetition === 'champions_cup' ? 'championsCup' : 'shieldCup';
+    const tourney = state[compKey];
+    if (tourney) {
+      const matchInfo = findPlayerContinentalMatch(tourney, week, playerClubId);
+      if (matchInfo && matchInfo.type === 'knockout') {
+        const newTourney = { ...tourney, groups: [...tourney.groups], knockoutTies: [...tourney.knockoutTies] };
+        const tie = { ...newTourney.knockoutTies[matchInfo.tieIdx] };
+        if (matchInfo.leg === 1 || tie.round === 'F') {
+          tie.leg1Played = true; tie.leg1HomeGoals = result.homeGoals; tie.leg1AwayGoals = result.awayGoals;
+        } else {
+          tie.leg2Played = true; tie.leg2HomeGoals = result.homeGoals; tie.leg2AwayGoals = result.awayGoals;
+        }
+        tie.winnerId = winnerId;
+        tie.penaltyShootout = penaltyShootout;
+        newTourney.knockoutTies[matchInfo.tieIdx] = tie;
+        if (winnerId !== playerClubId) newTourney.playerEliminated = true;
+        if (isKnockoutRoundComplete(newTourney, tie.round)) {
+          if (tie.round === 'F') { newTourney.winnerId = winnerId; newTourney.currentPhase = 'complete'; }
+          else { Object.assign(newTourney, advanceKnockoutRound(newTourney, playerClubId)); }
+        }
+        updates[compKey] = newTourney;
+      }
+    }
+    return { stateUpdates: updates, cleanedPlayers };
+  }
+
+  // Super Cup (penalties)
+  const dsc = state.domesticSuperCup;
+  const csc = state.continentalSuperCup;
+  if (dsc && !dsc.played && dsc.week === week && (dsc.homeClubId === playerClubId || dsc.awayClubId === playerClubId)) {
+    updates.domesticSuperCup = { ...dsc, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId };
+  } else if (csc && !csc.played && csc.week === week && (csc.homeClubId === playerClubId || csc.awayClubId === playerClubId)) {
+    updates.continentalSuperCup = { ...csc, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, winnerId };
+  }
+
+  return { stateUpdates: updates, cleanedPlayers };
+}
+
 function advanceLeagueCupRound(cup: import('@/types/game').LeagueCupState): import('@/types/game').LeagueCupState {
   const ROUND_ORDER: import('@/types/game').CupRound[] = ['R1', 'R2', 'R3', 'R4', 'QF', 'SF', 'F'];
   const currentRound = cup.currentRound;
@@ -941,6 +1206,22 @@ function finalizeSeason(
     }
   }
 
+  // Continental Super Cup: previous season's Champions Cup winner vs Shield Cup winner
+  let newContinentalSuperCup: import('@/types/game').SuperCupMatch | null = null;
+  const prevChampWinner = state.championsCup?.winnerId;
+  const prevShieldWinner = state.shieldCup?.winnerId;
+  if (prevChampWinner && prevShieldWinner && prevChampWinner !== prevShieldWinner) {
+    // Only generate if the player is involved in one of the sides
+    const playerInvolved = prevChampWinner === playerClubId || prevShieldWinner === playerClubId;
+    if (playerInvolved) {
+      newContinentalSuperCup = {
+        type: 'continental', homeClubId: prevChampWinner, awayClubId: prevShieldWinner,
+        played: false, homeGoals: 0, awayGoals: 0,
+        week: CONTINENTAL_SUPER_CUP_WEEK, winnerId: null,
+      };
+    }
+  }
+
   // Continental messages
   const champQualified = newChampionsCup && !newChampionsCup.playerEliminated;
   const shieldQualified = newShieldCup && !newShieldCup.playerEliminated;
@@ -1093,7 +1374,7 @@ function finalizeSeason(
     virtualClubs: allVirtualClubs,
     continentalQualification: { champions: champQ.qualifiers, shield: shieldQ.qualifiers },
     domesticSuperCup: newDomesticSuperCup,
-    continentalSuperCup: null,
+    continentalSuperCup: newContinentalSuperCup,
     currentContinentalMatchId: null,
     currentContinentalCompetition: null,
     currentLeagueCupTieId: null,
@@ -3017,14 +3298,78 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Check for cup tie if no league match
     const cupTie = !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
-    const match = leagueMatch || (cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null);
+
+    // Check continental matches
+    const champMatch = !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
+    const shieldMatch = !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
+    const continentalMatch = champMatch || shieldMatch;
+    const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : null;
+    const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : null;
+
+    // Check league cup
+    const leagueCupTie = !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+
+    // Check super cups
+    const superCup = !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
+      ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
+        || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
+      : null;
+
+    // Build match object from the detected source
+    let match: Match | null = null;
+    let ephemeralClub: { club: Club; players: Record<string, Player> } | null = null;
+    let effectiveClubs = clubs;
+    let effectivePlayers = players;
+
+    if (leagueMatch) {
+      match = leagueMatch;
+    } else if (cupTie) {
+      match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    } else if (continentalMatch && continentalTourney) {
+      let homeId: string, awayId: string, matchId: string;
+      if (continentalMatch.type === 'group') {
+        const gm = continentalTourney.groups[continentalMatch.groupIdx].matches[continentalMatch.matchIdx];
+        homeId = gm.homeClubId; awayId = gm.awayClubId; matchId = gm.id;
+      } else {
+        const tie = continentalTourney.knockoutTies[continentalMatch.tieIdx];
+        // For knockout: leg 1 uses original home/away, leg 2 reverses
+        if (continentalMatch.leg === 1 || tie.round === 'F') {
+          homeId = tie.homeClubId; awayId = tie.awayClubId;
+        } else {
+          homeId = tie.awayClubId; awayId = tie.homeClubId; // Leg 2: reversed
+        }
+        matchId = tie.id;
+      }
+      // Create ephemeral club for the continental opponent
+      const oppId = homeId === playerClubId ? awayId : homeId;
+      const vc = (state.virtualClubs || {})[oppId];
+      if (vc) {
+        ephemeralClub = createEphemeralClub(vc, season);
+        effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
+        effectivePlayers = { ...players, ...ephemeralClub.players };
+      }
+      match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    } else if (leagueCupTie) {
+      match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    } else if (superCup) {
+      const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
+      const vc = (state.virtualClubs || {})[oppId];
+      if (vc) {
+        ephemeralClub = createEphemeralClub(vc, season);
+        effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
+        effectivePlayers = { ...players, ...ephemeralClub.players };
+      }
+      match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    }
+
     if (!match) return null;
 
-    const hc = clubs[match.homeClubId];
-    const ac = clubs[match.awayClubId];
+    const hc = effectiveClubs[match.homeClubId];
+    const ac = effectiveClubs[match.awayClubId];
+    if (!hc || !ac) return null;
     const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
     const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
-      const availableSubs = club.subs.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+      const availableSubs = club.subs.map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
       const ids = new Set(lineup.map(p => p.id));
       for (const sub of availableSubs) {
         if (lineup.length >= 11) break;
@@ -3032,8 +3377,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       return lineup;
     };
-    let hp = backfillFromSubs(hc.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
-    let ap = backfillFromSubs(ac.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
+    let hp = backfillFromSubs(hc.lineup.map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
+    let ap = backfillFromSubs(ac.lineup.map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
+
+    // For ephemeral clubs: inject their players and club into state temporarily
+    if (ephemeralClub) {
+      set({ clubs: effectiveClubs, players: effectivePlayers });
+    }
 
     // Motivator perk: boost player team morale before match
     if (hasPerk(state.managerProgression, 'motivator')) {
@@ -3056,7 +3406,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
     const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, halfCareerMod);
 
-    set({ halfTimeState: halfState, matchPhase: 'half_time', matchSubsUsed: 0, preMatchLeaguePosition: preMatchPos, currentCupTieId: cupTie ? cupTie.id : null });
+    // Determine which cup tracking IDs to set
+    const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
+    set({
+      halfTimeState: halfState, matchPhase: 'half_time', matchSubsUsed: 0, preMatchLeaguePosition: preMatchPos,
+      currentCupTieId: cupTie ? cupTie.id : isCupMatch ? '__tournament__' : null,
+      currentLeagueCupTieId: leagueCupTie ? leagueCupTie.id : null,
+      currentContinentalMatchId: continentalMatch ? match.id : null,
+      currentContinentalCompetition: continentalComp,
+    });
     return halfState;
   },
 
@@ -3065,10 +3423,43 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const { week, fixtures, clubs, players, playerClubId, tactics, training, halfTimeState, season } = state;
     if (!halfTimeState) return null;
 
-    // Find league match or cup match
+    // Find league match or cup/tournament match
     const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
-    const cupTie = state.currentCupTieId ? state.cup.ties.find(t => t.id === state.currentCupTieId) : null;
-    const match = leagueMatch || (cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null);
+    const isRealCupTie = state.currentCupTieId && state.currentCupTieId !== '__tournament__';
+    const cupTie = isRealCupTie ? state.cup.ties.find(t => t.id === state.currentCupTieId) : null;
+    const isTournamentMatch = state.currentCupTieId === '__tournament__';
+
+    // Reconstruct tournament match
+    let tournamentMatch: Match | null = null;
+    if (isTournamentMatch) {
+      if (state.currentContinentalMatchId && state.currentContinentalCompetition) {
+        const tourney = state.currentContinentalCompetition === 'champions_cup' ? state.championsCup : state.shieldCup;
+        const matchInfo = tourney ? findPlayerContinentalMatch(tourney, week, playerClubId) : null;
+        if (matchInfo && tourney) {
+          if (matchInfo.type === 'group') {
+            const gm = tourney.groups[matchInfo.groupIdx].matches[matchInfo.matchIdx];
+            tournamentMatch = { id: gm.id, week, homeClubId: gm.homeClubId, awayClubId: gm.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+          } else {
+            const tie = tourney.knockoutTies[matchInfo.tieIdx];
+            const homeId = matchInfo.leg === 1 || tie.round === 'F' ? tie.homeClubId : tie.awayClubId;
+            const awayId = matchInfo.leg === 1 || tie.round === 'F' ? tie.awayClubId : tie.homeClubId;
+            tournamentMatch = { id: tie.id, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+          }
+        }
+      } else if (state.currentLeagueCupTieId) {
+        const lcTie = state.leagueCup?.ties.find(t => t.id === state.currentLeagueCupTieId);
+        if (lcTie) tournamentMatch = { id: lcTie.id, week, homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+      } else {
+        // Super cup
+        const sc = state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week
+          ? state.domesticSuperCup
+          : state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week
+            ? state.continentalSuperCup : null;
+        if (sc) tournamentMatch = { id: `super-cup-${sc.type}`, week, homeClubId: sc.homeClubId, awayClubId: sc.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+      }
+    }
+
+    const match = leagueMatch || (cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null) || tournamentMatch;
     if (!match) return null;
 
     const hc = clubs[match.homeClubId];
@@ -3100,39 +3491,19 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       return result;
     }
 
-    // Cup match decided in 90 mins — process cup result
+    // Cup/tournament match decided in 90 mins — process result
     if (state.currentCupTieId) {
-      const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
-        t.id === state.currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals } : t
-      )};
-      const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
-      if (allPlayed) {
-        if (newCup.currentRound === 'F') {
-          const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
-          if (finalTie) {
-            newCup.winner = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
-            newCup.currentRound = null;
-          }
-        } else {
-          const advanced = advanceCupRound(newCup);
-          Object.assign(newCup, advanced);
-        }
-      }
-
-      // Check if player was eliminated
-      const isHome = result.homeClubId === playerClubId;
-      const playerWon = isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
-      if (!playerWon) newCup.eliminated = true;
-
       const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
       const cupDrama = detectMatchDrama(result, playerClubId, clubs);
       const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+      const tournamentUpdates = processTournamentResult(state, result, playerClubId, processed, season, week);
+
       set({
-        currentMatchResult: result, players: processed.newPlayers,
+        currentMatchResult: result, players: tournamentUpdates.cleanedPlayers || processed.newPlayers,
         boardConfidence: processed.confidence, messages: processed.newMessages,
         matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
         halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
-        cup: newCup,
+        currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
         pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
         managerProgression: processed.managerProgression,
@@ -3140,6 +3511,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         lastMatchDrama: cupDrama,
         rivalries: processed.updatedRivalries,
         pairFamiliarity: processed.pairFamiliarity,
+        ...tournamentUpdates.stateUpdates,
       });
       return result;
     }
@@ -3202,55 +3574,54 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (etState.homeGoals !== etState.awayGoals) {
       // Extra time decided the match — finalize
       const { result, playerRatings } = finalizeMatch(etResult, hc, ac, hp, ap, etState);
-
-      // Update cup tie
-      const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
-        t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals } : t
-      )};
-
-      // Check if player was eliminated
-      const playerWon = isPlayerHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
-      if (!playerWon) newCup.eliminated = true;
-
-      // Check if all cup ties for this round are done, advance if so
-      const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
-      if (allPlayed) {
-        if (newCup.currentRound === 'F') {
-          const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
-          if (finalTie) {
-            newCup.winner = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
-            newCup.currentRound = null;
-          }
-        } else {
-          const advanced = advanceCupRound(newCup);
-          Object.assign(newCup, advanced);
-        }
-      }
-
       const processed = processMatchResult(state, etResult, result, playerRatings, () => get().week, etState.matchInjuries);
       const etDrama = detectMatchDrama(result, playerClubId, clubs);
       const press = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
 
-      set({
-        currentMatchResult: result,
-        halfTimeState: null,
-        matchPhase: 'full_time',
-        matchSubsUsed: 0,
-        matchPlayerRatings: processed.playerRatings,
-        currentCupTieId: null,
-        cup: newCup,
-        players: processed.newPlayers,
-        messages: processed.newMessages,
-        boardConfidence: processed.confidence,
-        managerStats: processed.managerStats,
-        careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
-        managerProgression: processed.managerProgression,
-        lastMatchXPGain: processed.xpGain,
-        pendingPressConference: generatePressConference(press, isPro(get().monetization)),
-        lastMatchDrama: etDrama,
-        rivalries: processed.updatedRivalries,
-        pairFamiliarity: processed.pairFamiliarity,
-      });
+      const isTournament = currentCupTieId === '__tournament__';
+      if (isTournament) {
+        // Tournament match (League Cup, Continental, Super Cup)
+        const tournamentUpdates = processTournamentResult(state, result, playerClubId, processed, season, state.week);
+        set({
+          currentMatchResult: result, players: tournamentUpdates.cleanedPlayers || processed.newPlayers,
+          boardConfidence: processed.confidence, messages: processed.newMessages,
+          matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
+          halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
+          currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
+          pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+          careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
+          managerProgression: processed.managerProgression,
+          lastMatchXPGain: processed.xpGain,
+          lastMatchDrama: etDrama,
+          rivalries: processed.updatedRivalries,
+          pairFamiliarity: processed.pairFamiliarity,
+          ...tournamentUpdates.stateUpdates,
+        });
+      } else {
+        // Domestic Dynasty Cup
+        const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
+          t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals } : t
+        )};
+        const playerWon = (currentMatchResult.homeClubId === playerClubId) ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
+        if (!playerWon) newCup.eliminated = true;
+        const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
+        if (allPlayed) {
+          if (newCup.currentRound === 'F') {
+            const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
+            if (finalTie) { newCup.winner = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId; newCup.currentRound = null; }
+          } else { Object.assign(newCup, advanceCupRound(newCup)); }
+        }
+        set({
+          currentMatchResult: result, halfTimeState: null, matchPhase: 'full_time',
+          matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, currentCupTieId: null,
+          cup: newCup, players: processed.newPlayers, messages: processed.newMessages,
+          boardConfidence: processed.confidence, managerStats: processed.managerStats,
+          careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
+          managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
+          pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+          lastMatchDrama: etDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
+        });
+      }
       return result;
     }
 
@@ -3317,52 +3688,51 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Finalize with extra events
     const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState || { events: [], homeGoals: 0, awayGoals: 0, homeShots: 0, awayShots: 0, homeSoT: 0, awaySoT: 0, homeFouls: 0, awayFouls: 0, homeCorners: 0, awayCorners: 0, sentOff: [], injured: [], playerEvents: {}, momentum: 0, homeXG: 0, awayXG: 0, matchInjuries: {} });
 
-    // Update cup tie
-    const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
-      t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, penaltyShootout } : t
-    )};
-
-    // Check if player was eliminated
-    if (winnerId !== playerClubId) newCup.eliminated = true;
-
-    const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
-    if (allPlayed) {
-      if (newCup.currentRound === 'F') {
-        const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
-        if (finalTie) {
-          newCup.winner = winnerId;
-          newCup.currentRound = null;
-        }
-      } else {
-        const advanced = advanceCupRound(newCup);
-        Object.assign(newCup, advanced);
-      }
-    }
-
     const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {});
     const penDrama = detectMatchDrama(result, playerClubId, clubs);
     const press = winnerId === playerClubId ? 'post_win' : 'post_loss';
 
-    set({
-      currentMatchResult: { ...result, penaltyShootout },
-      halfTimeState: null,
-      matchPhase: 'full_time',
-      matchSubsUsed: 0,
-      matchPlayerRatings: processed.playerRatings,
-      currentCupTieId: null,
-      cup: newCup,
-      players: processed.newPlayers,
-      messages: processed.newMessages,
-      boardConfidence: processed.confidence,
-      managerStats: processed.managerStats,
-      careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
-      managerProgression: processed.managerProgression,
-      lastMatchXPGain: processed.xpGain,
-      pendingPressConference: generatePressConference(press, isPro(get().monetization)),
-      lastMatchDrama: penDrama,
-      rivalries: processed.updatedRivalries,
-      pairFamiliarity: processed.pairFamiliarity,
-    });
+    const isTournament = currentCupTieId === '__tournament__';
+    if (isTournament) {
+      // Tournament penalty: goals are drawn, use explicit winnerId via processTournamentResultWithWinner
+      const tournamentUpdates = processTournamentResultWithWinner(state, { ...result, penaltyShootout }, playerClubId, processed, state.season, state.week, winnerId, penaltyShootout);
+
+      set({
+        currentMatchResult: { ...result, penaltyShootout },
+        players: tournamentUpdates.cleanedPlayers || processed.newPlayers,
+        boardConfidence: processed.confidence, messages: processed.newMessages,
+        matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
+        halfTimeState: null, matchPhase: 'full_time', currentCupTieId: null,
+        currentLeagueCupTieId: null, currentContinentalMatchId: null, currentContinentalCompetition: null,
+        pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+        careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
+        managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
+        lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
+        ...tournamentUpdates.stateUpdates,
+      });
+    } else {
+      // Domestic Dynasty Cup
+      const newCup = { ...state.cup, ties: state.cup.ties.map(t =>
+        t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, penaltyShootout } : t
+      )};
+      if (winnerId !== playerClubId) newCup.eliminated = true;
+      const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
+      if (allPlayed) {
+        if (newCup.currentRound === 'F') {
+          newCup.winner = winnerId; newCup.currentRound = null;
+        } else { Object.assign(newCup, advanceCupRound(newCup)); }
+      }
+      set({
+        currentMatchResult: { ...result, penaltyShootout }, halfTimeState: null, matchPhase: 'full_time',
+        matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, currentCupTieId: null,
+        cup: newCup, players: processed.newPlayers, messages: processed.newMessages,
+        boardConfidence: processed.confidence, managerStats: processed.managerStats,
+        careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
+        managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
+        pendingPressConference: generatePressConference(press, isPro(get().monetization)),
+        lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
+      });
+    }
     return { ...result, penaltyShootout };
   },
 
