@@ -20,12 +20,24 @@ if (sentryDsn) {
   });
 }
 
-// Promise that resolves once the first screen has mounted
-let signalReady: () => void;
-const appReady = new Promise<void>((resolve) => { signalReady = resolve; });
-export { signalReady };
+// Promise that resolves once the first frame has painted
+let resolveAppReady: (() => void) | null = null;
+const appReady = new Promise<void>((resolve) => {
+  resolveAppReady = resolve;
+});
+export const signalReady = () => {
+  resolveAppReady?.();
+  resolveAppReady = null;
+};
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Mark app as ready after render + first paint (avoids fixed splash delay on native)
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    signalReady();
+  });
+});
 
 // Auto-save when the browser tab / window is closed
 window.addEventListener('beforeunload', () => {

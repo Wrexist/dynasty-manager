@@ -49,7 +49,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
             <button
               onClick={() => {
                 this.setState({ hasError: false });
-                window.location.href = '/';
+                window.location.hash = '#/';
               }}
               className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
             >
