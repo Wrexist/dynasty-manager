@@ -281,8 +281,9 @@ export const createTransferSlice = (set: Set, get: Get) => ({
   listPlayerForSale: (playerId: string) => {
     const state = get();
     const player = state.players[playerId];
-    if (!player || player.clubId !== state.playerClubId) return;
+    if (!player || player.clubId !== state.playerClubId) return { appeased: false };
     const updatedPlayer = { ...player, listedForSale: true };
+    let appeased = false;
 
     // Rare appease mechanic: unhappy player feels respected when you agree to let them go
     if (player.wantsToLeave && player.morale < 50) {
@@ -292,6 +293,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
         updatedPlayer.morale = Math.min(100, updatedPlayer.morale + APPEASE_MORALE_BOOST);
         updatedPlayer.wantsToLeave = false;
         updatedPlayer.lowMoraleWeeks = 0;
+        appeased = true;
       }
     }
 
@@ -303,7 +305,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       title: `${player.lastName} Listed`,
       body: `${player.firstName} ${player.lastName} has been listed for sale at £${(askingPrice / 1e6).toFixed(1)}M.`,
     });
-    if (!updatedPlayer.wantsToLeave && player.wantsToLeave) {
+    if (appeased) {
       newMessages = addMsg(newMessages, {
         week: state.week, season: state.season, type: 'general',
         title: `${player.lastName} Appreciates Honesty`,
@@ -311,6 +313,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       });
     }
     set({ players: newPlayers, transferMarket: newMarket, messages: newMessages });
+    return { appeased };
   },
 
   unlistPlayer: (playerId: string) => {

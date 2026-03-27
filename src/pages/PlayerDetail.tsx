@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
@@ -18,6 +18,9 @@ import { PlayerAvatar } from '@/components/game/PlayerAvatar';
 import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW } from '@/config/ui';
 import { MODULE_ATTR_MAP } from '@/config/training';
 import { hapticLight } from '@/utils/haptics';
+import { hasPerk } from '@/utils/managerPerks';
+import { getWinStreak } from '@/utils/celebrations';
+import { UNHAPPY_CONTAGION_WEEKS, STREAK_MORALE_THRESHOLD } from '@/config/gameBalance';
 
 const TRAINING_MODULE_INFO: { module: TrainingModule; label: string; icon: React.ElementType; color: string }[] = [
   { module: 'fitness', label: 'Fitness', icon: Dumbbell, color: 'text-emerald-400' },
@@ -38,12 +41,16 @@ const PlayerDetail = () => {
     incomingOffers, setScreen, selectPlayer,
     listPlayerForSale, unlistPlayer, respondToOffer, season, week, facilities, startNegotiation,
     training, setIndividualTraining, transferWindowOpen,
+    fixtures, managerProgression,
   } = useGameStore();
 
   const [showApproach, setShowApproach] = useState(false);
   const [showLoanRequest, setShowLoanRequest] = useState(false);
 
   const player = selectedPlayerId ? players[selectedPlayerId] : null;
+
+  // Win streak for recovery guide (must be before early return to satisfy hook rules)
+  const currentWinStreak = useMemo(() => getWinStreak(playerClubId, fixtures), [playerClubId, fixtures]);
 
   if (!player) {
     return (
@@ -65,8 +72,12 @@ const PlayerDetail = () => {
       unlistPlayer(player.id);
       infoToast(`${player.lastName} removed from transfer list.`);
     } else {
-      listPlayerForSale(player.id);
-      successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M`);
+      const result = listPlayerForSale(player.id);
+      if (result.appeased) {
+        successToast(`${player.lastName} appreciates your honesty!`, 'Transfer request withdrawn — morale improved.');
+      } else {
+        successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M`);
+      }
     }
   };
 
@@ -171,6 +182,9 @@ const PlayerDetail = () => {
         <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2 flex items-center gap-2">
           <AlertTriangle className="w-4 h-4 text-destructive" />
           <span className="text-xs font-bold text-destructive">Transfer Request Submitted</span>
+          {(player.lowMoraleWeeks || 0) >= UNHAPPY_CONTAGION_WEEKS && (
+            <span className="text-[8px] font-bold text-destructive bg-destructive/20 px-1 py-0.5 rounded">CONTAGIOUS</span>
+          )}
           <span className="text-[10px] text-muted-foreground ml-auto">Low morale for {player.lowMoraleWeeks || 0} weeks</span>
         </div>
       )}
@@ -180,21 +194,41 @@ const PlayerDetail = () => {
         const playerClub = clubs[playerClubId];
         const isInLineup = playerClub?.lineup?.includes(player.id);
         const isInSubs = playerClub?.subs?.includes(player.id);
+        const isSuspended = player.suspendedUntilWeek && player.suspendedUntilWeek > week;
         const playingTimePct = player.appearances / Math.max(1, week) * 100;
 
-        const tips: { text: string; actionable: boolean; done: boolean }[] = [];
+        const tips: { text: string; actionable: boolean; done: boolean; warning?: boolean }[] = [];
 
-        // Playing time
-        if (!isInLineup) {
+        // Contagion warning (show first — most urgent)
+        if ((player.lowMoraleWeeks || 0) >= UNHAPPY_CONTAGION_WEEKS) {
+          tips.push({
+            text: 'Spreading unhappiness to teammates — 2 random players lose 3 morale per week',
+            actionable: false,
+            done: false,
+            warning: true,
+          });
+        }
+
+        // Playing time (skip if injured or suspended)
+        if (player.injured) {
+          tips.push({ text: 'Wait for injury recovery before giving playing time', actionable: false, done: false });
+        } else if (isSuspended) {
+          tips.push({ text: 'Player is suspended — playing time will resume after suspension ends', actionable: false, done: false });
+        } else if (!isInLineup) {
           tips.push({
             text: isInSubs
               ? 'Promote to starting XI — regular starts boost morale significantly'
-              : 'Add to lineup or bench — benched players lose 3 morale per week',
+              : 'Select in squad — excluded players lose 3 morale per week',
             actionable: true,
             done: false,
           });
         } else if (playingTimePct > 50) {
           tips.push({ text: 'Getting regular playing time', actionable: false, done: true });
+        }
+
+        // Poor form
+        if (player.form < 40) {
+          tips.push({ text: 'Poor form is hurting morale — play in winnable matches to rebuild confidence', actionable: true, done: false });
         }
 
         // Winning matches
@@ -204,6 +238,13 @@ const PlayerDetail = () => {
           done: false,
         });
 
+        // Win streak
+        tips.push({
+          text: `Build a win streak — ${STREAK_MORALE_THRESHOLD}+ consecutive wins gives +2 morale per week`,
+          actionable: true,
+          done: currentWinStreak >= STREAK_MORALE_THRESHOLD,
+        });
+
         // Contract
         if (player.contractEnd <= season) {
           tips.push({
@@ -211,6 +252,17 @@ const PlayerDetail = () => {
             actionable: true,
             done: false,
           });
+        }
+
+        // Manager perk tips
+        if (hasPerk(managerProgression, 'motivator')) {
+          tips.push({ text: 'Motivator perk active — +5 morale boost before each match', actionable: false, done: true });
+        } else {
+          tips.push({ text: 'Unlock the Motivator perk for +5 pre-match morale boost', actionable: true, done: false });
+        }
+
+        if (hasPerk(managerProgression, 'iron_will')) {
+          tips.push({ text: 'Iron Will perk active — no morale penalty from defeats', actionable: false, done: true });
         }
 
         // Listing for sale (appease mechanic hint)
@@ -239,9 +291,11 @@ const PlayerDetail = () => {
                 <div key={i} className="flex items-start gap-2 text-xs">
                   <span className={cn(
                     'w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
-                    tip.done ? 'bg-emerald-400' : tip.actionable ? 'bg-primary' : 'bg-muted-foreground'
+                    tip.warning ? 'bg-destructive' : tip.done ? 'bg-emerald-400' : tip.actionable ? 'bg-primary' : 'bg-muted-foreground'
                   )} />
-                  <span className={tip.done ? 'text-emerald-400' : 'text-muted-foreground'}>{tip.text}</span>
+                  <span className={cn(
+                    tip.warning ? 'text-destructive font-semibold' : tip.done ? 'text-emerald-400' : 'text-muted-foreground'
+                  )}>{tip.text}</span>
                 </div>
               ))}
             </div>
