@@ -4,28 +4,33 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { NATIONS } from '@/data/nations';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins, Palette, Dices } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getFlag } from '@/utils/nationality';
-import type { ManagerTraitId, JobOffer } from '@/types/game';
+import type { ManagerTraitId, ManagerAppearance, JobOffer } from '@/types/game';
 import { ManagerTraitPicker } from '@/components/game/ManagerTraitPicker';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
+import { ManagerAvatar } from '@/components/game/ManagerAvatar';
+import { SKIN_TONES, HAIR_COLORS, HAIR_STYLES, SUIT_COLORS, DEFAULT_APPEARANCE } from '@/config/managerAppearance';
 import { createDefaultManager, generateStartingOffers, negotiateSalary } from '@/utils/managerCareer';
 import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROUNDS, SALARY_COUNTER_MAX_INCREASE } from '@/config/managerCareer';
 import { CLUBS_DATA } from '@/data/league';
 import { toast } from 'sonner';
 
-type Step = 'name' | 'nationality' | 'age' | 'traits' | 'offers';
+type Step = 'name' | 'appearance' | 'nationality' | 'age' | 'traits' | 'offers';
 
-const STEPS: Step[] = ['name', 'nationality', 'age', 'traits', 'offers'];
+const STEPS: Step[] = ['name', 'appearance', 'nationality', 'age', 'traits', 'offers'];
 
 const STEP_LABELS: Record<Step, string> = {
   name: 'Name',
+  appearance: 'Appearance',
   nationality: 'Nationality',
   age: 'Age',
   traits: 'Traits',
   offers: 'Starting Job',
 };
+
+const HAIR_STYLE_LABELS = ['Bald', 'Short', 'Medium', 'Mohawk', 'Buzz', 'Long'];
 
 // Group nations by confederation for display
 const CONFEDERATION_LABELS: Record<string, string> = {
@@ -44,6 +49,7 @@ const ManagerCreation = () => {
 
   const [step, setStep] = useState<Step>('name');
   const [managerName, setManagerName] = useState('');
+  const [appearance, setAppearance] = useState<ManagerAppearance>({ ...DEFAULT_APPEARANCE });
   const [nationality, setNationality] = useState<string | null>(null);
   const [age, setAge] = useState(38);
   const [selectedTraits, setSelectedTraits] = useState<ManagerTraitId[]>([]);
@@ -59,6 +65,7 @@ const ManagerCreation = () => {
   const canProceed = (() => {
     switch (step) {
       case 'name': return managerName.trim().length >= 2;
+      case 'appearance': return true;
       case 'nationality': return nationality !== null;
       case 'age': return true;
       case 'traits': return selectedTraits.length === TRAITS_TO_PICK;
@@ -73,7 +80,6 @@ const ManagerCreation = () => {
       const nextStep = STEPS[nextIdx];
       // Generate starting offers when reaching the offers step
       if (nextStep === 'offers' && startingOffers.length === 0) {
-        // Build a clubs record from CLUBS_DATA for generating offers
         const clubsRecord: Record<string, { id: string; name: string; divisionId: string; reputation: number }> = {};
         for (const club of CLUBS_DATA) {
           clubsRecord[club.id] = {
@@ -113,7 +119,7 @@ const ManagerCreation = () => {
     setLoading(true);
     requestAnimationFrame(() => {
       try {
-        const manager = createDefaultManager(managerName.trim(), nationality, age, selectedTraits);
+        const manager = createDefaultManager(managerName.trim(), nationality, age, selectedTraits, appearance);
 
         // Set contract from selected offer
         manager.contract = {
@@ -140,8 +146,8 @@ const ManagerCreation = () => {
   // Preview the manager attributes based on current trait selection
   const previewManager = useMemo(() => {
     if (selectedTraits.length === 0) return null;
-    return createDefaultManager(managerName || 'Preview', nationality || '', age, selectedTraits);
-  }, [selectedTraits, managerName, nationality, age]);
+    return createDefaultManager(managerName || 'Preview', nationality || '', age, selectedTraits, appearance);
+  }, [selectedTraits, managerName, nationality, age, appearance]);
 
   // Filtered nations for search
   const filteredNations = useMemo(() => {
@@ -160,6 +166,29 @@ const ManagerCreation = () => {
     return groups;
   }, [filteredNations]);
 
+  // Inline continue / begin career button
+  const actionButton = step === 'offers' ? (
+    <Button
+      className="w-full h-12 text-base font-bold gap-2 mt-6"
+      disabled={!canProceed || loading}
+      onClick={handleStart}
+    >
+      {loading ? (
+        <><Loader2 className="w-4 h-4 animate-spin" /> Starting Career...</>
+      ) : (
+        <><Briefcase className="w-4 h-4" /> Begin Career</>
+      )}
+    </Button>
+  ) : (
+    <Button
+      className="w-full h-12 text-base font-bold gap-2 mt-6"
+      disabled={!canProceed}
+      onClick={handleNext}
+    >
+      Continue <ArrowRight className="w-4 h-4" />
+    </Button>
+  );
+
   return (
     <div className="min-h-screen bg-background flex flex-col safe-area-top safe-area-bottom">
       {/* Header */}
@@ -171,6 +200,11 @@ const ManagerCreation = () => {
           <h1 className="text-lg font-bold text-foreground">Create Manager</h1>
           <p className="text-xs text-muted-foreground">Step {stepIdx + 1} of {STEPS.length} — {STEP_LABELS[step]}</p>
         </div>
+        {stepIdx > 1 && (
+          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+            <ManagerAvatar appearance={appearance} size={36} />
+          </div>
+        )}
       </div>
 
       {/* Progress bar */}
@@ -184,7 +218,7 @@ const ManagerCreation = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-4 pb-24 overflow-y-auto">
+      <div className="flex-1 px-4 pb-8 overflow-y-auto">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -195,7 +229,7 @@ const ManagerCreation = () => {
           >
             {/* Step: Name */}
             {step === 'name' && (
-              <div className="space-y-4">
+              <div>
                 <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-5">
                   <div className="flex items-center gap-3 mb-4">
                     <User className="w-5 h-5 text-primary" />
@@ -212,6 +246,135 @@ const ManagerCreation = () => {
                   />
                   <p className="text-[10px] text-muted-foreground mt-2">This is how you'll be known throughout your career.</p>
                 </div>
+                {actionButton}
+              </div>
+            )}
+
+            {/* Step: Appearance */}
+            {step === 'appearance' && (
+              <div>
+                <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-5">
+                    <Palette className="w-5 h-5 text-primary" />
+                    <h2 className="text-base font-bold text-foreground flex-1">Your Look</h2>
+                    <button
+                      onClick={() => setAppearance({
+                        skinTone: Math.floor(Math.random() * SKIN_TONES.length),
+                        hairStyle: Math.floor(Math.random() * HAIR_STYLES.length),
+                        hairColor: Math.floor(Math.random() * HAIR_COLORS.length),
+                        suitColor: SUIT_COLORS[Math.floor(Math.random() * SUIT_COLORS.length)].color,
+                      })}
+                      className="flex items-center gap-1.5 text-[10px] text-primary font-semibold hover:text-primary/80 transition-colors"
+                      aria-label="Randomize appearance"
+                    >
+                      <Dices className="w-4 h-4" /> Randomize
+                    </button>
+                  </div>
+
+                  {/* Live preview */}
+                  <div className="flex justify-center mb-6">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl" />
+                      <ManagerAvatar appearance={appearance} size={140} className="relative" />
+                    </div>
+                  </div>
+
+                  {/* Skin Tone */}
+                  <div className="mb-5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Skin Tone</p>
+                    <div className="flex gap-3 justify-center">
+                      {SKIN_TONES.map((tone, i) => (
+                        <button
+                          key={tone}
+                          onClick={() => setAppearance(prev => ({ ...prev, skinTone: i }))}
+                          aria-label={`Skin tone ${i + 1}`}
+                          className={cn(
+                            'w-10 h-10 rounded-full transition-all duration-200',
+                            appearance.skinTone === i
+                              ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110'
+                              : 'hover:scale-105',
+                          )}
+                          style={{ backgroundColor: tone }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Hair Style */}
+                  <div className="mb-5">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Hair Style</p>
+                    <div className="grid grid-cols-6 gap-2">
+                      {HAIR_STYLES.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setAppearance(prev => ({ ...prev, hairStyle: i }))}
+                          aria-label={HAIR_STYLE_LABELS[i]}
+                          className={cn(
+                            'flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all duration-200',
+                            appearance.hairStyle === i
+                              ? 'bg-primary/20 border border-primary/40'
+                              : 'bg-muted/20 border border-transparent hover:bg-muted/40',
+                          )}
+                        >
+                          <ManagerAvatar
+                            appearance={{ ...appearance, hairStyle: i }}
+                            size={36}
+                          />
+                          <span className="text-[8px] text-muted-foreground">{HAIR_STYLE_LABELS[i]}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Hair Color (smooth show/hide when toggling bald) */}
+                  <div
+                    className={cn(
+                      'overflow-hidden transition-all duration-300',
+                      appearance.hairStyle !== 0 ? 'max-h-24 opacity-100 mb-5' : 'max-h-0 opacity-0 mb-0',
+                    )}
+                  >
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Hair Color</p>
+                    <div className="flex gap-3 justify-center">
+                      {HAIR_COLORS.map((color, i) => (
+                        <button
+                          key={color}
+                          onClick={() => setAppearance(prev => ({ ...prev, hairColor: i }))}
+                          aria-label={`Hair color ${i + 1}`}
+                          className={cn(
+                            'w-8 h-8 rounded-full transition-all duration-200',
+                            appearance.hairColor === i
+                              ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110'
+                              : 'hover:scale-105',
+                          )}
+                          style={{ backgroundColor: color }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Suit Color */}
+                  <div>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Suit Color</p>
+                    <div className="flex gap-3 justify-center">
+                      {SUIT_COLORS.map(({ color, label }) => (
+                        <button
+                          key={color}
+                          onClick={() => setAppearance(prev => ({ ...prev, suitColor: color }))}
+                          aria-label={label}
+                          className={cn(
+                            'w-8 h-8 rounded-full transition-all duration-200 border',
+                            appearance.suitColor === color
+                              ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 border-primary/40'
+                              : 'border-border/30 hover:scale-105',
+                          )}
+                          style={{ backgroundColor: color }}
+                          title={label}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {actionButton}
               </div>
             )}
 
@@ -252,12 +415,13 @@ const ManagerCreation = () => {
                     </div>
                   </div>
                 ))}
+                {actionButton}
               </div>
             )}
 
             {/* Step: Age */}
             {step === 'age' && (
-              <div className="space-y-4">
+              <div>
                 <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-5">
                   <div className="flex items-center gap-3 mb-4">
                     <Globe className="w-5 h-5 text-primary" />
@@ -284,6 +448,7 @@ const ManagerCreation = () => {
                     Retirement age is 65 (75 if you reach Legendary reputation).
                   </p>
                 </div>
+                {actionButton}
               </div>
             )}
 
@@ -316,6 +481,7 @@ const ManagerCreation = () => {
                     </div>
                   </div>
                 )}
+                {actionButton}
               </div>
             )}
 
@@ -471,7 +637,6 @@ const ManagerCreation = () => {
                                     e.stopPropagation();
                                     const managerSkill = previewManager?.attributes.negotiation || 5;
                                     const result = negotiateSalary(offer, counterSalary, managerSkill);
-                                    // Update the offer in the list
                                     setStartingOffers(prev => prev.map(o => o.id === offer.id ? result : o));
                                     setSelectedOffer(result);
                                     setNegotiatingOfferId(null);
@@ -594,37 +759,11 @@ const ManagerCreation = () => {
                     );
                   })
                 )}
+                {actionButton}
               </div>
             )}
           </motion.div>
         </AnimatePresence>
-      </div>
-
-      {/* Bottom action bar */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/80 backdrop-blur-xl border-t border-border/30 safe-area-bottom">
-        <div className="max-w-lg mx-auto">
-          {step === 'offers' ? (
-            <Button
-              className="w-full h-12 text-base font-bold gap-2"
-              disabled={!canProceed || loading}
-              onClick={handleStart}
-            >
-              {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Starting Career...</>
-              ) : (
-                <><Briefcase className="w-4 h-4" /> Begin Career</>
-              )}
-            </Button>
-          ) : (
-            <Button
-              className="w-full h-12 text-base font-bold gap-2"
-              disabled={!canProceed}
-              onClick={handleNext}
-            >
-              Continue <ArrowRight className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
       </div>
     </div>
   );

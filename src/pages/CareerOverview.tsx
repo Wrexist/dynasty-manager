@@ -5,7 +5,8 @@ import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ReputationBadge } from '@/components/game/ReputationBadge';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { Button } from '@/components/ui/button';
-import { User, Trophy, Briefcase, Calendar, Award, LogOut, TrendingUp, GitBranch } from 'lucide-react';
+import { Trophy, Briefcase, Calendar, Award, LogOut, TrendingUp, GitBranch } from 'lucide-react';
+import { ManagerAvatar } from '@/components/game/ManagerAvatar';
 import { cn } from '@/lib/utils';
 import { MANAGER_TRAITS } from '@/config/managerCareer';
 import { calculateLegacyScore, getRetirementAge } from '@/utils/managerCareer';
@@ -40,8 +41,8 @@ const CareerOverview = () => {
       {/* Manager Header */}
       <GlassPanel className="p-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="w-6 h-6 text-primary" />
+          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+            <ManagerAvatar appearance={careerManager.appearance} size={48} />
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold text-foreground">{careerManager.name}</h2>
