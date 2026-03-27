@@ -4057,6 +4057,46 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     } catch { return false; }
   },
 
+  cleanupAbandonedMatch: () => {
+    const state = get();
+    // Only clean up if a match was in progress (halfTimeState or matchPhase indicates mid-match)
+    if (state.matchPhase === 'none' && !state.halfTimeState) return;
+    // Remove ephemeral (virtual) club players and clubs that were injected for continental matches
+    const virtualIds = Object.keys(state.virtualClubs || {});
+    if (virtualIds.length > 0) {
+      const newClubs = { ...state.clubs };
+      const newPlayers = { ...state.players };
+      for (const vid of virtualIds) {
+        // Only remove clubs that were ephemeral injections (they start with 'virtual-')
+        if (vid.startsWith('virtual-') && newClubs[vid]) {
+          // Remove ephemeral players belonging to this club
+          const club = newClubs[vid];
+          if (club.playerIds) {
+            for (const pid of club.playerIds) {
+              delete newPlayers[pid];
+            }
+          }
+          delete newClubs[vid];
+        }
+      }
+      set({
+        clubs: newClubs, players: newPlayers,
+        halfTimeState: null, matchPhase: 'none' as const,
+        currentCupTieId: null, currentLeagueCupTieId: null,
+        currentContinentalMatchId: null, currentContinentalCompetition: null,
+        matchSubsUsed: 0,
+      });
+    } else {
+      // No virtual clubs to clean — just reset match tracking state
+      set({
+        halfTimeState: null, matchPhase: 'none' as const,
+        currentCupTieId: null, currentLeagueCupTieId: null,
+        currentContinentalMatchId: null, currentContinentalCompetition: null,
+        matchSubsUsed: 0,
+      });
+    }
+  },
+
   resetGame: (slot?: number) => {
     const s = slot ?? get().activeSlot;
     removeSaveSlot(s);
