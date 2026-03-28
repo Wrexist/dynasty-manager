@@ -1,6 +1,7 @@
 import { Player, Position, PlayerAttributes, FormationType, FORMATION_POSITIONS, POSITION_COMPATIBILITY } from '@/types/game';
 import { generatePersonality } from '@/utils/personality';
 import { pick, clamp } from '@/utils/helpers';
+import { generatePlayerAppearance } from '@/config/playerAppearance';
 import {
   PLAYER_MIN_AGE, PLAYER_AGE_RANGE, YOUNG_AGE_THRESHOLD, YOUNG_POTENTIAL_GAP, OLD_POTENTIAL_GAP,
   PROFILE_ATTRIBUTE_VARIANCE, POSITION_WEIGHTS as CONFIG_POSITION_WEIGHTS, DEFAULT_POSITION_WEIGHTS,
@@ -119,6 +120,7 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
     yellowCards: 0,
     redCards: 0,
     personality: generatePersonality(),
+    appearance: generatePlayerAppearance(nationality, position),
     joinedSeason: season,
   };
 }

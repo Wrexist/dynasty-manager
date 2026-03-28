@@ -139,6 +139,15 @@ export interface Player {
   lowMoraleWeeks?: number; // consecutive weeks with morale below threshold
   internationalCaps?: number;
   internationalGoals?: number;
+  appearance?: PlayerAppearance;
+}
+
+export interface PlayerAppearance {
+  skinTone: number;    // index 0-7 into PLAYER_SKIN_TONES
+  hairStyle: number;   // index 0-7 into PLAYER_HAIR_STYLES
+  hairColor: number;   // index 0-7 into PLAYER_HAIR_COLORS
+  height: number;      // 0=short, 1=medium, 2=tall (visual only)
+  build: number;       // 0=lean, 1=average, 2=stocky (visual only)
 }
 
 export interface Club {

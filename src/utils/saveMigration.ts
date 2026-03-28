@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 30;
+const CURRENT_VERSION = 31;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -428,6 +428,35 @@ const migrations: Record<number, MigrationFn> = {
       };
     }
     return { ...data, version: 30 };
+  },
+
+  // v30 → v31: Generate PlayerAppearance for all existing players
+  30: (data) => {
+    const players = data.players as Record<string, Record<string, unknown>> | undefined;
+    if (players) {
+      // Deterministic hash from player ID (same as PlayerAvatar fallback)
+      const hash = (id: string) => {
+        let h = 5381;
+        for (let i = 0; i < id.length; i++) {
+          h = ((h << 5) + h + id.charCodeAt(i)) | 0;
+        }
+        return Math.abs(h);
+      };
+      for (const pid of Object.keys(players)) {
+        const p = players[pid];
+        if (!p.appearance) {
+          const h = hash(pid);
+          p.appearance = {
+            skinTone: h % 8,
+            hairStyle: (h >> 3) % 8,
+            hairColor: (h >> 6) % 8,
+            height: (h >> 9) % 3,
+            build: (h >> 11) % 3,
+          };
+        }
+      }
+    }
+    return { ...data, version: 31 };
   },
 };
 
