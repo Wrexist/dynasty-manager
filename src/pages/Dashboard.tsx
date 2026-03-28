@@ -26,6 +26,7 @@ import { celebrationToast } from '@/utils/gameToast';
 import { CELEBRATION_STAGGER_MS, ADVANCE_DONE_MS } from '@/config/ui';
 import { CelebrationModal } from '@/components/game/CelebrationModal';
 import { StorylineModal } from '@/components/game/StorylineModal';
+import { PlayerTransferTalk } from '@/components/game/PlayerTransferTalk';
 import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
@@ -399,6 +400,9 @@ const Dashboard = () => {
 
       {/* Storyline Event (shown when triggered) */}
       {store.pendingStoryline && <StorylineModal />}
+
+      {/* Transfer Talk (shown when player requests transfer) */}
+      {store.pendingTransferTalk && <PlayerTransferTalk />}
 
       {/* Farewell Modal (shown when a long-serving player departs) */}
       <FarewellModal />

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink } from 'lucide-react';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message, GameScreen } from '@/types/game';
@@ -31,7 +31,7 @@ const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.Ele
 ];
 
 const InboxPage = () => {
-  const { messages, markMessageRead, markAllRead, activeStorylineChains, setScreen } = useGameStore();
+  const { messages, markMessageRead, markAllRead, activeStorylineChains, setScreen, players, openTransferTalk } = useGameStore();
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -320,6 +320,20 @@ const InboxPage = () => {
                           <div className="flex items-center justify-between mt-2">
                             <p className="text-[10px] text-muted-foreground/60">Season {msg.season} · Week {msg.week}</p>
                             {(() => {
+                              // Transfer request messages with a playerId — offer "Talk to Player"
+                              if (msg.type === 'transfer' && msg.playerId) {
+                                const player = players[msg.playerId];
+                                if (player && player.wantsToLeave && !player.listedForSale) {
+                                  return (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); openTransferTalk(msg.playerId!); setScreen('dashboard'); }}
+                                      className="flex items-center gap-1 text-[10px] text-orange-400 hover:text-orange-300 font-semibold transition-colors"
+                                    >
+                                      Talk to Player <MessageCircle className="w-3 h-3" />
+                                    </button>
+                                  );
+                                }
+                              }
                               const actions: { label: string; screen: GameScreen }[] = [];
                               if (msg.type === 'contract') actions.push({ label: 'View Squad', screen: 'squad' });
                               if (msg.type === 'transfer') actions.push({ label: 'Transfers', screen: 'transfers' });

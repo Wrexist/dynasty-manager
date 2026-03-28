@@ -325,6 +325,29 @@ export interface Message {
   title: string;
   body: string;
   read: boolean;
+  playerId?: string;
+}
+
+// ── Transfer Talk (interactive dialog when player requests transfer) ──
+export interface TransferTalkOption {
+  label: string;
+  text: string;
+  tone: 'empathize' | 'convince' | 'promise' | 'refuse';
+  effects: {
+    morale?: number;
+    teamMorale?: number;
+    boardConfidence?: number;
+    listForSale?: boolean;
+    withdrawChance?: number;
+  };
+}
+
+export interface TransferTalk {
+  playerId: string;
+  playerName: string;
+  reason: 'low_morale' | 'ambition';
+  body: string;
+  options: TransferTalkOption[];
 }
 
 export interface CareerMilestone {
