@@ -230,7 +230,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       sellOnClubId: sellOnPct > 0 ? listing.sellerClubId : undefined,
     };
     newClub.playerIds = [...newClub.playerIds, playerId];
-    newClub.budget -= fee;
+    newClub.budget = Math.max(0, newClub.budget - fee);
     newClub.wageBill += updatedPlayer.wage;
 
     const transferMarket = state.transferMarket.filter(l => l.playerId !== playerId);
