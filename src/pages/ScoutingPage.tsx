@@ -11,6 +11,7 @@ import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { formatMoney } from '@/utils/helpers';
+import { SCOUTING_COST_PER_ASSIGNMENT } from '@/config/gameBalance';
 
 const MARKET_SUB_NAV = [
   { screen: 'transfers' as const, label: 'Transfers' },
@@ -218,7 +219,10 @@ const ScoutingPage = () => {
                       <p className="text-[10px] text-muted-foreground">{description}</p>
                     </div>
                   </div>
-                  <span className="text-xs text-muted-foreground shrink-0">{weeks}w</span>
+                  <div className="text-right shrink-0">
+                    <span className="text-xs text-muted-foreground">{weeks}w</span>
+                    <p className="text-[10px] text-muted-foreground/60">{formatMoney(SCOUTING_COST_PER_ASSIGNMENT)}/wk</p>
+                  </div>
                 </div>
               </GlassPanel>
             ))}
