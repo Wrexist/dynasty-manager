@@ -175,7 +175,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     const club = state.clubs[state.playerClubId];
     if (!club) return;
 
-    const offer = createContractOffer(player, club.reputation, isRenewal);
+    const offer = createContractOffer(player, club.reputation, isRenewal, state.season);
     set({ activeNegotiation: offer });
   },
 

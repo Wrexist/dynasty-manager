@@ -64,7 +64,7 @@ export function calculateAgentFee(player: Player): number {
  * Determine player's willingness to negotiate (0-100).
  * Higher = more willing to accept lower offers.
  */
-export function getPlayerWillingness(player: Player, clubReputation: number, isRenewal: boolean): number {
+export function getPlayerWillingness(player: Player, clubReputation: number, isRenewal: boolean, currentSeason: number = 1): number {
   let willingness = CONTRACT_WILLINGNESS_BASE;
 
   // Happy players more willing to renew
@@ -79,7 +79,7 @@ export function getPlayerWillingness(player: Player, clubReputation: number, isR
   }
 
   // Contract running down = more leverage for player
-  if (player.contractEnd <= CONTRACT_WILLINGNESS_LOW_CONTRACT_THRESHOLD) willingness -= CONTRACT_WILLINGNESS_LOW_CONTRACT_PENALTY;
+  if (player.contractEnd <= currentSeason + CONTRACT_WILLINGNESS_LOW_CONTRACT_THRESHOLD) willingness -= CONTRACT_WILLINGNESS_LOW_CONTRACT_PENALTY;
 
   // Young players are more flexible
   if (player.age < CONTRACT_WILLINGNESS_YOUNG_AGE) willingness += CONTRACT_WILLINGNESS_YOUNG_BONUS;
@@ -97,10 +97,11 @@ export function createContractOffer(
   player: Player,
   clubReputation: number,
   isRenewal: boolean,
+  currentSeason: number = 1,
 ): ContractOffer {
   const demandedWage = calculateWageDemand(player, clubReputation);
   const agentFee = calculateAgentFee(player);
-  const willingness = getPlayerWillingness(player, clubReputation, isRenewal);
+  const willingness = getPlayerWillingness(player, clubReputation, isRenewal, currentSeason);
   const loyaltyBonus = isRenewal ? Math.round(player.value * CONTRACT_LOYALTY_BONUS_RATE) : 0;
 
   const yearsBracket = CONTRACT_YEARS_BRACKETS.find(b => player.age < b.maxAge);

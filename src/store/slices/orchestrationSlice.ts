@@ -70,6 +70,7 @@ import {
   FREE_AGENT_POOL_MAX,
   UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_CONTAGION_MORALE_HIT,
   MEDICAL_REINJURY_REDUCTION_PER_LEVEL,
+  MAX_FINANCE_HISTORY, MAX_CAREER_TIMELINE,
 } from '@/config/gameBalance';
 import {
   SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END,
@@ -171,7 +172,7 @@ function applyAIMatchEvents(
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], yellowCards: newPlayers[ev.playerId].yellowCards + 1 };
     }
     if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
-      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: week + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
+      newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: week + 1 + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
     }
   }
 }
@@ -2804,7 +2805,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const newFinanceHistory = [...state.financeHistory, {
       week: newWeek, season, income: weeklyIncome, expenses: totalExpenses, transfers: 0, balance: newClubs[playerClubId].budget,
-    }];
+    }].slice(-MAX_FINANCE_HISTORY);
 
     // ── Merchandise weekly tick ──
     const newMerch = { ...state.merchandise };
@@ -3036,7 +3037,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       domesticSuperCup: newDomesticSuperCup,
       activeChallenge: updatedChallenge,
       divisionFixtures: updatedDivisionFixtures, divisionTables,
-      careerTimeline: [...state.careerTimeline, ...newTimeline],
+      careerTimeline: [...state.careerTimeline, ...newTimeline].slice(-MAX_CAREER_TIMELINE),
       weeklyObjectives: newObjectives,
       objectiveStreak: newStreak,
       weekCliffhangers: cliffhangers,
