@@ -34,7 +34,7 @@ describe('contracts', () => {
   describe('getPlayerWillingness', () => {
     it('should return a value between 10 and 100', () => {
       const player = makePlayer();
-      const willingness = getPlayerWillingness(player, 3, true);
+      const willingness = getPlayerWillingness(player, 3, true, 1);
       expect(willingness).toBeGreaterThanOrEqual(10);
       expect(willingness).toBeLessThanOrEqual(100);
     });
@@ -42,16 +42,24 @@ describe('contracts', () => {
     it('should give young player bonus', () => {
       const young = makePlayer({ age: 19, overall: 65 });
       const same = makePlayer({ age: 28, overall: 65 });
-      const youngW = getPlayerWillingness(young, 3, true);
-      const sameW = getPlayerWillingness(same, 3, true);
+      const youngW = getPlayerWillingness(young, 3, true, 1);
+      const sameW = getPlayerWillingness(same, 3, true, 1);
       expect(youngW).toBeGreaterThanOrEqual(sameW);
     });
 
     it('should increase with club reputation for new signings', () => {
       const player = makePlayer();
-      const lowRep = getPlayerWillingness(player, 1, false);
-      const highRep = getPlayerWillingness(player, 5, false);
+      const lowRep = getPlayerWillingness(player, 1, false, 1);
+      const highRep = getPlayerWillingness(player, 5, false, 1);
       expect(highRep).toBeGreaterThan(lowRep);
+    });
+
+    it('should penalize willingness when contract is expiring', () => {
+      const expiring = makePlayer({ contractEnd: 3 });
+      const safe = makePlayer({ contractEnd: 6 });
+      const expiringW = getPlayerWillingness(expiring, 3, true, 2);
+      const safeW = getPlayerWillingness(safe, 3, true, 2);
+      expect(expiringW).toBeLessThan(safeW);
     });
   });
 
@@ -100,7 +108,7 @@ describe('contracts', () => {
   describe('createContractOffer', () => {
     it('should create a valid offer object', () => {
       const player = makePlayer();
-      const offer = createContractOffer(player, 3, true);
+      const offer = createContractOffer(player, 3, true, 1);
       expect(offer.playerId).toBe(player.id);
       expect(offer.type).toBe('renewal');
       expect(offer.status).toBe('in_progress');

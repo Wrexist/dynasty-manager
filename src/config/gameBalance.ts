@@ -191,6 +191,10 @@ export const STARTING_TACTICAL_FAMILIARITY = 30;
 // ── Max Messages ──
 export const MAX_MESSAGES = 80;
 
+// ── State Growth Caps ──
+export const MAX_FINANCE_HISTORY = 200;
+export const MAX_CAREER_TIMELINE = 100;
+
 // ── Loan Development ──
 export const LOAN_PLAY_CHANCE_HIGH = 0.7;
 export const LOAN_PLAY_CHANCE_LOW = 0.4;

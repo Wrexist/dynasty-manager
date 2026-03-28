@@ -75,6 +75,7 @@ export interface GameState {
   managerProgression: ManagerProgression;
   cup: CupState;
   pairFamiliarity: Record<string, number>;
+  seasonGrowthTracker: Record<string, number>;
 
   // Press, Storylines & Contracts
   pendingPressConference: PressConference | null;

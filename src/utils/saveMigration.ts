@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 31;
+const CURRENT_VERSION = 32;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -457,6 +457,27 @@ const migrations: Record<number, MigrationFn> = {
       }
     }
     return { ...data, version: 31 };
+  },
+  31: (data) => {
+    // Fix red card suspension off-by-one: bump active suspensions by 1
+    const players = data.players as Record<string, Record<string, unknown>> | undefined;
+    if (players) {
+      for (const p of Object.values(players)) {
+        if (typeof p.suspendedUntilWeek === 'number') {
+          p.suspendedUntilWeek = p.suspendedUntilWeek + 1;
+        }
+      }
+    }
+    // Cap financeHistory and careerTimeline for existing saves
+    const fh = data.financeHistory as unknown[] | undefined;
+    if (fh && fh.length > 200) {
+      data.financeHistory = fh.slice(-200);
+    }
+    const ct = data.careerTimeline as unknown[] | undefined;
+    if (ct && ct.length > 100) {
+      data.careerTimeline = ct.slice(-100);
+    }
+    return { ...data, version: 32 };
   },
 };
 

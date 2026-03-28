@@ -125,8 +125,8 @@ export const YOUNG_POTENTIAL_AGE_THRESHOLD = 21;
 
 // ── Lineup Selection ──
 export const EFFECTIVE_RATING_OVERALL_WEIGHT = 0.6;
-export const EFFECTIVE_RATING_FORM_WEIGHT = 25;
-export const EFFECTIVE_RATING_FITNESS_WEIGHT = 15;
+export const EFFECTIVE_RATING_FORM_WEIGHT = 10;
+export const EFFECTIVE_RATING_FITNESS_WEIGHT = 5;
 export const MAX_SUBS = 7;
 
 // ── Nationality Distribution by League ──

@@ -75,3 +75,9 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
 export function resetSeasonGrowth() {
   Object.keys(seasonGrowthTracker).forEach(k => delete seasonGrowthTracker[k]);
 }
+
+/** Hydrate growth tracker from persisted state on load */
+export function hydrateSeasonGrowth(data: Record<string, number>) {
+  Object.keys(seasonGrowthTracker).forEach(k => delete seasonGrowthTracker[k]);
+  Object.assign(seasonGrowthTracker, data);
+}

@@ -36,6 +36,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   weeklyDigest: null as GameState['weeklyDigest'],
   pairFamiliarity: {} as Record<string, number>,
   rivalries: {} as Record<string, import('@/types/game').HeadToHeadRecord>,
+  seasonGrowthTracker: {} as Record<string, number>,
 
   // ── Press Conference Actions ──
   respondToPress: (tone: 'confident' | 'humble' | 'deflect') => {
@@ -174,7 +175,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     const club = state.clubs[state.playerClubId];
     if (!club) return;
 
-    const offer = createContractOffer(player, club.reputation, isRenewal);
+    const offer = createContractOffer(player, club.reputation, isRenewal, state.season);
     set({ activeNegotiation: offer });
   },
 
