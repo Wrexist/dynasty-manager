@@ -53,6 +53,9 @@ export const LOW_KNOWLEDGE_BUST_CHANCE = 0.2;
 export const LOW_KNOWLEDGE_BUST_RANGE = 6;
 export const LOW_KNOWLEDGE_NOISE_RANGE = 12; // -6 to +6
 
+// ── Report Limits ──
+export const MAX_SCOUT_REPORTS = 20;
+
 // ── Recommendation Thresholds ──
 export const SIGN_POTENTIAL_THRESHOLD = 75;
 export const SIGN_OVERALL_THRESHOLD = 72;

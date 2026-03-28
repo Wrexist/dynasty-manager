@@ -192,10 +192,14 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const oldClub = { ...state.clubs[listing.sellerClubId] };
     const newClub = { ...state.clubs[state.playerClubId] };
 
-    oldClub.playerIds = oldClub.playerIds.filter(id => id !== playerId);
-    oldClub.lineup = oldClub.lineup.filter(id => id !== playerId);
-    oldClub.subs = oldClub.subs.filter(id => id !== playerId);
-    oldClub.wageBill -= player.wage;
+    // Only modify old club roster if the player is actually on it (scouted players may not be)
+    const playerInOldClub = oldClub.playerIds?.includes(playerId);
+    if (playerInOldClub) {
+      oldClub.playerIds = oldClub.playerIds.filter(id => id !== playerId);
+      oldClub.lineup = oldClub.lineup.filter(id => id !== playerId);
+      oldClub.subs = oldClub.subs.filter(id => id !== playerId);
+      oldClub.wageBill -= player.wage;
+    }
 
     // Honor existing sell-on clause: pay percentage to the previous club
     const updatedClubs = { ...state.clubs };

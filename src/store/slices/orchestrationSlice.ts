@@ -14,6 +14,7 @@ import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
 import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity, getDominantTrainingFocus, getStreakMultiplier, updateStreaks, generateTrainingReport } from '@/utils/training';
 import { completeAssignment } from '@/utils/scouting';
+import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle } from '@/utils/helpers';
@@ -1433,7 +1434,7 @@ function finalizeSeason(
     },
     youthAcademy: { prospects: newYouthProspects, nextIntakePreview: newIntakePreview },
     staff: { ...state.staff, availableHires: newAvailableHires },
-    scouting: { ...state.scouting, assignments: [], reports: [] },
+    scouting: { ...state.scouting, assignments: [], reports: [], discoveredPlayers: [] },
     cup: newCup,
     leagueCup: newLeagueCup,
     championsCup: newChampionsCup,
@@ -2661,14 +2662,19 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const { reports: newReports, players: scoutedPlayers } = completeAssignment(a, scoutQuality, season, newWeek);
         newScouting.reports.push(...newReports);
         let gemReveal: { playerId: string; region: string } | null = null;
+        // Pick random AI clubs to act as sellers for scouted players
+        const aiClubIds = Object.keys(clubs).filter(id => id !== playerClubId);
         scoutedPlayers.forEach(p => {
+          // Assign scouted player to a random AI club so the transfer flow works
+          const sellerClubId = aiClubIds[Math.floor(Math.random() * aiClubIds.length)];
+          p.clubId = sellerClubId;
           newPlayers[p.id] = p;
           newScouting.discoveredPlayers.push(p.id);
           // Add scouted player to transfer market so user can sign via standard flow
           scoutedListings.push({
             playerId: p.id,
             askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)),
-            sellerClubId: p.clubId,
+            sellerClubId,
             scoutedPlayer: true,
           });
           // Detect hidden gem: potential 80+ player
@@ -2687,6 +2693,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
     newScouting.assignments = newScouting.assignments.filter(a => !completedAssignments.includes(a.id));
+    // Cap scout reports to prevent unbounded growth
+    if (newScouting.reports.length > MAX_SCOUT_REPORTS) {
+      newScouting.reports = newScouting.reports.slice(-MAX_SCOUT_REPORTS);
+    }
     // Add scouted player listings to the transfer market
     if (scoutedListings.length > 0) {
       const currentMarket = get().transferMarket;
