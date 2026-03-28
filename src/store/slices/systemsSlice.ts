@@ -17,7 +17,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
   staff: { members: [], availableHires: [] } as GameState['staff'],
   scouting: { maxAssignments: 1, assignments: [], reports: [], discoveredPlayers: [] } as GameState['scouting'],
   youthAcademy: { prospects: [], nextIntakePreview: [] } as GameState['youthAcademy'],
-  facilities: { trainingLevel: 5, youthLevel: 5, stadiumLevel: 5, medicalLevel: 5, upgradeInProgress: null } as GameState['facilities'],
+  facilities: { trainingLevel: 5, youthLevel: 5, stadiumLevel: 5, medicalLevel: 5, recoveryLevel: 5, upgradeInProgress: null } as GameState['facilities'],
   financeHistory: [] as GameState['financeHistory'],
 
   setTactics: (partial: Partial<TacticalInstructions>) => set(s => ({ tactics: { ...s.tactics, ...partial } })),
