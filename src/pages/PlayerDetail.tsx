@@ -847,7 +847,7 @@ const PlayerDetail = () => {
           </Button>
           <Button
             variant="outline"
-            className="w-full gap-2 border-blue-500/30 text-blue-400"
+            className="w-full gap-2 border-primary/30 text-primary"
             onClick={() => { hapticLight(); setShowLoanRequest(true); }}
           >
             <Repeat2 className="w-4 h-4" /> Request Loan
