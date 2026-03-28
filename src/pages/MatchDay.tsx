@@ -84,6 +84,7 @@ const MatchDay = () => {
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
   const [allEvents, setAllEvents] = useState<MatchEvent[]>([]);
   const [currentMin, setCurrentMin] = useState(0);
+  const currentMinRef = useRef(0);
   const [visibleEvents, setVisibleEvents] = useState<MatchEvent[]>([]);
   const [speed, setSpeed] = useState(200);
   const [paused, setPaused] = useState(false);
@@ -162,6 +163,7 @@ const MatchDay = () => {
     setFirstHalfState(halfState);
     setAllEvents(halfState.events);
     setPhase('first_half');
+    currentMinRef.current = 0;
     setCurrentMin(0);
     setVisibleEvents([]);
     setPaused(false);
@@ -174,6 +176,7 @@ const MatchDay = () => {
     setAllEvents(result.events);
     setPhase('second_half');
     // Continue from minute 46
+    currentMinRef.current = 45;
     setCurrentMin(45);
     setPaused(false);
   };
@@ -182,6 +185,7 @@ const MatchDay = () => {
     const result = playExtraTime();
     if (!result) return;
     setAllEvents(result.events);
+    currentMinRef.current = 90;
     setCurrentMin(90);
     setPhase('extra_time');
     setPaused(false);
@@ -315,36 +319,38 @@ const MatchDay = () => {
     if (keyMoment || paused) return; // Paused for key moment or manual pause
 
     intervalRef.current = setInterval(() => {
-      setCurrentMin(prev => {
-        const next = prev + 1;
-        const maxMin = phase === 'first_half' ? 45 : phase === 'extra_time' ? 120 : 90;
-        if (next > maxMin) {
-          clearInterval(intervalRef.current!);
-          if (phase === 'first_half') {
-            setPhase('half_time');
-          } else if (phase === 'second_half') {
-            // Check if cup match needs extra time
-            const storePhase = matchPhaseRef.current;
-            setPhase(storePhase === 'extra_time' ? 'extra_time_break' : 'post');
-          } else {
-            // extra_time animation finished
-            const storePhase = matchPhaseRef.current;
-            setPhase(storePhase === 'penalties' ? 'penalties' : 'post');
-          }
-          return maxMin;
-        }
-        const events = allEvents.filter(e => e.minute <= next);
-        setVisibleEvents(events);
+      const next = currentMinRef.current + 1;
+      const maxMin = phase === 'first_half' ? 45 : phase === 'extra_time' ? 120 : 90;
 
-        // Check for key moment at this minute
-        const moment = checkKeyMomentRef.current(next, events);
-        if (moment) {
-          clearInterval(intervalRef.current!);
-          setKeyMoment(moment);
+      if (next > maxMin) {
+        clearInterval(intervalRef.current!);
+        if (phase === 'first_half') {
+          setPhase('half_time');
+        } else if (phase === 'second_half') {
+          // Check if cup match needs extra time
+          const storePhase = matchPhaseRef.current;
+          setPhase(storePhase === 'extra_time' ? 'extra_time_break' : 'post');
+        } else {
+          // extra_time animation finished
+          const storePhase = matchPhaseRef.current;
+          setPhase(storePhase === 'penalties' ? 'penalties' : 'post');
         }
+        currentMinRef.current = maxMin;
+        setCurrentMin(maxMin);
+        return;
+      }
 
-        return next;
-      });
+      const events = allEvents.filter(e => e.minute <= next);
+      currentMinRef.current = next;
+      setCurrentMin(next);
+      setVisibleEvents(events);
+
+      // Check for key moment at this minute
+      const moment = checkKeyMomentRef.current(next, events);
+      if (moment) {
+        clearInterval(intervalRef.current!);
+        setKeyMoment(moment);
+      }
     }, speed);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [phase, allEvents, speed, keyMoment, paused]);
