@@ -36,6 +36,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   weeklyDigest: null as GameState['weeklyDigest'],
   pairFamiliarity: {} as Record<string, number>,
   rivalries: {} as Record<string, import('@/types/game').HeadToHeadRecord>,
+  seasonGrowthTracker: {} as Record<string, number>,
 
   // ── Press Conference Actions ──
   respondToPress: (tone: 'confident' | 'humble' | 'deflect') => {

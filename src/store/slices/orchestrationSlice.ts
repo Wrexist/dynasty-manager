@@ -84,7 +84,7 @@ import {
   VERDICT_EXCELLENT_OFFSET, VERDICT_ACCEPTABLE_OFFSET, BOARD_SACKING_THRESHOLD,
   STORYLINE_CHAIN_TRIGGER_CHANCE, STORYLINE_CHAIN_MIN_WEEK,
 } from '@/config/playoffs';
-import { applyPlayerDevelopment, resetSeasonGrowth } from '@/store/helpers/development';
+import { applyPlayerDevelopment, resetSeasonGrowth, hydrateSeasonGrowth, seasonGrowthTracker } from '@/store/helpers/development';
 import { applySeasonTurnover, generateReplacementClub } from '@/utils/promotionRelegation';
 import { generateStorylines } from '@/utils/storylines';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
@@ -1467,6 +1467,7 @@ function finalizeSeason(
       return milestones;
     })(),
     managerProgression: grantXP(state.managerProgression, XP_REWARDS.seasonEnd + (history.position === 1 ? XP_REWARDS.titleWin : 0) + (state.cup.winner === playerClubId ? XP_REWARDS.cupWin : 0)),
+    seasonGrowthTracker: {},
   });
 
   // Update Hall of Managers cross-save leaderboard
@@ -1855,6 +1856,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       activeNegotiation: null,
       selectedPlayerId: null,
       lastMatchXPGain: 0,
+      seasonGrowthTracker: {},
       monetization: {
         ...DEFAULT_MONETIZATION_STATE,
         // Preserve purchases and subscription across game init
@@ -3047,6 +3049,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       ...(sponsorUpdates.sponsorSlotCooldowns ? { sponsorSlotCooldowns: sponsorUpdates.sponsorSlotCooldowns } : {}),
       merchandise: newMerch,
       fanMood: merchFanMood,
+      seasonGrowthTracker: { ...seasonGrowthTracker },
       weeklyDigest: {
         incomeEarned: weeklyIncome,
         expensesPaid: totalExpenses,
@@ -3899,6 +3902,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pairFamiliarity: state.pairFamiliarity,
       rivalries: state.rivalries,
       lastMatchCompetition: state.lastMatchCompetition,
+      seasonGrowthTracker: state.seasonGrowthTracker,
       transferNews: state.transferNews || [],
       halfTimeState: state.halfTimeState,
       matchPhase: state.matchPhase,
@@ -4076,7 +4080,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         careerManager: data.careerManager || null,
         jobVacancies: data.jobVacancies || [],
         jobOffers: data.jobOffers || [],
+        seasonGrowthTracker: data.seasonGrowthTracker || {},
       });
+      // Hydrate module-level growth tracker so development functions use persisted data
+      hydrateSeasonGrowth(data.seasonGrowthTracker || {});
       return true;
     } catch { return false; }
   },
