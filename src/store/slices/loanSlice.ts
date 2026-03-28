@@ -201,6 +201,8 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       activeLoans: [...state.activeLoans, loan],
       incomingLoanOffers: newOffers.filter(o => o.playerId !== offer.playerId),
       transferMarket: state.transferMarket.filter(l => l.playerId !== offer.playerId),
+      shortlist: state.shortlist.filter(id => id !== offer.playerId),
+      scoutWatchList: state.scoutWatchList.filter(id => id !== offer.playerId),
       messages: msg,
     });
 
@@ -280,7 +282,9 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
         toClub.wageBill -= Math.round(player.wage * loan.wageSplit / 100);
 
-        fromClub.playerIds = [...fromClub.playerIds, loan.playerId];
+        if (!fromClub.playerIds.includes(loan.playerId)) {
+          fromClub.playerIds = [...fromClub.playerIds, loan.playerId];
+        }
         fromClub.wageBill += Math.round(player.wage * loan.wageSplit / 100);
 
         newPlayers[loan.playerId] = {
