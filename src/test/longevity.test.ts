@@ -324,8 +324,8 @@ describe('State Size & Growth Tracking', () => {
         careerTimelineLength: state.careerTimeline?.length || 0,
       });
 
-      // Messages should be capped (MAX_MESSAGES = 80)
-      expect(state.messages.length, 'Messages array should be capped').toBeLessThanOrEqual(100);
+      // Messages should be capped (MAX_MESSAGES = 200)
+      expect(state.messages.length, 'Messages array should be capped').toBeLessThanOrEqual(220);
     }
 
     // Total player count should not grow unboundedly

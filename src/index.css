@@ -31,7 +31,7 @@
     --secondary-foreground: 220 15% 85%;
 
     --muted: 222 20% 15%;
-    --muted-foreground: 220 10% 50%;
+    --muted-foreground: 220 10% 65%;
 
     --accent: 215 60% 50%;
     --accent-foreground: 220 15% 95%;
@@ -76,6 +76,11 @@
   input, textarea {
     -webkit-user-select: text;
     user-select: text;
+  }
+
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 
   .font-display {

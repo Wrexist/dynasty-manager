@@ -39,7 +39,13 @@ export function TopBar() {
     prevXpRef.current = xpProgress.percentage;
   }, [xpProgress.percentage]);
 
-  if (!club) return null;
+  if (!club) return (
+    <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top">
+      <div className="flex items-center justify-center h-14 px-4 max-w-lg mx-auto">
+        <span className="text-xs text-muted-foreground">Loading...</span>
+      </div>
+    </header>
+  );
 
   const showBack = DETAIL_SCREENS.includes(currentScreen);
   const backTarget = BACK_TARGET[currentScreen] || previousScreen || 'dashboard';

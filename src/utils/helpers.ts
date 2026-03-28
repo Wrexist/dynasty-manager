@@ -1,4 +1,5 @@
 import type { Message } from '@/types/game';
+import { MAX_MESSAGES } from '@/config/gameBalance';
 
 export const pick = <T>(arr: T[]): T => {
   if (arr.length === 0) throw new Error('pick() called with empty array');
@@ -33,7 +34,7 @@ export function getSuffix(n: number): string {
 export function addMsg(messages: Message[], msg: Omit<Message, 'id' | 'read'>): Message[] {
   const newMsg: Message = { ...msg, id: crypto.randomUUID(), read: false };
   const updated = [newMsg, ...messages];
-  return updated.slice(0, 80);
+  return updated.slice(0, MAX_MESSAGES);
 }
 
 export function formatMoney(amount: number): string {

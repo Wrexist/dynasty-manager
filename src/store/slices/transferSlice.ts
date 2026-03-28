@@ -102,10 +102,15 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   // Remove this offer + all offers for same player
   const cleanedOffers = state.incomingOffers.filter(o => o.playerId !== offer.playerId);
 
+  // Clean up shortlist and scout watch list for the sold player
+  const cleanedShortlist = state.shortlist.filter(id => id !== offer.playerId);
+  const cleanedWatchList = state.scoutWatchList.filter(id => id !== offer.playerId);
+
   set({
     players: newPlayers,
     clubs: updatedClubs,
     transferMarket: newMarket, incomingOffers: cleanedOffers, incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== offer.playerId), activeLoans: cleanedLoans, messages: msg, managerStats: ms,
+    shortlist: cleanedShortlist, scoutWatchList: cleanedWatchList,
     ...(farewellEntry ? { pendingFarewell: [...state.pendingFarewell, farewellEntry] } : {}),
     ...merchDipUpdate,
   });
@@ -118,7 +123,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
   scoutWatchList: [] as string[],
   incomingOffers: [] as GameState['incomingOffers'],
 
-  addToShortlist: (id: string) => set(s => ({ shortlist: [...s.shortlist, id] })),
+  addToShortlist: (id: string) => set(s => ({ shortlist: s.shortlist.includes(id) ? s.shortlist : [...s.shortlist, id] })),
   removeFromShortlist: (id: string) => set(s => ({ shortlist: s.shortlist.filter(x => x !== id) })),
 
   evaluateOffer: (playerId: string, fee: number) => {
@@ -238,7 +243,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
     const ms = { ...state.managerStats, totalSpent: state.managerStats.totalSpent + fee };
     // Record signing milestone if this is the most expensive signing ever
-    const isRecordSigning = fee > ms.totalSpent * RECORD_SIGNING_SPEND_RATIO && fee >= RECORD_SIGNING_MIN_FEE;
+    const isRecordSigning = fee > state.managerStats.totalSpent * RECORD_SIGNING_SPEND_RATIO && fee >= RECORD_SIGNING_MIN_FEE;
     const newTimeline = isRecordSigning
       ? [...state.careerTimeline, { id: crypto.randomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${updatedPlayer.firstName} ${updatedPlayer.lastName} for £${(fee / 1e6).toFixed(1)}M from ${oldClub.name}.`, season: state.season, week: state.week, icon: 'pen-line' }]
       : state.careerTimeline;
@@ -254,6 +259,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       clubs: updatedClubs,
       transferMarket, messages: newMessages, managerStats: ms,
       careerTimeline: newTimeline,
+      shortlist: state.shortlist.filter(id => id !== playerId),
+      scoutWatchList: state.scoutWatchList.filter(id => id !== playerId),
       ...merchUpdate,
     });
     // Career mode: grow negotiation stat on successful transfer
@@ -470,6 +477,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       players: { ...state.players, [playerId]: updatedPlayer },
       clubs: { ...state.clubs, [club.id]: club },
       freeAgents: state.freeAgents.filter(id => id !== playerId),
+      shortlist: state.shortlist.filter(id => id !== playerId),
+      scoutWatchList: state.scoutWatchList.filter(id => id !== playerId),
       messages: newMessages,
     });
     return { success: true, message: `${player.firstName} ${player.lastName} signed on a free transfer!` };

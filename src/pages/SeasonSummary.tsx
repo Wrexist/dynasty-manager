@@ -38,6 +38,7 @@ const SeasonSummary = () => {
   const nearMiss = (() => {
     if (!latest || !leagueTable || leagueTable.length === 0) return null;
     const pos = latest.position;
+    if (pos < 2) return null;
     const pts = latest.points;
     // Find the team just above in the final table
     const aboveEntry = leagueTable[pos - 2]; // pos-1 is 0-indexed player, pos-2 is team above
