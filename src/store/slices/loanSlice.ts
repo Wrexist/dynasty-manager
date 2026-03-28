@@ -24,6 +24,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     if (!player) return { success: false, message: 'Player not found.' };
     if (player.clubId !== state.playerClubId) return { success: false, message: 'Not your player.' };
     if (player.onLoan) return { success: false, message: 'Player is already on loan.' };
+    if (player.listedForSale) return { success: false, message: 'Player is listed for sale. Remove from transfer list first.' };
 
     const fromClub = state.clubs[state.playerClubId];
     const toClub = state.clubs[toClubId];
@@ -70,11 +71,17 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       body: `${player.firstName} ${player.lastName} has joined ${toClub.name} on loan for ${duration} weeks. Wage split: ${wageSplit}%.${recallClause ? ' Recall clause included.' : ''}`,
     });
 
+    // Clean up shortlist, scout watch list, and transfer market for loaned player
+    const cleanedShortlist = state.shortlist.filter(id => id !== playerId);
+    const cleanedWatchList = state.scoutWatchList.filter(id => id !== playerId);
+    const cleanedMarket = state.transferMarket.filter(l => l.playerId !== playerId);
+
     set({
       players: { ...state.players, [playerId]: updatedPlayer },
       clubs: { ...state.clubs, [updatedFrom.id]: updatedFrom, [updatedTo.id]: updatedTo },
       activeLoans: [...state.activeLoans, loan],
       messages: newMessages,
+      shortlist: cleanedShortlist, scoutWatchList: cleanedWatchList, transferMarket: cleanedMarket,
     });
 
     return { success: true, message: `${player.firstName} ${player.lastName} loaned to ${toClub.name}!` };

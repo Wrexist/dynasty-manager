@@ -102,10 +102,15 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   // Remove this offer + all offers for same player
   const cleanedOffers = state.incomingOffers.filter(o => o.playerId !== offer.playerId);
 
+  // Clean up shortlist and scout watch list for the sold player
+  const cleanedShortlist = state.shortlist.filter(id => id !== offer.playerId);
+  const cleanedWatchList = state.scoutWatchList.filter(id => id !== offer.playerId);
+
   set({
     players: newPlayers,
     clubs: updatedClubs,
     transferMarket: newMarket, incomingOffers: cleanedOffers, incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== offer.playerId), activeLoans: cleanedLoans, messages: msg, managerStats: ms,
+    shortlist: cleanedShortlist, scoutWatchList: cleanedWatchList,
     ...(farewellEntry ? { pendingFarewell: [...state.pendingFarewell, farewellEntry] } : {}),
     ...merchDipUpdate,
   });

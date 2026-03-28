@@ -145,12 +145,13 @@ const FinancePage = () => {
 
       {/* Financial Fair Play */}
       {(() => {
-        const wageRatio = weeklyIncome > 0 ? club.wageBill / weeklyIncome : 0;
+        const noIncome = weeklyIncome <= 0 && club.wageBill > 0;
+        const wageRatio = weeklyIncome > 0 ? club.wageBill / weeklyIncome : (club.wageBill > 0 ? 1 : 0);
         const ratioPct = Math.round(wageRatio * 100);
-        const ffpStatus = ratioPct >= 90 ? 'critical' : ratioPct >= 70 ? 'warning' : 'healthy';
+        const ffpStatus = noIncome ? 'critical' : ratioPct >= 90 ? 'critical' : ratioPct >= 70 ? 'warning' : 'healthy';
         const statusColor = ffpStatus === 'critical' ? 'text-destructive' : ffpStatus === 'warning' ? 'text-amber-400' : 'text-emerald-400';
         const statusBg = ffpStatus === 'critical' ? 'bg-destructive/20' : ffpStatus === 'warning' ? 'bg-amber-400/20' : 'bg-emerald-500/20';
-        const statusText = ffpStatus === 'critical' ? 'Critical — Restrictions Active' : ffpStatus === 'warning' ? 'Warning — Board Concern' : 'Healthy';
+        const statusText = noIncome ? 'Critical — No Revenue' : ffpStatus === 'critical' ? 'Critical — Restrictions Active' : ffpStatus === 'warning' ? 'Warning — Board Concern' : 'Healthy';
         return (
           <GlassPanel className="p-4">
             <div className="flex items-center gap-2 mb-3">

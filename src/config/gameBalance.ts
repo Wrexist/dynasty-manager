@@ -189,7 +189,7 @@ export const SEASON_YOUTH_INTAKE_RANGE = 3;
 export const STARTING_TACTICAL_FAMILIARITY = 30;
 
 // ── Max Messages ──
-export const MAX_MESSAGES = 80;
+export const MAX_MESSAGES = 200;
 
 // ── Loan Development ──
 export const LOAN_PLAY_CHANCE_HIGH = 0.7;

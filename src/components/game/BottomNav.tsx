@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GameScreen } from '@/types/game';
 import { LayoutDashboard, Users, Target, ArrowLeftRight } from 'lucide-react';
@@ -18,7 +19,7 @@ const tabs: { screen: GameScreen; label: string; icon: React.ElementType; group?
 
 export function BottomNav() {
   const { currentScreen, setScreen, messages, incomingOffers } = useGameStore();
-  const unreadCount = messages.filter(m => !m.read).length;
+  const unreadCount = useMemo(() => messages.filter(m => !m.read).length, [messages]);
   const pendingOffers = incomingOffers.length;
 
   return (
