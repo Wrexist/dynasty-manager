@@ -4,14 +4,39 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { NATIONS } from '@/data/nations';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins, Palette, Dices } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins, Palette, Dices, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getFlag } from '@/utils/nationality';
 import type { ManagerTraitId, ManagerAppearance, JobOffer } from '@/types/game';
 import { ManagerTraitPicker } from '@/components/game/ManagerTraitPicker';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
-import { SKIN_TONES, HAIR_COLORS, HAIR_STYLES, SUIT_COLORS, DEFAULT_APPEARANCE } from '@/config/managerAppearance';
+import {
+  SKIN_TONES,
+  HAIR_COLORS,
+  HAIR_COLOR_LABELS,
+  MALE_HAIR_STYLES,
+  MALE_HAIR_LABELS,
+  FEMALE_HAIR_STYLES,
+  FEMALE_HAIR_LABELS,
+  FACE_SHAPES,
+  FACE_SHAPE_LABELS,
+  EYE_STYLES,
+  EYE_STYLE_LABELS,
+  FACIAL_HAIR_STYLES,
+  FACIAL_HAIR_LABELS,
+  GLASSES_STYLES,
+  GLASSES_LABELS,
+  OUTFIT_TYPES,
+  OUTFIT_LABELS,
+  OUTFIT_COLORS,
+  TIE_COLORS,
+  ACCESSORIES,
+  ACCESSORY_LABELS,
+  DEFAULT_MALE_APPEARANCE,
+  DEFAULT_FEMALE_APPEARANCE,
+  DEFAULT_APPEARANCE,
+} from '@/config/managerAppearance';
 import { createDefaultManager, generateStartingOffers, negotiateSalary } from '@/utils/managerCareer';
 import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROUNDS, SALARY_COUNTER_MAX_INCREASE } from '@/config/managerCareer';
 import { CLUBS_DATA } from '@/data/league';
@@ -30,7 +55,8 @@ const STEP_LABELS: Record<Step, string> = {
   offers: 'Starting Job',
 };
 
-const HAIR_STYLE_LABELS = ['Bald', 'Short', 'Medium', 'Mohawk', 'Buzz', 'Long'];
+// Appearance section IDs for collapsible panels
+type AppearanceSection = 'face' | 'hair' | 'facialHair' | 'eyewear' | 'outfit' | 'accessories';
 
 // Group nations by confederation for display
 const CONFEDERATION_LABELS: Record<string, string> = {
@@ -60,6 +86,49 @@ const ManagerCreation = () => {
   const [negotiatingOfferId, setNegotiatingOfferId] = useState<string | null>(null);
   const [counterSalary, setCounterSalary] = useState<number>(0);
   const [negotiationMessage, setNegotiationMessage] = useState<string | null>(null);
+  const [openSections, setOpenSections] = useState<Set<AppearanceSection>>(new Set(['face', 'hair']));
+
+  const toggleSection = (section: AppearanceSection) => {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  };
+
+  const handleGenderToggle = (gender: 'male' | 'female') => {
+    setAppearance(prev => ({
+      ...(gender === 'male' ? DEFAULT_MALE_APPEARANCE : DEFAULT_FEMALE_APPEARANCE),
+      skinTone: prev.skinTone,
+      faceShape: prev.faceShape,
+      eyeStyle: prev.eyeStyle,
+      hairColor: prev.hairColor,
+      glasses: prev.glasses,
+      outfitColor: prev.outfitColor,
+      tieColor: prev.tieColor,
+      accessory: prev.accessory,
+    }));
+  };
+
+  const randomizeAppearance = () => {
+    const gender = appearance.gender;
+    const hairStyles = gender === 'female' ? FEMALE_HAIR_STYLES : MALE_HAIR_STYLES;
+    setAppearance({
+      gender,
+      skinTone: Math.floor(Math.random() * SKIN_TONES.length),
+      faceShape: Math.floor(Math.random() * FACE_SHAPES.length),
+      eyeStyle: Math.floor(Math.random() * EYE_STYLES.length),
+      hairStyle: Math.floor(Math.random() * hairStyles.length),
+      hairColor: Math.floor(Math.random() * HAIR_COLORS.length),
+      facialHair: gender === 'male' ? Math.floor(Math.random() * FACIAL_HAIR_STYLES.length) : 0,
+      glasses: Math.floor(Math.random() * GLASSES_STYLES.length),
+      outfit: Math.floor(Math.random() * OUTFIT_TYPES.length),
+      outfitColor: OUTFIT_COLORS[Math.floor(Math.random() * OUTFIT_COLORS.length)].color,
+      tieColor: TIE_COLORS[Math.floor(Math.random() * TIE_COLORS.length)].color,
+      accessory: Math.floor(Math.random() * ACCESSORIES.length),
+    });
+  };
 
   const stepIdx = STEPS.indexOf(step);
   const canProceed = (() => {
@@ -254,16 +323,11 @@ const ManagerCreation = () => {
             {step === 'appearance' && (
               <div>
                 <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-5">
+                  <div className="flex items-center gap-3 mb-4">
                     <Palette className="w-5 h-5 text-primary" />
                     <h2 className="text-base font-bold text-foreground flex-1">Your Look</h2>
                     <button
-                      onClick={() => setAppearance({
-                        skinTone: Math.floor(Math.random() * SKIN_TONES.length),
-                        hairStyle: Math.floor(Math.random() * HAIR_STYLES.length),
-                        hairColor: Math.floor(Math.random() * HAIR_COLORS.length),
-                        suitColor: SUIT_COLORS[Math.floor(Math.random() * SUIT_COLORS.length)].color,
-                      })}
+                      onClick={randomizeAppearance}
                       className="flex items-center gap-1.5 text-[10px] text-primary font-semibold hover:text-primary/80 transition-colors"
                       aria-label="Randomize appearance"
                     >
@@ -271,105 +335,293 @@ const ManagerCreation = () => {
                     </button>
                   </div>
 
-                  {/* Live preview */}
-                  <div className="flex justify-center mb-6">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl" />
-                      <ManagerAvatar appearance={appearance} size={140} className="relative" />
-                    </div>
-                  </div>
-
-                  {/* Skin Tone */}
-                  <div className="mb-5">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Skin Tone</p>
-                    <div className="flex gap-3 justify-center">
-                      {SKIN_TONES.map((tone, i) => (
+                  {/* Gender Toggle */}
+                  <div className="flex justify-center mb-4">
+                    <div className="flex bg-muted/30 rounded-lg p-0.5 border border-border/30">
+                      {(['male', 'female'] as const).map(g => (
                         <button
-                          key={tone}
-                          onClick={() => setAppearance(prev => ({ ...prev, skinTone: i }))}
-                          aria-label={`Skin tone ${i + 1}`}
+                          key={g}
+                          onClick={() => handleGenderToggle(g)}
                           className={cn(
-                            'w-10 h-10 rounded-full transition-all duration-200',
-                            appearance.skinTone === i
-                              ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110'
-                              : 'hover:scale-105',
-                          )}
-                          style={{ backgroundColor: tone }}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Hair Style */}
-                  <div className="mb-5">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Hair Style</p>
-                    <div className="grid grid-cols-6 gap-2">
-                      {HAIR_STYLES.map((_, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setAppearance(prev => ({ ...prev, hairStyle: i }))}
-                          aria-label={HAIR_STYLE_LABELS[i]}
-                          className={cn(
-                            'flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all duration-200',
-                            appearance.hairStyle === i
-                              ? 'bg-primary/20 border border-primary/40'
-                              : 'bg-muted/20 border border-transparent hover:bg-muted/40',
+                            'px-5 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 capitalize',
+                            appearance.gender === g
+                              ? 'bg-primary text-primary-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground',
                           )}
                         >
-                          <ManagerAvatar
-                            appearance={{ ...appearance, hairStyle: i }}
-                            size={36}
-                          />
-                          <span className="text-[8px] text-muted-foreground">{HAIR_STYLE_LABELS[i]}</span>
+                          {g}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Hair Color (smooth show/hide when toggling bald) */}
-                  <div
-                    className={cn(
-                      'overflow-hidden transition-all duration-300',
-                      appearance.hairStyle !== 0 ? 'max-h-24 opacity-100 mb-5' : 'max-h-0 opacity-0 mb-0',
-                    )}
-                  >
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Hair Color</p>
-                    <div className="flex gap-3 justify-center">
-                      {HAIR_COLORS.map((color, i) => (
+                  {/* Live preview */}
+                  <div className="flex justify-center mb-5">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl" />
+                      <ManagerAvatar appearance={appearance} size={160} className="relative" />
+                    </div>
+                  </div>
+
+                  {/* ─── Collapsible Sections ─── */}
+
+                  {/* Face */}
+                  <SectionHeader title="Face" section="face" open={openSections.has('face')} onToggle={toggleSection} />
+                  <div className={cn('overflow-hidden transition-all duration-300', openSections.has('face') ? 'max-h-[500px] opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0')}>
+                    {/* Skin Tone */}
+                    <div className="mb-4 mt-2">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Skin Tone</p>
+                      <div className="flex gap-2 justify-center flex-wrap">
+                        {SKIN_TONES.map((tone, i) => (
+                          <button
+                            key={tone}
+                            onClick={() => setAppearance(prev => ({ ...prev, skinTone: i }))}
+                            aria-label={`Skin tone ${i + 1}`}
+                            className={cn(
+                              'w-9 h-9 rounded-full transition-all duration-200',
+                              appearance.skinTone === i
+                                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110'
+                                : 'hover:scale-105',
+                            )}
+                            style={{ backgroundColor: tone }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {/* Face Shape */}
+                    <div className="mb-4">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Face Shape</p>
+                      <div className="flex gap-2 justify-center">
+                        {FACE_SHAPES.map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setAppearance(prev => ({ ...prev, faceShape: i }))}
+                            aria-label={FACE_SHAPE_LABELS[i]}
+                            className={cn(
+                              'flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-all duration-200',
+                              appearance.faceShape === i
+                                ? 'bg-primary/20 border border-primary/40'
+                                : 'bg-muted/20 border border-transparent hover:bg-muted/40',
+                            )}
+                          >
+                            <ManagerAvatar appearance={{ ...appearance, faceShape: i }} size={32} />
+                            <span className="text-[8px] text-muted-foreground">{FACE_SHAPE_LABELS[i]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Eye Style */}
+                    <div>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Eye Style</p>
+                      <div className="flex gap-2 justify-center">
+                        {EYE_STYLES.map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setAppearance(prev => ({ ...prev, eyeStyle: i }))}
+                            aria-label={EYE_STYLE_LABELS[i]}
+                            className={cn(
+                              'flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-all duration-200',
+                              appearance.eyeStyle === i
+                                ? 'bg-primary/20 border border-primary/40'
+                                : 'bg-muted/20 border border-transparent hover:bg-muted/40',
+                            )}
+                          >
+                            <ManagerAvatar appearance={{ ...appearance, eyeStyle: i }} size={32} />
+                            <span className="text-[8px] text-muted-foreground">{EYE_STYLE_LABELS[i]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hair */}
+                  <SectionHeader title="Hair" section="hair" open={openSections.has('hair')} onToggle={toggleSection} />
+                  <div className={cn('overflow-hidden transition-all duration-300', openSections.has('hair') ? 'max-h-[500px] opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0')}>
+                    <div className="mb-4 mt-2">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Hair Style</p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {(appearance.gender === 'female' ? FEMALE_HAIR_STYLES : MALE_HAIR_STYLES).map((_, i) => {
+                          const labels = appearance.gender === 'female' ? FEMALE_HAIR_LABELS : MALE_HAIR_LABELS;
+                          return (
+                            <button
+                              key={i}
+                              onClick={() => setAppearance(prev => ({ ...prev, hairStyle: i }))}
+                              aria-label={labels[i]}
+                              className={cn(
+                                'flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all duration-200',
+                                appearance.hairStyle === i
+                                  ? 'bg-primary/20 border border-primary/40'
+                                  : 'bg-muted/20 border border-transparent hover:bg-muted/40',
+                              )}
+                            >
+                              <ManagerAvatar appearance={{ ...appearance, hairStyle: i }} size={36} />
+                              <span className="text-[8px] text-muted-foreground">{labels[i]}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    {/* Hair Color */}
+                    <div className={cn('overflow-hidden transition-all duration-300', appearance.hairStyle !== 0 ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0')}>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Hair Color</p>
+                      <div className="flex gap-2 justify-center flex-wrap">
+                        {HAIR_COLORS.map((color, i) => (
+                          <button
+                            key={color}
+                            onClick={() => setAppearance(prev => ({ ...prev, hairColor: i }))}
+                            aria-label={HAIR_COLOR_LABELS[i]}
+                            title={HAIR_COLOR_LABELS[i]}
+                            className={cn(
+                              'w-8 h-8 rounded-full transition-all duration-200',
+                              appearance.hairColor === i
+                                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110'
+                                : 'hover:scale-105',
+                            )}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Facial Hair (male only) */}
+                  {appearance.gender === 'male' && (
+                    <>
+                      <SectionHeader title="Facial Hair" section="facialHair" open={openSections.has('facialHair')} onToggle={toggleSection} />
+                      <div className={cn('overflow-hidden transition-all duration-300', openSections.has('facialHair') ? 'max-h-[300px] opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0')}>
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                          {FACIAL_HAIR_STYLES.map((_, i) => (
+                            <button
+                              key={i}
+                              onClick={() => setAppearance(prev => ({ ...prev, facialHair: i }))}
+                              aria-label={FACIAL_HAIR_LABELS[i]}
+                              className={cn(
+                                'flex flex-col items-center gap-1 p-1.5 rounded-lg transition-all duration-200',
+                                appearance.facialHair === i
+                                  ? 'bg-primary/20 border border-primary/40'
+                                  : 'bg-muted/20 border border-transparent hover:bg-muted/40',
+                              )}
+                            >
+                              <ManagerAvatar appearance={{ ...appearance, facialHair: i }} size={36} />
+                              <span className="text-[8px] text-muted-foreground">{FACIAL_HAIR_LABELS[i]}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Eyewear */}
+                  <SectionHeader title="Eyewear" section="eyewear" open={openSections.has('eyewear')} onToggle={toggleSection} />
+                  <div className={cn('overflow-hidden transition-all duration-300', openSections.has('eyewear') ? 'max-h-[200px] opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0')}>
+                    <div className="flex gap-2 justify-center mt-2">
+                      {GLASSES_STYLES.map((_, i) => (
                         <button
-                          key={color}
-                          onClick={() => setAppearance(prev => ({ ...prev, hairColor: i }))}
-                          aria-label={`Hair color ${i + 1}`}
+                          key={i}
+                          onClick={() => setAppearance(prev => ({ ...prev, glasses: i }))}
+                          aria-label={GLASSES_LABELS[i]}
                           className={cn(
-                            'w-8 h-8 rounded-full transition-all duration-200',
-                            appearance.hairColor === i
-                              ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110'
-                              : 'hover:scale-105',
+                            'flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg transition-all duration-200',
+                            appearance.glasses === i
+                              ? 'bg-primary/20 border border-primary/40'
+                              : 'bg-muted/20 border border-transparent hover:bg-muted/40',
                           )}
-                          style={{ backgroundColor: color }}
-                        />
+                        >
+                          <ManagerAvatar appearance={{ ...appearance, glasses: i }} size={36} />
+                          <span className="text-[8px] text-muted-foreground">{GLASSES_LABELS[i]}</span>
+                        </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Suit Color */}
-                  <div>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Suit Color</p>
-                    <div className="flex gap-3 justify-center">
-                      {SUIT_COLORS.map(({ color, label }) => (
+                  {/* Outfit */}
+                  <SectionHeader title="Outfit" section="outfit" open={openSections.has('outfit')} onToggle={toggleSection} />
+                  <div className={cn('overflow-hidden transition-all duration-300', openSections.has('outfit') ? 'max-h-[400px] opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0')}>
+                    {/* Outfit Type */}
+                    <div className="mb-4 mt-2">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Style</p>
+                      <div className="flex gap-2 justify-center">
+                        {OUTFIT_TYPES.map((_, i) => (
+                          <button
+                            key={i}
+                            onClick={() => setAppearance(prev => ({ ...prev, outfit: i }))}
+                            aria-label={OUTFIT_LABELS[i]}
+                            className={cn(
+                              'flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-all duration-200',
+                              appearance.outfit === i
+                                ? 'bg-primary/20 border border-primary/40'
+                                : 'bg-muted/20 border border-transparent hover:bg-muted/40',
+                            )}
+                          >
+                            <ManagerAvatar appearance={{ ...appearance, outfit: i }} size={42} />
+                            <span className="text-[8px] text-muted-foreground">{OUTFIT_LABELS[i]}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    {/* Outfit Color */}
+                    <div className="mb-4">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Color</p>
+                      <div className="flex gap-2 justify-center flex-wrap">
+                        {OUTFIT_COLORS.map(({ color, label }) => (
+                          <button
+                            key={color}
+                            onClick={() => setAppearance(prev => ({ ...prev, outfitColor: color }))}
+                            aria-label={label}
+                            title={label}
+                            className={cn(
+                              'w-8 h-8 rounded-full transition-all duration-200 border',
+                              appearance.outfitColor === color
+                                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 border-primary/40'
+                                : 'border-border/30 hover:scale-105',
+                            )}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    {/* Tie Color (suit only) */}
+                    <div className={cn('overflow-hidden transition-all duration-300', appearance.outfit === 0 ? 'max-h-24 opacity-100' : 'max-h-0 opacity-0')}>
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Tie Color</p>
+                      <div className="flex gap-2 justify-center">
+                        {TIE_COLORS.map(({ color, label }) => (
+                          <button
+                            key={color}
+                            onClick={() => setAppearance(prev => ({ ...prev, tieColor: color }))}
+                            aria-label={label}
+                            title={label}
+                            className={cn(
+                              'w-8 h-8 rounded-full transition-all duration-200 border',
+                              appearance.tieColor === color
+                                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 border-primary/40'
+                                : 'border-border/30 hover:scale-105',
+                            )}
+                            style={{ backgroundColor: color }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Accessories */}
+                  <SectionHeader title="Accessories" section="accessories" open={openSections.has('accessories')} onToggle={toggleSection} />
+                  <div className={cn('overflow-hidden transition-all duration-300', openSections.has('accessories') ? 'max-h-[200px] opacity-100 mb-2' : 'max-h-0 opacity-0 mb-0')}>
+                    <div className="flex gap-2 justify-center mt-2">
+                      {ACCESSORIES.map((_, i) => (
                         <button
-                          key={color}
-                          onClick={() => setAppearance(prev => ({ ...prev, suitColor: color }))}
-                          aria-label={label}
+                          key={i}
+                          onClick={() => setAppearance(prev => ({ ...prev, accessory: i }))}
+                          aria-label={ACCESSORY_LABELS[i]}
                           className={cn(
-                            'w-8 h-8 rounded-full transition-all duration-200 border',
-                            appearance.suitColor === color
-                              ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 border-primary/40'
-                              : 'border-border/30 hover:scale-105',
+                            'flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg transition-all duration-200',
+                            appearance.accessory === i
+                              ? 'bg-primary/20 border border-primary/40'
+                              : 'bg-muted/20 border border-transparent hover:bg-muted/40',
                           )}
-                          style={{ backgroundColor: color }}
-                          title={label}
-                        />
+                        >
+                          <ManagerAvatar appearance={{ ...appearance, accessory: i }} size={36} />
+                          <span className="text-[8px] text-muted-foreground">{ACCESSORY_LABELS[i]}</span>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -779,5 +1031,18 @@ const ManagerCreation = () => {
     </div>
   );
 };
+
+// Collapsible section header for appearance customization
+function SectionHeader({ title, section, open, onToggle }: { title: string; section: AppearanceSection; open: boolean; onToggle: (s: AppearanceSection) => void }) {
+  return (
+    <button
+      onClick={() => onToggle(section)}
+      className="w-full flex items-center justify-between py-2 border-t border-border/20"
+    >
+      <span className="text-xs font-semibold text-foreground">{title}</span>
+      <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
+    </button>
+  );
+}
 
 export default ManagerCreation;

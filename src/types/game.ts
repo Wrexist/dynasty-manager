@@ -1194,10 +1194,18 @@ export interface ManagerBonus {
 }
 
 export interface ManagerAppearance {
-  skinTone: number;    // index into SKIN_TONES (0-3)
-  hairStyle: number;   // index into HAIR_STYLES (0-5)
-  hairColor: number;   // index into HAIR_COLORS (0-5)
-  suitColor: string;   // hex color for the suit/blazer
+  gender: 'male' | 'female';
+  skinTone: number;       // index into SKIN_TONES (0-7)
+  faceShape: number;      // index into FACE_SHAPES (0-3)
+  eyeStyle: number;       // index into EYE_STYLES (0-3)
+  hairStyle: number;      // index into gender-specific hair arrays (0-7)
+  hairColor: number;      // index into HAIR_COLORS (0-7)
+  facialHair: number;     // index into FACIAL_HAIR_STYLES (0-5), male only
+  glasses: number;        // index into GLASSES_STYLES (0-3)
+  outfit: number;         // index into OUTFIT_TYPES (0-2)
+  outfitColor: string;    // hex color for outfit
+  tieColor: string;       // hex color, visible with suit only
+  accessory: number;      // index into ACCESSORIES (0-3)
 }
 
 export interface CareerManager {
