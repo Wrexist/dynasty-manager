@@ -264,6 +264,12 @@ export const MOMENTUM_SAVE_SWING = 8;
 export const MOMENTUM_CARD_SWING = 15;
 /** Momentum swing toward scoring team after a penalty goal */
 export const MOMENTUM_PENALTY_SWING = 20;
+/** Small momentum swing toward the team with the ball during commentary/possession events */
+export const MOMENTUM_COMMENTARY_SWING = 5;
+/** Small momentum swing toward the attacking team after a shot attempt (miss or woodwork) */
+export const MOMENTUM_SHOT_ATTEMPT_SWING = 4;
+/** Small momentum swing toward the fouled team after a foul (no card) */
+export const MOMENTUM_FOUL_SWING = 3;
 /** How much momentum decays back toward 0 each minute (natural regression) */
 export const MOMENTUM_DECAY_PER_MINUTE = 2;
 /** How much momentum affects the home/away strength ratio (0-1 scale, applied as %) */
