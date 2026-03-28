@@ -32,6 +32,7 @@ import { INITIAL_FAMILIARITY_SEED } from '@/config/chemistry';
 import { checkChallengeComplete, checkChallengeFailed, CHALLENGES } from '@/data/challenges';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
 import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
+import { buildTransferTalk } from '@/utils/transferTalk';
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
 import { getFarewellSummary } from '@/utils/playerNarratives';
 import { calculateWeeklyMerchRevenue, getDefaultMerchState } from '@/utils/merchandise';
@@ -2037,12 +2038,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         p.lowMoraleWeeks = (p.lowMoraleWeeks || 0) + 1;
         if (p.lowMoraleWeeks === UNHAPPY_WEEKS_TO_REQUEST && !p.wantsToLeave) {
           p.wantsToLeave = true;
-          p.listedForSale = true;
           newMessages = addMsg(newMessages, {
             week, season, type: 'transfer',
             title: `${p.lastName} Wants Out!`,
             body: `${p.firstName} ${p.lastName} has submitted a transfer request after weeks of low morale. The player wants to leave the club.`,
+            playerId: pid,
           });
+          // Queue transfer talk dialog (only one at a time — first one wins)
+          if (!get().pendingTransferTalk) {
+            set({ pendingTransferTalk: buildTransferTalk(p, 'low_morale') });
+          }
         }
         if (p.lowMoraleWeeks >= UNHAPPY_CONTAGION_WEEKS) {
           // Morale contagion: affect 2 random teammates
@@ -3104,15 +3109,21 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         let trMessages = [...(trState.messages)];
         const trPlayers = { ...trState.players };
         let changed = false;
+        let firstTalkPlayer: typeof trPlayers[string] | null = null;
         for (const pid of trClub.playerIds) {
           const p = trPlayers[pid];
-          if (p && !p.listedForSale && !p.onLoan && wantsTransfer(p, trClub.reputation)) {
-            trPlayers[pid] = { ...p, listedForSale: true };
-            trMessages = addMsg(trMessages, { week: newWeek, season, type: 'transfer', title: `${p.lastName} Wants to Leave`, body: `${p.firstName} ${p.lastName} feels he has outgrown the club and has requested a transfer.` });
+          if (p && !p.listedForSale && !p.wantsToLeave && !p.onLoan && wantsTransfer(p, trClub.reputation)) {
+            trPlayers[pid] = { ...p, wantsToLeave: true };
+            trMessages = addMsg(trMessages, { week: newWeek, season, type: 'transfer', title: `${p.lastName} Wants to Leave`, body: `${p.firstName} ${p.lastName} feels he has outgrown the club and has requested a transfer.`, playerId: pid });
+            if (!firstTalkPlayer && !trState.pendingTransferTalk) firstTalkPlayer = trPlayers[pid];
             changed = true;
           }
         }
-        if (changed) set({ players: trPlayers, messages: trMessages });
+        if (changed) {
+          const updates: Partial<GameState> = { players: trPlayers, messages: trMessages };
+          if (firstTalkPlayer) updates.pendingTransferTalk = buildTransferTalk(firstTalkPlayer, 'ambition');
+          set(updates);
+        }
       }
     }
 

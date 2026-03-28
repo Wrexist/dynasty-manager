@@ -387,6 +387,24 @@ export const APPEASE_BASE_CHANCE = 0.12;
 /** Morale boost when an unhappy player is appeased by being listed */
 export const APPEASE_MORALE_BOOST = 25;
 
+// ── Transfer Talk ──
+/** Base chance (0-1) that "convince to stay" succeeds */
+export const TRANSFER_TALK_CONVINCE_BASE_CHANCE = 0.35;
+/** Bonus to convince chance per point of player loyalty (scaled by 20) */
+export const TRANSFER_TALK_CONVINCE_LOYALTY_BONUS = 0.25;
+/** Morale penalty when manager refuses transfer request */
+export const TRANSFER_TALK_REFUSE_MORALE_PENALTY = 15;
+/** Team-wide morale hit when manager refuses a transfer request */
+export const TRANSFER_TALK_REFUSE_TEAM_MORALE_HIT = 3;
+/** Morale boost when empathizing with player's transfer request */
+export const TRANSFER_TALK_EMPATHIZE_MORALE_BOOST = 5;
+/** Morale boost when promising to find player a move */
+export const TRANSFER_TALK_PROMISE_MORALE_BOOST = 8;
+/** Morale boost when convince-to-stay succeeds */
+export const TRANSFER_TALK_CONVINCE_SUCCESS_MORALE = 15;
+/** Morale penalty when convince-to-stay fails */
+export const TRANSFER_TALK_CONVINCE_FAIL_MORALE = 5;
+
 // ── Free Agent Market ──
 /** Maximum free agents in the pool at any time */
 export const FREE_AGENT_POOL_MAX = 40;

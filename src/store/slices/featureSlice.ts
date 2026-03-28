@@ -1,10 +1,12 @@
-import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats } from '@/types/game';
+import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats, TransferTalk } from '@/types/game';
 import { MOD_MEDIA_PRESS, MOD_MOTIVATION_MORALE, GROWTH_MEDIA_PER_CONFERENCE, STAT_MAX } from '@/config/managerCareer';
+import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE } from '@/config/gameBalance';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
 import { CHALLENGES } from '@/data/challenges';
 import { createEmptyRecords } from '@/utils/records';
+import { buildTransferTalk } from '@/utils/transferTalk';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -18,6 +20,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   weeklyObjectives: [] as import('@/utils/weeklyObjectives').ObjectiveInstance[],
   pendingStoryline: null as StorylineEvent | null,
   pendingGemReveal: null as { playerId: string; region: string } | null,
+  pendingTransferTalk: null as TransferTalk | null,
   activeStorylineChains: [] as ActiveStorylineChain[],
   freeAgents: [] as string[],
   unlockedAchievements: [] as string[],
@@ -234,6 +237,91 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     } else {
       set({ activeNegotiation: null });
     }
+  },
+
+  // ── Transfer Talk Actions ──
+  openTransferTalk: (playerId: string) => {
+    const state = get();
+    const player = state.players[playerId];
+    if (!player || !player.wantsToLeave) return;
+    const reason = (player.lowMoraleWeeks && player.lowMoraleWeeks >= 4) ? 'low_morale' as const : 'ambition' as const;
+    set({ pendingTransferTalk: buildTransferTalk(player, reason) });
+  },
+
+  respondToTransferTalk: (optionIndex: number) => {
+    const state = get();
+    const talk = state.pendingTransferTalk;
+    if (!talk || !talk.options[optionIndex]) return;
+
+    const option = talk.options[optionIndex];
+    const player = state.players[talk.playerId];
+    if (!player) { set({ pendingTransferTalk: null }); return; }
+
+    const newPlayers = { ...state.players };
+    const club = state.clubs[state.playerClubId];
+    let msgTitle = '';
+    let msgBody = '';
+
+    if (option.tone === 'empathize') {
+      newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + (option.effects.morale || 0), 10, 100), listedForSale: true };
+      msgTitle = `${player.lastName}: Transfer Listed`;
+      msgBody = `You listened to ${player.firstName} ${player.lastName}'s concerns and agreed to list them for sale.`;
+    } else if (option.tone === 'convince') {
+      const succeeded = Math.random() < (option.effects.withdrawChance || 0);
+      if (succeeded) {
+        newPlayers[talk.playerId] = { ...player, wantsToLeave: false, morale: clamp(player.morale + TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, 10, 100), lowMoraleWeeks: 0 };
+        msgTitle = `${player.lastName} Convinced to Stay!`;
+        msgBody = `${player.firstName} ${player.lastName} has withdrawn the transfer request after your talk. The player is committed to the project.`;
+      } else {
+        newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale - TRANSFER_TALK_CONVINCE_FAIL_MORALE, 10, 100) };
+        msgTitle = `${player.lastName} Insists on Leaving`;
+        msgBody = `${player.firstName} ${player.lastName} was not convinced. The player still wants to leave the club.`;
+      }
+    } else if (option.tone === 'promise') {
+      newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + (option.effects.morale || 0), 10, 100), listedForSale: true };
+      msgTitle = `${player.lastName}: Move Promised`;
+      msgBody = `You promised ${player.firstName} ${player.lastName} you'd find them the right move. They have been listed for sale.`;
+    } else if (option.tone === 'refuse') {
+      newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + (option.effects.morale || 0), 10, 100) };
+      // Apply team morale hit
+      if (option.effects.teamMorale && club) {
+        club.playerIds.forEach(pid => {
+          if (pid === talk.playerId) return;
+          const p = newPlayers[pid];
+          if (p) newPlayers[pid] = { ...p, morale: clamp(p.morale + (option.effects.teamMorale || 0), 10, 100) };
+        });
+      }
+      msgTitle = `${player.lastName}: Request Denied`;
+      msgBody = `You refused ${player.firstName} ${player.lastName}'s transfer request. The player is unhappy and the squad has taken notice.`;
+    }
+
+    const newMessages = addMsg(state.messages, {
+      week: state.week, season: state.season, type: 'transfer',
+      title: msgTitle, body: msgBody, playerId: talk.playerId,
+    });
+
+    set({ pendingTransferTalk: null, players: newPlayers, messages: newMessages });
+  },
+
+  dismissTransferTalk: () => {
+    // Dismissing defaults to empathize — list for sale with small morale boost
+    const state = get();
+    const talk = state.pendingTransferTalk;
+    if (!talk) { set({ pendingTransferTalk: null }); return; }
+    const player = state.players[talk.playerId];
+    if (!player) { set({ pendingTransferTalk: null }); return; }
+
+    const newPlayers = { ...state.players };
+    newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, 10, 100), listedForSale: true };
+
+    const newMessages = addMsg(state.messages, {
+      week: state.week, season: state.season, type: 'transfer',
+      title: `${player.lastName}: Transfer Listed`,
+      body: `${player.firstName} ${player.lastName} has been listed for sale after requesting a transfer.`,
+      playerId: talk.playerId,
+    });
+
+    set({ pendingTransferTalk: null, players: newPlayers, messages: newMessages });
   },
 
   // ── Challenge Mode Actions ──
