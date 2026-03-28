@@ -50,6 +50,7 @@ import {
   MORALE_PERFORMANCE_WEIGHT, MORALE_BASELINE,
   DISCIPLINARIAN_CARD_REDUCTION,
   MOMENTUM_GOAL_SWING, MOMENTUM_SAVE_SWING, MOMENTUM_CARD_SWING, MOMENTUM_PENALTY_SWING,
+  MOMENTUM_COMMENTARY_SWING, MOMENTUM_SHOT_ATTEMPT_SWING, MOMENTUM_FOUL_SWING,
   MOMENTUM_DECAY_PER_MINUTE, MOMENTUM_STRENGTH_SCALE,
   SUB_FRESHNESS_BONUS,
   SET_PIECE_TAKER_CORNER_BONUS, PENALTY_TAKER_BONUS,
@@ -589,7 +590,11 @@ export function simulateHalf(
       if (min - lastEventMinute >= COMMENTARY_GAP_MAX) {
         const isHome = Math.random() < 0.5;
         const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum);
-        events.push({ minute: min, type: 'commentary', clubId: isHome ? homeClub.id : awayClub.id, description: desc });
+        // Possession shifts toward the team with the ball
+        momentum = isHome
+          ? Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING)
+          : Math.max(-100, momentum - MOMENTUM_COMMENTARY_SWING);
+        events.push({ minute: min, type: 'commentary', clubId: isHome ? homeClub.id : awayClub.id, description: desc, momentum });
         lastEventMinute = min;
       }
       continue;
@@ -696,6 +701,7 @@ export function simulateHalf(
           minute: min, type: 'goal', playerId: scorer.id,
           assistPlayerId: assist?.id, clubId: club.id,
           description: goalDesc(scorerName, clubName) + (assist ? ` (assist: ${assist.lastName})` : ''),
+          momentum,
         });
       } else if (Math.random() < oppGKSave) {
         // Shot on target but saved — GK quality determines save rate
@@ -711,10 +717,10 @@ export function simulateHalf(
         if (Math.random() < GOAL_LINE_CLEARANCE_CHANCE && eligibleDefenders.length > 0) {
           const defender = eligibleDefenders[Math.floor(Math.random() * eligibleDefenders.length)];
           const clearDesc = pick(goalLineClearanceDescs);
-          events.push({ minute: min, type: 'goal_line_clearance', playerId: scorer.id, clubId: club.id, description: clearDesc(scorer.lastName, defender.lastName) });
+          events.push({ minute: min, type: 'goal_line_clearance', playerId: scorer.id, clubId: club.id, description: clearDesc(scorer.lastName, defender.lastName), momentum });
         } else {
           const saveDesc = pick(saveDescs);
-          events.push({ minute: min, type: 'shot_saved', playerId: scorer.id, clubId: club.id, description: gk ? saveDesc(scorer.lastName, gk.lastName) : `${scorer.lastName}'s shot is saved.` });
+          events.push({ minute: min, type: 'shot_saved', playerId: scorer.id, clubId: club.id, description: gk ? saveDesc(scorer.lastName, gk.lastName) : `${scorer.lastName}'s shot is saved.`, momentum });
         }
         // Corner chance from saved shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_SAVE_CHANCE + widthCornerBonus) {
@@ -736,8 +742,11 @@ export function simulateHalf(
                 const cornerAssist = pickAssist(squad, header.id);
                 if (cornerAssist && playerEvents[cornerAssist.id]) playerEvents[cornerAssist.id].assists++;
                 oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
+                momentum = isHome
+                  ? Math.min(100, momentum + MOMENTUM_GOAL_SWING)
+                  : Math.max(-100, momentum - MOMENTUM_GOAL_SWING);
                 const cDesc = pick(cornerGoalDescs);
-                events.push({ minute: min, type: 'goal', playerId: header.id, assistPlayerId: cornerAssist?.id, clubId: club.id, description: cDesc(`${header.firstName} ${header.lastName}`, club.shortName) + (cornerAssist ? ` (assist: ${cornerAssist.lastName})` : '') });
+                events.push({ minute: min, type: 'goal', playerId: header.id, assistPlayerId: cornerAssist?.id, clubId: club.id, description: cDesc(`${header.firstName} ${header.lastName}`, club.shortName) + (cornerAssist ? ` (assist: ${cornerAssist.lastName})` : ''), momentum });
               }
             }
           }
@@ -745,10 +754,14 @@ export function simulateHalf(
       } else {
         // Shot missed — chance of dramatic woodwork hit
         if (isHome) homeShots++; else awayShots++;
+        // Momentum shifts toward attacking team — they're pressuring
+        momentum = isHome
+          ? Math.min(100, momentum + MOMENTUM_SHOT_ATTEMPT_SWING)
+          : Math.max(-100, momentum - MOMENTUM_SHOT_ATTEMPT_SWING);
         if (Math.random() < WOODWORK_CHANCE) {
-          events.push({ minute: min, type: 'hit_woodwork', playerId: scorer.id, clubId: club.id, description: pick(woodworkDescs)(scorer.lastName) });
+          events.push({ minute: min, type: 'hit_woodwork', playerId: scorer.id, clubId: club.id, description: pick(woodworkDescs)(scorer.lastName), momentum });
         } else {
-          events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: pick(missDescs)(scorer.lastName) });
+          events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: pick(missDescs)(scorer.lastName), momentum });
         }
         // Corner chance from missed shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_MISS_CHANCE + widthCornerBonus) {
@@ -775,7 +788,7 @@ export function simulateHalf(
             pe.redCard = true;
             sentOff.add(fouler.id);
             unavailable.add(fouler.id);
-            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `Second yellow! ${fouler.lastName} is sent off!` });
+            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `Second yellow! ${fouler.lastName} is sent off!`, momentum });
             // Rebalance strength after red card
             const recomputed = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = recomputed.homeStr; awayStr = recomputed.awayStr;
@@ -794,7 +807,7 @@ export function simulateHalf(
             momentum = isHome
               ? Math.max(-100, momentum - MOMENTUM_CARD_SWING)
               : Math.min(100, momentum + MOMENTUM_CARD_SWING);
-            events.push({ minute: min, type: 'yellow_card', playerId: fouler.id, clubId: club.id, description: pick(yellowDescs)(fouler.lastName) });
+            events.push({ minute: min, type: 'yellow_card', playerId: fouler.id, clubId: club.id, description: pick(yellowDescs)(fouler.lastName), momentum });
           }
         }
       } else if (Math.random() < STRAIGHT_RED_CHANCE) {
@@ -803,7 +816,7 @@ export function simulateHalf(
           pe.redCard = true;
           sentOff.add(fouler.id);
           unavailable.add(fouler.id);
-          events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `RED CARD! Straight red for ${fouler.lastName}! Dangerous play!` });
+          events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `RED CARD! Straight red for ${fouler.lastName}! Dangerous play!`, momentum });
             // Rebalance strength after red card
             const recomputed2 = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = recomputed2.homeStr; awayStr = recomputed2.awayStr;
@@ -819,7 +832,11 @@ export function simulateHalf(
             }
         }
       } else {
-        events.push({ minute: min, type: 'foul', playerId: fouler.id, clubId: club.id, description: pick(foulDescs)(fouler.lastName) });
+        // Momentum shifts toward the fouled team
+        momentum = isHome
+          ? Math.max(-100, momentum - MOMENTUM_FOUL_SWING)
+          : Math.min(100, momentum + MOMENTUM_FOUL_SWING);
+        events.push({ minute: min, type: 'foul', playerId: fouler.id, clubId: club.id, description: pick(foulDescs)(fouler.lastName), momentum });
       }
 
       // Foul can cause injury to fouled player (3% chance)
@@ -857,10 +874,10 @@ export function simulateHalf(
             momentum = isHome
               ? Math.min(100, momentum + MOMENTUM_PENALTY_SWING)
               : Math.max(-100, momentum - MOMENTUM_PENALTY_SWING);
-            events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyGoalDescs)(penaltyTaker.lastName, club.shortName) });
+            events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyGoalDescs)(penaltyTaker.lastName, club.shortName), momentum });
           } else {
             if (isHome) homeShots++; else awayShots++;
-            events.push({ minute: min, type: 'penalty_missed', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyMissDescs)(penaltyTaker.lastName) });
+            events.push({ minute: min, type: 'penalty_missed', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyMissDescs)(penaltyTaker.lastName), momentum });
           }
         }
       }
@@ -873,7 +890,10 @@ export function simulateHalf(
         const oppClubRef = isHome ? awayClub : homeClub;
         if (isHome) homeGoals++; else awayGoals++;
         oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
-        events.push({ minute: min, type: 'own_goal', playerId: ownGoalPlayer.id, clubId: club.id, description: pick(ownGoalDescs)(ownGoalPlayer.lastName, oppClubRef.shortName) });
+        momentum = isHome
+          ? Math.min(100, momentum + MOMENTUM_GOAL_SWING)
+          : Math.max(-100, momentum - MOMENTUM_GOAL_SWING);
+        events.push({ minute: min, type: 'own_goal', playerId: ownGoalPlayer.id, clubId: club.id, description: pick(ownGoalDescs)(ownGoalPlayer.lastName, oppClubRef.shortName), momentum });
       }
     }
     // === INJURY (non-foul) ===
@@ -901,7 +921,11 @@ export function simulateHalf(
     // === COMMENTARY FALLBACK (event roll passed but no shot/foul/injury triggered) ===
     else if (Math.random() < COMMENTARY_CHANCE) {
       const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum);
-      events.push({ minute: min, type: 'commentary', clubId: club.id, description: desc });
+      // Possession shifts toward the team with the ball
+      momentum = isHome
+        ? Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING)
+        : Math.max(-100, momentum - MOMENTUM_COMMENTARY_SWING);
+      events.push({ minute: min, type: 'commentary', clubId: club.id, description: desc, momentum });
     }
     // Update last event tracker
     if (events.length > 0 && events[events.length - 1].minute === min) {
@@ -915,18 +939,13 @@ export function simulateHalf(
   }
 
   // Stamp momentum snapshot on each event for UI visualization
+  // Events that already have momentum set inline use their real value;
+  // others inherit the last known momentum state
   let runningMomentum = prevState?.momentum ?? 0;
   for (const ev of events) {
-    if (ev.type === 'kickoff') { runningMomentum = 0; }
-    ev.momentum = runningMomentum;
-    // Approximate momentum shifts for replay (simplified)
-    if (ev.type === 'goal' || ev.type === 'penalty_scored') {
-      const swing = ev.clubId === homeClub.id ? MOMENTUM_GOAL_SWING : -MOMENTUM_GOAL_SWING;
-      runningMomentum = Math.max(-100, Math.min(100, runningMomentum + swing));
-    } else if (ev.type === 'shot_saved') {
-      const swing = ev.clubId === homeClub.id ? -MOMENTUM_SAVE_SWING : MOMENTUM_SAVE_SWING;
-      runningMomentum = Math.max(-100, Math.min(100, runningMomentum + swing));
-    }
+    if (ev.type === 'kickoff') { runningMomentum = 0; ev.momentum = 0; }
+    else if (ev.momentum !== undefined) { runningMomentum = ev.momentum; }
+    else { ev.momentum = runningMomentum; }
   }
 
   return {

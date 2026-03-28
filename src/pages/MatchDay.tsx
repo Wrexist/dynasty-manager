@@ -493,10 +493,10 @@ const MatchDay = () => {
       </GlassPanel>
 
       {/* Momentum Bar */}
-      {isLive && currentMin > 5 && (
+      {isLive && (
         <div className="px-1">
           <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
-            <span>Momentum</span>
+            <span>Possession</span>
             <span>{homeMomPct}% - {100 - homeMomPct}%</span>
           </div>
           <div className="flex h-1.5 rounded-full overflow-hidden gap-0.5">
