@@ -117,6 +117,9 @@ const Dashboard = () => {
       setCurrentAchievement(achievements[0]);
       hapticHeavy();
     }
+    // Clear pending from store immediately so remounting the Dashboard
+    // (e.g. navigating away and back) won't re-trigger the same popup
+    store.clearPendingAchievements();
   }, [store.pendingAchievementIds]);
 
   const dismissAchievement = () => {
@@ -126,7 +129,6 @@ const Dashboard = () => {
       setCurrentAchievement(remaining[0]);
     } else {
       setCurrentAchievement(null);
-      store.clearPendingAchievements();
     }
   };
 
