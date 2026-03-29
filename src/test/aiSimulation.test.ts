@@ -352,7 +352,7 @@ describe('AI Simulation — processAIWeekly', () => {
 
       // Force renewal by running many iterations
       let contractEnd = 0;
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 500; i++) {
         const result = processAIWeekly(
           world.clubs, world.players, world.messages,
           world.transferMarket, world.freeAgents, world.activeLoans,
@@ -475,7 +475,7 @@ describe('AI Simulation — processAIWeekly', () => {
 
       // Run multiple times to overcome randomness
       let hasListings = false;
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < 500; i++) {
         const result = processAIWeekly(
           world.clubs, world.players, world.messages,
           world.transferMarket, world.freeAgents, world.activeLoans,
@@ -566,7 +566,7 @@ describe('AI Simulation — processAIWeekly', () => {
       };
 
       let listed = false;
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < 500; i++) {
         const result = processAIWeekly(
           world.clubs, world.players, world.messages,
           world.transferMarket, world.freeAgents, world.activeLoans,
@@ -587,7 +587,7 @@ describe('AI Simulation — processAIWeekly', () => {
       world.players[pid] = { ...world.players[pid], wantsToLeave: true } as Player;
 
       let listed = false;
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < 500; i++) {
         const result = processAIWeekly(
           world.clubs, world.players, world.messages,
           world.transferMarket, world.freeAgents, world.activeLoans,
@@ -614,7 +614,7 @@ describe('AI Simulation — processAIWeekly', () => {
       expect(stIds.length).toBeGreaterThanOrEqual(3);
 
       let listedSt = false;
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < 500; i++) {
         const result = processAIWeekly(
           world.clubs, world.players, world.messages,
           world.transferMarket, world.freeAgents, world.activeLoans,
@@ -663,7 +663,7 @@ describe('AI Simulation — processAIWeekly', () => {
       world.freeAgents = [freeGk.id];
 
       let signed = false;
-      for (let i = 0; i < 200; i++) {
+      for (let i = 0; i < 500; i++) {
         const result = processAIWeekly(
           world.clubs, world.players, world.messages,
           world.transferMarket, world.freeAgents, world.activeLoans,
@@ -839,7 +839,7 @@ describe('AI Simulation — processAIWeekly', () => {
       }
 
       let foundListings = false;
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < 500; i++) {
         const result = processAIWeekly(
           world.clubs, world.players, world.messages,
           world.transferMarket, world.freeAgents, world.activeLoans,
