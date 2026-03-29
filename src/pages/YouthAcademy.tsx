@@ -19,6 +19,7 @@ const SQUAD_SUB_NAV = [
 const YouthAcademy = () => {
   const { youthAcademy, players, clubs, playerClubId, promoteYouth, releaseYouth } = useGameStore();
   const [confirmReleaseId, setConfirmReleaseId] = useState<string | null>(null);
+  const [youthPreviewEnhanced, setYouthPreviewEnhanced] = useState(false);
   const club = clubs[playerClubId];
 
   return (
@@ -128,7 +129,7 @@ const YouthAcademy = () => {
         )}
 
         {/* Ad Reward: Youth Preview */}
-        <AdRewardButton rewardType="youth_preview" onRewardClaimed={() => { /* Enhanced youth preview */ }} />
+        <AdRewardButton rewardType="youth_preview" onRewardClaimed={() => setYouthPreviewEnhanced(true)} />
 
         {/* Next Intake */}
         {youthAcademy.nextIntakePreview.length > 0 && (
@@ -141,7 +142,7 @@ const YouthAcademy = () => {
                   <div className="flex items-center gap-1">
                     <Star className={cn('w-3 h-3', getPotentialInfo(preview.estimatedPotential).fillClass)} />
                     <span className="text-xs text-muted-foreground">
-                      {getPotentialInfo(preview.estimatedPotential).label} potential
+                      {youthPreviewEnhanced ? `${preview.estimatedPotential} — ` : ''}{getPotentialInfo(preview.estimatedPotential).label} potential
                     </span>
                   </div>
                 </div>
