@@ -55,8 +55,8 @@ describe('contracts', () => {
     });
 
     it('should penalize willingness when contract is expiring', () => {
-      const expiring = makePlayer({ contractEnd: 3 });
-      const safe = makePlayer({ contractEnd: 6 });
+      const expiring = makePlayer({ contractEnd: 3, age: 27, overall: 75 });
+      const safe = makePlayer({ contractEnd: 6, age: 27, overall: 75 });
       const expiringW = getPlayerWillingness(expiring, 3, true, 2);
       const safeW = getPlayerWillingness(safe, 3, true, 2);
       expect(expiringW).toBeLessThan(safeW);
