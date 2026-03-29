@@ -5,6 +5,7 @@
  * Enhanced with subtle gradients, shading, and depth effects.
  */
 
+import { useId } from 'react';
 import type { ManagerAppearance } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
@@ -48,6 +49,7 @@ function lighten(hex: string, amount: number): string {
 }
 
 export function ManagerAvatar({ appearance, size = 120, className }: ManagerAvatarProps) {
+  const reactUid = useId().replace(/:/g, '');
   const gender = appearance.gender || 'male';
   const skinTone = SKIN_TONES[ci(appearance.skinTone, SKIN_TONES)];
   const hairColor = HAIR_COLORS[ci(appearance.hairColor, HAIR_COLORS)];
@@ -71,7 +73,7 @@ export function ManagerAvatar({ appearance, size = 120, className }: ManagerAvat
   const outfitDark = darken(outfitColor, 0.15);
 
   // Unique gradient IDs to avoid SVG conflicts when multiple avatars render
-  const uid = `ma-${appearance.skinTone}${appearance.hairStyle}${appearance.outfit}`;
+  const uid = `ma-${reactUid}-${appearance.skinTone}${appearance.hairStyle}${appearance.outfit}${appearance.faceShape}${appearance.eyeStyle}`;
 
   // All coordinates in a 100x100 viewBox
   const cx = 50;
@@ -104,7 +106,14 @@ export function ManagerAvatar({ appearance, size = 120, className }: ManagerAvat
           <stop offset="0%" stopColor={outfitLight} />
           <stop offset="100%" stopColor={outfitDark} />
         </linearGradient>
+        <radialGradient id={`${uid}-backdrop`} cx="50%" cy="35%" r="70%">
+          <stop offset="0%" stopColor={lighten(outfitColor, 0.35)} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={darken(outfitColor, 0.35)} stopOpacity="0.08" />
+        </radialGradient>
       </defs>
+
+      {/* Portrait backdrop */}
+      <circle cx={cx} cy={46} r={38} fill={`url(#${uid}-backdrop)`} />
 
       {/* ── Ground Shadow ── */}
       <ellipse cx={cx} cy={94} rx={16} ry={3} fill="rgba(0,0,0,0.12)" />
@@ -167,7 +176,16 @@ export function ManagerAvatar({ appearance, size = 120, className }: ManagerAvat
       />
 
       {/* ── Facial Hair (male only) ── */}
-      {facialHair !== 'none' && <FacialHair cx={cx} headY={headY} headR={headR} style={facialHair} color={hairColor} />}
+      {facialHair !== 'none' && (
+        <FacialHair
+          cx={cx}
+          headY={headY}
+          headR={headR}
+          style={facialHair}
+          color={hairColor}
+          seed={`${appearance.hairStyle}-${appearance.facialHair}-${appearance.skinTone}-${appearance.faceShape}`}
+        />
+      )}
 
       {/* ── Glasses ── */}
       {glasses !== 'none' && <Glasses cx={cx} cy={headY} style={glasses} />}
@@ -276,17 +294,18 @@ function Eyes({ cx, cy, eyeStyle }: { cx: number; cy: number; eyeStyle: string }
 }
 
 // ── Facial Hair ──
-function FacialHair({ cx, headY, headR, style, color }: { cx: number; headY: number; headR: number; style: string; color: string }) {
+function FacialHair({ cx, headY, headR, style, color, seed }: { cx: number; headY: number; headR: number; style: string; color: string; seed: string }) {
   const jawY = headY + headR * 0.5;
   const chinY = headY + headR * 0.85;
+  const dots = getDeterministicDots(seed, 20);
 
   switch (style) {
     case 'stubble':
       return (
         <g opacity={0.35}>
-          {Array.from({ length: 20 }).map((_, i) => {
-            const angle = (i / 20) * Math.PI;
-            const r = headR * (0.55 + Math.random() * 0.3);
+          {dots.map((dot, i) => {
+            const angle = (i / dots.length) * Math.PI;
+            const r = headR * (0.55 + dot * 0.3);
             const dx = cx + Math.cos(angle - Math.PI / 2) * r * 0.7;
             const dy = jawY + Math.sin(angle) * r * 0.5;
             return <circle key={i} cx={dx} cy={dy} r={0.3} fill={color} />;
@@ -334,6 +353,21 @@ function FacialHair({ cx, headY, headR, style, color }: { cx: number; headY: num
     default:
       return null;
   }
+}
+
+function getDeterministicDots(seed: string, count: number): number[] {
+  let state = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    state ^= seed.charCodeAt(i);
+    state = Math.imul(state, 16777619);
+  }
+
+  const values: number[] = [];
+  for (let i = 0; i < count; i++) {
+    state = Math.imul(state ^ (state >>> 15), 2246822519);
+    values.push(((state >>> 0) % 1000) / 1000);
+  }
+  return values;
 }
 
 // ── Glasses ──
