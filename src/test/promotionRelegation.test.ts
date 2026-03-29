@@ -162,7 +162,7 @@ describe('Season Turnover', () => {
     });
 
     it('handles unknown league gracefully', () => {
-      const { turnover, updatedClubs, updatedLeagueClubs } = applySeasonTurnover(
+      const { turnover, updatedLeagueClubs } = applySeasonTurnover(
         'nonexistent', ['a', 'b'], [], {}
       );
       expect(turnover.replacedClubs).toHaveLength(0);
