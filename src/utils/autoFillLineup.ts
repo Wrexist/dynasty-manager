@@ -56,8 +56,11 @@ import {
   BENCH_CONGESTED_FITNESS_THRESHOLD,
   BENCH_CUP_ATTACKER_BONUS,
   BENCH_AWAY_DEFENDER_BONUS,
+  LINEUP_SLOT_CHEMISTRY_WEIGHT,
+  LINEUP_BENCH_SWAP_PASSES,
 } from '@/config/lineupOptimization';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
+import { ADJACENT_PAIRS, MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE, MENTOR_QUALITY_OVERALL_BASE, MENTOR_QUALITY_DIVISOR, MENTOR_MAX_STRENGTH, PARTNERSHIP_FORM_THRESHOLD, PARTNERSHIP_STRENGTH_DIVISOR, PARTNERSHIP_MAX_STRENGTH } from '@/config/chemistry';
 
 export interface AutoFillResult {
   lineup: Player[];
@@ -81,6 +84,55 @@ export interface AutoFillContext {
 // Position role sets (mirrors match engine categories)
 const ATTACKING_POSITIONS: Position[] = ['ST', 'LW', 'RW', 'CAM'];
 const DEFENSIVE_POSITIONS: Position[] = ['CB', 'CDM', 'LB', 'RB'];
+
+/** Check whether two positions are adjacent per ADJACENT_PAIRS config. */
+function areAdjacent(posA: string, posB: string): boolean {
+  return ADJACENT_PAIRS.some(([p1, p2]) =>
+    (posA === p1 && posB === p2) || (posA === p2 && posB === p1)
+  );
+}
+
+/**
+ * Estimate chemistry link strength a player would form with already-assigned neighbors.
+ * Used during greedy assignment to bias toward players that create chemistry links.
+ */
+function estimateSlotChemistry(
+  player: Player,
+  slotIndex: number,
+  currentLineup: (Player | null)[],
+  slots: { pos: string }[],
+): number {
+  const slotPos = slots[slotIndex].pos;
+  let linkScore = 0;
+
+  for (let j = 0; j < slots.length; j++) {
+    if (j === slotIndex) continue;
+    const neighbor = currentLineup[j];
+    if (!neighbor) continue;
+
+    const neighborPos = slots[j].pos;
+    if (!areAdjacent(slotPos, neighborPos)) continue;
+
+    // Nationality link
+    if (player.nationality === neighbor.nationality) {
+      linkScore += (player.clubId === neighbor.clubId) ? 2 : 1;
+    }
+
+    // Mentor link: experienced (28+) with young talent (<=22)
+    const senior = player.age >= MENTOR_SENIOR_AGE && neighbor.age <= MENTOR_JUNIOR_AGE ? player
+      : neighbor.age >= MENTOR_SENIOR_AGE && player.age <= MENTOR_JUNIOR_AGE ? neighbor : null;
+    if (senior) {
+      linkScore += Math.min(MENTOR_MAX_STRENGTH, Math.floor((senior.overall - MENTOR_QUALITY_OVERALL_BASE) / MENTOR_QUALITY_DIVISOR) + 1);
+    }
+
+    // Partnership link (high combined form)
+    if ((player.form + neighbor.form) > PARTNERSHIP_FORM_THRESHOLD) {
+      linkScore += Math.min(PARTNERSHIP_MAX_STRENGTH, Math.floor((player.form + neighbor.form - PARTNERSHIP_FORM_THRESHOLD) / PARTNERSHIP_STRENGTH_DIVISOR) + 1);
+    }
+  }
+
+  return linkScore;
+}
 
 /**
  * Calculate a player's effective overall for a specific target position
@@ -360,7 +412,9 @@ export function autoFillBestTeam(
 
     for (const p of available) {
       if (used.has(p.id)) continue;
-      const s = slotScores.get(p.id) || 0;
+      let s = slotScores.get(p.id) || 0;
+      // Add chemistry affinity bonus based on already-assigned neighbors
+      s += estimateSlotChemistry(p, idx, lineup, slots) * LINEUP_SLOT_CHEMISTRY_WEIGHT;
       if (s > bestScore) {
         bestScore = s;
         bestPlayer = p;
@@ -381,7 +435,7 @@ export function autoFillBestTeam(
       if (p) total += scores[i].get(p.id) || 0;
     }
     const lp = currentLineup.filter(Boolean) as Player[];
-    total += getChemistryBonus(lp, undefined, currentSeason) * CHEMISTRY_SCORE_SCALE;
+    total += getChemistryBonus(lp, formation, currentSeason) * CHEMISTRY_SCORE_SCALE;
     return total;
   };
 
@@ -412,14 +466,17 @@ export function autoFillBestTeam(
     if (!improved) break;
   }
 
-  // ── Phase 4: Chemistry-aware bench-to-starter refinement ──
-  const bench = available.filter(p => !used.has(p.id));
+  // ── Phase 4: Chemistry-aware bench-to-starter refinement (best-first, multi-pass) ──
+  for (let pass = 0; pass < LINEUP_BENCH_SWAP_PASSES; pass++) {
+    const currentBench = available.filter(p => !used.has(p.id));
+    if (currentBench.length === 0) break;
 
-  if (bench.length > 0) {
-    for (const benchPlayer of bench) {
-      let bestSwapIdx = -1;
-      let bestNewScore = currentTeamScore;
+    let bestSwapGain = 0;
+    let bestBenchPlayer: Player | null = null;
+    let bestSlotIdx = -1;
 
+    // Find the globally best bench→starter swap across ALL bench players
+    for (const benchPlayer of currentBench) {
       for (let i = 0; i < lineup.length; i++) {
         const starter = lineup[i];
         if (!starter) continue;
@@ -428,19 +485,23 @@ export function autoFillBestTeam(
         const newScore = getTeamScore(lineup);
         lineup[i] = starter;
 
-        if (newScore > bestNewScore) {
-          bestNewScore = newScore;
-          bestSwapIdx = i;
+        const gain = newScore - currentTeamScore;
+        if (gain > bestSwapGain) {
+          bestSwapGain = gain;
+          bestBenchPlayer = benchPlayer;
+          bestSlotIdx = i;
         }
       }
+    }
 
-      if (bestSwapIdx >= 0) {
-        const displaced = lineup[bestSwapIdx]!;
-        lineup[bestSwapIdx] = benchPlayer;
-        used.add(benchPlayer.id);
-        used.delete(displaced.id);
-        currentTeamScore = bestNewScore;
-      }
+    if (bestBenchPlayer && bestSlotIdx >= 0) {
+      const displaced = lineup[bestSlotIdx]!;
+      lineup[bestSlotIdx] = bestBenchPlayer;
+      used.add(bestBenchPlayer.id);
+      used.delete(displaced.id);
+      currentTeamScore += bestSwapGain;
+    } else {
+      break; // No improvement possible
     }
   }
 
