@@ -104,10 +104,10 @@ const ScoutingPage = () => {
         <AdRewardButton rewardType="scout_potential" onRewardClaimed={() => { /* Potential revealed via UI hint */ }} />
 
         {/* Scout Reports */}
-        {scouting.reports.length === 0 && (
+        {scouting.reports.length === 0 && scouting.assignments.length > 0 && (
           <GlassPanel className="p-8 text-center">
             <p className="text-sm text-muted-foreground">No scout reports yet</p>
-            <p className="text-[10px] text-muted-foreground/60 mt-1">Assign scouts to regions above to discover new talent</p>
+            <p className="text-[10px] text-muted-foreground/60 mt-1">Your scouts are working — reports will arrive soon</p>
           </GlassPanel>
         )}
         {scouting.reports.length > 0 && (
@@ -233,7 +233,7 @@ const ScoutingPage = () => {
           <GlassPanel className="p-6 text-center">
             <Search className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
             <p className="text-sm text-muted-foreground">No scouting activity</p>
-            <p className="text-xs text-muted-foreground mt-1">Send scouts to discover new talent for your squad</p>
+            <p className="text-xs text-muted-foreground mt-1">Choose a region above to send your scouts and discover talent for your squad</p>
           </GlassPanel>
         )}
         </>)}

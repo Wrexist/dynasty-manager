@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
+import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { Position } from '@/types/game';
-import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell } from 'lucide-react';
+import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, getFitnessColor, getMoraleBgColor } from '@/utils/uiHelpers';
 import { successToast } from '@/utils/gameToast';
@@ -26,11 +27,12 @@ type StatusFilter = 'injured' | 'listed' | 'expiring' | 'onLoan' | 'youth' | 'st
 const SORT_OPTIONS: SortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
 
 const SquadPage = () => {
-  const { playerClubId, clubs, players, selectPlayer, listPlayerForSale, season, training } = useGameStore();
+  const { playerClubId, clubs, players, selectPlayer, listPlayerForSale, setScreen, season, training } = useGameStore();
   const [posFilter, setPosFilter] = useState(0);
   const [sortBy, setSortBy] = useState<SortKey>('overall');
   const [sortAsc, setSortAsc] = useState(false);
   const [statusFilters, setStatusFilters] = useState<Set<StatusFilter>>(new Set());
+  const [confirmListId, setConfirmListId] = useState<string | null>(null);
 
   const club = clubs[playerClubId];
 
@@ -124,15 +126,21 @@ const SquadPage = () => {
 
   const handleListForSale = (e: React.MouseEvent, playerId: string) => {
     e.stopPropagation();
-    const player = players[playerId];
+    setConfirmListId(playerId);
+  };
+
+  const confirmList = () => {
+    if (!confirmListId) return;
+    const player = players[confirmListId];
     if (!player) return;
-    const result = listPlayerForSale(playerId);
+    const result = listPlayerForSale(confirmListId);
     hapticMedium();
     if (result.appeased) {
       successToast(`${player.lastName} appreciates your honesty!`, 'Transfer request withdrawn — morale improved.');
     } else {
-      successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M`);
+      successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M. Offers will appear in your Inbox.`);
     }
+    setConfirmListId(null);
   };
 
   const posGroupLabel = (pos: Position): string => {
@@ -259,9 +267,23 @@ const SquadPage = () => {
         {/* Player List */}
         <GlassPanel className="divide-y divide-border/30">
           {squad.length === 0 && (
-            <div className="p-8 text-center">
-              <p className="text-sm text-muted-foreground">No players in your squad</p>
-              <p className="text-[10px] text-muted-foreground/60 mt-1">Sign players from the transfer market</p>
+            <div className="p-8 text-center space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {statusFilters.size > 0 ? 'No players match your filters' : 'No players in your squad'}
+              </p>
+              <p className="text-[10px] text-muted-foreground/60">
+                {statusFilters.size > 0 ? 'Try clearing your filters above' : 'Sign players from the transfer market or check free agents'}
+              </p>
+              {statusFilters.size === 0 && (
+                <div className="flex gap-2 justify-center pt-1">
+                  <button onClick={() => setScreen('transfer')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/20 text-primary hover:bg-primary/30 transition-colors">
+                    <ShoppingCart className="w-3 h-3" /> Transfer Market
+                  </button>
+                  <button onClick={() => setScreen('scouting')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/50 text-muted-foreground hover:bg-muted transition-colors">
+                    <UserSearch className="w-3 h-3" /> Scout Players
+                  </button>
+                </div>
+              )}
             </div>
           )}
           {squad.map((player, i) => {
@@ -371,6 +393,21 @@ const SquadPage = () => {
 
         </GlassPanel>
       </div>
+
+      {/* Confirm List for Sale Dialog */}
+      <ConfirmDialog
+        open={!!confirmListId}
+        onOpenChange={(open) => { if (!open) setConfirmListId(null); }}
+        title="List Player for Sale?"
+        description={
+          confirmListId && players[confirmListId]
+            ? `${players[confirmListId].firstName} ${players[confirmListId].lastName} (${players[confirmListId].overall} OVR) will be listed at ~£${(players[confirmListId].value / 1_000_000).toFixed(1)}M. Other clubs may make offers via your Inbox.`
+            : ''
+        }
+        confirmLabel="List for Sale"
+        variant="default"
+        onConfirm={confirmList}
+      />
     </div>
   );
 };

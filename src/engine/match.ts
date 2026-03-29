@@ -3,7 +3,7 @@ import { getAIReactiveTactics, AI_REACTIVITY_MINUTES } from '@/config/aiManager'
 import {
   INJURY_TYPES, FOUL_INJURY_TYPE_WEIGHTS, NON_FOUL_INJURY_TYPE_WEIGHTS,
   INJURY_SEVERITY_WEIGHTS, MEDICAL_INJURY_PREVENTION_PER_LEVEL,
-  UNHAPPY_PERFORMANCE_PENALTY,
+  UNHAPPY_PERFORMANCE_PENALTY, REINJURY_MATCH_CHECK_CHANCE,
   FIRST_MATCH_ATTACK_BOOST, FIRST_MATCH_DEFENSE_BOOST,
 } from '@/config/gameBalance';
 import type { InjuryType, InjurySeverity, InjuryDetails } from '@/types/game';
@@ -907,7 +907,9 @@ export function simulateHalf(
       // Medical facility level reduces base injury probability
       const medLevel = isHome ? (homeMedicalLevel ?? 5) : (awayMedicalLevel ?? 5);
       const medPrevention = medLevel * MEDICAL_INJURY_PREVENTION_PER_LEVEL;
-      const injuryProb = Math.max(0.005, NON_FOUL_INJURY_BASE + ((100 - candidate.attributes.physical) * PHYSICAL_FRAGILITY_FACTOR) + (candidate.age > OLD_PLAYER_INJURY_AGE_THRESHOLD ? OLD_PLAYER_INJURY_BONUS : 0) + lowFitInjuryBonus - medPrevention);
+      // Re-injury risk: players returning from injury with active reinjuryWeeksRemaining have elevated chance
+      const reinjuryBonus = (candidate.injuryDetails?.reinjuryWeeksRemaining ?? 0) > 0 ? REINJURY_MATCH_CHECK_CHANCE : 0;
+      const injuryProb = Math.max(0.005, NON_FOUL_INJURY_BASE + ((100 - candidate.attributes.physical) * PHYSICAL_FRAGILITY_FACTOR) + (candidate.age > OLD_PLAYER_INJURY_AGE_THRESHOLD ? OLD_PLAYER_INJURY_BONUS : 0) + lowFitInjuryBonus + reinjuryBonus - medPrevention);
       if (Math.random() < injuryProb) {
         const details = generateInjuryDetails(false, medLevel);
         matchInjuries[candidate.id] = details;

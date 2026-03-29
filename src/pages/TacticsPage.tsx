@@ -14,11 +14,11 @@ import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD } from '@/config/ui';
 
-const STYLE_PRESETS: StylePreset[] = [
-  { label: 'Park the Bus', values: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 } },
-  { label: 'Balanced', values: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 } },
-  { label: 'All-Out Attack', values: { mentality: 'all-out-attack', width: 'wide', tempo: 'fast', defensiveLine: 'high', pressingIntensity: 75 } },
-  { label: 'Counter-Attack', values: { mentality: 'cautious', width: 'narrow', tempo: 'fast', defensiveLine: 'deep', pressingIntensity: 40 } },
+const STYLE_PRESETS: (StylePreset & { description: string })[] = [
+  { label: 'Park the Bus', description: 'Ultra-defensive. Sit deep, absorb pressure, and protect the lead.', values: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 } },
+  { label: 'Balanced', description: 'No extreme risks. A solid default for most matches.', values: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 } },
+  { label: 'All-Out Attack', description: 'Maximum attacking intent. High line, fast tempo. Risky but explosive.', values: { mentality: 'all-out-attack', width: 'wide', tempo: 'fast', defensiveLine: 'high', pressingIntensity: 75 } },
+  { label: 'Counter-Attack', description: 'Defend deep then strike quickly on fast transitions.', values: { mentality: 'cautious', width: 'narrow', tempo: 'fast', defensiveLine: 'deep', pressingIntensity: 40 } },
 ];
 
 function pressingLabel(v: number): string {
@@ -167,7 +167,7 @@ const TacticsPage = () => {
             </div>
 
             {/* Color legend */}
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-1">
               <div className="flex items-center gap-1">
                 <span className="w-3 h-0.5 rounded-full inline-block" style={{ backgroundColor: CHEMISTRY_LINE_COLOR_STRONG }} />
                 <span className="text-[9px] text-muted-foreground">Strong</span>
@@ -180,8 +180,10 @@ const TacticsPage = () => {
                 <span className="w-3 h-0.5 rounded-full inline-block" style={{ backgroundColor: CHEMISTRY_LINE_COLOR_DEVELOPING }} />
                 <span className="text-[9px] text-muted-foreground">Developing</span>
               </div>
-              <span className="text-[9px] text-muted-foreground/60 ml-auto">Grows with matches played</span>
             </div>
+            <p className="text-[9px] text-muted-foreground/60 mb-2">
+              Chemistry boosts team performance in matches. Links grow stronger as pairs play together. Nationality = same country, Mentor = veteran guiding a youngster, Partnership = compatible positions.
+            </p>
 
             {chemLinks.length === 0 && (
               <p className="text-xs text-muted-foreground text-center py-2">No chemistry links detected. Try players with shared nationality or compatible positions.</p>
@@ -288,20 +290,26 @@ const TacticsPage = () => {
       <GlassPanel className="p-4">
         <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Style Presets</p>
         <div className="grid grid-cols-2 gap-2">
-          {STYLE_PRESETS.map(preset => (
-            <button
-              key={preset.label}
-              onClick={() => setTactics(preset.values)}
-              className={cn(
-                'px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                isPresetActive(preset)
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-              )}
-            >
-              {preset.label}
-            </button>
-          ))}
+          {STYLE_PRESETS.map(preset => {
+            const active = isPresetActive(preset);
+            return (
+              <button
+                key={preset.label}
+                onClick={() => setTactics(preset.values)}
+                className={cn(
+                  'px-3 py-2.5 rounded-lg text-left transition-all',
+                  active
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                )}
+              >
+                <span className="text-sm font-medium block">{preset.label}</span>
+                <span className={cn('text-[9px] leading-tight block mt-0.5', active ? 'text-primary-foreground/70' : 'text-muted-foreground/60')}>
+                  {preset.description}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </GlassPanel>
 
@@ -517,7 +525,8 @@ const TacticsPage = () => {
 
       {/* Set-Piece Takers */}
       <GlassPanel className="p-4">
-        <h3 className="text-sm font-bold text-foreground mb-3">Set-Piece Takers</h3>
+        <h3 className="text-sm font-bold text-foreground mb-1">Set-Piece Takers</h3>
+        <p className="text-[9px] text-muted-foreground/60 mb-3">Assigned takers get a delivery bonus on corners and free kicks. Penalty taker is used in shootouts and spot-kicks.</p>
         <div className="space-y-3">
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Corner / Free Kick Taker</label>

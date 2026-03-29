@@ -270,11 +270,14 @@ const InboxPage = () => {
         <GlassPanel className="p-8 text-center">
           <MailOpen className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
-            {hasActiveFilter ? 'No messages match your filters' : 'No messages'}
+            {hasActiveFilter ? 'No messages match your filters' : 'Your inbox is empty'}
+          </p>
+          <p className="text-[10px] text-muted-foreground/60 mt-1">
+            {hasActiveFilter ? 'Try a different filter or clear all filters below' : 'Messages about transfers, contracts, injuries, and more will appear here as you progress'}
           </p>
           {hasActiveFilter && (
             <button className="text-xs text-primary mt-2 hover:underline" onClick={clearAllFilters}>
-              Clear filters
+              Clear all filters
             </button>
           )}
         </GlassPanel>

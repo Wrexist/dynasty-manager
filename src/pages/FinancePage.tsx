@@ -179,6 +179,13 @@ const FinancePage = () => {
             <div className={cn('text-[10px] font-semibold px-2 py-1 rounded-md text-center', statusColor, statusBg)}>
               {statusText}
             </div>
+            <p className="text-[9px] text-muted-foreground/60 mt-2 leading-relaxed">
+              {ffpStatus === 'critical'
+                ? 'Your wage bill is dangerously high. Board confidence drops sharply each week. Reduce wages by selling players or renegotiating contracts.'
+                : ffpStatus === 'warning'
+                ? 'Wages are above 70% of revenue. Board confidence will slowly decline. Consider offloading high earners.'
+                : 'Finances are sustainable. Keep wage-to-revenue ratio below 70% to stay in good standing with the board.'}
+            </p>
           </GlassPanel>
         );
       })()}
