@@ -14,6 +14,7 @@ import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
+import { PlayerSelect } from '@/components/game/PlayerSelect';
 
 const STYLE_PRESETS: (StylePreset & { description: string })[] = [
   { label: 'Park the Bus', description: 'Ultra-defensive. Sit deep, absorb pressure, and protect the lead.', values: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 } },
@@ -551,29 +552,21 @@ const TacticsPage = () => {
         <div className="space-y-3">
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Corner / Free Kick Taker</label>
-            <select
-              value={club.setPieceTakerId || ''}
-              onChange={e => setSetPieceTaker(e.target.value || undefined)}
-              className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm text-foreground"
-            >
-              <option value="">Auto (best available)</option>
-              {lineupPlayers.filter(p => p.position !== 'GK').map(p => (
-                <option key={p.id} value={p.id}>{p.firstName[0]}. {p.lastName} ({p.position}, {p.overall})</option>
-              ))}
-            </select>
+            <PlayerSelect
+              players={lineupPlayers.filter(p => p.position !== 'GK')}
+              selectedId={club.setPieceTakerId}
+              onChange={setSetPieceTaker}
+              placeholder="Auto (best available)"
+            />
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1 block">Penalty Taker</label>
-            <select
-              value={club.penaltyTakerId || ''}
-              onChange={e => setPenaltyTaker(e.target.value || undefined)}
-              className="w-full bg-muted/30 border border-border/50 rounded-lg px-3 py-2 text-sm text-foreground"
-            >
-              <option value="">Auto (best attacker)</option>
-              {lineupPlayers.filter(p => p.position !== 'GK').map(p => (
-                <option key={p.id} value={p.id}>{p.firstName[0]}. {p.lastName} ({p.position}, {p.overall})</option>
-              ))}
-            </select>
+            <PlayerSelect
+              players={lineupPlayers.filter(p => p.position !== 'GK')}
+              selectedId={club.penaltyTakerId}
+              onChange={setPenaltyTaker}
+              placeholder="Auto (best attacker)"
+            />
           </div>
         </div>
       </GlassPanel>
