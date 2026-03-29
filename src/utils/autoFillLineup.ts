@@ -60,7 +60,7 @@ import {
   LINEUP_BENCH_SWAP_PASSES,
 } from '@/config/lineupOptimization';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
-import { ADJACENT_PAIRS, MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE, MENTOR_QUALITY_OVERALL_BASE, MENTOR_QUALITY_DIVISOR, MENTOR_MAX_STRENGTH, PARTNERSHIP_FORM_THRESHOLD, PARTNERSHIP_STRENGTH_DIVISOR, PARTNERSHIP_MAX_STRENGTH } from '@/config/chemistry';
+import { ADJACENT_PAIRS, MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE, MENTOR_QUALITY_OVERALL_BASE, MENTOR_QUALITY_DIVISOR, MENTOR_MAX_STRENGTH, PARTNERSHIP_FORM_THRESHOLD, PARTNERSHIP_STRENGTH_DIVISOR, PARTNERSHIP_MAX_STRENGTH, LOYALTY_SEASONS_THRESHOLD, LOYALTY_MAX_STRENGTH } from '@/config/chemistry';
 
 export interface AutoFillResult {
   lineup: Player[];
@@ -94,24 +94,21 @@ function areAdjacent(posA: string, posB: string): boolean {
 
 /**
  * Estimate chemistry link strength a player would form with already-assigned neighbors.
- * Used during greedy assignment to bias toward players that create chemistry links.
+ * Uses precomputed adjacency to avoid repeated ADJACENT_PAIRS scanning.
+ * Checks all 4 link types: nationality, mentor, partnership, loyalty.
  */
 function estimateSlotChemistry(
   player: Player,
   slotIndex: number,
   currentLineup: (Player | null)[],
-  slots: { pos: string }[],
+  adjacentSlotIndices: number[],
+  currentSeason?: number,
 ): number {
-  const slotPos = slots[slotIndex].pos;
   let linkScore = 0;
 
-  for (let j = 0; j < slots.length; j++) {
-    if (j === slotIndex) continue;
+  for (const j of adjacentSlotIndices) {
     const neighbor = currentLineup[j];
     if (!neighbor) continue;
-
-    const neighborPos = slots[j].pos;
-    if (!areAdjacent(slotPos, neighborPos)) continue;
 
     // Nationality link
     if (player.nationality === neighbor.nationality) {
@@ -128,6 +125,15 @@ function estimateSlotChemistry(
     // Partnership link (high combined form)
     if ((player.form + neighbor.form) > PARTNERSHIP_FORM_THRESHOLD) {
       linkScore += Math.min(PARTNERSHIP_MAX_STRENGTH, Math.floor((player.form + neighbor.form - PARTNERSHIP_FORM_THRESHOLD) / PARTNERSHIP_STRENGTH_DIVISOR) + 1);
+    }
+
+    // Loyalty link: both at same club for 2+ seasons
+    if (currentSeason !== undefined && player.clubId === neighbor.clubId &&
+        player.joinedSeason !== undefined && neighbor.joinedSeason !== undefined) {
+      const minTenure = Math.min(currentSeason - player.joinedSeason, currentSeason - neighbor.joinedSeason);
+      if (minTenure >= LOYALTY_SEASONS_THRESHOLD) {
+        linkScore += Math.min(LOYALTY_MAX_STRENGTH, minTenure - LOYALTY_SEASONS_THRESHOLD + 1);
+      }
     }
   }
 
@@ -392,6 +398,14 @@ export function autoFillBestTeam(
     return map;
   });
 
+  // ── Precompute slot adjacency map (avoids repeated ADJACENT_PAIRS scanning) ──
+  const adjacentSlots: number[][] = slots.map((slot, i) =>
+    slots.reduce<number[]>((acc, other, j) => {
+      if (i !== j && areAdjacent(slot.pos, other.pos)) acc.push(j);
+      return acc;
+    }, [])
+  );
+
   // ── Phase 2: Greedy assignment (constrained slots first) ──
   const slotOrder = slots.map((slot, idx) => ({
     idx,
@@ -414,7 +428,7 @@ export function autoFillBestTeam(
       if (used.has(p.id)) continue;
       let s = slotScores.get(p.id) || 0;
       // Add chemistry affinity bonus based on already-assigned neighbors
-      s += estimateSlotChemistry(p, idx, lineup, slots) * LINEUP_SLOT_CHEMISTRY_WEIGHT;
+      s += estimateSlotChemistry(p, idx, lineup, adjacentSlots[idx], currentSeason) * LINEUP_SLOT_CHEMISTRY_WEIGHT;
       if (s > bestScore) {
         bestScore = s;
         bestPlayer = p;
@@ -428,14 +442,21 @@ export function autoFillBestTeam(
   }
 
   // ── Helper: total team score including chemistry ──
+  // Override each player's position to their deployed slot position so chemistry
+  // adjacency uses formation slots, not natural positions. This also avoids the
+  // filter(Boolean) index-shift bug when lineup has null slots (undersized squad).
   const getTeamScore = (currentLineup: (Player | null)[]) => {
     let total = 0;
+    const deployedPlayers: Player[] = [];
     for (let i = 0; i < currentLineup.length; i++) {
       const p = currentLineup[i];
-      if (p) total += scores[i].get(p.id) || 0;
+      if (p) {
+        total += scores[i].get(p.id) || 0;
+        deployedPlayers.push({ ...p, position: slots[i].pos as Position });
+      }
     }
-    const lp = currentLineup.filter(Boolean) as Player[];
-    total += getChemistryBonus(lp, formation, currentSeason) * CHEMISTRY_SCORE_SCALE;
+    // Pass undefined for formation since positions are already set to slot positions
+    total += getChemistryBonus(deployedPlayers, undefined, currentSeason) * CHEMISTRY_SCORE_SCALE;
     return total;
   };
 
