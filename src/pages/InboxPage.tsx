@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message, GameScreen } from '@/types/game';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
+import { PageHint } from '@/components/game/PageHint';
 
 const typeIcon: Record<Message['type'], React.ElementType> = {
   match_preview: Trophy,
@@ -117,6 +118,12 @@ const InboxPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+      <PageHint
+        screen="inbox"
+        title="Inbox"
+        body="All club communications in one place — transfer offers, injury updates, board messages, and more. Use the filter to find specific message types. Some messages have actions you can take directly."
+      />
+
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold text-foreground font-display">Inbox</h2>

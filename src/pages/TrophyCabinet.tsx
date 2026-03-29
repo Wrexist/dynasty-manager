@@ -7,6 +7,7 @@ import { getSuffix } from '@/utils/helpers';
 import { ACHIEVEMENTS, getTierColor } from '@/utils/achievements';
 import { motion } from 'framer-motion';
 import { getActiveCosmetic } from '@/utils/monetization';
+import { PageHint } from '@/components/game/PageHint';
 
 const TrophyCabinet = () => {
   const store = useGameStore();
@@ -35,6 +36,12 @@ const TrophyCabinet = () => {
       cabinetStyle === 'cabinet-neon' && 'cabinet-neon',
       cabinetStyle === 'cabinet-vault' && 'cabinet-vault',
     )}>
+      <PageHint
+        screen="trophy-cabinet"
+        title="Trophy Cabinet"
+        body="All your honours and achievements displayed here. Trophies are earned by winning competitions. Achievements unlock by reaching specific milestones — check the progress tracker to see what's next."
+      />
+
       <h2 className="text-lg font-display font-bold text-foreground">Trophy Cabinet</h2>
 
       {/* Trophy Count Header */}

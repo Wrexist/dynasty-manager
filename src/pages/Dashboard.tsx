@@ -28,6 +28,7 @@ import { CelebrationModal } from '@/components/game/CelebrationModal';
 import { StorylineModal } from '@/components/game/StorylineModal';
 import { PlayerTransferTalk } from '@/components/game/PlayerTransferTalk';
 import { AchievementUnlockModal } from '@/components/game/AchievementUnlockModal';
+import { PageHint } from '@/components/game/PageHint';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import type { Achievement } from '@/utils/achievements';
 import { FarewellModal } from '@/components/game/FarewellModal';
@@ -353,6 +354,12 @@ const Dashboard = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       {/* Welcome overlay for first-time players */}
       {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} onSkipToMatch={() => { dismissWelcome(); store.autoFillTeam(); setScreen('match'); }} />}
+
+      <PageHint
+        screen="dashboard"
+        title="Your Dashboard"
+        body="This is your weekly hub. Check upcoming matches, review finances, track objectives, and advance to the next week. Visit Squad to manage players, Tactics to set formations, and Transfers to buy or sell."
+      />
 
       {/* Mid-Season Report (shown at week 23, once per season) */}
       {showMidSeason && <MidSeasonReport onDismiss={dismissMidSeason} />}

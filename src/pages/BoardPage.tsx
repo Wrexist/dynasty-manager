@@ -3,6 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
+import { PageHint } from '@/components/game/PageHint';
 import {
   Target, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2, Circle,
   TrendingUp, TrendingDown, Swords, DollarSign, Flame, Award,
@@ -143,6 +144,12 @@ const BoardPage = () => {
       initial="hidden"
       animate="show"
     >
+      <PageHint
+        screen="board"
+        title="Board Room"
+        body="The board tracks your performance against seasonal objectives. Keep confidence high by meeting targets — drop too low and you risk the sack. Check verdicts after each objective deadline."
+      />
+
       {/* Header */}
       <motion.div variants={fadeUp} className="flex items-center gap-3">
         <h2 className="text-lg font-display font-bold text-foreground">Board Room</h2>

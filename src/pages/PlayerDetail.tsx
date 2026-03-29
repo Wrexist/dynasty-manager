@@ -17,7 +17,8 @@ import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel, getTrainingMultiplier } from '@/utils/personality';
 import { PlayerAvatar } from '@/components/game/PlayerAvatar';
 import { PlayerRadarChart } from '@/components/game/PlayerRadarChart';
-import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW } from '@/config/ui';
+import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW, HELP_TEXTS } from '@/config/ui';
+import { InfoTip } from '@/components/game/InfoTip';
 import { MODULE_ATTR_MAP, STREAK_MULTIPLIERS, INDIVIDUAL_TRAINING_BONUS } from '@/config/training';
 import { getTrainingEffectivenessPreview, getStreakTier } from '@/utils/training';
 import { getStaffBonus } from '@/utils/staff';
@@ -426,7 +427,7 @@ const PlayerDetail = () => {
           <span className="text-[10px] text-muted-foreground">
             Gap: {player.potential - player.overall > 0 ? `+${player.potential - player.overall}` : '0'}
           </span>
-          <span className="text-[10px] text-muted-foreground">Potential</span>
+          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">Potential <InfoTip text={HELP_TEXTS.potential} /></span>
         </div>
       </GlassPanel>
 
@@ -637,6 +638,7 @@ const PlayerDetail = () => {
           <div className="flex items-center gap-2 mb-3">
             <Brain className="w-4 h-4 text-primary" />
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Personality</p>
+            <InfoTip text={HELP_TEXTS.personality} />
             <span className="ml-auto text-xs font-bold text-primary">{getPersonalityLabel(player.personality)}</span>
           </div>
           <div className="space-y-2">
@@ -701,6 +703,51 @@ const PlayerDetail = () => {
           </div>
         </div>
       </GlassPanel>
+
+      {/* Career Stats */}
+      {player.careerAppearances > 0 && (
+        <GlassPanel className="p-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-3">Career Totals</p>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p className="text-lg font-black text-foreground tabular-nums">{player.careerAppearances}</p>
+              <p className="text-[10px] text-muted-foreground">Apps</p>
+            </div>
+            <div>
+              <p className="text-lg font-black text-foreground tabular-nums">{player.careerGoals}</p>
+              <p className="text-[10px] text-muted-foreground">Goals</p>
+            </div>
+            <div>
+              <p className="text-lg font-black text-foreground tabular-nums">{player.careerAssists}</p>
+              <p className="text-[10px] text-muted-foreground">Assists</p>
+            </div>
+          </div>
+          {player.careerAppearances > player.appearances && (
+            <div className="mt-2 pt-2 border-t border-border/30">
+              <div className="grid grid-cols-3 gap-3 text-center">
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground tabular-nums">
+                    {(player.careerGoals / player.careerAppearances).toFixed(2)}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">Career G/App</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground tabular-nums">
+                    {(player.careerAssists / player.careerAppearances).toFixed(2)}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">Career A/App</p>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-muted-foreground tabular-nums">
+                    {((player.careerGoals + player.careerAssists) / player.careerAppearances).toFixed(2)}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">Career G+A/App</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </GlassPanel>
+      )}
 
       {/* Contract */}
       <GlassPanel className="p-4">

@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { loadHall, type HallEntry } from '@/utils/hallOfManagers';
 import { useGameStore } from '@/store/gameStore';
 import { isPro, getActiveCosmetic } from '@/utils/monetization';
+import { PageHint } from '@/components/game/PageHint';
 
 const PRESTIGE_BADGE_ICONS: Record<string, React.ElementType> = {
   'prestige-crown': Crown,
@@ -37,6 +38,12 @@ const HallOfManagers = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      <PageHint
+        screen="hall-of-managers"
+        title="Hall of Managers"
+        body="The ultimate leaderboard — your best careers ranked by legacy score. Points come from trophies, promotions, longevity, and prestige. Each save contributes to this permanent record."
+      />
+
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <div className="text-center mb-4">
           <Trophy className="w-10 h-10 text-primary mx-auto mb-2" />

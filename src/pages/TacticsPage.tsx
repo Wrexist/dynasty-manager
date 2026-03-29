@@ -8,11 +8,12 @@ import { CHEMISTRY_LINE_COLOR_STRONG, CHEMISTRY_LINE_COLOR_ESTABLISHED, CHEMISTR
 import { getRatingColor } from '@/utils/uiHelpers';
 import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
-import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft, Wand2 } from 'lucide-react';
+import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft, Wand2, AlertTriangle } from 'lucide-react';
 import { getFlag } from '@/utils/nationality';
 import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
-import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD } from '@/config/ui';
+import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD, HELP_TEXTS } from '@/config/ui';
+import { InfoTip } from '@/components/game/InfoTip';
 
 const STYLE_PRESETS: (StylePreset & { description: string })[] = [
   { label: 'Park the Bus', description: 'Ultra-defensive. Sit deep, absorb pressure, and protect the lead.', values: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 } },
@@ -28,7 +29,7 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam, setSetPieceTaker, setPenaltyTaker, season, pairFamiliarity } = useGameStore();
+  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam, setSetPieceTaker, setPenaltyTaker, season, pairFamiliarity, training } = useGameStore();
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
   const [autoFilling, setAutoFilling] = useState(false);
@@ -70,7 +71,21 @@ const TacticsPage = () => {
 
       {/* Formation Selection */}
       <GlassPanel className="p-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Formation</p>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Formation</p>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[10px] text-muted-foreground">Familiarity</span>
+            <InfoTip text={HELP_TEXTS.tacticalFamiliarity} />
+            <span className={cn(
+              'text-[10px] font-bold tabular-nums px-1.5 py-0.5 rounded',
+              training.tacticalFamiliarity >= 80 ? 'text-emerald-400 bg-emerald-400/10' :
+              training.tacticalFamiliarity >= 50 ? 'text-amber-400 bg-amber-400/10' :
+              'text-destructive bg-destructive/10'
+            )}>
+              {training.tacticalFamiliarity}%
+            </span>
+          </div>
+        </div>
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           {FORMATIONS.map(f => (
             <button
@@ -85,6 +100,12 @@ const TacticsPage = () => {
             </button>
           ))}
         </div>
+        {training.tacticalFamiliarity < 50 && (
+          <p className="text-[10px] text-amber-400 mt-2 flex items-center gap-1">
+            <AlertTriangle className="w-3 h-3" />
+            Low familiarity hurts match performance. Train "Tactical" to improve it, and avoid switching formations frequently.
+          </p>
+        )}
       </GlassPanel>
 
       {/* Defensive Formation (Out of Possession) */}
@@ -319,7 +340,7 @@ const TacticsPage = () => {
 
         {/* Mentality */}
         <div>
-          <p className="text-xs text-muted-foreground mb-1.5">Mentality</p>
+          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Mentality <InfoTip text={HELP_TEXTS.mentality} /></p>
           <div className="flex flex-wrap gap-1.5">
             {MENTALITIES.map(m => (
               <button
@@ -340,7 +361,7 @@ const TacticsPage = () => {
 
         {/* Team Width */}
         <div>
-          <p className="text-xs text-muted-foreground mb-1.5">Team Width</p>
+          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Team Width <InfoTip text={HELP_TEXTS.width} /></p>
           <div className="flex flex-wrap gap-1.5">
             {WIDTHS.map(w => (
               <button
@@ -361,7 +382,7 @@ const TacticsPage = () => {
 
         {/* Tempo */}
         <div>
-          <p className="text-xs text-muted-foreground mb-1.5">Tempo</p>
+          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Tempo <InfoTip text={HELP_TEXTS.tempo} /></p>
           <div className="flex flex-wrap gap-1.5">
             {TEMPOS.map(t => (
               <button
@@ -382,7 +403,7 @@ const TacticsPage = () => {
 
         {/* Defensive Line */}
         <div>
-          <p className="text-xs text-muted-foreground mb-1.5">Defensive Line</p>
+          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Defensive Line <InfoTip text={HELP_TEXTS.defensiveLine} /></p>
           <div className="flex flex-wrap gap-1.5">
             {DEFENSIVE_LINES.map(d => (
               <button
@@ -403,7 +424,7 @@ const TacticsPage = () => {
 
         {/* Pressing */}
         <div>
-          <p className="text-xs text-muted-foreground mb-1.5">Pressing</p>
+          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Pressing <InfoTip text={HELP_TEXTS.pressingIntensity} /></p>
           <div className="flex flex-wrap gap-1.5">
             {PRESSING_OPTIONS.map(p => (
               <button

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 import { VERDICT_COLORS, VERDICT_LABELS } from '@/config/ui';
 import { hapticHeavy } from '@/utils/haptics';
+import { PageHint } from '@/components/game/PageHint';
 
 const AWARD_ICONS: Record<string, string> = {
   'Golden Boot': 'footprints',
@@ -75,6 +76,12 @@ const SeasonSummary = () => {
   const bestXI = (latest.awards || []).filter(a => a.name === 'Team of the Season');
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      <PageHint
+        screen="season-summary"
+        title="Season Summary"
+        body="Review your season performance — final position, awards, and key stats. This summary only appears once at season end, so take a moment to review before moving on."
+      />
+
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="space-y-4">
         <div className="text-center mb-6">
           <Trophy className="w-12 h-12 text-primary mx-auto mb-2" />

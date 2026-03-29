@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { MANAGER_TRAITS } from '@/config/managerCareer';
 import { calculateLegacyScore, getRetirementAge } from '@/utils/managerCareer';
 import { getSpecializationTitle } from '@/utils/managerPerks';
+import { PageHint } from '@/components/game/PageHint';
 
 const CareerOverview = () => {
   const { careerManager, setScreen, resignFromClub, managerProgression } = useGameStore();
@@ -38,6 +39,12 @@ const CareerOverview = () => {
 
   return (
     <div className="space-y-4 pb-24">
+      <PageHint
+        screen="career-overview"
+        title="Career Mode"
+        body="Track your managerial journey across clubs. Build your reputation, earn legacy points, and climb the ranks. You can resign and take new jobs — each club adds to your career story."
+      />
+
       {/* Manager Header */}
       <GlassPanel className="p-4">
         <div className="flex items-center gap-3 mb-3">

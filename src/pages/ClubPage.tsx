@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { getConfidenceColor, getFanConfidenceColor } from '@/utils/uiHelpers';
 import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD } from '@/config/ui';
+import { PageHint } from '@/components/game/PageHint';
 
 const ClubPage = () => {
   const { playerClubId, clubs, players, season, boardConfidence, boardObjectives, setScreen, fanMood } = useGameStore();
@@ -21,6 +22,12 @@ const ClubPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      <PageHint
+        screen="club"
+        title="Club Overview"
+        body="Your club at a glance — fan mood, finances, facilities, and squad stats. Happy fans boost revenue. Upgrade facilities to improve training, youth development, and injury recovery."
+      />
+
       {/* Club Header */}
       <div className="flex items-center gap-4">
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-lg font-black" style={{ backgroundColor: club.color, color: club.secondaryColor }}>

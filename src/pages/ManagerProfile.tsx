@@ -8,6 +8,7 @@ import { ACHIEVEMENTS } from '@/utils/achievements';
 import { cn } from '@/lib/utils';
 import type { RecordEntry } from '@/types/game';
 import { getMilestoneIcon } from '@/utils/milestones';
+import { PageHint } from '@/components/game/PageHint';
 import { isPro, getActiveCosmetic } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
 
@@ -63,6 +64,12 @@ const ManagerProfile = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+      <PageHint
+        screen="manager-profile"
+        title="Manager Profile"
+        body="Your career stats, records, and achievements at a glance. Track milestones, view your reputation graph over time, and see how you compare historically. Earn XP to unlock manager perks."
+      />
+
       <h2 className="text-lg font-display font-bold text-foreground">Manager Profile</h2>
 
       {/* Overview */}

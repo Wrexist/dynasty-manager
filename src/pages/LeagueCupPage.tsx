@@ -6,6 +6,7 @@ import { TournamentHeader } from '@/components/game/TournamentHeader';
 import { cn } from '@/lib/utils';
 import { Shield, ChevronRight, ChevronDown, Calendar, Award } from 'lucide-react';
 import type { CupRound, CupTie } from '@/types/game';
+import { PageHint } from '@/components/game/PageHint';
 
 function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: string; clubs: Record<string, { name: string; shortName: string; color: string }> }) {
   const home = clubs[tie.homeClubId];
@@ -126,6 +127,12 @@ const LeagueCupPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+      <PageHint
+        screen="league-cup"
+        title="League Cup"
+        body="A knockout cup competition running alongside the league. Win each round to progress — ties are decided on the day with extra time and penalties if needed. Winning earns prize money and board confidence."
+      />
+
       <TournamentHeader
         competition="league_cup"
         subtitle={leagueCup.currentRound ? `Current: ${getRoundName(leagueCup.currentRound)} · Week ${LEAGUE_CUP_WEEKS[leagueCup.currentRound]}` : 'Complete'}

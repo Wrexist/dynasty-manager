@@ -13,6 +13,7 @@ import { generateMatchInsights } from '@/utils/matchInsights';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getDerbyName, getDerbyIntensity } from '@/data/league';
 import { getSuffix } from '@/utils/helpers';
+import { PageHint } from '@/components/game/PageHint';
 import { motion } from 'framer-motion';
 import type { Club } from '@/types/game';
 
@@ -72,6 +73,12 @@ const MatchReview = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+      <PageHint
+        screen="match-review"
+        title="Match Review"
+        body="Analyse your last match — check player ratings, key stats, and tactical insights. Top performers get highlighted. Use the insights to adjust your tactics for the next game."
+      />
+
       {/* Result Header */}
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
         <GlassPanel className={cn('p-6 text-center', won ? 'border-emerald-500/30' : lost ? 'border-destructive/30' : 'border-amber-500/30')}>
