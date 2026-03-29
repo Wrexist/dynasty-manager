@@ -101,7 +101,7 @@ const ScoutingPage = () => {
         )}
 
         {/* Ad Reward: Reveal Potential */}
-        <AdRewardButton rewardType="scout_potential" onRewardClaimed={() => { /* Potential revealed via UI hint */ }} />
+        <AdRewardButton rewardType="scout_potential" onRewardClaimed={() => { useGameStore.getState().boostScoutReports(); }} />
 
         {/* Scout Reports */}
         {scouting.reports.length === 0 && scouting.assignments.length > 0 && (

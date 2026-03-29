@@ -110,6 +110,17 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     });
   },
 
+  boostScoutReports: () => {
+    const state = get();
+    const boostedReports = state.scouting.reports.map(r => ({
+      ...r,
+      knowledgeLevel: Math.min(100, r.knowledgeLevel + 30),
+    }));
+    set({
+      scouting: { ...state.scouting, reports: boostedReports },
+    });
+  },
+
   addToWatchList: (playerId: string) => set(s => ({
     scoutWatchList: s.scoutWatchList.includes(playerId) ? s.scoutWatchList : [...s.scoutWatchList, playerId],
   })),
