@@ -56,8 +56,11 @@ import {
   BENCH_CONGESTED_FITNESS_THRESHOLD,
   BENCH_CUP_ATTACKER_BONUS,
   BENCH_AWAY_DEFENDER_BONUS,
+  LINEUP_SLOT_CHEMISTRY_WEIGHT,
+  LINEUP_BENCH_SWAP_PASSES,
 } from '@/config/lineupOptimization';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
+import { ADJACENT_PAIRS, MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE, MENTOR_QUALITY_OVERALL_BASE, MENTOR_QUALITY_DIVISOR, MENTOR_MAX_STRENGTH, PARTNERSHIP_FORM_THRESHOLD, PARTNERSHIP_STRENGTH_DIVISOR, PARTNERSHIP_MAX_STRENGTH, LOYALTY_SEASONS_THRESHOLD, LOYALTY_MAX_STRENGTH } from '@/config/chemistry';
 
 export interface AutoFillResult {
   lineup: Player[];
@@ -81,6 +84,60 @@ export interface AutoFillContext {
 // Position role sets (mirrors match engine categories)
 const ATTACKING_POSITIONS: Position[] = ['ST', 'LW', 'RW', 'CAM'];
 const DEFENSIVE_POSITIONS: Position[] = ['CB', 'CDM', 'LB', 'RB'];
+
+/** Check whether two positions are adjacent per ADJACENT_PAIRS config. */
+function areAdjacent(posA: string, posB: string): boolean {
+  return ADJACENT_PAIRS.some(([p1, p2]) =>
+    (posA === p1 && posB === p2) || (posA === p2 && posB === p1)
+  );
+}
+
+/**
+ * Estimate chemistry link strength a player would form with already-assigned neighbors.
+ * Uses precomputed adjacency to avoid repeated ADJACENT_PAIRS scanning.
+ * Checks all 4 link types: nationality, mentor, partnership, loyalty.
+ */
+function estimateSlotChemistry(
+  player: Player,
+  currentLineup: (Player | null)[],
+  adjacentSlotIndices: number[],
+  currentSeason?: number,
+): number {
+  let linkScore = 0;
+
+  for (const j of adjacentSlotIndices) {
+    const neighbor = currentLineup[j];
+    if (!neighbor) continue;
+
+    // Nationality link
+    if (player.nationality === neighbor.nationality) {
+      linkScore += (player.clubId === neighbor.clubId) ? 2 : 1;
+    }
+
+    // Mentor link: experienced (28+) with young talent (<=22)
+    const senior = player.age >= MENTOR_SENIOR_AGE && neighbor.age <= MENTOR_JUNIOR_AGE ? player
+      : neighbor.age >= MENTOR_SENIOR_AGE && player.age <= MENTOR_JUNIOR_AGE ? neighbor : null;
+    if (senior) {
+      linkScore += Math.min(MENTOR_MAX_STRENGTH, Math.floor((senior.overall - MENTOR_QUALITY_OVERALL_BASE) / MENTOR_QUALITY_DIVISOR) + 1);
+    }
+
+    // Partnership link (high combined form)
+    if ((player.form + neighbor.form) > PARTNERSHIP_FORM_THRESHOLD) {
+      linkScore += Math.min(PARTNERSHIP_MAX_STRENGTH, Math.floor((player.form + neighbor.form - PARTNERSHIP_FORM_THRESHOLD) / PARTNERSHIP_STRENGTH_DIVISOR) + 1);
+    }
+
+    // Loyalty link: both at same club for 2+ seasons
+    if (currentSeason !== undefined && player.clubId === neighbor.clubId &&
+        player.joinedSeason !== undefined && neighbor.joinedSeason !== undefined) {
+      const minTenure = Math.min(currentSeason - player.joinedSeason, currentSeason - neighbor.joinedSeason);
+      if (minTenure >= LOYALTY_SEASONS_THRESHOLD) {
+        linkScore += Math.min(LOYALTY_MAX_STRENGTH, minTenure - LOYALTY_SEASONS_THRESHOLD + 1);
+      }
+    }
+  }
+
+  return linkScore;
+}
 
 /**
  * Calculate a player's effective overall for a specific target position
@@ -340,6 +397,14 @@ export function autoFillBestTeam(
     return map;
   });
 
+  // ── Precompute slot adjacency map (avoids repeated ADJACENT_PAIRS scanning) ──
+  const adjacentSlots: number[][] = slots.map((slot, i) =>
+    slots.reduce<number[]>((acc, other, j) => {
+      if (i !== j && areAdjacent(slot.pos, other.pos)) acc.push(j);
+      return acc;
+    }, [])
+  );
+
   // ── Phase 2: Greedy assignment (constrained slots first) ──
   const slotOrder = slots.map((slot, idx) => ({
     idx,
@@ -360,7 +425,9 @@ export function autoFillBestTeam(
 
     for (const p of available) {
       if (used.has(p.id)) continue;
-      const s = slotScores.get(p.id) || 0;
+      let s = slotScores.get(p.id) || 0;
+      // Add chemistry affinity bonus based on already-assigned neighbors
+      s += estimateSlotChemistry(p, lineup, adjacentSlots[idx], currentSeason) * LINEUP_SLOT_CHEMISTRY_WEIGHT;
       if (s > bestScore) {
         bestScore = s;
         bestPlayer = p;
@@ -374,14 +441,21 @@ export function autoFillBestTeam(
   }
 
   // ── Helper: total team score including chemistry ──
+  // Override each player's position to their deployed slot position so chemistry
+  // adjacency uses formation slots, not natural positions. This also avoids the
+  // filter(Boolean) index-shift bug when lineup has null slots (undersized squad).
   const getTeamScore = (currentLineup: (Player | null)[]) => {
     let total = 0;
+    const deployedPlayers: Player[] = [];
     for (let i = 0; i < currentLineup.length; i++) {
       const p = currentLineup[i];
-      if (p) total += scores[i].get(p.id) || 0;
+      if (p) {
+        total += scores[i].get(p.id) || 0;
+        deployedPlayers.push({ ...p, position: slots[i].pos as Position });
+      }
     }
-    const lp = currentLineup.filter(Boolean) as Player[];
-    total += getChemistryBonus(lp, undefined, currentSeason) * CHEMISTRY_SCORE_SCALE;
+    // Pass undefined for formation since positions are already set to slot positions
+    total += getChemistryBonus(deployedPlayers, undefined, currentSeason) * CHEMISTRY_SCORE_SCALE;
     return total;
   };
 
@@ -412,14 +486,17 @@ export function autoFillBestTeam(
     if (!improved) break;
   }
 
-  // ── Phase 4: Chemistry-aware bench-to-starter refinement ──
-  const bench = available.filter(p => !used.has(p.id));
+  // ── Phase 4: Chemistry-aware bench-to-starter refinement (best-first, multi-pass) ──
+  for (let pass = 0; pass < LINEUP_BENCH_SWAP_PASSES; pass++) {
+    const currentBench = available.filter(p => !used.has(p.id));
+    if (currentBench.length === 0) break;
 
-  if (bench.length > 0) {
-    for (const benchPlayer of bench) {
-      let bestSwapIdx = -1;
-      let bestNewScore = currentTeamScore;
+    let bestSwapGain = 0;
+    let bestBenchPlayer: Player | null = null;
+    let bestSlotIdx = -1;
 
+    // Find the globally best bench→starter swap across ALL bench players
+    for (const benchPlayer of currentBench) {
       for (let i = 0; i < lineup.length; i++) {
         const starter = lineup[i];
         if (!starter) continue;
@@ -428,25 +505,59 @@ export function autoFillBestTeam(
         const newScore = getTeamScore(lineup);
         lineup[i] = starter;
 
-        if (newScore > bestNewScore) {
-          bestNewScore = newScore;
-          bestSwapIdx = i;
+        const gain = newScore - currentTeamScore;
+        if (gain > bestSwapGain) {
+          bestSwapGain = gain;
+          bestBenchPlayer = benchPlayer;
+          bestSlotIdx = i;
         }
       }
+    }
 
-      if (bestSwapIdx >= 0) {
-        const displaced = lineup[bestSwapIdx]!;
-        lineup[bestSwapIdx] = benchPlayer;
-        used.add(benchPlayer.id);
-        used.delete(displaced.id);
-        currentTeamScore = bestNewScore;
+    if (bestBenchPlayer && bestSlotIdx >= 0) {
+      const displaced = lineup[bestSlotIdx]!;
+      lineup[bestSlotIdx] = bestBenchPlayer;
+      used.add(bestBenchPlayer.id);
+      used.delete(displaced.id);
+      currentTeamScore += bestSwapGain;
+    } else {
+      break; // No improvement possible
+    }
+  }
+
+  // ── Phase 4b: Re-run pairwise swap optimization after bench swaps ──
+  // Bench-to-starter swaps may have changed the optimal positional arrangement.
+  for (let pass = 0; pass < SWAP_OPTIMIZATION_PASSES; pass++) {
+    let improved = false;
+    for (let i = 0; i < lineup.length; i++) {
+      for (let j = i + 1; j < lineup.length; j++) {
+        const pi = lineup[i];
+        const pj = lineup[j];
+        if (!pi || !pj) continue;
+
+        lineup[i] = pj;
+        lineup[j] = pi;
+        const swappedTeamScore = getTeamScore(lineup);
+
+        if (swappedTeamScore > currentTeamScore) {
+          currentTeamScore = swappedTeamScore;
+          improved = true;
+        } else {
+          lineup[i] = pi;
+          lineup[j] = pj;
+        }
       }
     }
+    if (!improved) break;
   }
 
   // ── Phase 5: Smart bench selection with strategic ordering ──
   const finalLineup = lineup.filter(Boolean) as Player[];
-  const lineupPositions = new Set(finalLineup.map(p => p.position));
+  // Use deployed slot positions (not natural positions) for formation gap detection
+  const lineupDeployedPositions = new Set<string>();
+  for (let i = 0; i < slots.length; i++) {
+    if (lineup[i]) lineupDeployedPositions.add(slots[i].pos);
+  }
   const remaining = available.filter(p => !used.has(p.id));
 
   // Positions used in the current formation
@@ -566,7 +677,7 @@ export function autoFillBestTeam(
     const coversSubNeed = [...subNeedPositions].some(pos => canCoverPosition(p.position, pos));
 
     // Formation gap
-    const coversFormationGap = !lineupPositions.has(p.position) && formationPositions.has(p.position);
+    const coversFormationGap = !lineupDeployedPositions.has(p.position) && formationPositions.has(p.position);
 
     // Position priority
     const positionPriority = BENCH_POSITION_PRIORITY[p.position] || 1;
@@ -674,7 +785,13 @@ export function autoFillBestTeam(
     }
   }
 
-  const chemBonus = getChemistryBonus(finalLineup, formation, currentSeason);
+  // Build position-overridden array for accurate final chemistry (avoids filter(Boolean) index shift)
+  const deployedFinalLineup: Player[] = [];
+  for (let i = 0; i < slots.length; i++) {
+    const p = lineup[i];
+    if (p) deployedFinalLineup.push({ ...p, position: slots[i].pos as Position });
+  }
+  const chemBonus = getChemistryBonus(deployedFinalLineup, undefined, currentSeason);
   const chemLabel = getChemistryLabel(chemBonus);
 
   return {
