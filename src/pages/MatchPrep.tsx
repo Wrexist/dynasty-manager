@@ -366,7 +366,7 @@ const MatchPrep = () => {
       </GlassPanel>
 
       {/* Ready Button — sticky at bottom */}
-      <div className="fixed bottom-16 left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent">
+      <div className="fixed bottom-20 left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent">
         <div className="max-w-lg mx-auto flex gap-2">
           <Button
             size="lg"
