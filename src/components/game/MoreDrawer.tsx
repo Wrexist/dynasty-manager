@@ -96,7 +96,7 @@ export function MoreDrawer() {
           <span className="text-[10px] font-medium">More</span>
         </button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="bg-card/95 backdrop-blur-xl border-border/50 rounded-t-2xl max-w-lg mx-auto pb-8 max-h-[70vh] overflow-y-auto">
+      <SheetContent side="bottom" className="bg-card/95 backdrop-blur-xl border-border/50 rounded-t-2xl max-w-lg mx-auto pb-8 max-h-[70vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
         <SheetHeader className="pb-2">
           <SheetTitle className="text-foreground font-display text-lg">Quick Access</SheetTitle>
         </SheetHeader>
