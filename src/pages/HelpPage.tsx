@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ChevronDown, ChevronUp, Search, HelpCircle } from 'lucide-react';
+import { ChevronDown, ChevronUp, Search, HelpCircle, Route, Rocket, ShieldCheck } from 'lucide-react';
+import { useGameStore } from '@/store/gameStore';
 
 interface HelpSection {
   title: string;
@@ -83,6 +84,7 @@ const HELP_SECTIONS: HelpSection[] = [
 ];
 
 const HelpPage = () => {
+  const { setScreen } = useGameStore();
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [search, setSearch] = useState('');
 
@@ -111,6 +113,33 @@ const HelpPage = () => {
           className="w-full pl-9 pr-4 py-2.5 bg-muted/30 border border-border/50 rounded-xl text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
         />
       </div>
+
+      <GlassPanel className="p-3.5 space-y-3 border-primary/20">
+        <div className="flex items-center gap-2">
+          <Route className="w-4 h-4 text-primary" />
+          <p className="text-xs font-bold text-primary uppercase tracking-wider">Quick Start Path</p>
+        </div>
+        <div className="space-y-2">
+          <button onClick={() => setScreen('squad')} className="w-full text-left rounded-lg bg-muted/25 border border-border/40 px-3 py-2 hover:bg-muted/40 transition-colors">
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5"><Rocket className="w-3.5 h-3.5 text-primary" /> 1) Set lineup first</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Auto-fill, then tweak captain and bench so you are match-ready.</p>
+          </button>
+          <button onClick={() => setScreen('training')} className="w-full text-left rounded-lg bg-muted/25 border border-border/40 px-3 py-2 hover:bg-muted/40 transition-colors">
+            <p className="text-xs font-semibold text-foreground">2) Pick training focus</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Use Fitness for busy weeks, Attacking/Defending when targeting results.</p>
+          </button>
+          <button onClick={() => setScreen('dashboard')} className="w-full text-left rounded-lg bg-muted/25 border border-border/40 px-3 py-2 hover:bg-muted/40 transition-colors">
+            <p className="text-xs font-semibold text-foreground">3) Advance week with confidence</p>
+            <p className="text-[10px] text-muted-foreground mt-0.5">Follow Manager Tips and Checklist cards on Dashboard each week.</p>
+          </button>
+        </div>
+        <div className="rounded-lg bg-emerald-500/10 border border-emerald-500/30 p-2.5 flex gap-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+          <p className="text-[11px] text-emerald-300/90 leading-relaxed">
+            Pro tip: save before deadline day and cup finals so you can review outcomes and learn faster.
+          </p>
+        </div>
+      </GlassPanel>
 
       {/* Sections */}
       <div className="space-y-1.5">

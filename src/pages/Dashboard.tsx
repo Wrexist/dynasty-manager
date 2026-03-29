@@ -47,6 +47,7 @@ import { getManagerTips } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
 import { MidSeasonReport } from '@/components/game/MidSeasonReport';
+import { buildCoachTasks } from '@/utils/gameCoach';
 
 const WELCOME_KEY = 'dynasty-welcome-shown';
 
@@ -276,6 +277,24 @@ const Dashboard = () => {
     boardConfidence, incomingOffers: incomingOffers.length,
     tacticalFamiliarity: store.training.tacticalFamiliarity,
   }) : [], [week, season, club, players, fixtures, store.transferWindowOpen, boardConfidence, incomingOffers.length, store.training.tacticalFamiliarity]);
+
+  const coachTasks = useMemo(() => {
+    if (!club) return [];
+    return buildCoachTasks({
+      club,
+      fixtures,
+      playerClubId,
+      unreadMessages: unread,
+      objectives: store.weeklyObjectives,
+      players,
+      transferWindowOpen: store.transferWindowOpen,
+      scoutAssignments: store.scouting.assignments,
+      scoutReportsCount: store.scouting.reports.length,
+      shortlistCount: store.shortlist.length,
+      week,
+    });
+  }, [club, fixtures, playerClubId, unread, store.weeklyObjectives, players, store.transferWindowOpen, store.scouting.assignments, store.scouting.reports.length, store.shortlist.length, week]);
+  const completedCoachTasks = coachTasks.filter(task => task.completed).length;
 
   // Last played match
   const lastMatchInfo = useMemo(() => {
@@ -739,6 +758,49 @@ const Dashboard = () => {
                 <span className="text-xs text-foreground flex-1">{tip.text}</span>
                 {tip.action && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
               </motion.div>
+            ))}
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Guided checklist for new careers */}
+      {!seasonOver && season <= 2 && coachTasks.length > 0 && (
+        <GlassPanel className="p-4 border-primary/20">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
+            <span className="text-[10px] text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden mb-3">
+            <div
+              className="h-full bg-primary transition-all duration-300"
+              style={{ width: `${Math.round((completedCoachTasks / coachTasks.length) * 100)}%` }}
+            />
+          </div>
+          <div className="space-y-2">
+            {coachTasks.map((task) => (
+              <button
+                key={task.id}
+                type="button"
+                disabled={!task.screen}
+                onClick={() => task.screen && setScreen(task.screen)}
+                className={cn(
+                  'w-full text-left rounded-lg px-3 py-2 border transition-colors',
+                  task.completed
+                    ? 'bg-emerald-500/10 border-emerald-500/30'
+                    : 'bg-muted/20 border-border/40 hover:bg-primary/5'
+                )}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
+                  <span className={cn(
+                    'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
+                    task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
+                  )}>
+                    {task.priority}
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
+              </button>
             ))}
           </div>
         </GlassPanel>
