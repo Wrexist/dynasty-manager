@@ -3536,6 +3536,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const { week, fixtures, clubs, players, playerClubId, tactics, training, halfTimeState, season } = state;
     if (!halfTimeState) return null;
 
+    try {
     // Find league match or cup/tournament match
     const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
     const isRealCupTie = state.currentCupTieId && state.currentCupTieId !== '__tournament__';
@@ -3578,9 +3579,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const hc = clubs[match.homeClubId];
     const ac = clubs[match.awayClubId];
     if (!hc || !ac) return null;
-    // Use current lineup (may have been changed by subs at half-time)
-    const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
-    const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
+    // Use current lineup (may have been changed by subs/rearrangement at half-time)
+    // Deduplicate lineup IDs to prevent bugs from position optimization
+    const hLineup = [...new Set(hc.lineup || [])];
+    const aLineup = [...new Set(ac.lineup || [])];
+    const hp = hLineup.map(id => players[id]).filter(Boolean);
+    const ap = aLineup.map(id => players[id]).filter(Boolean);
+    // Need minimum players to continue the match
+    if (hp.length < 7 || ap.length < 7) return null;
 
     const isPlayerHome = match.homeClubId === playerClubId;
     const homeTactics = isPlayerHome ? tactics : undefined;
@@ -3655,6 +3661,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pairFamiliarity: processed.pairFamiliarity,
     });
     return result;
+    } catch (err) {
+      console.error('[playSecondHalf] Match simulation failed:', err);
+      // Clear half-time state so the match can be cleaned up
+      set({ halfTimeState: null, matchPhase: 'none' as const });
+      return null;
+    }
   },
 
   playExtraTime: () => {

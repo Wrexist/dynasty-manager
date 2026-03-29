@@ -275,11 +275,17 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
           onClick={() => {
             setAutoFilling(true);
             hapticMedium();
-            requestAnimationFrame(() => {
+            // Run synchronously to keep state updates within React's batching
+            try {
               const optimized = optimizeStarterPositions(lineup, players, playerClub.formation);
-              updateLineup(optimized, playerClub.subs);
-              setAutoFilling(false);
-            });
+              // Validate: must be same length and contain only valid player IDs
+              if (optimized.length === lineup.length && optimized.every(id => players[id])) {
+                updateLineup(optimized, playerClub.subs);
+              }
+            } catch (err) {
+              console.error('[SubstitutionSheet] optimizeStarterPositions failed:', err);
+            }
+            setAutoFilling(false);
           }}
           disabled={autoFilling}
           className={cn(
