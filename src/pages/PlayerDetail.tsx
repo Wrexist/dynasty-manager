@@ -422,12 +422,14 @@ const PlayerDetail = () => {
           </div>
           <span className="text-sm font-bold text-primary tabular-nums w-7">{player.potential}</span>
         </div>
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="text-[10px] text-muted-foreground">Current</span>
-          <span className="text-[10px] text-muted-foreground">
-            Gap: {player.potential - player.overall > 0 ? `+${player.potential - player.overall}` : '0'}
-          </span>
-          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">Potential <InfoTip text={HELP_TEXTS.potential} /></span>
+        <div className="relative mt-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-muted-foreground">Current</span>
+            <span className="text-[10px] text-muted-foreground">
+              Gap: {player.potential - player.overall > 0 ? `+${player.potential - player.overall}` : '0'}
+            </span>
+            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">Potential <InfoTip text={HELP_TEXTS.potential} className="[&>:last-child]:absolute [&>:last-child]:left-0 [&>:last-child]:right-0 [&>:last-child]:top-full" /></span>
+          </div>
         </div>
       </GlassPanel>
 
@@ -879,7 +881,7 @@ const PlayerDetail = () => {
       {isOwnPlayer && player.contractEnd <= season + 1 && (
         <Button
           variant="outline"
-          className="w-full gap-2 border-primary/30 text-primary"
+          className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
           onClick={() => startNegotiation(player.id, true)}
         >
           <FileText className="w-4 h-4" /> Negotiate Renewal
