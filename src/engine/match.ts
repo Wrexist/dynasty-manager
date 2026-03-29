@@ -968,7 +968,14 @@ export function finalizeMatch(
 ): { result: Match; playerRatings: PlayerMatchRating[] } {
   const total = computeStrengths(homeClub, awayClub, homePlayers, awayPlayers);
   const totalStr = total.homeStr + total.awayStr;
-  const homePoss = totalStr > 0 ? Math.round((total.homeStr / totalStr) * 100) : 50;
+  // Blend strength-based possession with actual match events for realism
+  const strengthShare = totalStr > 0 ? total.homeStr / totalStr : 0.5;
+  const totalShots = state.homeShots + state.awayShots;
+  const shotShare = totalShots > 0 ? state.homeShots / totalShots : 0.5;
+  const goalDiff = state.homeGoals - state.awayGoals;
+  const resultBias = goalDiff > 0 ? 0.04 : goalDiff < 0 ? -0.04 : 0;
+  const rawPoss = strengthShare * 0.40 + shotShare * 0.40 + 0.10 + resultBias + (Math.random() - 0.5) * 0.08;
+  const homePoss = Math.round(Math.max(25, Math.min(75, rawPoss * 100)));
 
   state.events.push({ minute: 90, type: 'full_time', clubId: '', description: `— Full Time: ${homeClub.shortName} ${state.homeGoals} - ${state.awayGoals} ${awayClub.shortName} —` });
 
