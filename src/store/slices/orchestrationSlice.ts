@@ -3296,9 +3296,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const hc = clubs[match.homeClubId];
     const ac = clubs[match.awayClubId];
+    if (!hc || !ac) return null;
     const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
     const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
-      const availableSubs = club.subs.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+      const availableSubs = (club.subs || []).map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
       const ids = new Set(lineup.map(p => p.id));
       for (const sub of availableSubs) {
         if (lineup.length >= 11) break;
@@ -3306,8 +3307,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       return lineup;
     };
-    let hp = backfillFromSubs(hc.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
-    let ap = backfillFromSubs(ac.lineup.map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
+    let hp = backfillFromSubs((hc.lineup || []).map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
+    let ap = backfillFromSubs((ac.lineup || []).map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
+
+    // Need minimum players to simulate a match
+    if (hp.length < 7 || ap.length < 7) return null;
 
     // Motivator perk: boost player team morale before match
     if (hasPerk(state.managerProgression, 'motivator')) {
@@ -3324,6 +3328,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const preEntry = state.leagueTable.find(e => e.clubId === playerClubId);
     const prePos = preEntry ? state.leagueTable.indexOf(preEntry) + 1 : 10;
 
+    try {
     const matchDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
     const careerDisciplineMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
@@ -3382,6 +3387,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (get().settings.autoSave) get().saveGame();
 
     return result;
+    } catch (err) {
+      console.error('[playCurrentMatch] Match simulation failed:', err);
+      set({ matchPhase: 'none' as const });
+      return null;
+    }
   },
 
   playFirstHalf: () => {
@@ -3462,7 +3472,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (!hc || !ac) return null;
     const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
     const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
-      const availableSubs = club.subs.map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+      const availableSubs = (club.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
       const ids = new Set(lineup.map(p => p.id));
       for (const sub of availableSubs) {
         if (lineup.length >= 11) break;
@@ -3470,8 +3480,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       return lineup;
     };
-    let hp = backfillFromSubs(hc.lineup.map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
-    let ap = backfillFromSubs(ac.lineup.map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
+    let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
+    let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
+
+    // Need minimum players to simulate a match
+    if (hp.length < 7 || ap.length < 7) return null;
 
     // For ephemeral clubs: inject their players and club into state temporarily
     if (ephemeralClub) {
@@ -3564,9 +3577,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const hc = clubs[match.homeClubId];
     const ac = clubs[match.awayClubId];
+    if (!hc || !ac) return null;
     // Use current lineup (may have been changed by subs at half-time)
-    const hp = hc.lineup.map(id => players[id]).filter(Boolean);
-    const ap = ac.lineup.map(id => players[id]).filter(Boolean);
+    const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
+    const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
 
     const isPlayerHome = match.homeClubId === playerClubId;
     const homeTactics = isPlayerHome ? tactics : undefined;
@@ -3650,8 +3664,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const hc = clubs[currentMatchResult.homeClubId];
     const ac = clubs[currentMatchResult.awayClubId];
-    const hp = hc.lineup.map(id => players[id]).filter(Boolean);
-    const ap = ac.lineup.map(id => players[id]).filter(Boolean);
+    if (!hc || !ac) return null;
+    const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
+    const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
 
     const isPlayerHome = currentMatchResult.homeClubId === playerClubId;
     const homeTactics = isPlayerHome ? tactics : undefined;
@@ -3742,8 +3757,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const hc = clubs[currentMatchResult.homeClubId];
     const ac = clubs[currentMatchResult.awayClubId];
-    const hp = hc.lineup.map(id => players[id]).filter(Boolean);
-    const ap = ac.lineup.map(id => players[id]).filter(Boolean);
+    if (!hc || !ac) return null;
+    const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
+    const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
 
     // Penalty shootout
     const homeGK = hp.find(p => p.position === 'GK');

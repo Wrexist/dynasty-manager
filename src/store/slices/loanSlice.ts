@@ -30,6 +30,9 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     const toClub = state.clubs[toClubId];
     if (!fromClub || !toClub) return { success: false, message: 'Invalid club.' };
 
+    // Clamp wageSplit to valid range
+    wageSplit = Math.max(0, Math.min(100, wageSplit));
+
     const loan: LoanDeal = {
       id: crypto.randomUUID(),
       playerId,
@@ -277,6 +280,9 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         const fromClub = { ...newClubs[loan.fromClubId] };
         const toClub = { ...newClubs[loan.toClubId] };
 
+        // Notify if obligatory buy failed due to insufficient funds
+        const buyFailed = loan.obligatoryBuyFee && toClub.budget < loan.obligatoryBuyFee;
+
         toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
         toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
         toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
@@ -298,10 +304,13 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         newClubs[fromClub.id] = fromClub;
         newClubs[toClub.id] = toClub;
 
+        const returnBody = buyFailed
+          ? `${player.firstName} ${player.lastName} has returned from loan at ${toClub.name}. The obligatory buy clause (£${(loan.obligatoryBuyFee! / 1e6).toFixed(1)}M) could not be activated — ${toClub.name} lacked sufficient funds.`
+          : `${player.firstName} ${player.lastName} has returned from loan at ${toClub.name}.`;
         newMessages = addMsg(newMessages, {
           week: state.week, season: state.season, type: 'transfer',
-          title: `${player.lastName} Returns`,
-          body: `${player.firstName} ${player.lastName} has returned from loan at ${toClub.name}.`,
+          title: buyFailed ? `${player.lastName} Buy Clause Failed` : `${player.lastName} Returns`,
+          body: returnBody,
         });
       }
     }
@@ -442,6 +451,9 @@ export const createLoanSlice = (set: Set, get: Get) => ({
   requestLoan: (playerId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => {
     const state = get();
     if (!state.transferWindowOpen) return { outcome: 'rejected' as const, message: 'The transfer window is closed.' };
+
+    // Clamp wageSplit to valid range
+    wageSplit = Math.max(0, Math.min(100, wageSplit));
 
     const player = state.players[playerId];
     if (!player) return { outcome: 'rejected' as const, message: 'Player not found.' };

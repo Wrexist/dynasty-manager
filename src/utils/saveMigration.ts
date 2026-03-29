@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 32;
+const CURRENT_VERSION = 33;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -478,6 +478,20 @@ const migrations: Record<number, MigrationFn> = {
       data.careerTimeline = ct.slice(-100);
     }
     return { ...data, version: 32 };
+  },
+
+  // v32 → v33: Sanitize club objects — ensure subs, lineup, formation exist
+  32: (data) => {
+    const clubs = data.clubs as Record<string, Record<string, unknown>> | undefined;
+    if (clubs) {
+      for (const club of Object.values(clubs)) {
+        if (!Array.isArray(club.subs)) club.subs = [];
+        if (!Array.isArray(club.lineup)) club.lineup = [];
+        if (!Array.isArray(club.playerIds)) club.playerIds = [];
+        if (!club.formation) club.formation = '4-3-3';
+      }
+    }
+    return { ...data, version: 33 };
   },
 };
 
