@@ -66,7 +66,7 @@ export const VALUE_AGE_MULTIPLIERS = [
 
 // ── Board Confidence ──
 export const CONFIDENCE_WIN_CHANGE = 4;
-export const CONFIDENCE_LOSS_CHANGE = -4;
+export const CONFIDENCE_LOSS_CHANGE = -5;
 export const CONFIDENCE_DRAW_CHANGE = 0;
 export const CONFIDENCE_POSITION_BONUS = 2;
 export const CONFIDENCE_POSITION_PENALTY = -2;
@@ -74,7 +74,7 @@ export const CONFIDENCE_POSITION_PENALTY_THRESHOLD = -3;
 export const CONFIDENCE_BUDGET_PENALTY = -2;
 export const CONFIDENCE_BUDGET_THRESHOLD = -5_000_000;
 export const CONFIDENCE_WIN_STREAK_BONUS = 3;
-export const CONFIDENCE_LOSS_STREAK_PENALTY = -5;
+export const CONFIDENCE_LOSS_STREAK_PENALTY = -7;
 export const CONFIDENCE_STREAK_LENGTH = 3;
 export const CONFIDENCE_WARNING_THRESHOLD = 25;
 export const CONFIDENCE_PLEASED_THRESHOLD = 80;
@@ -119,7 +119,7 @@ export const PHYSIO_RECOVERY_BOOST_THRESHOLD = 7;
 /** Probability per week that a good physio triggers +1 recovery (instead of guaranteed) */
 export const PHYSIO_RECOVERY_CHANCE = 0.4;
 export const PHYSIO_INJURY_REDUCTION_PER_QUALITY = 0.05;
-export const ASSISTANT_MANAGER_FAMILIARITY_BOOST = 0.3;
+export const ASSISTANT_MANAGER_FAMILIARITY_BOOST = 0.5;
 
 // ── Contract Warnings ──
 export const CONTRACT_WARNING_WEEKS = [15, 25, 30, 35] as const;
@@ -186,7 +186,7 @@ export const SEASON_YOUTH_INTAKE_MIN = 2;
 export const SEASON_YOUTH_INTAKE_RANGE = 3;
 
 // ── Starting Tactical Familiarity ──
-export const STARTING_TACTICAL_FAMILIARITY = 30;
+export const STARTING_TACTICAL_FAMILIARITY = 45;
 
 // ── Max Messages ──
 export const MAX_MESSAGES = 200;
@@ -383,9 +383,9 @@ export const UNHAPPY_WEEKS_TO_REQUEST = 4;
 /** Weeks of low morale before unhappiness spreads to teammates */
 export const UNHAPPY_CONTAGION_WEEKS = 6;
 /** Performance penalty for players wanting to leave (0-1) */
-export const UNHAPPY_PERFORMANCE_PENALTY = 0.05;
+export const UNHAPPY_PERFORMANCE_PENALTY = 0.15;
 /** Morale hit to random teammates from contagion */
-export const UNHAPPY_CONTAGION_MORALE_HIT = 3;
+export const UNHAPPY_CONTAGION_MORALE_HIT = 6;
 /** Chance (0-1) that listing an unhappy player appeases them (loyalty-weighted) */
 export const APPEASE_BASE_CHANCE = 0.12;
 /** Morale boost when an unhappy player is appeased by being listed */

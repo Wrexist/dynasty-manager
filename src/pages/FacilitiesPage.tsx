@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { Dumbbell, GraduationCap, Home, Stethoscope, ArrowUp, Clock, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FACILITY_COST_PER_LEVEL, FACILITY_MAX_LEVEL } from '@/config/gameBalance';
@@ -79,12 +80,7 @@ const FacilitiesPage = () => {
             </div>
 
             {/* Upgrade Button */}
-            {level < maxLevel && confirmUpgrade === type ? (
-              <div className="flex gap-2">
-                <button onClick={() => { startUpgrade(type); setConfirmUpgrade(null); }} className="flex-1 py-2 rounded-lg text-xs font-bold bg-primary/30 text-primary">Confirm — £{(cost / 1e6).toFixed(1)}M</button>
-                <button onClick={() => setConfirmUpgrade(null)} className="px-4 py-2 rounded-lg text-xs font-semibold bg-muted/30 text-muted-foreground">Cancel</button>
-              </div>
-            ) : level < maxLevel && (
+            {level < maxLevel && (
               <div>
                 <button
                   disabled={!canUpgrade}
@@ -112,6 +108,24 @@ const FacilitiesPage = () => {
           </GlassPanel>
         );
       })}
+
+      {/* Confirm Upgrade Dialog */}
+      {(() => {
+        const info = FACILITY_INFO.find(f => f.type === confirmUpgrade);
+        const level = info ? facilities[info.key] : 0;
+        const cost = getUpgradeCost(level);
+        return (
+          <ConfirmDialog
+            open={!!confirmUpgrade}
+            onOpenChange={(open) => { if (!open) setConfirmUpgrade(null); }}
+            title={`Upgrade ${info?.label || ''}?`}
+            description={`This will cost £${(cost / 1e6).toFixed(1)}M from your budget${club ? ` (£${(club.budget / 1e6).toFixed(1)}M available)` : ''}. The upgrade will take a few weeks to complete.`}
+            confirmLabel={`Upgrade — £${(cost / 1e6).toFixed(1)}M`}
+            variant="default"
+            onConfirm={() => { if (confirmUpgrade) { startUpgrade(confirmUpgrade); setConfirmUpgrade(null); } }}
+          />
+        );
+      })()}
     </div>
   );
 };

@@ -9,6 +9,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
 import { hapticLight } from '@/utils/haptics';
+import { successToast } from '@/utils/gameToast';
 import { TRAINING_PRESETS, DRILLS_BY_MODULE, STREAK_THRESHOLDS, STREAK_MULTIPLIERS } from '@/config/training';
 import { getTrainingRecommendation, getTrainingEffectivenessPreview, getSquadFitnessDistribution, getStreakTier, getDominantTrainingFocus } from '@/utils/training';
 import { getTrainingMultiplier } from '@/utils/personality';
@@ -82,12 +83,15 @@ const TrainingPage = () => {
   const handleIntensity = (val: 'light' | 'medium' | 'heavy') => {
     hapticLight();
     updateTraining({}, val);
+    const desc = val === 'light' ? 'Lower injury risk, slower development' : val === 'heavy' ? 'Faster development, higher injury risk' : 'Balanced development and injury risk';
+    successToast(`Intensity set to ${val.charAt(0).toUpperCase() + val.slice(1)}`, desc);
   };
 
   const handlePreset = (preset: typeof TRAINING_PRESETS[number]) => {
     hapticLight();
     updateTraining(preset.schedule);
     setActiveDay('mon');
+    successToast(`${preset.label} preset applied`, 'Training schedule updated for the week.');
   };
 
   const handleSetIndividualFocus = (playerId: string, focus: TrainingModule | null) => {

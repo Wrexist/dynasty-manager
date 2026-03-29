@@ -5,7 +5,7 @@ import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
   Mail, Trophy, Target, DollarSign, Building2, Calendar, Home,
-  Settings, MoreHorizontal, ChevronRight, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase
+  Settings, MoreHorizontal, ChevronRight, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
 
@@ -65,6 +65,7 @@ const CAREER_MODE_ITEMS: DrawerItem[] = [
 
 export function MoreDrawer() {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
   const { setScreen, messages, currentScreen, cupState, gameMode } = useGameStore();
   const unread = messages.filter(m => !m.read).length;
   const hasPendingCupMatch = cupState?.bracket?.some(t => !t.played && (t.homeClubId || t.awayClubId));
@@ -76,7 +77,7 @@ export function MoreDrawer() {
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
+    <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch(''); }}>
       <SheetTrigger asChild>
         <button
           className={cn(
@@ -99,12 +100,29 @@ export function MoreDrawer() {
         <SheetHeader className="pb-2">
           <SheetTitle className="text-foreground font-display text-lg">Quick Access</SheetTitle>
         </SheetHeader>
+
+        {/* Search */}
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search screens..."
+            className="w-full pl-8 pr-3 py-2 rounded-lg bg-muted/30 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+          />
+        </div>
+
         <div className="space-y-4">
           {drawerSections.map(section => {
             // In career mode, prepend career-specific items to the Career section
-            const items = (section.title === 'Career' && gameMode === 'career')
+            const allItems = (section.title === 'Career' && gameMode === 'career')
               ? [...CAREER_MODE_ITEMS, ...section.items.filter(i => i.screen !== 'perks')]
               : section.items;
+            const items = search.trim()
+              ? allItems.filter(i => i.label.toLowerCase().includes(search.toLowerCase()) || i.description.toLowerCase().includes(search.toLowerCase()))
+              : allItems;
+            if (items.length === 0) return null;
             return (
             <div key={section.title}>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold px-3 mb-1">
