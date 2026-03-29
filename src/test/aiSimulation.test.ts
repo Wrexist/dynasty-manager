@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { processAIWeekly } from '@/utils/aiSimulation';
 import type { Club, Player, Message, TransferListing, LoanDeal, TransferNewsEntry, DivisionId, LeagueTableEntry, Position } from '@/types/game';
 
@@ -312,9 +312,11 @@ describe('AI Simulation — processAIWeekly', () => {
   // ── 2. AI Contract Renewals ──
 
   describe('AI Contract Renewals', () => {
+    afterEach(() => { vi.restoreAllMocks(); });
+
     it('AI clubs renew expiring contracts for key players', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
-      // Set a high-overall AI player's contract to expire soon (season 1, contractEnd 1 => 0 weeks until expiry)
       const targetId = world.clubs['ai-club-1'].playerIds[0];
       world.players[targetId] = {
         ...world.players[targetId],
@@ -323,24 +325,17 @@ describe('AI Simulation — processAIWeekly', () => {
         contractEnd: 1, // expires this season
       };
 
-      // Run many times to overcome randomness (AI_RENEW_CHANCE_PER_WEEK = 0.30)
-      let renewed = false;
-      for (let i = 0; i < 50; i++) {
-        const result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          10, 1, world.playerClubId, false,
-        );
-        if (result.players[targetId].contractEnd > 1) {
-          renewed = true;
-          break;
-        }
-      }
-      expect(renewed).toBe(true);
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        10, 1, world.playerClubId, false,
+      );
+      expect(result.players[targetId].contractEnd).toBeGreaterThan(1);
     });
 
     it('young players get 3-year extensions', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
       const targetId = world.clubs['ai-club-1'].playerIds[0];
       world.players[targetId] = {
@@ -350,26 +345,19 @@ describe('AI Simulation — processAIWeekly', () => {
         contractEnd: 1,
       };
 
-      // Force renewal by running many iterations
-      let contractEnd = 0;
-      for (let i = 0; i < 500; i++) {
-        const result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          10, 1, world.playerClubId, false,
-        );
-        if (result.players[targetId].contractEnd > 1) {
-          contractEnd = result.players[targetId].contractEnd;
-          break;
-        }
-      }
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        10, 1, world.playerClubId, false,
+      );
       // Young players get AI_RENEW_YEARS_YOUNG = 3 year extension
       // contractEnd = season (1) + years (3) = 4
-      expect(contractEnd).toBe(4);
+      expect(result.players[targetId].contractEnd).toBe(4);
     });
 
     it('old players (33+) do NOT get renewed unless exceptional (80+ overall)', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
       const targetId = world.clubs['ai-club-1'].playerIds[0];
       world.players[targetId] = {
@@ -379,24 +367,19 @@ describe('AI Simulation — processAIWeekly', () => {
         contractEnd: 1,
       };
 
-      // Run many times - should never renew
-      let renewed = false;
-      for (let i = 0; i < 100; i++) {
-        const result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          10, 1, world.playerClubId, false,
-        );
-        if (result.players[targetId].contractEnd > 1) {
-          renewed = true;
-          break;
-        }
-      }
-      expect(renewed).toBe(false);
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        10, 1, world.playerClubId, false,
+      );
+      // Even with random mocked to 0.05 (passing probability gate),
+      // the age/overall check prevents renewal for non-exceptional old players
+      expect(result.players[targetId].contractEnd).toBe(1);
     });
 
     it('exceptional old players (33+, 80+ overall) CAN get renewed', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
       const targetId = world.clubs['ai-club-1'].playerIds[0];
       world.players[targetId] = {
@@ -406,23 +389,17 @@ describe('AI Simulation — processAIWeekly', () => {
         contractEnd: 1,
       };
 
-      let renewed = false;
-      for (let i = 0; i < 100; i++) {
-        const result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          10, 1, world.playerClubId, false,
-        );
-        if (result.players[targetId].contractEnd > 1) {
-          renewed = true;
-          break;
-        }
-      }
-      expect(renewed).toBe(true);
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        10, 1, world.playerClubId, false,
+      );
+      expect(result.players[targetId].contractEnd).toBeGreaterThan(1);
     });
 
     it('player club contracts should NOT be touched by AI renewals', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
       // Set all player club players to have expiring contracts
       for (const pid of world.clubs[world.playerClubId].playerIds) {
@@ -445,7 +422,10 @@ describe('AI Simulation — processAIWeekly', () => {
   // ── 3. Transfer Window Behavior ──
 
   describe('Transfer Window Behavior', () => {
+    afterEach(() => { vi.restoreAllMocks(); });
+
     it('when transferWindowOpen is false, no new transfer listings are created', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
 
       // Make some AI players sell candidates (aging + declining)
@@ -465,6 +445,7 @@ describe('AI Simulation — processAIWeekly', () => {
     });
 
     it('when transferWindowOpen is true, AI clubs can list players for sale', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
 
       // Make some AI players obvious sell candidates
@@ -473,24 +454,17 @@ describe('AI Simulation — processAIWeekly', () => {
         world.players[pid] = { ...world.players[pid], age: 33, overall: 55, wantsToLeave: true } as Player;
       }
 
-      // Run multiple times to overcome randomness
-      let hasListings = false;
-      for (let i = 0; i < 500; i++) {
-        const result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          7, 1, world.playerClubId, true, // deadline week 7 increases chances
-        );
-        if (result.transferMarket.length > 0) {
-          hasListings = true;
-          break;
-        }
-      }
-      expect(hasListings).toBe(true);
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        7, 1, world.playerClubId, true, // deadline week 7 increases chances
+      );
+      expect(result.transferMarket.length).toBeGreaterThan(0);
     });
 
     it('when transferWindowOpen is false, no new loans are created', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
 
       const result = processAIWeekly(
@@ -504,6 +478,7 @@ describe('AI Simulation — processAIWeekly', () => {
     });
 
     it('free agent signings happen regardless of transfer window', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
 
       // Create a free agent that matches a need
@@ -535,28 +510,24 @@ describe('AI Simulation — processAIWeekly', () => {
       world.players[freeGk.id] = freeGk;
       world.freeAgents = [freeGk.id];
 
-      // Run many times with window CLOSED
-      let signed = false;
-      for (let i = 0; i < 100; i++) {
-        const result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          10, 1, world.playerClubId, false,
-        );
-        if (result.freeAgents.length < world.freeAgents.length) {
-          signed = true;
-          break;
-        }
-      }
-      expect(signed).toBe(true);
+      // With random mocked to 0.05, free agent signing triggers (< AI_FREE_AGENT_CHANCE = 0.10)
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        10, 1, world.playerClubId, false,
+      );
+      expect(result.freeAgents.length).toBeLessThan(world.freeAgents.length);
     });
   });
 
   // ── 4. AI Selling Logic ──
 
   describe('AI Selling Logic', () => {
+    afterEach(() => { vi.restoreAllMocks(); });
+
     it('aging players (31+) with low overall are candidates for sale', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
       const pid = world.clubs['ai-club-1'].playerIds[5]; // a CB
       world.players[pid] = {
@@ -565,44 +536,32 @@ describe('AI Simulation — processAIWeekly', () => {
         overall: 55, // well below squad average
       };
 
-      let listed = false;
-      for (let i = 0; i < 500; i++) {
-        const result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          7, 1, world.playerClubId, true, // deadline week
-        );
-        if (result.transferMarket.some(l => l.playerId === pid)) {
-          listed = true;
-          break;
-        }
-      }
-      expect(listed).toBe(true);
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        7, 1, world.playerClubId, true, // deadline week
+      );
+      expect(result.transferMarket.some(l => l.playerId === pid)).toBe(true);
     });
 
     it('players wanting to leave get listed', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
       const pid = world.clubs['ai-club-1'].playerIds[3];
       world.players[pid] = { ...world.players[pid], wantsToLeave: true } as Player;
 
-      let listed = false;
-      for (let i = 0; i < 500; i++) {
-        const result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          7, 1, world.playerClubId, true,
-        );
-        if (result.transferMarket.some(l => l.playerId === pid)) {
-          listed = true;
-          break;
-        }
-      }
-      expect(listed).toBe(true);
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        7, 1, world.playerClubId, true,
+      );
+      expect(result.transferMarket.some(l => l.playerId === pid)).toBe(true);
     });
 
     it('surplus positions (3+ at same position) trigger sales', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
 
       // Add extra ST players to ai-club-1 (already has 3 from template, let's verify)
@@ -613,27 +572,23 @@ describe('AI Simulation — processAIWeekly', () => {
       // Ensure we have 3+ STs (template already has 3)
       expect(stIds.length).toBeGreaterThanOrEqual(3);
 
-      let listedSt = false;
-      for (let i = 0; i < 500; i++) {
-        const result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          7, 1, world.playerClubId, true,
-        );
-        if (result.transferMarket.some(l => stIds.includes(l.playerId))) {
-          listedSt = true;
-          break;
-        }
-      }
-      expect(listedSt).toBe(true);
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        7, 1, world.playerClubId, true,
+      );
+      expect(result.transferMarket.some(l => stIds.includes(l.playerId))).toBe(true);
     });
   });
 
   // ── 5. AI Free Agent Signings ──
 
   describe('AI Free Agent Signings', () => {
+    afterEach(() => { vi.restoreAllMocks(); });
+
     it('AI clubs can sign free agents', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
 
       // Remove all GKs from ai-club-2 to create a critical need (GK target=2, current=0)
@@ -662,25 +617,18 @@ describe('AI Simulation — processAIWeekly', () => {
       world.players[freeGk.id] = freeGk;
       world.freeAgents = [freeGk.id];
 
-      let signed = false;
-      for (let i = 0; i < 500; i++) {
-        const result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          10, 1, world.playerClubId, false,
-        );
-        if (!result.freeAgents.includes(freeGk.id)) {
-          signed = true;
-          // Verify the player is now assigned to a club
-          expect(result.players[freeGk.id].clubId).not.toBe('');
-          break;
-        }
-      }
-      expect(signed).toBe(true);
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        10, 1, world.playerClubId, false,
+      );
+      expect(result.freeAgents).not.toContain(freeGk.id);
+      expect(result.players[freeGk.id].clubId).not.toBe('');
     });
 
     it('free agents are removed from the pool after signing', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
 
       // Remove GKs from multiple AI clubs to create demand
@@ -710,34 +658,26 @@ describe('AI Simulation — processAIWeekly', () => {
       world.players[freeGk.id] = freeGk;
       world.freeAgents = [freeGk.id];
 
-      // Run until the free agent is signed
-      let result;
-      let signed = false;
-      for (let i = 0; i < 100; i++) {
-        result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          10, 1, world.playerClubId, false,
-        );
-        if (!result.freeAgents.includes(freeGk.id)) {
-          signed = true;
-          // Only one club should have signed them
-          const signingClubs = Object.values(result.clubs).filter(c =>
-            c.playerIds.includes(freeGk.id)
-          );
-          expect(signingClubs.length).toBe(1);
-          expect(result.freeAgents).not.toContain(freeGk.id);
-          break;
-        }
-      }
-      expect(signed).toBe(true);
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        10, 1, world.playerClubId, false,
+      );
+      // Only one club should have signed them
+      const signingClubs = Object.values(result.clubs).filter(c =>
+        c.playerIds.includes(freeGk.id)
+      );
+      expect(signingClubs.length).toBe(1);
+      expect(result.freeAgents).not.toContain(freeGk.id);
     });
   });
 
   // ── 6. Return Value Integrity ──
 
   describe('Return Value Integrity', () => {
+    afterEach(() => { vi.restoreAllMocks(); });
+
     it('result always contains all required keys', () => {
       const world = createTestWorld();
 
@@ -810,6 +750,7 @@ describe('AI Simulation — processAIWeekly', () => {
     });
 
     it('no duplicate transfer listings for the same player', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
 
       // Make many candidates for listing
@@ -831,6 +772,7 @@ describe('AI Simulation — processAIWeekly', () => {
     });
 
     it('transfer market listings have valid asking prices (positive numbers)', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
       const world = createTestWorld();
 
       for (let i = 0; i < 5; i++) {
@@ -838,25 +780,18 @@ describe('AI Simulation — processAIWeekly', () => {
         world.players[pid] = { ...world.players[pid], wantsToLeave: true, value: 5_000_000 } as Player;
       }
 
-      let foundListings = false;
-      for (let i = 0; i < 500; i++) {
-        const result = processAIWeekly(
-          world.clubs, world.players, world.messages,
-          world.transferMarket, world.freeAgents, world.activeLoans,
-          world.transferNews, world.divisionTables,
-          7, 1, world.playerClubId, true,
-        );
-        if (result.transferMarket.length > 0) {
-          foundListings = true;
-          for (const listing of result.transferMarket) {
-            expect(listing.askingPrice).toBeGreaterThan(0);
-            expect(listing.sellerClubId).toBeTruthy();
-            expect(listing.playerId).toBeTruthy();
-          }
-          break;
-        }
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        7, 1, world.playerClubId, true,
+      );
+      expect(result.transferMarket.length).toBeGreaterThan(0);
+      for (const listing of result.transferMarket) {
+        expect(listing.askingPrice).toBeGreaterThan(0);
+        expect(listing.sellerClubId).toBeTruthy();
+        expect(listing.playerId).toBeTruthy();
       }
-      expect(foundListings).toBe(true);
     });
 
     it('does not mutate input objects', () => {
@@ -874,6 +809,99 @@ describe('AI Simulation — processAIWeekly', () => {
       // Original input should be unchanged
       expect(world.clubs['ai-club-1'].budget).toBe(originalClubBudget);
       expect(world.clubs['ai-club-1'].playerIds).toEqual(originalPlayerIds);
+    });
+  });
+
+  // ── 7. Edge Cases & Constraints ──
+
+  describe('Edge Cases & Constraints', () => {
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    it('wage crisis increases listing activity', () => {
+      // Mock random to 0.15: this is above AI_SELL_LISTING_CHANCE (0.12) so normal
+      // clubs skip listing, but below crisis chance (0.12 * 3 = 0.36) so crisis clubs list.
+      // Use a non-deadline week so the deadline bypass doesn't interfere.
+      vi.spyOn(Math, 'random').mockReturnValue(0.15);
+      const world = createTestWorld();
+
+      // Create a wage-crisis club (ai-club-1) where wageBill > 90% of weekly income
+      world.clubs['ai-club-1'] = {
+        ...world.clubs['ai-club-1'],
+        wageBill: 5_000_000, // extremely high wage bill to exceed 90% of income
+      };
+
+      // Make sell candidates in both clubs (wantsToLeave players)
+      for (let i = 0; i < 5; i++) {
+        const pid1 = world.clubs['ai-club-1'].playerIds[i];
+        world.players[pid1] = { ...world.players[pid1], wantsToLeave: true } as Player;
+        const pid2 = world.clubs['ai-club-2'].playerIds[i];
+        world.players[pid2] = { ...world.players[pid2], wantsToLeave: true } as Player;
+      }
+
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        10, 1, world.playerClubId, true, // non-deadline week
+      );
+
+      const crisisListings = result.transferMarket.filter(l => l.sellerClubId === 'ai-club-1');
+      const normalListings = result.transferMarket.filter(l => l.sellerClubId === 'ai-club-2');
+      // Wage crisis club should list more players (3x AI_SELL_LISTING_CHANCE)
+      expect(crisisListings.length).toBeGreaterThan(normalListings.length);
+    });
+
+    it('transfer cap enforced (max 3 per week)', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
+      const world = createTestWorld();
+
+      // Make many sell candidates across all AI clubs
+      for (const clubId of ['ai-club-1', 'ai-club-2', 'ai-club-3']) {
+        for (let i = 0; i < 8; i++) {
+          const pid = world.clubs[clubId].playerIds[i];
+          world.players[pid] = { ...world.players[pid], wantsToLeave: true, value: 1_000_000 } as Player;
+        }
+      }
+
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        7, 1, world.playerClubId, true,
+      );
+
+      // Count completed transfers (players whose clubId changed from their original club)
+      const completedTransfers = result.transferNews.filter(n => n.type === 'transfer').length;
+      // AI_TRANSFER_MAX_PER_WEEK = 3
+      expect(completedTransfers).toBeLessThanOrEqual(3);
+    });
+
+    it('player attributes not corrupted', () => {
+      vi.spyOn(Math, 'random').mockReturnValue(0.05);
+      const world = createTestWorld();
+
+      const result = processAIWeekly(
+        world.clubs, world.players, world.messages,
+        world.transferMarket, world.freeAgents, world.activeLoans,
+        world.transferNews, world.divisionTables,
+        7, 1, world.playerClubId, true,
+      );
+
+      // Verify all players still have valid attributes after AI processing
+      for (const player of Object.values(result.players)) {
+        expect(player.overall).toBeGreaterThan(0);
+        expect(player.age).toBeGreaterThan(0);
+        expect(Number.isNaN(player.overall)).toBe(false);
+        expect(Number.isNaN(player.age)).toBe(false);
+        expect(Number.isNaN(player.wage)).toBe(false);
+        expect(Number.isNaN(player.value)).toBe(false);
+        // Verify attributes object is intact
+        expect(player.attributes).toBeDefined();
+        for (const val of Object.values(player.attributes)) {
+          expect(Number.isNaN(val as number)).toBe(false);
+          expect(val).toBeGreaterThan(0);
+        }
+      }
     });
   });
 });

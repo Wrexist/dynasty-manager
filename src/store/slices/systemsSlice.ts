@@ -112,6 +112,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
 
   boostScoutReports: () => {
     const state = get();
+    if (state.scouting.reports.length === 0) return;
     const boostedReports = state.scouting.reports.map(r => ({
       ...r,
       knowledgeLevel: Math.min(100, r.knowledgeLevel + 30),

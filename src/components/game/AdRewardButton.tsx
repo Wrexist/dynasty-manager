@@ -26,9 +26,24 @@ export function AdRewardButton({ rewardType, onRewardClaimed, className, compact
   const userIsPro = isPro(monetization);
   const canClaim = canClaimAdReward(monetization, rewardType, season);
 
-  if (!canClaim) return null;
-
   const reward = AD_REWARDS[rewardType];
+
+  if (!canClaim) {
+    if (compact) return null;
+    return (
+      <div className={cn('bg-card/40 border border-border/30 rounded-xl p-3 opacity-50', className)}>
+        <div className="flex items-center justify-between">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-muted-foreground">{reward.label}</p>
+            <p className="text-[10px] text-muted-foreground/60">Limit reached this season</p>
+          </div>
+          <span className="text-[10px] text-muted-foreground/60 px-3 py-1.5 rounded-lg bg-muted/30 shrink-0 ml-3">
+            Claimed
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   const handleClaim = () => {
     hapticLight();

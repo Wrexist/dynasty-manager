@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { useGameStore } from '@/store/gameStore';
 import {
   getSponsorById,
   isSlotUnlocked,
@@ -19,6 +20,7 @@ import {
   SPONSOR_OFFER_EXPIRY,
   SPONSOR_SAT_BONUS_MET,
   SPONSOR_SAT_REP_DOWN,
+  SPONSOR_SLOT_COOLDOWN,
 } from '@/config/sponsorship';
 import {
   processSponsorWeek,
@@ -708,5 +710,148 @@ describe('generateStarterDeals', () => {
       expect(deal.buyoutCost).toBeGreaterThan(0);
       expect(deal.seasonDuration).toBeGreaterThanOrEqual(1);
     }
+  });
+});
+
+// ── Store Actions ──
+
+describe('sponsor store actions', () => {
+  const CLUB_ID = 'test-club';
+
+  function seedStore(overrides: Record<string, any> = {}) {
+    useGameStore.setState({
+      ...useGameStore.getState(),
+      week: 5,
+      season: 1,
+      playerClubId: CLUB_ID,
+      sponsorDeals: [],
+      sponsorOffers: [],
+      sponsorSlotCooldowns: {},
+      facilities: makeFacilities(),
+      clubs: {
+        [CLUB_ID]: {
+          id: CLUB_ID,
+          name: 'Test FC',
+          reputation: 3,
+          budget: 1_000_000,
+          playerIds: [],
+          lineup: [],
+          subs: [],
+          wageBill: 0,
+        } as any,
+      },
+      messages: [],
+      ...overrides,
+    });
+  }
+
+  describe('acceptSponsorOffer', () => {
+    beforeEach(() => seedStore());
+
+    it('accepts a valid offer: creates deal, removes offer, adds message', () => {
+      const offer = makeOffer({ id: 'o1', slotId: 'digital', expiresWeek: 10 });
+      seedStore({ sponsorOffers: [offer] });
+
+      useGameStore.getState().acceptSponsorOffer('o1');
+      const state = useGameStore.getState();
+
+      expect(state.sponsorDeals).toHaveLength(1);
+      expect(state.sponsorDeals[0].slotId).toBe('digital');
+      expect(state.sponsorDeals[0].weeklyPayment).toBe(offer.weeklyPayment);
+      expect(state.sponsorDeals[0].satisfaction).toBe(SPONSOR_SATISFACTION_START);
+      expect(state.sponsorDeals[0].bonusMet).toBe(false);
+      expect(state.sponsorOffers).toHaveLength(0);
+      expect(state.messages.some(m => m.title === 'Sponsorship Deal Signed')).toBe(true);
+    });
+
+    it('rejects an expired offer (expiresWeek <= week)', () => {
+      const offer = makeOffer({ id: 'o2', expiresWeek: 5 }); // week is 5, so expired
+      seedStore({ sponsorOffers: [offer] });
+
+      useGameStore.getState().acceptSponsorOffer('o2');
+      const state = useGameStore.getState();
+
+      expect(state.sponsorDeals).toHaveLength(0);
+      expect(state.sponsorOffers).toHaveLength(1); // offer not removed
+    });
+
+    it('rejects when slot is already occupied by an existing deal', () => {
+      const existingDeal = makeDeal({ slotId: 'digital' });
+      const offer = makeOffer({ id: 'o3', slotId: 'digital', expiresWeek: 10 });
+      seedStore({ sponsorDeals: [existingDeal], sponsorOffers: [offer] });
+
+      useGameStore.getState().acceptSponsorOffer('o3');
+      const state = useGameStore.getState();
+
+      expect(state.sponsorDeals).toHaveLength(1); // still just the original
+      expect(state.sponsorOffers).toHaveLength(1); // offer not removed
+    });
+
+    it('rejects when slot is not unlocked (facility level too low)', () => {
+      // kit_sleeve requires stadium level 3, but we have level 1
+      const offer = makeOffer({ id: 'o4', slotId: 'kit_sleeve', expiresWeek: 10 });
+      seedStore({ sponsorOffers: [offer], facilities: makeFacilities({ stadiumLevel: 1 }) });
+
+      useGameStore.getState().acceptSponsorOffer('o4');
+      const state = useGameStore.getState();
+
+      expect(state.sponsorDeals).toHaveLength(0);
+      expect(state.sponsorOffers).toHaveLength(1);
+    });
+
+    it('rejects when slot is on cooldown', () => {
+      const offer = makeOffer({ id: 'o5', slotId: 'digital', expiresWeek: 10 });
+      seedStore({
+        sponsorOffers: [offer],
+        sponsorSlotCooldowns: { digital: 8 }, // cooldown until week 8, current week is 5
+      });
+
+      useGameStore.getState().acceptSponsorOffer('o5');
+      const state = useGameStore.getState();
+
+      expect(state.sponsorDeals).toHaveLength(0);
+      expect(state.sponsorOffers).toHaveLength(1);
+    });
+  });
+
+  describe('rejectSponsorOffer', () => {
+    it('removes offer from sponsorOffers', () => {
+      const offer1 = makeOffer({ id: 'r1' });
+      const offer2 = makeOffer({ id: 'r2', sponsorId: 'daves_motors' });
+      seedStore({ sponsorOffers: [offer1, offer2] });
+
+      useGameStore.getState().rejectSponsorOffer('r1');
+      const state = useGameStore.getState();
+
+      expect(state.sponsorOffers).toHaveLength(1);
+      expect(state.sponsorOffers[0].id).toBe('r2');
+    });
+  });
+
+  describe('terminateSponsorDeal', () => {
+    it('removes deal, deducts buyout, sets cooldown, adds message', () => {
+      const deal = makeDeal({ id: 'td1', slotId: 'kit_main', buyoutCost: 40_000 });
+      seedStore({ sponsorDeals: [deal] });
+
+      useGameStore.getState().terminateSponsorDeal('td1');
+      const state = useGameStore.getState();
+
+      expect(state.sponsorDeals).toHaveLength(0);
+      expect(state.clubs[CLUB_ID].budget).toBe(1_000_000 - 40_000);
+      expect(state.sponsorSlotCooldowns['kit_main']).toBe(5 + SPONSOR_SLOT_COOLDOWN);
+      expect(state.messages.some(m => m.title === 'Sponsorship Terminated')).toBe(true);
+    });
+
+    it('does nothing for an invalid dealId', () => {
+      const deal = makeDeal({ id: 'td2' });
+      seedStore({ sponsorDeals: [deal] });
+
+      useGameStore.getState().terminateSponsorDeal('nonexistent');
+      const state = useGameStore.getState();
+
+      expect(state.sponsorDeals).toHaveLength(1);
+      expect(state.clubs[CLUB_ID].budget).toBe(1_000_000);
+      expect(state.messages).toHaveLength(0);
+    });
   });
 });

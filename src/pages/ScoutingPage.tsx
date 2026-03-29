@@ -12,6 +12,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { formatMoney } from '@/utils/helpers';
 import { SCOUTING_COST_PER_ASSIGNMENT } from '@/config/gameBalance';
+import { successToast } from '@/utils/gameToast';
 
 const MARKET_SUB_NAV = [
   { screen: 'transfers' as const, label: 'Transfers' },
@@ -101,7 +102,7 @@ const ScoutingPage = () => {
         )}
 
         {/* Ad Reward: Reveal Potential */}
-        <AdRewardButton rewardType="scout_potential" onRewardClaimed={() => { useGameStore.getState().boostScoutReports(); }} />
+        <AdRewardButton rewardType="scout_potential" onRewardClaimed={() => { useGameStore.getState().boostScoutReports(); successToast('Scout Intel Boosted', 'Knowledge increased on all current reports'); }} />
 
         {/* Scout Reports */}
         {scouting.reports.length === 0 && scouting.assignments.length > 0 && (

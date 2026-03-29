@@ -8,6 +8,7 @@ import { getRatingBadgeClasses, getPotentialInfo } from '@/utils/uiHelpers';
 import { PAGE_HINTS } from '@/config/ui';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { PageHint } from '@/components/game/PageHint';
+import { successToast } from '@/utils/gameToast';
 
 const SQUAD_SUB_NAV = [
   { screen: 'squad' as const, label: 'Squad' },
@@ -129,7 +130,7 @@ const YouthAcademy = () => {
         )}
 
         {/* Ad Reward: Youth Preview */}
-        <AdRewardButton rewardType="youth_preview" onRewardClaimed={() => setYouthPreviewEnhanced(true)} />
+        <AdRewardButton rewardType="youth_preview" onRewardClaimed={() => { setYouthPreviewEnhanced(true); successToast('Youth Intel Unlocked', 'Potential ratings now visible in preview'); }} />
 
         {/* Next Intake */}
         {youthAcademy.nextIntakePreview.length > 0 && (

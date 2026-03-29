@@ -5,8 +5,7 @@ import { DollarSign, TrendingUp, TrendingDown, Users, ArrowUpRight, ArrowDownRig
 import { cn } from '@/lib/utils';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
-import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
-import { MATCHDAY_INCOME_PER_FAN, COMMERCIAL_INCOME_PER_REP, COMMERCIAL_INCOME_BASE } from '@/config/gameBalance';
+import { getFinanceBreakdown } from '@/utils/financeHelpers';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { SponsorshipPanel } from '@/components/game/SponsorshipPanel';
@@ -14,15 +13,22 @@ import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
 
 const FinancePage = () => {
-  const { clubs, playerClubId, players, financeHistory } = useGameStore();
+  const { clubs, playerClubId, players, financeHistory, facilities, staff, scouting, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, playerDivision } = useGameStore();
   const club = clubs[playerClubId];
   const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
   const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');
   const budgetFlash = useFlash(club?.budget || 0);
   if (!club) return null;
 
-  const weeklyIncome = getWeeklyIncome(club);
-  const netPerWeek = getNetWeeklyIncome(club);
+  const breakdown = getFinanceBreakdown({
+    club, facilities, staffMembers: staff.members,
+    scoutingAssignmentCount: scouting.assignments.length,
+    fanMood, leagueTable, managerProgression,
+    sponsorDeals: sponsorDeals || [], merchandise, players, division: playerDivision,
+  });
+  const weeklyIncome = breakdown.totalIncome;
+  const totalExpenses = breakdown.totalExpenses;
+  const netPerWeek = breakdown.net;
   const isPositive = netPerWeek >= 0;
 
   // Top wage earners
@@ -33,8 +39,6 @@ const FinancePage = () => {
   const topEarners = squadPlayers.slice(0, 5);
   const maxWage = topEarners[0]?.wage || 1;
 
-  // Squad cost breakdown
-  const totalWages = club.wageBill;
   const squadValue = squadPlayers.reduce((sum, p) => sum + p.value, 0);
 
   // Chart data — last 20 weeks
@@ -115,14 +119,12 @@ const FinancePage = () => {
           </div>
           <p className="text-lg font-bold text-emerald-400 tabular-nums">£{(weeklyIncome / 1000).toFixed(0)}K</p>
           <div className="mt-2 space-y-1">
-            <div className="flex justify-between text-[10px]">
-              <span className="text-muted-foreground">Matchday</span>
-              <span className="text-foreground">£{(club.fanBase * MATCHDAY_INCOME_PER_FAN / 1000).toFixed(0)}K</span>
-            </div>
-            <div className="flex justify-between text-[10px]">
-              <span className="text-muted-foreground">Commercial</span>
-              <span className="text-foreground">£{((COMMERCIAL_INCOME_BASE + club.reputation * COMMERCIAL_INCOME_PER_REP) / 1000).toFixed(0)}K</span>
-            </div>
+            {breakdown.income.filter(i => i.amount > 0).slice(0, 3).map(item => (
+              <div key={item.label} className="flex justify-between text-[10px]">
+                <span className="text-muted-foreground">{item.label}</span>
+                <span className="text-foreground">£{(item.amount / 1000).toFixed(0)}K</span>
+              </div>
+            ))}
           </div>
         </GlassPanel>
         <GlassPanel className="p-3 cursor-pointer" onClick={() => { setFinanceSheetMode('expenses'); setFinanceSheetOpen(true); }}>
@@ -130,12 +132,14 @@ const FinancePage = () => {
             <ArrowDownRight className="w-3.5 h-3.5 text-destructive" />
             <span className="text-xs text-muted-foreground">Weekly Expenses</span>
           </div>
-          <p className="text-lg font-bold text-destructive tabular-nums">£{(club.wageBill / 1000).toFixed(0)}K</p>
+          <p className="text-lg font-bold text-destructive tabular-nums">£{(totalExpenses / 1000).toFixed(0)}K</p>
           <div className="mt-2 space-y-1">
-            <div className="flex justify-between text-[10px]">
-              <span className="text-muted-foreground">Player Wages</span>
-              <span className="text-foreground">£{(totalWages / 1000).toFixed(0)}K</span>
-            </div>
+            {breakdown.expenses.filter(e => e.amount > 0).slice(0, 3).map(item => (
+              <div key={item.label} className="flex justify-between text-[10px]">
+                <span className="text-muted-foreground">{item.label}</span>
+                <span className="text-foreground">£{(item.amount / 1000).toFixed(0)}K</span>
+              </div>
+            ))}
           </div>
         </GlassPanel>
       </div>
