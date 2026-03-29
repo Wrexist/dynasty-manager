@@ -352,7 +352,19 @@ export function optimizeStarterPositions(
   }
 
   // Build result: maintain original IDs for any unassigned slots
-  return assigned.map((p, i) => p?.id || starterIds[i]);
+  const result = assigned.map((p, i) => p?.id || starterIds[i]);
+
+  // Safety: ensure no duplicate IDs (which would break lineup rendering)
+  const seen = new Set<string>();
+  for (let i = 0; i < result.length; i++) {
+    if (seen.has(result[i])) {
+      // Duplicate detected — fall back to original lineup
+      return starterIds;
+    }
+    seen.add(result[i]);
+  }
+
+  return result;
 }
 
 /**

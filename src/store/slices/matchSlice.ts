@@ -28,19 +28,26 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     if (inPlayer.suspendedUntilWeek != null && inPlayer.suspendedUntilWeek > state.week) return;
     club.lineup = [...club.lineup.map(id => id === outId ? inId : id)];
     club.subs = [...club.subs.filter(id => id !== inId), outId];
+    const outPlayer = state.players[outId];
+    const subEvent = {
+      minute: 45,
+      type: 'substitution' as const,
+      playerId: inId,
+      assistPlayerId: outId,
+      clubId: state.playerClubId,
+      description: `${inPlayer.name} replaces ${outPlayer?.name || 'Unknown'}`,
+    };
     const updates: Partial<GameState> = { clubs: { ...state.clubs, [club.id]: club }, matchSubsUsed: state.matchSubsUsed + 1 };
     if (state.currentMatchResult) {
-      const outPlayer = state.players[outId];
       updates.currentMatchResult = {
         ...state.currentMatchResult,
-        events: [...state.currentMatchResult.events, {
-          minute: 0,
-          type: 'substitution' as const,
-          playerId: inId,
-          assistPlayerId: outId,
-          clubId: state.playerClubId,
-          description: `${inPlayer.name} replaces ${outPlayer?.name || 'Unknown'}`,
-        }],
+        events: [...state.currentMatchResult.events, subEvent],
+      };
+    } else if (state.halfTimeState) {
+      // At half-time: record sub event in halfTimeState so it carries into the second half
+      updates.halfTimeState = {
+        ...state.halfTimeState,
+        events: [...state.halfTimeState.events, subEvent],
       };
     }
     set(updates);

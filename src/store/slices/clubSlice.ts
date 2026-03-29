@@ -37,8 +37,9 @@ export const createClubSlice = (set: Set, get: Get) => ({
   updateLineup: (lineup: string[], subs: string[]) => {
     const state = get();
     const club = { ...state.clubs[state.playerClubId] };
-    club.lineup = lineup;
-    club.subs = subs;
+    // Defensive copy to prevent external mutation of state arrays
+    club.lineup = [...lineup];
+    club.subs = [...subs];
     set({ clubs: { ...state.clubs, [club.id]: club } });
   },
 

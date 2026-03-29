@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubstitutionSheet } from '@/components/game/SubstitutionSheet';
@@ -169,16 +169,28 @@ const MatchDay = () => {
     setPaused(false);
   };
 
+  const resumingRef = useRef(false);
   const resumeSecondHalf = () => {
-    // Simulate second half with potentially updated lineup/tactics
-    const result = playSecondHalf();
-    if (!result) return;
-    setAllEvents(result.events);
-    setPhase('second_half');
-    // Continue from minute 46
-    currentMinRef.current = 45;
-    setCurrentMin(45);
-    setPaused(false);
+    // Guard against double-tap
+    if (resumingRef.current) return;
+    resumingRef.current = true;
+    try {
+      // Simulate second half with potentially updated lineup/tactics
+      const result = playSecondHalf();
+      if (!result) { resumingRef.current = false; return; }
+      // Pre-populate visibleEvents with first-half events to avoid stale references
+      const firstHalfEvents = result.events.filter((e: MatchEvent) => e.minute <= 45);
+      setVisibleEvents(firstHalfEvents);
+      setAllEvents(result.events);
+      setPhase('second_half');
+      // Continue from minute 46
+      currentMinRef.current = 45;
+      setCurrentMin(45);
+      setPaused(false);
+    } catch (err) {
+      console.error('[resumeSecondHalf] Failed:', err);
+      resumingRef.current = false;
+    }
   };
 
   const resumeExtraTime = () => {
@@ -397,6 +409,12 @@ const MatchDay = () => {
     setKeyMoment(null);
     // Resume will happen via useEffect since keyMoment becomes null
   };
+
+  // Memoize injured player IDs to avoid creating new array references on every render
+  const injuredPlayerIds = useMemo(
+    () => visibleEvents.filter(e => e.type === 'injury' && e.clubId === playerClubId && e.playerId).map(e => e.playerId!),
+    [visibleEvents, playerClubId]
+  );
 
   // Auto-open substitution sheet when an injury key moment fires
   useEffect(() => {
@@ -845,7 +863,7 @@ const MatchDay = () => {
           setSubSheetOpen(false);
           dismissKeyMoment();
         }}
-        injuredPlayerIds={visibleEvents.filter(e => e.type === 'injury' && e.clubId === playerClubId && e.playerId).map(e => e.playerId!)}
+        injuredPlayerIds={injuredPlayerIds}
         playerGoals={playerClubId === match?.homeClubId ? homeGoals : awayGoals}
         opponentGoals={playerClubId === match?.homeClubId ? awayGoals : homeGoals}
         matchMinute={currentMin}
