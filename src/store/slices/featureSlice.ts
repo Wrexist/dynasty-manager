@@ -252,23 +252,24 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   respondToTransferTalk: (optionIndex: number) => {
     const state = get();
     const talk = state.pendingTransferTalk;
-    if (!talk || !talk.options[optionIndex]) return;
+    if (!talk || !talk.options[optionIndex]) return null;
 
     const option = talk.options[optionIndex];
     const player = state.players[talk.playerId];
-    if (!player) { set({ pendingTransferTalk: null }); return; }
+    if (!player) { set({ pendingTransferTalk: null }); return null; }
 
     const newPlayers = { ...state.players };
     const club = state.clubs[state.playerClubId];
     let msgTitle = '';
     let msgBody = '';
+    let succeeded: boolean | undefined;
 
     if (option.tone === 'empathize') {
       newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + (option.effects.morale || 0), 10, 100), listedForSale: true };
       msgTitle = `${player.lastName}: Transfer Listed`;
       msgBody = `You listened to ${player.firstName} ${player.lastName}'s concerns and agreed to list them for sale.`;
     } else if (option.tone === 'convince') {
-      const succeeded = Math.random() < (option.effects.withdrawChance || 0);
+      succeeded = Math.random() < (option.effects.withdrawChance || 0);
       if (succeeded) {
         newPlayers[talk.playerId] = { ...player, wantsToLeave: false, morale: clamp(player.morale + TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, 10, 100), lowMoraleWeeks: 0 };
         msgTitle = `${player.lastName} Convinced to Stay!`;
@@ -302,27 +303,30 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     });
 
     set({ pendingTransferTalk: null, players: newPlayers, messages: newMessages });
+    return { tone: option.tone, succeeded, playerName: talk.playerName, msgTitle, msgBody };
   },
 
   dismissTransferTalk: () => {
     // Dismissing defaults to empathize — list for sale with small morale boost
     const state = get();
     const talk = state.pendingTransferTalk;
-    if (!talk) { set({ pendingTransferTalk: null }); return; }
+    if (!talk) { set({ pendingTransferTalk: null }); return null; }
     const player = state.players[talk.playerId];
-    if (!player) { set({ pendingTransferTalk: null }); return; }
+    if (!player) { set({ pendingTransferTalk: null }); return null; }
 
     const newPlayers = { ...state.players };
     newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, 10, 100), listedForSale: true };
 
+    const msgTitle = `${player.lastName}: Transfer Listed`;
+    const msgBody = `${player.firstName} ${player.lastName} has been listed for sale after requesting a transfer.`;
+
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
-      title: `${player.lastName}: Transfer Listed`,
-      body: `${player.firstName} ${player.lastName} has been listed for sale after requesting a transfer.`,
-      playerId: talk.playerId,
+      title: msgTitle, body: msgBody, playerId: talk.playerId,
     });
 
     set({ pendingTransferTalk: null, players: newPlayers, messages: newMessages });
+    return { playerName: talk.playerName, msgTitle, msgBody };
   },
 
   // ── Challenge Mode Actions ──

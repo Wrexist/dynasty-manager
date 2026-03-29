@@ -3,7 +3,8 @@ import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { X, ArrowLeftRight, MessageCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { hapticMedium } from '@/utils/haptics';
+import { hapticMedium, hapticHeavy } from '@/utils/haptics';
+import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 
 export function PlayerTransferTalk() {
   const { pendingTransferTalk, respondToTransferTalk, dismissTransferTalk, players } = useGameStore();
@@ -15,6 +16,34 @@ export function PlayerTransferTalk() {
   if (!pendingTransferTalk) return null;
 
   const player = players[pendingTransferTalk.playerId];
+
+  const handleResponse = (index: number) => {
+    hapticMedium();
+    const result = respondToTransferTalk(index);
+    if (!result) return;
+
+    if (result.tone === 'convince') {
+      if (result.succeeded) {
+        hapticHeavy();
+        successToast(result.msgTitle, result.msgBody);
+      } else {
+        errorToast(result.msgTitle, result.msgBody);
+      }
+    } else if (result.tone === 'promise') {
+      successToast(result.msgTitle, result.msgBody);
+    } else if (result.tone === 'refuse') {
+      errorToast(result.msgTitle, result.msgBody);
+    } else {
+      infoToast(result.msgTitle, result.msgBody);
+    }
+  };
+
+  const handleDismiss = () => {
+    const result = dismissTransferTalk();
+    if (result) {
+      infoToast(result.msgTitle, result.msgBody);
+    }
+  };
 
   return (
     <motion.div
@@ -35,7 +64,7 @@ export function PlayerTransferTalk() {
           </div>
         </div>
         <button
-          onClick={dismissTransferTalk}
+          onClick={handleDismiss}
           className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
           title="Dismiss"
         >
@@ -81,7 +110,7 @@ export function PlayerTransferTalk() {
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 + index * 0.05, duration: 0.2 }}
-            onClick={() => respondToTransferTalk(index)}
+            onClick={() => handleResponse(index)}
             className={cn(
               'w-full text-left p-3 rounded-lg border transition-all active:scale-[0.98]',
               option.tone === 'refuse'
@@ -101,7 +130,7 @@ export function PlayerTransferTalk() {
                 {option.effects.morale && option.effects.morale < 0 && <span className="text-[9px] text-destructive">Morale {option.effects.morale}</span>}
                 {option.effects.teamMorale && option.effects.teamMorale < 0 && <span className="text-[9px] text-destructive">Team {option.effects.teamMorale}</span>}
                 {option.effects.listForSale && <span className="text-[9px] text-amber-400">Lists player</span>}
-                {option.effects.withdrawChance && <span className="text-[9px] text-emerald-400">May convince</span>}
+                {option.effects.withdrawChance && <span className="text-[9px] text-emerald-400 font-bold">{Math.round(option.effects.withdrawChance * 100)}% chance</span>}
               </div>
             </div>
           </motion.button>

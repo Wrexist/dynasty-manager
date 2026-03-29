@@ -253,8 +253,8 @@ export interface GameState {
   dismissStoryline: () => void;
 
   // Actions — Transfer Talk
-  respondToTransferTalk: (optionIndex: number) => void;
-  dismissTransferTalk: () => void;
+  respondToTransferTalk: (optionIndex: number) => { tone: string; succeeded?: boolean; playerName: string; msgTitle: string; msgBody: string } | null;
+  dismissTransferTalk: () => { playerName: string; msgTitle: string; msgBody: string } | null;
   openTransferTalk: (playerId: string) => void;
 
   // Actions — Contract Negotiation
