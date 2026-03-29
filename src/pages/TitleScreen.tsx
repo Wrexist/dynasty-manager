@@ -145,7 +145,7 @@ const TitleScreen = () => {
         </motion.div>
         <h1 className="text-5xl font-black text-foreground tracking-tight font-display">DYNASTY</h1>
         <p className="text-xl text-primary font-bold tracking-[0.35em] mt-1 font-display">MANAGER</p>
-        <p className="text-xs text-muted-foreground mt-3 tracking-wider uppercase">Football Edition</p>
+        <p className="text-sm text-muted-foreground mt-3 tracking-[0.35em] uppercase font-display">Football Edition</p>
       </motion.div>
 
       {/* Save Slots */}
