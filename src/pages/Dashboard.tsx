@@ -123,7 +123,7 @@ const Dashboard = () => {
     // Clear pending from store immediately so remounting the Dashboard
     // (e.g. navigating away and back) won't re-trigger the same popup
     store.clearPendingAchievements();
-  }, [store.pendingAchievementIds]);
+  }, [store, store.pendingAchievementIds]);
 
   const dismissAchievement = () => {
     const remaining = pendingAchievementQueue.slice(1);

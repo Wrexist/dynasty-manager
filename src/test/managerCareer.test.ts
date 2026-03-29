@@ -13,11 +13,9 @@ import {
 } from '@/utils/managerCareer';
 import {
   STAT_MIN, STAT_MAX,
-  REP_TIER_THRESHOLDS,
   DEFAULT_RETIREMENT_AGE,
   LEGENDARY_RETIREMENT_EXTENSION,
 } from '@/config/managerCareer';
-import type { CareerManager } from '@/types/game';
 
 describe('Manager Career Mode', () => {
   describe('createDefaultManager', () => {

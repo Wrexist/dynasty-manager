@@ -35,10 +35,16 @@ export const PlayerAvatar = memo(function PlayerAvatar({
   appearance,
 }: PlayerAvatarProps) {
   const app = appearance || generateAppearanceFromId(playerId);
+  const seed = hashString(playerId);
 
   const skinTone = PLAYER_SKIN_TONES[ci(app.skinTone, PLAYER_SKIN_TONES)];
   const hairColor = PLAYER_HAIR_COLORS[ci(app.hairColor, PLAYER_HAIR_COLORS)];
   const hairStyle = PLAYER_HAIR_STYLES[ci(app.hairStyle, PLAYER_HAIR_STYLES)];
+  const jerseyShade = darken(jerseyColor, 0.17);
+  const jerseyLight = lighten(jerseyColor, 0.16);
+  const sleeveTrim = lighten(jerseyColor, 0.26);
+  const hasHeadband = (seed & 1) === 0;
+  const mouthCurve = ((seed >> 2) % 3) - 1; // -1 neutral+, 0 neutral, 1 smile
 
   // Height/build affect proportions subtly
   const heightMod = app.height === 0 ? 0.92 : app.height === 2 ? 1.08 : 1;
@@ -51,12 +57,27 @@ export const PlayerAvatar = memo(function PlayerAvatar({
   const bodyH = s * 0.28 * heightMod;
   const bodyY = s * 0.44;
   const headCY = s * 0.28;
+  const gradId = `pa-${playerId.replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
   // Skin shadow (slightly darker)
   const skinShadow = darken(skinTone, 0.12);
 
   return (
     <g className={isAway ? undefined : 'player-avatar-idle'}>
+      <defs>
+        <linearGradient id={`${gradId}-jersey`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={jerseyLight} />
+          <stop offset="100%" stopColor={jerseyShade} />
+        </linearGradient>
+        <radialGradient id={`${gradId}-skin`} cx="40%" cy="30%" r="65%">
+          <stop offset="0%" stopColor={lighten(skinTone, 0.1)} />
+          <stop offset="100%" stopColor={skinTone} />
+        </radialGradient>
+      </defs>
+
+      {/* Ground shadow */}
+      <ellipse cx={cx} cy={bodyY + bodyH + s * 0.18} rx={s * 0.18} ry={s * 0.04} fill="rgba(0,0,0,0.15)" />
+
       {/* Legs */}
       <line
         x1={cx - s * 0.07} y1={bodyY + bodyH}
@@ -67,6 +88,18 @@ export const PlayerAvatar = memo(function PlayerAvatar({
         x1={cx + s * 0.07} y1={bodyY + bodyH}
         x2={cx + s * 0.09} y2={bodyY + bodyH + s * 0.14}
         stroke={skinTone} strokeWidth={s * 0.045} strokeLinecap="round"
+      />
+
+      {/* Arms */}
+      <line
+        x1={cx - bodyW * 0.44} y1={bodyY + s * 0.04}
+        x2={cx - bodyW * 0.55} y2={bodyY + bodyH * 0.7}
+        stroke={skinTone} strokeWidth={s * 0.04} strokeLinecap="round"
+      />
+      <line
+        x1={cx + bodyW * 0.44} y1={bodyY + s * 0.04}
+        x2={cx + bodyW * 0.55} y2={bodyY + bodyH * 0.7}
+        stroke={skinTone} strokeWidth={s * 0.04} strokeLinecap="round"
       />
 
       {/* Boots */}
@@ -80,10 +113,36 @@ export const PlayerAvatar = memo(function PlayerAvatar({
         width={bodyW}
         height={bodyH}
         rx={s * 0.06}
-        fill={jerseyColor}
+        fill={`url(#${gradId}-jersey)`}
         opacity={isAway ? 0.85 : 1}
-        stroke={isAway ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.15)'}
+        stroke={isAway ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.2)'}
         strokeWidth={s * 0.02}
+      />
+      <line
+        x1={cx - bodyW / 2 + s * 0.02}
+        y1={bodyY + bodyH * 0.55}
+        x2={cx + bodyW / 2 - s * 0.02}
+        y2={bodyY + bodyH * 0.55}
+        stroke="rgba(255,255,255,0.14)"
+        strokeWidth={s * 0.015}
+      />
+      <line
+        x1={cx - bodyW / 2}
+        y1={bodyY + s * 0.03}
+        x2={cx - bodyW / 2}
+        y2={bodyY + bodyH * 0.65}
+        stroke={sleeveTrim}
+        strokeWidth={s * 0.02}
+        opacity={0.8}
+      />
+      <line
+        x1={cx + bodyW / 2}
+        y1={bodyY + s * 0.03}
+        x2={cx + bodyW / 2}
+        y2={bodyY + bodyH * 0.65}
+        stroke={sleeveTrim}
+        strokeWidth={s * 0.02}
+        opacity={0.8}
       />
 
       {/* Collar detail */}
@@ -115,7 +174,7 @@ export const PlayerAvatar = memo(function PlayerAvatar({
         cy={headCY}
         rx={headR * 0.95}
         ry={headR}
-        fill={skinTone}
+        fill={`url(#${gradId}-skin)`}
         stroke={skinShadow}
         strokeWidth={s * 0.012}
       />
@@ -123,6 +182,29 @@ export const PlayerAvatar = memo(function PlayerAvatar({
       {/* Eyes */}
       <circle cx={cx - headR * 0.35} cy={headCY + headR * 0.08} r={headR * 0.12} fill="#1a1a1a" />
       <circle cx={cx + headR * 0.35} cy={headCY + headR * 0.08} r={headR * 0.12} fill="#1a1a1a" />
+      <circle cx={cx - headR * 0.3} cy={headCY} r={headR * 0.03} fill="rgba(255,255,255,0.65)" />
+      <circle cx={cx + headR * 0.4} cy={headCY} r={headR * 0.03} fill="rgba(255,255,255,0.65)" />
+
+      {/* Mouth */}
+      <path
+        d={`M ${cx - headR * 0.3} ${headCY + headR * 0.48}
+            Q ${cx} ${headCY + headR * (0.5 + mouthCurve * 0.08)} ${cx + headR * 0.3} ${headCY + headR * 0.48}`}
+        fill="none"
+        stroke="rgba(0,0,0,0.28)"
+        strokeWidth={s * 0.01}
+        strokeLinecap="round"
+      />
+      {hasHeadband && (
+        <rect
+          x={cx - headR * 0.86}
+          y={headCY - headR * 0.4}
+          width={headR * 1.72}
+          height={headR * 0.18}
+          rx={headR * 0.06}
+          fill="rgba(255,255,255,0.65)"
+          opacity={0.3}
+        />
+      )}
 
       {/* Hair */}
       <PlayerHair cx={cx} headCY={headCY} headR={headR} style={hairStyle} color={hairColor} />
@@ -234,4 +316,21 @@ function darken(hex: string, amount: number): string {
   const g = Math.max(0, ((num >> 8) & 0xFF) * (1 - amount)) | 0;
   const b = Math.max(0, (num & 0xFF) * (1 - amount)) | 0;
   return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
+function lighten(hex: string, amount: number): string {
+  const num = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, ((num >> 16) & 0xFF) + (255 - ((num >> 16) & 0xFF)) * amount) | 0;
+  const g = Math.min(255, ((num >> 8) & 0xFF) + (255 - ((num >> 8) & 0xFF)) * amount) | 0;
+  const b = Math.min(255, (num & 0xFF) + (255 - (num & 0xFF)) * amount) | 0;
+  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+}
+
+function hashString(value: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
