@@ -5,6 +5,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from '
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { LEAGUES } from '@/data/league';
+import { PageHint } from '@/components/game/PageHint';
 
 const LeagueTable = () => {
   const { divisionTables, divisionFixtures, divisionClubs, clubs, players, playerClubId, playerDivision, week, totalWeeks, setScreen, selectClub, selectPlayer } = useGameStore();
@@ -71,6 +72,12 @@ const LeagueTable = () => {
       <button onClick={() => setScreen('dashboard')} className="flex items-center gap-1 text-muted-foreground text-sm">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
+
+      <PageHint
+        screen="league-table"
+        title="League Table"
+        body="Track standings, browse weekly fixtures, and see top scorers and assist leaders. Green zones mean promotion, red zones mean relegation. Tap any team to view their details."
+      />
 
       <h2 className="text-lg font-bold text-foreground font-display">{currentLeague?.name || 'League'}</h2>
 
@@ -183,9 +190,13 @@ const LeagueTable = () => {
             {currentLeague && currentLeague.replacedSlots > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-destructive/50" />
-                <span className="text-[10px] text-muted-foreground">Replaced</span>
+                <span className="text-[10px] text-muted-foreground">Replaced ({currentLeague.replacedSlots} club{currentLeague.replacedSlots > 1 ? 's' : ''})</span>
               </div>
             )}
+            <div className="flex items-center gap-1.5">
+              <div className="w-2.5 h-2.5 rounded-sm bg-foreground/30" />
+              <span className="text-[10px] text-muted-foreground">Your team</span>
+            </div>
           </div>
         </GlassPanel>
       )}

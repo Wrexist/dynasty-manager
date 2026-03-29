@@ -153,6 +153,19 @@ export const HELP_TEXTS = {
   transferWindow: 'You can only buy/sell players during transfer windows: Weeks 1-8 (summer) and Weeks 20-24 (winter).',
   chemistry: 'Chemistry reflects how well players work together. Players from the same nationality, with compatible positions, or who have played together longer build stronger links.',
   form: 'A player\'s recent match performance. Good form boosts morale and match ratings. Poor form can lower confidence.',
+  playerRating: 'Player ratings range from 1-99. 80+ is world-class (green), 70+ is good (gold), 60+ is average (amber), below 60 is weak (grey).',
+  potential: 'A player\'s maximum possible rating. Young players (<24) grow toward their potential through training and match time. Veterans (31+) gradually decline.',
+  personality: 'Personality traits affect how a player behaves. Professionalism boosts training, ambition drives growth, temperament affects cards, loyalty reduces transfer demands, and leadership inspires teammates.',
+  mentality: 'Team mentality affects how aggressively your team plays. Attacking pushes players forward for more goals but leaves gaps at the back. Defensive sits deep and absorbs pressure.',
+  pressingIntensity: 'How aggressively your team pressures the opposition. High pressing wins the ball back quickly but tires players faster. Low pressing conserves energy but gives opponents more time on the ball.',
+  defensiveLine: 'How high your defensive line sits. A high line compresses the pitch but risks being caught by long balls. A deep line is harder to break down but concedes territory.',
+  width: 'How wide your team spreads. Wide play stretches defences and creates crossing chances. Narrow play keeps everything compact and central.',
+  tempo: 'The speed of your passing. Fast tempo creates quick attacks and catches opponents off guard. Slow tempo controls possession and waits for openings.',
+  wageRatio: 'Your wage bill as a percentage of weekly income. Keep this below 70% to avoid Financial Fair Play penalties. The board will lose confidence if you overspend.',
+  playerValue: 'A player\'s estimated transfer value, based on age, overall rating, potential, and contract length. Younger players with high potential are worth more.',
+  contractLength: 'How many seasons remain on a player\'s contract. Players with expiring contracts may leave for free. Renew early to protect your investment.',
+  fitnessImpact: 'Player fitness affects match performance. Below 75% players perform noticeably worse. Fitness drops ~15% per match and recovers during rest weeks. The Recovery Center facility speeds recovery.',
+  injuryRisk: 'Heavy training and low fitness increase injury risk. The Medical Center facility reduces recovery time. Players returning from injury have elevated re-injury risk for several weeks.',
 } as const;
 
 // ── Page Hints (first-visit tips) ──

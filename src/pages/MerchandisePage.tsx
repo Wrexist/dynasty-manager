@@ -10,6 +10,7 @@ import {
   MERCH_PRODUCT_LINES, MERCH_PRICING_TIERS, MERCH_CAMPAIGNS,
 } from '@/config/merchandise';
 import { LEAGUES } from '@/data/league';
+import { PageHint } from '@/components/game/PageHint';
 import {
   isProductLineUnlocked, getStarPlayerMerch, canLaunchCampaign,
   calculateWeeklyMerchRevenue, getMerchOperatingCost,
@@ -57,6 +58,12 @@ const MerchandisePage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4 pb-24">
+      <PageHint
+        screen="merchandise"
+        title="Merchandise"
+        body="Manage your club's merchandise lines to earn extra weekly revenue. Unlock new product lines as you grow. Launch campaigns for temporary revenue boosts, and set pricing tiers to balance sales volume vs. margins."
+      />
+
       {/* Header */}
       <div className="flex items-center gap-2">
         <ShoppingBag className="w-5 h-5 text-primary" />

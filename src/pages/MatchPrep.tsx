@@ -25,7 +25,7 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
-  const { week, clubs, players, playerClubId, leagueTable, setScreen, monetization, playCurrentMatch, autoFillTeam } = useGameStore();
+  const { week, clubs, players, playerClubId, leagueTable, setScreen, monetization, playCurrentMatch, autoFillTeam, rivalries } = useGameStore();
   const [autoFilling, setAutoFilling] = useState(false);
 
   const { match, isHome, opponent: oppClub } = useCurrentMatch();
@@ -142,6 +142,43 @@ const MatchPrep = () => {
           </div>
         </div>
       </GlassPanel>
+
+      {/* Head-to-Head Record */}
+      {(() => {
+        const h2h = rivalries?.[oppClubId];
+        if (!h2h || (h2h.wins === 0 && h2h.draws === 0 && h2h.losses === 0)) return null;
+        const total = h2h.wins + h2h.draws + h2h.losses;
+        return (
+          <GlassPanel className="p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-2">Head-to-Head Record</h3>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 text-center">
+                <p className="text-lg font-black text-emerald-400 tabular-nums">{h2h.wins}</p>
+                <p className="text-[10px] text-muted-foreground">Wins</p>
+              </div>
+              <div className="flex-1 text-center">
+                <p className="text-lg font-black text-amber-400 tabular-nums">{h2h.draws}</p>
+                <p className="text-[10px] text-muted-foreground">Draws</p>
+              </div>
+              <div className="flex-1 text-center">
+                <p className="text-lg font-black text-destructive tabular-nums">{h2h.losses}</p>
+                <p className="text-[10px] text-muted-foreground">Losses</p>
+              </div>
+            </div>
+            {/* Win percentage bar */}
+            <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden flex">
+              {h2h.wins > 0 && <div className="bg-emerald-500 h-full" style={{ width: `${(h2h.wins / total) * 100}%` }} />}
+              {h2h.draws > 0 && <div className="bg-amber-500 h-full" style={{ width: `${(h2h.draws / total) * 100}%` }} />}
+              {h2h.losses > 0 && <div className="bg-destructive h-full" style={{ width: `${(h2h.losses / total) * 100}%` }} />}
+            </div>
+            {h2h.grudgeLevel >= 3 && (
+              <p className="text-[10px] text-destructive mt-1.5 flex items-center gap-1">
+                <Flame className="w-3 h-3" /> Bitter rivalry — expect a fiery contest
+              </p>
+            )}
+          </GlassPanel>
+        );
+      })()}
 
       {/* Tactical Analysis */}
       <GlassPanel className="p-4">
@@ -266,6 +303,40 @@ const MatchPrep = () => {
           </div>
         </GlassPanel>
       )}
+
+      {/* Squad Comparison */}
+      <GlassPanel className="p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Swords className="w-4 h-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Squad Comparison</h3>
+        </div>
+        {(() => {
+          const myPlayers = myClub.playerIds.map(id => players[id]).filter(Boolean);
+          const myAvg = myPlayers.length ? Math.round(myPlayers.reduce((s, p) => s + p.overall, 0) / myPlayers.length) : 0;
+          const oppAvg = oppPlayers.length ? Math.round(oppPlayers.reduce((s, p) => s + p.overall, 0) / oppPlayers.length) : 0;
+          const myBest = myPlayers.length ? Math.max(...myPlayers.map(p => p.overall)) : 0;
+          const oppBest = oppPlayers.length ? Math.max(...oppPlayers.map(p => p.overall)) : 0;
+          const myInjured = myPlayers.filter(p => p.injured).length;
+          const oppInjured = oppPlayers.filter(p => p.injured).length;
+          const rows = [
+            { label: 'Avg Rating', my: myAvg, opp: oppAvg },
+            { label: 'Best Player', my: myBest, opp: oppBest },
+            { label: 'Squad Size', my: myPlayers.length, opp: oppPlayers.length },
+            { label: 'Injured', my: myInjured, opp: oppInjured },
+          ];
+          return (
+            <div className="space-y-2">
+              {rows.map(r => (
+                <div key={r.label} className="flex items-center gap-2 text-xs">
+                  <span className={cn('w-8 text-right font-bold tabular-nums', r.my > r.opp ? 'text-emerald-400' : r.my < r.opp ? 'text-muted-foreground' : 'text-foreground')}>{r.my}</span>
+                  <div className="flex-1 text-center text-[10px] text-muted-foreground">{r.label}</div>
+                  <span className={cn('w-8 font-bold tabular-nums', r.opp > r.my ? 'text-emerald-400' : r.opp < r.my ? 'text-muted-foreground' : 'text-foreground')}>{r.opp}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </GlassPanel>
 
       {/* Lineup & Bench */}
       <GlassPanel className="p-4">

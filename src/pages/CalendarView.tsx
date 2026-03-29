@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
+import { PageHint } from '@/components/game/PageHint';
 import { TOTAL_WEEKS, BOARD_REVIEW_WEEKS } from '@/config/gameBalance';
 import type { CupRound, Match, CupTie } from '@/types/game';
 
@@ -264,6 +265,12 @@ const CalendarView = () => {
       <button onClick={() => setScreen('dashboard')} className="flex items-center gap-1 text-muted-foreground text-sm">
         <ArrowLeft className="w-4 h-4" /> Back
       </button>
+
+      <PageHint
+        screen="calendar"
+        title="Season Calendar"
+        body="View your full fixture list across league, cup, and continental competitions. The current week is highlighted — scroll down to see upcoming matches and bye weeks."
+      />
 
       <div className="flex items-center gap-2">
         <Calendar className="w-5 h-5 text-primary" />

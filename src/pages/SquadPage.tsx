@@ -5,7 +5,7 @@ import { SubNav } from '@/components/game/SubNav';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { Position } from '@/types/game';
-import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch } from 'lucide-react';
+import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch, AlertTriangle, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, getFitnessColor, getMoraleBgColor } from '@/utils/uiHelpers';
 import { successToast } from '@/utils/gameToast';
@@ -196,6 +196,70 @@ const SquadPage = () => {
             ))}
           </div>
         </GlassPanel>
+
+        {/* Contract Expiry Alerts */}
+        {(() => {
+          const expiring = fullSquad.filter(p => p.contractEnd <= season);
+          const nearExpiry = fullSquad.filter(p => p.contractEnd === season + 1);
+          if (expiring.length === 0 && nearExpiry.length === 0) return null;
+          return (
+            <GlassPanel className="p-3 border-amber-500/20">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-3.5 h-3.5 text-amber-400" />
+                <p className="text-[10px] text-amber-400 font-semibold uppercase tracking-wider">Contract Alerts</p>
+              </div>
+              <div className="space-y-1">
+                {expiring.length > 0 && (
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-3 h-3 text-destructive shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-destructive">
+                      <span className="font-bold">{expiring.length} player{expiring.length > 1 ? 's' : ''}</span> contract{expiring.length > 1 ? 's' : ''} expiring this season: {expiring.map(p => p.lastName).join(', ')}
+                    </p>
+                  </div>
+                )}
+                {nearExpiry.length > 0 && (
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-amber-300">
+                      <span className="font-bold">{nearExpiry.length} player{nearExpiry.length > 1 ? 's' : ''}</span> contract{nearExpiry.length > 1 ? 's' : ''} expiring next season: {nearExpiry.map(p => p.lastName).join(', ')}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </GlassPanel>
+          );
+        })()}
+
+        {/* Positional Depth Chart */}
+        {(() => {
+          const positions: { pos: string; label: string; players: typeof fullSquad }[] = [
+            { pos: 'GK', label: 'GK', players: fullSquad.filter(p => p.position === 'GK') },
+            { pos: 'CB', label: 'CB', players: fullSquad.filter(p => p.position === 'CB') },
+            { pos: 'LB', label: 'LB', players: fullSquad.filter(p => p.position === 'LB') },
+            { pos: 'RB', label: 'RB', players: fullSquad.filter(p => p.position === 'RB') },
+            { pos: 'CDM', label: 'CDM', players: fullSquad.filter(p => p.position === 'CDM') },
+            { pos: 'CM', label: 'CM', players: fullSquad.filter(p => p.position === 'CM') },
+            { pos: 'CAM', label: 'CAM', players: fullSquad.filter(p => p.position === 'CAM') },
+            { pos: 'LW', label: 'LW', players: fullSquad.filter(p => ['LW', 'LM'].includes(p.position)) },
+            { pos: 'RW', label: 'RW', players: fullSquad.filter(p => ['RW', 'RM'].includes(p.position)) },
+            { pos: 'ST', label: 'ST', players: fullSquad.filter(p => p.position === 'ST') },
+          ];
+          const weakPositions = positions.filter(p => p.players.length < 2 && p.pos !== 'GK')
+            .concat(positions.filter(p => p.pos === 'GK' && p.players.length < 1));
+          if (weakPositions.length === 0) return null;
+          return (
+            <GlassPanel className="p-3 border-blue-500/20">
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="w-3.5 h-3.5 text-blue-400" />
+                <p className="text-[10px] text-blue-400 font-semibold uppercase tracking-wider">Squad Gaps</p>
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                You lack depth at: {weakPositions.map(p => <span key={p.pos} className="font-bold text-blue-300">{p.label} ({p.players.length})</span>).reduce<React.ReactNode[]>((acc, el, i) => i === 0 ? [el] : [...acc, ', ', el], [])}
+                . Consider signing backup players.
+              </p>
+            </GlassPanel>
+          );
+        })()}
 
         {/* Position Filter */}
         <div className="flex gap-2">

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Globe, Trophy } from 'lucide-react';
 import { getCurrentMatchday } from '@/utils/continental';
 import { CONTINENTAL_GROUP_WEEKS } from '@/config/continental';
+import { PageHint } from '@/components/game/PageHint';
 
 function TournamentView({ tournament, competition }: { tournament: ContinentalTournamentState; competition: ContinentalCompetition }) {
   const { playerClubId, clubs, virtualClubs, week } = useGameStore();
@@ -148,7 +149,13 @@ const ContinentalPage = () => {
   }
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-6">
+    <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
+      <PageHint
+        screen="continental"
+        title="Continental Competition"
+        body="Compete against the best clubs from across the league system. The group stage determines who advances to the knockout rounds. Win the final to claim continental glory and a major reputation boost."
+      />
+
       <TournamentView tournament={tournament} competition={competition} />
     </div>
   );

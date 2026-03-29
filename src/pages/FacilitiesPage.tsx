@@ -5,6 +5,7 @@ import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { Dumbbell, GraduationCap, Home, Stethoscope, ArrowUp, Clock, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FACILITY_COST_PER_LEVEL, FACILITY_MAX_LEVEL } from '@/config/gameBalance';
+import { PageHint } from '@/components/game/PageHint';
 
 const FACILITY_INFO = [
   { type: 'training', label: 'Training Ground', icon: Dumbbell, color: 'text-emerald-400', key: 'trainingLevel' as const, benefit: 'Better training gains for all players' },
@@ -23,6 +24,12 @@ const FacilitiesPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+      <PageHint
+        screen="facilities"
+        title="Facility Upgrades"
+        body="Better facilities give lasting advantages. Training Ground boosts skill gains, Medical Centre speeds injury recovery, Youth Academy improves prospect quality, and Stadium increases matchday revenue."
+      />
+
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-display font-bold text-foreground">Facilities</h2>
         {club && <span className="text-xs text-muted-foreground">Budget: £{(club.budget / 1e6).toFixed(1)}M</span>}
