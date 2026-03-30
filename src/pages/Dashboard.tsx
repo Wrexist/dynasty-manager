@@ -129,9 +129,8 @@ const Dashboard = () => {
     }
   }, [boardConfidence]);
 
-  // Mount guard — skip effects during initial render to avoid init-time cascading updates (React #185)
+  // Mount guard — skip celebration effect during initial render to avoid init-time cascading updates (React #185)
   const mountedRef = useRef(false);
-  useEffect(() => { mountedRef.current = true; }, []);
 
   // Celebration toasts & modals: fire when week changes (after advanceWeek)
   const prevWeekRef = useRef(week);
@@ -182,7 +181,7 @@ const Dashboard = () => {
     }
   }, [season]);
   useEffect(() => {
-    if (!mountedRef.current) return; // Skip during initial mount to avoid cascading updates
+    if (!mountedRef.current) { mountedRef.current = true; return; } // Skip initial mount, enable for subsequent runs
     if (prevWeekRef.current !== week && prevWeekRef.current > 0) {
       // Read current values from store to avoid broad object dependencies (React #185 fix)
       const s = useGameStore.getState();
