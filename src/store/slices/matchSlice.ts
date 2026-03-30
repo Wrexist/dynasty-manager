@@ -35,7 +35,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
       playerId: inId,
       assistPlayerId: outId,
       clubId: state.playerClubId,
-      description: `${inPlayer.name} replaces ${outPlayer?.name || 'Unknown'}`,
+      description: `${inPlayer.firstName} ${inPlayer.lastName} replaces ${outPlayer ? `${outPlayer.firstName} ${outPlayer.lastName}` : 'Unknown'}`,
     };
     const updates: Partial<GameState> = { clubs: { ...state.clubs, [club.id]: club }, matchSubsUsed: state.matchSubsUsed + 1 };
     if (state.currentMatchResult) {

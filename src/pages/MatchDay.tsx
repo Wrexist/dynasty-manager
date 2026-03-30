@@ -187,6 +187,7 @@ const MatchDay = () => {
       currentMinRef.current = 45;
       setCurrentMin(45);
       setPaused(false);
+      resumingRef.current = false;
     } catch (err) {
       console.error('[resumeSecondHalf] Failed:', err);
       resumingRef.current = false;

@@ -4,7 +4,6 @@
  */
 
 import { useGameStore } from '@/store/gameStore';
-import { useShallow } from 'zustand/react/shallow';
 import type { Club, Match, CupState, LeagueCupState, ContinentalTournamentState, SuperCupMatch } from '@/types/game';
 
 /** Get the player's club object. */
@@ -54,9 +53,26 @@ function findTournamentMatch(s: { week: number; playerClubId: string; cup: CupSt
   return null;
 }
 
+/** Equality check for useCurrentMatch — compares by value, not reference.
+ *  Prevents infinite re-renders from new syntheticMatch objects each selector call. */
+function currentMatchEqual(
+  a: { match: Match | undefined; isHome: boolean; opponent: Club | undefined; competition?: string },
+  b: { match: Match | undefined; isHome: boolean; opponent: Club | undefined; competition?: string },
+): boolean {
+  if (a.isHome !== b.isHome) return false;
+  if (a.competition !== b.competition) return false;
+  if (a.opponent?.id !== b.opponent?.id) return false;
+  if (a.match === b.match) return true;
+  if (!a.match || !b.match) return false;
+  return a.match.id === b.match.id
+    && a.match.homeClubId === b.match.homeClubId
+    && a.match.awayClubId === b.match.awayClubId
+    && a.match.played === b.match.played;
+}
+
 /** Get the current week's match for the player's club + derived info. */
 export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; opponent: Club | undefined; competition?: string } {
-  return useGameStore(useShallow(s => {
+  return useGameStore(s => {
     const leagueMatch = s.fixtures.find(
       m => m.week === s.week && !m.played && (m.homeClubId === s.playerClubId || m.awayClubId === s.playerClubId)
     );
@@ -75,7 +91,7 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
       return { match: syntheticMatch, isHome, opponent, competition: tourneyMatch.competition };
     }
     return { match: undefined, isHome: false, opponent: undefined };
-  }));
+  }, currentMatchEqual);
 }
 
 /** Get count of unread messages. */
