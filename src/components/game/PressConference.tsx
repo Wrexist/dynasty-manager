@@ -10,6 +10,7 @@ const TONE_STYLES: Record<PressResponseTone, { label: string; color: string; ico
   deflect: { label: 'Deflect', color: 'border-muted-foreground/50 hover:bg-muted/30', icon: 'shield' },
   strategic: { label: 'Strategic', color: 'border-blue-500/50 hover:bg-blue-500/10', icon: 'target' },
   analytical: { label: 'Analytical', color: 'border-violet-500/50 hover:bg-violet-500/10', icon: 'bar-chart-2' },
+  visionary: { label: 'Visionary', color: 'border-amber-500/50 hover:bg-amber-500/10', icon: 'eye' },
 };
 
 export function PressConference() {

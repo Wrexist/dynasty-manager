@@ -247,7 +247,7 @@ export interface GameState {
   clearPendingAchievements: () => void;
 
   // Actions — Press Conferences & Storylines
-  respondToPress: (tone: 'confident' | 'humble' | 'deflect') => void;
+  respondToPress: (tone: import('@/types/game').PressResponseTone) => void;
   dismissPress: () => void;
   respondToStoryline: (optionIndex: number) => void;
   dismissStoryline: () => void;

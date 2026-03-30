@@ -877,7 +877,7 @@ export interface SuperCupMatch {
 }
 
 // ── Press Conferences ──
-export type PressResponseTone = 'confident' | 'humble' | 'deflect' | 'strategic' | 'analytical';
+export type PressResponseTone = 'confident' | 'humble' | 'deflect' | 'strategic' | 'analytical' | 'visionary';
 
 export interface PressOption {
   tone: PressResponseTone;

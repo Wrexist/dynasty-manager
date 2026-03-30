@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { Calendar, Trophy, Save, ArrowLeft, Star, Check } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getSuffix } from '@/utils/helpers';
@@ -10,7 +11,17 @@ import { useFlash } from '@/hooks/useFlash';
 import { SAVE_INDICATOR_MS, XP_GLOW_MS } from '@/config/ui';
 
 export function TopBar() {
-  const { season, week, totalWeeks, playerClubId, clubs, leagueTable, saveGame, currentScreen, previousScreen, setScreen, managerProgression, gameMode, careerManager } = useGameStore();
+  const {
+    season, week, totalWeeks, playerClubId, clubs, leagueTable,
+    currentScreen, previousScreen, managerProgression, gameMode, careerManager,
+  } = useGameStore(useShallow(s => ({
+    season: s.season, week: s.week, totalWeeks: s.totalWeeks,
+    playerClubId: s.playerClubId, clubs: s.clubs, leagueTable: s.leagueTable,
+    currentScreen: s.currentScreen, previousScreen: s.previousScreen,
+    managerProgression: s.managerProgression, gameMode: s.gameMode, careerManager: s.careerManager,
+  })));
+  const saveGame = useGameStore(s => s.saveGame);
+  const setScreen = useGameStore(s => s.setScreen);
   const club = clubs[playerClubId];
   const entry = leagueTable.find(e => e.clubId === playerClubId);
   const pos = entry ? leagueTable.indexOf(entry) + 1 : '-';

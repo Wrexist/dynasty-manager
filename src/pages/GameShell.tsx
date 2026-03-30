@@ -2,6 +2,7 @@ import { useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { TopBar } from '@/components/game/TopBar';
 import { BottomNav } from '@/components/game/BottomNav';
 import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
@@ -99,7 +100,11 @@ const screens: Record<string, React.ComponentType> = {
 
 const GameShell = () => {
   const navigate = useNavigate();
-  const { gameStarted, currentScreen, setScreen } = useGameStore();
+  const { gameStarted, currentScreen } = useGameStore(useShallow(s => ({
+    gameStarted: s.gameStarted,
+    currentScreen: s.currentScreen,
+  })));
+  const setScreen = useGameStore(s => s.setScreen);
 
   useEffect(() => {
     if (!gameStarted) navigate('/');

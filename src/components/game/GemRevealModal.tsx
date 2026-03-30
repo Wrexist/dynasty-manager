@@ -113,7 +113,7 @@ export function GemRevealModal() {
                 <PlayerAvatar
                   playerId={player.id}
                   jerseyColor={jerseyColor}
-                  jerseyNumber={player.squadNumber}
+                  jerseyNumber={undefined}
                   size={48}
                   overall={player.overall}
                   position={player.position}

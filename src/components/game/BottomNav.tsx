@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
 import { LayoutDashboard, Users, Target, ArrowLeftRight } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -18,7 +19,10 @@ const tabs: { screen: GameScreen; label: string; icon: React.ElementType; group?
 ];
 
 export function BottomNav() {
-  const { currentScreen, setScreen, messages, incomingOffers } = useGameStore();
+  const { currentScreen, messages, incomingOffers } = useGameStore(useShallow(s => ({
+    currentScreen: s.currentScreen, messages: s.messages, incomingOffers: s.incomingOffers,
+  })));
+  const setScreen = useGameStore(s => s.setScreen);
   const unreadCount = useMemo(() => messages.filter(m => !m.read).length, [messages]);
   const pendingOffers = incomingOffers.length;
 
