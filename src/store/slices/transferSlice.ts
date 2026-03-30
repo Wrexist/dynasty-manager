@@ -52,6 +52,8 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   const newPlayers = { ...state.players };
   const sellerClub = { ...state.clubs[state.playerClubId] };
   const buyer = { ...state.clubs[offer.buyerClubId] };
+  // Check lineup membership BEFORE modifying arrays for clarity
+  const wasInLineup = sellerClub.lineup.includes(offer.playerId);
 
   sellerClub.playerIds = sellerClub.playerIds.filter(id => id !== offer.playerId);
   sellerClub.lineup = sellerClub.lineup.filter(id => id !== offer.playerId);
@@ -59,7 +61,7 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   // Sell-on clause: pay percentage to previous club if applicable
   let sellOnFee = 0;
   const updatedClubs = { ...state.clubs };
-  if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== state.playerClubId) {
+  if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== state.playerClubId && updatedClubs[player.sellOnClubId]) {
     sellOnFee = Math.round(fee * (player.sellOnPercentage / 100));
     const sellOnClub = { ...updatedClubs[player.sellOnClubId] };
     sellOnClub.budget += sellOnFee;
@@ -77,7 +79,8 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
 
   const newMarket = state.transferMarket.filter(l => l.playerId !== offer.playerId);
   const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${(player.sellOnClubId && state.clubs[player.sellOnClubId]?.name) || 'former club'})` : '';
-  const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `${player.lastName} Sold!`, body: `${player.firstName} ${player.lastName} has been sold to ${buyerClub.name} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}` });
+  const lineupNote = wasInLineup ? ' Check your lineup — you now have a gap in your starting XI.' : '';
+  const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `${player.lastName} Sold!`, body: `${player.firstName} ${player.lastName} has been sold to ${buyerClub.name} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}${lineupNote}` });
 
   updatedClubs[sellerClub.id] = sellerClub;
   updatedClubs[buyer.id] = buyer;
@@ -210,7 +213,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const updatedClubs = { ...state.clubs };
     let sellOnFee = 0;
     let sellOnClubName = '';
-    if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== listing.sellerClubId) {
+    if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== listing.sellerClubId && updatedClubs[player.sellOnClubId]) {
       sellOnFee = Math.round(fee * (player.sellOnPercentage / 100));
       sellOnClubName = state.clubs[player.sellOnClubId]?.name || 'former club';
       const sellOnClub = { ...updatedClubs[player.sellOnClubId] };

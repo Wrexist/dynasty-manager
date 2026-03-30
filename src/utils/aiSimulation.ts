@@ -6,7 +6,7 @@
  * Called from orchestrationSlice's advanceWeek() as a single function.
  */
 
-import type { Club, Player, Message, TransferListing, LoanDeal, Position, DivisionId, LeagueTableEntry } from '@/types/game';
+import type { Club, Player, Message, TransferListing, LoanDeal, Position, DivisionId, LeagueTableEntry, Mentality, FormationType } from '@/types/game';
 import type { TransferNewsEntry } from '@/types/game';
 import { pick, shuffle, addMsg } from '@/utils/helpers';
 import { formatMoney } from '@/utils/helpers';
@@ -711,6 +711,81 @@ function processAIFreeAgents(
   return { clubs: updClubs, players: updPlayers, freeAgents: updFreeAgents, transferNews: updNews };
 }
 
+// ── AI Tactical Adaptation ──
+
+const MENTALITY_OPTIONS: Mentality[] = ['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'];
+const FORMATION_OPTIONS: FormationType[] = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1', '4-1-4-1', '5-3-2'];
+
+/** AI clubs adapt tactics based on recent form — losing streaks trigger formation/mentality changes */
+function processAITacticalAdaptation(
+  clubs: Record<string, Club>,
+  divisionTables: Record<DivisionId, LeagueTableEntry[]>,
+  playerClubId: string,
+): Record<string, Club> {
+  const updClubs = { ...clubs };
+
+  for (const [clubId, club] of Object.entries(updClubs)) {
+    if (clubId === playerClubId || !club.aiManagerProfile) continue;
+    const profile = club.aiManagerProfile;
+    // Only adapt if adaptability roll succeeds (checked once per week, ~30% base)
+    if (Math.random() > profile.adaptability * 0.4) continue;
+
+    // Find this club's form in their division table
+    let form: string[] = [];
+    for (const entries of Object.values(divisionTables)) {
+      const entry = entries.find(e => e.clubId === clubId);
+      if (entry) { form = entry.form; break; }
+    }
+    if (form.length < 3) continue;
+
+    const last3 = form.slice(-3);
+    const losses = last3.filter(r => r === 'L').length;
+    const wins = last3.filter(r => r === 'W').length;
+
+    if (losses >= 3) {
+      // 3-game losing streak: switch formation entirely and adjust mentality defensively
+      const currentFormation = club.formation;
+      const alternatives = FORMATION_OPTIONS.filter(f => f !== currentFormation);
+      const newFormation = alternatives[Math.floor(Math.random() * alternatives.length)];
+      const newMentality = MENTALITY_OPTIONS[Math.max(0, MENTALITY_OPTIONS.indexOf(profile.defaultTactics.mentality as Mentality) - 1)];
+      updClubs[clubId] = {
+        ...club,
+        formation: newFormation,
+        aiManagerProfile: {
+          ...profile,
+          defaultTactics: { ...profile.defaultTactics, mentality: newMentality },
+        },
+      };
+    } else if (losses >= 2) {
+      // 2 losses in 3: shift mentality more defensive
+      const currentIdx = MENTALITY_OPTIONS.indexOf(profile.defaultTactics.mentality as Mentality);
+      if (currentIdx > 0 && Math.random() < 0.3) {
+        updClubs[clubId] = {
+          ...club,
+          aiManagerProfile: {
+            ...profile,
+            defaultTactics: { ...profile.defaultTactics, mentality: MENTALITY_OPTIONS[currentIdx - 1] },
+          },
+        };
+      }
+    } else if (wins >= 3) {
+      // 3-game winning streak: become bolder
+      const currentIdx = MENTALITY_OPTIONS.indexOf(profile.defaultTactics.mentality as Mentality);
+      if (currentIdx >= 0 && currentIdx < MENTALITY_OPTIONS.length - 1 && Math.random() < 0.2) {
+        updClubs[clubId] = {
+          ...club,
+          aiManagerProfile: {
+            ...profile,
+            defaultTactics: { ...profile.defaultTactics, mentality: MENTALITY_OPTIONS[currentIdx + 1] },
+          },
+        };
+      }
+    }
+  }
+
+  return updClubs;
+}
+
 // ── Main Entry Point ──
 
 export function processAIWeekly(
@@ -771,6 +846,9 @@ export function processAIWeekly(
   updPlayers = faResult.players;
   updFreeAgents = faResult.freeAgents;
   updNews = faResult.transferNews;
+
+  // 5. AI Tactical Adaptation — AI clubs adjust tactics based on recent form
+  updClubs = processAITacticalAdaptation(updClubs, divisionTables, playerClubId);
 
   return {
     clubs: updClubs,

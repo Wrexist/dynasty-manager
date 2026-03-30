@@ -17,11 +17,11 @@ export const FIRST_MATCH_DEFENSE_BOOST = 0.05;
 
 // ── Player Development: Growth ──
 export const GROWTH_AGE_THRESHOLD = 24;
-export const MAX_SEASON_GROWTH = 8;
-export const GROWTH_BASE_CHANCE = 0.03;
-export const GROWTH_POTENTIAL_GAP_FACTOR = 0.005;
-export const PLAYING_TIME_BONUS_MAX = 0.12;
-export const PLAYING_TIME_BONUS_PER_APP = 0.004;
+export const MAX_SEASON_GROWTH = 12;
+export const GROWTH_BASE_CHANCE = 0.05;
+export const GROWTH_POTENTIAL_GAP_FACTOR = 0.01;
+export const PLAYING_TIME_BONUS_MAX = 0.20;
+export const PLAYING_TIME_BONUS_PER_APP = 0.007;
 
 // ── Player Development: Decline ──
 export const DECLINE_AGE_THRESHOLD = 31;
@@ -512,3 +512,21 @@ export const INTERNATIONAL_INJURY_RISK = 0.04;
 export const INTERNATIONAL_FITNESS_COST = 8;
 /** Number of total nations in the world pool */
 export const TOTAL_NATIONS = 51;
+
+// ── Random Mid-Season Events ──
+/** Base chance per week that a random event triggers */
+export const RANDOM_EVENT_BASE_CHANCE = 0.04;
+/** Morale hit from dressing room bust-up */
+export const BUSTUP_MORALE_HIT = 10;
+/** Fitness penalty from international fatigue */
+export const INTL_FATIGUE_FITNESS_LOSS = 15;
+/** Morale boost from fan favourite momentum */
+export const FAN_RALLY_MORALE_BOOST = 5;
+/** Budget bonus multiplier for sponsor windfall (fraction of commercial income) */
+export const SPONSOR_BONUS_MULTIPLIER = 0.10;
+/** Extra board confidence penalty during media scrutiny */
+export const MEDIA_SCRUTINY_CONFIDENCE_HIT = 3;
+/** Temporary attribute boost from youth breakthrough */
+export const YOUTH_BREAKTHROUGH_ATTR_BOOST = 3;
+/** Duration in weeks for youth breakthrough boost */
+export const YOUTH_BREAKTHROUGH_DURATION = 4;

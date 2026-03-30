@@ -533,7 +533,9 @@ export function migrateSaveData(data: Record<string, unknown>): Record<string, u
       migrated = migrate(migrated);
     } catch (err) {
       console.error(`[SaveMigration] Migration from v${version} to v${version + 1} failed:`, err);
-      migrated = { ...migrated, version: version + 1 };
+      // Stop migration on failure — don't skip broken migrations as that corrupts downstream data
+      migrated = { ...migrated, migrationError: true };
+      break;
     }
     version = migrated.version as number;
   }

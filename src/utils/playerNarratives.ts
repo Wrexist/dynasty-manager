@@ -55,6 +55,52 @@ export function getPlayerNarratives(
   return tags;
 }
 
+/** Gameplay bonuses from narrative tags — makes tags meaningful beyond cosmetics */
+export interface NarrativeBonus {
+  /** Extra team strength when this player is in the lineup */
+  strengthBonus: number;
+  /** Extra development chance for this player */
+  developmentBonus: number;
+  /** Morale loss reduction for the squad after defeats when this player is in lineup */
+  moraleLossReduction: number;
+  /** Morale boost to teammates when this player is in the lineup */
+  teamMoraleBoost: number;
+}
+
+export function getNarrativeBonus(tags: NarrativeTag[]): NarrativeBonus {
+  const bonus: NarrativeBonus = { strengthBonus: 0, developmentBonus: 0, moraleLossReduction: 0, teamMoraleBoost: 0 };
+  for (const tag of tags) {
+    switch (tag) {
+      case 'Club Legend':
+      case 'Fan Favourite':
+        bonus.teamMoraleBoost += 3;
+        break;
+      case 'One-Club Man':
+        bonus.teamMoraleBoost += 2;
+        bonus.moraleLossReduction += 1;
+        break;
+      case 'Rising Star':
+        bonus.developmentBonus += 0.02;
+        break;
+      case 'Veteran Leader':
+        bonus.moraleLossReduction += 2;
+        bonus.teamMoraleBoost += 1;
+        break;
+      case 'Homegrown Hero':
+        bonus.teamMoraleBoost += 2;
+        bonus.developmentBonus += 0.01;
+        break;
+      case 'Record Breaker':
+        bonus.strengthBonus += 0.01;
+        break;
+      case 'Captain Fantastic':
+        bonus.strengthBonus += 0.02;
+        break;
+    }
+  }
+  return bonus;
+}
+
 /** Generate farewell summary when a long-serving player leaves */
 export function getFarewellSummary(
   player: Player,
