@@ -140,13 +140,13 @@
   }
 }
 
-/* Player avatar idle bob animation */
+/* Player avatar idle bob + breathing animation */
 @keyframes playerIdleBob {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-0.4px); }
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-0.6px) scaleY(1.006); }
 }
 .player-avatar-idle {
-  animation: playerIdleBob 2.5s ease-in-out infinite;
+  animation: playerIdleBob 2.8s ease-in-out infinite;
 }
 
 /* Title screen floating background circles (pure CSS, no JS animation overhead) */

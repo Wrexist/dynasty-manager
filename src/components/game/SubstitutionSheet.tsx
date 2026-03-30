@@ -13,6 +13,7 @@ import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight, Wand2 }
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 import { PITCH_COLORS } from '@/config/ui';
 import { PlayerAvatar } from './PlayerAvatar';
+import { AvatarDefs } from './AvatarDefs';
 import { computeSmartSub } from '@/utils/substitutionLogic';
 import { optimizeStarterPositions } from '@/utils/autoFillLineup';
 
@@ -228,7 +229,8 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                   </div>
                 )}
                 <svg width="26" height="26" viewBox="0 0 26 26" className="pointer-events-none">
-                  <PlayerAvatar playerId={player.id} jerseyColor={playerClub.color} size={26} />
+                  <AvatarDefs />
+                  <PlayerAvatar playerId={player.id} jerseyColor={playerClub.color} size={26} pose={slot.pos === 'GK' ? 'gk' : 'standing'} />
                 </svg>
                 <div
                   className={cn(
@@ -337,6 +339,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 onClick={() => selectedOutId && handleBenchClick(id)}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" className="pointer-events-none">
+                  <AvatarDefs />
                   <PlayerAvatar playerId={p.id} jerseyColor={playerClub.color} size={24} />
                 </svg>
                 <div className="bg-black/60 rounded px-1 py-px -mt-0.5 text-center min-w-[28px]">

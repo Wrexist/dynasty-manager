@@ -143,11 +143,14 @@ export interface Player {
 }
 
 export interface PlayerAppearance {
-  skinTone: number;    // index 0-7 into PLAYER_SKIN_TONES
-  hairStyle: number;   // index 0-7 into PLAYER_HAIR_STYLES
-  hairColor: number;   // index 0-7 into PLAYER_HAIR_COLORS
-  height: number;      // 0=short, 1=medium, 2=tall (visual only)
-  build: number;       // 0=lean, 1=average, 2=stocky (visual only)
+  skinTone: number;      // index 0-7 into PLAYER_SKIN_TONES
+  hairStyle: number;     // index 0-11 into PLAYER_HAIR_STYLES_V2
+  hairColor: number;     // index 0-7 into PLAYER_HAIR_COLORS
+  height: number;        // 0=short, 1=medium, 2=tall (visual only)
+  build: number;         // 0=lean, 1=average, 2=stocky (visual only)
+  facialHair?: number;   // 0-4: none, stubble, goatee, short beard, full beard
+  accessory?: number;    // 0-4: none, headband, wristband, captain armband, sleeve tape
+  bootColor?: number;    // 0-3: black, white, neon, red
 }
 
 export interface Club {

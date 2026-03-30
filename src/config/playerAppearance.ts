@@ -16,8 +16,8 @@ export const PLAYER_SKIN_TONES = [
   '#5A3825', // Deep
 ];
 
-// ── Hair Styles (8 options) ──
-export const PLAYER_HAIR_STYLES = ['none', 'buzz', 'short', 'medium', 'curly', 'mohawk', 'long', 'afro'] as const;
+// ── Hair Styles (12 options) ──
+export const PLAYER_HAIR_STYLES = ['none', 'buzz', 'short', 'medium', 'curly', 'mohawk', 'long', 'afro', 'fade', 'man_bun', 'braids', 'undercut'] as const;
 
 // ── Hair Colors (8 options) ──
 export const PLAYER_HAIR_COLORS = [
@@ -30,6 +30,15 @@ export const PLAYER_HAIR_COLORS = [
   '#9E9E9E', // Silver
   '#E8D5B7', // Platinum
 ];
+
+// ── Facial Hair (5 options) ──
+export const PLAYER_FACIAL_HAIR = ['none', 'stubble', 'goatee', 'short_beard', 'full_beard'] as const;
+
+// ── Accessories (5 options) ──
+export const PLAYER_ACCESSORIES = ['none', 'headband', 'wristband', 'armband', 'sleeve_tape'] as const;
+
+// ── Boot Colors (4 options) ──
+export const PLAYER_BOOT_COLORS = ['#1a1a1a', '#f0f0f0', '#39ff14', '#e63946'] as const;
 
 // ── Height (3 options) ──
 export const PLAYER_HEIGHTS = ['short', 'medium', 'tall'] as const;
@@ -134,6 +143,9 @@ export function generatePlayerAppearance(nationality: string, position: string):
     hairColor: weightedPick([4, 3, 2, 1, 1, 1, 0, 0]), // darker hair more common
     height: weightedPick(heightWeights),
     build: weightedPick(buildWeights),
+    facialHair: weightedPick([5, 2, 1, 1, 1]),   // most clean-shaven
+    accessory: weightedPick([7, 1, 1, 1, 1]),     // most have none
+    bootColor: weightedPick([3, 3, 2, 1]),         // black/white most common
   };
 }
 
@@ -151,5 +163,8 @@ export function generateAppearanceFromId(playerId: string): PlayerAppearance {
     hairColor: (hash >> 6) % PLAYER_HAIR_COLORS.length,
     height: (hash >> 9) % 3,
     build: (hash >> 11) % 3,
+    facialHair: (hash >> 13) % PLAYER_FACIAL_HAIR.length,
+    accessory: (hash >> 15) % PLAYER_ACCESSORIES.length,
+    bootColor: (hash >> 17) % PLAYER_BOOT_COLORS.length,
   };
 }
