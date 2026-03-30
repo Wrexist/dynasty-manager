@@ -3336,6 +3336,30 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
 
+    // Simulate AI matches for the same week so league table position is accurate in PostMatchPopup
+    const aiWeekMatches = processed.updatedFixtures.filter(
+      m => m.week === week && !m.played && m.homeClubId !== playerClubId && m.awayClubId !== playerClubId
+    );
+    const fullFixtures = [...processed.updatedFixtures];
+    const playersWithAI = { ...processed.newPlayers };
+    for (const m of aiWeekMatches) {
+      const idx = fullFixtures.findIndex(f => f.id === m.id);
+      const hc2 = clubs[m.homeClubId];
+      const ac2 = clubs[m.awayClubId];
+      if (!hc2 || !ac2) continue;
+      const hp2 = hc2.playerIds.map(id => playersWithAI[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)).slice(0, 11);
+      const ap2 = ac2.playerIds.map(id => playersWithAI[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)).slice(0, 11);
+      if (hp2.length === 0 || ap2.length === 0) {
+        fullFixtures[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : 3, awayGoals: ap2.length === 0 ? 0 : 3, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
+        continue;
+      }
+      const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season);
+      fullFixtures[idx] = aiResult;
+      applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week);
+    }
+    const divClubIds = state.divisionClubs[state.playerDivision] || Object.keys(clubs);
+    const fullLeagueTable = buildLeagueTable(fullFixtures, divClubIds);
+
     // Detect match drama for emotional amplification
     const drama = detectMatchDrama(result, playerClubId, clubs);
 
@@ -3351,15 +3375,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       matchesLost: prevSession.matchesLost + (processed.lost ? 1 : 0),
     };
 
-    const syncedDivFixtures = { ...state.divisionFixtures, [state.playerDivision]: processed.updatedFixtures };
+    const syncedDivFixtures = { ...state.divisionFixtures, [state.playerDivision]: fullFixtures };
     set({
-      fixtures: processed.updatedFixtures, players: processed.newPlayers, leagueTable: processed.leagueTable,
+      fixtures: fullFixtures, players: playersWithAI, leagueTable: fullLeagueTable,
       currentMatchResult: result, boardConfidence: processed.confidence, messages: processed.newMessages,
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
       matchPhase: 'full_time' as const,
       pendingPressConference: press,
       divisionFixtures: syncedDivFixtures,
-      divisionTables: { ...state.divisionTables, [state.playerDivision]: processed.leagueTable },
+      divisionTables: { ...state.divisionTables, [state.playerDivision]: fullLeagueTable },
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
       managerProgression: processed.managerProgression,
       preMatchLeaguePosition: prePos,
@@ -3638,21 +3662,46 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // League match — process as normal
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
+
+    // Simulate AI matches for the same week so league table position is accurate in PostMatchPopup
+    const aiWeekMatches2 = processed.updatedFixtures.filter(
+      m => m.week === week && !m.played && m.homeClubId !== playerClubId && m.awayClubId !== playerClubId
+    );
+    const fullFixtures2 = [...processed.updatedFixtures];
+    const playersWithAI2 = { ...processed.newPlayers };
+    for (const m of aiWeekMatches2) {
+      const idx = fullFixtures2.findIndex(f => f.id === m.id);
+      const hc2 = clubs[m.homeClubId];
+      const ac2 = clubs[m.awayClubId];
+      if (!hc2 || !ac2) continue;
+      const hp2 = hc2.playerIds.map(id => playersWithAI2[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)).slice(0, 11);
+      const ap2 = ac2.playerIds.map(id => playersWithAI2[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)).slice(0, 11);
+      if (hp2.length === 0 || ap2.length === 0) {
+        fullFixtures2[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : 3, awayGoals: ap2.length === 0 ? 0 : 3, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
+        continue;
+      }
+      const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season);
+      fullFixtures2[idx] = aiResult;
+      applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week);
+    }
+    const divClubIds2 = state.divisionClubs[state.playerDivision] || Object.keys(clubs);
+    const fullLeagueTable2 = buildLeagueTable(fullFixtures2, divClubIds2);
+
     const leagueDrama = detectMatchDrama(result, playerClubId, clubs);
 
     // Generate post-match press conference
     const pressContext2 = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
     const press2 = generatePressConference(pressContext2, isPro(get().monetization));
 
-    const syncedDivFixtures2 = { ...state.divisionFixtures, [state.playerDivision]: processed.updatedFixtures };
+    const syncedDivFixtures2 = { ...state.divisionFixtures, [state.playerDivision]: fullFixtures2 };
     set({
-      fixtures: processed.updatedFixtures, players: processed.newPlayers, leagueTable: processed.leagueTable,
+      fixtures: fullFixtures2, players: playersWithAI2, leagueTable: fullLeagueTable2,
       currentMatchResult: result, boardConfidence: processed.confidence, messages: processed.newMessages,
       matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
       halfTimeState: null, matchPhase: 'full_time',
       pendingPressConference: press2,
       divisionFixtures: syncedDivFixtures2,
-      divisionTables: { ...state.divisionTables, [state.playerDivision]: processed.leagueTable },
+      divisionTables: { ...state.divisionTables, [state.playerDivision]: fullLeagueTable2 },
       careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
       managerProgression: processed.managerProgression,
       lastMatchXPGain: processed.xpGain,
