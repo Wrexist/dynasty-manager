@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { calculateChemistryLinks } from '@/utils/chemistry';
 import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor, NEUTRAL_LINE_COLOR } from '@/utils/formationLines';
 import { PlayerAvatar } from './PlayerAvatar';
+import { AvatarDefs } from './AvatarDefs';
 
 // Half-pitch viewBox constants (bottom half only — your team)
 const VP_Y = 46;
@@ -155,6 +156,7 @@ export function LineupEditor() {
       {/* Half Pitch (bottom half only — your team) */}
       <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: '24rem' }}>
         <svg viewBox={`0 ${VP_Y} ${VP_W} ${VP_H}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <AvatarDefs />
           {/* Pitch background & markings */}
           <rect x="0" y="0" width="68" height="105" rx="1.5" fill={PITCH_COLORS.FILL} />
           <rect x="2" y="2" width="64" height="101" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
@@ -230,7 +232,8 @@ export function LineupEditor() {
                   !isSelected && compat ? COMPAT_RING[compat] : ''
                 )}>
                   <svg width="28" height="28" viewBox="0 0 28 28" className="pointer-events-none">
-                    <PlayerAvatar playerId={player.id} jerseyColor={club.color} size={28} />
+                    <AvatarDefs />
+                    <PlayerAvatar playerId={player.id} jerseyColor={club.color} size={28} pose={slot.pos === 'GK' ? 'gk' : 'standing'} animationDelay={i * 150} />
                   </svg>
                   <div
                     className="bg-black/70 rounded px-1 py-px -mt-0.5 text-center min-w-[34px]"
@@ -278,6 +281,7 @@ export function LineupEditor() {
                 onClick={() => handleTap(id)}
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" className="pointer-events-none">
+                  <AvatarDefs />
                   <PlayerAvatar playerId={p.id} jerseyColor={club.color} size={24} />
                 </svg>
                 <div

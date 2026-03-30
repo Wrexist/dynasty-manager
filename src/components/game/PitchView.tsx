@@ -3,6 +3,7 @@ import { PITCH_COLORS } from '@/config/ui';
 import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { getFormationStructureLines, getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor, NEUTRAL_LINE_COLOR } from '@/utils/formationLines';
 import { PlayerAvatar } from './PlayerAvatar';
+import { AvatarDefs } from './AvatarDefs';
 import { useGameStore } from '@/store/gameStore';
 import { getActiveCosmetic } from '@/utils/monetization';
 import { cn } from '@/lib/utils';
@@ -70,6 +71,8 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
         {/* Penalty arcs */}
         {!halfPitch && <path d="M 26.85 18.5 A 9.15 9.15 0 0 0 41.15 18.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />}
         <path d="M 26.85 86.5 A 9.15 9.15 0 0 1 41.15 86.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
+
+        <AvatarDefs />
 
         {/* Home formation lines colored by chemistry */}
         {(() => {
@@ -140,6 +143,8 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
                     jerseyColor={homeColor}
                     jerseyNumber={jerseyNumbers?.[i]}
                     size={avatarSize}
+                    pose={slot.pos === 'GK' ? 'gk' : 'standing'}
+                    animationDelay={i * 200}
                   />
                 </g>
               ) : (
@@ -181,7 +186,7 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
           return (
             <g key={`a${i}`}>
               <g transform={`translate(${cx - 6 / 2}, ${cy - 6 / 2})`}>
-                <PlayerAvatar playerId={awayPlayerIds?.[i] || `away-${i}`} jerseyColor={awayColor} size={6} isAway />
+                <PlayerAvatar playerId={awayPlayerIds?.[i] || `away-${i}`} jerseyColor={awayColor} size={6} isAway pose={slot.pos === 'GK' ? 'gk' : 'standing'} />
               </g>
               {/* Dark info box for away team */}
               <rect x={cx - 4.5} y={cy + 3.2} width="9" height={awayOvr !== undefined ? 4.2 : 2.8} rx="0.6" fill="rgba(0,0,0,0.6)" />

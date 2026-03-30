@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 33;
+const CURRENT_VERSION = 34;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -492,6 +492,31 @@ const migrations: Record<number, MigrationFn> = {
       }
     }
     return { ...data, version: 33 };
+  },
+
+  // v33 → v34: Extend PlayerAppearance with facialHair, accessory, bootColor
+  33: (data) => {
+    const players = data.players as Record<string, Record<string, unknown>> | undefined;
+    if (players) {
+      const hash = (id: string) => {
+        let h = 5381;
+        for (let i = 0; i < id.length; i++) {
+          h = ((h << 5) + h + id.charCodeAt(i)) | 0;
+        }
+        return Math.abs(h);
+      };
+      for (const pid of Object.keys(players)) {
+        const p = players[pid];
+        const app = p.appearance as Record<string, number> | undefined;
+        if (app) {
+          const h = hash(pid);
+          if (app.facialHair === undefined) app.facialHair = (h >> 13) % 5;
+          if (app.accessory === undefined) app.accessory = (h >> 15) % 5;
+          if (app.bootColor === undefined) app.bootColor = (h >> 17) % 4;
+        }
+      }
+    }
+    return { ...data, version: 34 };
   },
 };
 
