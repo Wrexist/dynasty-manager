@@ -61,6 +61,9 @@ const Dashboard = () => {
     leagueCup, championsCup, shieldCup, virtualClubs,
     weekCliffhangers, lastMatchDrama, objectiveStreak,
   } = store;
+  // Stable selectors for achievement effect — avoids infinite re-render loop (React #185)
+  const pendingAchievementIds = useGameStore(s => s.pendingAchievementIds);
+  const clearPendingAchievements = useGameStore(s => s.clearPendingAchievements);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
   const pos = useLeaguePosition();
@@ -105,14 +108,13 @@ const Dashboard = () => {
 
   // Achievement unlock modal queue — triggers when pendingAchievementIds changes
   useEffect(() => {
-    const pendingIds = store.pendingAchievementIds;
-    if (!pendingIds || pendingIds.length === 0) return;
+    if (!pendingAchievementIds || pendingAchievementIds.length === 0) return;
     // Only process if we haven't already queued these
-    const key = pendingIds.join(',');
+    const key = pendingAchievementIds.join(',');
     if (prevAchievementRef.current.join(',') === key) return;
-    prevAchievementRef.current = pendingIds;
+    prevAchievementRef.current = pendingAchievementIds;
 
-    const achievements = pendingIds
+    const achievements = pendingAchievementIds
       .map(id => ACHIEVEMENTS.find(a => a.id === id))
       .filter(Boolean) as Achievement[];
     if (achievements.length > 0) {
@@ -122,8 +124,8 @@ const Dashboard = () => {
     }
     // Clear pending from store immediately so remounting the Dashboard
     // (e.g. navigating away and back) won't re-trigger the same popup
-    store.clearPendingAchievements();
-  }, [store, store.pendingAchievementIds]);
+    clearPendingAchievements();
+  }, [pendingAchievementIds, clearPendingAchievements]);
 
   const dismissAchievement = () => {
     const remaining = pendingAchievementQueue.slice(1);
