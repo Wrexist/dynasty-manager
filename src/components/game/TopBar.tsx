@@ -27,6 +27,15 @@ export function TopBar() {
   const pos = entry ? leagueTable.indexOf(entry) + 1 : '-';
   const xpProgress = getXPProgress(managerProgression);
   const posFlash = useFlash(typeof pos === 'number' ? pos : 0);
+  const reputationTier = careerManager?.reputationTier ?? 'unknown';
+  const reputationLabel = {
+    unknown: 'Unk',
+    regional: 'Reg',
+    national: 'Nat',
+    continental: 'Con',
+    world_class: 'World',
+    legendary: 'Leg',
+  }[reputationTier] || reputationTier;
 
   // Save button feedback state
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
@@ -95,10 +104,10 @@ export function TopBar() {
             <button
               onClick={() => setScreen('career-overview')}
               className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-              title={`${careerManager.reputationTier.replace('_', ' ')} (${Math.round(careerManager.reputationScore)})`}
+              title={`${reputationTier.replace('_', ' ')} (${Math.round(careerManager.reputationScore)})`}
             >
               <Star className="w-3 h-3 fill-primary" />
-              <span className="font-bold capitalize">{{ unknown: 'Unk', regional: 'Reg', national: 'Nat', continental: 'Con', world_class: 'World', legendary: 'Leg' }[careerManager.reputationTier] || careerManager.reputationTier}</span>
+              <span className="font-bold capitalize">{reputationLabel}</span>
             </button>
           ) : (
             <button

@@ -382,6 +382,7 @@ const Dashboard = () => {
   }, [seasonOver, inPlayoffs, totalWeeks, week, entry, leagueTable]);
 
   if (!club) return null;
+  const careerReputationTier = careerManager?.reputationTier ?? 'unknown';
 
   // Training focus label map
   const trainingLabels: Record<string, string> = {
@@ -432,7 +433,7 @@ const Dashboard = () => {
               <div>
                 <p className="text-xs font-bold text-foreground">{careerManager.name}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  Age {careerManager.age} — {careerManager.reputationTier.replace('_', ' ')}
+                  Age {careerManager.age} — {careerReputationTier.replace('_', ' ')}
                 </p>
               </div>
             </div>
