@@ -22,17 +22,17 @@
 
 ## Short Description (Google Play, 80 chars max)
 
-**Manage 92 clubs across 4 leagues. Tactics, transfers, youth — your dynasty awaits.**
+**Manage 467 clubs across 30 European leagues. Tactics, transfers, youth — your dynasty awaits.**
 
 ---
 
 ## App Store Category
 
-**Primary:** Games → Sports → Simulation
-**Secondary:** Games → Strategy
+**Primary:** Games > Sports > Simulation
+**Secondary:** Games > Strategy
 
 **Google Play:**
-**Primary:** Game → Sports
+**Primary:** Game > Sports
 **Tags:** Simulation, Strategy, Single Player, Offline
 
 ---
@@ -46,16 +46,16 @@ No violence, no in-app purchases (or mild simulated gambling if transfer/contrac
 
 ## Price
 
-**Free** (with optional premium upgrade or ad-supported — adjust based on monetization strategy)
+**Free** (with optional premium upgrade via in-app purchase)
 
 ---
 
 ## Full Description (Apple App Store / Google Play — 4,000 chars max)
 
-Take the manager's seat. Dynasty Manager puts you in control of one of 92 football clubs across four competitive divisions — from the glamour of the Monarch Premier League to the grit of the Foundation League. Every decision is yours: sign players, set tactics, develop youth, negotiate contracts, and fight for promotion, trophies, and legacy.
+Take the manager's seat. Dynasty Manager puts you in control of one of 467 football clubs across 30 European leagues — from the Premier League to the Icelandic top flight. Every decision is yours: sign players, set tactics, develop youth, negotiate contracts, and fight for promotion, trophies, and legacy.
 
 **MANAGE YOUR WAY**
-Pick any club from 92 teams across 4 divisions. Inherit a full squad, set your formation from 7 tactical systems, and shape your team's identity. Whether you play defensive counter-attack or all-out attacking football — your tactics, your call.
+Pick any club from 467 teams across 30 European countries — England, Spain, Italy, Germany, France, and 25 more. Inherit a full squad, choose from 7 tactical formations, and shape your team's identity with 5 mentalities from Defensive to All-Out Attack.
 
 **DEEP MATCH ENGINE**
 Watch matches unfold minute-by-minute with a realistic event-based simulation. Goals, saves, fouls, red cards, injuries, penalties, and late drama after the 85th minute. Make substitutions, react to momentum swings, and feel the tension of a title-deciding final day.
@@ -70,19 +70,19 @@ Scout players across 5 global regions. Negotiate transfers during two windows pe
 Every player has a unique personality — from Model Professional to Hot Head. Leadership boosts morale. Temperament affects discipline. Ambition drives transfer demands. Chemistry bonuses reward smart squad building with nationality links and partnerships.
 
 **FULL FINANCIAL CONTROL**
-Manage matchday revenue, sponsorship deals across 7 slots, merchandise campaigns with 5 product lines, and facility upgrades. Balance your wage bill, invest in infrastructure, and watch your club's reputation grow.
+Manage matchday revenue, sponsorship deals across 7 slots, merchandise campaigns, and facility upgrades. Balance your wage bill, invest in infrastructure, and watch your club's reputation grow.
 
 **PRESS CONFERENCES & STORYLINES**
 Face the media after every big result. Your responses affect board confidence, player morale, and fan mood. Multi-week storyline chains — dressing room feuds, transfer sagas, youth breakthroughs — add narrative drama to every season.
 
 **MANAGER PROGRESSION**
-Earn XP from wins, trophies, and promotions. Unlock 18 manager perks across 5 tiers — from Scout Network to The Invincible. The Prestige system lets you restart with multiplied rewards, keeping your legacy intact.
+Earn XP from wins, trophies, and promotions. Unlock 21 manager perks across 4 skill branches plus a capstone — from Scout Network to The Invincible. The Prestige system lets you restart with multiplied rewards, keeping your legacy intact.
 
 **CHALLENGE MODE**
-Test yourself with 6 unique scenarios: survive relegation in The Great Escape, go unbeaten in The Invincibles, or build from nothing in Giant Killer. Each challenge offers a different way to prove your managerial genius.
+Test yourself with 6 unique scenarios: survive relegation in The Great Escape, go unbeaten in The Invincibles, build from nothing in Giant Killer, or prove yourself in Cup Specialist. Each challenge offers a different way to prove your managerial genius.
 
 **COMPETE FOR IT ALL**
-Promotion playoffs with home-and-away legs. The Dynasty Cup knockout tournament featuring all 92 clubs. Derby rivalries with tracked head-to-head records. Season awards, Hall of Managers, and career milestones that follow you forever.
+Promotion playoffs. Knockout cup tournaments. Derby rivalries with tracked head-to-head records. Season awards, 28 achievements, Hall of Managers, and career milestones that follow you forever.
 
 Download now. Your dynasty starts today.
 
@@ -90,7 +90,7 @@ Download now. Your dynasty starts today.
 
 ## Promotional Text (Apple App Store, 170 chars — can be updated without new build)
 
-**NEW: Challenge Mode with 6 scenarios! Can you survive The Great Escape or go unbeaten in The Invincibles? Plus storyline chains and the Prestige system.**
+**NEW: 467 clubs across 30 European leagues! Manage in England, Spain, Italy, Germany, France and 25 more countries. Plus Challenge Mode and the Prestige system.**
 
 ---
 
@@ -117,15 +117,15 @@ football,manager,soccer,simulation,tactics,transfer,club,dynasty,league,sports,s
 ```
 What's New in Dynasty Manager:
 
-• 92 clubs across 4 competitive divisions
+• 467 clubs across 30 European leagues
 • Advanced match engine with minute-by-minute simulation
 • Youth Academy with prospect development
-• Transfer & loan system with global scouting
+• Transfer & loan system with global scouting across 5 regions
 • 7 formations, 5 tactical mentalities, drag-and-drop lineups
 • Press conferences and multi-week storyline chains
-• Manager perks, prestige system, and 40+ achievements
+• 21 manager perks, prestige system, and 28 achievements
 • Challenge Mode with 6 unique scenarios
-• Sponsorship deals, merchandise campaigns, facility upgrades
+• Sponsorship deals across 7 slots, merchandise campaigns, facility upgrades
 • Derby rivalries with tracked head-to-head records
 • Premium dark theme with gold accents
 ```
@@ -135,8 +135,8 @@ What's New in Dynasty Manager:
 ## App Store Screenshots — Recommended Screens (6.7" iPhone + 12.9" iPad)
 
 ### Screenshot 1 — Hero / First Impression
-**Caption:** "Manage 92 Clubs Across 4 Divisions"
-**Screen:** Club selection grid showing team badges, division tiers, and club details
+**Caption:** "467 Clubs. 30 European Leagues. Your Choice."
+**Screen:** Club selection grid showing team badges, league/country filters, and club details
 **Overlay text:** YOUR DYNASTY STARTS HERE
 
 ### Screenshot 2 — Match Day
@@ -183,7 +183,7 @@ What's New in Dynasty Manager:
 | Seconds | Visual | Text Overlay |
 |---------|--------|-------------|
 | 0-3 | App logo reveal with gold shimmer on dark background | DYNASTY MANAGER |
-| 3-7 | Quick montage: club selection → lineup setup → match kick-off | YOUR CLUB. YOUR RULES. |
+| 3-7 | Quick montage: league selection → club pick → lineup setup → match kick-off | YOUR CLUB. YOUR RULES. |
 | 7-12 | Match simulation: goal scored, celebration modal, crowd reaction | LIVE THE DRAMA |
 | 12-17 | Transfer negotiation → scout report → youth academy prospect | BUILD YOUR SQUAD |
 | 17-22 | League table climbing → promotion → prestige reset screen | RISE. RESET. REPEAT. |
@@ -197,30 +197,36 @@ What's New in Dynasty Manager:
 ### Support URL
 `https://github.com/Wrexist/dynasty-manager/issues`
 
+### Marketing URL
+_(Optional — link to landing page or website when available)_
+
 ### Privacy Policy URL
-_(Required — needs a hosted privacy policy page)_
+`https://wrexist.github.io/dynasty-manager/privacy-policy.html`
+
+### Terms of Service URL
+`https://wrexist.github.io/dynasty-manager/terms-of-service.html`
 
 ### Copyright
-`© 2025 Dynasty Manager`
+`© 2026 Dynasty Manager`
 
 ### Content Rights
-All content is original. No licensed football data, team names, or player likenesses are used.
+All content is original. No licensed football data, team names, or player likenesses are used. All 467 clubs are fictional (inspired by real European football pyramid structures).
 
 ### App Review Notes
-Dynasty Manager is a single-player football management simulation. All 92 clubs are fictional (inspired by English football pyramid structure). No real player names or likenesses. No multiplayer, no server-side components — all data stored locally on device. No in-app purchases in initial release.
+Dynasty Manager is a single-player football management simulation. All 467 clubs across 30 European leagues are fictional (inspired by real football pyramid structures). No real player names or likenesses. No multiplayer, no server-side components — all data stored locally on device. Optional in-app purchases for premium features; no loot boxes or gambling mechanics.
 
 ---
 
 ## Google Play Specific
 
 ### Feature Graphic (1024x500)
-Dark navy background with gold Dynasty Manager logo centered. Tagline: "Build Your Football Empire" beneath. Subtle stadium silhouette in background.
+Dark navy background with gold Dynasty Manager logo centered. Tagline: "Build Your Football Empire" beneath. Subtle stadium silhouette in background. "30 European Leagues" badge in corner.
 
 ### Developer Name
 **Wrexist Games**
 
 ### Short Description (80 chars)
-**Manage 92 clubs across 4 leagues. Tactics, transfers, youth — your dynasty awaits.**
+**Manage 467 clubs across 30 European leagues. Tactics, transfers, youth — your dynasty awaits.**
 
 ### Tags (Google Play — select up to 5)
 1. Sports
@@ -249,18 +255,19 @@ Dark navy background with gold Dynasty Manager logo centered. Tagline: "Build Yo
 | club manager game | Medium | Low | 4 |
 | football tactics game | Medium | Low | 5 |
 | sports management sim | Medium | Medium | 6 |
+| european football game | Medium | Low | 7 |
 
 ### Optimization Tips
 1. **Title + Subtitle** contain the two highest-volume keywords ("Football" + "Manager" in title; "Football" + "Empire" in subtitle)
 2. **Keyword field** covers long-tail and cross-genre terms not in the title
-3. **Description** naturally uses "football manager", "soccer", "simulation", "tactics", "transfers", "youth academy" for Google Play indexing (Google indexes descriptions; Apple does not)
+3. **Description** naturally uses "football manager", "soccer", "simulation", "tactics", "transfers", "youth academy", "European leagues" for Google Play indexing (Google indexes descriptions; Apple does not)
 4. **Screenshots** should have keyword-rich captions — Apple may OCR screenshot text for search
-5. **Localization opportunity**: Translate listing to Spanish, Portuguese, German, French, Italian, Japanese — football/soccer is global
+5. **Localization opportunity**: Translate listing to Spanish, Portuguese, German, French, Italian, Japanese — football/soccer is global. With 30 European leagues, country-specific marketing is a strong opportunity.
 6. **Ratings prompt**: Trigger `SKStoreReviewController` after first promotion or cup win (positive emotional moment)
 7. **Update cadence**: Regular updates signal active development — Apple/Google boost recently-updated apps
 
 ### Competitor Positioning
-- **vs. Football Manager Mobile**: Dynasty Manager is free, lighter, faster sessions, unique prestige system
+- **vs. Football Manager Mobile**: Dynasty Manager is free, lighter, faster sessions, unique prestige system, 30 European leagues
 - **vs. Top Eleven**: No multiplayer pay-to-win — pure single-player strategic depth
 - **vs. Dream League Soccer**: Focus on management over arcade gameplay — deeper tactics and transfers
 - **vs. Retro Goal / New Star Manager**: More depth in squad building, youth development, and multi-season progression
@@ -275,6 +282,7 @@ Dark navy background with gold Dynasty Manager logo centered. Tagline: "Build Yo
 - football management sim
 - club manager mobile
 - football tactics
+- european football manager
 
 ### Broad Match (Discovery)
 - sports simulation
@@ -284,8 +292,8 @@ Dark navy background with gold Dynasty Manager logo centered. Tagline: "Build Yo
 - strategy sports game
 
 ### Competitor Keywords (use cautiously — Apple allows but monitor ROI)
-- football manager 2025
+- football manager 2026
 - top eleven
 - dream league soccer
 - new star manager
-- soccer manager 2025
+- soccer manager 2026
