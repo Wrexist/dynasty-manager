@@ -67,6 +67,7 @@ const Dashboard = () => {
     gameMode, careerManager, jobOffers,
     pendingPressConference, pendingStoryline, pendingTransferTalk,
     activeChallenge, youthAcademy, fanMood, sessionStats,
+    pendingAchievementIds,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
@@ -87,6 +88,7 @@ const Dashboard = () => {
     pendingPressConference: s.pendingPressConference, pendingStoryline: s.pendingStoryline,
     pendingTransferTalk: s.pendingTransferTalk, activeChallenge: s.activeChallenge,
     youthAcademy: s.youthAcademy, fanMood: s.fanMood, sessionStats: s.sessionStats,
+    pendingAchievementIds: s.pendingAchievementIds,
   })));
   // Actions — stable references, individual selectors
   const setScreen = useGameStore(s => s.setScreen);
@@ -94,9 +96,6 @@ const Dashboard = () => {
   const endSeason = useGameStore(s => s.endSeason);
   const autoFillTeam = useGameStore(s => s.autoFillTeam);
   const selectPlayer = useGameStore(s => s.selectPlayer);
-  // Stable selectors for achievement effect — avoids infinite re-render loop (React #185)
-  const pendingAchievementIds = useGameStore(s => s.pendingAchievementIds);
-  const clearPendingAchievements = useGameStore(s => s.clearPendingAchievements);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
   const pos = useLeaguePosition();
@@ -130,6 +129,10 @@ const Dashboard = () => {
     }
   }, [boardConfidence]);
 
+  // Mount guard — skip effects during initial render to avoid init-time cascading updates (React #185)
+  const mountedRef = useRef(false);
+  useEffect(() => { mountedRef.current = true; }, []);
+
   // Celebration toasts & modals: fire when week changes (after advanceWeek)
   const prevWeekRef = useRef(week);
   const shownCelebrationsRef = useRef<Set<string>>(new Set());
@@ -140,6 +143,7 @@ const Dashboard = () => {
   const prevAchievementRef = useRef<string[]>([]);
 
   // Achievement unlock modal queue — triggers when pendingAchievementIds changes
+  // Uses getState() for the action to avoid dependency instability (React #185 fix)
   useEffect(() => {
     if (!pendingAchievementIds || pendingAchievementIds.length === 0) return;
     // Only process if we haven't already queued these
@@ -156,9 +160,10 @@ const Dashboard = () => {
       hapticHeavy();
     }
     // Clear pending from store immediately so remounting the Dashboard
-    // (e.g. navigating away and back) won't re-trigger the same popup
-    clearPendingAchievements();
-  }, [pendingAchievementIds, clearPendingAchievements]);
+    // (e.g. navigating away and back) won't re-trigger the same popup.
+    // Use getState() to avoid including the action in dependency array.
+    useGameStore.getState().clearPendingAchievements();
+  }, [pendingAchievementIds]);
 
   const dismissAchievement = () => {
     const remaining = pendingAchievementQueue.slice(1);
@@ -177,6 +182,7 @@ const Dashboard = () => {
     }
   }, [season]);
   useEffect(() => {
+    if (!mountedRef.current) return; // Skip during initial mount to avoid cascading updates
     if (!club) return;
     if (prevWeekRef.current !== week && prevWeekRef.current > 0) {
       const celebrations = checkCelebrations(

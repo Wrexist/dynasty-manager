@@ -17,6 +17,10 @@ export class PageErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('[PageErrorBoundary]', error.message, info.componentStack);
+  }
+
   render() {
     if (this.state.hasError) {
       return (
