@@ -49,7 +49,7 @@ const CareerOverview = () => {
       <GlassPanel className="p-4">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-            <ManagerAvatar appearance={careerManager.appearance} size={48} />
+            <ManagerAvatar appearance={careerManager.appearance} size={48} initials={careerManager.name.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2)} />
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-bold text-foreground">{careerManager.name}</h2>

@@ -1230,17 +1230,23 @@ export interface ManagerBonus {
 
 export interface ManagerAppearance {
   gender: 'male' | 'female';
-  skinTone: number;       // index into SKIN_TONES (0-7)
-  faceShape: number;      // index into FACE_SHAPES (0-3)
-  eyeStyle: number;       // index into EYE_STYLES (0-3)
-  hairStyle: number;      // index into gender-specific hair arrays (0-7)
-  hairColor: number;      // index into HAIR_COLORS (0-7)
-  facialHair: number;     // index into FACIAL_HAIR_STYLES (0-5), male only
-  glasses: number;        // index into GLASSES_STYLES (0-3)
-  outfit: number;         // index into OUTFIT_TYPES (0-2)
-  outfitColor: string;    // hex color for outfit
-  tieColor: string;       // hex color, visible with suit only
-  accessory: number;      // index into ACCESSORIES (0-3)
+  badgeShape: number;       // 0-3: circle, shield, hexagon, diamond
+  backgroundColor: string;  // hex color for badge background
+  accentColor: string;      // hex color for accent ring
+  pattern: number;          // 0-3: solid, striped, split, chevron
+  icon: number;             // 0-4: suit, tracksuit, whistle, clipboard, trophy
+  // Legacy fields (kept for save migration compat, unused by new renderer)
+  skinTone?: number;
+  faceShape?: number;
+  eyeStyle?: number;
+  hairStyle?: number;
+  hairColor?: number;
+  facialHair?: number;
+  glasses?: number;
+  outfit?: number;
+  outfitColor?: string;
+  tieColor?: string;
+  accessory?: number;
 }
 
 export interface CareerManager {

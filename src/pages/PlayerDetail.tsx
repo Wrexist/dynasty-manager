@@ -16,7 +16,6 @@ import { getFlag } from '@/utils/nationality';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel, getTrainingMultiplier } from '@/utils/personality';
 import { PlayerAvatar } from '@/components/game/PlayerAvatar';
-import { AvatarDefs } from '@/components/game/AvatarDefs';
 import { PlayerRadarChart } from '@/components/game/PlayerRadarChart';
 import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
@@ -167,10 +166,7 @@ const PlayerDetail = () => {
       <GlassPanel className="p-5">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center relative overflow-hidden">
-            <svg width="52" height="52" viewBox="0 0 52 52">
-              <AvatarDefs />
-              <PlayerAvatar playerId={player.id} jerseyColor={club?.color || '#888'} size={52} appearance={player.appearance} pose={player.position === 'GK' ? 'gk' : 'standing'} />
-            </svg>
+              <PlayerAvatar playerId={player.id} jerseyColor={club?.color || '#888'} jerseyNumber={player.squadNumber} size={52} overall={player.overall} position={player.position} />
             <span className={cn('absolute -bottom-0.5 -right-0.5 text-[10px] font-black bg-background rounded-full w-6 h-6 flex items-center justify-center border border-border tabular-nums', ratingColor)}>
               {player.overall}
             </span>
