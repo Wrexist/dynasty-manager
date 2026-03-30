@@ -183,22 +183,26 @@ const Dashboard = () => {
   }, [season]);
   useEffect(() => {
     if (!mountedRef.current) return; // Skip during initial mount to avoid cascading updates
-    if (!club) return;
     if (prevWeekRef.current !== week && prevWeekRef.current > 0) {
+      // Read current values from store to avoid broad object dependencies (React #185 fix)
+      const s = useGameStore.getState();
+      const currentClub = s.clubs[s.playerClubId];
+      if (!currentClub) { prevWeekRef.current = week; return; }
+
       const celebrations = checkCelebrations(
-        playerClubId, players, club.playerIds, fixtures, leagueTable, season
+        s.playerClubId, s.players, currentClub.playerIds, s.fixtures, s.leagueTable, s.season
       );
 
       // Add match drama celebrations
-      if (lastMatchDrama) {
-        const dramaCeleb = getDramaCelebration(lastMatchDrama);
+      if (s.lastMatchDrama) {
+        const dramaCeleb = getDramaCelebration(s.lastMatchDrama);
         if (dramaCeleb) celebrations.push(dramaCeleb);
       }
 
       const unseen = celebrations.filter(c => {
         // Drama celebrations (type 'record' from getDramaCelebration) are per-week;
         // milestones/streaks are per-season to avoid re-triggering
-        const key = c.type === 'record' ? `${c.title}-${season}-${week}` : `${c.title}-${season}`;
+        const key = c.type === 'record' ? `${c.title}-${s.season}-${week}` : `${c.title}-${s.season}`;
         if (shownCelebrationsRef.current.has(key)) return false;
         shownCelebrationsRef.current.add(key);
         return true;
@@ -216,7 +220,7 @@ const Dashboard = () => {
       });
     }
     prevWeekRef.current = week;
-  }, [week, playerClubId, players, club, fixtures, leagueTable, season, lastMatchDrama]);
+  }, [week]); // Only depend on week — read other values from getState() to avoid cascading re-renders
 
   // ── Derived data (memoized) — must be above early return to avoid conditional hooks ──
 

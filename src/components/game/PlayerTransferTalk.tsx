@@ -7,7 +7,10 @@ import { hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 
 export function PlayerTransferTalk() {
-  const { pendingTransferTalk, respondToTransferTalk, dismissTransferTalk, players } = useGameStore();
+  const pendingTransferTalk = useGameStore(s => s.pendingTransferTalk);
+  const respondToTransferTalk = useGameStore(s => s.respondToTransferTalk);
+  const dismissTransferTalk = useGameStore(s => s.dismissTransferTalk);
+  const players = useGameStore(s => s.players);
 
   useEffect(() => {
     if (pendingTransferTalk) hapticMedium();
