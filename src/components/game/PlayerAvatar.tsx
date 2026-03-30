@@ -7,18 +7,20 @@
  */
 
 import { memo, useId } from 'react';
-import type { PlayerAppearance } from '@/types/game';
 
 export type AvatarPose = 'standing' | 'gk' | 'running';
 
 interface PlayerAvatarProps {
-  playerId: string;
+  playerId?: string;
   jerseyColor: string;
   jerseyNumber?: number;
   size?: number;
   isAway?: boolean;
-  appearance?: PlayerAppearance;
+  /** @deprecated No longer used by badge renderer */
+  appearance?: unknown;
+  /** @deprecated No longer used by badge renderer */
   pose?: AvatarPose;
+  /** @deprecated No longer used by badge renderer */
   animationDelay?: number;
   overall?: number;
   position?: string;
@@ -76,6 +78,8 @@ export const PlayerAvatar = memo(function PlayerAvatar({
   const num = jerseyNumber != null ? jerseyNumber : '';
   const numFontSize = String(num).length >= 2 ? 9.5 : 11;
 
+  const gradientId = `jb-bg-${uid}`;
+
   return (
     <svg
       width={size}
@@ -84,7 +88,7 @@ export const PlayerAvatar = memo(function PlayerAvatar({
       opacity={opacity}
     >
       <defs>
-        <linearGradient id={`jb-bg-${uid}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={colorLight} />
           <stop offset="100%" stopColor={colorDark} />
         </linearGradient>
@@ -92,8 +96,8 @@ export const PlayerAvatar = memo(function PlayerAvatar({
 
       {/* Jersey body shape — slight taper at bottom with rounded shoulders */}
       <path
-        d={`M4 2 Q4 0 6 0 L18 0 Q20 0 20 2 L21 10 L20 10 L20 26 Q20 28 18 28 L6 28 Q4 28 4 26 L4 10 L3 10 Z`}
-        fill={`url(#jb-bg-${uid})`}
+        d="M4 2 Q4 0 6 0 L18 0 Q20 0 20 2 L21 10 L20 10 L20 26 Q20 28 18 28 L6 28 Q4 28 4 26 L4 10 L3 10 Z"
+        fill={`url(#${gradientId})`}
         stroke={ratingColor}
         strokeWidth={isLarge ? 1.2 : 0.8}
       />
@@ -119,7 +123,6 @@ export const PlayerAvatar = memo(function PlayerAvatar({
         fontSize={numFontSize}
         fontWeight="bold"
         fontFamily="monospace"
-        style={{ textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}
       >
         {num}
       </text>
