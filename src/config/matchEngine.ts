@@ -5,7 +5,7 @@
 
 // ── Formation Fit ──
 /** Maximum bonus from perfect formation fit — mispositioned players are punished */
-export const FORMATION_FIT_MAX_BONUS = 0.18;
+export const FORMATION_FIT_MAX_BONUS = 0.25;
 
 // ── Attacker Selection ──
 export const ATTACKER_POSITIONS = ['ST', 'LW', 'RW', 'CAM'] as const;
@@ -81,13 +81,13 @@ export const GK_SAVE_BASE = 0.18;
 export const GK_SAVE_RANGE = 0.28;
 
 // ── Tactical Familiarity ──
-export const TACTICAL_FAMILIARITY_MULTIPLIER = 0.004;
+export const TACTICAL_FAMILIARITY_MULTIPLIER = 0.012;
 
 // ── Home Advantage ──
-export const HOME_ADVANTAGE = 1.10;
+export const HOME_ADVANTAGE = 1.15;
 
 // ── Event Generation ──
-export const BASE_EVENT_CHANCE = 0.45;
+export const BASE_EVENT_CHANCE = 0.35;
 export const LATE_GAME_EVENT_BONUS = 0.10;
 export const LATE_GAME_THRESHOLD_MINUTE = 85;
 /** Max consecutive minutes without any event before commentary is injected */

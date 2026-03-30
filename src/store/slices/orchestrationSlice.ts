@@ -92,6 +92,7 @@ import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
 import { getTournamentForSeason, generateTournament, processGroupWeek, generateKnockoutBracket, processKnockoutRound, autoSelectNationalSquad } from '@/utils/international';
 import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST } from '@/config/gameBalance';
+import { generateRandomEvents } from '@/utils/randomEvents';
 import { getWinStreak, detectMatchDrama } from '@/utils/celebrations';
 import { generateCliffhangers } from '@/utils/weekPreview';
 import { generateWeeklyObjectives, evaluateObjectives } from '@/utils/weeklyObjectives';
@@ -1136,13 +1137,29 @@ function finalizeSeason(
           }
         }
       }
-      // Route to free agent pool instead of deleting (up to max pool size)
-      if (aged.age <= 34 && aged.overall >= 55 && freeAgentIds.length < FREE_AGENT_POOL_MAX) {
+      // Route to free agent pool — evict weakest if full to preserve higher-quality players
+      if (aged.age <= 34 && aged.overall >= 55) {
         aged.clubId = '';
         aged.listedForSale = false;
         aged.wage = Math.round(aged.wage * 0.8); // Free agents accept lower wages
-        newPlayers[aged.id] = aged;
-        freeAgentIds.push(aged.id);
+        if (freeAgentIds.length >= FREE_AGENT_POOL_MAX) {
+          // Find the weakest free agent and replace if this player is better
+          let weakestIdx = 0;
+          let weakestOvr = Infinity;
+          for (let i = 0; i < freeAgentIds.length; i++) {
+            const fa = newPlayers[freeAgentIds[i]];
+            if (fa && fa.overall < weakestOvr) { weakestOvr = fa.overall; weakestIdx = i; }
+          }
+          if (aged.overall > weakestOvr) {
+            delete newPlayers[freeAgentIds[weakestIdx]];
+            freeAgentIds[weakestIdx] = aged.id;
+            newPlayers[aged.id] = aged;
+          }
+          // If not better than anyone in pool, player is simply released (not tracked)
+        } else {
+          newPlayers[aged.id] = aged;
+          freeAgentIds.push(aged.id);
+        }
       }
       return;
     }
@@ -1154,9 +1171,11 @@ function finalizeSeason(
     'GK': 2, 'CB': 5, 'LB': 2, 'RB': 2, 'CDM': 1, 'CM': 5, 'CAM': 1, 'LW': 2, 'RW': 2, 'ST': 3,
   };
   Object.values(newClubs).forEach(club => {
-    // Clean up stale playerIds — remove any IDs that no longer exist in newPlayers
+    // Clean up stale playerIds, lineup, and subs — remove any IDs that no longer exist in newPlayers
     const updatedClub = { ...newClubs[club.id] };
     updatedClub.playerIds = updatedClub.playerIds.filter(id => newPlayers[id]);
+    updatedClub.lineup = updatedClub.lineup.filter(id => newPlayers[id] && updatedClub.playerIds.includes(id));
+    updatedClub.subs = updatedClub.subs.filter(id => newPlayers[id] && updatedClub.playerIds.includes(id));
     newClubs[club.id] = updatedClub;
 
     const currentSquadIds = updatedClub.playerIds;
@@ -3018,6 +3037,21 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
+    // Random mid-season events for immersion
+    const playerTableEntry = leagueTable.find(e => e.clubId === playerClubId);
+    const recentForm = (playerTableEntry?.form || []) as ('W' | 'D' | 'L')[];
+    const randomEvent = generateRandomEvents(
+      newClubs[playerClubId], newPlayers, newMessages, newWeek, season, recentForm, newBoardConfidence,
+    );
+    newMessages = randomEvent.messages;
+    newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence + randomEvent.confidenceDelta);
+    for (const [pid, updates] of Object.entries(randomEvent.playerUpdates)) {
+      if (newPlayers[pid]) newPlayers[pid] = { ...newPlayers[pid], ...updates };
+    }
+    if (Object.keys(randomEvent.clubUpdate).length > 0) {
+      newClubs[playerClubId] = { ...newClubs[playerClubId], ...randomEvent.clubUpdate };
+    }
+
     set({
       week: newWeek, fixtures: updatedFixtures, players: newPlayers,
       leagueTable, transferWindowOpen, currentMatchResult: null,
@@ -4079,6 +4113,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = migrateSaveData(parsed) as Record<string, any>;
+      if (data.migrationError) {
+        console.error('[LoadGame] Save migration failed — save data may be corrupt');
+        return false;
+      }
       const clubIds = Object.keys(data.clubs);
       const leagueTable = buildLeagueTable(data.fixtures, clubIds);
 

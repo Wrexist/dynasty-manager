@@ -1,6 +1,7 @@
 import type { Match, PlayerMatchRating, CareerMilestone, InjuryDetails } from '@/types/game';
 import { buildLeagueTable } from '@/data/league';
 import { addMsg } from '@/utils/helpers';
+import { getPlayerNarratives, getNarrativeBonus } from '@/utils/playerNarratives';
 import {
   FITNESS_DRAIN_PER_MATCH, FITNESS_MIN_POST_MATCH,
   MORALE_WIN_CHANGE, MORALE_LOSS_CHANGE,
@@ -85,6 +86,18 @@ export function processMatchResult(
   const pc = clubs[playerClubId];
   if (!pc) return { newPlayers, updatedFixtures: state.fixtures.map(f => f.id === match.id ? result : f), leagueTable: [], confidence: state.boardConfidence || 50, newMessages: messages, managerStats: state.managerStats, playerRatings, won, lost, newMilestones: [] as CareerMilestone[], managerProgression: state.managerProgression, pairFamiliarity: newPairFamiliarity };
   const matchParticipants = new Set([...hc.lineup, ...ac.lineup]);
+  // Compute aggregate narrative bonuses from lineup players (Veteran Leaders reduce morale loss, etc.)
+  let narrativeMoraleLossReduction = 0;
+  let narrativeTeamMoraleBoost = 0;
+  pc.lineup.forEach(lid => {
+    const lp = newPlayers[lid];
+    if (!lp) return;
+    const tags = getPlayerNarratives(lp, state.season, lp.joinedSeason, lp.isFromYouthAcademy);
+    const bonus = getNarrativeBonus(tags.map(t => t.tag));
+    narrativeMoraleLossReduction += bonus.moraleLossReduction;
+    narrativeTeamMoraleBoost += bonus.teamMoraleBoost;
+  });
+
   pc.playerIds.forEach(pid => {
     if (newPlayers[pid]) {
       const p = { ...newPlayers[pid] };
@@ -92,7 +105,9 @@ export function processMatchResult(
       if (matchParticipants.has(pid)) {
         p.fitness = Math.max(FITNESS_MIN_POST_MATCH, p.fitness + FITNESS_DRAIN_PER_MATCH);
       }
-      let moraleDelta = won ? MORALE_WIN_CHANGE : lost ? MORALE_LOSS_CHANGE : 0;
+      let moraleDelta = won ? MORALE_WIN_CHANGE : lost ? MORALE_LOSS_CHANGE + narrativeMoraleLossReduction : 0;
+      // Add team morale boost from narrative-tagged players (capped at +5)
+      if (won) moraleDelta += Math.min(5, narrativeTeamMoraleBoost);
       // Iron Will perk: no morale penalty from defeats
       if (lost && hasPerk(state.managerProgression, 'iron_will')) moraleDelta = 0;
       // Fortress Mentality perk: home wins give extra morale

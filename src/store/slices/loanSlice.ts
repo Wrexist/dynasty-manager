@@ -60,13 +60,15 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     updatedFrom.playerIds = updatedFrom.playerIds.filter(id => id !== playerId);
     updatedFrom.lineup = updatedFrom.lineup.filter(id => id !== playerId);
     updatedFrom.subs = updatedFrom.subs.filter(id => id !== playerId);
+    // Compute loaned wage share once to ensure both clubs agree on the amount
+    const loanWageShare = Math.round(player.wage * wageSplit / 100);
     // Source club still pays (100 - wageSplit)% of wage
-    updatedFrom.wageBill -= Math.round(player.wage * wageSplit / 100);
+    updatedFrom.wageBill -= loanWageShare;
 
     const updatedTo = { ...toClub };
     updatedTo.playerIds = [...updatedTo.playerIds, playerId];
     // Destination club pays wageSplit% of wage
-    updatedTo.wageBill += Math.round(player.wage * wageSplit / 100);
+    updatedTo.wageBill += loanWageShare;
 
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
@@ -117,10 +119,11 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
     toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
     toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
-    toClub.wageBill -= Math.round(player.wage * loan.wageSplit / 100);
+    const recallWageShare = Math.round(player.wage * loan.wageSplit / 100);
+    toClub.wageBill -= recallWageShare;
 
     fromClub.playerIds = [...fromClub.playerIds, loan.playerId];
-    fromClub.wageBill += Math.round(player.wage * loan.wageSplit / 100);
+    fromClub.wageBill += recallWageShare;
 
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',

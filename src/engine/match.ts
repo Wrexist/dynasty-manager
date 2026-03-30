@@ -269,8 +269,9 @@ function computeStrengths(
   const homeFirstDefBoost = (currentSeason === 1 && playerClubId === homeClub.id) ? FIRST_MATCH_DEFENSE_BOOST : 0;
   const awayFirstDefBoost = (currentSeason === 1 && playerClubId === awayClub.id) ? FIRST_MATCH_DEFENSE_BOOST : 0;
   // Strength = base * (attack modifiers) reduced by opponent's defensive modifiers
-  const homeStr = getTeamStrength(homePlayers) * homeUnhappyMod * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayMods.defenseMod + awayFormDef + awayDefFitBonus - awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE);
-  const awayStr = getTeamStrength(awayPlayers) * awayUnhappyMod * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup + awayFirstMatchBoost) * (1 - (homeMods.defenseMod + homeFormDef + homeDefFitBonus - homeFirstDefBoost) * DEFENSE_MODIFIER_SCALE);
+  // Clamped to a minimum of 0.01 to prevent negative/zero strength from extreme modifier combinations
+  const homeStr = Math.max(0.01, getTeamStrength(homePlayers) * homeUnhappyMod * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayMods.defenseMod + awayFormDef + awayDefFitBonus - awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
+  const awayStr = Math.max(0.01, getTeamStrength(awayPlayers) * awayUnhappyMod * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup + awayFirstMatchBoost) * (1 - (homeMods.defenseMod + homeFormDef + homeDefFitBonus - homeFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
   return { homeStr, awayStr, homeMods, awayMods };
 }
 
@@ -532,6 +533,28 @@ export function simulateHalf(
 
   if (startMin === 1) {
     events.push({ minute: 0, type: 'kickoff', clubId: homeClub.id, description: 'Kick off!' });
+
+    // Tactical counter-play commentary — describe active tactical matchups early in the match
+    const homeMatchup = getTacticalMatchupBonus(homeTactics, awayTactics);
+    const awayMatchup = getTacticalMatchupBonus(awayTactics, homeTactics);
+    if (homeMatchup > 0 || awayMatchup > 0) {
+      const advantage = homeMatchup > awayMatchup ? 'home' : 'away';
+      const advClub = advantage === 'home' ? homeClub : awayClub;
+      const myT = advantage === 'home' ? homeTactics : awayTactics;
+      const oppT = advantage === 'home' ? awayTactics : homeTactics;
+      let desc = `${advClub.shortName} seem to have the tactical edge early on.`;
+      if (myT && oppT) {
+        if (myT.pressingIntensity >= PRESSING_THRESHOLD && oppT.tempo === 'slow')
+          desc = `${advClub.shortName}'s high press is disrupting their opponent's slow build-up play.`;
+        else if (myT.width === 'wide' && oppT.width === 'narrow')
+          desc = `${advClub.shortName}'s wide play is stretching the narrow defensive shape.`;
+        else if (myT.defensiveLine === 'deep' && oppT.defensiveLine === 'high')
+          desc = `${advClub.shortName} are sitting deep and exploiting the space behind the high line.`;
+        else if (myT.tempo === 'fast' && (oppT.mentality === 'cautious' || oppT.mentality === 'defensive'))
+          desc = `${advClub.shortName}'s fast tempo is overwhelming the cautious approach.`;
+      }
+      events.push({ minute: 5, type: 'commentary', clubId: advClub.id, description: desc });
+    }
   }
 
   let lastEventMinute = startMin;

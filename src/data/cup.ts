@@ -1,5 +1,6 @@
 import { CupTie, CupRound, CupState } from '@/types/game';
 import { shuffle } from '@/utils/helpers';
+import { CUP_PENALTY_WIN_CHANCE, CUP_PENALTY_KICKS } from '@/config/gameBalance';
 
 export const CUP_BYE_MARKER = '__BYE__';
 
@@ -78,11 +79,30 @@ export function advanceCupRound(cup: CupState): CupState {
 
   // Get winners from current round
   const currentTies = cup.ties.filter(t => t.round === currentRound && t.played);
+  // Resolve drawn ties with penalty shootout simulation
+  const updatedTies = [...cup.ties];
   const winners = currentTies.map(t => {
     if (t.awayClubId === CUP_BYE_MARKER) return t.homeClubId;
-    return t.homeGoals > t.awayGoals ? t.homeClubId :
-      t.awayGoals > t.homeGoals ? t.awayClubId :
-      Math.random() < 0.5 ? t.homeClubId : t.awayClubId;
+    if (t.homeGoals > t.awayGoals) return t.homeClubId;
+    if (t.awayGoals > t.homeGoals) return t.awayClubId;
+    // Penalty shootout for drawn matches
+    let homeGoals = 0, awayGoals = 0;
+    for (let kick = 0; kick < CUP_PENALTY_KICKS; kick++) {
+      if (Math.random() < CUP_PENALTY_WIN_CHANCE) homeGoals++;
+      if (Math.random() < CUP_PENALTY_WIN_CHANCE) awayGoals++;
+    }
+    // Sudden death if still tied after regulation kicks
+    while (homeGoals === awayGoals) {
+      const hScore = Math.random() < CUP_PENALTY_WIN_CHANCE ? 1 : 0;
+      const aScore = Math.random() < CUP_PENALTY_WIN_CHANCE ? 1 : 0;
+      if (hScore !== aScore) { homeGoals += hScore; awayGoals += aScore; }
+    }
+    // Store shootout result on the tie
+    const tieIdx = updatedTies.findIndex(ut => ut.id === t.id);
+    if (tieIdx >= 0) {
+      updatedTies[tieIdx] = { ...updatedTies[tieIdx], penaltyShootout: { home: homeGoals, away: awayGoals } };
+    }
+    return homeGoals > awayGoals ? t.homeClubId : t.awayClubId;
   });
 
   const shuffled = shuffle([...winners]);
@@ -115,7 +135,7 @@ export function advanceCupRound(cup: CupState): CupState {
 
   return {
     ...cup,
-    ties: [...cup.ties, ...newTies],
+    ties: [...updatedTies, ...newTies],
     currentRound: nextRound,
   };
 }
