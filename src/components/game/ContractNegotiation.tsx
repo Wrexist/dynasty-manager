@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { FileText, X, ArrowRight, Check, AlertTriangle } from 'lucide-react';
 import { formatWage } from '@/utils/contracts';
@@ -9,7 +10,11 @@ import { motion } from 'framer-motion';
 import { hapticMedium } from '@/utils/haptics';
 
 export function ContractNegotiation() {
-  const { activeNegotiation, submitWageOffer, cancelNegotiation, players, clubs, playerClubId } = useGameStore();
+  const { activeNegotiation, players, clubs, playerClubId } = useGameStore(useShallow(s => ({
+    activeNegotiation: s.activeNegotiation, players: s.players, clubs: s.clubs, playerClubId: s.playerClubId,
+  })));
+  const submitWageOffer = useGameStore(s => s.submitWageOffer);
+  const cancelNegotiation = useGameStore(s => s.cancelNegotiation);
   const [customWage, setCustomWage] = useState<number | null>(null);
 
   useScrollLock(!!activeNegotiation);

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import {
@@ -66,9 +67,12 @@ const CAREER_MODE_ITEMS: DrawerItem[] = [
 export function MoreDrawer() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const { setScreen, messages, currentScreen, cupState, gameMode } = useGameStore();
+  const { messages, currentScreen, cup, gameMode } = useGameStore(useShallow(s => ({
+    messages: s.messages, currentScreen: s.currentScreen, cup: s.cup, gameMode: s.gameMode,
+  })));
+  const setScreen = useGameStore(s => s.setScreen);
   const unread = messages.filter(m => !m.read).length;
-  const hasPendingCupMatch = cupState?.bracket?.some(t => !t.played && (t.homeClubId || t.awayClubId));
+  const hasPendingCupMatch = cup?.ties?.some(t => !t.played && (t.homeClubId || t.awayClubId));
 
   const handleNav = (screen: GameScreen) => {
     hapticLight();

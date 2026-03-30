@@ -4,7 +4,7 @@ import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_W
 
 interface QuestionDef {
   question: string;
-  options: Record<PressResponseTone, { text: string; effects: PressOption['effects'] }>;
+  options: Record<'confident' | 'humble' | 'deflect', { text: string; effects: PressOption['effects'] }>;
   proOption?: { tone: PressResponseTone; text: string; effects: PressOption['effects'] };
 }
 

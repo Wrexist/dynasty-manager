@@ -132,15 +132,13 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
 
     /** Initialize first launch timestamp if not set */
     initMonetizationTimestamp: () => {
-      _set((s) => {
-        if (s.monetization.firstLaunchTimestamp > 0) return {};
-        return {
-          monetization: {
-            ...s.monetization,
-            firstLaunchTimestamp: Date.now(),
-          },
-        };
-      });
+      if (_get().monetization.firstLaunchTimestamp > 0) return;
+      _set((s) => ({
+        monetization: {
+          ...s.monetization,
+          firstLaunchTimestamp: Date.now(),
+        },
+      }));
     },
 
     /** Apply transfer budget bonus from ad reward */

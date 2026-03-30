@@ -6,7 +6,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useScrollLock } from '@/hooks/useScrollLock';
 
 export function FarewellModal() {
-  const { pendingFarewell, dismissFarewell } = useGameStore();
+  const pendingFarewell = useGameStore(s => s.pendingFarewell);
+  const dismissFarewell = useGameStore(s => s.dismissFarewell);
   const current = pendingFarewell[0];
 
   useScrollLock(!!current);

@@ -39,7 +39,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   seasonGrowthTracker: {} as Record<string, number>,
 
   // ── Press Conference Actions ──
-  respondToPress: (tone: 'confident' | 'humble' | 'deflect') => {
+  respondToPress: (tone: import('@/types/game').PressResponseTone) => {
     const state = get();
     const press = state.pendingPressConference;
     if (!press) return;
@@ -94,7 +94,10 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     });
   },
 
-  clearPendingAchievements: () => set({ pendingAchievementIds: [] }),
+  clearPendingAchievements: () => {
+    if (get().pendingAchievementIds.length === 0) return;
+    set({ pendingAchievementIds: [] });
+  },
 
   dismissPress: () => {
     // Dismissing has a small negative effect — media reports "manager refused to comment"

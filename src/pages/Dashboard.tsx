@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount } from '@/hooks/useGameSelectors';
@@ -53,14 +54,46 @@ import { buildCoachTasks } from '@/utils/gameCoach';
 const WELCOME_KEY = 'dynasty-welcome-shown';
 
 const Dashboard = () => {
-  const store = useGameStore();
+  // Use useShallow to only re-render when specific properties change (prevents React #185)
   const {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
-    boardConfidence, boardObjectives, setScreen, advanceWeek,
-    currentMatchResult, incomingOffers, endSeason, trainingFocus, cup,
+    boardConfidence, boardObjectives,
+    currentMatchResult, incomingOffers, trainingFocus, cup,
     leagueCup, championsCup, shieldCup, virtualClubs,
     weekCliffhangers, lastMatchDrama, objectiveStreak,
-  } = store;
+    facilities, scouting, divisionTables, playerDivision,
+    managerProgression, clubRecords, transferWindowOpen, training,
+    weeklyObjectives, shortlist, seasonPhase, totalWeeks,
+    gameMode, careerManager, jobOffers,
+    pendingPressConference, pendingStoryline, pendingTransferTalk,
+    activeChallenge, youthAcademy, fanMood, sessionStats,
+  } = useGameStore(useShallow(s => ({
+    playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
+    week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
+    boardConfidence: s.boardConfidence, boardObjectives: s.boardObjectives,
+    currentMatchResult: s.currentMatchResult, incomingOffers: s.incomingOffers,
+    trainingFocus: s.trainingFocus, cup: s.cup,
+    leagueCup: s.leagueCup, championsCup: s.championsCup,
+    shieldCup: s.shieldCup, virtualClubs: s.virtualClubs,
+    weekCliffhangers: s.weekCliffhangers, lastMatchDrama: s.lastMatchDrama,
+    objectiveStreak: s.objectiveStreak,
+    facilities: s.facilities, scouting: s.scouting,
+    divisionTables: s.divisionTables, playerDivision: s.playerDivision,
+    managerProgression: s.managerProgression, clubRecords: s.clubRecords,
+    transferWindowOpen: s.transferWindowOpen, training: s.training,
+    weeklyObjectives: s.weeklyObjectives, shortlist: s.shortlist,
+    seasonPhase: s.seasonPhase, totalWeeks: s.totalWeeks,
+    gameMode: s.gameMode, careerManager: s.careerManager, jobOffers: s.jobOffers,
+    pendingPressConference: s.pendingPressConference, pendingStoryline: s.pendingStoryline,
+    pendingTransferTalk: s.pendingTransferTalk, activeChallenge: s.activeChallenge,
+    youthAcademy: s.youthAcademy, fanMood: s.fanMood, sessionStats: s.sessionStats,
+  })));
+  // Actions — stable references, individual selectors
+  const setScreen = useGameStore(s => s.setScreen);
+  const advanceWeek = useGameStore(s => s.advanceWeek);
+  const endSeason = useGameStore(s => s.endSeason);
+  const autoFillTeam = useGameStore(s => s.autoFillTeam);
+  const selectPlayer = useGameStore(s => s.selectPlayer);
   // Stable selectors for achievement effect — avoids infinite re-render loop (React #185)
   const pendingAchievementIds = useGameStore(s => s.pendingAchievementIds);
   const clearPendingAchievements = useGameStore(s => s.clearPendingAchievements);
@@ -216,23 +249,23 @@ const Dashboard = () => {
   // Week preview teasers (with fallback so there's always something forward-looking)
   const weekPreviews = useMemo(() => {
     if (!club) return [];
-    const ctx = { playerClubId, players, clubs, fixtures, facilities: store.facilities, scouting: store.scouting, week, season, boardObjectives, divisionTables: store.divisionTables, playerDivision: store.playerDivision };
+    const ctx = { playerClubId, players, clubs, fixtures, facilities: facilities, scouting: scouting, week, season, boardObjectives, divisionTables: divisionTables, playerDivision: playerDivision };
     const items = getWeekPreview(ctx);
     if (items.length > 0) return items;
     return getFallbackPreview(ctx);
-  }, [playerClubId, players, clubs, fixtures, store.facilities, store.scouting, week, season, club, boardObjectives, store.divisionTables, store.playerDivision]);
+  }, [playerClubId, players, clubs, fixtures, facilities, scouting, week, season, club, boardObjectives, divisionTables, playerDivision]);
 
   // XP progress to next level
-  const xpProgress = useMemo(() => getXPProgress(store.managerProgression), [store.managerProgression]);
+  const xpProgress = useMemo(() => getXPProgress(managerProgression), [managerProgression]);
 
   // Next unlockable perk preview
   const nextPerk = useMemo(() => {
-    const totalXP = getTotalXP(store.managerProgression);
+    const totalXP = getTotalXP(managerProgression);
     // Find cheapest perk that can be unlocked (has prerequisite met, not yet owned)
     const available = MANAGER_PERKS
-      .filter(p => !store.managerProgression.unlockedPerks.includes(p.id))
+      .filter(p => !managerProgression.unlockedPerks.includes(p.id))
       .filter(p => {
-        const { canUnlock, reason } = canUnlockPerk(p, store.managerProgression);
+        const { canUnlock, reason } = canUnlockPerk(p, managerProgression);
         // Show perks that are either unlockable or only blocked by XP (not by prerequisites)
         return canUnlock || (reason && reason.startsWith('Need'));
       })
@@ -241,14 +274,14 @@ const Dashboard = () => {
     const perk = available[0];
     const xpNeeded = Math.max(0, perk.cost - totalXP);
     return { name: perk.name, xpNeeded, icon: perk.icon };
-  }, [store.managerProgression]);
+  }, [managerProgression]);
 
   // Record chase — is a player close to a club record?
   const recordChases = useMemo(() => {
     if (!club) return [];
     const squad = club.playerIds.map(id => players[id]).filter(Boolean);
-    return getActiveRecordChases(store.clubRecords, squad, fixtures, playerClubId);
-  }, [club, players, fixtures, playerClubId, store.clubRecords]);
+    return getActiveRecordChases(clubRecords, squad, fixtures, playerClubId);
+  }, [club, players, fixtures, playerClubId, clubRecords]);
 
   // Season race — top 3 teams nearest to player in table
   const seasonRace = useMemo(() => {
@@ -276,10 +309,10 @@ const Dashboard = () => {
   // Manager tips
   const managerTips = useMemo(() => club ? getManagerTips({
     week, season, club, players, fixtures,
-    transferWindowOpen: store.transferWindowOpen,
+    transferWindowOpen: transferWindowOpen,
     boardConfidence, incomingOffers: incomingOffers.length,
-    tacticalFamiliarity: store.training.tacticalFamiliarity,
-  }) : [], [week, season, club, players, fixtures, store.transferWindowOpen, boardConfidence, incomingOffers.length, store.training.tacticalFamiliarity]);
+    tacticalFamiliarity: training.tacticalFamiliarity,
+  }) : [], [week, season, club, players, fixtures, transferWindowOpen, boardConfidence, incomingOffers.length, training.tacticalFamiliarity]);
 
   const coachTasks = useMemo(() => {
     if (!club) return [];
@@ -288,15 +321,15 @@ const Dashboard = () => {
       fixtures,
       playerClubId,
       unreadMessages: unread,
-      objectives: store.weeklyObjectives,
+      objectives: weeklyObjectives,
       players,
-      transferWindowOpen: store.transferWindowOpen,
-      scoutAssignments: store.scouting.assignments,
-      scoutReportsCount: store.scouting.reports.length,
-      shortlistCount: store.shortlist.length,
+      transferWindowOpen: transferWindowOpen,
+      scoutAssignments: scouting.assignments,
+      scoutReportsCount: scouting.reports.length,
+      shortlistCount: shortlist.length,
       week,
     });
-  }, [club, fixtures, playerClubId, unread, store.weeklyObjectives, players, store.transferWindowOpen, store.scouting.assignments, store.scouting.reports.length, store.shortlist.length, week]);
+  }, [club, fixtures, playerClubId, unread, weeklyObjectives, players, transferWindowOpen, scouting.assignments, scouting.reports.length, shortlist.length, week]);
   const completedCoachTasks = coachTasks.filter(task => task.completed).length;
 
   // Last played match
@@ -320,20 +353,20 @@ const Dashboard = () => {
     .sort((a, b) => a.week - b.week)
     .slice(0, 3), [fixtures, playerClubId, week]);
 
-  const inPlayoffs = store.seasonPhase === 'playoffs';
+  const inPlayoffs = seasonPhase === 'playoffs';
 
   // Season over check — 46-week season, but only when all player matches done and not in playoffs
   const seasonOver = useMemo(() => {
     const allMatchesPlayed = fixtures
       .filter(m => m.homeClubId === playerClubId || m.awayClubId === playerClubId)
       .every(m => m.played);
-    return !inPlayoffs && (week > store.totalWeeks || (allMatchesPlayed && fixtures.filter(m => m.played).length > 0));
-  }, [fixtures, playerClubId, week, inPlayoffs, store.totalWeeks]);
+    return !inPlayoffs && (week > totalWeeks || (allMatchesPlayed && fixtures.filter(m => m.played).length > 0));
+  }, [fixtures, playerClubId, week, inPlayoffs, totalWeeks]);
 
   // Title race / relegation battle mode — special UI in final 10 weeks
   const raceMode = useMemo(() => {
     if (seasonOver || inPlayoffs) return null;
-    const weeksLeft = store.totalWeeks - week;
+    const weeksLeft = totalWeeks - week;
     if (weeksLeft > 10 || !entry) return null;
     const playerPos = leagueTable.indexOf(entry) + 1;
     const totalTeams = leagueTable.length;
@@ -346,7 +379,7 @@ const Dashboard = () => {
     // Relegation battle: bottom 3
     if (playerPos >= totalTeams - 2) return 'relegation' as const;
     return null;
-  }, [seasonOver, inPlayoffs, store.totalWeeks, week, entry, leagueTable]);
+  }, [seasonOver, inPlayoffs, totalWeeks, week, entry, leagueTable]);
 
   if (!club) return null;
 
@@ -374,7 +407,7 @@ const Dashboard = () => {
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       {/* Welcome overlay for first-time players */}
-      {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} onSkipToMatch={() => { dismissWelcome(); store.autoFillTeam(); setScreen('match'); }} />}
+      {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} onSkipToMatch={() => { dismissWelcome(); autoFillTeam(); setScreen('match'); }} />}
 
       <PageHint
         screen="dashboard"
@@ -389,7 +422,7 @@ const Dashboard = () => {
       <WeeklyDigest />
 
       {/* Career Mode Info Panel */}
-      {store.gameMode === 'career' && store.careerManager && (
+      {gameMode === 'career' && careerManager && (
         <GlassPanel className="p-3" onClick={() => setScreen('career-overview')}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -397,16 +430,16 @@ const Dashboard = () => {
                 <Award className="w-4 h-4 text-primary" />
               </div>
               <div>
-                <p className="text-xs font-bold text-foreground">{store.careerManager.name}</p>
+                <p className="text-xs font-bold text-foreground">{careerManager.name}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  Age {store.careerManager.age} — {store.careerManager.reputationTier.replace('_', ' ')}
+                  Age {careerManager.age} — {careerManager.reputationTier.replace('_', ' ')}
                 </p>
               </div>
             </div>
             <div className="text-right">
-              {store.careerManager.contract ? (
+              {careerManager.contract ? (
                 <p className="text-[10px] text-muted-foreground">
-                  Contract ends S{store.careerManager.contract.endSeason}
+                  Contract ends S{careerManager.contract.endSeason}
                 </p>
               ) : (
                 <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-semibold">
@@ -415,10 +448,10 @@ const Dashboard = () => {
               )}
             </div>
           </div>
-          {store.jobOffers.length > 0 && (
+          {jobOffers.length > 0 && (
             <div className="mt-2 bg-primary/10 rounded-lg px-3 py-1.5">
               <p className="text-[10px] text-primary font-semibold">
-                {store.jobOffers.length} job offer{store.jobOffers.length > 1 ? 's' : ''} waiting
+                {jobOffers.length} job offer{jobOffers.length > 1 ? 's' : ''} waiting
               </p>
             </div>
           )}
@@ -426,13 +459,13 @@ const Dashboard = () => {
       )}
 
       {/* Press Conference (shown after matches) */}
-      {store.pendingPressConference && <PressConference />}
+      {pendingPressConference && <PressConference />}
 
       {/* Storyline Event (shown when triggered) */}
-      {store.pendingStoryline && <StorylineModal />}
+      {pendingStoryline && <StorylineModal />}
 
       {/* Transfer Talk (shown when player requests transfer) */}
-      {store.pendingTransferTalk && <PlayerTransferTalk />}
+      {pendingTransferTalk && <PlayerTransferTalk />}
 
       {/* Farewell Modal (shown when a long-serving player departs) */}
       <FarewellModal />
@@ -490,19 +523,19 @@ const Dashboard = () => {
             </span>
           </div>
           <span className="text-[10px] text-muted-foreground">
-            {store.totalWeeks - week} weeks left
+            {totalWeeks - week} weeks left
           </span>
         </motion.div>
       )}
 
       {/* Active Challenge Banner */}
-      {store.activeChallenge && !store.activeChallenge.completed && !store.activeChallenge.failed && (
+      {activeChallenge && !activeChallenge.completed && !activeChallenge.failed && (
         <div className="bg-primary/10 border border-primary/30 rounded-xl px-3 py-2 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-primary" />
             <span className="text-xs font-semibold text-primary">Challenge Active</span>
           </div>
-          <span className="text-[10px] text-muted-foreground">{store.activeChallenge.seasonsRemaining} season(s) left</span>
+          <span className="text-[10px] text-muted-foreground">{activeChallenge.seasonsRemaining} season(s) left</span>
         </div>
       )}
 
@@ -516,12 +549,12 @@ const Dashboard = () => {
           <span className="text-[10px] text-muted-foreground">Transfer window closes today</span>
         </div>
       )}
-      {store.activeChallenge?.completed && (
+      {activeChallenge?.completed && (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2 text-center">
           <span className="text-xs font-bold text-emerald-400">Challenge Complete!</span>
         </div>
       )}
-      {store.activeChallenge?.failed && (
+      {activeChallenge?.failed && (
         <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2 text-center">
           <span className="text-xs font-bold text-destructive">Challenge Failed</span>
         </div>
@@ -615,7 +648,7 @@ const Dashboard = () => {
           <p className="text-sm text-muted-foreground text-center">No match this week</p>
           {/* Activity suggestions */}
           <div className="flex flex-wrap gap-2 justify-center">
-            {store.transferWindowOpen && (
+            {transferWindowOpen && (
               <button onClick={() => setScreen('transfers')} className="inline-flex items-center gap-1 bg-primary/10 border border-primary/20 rounded-full px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
                 <UserPlus className="w-3 h-3" /> Scout Transfers
               </button>
@@ -623,12 +656,12 @@ const Dashboard = () => {
             <button onClick={() => setScreen('training')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
               <Dumbbell className="w-3 h-3" /> Training
             </button>
-            {store.youthAcademy.prospects.some(p => p.readyToPromote) && (
+            {youthAcademy.prospects.some(p => p.readyToPromote) && (
               <button onClick={() => setScreen('youth-academy')} className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors">
                 <Users className="w-3 h-3" /> Youth Ready
               </button>
             )}
-            {store.scouting.reports.length > 0 && (
+            {scouting.reports.length > 0 && (
               <button onClick={() => setScreen('scouting')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
                 <BarChart3 className="w-3 h-3" /> Scout Reports
               </button>
@@ -689,7 +722,7 @@ const Dashboard = () => {
                 Training: {trainingLabels[trainingFocus] || trainingFocus}
               </span>
               <span className="text-[10px] text-primary/60">|</span>
-              <span className="text-[10px] font-medium text-primary/70">Fam {store.training.tacticalFamiliarity}%</span>
+              <span className="text-[10px] font-medium text-primary/70">Fam {training.tacticalFamiliarity}%</span>
             </div>
             <span className="text-[10px] text-muted-foreground">Week {week} / Season {season}</span>
           </div>
@@ -816,7 +849,7 @@ const Dashboard = () => {
       )}
 
       {/* Weekly Objectives */}
-      {!seasonOver && store.weeklyObjectives.length > 0 && (
+      {!seasonOver && weeklyObjectives.length > 0 && (
         <GlassPanel className="p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
@@ -829,7 +862,7 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-primary font-semibold">
-                {store.weeklyObjectives.filter(o => o.completed).length}/{store.weeklyObjectives.length}
+                {weeklyObjectives.filter(o => o.completed).length}/{weeklyObjectives.length}
               </span>
               {objectiveStreak > 0 && (
                 <span className="text-[10px] text-amber-400 font-bold">
@@ -839,7 +872,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="space-y-2">
-            {store.weeklyObjectives.map((obj) => (
+            {weeklyObjectives.map((obj) => (
               <div
                 key={obj.objectiveId}
                 className={cn(
@@ -884,7 +917,7 @@ const Dashboard = () => {
               <span className="text-xs text-muted-foreground">Manager Level</span>
             </div>
             <p className="text-2xl font-black text-primary tabular-nums">
-              {store.managerProgression.level}
+              {managerProgression.level}
             </p>
             <div className="mt-1.5">
               <div className="flex items-center justify-between text-[9px] mb-0.5">
@@ -1057,7 +1090,7 @@ const Dashboard = () => {
           </div>
           <div className="space-y-1.5">
             {injuredPlayers.map(p => (
-              <div key={p.id} role="button" tabIndex={0} className="flex items-center justify-between cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition-colors" onClick={() => store.selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); store.selectPlayer(p.id); } }}>
+              <div key={p.id} role="button" tabIndex={0} className="flex items-center justify-between cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition-colors" onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
                 <span className="text-sm text-foreground">
                   {p.firstName[0]}. {p.lastName}
                   <span className="text-xs text-muted-foreground ml-1.5">({p.position})</span>
@@ -1129,7 +1162,7 @@ const Dashboard = () => {
           <p className="text-2xl font-black text-foreground tabular-nums">
             {pos}<span className="text-sm text-muted-foreground">/{leagueTable.length}</span>
           </p>
-          <p className="text-[10px] text-muted-foreground truncate">{DIVISIONS.find(d => d.id === store.playerDivision)?.shortName || ''} {'\u2022'} {entry?.points || 0} pts</p>
+          <p className="text-[10px] text-muted-foreground truncate">{DIVISIONS.find(d => d.id === playerDivision)?.shortName || ''} {'\u2022'} {entry?.points || 0} pts</p>
         </GlassPanel>
 
         <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('budget'); setFinanceSheetOpen(true); }}>
@@ -1220,12 +1253,12 @@ const Dashboard = () => {
           </div>
           <p className={cn(
             'text-xl font-black tabular-nums',
-            getFanConfidenceColor(store.fanMood)
+            getFanConfidenceColor(fanMood)
           )}>
-            {store.fanMood}%
+            {fanMood}%
           </p>
           <p className="text-[10px] text-muted-foreground">
-            {store.fanMood >= FAN_MOOD_HIGH_THRESHOLD ? 'Buzzing' : store.fanMood >= FAN_MOOD_MID_THRESHOLD ? 'Content' : 'Restless'}
+            {fanMood >= FAN_MOOD_HIGH_THRESHOLD ? 'Buzzing' : fanMood >= FAN_MOOD_MID_THRESHOLD ? 'Content' : 'Restless'}
           </p>
         </GlassPanel>
       </div>
@@ -1448,12 +1481,12 @@ const Dashboard = () => {
       </GlassPanel>
 
       {/* Session Stats */}
-      {store.sessionStats && store.sessionStats.weeksPlayed > 0 && (
+      {sessionStats && sessionStats.weeksPlayed > 0 && (
         <div className="flex items-center justify-center gap-4 py-2 text-xs text-muted-foreground">
-          <span>{store.sessionStats.weeksPlayed}w played</span>
-          <span className="text-emerald-400">{store.sessionStats.matchesWon}W</span>
-          <span className="text-destructive">{store.sessionStats.matchesLost}L</span>
-          <span className="text-primary">+{store.sessionStats.xpEarned} XP</span>
+          <span>{sessionStats.weeksPlayed}w played</span>
+          <span className="text-emerald-400">{sessionStats.matchesWon}W</span>
+          <span className="text-destructive">{sessionStats.matchesLost}L</span>
+          <span className="text-primary">+{sessionStats.xpEarned} XP</span>
         </div>
       )}
 
