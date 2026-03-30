@@ -143,8 +143,7 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
                     jerseyColor={homeColor}
                     jerseyNumber={jerseyNumbers?.[i]}
                     size={avatarSize}
-                    pose={slot.pos === 'GK' ? 'gk' : 'standing'}
-                    animationDelay={i * 200}
+                    overall={playerOveralls?.[i]}
                   />
                 </g>
               ) : (
@@ -186,7 +185,7 @@ export function PitchView({ formation, homeColor = PITCH_COLORS.HOME_DEFAULT, aw
           return (
             <g key={`a${i}`}>
               <g transform={`translate(${cx - 6 / 2}, ${cy - 6 / 2})`}>
-                <PlayerAvatar playerId={awayPlayerIds?.[i] || `away-${i}`} jerseyColor={awayColor} size={6} isAway pose={slot.pos === 'GK' ? 'gk' : 'standing'} />
+                <PlayerAvatar playerId={awayPlayerIds?.[i] || `away-${i}`} jerseyColor={awayColor} size={6} isAway overall={awayPlayerOveralls?.[i]} />
               </g>
               {/* Dark info box for away team */}
               <rect x={cx - 4.5} y={cy + 3.2} width="9" height={awayOvr !== undefined ? 4.2 : 2.8} rx="0.6" fill="rgba(0,0,0,0.6)" />

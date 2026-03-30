@@ -6,7 +6,6 @@ import { Sparkles, MapPin, TrendingUp, Banknote, Briefcase, UserCheck } from 'lu
 import { cn } from '@/lib/utils';
 import { hapticHeavy } from '@/utils/haptics';
 import { PlayerAvatar } from '@/components/game/PlayerAvatar';
-import { AvatarDefs } from '@/components/game/AvatarDefs';
 import { calculateWageDemand, formatWage } from '@/utils/contracts';
 import { getPersonalityLabel } from '@/utils/personality';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
@@ -111,16 +110,14 @@ export function GemRevealModal() {
             <div className="flex items-center gap-3">
               {/* Player Avatar */}
               <div className="w-14 h-14 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center overflow-hidden">
-                <svg width="48" height="48" viewBox="0 0 48 48">
-                  <AvatarDefs />
-                  <PlayerAvatar
-                    playerId={player.id}
-                    jerseyColor={jerseyColor}
-                    jerseyNumber={player.squadNumber}
-                    size={48}
-                    appearance={player.appearance}
-                  />
-                </svg>
+                <PlayerAvatar
+                  playerId={player.id}
+                  jerseyColor={jerseyColor}
+                  jerseyNumber={player.squadNumber}
+                  size={48}
+                  overall={player.overall}
+                  position={player.position}
+                />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-bold text-foreground">{player.firstName} {player.lastName}</p>

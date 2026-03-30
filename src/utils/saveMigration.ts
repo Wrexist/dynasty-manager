@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 34;
+const CURRENT_VERSION = 35;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -517,6 +517,23 @@ const migrations: Record<number, MigrationFn> = {
       }
     }
     return { ...data, version: 34 };
+  },
+
+  // v34 → v35: Migrate ManagerAppearance from character model to emblem badge format
+  34: (data) => {
+    const cm = data.careerManager as Record<string, unknown> | undefined;
+    if (cm?.appearance) {
+      const app = cm.appearance as Record<string, unknown>;
+      // Only migrate if it's the old format (has skinTone but no badgeShape)
+      if (app.skinTone != null && app.badgeShape == null) {
+        app.badgeShape = 1;  // shield
+        app.backgroundColor = app.outfitColor || '#1a1a2e';
+        app.accentColor = app.tieColor || '#D4A017';
+        app.pattern = 0;     // solid
+        app.icon = 0;        // suit
+      }
+    }
+    return { ...data, version: 35 };
   },
 };
 
