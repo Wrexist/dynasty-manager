@@ -14,7 +14,10 @@ import { getSpecializationTitle } from '@/utils/managerPerks';
 import { PageHint } from '@/components/game/PageHint';
 
 const CareerOverview = () => {
-  const { careerManager, setScreen, resignFromClub, managerProgression } = useGameStore();
+  const careerManager = useGameStore((s) => s.careerManager);
+  const managerProgression = useGameStore((s) => s.managerProgression);
+  const setScreen = useGameStore((s) => s.setScreen);
+  const resignFromClub = useGameStore((s) => s.resignFromClub);
   const [showResignConfirm, setShowResignConfirm] = useState(false);
 
   if (!careerManager) {

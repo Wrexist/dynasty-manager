@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Trophy, Star, TrendingUp, Shield, ScrollText, Clock, BarChart3, Crown, User, Shirt, Glasses, UserCircle, Briefcase, Sparkles, Globe, Eye, Flame, GraduationCap, Compass, Award } from 'lucide-react';
@@ -46,7 +47,19 @@ import { lazy, Suspense } from 'react';
 const CareerOverviewLazy = lazy(() => import('./CareerOverview'));
 
 const ManagerProfile = () => {
-  const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, monetization, gameMode, careerManager } = useGameStore();
+  const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, monetization, gameMode, careerManager } = useGameStore(useShallow((s) => ({
+    season: s.season,
+    seasonHistory: s.seasonHistory,
+    unlockedAchievements: s.unlockedAchievements,
+    managerStats: s.managerStats,
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+    clubRecords: s.clubRecords,
+    careerTimeline: s.careerTimeline,
+    monetization: s.monetization,
+    gameMode: s.gameMode,
+    careerManager: s.careerManager,
+  })));
 
   // In career mode, show the career overview page instead
   if (gameMode === 'career' && careerManager) {

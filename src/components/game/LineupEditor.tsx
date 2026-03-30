@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/types/game';
 import { MAX_SUBS } from '@/config/playerGeneration';
 import { PITCH_COLORS } from '@/config/ui';
@@ -28,7 +29,15 @@ const COMPAT_RING = {
 };
 
 export function LineupEditor() {
-  const { playerClubId, clubs, players, updateLineup, week, season, pairFamiliarity } = useGameStore();
+  const { playerClubId, clubs, players, week, season, pairFamiliarity } = useGameStore(useShallow(s => ({
+    playerClubId: s.playerClubId,
+    clubs: s.clubs,
+    players: s.players,
+    week: s.week,
+    season: s.season,
+    pairFamiliarity: s.pairFamiliarity,
+  })));
+  const updateLineup = useGameStore(s => s.updateLineup);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const club = clubs[playerClubId];

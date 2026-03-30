@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Shield, Users } from 'lucide-react';
@@ -25,11 +26,13 @@ const formatValue = (v: number): string => {
 };
 
 const TeamDetailPage = () => {
-  const {
-    selectedClubId, clubs, players, playerClubId,
-    divisionTables, season,
-    setScreen, selectPlayer, selectClub,
-  } = useGameStore();
+  const { selectedClubId, clubs, players, playerClubId, divisionTables, season } = useGameStore(useShallow(s => ({
+    selectedClubId: s.selectedClubId, clubs: s.clubs, players: s.players,
+    playerClubId: s.playerClubId, divisionTables: s.divisionTables, season: s.season,
+  })));
+  const setScreen = useGameStore(s => s.setScreen);
+  const selectPlayer = useGameStore(s => s.selectPlayer);
+  const selectClub = useGameStore(s => s.selectClub);
 
   const club = selectedClubId ? clubs[selectedClubId] : null;
 

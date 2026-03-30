@@ -7,7 +7,10 @@ import { getFlag } from '@/utils/nationality';
 import { Button } from '@/components/ui/button';
 
 const NationalTeamPage = () => {
-  const { nationalTeam, managerNationality, players, setScreen } = useGameStore();
+  const nationalTeam = useGameStore(s => s.nationalTeam);
+  const managerNationality = useGameStore(s => s.managerNationality);
+  const players = useGameStore(s => s.players);
+  const setScreen = useGameStore(s => s.setScreen);
 
   if (!nationalTeam || !managerNationality) {
     return (

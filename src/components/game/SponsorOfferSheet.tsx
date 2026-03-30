@@ -12,7 +12,9 @@ interface Props {
 }
 
 export function SponsorOfferSheet({ offer, onClose }: Props) {
-  const { acceptSponsorOffer, rejectSponsorOffer, week } = useGameStore();
+  const week = useGameStore(s => s.week);
+  const acceptSponsorOffer = useGameStore(s => s.acceptSponsorOffer);
+  const rejectSponsorOffer = useGameStore(s => s.rejectSponsorOffer);
 
   if (!offer) return null;
 

@@ -54,7 +54,9 @@ const CONFEDERATION_LABELS: Record<string, string> = {
 const ManagerCreation = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { initCareerGame, initNationalTeam, saveGame } = useGameStore();
+  const initCareerGame = useGameStore(s => s.initCareerGame);
+  const initNationalTeam = useGameStore(s => s.initNationalTeam);
+  const saveGame = useGameStore(s => s.saveGame);
   const slot = (location.state as { slot?: number })?.slot || 1;
 
   const [step, setStep] = useState<Step>('name');

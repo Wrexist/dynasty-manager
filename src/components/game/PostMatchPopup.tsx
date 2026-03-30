@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { Trophy, TrendingUp, TrendingDown, Minus, Zap, Shield, Star } from 'lucide-react';
@@ -13,7 +14,19 @@ interface PostMatchPopupProps {
 }
 
 export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
-  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players } = useGameStore();
+  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players } = useGameStore(
+    useShallow(s => ({
+      currentMatchResult: s.currentMatchResult,
+      clubs: s.clubs,
+      playerClubId: s.playerClubId,
+      preMatchLeaguePosition: s.preMatchLeaguePosition,
+      lastMatchXPGain: s.lastMatchXPGain,
+      leagueTable: s.leagueTable,
+      managerProgression: s.managerProgression,
+      matchPlayerRatings: s.matchPlayerRatings,
+      players: s.players,
+    }))
+  );
 
   useScrollLock(!!currentMatchResult);
 

@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { Shield, Trophy } from 'lucide-react';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
@@ -86,7 +87,12 @@ function SuperCupMatchCard({ match, clubs, playerClubId }: {
 }
 
 const SuperCupPage = () => {
-  const { domesticSuperCup, continentalSuperCup, clubs, playerClubId } = useGameStore();
+  const { domesticSuperCup, continentalSuperCup, clubs, playerClubId } = useGameStore(useShallow(s => ({
+    domesticSuperCup: s.domesticSuperCup,
+    continentalSuperCup: s.continentalSuperCup,
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+  })));
 
   const hasDomestic = !!domesticSuperCup;
   const hasContinental = !!continentalSuperCup;

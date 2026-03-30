@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
@@ -101,7 +102,12 @@ const fadeUp = {
 
 /* ── Page ── */
 const BoardPage = () => {
-  const { boardConfidence, boardObjectives, season, seasonHistory } = useGameStore();
+  const { boardConfidence, boardObjectives, season, seasonHistory } = useGameStore(useShallow(s => ({
+    boardConfidence: s.boardConfidence,
+    boardObjectives: s.boardObjectives,
+    season: s.season,
+    seasonHistory: s.seasonHistory,
+  })));
   const club = usePlayerClub();
   const pos = useLeaguePosition();
 

@@ -11,7 +11,7 @@ import type { ChallengeScenario } from '@/types/game';
 
 const ChallengePicker = () => {
   const navigate = useNavigate();
-  const { startChallenge } = useGameStore();
+  const startChallenge = useGameStore(s => s.startChallenge);
   const [selected, setSelected] = useState<ChallengeScenario | null>(null);
   const [pickingClub, setPickingClub] = useState(false);
 

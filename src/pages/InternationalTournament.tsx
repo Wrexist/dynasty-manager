@@ -6,7 +6,11 @@ import { Globe, Trophy, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const InternationalTournament = () => {
-  const { internationalTournament, managerNationality, seasonPhase, advanceWeek, setScreen } = useGameStore();
+  const internationalTournament = useGameStore((s) => s.internationalTournament);
+  const managerNationality = useGameStore((s) => s.managerNationality);
+  const seasonPhase = useGameStore((s) => s.seasonPhase);
+  const advanceWeek = useGameStore((s) => s.advanceWeek);
+  const setScreen = useGameStore((s) => s.setScreen);
 
   if (!internationalTournament) {
     return (

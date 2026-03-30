@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { DollarSign, Users, Building2, GraduationCap, TrendingUp, TrendingDown, Star, HeartPulse, Smile, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,7 +9,16 @@ import { FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 
 const ClubPage = () => {
-  const { playerClubId, clubs, players, season, boardConfidence, boardObjectives, setScreen, fanMood } = useGameStore();
+  const { playerClubId, clubs, players, season, boardConfidence, boardObjectives, fanMood } = useGameStore(useShallow(s => ({
+    playerClubId: s.playerClubId,
+    clubs: s.clubs,
+    players: s.players,
+    season: s.season,
+    boardConfidence: s.boardConfidence,
+    boardObjectives: s.boardObjectives,
+    fanMood: s.fanMood,
+  })));
+  const setScreen = useGameStore(s => s.setScreen);
   const club = clubs[playerClubId];
   if (!club) return null;
 

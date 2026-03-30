@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Trophy, Award, Star, Medal, Lock } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
@@ -10,24 +12,30 @@ import { getActiveCosmetic } from '@/utils/monetization';
 import { PageHint } from '@/components/game/PageHint';
 
 const TrophyCabinet = () => {
-  const store = useGameStore();
-  const { seasonHistory, unlockedAchievements, clubRecords, monetization } = store;
+  const { seasonHistory, unlockedAchievements, clubRecords, monetization } = useGameStore(useShallow(s => ({
+    seasonHistory: s.seasonHistory,
+    unlockedAchievements: s.unlockedAchievements,
+    clubRecords: s.clubRecords,
+    monetization: s.monetization,
+  })));
   const cabinetStyle = getActiveCosmetic(monetization, 'cabinet_style');
 
-  const leagueTitles = seasonHistory.filter(h => h.position === 1);
-  const cupWins = clubRecords.cupWins;
-  const leagueCupWins = seasonHistory.filter(h => h.leagueCupResult === 'Winner').length;
-  const championsCupWins = seasonHistory.filter(h => h.championsCupResult === 'Winner').length;
-  const shieldCupWins = seasonHistory.filter(h => h.shieldCupResult === 'Winner').length;
-  const promotions = seasonHistory.filter(h => h.promoted);
-  const totalTrophies = leagueTitles.length + cupWins + leagueCupWins + championsCupWins + shieldCupWins + promotions.length;
+  const { leagueTitles, cupWins, leagueCupWins, championsCupWins, shieldCupWins, promotions, totalTrophies } = useMemo(() => {
+    const lt = seasonHistory.filter(h => h.position === 1);
+    const cw = clubRecords.cupWins;
+    const lcw = seasonHistory.filter(h => h.leagueCupResult === 'Winner').length;
+    const ccw = seasonHistory.filter(h => h.championsCupResult === 'Winner').length;
+    const scw = seasonHistory.filter(h => h.shieldCupResult === 'Winner').length;
+    const pr = seasonHistory.filter(h => h.promoted);
+    return { leagueTitles: lt, cupWins: cw, leagueCupWins: lcw, championsCupWins: ccw, shieldCupWins: scw, promotions: pr, totalTrophies: lt.length + cw + lcw + ccw + scw + pr.length };
+  }, [seasonHistory, clubRecords.cupWins]);
 
-  // Group achievements by tier
-  const achievementsByTier = {
+  // Group achievements by tier (static data, memoize once)
+  const achievementsByTier = useMemo(() => ({
     gold: ACHIEVEMENTS.filter(a => a.tier === 'gold'),
     silver: ACHIEVEMENTS.filter(a => a.tier === 'silver'),
     bronze: ACHIEVEMENTS.filter(a => a.tier === 'bronze'),
-  };
+  }), []);
 
   return (
     <div className={cn(
@@ -275,7 +283,7 @@ const TrophyCabinet = () => {
                           ✓
                         </span>
                       ) : a.progress && !a.hidden ? (() => {
-                        const prog = a.progress(store);
+                        const prog = a.progress(useGameStore.getState());
                         if (!prog || prog.current <= 0) return null;
                         const pct = Math.min(100, Math.round((prog.current / prog.target) * 100));
                         return (

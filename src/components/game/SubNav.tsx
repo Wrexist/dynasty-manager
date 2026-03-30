@@ -13,7 +13,8 @@ interface SubNavProps {
 }
 
 export function SubNav({ items }: SubNavProps) {
-  const { currentScreen, setScreen } = useGameStore();
+  const currentScreen = useGameStore(s => s.currentScreen);
+  const setScreen = useGameStore(s => s.setScreen);
 
   return (
     <div className="relative">

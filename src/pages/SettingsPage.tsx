@@ -16,7 +16,14 @@ import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 const APP_VERSION = 'v1.0.0 · Football Edition';
 
 const SettingsPage = () => {
-  const { settings, updateSettings, saveGame, loadGame, resetGame, monetization, restoreEntitlements, updateSubscription } = useGameStore();
+  const settings = useGameStore(s => s.settings);
+  const monetization = useGameStore(s => s.monetization);
+  const updateSettings = useGameStore(s => s.updateSettings);
+  const saveGame = useGameStore(s => s.saveGame);
+  const loadGame = useGameStore(s => s.loadGame);
+  const resetGame = useGameStore(s => s.resetGame);
+  const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
+  const updateSubscription = useGameStore(s => s.updateSubscription);
   const navigate = useNavigate();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [showMenuConfirm, setShowMenuConfirm] = useState(false);

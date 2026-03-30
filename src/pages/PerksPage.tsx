@@ -10,7 +10,8 @@ import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 
 const PerksPage = () => {
-  const { managerProgression, unlockPerk } = useGameStore();
+  const managerProgression = useGameStore(s => s.managerProgression);
+  const unlockPerk = useGameStore(s => s.unlockPerk);
 
   const availableXP = getTotalXP(managerProgression);
   const xpNeeded = xpForLevel(managerProgression.level);

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { Search, Globe, MapPin, Eye, Clock, Star, StarOff, Banknote, UserCheck } from 'lucide-react';
@@ -29,7 +30,17 @@ const REGION_INFO: { region: ScoutRegion; label: string; weeks: number; descript
 const SCOUTING_TABS = ['Overview', 'Watch List'] as const;
 
 const ScoutingPage = () => {
-  const { scouting, players, scoutWatchList, transferMarket, transferWindowOpen, assignScout, cancelAssignment, addToWatchList, removeFromWatchList } = useGameStore();
+  const { scouting, players, scoutWatchList, transferMarket, transferWindowOpen } = useGameStore(useShallow((s) => ({
+    scouting: s.scouting,
+    players: s.players,
+    scoutWatchList: s.scoutWatchList,
+    transferMarket: s.transferMarket,
+    transferWindowOpen: s.transferWindowOpen,
+  })));
+  const assignScout = useGameStore((s) => s.assignScout);
+  const cancelAssignment = useGameStore((s) => s.cancelAssignment);
+  const addToWatchList = useGameStore((s) => s.addToWatchList);
+  const removeFromWatchList = useGameStore((s) => s.removeFromWatchList);
   const [activeTab, setActiveTab] = useState<typeof SCOUTING_TABS[number]>('Overview');
   const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
 

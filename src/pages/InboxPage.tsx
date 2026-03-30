@@ -32,7 +32,13 @@ const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.Ele
 ];
 
 const InboxPage = () => {
-  const { messages, markMessageRead, markAllRead, activeStorylineChains, setScreen, players, openTransferTalk } = useGameStore();
+  const messages = useGameStore((s) => s.messages);
+  const activeStorylineChains = useGameStore((s) => s.activeStorylineChains);
+  const players = useGameStore((s) => s.players);
+  const markMessageRead = useGameStore((s) => s.markMessageRead);
+  const markAllRead = useGameStore((s) => s.markAllRead);
+  const setScreen = useGameStore((s) => s.setScreen);
+  const openTransferTalk = useGameStore((s) => s.openTransferTalk);
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);

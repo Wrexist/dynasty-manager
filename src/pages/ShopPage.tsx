@@ -37,7 +37,11 @@ const SUBSCRIPTION_PRODUCTS: ProductId[] = [
 ];
 
 const ShopPage = () => {
-  const { monetization, restoreEntitlements, updateSubscription, setCosmetic, clearCosmetic } = useGameStore();
+  const monetization = useGameStore(s => s.monetization);
+  const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
+  const updateSubscription = useGameStore(s => s.updateSubscription);
+  const setCosmetic = useGameStore(s => s.setCosmetic);
+  const clearCosmetic = useGameStore(s => s.clearCosmetic);
   const [purchaseProduct, setPurchaseProduct] = useState<ProductId | null>(null);
   const [restoring, setRestoring] = useState(false);
   const userIsPro = isPro(monetization);

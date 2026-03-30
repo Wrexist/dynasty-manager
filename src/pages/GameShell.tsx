@@ -112,16 +112,20 @@ const GameShell = () => {
 
   // Sync monetization state on game load
   useEffect(() => {
+    let cancelled = false;
     const { restoreEntitlements, initMonetizationTimestamp, updateSubscription } = useGameStore.getState();
 
     // Start the starter kit countdown timer
     initMonetizationTimestamp();
 
     // Sync entitlements and subscription from RevenueCat (no-op on web)
-    Promise.all([getEntitlements(), getCustomerInfo()]).then(([ids, info]) => {
-      if (ids.length > 0) restoreEntitlements(ids);
-      if (info) updateSubscription(extractSubscriptionInfo(info));
-    });
+    Promise.all([getEntitlements(), getCustomerInfo()])
+      .then(([ids, info]) => {
+        if (cancelled) return;
+        if (ids.length > 0) restoreEntitlements(ids);
+        if (info) updateSubscription(extractSubscriptionInfo(info));
+      })
+      .catch(err => console.warn('[GameShell] Failed to sync entitlements:', err));
 
     // Listen for real-time entitlement changes (cross-device, family sharing, subscription renewals)
     startEntitlementListener((ids, customerInfo) => {
@@ -130,7 +134,7 @@ const GameShell = () => {
       state.updateSubscription(extractSubscriptionInfo(customerInfo));
     });
 
-    return () => { stopEntitlementListener(); };
+    return () => { cancelled = true; stopEntitlementListener(); };
   }, []);
 
   const handleSwipeLeft = useCallback(() => {

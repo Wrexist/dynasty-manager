@@ -21,7 +21,9 @@ interface AdRewardButtonProps {
  * Never interrupts gameplay — only appears where the player opts in.
  */
 export function AdRewardButton({ rewardType, onRewardClaimed, className, compact }: AdRewardButtonProps) {
-  const { monetization, claimAdReward, season } = useGameStore();
+  const monetization = useGameStore(s => s.monetization);
+  const season = useGameStore(s => s.season);
+  const claimAdReward = useGameStore(s => s.claimAdReward);
   const [claiming, setClaiming] = useState(false);
   const userIsPro = isPro(monetization);
   const canClaim = canClaimAdReward(monetization, rewardType, season);

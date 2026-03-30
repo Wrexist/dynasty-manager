@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronUp, Trophy, AlertTriangle, TrendingUp, Heart, Check } from 'lucide-react';
@@ -50,7 +51,18 @@ const MODULE_COLORS: Record<string, { bg: string; border: string; text: string; 
 };
 
 const TrainingPage = () => {
-  const { training, updateTraining, updateDrillSchedule, setIndividualTraining, players, clubs, playerClubId, selectPlayer, setScreen, staff } = useGameStore();
+  const { training, players, clubs, playerClubId, staff } = useGameStore(useShallow(s => ({
+    training: s.training,
+    players: s.players,
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+    staff: s.staff,
+  })));
+  const updateTraining = useGameStore(s => s.updateTraining);
+  const updateDrillSchedule = useGameStore(s => s.updateDrillSchedule);
+  const setIndividualTraining = useGameStore(s => s.setIndividualTraining);
+  const selectPlayer = useGameStore(s => s.selectPlayer);
+  const setScreen = useGameStore(s => s.setScreen);
   const { schedule, intensity, tacticalFamiliarity } = training;
   const club = clubs[playerClubId];
   const [showAllDev, setShowAllDev] = useState(false);

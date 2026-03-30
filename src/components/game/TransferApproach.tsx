@@ -18,7 +18,9 @@ interface Props {
 type ApproachMode = 'choose' | 'transfer' | 'loan';
 
 export function TransferApproach({ playerId, onClose }: Props) {
-  const { players, clubs, transferMarket } = useGameStore();
+  const players = useGameStore(s => s.players);
+  const clubs = useGameStore(s => s.clubs);
+  const transferMarket = useGameStore(s => s.transferMarket);
 
   const player = players[playerId];
   const club = player ? clubs[player.clubId] : null;

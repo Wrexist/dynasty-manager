@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
@@ -44,11 +45,33 @@ const ATTR_LABELS: Record<string, string> = {
 const PlayerDetail = () => {
   const {
     selectedPlayerId, players, clubs, playerClubId, previousScreen,
-    incomingOffers, setScreen, selectPlayer,
-    listPlayerForSale, unlistPlayer, respondToOffer, season, week, facilities, startNegotiation,
-    training, setIndividualTraining, transferWindowOpen, staff,
+    incomingOffers, season, week, facilities,
+    training, transferWindowOpen, staff,
     fixtures, managerProgression,
-  } = useGameStore();
+  } = useGameStore(useShallow(s => ({
+    selectedPlayerId: s.selectedPlayerId,
+    players: s.players,
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+    previousScreen: s.previousScreen,
+    incomingOffers: s.incomingOffers,
+    season: s.season,
+    week: s.week,
+    facilities: s.facilities,
+    training: s.training,
+    transferWindowOpen: s.transferWindowOpen,
+    staff: s.staff,
+    fixtures: s.fixtures,
+    managerProgression: s.managerProgression,
+  })));
+
+  const setScreen = useGameStore(s => s.setScreen);
+  const selectPlayer = useGameStore(s => s.selectPlayer);
+  const listPlayerForSale = useGameStore(s => s.listPlayerForSale);
+  const unlistPlayer = useGameStore(s => s.unlistPlayer);
+  const respondToOffer = useGameStore(s => s.respondToOffer);
+  const startNegotiation = useGameStore(s => s.startNegotiation);
+  const setIndividualTraining = useGameStore(s => s.setIndividualTraining);
 
   const [showApproach, setShowApproach] = useState(false);
   const [showLoanRequest, setShowLoanRequest] = useState(false);

@@ -1,5 +1,6 @@
 import { useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ArrowLeft, Calendar, Trophy, Flame, AlertTriangle, Globe, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -29,10 +30,23 @@ interface PhaseGroup {
 
 const CalendarView = () => {
   const {
-    week, season, fixtures, clubs, playerClubId, setScreen,
+    week, season, fixtures, clubs, playerClubId,
     transferWindowOpen, cup, totalWeeks, internationalTournament,
     nationalTeam, currentMatchResult,
-  } = useGameStore();
+  } = useGameStore(useShallow((s) => ({
+    week: s.week,
+    season: s.season,
+    fixtures: s.fixtures,
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+    transferWindowOpen: s.transferWindowOpen,
+    cup: s.cup,
+    totalWeeks: s.totalWeeks,
+    internationalTournament: s.internationalTournament,
+    nationalTeam: s.nationalTeam,
+    currentMatchResult: s.currentMatchResult,
+  })));
+  const setScreen = useGameStore((s) => s.setScreen);
   const currentWeekRef = useRef<HTMLDivElement>(null);
   const phaseRefs = useRef<Record<string, HTMLDivElement | null>>({});
 

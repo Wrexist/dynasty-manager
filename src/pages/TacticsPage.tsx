@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { cn } from '@/lib/utils';
@@ -30,7 +31,17 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, setFormation, setDefensiveFormation, tactics, setTactics, updateLineup, autoFillTeam, setSetPieceTaker, setPenaltyTaker, season, pairFamiliarity, training } = useGameStore();
+  const { playerClubId, clubs, players, tactics, season, pairFamiliarity, training } = useGameStore(useShallow(s => ({
+    playerClubId: s.playerClubId, clubs: s.clubs, players: s.players, tactics: s.tactics,
+    season: s.season, pairFamiliarity: s.pairFamiliarity, training: s.training,
+  })));
+  const setFormation = useGameStore(s => s.setFormation);
+  const setDefensiveFormation = useGameStore(s => s.setDefensiveFormation);
+  const setTactics = useGameStore(s => s.setTactics);
+  const updateLineup = useGameStore(s => s.updateLineup);
+  const autoFillTeam = useGameStore(s => s.autoFillTeam);
+  const setSetPieceTaker = useGameStore(s => s.setSetPieceTaker);
+  const setPenaltyTaker = useGameStore(s => s.setPenaltyTaker);
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
   const [autoFilling, setAutoFilling] = useState(false);

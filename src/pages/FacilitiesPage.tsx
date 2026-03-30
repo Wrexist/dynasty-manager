@@ -18,7 +18,10 @@ const FACILITY_INFO = [
 const getUpgradeCost = (level: number) => (level + 1) * FACILITY_COST_PER_LEVEL;
 
 const FacilitiesPage = () => {
-  const { facilities, clubs, playerClubId, startUpgrade } = useGameStore();
+  const facilities = useGameStore(s => s.facilities);
+  const clubs = useGameStore(s => s.clubs);
+  const playerClubId = useGameStore(s => s.playerClubId);
+  const startUpgrade = useGameStore(s => s.startUpgrade);
   const [confirmUpgrade, setConfirmUpgrade] = useState<string | null>(null);
   const club = clubs[playerClubId];
 

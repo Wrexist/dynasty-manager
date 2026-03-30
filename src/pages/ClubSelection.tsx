@@ -43,7 +43,8 @@ const CONFEDERATION_LABELS: Record<string, string> = {
 const ClubSelection = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { initGame, initNationalTeam } = useGameStore();
+  const initGame = useGameStore(s => s.initGame);
+  const initNationalTeam = useGameStore(s => s.initNationalTeam);
   const [step, setStep] = useState<'nationality' | 'league' | 'club'>('nationality');
   const [selectedNationality, setSelectedNationality] = useState<string | null>(null);
   const [selectedLeague, setSelectedLeague] = useState<LeagueId | null>(null);

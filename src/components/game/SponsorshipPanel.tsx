@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { cn } from '@/lib/utils';
 import { Lock, Handshake, Clock, X, Check, ChevronRight } from 'lucide-react';
@@ -86,7 +87,15 @@ function DealDetail({ deal, onTerminate, season }: DealDetailProps) {
 }
 
 export function SponsorshipPanel() {
-  const { facilities, sponsorDeals, sponsorOffers, sponsorSlotCooldowns, week, season, terminateSponsorDeal } = useGameStore();
+  const { facilities, sponsorDeals, sponsorOffers, sponsorSlotCooldowns, week, season } = useGameStore(useShallow(s => ({
+    facilities: s.facilities,
+    sponsorDeals: s.sponsorDeals,
+    sponsorOffers: s.sponsorOffers,
+    sponsorSlotCooldowns: s.sponsorSlotCooldowns,
+    week: s.week,
+    season: s.season,
+  })));
+  const terminateSponsorDeal = useGameStore(s => s.terminateSponsorDeal);
   const [selectedDeal, setSelectedDeal] = useState<SponsorDeal | null>(null);
   const [selectedOffer, setSelectedOffer] = useState<SponsorOffer | null>(null);
 

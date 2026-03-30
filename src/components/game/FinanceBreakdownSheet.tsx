@@ -1,5 +1,6 @@
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { getFinanceBreakdown } from '@/utils/financeHelpers';
 import { cn } from '@/lib/utils';
 import { ArrowUpRight, ArrowDownRight, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
@@ -13,7 +14,22 @@ interface Props {
 }
 
 export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
-  const { clubs, playerClubId, facilities, staff, scouting, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, playerDivision } = useGameStore();
+  const { clubs, playerClubId, facilities, staff, scouting, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, playerDivision } = useGameStore(
+    useShallow(s => ({
+      clubs: s.clubs,
+      playerClubId: s.playerClubId,
+      facilities: s.facilities,
+      staff: s.staff,
+      scouting: s.scouting,
+      fanMood: s.fanMood,
+      leagueTable: s.leagueTable,
+      managerProgression: s.managerProgression,
+      sponsorDeals: s.sponsorDeals,
+      merchandise: s.merchandise,
+      players: s.players,
+      playerDivision: s.playerDivision,
+    }))
+  );
   const club = clubs[playerClubId];
   if (!club) return null;
 

@@ -8,7 +8,10 @@ import { PageHint } from '@/components/game/PageHint';
 import { ArrowLeft } from 'lucide-react';
 
 const ComparisonPage = () => {
-  const { clubs, players, playerClubId, setScreen } = useGameStore();
+  const clubs = useGameStore(s => s.clubs);
+  const players = useGameStore(s => s.players);
+  const playerClubId = useGameStore(s => s.playerClubId);
+  const setScreen = useGameStore(s => s.setScreen);
   const club = clubs[playerClubId];
   const squadPlayers = club?.playerIds.map(id => players[id]).filter(Boolean).sort((a, b) => b.overall - a.overall) || [];
 

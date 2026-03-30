@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { Trophy, Star, ArrowRight, Crown, AlertTriangle, Award, Diamond, Flame, Shield } from 'lucide-react';
@@ -21,7 +22,14 @@ const PRESTIGE_BADGE_ICONS: Record<string, React.ElementType> = {
 };
 
 const PrestigePage = () => {
-  const { seasonHistory, managerStats, managerProgression, setScreen, startPrestige, monetization } = useGameStore();
+  const { seasonHistory, managerStats, managerProgression, monetization } = useGameStore(useShallow((s) => ({
+    seasonHistory: s.seasonHistory,
+    managerStats: s.managerStats,
+    managerProgression: s.managerProgression,
+    monetization: s.monetization,
+  })));
+  const setScreen = useGameStore((s) => s.setScreen);
+  const startPrestige = useGameStore((s) => s.startPrestige);
   const prestigeLevel = managerProgression.prestigeLevel || 0;
   const stats = calculatePrestigeStats(seasonHistory, managerStats, prestigeLevel);
   const [confirmOption, setConfirmOption] = useState<PrestigeOption | null>(null);

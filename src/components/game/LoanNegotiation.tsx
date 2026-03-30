@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
@@ -20,7 +21,14 @@ type Phase = 'negotiate' | 'thinking' | 'result';
 type Outcome = 'accepted' | 'rejected' | 'counter';
 
 export function LoanNegotiation({ playerId, onClose }: Props) {
-  const { players, clubs, playerClubId, evaluateLoanRequest, requestLoan, season } = useGameStore();
+  const { players, clubs, playerClubId, season } = useGameStore(useShallow(s => ({
+    players: s.players,
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+    season: s.season,
+  })));
+  const evaluateLoanRequest = useGameStore(s => s.evaluateLoanRequest);
+  const requestLoan = useGameStore(s => s.requestLoan);
 
   const player = players[playerId];
   const ownerClub = player ? clubs[player.clubId] : null;
