@@ -230,24 +230,29 @@ export function buildLeagueTable(fixtures: Match[], clubIds: string[]): LeagueTa
     if (a.form.length > 5) a.form = a.form.slice(-5);
   }
 
-  // Head-to-head tiebreaker: compare direct match results between two tied clubs
-  const h2hResult = (idA: string, idB: string): number => {
-    let ptsA = 0, ptsB = 0;
-    for (const m of played) {
-      if (m.homeClubId === idA && m.awayClubId === idB) {
-        if (m.homeGoals > m.awayGoals) ptsA += 3;
-        else if (m.homeGoals < m.awayGoals) ptsB += 3;
-        else { ptsA++; ptsB++; }
-      } else if (m.homeClubId === idB && m.awayClubId === idA) {
-        if (m.homeGoals > m.awayGoals) ptsB += 3;
-        else if (m.homeGoals < m.awayGoals) ptsA += 3;
-        else { ptsA++; ptsB++; }
-      }
+  // Precompute head-to-head results for tiebreaking (avoids O(n²×m) in sort)
+  const h2h = new Map<string, number>();
+  for (const m of played) {
+    const keyAB = `${m.homeClubId}:${m.awayClubId}`;
+    const keyBA = `${m.awayClubId}:${m.homeClubId}`;
+    if (m.homeGoals > m.awayGoals) {
+      h2h.set(keyAB, (h2h.get(keyAB) || 0) + 3);
+    } else if (m.homeGoals < m.awayGoals) {
+      h2h.set(keyBA, (h2h.get(keyBA) || 0) + 3);
+    } else {
+      h2h.set(keyAB, (h2h.get(keyAB) || 0) + 1);
+      h2h.set(keyBA, (h2h.get(keyBA) || 0) + 1);
     }
-    return ptsB - ptsA; // higher points = better position (sorted descending)
-  };
+  }
 
-  const result = Object.values(table).sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor || h2hResult(a.clubId, b.clubId) || a.clubId.localeCompare(b.clubId));
+  const result = Object.values(table).sort((a, b) => {
+    const diff = b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor;
+    if (diff !== 0) return diff;
+    // Head-to-head tiebreaker
+    const aPts = h2h.get(`${a.clubId}:${b.clubId}`) || 0;
+    const bPts = h2h.get(`${b.clubId}:${a.clubId}`) || 0;
+    return bPts - aPts || a.clubId.localeCompare(b.clubId);
+  });
   _btlCache.set(cacheKey, result);
   return result;
 }

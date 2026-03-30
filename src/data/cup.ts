@@ -91,11 +91,12 @@ export function advanceCupRound(cup: CupState): CupState {
       if (Math.random() < CUP_PENALTY_WIN_CHANCE) homeGoals++;
       if (Math.random() < CUP_PENALTY_WIN_CHANCE) awayGoals++;
     }
-    // Sudden death if still tied after regulation kicks
+    // Sudden death if still tied after regulation kicks — both always take, divergence decides
     while (homeGoals === awayGoals) {
       const hScore = Math.random() < CUP_PENALTY_WIN_CHANCE ? 1 : 0;
       const aScore = Math.random() < CUP_PENALTY_WIN_CHANCE ? 1 : 0;
-      if (hScore !== aScore) { homeGoals += hScore; awayGoals += aScore; }
+      homeGoals += hScore;
+      awayGoals += aScore;
     }
     // Store shootout result on the tie
     const tieIdx = updatedTies.findIndex(ut => ut.id === t.id);

@@ -75,14 +75,16 @@ export function getNarrativeBonus(tags: NarrativeTag[]): NarrativeBonus {
       case 'Fan Favourite':
         bonus.teamMoraleBoost += 3;
         break;
+      case 'One-Club Man':
+        bonus.teamMoraleBoost += 2;
+        bonus.moraleLossReduction += 1;
+        break;
       case 'Rising Star':
         bonus.developmentBonus += 0.02;
         break;
       case 'Veteran Leader':
         bonus.moraleLossReduction += 2;
-        break;
-      case 'Captain Fantastic':
-        bonus.strengthBonus += 0.02;
+        bonus.teamMoraleBoost += 1;
         break;
       case 'Homegrown Hero':
         bonus.teamMoraleBoost += 2;
@@ -90,6 +92,9 @@ export function getNarrativeBonus(tags: NarrativeTag[]): NarrativeBonus {
         break;
       case 'Record Breaker':
         bonus.strengthBonus += 0.01;
+        break;
+      case 'Captain Fantastic':
+        bonus.strengthBonus += 0.02;
         break;
     }
   }

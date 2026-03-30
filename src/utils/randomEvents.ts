@@ -47,14 +47,16 @@ export function generateRandomEvents(
   const squadPlayers = club.playerIds.map(id => players[id]).filter(Boolean);
   if (squadPlayers.length < 2) return result;
 
-  // Weight events by context
+  // Weight events by context — balanced so positive events are common enough to feel rewarding
+  const recentWins = recentResults.filter(r => r === 'W').length;
+  const recentLosses = recentResults.filter(r => r === 'L').length;
   const events: { id: string; weight: number }[] = [
-    { id: 'bustup', weight: 10 },
-    { id: 'intl_fatigue', weight: 8 },
-    { id: 'fan_rally', weight: recentResults.filter(r => r === 'W').length >= 3 ? 15 : 3 },
-    { id: 'sponsor_bonus', weight: boardConfidence > 60 ? 10 : 3 },
-    { id: 'media_scrutiny', weight: recentResults.filter(r => r === 'L').length >= 3 ? 15 : 3 },
-    { id: 'scout_tip', weight: 6 },
+    { id: 'bustup', weight: 8 },
+    { id: 'intl_fatigue', weight: 6 },
+    { id: 'fan_rally', weight: recentWins >= 3 ? 18 : 8 },
+    { id: 'sponsor_bonus', weight: boardConfidence > 60 ? 12 : 6 },
+    { id: 'media_scrutiny', weight: recentLosses >= 3 ? 15 : 4 },
+    { id: 'scout_tip', weight: 10 },
   ];
 
   const totalWeight = events.reduce((s, e) => s + e.weight, 0);

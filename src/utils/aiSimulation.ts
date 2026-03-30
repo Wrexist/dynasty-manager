@@ -713,7 +713,7 @@ function processAIFreeAgents(
 
 // ── AI Tactical Adaptation ──
 
-const MENTALITY_OPTIONS: Mentality[] = ['defensive', 'cautious', 'balanced', 'attacking'];
+const MENTALITY_OPTIONS: Mentality[] = ['defensive', 'cautious', 'balanced', 'attacking', 'all-out-attack'];
 const FORMATION_OPTIONS: FormationType[] = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1', '4-1-4-1', '5-3-2'];
 
 /** AI clubs adapt tactics based on recent form — losing streaks trigger formation/mentality changes */

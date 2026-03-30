@@ -1150,7 +1150,7 @@ function finalizeSeason(
             const fa = newPlayers[freeAgentIds[i]];
             if (fa && fa.overall < weakestOvr) { weakestOvr = fa.overall; weakestIdx = i; }
           }
-          if (aged.overall > weakestOvr) {
+          if (aged.overall >= weakestOvr) {
             delete newPlayers[freeAgentIds[weakestIdx]];
             freeAgentIds[weakestIdx] = aged.id;
             newPlayers[aged.id] = aged;
@@ -3038,18 +3038,20 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // Random mid-season events for immersion
-    const playerTableEntry = leagueTable.find(e => e.clubId === playerClubId);
-    const recentForm = (playerTableEntry?.form || []) as ('W' | 'D' | 'L')[];
-    const randomEvent = generateRandomEvents(
-      newClubs[playerClubId], newPlayers, newMessages, newWeek, season, recentForm, newBoardConfidence,
-    );
-    newMessages = randomEvent.messages;
-    newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence + randomEvent.confidenceDelta);
-    for (const [pid, updates] of Object.entries(randomEvent.playerUpdates)) {
-      if (newPlayers[pid]) newPlayers[pid] = { ...newPlayers[pid], ...updates };
-    }
-    if (Object.keys(randomEvent.clubUpdate).length > 0) {
-      newClubs[playerClubId] = { ...newClubs[playerClubId], ...randomEvent.clubUpdate };
+    if (newClubs[playerClubId]) {
+      const playerTableEntry = leagueTable.find(e => e.clubId === playerClubId);
+      const recentForm = (playerTableEntry?.form || []) as ('W' | 'D' | 'L')[];
+      const randomEvent = generateRandomEvents(
+        newClubs[playerClubId], newPlayers, newMessages, newWeek, season, recentForm, newBoardConfidence,
+      );
+      newMessages = randomEvent.messages;
+      newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence + randomEvent.confidenceDelta);
+      for (const [pid, updates] of Object.entries(randomEvent.playerUpdates)) {
+        if (newPlayers[pid]) newPlayers[pid] = { ...newPlayers[pid], ...updates };
+      }
+      if (Object.keys(randomEvent.clubUpdate).length > 0) {
+        newClubs[playerClubId] = { ...newClubs[playerClubId], ...randomEvent.clubUpdate };
+      }
     }
 
     set({
