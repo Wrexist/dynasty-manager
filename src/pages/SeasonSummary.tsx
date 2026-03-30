@@ -354,7 +354,7 @@ const SeasonSummary = () => {
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <span className="text-muted-foreground">Reputation: </span>
-                <span className="text-foreground font-semibold capitalize">{careerManager.reputationTier.replace('_', ' ')}</span>
+                <span className="text-foreground font-semibold capitalize">{(careerManager.reputationTier ?? 'unknown').replace('_', ' ')}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">Age: </span>
