@@ -36,7 +36,9 @@ const ROLE_BENEFITS: Record<StaffRole, string> = {
 };
 
 const StaffPage = () => {
-  const { staff, hireStaff, fireStaff } = useGameStore();
+  const staff = useGameStore(s => s.staff);
+  const hireStaff = useGameStore(s => s.hireStaff);
+  const fireStaff = useGameStore(s => s.fireStaff);
   const [confirmFireId, setConfirmFireId] = useState<string | null>(null);
 
   return (

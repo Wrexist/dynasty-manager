@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { getRoundName, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
 import { LEAGUE_CUP_WEEKS } from '@/config/continental';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
@@ -110,7 +111,12 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
 }
 
 const LeagueCupPage = () => {
-  const { leagueCup, clubs, playerClubId, week } = useGameStore();
+  const { leagueCup, clubs, playerClubId, week } = useGameStore(useShallow(s => ({
+    leagueCup: s.leagueCup,
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+    week: s.week,
+  })));
 
   if (!leagueCup || !leagueCup.ties.length) {
     return (

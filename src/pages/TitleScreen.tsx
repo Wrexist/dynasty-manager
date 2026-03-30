@@ -29,7 +29,13 @@ interface FloatingCircle {
 
 const TitleScreen = () => {
   const navigate = useNavigate();
-  const { loadGame, resetGame, settings, updateSettings, monetization, restoreEntitlements, updateSubscription } = useGameStore();
+  const settings = useGameStore(s => s.settings);
+  const monetization = useGameStore(s => s.monetization);
+  const loadGame = useGameStore(s => s.loadGame);
+  const resetGame = useGameStore(s => s.resetGame);
+  const updateSettings = useGameStore(s => s.updateSettings);
+  const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
+  const updateSubscription = useGameStore(s => s.updateSubscription);
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [restoringPurchases, setRestoringPurchases] = useState(false);

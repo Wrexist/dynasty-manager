@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { IncomingOffer } from '@/types/game';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
@@ -21,7 +22,15 @@ type Phase = 'negotiate' | 'thinking' | 'result';
 type Outcome = 'accepted' | 'rejected' | 'counter';
 
 export function IncomingOfferNegotiation({ offer, onClose }: Props) {
-  const { players, clubs, playerClubId, evaluateIncomingCounter, negotiateIncomingOffer, acceptIncomingOfferAtFee, season } = useGameStore();
+  const { players, clubs, playerClubId, season } = useGameStore(useShallow(s => ({
+    players: s.players,
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+    season: s.season,
+  })));
+  const evaluateIncomingCounter = useGameStore(s => s.evaluateIncomingCounter);
+  const negotiateIncomingOffer = useGameStore(s => s.negotiateIncomingOffer);
+  const acceptIncomingOfferAtFee = useGameStore(s => s.acceptIncomingOfferAtFee);
 
   const player = players[offer.playerId];
   const buyerClub = clubs[offer.buyerClubId];

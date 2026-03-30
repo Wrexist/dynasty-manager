@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { GraduationCap, Star, TrendingUp, ArrowUpRight, Trash2 } from 'lucide-react';
@@ -17,7 +18,14 @@ const SQUAD_SUB_NAV = [
 ];
 
 const YouthAcademy = () => {
-  const { youthAcademy, players, clubs, playerClubId, promoteYouth, releaseYouth } = useGameStore();
+  const { youthAcademy, players, clubs, playerClubId } = useGameStore(useShallow(s => ({
+    youthAcademy: s.youthAcademy,
+    players: s.players,
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+  })));
+  const promoteYouth = useGameStore(s => s.promoteYouth);
+  const releaseYouth = useGameStore(s => s.releaseYouth);
   const [confirmReleaseId, setConfirmReleaseId] = useState<string | null>(null);
   const [youthPreviewEnhanced, setYouthPreviewEnhanced] = useState(false);
   const club = clubs[playerClubId];

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { Button } from '@/components/ui/button';
@@ -25,14 +26,37 @@ import { getFlag } from '@/utils/nationality';
 const TransferPage = () => {
   const {
     transferMarket, players, clubs, playerClubId, shortlist, transferWindowOpen,
-    addToShortlist, removeFromShortlist, selectPlayer,
-    incomingOffers, respondToOffer, unlistPlayer,
-    activeLoans, incomingLoanOffers, outgoingLoanRequests, recallLoan, respondToLoanOffer,
+    incomingOffers, activeLoans, incomingLoanOffers, outgoingLoanRequests,
     week, season, totalWeeks,
-    freeAgents, signFreeAgent,
-    setScreen, scouting,
-    transferNews,
-  } = useGameStore();
+    freeAgents, scouting, transferNews,
+  } = useGameStore(useShallow(s => ({
+    transferMarket: s.transferMarket,
+    players: s.players,
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+    shortlist: s.shortlist,
+    transferWindowOpen: s.transferWindowOpen,
+    incomingOffers: s.incomingOffers,
+    activeLoans: s.activeLoans,
+    incomingLoanOffers: s.incomingLoanOffers,
+    outgoingLoanRequests: s.outgoingLoanRequests,
+    week: s.week,
+    season: s.season,
+    totalWeeks: s.totalWeeks,
+    freeAgents: s.freeAgents,
+    scouting: s.scouting,
+    transferNews: s.transferNews,
+  })));
+
+  const addToShortlist = useGameStore(s => s.addToShortlist);
+  const removeFromShortlist = useGameStore(s => s.removeFromShortlist);
+  const selectPlayer = useGameStore(s => s.selectPlayer);
+  const respondToOffer = useGameStore(s => s.respondToOffer);
+  const unlistPlayer = useGameStore(s => s.unlistPlayer);
+  const recallLoan = useGameStore(s => s.recallLoan);
+  const respondToLoanOffer = useGameStore(s => s.respondToLoanOffer);
+  const signFreeAgent = useGameStore(s => s.signFreeAgent);
+  const setScreen = useGameStore(s => s.setScreen);
 
   const [posFilter, setPosFilter] = useState(0);
   const [tab, setTab] = useState<'market' | 'shortlist' | 'incoming' | 'outgoing' | 'loans' | 'freeAgents' | 'news'>('market');

@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -8,7 +9,20 @@ import { LEAGUES } from '@/data/league';
 import { PageHint } from '@/components/game/PageHint';
 
 const LeagueTable = () => {
-  const { divisionTables, divisionFixtures, divisionClubs, clubs, players, playerClubId, playerDivision, week, totalWeeks, setScreen, selectClub, selectPlayer } = useGameStore();
+  const { divisionTables, divisionFixtures, divisionClubs, clubs, players, playerClubId, playerDivision, week, totalWeeks } = useGameStore(useShallow((s) => ({
+    divisionTables: s.divisionTables,
+    divisionFixtures: s.divisionFixtures,
+    divisionClubs: s.divisionClubs,
+    clubs: s.clubs,
+    players: s.players,
+    playerClubId: s.playerClubId,
+    playerDivision: s.playerDivision,
+    week: s.week,
+    totalWeeks: s.totalWeeks,
+  })));
+  const setScreen = useGameStore((s) => s.setScreen);
+  const selectClub = useGameStore((s) => s.selectClub);
+  const selectPlayer = useGameStore((s) => s.selectPlayer);
   const [tab, setTab] = useState<'table' | 'fixtures' | 'stats'>('table');
   const [browseWeek, setBrowseWeek] = useState(week);
   const selectedDiv = playerDivision || 'eng';

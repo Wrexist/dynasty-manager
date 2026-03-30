@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { cn } from '@/lib/utils';
 import { formatMoney } from '@/utils/helpers';
@@ -26,8 +27,24 @@ const PRODUCT_LINE_ICONS: Record<MerchProductLine, React.ElementType> = {
 };
 
 const MerchandisePage = () => {
-  const store = useGameStore();
-  const { clubs, playerClubId, merchandise, players, playerDivision, facilities, managerProgression, week, cup, leagueTable } = store;
+  const { clubs, playerClubId, merchandise, players, playerDivision, facilities, managerProgression, week, cup, leagueTable } = useGameStore(useShallow(s => ({
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+    merchandise: s.merchandise,
+    players: s.players,
+    playerDivision: s.playerDivision,
+    facilities: s.facilities,
+    managerProgression: s.managerProgression,
+    week: s.week,
+    cup: s.cup,
+    leagueTable: s.leagueTable,
+  })));
+  const toggleProductLine = useGameStore(s => s.toggleProductLine);
+  const setMerchPricing = useGameStore(s => s.setMerchPricing);
+  const launchCampaign = useGameStore(s => s.launchCampaign);
+  const cancelCampaign = useGameStore(s => s.cancelCampaign);
+  const selectPlayer = useGameStore(s => s.selectPlayer);
+  const setScreen = useGameStore(s => s.setScreen);
   const club = clubs[playerClubId];
   if (!club) return null;
 
@@ -41,15 +58,15 @@ const MerchandisePage = () => {
   })();
 
   const handleToggleLine = (line: MerchProductLine) => {
-    store.toggleProductLine(line);
+    toggleProductLine(line);
   };
 
   const handleSetPricing = (tier: MerchPricingTier) => {
-    store.setMerchPricing(tier);
+    setMerchPricing(tier);
   };
 
   const handleLaunchCampaign = (type: MerchCampaignType) => {
-    store.launchCampaign(type);
+    launchCampaign(type);
   };
 
   const seasonChange = merchandise.lastSeasonRevenue > 0
@@ -112,7 +129,7 @@ const MerchandisePage = () => {
                 </span>
               </div>
               <button
-                onClick={() => store.cancelCampaign()}
+                onClick={() => cancelCampaign()}
                 className="text-muted-foreground hover:text-destructive p-1"
               >
                 <X className="w-3.5 h-3.5" />
@@ -310,7 +327,7 @@ const MerchandisePage = () => {
               return (
                 <button
                   key={sp.playerId}
-                  onClick={() => { store.selectPlayer(sp.playerId); store.setScreen('player-detail'); }}
+                  onClick={() => { selectPlayer(sp.playerId); setScreen('player-detail'); }}
                   className="flex items-center gap-3 w-full p-2.5 rounded-xl bg-muted/10 hover:bg-muted/20 transition-all active:scale-[0.98]"
                 >
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">

@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { TransferListing } from '@/types/game';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
@@ -29,7 +30,17 @@ type Phase = 'negotiate' | 'thinking' | 'result';
 type Outcome = 'accepted' | 'rejected' | 'counter';
 
 export function TransferNegotiation({ listing, onClose }: Props) {
-  const { players, clubs, playerClubId, evaluateOffer, makeOfferWithNegotiation, executeTransfer, season, shortlist, removeFromShortlist } = useGameStore();
+  const { players, clubs, playerClubId, season, shortlist } = useGameStore(useShallow(s => ({
+    players: s.players,
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+    season: s.season,
+    shortlist: s.shortlist,
+  })));
+  const evaluateOffer = useGameStore(s => s.evaluateOffer);
+  const makeOfferWithNegotiation = useGameStore(s => s.makeOfferWithNegotiation);
+  const executeTransfer = useGameStore(s => s.executeTransfer);
+  const removeFromShortlist = useGameStore(s => s.removeFromShortlist);
 
   const player = players[listing.playerId];
   const sellerClub = clubs[listing.sellerClubId] || { name: 'Unknown Club', shortName: 'Unknown', id: listing.sellerClubId };

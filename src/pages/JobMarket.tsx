@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { ReputationBadge } from '@/components/game/ReputationBadge';
@@ -10,17 +11,17 @@ import type { JobVacancy, JobOffer } from '@/types/game';
 
 const JobMarket = () => {
   const [showRetireConfirm, setShowRetireConfirm] = useState(false);
-  const {
-    careerManager,
-    jobVacancies,
-    jobOffers,
-    applyForJob,
-    respondToJobOffer,
-    advanceWeek,
-    retireManager,
-    season,
-    week,
-  } = useGameStore();
+  const { careerManager, jobVacancies, jobOffers, season, week } = useGameStore(useShallow(s => ({
+    careerManager: s.careerManager,
+    jobVacancies: s.jobVacancies,
+    jobOffers: s.jobOffers,
+    season: s.season,
+    week: s.week,
+  })));
+  const applyForJob = useGameStore(s => s.applyForJob);
+  const respondToJobOffer = useGameStore(s => s.respondToJobOffer);
+  const advanceWeek = useGameStore(s => s.advanceWeek);
+  const retireManager = useGameStore(s => s.retireManager);
 
   if (!careerManager) return null;
 

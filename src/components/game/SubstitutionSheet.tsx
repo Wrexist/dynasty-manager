@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { usePlayerClub } from '@/hooks/useGameSelectors';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -66,7 +67,13 @@ const VP_H = 59;
 const VP_W = 68;
 
 export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome, preSelectedOutId, forceMode, onDismissWithoutSub, injuredPlayerIds, playerGoals, opponentGoals }: SubstitutionSheetProps) {
-  const { players, makeMatchSub, matchSubsUsed, week, updateLineup } = useGameStore();
+  const { players, matchSubsUsed, week } = useGameStore(useShallow(s => ({
+    players: s.players,
+    matchSubsUsed: s.matchSubsUsed,
+    week: s.week,
+  })));
+  const makeMatchSub = useGameStore(s => s.makeMatchSub);
+  const updateLineup = useGameStore(s => s.updateLineup);
   const playerClub = usePlayerClub();
 
   const [selectedOutId, setSelectedOutId] = useState<string | null>(null);

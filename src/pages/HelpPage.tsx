@@ -84,7 +84,7 @@ const HELP_SECTIONS: HelpSection[] = [
 ];
 
 const HelpPage = () => {
-  const { setScreen } = useGameStore();
+  const setScreen = useGameStore(s => s.setScreen);
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
   const [search, setSearch] = useState('');
 

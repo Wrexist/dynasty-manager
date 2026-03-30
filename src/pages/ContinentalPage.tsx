@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
 import { GroupTable } from '@/components/game/GroupTable';
 import { KnockoutBracket } from '@/components/game/KnockoutBracket';
@@ -11,7 +12,12 @@ import { CONTINENTAL_GROUP_WEEKS } from '@/config/continental';
 import { PageHint } from '@/components/game/PageHint';
 
 function TournamentView({ tournament, competition }: { tournament: ContinentalTournamentState; competition: ContinentalCompetition }) {
-  const { playerClubId, clubs, virtualClubs, week } = useGameStore();
+  const { playerClubId, clubs, virtualClubs, week } = useGameStore(useShallow(s => ({
+    playerClubId: s.playerClubId,
+    clubs: s.clubs,
+    virtualClubs: s.virtualClubs,
+    week: s.week,
+  })));
   const [tab, setTab] = useState<'groups' | 'knockout'>(tournament.currentPhase === 'knockout' || tournament.currentPhase === 'complete' ? 'knockout' : 'groups');
 
   const currentMd = tournament.currentPhase === 'group' ? getCurrentMatchday(tournament) : 6;
@@ -128,7 +134,9 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
 }
 
 const ContinentalPage = () => {
-  const { championsCup, shieldCup, currentScreen } = useGameStore();
+  const championsCup = useGameStore(s => s.championsCup);
+  const shieldCup = useGameStore(s => s.shieldCup);
+  const currentScreen = useGameStore(s => s.currentScreen);
 
   const isChampions = currentScreen === 'champions-cup';
   const tournament = isChampions ? championsCup : shieldCup;

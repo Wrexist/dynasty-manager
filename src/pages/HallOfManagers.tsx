@@ -25,7 +25,7 @@ const getRankIcon = (rank: number) => {
 };
 
 const HallOfManagers = () => {
-  const { monetization } = useGameStore();
+  const monetization = useGameStore(s => s.monetization);
   const [entries, setEntries] = useState<HallEntry[]>([]);
   const userIsPro = isPro(monetization);
   const homFrame = getActiveCosmetic(monetization, 'hom_frame');

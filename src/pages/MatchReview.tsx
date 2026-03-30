@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
@@ -18,7 +19,17 @@ import { motion } from 'framer-motion';
 import type { Club } from '@/types/game';
 
 const MatchReview = () => {
-  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, advanceWeek, setScreen, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs } = useGameStore();
+  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs } = useGameStore(useShallow(s => ({
+    currentMatchResult: s.currentMatchResult, clubs: s.clubs, players: s.players,
+    playerClubId: s.playerClubId, boardConfidence: s.boardConfidence,
+    matchPlayerRatings: s.matchPlayerRatings, week: s.week,
+    divisionFixtures: s.divisionFixtures, playerDivision: s.playerDivision,
+    divisionTables: s.divisionTables, boardObjectives: s.boardObjectives,
+    monetization: s.monetization, lastMatchCompetition: s.lastMatchCompetition,
+    virtualClubs: s.virtualClubs,
+  })));
+  const advanceWeek = useGameStore(s => s.advanceWeek);
+  const setScreen = useGameStore(s => s.setScreen);
   const userIsPro = isPro(monetization);
   const [isAdvancing, setIsAdvancing] = useState(false);
 

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
@@ -27,7 +28,13 @@ type StatusFilter = 'injured' | 'listed' | 'expiring' | 'onLoan' | 'youth' | 'st
 const SORT_OPTIONS: SortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
 
 const SquadPage = () => {
-  const { playerClubId, clubs, players, selectPlayer, listPlayerForSale, setScreen, season, training } = useGameStore();
+  const { playerClubId, clubs, players, season, training } = useGameStore(useShallow(s => ({
+    playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
+    season: s.season, training: s.training,
+  })));
+  const selectPlayer = useGameStore(s => s.selectPlayer);
+  const listPlayerForSale = useGameStore(s => s.listPlayerForSale);
+  const setScreen = useGameStore(s => s.setScreen);
   const [posFilter, setPosFilter] = useState(0);
   const [sortBy, setSortBy] = useState<SortKey>('overall');
   const [sortAsc, setSortAsc] = useState(false);

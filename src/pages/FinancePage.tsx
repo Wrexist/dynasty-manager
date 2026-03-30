@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { DollarSign, TrendingUp, TrendingDown, Users, ArrowUpRight, ArrowDownRight, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,7 +15,12 @@ import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
 
 const FinancePage = () => {
-  const { clubs, playerClubId, players, financeHistory } = useGameStore();
+  const { clubs, playerClubId, players, financeHistory } = useGameStore(useShallow(s => ({
+    clubs: s.clubs,
+    playerClubId: s.playerClubId,
+    players: s.players,
+    financeHistory: s.financeHistory,
+  })));
   const club = clubs[playerClubId];
   const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
   const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');

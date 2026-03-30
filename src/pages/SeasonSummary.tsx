@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,16 @@ const AWARD_STAT_LABELS: Record<string, string> = {
 };
 
 const SeasonSummary = () => {
-  const { seasonHistory, season, setScreen, playerClubId, clubs, leagueTable, gameMode, careerManager } = useGameStore();
+  const { seasonHistory, season, playerClubId, clubs, leagueTable, gameMode, careerManager } = useGameStore(useShallow((s) => ({
+    seasonHistory: s.seasonHistory,
+    season: s.season,
+    playerClubId: s.playerClubId,
+    clubs: s.clubs,
+    leagueTable: s.leagueTable,
+    gameMode: s.gameMode,
+    careerManager: s.careerManager,
+  })));
+  const setScreen = useGameStore((s) => s.setScreen);
   const latest = seasonHistory[seasonHistory.length - 1];
   const [showBestXI, setShowBestXI] = useState(false);
 

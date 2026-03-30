@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
@@ -25,7 +26,18 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
-  const { week, clubs, players, playerClubId, leagueTable, setScreen, monetization, playCurrentMatch, autoFillTeam, rivalries } = useGameStore();
+  const { week, clubs, players, playerClubId, leagueTable, monetization, rivalries } = useGameStore(useShallow((s) => ({
+    week: s.week,
+    clubs: s.clubs,
+    players: s.players,
+    playerClubId: s.playerClubId,
+    leagueTable: s.leagueTable,
+    monetization: s.monetization,
+    rivalries: s.rivalries,
+  })));
+  const setScreen = useGameStore((s) => s.setScreen);
+  const playCurrentMatch = useGameStore((s) => s.playCurrentMatch);
+  const autoFillTeam = useGameStore((s) => s.autoFillTeam);
   const [autoFilling, setAutoFilling] = useState(false);
 
   const { match, isHome, opponent: oppClub } = useCurrentMatch();

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubstitutionSheet } from '@/components/game/SubstitutionSheet';
 import { Button } from '@/components/ui/button';
@@ -77,8 +78,30 @@ function buildVirtualClubFallback(virtualClubs: Record<string, VirtualClub> | un
 }
 
 const MatchDay = () => {
-  const store = useGameStore();
-  const { playerClubId, week, clubs, playFirstHalf, playSecondHalf, playExtraTime, playPenalties, setScreen, matchSubsUsed, tactics, setTactics, cup, cleanupAbandonedMatch } = store;
+  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase } = useGameStore(useShallow(s => ({
+    playerClubId: s.playerClubId,
+    week: s.week,
+    clubs: s.clubs,
+    matchSubsUsed: s.matchSubsUsed,
+    tactics: s.tactics,
+    cup: s.cup,
+    leagueCup: s.leagueCup,
+    championsCup: s.championsCup,
+    shieldCup: s.shieldCup,
+    virtualClubs: s.virtualClubs,
+    currentCupTieId: s.currentCupTieId,
+    domesticSuperCup: s.domesticSuperCup,
+    continentalSuperCup: s.continentalSuperCup,
+    monetization: s.monetization,
+    matchPhase: s.matchPhase,
+  })));
+  const playFirstHalf = useGameStore(s => s.playFirstHalf);
+  const playSecondHalf = useGameStore(s => s.playSecondHalf);
+  const playExtraTime = useGameStore(s => s.playExtraTime);
+  const playPenalties = useGameStore(s => s.playPenalties);
+  const setScreen = useGameStore(s => s.setScreen);
+  const setTactics = useGameStore(s => s.setTactics);
+  const cleanupAbandonedMatch = useGameStore(s => s.cleanupAbandonedMatch);
 
   const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'extra_time_break' | 'extra_time' | 'penalties' | 'post'>('pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
@@ -115,32 +138,32 @@ const MatchDay = () => {
   const cupMatch = cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
 
   // Detect League Cup match
-  const leagueCupTie = !liveMatch && !cupTie ? store.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+  const leagueCupTie = !liveMatch && !cupTie ? leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
   const leagueCupMatch = leagueCupTie ? { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
 
   // Detect continental match (Champions Cup / Shield Cup)
-  const champMatch = !liveMatch && !cupTie && !leagueCupTie ? findPlayerContinentalMatchForUI(store.championsCup, week, playerClubId) : null;
-  const shieldMatch = !liveMatch && !cupTie && !leagueCupTie && !champMatch ? findPlayerContinentalMatchForUI(store.shieldCup, week, playerClubId) : null;
+  const champMatch = !liveMatch && !cupTie && !leagueCupTie ? findPlayerContinentalMatchForUI(championsCup, week, playerClubId) : null;
+  const shieldMatch = !liveMatch && !cupTie && !leagueCupTie && !champMatch ? findPlayerContinentalMatchForUI(shieldCup, week, playerClubId) : null;
   const continentalMatchInfo = champMatch || shieldMatch;
   const continentalMatch = continentalMatchInfo ? { id: continentalMatchInfo.id, week, homeClubId: continentalMatchInfo.homeClubId, awayClubId: continentalMatchInfo.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
 
   // Detect super cup match
   const superCupMatch = !liveMatch && !cupTie && !leagueCupTie && !continentalMatch ? (() => {
-    const dsc = store.domesticSuperCup;
-    const csc = store.continentalSuperCup;
+    const dsc = domesticSuperCup;
+    const csc = continentalSuperCup;
     const sc = dsc && !dsc.played && dsc.week === week && (dsc.homeClubId === playerClubId || dsc.awayClubId === playerClubId) ? dsc
       : csc && !csc.played && csc.week === week && (csc.homeClubId === playerClubId || csc.awayClubId === playerClubId) ? csc : null;
     return sc ? { id: `super-cup-${sc.type}`, week, homeClubId: sc.homeClubId, awayClubId: sc.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
   })() : null;
 
-  const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCupMatch || !!store.currentCupTieId;
+  const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCupMatch || !!currentCupTieId;
 
   // Competition context for display
   const competitionInfo = cupTie ? { name: 'Dynasty Cup', round: cupTie.round, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' }
     : leagueCupTie ? { name: 'League Cup', round: leagueCupTie.round, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' }
     : champMatch ? { name: 'Champions Cup', round: champMatch.roundLabel, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/30' }
     : shieldMatch ? { name: 'Shield Cup', round: shieldMatch.roundLabel, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30' }
-    : superCupMatch ? { name: store.domesticSuperCup?.week === week ? 'Super Cup' : 'Continental Super Cup', round: 'Final', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/30' }
+    : superCupMatch ? { name: domesticSuperCup?.week === week ? 'Super Cup' : 'Continental Super Cup', round: 'Final', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/30' }
     : null;
 
   // Cache match data when kickoff starts — playSecondHalf() marks the fixture
@@ -148,8 +171,8 @@ const MatchDay = () => {
   const matchCacheRef = useRef<{ match: Match; homeClub: Club; awayClub: Club } | null>(null);
 
   const match = matchCacheRef.current?.match ?? liveMatch ?? cupMatch ?? leagueCupMatch ?? continentalMatch ?? superCupMatch;
-  const homeClub = matchCacheRef.current?.homeClub ?? (match ? (clubs[match.homeClubId] || buildVirtualClubFallback(store.virtualClubs, match.homeClubId)) : null);
-  const awayClub = matchCacheRef.current?.awayClub ?? (match ? (clubs[match.awayClubId] || buildVirtualClubFallback(store.virtualClubs, match.awayClubId)) : null);
+  const homeClub = matchCacheRef.current?.homeClub ?? (match ? (clubs[match.homeClubId] || buildVirtualClubFallback(virtualClubs, match.homeClubId)) : null);
+  const awayClub = matchCacheRef.current?.awayClub ?? (match ? (clubs[match.awayClubId] || buildVirtualClubFallback(virtualClubs, match.awayClubId)) : null);
   // No useEffect needed — PostMatchPopup now navigates directly to Match Review
 
   // No auto-start — show "Ready to Kick Off?" screen instead
@@ -322,8 +345,8 @@ const MatchDay = () => {
   // but we don't want changes to them to tear down and re-create the interval.
   const checkKeyMomentRef = useRef(checkKeyMoment);
   checkKeyMomentRef.current = checkKeyMoment;
-  const matchPhaseRef = useRef(store.matchPhase);
-  matchPhaseRef.current = store.matchPhase;
+  const matchPhaseRef = useRef(matchPhase);
+  matchPhaseRef.current = matchPhase;
 
   // Animate events for current half
   useEffect(() => {
@@ -453,7 +476,7 @@ const MatchDay = () => {
   const latestMomentumEvent = [...visibleEvents].reverse().find(e => e.momentum !== undefined);
   const currentMomentum = latestMomentumEvent?.momentum ?? 0; // -100 (away) to +100 (home)
   const homeMomPct = Math.round(50 + currentMomentum / 2); // 0-100 scale
-  const stadiumTheme = getActiveCosmetic(store.monetization, 'stadium_theme');
+  const stadiumTheme = getActiveCosmetic(monetization, 'stadium_theme');
   const isPlayerHome = match?.homeClubId === playerClubId;
   const venueClub = match ? clubs[match.homeClubId] : null;
   const awayBarColor = homeClub && awayClub && areColorsSimilar(homeClub.color, awayClub.color) ? '#FFFFFF' : awayClub?.color;
@@ -586,9 +609,9 @@ const MatchDay = () => {
             <p className="text-sm font-bold text-foreground text-center">Ready to Kick Off?</p>
 
             <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-              <span>{homeClub.shortName}: {store.clubs[match.homeClubId]?.formation || '4-3-3'}</span>
+              <span>{homeClub.shortName}: {clubs[match.homeClubId]?.formation || '4-3-3'}</span>
               <span className="text-primary font-bold">vs</span>
-              <span>{awayClub.shortName}: {store.clubs[match.awayClubId]?.formation || '4-3-3'}</span>
+              <span>{awayClub.shortName}: {clubs[match.awayClubId]?.formation || '4-3-3'}</span>
             </div>
             <div className="flex items-center justify-center gap-3">
               <span className="text-[10px] text-muted-foreground">Speed:</span>

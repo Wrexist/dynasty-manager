@@ -9,7 +9,7 @@ interface ProUpsellProps {
 
 /** Compact banner prompting the user to upgrade to Dynasty Pro for a specific feature. */
 export function ProUpsell({ feature, className }: ProUpsellProps) {
-  const { setScreen } = useGameStore();
+  const setScreen = useGameStore(s => s.setScreen);
 
   return (
     <button
