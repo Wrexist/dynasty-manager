@@ -1,4 +1,5 @@
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -12,7 +13,10 @@ interface MidSeasonReportProps {
 }
 
 export function MidSeasonReport({ onDismiss }: MidSeasonReportProps) {
-  const { playerClubId, clubs, players, leagueTable, fixtures, boardConfidence, season } = useGameStore();
+  const { playerClubId, clubs, players, leagueTable, fixtures, boardConfidence, season } = useGameStore(useShallow(s => ({
+    playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
+    leagueTable: s.leagueTable, fixtures: s.fixtures, boardConfidence: s.boardConfidence, season: s.season,
+  })));
   const club = clubs[playerClubId];
   if (!club) return null;
 

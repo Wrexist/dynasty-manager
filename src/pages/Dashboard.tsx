@@ -67,6 +67,7 @@ const Dashboard = () => {
     gameMode, careerManager, jobOffers,
     pendingPressConference, pendingStoryline, pendingTransferTalk,
     activeChallenge, youthAcademy, fanMood, sessionStats,
+    pendingAchievementIds,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
@@ -87,6 +88,7 @@ const Dashboard = () => {
     pendingPressConference: s.pendingPressConference, pendingStoryline: s.pendingStoryline,
     pendingTransferTalk: s.pendingTransferTalk, activeChallenge: s.activeChallenge,
     youthAcademy: s.youthAcademy, fanMood: s.fanMood, sessionStats: s.sessionStats,
+    pendingAchievementIds: s.pendingAchievementIds,
   })));
   // Actions — stable references, individual selectors
   const setScreen = useGameStore(s => s.setScreen);
@@ -94,9 +96,6 @@ const Dashboard = () => {
   const endSeason = useGameStore(s => s.endSeason);
   const autoFillTeam = useGameStore(s => s.autoFillTeam);
   const selectPlayer = useGameStore(s => s.selectPlayer);
-  // Stable selectors for achievement effect — avoids infinite re-render loop (React #185)
-  const pendingAchievementIds = useGameStore(s => s.pendingAchievementIds);
-  const clearPendingAchievements = useGameStore(s => s.clearPendingAchievements);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
   const pos = useLeaguePosition();
@@ -130,6 +129,9 @@ const Dashboard = () => {
     }
   }, [boardConfidence]);
 
+  // Mount guard — skip celebration effect during initial render to avoid init-time cascading updates (React #185)
+  const mountedRef = useRef(false);
+
   // Celebration toasts & modals: fire when week changes (after advanceWeek)
   const prevWeekRef = useRef(week);
   const shownCelebrationsRef = useRef<Set<string>>(new Set());
@@ -140,6 +142,7 @@ const Dashboard = () => {
   const prevAchievementRef = useRef<string[]>([]);
 
   // Achievement unlock modal queue — triggers when pendingAchievementIds changes
+  // Uses getState() for the action to avoid dependency instability (React #185 fix)
   useEffect(() => {
     if (!pendingAchievementIds || pendingAchievementIds.length === 0) return;
     // Only process if we haven't already queued these
@@ -156,9 +159,10 @@ const Dashboard = () => {
       hapticHeavy();
     }
     // Clear pending from store immediately so remounting the Dashboard
-    // (e.g. navigating away and back) won't re-trigger the same popup
-    clearPendingAchievements();
-  }, [pendingAchievementIds, clearPendingAchievements]);
+    // (e.g. navigating away and back) won't re-trigger the same popup.
+    // Use getState() to avoid including the action in dependency array.
+    useGameStore.getState().clearPendingAchievements();
+  }, [pendingAchievementIds]);
 
   const dismissAchievement = () => {
     const remaining = pendingAchievementQueue.slice(1);
@@ -177,22 +181,27 @@ const Dashboard = () => {
     }
   }, [season]);
   useEffect(() => {
-    if (!club) return;
+    if (!mountedRef.current) { mountedRef.current = true; return; } // Skip initial mount, enable for subsequent runs
     if (prevWeekRef.current !== week && prevWeekRef.current > 0) {
+      // Read current values from store to avoid broad object dependencies (React #185 fix)
+      const s = useGameStore.getState();
+      const currentClub = s.clubs[s.playerClubId];
+      if (!currentClub) { prevWeekRef.current = week; return; }
+
       const celebrations = checkCelebrations(
-        playerClubId, players, club.playerIds, fixtures, leagueTable, season
+        s.playerClubId, s.players, currentClub.playerIds, s.fixtures, s.leagueTable, s.season
       );
 
       // Add match drama celebrations
-      if (lastMatchDrama) {
-        const dramaCeleb = getDramaCelebration(lastMatchDrama);
+      if (s.lastMatchDrama) {
+        const dramaCeleb = getDramaCelebration(s.lastMatchDrama);
         if (dramaCeleb) celebrations.push(dramaCeleb);
       }
 
       const unseen = celebrations.filter(c => {
         // Drama celebrations (type 'record' from getDramaCelebration) are per-week;
         // milestones/streaks are per-season to avoid re-triggering
-        const key = c.type === 'record' ? `${c.title}-${season}-${week}` : `${c.title}-${season}`;
+        const key = c.type === 'record' ? `${c.title}-${s.season}-${week}` : `${c.title}-${s.season}`;
         if (shownCelebrationsRef.current.has(key)) return false;
         shownCelebrationsRef.current.add(key);
         return true;
@@ -210,7 +219,7 @@ const Dashboard = () => {
       });
     }
     prevWeekRef.current = week;
-  }, [week, playerClubId, players, club, fixtures, leagueTable, season, lastMatchDrama]);
+  }, [week]); // Only depend on week — read other values from getState() to avoid cascading re-renders
 
   // ── Derived data (memoized) — must be above early return to avoid conditional hooks ──
 

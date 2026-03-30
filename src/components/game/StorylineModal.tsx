@@ -7,7 +7,9 @@ import { motion } from 'framer-motion';
 import { hapticMedium } from '@/utils/haptics';
 
 export function StorylineModal() {
-  const { pendingStoryline, respondToStoryline, dismissStoryline } = useGameStore();
+  const pendingStoryline = useGameStore(s => s.pendingStoryline);
+  const respondToStoryline = useGameStore(s => s.respondToStoryline);
+  const dismissStoryline = useGameStore(s => s.dismissStoryline);
 
   useEffect(() => {
     if (pendingStoryline) hapticMedium();

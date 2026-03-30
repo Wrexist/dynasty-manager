@@ -14,7 +14,9 @@ const TONE_STYLES: Record<PressResponseTone, { label: string; color: string; ico
 };
 
 export function PressConference() {
-  const { pendingPressConference, respondToPress, dismissPress } = useGameStore();
+  const pendingPressConference = useGameStore(s => s.pendingPressConference);
+  const respondToPress = useGameStore(s => s.respondToPress);
+  const dismissPress = useGameStore(s => s.dismissPress);
 
   if (!pendingPressConference) return null;
 

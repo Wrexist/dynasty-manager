@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/components/ui/button';
 import { Sparkles, MapPin, TrendingUp, Banknote, Briefcase, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -12,11 +13,10 @@ import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { formatMoney } from '@/utils/helpers';
 
 export function GemRevealModal() {
-  const gem = useGameStore(s => s.pendingGemReveal);
-  const players = useGameStore(s => s.players);
-  const clubs = useGameStore(s => s.clubs);
-  const playerClubId = useGameStore(s => s.playerClubId);
-  const transferMarket = useGameStore(s => s.transferMarket);
+  const { gem, players, clubs, playerClubId, transferMarket } = useGameStore(useShallow(s => ({
+    gem: s.pendingGemReveal, players: s.players, clubs: s.clubs,
+    playerClubId: s.playerClubId, transferMarket: s.transferMarket,
+  })));
   const setScreen = useGameStore(s => s.setScreen);
   const [showNegotiation, setShowNegotiation] = useState(false);
 
