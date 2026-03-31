@@ -188,8 +188,8 @@ describe('3G: Manager Perk Progression Timeline', () => {
     const totalCost = MANAGER_PERKS.reduce((sum, p) => sum + p.cost, 0);
     console.log(`[Content Audit] Total perk XP cost: ${totalCost}`);
 
-    // Tier costs: 4×100 + 4×200 + 4×400 + 4×600 + 4×800 + 1×1200 = 9600
-    expect(totalCost).toBe(9600);
+    // Tier costs: 4×80 + 4×200 + 4×400 + 4×600 + 4×800 + 1×1200 = 9520
+    expect(totalCost).toBe(9520);
   });
 
   it('estimates seasons to max out perk tree', () => {
@@ -203,7 +203,7 @@ describe('3G: Manager Perk Progression Timeline', () => {
     // - Title: 100 XP (not every season)
     // Total per season: ~785 XP (generous estimate)
     const xpPerSeason = 785;
-    const totalCost = 9600;
+    const totalCost = MANAGER_PERKS.reduce((sum, p) => sum + p.cost, 0);
     const seasonsToMax = Math.ceil(totalCost / xpPerSeason);
 
     console.log(`[Content Audit] Estimated ${seasonsToMax} seasons to max perk tree at ~${xpPerSeason} XP/season`);
