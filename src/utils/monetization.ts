@@ -57,12 +57,17 @@ export function getOwnedCosmetics(state: MonetizationState, category: CosmeticCa
   );
 }
 
-/** Check if an ad reward can still be claimed this season */
-export function canClaimAdReward(state: MonetizationState, rewardType: AdRewardType, season: number): boolean {
-  // Pro users get rewards automatically — no ad needed, but still respect limits
-  const key = `${rewardType}_s${season}`;
-  const claimed = state.adRewardsClaimed[key] || 0;
-  return claimed < AD_REWARD_LIMITS[rewardType];
+/** Check if an ad reward can still be claimed this season (and optional context) */
+export function canClaimAdReward(state: MonetizationState, rewardType: AdRewardType, season: number, contextKey?: string): boolean {
+  const seasonKey = `${rewardType}_s${season}`;
+  const seasonClaimed = state.adRewardsClaimed[seasonKey] || 0;
+  if (seasonClaimed >= AD_REWARD_LIMITS[rewardType]) return false;
+
+  if (!contextKey) return true;
+
+  const contextualKey = `${seasonKey}_${contextKey}`;
+  const contextualClaimed = state.adRewardsClaimed[contextualKey] || 0;
+  return contextualClaimed < 1;
 }
 
 /** Check if the starter kit time-limited offer is still available */

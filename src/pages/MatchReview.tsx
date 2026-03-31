@@ -67,6 +67,7 @@ const MatchReview = () => {
   const won = isHome ? match.homeGoals > match.awayGoals : match.awayGoals > match.homeGoals;
   const drew = match.homeGoals === match.awayGoals;
   const lost = !won && !drew;
+  const xpDoubleClaimContext = `match_w${week}_${match.homeClubId}_${match.awayClubId}_${match.homeGoals}-${match.awayGoals}_${lastMatchCompetition || 'league'}`;
 
   // Goals
   const goals = match.events.filter(e => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored');
@@ -581,13 +582,17 @@ const MatchReview = () => {
       })()}
 
       {/* Ad Reward: Double XP */}
-      <AdRewardButton rewardType="xp_double" onRewardClaimed={() => {
-        const s = useGameStore.getState();
-        const bonusXP = s.lastMatchXPGain;
-        if (bonusXP > 0) {
-          useGameStore.setState({ managerProgression: grantXP(s.managerProgression, bonusXP) });
-        }
-      }} />
+      <AdRewardButton
+        rewardType="xp_double"
+        claimContext={xpDoubleClaimContext}
+        onRewardClaimed={() => {
+          const s = useGameStore.getState();
+          const bonusXP = s.lastMatchXPGain;
+          if (bonusXP > 0) {
+            useGameStore.setState({ managerProgression: grantXP(s.managerProgression, bonusXP) });
+          }
+        }}
+      />
 
     </div>
   );

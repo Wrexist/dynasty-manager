@@ -11,6 +11,7 @@ import { showRewardedAd } from '@/utils/ads';
 interface AdRewardButtonProps {
   rewardType: AdRewardType;
   onRewardClaimed: () => void;
+  claimContext?: string;
   className?: string;
   compact?: boolean;
 }
@@ -20,13 +21,13 @@ interface AdRewardButtonProps {
  * Pro users see a "Claim" button (no ad). Free users see "Watch Ad" button.
  * Never interrupts gameplay — only appears where the player opts in.
  */
-export function AdRewardButton({ rewardType, onRewardClaimed, className, compact }: AdRewardButtonProps) {
+export function AdRewardButton({ rewardType, onRewardClaimed, claimContext, className, compact }: AdRewardButtonProps) {
   const monetization = useGameStore(s => s.monetization);
   const season = useGameStore(s => s.season);
   const claimAdReward = useGameStore(s => s.claimAdReward);
   const [claiming, setClaiming] = useState(false);
   const userIsPro = isPro(monetization);
-  const canClaim = canClaimAdReward(monetization, rewardType, season);
+  const canClaim = canClaimAdReward(monetization, rewardType, season, claimContext);
 
   if (!canClaim) return null;
 
@@ -38,14 +39,14 @@ export function AdRewardButton({ rewardType, onRewardClaimed, className, compact
 
     if (userIsPro) {
       // Pro users get reward instantly
-      const success = claimAdReward(rewardType);
+      const success = claimAdReward(rewardType, claimContext);
       if (success) onRewardClaimed();
       setClaiming(false);
     } else {
       // Free users watch a rewarded ad via AdMob
       showRewardedAd().then(watched => {
         if (watched) {
-          const success = claimAdReward(rewardType);
+          const success = claimAdReward(rewardType, claimContext);
           if (success) onRewardClaimed();
         }
         setClaiming(false);
