@@ -1079,7 +1079,7 @@ function finalizeSeason(
   resetSeasonGrowth();
 
   if (state.activeLoans.length > 0) get().processLoanReturns();
-  set({ activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [] });
+  // Loan cleanup is folded into the main season turnover set() below to avoid an extra re-render
 
   // Merge loan-return club updates (playerIds, wageBills) into inputClubs
   const postLoanClubs = get().clubs;
@@ -1488,6 +1488,7 @@ function finalizeSeason(
     })(),
     managerProgression: grantXP(state.managerProgression, XP_REWARDS.seasonEnd + (history.position === 1 ? XP_REWARDS.titleWin : 0) + (state.cup.winner === playerClubId ? XP_REWARDS.cupWin : 0)),
     seasonGrowthTracker: {},
+    activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
   });
 
   // Update Hall of Managers cross-save leaderboard
@@ -3238,18 +3239,20 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           }
         }
 
-        // --- Job Market Refresh ---
+        // --- Job Market Refresh + Expiry + Desperation (batched into single set) ---
+        let updatedVacancies: JobVacancy[] | null = null;
+
         if (JOB_MARKET_REFRESH_WEEKS.includes(newWeek)) {
-          const vacancies = generateJobVacancies(careerState.clubs, cm.reputationScore, season, newWeek);
-          set({ jobVacancies: vacancies });
+          updatedVacancies = generateJobVacancies(careerState.clubs, cm.reputationScore, season, newWeek);
         }
 
-        // Expire old vacancies
-        const activeVacancies = careerState.jobVacancies.filter(v =>
+        // Expire old vacancies (from refreshed list or current list)
+        const sourceVacancies = updatedVacancies ?? careerState.jobVacancies;
+        const activeVacancies = sourceVacancies.filter(v =>
           v.expiresSeason > season || (v.expiresSeason === season && v.expiresWeek > newWeek)
         );
-        if (activeVacancies.length !== careerState.jobVacancies.length) {
-          set({ jobVacancies: activeVacancies });
+        if (updatedVacancies || activeVacancies.length !== careerState.jobVacancies.length) {
+          updatedVacancies = activeVacancies;
         }
 
         // --- Unemployed tracking ---
@@ -3257,18 +3260,22 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           cm.unemployedWeeks = (cm.unemployedWeeks || 0) + 1;
 
           // Desperation vacancies after 12 unemployed weeks
-          if (cm.unemployedWeeks >= 12 && get().jobVacancies.length === 0) {
+          const finalVacancies = updatedVacancies ?? careerState.jobVacancies;
+          if (cm.unemployedWeeks >= 12 && finalVacancies.length === 0) {
             const allClubs = Object.values(careerState.clubs);
             const desperate = allClubs.filter(c => c.id !== careerState.playerClubId).slice(0, 2);
-            const desVacancies: JobVacancy[] = desperate.map(club => ({
+            updatedVacancies = desperate.map(club => ({
               id: `desperation-${club.id}-${season}-${newWeek}`,
               clubId: club.id, clubName: club.name, divisionId: club.divisionId || '',
               minReputation: 0, salary: 1500, contractLength: 1,
               boardExpectations: 'Survive and stabilize the club',
               expiresWeek: newWeek + 8, expiresSeason: season, applied: false,
             }));
-            set({ jobVacancies: desVacancies });
           }
+        }
+
+        if (updatedVacancies) {
+          set({ jobVacancies: updatedVacancies });
         }
 
         // --- Contract expiry warning ---

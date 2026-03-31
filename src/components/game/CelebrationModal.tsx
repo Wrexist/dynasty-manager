@@ -64,7 +64,7 @@ function Particle({ config }: { config: ConfettiConfig }) {
 }
 
 export function CelebrationModal({ open, onClose, title, description, icon, stats }: CelebrationModalProps) {
-  const monetization = useGameStore.getState().monetization;
+  const monetization = useGameStore(s => s.monetization);
   const celebTextId = getActiveCosmetic(monetization, 'celebration_text');
   const celebItem = celebTextId ? COSMETIC_ITEMS.find(c => c.id === celebTextId) : null;
   const displayTitle = celebItem ? celebItem.name : title;
