@@ -3,6 +3,7 @@
  * Eliminates duplicated derived-data logic across pages.
  */
 
+import { useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import type { Club, Match, CupState, LeagueCupState, ContinentalTournamentState, SuperCupMatch } from '@/types/game';
 
@@ -53,45 +54,70 @@ function findTournamentMatch(s: { week: number; playerClubId: string; cup: CupSt
   return null;
 }
 
-/** Equality check for useCurrentMatch — compares by value, not reference.
- *  Prevents infinite re-renders from new syntheticMatch objects each selector call. */
-function currentMatchEqual(
-  a: { match: Match | undefined; isHome: boolean; opponent: Club | undefined; competition?: string },
-  b: { match: Match | undefined; isHome: boolean; opponent: Club | undefined; competition?: string },
-): boolean {
-  if (a.isHome !== b.isHome) return false;
-  if (a.competition !== b.competition) return false;
-  if (a.opponent?.id !== b.opponent?.id) return false;
-  if (a.match === b.match) return true;
-  if (!a.match || !b.match) return false;
-  return a.match.id === b.match.id
-    && a.match.homeClubId === b.match.homeClubId
-    && a.match.awayClubId === b.match.awayClubId
-    && a.match.played === b.match.played;
-}
-
 /** Get the current week's match for the player's club + derived info. */
 export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; opponent: Club | undefined; competition?: string } {
-  return useGameStore(s => {
-    const leagueMatch = s.fixtures.find(
-      m => m.week === s.week && !m.played && (m.homeClubId === s.playerClubId || m.awayClubId === s.playerClubId)
+  const week = useGameStore(s => s.week);
+  const playerClubId = useGameStore(s => s.playerClubId);
+  const fixtures = useGameStore(s => s.fixtures);
+  const clubs = useGameStore(s => s.clubs);
+  const cup = useGameStore(s => s.cup);
+  const leagueCup = useGameStore(s => s.leagueCup);
+  const championsCup = useGameStore(s => s.championsCup);
+  const shieldCup = useGameStore(s => s.shieldCup);
+  const domesticSuperCup = useGameStore(s => s.domesticSuperCup);
+  const continentalSuperCup = useGameStore(s => s.continentalSuperCup);
+  const virtualClubs = useGameStore(s => s.virtualClubs);
+
+  return useMemo(() => {
+    const leagueMatch = fixtures.find(
+      m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)
     );
+
     if (leagueMatch) {
-      const isHome = leagueMatch.homeClubId === s.playerClubId;
-      const opponent = s.clubs[isHome ? leagueMatch.awayClubId : leagueMatch.homeClubId];
+      const isHome = leagueMatch.homeClubId === playerClubId;
+      const opponent = clubs[isHome ? leagueMatch.awayClubId : leagueMatch.homeClubId];
       return { match: leagueMatch, isHome, opponent };
     }
-    // Check tournament matches
-    const tourneyMatch = findTournamentMatch(s);
+
+    const tourneyMatch = findTournamentMatch({
+      week,
+      playerClubId,
+      cup,
+      leagueCup,
+      championsCup,
+      shieldCup,
+      domesticSuperCup,
+      continentalSuperCup,
+    });
+
     if (tourneyMatch) {
-      const syntheticMatch = { id: 'tournament', week: s.week, homeClubId: tourneyMatch.homeClubId, awayClubId: tourneyMatch.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
-      const isHome = tourneyMatch.homeClubId === s.playerClubId;
+      const syntheticMatch = {
+        id: `tournament-${week}-${tourneyMatch.homeClubId}-${tourneyMatch.awayClubId}-${tourneyMatch.competition}`,
+        week,
+        homeClubId: tourneyMatch.homeClubId,
+        awayClubId: tourneyMatch.awayClubId,
+        played: false,
+        homeGoals: 0,
+        awayGoals: 0,
+        events: [],
+      } as Match;
+      const isHome = tourneyMatch.homeClubId === playerClubId;
       const oppId = isHome ? tourneyMatch.awayClubId : tourneyMatch.homeClubId;
-      const opponent = s.clubs[oppId] || (s.virtualClubs?.[oppId] ? { id: oppId, name: s.virtualClubs[oppId].name, shortName: s.virtualClubs[oppId].shortName, color: s.virtualClubs[oppId].color, secondaryColor: s.virtualClubs[oppId].secondaryColor, stadiumName: '' } as Club : undefined);
+      const opponent = clubs[oppId] || (virtualClubs?.[oppId]
+        ? {
+            id: oppId,
+            name: virtualClubs[oppId].name,
+            shortName: virtualClubs[oppId].shortName,
+            color: virtualClubs[oppId].color,
+            secondaryColor: virtualClubs[oppId].secondaryColor,
+            stadiumName: '',
+          } as Club
+        : undefined);
       return { match: syntheticMatch, isHome, opponent, competition: tourneyMatch.competition };
     }
+
     return { match: undefined, isHome: false, opponent: undefined };
-  }, currentMatchEqual);
+  }, [fixtures, week, playerClubId, clubs, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup, virtualClubs]);
 }
 
 /** Get count of unread messages. */
