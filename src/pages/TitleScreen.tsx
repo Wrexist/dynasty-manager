@@ -56,7 +56,7 @@ const TitleScreen = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const slots = useMemo(() => getSlotSummaries(), [refreshKey]);
   const handleContinue = (slot: number) => {
-    if (loadGame(slot)) navigate('/game');
+    if (loadGame(slot)) queueMicrotask(() => navigate('/game'));
   };
 
   const handleNewGame = (slot: number) => {

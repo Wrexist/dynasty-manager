@@ -54,6 +54,14 @@ import { buildCoachTasks } from '@/utils/gameCoach';
 const WELCOME_KEY = 'dynasty-welcome-shown';
 
 const Dashboard = () => {
+  // ── Deferred mount guard (React #185 fix) ──
+  // On first render after initGame(), many store properties change simultaneously.
+  // Rendering the full Dashboard (40+ subscriptions, 15+ memos, 5+ effects) in that
+  // same synchronous cycle causes cascading re-renders that exceed React's 50-update limit.
+  // By deferring the full render to the SECOND frame, we let the store stabilize first.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
   // Use useShallow to only re-render when specific properties change (prevents React #185)
   const {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
@@ -390,7 +398,14 @@ const Dashboard = () => {
     return null;
   }, [seasonOver, inPlayoffs, totalWeeks, week, entry, leagueTable]);
 
-  if (!club) return null;
+  // Deferred mount guard — show spinner on first frame to break render cascade (React #185)
+  if (!mounted || !club) {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-8 flex items-center justify-center">
+        <Loader2 className="w-6 h-6 text-primary animate-spin" />
+      </div>
+    );
+  }
   const careerReputationTier = careerManager?.reputationTier ?? 'unknown';
 
   // Training focus label map
