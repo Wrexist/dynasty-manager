@@ -99,21 +99,25 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
     },
 
     /** Claim an ad reward. Returns false if limit reached. */
-    claimAdReward: (rewardType: AdRewardType): boolean => {
+    claimAdReward: (rewardType: AdRewardType, contextKey?: string): boolean => {
       const state = _get();
       const season = state.season;
-      const key = `${rewardType}_s${season}`;
-      const claimed = state.monetization.adRewardsClaimed[key] || 0;
+      const seasonKey = `${rewardType}_s${season}`;
+      const claimed = state.monetization.adRewardsClaimed[seasonKey] || 0;
       const limit = AD_REWARD_LIMITS[rewardType];
+      const contextualKey = contextKey ? `${seasonKey}_${contextKey}` : null;
+      const contextualClaimed = contextualKey ? (state.monetization.adRewardsClaimed[contextualKey] || 0) : 0;
 
       if (claimed >= limit) return false;
+      if (contextualKey && contextualClaimed >= 1) return false;
 
       _set((s) => ({
         monetization: {
           ...s.monetization,
           adRewardsClaimed: {
             ...s.monetization.adRewardsClaimed,
-            [key]: claimed + 1,
+            [seasonKey]: claimed + 1,
+            ...(contextualKey ? { [contextualKey]: contextualClaimed + 1 } : {}),
           },
         },
       }));

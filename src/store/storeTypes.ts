@@ -287,7 +287,7 @@ export interface GameState {
   restoreEntitlements: (productIds: ProductId[]) => void;
   setCosmetic: (category: CosmeticCategory, cosmeticId: string) => void;
   clearCosmetic: (category: CosmeticCategory) => void;
-  claimAdReward: (rewardType: AdRewardType) => boolean;
+  claimAdReward: (rewardType: AdRewardType, contextKey?: string) => boolean;
   dismissStarterKit: () => void;
   initMonetizationTimestamp: () => void;
   applyTransferBudgetBonus: () => void;
