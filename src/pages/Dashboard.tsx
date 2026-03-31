@@ -137,9 +137,6 @@ const Dashboard = () => {
     }
   }, [boardConfidence]);
 
-  // Mount guard — skip celebration effect during initial render to avoid init-time cascading updates (React #185)
-  const mountedRef = useRef(false);
-
   // Celebration toasts & modals: fire when week changes (after advanceWeek)
   const prevWeekRef = useRef(week);
   const shownCelebrationsRef = useRef<Set<string>>(new Set());
@@ -189,7 +186,7 @@ const Dashboard = () => {
     }
   }, [season]);
   useEffect(() => {
-    if (!mountedRef.current) { mountedRef.current = true; return; } // Skip initial mount, enable for subsequent runs
+    if (!mounted) return; // Skip until deferred mount completes (React #185 fix)
     if (prevWeekRef.current !== week && prevWeekRef.current > 0) {
       // Read current values from store to avoid broad object dependencies (React #185 fix)
       const s = useGameStore.getState();

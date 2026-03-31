@@ -15,36 +15,30 @@ export const createCareerSlice = (set: Set, get: Get) => ({
   jobOffers: [] as JobOffer[],
 
   initCareerGame: (manager: CareerManager, clubId: string) => {
-    const state = get();
+    // Initialize the regular game first (triggers its own set())
+    get().initGame(clubId);
 
-    // First initialize the regular game
-    state.initGame(clubId);
-
-    // Then overlay career-specific state
+    // Immediately merge career-specific state into a single follow-up set()
+    // to avoid cascading re-renders from two sequential set() calls
     const updatedState = get();
     const club = updatedState.clubs[clubId];
-
-    // Create contract from the first career entry
     const contract = manager.contract;
-
-    // Add initial career history entry
-    const historyEntry = {
-      clubId,
-      clubName: club?.name || clubId,
-      divisionId: updatedState.playerDivision,
-      startSeason: 1,
-      endSeason: null as number | null,
-      reason: 'hired' as const,
-      bestFinish: 0,
-      titlesWon: 0,
-    };
 
     set({
       gameMode: 'career',
       careerManager: {
         ...manager,
         contract,
-        careerHistory: [historyEntry],
+        careerHistory: [{
+          clubId,
+          clubName: club?.name || clubId,
+          divisionId: updatedState.playerDivision,
+          startSeason: 1,
+          endSeason: null as number | null,
+          reason: 'hired' as const,
+          bestFinish: 0,
+          titlesWon: 0,
+        }],
       },
     });
   },
