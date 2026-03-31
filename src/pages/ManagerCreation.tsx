@@ -181,7 +181,9 @@ const ManagerCreation = () => {
         initNationalTeam(nationality);
         useGameStore.setState({ activeSlot: slot });
         try { saveGame(slot); } catch { /* save failure shouldn't block */ }
-        navigate('/game');
+        // Defer navigation so React flushes all batched store updates
+        // before GameShell/Dashboard mount and subscribe (React #185 fix)
+        queueMicrotask(() => navigate('/game'));
       } catch (err) {
         console.error('Failed to start career:', err);
         toast.error('Something went wrong. Please try again.');

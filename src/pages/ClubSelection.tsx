@@ -63,7 +63,9 @@ const ClubSelection = () => {
         initNationalTeam(selectedNationality);
         useGameStore.setState({ activeSlot: pendingSlot });
         try { useGameStore.getState().saveGame(pendingSlot); } catch { /* save failure shouldn't block navigation */ }
-        navigate('/game');
+        // Defer navigation so React flushes all batched store updates from initGame()
+        // before GameShell/Dashboard mount and subscribe (React #185 fix)
+        queueMicrotask(() => navigate('/game'));
       } catch (err) {
         console.error('Failed to start game:', err);
         toast.error('Something went wrong starting your career. Please try again.');
