@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, ChevronRight, Trophy, PlayCircle } from 'lucide-react';
+import { Target, ChevronRight, Trophy, LayoutDashboard } from 'lucide-react';
 
 const STEPS = [
   {
@@ -16,19 +16,18 @@ const STEPS = [
     hint: 'The board sets objectives each season. Meet them to keep your job — below 25% confidence, you risk the sack!',
   },
   {
-    icon: PlayCircle,
-    title: 'Your First Match Awaits',
-    description: 'Your lineup is set and ready. Hit "Continue" to head to the dashboard, or jump straight into your first match.',
-    hint: 'You can always explore Squad, Tactics, and Transfers later. For now — let\'s play!',
+    icon: LayoutDashboard,
+    title: 'Start From Your Dashboard',
+    description: 'Your dashboard is your weekly hub. Some weeks have matches, and others are focused on planning, scouting, and development.',
+    hint: 'Use "Advance Week" to move forward. A match will appear automatically when one is scheduled.',
   },
 ];
 
 interface WelcomeOverlayProps {
   onComplete: () => void;
-  onSkipToMatch?: () => void;
 }
 
-export function WelcomeOverlay({ onComplete, onSkipToMatch }: WelcomeOverlayProps) {
+export function WelcomeOverlay({ onComplete }: WelcomeOverlayProps) {
   const [step, setStep] = useState(0);
   const current = STEPS[step];
   const Icon = current.icon;
@@ -83,14 +82,6 @@ export function WelcomeOverlay({ onComplete, onSkipToMatch }: WelcomeOverlayProp
                   className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 >
                   Back
-                </button>
-              )}
-              {isLast && onSkipToMatch && (
-                <button
-                  onClick={onSkipToMatch}
-                  className="flex items-center gap-1 px-4 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold active:scale-[0.97] transition-transform"
-                >
-                  Play Match
                 </button>
               )}
               <button

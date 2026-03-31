@@ -102,7 +102,6 @@ const Dashboard = () => {
   const setScreen = useGameStore(s => s.setScreen);
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const endSeason = useGameStore(s => s.endSeason);
-  const autoFillTeam = useGameStore(s => s.autoFillTeam);
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
@@ -429,7 +428,7 @@ const Dashboard = () => {
     <>
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       {/* Welcome overlay for first-time players */}
-      {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} onSkipToMatch={() => { dismissWelcome(); autoFillTeam(); setScreen('match'); }} />}
+      {showWelcome && <WelcomeOverlay onComplete={dismissWelcome} />}
 
       <PageHint
         screen="dashboard"
