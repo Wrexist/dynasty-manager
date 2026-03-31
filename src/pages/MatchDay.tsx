@@ -467,6 +467,12 @@ const MatchDay = () => {
   const isLive = phase === 'first_half' || phase === 'second_half' || phase === 'extra_time';
   const homeGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => isGoalEvent(e) && e.clubId === match.homeClubId).length;
   const awayGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => isGoalEvent(e) && e.clubId === match.awayClubId).length;
+  const homeYellowCards = visibleEvents.filter(e => e.type === 'yellow_card' && e.clubId === match.homeClubId).length;
+  const awayYellowCards = visibleEvents.filter(e => e.type === 'yellow_card' && e.clubId === match.awayClubId).length;
+  const homeRedCards = visibleEvents.filter(e => e.type === 'red_card' && e.clubId === match.homeClubId).length;
+  const awayRedCards = visibleEvents.filter(e => e.type === 'red_card' && e.clubId === match.awayClubId).length;
+  const homePlayersOnPitch = Math.max(7, 11 - homeRedCards);
+  const awayPlayersOnPitch = Math.max(7, 11 - awayRedCards);
 
   // Use firstHalfState for half-time display
   const htHomeGoals = firstHalfState?.homeGoals ?? homeGoals;
@@ -493,6 +499,25 @@ const MatchDay = () => {
           <div className="text-center">
             <div className="w-12 h-12 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-bold" style={{ backgroundColor: homeClub.color, color: homeClub.secondaryColor }}>{homeClub.shortName}</div>
             <p className="text-xs font-bold text-foreground">{homeClub.shortName}</p>
+            {(homeYellowCards > 0 || homeRedCards > 0) && (
+              <div className="mt-1 flex items-center justify-center gap-1 text-[9px] font-semibold">
+                {homeYellowCards > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-1.5 py-0.5 text-amber-300">
+                    🟨 {homeYellowCards}
+                  </span>
+                )}
+                {homeRedCards > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-red-400/50 bg-red-500/20 px-1.5 py-0.5 text-red-300 animate-pulse">
+                    🟥 {homeRedCards}
+                  </span>
+                )}
+              </div>
+            )}
+            {homeRedCards > 0 && (
+              <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-red-300">
+                {homePlayersOnPitch} men
+              </p>
+            )}
           </div>
           <div className="text-center">
             <p className="text-4xl font-black text-foreground tabular-nums font-display flex items-center justify-center gap-1">
@@ -522,6 +547,25 @@ const MatchDay = () => {
           <div className="text-center">
             <div className="w-12 h-12 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-bold" style={{ backgroundColor: awayClub.color, color: awayClub.secondaryColor }}>{awayClub.shortName}</div>
             <p className="text-xs font-bold text-foreground">{awayClub.shortName}</p>
+            {(awayYellowCards > 0 || awayRedCards > 0) && (
+              <div className="mt-1 flex items-center justify-center gap-1 text-[9px] font-semibold">
+                {awayYellowCards > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-1.5 py-0.5 text-amber-300">
+                    🟨 {awayYellowCards}
+                  </span>
+                )}
+                {awayRedCards > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-red-400/50 bg-red-500/20 px-1.5 py-0.5 text-red-300 animate-pulse">
+                    🟥 {awayRedCards}
+                  </span>
+                )}
+              </div>
+            )}
+            {awayRedCards > 0 && (
+              <p className="mt-1 text-[9px] font-bold uppercase tracking-wide text-red-300">
+                {awayPlayersOnPitch} men
+              </p>
+            )}
           </div>
         </div>
 
@@ -813,15 +857,25 @@ const MatchDay = () => {
             <div className="space-y-2" aria-live="polite" aria-label="Match events">
               {visibleEvents.filter(e => e.type !== 'kickoff').map((ev, i) => {
                 const style = getCommentaryStyle(ev);
+                const isCardEvent = ev.type === 'yellow_card' || ev.type === 'red_card';
+                const cardStyle = ev.type === 'yellow_card'
+                  ? 'border-amber-400/45 bg-amber-500/10 shadow-[0_0_12px_rgba(251,191,36,0.15)]'
+                  : ev.type === 'red_card'
+                    ? 'border-red-500/55 bg-red-500/15 shadow-[0_0_14px_rgba(239,68,68,0.25)]'
+                    : '';
                 return (
                   <div
                     key={i}
                     className={cn(
                       'flex items-start gap-2 text-sm animate-[fadeSlideIn_0.2s_ease-out]',
+                      isCardEvent && 'rounded-lg border px-2 py-1.5',
+                      cardStyle,
                       style.textClass
                     )}
                   >
                     <span className="text-xs font-mono w-8 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
+                    {ev.type === 'yellow_card' && <span className="text-sm leading-none mt-0.5" aria-label="Yellow card">🟨</span>}
+                    {ev.type === 'red_card' && <span className="text-sm leading-none mt-0.5" aria-label="Red card">🟥</span>}
                     <span className="flex-1">{getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId)}</span>
                     <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: clubs[ev.clubId]?.color || '#888' }} />
                   </div>
