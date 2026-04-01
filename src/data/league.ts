@@ -5,8 +5,6 @@ import { ALL_LEAGUES, ALL_CLUBS_DATA } from './leagues';
 
 // ── Re-export for backward compatibility ──
 export const LEAGUES: LeagueInfo[] = ALL_LEAGUES;
-/** @deprecated Use LEAGUES instead */
-export const DIVISIONS = LEAGUES;
 
 export const CLUBS_DATA: ClubData[] = ALL_CLUBS_DATA;
 /** Alias for new code */
@@ -92,15 +90,9 @@ export function getClubsByLeague(): Record<string, string[]> {
   return result;
 }
 
-/** @deprecated Use getClubsByLeague instead */
-export const getClubsByDivision = getClubsByLeague;
-
 export function getLeague(id: LeagueId): LeagueInfo {
   return LEAGUES.find(l => l.id === id)!;
 }
-
-/** @deprecated Use getLeague instead */
-export const getDivision = getLeague;
 
 // ── Fixture Generation ──
 export function generateFixtures(clubIds: string[]): Match[] {

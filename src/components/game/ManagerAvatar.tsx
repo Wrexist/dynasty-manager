@@ -13,28 +13,13 @@ import {
   BADGE_PATTERNS,
   BADGE_ICONS,
 } from '@/config/managerAppearance';
+import { darken, lighten } from '@/utils/colorUtils';
 
 interface ManagerAvatarProps {
   appearance: ManagerAppearance;
   size?: number;
   className?: string;
   initials?: string;
-}
-
-function darken(hex: string, amount: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.max(0, ((num >> 16) & 0xFF) * (1 - amount)) | 0;
-  const g = Math.max(0, ((num >> 8) & 0xFF) * (1 - amount)) | 0;
-  const b = Math.max(0, (num & 0xFF) * (1 - amount)) | 0;
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
-}
-
-function lighten(hex: string, amount: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.min(255, ((num >> 16) & 0xFF) + (255 - ((num >> 16) & 0xFF)) * amount) | 0;
-  const g = Math.min(255, ((num >> 8) & 0xFF) + (255 - ((num >> 8) & 0xFF)) * amount) | 0;
-  const b = Math.min(255, (num & 0xFF) + (255 - (num & 0xFF)) * amount) | 0;
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
 
 /** Check if appearance uses legacy format (pre-emblem) */

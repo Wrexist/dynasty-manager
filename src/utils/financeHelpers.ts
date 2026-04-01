@@ -18,7 +18,7 @@ import { hasPerk } from '@/utils/managerPerks';
 import { SPONSOR_SLOTS } from '@/config/sponsorship';
 import { calculateWeeklyMerchRevenue, getMerchOperatingCost } from '@/utils/merchandise';
 
-import type { Club, LeagueTableEntry, FacilitiesState, ManagerProgression, SponsorDeal, MerchState, DivisionId, Player, StaffMember } from '@/types/game';
+import type { Club, LeagueTableEntry, FacilitiesState, ManagerProgression, SponsorDeal, MerchState, LeagueId, Player, StaffMember } from '@/types/game';
 
 export interface FinanceLineItem {
   label: string;
@@ -55,7 +55,7 @@ export function getFinanceBreakdown(opts: {
   sponsorDeals?: SponsorDeal[];
   merchandise?: MerchState;
   players?: Record<string, Player>;
-  division?: DivisionId;
+  division?: LeagueId;
 }): FinanceBreakdown {
   const { club, facilities, staffMembers, scoutingAssignmentCount, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, division } = opts;
 

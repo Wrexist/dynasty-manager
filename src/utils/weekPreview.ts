@@ -1,4 +1,4 @@
-import { Player, Match, Club, FacilitiesState, ScoutingState, LeagueTableEntry, CliffhangerItem, BoardObjective, DivisionId } from '@/types/game';
+import { Player, Match, Club, FacilitiesState, ScoutingState, LeagueTableEntry, CliffhangerItem, BoardObjective, LeagueId } from '@/types/game';
 import { getSuffix } from '@/utils/helpers';
 import {
   MAX_CLIFFHANGERS, CLIFFHANGER_TITLE_RACE_GAP, CLIFFHANGER_BIG_MATCH_REP_GAP,
@@ -24,8 +24,8 @@ interface PreviewContext {
   season: number;
   // Optional extended context for richer fallbacks
   boardObjectives?: BoardObjective[];
-  divisionTables?: Record<DivisionId, LeagueTableEntry[]>;
-  playerDivision?: DivisionId;
+  divisionTables?: Record<LeagueId, LeagueTableEntry[]>;
+  playerDivision?: LeagueId;
 }
 
 /** Generate "Next Week Preview" teaser items from current state */

@@ -153,9 +153,6 @@ export const MERCH_QUALITY_TIER_SCALE: Record<number, number> = {
   4: 0.4,
 };
 
-/** @deprecated Use MERCH_QUALITY_TIER_SCALE with league qualityTier */
-export const MERCH_DIVISION_SCALE = MERCH_QUALITY_TIER_SCALE;
-
 export const MERCH_CAMPAIGN_COOLDOWN_WEEKS = 4;
 export const STAR_PLAYER_MERCH_FACTOR = 3_000;
 export const STAR_PLAYER_COUNT = 3;

@@ -4,7 +4,7 @@
  */
 
 import type {
-  Club, Player, DivisionId, FacilitiesState, ManagerProgression,
+  Club, Player, LeagueId, FacilitiesState, ManagerProgression,
   MerchProductLine, MerchState, MerchCampaignType,
 } from '@/types/game';
 import { LEAGUES } from '@/data/league';
@@ -54,7 +54,7 @@ export function getStarPlayerMerch(
 
 /** Check if a product line is unlocked for a given club */
 export function isProductLineUnlocked(
-  line: MerchProductLine, club: Club, _division: DivisionId, facilities: FacilitiesState
+  line: MerchProductLine, club: Club, _division: LeagueId, facilities: FacilitiesState
 ): boolean {
   const req = MERCH_PRODUCT_LINES[line].unlockRequirement;
   // Reputation-based unlock (division-based tiers removed in league migration)
@@ -75,7 +75,7 @@ export function calculateWeeklyMerchRevenue(
   merch: MerchState,
   club: Club,
   players: Record<string, Player>,
-  division: DivisionId,
+  division: LeagueId,
   managerProgression: ManagerProgression,
 ): number {
   if (merch.activeProductLines.length === 0) return 0;

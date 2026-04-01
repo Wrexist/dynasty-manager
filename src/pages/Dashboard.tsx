@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getRoundName } from '@/data/cup';
-import { DIVISIONS } from '@/data/league';
+import { LEAGUES } from '@/data/league';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
@@ -1183,7 +1183,7 @@ const Dashboard = () => {
           <p className="text-2xl font-black text-foreground tabular-nums">
             {pos}<span className="text-sm text-muted-foreground">/{leagueTable.length}</span>
           </p>
-          <p className="text-[10px] text-muted-foreground truncate">{DIVISIONS.find(d => d.id === playerDivision)?.shortName || ''} {'\u2022'} {entry?.points || 0} pts</p>
+          <p className="text-[10px] text-muted-foreground truncate">{LEAGUES.find(d => d.id === playerDivision)?.shortName || ''} {'\u2022'} {entry?.points || 0} pts</p>
         </GlassPanel>
 
         <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('budget'); setFinanceSheetOpen(true); }}>
