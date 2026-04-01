@@ -1,8 +1,6 @@
 // ── League System ──
 // LeagueId is a string identifier for each national league (e.g. 'eng', 'esp', 'ita')
 export type LeagueId = string;
-/** @deprecated Use LeagueId instead */
-export type DivisionId = LeagueId;
 
 export interface LeagueInfo {
   id: LeagueId;
@@ -22,17 +20,11 @@ export interface LeagueInfo {
   qualityTier: 1 | 2 | 3 | 4;
 }
 
-/** @deprecated Use LeagueInfo instead */
-export type DivisionInfo = LeagueInfo;
-
 export interface SeasonTurnover {
   replacedClubs: string[];
   newClubs: string[];
   leagueId: LeagueId;
 }
-
-/** @deprecated Use SeasonTurnover instead */
-export type PromotionRelegation = SeasonTurnover;
 
 export interface DerbyRivalry {
   clubIdA: string;

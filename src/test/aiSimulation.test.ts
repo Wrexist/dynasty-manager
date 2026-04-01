@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { processAIWeekly } from '@/utils/aiSimulation';
-import type { Club, Player, Message, TransferListing, LoanDeal, TransferNewsEntry, DivisionId, LeagueTableEntry, Position } from '@/types/game';
+import type { Club, Player, Message, TransferListing, LoanDeal, TransferNewsEntry, LeagueId, LeagueTableEntry, Position } from '@/types/game';
 
 // ── Helper Factories ──
 
@@ -130,7 +130,7 @@ interface TestWorld {
   freeAgents: string[];
   activeLoans: LoanDeal[];
   transferNews: TransferNewsEntry[];
-  divisionTables: Record<DivisionId, LeagueTableEntry[]>;
+  divisionTables: Record<LeagueId, LeagueTableEntry[]>;
   playerClubId: string;
 }
 
@@ -218,7 +218,7 @@ function createTestWorld(): TestWorld {
     freeAgents: [],
     activeLoans: [],
     transferNews: [],
-    divisionTables: { 'div-1': tableEntries, 'div-2': tableEntries2 } as Record<DivisionId, LeagueTableEntry[]>,
+    divisionTables: { 'div-1': tableEntries, 'div-2': tableEntries2 } as Record<LeagueId, LeagueTableEntry[]>,
     playerClubId,
   };
 }

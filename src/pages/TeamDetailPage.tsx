@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor } from '@/utils/uiHelpers';
 import { getFlag } from '@/utils/nationality';
-import { DIVISIONS } from '@/data/league';
+import { LEAGUES } from '@/data/league';
 import { getSuffix } from '@/utils/helpers';
 import type { Player, Position } from '@/types/game';
 
@@ -62,7 +62,7 @@ const TeamDetailPage = () => {
   }
 
   const isOwnClub = selectedClubId === playerClubId;
-  const division = DIVISIONS.find(d => d.id === club.divisionId);
+  const division = LEAGUES.find(d => d.id === club.divisionId);
 
   // League table entry for this club
   const tableEntries = divisionTables[club.divisionId] || [];

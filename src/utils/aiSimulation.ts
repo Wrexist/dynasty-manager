@@ -6,7 +6,7 @@
  * Called from orchestrationSlice's advanceWeek() as a single function.
  */
 
-import type { Club, Player, Message, TransferListing, LoanDeal, Position, DivisionId, LeagueTableEntry, Mentality, FormationType } from '@/types/game';
+import type { Club, Player, Message, TransferListing, LoanDeal, Position, LeagueId, LeagueTableEntry, Mentality, FormationType } from '@/types/game';
 import type { TransferNewsEntry } from '@/types/game';
 import { pick, shuffle, addMsg } from '@/utils/helpers';
 import { formatMoney } from '@/utils/helpers';
@@ -178,7 +178,7 @@ function identifyLoanCandidates(
 function processAIIncome(
   clubs: Record<string, Club>,
   playerClubId: string,
-  divisionTables: Record<DivisionId, LeagueTableEntry[]>,
+  divisionTables: Record<LeagueId, LeagueTableEntry[]>,
 ): Record<string, Club> {
   const updated = { ...clubs };
 
@@ -719,7 +719,7 @@ const FORMATION_OPTIONS: FormationType[] = ['4-4-2', '4-3-3', '3-5-2', '4-2-3-1'
 /** AI clubs adapt tactics based on recent form — losing streaks trigger formation/mentality changes */
 function processAITacticalAdaptation(
   clubs: Record<string, Club>,
-  divisionTables: Record<DivisionId, LeagueTableEntry[]>,
+  divisionTables: Record<LeagueId, LeagueTableEntry[]>,
   playerClubId: string,
 ): Record<string, Club> {
   const updClubs = { ...clubs };
@@ -796,7 +796,7 @@ export function processAIWeekly(
   freeAgents: string[],
   activeLoans: LoanDeal[],
   transferNews: TransferNewsEntry[],
-  divisionTables: Record<DivisionId, LeagueTableEntry[]>,
+  divisionTables: Record<LeagueId, LeagueTableEntry[]>,
   week: number,
   season: number,
   playerClubId: string,

@@ -7,8 +7,7 @@
  */
 
 import { memo, useId } from 'react';
-
-export type AvatarPose = 'standing' | 'gk' | 'running';
+import { darken, lighten } from '@/utils/colorUtils';
 
 interface PlayerAvatarProps {
   playerId?: string;
@@ -16,12 +15,6 @@ interface PlayerAvatarProps {
   jerseyNumber?: number;
   size?: number;
   isAway?: boolean;
-  /** @deprecated No longer used by badge renderer */
-  appearance?: unknown;
-  /** @deprecated No longer used by badge renderer */
-  pose?: AvatarPose;
-  /** @deprecated No longer used by badge renderer */
-  animationDelay?: number;
   overall?: number;
   position?: string;
 }
@@ -33,22 +26,6 @@ function getRatingHex(ovr: number | undefined): string {
   if (ovr >= 70) return '#D4A843';   // gold/primary
   if (ovr >= 60) return '#fbbf24';   // amber
   return '#6b7280';                   // muted
-}
-
-function darken(hex: string, amount: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.max(0, ((num >> 16) & 0xFF) * (1 - amount)) | 0;
-  const g = Math.max(0, ((num >> 8) & 0xFF) * (1 - amount)) | 0;
-  const b = Math.max(0, (num & 0xFF) * (1 - amount)) | 0;
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
-}
-
-function lighten(hex: string, amount: number): string {
-  const num = parseInt(hex.replace('#', ''), 16);
-  const r = Math.min(255, ((num >> 16) & 0xFF) + (255 - ((num >> 16) & 0xFF)) * amount) | 0;
-  const g = Math.min(255, ((num >> 8) & 0xFF) + (255 - ((num >> 8) & 0xFF)) * amount) | 0;
-  const b = Math.min(255, (num & 0xFF) + (255 - (num & 0xFF)) * amount) | 0;
-  return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
 
 export const PlayerAvatar = memo(function PlayerAvatar({
