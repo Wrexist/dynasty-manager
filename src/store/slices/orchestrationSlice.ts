@@ -18,7 +18,7 @@ import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle } from '@/utils/helpers';
-import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot } from '@/store/helpers/persistence';
+import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot, trimFixturesForSave, trimFixtureArrayForSave } from '@/store/helpers/persistence';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CUP_BYE_MARKER } from '@/data/cup';
@@ -114,6 +114,8 @@ import { processSponsorWeek, processSponsorSeasonEnd, generateStarterDeals } fro
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
 let lastSaveErrorLogAt = 0;
+let lastSaveAt = 0;
+const SAVE_DEBOUNCE_MS = 2000; // Minimum 2s between auto-saves
 
 // migrateLegacySave and getSlotSummaries extracted to @/store/helpers/persistence
 export { getSlotSummaries } from '@/store/helpers/persistence';
@@ -3979,13 +3981,27 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   },
 
   saveGame: (slot?: number) => {
+    // Debounce: skip if saved very recently (unless explicit slot = manual save)
+    const now = Date.now();
+    if (slot === undefined && now - lastSaveAt < SAVE_DEBOUNCE_MS) return;
+    lastSaveAt = now;
+
     const state = get();
     const s = slot ?? state.activeSlot;
+
+    // Trim match events/stats from AI-vs-AI fixtures to reduce save size
+    const trimmedDivFixtures = state.divisionFixtures
+      ? trimFixturesForSave(state.divisionFixtures, state.playerClubId)
+      : state.divisionFixtures;
+    const trimmedFixtures = state.fixtures
+      ? trimFixtureArrayForSave(state.fixtures, state.playerClubId)
+      : state.fixtures;
+
     const saveData = {
       version: CURRENT_VERSION,
       activeSlot: s,
       playerClubId: state.playerClubId, season: state.season, week: state.week,
-      clubs: state.clubs, players: state.players, fixtures: state.fixtures,
+      clubs: state.clubs, players: state.players, fixtures: trimmedFixtures,
       transferMarket: state.transferMarket, shortlist: state.shortlist, scoutWatchList: state.scoutWatchList,
       boardObjectives: state.boardObjectives, boardConfidence: state.boardConfidence,
       trainingFocus: state.trainingFocus, totalWeeks: state.totalWeeks,
@@ -3999,7 +4015,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       cup: state.cup,
       fanMood: state.fanMood,
       activeChallenge: state.activeChallenge,
-      divisionFixtures: state.divisionFixtures,
+      divisionFixtures: trimmedDivFixtures,
       divisionTables: state.divisionTables,
       divisionClubs: state.divisionClubs,
       playerDivision: state.playerDivision,
@@ -4054,16 +4070,38 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       jobVacancies: state.jobVacancies,
       jobOffers: state.jobOffers,
     };
-    const json = JSON.stringify(saveData);
+    let json = JSON.stringify(saveData);
+
+    // If the save is very large (>3MB), aggressively strip ALL match events
+    if (json.length > 3_000_000) {
+      const stripAllEvents = (fixtures: unknown[]): unknown[] =>
+        fixtures.map((f: unknown) => {
+          const m = f as { played?: boolean; events?: unknown[]; stats?: unknown };
+          if (!m.played || !m.events) return m;
+          const { events: _e, stats: _s, ...rest } = m as Record<string, unknown>;
+          return rest;
+        });
+      if (saveData.divisionFixtures) {
+        const aggressiveTrim: Record<string, unknown[]> = {};
+        for (const [div, fx] of Object.entries(saveData.divisionFixtures as Record<string, unknown[]>)) {
+          aggressiveTrim[div] = stripAllEvents(fx);
+        }
+        saveData.divisionFixtures = aggressiveTrim;
+      }
+      if (saveData.fixtures) {
+        saveData.fixtures = stripAllEvents(saveData.fixtures as unknown[]);
+      }
+      json = JSON.stringify(saveData);
+    }
+
     try {
-      // Write backup before overwriting primary save
       writeSaveSlot(s, json);
     } catch (err) {
-      const now = Date.now();
+      const errTime = Date.now();
       // Avoid log spam during repeated autosave attempts.
-      if (now - lastSaveErrorLogAt > 10000) {
+      if (errTime - lastSaveErrorLogAt > 10000) {
         console.error('[Save] Failed to write save data:', err);
-        lastSaveErrorLogAt = now;
+        lastSaveErrorLogAt = errTime;
       }
       // Notify user once per week to keep the inbox readable.
       const hasSaveWarningThisWeek = state.messages.some(
