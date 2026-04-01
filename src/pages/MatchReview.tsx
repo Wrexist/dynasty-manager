@@ -13,6 +13,7 @@ import { getConfidenceColor, getMatchRatingColor, areColorsSimilar } from '@/uti
 import { generateMatchInsights } from '@/utils/matchInsights';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getDerbyName, getDerbyIntensity } from '@/data/league';
+import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
 import { motion } from 'framer-motion';
@@ -342,7 +343,7 @@ const MatchReview = () => {
               const p = e.playerId ? players[e.playerId] : null;
               return (
                 <div key={`card-${i}`} className="flex items-center gap-2 text-xs">
-                  <span className={`w-3 h-4 rounded-sm inline-block shrink-0 ${e.type === 'yellow_card' ? 'bg-amber-400' : 'bg-red-500'}`} />
+                  {e.type === 'yellow_card' ? <YellowCardIcon size={10} /> : <RedCardIcon size={10} />}
                   <span className="text-foreground">{p?.lastName || 'Unknown'}</span>
                   <span className="text-muted-foreground">{e.minute}'</span>
                 </div>

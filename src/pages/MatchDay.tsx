@@ -21,6 +21,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
 import { getActiveCosmetic } from '@/utils/monetization';
 import { areColorsSimilar } from '@/utils/uiHelpers';
+import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 
 const isGoalEvent = (e: MatchEvent) => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored';
 
@@ -503,12 +504,12 @@ const MatchDay = () => {
               <div className="mt-1 flex items-center justify-center gap-1 text-[9px] font-semibold">
                 {homeYellowCards > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-1.5 py-0.5 text-amber-300">
-                    🟨 {homeYellowCards}
+                    <YellowCardIcon size={10} /> {homeYellowCards}
                   </span>
                 )}
                 {homeRedCards > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-red-400/50 bg-red-500/20 px-1.5 py-0.5 text-red-300 animate-pulse">
-                    🟥 {homeRedCards}
+                    <RedCardIcon size={10} /> {homeRedCards}
                   </span>
                 )}
               </div>
@@ -551,12 +552,12 @@ const MatchDay = () => {
               <div className="mt-1 flex items-center justify-center gap-1 text-[9px] font-semibold">
                 {awayYellowCards > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/40 bg-amber-400/15 px-1.5 py-0.5 text-amber-300">
-                    🟨 {awayYellowCards}
+                    <YellowCardIcon size={10} /> {awayYellowCards}
                   </span>
                 )}
                 {awayRedCards > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-red-400/50 bg-red-500/20 px-1.5 py-0.5 text-red-300 animate-pulse">
-                    🟥 {awayRedCards}
+                    <RedCardIcon size={10} /> {awayRedCards}
                   </span>
                 )}
               </div>
@@ -874,8 +875,8 @@ const MatchDay = () => {
                     )}
                   >
                     <span className="text-xs font-mono w-8 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
-                    {ev.type === 'yellow_card' && <span className="text-sm leading-none mt-0.5" aria-label="Yellow card">🟨</span>}
-                    {ev.type === 'red_card' && <span className="text-sm leading-none mt-0.5" aria-label="Red card">🟥</span>}
+                    {ev.type === 'yellow_card' && <span className="leading-none mt-0.5"><YellowCardIcon size={12} /></span>}
+                    {ev.type === 'red_card' && <span className="leading-none mt-0.5"><RedCardIcon size={12} /></span>}
                     <span className="flex-1">{getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId)}</span>
                     <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: clubs[ev.clubId]?.color || '#888' }} />
                   </div>
