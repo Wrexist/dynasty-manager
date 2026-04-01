@@ -1,5 +1,91 @@
 import type { SlotSummary } from '@/types/game';
 
+// ── Storage Quota Helpers ──
+
+/** Try to free localStorage space by removing backups and non-essential data.
+ *  Returns true if any space was freed. */
+export function tryFreeStorageSpace(protectedSlot?: number): boolean {
+  let freed = false;
+  try {
+    // 1. Remove backups for all slots (cheapest to lose)
+    for (let i = 1; i <= 3; i++) {
+      if (i === protectedSlot) continue; // skip the slot we're trying to save
+      const backupKey = `dynasty-save-${i}-backup`;
+      if (localStorage.getItem(backupKey) !== null) {
+        localStorage.removeItem(backupKey);
+        freed = true;
+      }
+    }
+    // Also remove backup for the protected slot — better to lose backup than fail the save
+    if (protectedSlot) {
+      const ownBackup = `dynasty-save-${protectedSlot}-backup`;
+      if (localStorage.getItem(ownBackup) !== null) {
+        localStorage.removeItem(ownBackup);
+        freed = true;
+      }
+    }
+    // 2. Remove session snapshot (small but every bit helps)
+    if (localStorage.getItem('dynasty-session-snapshot') !== null) {
+      localStorage.removeItem('dynasty-session-snapshot');
+      freed = true;
+    }
+  } catch {
+    // storage unavailable
+  }
+  return freed;
+}
+
+/** Check if an error is a storage quota exceeded error */
+function isQuotaError(err: unknown): boolean {
+  if (err instanceof DOMException) {
+    // Different browsers use different error names/codes
+    return err.code === 22 || err.code === 1014 ||
+      err.name === 'QuotaExceededError' ||
+      err.name === 'NS_ERROR_DOM_QUOTA_REACHED';
+  }
+  return false;
+}
+
+// ── Save Data Trimming ──
+
+/** Strip bulky match events and stats from played fixtures that the player
+ *  was NOT involved in. Player-club matches keep events for match review.
+ *  This can reduce save size by 40-60%. */
+export function trimFixturesForSave(
+  divisionFixtures: Record<string, unknown[]>,
+  playerClubId: string,
+): Record<string, unknown[]> {
+  const trimmed: Record<string, unknown[]> = {};
+  for (const [div, fixtures] of Object.entries(divisionFixtures)) {
+    trimmed[div] = fixtures.map((f: unknown) => {
+      const match = f as { played?: boolean; homeClubId?: string; awayClubId?: string; events?: unknown[]; stats?: unknown };
+      if (!match.played) return match;
+      // Keep full data for player's own matches
+      const isPlayerMatch = match.homeClubId === playerClubId || match.awayClubId === playerClubId;
+      if (isPlayerMatch) return match;
+      // Strip events and stats from AI-vs-AI matches — only scores matter
+      const { events: _e, stats: _s, ...rest } = match as Record<string, unknown>;
+      return rest;
+    });
+  }
+  return trimmed;
+}
+
+/** Strip events from standalone fixtures array (legacy format / cup fixtures) */
+export function trimFixtureArrayForSave(
+  fixtures: unknown[],
+  playerClubId: string,
+): unknown[] {
+  return fixtures.map((f: unknown) => {
+    const match = f as { played?: boolean; homeClubId?: string; awayClubId?: string; events?: unknown[]; stats?: unknown };
+    if (!match.played) return match;
+    const isPlayerMatch = match.homeClubId === playerClubId || match.awayClubId === playerClubId;
+    if (isPlayerMatch) return match;
+    const { events: _e, stats: _s, ...rest } = match as Record<string, unknown>;
+    return rest;
+  });
+}
+
 /** Read a flag from localStorage */
 export function getFlag(key: string): boolean {
   try { return localStorage.getItem(key) === '1'; }
@@ -81,16 +167,53 @@ export function readSaveSlot(slot: number): string | null {
   catch { return null; }
 }
 
-/** Write a raw save string to a slot, creating a backup first */
+/** Write a raw save string to a slot, with quota-aware retry.
+ *  Strategy: write the main save first, then backup if space allows.
+ *  On quota exceeded, free space progressively and retry. */
 export function writeSaveSlot(slot: number, json: string): void {
+  const key = `dynasty-save-${slot}`;
+  const backupKey = `${key}-backup`;
+
+  // Keep the old data in memory for backup (don't read twice)
+  let oldData: string | null = null;
   try {
-    const existing = localStorage.getItem(`dynasty-save-${slot}`);
-    if (existing) {
-      localStorage.setItem(`dynasty-save-${slot}-backup`, existing);
+    oldData = localStorage.getItem(key);
+  } catch { /* ignore */ }
+
+  // Remove backup first to free space for the main save
+  try { localStorage.removeItem(backupKey); } catch { /* ignore */ }
+
+  // Attempt 1: write the main save
+  try {
+    localStorage.setItem(key, json);
+  } catch (err) {
+    if (!isQuotaError(err)) throw new Error('SAVE_WRITE_FAILED');
+
+    // Attempt 2: free space and retry
+    tryFreeStorageSpace(slot);
+    try {
+      localStorage.setItem(key, json);
+    } catch (err2) {
+      if (!isQuotaError(err2)) throw new Error('SAVE_WRITE_FAILED');
+      // Attempt 3: remove ALL backups (including our own, already done) and retry
+      for (let i = 1; i <= 3; i++) {
+        try { localStorage.removeItem(`dynasty-save-${i}-backup`); } catch { /* ignore */ }
+      }
+      try {
+        localStorage.setItem(key, json);
+      } catch {
+        throw new Error('SAVE_WRITE_FAILED');
+      }
     }
-    localStorage.setItem(`dynasty-save-${slot}`, json);
-  } catch {
-    throw new Error('SAVE_WRITE_FAILED');
+  }
+
+  // Main save succeeded — try to create backup from old data (best-effort)
+  if (oldData) {
+    try {
+      localStorage.setItem(backupKey, oldData);
+    } catch {
+      // Not enough space for backup — that's okay, main save is safe
+    }
   }
 }
 
