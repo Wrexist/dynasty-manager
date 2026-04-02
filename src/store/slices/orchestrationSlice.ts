@@ -2213,8 +2213,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const aPlayers = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)).slice(0, 11);
 
         const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
-        const hasLeagueMatch = updatedFixtures.some(f => f.week === week && (f.homeClubId === playerClubId || f.awayClubId === playerClubId));
-        if (isPlayerMatch && !hasLeagueMatch) continue; // Player's cup match is played interactively only when no league match
+        if (isPlayerMatch) continue; // Player's cup match is played interactively
         // Forfeit if either team has no available players
         if (hPlayers.length === 0 || aPlayers.length === 0) {
           const winnerId = hPlayers.length === 0 ? tie.awayClubId : tie.homeClubId;
