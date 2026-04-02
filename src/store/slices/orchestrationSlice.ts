@@ -2430,6 +2430,32 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
+    // ── Continental Super Cup Simulation ──
+    let newContinentalSuperCup = state.continentalSuperCup;
+    if (newContinentalSuperCup && !newContinentalSuperCup.played && week === CONTINENTAL_SUPER_CUP_WEEK) {
+      const hClub = clubs[newContinentalSuperCup.homeClubId] || (state.virtualClubs || {})[newContinentalSuperCup.homeClubId];
+      const aClub = clubs[newContinentalSuperCup.awayClubId] || (state.virtualClubs || {})[newContinentalSuperCup.awayClubId];
+      const isPlayerMatch = newContinentalSuperCup.homeClubId === playerClubId || newContinentalSuperCup.awayClubId === playerClubId;
+      if (!isPlayerMatch && hClub && aClub) {
+        const hPlayers = (hClub as Club).playerIds ? (hClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).slice(0, 11) : [];
+        const aPlayers = (aClub as Club).playerIds ? (aClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).slice(0, 11) : [];
+        if (hPlayers.length > 0 && aPlayers.length > 0) {
+          const { result: scResult } = simulateMatch(
+            { id: 'continental-super-cup', week, homeClubId: newContinentalSuperCup.homeClubId, awayClubId: newContinentalSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
+            hClub as Club, aClub as Club, hPlayers, aPlayers, undefined, undefined, undefined, undefined, 0, undefined, season
+          );
+          const winnerId = scResult.homeGoals > scResult.awayGoals ? newContinentalSuperCup.homeClubId :
+            scResult.awayGoals > scResult.homeGoals ? newContinentalSuperCup.awayClubId :
+            Math.random() < 0.5 ? newContinentalSuperCup.homeClubId : newContinentalSuperCup.awayClubId;
+          newContinentalSuperCup = { ...newContinentalSuperCup, played: true, homeGoals: scResult.homeGoals, awayGoals: scResult.awayGoals, winnerId };
+        } else {
+          // Forfeit if virtual clubs without real players — random winner
+          const winnerId = Math.random() < 0.5 ? newContinentalSuperCup.homeClubId : newContinentalSuperCup.awayClubId;
+          newContinentalSuperCup = { ...newContinentalSuperCup, played: true, homeGoals: winnerId === newContinentalSuperCup.homeClubId ? 1 : 0, awayGoals: winnerId === newContinentalSuperCup.awayClubId ? 1 : 0, winnerId };
+        }
+      }
+    }
+
     // ── Continental Tournament Simulation ──
     let newChampionsCup = state.championsCup;
     let newShieldCup = state.shieldCup;
@@ -2919,8 +2945,21 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       else if (obj.description === 'Finish in Top 3') o.completed = playerPos <= 3;
       else if (obj.description === 'Finish in Top 6') o.completed = playerPos <= 6;
       else if (obj.description === 'Reach Top Half' || obj.description === 'Finish in Top Half') o.completed = playerPos <= 10;
-      else if (obj.description === 'Avoid Relegation (Top 17)') o.completed = playerPos <= 17;
+      else if (obj.description.startsWith('Avoid Replacement')) {
+        const posMatch = obj.description.match(/Top (\d+)/);
+        const safePos = posMatch ? parseInt(posMatch[1]) : 17;
+        o.completed = playerPos <= safePos;
+      }
       else if (obj.description === 'Stay within budget') o.completed = newClubs[playerClubId].budget >= 0;
+      else if (obj.description === 'Win the Cup') o.completed = newCup.winner === playerClubId;
+      else if (obj.description === 'Reach Cup Semi-Final') {
+        const sfOrBetter = ['SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
+        o.completed = !newCup.eliminated && sfOrBetter;
+      }
+      else if (obj.description === 'Reach Cup Quarter-Final') {
+        const qfOrBetter = ['QF', 'SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
+        o.completed = !newCup.eliminated && qfOrBetter;
+      }
       return o;
     });
 
@@ -3128,6 +3167,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       championsCup: newChampionsCup,
       shieldCup: newShieldCup,
       domesticSuperCup: newDomesticSuperCup,
+      continentalSuperCup: newContinentalSuperCup,
       activeChallenge: updatedChallenge,
       divisionFixtures: updatedDivisionFixtures, divisionTables,
       careerTimeline: [...state.careerTimeline, ...newTimeline].slice(-MAX_CAREER_TIMELINE),
