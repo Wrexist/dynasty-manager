@@ -274,7 +274,7 @@ export function generateTrainingReport(
 
 // ── Effectiveness Preview ──
 
-export interface TrainingPreview {
+interface TrainingPreview {
   moduleGainRates: { module: TrainingModule; daysScheduled: number; expectedGainPct: number }[];
   injuryRiskPct: number;
   fitnessImpact: number;

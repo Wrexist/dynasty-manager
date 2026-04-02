@@ -20,7 +20,7 @@ import { calculateWeeklyMerchRevenue, getMerchOperatingCost } from '@/utils/merc
 
 import type { Club, LeagueTableEntry, FacilitiesState, ManagerProgression, SponsorDeal, MerchState, LeagueId, Player, StaffMember } from '@/types/game';
 
-export interface FinanceLineItem {
+interface FinanceLineItem {
   label: string;
   amount: number;
 }

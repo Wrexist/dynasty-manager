@@ -5,7 +5,7 @@ import {
   CLEAN_SHEET_MILESTONES, CAREER_GOAL_MILESTONES, CAREER_APP_MILESTONES,
 } from '@/config/gameBalance';
 
-export type CelebrationSeverity = 'minor' | 'major' | 'legendary';
+type CelebrationSeverity = 'minor' | 'major' | 'legendary';
 
 export interface Celebration {
   title: string;

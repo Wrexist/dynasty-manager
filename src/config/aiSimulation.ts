@@ -16,7 +16,6 @@ export const AI_STAFF_COST_PER_REP = 15_000;
 // ── AI Wage Constraints ──
 export const AI_MAX_WAGE_TO_INCOME_RATIO = 0.75;     // Won't buy if wages exceed 75% of weekly income
 export const AI_EMERGENCY_SELL_WAGE_RATIO = 0.90;     // Force-sell if wages hit 90% of income
-export const AI_WAGE_BUDGET_RESERVE = 0.10;           // Keep 10% of budget as cash reserve
 
 // ── AI Squad Depth Targets (minimum per position for a healthy squad) ──
 export const AI_SQUAD_DEPTH_TARGETS: Record<Position, number> = {
@@ -48,7 +47,6 @@ export const AI_SELL_LISTING_PRICE_RANGE = 0.35;      // Random range added to m
 
 // ── AI Buying Logic ──
 export const AI_BUY_MAX_BUDGET_RATIO = 0.50;         // Max 50% of budget on one player
-export const AI_BUY_VALUE_PREMIUM = 1.15;            // AI willing to pay up to 115% of value
 export const AI_BUY_BIDDING_WAR_CHANCE = 0.20;        // 20% chance a second club counter-bids
 export const AI_BUY_BIDDING_INCREMENT = 0.10;         // Counter-bid adds 10% to original bid
 export const AI_BUY_FEE_BASE = 0.90;                 // Base offer: 90% of asking price

@@ -123,47 +123,6 @@ export function generateTournament(
   };
 }
 
-/** Simulate a single international match between two nations (AI vs AI or with player nation) */
-export function simulateInternationalMatch(
-  homeNation: string,
-  awayNation: string,
-): { homeGoals: number; awayGoals: number } {
-  const home = getNation(homeNation);
-  const away = getNation(awayNation);
-
-  // Strength based on inverse ranking (rank 1 = strongest)
-  const homeStrength = home ? (52 - home.baseRanking) / 51 : 0.5;
-  const awayStrength = away ? (52 - away.baseRanking) / 51 : 0.5;
-
-  // Home advantage
-  const homeAdv = 0.08;
-
-  const homeAttack = homeStrength + homeAdv + (Math.random() * 0.3 - 0.15);
-  const awayAttack = awayStrength + (Math.random() * 0.3 - 0.15);
-
-  // Expected goals roughly 0-4 range
-  const homeExpected = Math.max(0, homeAttack * 3);
-  const awayExpected = Math.max(0, awayAttack * 3);
-
-  // Poisson-ish random goals
-  const homeGoals = poissonGoals(homeExpected);
-  const awayGoals = poissonGoals(awayExpected);
-
-  return { homeGoals, awayGoals };
-}
-
-function poissonGoals(expected: number): number {
-  // Simple Poisson approximation
-  const L = Math.exp(-expected);
-  let k = 0;
-  let p = 1;
-  do {
-    k++;
-    p *= Math.random();
-  } while (p > L);
-  return Math.min(k - 1, 7); // cap at 7
-}
-
 /** Process all group fixtures for a given week, return updated groups */
 export function processGroupWeek(
   groups: InternationalGroup[],

@@ -36,7 +36,6 @@ import {
   LEGACY_REPUTATION_WEIGHT,
   LEGACY_AWARD_WEIGHT,
   MANAGER_TRAITS,
-  AI_SACKING_POSITION_THRESHOLD,
   MAX_NEGOTIATION_ROUNDS,
   SALARY_COUNTER_MAX_INCREASE,
   BOARD_ACCEPTANCE_BASE,
@@ -133,10 +132,6 @@ export function calculateReputationTier(score: number): ReputationTier {
   if (score >= REP_TIER_THRESHOLDS.national) return 'national';
   if (score >= REP_TIER_THRESHOLDS.regional) return 'regional';
   return 'unknown';
-}
-
-export function clampReputation(score: number): number {
-  return clamp(score, REP_MIN, REP_MAX);
 }
 
 export function getReputationTierLabel(tier: ReputationTier): string {
@@ -421,15 +416,6 @@ export function calculateLegacyScore(manager: CareerManager): number {
     manager.reputationScore * LEGACY_REPUTATION_WEIGHT +
     manager.awardsWon.length * LEGACY_AWARD_WEIGHT
   );
-}
-
-// ── AI Manager Sacking ──
-
-export function shouldAIManagerGetSacked(
-  position: number,
-  expectedPosition: number,
-): boolean {
-  return position > expectedPosition + AI_SACKING_POSITION_THRESHOLD;
 }
 
 // ── Retirement ──

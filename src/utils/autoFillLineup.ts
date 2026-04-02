@@ -62,7 +62,7 @@ import {
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 import { ADJACENT_PAIRS, MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE, MENTOR_QUALITY_OVERALL_BASE, MENTOR_QUALITY_DIVISOR, MENTOR_MAX_STRENGTH, PARTNERSHIP_FORM_THRESHOLD, PARTNERSHIP_STRENGTH_DIVISOR, PARTNERSHIP_MAX_STRENGTH, LOYALTY_SEASONS_THRESHOLD, LOYALTY_MAX_STRENGTH } from '@/config/chemistry';
 
-export interface AutoFillResult {
+interface AutoFillResult {
   lineup: Player[];
   subs: Player[];
   chemistryBonus: number;

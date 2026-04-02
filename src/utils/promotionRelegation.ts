@@ -10,7 +10,7 @@ import type { ClubData } from '@/types/game';
 
 // ── Determine replaced clubs from final table ──
 
-export interface LeagueZones {
+interface LeagueZones {
   safe: string[];
   replaced: string[];
 }

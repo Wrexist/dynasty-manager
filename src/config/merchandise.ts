@@ -7,7 +7,7 @@ import type { MerchProductLine, MerchPricingTier, MerchCampaignType } from '@/ty
 
 // ── Product Line Definitions ──
 
-export interface MerchProductLineDef {
+interface MerchProductLineDef {
   label: string;
   icon: string;
   baseRevenueFactor: number;
@@ -58,7 +58,7 @@ export const MERCH_PRODUCT_LINES: Record<MerchProductLine, MerchProductLineDef> 
 
 // ── Pricing Tier Definitions ──
 
-export interface MerchPricingTierDef {
+interface MerchPricingTierDef {
   label: string;
   description: string;
   revenueMultiplier: number;
@@ -88,7 +88,7 @@ export const MERCH_PRICING_TIERS: Record<MerchPricingTier, MerchPricingTierDef> 
 
 // ── Campaign Definitions ──
 
-export interface MerchCampaignDef {
+interface MerchCampaignDef {
   label: string;
   description: string;
   durationWeeks: number;
@@ -160,7 +160,6 @@ export const STAR_PLAYER_SALE_DIP_WEEKS = 4;
 export const STAR_PLAYER_SALE_DIP_FACTOR = 0.85;
 export const STAR_SIGNING_BUZZ_WEEKS = 4;
 export const STAR_SIGNING_BUZZ_FACTOR = 1.15;
-export const MERCH_FAN_MOOD_CAP = 5;
 
 /** Sum of all product line revenue factors — used to normalise */
 export const MERCH_TOTAL_REVENUE_FACTORS = Object.values(MERCH_PRODUCT_LINES).reduce(
@@ -170,7 +169,6 @@ export const MERCH_TOTAL_REVENUE_FACTORS = Object.values(MERCH_PRODUCT_LINES).re
 /** Campaign requirements: week ranges and conditions */
 export const CAMPAIGN_KIT_LAUNCH_MAX_WEEK = 4;
 export const CAMPAIGN_TITLE_RACE_MAX_POSITION = 4;
-export const CAMPAIGN_CUP_RUN_MIN_ROUND = 'QF';
 export const CAMPAIGN_END_OF_SEASON_MIN_WEEK = 38;
 export const CAMPAIGN_STAR_SIGNING_MIN_VALUE = 5_000_000;
 export const CAMPAIGN_HOLIDAY_MIN_WEEK = 18;
