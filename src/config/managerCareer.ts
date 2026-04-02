@@ -84,6 +84,8 @@ export const LEGACY_CUP_WEIGHT = 60;
 export const LEGACY_MATCH_WIN_WEIGHT = 1;
 export const LEGACY_REPUTATION_WEIGHT = 0.5;
 export const LEGACY_AWARD_WEIGHT = 15;
+export const LEGACY_CONTINENTAL_CUP_WEIGHT = 95;
+export const LEGACY_LEAGUE_CUP_WEIGHT = 30;
 
 // ── Manager of the Month/Season ──
 export const MOTM_CHECK_INTERVAL = 4; // every 4 weeks

@@ -347,7 +347,7 @@ const SquadPage = () => {
               </p>
               {statusFilters.size === 0 && (
                 <div className="flex gap-2 justify-center pt-1">
-                  <button onClick={() => setScreen('transfer')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/20 text-primary hover:bg-primary/30 transition-colors">
+                  <button onClick={() => setScreen('transfers')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/20 text-primary hover:bg-primary/30 transition-colors">
                     <ShoppingCart className="w-3 h-3" /> Transfer Market
                   </button>
                   <button onClick={() => setScreen('scouting')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/50 text-muted-foreground hover:bg-muted transition-colors">

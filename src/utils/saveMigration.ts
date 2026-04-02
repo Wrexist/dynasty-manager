@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 35;
+const CURRENT_VERSION = 36;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -534,6 +534,16 @@ const migrations: Record<number, MigrationFn> = {
       }
     }
     return { ...data, version: 35 };
+  },
+
+  // v35 → v36: Add continentalCupsWon and leagueCupsWon to CareerManager
+  35: (data) => {
+    const cm = data.careerManager as Record<string, unknown> | undefined;
+    if (cm) {
+      if (cm.continentalCupsWon == null) cm.continentalCupsWon = 0;
+      if (cm.leagueCupsWon == null) cm.leagueCupsWon = 0;
+    }
+    return { ...data, version: 36 };
   },
 };
 

@@ -1260,6 +1260,8 @@ export interface CareerManager {
   promotionsWon: number;
   titlesWon: number;
   cupsWon: number;
+  continentalCupsWon: number;
+  leagueCupsWon: number;
   sackedCount: number;
   resignedCount: number;
   awardsWon: ManagerAward[];

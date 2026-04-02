@@ -35,6 +35,8 @@ import {
   LEGACY_MATCH_WIN_WEIGHT,
   LEGACY_REPUTATION_WEIGHT,
   LEGACY_AWARD_WEIGHT,
+  LEGACY_CONTINENTAL_CUP_WEIGHT,
+  LEGACY_LEAGUE_CUP_WEIGHT,
   MANAGER_TRAITS,
   MAX_NEGOTIATION_ROUNDS,
   SALARY_COUNTER_MAX_INCREASE,
@@ -115,6 +117,8 @@ export function createDefaultManager(
     promotionsWon: 0,
     titlesWon: 0,
     cupsWon: 0,
+    continentalCupsWon: 0,
+    leagueCupsWon: 0,
     sackedCount: 0,
     resignedCount: 0,
     awardsWon: [],
@@ -412,6 +416,8 @@ export function calculateLegacyScore(manager: CareerManager): number {
     manager.titlesWon * LEGACY_TITLE_WEIGHT +
     manager.promotionsWon * LEGACY_PROMOTION_WEIGHT +
     manager.cupsWon * LEGACY_CUP_WEIGHT +
+    (manager.continentalCupsWon || 0) * LEGACY_CONTINENTAL_CUP_WEIGHT +
+    (manager.leagueCupsWon || 0) * LEGACY_LEAGUE_CUP_WEIGHT +
     manager.totalCareerWins * LEGACY_MATCH_WIN_WEIGHT +
     manager.reputationScore * LEGACY_REPUTATION_WEIGHT +
     manager.awardsWon.length * LEGACY_AWARD_WEIGHT

@@ -86,17 +86,6 @@ export const REP_LEAGUE_CUP_WIN = 25;
 export const REP_CONTINENTAL_GROUP = 15;
 export const REP_CONTINENTAL_KNOCKOUT = 10; // per round advanced
 
-// ── XP Rewards ──
-export const XP_CHAMPIONS_CUP_WIN = 500;
-export const XP_SHIELD_CUP_WIN = 300;
-export const XP_LEAGUE_CUP_WIN = 150;
-export const XP_CONTINENTAL_GROUP_ADVANCE = 100;
-
-// ── Legacy Weights ──
-export const LEGACY_CHAMPIONS_CUP_WEIGHT = 120;
-export const LEGACY_SHIELD_CUP_WEIGHT = 70;
-export const LEGACY_LEAGUE_CUP_WEIGHT = 30;
-
 // ── Group Stage Round-Robin Fixture Template ──
 // For a group of 4 teams (indices 0-3), 6 matchdays
 // Each tuple: [homeIndex, awayIndex]

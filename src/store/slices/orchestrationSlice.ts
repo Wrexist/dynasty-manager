@@ -24,7 +24,7 @@ import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achie
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getChampionsCupQualifiers, getShieldCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
 import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, getContinentalResultForClub, createEphemeralClub, findPlayerContinentalMatch } from '@/utils/continental';
-import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
+import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
 import { generatePressConference } from '@/data/pressConferences';
 import { isPro } from '@/utils/monetization';
 import { getMentorBonus } from '@/utils/chemistry';
@@ -1602,6 +1602,39 @@ function finalizeSeason(
         if (cs.cup.winner === cs.playerClubId) {
           cm.cupsWon += 1;
           cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CUP_WIN);
+        }
+
+        // League Cup win
+        if (cs.leagueCup?.winner === cs.playerClubId) {
+          cm.cupsWon += 1;
+          cm.leagueCupsWon = (cm.leagueCupsWon || 0) + 1;
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_LEAGUE_CUP_WIN);
+        }
+
+        // Champions Cup win / continental progress
+        if (cs.championsCup?.winnerId === cs.playerClubId) {
+          cm.cupsWon += 1;
+          cm.continentalCupsWon = (cm.continentalCupsWon || 0) + 1;
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CHAMPIONS_CUP_WIN);
+        } else if (cs.championsCup && !cs.championsCup.playerEliminated) {
+          // Advanced past group stage
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CONTINENTAL_GROUP);
+          // Bonus per knockout round reached
+          const knockoutRounds = ['R16', 'QF', 'SF', 'F'];
+          const reached = knockoutRounds.indexOf(cs.championsCup.currentRound || '');
+          if (reached >= 0) cm.reputationScore = Math.min(1000, cm.reputationScore + (reached + 1) * REP_CONTINENTAL_KNOCKOUT);
+        }
+
+        // Shield Cup win / continental progress
+        if (cs.shieldCup?.winnerId === cs.playerClubId) {
+          cm.cupsWon += 1;
+          cm.continentalCupsWon = (cm.continentalCupsWon || 0) + 1;
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_SHIELD_CUP_WIN);
+        } else if (cs.shieldCup && !cs.shieldCup.playerEliminated) {
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CONTINENTAL_GROUP);
+          const knockoutRounds = ['R16', 'QF', 'SF', 'F'];
+          const reached = knockoutRounds.indexOf(cs.shieldCup.currentRound || '');
+          if (reached >= 0) cm.reputationScore = Math.min(1000, cm.reputationScore + (reached + 1) * REP_CONTINENTAL_KNOCKOUT);
         }
 
         // Promotion/relegation reputation

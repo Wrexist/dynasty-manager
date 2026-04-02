@@ -51,10 +51,8 @@ export function calculateWageDemand(player: Player, clubReputation: number): num
   return Math.max(CONTRACT_MINIMUM_WAGE, demand);
 }
 
-/**
- * Calculate agent fee based on player value and deal complexity.
- */
-export function calculateAgentFee(player: Player): number {
+/** Calculate agent fee based on player value and deal complexity. */
+function calculateAgentFee(player: Player): number {
   const feeRate = CONTRACT_AGENT_FEE_BASE + Math.random() * CONTRACT_AGENT_FEE_RANGE;
   const annualWage = player.wage * CONTRACT_WAGE_WEEKS_PER_YEAR;
   return Math.round(annualWage * feeRate);

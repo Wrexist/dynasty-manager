@@ -221,10 +221,6 @@ export const AI_LOAN_RECALL_CLAUSE_CHANCE = 0.4;
 export const AI_LOAN_OBLIGATORY_BUY_CHANCE = 0.2;
 export const AI_LOAN_OBLIGATORY_BUY_MULTIPLIER = 0.8;
 
-// ── AI Inter-Club Transfers ──
-export const AI_TRANSFER_MAX_BUDGET_RATIO = 0.35;
-export const AI_TRANSFER_MIN_BUDGET = 2_000_000;
-
 // ── Win Streak Bonuses ──
 export const STREAK_MORALE_THRESHOLD = 3;
 export const STREAK_MORALE_BONUS = 2;
