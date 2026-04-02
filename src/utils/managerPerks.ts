@@ -111,6 +111,10 @@ export const XP_REWARDS = {
   seasonEnd: 30,
   youthPromote: 10,
   titleWin: 100,
+  championsCupWin: 500,
+  shieldCupWin: 300,
+  leagueCupWin: 150,
+  continentalGroupAdvance: 100,
 } as const;
 
 /** Check if a perk can be unlocked */

@@ -1486,9 +1486,28 @@ function finalizeSeason(
       if (state.cup.winner === playerClubId) {
         milestones.push(createMilestone('cup_win', 'Cup Winners!', `Won the cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
       }
+      if (state.leagueCup?.winner === playerClubId) {
+        milestones.push(createMilestone('cup_win', 'League Cup Winners!', `Won the League Cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
+      }
+      if (state.championsCup?.winnerId === playerClubId) {
+        milestones.push(createMilestone('cup_win', 'Champions Cup Winners!', `Won the Champions Cup in Season ${season}!`, season, TOTAL_WEEKS, 'trophy'));
+      }
+      if (state.shieldCup?.winnerId === playerClubId) {
+        milestones.push(createMilestone('cup_win', 'Shield Cup Winners!', `Won the Shield Cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
+      }
       return milestones;
     })(),
-    managerProgression: grantXP(state.managerProgression, XP_REWARDS.seasonEnd + (history.position === 1 ? XP_REWARDS.titleWin : 0) + (state.cup.winner === playerClubId ? XP_REWARDS.cupWin : 0)),
+    managerProgression: grantXP(state.managerProgression, (() => {
+      let xp = XP_REWARDS.seasonEnd;
+      if (history.position === 1) xp += XP_REWARDS.titleWin;
+      if (state.cup.winner === playerClubId) xp += XP_REWARDS.cupWin;
+      if (state.leagueCup?.winner === playerClubId) xp += XP_REWARDS.leagueCupWin;
+      if (state.championsCup?.winnerId === playerClubId) xp += XP_REWARDS.championsCupWin;
+      else if (state.championsCup && !state.championsCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
+      if (state.shieldCup?.winnerId === playerClubId) xp += XP_REWARDS.shieldCupWin;
+      else if (state.shieldCup && !state.shieldCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
+      return xp;
+    })()),
     seasonGrowthTracker: {},
     activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
   });
