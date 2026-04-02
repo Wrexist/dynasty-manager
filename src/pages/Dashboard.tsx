@@ -67,7 +67,7 @@ const Dashboard = () => {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
     boardConfidence, boardObjectives,
     currentMatchResult, incomingOffers, trainingFocus, cup,
-    leagueCup, championsCup, shieldCup, virtualClubs,
+    leagueCup, championsCup, shieldCup, virtualClubs, domesticSuperCup, continentalSuperCup,
     weekCliffhangers, lastMatchDrama, objectiveStreak,
     facilities, scouting, divisionTables, playerDivision,
     managerProgression, clubRecords, transferWindowOpen, training,
@@ -84,6 +84,7 @@ const Dashboard = () => {
     trainingFocus: s.trainingFocus, cup: s.cup,
     leagueCup: s.leagueCup, championsCup: s.championsCup,
     shieldCup: s.shieldCup, virtualClubs: s.virtualClubs,
+    domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
     weekCliffhangers: s.weekCliffhangers, lastMatchDrama: s.lastMatchDrama,
     objectiveStreak: s.objectiveStreak,
     facilities: s.facilities, scouting: s.scouting,
@@ -1455,6 +1456,27 @@ const Dashboard = () => {
                     : shieldCup.playerEliminated ? 'Eliminated'
                     : shieldCup.currentPhase === 'group' ? 'Group Stage'
                     : shieldCup.currentRound || 'Knockout'}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Super Cup Status */}
+      {(domesticSuperCup || continentalSuperCup) && (
+        <GlassPanel className="p-4" onClick={() => setScreen('super-cup')}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Trophy className={cn('w-5 h-5', (domesticSuperCup?.winnerId === playerClubId || continentalSuperCup?.winnerId === playerClubId) ? 'text-amber-400' : 'text-muted-foreground')} />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Super Cup</p>
+                <p className="text-xs text-muted-foreground">
+                  {domesticSuperCup?.winnerId
+                    ? `Winner: ${clubs[domesticSuperCup.winnerId]?.shortName || '?'}`
+                    : domesticSuperCup?.played === false ? `Week ${domesticSuperCup.week}`
+                    : 'View matches'}
                 </p>
               </div>
             </div>
