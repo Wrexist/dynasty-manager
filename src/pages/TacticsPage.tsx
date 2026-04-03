@@ -16,6 +16,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
 import { PlayerSelect } from '@/components/game/PlayerSelect';
+import { infoToast } from '@/utils/gameToast';
 
 const STYLE_PRESETS: (StylePreset & { description: string })[] = [
   { label: 'Park the Bus', description: 'Ultra-defensive. Sit deep, absorb pressure, and protect the lead.', values: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 } },
@@ -102,7 +103,7 @@ const TacticsPage = () => {
           {FORMATIONS.map(f => (
             <button
               key={f}
-              onClick={() => setFormation(f)}
+              onClick={() => { if (club.formation !== f) { setFormation(f); infoToast(`Formation set to ${f}`); } }}
               className={cn(
                 'px-3 py-2 rounded-lg text-sm font-mono font-bold transition-all shrink-0',
                 club.formation === f ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'

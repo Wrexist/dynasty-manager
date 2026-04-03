@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users, Search, Calendar, Newspaper } from 'lucide-react';
+import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users, Search, Calendar, Newspaper, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
@@ -263,16 +263,27 @@ const TransferPage = () => {
         <>
           {/* Search Input */}
           <label htmlFor="transfer-search" className="sr-only">Search player name</label>
-          <input
-            id="transfer-search"
-            type="text"
-            inputMode="search"
-            enterKeyHint="search"
-            placeholder="Search player name..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg text-sm bg-card/60 backdrop-blur-xl border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-          />
+          <div className="relative">
+            <input
+              id="transfer-search"
+              type="text"
+              inputMode="search"
+              enterKeyHint="search"
+              placeholder="Search player name..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full px-3 py-2 pr-8 rounded-lg text-sm bg-card/60 backdrop-blur-xl border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Clear search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
           {/* Position Filter */}
           <div className="flex gap-2">
@@ -366,7 +377,8 @@ const TransferPage = () => {
                   </Button>
                   <Button
                     size="sm" variant="ghost" className="h-8 w-8 p-0"
-                    onClick={() => { hapticLight(); if (inShortlist) { removeFromShortlist(p.id); } else { addToShortlist(p.id); } }}
+                    aria-label={inShortlist ? 'Remove from shortlist' : 'Add to shortlist'}
+                    onClick={() => { hapticLight(); if (inShortlist) { removeFromShortlist(p.id); infoToast('Removed from shortlist'); } else { addToShortlist(p.id); successToast('Added to shortlist'); } }}
                   >
                     {inShortlist ? <BookmarkCheck className="w-4 h-4 text-primary" /> : <Bookmark className="w-4 h-4" />}
                   </Button>

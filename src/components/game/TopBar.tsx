@@ -39,12 +39,23 @@ export function TopBar() {
 
   // Save button feedback state
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
   const handleSave = () => {
     saveGame();
     hapticMedium();
     setSaveState('saved');
+    setLastSavedAt(Date.now());
     setTimeout(() => setSaveState('idle'), SAVE_INDICATOR_MS);
+  };
+
+  // Format relative time for last saved
+  const getSavedAgo = () => {
+    if (!lastSavedAt) return null;
+    const mins = Math.floor((Date.now() - lastSavedAt) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins === 1) return '1m ago';
+    return `${mins}m ago`;
   };
 
   // XP bar glow on gain
@@ -126,6 +137,7 @@ export function TopBar() {
           <button
             onClick={handleSave}
             aria-label="Save game"
+            title={lastSavedAt ? `Saved ${getSavedAgo()}` : 'Save game'}
             className={cn(
               'p-3 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center',
               saveState === 'saved' ? 'text-emerald-400' : 'text-muted-foreground hover:text-foreground'

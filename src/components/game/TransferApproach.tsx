@@ -79,7 +79,7 @@ export function TransferApproach({ playerId, onClose }: Props) {
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-border/30">
             <p className="text-sm font-bold text-foreground font-display">Approach Player</p>
-            <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+            <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
           </div>

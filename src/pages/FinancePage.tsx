@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -25,31 +25,39 @@ const FinancePage = () => {
   const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
   const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');
   const budgetFlash = useFlash(club?.budget || 0);
+
+  // Top wage earners (must be before early return to satisfy hook rules)
+  const { squadPlayers, topEarners, maxWage, squadValue } = useMemo(() => {
+    const ids = club?.playerIds || [];
+    const sq = ids
+      .map(id => players[id])
+      .filter(Boolean)
+      .sort((a, b) => b.wage - a.wage);
+    const top = sq.slice(0, 5);
+    return {
+      squadPlayers: sq,
+      topEarners: top,
+      maxWage: top[0]?.wage || 1,
+      squadValue: sq.reduce((sum, p) => sum + p.value, 0),
+    };
+  }, [club?.playerIds, players]);
+
+  // Chart data — last 20 weeks
+  const chartData = useMemo(() => financeHistory.slice(-20).map(f => ({
+    week: `W${f.week}`,
+    balance: Math.round(f.balance / 1e6 * 10) / 10,
+    income: Math.round(f.income / 1000),
+    expenses: Math.round(f.expenses / 1000),
+  })), [financeHistory]);
+
   if (!club) return null;
 
   const weeklyIncome = getWeeklyIncome(club);
   const netPerWeek = getNetWeeklyIncome(club);
   const isPositive = netPerWeek >= 0;
 
-  // Top wage earners
-  const squadPlayers = club.playerIds
-    .map(id => players[id])
-    .filter(Boolean)
-    .sort((a, b) => b.wage - a.wage);
-  const topEarners = squadPlayers.slice(0, 5);
-  const maxWage = topEarners[0]?.wage || 1;
-
   // Squad cost breakdown
   const totalWages = club.wageBill;
-  const squadValue = squadPlayers.reduce((sum, p) => sum + p.value, 0);
-
-  // Chart data — last 20 weeks
-  const chartData = financeHistory.slice(-20).map(f => ({
-    week: `W${f.week}`,
-    balance: Math.round(f.balance / 1e6 * 10) / 10,
-    income: Math.round(f.income / 1000),
-    expenses: Math.round(f.expenses / 1000),
-  }));
 
   return (
     <>
