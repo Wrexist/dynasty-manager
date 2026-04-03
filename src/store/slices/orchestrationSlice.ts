@@ -3867,6 +3867,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (!hc || !ac) return null;
     const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
     const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
+    // Need minimum players to continue into extra time
+    if (hp.length < 7 || ap.length < 7) return null;
 
     const isPlayerHome = currentMatchResult.homeClubId === playerClubId;
     const homeTactics = isPlayerHome ? tactics : undefined;
