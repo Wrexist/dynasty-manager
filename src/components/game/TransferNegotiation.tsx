@@ -137,7 +137,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
         transition={{ duration: 0.2 }}
       >
         {/* Backdrop */}
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" style={{ touchAction: 'none' }} onClick={phase === 'negotiate' ? onClose : undefined} />
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" style={{ touchAction: 'none' }} onClick={phase !== 'thinking' ? onClose : undefined} />
 
         {/* Modal */}
         <motion.div

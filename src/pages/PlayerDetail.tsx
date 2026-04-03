@@ -202,7 +202,10 @@ const PlayerDetail = () => {
           </div>
           <div className="flex-1">
             <p className="text-xl font-black text-foreground">{player.firstName} {player.lastName}</p>
-            <p className="text-sm text-muted-foreground">{player.position} · {player.age} · {getFlag(player.nationality)} {player.nationality}</p>
+            <p className="text-sm text-muted-foreground">
+              {player.position} · {player.age} · {getFlag(player.nationality)} {player.nationality}
+              {player.potential > player.overall && <span className="text-primary"> · Pot {player.potential}</span>}
+            </p>
             <div className="flex items-center gap-1.5 mt-1">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: club?.color || '#888' }} />
               <span className="text-xs text-muted-foreground">{club?.name || 'Unknown'}</span>
@@ -406,6 +409,14 @@ const PlayerDetail = () => {
             ))}
           </div>
         </GlassPanel>
+      )}
+
+      {/* Positive Status — show when no issues */}
+      {isOwnPlayer && !player.injured && !player.wantsToLeave && player.morale >= 50 && moraleFactors.every(f => f.impact !== 'negative') && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+          <Heart className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="text-xs text-emerald-400 font-medium">Player is fit, happy, and settled at the club</span>
+        </div>
       )}
 
       {/* Development Curve */}

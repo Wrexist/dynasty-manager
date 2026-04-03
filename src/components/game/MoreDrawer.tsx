@@ -125,7 +125,7 @@ export function MoreDrawer() {
           {drawerSections.map(section => {
             // In career mode, prepend career-specific items to the Career section
             const allItems = (section.title === 'Career' && gameMode === 'career')
-              ? [...CAREER_MODE_ITEMS, ...section.items.filter(i => i.screen !== 'perks')]
+              ? [...CAREER_MODE_ITEMS, ...section.items]
               : section.items;
             const items = search.trim()
               ? allItems.filter(i => i.label.toLowerCase().includes(search.toLowerCase()) || i.description.toLowerCase().includes(search.toLowerCase()))

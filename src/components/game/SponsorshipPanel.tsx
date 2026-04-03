@@ -114,6 +114,7 @@ export function SponsorshipPanel() {
         </div>
         <p className="text-[10px] text-muted-foreground">
           {sponsorDeals.length} active deal{sponsorDeals.length !== 1 ? 's' : ''} · {sponsorOffers.length} pending offer{sponsorOffers.length !== 1 ? 's' : ''}
+          {sponsorDeals.length === 0 && sponsorOffers.length === 0 && ' — improve reputation to attract sponsors'}
         </p>
       </GlassPanel>
 
