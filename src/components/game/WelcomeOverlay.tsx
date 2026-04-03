@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Target, ChevronRight, Trophy, LayoutDashboard } from 'lucide-react';
+import { Target, ChevronRight, Trophy, LayoutDashboard, Users, Swords, ShoppingBag } from 'lucide-react';
 
 const STEPS = [
   {
@@ -14,6 +14,24 @@ const STEPS = [
     title: 'The Weekly Rhythm',
     description: 'Check your squad, adjust tactics, then hit "Advance Week" to progress. Matches happen when scheduled — make substitutions and tactical changes live.',
     hint: 'The board sets objectives each season. Meet them to keep your job — below 25% confidence, you risk the sack!',
+  },
+  {
+    icon: Users,
+    title: 'Your Squad',
+    description: 'Pick your best XI and set your bench. Young players (<24) grow toward their potential through training and match time. Veterans (31+) gradually decline.',
+    hint: 'Injured or suspended players can\'t play. Keep morale high — unhappy players perform worse and may request a transfer.',
+  },
+  {
+    icon: Swords,
+    title: 'Tactics & Training',
+    description: 'Choose a formation and playing style. Stick with the same setup to build tactical familiarity — this directly boosts your match performance.',
+    hint: 'Set daily training modules to develop your squad. Heavy training is faster but risks injuries. Chemistry builds when players train and play together.',
+  },
+  {
+    icon: ShoppingBag,
+    title: 'Transfers & Finances',
+    description: 'Buy, sell, and loan players during transfer windows (Weeks 1-8 and 20-24). Watch your wage bill — if wages exceed revenue, you\'ll go into debt.',
+    hint: 'Scout players before signing them. Free agents can be signed anytime. The Market tab shows all available transfers.',
   },
   {
     icon: LayoutDashboard,

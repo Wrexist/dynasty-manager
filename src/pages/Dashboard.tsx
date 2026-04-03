@@ -9,7 +9,7 @@ import { PressConference } from '@/components/game/PressConference';
 import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
 import { Button } from '@/components/ui/button';
 import {
-  Play, ChevronRight, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail,
+  Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
   Dumbbell, AlertTriangle, Banknote, Users, Shield, Settings, BarChart3, UserPlus, Award, Flame, Zap, Loader2,
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
@@ -21,7 +21,7 @@ import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
 import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_END } from '@/config/transfers';
+import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
 import type { Celebration } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
 import { CELEBRATION_STAGGER_MS, ADVANCE_DONE_MS } from '@/config/ui';
@@ -67,7 +67,7 @@ const Dashboard = () => {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
     boardConfidence, boardObjectives,
     currentMatchResult, incomingOffers, trainingFocus, cup,
-    leagueCup, championsCup, shieldCup, virtualClubs,
+    leagueCup, championsCup, shieldCup, virtualClubs, domesticSuperCup, continentalSuperCup,
     weekCliffhangers, lastMatchDrama, objectiveStreak,
     facilities, scouting, divisionTables, playerDivision,
     managerProgression, clubRecords, transferWindowOpen, training,
@@ -84,6 +84,7 @@ const Dashboard = () => {
     trainingFocus: s.trainingFocus, cup: s.cup,
     leagueCup: s.leagueCup, championsCup: s.championsCup,
     shieldCup: s.shieldCup, virtualClubs: s.virtualClubs,
+    domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
     weekCliffhangers: s.weekCliffhangers, lastMatchDrama: s.lastMatchDrama,
     objectiveStreak: s.objectiveStreak,
     facilities: s.facilities, scouting: s.scouting,
@@ -127,6 +128,7 @@ const Dashboard = () => {
   const dismissMidSeason = () => { setMidSeasonShown(true); setFlag(`dynasty-midseason-s${season}`); };
   const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
   const [financeSheetMode, setFinanceSheetMode] = useState<FinanceSheetMode>('all');
+  const [showMoreDetails, setShowMoreDetails] = useState(false);
   // Reset board warning dismissal when confidence changes significantly
   const prevConfRef = useRef(boardConfidence);
   useEffect(() => {
@@ -560,8 +562,8 @@ const Dashboard = () => {
         </div>
       )}
 
-      {/* Deadline Day Banner */}
-      {(week === SUMMER_WINDOW_END || week === WINTER_WINDOW_END) && (
+      {/* Transfer Window Countdown / Deadline Day */}
+      {(week === SUMMER_WINDOW_END || week === WINTER_WINDOW_END) ? (
         <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2 flex items-center justify-between animate-pulse">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-destructive" />
@@ -569,7 +571,28 @@ const Dashboard = () => {
           </div>
           <span className="text-[10px] text-muted-foreground">Transfer window closes today</span>
         </div>
-      )}
+      ) : transferWindowOpen && (() => {
+        const windowEnd = week <= SUMMER_WINDOW_END ? SUMMER_WINDOW_END : WINTER_WINDOW_END;
+        const weeksLeft = windowEnd - week;
+        const windowName = week <= SUMMER_WINDOW_END ? 'Summer' : 'Winter';
+        const isUrgent = weeksLeft <= 2;
+        return (
+          <div className={cn(
+            'rounded-xl px-3 py-2 flex items-center justify-between',
+            isUrgent ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-primary/5 border border-primary/20'
+          )} onClick={() => setScreen('transfers')}>
+            <div className="flex items-center gap-2">
+              <ShoppingBag className={cn('w-4 h-4', isUrgent ? 'text-amber-400' : 'text-primary')} />
+              <span className={cn('text-xs font-semibold', isUrgent ? 'text-amber-400' : 'text-primary')}>
+                {windowName} Transfer Window
+              </span>
+            </div>
+            <span className={cn('text-[10px] font-medium', isUrgent ? 'text-amber-400' : 'text-muted-foreground')}>
+              {weeksLeft} week{weeksLeft !== 1 ? 's' : ''} remaining
+            </span>
+          </div>
+        );
+      })()}
       {activeChallenge?.completed && (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3 py-2 text-center">
           <span className="text-xs font-bold text-emerald-400">Challenge Complete!</span>
@@ -745,7 +768,9 @@ const Dashboard = () => {
               <span className="text-[10px] text-primary/60">|</span>
               <span className="text-[10px] font-medium text-primary/70">Fam {training.tacticalFamiliarity}%</span>
             </div>
-            <span className="text-[10px] text-muted-foreground">Week {week} / Season {season}</span>
+            <span className="text-[10px] text-muted-foreground">
+              Wk {week} / S{season} · {week <= SUMMER_WINDOW_END ? 'Pre-Season' : week < WINTER_WINDOW_START ? 'Autumn' : week <= WINTER_WINDOW_END ? 'Winter' : week <= 38 ? 'Spring' : 'Run-In'}
+            </span>
           </div>
 
           {/* Active Streaks */}
@@ -1284,6 +1309,17 @@ const Dashboard = () => {
         </GlassPanel>
       </div>
 
+      {/* Show More / Less toggle for secondary details */}
+      <button
+        type="button"
+        onClick={() => setShowMoreDetails(prev => !prev)}
+        className="w-full flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', showMoreDetails && 'rotate-180')} />
+        {showMoreDetails ? 'Show Less' : 'Show More Details'}
+      </button>
+
+      {showMoreDetails && <>
       {/* Recent Form with Momentum */}
       {lastResults.length > 0 && (() => {
         const recent = lastResults.slice(0, 5).map(m => {
@@ -1463,6 +1499,27 @@ const Dashboard = () => {
         </GlassPanel>
       )}
 
+      {/* Super Cup Status */}
+      {(domesticSuperCup || continentalSuperCup) && (
+        <GlassPanel className="p-4" onClick={() => setScreen('super-cup')}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Trophy className={cn('w-5 h-5', (domesticSuperCup?.winnerId === playerClubId || continentalSuperCup?.winnerId === playerClubId) ? 'text-amber-400' : 'text-muted-foreground')} />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Super Cup</p>
+                <p className="text-xs text-muted-foreground">
+                  {domesticSuperCup?.winnerId
+                    ? `Winner: ${clubs[domesticSuperCup.winnerId]?.shortName || '?'}`
+                    : domesticSuperCup?.played === false ? `Week ${domesticSuperCup.week}`
+                    : 'View matches'}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        </GlassPanel>
+      )}
+
       {/* Board Objectives */}
       <GlassPanel className="p-4" onClick={() => setScreen('board')}>
         <div className="flex items-center justify-between mb-3">
@@ -1510,6 +1567,7 @@ const Dashboard = () => {
           <span className="text-primary">+{sessionStats.xpEarned} XP</span>
         </div>
       )}
+      </>}
 
     </div>
     <FinanceBreakdownSheet open={financeSheetOpen} onOpenChange={setFinanceSheetOpen} mode={financeSheetMode} />

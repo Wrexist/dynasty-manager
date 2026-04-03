@@ -10,7 +10,7 @@ import type { ProductId, ProFeature, CosmeticItem, AdRewardType, MonetizationSta
 
 // ── Product Definitions ──
 
-export interface ProductDef {
+interface ProductDef {
   id: ProductId;
   name: string;
   description: string;

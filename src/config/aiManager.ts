@@ -75,7 +75,7 @@ const AI_MANAGER_LAST_NAMES = [
 export const AI_REACTIVITY_MINUTES = [60, 75] as const;
 
 /** How much AI shifts mentality when losing */
-export const AI_LOSING_MENTALITY_SHIFT: Record<string, string> = {
+const AI_LOSING_MENTALITY_SHIFT: Record<string, string> = {
   'defensive': 'cautious',
   'cautious': 'balanced',
   'balanced': 'attacking',
@@ -84,24 +84,13 @@ export const AI_LOSING_MENTALITY_SHIFT: Record<string, string> = {
 };
 
 /** How much AI shifts mentality when winning */
-export const AI_WINNING_MENTALITY_SHIFT: Record<string, string> = {
+const AI_WINNING_MENTALITY_SHIFT: Record<string, string> = {
   'all-out-attack': 'attacking',
   'attacking': 'balanced',
   'balanced': 'cautious',
   'cautious': 'defensive',
   'defensive': 'defensive',
 };
-
-// ── Transfer Behavior Constants ──
-
-/** Base chance per week that an AI club evaluates a transfer (multiplied by transferAggression) */
-export const AI_TRANSFER_BASE_CHANCE = 0.12;
-/** Bonus chance for clubs in the relegation zone */
-export const AI_RELEGATION_TRANSFER_BONUS = 0.15;
-/** Max age an AI with high youthFocus will consider */
-export const AI_YOUTH_FOCUS_MAX_AGE = 26;
-/** Min overall an AI with low youthFocus will consider */
-export const AI_EXPERIENCE_MIN_OVERALL = 70;
 
 // ── Profile Generation ──
 

@@ -455,13 +455,6 @@ export function getContinentalResultForClub(
 }
 
 /**
- * Get the competition display name.
- */
-export function getCompetitionName(competition: ContinentalCompetition): string {
-  return competition === 'champions_cup' ? 'Champions Cup' : 'Shield Cup';
-}
-
-/**
  * Get knockout round display name.
  */
 export function getKnockoutRoundName(round: string): string {

@@ -3,7 +3,7 @@
  * Each nationality has a set of first and last names common to that country.
  */
 
-export interface NationalityNamePool {
+interface NationalityNamePool {
   firstNames: string[];
   lastNames: string[];
 }

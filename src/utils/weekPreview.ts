@@ -7,7 +7,7 @@ import {
 } from '@/config/gameBalance';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_END } from '@/config/transfers';
 
-export interface PreviewItem {
+interface PreviewItem {
   icon: string;
   text: string;
   type: 'positive' | 'neutral' | 'warning';
@@ -203,7 +203,7 @@ export function getFallbackPreview(ctx: PreviewContext): PreviewItem[] {
 
 // ── Cliffhanger Generation ──
 
-export interface CliffhangerContext {
+interface CliffhangerContext {
   playerClubId: string;
   players: Record<string, Player>;
   clubs: Record<string, Club>;

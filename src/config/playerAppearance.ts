@@ -31,21 +31,6 @@ export const PLAYER_HAIR_COLORS = [
   '#E8D5B7', // Platinum
 ];
 
-// ── Facial Hair (5 options) ──
-export const PLAYER_FACIAL_HAIR = ['none', 'stubble', 'goatee', 'short_beard', 'full_beard'] as const;
-
-// ── Accessories (5 options) ──
-export const PLAYER_ACCESSORIES = ['none', 'headband', 'wristband', 'armband', 'sleeve_tape'] as const;
-
-// ── Boot Colors (4 options) ──
-export const PLAYER_BOOT_COLORS = ['#1a1a1a', '#f0f0f0', '#39ff14', '#e63946'] as const;
-
-// ── Height (3 options) ──
-export const PLAYER_HEIGHTS = ['short', 'medium', 'tall'] as const;
-
-// ── Build (3 options) ──
-export const PLAYER_BUILDS = ['lean', 'average', 'stocky'] as const;
-
 // ── Nationality → Skin Tone Distribution ──
 // Weights for each skin tone index (0-7). Higher weight = more likely.
 type SkinWeights = [number, number, number, number, number, number, number, number];
@@ -149,22 +134,3 @@ export function generatePlayerAppearance(nationality: string, position: string):
   };
 }
 
-// ── Deterministic generation from player ID (for backward compat / migration) ──
-export function generateAppearanceFromId(playerId: string): PlayerAppearance {
-  let hash = 5381;
-  for (let i = 0; i < playerId.length; i++) {
-    hash = ((hash << 5) + hash + playerId.charCodeAt(i)) | 0;
-  }
-  hash = Math.abs(hash);
-
-  return {
-    skinTone: hash % PLAYER_SKIN_TONES.length,
-    hairStyle: (hash >> 3) % PLAYER_HAIR_STYLES.length,
-    hairColor: (hash >> 6) % PLAYER_HAIR_COLORS.length,
-    height: (hash >> 9) % 3,
-    build: (hash >> 11) % 3,
-    facialHair: (hash >> 13) % PLAYER_FACIAL_HAIR.length,
-    accessory: (hash >> 15) % PLAYER_ACCESSORIES.length,
-    bootColor: (hash >> 17) % PLAYER_BOOT_COLORS.length,
-  };
-}

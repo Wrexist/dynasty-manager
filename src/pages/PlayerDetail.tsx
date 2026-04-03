@@ -202,7 +202,10 @@ const PlayerDetail = () => {
           </div>
           <div className="flex-1">
             <p className="text-xl font-black text-foreground">{player.firstName} {player.lastName}</p>
-            <p className="text-sm text-muted-foreground">{player.position} · {player.age} · {getFlag(player.nationality)} {player.nationality}</p>
+            <p className="text-sm text-muted-foreground">
+              {player.position} · {player.age} · {getFlag(player.nationality)} {player.nationality}
+              {player.potential > player.overall && <span className="text-primary"> · Pot {player.potential}</span>}
+            </p>
             <div className="flex items-center gap-1.5 mt-1">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: club?.color || '#888' }} />
               <span className="text-xs text-muted-foreground">{club?.name || 'Unknown'}</span>
@@ -408,6 +411,14 @@ const PlayerDetail = () => {
         </GlassPanel>
       )}
 
+      {/* Positive Status — show when no issues */}
+      {isOwnPlayer && !player.injured && !player.wantsToLeave && player.morale >= 50 && moraleFactors.every(f => f.impact !== 'negative') && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+          <Heart className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="text-xs text-emerald-400 font-medium">Player is fit, happy, and settled at the club</span>
+        </div>
+      )}
+
       {/* Development Curve */}
       <GlassPanel className="p-4">
         <div className="flex items-center justify-between mb-2">
@@ -451,6 +462,17 @@ const PlayerDetail = () => {
             </span>
             <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">Potential <InfoTip text={HELP_TEXTS.potential} className="[&>:last-child]:absolute [&>:last-child]:left-0 [&>:last-child]:right-0 [&>:last-child]:top-full" /></span>
           </div>
+          {/* Growth trajectory context */}
+          {isGrowing && player.potential - player.overall > 0 && (
+            <p className="text-[10px] text-emerald-400/80 mt-1.5">
+              Peak years: {Math.max(player.age, 27)}-{Math.min(30, Math.max(player.age + 1, 29))} · Room to grow +{player.potential - player.overall} OVR
+            </p>
+          )}
+          {isDeclining && (
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              Past peak — expect gradual attribute decline each season
+            </p>
+          )}
         </div>
       </GlassPanel>
 

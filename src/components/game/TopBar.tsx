@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { Calendar, Trophy, Save, ArrowLeft, Star, Check } from 'lucide-react';
+import { Calendar, Save, ArrowLeft, Star, Check } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getSuffix } from '@/utils/helpers';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation';
@@ -39,12 +39,23 @@ export function TopBar() {
 
   // Save button feedback state
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
 
   const handleSave = () => {
     saveGame();
     hapticMedium();
     setSaveState('saved');
+    setLastSavedAt(Date.now());
     setTimeout(() => setSaveState('idle'), SAVE_INDICATOR_MS);
+  };
+
+  // Format relative time for last saved
+  const getSavedAgo = () => {
+    if (!lastSavedAt) return null;
+    const mins = Math.floor((Date.now() - lastSavedAt) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins === 1) return '1m ago';
+    return `${mins}m ago`;
   };
 
   // XP bar glow on gain
@@ -121,15 +132,12 @@ export function TopBar() {
           )}
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="w-3 h-3" />
-            <span>Week {week}/{totalWeeks}</span>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Trophy className="w-3 h-3" />
-            <span>S{season}</span>
+            <span>W{week} · S{season}</span>
           </div>
           <button
             onClick={handleSave}
             aria-label="Save game"
+            title={lastSavedAt ? `Saved ${getSavedAgo()}` : 'Save game'}
             className={cn(
               'p-3 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center',
               saveState === 'saved' ? 'text-emerald-400' : 'text-muted-foreground hover:text-foreground'

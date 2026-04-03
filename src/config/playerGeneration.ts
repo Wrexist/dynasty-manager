@@ -13,25 +13,7 @@ export const YOUNG_POTENTIAL_GAP = 15;
 export const OLD_POTENTIAL_GAP = 5;
 
 // ── Attribute Generation ──
-export const DEFAULT_ATTRIBUTE_VARIANCE = 15;
 export const PROFILE_ATTRIBUTE_VARIANCE = 10;
-
-// ── Position Attribute Offsets ──
-// Each position profile defines offsets from base quality: [pace, shooting, passing, defending, physical, mental]
-export const POSITION_OFFSETS: Record<string, { pace: number; shooting: number; passing: number; defending: number; physical: number; mental: number }> = {
-  'GK':  { pace: -15, shooting: -30, passing: -10, defending:  5, physical:  0, mental:  5 },
-  'CB':  { pace:  -5, shooting: -20, passing:  -5, defending: 10, physical:  5, mental:  0 },
-  'LB':  { pace:   5, shooting: -15, passing:   0, defending:  5, physical:  0, mental: -5 },
-  'RB':  { pace:   5, shooting: -15, passing:   0, defending:  5, physical:  0, mental: -5 },
-  'CDM': { pace:  -5, shooting: -10, passing:   5, defending:  8, physical:  5, mental:  5 },
-  'CM':  { pace:   0, shooting:   0, passing:  10, defending:  0, physical:  0, mental:  5 },
-  'CAM': { pace:   0, shooting:   5, passing:  10, defending:-15, physical: -5, mental:  5 },
-  'LM':  { pace:   8, shooting:   0, passing:   5, defending: -5, physical:  0, mental:  0 },
-  'RM':  { pace:   8, shooting:   0, passing:   5, defending: -5, physical:  0, mental:  0 },
-  'LW':  { pace:  10, shooting:   5, passing:   5, defending:-20, physical: -5, mental:  0 },
-  'RW':  { pace:  10, shooting:   5, passing:   5, defending:-20, physical: -5, mental:  0 },
-  'ST':  { pace:   5, shooting:  12, passing:  -5, defending:-20, physical:  5, mental:  0 },
-} as const;
 
 // ── Position Weights for Overall Calculation ──
 // Order: [pace, shooting, passing, defending, physical, mental]
@@ -57,10 +39,10 @@ export const DEFAULT_POSITION_WEIGHTS = [1/6, 1/6, 1/6, 1/6, 1/6, 1/6];
 // Wage curve:  ~£1.1K/wk at OVR 40  →  ~£390K/wk at OVR 91
 export const VALUE_EXP_BASE = 550;
 export const VALUE_EXP_RATE = 0.136;
-export const VALUE_RANDOM_FACTOR = 0.15;
+const VALUE_RANDOM_FACTOR = 0.15;
 export const WAGE_EXP_BASE = 10;
 export const WAGE_EXP_RATE = 0.116;
-export const WAGE_RANDOM_FACTOR = 0.10;
+const WAGE_RANDOM_FACTOR = 0.10;
 export const WAGE_FLOOR = 500;
 
 /** Calculate realistic market value from overall rating using an exponential curve. */
@@ -72,11 +54,6 @@ export function calculatePlayerValue(overall: number): number {
 export function calculatePlayerWage(overall: number): number {
   return Math.max(WAGE_FLOOR, Math.round(WAGE_EXP_BASE * Math.exp(WAGE_EXP_RATE * overall) * (1 + Math.random() * WAGE_RANDOM_FACTOR)));
 }
-
-// Legacy aliases kept for save migration (these are used nowhere else now)
-export const VALUE_OVERALL_MULTIPLIER = 500;
-export const VALUE_RANDOM_RANGE = 500000;
-export const WAGE_DIVISOR = 520;
 
 // ── Contract ──
 export const CONTRACT_BASE_YEARS = 1;

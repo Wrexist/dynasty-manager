@@ -1,11 +1,8 @@
 import type { CupRound } from '@/types/game';
 
 // ── Continental Champions Cup ──
-export const CHAMPIONS_CUP_NAME = 'Champions Cup';
-export const CHAMPIONS_CUP_SHORT = 'CC';
 export const CHAMPIONS_CUP_GROUPS = 8;
 export const CHAMPIONS_CUP_TEAMS_PER_GROUP = 4;
-export const CHAMPIONS_CUP_TOTAL_TEAMS = 32;
 
 // Qualification spots per league quality tier
 // Tier 1 (5 leagues × 4) = 20, Tier 2 (4 leagues × 2) = 8, Tier 3 (top 4 × 1) = 4 → 32 total
@@ -19,8 +16,6 @@ export const CHAMPIONS_CUP_SPOTS: Record<number, number> = {
 export const CHAMPIONS_CUP_TIER3_MAX = 4;
 
 // ── Continental Shield Cup ──
-export const SHIELD_CUP_NAME = 'Shield Cup';
-export const SHIELD_CUP_SHORT = 'SC';
 export const SHIELD_CUP_TOTAL_TEAMS = 32;
 
 // Shield Cup spots: next positions after Champions Cup qualifiers + cup winners
@@ -45,7 +40,6 @@ export const CONTINENTAL_SF_WEEKS = [41, 42] as const;
 export const CONTINENTAL_FINAL_WEEK = 44;
 
 // ── Domestic League Cup ──
-export const LEAGUE_CUP_NAME = 'League Cup';
 export const LEAGUE_CUP_WEEKS: Record<CupRound, number> = {
   R1: 3,
   R2: 7,
@@ -62,7 +56,6 @@ export const CONTINENTAL_SUPER_CUP_WEEK = 2;
 
 // ── Match Simulation ──
 export const CONTINENTAL_EXTRA_TIME_GOAL_CHANCE = 0.30;
-export const CONTINENTAL_PENALTY_GK_FACTOR = 0.15;
 export const CONTINENTAL_PENALTY_KICKS = 5;
 export const CONTINENTAL_PENALTY_CONVERSION = 0.75;
 
@@ -92,17 +85,6 @@ export const REP_SHIELD_CUP_WIN = 50;
 export const REP_LEAGUE_CUP_WIN = 25;
 export const REP_CONTINENTAL_GROUP = 15;
 export const REP_CONTINENTAL_KNOCKOUT = 10; // per round advanced
-
-// ── XP Rewards ──
-export const XP_CHAMPIONS_CUP_WIN = 500;
-export const XP_SHIELD_CUP_WIN = 300;
-export const XP_LEAGUE_CUP_WIN = 150;
-export const XP_CONTINENTAL_GROUP_ADVANCE = 100;
-
-// ── Legacy Weights ──
-export const LEGACY_CHAMPIONS_CUP_WEIGHT = 120;
-export const LEGACY_SHIELD_CUP_WEIGHT = 70;
-export const LEGACY_LEAGUE_CUP_WEIGHT = 30;
 
 // ── Group Stage Round-Robin Fixture Template ──
 // For a group of 4 teams (indices 0-3), 6 matchdays

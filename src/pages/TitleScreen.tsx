@@ -56,7 +56,11 @@ const TitleScreen = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const slots = useMemo(() => getSlotSummaries(), [refreshKey]);
   const handleContinue = (slot: number) => {
-    if (loadGame(slot)) queueMicrotask(() => navigate('/game'));
+    if (loadGame(slot)) {
+      queueMicrotask(() => navigate('/game'));
+    } else {
+      errorToast('Save data corrupted', 'Your save could not be loaded. Try another slot or start a new game.');
+    }
   };
 
   const handleNewGame = (slot: number) => {

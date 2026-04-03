@@ -1,9 +1,9 @@
 import type { GameState } from '@/store/storeTypes';
 import { ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 
-export type AchievementTier = 'bronze' | 'silver' | 'gold';
+type AchievementTier = 'bronze' | 'silver' | 'gold';
 
-export interface AchievementProgress {
+interface AchievementProgress {
   current: number;
   target: number;
   label?: string;

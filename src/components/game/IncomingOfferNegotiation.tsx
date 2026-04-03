@@ -145,7 +145,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                     <Handshake className="w-5 h-5 text-primary" />
                     <p className="text-sm font-bold text-foreground font-display">Counter-Offer</p>
                   </div>
-                  <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+                  <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
                     <X className="w-4 h-4 text-muted-foreground" />
                   </button>
                 </div>

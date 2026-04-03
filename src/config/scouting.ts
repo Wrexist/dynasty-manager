@@ -23,15 +23,6 @@ export const REGION_QUALITY_RANGE: Record<ScoutRegion, [number, number]> = {
   asia: [45, 72],
 };
 
-// ── Age Ranges per Region ──
-export const REGION_AGE_RANGE: Record<ScoutRegion, [number, number]> = {
-  domestic: [18, 30],
-  europe: [19, 32],
-  'south-america': [17, 25],
-  africa: [17, 26],
-  asia: [18, 28],
-};
-
 // ── Players per Assignment ──
 export const PLAYERS_PER_ASSIGNMENT_MIN = 1;
 export const PLAYERS_PER_ASSIGNMENT_RANGE = 2;

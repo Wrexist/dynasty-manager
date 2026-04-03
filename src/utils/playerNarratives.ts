@@ -1,6 +1,6 @@
 import { Player } from '@/types/game';
 
-export type NarrativeTag = 'Club Legend' | 'One-Club Man' | 'Homegrown Hero' | 'Captain Fantastic' | 'Fan Favourite' | 'Rising Star' | 'Veteran Leader' | 'Record Breaker';
+type NarrativeTag = 'Club Legend' | 'One-Club Man' | 'Homegrown Hero' | 'Captain Fantastic' | 'Fan Favourite' | 'Rising Star' | 'Veteran Leader' | 'Record Breaker';
 
 export interface PlayerNarrative {
   tag: NarrativeTag;

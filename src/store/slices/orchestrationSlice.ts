@@ -24,7 +24,7 @@ import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achie
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getChampionsCupQualifiers, getShieldCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
 import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, getContinentalResultForClub, createEphemeralClub, findPlayerContinentalMatch } from '@/utils/continental';
-import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY } from '@/config/continental';
+import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
 import { generatePressConference } from '@/data/pressConferences';
 import { isPro } from '@/utils/monetization';
 import { getMentorBonus } from '@/utils/chemistry';
@@ -1486,9 +1486,28 @@ function finalizeSeason(
       if (state.cup.winner === playerClubId) {
         milestones.push(createMilestone('cup_win', 'Cup Winners!', `Won the cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
       }
+      if (state.leagueCup?.winner === playerClubId) {
+        milestones.push(createMilestone('cup_win', 'League Cup Winners!', `Won the League Cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
+      }
+      if (state.championsCup?.winnerId === playerClubId) {
+        milestones.push(createMilestone('cup_win', 'Champions Cup Winners!', `Won the Champions Cup in Season ${season}!`, season, TOTAL_WEEKS, 'trophy'));
+      }
+      if (state.shieldCup?.winnerId === playerClubId) {
+        milestones.push(createMilestone('cup_win', 'Shield Cup Winners!', `Won the Shield Cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
+      }
       return milestones;
     })(),
-    managerProgression: grantXP(state.managerProgression, XP_REWARDS.seasonEnd + (history.position === 1 ? XP_REWARDS.titleWin : 0) + (state.cup.winner === playerClubId ? XP_REWARDS.cupWin : 0)),
+    managerProgression: grantXP(state.managerProgression, (() => {
+      let xp = XP_REWARDS.seasonEnd;
+      if (history.position === 1) xp += XP_REWARDS.titleWin;
+      if (state.cup.winner === playerClubId) xp += XP_REWARDS.cupWin;
+      if (state.leagueCup?.winner === playerClubId) xp += XP_REWARDS.leagueCupWin;
+      if (state.championsCup?.winnerId === playerClubId) xp += XP_REWARDS.championsCupWin;
+      else if (state.championsCup && !state.championsCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
+      if (state.shieldCup?.winnerId === playerClubId) xp += XP_REWARDS.shieldCupWin;
+      else if (state.shieldCup && !state.shieldCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
+      return xp;
+    })()),
     seasonGrowthTracker: {},
     activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
   });
@@ -1583,6 +1602,39 @@ function finalizeSeason(
         if (cs.cup.winner === cs.playerClubId) {
           cm.cupsWon += 1;
           cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CUP_WIN);
+        }
+
+        // League Cup win
+        if (cs.leagueCup?.winner === cs.playerClubId) {
+          cm.cupsWon += 1;
+          cm.leagueCupsWon = (cm.leagueCupsWon || 0) + 1;
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_LEAGUE_CUP_WIN);
+        }
+
+        // Champions Cup win / continental progress
+        if (cs.championsCup?.winnerId === cs.playerClubId) {
+          cm.cupsWon += 1;
+          cm.continentalCupsWon = (cm.continentalCupsWon || 0) + 1;
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CHAMPIONS_CUP_WIN);
+        } else if (cs.championsCup && !cs.championsCup.playerEliminated) {
+          // Advanced past group stage
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CONTINENTAL_GROUP);
+          // Bonus per knockout round reached
+          const knockoutRounds = ['R16', 'QF', 'SF', 'F'];
+          const reached = knockoutRounds.indexOf(cs.championsCup.currentRound || '');
+          if (reached >= 0) cm.reputationScore = Math.min(1000, cm.reputationScore + (reached + 1) * REP_CONTINENTAL_KNOCKOUT);
+        }
+
+        // Shield Cup win / continental progress
+        if (cs.shieldCup?.winnerId === cs.playerClubId) {
+          cm.cupsWon += 1;
+          cm.continentalCupsWon = (cm.continentalCupsWon || 0) + 1;
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_SHIELD_CUP_WIN);
+        } else if (cs.shieldCup && !cs.shieldCup.playerEliminated) {
+          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CONTINENTAL_GROUP);
+          const knockoutRounds = ['R16', 'QF', 'SF', 'F'];
+          const reached = knockoutRounds.indexOf(cs.shieldCup.currentRound || '');
+          if (reached >= 0) cm.reputationScore = Math.min(1000, cm.reputationScore + (reached + 1) * REP_CONTINENTAL_KNOCKOUT);
         }
 
         // Promotion/relegation reputation
@@ -2194,8 +2246,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const aPlayers = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)).slice(0, 11);
 
         const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
-        const hasLeagueMatch = updatedFixtures.some(f => f.week === week && (f.homeClubId === playerClubId || f.awayClubId === playerClubId));
-        if (isPlayerMatch && !hasLeagueMatch) continue; // Player's cup match is played interactively only when no league match
+        if (isPlayerMatch) continue; // Player's cup match is played interactively
         // Forfeit if either team has no available players
         if (hPlayers.length === 0 || aPlayers.length === 0) {
           const winnerId = hPlayers.length === 0 ? tie.awayClubId : tie.homeClubId;
@@ -2375,6 +2426,32 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             scResult.awayGoals > scResult.homeGoals ? newDomesticSuperCup.awayClubId :
             Math.random() < 0.5 ? newDomesticSuperCup.homeClubId : newDomesticSuperCup.awayClubId;
           newDomesticSuperCup = { ...newDomesticSuperCup, played: true, homeGoals: scResult.homeGoals, awayGoals: scResult.awayGoals, winnerId };
+        }
+      }
+    }
+
+    // ── Continental Super Cup Simulation ──
+    let newContinentalSuperCup = state.continentalSuperCup;
+    if (newContinentalSuperCup && !newContinentalSuperCup.played && week === CONTINENTAL_SUPER_CUP_WEEK) {
+      const hClub = clubs[newContinentalSuperCup.homeClubId] || (state.virtualClubs || {})[newContinentalSuperCup.homeClubId];
+      const aClub = clubs[newContinentalSuperCup.awayClubId] || (state.virtualClubs || {})[newContinentalSuperCup.awayClubId];
+      const isPlayerMatch = newContinentalSuperCup.homeClubId === playerClubId || newContinentalSuperCup.awayClubId === playerClubId;
+      if (!isPlayerMatch && hClub && aClub) {
+        const hPlayers = (hClub as Club).playerIds ? (hClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).slice(0, 11) : [];
+        const aPlayers = (aClub as Club).playerIds ? (aClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).slice(0, 11) : [];
+        if (hPlayers.length > 0 && aPlayers.length > 0) {
+          const { result: scResult } = simulateMatch(
+            { id: 'continental-super-cup', week, homeClubId: newContinentalSuperCup.homeClubId, awayClubId: newContinentalSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
+            hClub as Club, aClub as Club, hPlayers, aPlayers, undefined, undefined, undefined, undefined, 0, undefined, season
+          );
+          const winnerId = scResult.homeGoals > scResult.awayGoals ? newContinentalSuperCup.homeClubId :
+            scResult.awayGoals > scResult.homeGoals ? newContinentalSuperCup.awayClubId :
+            Math.random() < 0.5 ? newContinentalSuperCup.homeClubId : newContinentalSuperCup.awayClubId;
+          newContinentalSuperCup = { ...newContinentalSuperCup, played: true, homeGoals: scResult.homeGoals, awayGoals: scResult.awayGoals, winnerId };
+        } else {
+          // Forfeit if virtual clubs without real players — random winner
+          const winnerId = Math.random() < 0.5 ? newContinentalSuperCup.homeClubId : newContinentalSuperCup.awayClubId;
+          newContinentalSuperCup = { ...newContinentalSuperCup, played: true, homeGoals: winnerId === newContinentalSuperCup.homeClubId ? 1 : 0, awayGoals: winnerId === newContinentalSuperCup.awayClubId ? 1 : 0, winnerId };
         }
       }
     }
@@ -2868,8 +2945,21 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       else if (obj.description === 'Finish in Top 3') o.completed = playerPos <= 3;
       else if (obj.description === 'Finish in Top 6') o.completed = playerPos <= 6;
       else if (obj.description === 'Reach Top Half' || obj.description === 'Finish in Top Half') o.completed = playerPos <= 10;
-      else if (obj.description === 'Avoid Relegation (Top 17)') o.completed = playerPos <= 17;
+      else if (obj.description.startsWith('Avoid Replacement')) {
+        const posMatch = obj.description.match(/Top (\d+)/);
+        const safePos = posMatch ? parseInt(posMatch[1]) : 17;
+        o.completed = playerPos <= safePos;
+      }
       else if (obj.description === 'Stay within budget') o.completed = newClubs[playerClubId].budget >= 0;
+      else if (obj.description === 'Win the Cup') o.completed = newCup.winner === playerClubId;
+      else if (obj.description === 'Reach Cup Semi-Final') {
+        const sfOrBetter = ['SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
+        o.completed = !newCup.eliminated && sfOrBetter;
+      }
+      else if (obj.description === 'Reach Cup Quarter-Final') {
+        const qfOrBetter = ['QF', 'SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
+        o.completed = !newCup.eliminated && qfOrBetter;
+      }
       return o;
     });
 
@@ -3077,6 +3167,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       championsCup: newChampionsCup,
       shieldCup: newShieldCup,
       domesticSuperCup: newDomesticSuperCup,
+      continentalSuperCup: newContinentalSuperCup,
       activeChallenge: updatedChallenge,
       divisionFixtures: updatedDivisionFixtures, divisionTables,
       careerTimeline: [...state.careerTimeline, ...newTimeline].slice(-MAX_CAREER_TIMELINE),
@@ -3776,6 +3867,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (!hc || !ac) return null;
     const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
     const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
+    // Need minimum players to continue into extra time
+    if (hp.length < 7 || ap.length < 7) return null;
 
     const isPlayerHome = currentMatchResult.homeClubId === playerClubId;
     const homeTactics = isPlayerHome ? tactics : undefined;

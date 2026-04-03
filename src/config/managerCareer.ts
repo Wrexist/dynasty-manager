@@ -11,7 +11,7 @@ export const STARTING_ATTRIBUTE_MAX = 8;
 export const STARTING_AGE_MIN = 30;
 export const STARTING_AGE_MAX = 55;
 export const TRAITS_TO_PICK = 2;
-export const TRAIT_ATTRIBUTE_BONUS = 3;
+const TRAIT_ATTRIBUTE_BONUS = 3;
 
 // ── Reputation Tiers (0-1000 scale) ──
 export const REP_TIER_THRESHOLDS = {
@@ -51,7 +51,6 @@ export const STAT_MAX = 20;
 // ── Gameplay Modifiers Per Attribute Point ──
 export const MOD_TACTICAL_FAMILIARITY = 0.02;     // +2% familiarity gain per point
 export const MOD_MOTIVATION_MORALE = 0.025;        // +2.5% morale effect per point
-export const MOD_NEGOTIATION_FEE = 0.005;           // -0.5% transfer fees per point
 export const MOD_SCOUTING_SPEED = 0.03;             // -3% scouting time per point
 export const MOD_YOUTH_GROWTH = 0.015;              // +1.5% youth growth per point
 export const MOD_DISCIPLINE_CARDS = 0.015;          // -1.5% card chance per point
@@ -61,7 +60,6 @@ export const MOD_MEDIA_PRESS = 0.04;                // +4% press effects per poi
 export const MAX_VACANCIES = 5;
 export const VACANCY_DURATION_WEEKS = 8;
 export const JOB_MARKET_REFRESH_WEEKS = [1, 24, 46];
-export const AI_SACKING_POSITION_THRESHOLD = 6;     // positions below expected = sacked
 export const STARTING_JOB_OFFERS = 3;
 
 // ── Starting Offer Negotiation ──
@@ -86,6 +84,8 @@ export const LEGACY_CUP_WEIGHT = 60;
 export const LEGACY_MATCH_WIN_WEIGHT = 1;
 export const LEGACY_REPUTATION_WEIGHT = 0.5;
 export const LEGACY_AWARD_WEIGHT = 15;
+export const LEGACY_CONTINENTAL_CUP_WEIGHT = 95;
+export const LEGACY_LEAGUE_CUP_WEIGHT = 30;
 
 // ── Manager of the Month/Season ──
 export const MOTM_CHECK_INTERVAL = 4; // every 4 weeks
@@ -95,7 +95,7 @@ export const MOTM_MIN_MATCHES = 3;    // minimum matches to qualify
 export const CAREER_START_QUALITY_TIERS: (1 | 2 | 3 | 4)[] = [3, 4];
 
 // ── Trait Definitions ──
-export interface ManagerTraitDef {
+interface ManagerTraitDef {
   id: ManagerTraitId;
   name: string;
   description: string;

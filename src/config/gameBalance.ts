@@ -82,7 +82,7 @@ export const CONFIDENCE_MIN = 10;
 export const CONFIDENCE_MAX = 100;
 
 // ── Expected Position by Reputation ──
-export const EXPECTED_POSITION_BY_REP: { minRep: number; expectedPos: number }[] = [
+const EXPECTED_POSITION_BY_REP: { minRep: number; expectedPos: number }[] = [
   { minRep: 5, expectedPos: 3 },
   { minRep: 4, expectedPos: 8 },
   { minRep: 3, expectedPos: 12 },
@@ -101,7 +101,6 @@ export const FITNESS_DRAIN_PER_MATCH = -15;
 export const FITNESS_MIN_POST_MATCH = 40;
 export const MORALE_WIN_CHANGE = 8;
 export const MORALE_LOSS_CHANGE = -10;
-export const MORALE_DRAW_CHANGE = 0;
 export const FORM_WIN_CHANGE = 5;
 export const FORM_LOSS_CHANGE = -8;
 export const FORM_DRAW_CHANGE = -2;
@@ -109,8 +108,6 @@ export const FORM_DRAW_CHANGE = -2;
 // ── Injury ──
 export const MATCH_INJURY_WEEKS_MIN = 1;
 export const MATCH_INJURY_WEEKS_RANGE = 4;
-export const TRAINING_INJURY_WEEKS_MIN = 1;
-export const TRAINING_INJURY_WEEKS_RANGE = 2;
 export const RED_CARD_SUSPENSION_MIN = 1;
 export const RED_CARD_SUSPENSION_RANGE = 2;
 
@@ -140,7 +137,6 @@ export const COMMERCIAL_INCOME_BASE = 100000;
 export const STADIUM_INCOME_PER_LEVEL = 20000;
 export const POSITION_PRIZE_PER_RANK = 15000;
 export const POSITION_PRIZE_MAX_RANK = 21;
-export const MERCHANDISE_FAN_MULTIPLIER = 10000;
 export const SCOUTING_COST_PER_ASSIGNMENT = 25000;
 export const FAN_MOOD_BASE = 0.8;
 export const FAN_MOOD_SCALE = 0.4;
@@ -225,13 +221,6 @@ export const AI_LOAN_RECALL_CLAUSE_CHANCE = 0.4;
 export const AI_LOAN_OBLIGATORY_BUY_CHANCE = 0.2;
 export const AI_LOAN_OBLIGATORY_BUY_MULTIPLIER = 0.8;
 
-// ── AI Inter-Club Transfers ──
-export const AI_TRANSFER_CHANCE = 0.10;
-export const AI_TRANSFER_FEE_BASE = 0.9;
-export const AI_TRANSFER_FEE_RANGE = 0.3;
-export const AI_TRANSFER_MAX_BUDGET_RATIO = 0.35;
-export const AI_TRANSFER_MIN_BUDGET = 2_000_000;
-
 // ── Win Streak Bonuses ──
 export const STREAK_MORALE_THRESHOLD = 3;
 export const STREAK_MORALE_BONUS = 2;
@@ -264,7 +253,7 @@ export const PRESS_BIG_MATCH_REP_GAP = 2;
 // ── Injury Types & Severity ──
 import type { InjuryType, InjurySeverity } from '@/types/game';
 
-export interface InjuryTypeConfig {
+interface InjuryTypeConfig {
   /** Display name */
   label: string;
   /** Weeks range by severity */
@@ -412,9 +401,6 @@ export const TRANSFER_TALK_CONVINCE_FAIL_MORALE = 5;
 // ── Free Agent Market ──
 /** Maximum free agents in the pool at any time */
 export const FREE_AGENT_POOL_MAX = 40;
-/** Chance per week that an AI club signs a free agent */
-export const AI_FREE_AGENT_SIGN_CHANCE = 0.08;
-
 // ── Cliffhanger System ──
 /** Maximum number of cliffhangers shown per week */
 export const MAX_CLIFFHANGERS = 3;
@@ -458,10 +444,6 @@ export const DRAMA_THRASHING_MARGIN = 4;
 /** Reputation gap for underdog detection */
 export const DRAMA_UNDERDOG_REP_GAP = 2;
 
-// ── Session Summary ──
-/** Minimum weeks played before showing session summary */
-export const SESSION_SUMMARY_MIN_WEEKS = 5;
-
 // ── Celebration Milestones ──
 export const GOAL_MILESTONES = [10, 15, 20, 25, 30] as const;
 export const ASSIST_MILESTONES = [10, 15, 20] as const;
@@ -479,10 +461,7 @@ export const MANAGER_XP_BASE = 50;
 export const MANAGER_XP_PER_LEVEL = 30;
 
 // ── Talent Tree ──
-export const TALENT_TREE_ROW_COSTS = [100, 200, 400, 600, 800] as const;
-export const CAPSTONE_COST = 1200;
 export const CAPSTONE_MIN_BRANCHES = 2;
-export const FORTRESS_HOME_MORALE = 3;
 export const TRAINING_GROUND_BOOST = 0.2;
 export const GOLDEN_GEN_MIN_POTENTIAL = 75;
 
@@ -490,8 +469,6 @@ export const GOLDEN_GEN_MIN_POTENTIAL = 75;
 export const CONFIDENCE_CHANGE_DISMISS_THRESHOLD = 5;
 
 // ── International / National Team ──
-/** Total number of international weeks appended after season end (weeks 47-52) */
-export const INTERNATIONAL_BREAK_WEEKS = 6;
 /** World Cup occurs every N seasons */
 export const WORLD_CUP_FREQUENCY = 4;
 /** Continental cup occurs every N seasons (offset by 2 from WC) */
@@ -506,12 +483,8 @@ export const CONTINENTAL_CUP_GROUPS = 4;
 export const NATIONAL_SQUAD_SIZE = 23;
 /** Morale boost for players called up to national team */
 export const NATIONAL_CALLUP_MORALE_BOOST = 5;
-/** Injury risk per international match (base) */
-export const INTERNATIONAL_INJURY_RISK = 0.04;
 /** Fitness cost per international match */
 export const INTERNATIONAL_FITNESS_COST = 8;
-/** Number of total nations in the world pool */
-export const TOTAL_NATIONS = 51;
 
 // ── Random Mid-Season Events ──
 /** Base chance per week that a random event triggers */
@@ -526,7 +499,3 @@ export const FAN_RALLY_MORALE_BOOST = 5;
 export const SPONSOR_BONUS_MULTIPLIER = 0.10;
 /** Extra board confidence penalty during media scrutiny */
 export const MEDIA_SCRUTINY_CONFIDENCE_HIT = 3;
-/** Temporary attribute boost from youth breakthrough */
-export const YOUTH_BREAKTHROUGH_ATTR_BOOST = 3;
-/** Duration in weeks for youth breakthrough boost */
-export const YOUTH_BREAKTHROUGH_DURATION = 4;

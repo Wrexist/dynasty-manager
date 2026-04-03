@@ -29,6 +29,10 @@ const drawerSections: DrawerSection[] = [
       { screen: 'inbox', label: 'Inbox', icon: Mail, description: 'Messages & news' },
       { screen: 'league-table', label: 'League', icon: Trophy, description: 'Standings & results' },
       { screen: 'cup', label: 'Cup', icon: Award, description: 'Knockout tournament' },
+      { screen: 'league-cup', label: 'League Cup', icon: Award, description: 'Secondary cup competition' },
+      { screen: 'champions-cup', label: 'Champions Cup', icon: Trophy, description: 'Elite continental tournament' },
+      { screen: 'shield-cup', label: 'Shield Cup', icon: Trophy, description: 'Secondary continental cup' },
+      { screen: 'super-cup', label: 'Super Cup', icon: Award, description: 'Season-opening showcase' },
       { screen: 'national-team', label: 'National Team', icon: Globe, description: 'International management' },
       { screen: 'calendar', label: 'Calendar', icon: Calendar, description: 'Season schedule' },
     ],
@@ -121,7 +125,7 @@ export function MoreDrawer() {
           {drawerSections.map(section => {
             // In career mode, prepend career-specific items to the Career section
             const allItems = (section.title === 'Career' && gameMode === 'career')
-              ? [...CAREER_MODE_ITEMS, ...section.items.filter(i => i.screen !== 'perks')]
+              ? [...CAREER_MODE_ITEMS, ...section.items]
               : section.items;
             const items = search.trim()
               ? allItems.filter(i => i.label.toLowerCase().includes(search.toLowerCase()) || i.description.toLowerCase().includes(search.toLowerCase()))

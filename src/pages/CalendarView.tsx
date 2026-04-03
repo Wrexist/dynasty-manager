@@ -9,7 +9,7 @@ import { getDerbyIntensity } from '@/data/league';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
 import { PageHint } from '@/components/game/PageHint';
 import { TOTAL_WEEKS, BOARD_REVIEW_WEEKS } from '@/config/gameBalance';
-import type { CupRound, Match, CupTie } from '@/types/game';
+import type { CupRound, Match, CupTie, ContinentalTournamentState, SuperCupMatch } from '@/types/game';
 
 interface CalendarEntry {
   week: number;
@@ -17,6 +17,7 @@ interface CalendarEntry {
   match: Match | null;
   cupTie: CupTie | null;
   intlLabel?: string;
+  competitionLabel?: string;
 }
 
 interface PhaseGroup {
@@ -31,7 +32,9 @@ interface PhaseGroup {
 const CalendarView = () => {
   const {
     week, season, fixtures, clubs, playerClubId,
-    transferWindowOpen, cup, totalWeeks, internationalTournament,
+    transferWindowOpen, cup, leagueCup, championsCup, shieldCup,
+    domesticSuperCup, continentalSuperCup, virtualClubs,
+    totalWeeks, internationalTournament,
     nationalTeam, currentMatchResult,
   } = useGameStore(useShallow((s) => ({
     week: s.week,
@@ -41,6 +44,12 @@ const CalendarView = () => {
     playerClubId: s.playerClubId,
     transferWindowOpen: s.transferWindowOpen,
     cup: s.cup,
+    leagueCup: s.leagueCup,
+    championsCup: s.championsCup,
+    shieldCup: s.shieldCup,
+    domesticSuperCup: s.domesticSuperCup,
+    continentalSuperCup: s.continentalSuperCup,
+    virtualClubs: s.virtualClubs,
     totalWeeks: s.totalWeeks,
     internationalTournament: s.internationalTournament,
     nationalTeam: s.nationalTeam,
@@ -75,9 +84,65 @@ const CalendarView = () => {
 
     for (const tie of playerCupTies) {
       const existing = weekMap.get(tie.week) || [];
-      existing.push({ week: tie.week, type: 'cup', match: null, cupTie: tie });
+      existing.push({ week: tie.week, type: 'cup', match: null, cupTie: tie, competitionLabel: 'Dynasty Cup' });
       weekMap.set(tie.week, existing);
     }
+
+    // League Cup ties
+    const playerLeagueCupTies = (leagueCup?.ties || [])
+      .filter(t =>
+        (t.homeClubId === playerClubId || t.awayClubId === playerClubId) &&
+        t.awayClubId !== CUP_BYE_MARKER && t.homeClubId !== CUP_BYE_MARKER
+      );
+    for (const tie of playerLeagueCupTies) {
+      const existing = weekMap.get(tie.week) || [];
+      existing.push({ week: tie.week, type: 'cup', match: null, cupTie: tie, competitionLabel: 'League Cup' });
+      weekMap.set(tie.week, existing);
+    }
+
+    // Continental group + knockout fixtures
+    const addContinentalFixtures = (tourney: ContinentalTournamentState | null, name: string) => {
+      if (!tourney) return;
+      for (const group of tourney.groups || []) {
+        for (const m of group.matches || []) {
+          if (m.homeClubId !== playerClubId && m.awayClubId !== playerClubId) continue;
+          const w = m.week;
+          const existing = weekMap.get(w) || [];
+          existing.push({ week: w, type: 'cup', match: null, cupTie: { id: `${name}-grp-${w}`, week: w, round: 'GS' as CupRound, homeClubId: m.homeClubId, awayClubId: m.awayClubId, played: m.played, homeGoals: m.homeGoals, awayGoals: m.awayGoals }, competitionLabel: `${name} Group` });
+          weekMap.set(w, existing);
+        }
+      }
+      for (const tie of tourney.knockoutTies || []) {
+        if (tie.homeClubId !== playerClubId && tie.awayClubId !== playerClubId) continue;
+        // Leg 1
+        if (tie.week1) {
+          const w = tie.week1;
+          const existing = weekMap.get(w) || [];
+          existing.push({ week: w, type: 'cup', match: null, cupTie: { id: `${name}-ko-${w}`, week: w, round: tie.round as CupRound, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: tie.leg1Played, homeGoals: tie.leg1Home || 0, awayGoals: tie.leg1Away || 0 }, competitionLabel: `${name} ${tie.round}` });
+          weekMap.set(w, existing);
+        }
+        // Leg 2 (not for finals)
+        if (tie.week2 && tie.round !== 'F') {
+          const w = tie.week2;
+          const existing = weekMap.get(w) || [];
+          existing.push({ week: w, type: 'cup', match: null, cupTie: { id: `${name}-ko2-${w}`, week: w, round: tie.round as CupRound, homeClubId: tie.awayClubId, awayClubId: tie.homeClubId, played: tie.leg2Played, homeGoals: tie.leg2Home || 0, awayGoals: tie.leg2Away || 0 }, competitionLabel: `${name} ${tie.round} Leg 2` });
+          weekMap.set(w, existing);
+        }
+      }
+    };
+    addContinentalFixtures(championsCup, 'Champions Cup');
+    addContinentalFixtures(shieldCup, 'Shield Cup');
+
+    // Super Cup fixtures
+    const addSuperCup = (sc: SuperCupMatch | null, label: string) => {
+      if (!sc || (sc.homeClubId !== playerClubId && sc.awayClubId !== playerClubId)) return;
+      const w = sc.week;
+      const existing = weekMap.get(w) || [];
+      existing.push({ week: w, type: 'cup', match: null, cupTie: { id: `sc-${label}`, week: w, round: 'F' as CupRound, homeClubId: sc.homeClubId, awayClubId: sc.awayClubId, played: sc.played, homeGoals: sc.homeGoals, awayGoals: sc.awayGoals }, competitionLabel: label });
+      weekMap.set(w, existing);
+    };
+    addSuperCup(domesticSuperCup, 'Super Cup');
+    addSuperCup(continentalSuperCup, 'Continental Super Cup');
 
     // Add international tournament matches (weeks 47+)
     if (internationalTournament && nationalTeam) {
@@ -155,7 +220,7 @@ const CalendarView = () => {
       entries: allEntries,
       stats: { wins, draws, losses, goalsFor, goalsAgainst, played: wins + draws + losses },
     };
-  }, [fixtures, cup, playerClubId, weekCount, internationalTournament, nationalTeam]);
+  }, [fixtures, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup, virtualClubs, playerClubId, clubs, weekCount, internationalTournament, nationalTeam]);
 
   // Recent form (last 5 league results)
   const recentForm = useMemo(() => {
@@ -346,9 +411,15 @@ const CalendarView = () => {
         <GlassPanel className="p-3">
           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Transfer Window</span>
           <div className="mt-1">
-            <span className={cn('text-xs font-bold px-2 py-0.5 rounded', transferWindowOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive')}>
+            <span className={cn('text-xs font-bold px-2 py-0.5 rounded', transferWindowOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted text-muted-foreground')}>
               {transferWindowOpen ? 'Open' : 'Closed'}
             </span>
+            {transferWindowOpen && (
+              <p className="text-[9px] text-emerald-400/70 mt-1">Closes week {week <= SUMMER_WINDOW_END ? SUMMER_WINDOW_END : WINTER_WINDOW_END}</p>
+            )}
+            {!transferWindowOpen && week < WINTER_WINDOW_START && week > SUMMER_WINDOW_END && (
+              <p className="text-[9px] text-muted-foreground mt-1">Opens week {WINTER_WINDOW_START}</p>
+            )}
           </div>
         </GlassPanel>
         <GlassPanel className="p-3">
@@ -485,7 +556,7 @@ const CalendarView = () => {
 
                 // Cup tie
                 if (entry.type === 'cup' && entry.cupTie) {
-                  return renderCupTie(entry.cupTie, isCurrentWeek, isCongested);
+                  return renderCupTie(entry.cupTie, isCurrentWeek, isCongested, entry.competitionLabel);
                 }
 
                 return null;
@@ -605,10 +676,10 @@ const CalendarView = () => {
     );
   }
 
-  function renderCupTie(tie: CupTie, isCurrentWeek: boolean, isCongested: boolean) {
+  function renderCupTie(tie: CupTie, isCurrentWeek: boolean, isCongested: boolean, competitionLabel?: string) {
     const isHome = tie.homeClubId === playerClubId;
     const oppId = isHome ? tie.awayClubId : tie.homeClubId;
-    const opp = clubs[oppId];
+    const opp = clubs[oppId] || (virtualClubs?.[oppId] ? { shortName: virtualClubs[oppId].shortName, color: virtualClubs[oppId].color } as typeof clubs[string] : undefined);
     const isCurrent = isNextMatch(tie.week, tie.played);
     const isPast = tie.played;
 
@@ -673,7 +744,7 @@ const CalendarView = () => {
                 <span className={cn('text-[9px] font-medium', strength.color)}>{strength.label}</span>
               )}
             </div>
-            <span className="text-[10px] text-primary/70">{getRoundName(tie.round as CupRound)}</span>
+            <span className="text-[10px] text-primary/70">{competitionLabel || getRoundName(tie.round as CupRound)}</span>
           </div>
         </div>
 

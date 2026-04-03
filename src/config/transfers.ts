@@ -43,7 +43,6 @@ export const TRANSFER_SHARK_DISCOUNT = 0.15;
 
 // ── Transfer Rumors ──
 export const RUMOR_CHANCE = 0.15;
-export const RUMOR_TO_OFFER_CHANCE = 0.6;
 
 // ── Deadline Day ──
 export const DEADLINE_DAY_OFFER_MULTIPLIER = 2.0;

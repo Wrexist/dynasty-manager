@@ -60,20 +60,18 @@ Dynasty Manager is a mobile-first football management simulation with native iOS
 ```
 src/
 ├── components/
-│   ├── game/           → 21 components: TopBar, BottomNav, SubNav, GlassPanel,
-│   │                     PitchView, PlayerCard, PlayerAvatar, LineupEditor,
-│   │                     SubstitutionSheet, StatBar, CelebrationModal,
-│   │                     StorylineModal, ContractNegotiation, PressConference,
-│   │                     PostMatchPopup, BoardWarning, DynamicIcon, etc.
+│   ├── game/           → Components: TopBar, BottomNav, SubNav, GlassPanel,
+│   │                     PlayerAvatar, LineupEditor, SubstitutionSheet, StatBar,
+│   │                     CelebrationModal, StorylineModal, ContractNegotiation,
+│   │                     PressConference, PostMatchPopup, BoardWarning, DynamicIcon, etc.
 │   ├── ui/             → 9 shadcn/ui files (DO NOT modify unless asked)
-│   └── NavLink.tsx
 ├── config/             → 14 config files (~1,100 LOC): gameBalance, playerGeneration,
 │                         matchEngine, transfers, contracts, training, staff,
 │                         scouting, youth, tactics, chemistry, ui, playoffs
 ├── data/               → league.ts (92 clubs, 4 divisions), cup.ts, challenges.ts,
 │                         pressConferences.ts, storylineChains.ts
 ├── engine/match.ts     → Match sim (653 LOC, event-based, minute-by-minute)
-├── hooks/              → use-mobile, use-toast, useGameSelectors, useSwipeGesture
+├── hooks/              → use-toast, useGameSelectors, useSwipeGesture, useFlash
 ├── lib/utils.ts        → cn() utility
 ├── pages/              → 33 pages (~7,600 LOC): Dashboard, Squad, Tactics, MatchDay,
 │                         Transfer, Training, Staff, Scouting, YouthAcademy,

@@ -191,7 +191,7 @@ export function extractSubscriptionInfo(customerInfo: any): SubscriptionInfo | n
 
 // ── Paywall Presentation ──
 
-export type PaywallResult = 'purchased' | 'restored' | 'cancelled' | 'error' | 'not_presented';
+type PaywallResult = 'purchased' | 'restored' | 'cancelled' | 'error' | 'not_presented';
 
 /** Present the RevenueCat native paywall. Returns the outcome. */
 export async function presentPaywall(offeringIdentifier?: string): Promise<PaywallResult> {

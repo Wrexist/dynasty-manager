@@ -86,8 +86,3 @@ export const NATIONALITY_DATA: Record<string, { flag: string; code: string }> = 
 export function getFlag(nationality: string): string {
   return NATIONALITY_DATA[nationality]?.flag || '\u{1F3F3}\u{FE0F}';
 }
-
-/** Get 3-letter country code for a nationality string */
-export function getNatCode(nationality: string): string {
-  return NATIONALITY_DATA[nationality]?.code || nationality.slice(0, 3).toUpperCase();
-}

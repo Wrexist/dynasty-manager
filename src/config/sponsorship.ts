@@ -38,10 +38,10 @@ export const SPONSOR_SAT_TERMINATE_THRESHOLD = 15;
 export const SPONSOR_SAT_BONUS_MET = 15;
 
 // ── Bonus payment as multiplier of weekly payment × weeks in season ──
-export const SPONSOR_BONUS_WEEKS_MULTIPLIER = 8; // bonus ≈ 8 weeks of payment
+const SPONSOR_BONUS_WEEKS_MULTIPLIER = 8; // bonus ≈ 8 weeks of payment
 
 // ── Buyout cost: weeks of payment per remaining season ──
-export const SPONSOR_BUYOUT_WEEKS_PER_SEASON = 4;
+const SPONSOR_BUYOUT_WEEKS_PER_SEASON = 4;
 
 // ── Sponsor Pool (40 sponsors) ──
 
@@ -105,7 +105,7 @@ export function getSponsorById(id: string): SponsorDef | undefined {
 }
 
 /** Get the slot definition by ID */
-export function getSlotDef(slotId: SponsorSlotId): SponsorSlotDef | undefined {
+function getSlotDef(slotId: SponsorSlotId): SponsorSlotDef | undefined {
   return SPONSOR_SLOTS.find(s => s.id === slotId);
 }
 

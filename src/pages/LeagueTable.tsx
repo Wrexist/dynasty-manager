@@ -222,6 +222,7 @@ const LeagueTable = () => {
             <button
               onClick={() => setBrowseWeek(w => Math.max(1, w - 1))}
               disabled={browseWeek <= 1}
+              aria-label="Previous week"
               className={cn(
                 'p-1.5 rounded-lg transition-all',
                 browseWeek <= 1 ? 'text-muted-foreground/30' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
@@ -236,6 +237,7 @@ const LeagueTable = () => {
             <button
               onClick={() => setBrowseWeek(w => Math.min(totalWeeks, w + 1))}
               disabled={browseWeek >= totalWeeks}
+              aria-label="Next week"
               className={cn(
                 'p-1.5 rounded-lg transition-all',
                 browseWeek >= totalWeeks ? 'text-muted-foreground/30' : 'text-muted-foreground hover:bg-muted hover:text-foreground'

@@ -67,10 +67,6 @@ export const BENCH_ATTRIBUTE_IMPACT_WEIGHT = 0.08;
 export const BENCH_YOUNG_ENERGY_THRESHOLD = 26;
 /** Bonus for younger bench players (more stamina for late-game impact) */
 export const BENCH_YOUNG_ENERGY_BONUS = 2;
-/** Tier score for emergency/coverage subs (high versatility + covers vulnerable starters) */
-export const BENCH_TIER_EMERGENCY = 200;
-/** Tier score for tactical impact subs (high form + freshness + quality) */
-export const BENCH_TIER_IMPACT = 100;
 /** Number of starters to consider as "most vulnerable" for sub-need analysis */
 export const BENCH_VULNERABLE_STARTER_COUNT = 3;
 /** Fitness threshold below which a starter is considered tired and needs cover */

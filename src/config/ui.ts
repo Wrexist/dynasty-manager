@@ -248,7 +248,6 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
 export const MID_SEASON_WEEK = 23;
 export const CONFIDENCE_CRITICAL_THRESHOLD = 35;
 export const CONFIDENCE_LOW_THRESHOLD = 50;
-export const CONFIDENCE_HIGH_THRESHOLD = 70;
 export const FAN_MOOD_HIGH_THRESHOLD = 70;
 export const FAN_MOOD_MID_THRESHOLD = 40;
 export const HOT_STREAK_MIN_WINS = 4;

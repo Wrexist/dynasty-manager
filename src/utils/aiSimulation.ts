@@ -46,7 +46,7 @@ interface SquadNeed {
   targetCount: number;
 }
 
-export interface AIWeeklyResult {
+interface AIWeeklyResult {
   clubs: Record<string, Club>;
   players: Record<string, Player>;
   messages: Message[];
