@@ -112,6 +112,23 @@ const FinancePage = () => {
         </GlassPanel>
       )}
 
+      {/* Budget Forecast */}
+      {netPerWeek !== 0 && (
+        <GlassPanel className="p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Budget Forecast (10 weeks)</span>
+            <span className={cn('text-xs font-bold tabular-nums', (club.budget + netPerWeek * 10) < 0 ? 'text-destructive' : 'text-foreground')}>
+              £{((club.budget + netPerWeek * 10) / 1e6).toFixed(1)}M
+            </span>
+          </div>
+          {netPerWeek < 0 && club.budget > 0 && (
+            <p className="text-[10px] text-amber-400 mt-1">
+              At current spending, budget runs out in ~{Math.ceil(club.budget / Math.abs(netPerWeek))} weeks
+            </p>
+          )}
+        </GlassPanel>
+      )}
+
       {/* Income vs Expenses */}
       <div className="grid grid-cols-2 gap-3">
         <GlassPanel className="p-3 cursor-pointer" onClick={() => { setFinanceSheetMode('income'); setFinanceSheetOpen(true); }}>

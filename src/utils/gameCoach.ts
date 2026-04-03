@@ -95,5 +95,10 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
     return tasks.filter((task) => task.id !== 'first-match');
   }
 
+  // Week 1: focus on the essentials — only show high-priority tasks
+  if (ctx.week <= 1) {
+    return tasks.filter(t => t.priority === 'high');
+  }
+
   return tasks;
 }

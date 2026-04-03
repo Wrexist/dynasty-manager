@@ -411,9 +411,15 @@ const CalendarView = () => {
         <GlassPanel className="p-3">
           <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Transfer Window</span>
           <div className="mt-1">
-            <span className={cn('text-xs font-bold px-2 py-0.5 rounded', transferWindowOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive')}>
+            <span className={cn('text-xs font-bold px-2 py-0.5 rounded', transferWindowOpen ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted text-muted-foreground')}>
               {transferWindowOpen ? 'Open' : 'Closed'}
             </span>
+            {transferWindowOpen && (
+              <p className="text-[9px] text-emerald-400/70 mt-1">Closes week {week <= SUMMER_WINDOW_END ? SUMMER_WINDOW_END : WINTER_WINDOW_END}</p>
+            )}
+            {!transferWindowOpen && week < WINTER_WINDOW_START && week > SUMMER_WINDOW_END && (
+              <p className="text-[9px] text-muted-foreground mt-1">Opens week {WINTER_WINDOW_START}</p>
+            )}
           </div>
         </GlassPanel>
         <GlassPanel className="p-3">

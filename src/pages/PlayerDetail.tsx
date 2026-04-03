@@ -462,6 +462,17 @@ const PlayerDetail = () => {
             </span>
             <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">Potential <InfoTip text={HELP_TEXTS.potential} className="[&>:last-child]:absolute [&>:last-child]:left-0 [&>:last-child]:right-0 [&>:last-child]:top-full" /></span>
           </div>
+          {/* Growth trajectory context */}
+          {isGrowing && player.potential - player.overall > 0 && (
+            <p className="text-[10px] text-emerald-400/80 mt-1.5">
+              Peak years: {Math.max(player.age, 27)}-{Math.min(30, Math.max(player.age + 1, 29))} · Room to grow +{player.potential - player.overall} OVR
+            </p>
+          )}
+          {isDeclining && (
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              Past peak — expect gradual attribute decline each season
+            </p>
+          )}
         </div>
       </GlassPanel>
 

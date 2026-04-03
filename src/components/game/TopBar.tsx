@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { Calendar, Trophy, Save, ArrowLeft, Star, Check } from 'lucide-react';
+import { Calendar, Save, ArrowLeft, Star, Check } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getSuffix } from '@/utils/helpers';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation';
@@ -121,11 +121,7 @@ export function TopBar() {
           )}
           <div className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="w-3 h-3" />
-            <span>Week {week}/{totalWeeks}</span>
-          </div>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Trophy className="w-3 h-3" />
-            <span>S{season}</span>
+            <span>W{week} · S{season}</span>
           </div>
           <button
             onClick={handleSave}
