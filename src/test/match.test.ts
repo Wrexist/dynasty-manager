@@ -340,3 +340,29 @@ describe('Match Engine — Card Events', () => {
     expect(redSeen).toBe(true);
   });
 });
+
+describe('Match Engine — Numerical Disadvantage', () => {
+  it('11-player team wins significantly more than 10-player team', () => {
+    const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
+    const { club: awayClub, players: awayPlayers } = makeLineup('away', '4-3-3', 70);
+
+    // Remove one away player to simulate 10v11 (red card scenario)
+    const reducedAway = awayPlayers.slice(0, 10);
+    awayClub.lineup = reducedAway.map(p => p.id);
+    awayClub.playerIds = reducedAway.map(p => p.id);
+
+    let homeGoalsTotal = 0;
+    let awayGoalsTotal = 0;
+    const N = 300;
+
+    for (let i = 0; i < N; i++) {
+      const match = makeMatch(`num-${i}`);
+      const { result } = simulateMatch(match, homeClub, awayClub, homePlayers, reducedAway);
+      homeGoalsTotal += result.homeGoals;
+      awayGoalsTotal += result.awayGoals;
+    }
+
+    // 11v10 with home advantage + 12% strength penalty: full team should score significantly more
+    expect(homeGoalsTotal).toBeGreaterThan(awayGoalsTotal);
+  });
+});

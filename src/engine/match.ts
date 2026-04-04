@@ -5,6 +5,7 @@ import {
   INJURY_SEVERITY_WEIGHTS, MEDICAL_INJURY_PREVENTION_PER_LEVEL,
   UNHAPPY_PERFORMANCE_PENALTY, REINJURY_MATCH_CHECK_CHANCE,
   FIRST_MATCH_ATTACK_BOOST, FIRST_MATCH_DEFENSE_BOOST,
+  LINEUP_SIZE,
 } from '@/config/gameBalance';
 import type { InjuryType, InjurySeverity, InjuryDetails } from '@/types/game';
 import { getTeamStrength } from '@/utils/playerGen';
@@ -50,12 +51,13 @@ import {
   MORALE_PERFORMANCE_WEIGHT, MORALE_BASELINE,
   DISCIPLINARIAN_CARD_REDUCTION,
   MOMENTUM_GOAL_SWING, MOMENTUM_SAVE_SWING, MOMENTUM_CARD_SWING, MOMENTUM_PENALTY_SWING,
-  MOMENTUM_COMMENTARY_SWING, MOMENTUM_SHOT_ATTEMPT_SWING, MOMENTUM_FOUL_SWING,
+  MOMENTUM_COMMENTARY_SWING, MOMENTUM_SHOT_ATTEMPT_SWING, MOMENTUM_FOUL_SWING, MOMENTUM_RED_CARD_SWING,
   MOMENTUM_DECAY_PER_MINUTE, MOMENTUM_STRENGTH_SCALE,
   SUB_FRESHNESS_BONUS,
   SET_PIECE_TAKER_CORNER_BONUS, PENALTY_TAKER_BONUS,
   COMMENTARY_GAP_MAX, COMMENTARY_CHANCE,
   MIN_PLAYERS_TO_CONTINUE,
+  RED_CARD_STRENGTH_PENALTY_PER_PLAYER,
 } from '@/config/matchEngine';
 import { generateCommentary } from '@/utils/matchCommentary';
 
@@ -268,10 +270,15 @@ function computeStrengths(
   const awayFirstMatchBoost = (currentSeason === 1 && playerClubId === awayClub.id) ? FIRST_MATCH_ATTACK_BOOST : 0;
   const homeFirstDefBoost = (currentSeason === 1 && playerClubId === homeClub.id) ? FIRST_MATCH_DEFENSE_BOOST : 0;
   const awayFirstDefBoost = (currentSeason === 1 && playerClubId === awayClub.id) ? FIRST_MATCH_DEFENSE_BOOST : 0;
+  // Numerical disadvantage: penalize teams with fewer than full squad (red cards / injuries)
+  const homeMissing = Math.max(0, LINEUP_SIZE - homePlayers.length);
+  const awayMissing = Math.max(0, LINEUP_SIZE - awayPlayers.length);
+  const homeNumericalMod = 1 - homeMissing * RED_CARD_STRENGTH_PENALTY_PER_PLAYER;
+  const awayNumericalMod = 1 - awayMissing * RED_CARD_STRENGTH_PENALTY_PER_PLAYER;
   // Strength = base * (attack modifiers) reduced by opponent's defensive modifiers
   // Clamped to a minimum of 0.01 to prevent negative/zero strength from extreme modifier combinations
-  const homeStr = Math.max(0.01, getTeamStrength(homePlayers) * homeUnhappyMod * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayMods.defenseMod + awayFormDef + awayDefFitBonus - awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
-  const awayStr = Math.max(0.01, getTeamStrength(awayPlayers) * awayUnhappyMod * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup + awayFirstMatchBoost) * (1 - (homeMods.defenseMod + homeFormDef + homeDefFitBonus - homeFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
+  const homeStr = Math.max(0.01, getTeamStrength(homePlayers) * homeUnhappyMod * homeNumericalMod * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayMods.defenseMod + awayFormDef + awayDefFitBonus - awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
+  const awayStr = Math.max(0.01, getTeamStrength(awayPlayers) * awayUnhappyMod * awayNumericalMod * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup + awayFirstMatchBoost) * (1 - (homeMods.defenseMod + homeFormDef + homeDefFitBonus - homeFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
   return { homeStr, awayStr, homeMods, awayMods };
 }
 
@@ -811,6 +818,10 @@ export function simulateHalf(
             pe.redCard = true;
             sentOff.add(fouler.id);
             unavailable.add(fouler.id);
+            // Momentum swings toward the opposing team on red card
+            momentum = isHome
+              ? Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING)
+              : Math.min(100, momentum + MOMENTUM_RED_CARD_SWING);
             events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `Second yellow! ${fouler.lastName} is sent off!`, momentum });
             // Rebalance strength after red card
             const recomputed = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
@@ -839,6 +850,10 @@ export function simulateHalf(
           pe.redCard = true;
           sentOff.add(fouler.id);
           unavailable.add(fouler.id);
+          // Momentum swings toward the opposing team on red card
+          momentum = isHome
+            ? Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING)
+            : Math.min(100, momentum + MOMENTUM_RED_CARD_SWING);
           events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `RED CARD! Straight red for ${fouler.lastName}! Dangerous play!`, momentum });
             // Rebalance strength after red card
             const recomputed2 = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
