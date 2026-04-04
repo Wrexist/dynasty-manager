@@ -2,8 +2,10 @@ import type { GameState } from '../storeTypes';
 import type { CareerManager, JobVacancy, JobOffer, GameMode } from '@/types/game';
 import { generateJobVacancies, getRetirementAge, generateDefaultBonuses } from '@/utils/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
-import { STARTING_BOARD_CONFIDENCE } from '@/config/gameBalance';
+import { STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY } from '@/config/gameBalance';
 import { generateAIManagerProfile } from '@/config/aiManager';
+import { generateInitialStaff, generateStaffMarket } from '@/utils/staff';
+import { selectBestLineup } from '@/utils/playerGen';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -162,11 +164,12 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         : entry
     );
 
+    // Determine if club is in the same loaded league
     const targetClub = state.clubs[clubId];
-    const isSameLeague = !!targetClub;
+    const isSameLeague = !!targetClub && offer.divisionId === state.playerDivision;
 
     if (isSameLeague) {
-      // Same league: swap playerClubId, preserve all season state
+      // Same league: swap playerClubId, preserve season/fixtures state
       const oldClubId = state.playerClubId;
       const newClubs = { ...state.clubs };
 
@@ -180,9 +183,20 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       }
       // Remove AI manager from new club (player takes over)
       if (newClubs[clubId]) {
-        const { aiManagerProfile: _, ...rest } = newClubs[clubId];
-        newClubs[clubId] = rest as typeof newClubs[string];
+        const clubObj = newClubs[clubId];
+        newClubs[clubId] = { ...clubObj, aiManagerProfile: undefined };
       }
+
+      // Recalculate best lineup for the new club
+      const clubPlayers = newClubs[clubId].playerIds
+        .map(id => state.players[id])
+        .filter(Boolean);
+      const { lineup, subs } = selectBestLineup(clubPlayers, newClubs[clubId].formation || '4-3-3');
+      newClubs[clubId] = {
+        ...newClubs[clubId],
+        lineup: lineup.map(p => p.id),
+        subs: subs.map(p => p.id),
+      };
 
       const contract = {
         clubId,
@@ -217,9 +231,35 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         jobOffers: [],
         boardConfidence: STARTING_BOARD_CONFIDENCE,
         currentScreen: 'dashboard',
+        // Reset club-specific state for the new club
+        transferMarket: [],
+        incomingOffers: [],
+        incomingLoanOffers: [],
+        shortlist: [],
+        scoutWatchList: [],
+        training: {
+          schedule: state.training.schedule,
+          intensity: 'medium',
+          individualPlans: [],
+          tacticalFamiliarity: STARTING_TACTICAL_FAMILIARITY,
+        },
+        scouting: {
+          ...state.scouting,
+          assignments: [],
+          reports: [],
+          discoveredPlayers: [],
+        },
+        staff: {
+          members: generateInitialStaff(targetClub.reputation),
+          availableHires: generateStaffMarket(),
+        },
       });
     } else {
       // Different league: must reinitialize game for the new league
+      // Preserve the season number for career continuity
+      const lastEntry = updatedHistory[updatedHistory.length - 1];
+      const continuedSeason = (lastEntry?.endSeason || 0) + 1;
+
       state.initGame(clubId);
       const newState = get();
       const club = newState.clubs[clubId];
@@ -227,8 +267,8 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       const contract = {
         clubId,
         salary: offer.salary,
-        startSeason: newState.season,
-        endSeason: newState.season + offer.contractLength - 1,
+        startSeason: continuedSeason,
+        endSeason: continuedSeason + offer.contractLength - 1,
         bonuses: offer.bonuses,
       };
 
@@ -236,7 +276,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         clubId,
         clubName: club?.name || clubId,
         divisionId: newState.playerDivision,
-        startSeason: newState.season,
+        startSeason: continuedSeason,
         endSeason: null as number | null,
         reason: 'hired' as const,
         bestFinish: 0,
@@ -244,6 +284,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       };
 
       set({
+        season: continuedSeason,
         gameMode: 'career',
         careerManager: {
           ...manager,

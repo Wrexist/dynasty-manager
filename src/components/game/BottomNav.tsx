@@ -19,12 +19,14 @@ const tabs: { screen: GameScreen; label: string; icon: React.ElementType; group?
 ];
 
 export function BottomNav() {
-  const { currentScreen, messages, incomingOffers } = useGameStore(useShallow(s => ({
+  const { currentScreen, messages, incomingOffers, jobOffers, gameMode } = useGameStore(useShallow(s => ({
     currentScreen: s.currentScreen, messages: s.messages, incomingOffers: s.incomingOffers,
+    jobOffers: s.jobOffers, gameMode: s.gameMode,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const unreadCount = useMemo(() => messages.filter(m => !m.read).length, [messages]);
   const pendingOffers = incomingOffers.length;
+  const hasJobOffers = gameMode === 'career' && jobOffers.length > 0;
 
   return (
     <nav role="navigation" aria-label="Main navigation" className="fixed bottom-0 left-0 right-0 z-50 bg-card/90 backdrop-blur-xl border-t border-border/50 safe-area-bottom">
@@ -46,7 +48,15 @@ export function BottomNav() {
             >
               <div className="relative">
                 <Icon className={cn('w-5 h-5', active && 'drop-shadow-[0_0_6px_hsl(var(--primary))]')} />
-                {screen === 'dashboard' && unreadCount > 0 && (
+                {screen === 'dashboard' && hasJobOffers && (
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 25 }}
+                    className="absolute -top-1 -right-1.5 w-2 h-2 bg-primary rounded-full animate-pulse"
+                  />
+                )}
+                {screen === 'dashboard' && !hasJobOffers && unreadCount > 0 && (
                   <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}

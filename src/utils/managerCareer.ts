@@ -380,6 +380,15 @@ export function generateProactiveOffer(
 ): JobOffer | null {
   if (!manager.contract) return null;
 
+  // Determine current league tier
+  const currentClub = clubs[playerClubId];
+  if (!currentClub) return null;
+  const currentLeague = LEAGUES.find(l => l.id === currentClub.divisionId);
+  const currentTier = currentLeague?.qualityTier || 4;
+
+  // Need league table data to evaluate performance
+  if (leagueTable.length === 0) return null;
+
   // Calculate recent form (wins in last 8 played matches)
   const recentMatches = fixtures.filter(m =>
     m.played && m.week <= week && m.week > week - 8 &&
@@ -391,15 +400,10 @@ export function generateProactiveOffer(
   }).length;
   const winRate = recentMatches.length > 0 ? wins / recentMatches.length : 0;
 
-  // Determine current league tier
-  const currentClub = clubs[playerClubId];
-  const currentLeague = LEAGUES.find(l => l.id === currentClub?.divisionId);
-  const currentTier = currentLeague?.qualityTier || 4;
-
   // Calculate league position bonus (top 3 in lower divisions)
   const tableEntry = leagueTable.find(e => e.clubId === playerClubId);
   const tablePosition = tableEntry ? leagueTable.indexOf(tableEntry) + 1 : 99;
-  const isOverperforming = tablePosition <= 3 && currentTier >= 2;
+  const isOverperforming = tablePosition <= 3 && currentTier > 1;
 
   // Build probability
   let chance = PROACTIVE_OFFER_BASE_CHANCE;
@@ -421,7 +425,8 @@ export function generateProactiveOffer(
     chance += PROACTIVE_OFFER_POSITION_BONUS;
   }
 
-  // Roll the dice
+  // Roll the dice (clamp to prevent guaranteed offers)
+  chance = Math.min(chance, 0.95);
   if (Math.random() >= chance) return null;
 
   // Pick an offering club from a higher or equal tier
@@ -460,7 +465,7 @@ export function generateProactiveOffer(
 
   let expiresWeek = week + PROACTIVE_OFFER_DURATION_WEEKS;
   let expiresSeason = season;
-  const totalWeeks = currentLeague?.totalWeeks || 46;
+  const totalWeeks = league?.totalWeeks || 46;
   if (expiresWeek > totalWeeks) {
     expiresWeek = expiresWeek - totalWeeks;
     expiresSeason = season + 1;

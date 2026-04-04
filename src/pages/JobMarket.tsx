@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { ReputationBadge } from '@/components/game/ReputationBadge';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
-import { Briefcase, DollarSign, Clock, Send, Check, X, LogOut } from 'lucide-react';
+import { Briefcase, DollarSign, Clock, Send, Check, X, LogOut, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import type { JobVacancy, JobOffer } from '@/types/game';
 
@@ -22,6 +22,7 @@ const JobMarket = () => {
   const respondToJobOffer = useGameStore(s => s.respondToJobOffer);
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const retireManager = useGameStore(s => s.retireManager);
+  const setScreen = useGameStore(s => s.setScreen);
 
   if (!careerManager) return null;
 
@@ -109,6 +110,19 @@ const JobMarket = () => {
           </div>
         )}
       </div>
+
+      {/* Return to Club button for employed managers */}
+      {careerManager.contract && (
+        <div className="pt-2">
+          <Button
+            variant="outline"
+            className="w-full h-11 gap-2"
+            onClick={() => setScreen('dashboard')}
+          >
+            <ArrowLeft className="w-4 h-4" /> Return to Club
+          </Button>
+        </div>
+      )}
 
       {/* Wait & Retire buttons */}
       {!careerManager.contract && (

@@ -3372,6 +3372,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           set({ jobVacancies: updatedVacancies });
         }
 
+        // --- Expire old job offers (before generating new ones) ---
+        {
+          const offerState = get();
+          const currentOffers = offerState.jobOffers;
+          const activeOffers = currentOffers.filter(o =>
+            o.expiresSeason > season || (o.expiresSeason === season && o.expiresWeek > newWeek)
+          );
+          if (activeOffers.length !== currentOffers.length) {
+            set({ jobOffers: activeOffers });
+          }
+        }
+
         // --- Proactive job offers for employed managers ---
         if (cm.contract && newWeek > 0 && newWeek % PROACTIVE_OFFER_CHECK_INTERVAL === 0) {
           const offerState = get();
@@ -3389,18 +3401,6 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
                 body: `${proactiveOffer.clubName} are impressed by your work and want to offer you the manager position. Visit the Job Market to review.`,
               });
             }
-          }
-        }
-
-        // --- Expire old job offers ---
-        {
-          const offerState = get();
-          const currentOffers = offerState.jobOffers;
-          const activeOffers = currentOffers.filter(o =>
-            o.expiresSeason > season || (o.expiresSeason === season && o.expiresWeek > newWeek)
-          );
-          if (activeOffers.length !== currentOffers.length) {
-            set({ jobOffers: activeOffers });
           }
         }
 
