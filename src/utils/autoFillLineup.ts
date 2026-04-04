@@ -56,6 +56,9 @@ import {
   BENCH_CONGESTED_FITNESS_THRESHOLD,
   BENCH_CUP_ATTACKER_BONUS,
   BENCH_AWAY_DEFENDER_BONUS,
+  LINEUP_SET_PIECE_TAKER_BONUS,
+  LINEUP_PENALTY_TAKER_BONUS,
+  BENCH_DEFENSIVE_FORMATION_COVER_BONUS,
   LINEUP_BENCH_SWAP_PASSES,
 } from '@/config/lineupOptimization';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
@@ -77,6 +80,9 @@ export interface AutoFillContext {
   derbyIntensity?: number;
   isCupMatch?: boolean;
   hasMatchNextWeek?: boolean;
+  setPieceTakerId?: string;
+  penaltyTakerId?: string;
+  defensiveFormation?: FormationType;
 }
 
 // Position role sets (mirrors match engine categories)
@@ -215,6 +221,11 @@ function scorePlayerForSlot(player: Player, slotPosition: Position, context?: Au
     if (player.personality?.leadership != null && player.personality.leadership >= CONTEXT_LEADERSHIP_BONUS_THRESHOLD) {
       score += CONTEXT_LEADERSHIP_STARTER_BONUS;
     }
+
+    // Set piece taker bonuses: ensure designated takers stay in the XI
+    // Engine gives +3% corner goal chance and +5% penalty conversion for designated takers
+    if (context.setPieceTakerId === player.id) score += LINEUP_SET_PIECE_TAKER_BONUS;
+    if (context.penaltyTakerId === player.id) score += LINEUP_PENALTY_TAKER_BONUS;
   }
 
   return score;
@@ -228,10 +239,11 @@ function scorePlayerForSlot(player: Player, slotPosition: Position, context?: Au
  * Returns an array of length n where result[slot] = player index.
  * Internally converts to a minimization problem on a square cost matrix.
  */
-function hungarianAssignment(scoreMatrix: number[][]): number[] {
+export function hungarianAssignment(scoreMatrix: number[][]): number[] {
   const n = scoreMatrix.length;
-  if (n === 0) return [];
+  if (n === 0 || !scoreMatrix[0]) return [];
   const m = scoreMatrix[0].length;
+  if (m === 0) return new Array(n).fill(-1);
 
   // Find max score for conversion to cost (minimization)
   let maxScore = -Infinity;
@@ -309,8 +321,8 @@ function hungarianAssignment(scoreMatrix: number[][]): number[] {
   // Extract result: for each slot (row), find its assigned player (col)
   const result: number[] = new Array(n).fill(-1);
   for (let j = 1; j <= size; j++) {
-    if (p[j] > 0 && p[j] <= n) {
-      result[p[j] - 1] = j - 1; // convert back to 0-indexed
+    if (p[j] > 0 && p[j] <= n && j <= m) {
+      result[p[j] - 1] = j - 1; // convert back to 0-indexed, skip dummy columns
     }
   }
   return result;
@@ -333,7 +345,7 @@ export function optimizeStarterPositions(
   if (!slots || slots.length === 0) return starterIds;
 
   const starters = starterIds.map(id => playersMap[id]).filter(Boolean);
-  if (starters.length === 0) return starterIds;
+  if (starters.length === 0 || starters.length < slots.length) return starterIds;
 
   // Score every starter for every slot
   const scores: number[][] = [];
@@ -729,6 +741,22 @@ export function autoFillBestTeam(
       // Away matches: defensive depth is crucial
       if (context.isHome === false && isDefender) {
         contextBenchBonus += BENCH_AWAY_DEFENDER_BONUS;
+      }
+
+      // Defensive formation coverage: bonus if bench player covers a slot needed
+      // by the defensive formation that starters don't cover (engine gives 50% fit bonus)
+      if (context.defensiveFormation) {
+        const defSlots = FORMATION_POSITIONS[context.defensiveFormation];
+        if (defSlots) {
+          const defPositions = new Set(defSlots.map(s => s.pos));
+          const starterPositions = new Set(finalLineup.map(pl => pl.position));
+          for (const defPos of defPositions) {
+            if (!starterPositions.has(defPos) && canCoverPosition(p.position, defPos as Position)) {
+              contextBenchBonus += BENCH_DEFENSIVE_FORMATION_COVER_BONUS;
+              break; // One bonus per player, not per slot
+            }
+          }
+        }
       }
     }
 
