@@ -1,8 +1,9 @@
 import type { GameState } from '../storeTypes';
 import type { CareerManager, JobVacancy, JobOffer, GameMode } from '@/types/game';
 import { generateJobVacancies, getRetirementAge, generateDefaultBonuses } from '@/utils/managerCareer';
-import { LEAGUES } from '@/data/league';
+import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { STARTING_BOARD_CONFIDENCE } from '@/config/gameBalance';
+import { generateAIManagerProfile } from '@/config/aiManager';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -137,7 +138,8 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       state.clubs,
       updatedManager.reputationScore,
       state.season,
-      state.week
+      state.week,
+      state.playerClubId
     );
 
     set({
@@ -160,45 +162,101 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         : entry
     );
 
-    // Re-initialize the game with the new club
-    state.initGame(clubId);
-    const newState = get();
-    const club = newState.clubs[clubId];
+    const targetClub = state.clubs[clubId];
+    const isSameLeague = !!targetClub;
 
-    // Create new contract
-    const contract = {
-      clubId,
-      salary: offer.salary,
-      startSeason: newState.season,
-      endSeason: newState.season + offer.contractLength - 1,
-      bonuses: offer.bonuses,
-    };
+    if (isSameLeague) {
+      // Same league: swap playerClubId, preserve all season state
+      const oldClubId = state.playerClubId;
+      const newClubs = { ...state.clubs };
 
-    // Add new career history entry
-    const newEntry = {
-      clubId,
-      clubName: club?.name || clubId,
-      divisionId: newState.playerDivision,
-      startSeason: newState.season,
-      endSeason: null as number | null,
-      reason: 'hired' as const,
-      bestFinish: 0,
-      titlesWon: 0,
-    };
+      // Assign AI manager to old club
+      if (oldClubId && newClubs[oldClubId]) {
+        const oldClubData = CLUBS_DATA.find(c => c.id === oldClubId);
+        newClubs[oldClubId] = {
+          ...newClubs[oldClubId],
+          aiManagerProfile: generateAIManagerProfile(oldClubId, oldClubData?.reputation || 3),
+        };
+      }
+      // Remove AI manager from new club (player takes over)
+      if (newClubs[clubId]) {
+        const { aiManagerProfile: _, ...rest } = newClubs[clubId];
+        newClubs[clubId] = rest as typeof newClubs[string];
+      }
 
-    set({
-      gameMode: 'career',
-      careerManager: {
-        ...manager,
-        contract,
-        careerHistory: [...updatedHistory, newEntry],
-        unemployedWeeks: 0,
-      },
-      jobVacancies: [],
-      jobOffers: [],
-      boardConfidence: STARTING_BOARD_CONFIDENCE,
-      currentScreen: 'dashboard',
-    });
+      const contract = {
+        clubId,
+        salary: offer.salary,
+        startSeason: state.season,
+        endSeason: state.season + offer.contractLength - 1,
+        bonuses: offer.bonuses,
+      };
+
+      const newEntry = {
+        clubId,
+        clubName: targetClub.name,
+        divisionId: state.playerDivision,
+        startSeason: state.season,
+        endSeason: null as number | null,
+        reason: 'hired' as const,
+        bestFinish: 0,
+        titlesWon: 0,
+      };
+
+      set({
+        playerClubId: clubId,
+        clubs: newClubs,
+        gameMode: 'career',
+        careerManager: {
+          ...manager,
+          contract,
+          careerHistory: [...updatedHistory, newEntry],
+          unemployedWeeks: 0,
+        },
+        jobVacancies: [],
+        jobOffers: [],
+        boardConfidence: STARTING_BOARD_CONFIDENCE,
+        currentScreen: 'dashboard',
+      });
+    } else {
+      // Different league: must reinitialize game for the new league
+      state.initGame(clubId);
+      const newState = get();
+      const club = newState.clubs[clubId];
+
+      const contract = {
+        clubId,
+        salary: offer.salary,
+        startSeason: newState.season,
+        endSeason: newState.season + offer.contractLength - 1,
+        bonuses: offer.bonuses,
+      };
+
+      const newEntry = {
+        clubId,
+        clubName: club?.name || clubId,
+        divisionId: newState.playerDivision,
+        startSeason: newState.season,
+        endSeason: null as number | null,
+        reason: 'hired' as const,
+        bestFinish: 0,
+        titlesWon: 0,
+      };
+
+      set({
+        gameMode: 'career',
+        careerManager: {
+          ...manager,
+          contract,
+          careerHistory: [...updatedHistory, newEntry],
+          unemployedWeeks: 0,
+        },
+        jobVacancies: [],
+        jobOffers: [],
+        boardConfidence: STARTING_BOARD_CONFIDENCE,
+        currentScreen: 'dashboard',
+      });
+    }
   },
 
   retireManager: () => {

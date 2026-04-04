@@ -446,7 +446,7 @@ const Dashboard = () => {
 
       {/* Career Mode Info Panel */}
       {gameMode === 'career' && careerManager && (
-        <GlassPanel className="p-3" onClick={() => setScreen('career-overview')}>
+        <GlassPanel className="p-3 cursor-pointer" onClick={() => setScreen(jobOffers.length > 0 ? 'job-market' : 'career-overview')}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
