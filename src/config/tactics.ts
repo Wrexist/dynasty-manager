@@ -45,3 +45,10 @@ export interface StylePreset {
   label: string;
   values: Partial<TacticalInstructions>;
 }
+
+export const STYLE_PRESETS: (StylePreset & { description: string })[] = [
+  { label: 'Park the Bus', description: 'Ultra-defensive. Sit deep, absorb pressure, and protect the lead.', values: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 } },
+  { label: 'Balanced', description: 'No extreme risks. A solid default for most matches.', values: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 } },
+  { label: 'All-Out Attack', description: 'Maximum attacking intent. High line, fast tempo. Risky but explosive.', values: { mentality: 'all-out-attack', width: 'wide', tempo: 'fast', defensiveLine: 'high', pressingIntensity: 75 } },
+  { label: 'Counter-Attack', description: 'Defend deep then strike quickly on fast transitions.', values: { mentality: 'cautious', width: 'narrow', tempo: 'fast', defensiveLine: 'deep', pressingIntensity: 40 } },
+];

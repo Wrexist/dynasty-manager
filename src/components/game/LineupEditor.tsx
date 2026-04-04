@@ -1,14 +1,20 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/types/game';
 import { MAX_SUBS } from '@/config/playerGeneration';
 import { PITCH_COLORS } from '@/config/ui';
-import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { cn } from '@/lib/utils';
-import { calculateChemistryLinks } from '@/utils/chemistry';
-import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor, NEUTRAL_LINE_COLOR } from '@/utils/formationLines';
-import { PlayerAvatar } from './PlayerAvatar';
+import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
+import { getSquadInsights } from '@/utils/squadInsights';
+import { PlayerCard } from './PlayerCard';
+import { ChemistryBar } from './ChemistryBar';
+import { InsightsPanel } from './InsightsPanel';
+import { getFlag } from '@/utils/nationality';
+import { getRatingColor } from '@/utils/uiHelpers';
+import { AnimatePresence, motion } from 'framer-motion';
+import { X } from 'lucide-react';
+import { hapticLight, hapticMedium } from '@/utils/haptics';
 
 // Half-pitch viewBox constants (bottom half only — your team)
 const VP_Y = 46;
@@ -22,34 +28,68 @@ function getCompatibility(playerPos: Position, slotPos: Position): 'natural' | '
   return 'wrong';
 }
 
-const COMPAT_RING = {
-  natural: 'ring-2 ring-emerald-400',
-  compatible: 'ring-2 ring-amber-400',
-  wrong: 'ring-2 ring-red-500',
-};
-
 export function LineupEditor() {
-  const { playerClubId, clubs, players, week, season, pairFamiliarity } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, week, season } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     clubs: s.clubs,
     players: s.players,
     week: s.week,
     season: s.season,
-    pairFamiliarity: s.pairFamiliarity,
   })));
   const updateLineup = useGameStore(s => s.updateLineup);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const club = clubs[playerClubId];
 
-  // Chemistry links for SVG lines (memoized — only recalculate when lineup changes)
+  // Clear selection when formation or lineup changes
+  const prevFormation = useRef(club?.formation);
+  const prevLineupKey = useRef(club?.lineup?.join(','));
+  useEffect(() => {
+    const currentFormation = club?.formation;
+    const currentLineupKey = club?.lineup?.join(',');
+    if (prevFormation.current !== currentFormation || prevLineupKey.current !== currentLineupKey) {
+      setSelectedId(null);
+    }
+    prevFormation.current = currentFormation;
+    prevLineupKey.current = currentLineupKey;
+  }, [club?.formation, club?.lineup]);
+
+  // Chemistry links (memoized)
   const chemLinks = useMemo(() => {
     if (!club) return [];
     const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
     return calculateChemistryLinks(lineupPlayers, club.formation, season);
   }, [club, players, season]);
 
-  const chemStrengthMap = useMemo(() => buildChemistryStrengthMap(chemLinks, pairFamiliarity), [chemLinks, pairFamiliarity]);
+  // Chemistry bonus and label
+  const { chemBonus, chemLabel } = useMemo(() => {
+    if (!club) return { chemBonus: 0, chemLabel: getChemistryLabel(0) };
+    const lp = club.lineup.map(id => players[id]).filter(Boolean);
+    const chemBonus = getChemistryBonus(lp, club.formation, season);
+    const chemLabel = getChemistryLabel(chemBonus);
+    return { chemBonus, chemLabel };
+  }, [club, players, season]);
+
+  // Per-player chemistry link count
+  const playerChemCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const link of chemLinks) {
+      counts.set(link.playerIdA, (counts.get(link.playerIdA) || 0) + 1);
+      counts.set(link.playerIdB, (counts.get(link.playerIdB) || 0) + 1);
+    }
+    return counts;
+  }, [chemLinks]);
+
+  // Set of player IDs that share a chemistry link with selected player
+  const selectedChemPartners = useMemo(() => {
+    if (!selectedId) return new Set<string>();
+    const partners = new Set<string>();
+    for (const link of chemLinks) {
+      if (link.playerIdA === selectedId) partners.add(link.playerIdB);
+      if (link.playerIdB === selectedId) partners.add(link.playerIdA);
+    }
+    return partners;
+  }, [selectedId, chemLinks]);
 
   const lineup = useMemo(() => club?.lineup || [], [club?.lineup]);
   const subs = useMemo(() => club?.subs || [], [club?.subs]);
@@ -64,6 +104,46 @@ export function LineupEditor() {
     return [...subs, ...benchIds];
   }, [allSquad, lineup, subs, players, week]);
 
+  // Best sub suggestion: bench player with highest overall who can improve the lineup
+  const bestSubId = useMemo(() => {
+    if (subAndBench.length === 0) return null;
+    const lineupPlayers = lineup.map(id => players[id]).filter(Boolean);
+    const lowestStarter = lineupPlayers.reduce((low, p) => {
+      if (!low || p.overall < low.overall || (p.overall === low.overall && p.fitness < low.fitness)) return p;
+      return low;
+    }, null as typeof lineupPlayers[0] | null);
+    if (!lowestStarter) return null;
+
+    let bestId: string | null = null;
+    let bestScore = 0;
+    for (const id of subAndBench) {
+      const p = players[id];
+      if (!p || p.injured) continue;
+      const advantage = p.overall - lowestStarter.overall;
+      const fitnessBonus = (p.fitness - lowestStarter.fitness) / 100;
+      const score = advantage + fitnessBonus;
+      if (score > bestScore) {
+        bestScore = score;
+        bestId = id;
+      }
+    }
+    return bestScore > 0 ? bestId : null;
+  }, [subAndBench, lineup, players]);
+
+  // Insights
+  const insights = useMemo(() => {
+    if (!club) return [];
+    const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
+    const slots = FORMATION_POSITIONS[club.formation] || [];
+    return getSquadInsights(lineupPlayers, club.formation, slots, chemLinks, chemBonus);
+  }, [club, players, chemLinks, chemBonus]);
+
+  // Selected player's chemistry links for detail panel
+  const selectedPlayerLinks = useMemo(() => {
+    if (!selectedId) return [];
+    return chemLinks.filter(l => l.playerIdA === selectedId || l.playerIdB === selectedId);
+  }, [selectedId, chemLinks]);
+
   const handleSwap = useCallback((activeId: string, targetId: string) => {
     const activeInLineupIdx = lineup.indexOf(activeId);
     const overInLineupIdx = lineup.indexOf(targetId);
@@ -76,63 +156,52 @@ export function LineupEditor() {
     const newLineup = [...lineup];
     let newSubs = [...subs];
 
-    // Helper to remove a player from subs (no-op if not in subs — handles benchIds players)
     const removeFromSubs = (id: string) => {
       newSubs = newSubs.filter(sid => sid !== id);
     };
-
-    // Helper to add a player to subs (capped later by MAX_SUBS)
     const addToSubs = (id: string) => {
       if (!newSubs.includes(id)) newSubs.push(id);
     };
 
     if (activeInLineupIdx >= 0 && overInLineupIdx >= 0) {
-      // Lineup ↔ Lineup: swap positions
       newLineup[activeInLineupIdx] = targetId;
       newLineup[overInLineupIdx] = activeId;
     } else if (activeOnBench && overSlotIdx >= 0) {
-      // Bench → Empty/occupied slot
       const displaced = newLineup[overSlotIdx];
       newLineup[overSlotIdx] = activeId;
       removeFromSubs(activeId);
       if (displaced) addToSubs(displaced);
     } else if (activeOnBench && overInLineupIdx >= 0) {
-      // Bench → Lineup player: swap them
       const displaced = newLineup[overInLineupIdx];
       newLineup[overInLineupIdx] = activeId;
       removeFromSubs(activeId);
       if (displaced) addToSubs(displaced);
     } else if (activeInLineupIdx >= 0 && overOnBench) {
-      // Lineup → Bench player: swap them
       newLineup[activeInLineupIdx] = targetId;
       removeFromSubs(targetId);
       addToSubs(activeId);
     } else if (activeOnBench && overOnBench) {
-      // Bench ↔ Bench: swap positions in subs (handle benchIds players too)
       const activeInSubs = newSubs.indexOf(activeId);
       const overInSubs = newSubs.indexOf(targetId);
       if (activeInSubs >= 0 && overInSubs >= 0) {
-        // Both in subs — direct swap
         newSubs[activeInSubs] = targetId;
         newSubs[overInSubs] = activeId;
       } else if (activeInSubs >= 0) {
-        // Active in subs, over in benchIds — replace active's subs slot with over
         newSubs[activeInSubs] = targetId;
       } else if (overInSubs >= 0) {
-        // Active in benchIds, over in subs — replace over's subs slot with active
         newSubs[overInSubs] = activeId;
       }
-      // Both in benchIds — no subs change needed (purely cosmetic order)
     }
 
+    hapticMedium();
     updateLineup(newLineup, newSubs.slice(0, MAX_SUBS));
   }, [lineup, subs, subAndBench, updateLineup]);
 
   const handleTap = useCallback((tappedId: string) => {
-    // Ignore taps on empty slots when nothing is selected (can't select an empty slot)
     const isEmptySlot = tappedId.startsWith('slot-');
     if (!selectedId) {
-      if (isEmptySlot) return; // Can't select an empty slot
+      if (isEmptySlot) return;
+      hapticLight();
       setSelectedId(tappedId);
     } else if (selectedId === tappedId) {
       setSelectedId(null);
@@ -144,10 +213,7 @@ export function LineupEditor() {
 
   const formation = club?.formation;
   const slots = useMemo(() => formation ? FORMATION_POSITIONS[formation] : [], [formation]);
-  const formationLines = useMemo(() => getChemistryLines(slots, chemLinks, lineup), [slots, chemLinks, lineup]);
 
-  // When a lineup player is selected, find the slot they occupy so bench players
-  // can show compatibility relative to that slot position
   const selectedSlotPos = useMemo(() => {
     if (!selectedId) return null;
     const idx = lineup.indexOf(selectedId);
@@ -158,11 +224,12 @@ export function LineupEditor() {
   if (!club) return null;
 
   const selectedPlayer = selectedId ? players[selectedId] : null;
+  const isLineupSelected = selectedId ? lineup.includes(selectedId) : false;
 
   return (
     <div>
-      {/* Half Pitch (bottom half only — your team) */}
-      <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: '24rem' }}>
+      {/* Half Pitch (bottom half only) */}
+      <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: 'min(24rem, 100%)' }}>
         <svg viewBox={`0 ${VP_Y} ${VP_W} ${VP_H}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
           {/* Pitch background & markings */}
           <rect x="0" y="0" width="68" height="105" rx="1.5" fill={PITCH_COLORS.FILL} />
@@ -174,46 +241,9 @@ export function LineupEditor() {
           <rect x="24.85" y="97.5" width="18.3" height="5.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
           <rect x="29" y="103" width="10" height="2" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
           <path d="M 26.85 86.5 A 9.15 9.15 0 0 1 41.15 86.5" fill="none" stroke={PITCH_COLORS.LINE} strokeWidth="0.3" />
-
-          {/* Formation lines colored by chemistry */}
-          {formationLines.map(([a, b], idx) => {
-            const slotA = slots[a];
-            const slotB = slots[b];
-            const x1 = 2 + (slotA.x / 100) * 64;
-            const y1 = 95 - (slotA.y / 100) * 39;
-            const x2 = 2 + (slotB.x / 100) * 64;
-            const y2 = 95 - (slotB.y / 100) * 39;
-
-            let color = NEUTRAL_LINE_COLOR;
-            let width = 0.35;
-            let lineOpacity = 1;
-
-            const idA = lineup[a];
-            const idB = lineup[b];
-            if (idA && idB) {
-              const key = idA < idB ? `${idA}-${idB}` : `${idB}-${idA}`;
-              const strength = chemStrengthMap.get(key);
-              if (strength !== undefined) {
-                color = getChemistryLineColor(strength);
-                width = 0.45;
-                lineOpacity = 0.6;
-              }
-            }
-
-            return (
-              <line
-                key={`fl-${idx}`}
-                x1={x1} y1={y1} x2={x2} y2={y2}
-                stroke={color}
-                strokeWidth={width}
-                opacity={lineOpacity}
-                strokeLinecap="round"
-              />
-            );
-          })}
         </svg>
 
-        {/* Player Tokens (HTML overlays for tap-to-swap) */}
+        {/* Player Cards (HTML overlays) */}
         {slots.map((slot, i) => {
           const playerId = lineup[i];
           const player = playerId ? players[playerId] : null;
@@ -225,34 +255,34 @@ export function LineupEditor() {
           const isSelected = selectedId === playerId;
           const compat = selectedPlayer ? getCompatibility(selectedPlayer.position as Position, slot.pos as Position) : null;
 
+          // Fade non-selected, non-chemistry-linked players when someone is selected
+          const isFaded = selectedId && !isSelected && playerId && !selectedChemPartners.has(playerId);
+
           return (
             <div
               key={`slot-${i}`}
-              className="absolute"
+              className={cn('absolute transition-opacity duration-200', isFaded && 'opacity-40')}
               style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
-              onClick={() => handleTap(playerId || `slot-${i}`)}
             >
               {player ? (
-                <div className={cn(
-                  'flex flex-col items-center cursor-pointer p-0.5 rounded-lg transition-all',
-                  isSelected ? 'ring-2 ring-primary scale-110' : '',
-                  !isSelected && compat ? COMPAT_RING[compat] : ''
-                )}>
-                  <PlayerAvatar playerId={player.id} jerseyColor={club.color} size={28} overall={player.overall} position={slot.pos} />
-                  <div
-                    className="bg-black/70 rounded px-1 py-px -mt-0.5 text-center min-w-[34px]"
-                    style={{ borderBottom: `2px solid ${getFitnessHexColor(player.fitness)}` }}
-                  >
-                    <span className="text-[7px] text-white font-bold block leading-tight">{player.lastName.slice(0, 3).toUpperCase()}</span>
-                    <span className="text-[6px] text-gray-400 block leading-tight">{slot.pos} {player.overall}</span>
-                  </div>
-                </div>
+                <PlayerCard
+                  player={player}
+                  position={slot.pos}
+                  variant="starter"
+                  isSelected={isSelected}
+                  chemistryLinkCount={playerChemCounts.get(player.id) || 0}
+                  compatRing={!isSelected ? compat : null}
+                  onClick={() => handleTap(playerId)}
+                />
               ) : (
-                <div className={cn(
-                  'w-10 h-10 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center',
-                  selectedId ? 'cursor-pointer' : '',
-                  compat ? COMPAT_RING[compat] : ''
-                )}>
+                <div
+                  className={cn(
+                    'w-10 h-10 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center',
+                    selectedId ? 'cursor-pointer' : '',
+                    compat ? (compat === 'natural' ? 'ring-2 ring-emerald-400' : compat === 'compatible' ? 'ring-2 ring-amber-400' : 'ring-2 ring-red-500') : ''
+                  )}
+                  onClick={() => handleTap(`slot-${i}`)}
+                >
                   <span className="text-[8px] text-white/40">{slot.pos}</span>
                 </div>
               )}
@@ -261,38 +291,124 @@ export function LineupEditor() {
         })}
       </div>
 
+      {/* Selected Player Detail Panel */}
+      <AnimatePresence>
+        {selectedPlayer && (
+          <motion.div
+            key="detail-panel"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mx-1 mt-2 bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className={cn('text-lg font-bold font-display tabular-nums', getRatingColor(selectedPlayer.overall))}>
+                    {selectedPlayer.overall}
+                  </span>
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">
+                      {getFlag(selectedPlayer.nationality)} {selectedPlayer.firstName} {selectedPlayer.lastName}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {selectedPlayer.position} · Age {selectedPlayer.age} · Fitness {selectedPlayer.fitness}%
+                      {selectedPlayer.injured && ' · Injured'}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedId(null)} className="p-1 rounded hover:bg-muted/30 transition-colors">
+                  <X className="w-3.5 h-3.5 text-muted-foreground" />
+                </button>
+              </div>
+
+              {/* Attributes */}
+              <div className="grid grid-cols-3 gap-x-3 gap-y-1 mb-2">
+                {(['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'] as const).map(attr => (
+                  <div key={attr} className="flex items-center justify-between">
+                    <span className="text-[9px] text-muted-foreground capitalize">{attr.slice(0, 3)}</span>
+                    <span className={cn('text-[10px] font-bold tabular-nums', getRatingColor(selectedPlayer.attributes[attr]))}>
+                      {selectedPlayer.attributes[attr]}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Morale + Form row */}
+              <div className="flex items-center gap-3 mb-1.5 text-[9px]">
+                <span className="text-muted-foreground">
+                  Morale: <span className={cn('font-bold',
+                    selectedPlayer.morale >= 60 ? 'text-emerald-400' :
+                    selectedPlayer.morale >= 35 ? 'text-amber-400' : 'text-red-400'
+                  )}>{selectedPlayer.morale}</span>
+                </span>
+                <span className="text-muted-foreground">
+                  Form: <span className={cn('font-bold',
+                    selectedPlayer.form >= 60 ? 'text-emerald-400' :
+                    selectedPlayer.form >= 35 ? 'text-amber-400' : 'text-red-400'
+                  )}>{selectedPlayer.form}</span>
+                </span>
+                {!isLineupSelected && (
+                  <span className="text-primary text-[8px] ml-auto">BENCH</span>
+                )}
+              </div>
+
+              {/* Chemistry links for this player */}
+              {selectedPlayerLinks.length > 0 && (
+                <div className="border-t border-border/30 pt-1.5">
+                  <p className="text-[9px] text-muted-foreground mb-1">Chemistry Links</p>
+                  <div className="space-y-0.5">
+                    {selectedPlayerLinks.map((link) => {
+                      const partnerId = link.playerIdA === selectedId ? link.playerIdB : link.playerIdA;
+                      const partner = players[partnerId];
+                      if (!partner) return null;
+                      return (
+                        <div key={`${link.playerIdA}-${link.playerIdB}-${link.type}`} className="flex items-center gap-1.5 text-[9px]">
+                          <span className={cn(
+                            'px-1 py-px rounded text-[8px] font-medium',
+                            link.type === 'nationality' ? 'bg-primary/15 text-primary' :
+                            link.type === 'mentor' ? 'bg-emerald-400/15 text-emerald-400' :
+                            link.type === 'partnership' ? 'bg-amber-400/15 text-amber-400' :
+                            'bg-sky-400/15 text-sky-400'
+                          )}>
+                            {link.type}
+                          </span>
+                          <span className="text-foreground">{partner.lastName}</span>
+                          <span className="text-muted-foreground ml-auto">+{link.strength}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Bench */}
       <div className="mt-3">
         <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">Bench & Reserves</p>
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 px-1">
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-hide pb-1 px-1">
           {subAndBench.map(id => {
             const p = players[id];
             if (!p) return null;
             const isSelected = selectedId === id;
-            // Show compatibility ring when a lineup player is selected
             const benchCompat = selectedSlotPos
               ? getCompatibility(p.position as Position, selectedSlotPos)
               : null;
             return (
-              <div
+              <PlayerCard
                 key={`bench-${id}`}
-                className={cn(
-                  'flex flex-col items-center shrink-0 cursor-pointer transition-all rounded-lg p-0.5',
-                  isSelected ? 'ring-2 ring-primary scale-110' : '',
-                  !isSelected && benchCompat ? COMPAT_RING[benchCompat] : ''
-                )}
-                style={{ opacity: p.injured ? 0.4 : 1 }}
+                player={p}
+                position={p.position}
+                variant="bench"
+                isSelected={isSelected}
+                chemistryLinkCount={playerChemCounts.get(p.id) || 0}
+                compatRing={!isSelected ? benchCompat : null}
+                isBestSub={id === bestSubId}
                 onClick={() => handleTap(id)}
-              >
-                <PlayerAvatar playerId={p.id} jerseyColor={club.color} size={24} overall={p.overall} position={p.position} />
-                <div
-                  className="bg-black/60 rounded px-1 py-px -mt-0.5 text-center min-w-[28px]"
-                  style={{ borderBottom: `1.5px solid ${getFitnessHexColor(p.fitness)}` }}
-                >
-                  <span className="text-[6px] text-white font-bold block leading-tight">{p.lastName.slice(0, 3).toUpperCase()}</span>
-                  <span className="text-[5px] text-gray-400 block leading-tight">{p.position} {p.overall}</span>
-                </div>
-              </div>
+              />
             );
           })}
         </div>
@@ -306,6 +422,14 @@ export function LineupEditor() {
           </p>
         </div>
       )}
+
+      {/* Chemistry Bar */}
+      <div className="mt-3">
+        <ChemistryBar bonus={chemBonus} label={chemLabel.label} labelColor={chemLabel.color} />
+      </div>
+
+      {/* Insights */}
+      <InsightsPanel insights={insights} />
     </div>
   );
 }

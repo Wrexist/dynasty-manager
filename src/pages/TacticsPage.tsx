@@ -3,13 +3,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { cn } from '@/lib/utils';
-import { getChemistryBonus, getChemistryLabel, calculateChemistryLinks } from '@/utils/chemistry';
-import { buildChemistryStrengthMap } from '@/utils/formationLines';
-import { CHEMISTRY_LINE_COLOR_STRONG, CHEMISTRY_LINE_COLOR_ESTABLISHED, CHEMISTRY_LINE_COLOR_DEVELOPING } from '@/config/chemistry';
+import { calculateChemistryLinks } from '@/utils/chemistry';
+import { MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE } from '@/config/chemistry';
 import { getRatingColor } from '@/utils/uiHelpers';
-import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS } from '@/config/tactics';
+import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
-import { Users, Globe, BookOpen, Handshake, Star, ArrowRightLeft, Wand2, AlertTriangle } from 'lucide-react';
+import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, Sparkles, AlertTriangle } from 'lucide-react';
 import { getFlag } from '@/utils/nationality';
 import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
@@ -18,13 +17,6 @@ import { InfoTip } from '@/components/game/InfoTip';
 import { PlayerSelect } from '@/components/game/PlayerSelect';
 import { infoToast } from '@/utils/gameToast';
 
-const STYLE_PRESETS: (StylePreset & { description: string })[] = [
-  { label: 'Park the Bus', description: 'Ultra-defensive. Sit deep, absorb pressure, and protect the lead.', values: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 } },
-  { label: 'Balanced', description: 'No extreme risks. A solid default for most matches.', values: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 } },
-  { label: 'All-Out Attack', description: 'Maximum attacking intent. High line, fast tempo. Risky but explosive.', values: { mentality: 'all-out-attack', width: 'wide', tempo: 'fast', defensiveLine: 'high', pressingIntensity: 75 } },
-  { label: 'Counter-Attack', description: 'Defend deep then strike quickly on fast transitions.', values: { mentality: 'cautious', width: 'narrow', tempo: 'fast', defensiveLine: 'deep', pressingIntensity: 40 } },
-];
-
 function pressingLabel(v: number): string {
   if (v <= PRESSING_LOW_THRESHOLD) return 'Low';
   if (v <= PRESSING_MED_THRESHOLD) return 'Medium';
@@ -32,9 +24,9 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, tactics, season, pairFamiliarity, training } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, tactics, season, training, week } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players, tactics: s.tactics,
-    season: s.season, pairFamiliarity: s.pairFamiliarity, training: s.training,
+    season: s.season, training: s.training, week: s.week,
   })));
   const setFormation = useGameStore(s => s.setFormation);
   const setDefensiveFormation = useGameStore(s => s.setDefensiveFormation);
@@ -46,26 +38,44 @@ const TacticsPage = () => {
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
   const [autoFilling, setAutoFilling] = useState(false);
-  const { chemBonus, chemLabel, chemLinks, chemStrengthMap } = useMemo(() => {
-    if (!club) return { chemBonus: 0, chemLabel: getChemistryLabel(0), chemLinks: [] as ReturnType<typeof calculateChemistryLinks>, chemStrengthMap: new Map<string, number>() };
+  const { chemLinks } = useMemo(() => {
+    if (!club) return { chemLinks: [] as ReturnType<typeof calculateChemistryLinks> };
     const lp = club.lineup.map(id => players[id]).filter(Boolean);
-    const chemBonus = getChemistryBonus(lp, club.formation, season);
-    const chemLabel = getChemistryLabel(chemBonus);
     const chemLinks = calculateChemistryLinks(lp, club.formation, season);
-    const chemStrengthMap = buildChemistryStrengthMap(chemLinks, pairFamiliarity);
-    return { chemBonus, chemLabel, chemLinks, chemStrengthMap };
-  }, [club, players, season, pairFamiliarity]);
+    return { chemLinks };
+  }, [club, players, season]);
+
+  // Memoize lineup players (used by Starting XI list, set-piece filters, potentialGain)
+  const lineupPlayers = useMemo(() => {
+    if (!club) return [];
+    return club.lineup.map(id => players[id]).filter(Boolean);
+  }, [club, players]);
+
+  // Potential rating gain for optimize button
+  const potentialGain = useMemo(() => {
+    if (!club) return 0;
+    const lineupAvg = lineupPlayers.length > 0
+      ? lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length
+      : 0;
+    const allAvailable = club.playerIds.map(id => players[id]).filter(p =>
+      p && !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
+    );
+    allAvailable.sort((a, b) => b.overall - a.overall);
+    const bestXI = allAvailable.slice(0, 11);
+    if (bestXI.length === 0) return 0;
+    const bestAvg = bestXI.reduce((s, p) => s + p.overall, 0) / bestXI.length;
+    return Math.max(0, Math.round(bestAvg - lineupAvg));
+  }, [club, players, week, lineupPlayers]);
+
+  // Group chemistry links by type (memoized)
+  const { natLinks, mentorLinks, partnershipLinks, loyaltyLinks } = useMemo(() => ({
+    natLinks: chemLinks.filter(l => l.type === 'nationality'),
+    mentorLinks: chemLinks.filter(l => l.type === 'mentor'),
+    partnershipLinks: chemLinks.filter(l => l.type === 'partnership'),
+    loyaltyLinks: chemLinks.filter(l => l.type === 'loyalty'),
+  }), [chemLinks]);
+
   if (!club) return null;
-
-  const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
-
-  // Helper to get the familiarity-capped strength for a link pair
-  const getCappedStrength = (link: { playerIdA: string; playerIdB: string; strength: number }) => {
-    const key = link.playerIdA < link.playerIdB
-      ? `${link.playerIdA}-${link.playerIdB}`
-      : `${link.playerIdB}-${link.playerIdA}`;
-    return chemStrengthMap.get(key) ?? link.strength;
-  };
 
   const isPresetActive = (preset: StylePreset): boolean => {
     return (
@@ -105,8 +115,10 @@ const TacticsPage = () => {
               key={f}
               onClick={() => { if (club.formation !== f) { setFormation(f); infoToast(`Formation set to ${f}`); } }}
               className={cn(
-                'px-3 py-2 rounded-lg text-sm font-mono font-bold transition-all shrink-0',
-                club.formation === f ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                'px-3 py-1.5 rounded-full text-sm font-mono font-bold transition-all shrink-0',
+                club.formation === f
+                  ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
               )}
             >
               {f}
@@ -130,8 +142,10 @@ const TacticsPage = () => {
           <button
             onClick={() => setDefensiveFormation(null)}
             className={cn(
-              'px-3 py-2 rounded-lg text-sm font-mono font-bold transition-all shrink-0',
-              !club.defensiveFormation ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+              'px-3 py-1.5 rounded-full text-sm font-mono font-bold transition-all shrink-0',
+              !club.defensiveFormation
+                ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
+                : 'bg-muted/50 text-muted-foreground hover:bg-muted'
             )}
           >
             Same
@@ -141,8 +155,10 @@ const TacticsPage = () => {
               key={f}
               onClick={() => setDefensiveFormation(f)}
               className={cn(
-                'px-3 py-2 rounded-lg text-sm font-mono font-bold transition-all shrink-0',
-                club.defensiveFormation === f ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                'px-3 py-1.5 rounded-full text-sm font-mono font-bold transition-all shrink-0',
+                club.defensiveFormation === f
+                  ? 'bg-primary text-primary-foreground shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
+                  : 'bg-muted/50 text-muted-foreground hover:bg-muted'
               )}
             >
               {f}
@@ -156,169 +172,155 @@ const TacticsPage = () => {
         )}
       </GlassPanel>
 
-      {/* Smart Auto Fill */}
-      <button
-        onClick={() => {
-          setAutoFilling(true);
-          requestAnimationFrame(() => {
+      {/* Optimize Lineup */}
+      <div className="space-y-1">
+        {potentialGain > 0 && (
+          <p className="text-[10px] text-center text-primary">
+            +{potentialGain} overall rating potential
+          </p>
+        )}
+        <button
+          onClick={() => {
+            setAutoFilling(true);
+            const oldLineup = [...club.lineup];
+            const oldAvg = Math.round(oldLineup.map(id => players[id]).filter(Boolean)
+              .reduce((s, p) => s + p.overall, 0) / Math.max(1, oldLineup.filter(id => players[id]).length));
             autoFillTeam();
             setAutoFilling(false);
-          });
-        }}
-        disabled={autoFilling}
-        className={cn(
-          'w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]',
-          autoFilling
-            ? 'bg-primary/50 text-primary-foreground/70 cursor-not-allowed'
-            : 'bg-primary/90 hover:bg-primary text-primary-foreground'
-        )}
-      >
-        <Wand2 className={cn('w-4 h-4', autoFilling && 'animate-spin')} />
-        {autoFilling ? 'Optimizing...' : 'Smart Auto Fill'}
-      </button>
+            // Show diff toast using fresh state
+            const { clubs: newClubs, players: newPlayers } = useGameStore.getState();
+            const newClub = newClubs[playerClubId];
+            if (newClub) {
+              const changes = newClub.lineup.filter((id, i) => id !== oldLineup[i]).length;
+              const newAvg = Math.round(newClub.lineup.map(id => newPlayers[id]).filter(Boolean)
+                .reduce((s, p) => s + p.overall, 0) / Math.max(1, newClub.lineup.filter(id => newPlayers[id]).length));
+              const diff = newAvg - oldAvg;
+              if (changes > 0) {
+                infoToast(`${changes} change${changes > 1 ? 's' : ''} made${diff > 0 ? `, +${diff} OVR` : ''}`);
+              } else {
+                infoToast('Lineup already optimal');
+              }
+            }
+          }}
+          disabled={autoFilling}
+          className={cn(
+            'w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]',
+            autoFilling
+              ? 'bg-primary/50 text-primary-foreground/70 cursor-not-allowed'
+              : 'bg-primary/90 hover:bg-primary text-primary-foreground'
+          )}
+        >
+          <Sparkles className={cn('w-4 h-4', autoFilling && 'animate-spin')} />
+          {autoFilling ? 'Optimizing...' : 'Optimize Lineup'}
+        </button>
+      </div>
 
       {/* Lineup Editor with Drag & Drop */}
       <GlassPanel className="p-4">
         <LineupEditor />
       </GlassPanel>
 
-      {/* Squad Chemistry */}
-      {(() => {
-        const natLinks = chemLinks.filter(l => l.type === 'nationality');
-        const mentorLinks = chemLinks.filter(l => l.type === 'mentor');
-        const partnershipLinks = chemLinks.filter(l => l.type === 'partnership');
-        return (
-          <GlassPanel className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-primary" />
-                <span className="text-sm font-semibold text-foreground">Squad Chemistry</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={cn('text-xs font-bold', chemLabel.color)}>{chemLabel.label}</span>
-                <span className="text-[10px] text-muted-foreground bg-muted/40 px-2 py-0.5 rounded-full">+{(chemBonus * 100).toFixed(1)}%</span>
-              </div>
-            </div>
+      {/* Chemistry Links Detail */}
+      {chemLinks.length > 0 && (
+        <GlassPanel className="p-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Chemistry Links ({chemLinks.length})</p>
 
-            {/* Color legend */}
-            <div className="flex items-center gap-3 mb-1">
-              <div className="flex items-center gap-1">
-                <span className="w-3 h-0.5 rounded-full inline-block" style={{ backgroundColor: CHEMISTRY_LINE_COLOR_STRONG }} />
-                <span className="text-[9px] text-muted-foreground">Strong</span>
+          <div className="space-y-2 max-h-[30vh] overflow-y-auto">
+            {natLinks.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Globe className="w-3 h-3 text-primary" />
+                  <span className="text-[10px] text-muted-foreground font-semibold">Nationality ({natLinks.length})</span>
+                </div>
+                <div className="space-y-0.5">
+                  {natLinks.map((link) => {
+                    const a = players[link.playerIdA];
+                    const b = players[link.playerIdB];
+                    if (!a || !b) return null;
+                    return (
+                      <div key={`nat-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
+                        <span className="text-xs">{getFlag(a.nationality)}</span>
+                        <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
+                        <span className="text-[9px] text-primary font-bold">+{link.strength}</span>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="flex items-center gap-1">
-                <span className="w-3 h-0.5 rounded-full inline-block" style={{ backgroundColor: CHEMISTRY_LINE_COLOR_ESTABLISHED }} />
-                <span className="text-[9px] text-muted-foreground">Established</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="w-3 h-0.5 rounded-full inline-block" style={{ backgroundColor: CHEMISTRY_LINE_COLOR_DEVELOPING }} />
-                <span className="text-[9px] text-muted-foreground">Developing</span>
-              </div>
-            </div>
-            <p className="text-[9px] text-muted-foreground/60 mb-2">
-              Chemistry boosts team performance in matches. Links grow stronger as pairs play together. Nationality = same country, Mentor = veteran guiding a youngster, Partnership = compatible positions.
-            </p>
-
-            {chemLinks.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-2">No chemistry links detected. Try players with shared nationality or compatible positions.</p>
             )}
 
-            <div className="space-y-3 max-h-[40vh] overflow-y-auto">
-              {/* Nationality Links */}
-              {natLinks.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Globe className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Nationality ({natLinks.length})</span>
-                  </div>
-                  <div className="space-y-1">
-                    {natLinks.map((link, i) => {
-                      const a = players[link.playerIdA];
-                      const b = players[link.playerIdB];
-                      if (!a || !b) return null;
-                      const capped = getCappedStrength(link);
-                      return (
-                        <div key={`nat-${i}`} className="flex items-center gap-2 bg-muted/20 rounded-lg px-2.5 py-1.5">
-                          <span className="text-sm">{getFlag(a.nationality)}</span>
-                          <span className="text-[11px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
-                          <div className="flex gap-0.5">
-                            {Array.from({ length: link.strength }).map((_, si) => (
-                              <Star key={si} className={cn('w-2.5 h-2.5', si < capped ? 'text-primary fill-primary' : 'text-primary/30')} />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+            {mentorLinks.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <BookOpen className="w-3 h-3 text-emerald-400" />
+                  <span className="text-[10px] text-muted-foreground font-semibold">Mentor ({mentorLinks.length})</span>
                 </div>
-              )}
+                <div className="space-y-0.5">
+                  {mentorLinks.map((link) => {
+                    const a = players[link.playerIdA];
+                    const b = players[link.playerIdB];
+                    if (!a || !b) return null;
+                    const senior = a.age >= MENTOR_SENIOR_AGE && b.age <= MENTOR_JUNIOR_AGE ? a
+                      : b.age >= MENTOR_SENIOR_AGE && a.age <= MENTOR_JUNIOR_AGE ? b
+                      : a;
+                    const junior = senior === a ? b : a;
+                    return (
+                      <div key={`men-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
+                        <span className="text-[10px] text-foreground flex-1">{senior.lastName} → {junior.lastName}</span>
+                        <span className="text-[9px] text-emerald-400 font-bold">+{link.strength}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-              {/* Mentor Links */}
-              {mentorLinks.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Mentor ({mentorLinks.length})</span>
-                  </div>
-                  <div className="space-y-1">
-                    {mentorLinks.map((link, i) => {
-                      const a = players[link.playerIdA];
-                      const b = players[link.playerIdB];
-                      if (!a || !b) return null;
-                      const senior = a.age >= 28 ? a : b;
-                      const junior = senior === a ? b : a;
-                      const capped = getCappedStrength(link);
-                      return (
-                        <div key={`men-${i}`} className="flex items-center gap-2 bg-muted/20 rounded-lg px-2.5 py-1.5">
-                          <BookOpen className="w-3 h-3 text-emerald-400 shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <span className="text-[11px] text-foreground">{senior.lastName} mentoring {junior.lastName}</span>
-                            <span className="text-[9px] text-muted-foreground ml-1">({junior.position})</span>
-                          </div>
-                          <div className="flex gap-0.5">
-                            {Array.from({ length: link.strength }).map((_, si) => (
-                              <Star key={si} className={cn('w-2.5 h-2.5', si < capped ? 'text-emerald-400 fill-emerald-400' : 'text-emerald-400/30')} />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+            {partnershipLinks.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Handshake className="w-3 h-3 text-amber-400" />
+                  <span className="text-[10px] text-muted-foreground font-semibold">Partnership ({partnershipLinks.length})</span>
                 </div>
-              )}
+                <div className="space-y-0.5">
+                  {partnershipLinks.map((link) => {
+                    const a = players[link.playerIdA];
+                    const b = players[link.playerIdB];
+                    if (!a || !b) return null;
+                    return (
+                      <div key={`part-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
+                        <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
+                        <span className="text-[9px] text-amber-400 font-bold">+{link.strength}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-              {/* Partnership Links */}
-              {partnershipLinks.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1.5">
-                    <Handshake className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Partnership ({partnershipLinks.length})</span>
-                  </div>
-                  <div className="space-y-1">
-                    {partnershipLinks.map((link, i) => {
-                      const a = players[link.playerIdA];
-                      const b = players[link.playerIdB];
-                      if (!a || !b) return null;
-                      const capped = getCappedStrength(link);
-                      return (
-                        <div key={`part-${i}`} className="flex items-center gap-2 bg-muted/20 rounded-lg px-2.5 py-1.5">
-                          <Handshake className="w-3 h-3 text-amber-400 shrink-0" />
-                          <span className="text-[11px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
-                          <div className="flex gap-0.5">
-                            {Array.from({ length: link.strength }).map((_, si) => (
-                              <Star key={si} className={cn('w-2.5 h-2.5', si < capped ? 'text-amber-400 fill-amber-400' : 'text-amber-400/30')} />
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+            {loyaltyLinks.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Heart className="w-3 h-3 text-sky-400" />
+                  <span className="text-[10px] text-muted-foreground font-semibold">Loyalty ({loyaltyLinks.length})</span>
                 </div>
-              )}
-            </div>
-          </GlassPanel>
-        );
-      })()}
+                <div className="space-y-0.5">
+                  {loyaltyLinks.map((link) => {
+                    const a = players[link.playerIdA];
+                    const b = players[link.playerIdB];
+                    if (!a || !b) return null;
+                    return (
+                      <div key={`loy-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
+                        <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
+                        <span className="text-[9px] text-sky-400 font-bold">+{link.strength}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Style Presets */}
       <GlassPanel className="p-4">
