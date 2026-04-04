@@ -21,6 +21,7 @@ interface BuildCoachTasksContext {
   scoutReportsCount: number;
   shortlistCount: number;
   week: number;
+  completedTaskIds: string[];
 }
 
 export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
@@ -29,12 +30,14 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
     (m) => m.played && (m.homeClubId === ctx.playerClubId || m.awayClubId === ctx.playerClubId)
   ).length;
 
+  const done = (id: string) => ctx.completedTaskIds.includes(id);
+
   const tasks: CoachTask[] = [
     {
       id: 'lineup',
       title: 'Set your best XI',
       description: 'Auto-fill or tweak your lineup before advancing.',
-      completed: ctx.club.lineup.length >= 11,
+      completed: done('lineup') || ctx.club.lineup.length >= 11,
       screen: 'squad',
       priority: 'high',
     },
@@ -42,15 +45,15 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       id: 'first-match',
       title: 'Play your first match week',
       description: 'Advance week to start building momentum.',
-      completed: playedMatches > 0,
+      completed: done('first-match') || playedMatches > 0,
       screen: 'dashboard',
       priority: 'high',
     },
     {
       id: 'objectives',
-      title: 'Complete a weekly objective',
+      title: 'Complete a monthly objective',
       description: 'Objectives are your fastest XP source early on.',
-      completed: completedObjectives > 0,
+      completed: done('objectives') || completedObjectives > 0,
       screen: 'dashboard',
       priority: 'high',
     },
@@ -58,7 +61,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       id: 'scouting',
       title: 'Start scouting for hidden talent',
       description: 'Assign at least one scout to build future depth.',
-      completed: ctx.scoutAssignments.length > 0 || ctx.scoutReportsCount > 0,
+      completed: done('scouting') || ctx.scoutAssignments.length > 0 || ctx.scoutReportsCount > 0,
       screen: 'scouting',
       priority: 'medium',
     },
@@ -66,7 +69,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       id: 'contracts',
       title: 'Review expiring contracts',
       description: 'Avoid losing key players for free at season end.',
-      completed: ctx.club.playerIds
+      completed: done('contracts') || ctx.club.playerIds
         .map((id) => ctx.players[id])
         .filter(Boolean)
         .every((player) => player.contractEnd > 1),
@@ -77,7 +80,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       id: 'transfers',
       title: 'Track transfer market targets',
       description: 'Add 1-2 shortlist options before deadline pressure hits.',
-      completed: ctx.shortlistCount > 0,
+      completed: done('transfers') || ctx.shortlistCount > 0,
       screen: ctx.transferWindowOpen ? 'transfers' : 'scouting',
       priority: 'low',
     },
@@ -85,7 +88,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       id: 'inbox',
       title: 'Keep inbox clear',
       description: 'Unread messages often contain board and transfer updates.',
-      completed: ctx.unreadMessages === 0,
+      completed: done('inbox') || ctx.unreadMessages === 0,
       screen: 'inbox',
       priority: 'low',
     },

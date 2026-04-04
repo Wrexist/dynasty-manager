@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 37;
+const CURRENT_VERSION = 38;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -545,11 +545,19 @@ const migrations: Record<number, MigrationFn> = {
     }
     return { ...data, version: 36 };
   },
+
+  // v36 → v37: Transfer market realism — new optional fields on TransferListing.
   36: (data) => {
-    // v37: Transfer market realism — new optional fields on TransferListing (listedWeek, divisionId, externalPlayer).
-    // No data migration needed — all new fields are optional and default gracefully.
     return { ...data, version: 37 };
   },
+
+  // v37 → v38: Monthly objectives (4-week cycle) + persistent coach checklist
+  37: (data) => ({
+    ...data,
+    version: 38,
+    completedCoachTaskIds: data.completedCoachTaskIds || [],
+    objectivesStartWeek: data.week || 1,
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

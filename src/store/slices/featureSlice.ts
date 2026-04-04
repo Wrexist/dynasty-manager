@@ -30,6 +30,8 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   careerTimeline: [] as GameState['careerTimeline'],
   managerProgression: { xp: 0, level: 1, unlockedPerks: [], prestigeLevel: 0 } as ManagerProgression,
   objectiveStreak: 0,
+  objectivesStartWeek: 1,
+  completedCoachTaskIds: [] as string[],
   weekCliffhangers: [] as CliffhangerItem[],
   lastMatchDrama: null as MatchDramaType,
   sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 } as SessionStats,
@@ -97,6 +99,12 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   clearPendingAchievements: () => {
     if (get().pendingAchievementIds.length === 0) return;
     set({ pendingAchievementIds: [] });
+  },
+
+  markCoachTaskComplete: (taskId: string) => {
+    const ids = get().completedCoachTaskIds;
+    if (ids.includes(taskId)) return;
+    set({ completedCoachTaskIds: [...ids, taskId] });
   },
 
   dismissPress: () => {
