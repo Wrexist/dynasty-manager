@@ -12,7 +12,7 @@ export const MODULE_ATTR_MAP: Record<TrainingModule, (keyof PlayerAttributes)[]>
   defending: ['defending', 'physical'],
   mentality: ['mental', 'passing'],
   'set-pieces': ['shooting', 'passing'],
-  tactical: ['mental'],
+  tactical: ['mental', 'defending'],
 };
 
 // ── Intensity Effects ──

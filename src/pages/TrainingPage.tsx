@@ -11,7 +11,7 @@ import { PAGE_HINTS, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
 import { hapticLight } from '@/utils/haptics';
 import { successToast } from '@/utils/gameToast';
-import { TRAINING_PRESETS, DRILLS_BY_MODULE, STREAK_THRESHOLDS, STREAK_MULTIPLIERS } from '@/config/training';
+import { TRAINING_PRESETS, DRILLS_BY_MODULE, STREAK_THRESHOLDS, STREAK_MULTIPLIERS, MODULE_ATTR_MAP, INDIVIDUAL_FITNESS_COST } from '@/config/training';
 import { getTrainingRecommendation, getTrainingEffectivenessPreview, getSquadFitnessDistribution, getStreakTier, getDominantTrainingFocus } from '@/utils/training';
 import { getTrainingMultiplier } from '@/utils/personality';
 import { getStaffBonus } from '@/utils/staff';
@@ -587,7 +587,7 @@ const TrainingPage = () => {
                 className="overflow-hidden"
               >
                 <p className="text-[10px] text-muted-foreground mt-2 mb-2">
-                  Assign a focus for +50% targeted gains + extra sessions for off-schedule skills. Small fitness cost applies.
+                  +50% gains on focus attributes. Extra sessions for skills not in team schedule. {Math.abs(INDIVIDUAL_FITNESS_COST)} fitness/wk cost per player.
                 </p>
                 <div className="space-y-1 max-h-72 overflow-y-auto">
                   {squadPlayers
@@ -605,8 +605,9 @@ const TrainingPage = () => {
                             className="flex items-center gap-2 w-full text-left hover:bg-muted/30 rounded-md px-1.5 py-1.5 transition-colors"
                           >
                             <span className="text-[10px] text-muted-foreground w-6 text-center tabular-nums">{p.overall}</span>
-                            <span className="text-xs text-foreground font-medium truncate flex-1">
+                            <span className={cn("text-xs font-medium truncate flex-1", p.injured ? "text-muted-foreground" : "text-foreground")}>
                               {p.firstName[0]}. {p.lastName}
+                              {p.injured && <Heart className="w-2.5 h-2.5 text-destructive inline ml-1" />}
                             </span>
                             <span className="text-[10px] text-muted-foreground w-8">{p.position}</span>
                             <span className={cn('text-[9px] w-8 text-right tabular-nums', multLabel)}>
@@ -642,6 +643,9 @@ const TrainingPage = () => {
                                     >
                                       <Icon className="w-3 h-3" />
                                       {label}
+                                      <span className="text-[8px] opacity-50">
+                                        ({MODULE_ATTR_MAP[module].map(a => ATTR_LABELS[a] || a).join('/')})
+                                      </span>
                                     </button>
                                   ))}
                                 </div>

@@ -20,6 +20,7 @@ import {
   INDIVIDUAL_FITNESS_COST,
 } from '@/config/training';
 import { seasonGrowthTracker } from '@/store/helpers/development';
+import { MAX_SEASON_GROWTH } from '@/config/gameBalance';
 import type { TrainingState, Player, TrainingModule, TrainingStreaks } from '@/types/game';
 
 function makeTraining(overrides: Partial<TrainingState> = {}): TrainingState {
@@ -511,6 +512,45 @@ describe('training', () => {
 
       // Shooting should NOT gain because season growth cap is reached
       expect(result.attributes.shooting).toBe(50);
+    });
+
+    it('does not exceed season growth cap when both passes gain in same call', () => {
+      // Player near cap — both team and independent training try to add gains
+      seasonGrowthTracker['p1'] = MAX_SEASON_GROWTH - 1;
+      const training = makeTraining({
+        schedule: { mon: 'fitness', tue: 'fitness', wed: 'fitness', thu: 'fitness', fri: 'fitness' },
+        individualPlans: [{ playerId: 'p1', focus: 'attacking' }],
+      });
+
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0);
+      const player = makeTestPlayer('p1');
+      applyWeeklyTraining(player, training, 0);
+      mockRandom.mockRestore();
+
+      expect(seasonGrowthTracker['p1']).toBeLessThanOrEqual(MAX_SEASON_GROWTH);
+    });
+
+    it('tactical module maps to mental and defending', () => {
+      expect(MODULE_ATTR_MAP['tactical']).toContain('mental');
+      expect(MODULE_ATTR_MAP['tactical']).toContain('defending');
+      expect(MODULE_ATTR_MAP['tactical'].length).toBe(2);
+    });
+
+    it('tactical individual plan grants independent defending gains when mental is on-schedule', () => {
+      // Team trains mentality all week (mental, passing). Player has tactical plan (mental, defending).
+      // Mental is on-schedule → gets 1.5x bonus there. Defending is NOT → gets independent pass.
+      const training = makeTraining({
+        schedule: { mon: 'mentality', tue: 'mentality', wed: 'mentality', thu: 'mentality', fri: 'mentality' },
+        individualPlans: [{ playerId: 'p1', focus: 'tactical' }],
+      });
+
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0);
+      const player = makeTestPlayer('p1');
+      const result = applyWeeklyTraining(player, training, 0);
+      mockRandom.mockRestore();
+
+      // Defending should gain from independent pass
+      expect(result.attributes.defending).toBeGreaterThan(50);
     });
   });
 });

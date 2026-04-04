@@ -97,6 +97,13 @@ export function applyWeeklyTraining(
     }
   }
 
+  // Update tracker after team pass so the independent pass sees accurate cap state
+  const teamOverall = calculateOverall(updated.attributes, updated.position);
+  const teamGrowth = Math.max(0, teamOverall - player.overall);
+  if (teamGrowth > 0) {
+    seasonGrowthTracker[player.id] = (seasonGrowthTracker[player.id] || 0) + teamGrowth;
+  }
+
   // Independent individual training pass: gain chance for focus attributes NOT in team schedule
   if (playerPlan && (seasonGrowthTracker[player.id] || 0) < MAX_SEASON_GROWTH) {
     const individualAttrs = MODULE_ATTR_MAP[playerPlan.focus] || [];
@@ -119,15 +126,15 @@ export function applyWeeklyTraining(
   const individualFitnessCost = playerPlan ? INDIVIDUAL_FITNESS_COST : 0;
   updated.fitness = Math.max(FITNESS_MIN, Math.min(100, updated.fitness + fitnessDays * FITNESS_RECOVERY_PER_DAY + FITNESS_RECOVERY_BASE + recoveryBonus + INTENSITY_FITNESS_COST[training.intensity] + individualFitnessCost));
 
-  // Recalculate overall
-  const newOverall = calculateOverall(updated.attributes, updated.position);
-  updated.growthDelta = newOverall - player.overall;
-  updated.overall = newOverall;
+  // Recalculate final overall and track any additional growth from independent pass
+  const finalOverall = calculateOverall(updated.attributes, updated.position);
+  updated.growthDelta = finalOverall - player.overall;
+  updated.overall = finalOverall;
   updated.value = calculatePlayerValue(updated.overall);
 
-  // Track training growth toward season cap
-  if (updated.growthDelta > 0) {
-    seasonGrowthTracker[player.id] = (seasonGrowthTracker[player.id] || 0) + updated.growthDelta;
+  const additionalGrowth = Math.max(0, finalOverall - teamOverall);
+  if (additionalGrowth > 0) {
+    seasonGrowthTracker[player.id] = (seasonGrowthTracker[player.id] || 0) + additionalGrowth;
   }
 
   return updated;
