@@ -4,16 +4,17 @@
  */
 
 // ── Player Scoring Weights ──
-export const LINEUP_POSITIONAL_OVERALL_WEIGHT = 0.55;
+// Calibrated to match engine: baseStrength = avgOverall * (0.7 + fitness*0.2 + morale*0.1)
+export const LINEUP_POSITIONAL_OVERALL_WEIGHT = 0.70;
 export const LINEUP_FORM_WEIGHT = 12;
-export const LINEUP_FITNESS_WEIGHT = 15;
+export const LINEUP_FITNESS_WEIGHT = 20;
 export const LINEUP_MORALE_WEIGHT = 10;
 
 // ── Position Match Bonuses/Penalties ──
-// Match engine: formation fit = 0-18% team strength. Mispositioned players cost ~1.6% per slot.
-export const LINEUP_NATURAL_POSITION_BONUS = 8;
-export const LINEUP_COMPATIBLE_POSITION_BONUS = 4;
-export const LINEUP_INCOMPATIBLE_POSITION_PENALTY = -30;
+// Match engine: formation fit = 0-25% team strength. Each of 10 outfield slots ≈ 2.5%.
+export const LINEUP_NATURAL_POSITION_BONUS = 15;
+export const LINEUP_COMPATIBLE_POSITION_BONUS = 8;
+export const LINEUP_INCOMPATIBLE_POSITION_PENALTY = -40;
 
 // ── Fitness & Morale ──
 export const LINEUP_LOW_FITNESS_EXTRA_PENALTY = -8;
