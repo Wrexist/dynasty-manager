@@ -72,6 +72,7 @@ const Dashboard = () => {
     facilities, scouting, divisionTables, playerDivision,
     managerProgression, clubRecords, transferWindowOpen, training,
     weeklyObjectives, shortlist, seasonPhase, totalWeeks,
+    objectivesStartWeek, completedCoachTaskIds,
     gameMode, careerManager, jobOffers,
     pendingPressConference, pendingStoryline, pendingTransferTalk,
     activeChallenge, youthAcademy, fanMood, sessionStats,
@@ -93,6 +94,7 @@ const Dashboard = () => {
     transferWindowOpen: s.transferWindowOpen, training: s.training,
     weeklyObjectives: s.weeklyObjectives, shortlist: s.shortlist,
     seasonPhase: s.seasonPhase, totalWeeks: s.totalWeeks,
+    objectivesStartWeek: s.objectivesStartWeek, completedCoachTaskIds: s.completedCoachTaskIds,
     gameMode: s.gameMode, careerManager: s.careerManager, jobOffers: s.jobOffers,
     pendingPressConference: s.pendingPressConference, pendingStoryline: s.pendingStoryline,
     pendingTransferTalk: s.pendingTransferTalk, activeChallenge: s.activeChallenge,
@@ -104,6 +106,7 @@ const Dashboard = () => {
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const endSeason = useGameStore(s => s.endSeason);
   const selectPlayer = useGameStore(s => s.selectPlayer);
+  const markCoachTaskComplete = useGameStore(s => s.markCoachTaskComplete);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
   const pos = useLeaguePosition();
@@ -343,9 +346,19 @@ const Dashboard = () => {
       scoutReportsCount: scouting.reports.length,
       shortlistCount: shortlist.length,
       week,
+      completedTaskIds: completedCoachTaskIds,
     });
-  }, [club, fixtures, playerClubId, unread, weeklyObjectives, players, transferWindowOpen, scouting.assignments, scouting.reports.length, shortlist.length, week]);
+  }, [club, fixtures, playerClubId, unread, weeklyObjectives, players, transferWindowOpen, scouting.assignments, scouting.reports.length, shortlist.length, week, completedCoachTaskIds]);
   const completedCoachTasks = coachTasks.filter(task => task.completed).length;
+
+  // Persist newly completed coach tasks
+  useEffect(() => {
+    for (const task of coachTasks) {
+      if (task.completed && !completedCoachTaskIds.includes(task.id)) {
+        markCoachTaskComplete(task.id);
+      }
+    }
+  }, [coachTasks, completedCoachTaskIds, markCoachTaskComplete]);
 
   // Last played match
   const lastMatchInfo = useMemo(() => {
@@ -894,12 +907,13 @@ const Dashboard = () => {
         </GlassPanel>
       )}
 
-      {/* Weekly Objectives */}
+      {/* Monthly Objectives */}
       {!seasonOver && weeklyObjectives.length > 0 && (
         <GlassPanel className="p-4">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <p className="text-xs font-bold text-foreground uppercase tracking-wider">Weekly Objectives</p>
+              <p className="text-xs font-bold text-foreground uppercase tracking-wider">Monthly Objectives</p>
+              <span className="text-[9px] text-muted-foreground">Week {Math.min(week - (objectivesStartWeek || 1) + 1, 4)}/4</span>
               {objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD && (
                 <span className="text-[9px] font-bold text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded-full">
                   2x XP
@@ -1074,7 +1088,7 @@ const Dashboard = () => {
             <span className={cn('font-bold', objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD ? 'text-amber-400' : 'text-primary')}>
               {objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD
                 ? `Streak x${objectiveStreak} — 2x XP Multiplier Active!`
-                : `${objectiveStreak}-week objective streak! ${OBJECTIVE_STREAK_THRESHOLD - objectiveStreak} more for 2x XP.`}
+                : `${objectiveStreak}-month objective streak! ${OBJECTIVE_STREAK_THRESHOLD - objectiveStreak} more for 2x XP.`}
             </span>
           </div>
         </GlassPanel>

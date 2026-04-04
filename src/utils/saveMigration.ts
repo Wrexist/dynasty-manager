@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 36;
+const CURRENT_VERSION = 37;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -545,6 +545,14 @@ const migrations: Record<number, MigrationFn> = {
     }
     return { ...data, version: 36 };
   },
+
+  // v36 → v37: Monthly objectives (4-week cycle) + persistent coach checklist
+  36: (data) => ({
+    ...data,
+    version: 37,
+    completedCoachTaskIds: data.completedCoachTaskIds || [],
+    objectivesStartWeek: data.week || 1,
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

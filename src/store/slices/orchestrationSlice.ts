@@ -95,7 +95,7 @@ import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST } from '@/conf
 import { generateRandomEvents } from '@/utils/randomEvents';
 import { getWinStreak, detectMatchDrama } from '@/utils/celebrations';
 import { generateCliffhangers } from '@/utils/weekPreview';
-import { generateWeeklyObjectives, evaluateObjectives } from '@/utils/weeklyObjectives';
+import { generateMonthlyObjectives, evaluateObjectives } from '@/utils/weeklyObjectives';
 import type { ObjectiveContext } from '@/utils/weeklyObjectives';
 import { generateAIManagerProfile } from '@/config/aiManager';
 import { processAIWeekly } from '@/utils/aiSimulation';
@@ -1897,8 +1897,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       currentContinentalMatchId: null,
       currentContinentalCompetition: null,
       currentLeagueCupTieId: null,
-      weeklyObjectives: generateWeeklyObjectives(true),
+      weeklyObjectives: generateMonthlyObjectives(true),
       objectiveStreak: 0,
+      objectivesStartWeek: 1,
+      completedCoachTaskIds: [],
       weekCliffhangers: [],
       rivalries: {},
       pairFamiliarity: (() => {
@@ -3052,31 +3054,49 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
-    // Evaluate weekly objectives from the previous week with streak tracking
+    // Evaluate monthly objectives — check completions every week, cycle every 4 weeks
     const objCtx: ObjectiveContext = {
       playerClubId, players: newPlayers, playerIds: playerClub.playerIds,
       fixtures: updatedFixtures, leagueTable, week, season, lineup: playerClub.lineup,
     };
     const currentStreak = state.objectiveStreak || 0;
+    const objectivesStartWeek = state.objectivesStartWeek || 1;
+    const monthComplete = (newWeek - objectivesStartWeek) >= 4;
+
+    // Always evaluate completions (so objectives can be marked done mid-month)
     const { updated: evalObjectives, xpEarned: objXP, allCompleted: objAllCompleted, newStreak } = evaluateObjectives(state.weeklyObjectives, objCtx, currentStreak);
+
     let updatedProgression = state.managerProgression;
     if (achievementXPTotal > 0) {
       updatedProgression = grantXP(updatedProgression, achievementXPTotal);
     }
-    if (objXP > 0) {
-      updatedProgression = grantXP(updatedProgression, objXP);
-      const completedCount = evalObjectives.filter(o => o.completed).length;
-      let objMsg = `You earned ${objXP} XP from this week's objectives!`;
-      if (objAllCompleted) objMsg += ' PERFECT WEEK — all objectives complete!';
-      if (newStreak >= 3) objMsg += ` Streak x${newStreak} — bonus multiplier active!`;
-      newMessages = addMsg(newMessages, {
-        week: newWeek, season, type: 'general',
-        title: `Weekly Objectives: ${completedCount}/${evalObjectives.length} Complete`,
-        body: objMsg,
-      });
+
+    let newObjectives = evalObjectives;
+    let newObjectivesStartWeek = objectivesStartWeek;
+    let finalStreak = currentStreak;
+
+    if (monthComplete) {
+      // Month is over — award XP and cycle to new objectives
+      if (objXP > 0) {
+        updatedProgression = grantXP(updatedProgression, objXP);
+        const completedCount = evalObjectives.filter(o => o.completed).length;
+        let objMsg = `You earned ${objXP} XP from this month's objectives!`;
+        if (objAllCompleted) objMsg += ' PERFECT MONTH — all objectives complete!';
+        if (newStreak >= 3) objMsg += ` Streak x${newStreak} — bonus multiplier active!`;
+        newMessages = addMsg(newMessages, {
+          week: newWeek, season, type: 'general',
+          title: `Monthly Objectives: ${completedCount}/${evalObjectives.length} Complete`,
+          body: objMsg,
+        });
+      }
+      finalStreak = newStreak;
+      const nextWeekHasMatch = updatedFixtures.some(m => !m.played && m.week === newWeek && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+      newObjectives = generateMonthlyObjectives(nextWeekHasMatch);
+      newObjectivesStartWeek = newWeek;
+    } else {
+      // Mid-month — keep updated objectives (with any new completions), don't change streak yet
+      newObjectives = evalObjectives;
     }
-    const nextWeekHasMatch = updatedFixtures.some(m => !m.played && m.week === newWeek && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
-    const newObjectives = generateWeeklyObjectives(nextWeekHasMatch);
 
     // Generate cliffhangers for "one more week" pull
     const cliffhangers = generateCliffhangers({
@@ -3087,13 +3107,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       rivalries: state.rivalries,
     });
 
-    // Update session stats
+    // Update session stats (XP only counted when month cycles)
     const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
+    const newlyCompleted = evalObjectives.filter(o => o.completed).length - state.weeklyObjectives.filter(o => o.completed).length;
     const sessionStats = {
       ...prevSession,
       weeksPlayed: prevSession.weeksPlayed + 1,
-      xpEarned: prevSession.xpEarned + objXP,
-      objectivesCompleted: prevSession.objectivesCompleted + evalObjectives.filter(o => o.completed).length,
+      xpEarned: prevSession.xpEarned + (monthComplete ? objXP : 0),
+      objectivesCompleted: prevSession.objectivesCompleted + Math.max(0, newlyCompleted),
     };
 
     // Compute digest
@@ -3172,7 +3193,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       divisionFixtures: updatedDivisionFixtures, divisionTables,
       careerTimeline: [...state.careerTimeline, ...newTimeline].slice(-MAX_CAREER_TIMELINE),
       weeklyObjectives: newObjectives,
-      objectiveStreak: newStreak,
+      objectiveStreak: finalStreak,
+      objectivesStartWeek: newObjectivesStartWeek,
       weekCliffhangers: cliffhangers,
       sessionStats,
       managerProgression: updatedProgression,
@@ -4120,6 +4142,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       managerProgression: state.managerProgression,
       weeklyObjectives: state.weeklyObjectives,
       objectiveStreak: state.objectiveStreak,
+      objectivesStartWeek: state.objectivesStartWeek,
+      completedCoachTaskIds: state.completedCoachTaskIds,
       weekCliffhangers: state.weekCliffhangers,
       lastMatchDrama: state.lastMatchDrama,
       sessionStats: state.sessionStats,
@@ -4311,6 +4335,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         lastSeasonTurnover: data.lastSeasonTurnover || null,
         weeklyObjectives: data.weeklyObjectives || [],
         objectiveStreak: data.objectiveStreak || 0,
+        objectivesStartWeek: data.objectivesStartWeek || data.week || 1,
+        completedCoachTaskIds: data.completedCoachTaskIds || [],
         weekCliffhangers: data.weekCliffhangers || [],
         lastMatchDrama: data.lastMatchDrama || null,
         lastMatchCompetition: data.lastMatchCompetition || null,
@@ -4402,7 +4428,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pendingPressConference: null, activeNegotiation: null,
       pendingFarewell: [], pendingStoryline: null,
       activeStorylineChains: [], weeklyObjectives: [],
-      objectiveStreak: 0, weekCliffhangers: [], rivalries: {}, lastMatchDrama: null, lastMatchCompetition: null,
+      objectiveStreak: 0, objectivesStartWeek: 1, completedCoachTaskIds: [],
+      weekCliffhangers: [], rivalries: {}, lastMatchDrama: null, lastMatchCompetition: null,
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null, careerTimeline: [],
       gameMode: 'sandbox', careerManager: null, jobVacancies: [], jobOffers: [],

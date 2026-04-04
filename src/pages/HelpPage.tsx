@@ -67,7 +67,7 @@ const HELP_SECTIONS: HelpSection[] = [
   },
   {
     title: 'Manager Perks & XP',
-    content: 'Earn XP from wins, draws, cup victories, achievements, and weekly objectives. Level up to earn XP you can spend on permanent perks across 5 tiers. Perks include training boosts, transfer discounts, and match bonuses. The XP bar is at the top of the screen.',
+    content: 'Earn XP from wins, draws, cup victories, achievements, and monthly objectives. Level up to earn XP you can spend on permanent perks across 5 tiers. Perks include training boosts, transfer discounts, and match bonuses. The XP bar is at the top of the screen.',
   },
   {
     title: 'Prestige Mode',

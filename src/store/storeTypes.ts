@@ -85,8 +85,9 @@ export interface GameState {
   activeNegotiation: ContractOffer | null;
   pendingTransferTalk: TransferTalk | null;
 
-  // Weekly Objectives
+  // Monthly Objectives (evaluated each week, cycled every 4 weeks)
   weeklyObjectives: ObjectiveInstance[];
+  objectivesStartWeek: number;
 
   // Storyline Chains
   activeStorylineChains: ActiveStorylineChain[];
@@ -107,6 +108,9 @@ export interface GameState {
 
   // Objective streak tracking
   objectiveStreak: number;
+
+  // Coach checklist — persisted completion IDs (once done, stays done)
+  completedCoachTaskIds: string[];
 
   // Match drama type from last played match
   lastMatchDrama: MatchDramaType;
@@ -245,6 +249,9 @@ export interface GameState {
 
   // Actions — Achievements
   clearPendingAchievements: () => void;
+
+  // Actions — Coach Checklist
+  markCoachTaskComplete: (taskId: string) => void;
 
   // Actions — Press Conferences & Storylines
   respondToPress: (tone: import('@/types/game').PressResponseTone) => void;

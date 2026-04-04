@@ -310,8 +310,9 @@ function getThisWeekMatch(ctx: ObjectiveContext): Match | undefined {
   );
 }
 
-/** Generate 3 random weekly objectives, with variable rarity */
-export function generateWeeklyObjectives(hasMatch: boolean): ObjectiveInstance[] {
+/** Generate 3 random monthly objectives, with variable rarity.
+ *  Objectives persist for 4 weeks before cycling. */
+export function generateMonthlyObjectives(hasMatch: boolean): ObjectiveInstance[] {
   const pool = hasMatch
     ? OBJECTIVE_TEMPLATES
     : OBJECTIVE_TEMPLATES.filter(o => !MATCH_OBJECTIVE_IDS.includes(o.id));
@@ -355,7 +356,7 @@ export function generateWeeklyObjectives(hasMatch: boolean): ObjectiveInstance[]
 }
 
 /** Check which objectives are completed and return updated list + total XP earned.
- *  streakCount is the current consecutive-weeks-all-completed streak. */
+ *  streakCount is the current consecutive-month-all-completed streak. */
 export function evaluateObjectives(
   objectives: ObjectiveInstance[],
   ctx: ObjectiveContext,
