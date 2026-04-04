@@ -587,7 +587,7 @@ const TrainingPage = () => {
                 className="overflow-hidden"
               >
                 <p className="text-[10px] text-muted-foreground mt-2 mb-2">
-                  Assign a focus for +50% targeted gains. Tap a player to set or change.
+                  Assign a focus for +50% targeted gains + extra sessions for off-schedule skills. Small fitness cost applies.
                 </p>
                 <div className="space-y-1 max-h-72 overflow-y-auto">
                   {squadPlayers

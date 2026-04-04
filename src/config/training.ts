@@ -27,6 +27,14 @@ export const BASE_GAIN_CHANCE = 0.06;
 export const INDIVIDUAL_TRAINING_BONUS = 1.5;
 export const STAFF_BONUS_MULTIPLIER = 0.12;
 
+// ── Independent Individual Training ──
+/** Base gain chance for attributes trained ONLY via individual plan (not in team schedule) */
+export const INDIVIDUAL_BASE_GAIN = 0.03;
+/** Fitness cost applied to players who have an active individual training plan */
+export const INDIVIDUAL_FITNESS_COST = -2;
+/** Additional injury risk multiplier for players on individual plans */
+export const INDIVIDUAL_INJURY_RISK_MODIFIER = 1.15;
+
 // ── Fitness Recovery ──
 export const FITNESS_RECOVERY_PER_DAY = 3;
 export const FITNESS_RECOVERY_BASE = 10;

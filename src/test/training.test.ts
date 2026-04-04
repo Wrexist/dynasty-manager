@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+  applyWeeklyTraining,
   getInjuryRisk, updateTacticalFamiliarity, getDominantTrainingFocus, getTrainingRecommendation,
   getStreakMultiplier, updateStreaks, getStreakTier, generateTrainingReport, getSquadFitnessDistribution, getTrainingEffectivenessPreview,
 } from '@/utils/training';
@@ -16,7 +17,9 @@ import {
   STREAK_MULTIPLIERS,
   TRAINING_DRILLS,
   DRILLS_BY_MODULE,
+  INDIVIDUAL_FITNESS_COST,
 } from '@/config/training';
+import { seasonGrowthTracker } from '@/store/helpers/development';
 import type { TrainingState, Player, TrainingModule, TrainingStreaks } from '@/types/game';
 
 function makeTraining(overrides: Partial<TrainingState> = {}): TrainingState {
@@ -412,6 +415,102 @@ describe('training', () => {
       const previewStreak = getTrainingEffectivenessPreview(withStreak, 0, [makePlayer()]);
       const previewNone = getTrainingEffectivenessPreview(noStreak, 0, [makePlayer()]);
       expect(previewStreak.streakBonus).toBeGreaterThan(previewNone.streakBonus);
+    });
+  });
+
+  describe('applyWeeklyTraining — individual plans', () => {
+    function makeTestPlayer(id = 'p1', overrides: Partial<Player> = {}): Player {
+      return {
+        id, firstName: 'Test', lastName: 'Player', age: 22, position: 'CM',
+        overall: 70, potential: 80, fitness: 80, morale: 70, form: 50,
+        nationality: 'English', clubId: 'c1', wage: 10000, value: 1000000,
+        contractEnd: 3, goals: 0, assists: 0, appearances: 0,
+        careerGoals: 0, careerAssists: 0, careerAppearances: 0,
+        yellowCards: 0, redCards: 0,
+        attributes: { pace: 50, shooting: 50, passing: 50, defending: 50, physical: 50, mental: 50 },
+        ...overrides,
+      } as Player;
+    }
+
+    beforeEach(() => {
+      // Reset season growth tracker
+      Object.keys(seasonGrowthTracker).forEach(k => delete seasonGrowthTracker[k]);
+    });
+
+    it('grants independent gains for off-schedule individual plan attributes', () => {
+      // Team trains fitness all week (physical, pace). Player has attacking plan (shooting, pace).
+      // Shooting is NOT in team schedule, so it should get independent individual training.
+      const training = makeTraining({
+        schedule: { mon: 'fitness', tue: 'fitness', wed: 'fitness', thu: 'fitness', fri: 'fitness' },
+        individualPlans: [{ playerId: 'p1', focus: 'attacking' }],
+      });
+
+      // Mock random to always succeed — shooting should gain from independent pass
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0);
+      const player = makeTestPlayer('p1');
+      const result = applyWeeklyTraining(player, training, 0);
+      mockRandom.mockRestore();
+
+      expect(result.attributes.shooting).toBeGreaterThan(50);
+    });
+
+    it('does not grant independent gains for attributes already in team schedule', () => {
+      // Team trains fitness (physical, pace). Player has attacking plan (shooting, pace).
+      // Pace IS in team schedule, so independent pass should skip it (handled by team training with 1.5x bonus).
+      const training = makeTraining({
+        schedule: { mon: 'fitness', tue: 'fitness', wed: 'fitness', thu: 'fitness', fri: 'fitness' },
+        individualPlans: [{ playerId: 'p1', focus: 'attacking' }],
+      });
+
+      // Mock Math.random to always return 0 (guarantees gains)
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0);
+      const player = makeTestPlayer('p1');
+      const result = applyWeeklyTraining(player, training, 0);
+
+      // Pace should gain from team training (with 1.5x individual bonus), not from independent pass.
+      // Shooting should gain from independent pass.
+      // Both should be > 50 since random always returns 0.
+      expect(result.attributes.pace).toBeGreaterThan(50);
+      expect(result.attributes.shooting).toBeGreaterThan(50);
+
+      mockRandom.mockRestore();
+    });
+
+    it('applies fitness penalty for players with individual plans', () => {
+      // Use attacking schedule (no fitness days) to avoid hitting the 100 fitness cap
+      const training = makeTraining({
+        schedule: { mon: 'attacking', tue: 'attacking', wed: 'attacking', thu: 'attacking', fri: 'attacking' },
+      });
+      const trainingWithPlan = makeTraining({
+        schedule: { mon: 'attacking', tue: 'attacking', wed: 'attacking', thu: 'attacking', fri: 'attacking' },
+        individualPlans: [{ playerId: 'p1', focus: 'defending' }],
+      });
+
+      // Use high random to prevent attribute gains from affecting the comparison
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.99);
+      const playerNoPlan = applyWeeklyTraining(makeTestPlayer('p1'), training, 0);
+      const playerWithPlan = applyWeeklyTraining(makeTestPlayer('p1'), trainingWithPlan, 0);
+      mockRandom.mockRestore();
+
+      expect(playerWithPlan.fitness).toBe(playerNoPlan.fitness + INDIVIDUAL_FITNESS_COST);
+    });
+
+    it('respects season growth cap for independent individual gains', () => {
+      const training = makeTraining({
+        schedule: { mon: 'fitness', tue: 'fitness', wed: 'fitness', thu: 'fitness', fri: 'fitness' },
+        individualPlans: [{ playerId: 'p1', focus: 'attacking' }],
+      });
+
+      // Set growth tracker to max
+      seasonGrowthTracker['p1'] = 12;
+
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0);
+      const player = makeTestPlayer('p1');
+      const result = applyWeeklyTraining(player, training, 0);
+      mockRandom.mockRestore();
+
+      // Shooting should NOT gain because season growth cap is reached
+      expect(result.attributes.shooting).toBe(50);
     });
   });
 });
