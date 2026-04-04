@@ -36,7 +36,7 @@ const typeColors: Record<Message['type'], MessageColorScheme> = {
   board:         { iconBg: 'bg-purple-500/20',   iconText: 'text-purple-400',  border: 'border-purple-500/30',  dot: 'bg-purple-500' },
   match_preview: { iconBg: 'bg-cyan-500/20',    iconText: 'text-cyan-400',    border: 'border-cyan-500/30',    dot: 'bg-cyan-500' },
   match_result:  { iconBg: 'bg-primary/20',     iconText: 'text-primary',     border: 'border-primary/30',     dot: 'bg-primary' },
-  general:       { iconBg: 'bg-muted/50',       iconText: 'text-muted-foreground', border: 'border-border/50', dot: 'bg-muted-foreground' },
+  general:       { iconBg: 'bg-sky-500/15',      iconText: 'text-sky-400',         border: 'border-sky-500/20',     dot: 'bg-sky-400' },
 };
 
 function getMatchResultColors(msg: Message): MessageColorScheme {
@@ -55,15 +55,43 @@ function getMessageColors(msg: Message): MessageColorScheme {
   return typeColors[msg.type];
 }
 
-const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.ElementType }[] = [
-  { label: 'Match', types: ['match_preview', 'match_result'], icon: Trophy },
-  { label: 'Board', types: ['board'], icon: Megaphone },
-  { label: 'Transfer', types: ['transfer'], icon: ArrowLeftRight },
-  { label: 'Injury', types: ['injury'], icon: Stethoscope },
-  { label: 'Contract', types: ['contract'], icon: FileText },
-  { label: 'Development', types: ['development'], icon: TrendingUp },
-  { label: 'Sponsorship', types: ['sponsorship'], icon: Handshake },
-  { label: 'General', types: ['general'], icon: Mail },
+function getGeneralNavTarget(title: string): { label: string; screen: GameScreen } | null {
+  const t = title.toLowerCase();
+  if (t.includes('scout report')) return { label: 'Scouting', screen: 'scouting' };
+  if (t.includes('upgrade')) return { label: 'Facilities', screen: 'facilities' };
+  if (t.includes('campaign')) return { label: 'Merchandise', screen: 'merchandise' };
+  if (t.includes('youth intake')) return { label: 'Youth Academy', screen: 'youth-academy' };
+  if (t.includes('window') || t.includes('transfer')) return { label: 'Transfers', screen: 'transfers' };
+  if (t.includes('achievement')) return { label: 'Trophies', screen: 'trophy-cabinet' };
+  if (t.includes('available') || t.includes('settled')) return { label: 'View Squad', screen: 'squad' };
+  if (t.includes('between jobs') || t.includes('contract expiring')) return { label: 'Job Market', screen: 'job-market' };
+  if (t.includes('reputation') || t.includes('manager of the month')) return { label: 'Profile', screen: 'manager-profile' };
+  if (t.includes('hired') || t.includes('released')) return { label: 'Staff', screen: 'staff' };
+  return null;
+}
+
+function getMessageAction(msg: Message, gameMode: string | undefined): { label: string; screen: GameScreen } | null {
+  if (msg.type === 'contract') return gameMode === 'career' ? { label: 'Job Market', screen: 'job-market' } : { label: 'View Squad', screen: 'squad' };
+  if (msg.type === 'transfer') return { label: 'Transfers', screen: 'transfers' };
+  if (msg.type === 'injury') return { label: 'View Squad', screen: 'squad' };
+  if (msg.type === 'development') return { label: 'View Squad', screen: 'squad' };
+  if (msg.type === 'board') return { label: 'Board', screen: 'board' };
+  if (msg.type === 'sponsorship') return { label: 'Finance', screen: 'finance' };
+  if (msg.type === 'match_preview') return { label: 'Match Prep', screen: 'match-prep' };
+  if (msg.type === 'match_result') return { label: 'Match Review', screen: 'match-review' };
+  if (msg.type === 'general') return getGeneralNavTarget(msg.title);
+  return null;
+}
+
+const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.ElementType; color: string }[] = [
+  { label: 'Match', types: ['match_preview', 'match_result'], icon: Trophy, color: 'text-cyan-400' },
+  { label: 'Board', types: ['board'], icon: Megaphone, color: 'text-purple-400' },
+  { label: 'Transfer', types: ['transfer'], icon: ArrowLeftRight, color: 'text-amber-400' },
+  { label: 'Injury', types: ['injury'], icon: Stethoscope, color: 'text-red-400' },
+  { label: 'Contract', types: ['contract'], icon: FileText, color: 'text-orange-400' },
+  { label: 'Development', types: ['development'], icon: TrendingUp, color: 'text-blue-400' },
+  { label: 'Sponsorship', types: ['sponsorship'], icon: Handshake, color: 'text-emerald-400' },
+  { label: 'General', types: ['general'], icon: Mail, color: 'text-sky-400' },
 ];
 
 const InboxPage = () => {
@@ -258,7 +286,7 @@ const InboxPage = () => {
                         </svg>
                       )}
                     </div>
-                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <Icon className={cn('w-3.5 h-3.5 shrink-0', !checked && opt.color)} />
                     <span className="font-medium">{opt.label}</span>
                     <span className="ml-auto flex items-center gap-1.5">
                       {counts.unread > 0 && (
@@ -340,6 +368,13 @@ const InboxPage = () => {
                 const Icon = typeIcon[msg.type] || Mail;
                 const expanded = expandedId === msg.id;
                 const colors = getMessageColors(msg);
+                const action = getMessageAction(msg, gameMode);
+                // Transfer talk overrides normal action for unhappy players
+                const hasTransferTalk = msg.type === 'transfer' && msg.playerId && (() => {
+                  const player = players[msg.playerId!];
+                  return player && player.wantsToLeave && !player.listedForSale;
+                })();
+                const hasAction = hasTransferTalk || !!action;
                 return (
                   <motion.div
                     key={msg.id}
@@ -363,8 +398,13 @@ const InboxPage = () => {
                           </div>
                           {!expanded && <p className="text-xs text-muted-foreground line-clamp-1">{msg.body}</p>}
                         </div>
-                        <div className="shrink-0 text-muted-foreground">
-                          {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {!expanded && hasAction && (
+                            <ExternalLink className={cn('w-3 h-3', colors.iconText, 'opacity-40')} />
+                          )}
+                          <div className="text-muted-foreground">
+                            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                          </div>
                         </div>
                       </div>
                       {expanded && (
@@ -372,40 +412,21 @@ const InboxPage = () => {
                           <p className="text-xs text-foreground/80 leading-relaxed">{msg.body}</p>
                           <div className="flex items-center justify-between mt-2">
                             <p className="text-[10px] text-muted-foreground/60">Season {msg.season} · Week {msg.week}</p>
-                            {(() => {
-                              // Transfer request messages with a playerId — offer "Talk to Player"
-                              if (msg.type === 'transfer' && msg.playerId) {
-                                const player = players[msg.playerId];
-                                if (player && player.wantsToLeave && !player.listedForSale) {
-                                  return (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); openTransferTalk(msg.playerId!); setScreen('dashboard'); }}
-                                      className="flex items-center gap-1 text-[10px] text-orange-400 hover:text-orange-300 font-semibold transition-colors"
-                                    >
-                                      Talk to Player <MessageCircle className="w-3 h-3" />
-                                    </button>
-                                  );
-                                }
-                              }
-                              const actions: { label: string; screen: GameScreen }[] = [];
-                              if (msg.type === 'contract') actions.push(gameMode === 'career' ? { label: 'Job Market', screen: 'job-market' } : { label: 'View Squad', screen: 'squad' });
-                              if (msg.type === 'transfer') actions.push({ label: 'Transfers', screen: 'transfers' });
-                              if (msg.type === 'injury') actions.push({ label: 'View Squad', screen: 'squad' });
-                              if (msg.type === 'development') actions.push({ label: 'Youth Academy', screen: 'youth-academy' });
-                              if (msg.type === 'board') actions.push({ label: 'Board', screen: 'board' });
-                              if (msg.type === 'sponsorship') actions.push({ label: 'Finance', screen: 'finance' });
-                              if (msg.type === 'match_preview') actions.push({ label: 'Match Prep', screen: 'match-prep' });
-                              if (msg.type === 'match_result') actions.push({ label: 'Match Review', screen: 'match-review' });
-                              if (actions.length === 0) return null;
-                              return (
-                                <button
-                                  onClick={(e) => { e.stopPropagation(); setScreen(actions[0].screen); }}
-                                  className={cn('flex items-center gap-1 text-[10px] font-semibold transition-colors', colors.iconText)}
-                                >
-                                  {actions[0].label} <ExternalLink className="w-3 h-3" />
-                                </button>
-                              );
-                            })()}
+                            {hasTransferTalk ? (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openTransferTalk(msg.playerId!); setScreen('dashboard'); }}
+                                className={cn('flex items-center gap-1 text-[10px] font-semibold transition-colors', colors.iconText)}
+                              >
+                                Talk to Player <MessageCircle className="w-3 h-3" />
+                              </button>
+                            ) : action ? (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setScreen(action.screen); }}
+                                className={cn('flex items-center gap-1 text-[10px] font-semibold transition-colors', colors.iconText)}
+                              >
+                                {action.label} <ExternalLink className="w-3 h-3" />
+                              </button>
+                            ) : null}
                           </div>
                         </div>
                       )}
