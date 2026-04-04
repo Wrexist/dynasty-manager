@@ -19,7 +19,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
-import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD } from '@/config/gameBalance';
+import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
 import type { Celebration } from '@/utils/celebrations';
@@ -913,7 +913,7 @@ const Dashboard = () => {
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <p className="text-xs font-bold text-foreground uppercase tracking-wider">Monthly Objectives</p>
-              <span className="text-[9px] text-muted-foreground">Week {Math.min(week - (objectivesStartWeek || 1) + 1, 4)}/4</span>
+              <span className="text-[9px] text-muted-foreground">Week {Math.max(1, Math.min(week - (objectivesStartWeek || 1) + 1, OBJECTIVE_CYCLE_WEEKS))}/{OBJECTIVE_CYCLE_WEEKS}</span>
               {objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD && (
                 <span className="text-[9px] font-bold text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded-full">
                   2x XP

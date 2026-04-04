@@ -392,3 +392,26 @@ export function evaluateObjectives(
 
   return { updated, xpEarned, allCompleted, newStreak };
 }
+
+/** Calculate total XP from all completed objectives in a batch.
+ *  Used at month boundary to correctly award XP for objectives completed
+ *  across multiple weeks (evaluateObjectives only counts newly-completed ones). */
+export function calculateCompletedXP(
+  objectives: ObjectiveInstance[],
+  streakCount: number = 0,
+): { xpEarned: number; allCompleted: boolean; newStreak: number } {
+  let xpEarned = 0;
+  for (const inst of objectives) {
+    if (!inst.completed) continue;
+    const rarityMult = inst.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
+      : inst.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
+    xpEarned += inst.xpReward * rarityMult;
+  }
+  const allCompleted = objectives.length > 0 && objectives.every(o => o.completed);
+  if (allCompleted) xpEarned += ALL_OBJECTIVES_BONUS_XP;
+  const newStreak = allCompleted ? streakCount + 1 : 0;
+  if (newStreak >= OBJECTIVE_STREAK_THRESHOLD) {
+    xpEarned = Math.round(xpEarned * OBJECTIVE_STREAK_MULTIPLIER);
+  }
+  return { xpEarned, allCompleted, newStreak };
+}

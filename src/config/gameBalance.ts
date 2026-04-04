@@ -415,6 +415,10 @@ export const CLIFFHANGER_YOUTH_POTENTIAL_GAP = 8;
 /** Weeks before transfer window closes that triggers deadline cliffhanger */
 export const CLIFFHANGER_DEADLINE_WEEKS = 2;
 
+// ── Monthly Objective Cycle ──
+/** Number of weeks per monthly objective cycle */
+export const OBJECTIVE_CYCLE_WEEKS = 4;
+
 // ── Variable Reward Objectives ──
 /** Chance that a rare objective appears (replaces one common objective) */
 export const RARE_OBJECTIVE_CHANCE = 0.15;
@@ -424,11 +428,11 @@ export const LEGENDARY_OBJECTIVE_CHANCE = 0.05;
 export const RARE_OBJECTIVE_XP_MULTIPLIER = 2;
 /** XP multiplier for legendary objectives */
 export const LEGENDARY_OBJECTIVE_XP_MULTIPLIER = 5;
-/** Streak length required for streak multiplier */
+/** Consecutive months with all objectives completed required for streak multiplier */
 export const OBJECTIVE_STREAK_THRESHOLD = 3;
 /** XP multiplier when on a streak */
 export const OBJECTIVE_STREAK_MULTIPLIER = 2;
-/** Bonus XP for completing all 3 objectives in a week */
+/** Bonus XP for completing all 3 objectives in a month */
 export const ALL_OBJECTIVES_BONUS_XP = 25;
 
 // ── Achievement XP Rewards ──
