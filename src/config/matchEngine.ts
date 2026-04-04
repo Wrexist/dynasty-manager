@@ -128,6 +128,10 @@ export const CORNER_FROM_MISS_CHANCE = 0.22;
 // ── Cards / Fouls ──
 export const CARD_BASE_CHANCE = 0.14;
 export const STRAIGHT_RED_CHANCE = 0.008;
+/** Strength penalty per player below full squad size (11). 10v11 = 0.88x strength */
+export const RED_CARD_STRENGTH_PENALTY_PER_PLAYER = 0.12;
+/** Momentum swing toward the opposing team after a red card (larger than yellow's 15) */
+export const MOMENTUM_RED_CARD_SWING = 25;
 
 // ── Match Injuries ──
 export const FOUL_INJURY_CHANCE = 0.03;
@@ -254,6 +258,14 @@ export const SMART_SUB_MIN_MINUTE = 45;
 export const SMART_SUB_LOSING_MINUTE = 55;
 /** When winning, suggest defensive subs after this minute */
 export const SMART_SUB_WINNING_LATE_MINUTE = 75;
+
+// ── AI Substitution Logic ──
+/** Minutes at which AI considers tactical substitutions */
+export const AI_SUB_CHECK_MINUTES: number[] = [60, 70, 80];
+/** Fitness threshold below which AI will sub a player */
+export const AI_SUB_FITNESS_THRESHOLD = 45;
+/** Chance AI makes a tactical sub at each check minute */
+export const AI_TACTICAL_SUB_CHANCE = 0.7;
 
 // ── Momentum System ──
 /** How much momentum swings toward the scoring team after a goal (-100 to +100 scale) */
