@@ -180,10 +180,11 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     // Check for counter-offer
     if (ratio >= COUNTER_OFFER_MIN_THRESHOLD && ratio < COUNTER_OFFER_MAX_THRESHOLD && Math.random() < COUNTER_OFFER_CHANCE) {
       const counterFee = Math.round(fee + (listing.askingPrice - fee) * (COUNTER_OFFER_BASE_RATIO + Math.random() * COUNTER_OFFER_RANDOM_RANGE));
-      return { outcome: 'counter', counterFee, message: `${state.clubs[listing.sellerClubId]?.shortName || 'The club'} want more — they counter with £${(counterFee / 1e6).toFixed(1)}M.` };
+      const sellerName = listing.externalPlayer ? 'The seller' : (state.clubs[listing.sellerClubId]?.shortName || 'The club');
+      return { outcome: 'counter', counterFee, message: `${sellerName} want${listing.externalPlayer ? 's' : ''} more — they counter with £${(counterFee / 1e6).toFixed(1)}M.` };
     }
 
-    return { outcome: 'rejected', message: 'Offer rejected. The selling club want a higher fee.' };
+    return { outcome: 'rejected', message: 'Offer rejected. They want a higher fee.' };
   },
 
   executeTransfer: (playerId: string, fee: number) => {
@@ -197,16 +198,19 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (fee > club.budget) return { success: false, message: 'Insufficient funds.' };
 
     const player = { ...state.players[playerId] };
-    const oldClub = { ...state.clubs[listing.sellerClubId] };
+    const isExternalPlayer = listing.externalPlayer || !listing.sellerClubId || !state.clubs[listing.sellerClubId];
+    const oldClub = isExternalPlayer ? null : { ...state.clubs[listing.sellerClubId] };
     const newClub = { ...state.clubs[state.playerClubId] };
 
-    // Only modify old club roster if the player is actually on it (scouted players may not be)
-    const playerInOldClub = oldClub.playerIds?.includes(playerId);
-    if (playerInOldClub) {
-      oldClub.playerIds = oldClub.playerIds.filter(id => id !== playerId);
-      oldClub.lineup = oldClub.lineup.filter(id => id !== playerId);
-      oldClub.subs = oldClub.subs.filter(id => id !== playerId);
-      oldClub.wageBill -= player.wage;
+    // Only modify old club roster if the player is actually on it (scouted/external players may not be)
+    if (oldClub) {
+      const playerInOldClub = oldClub.playerIds?.includes(playerId);
+      if (playerInOldClub) {
+        oldClub.playerIds = oldClub.playerIds.filter(id => id !== playerId);
+        oldClub.lineup = oldClub.lineup.filter(id => id !== playerId);
+        oldClub.subs = oldClub.subs.filter(id => id !== playerId);
+        oldClub.wageBill -= player.wage;
+      }
     }
 
     // Honor existing sell-on clause: pay percentage to the previous club
@@ -220,10 +224,12 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       sellOnClub.budget += sellOnFee;
       updatedClubs[player.sellOnClubId] = sellOnClub;
     }
-    oldClub.budget += fee - sellOnFee;
+    if (oldClub) {
+      oldClub.budget += fee - sellOnFee;
+    }
 
-    // New sell-on clause: the selling club gets 10-20% on expensive transfers
-    const sellOnPct = fee >= SELL_ON_HIGH_FEE_THRESHOLD ? SELL_ON_HIGH_BASE_PCT + Math.floor(Math.random() * SELL_ON_HIGH_RANGE_PCT) : fee >= SELL_ON_LOW_FEE_THRESHOLD ? SELL_ON_LOW_BASE_PCT + Math.floor(Math.random() * SELL_ON_LOW_RANGE_PCT) : 0;
+    // New sell-on clause: the selling club gets 10-20% on expensive transfers (not for external)
+    const sellOnPct = !isExternalPlayer && fee >= SELL_ON_HIGH_FEE_THRESHOLD ? SELL_ON_HIGH_BASE_PCT + Math.floor(Math.random() * SELL_ON_HIGH_RANGE_PCT) : !isExternalPlayer && fee >= SELL_ON_LOW_FEE_THRESHOLD ? SELL_ON_LOW_BASE_PCT + Math.floor(Math.random() * SELL_ON_LOW_RANGE_PCT) : 0;
     const updatedPlayer = {
       ...player,
       clubId: state.playerClubId,
@@ -237,20 +243,23 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     newClub.wageBill += updatedPlayer.wage;
 
     const transferMarket = state.transferMarket.filter(l => l.playerId !== playerId);
+    const fromName = isExternalPlayer ? 'the transfer market' : (oldClub?.name || 'Unknown');
     const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${sellOnClubName})` : '';
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
       title: `${updatedPlayer.lastName} Signed!`,
-      body: `${updatedPlayer.firstName} ${updatedPlayer.lastName} has joined ${newClub.name} from ${oldClub.name} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}`,
+      body: `${updatedPlayer.firstName} ${updatedPlayer.lastName} has joined ${newClub.name} from ${fromName} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}`,
     });
 
     const ms = { ...state.managerStats, totalSpent: state.managerStats.totalSpent + fee };
     // Record signing milestone if this is the most expensive signing ever
     const isRecordSigning = fee > state.managerStats.totalSpent * RECORD_SIGNING_SPEND_RATIO && fee >= RECORD_SIGNING_MIN_FEE;
     const newTimeline = isRecordSigning
-      ? [...state.careerTimeline, { id: crypto.randomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${updatedPlayer.firstName} ${updatedPlayer.lastName} for £${(fee / 1e6).toFixed(1)}M from ${oldClub.name}.`, season: state.season, week: state.week, icon: 'pen-line' }]
+      ? [...state.careerTimeline, { id: crypto.randomUUID(), type: 'record_signing' as const, title: 'Record Signing', description: `Signed ${updatedPlayer.firstName} ${updatedPlayer.lastName} for £${(fee / 1e6).toFixed(1)}M from ${fromName}.`, season: state.season, week: state.week, icon: 'pen-line' }]
       : state.careerTimeline;
-    updatedClubs[oldClub.id] = oldClub;
+    if (oldClub) {
+      updatedClubs[oldClub.id] = oldClub;
+    }
     updatedClubs[newClub.id] = newClub;
     // Trigger star signing buzz for big signings
     const merchUpdate: Partial<GameState> = {};

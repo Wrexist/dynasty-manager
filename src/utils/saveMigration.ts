@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 36;
+const CURRENT_VERSION = 37;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -544,6 +544,11 @@ const migrations: Record<number, MigrationFn> = {
       if (cm.leagueCupsWon == null) cm.leagueCupsWon = 0;
     }
     return { ...data, version: 36 };
+  },
+  36: (data) => {
+    // v37: Transfer market realism — new optional fields on TransferListing (listedWeek, divisionId, externalPlayer).
+    // No data migration needed — all new fields are optional and default gracefully.
+    return { ...data, version: 37 };
   },
 };
 

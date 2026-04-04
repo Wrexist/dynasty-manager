@@ -78,7 +78,10 @@ import {
   URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS,
   OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
   RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM,
+  MARKET_REPLENISH_THRESHOLD, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT,
+  FREE_AGENT_SPAWN_CHANCE,
 } from '@/config/transfers';
+import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
 import { PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
 import { calculatePlayerValue } from '@/config/playerGeneration';
 import {
@@ -1317,17 +1320,30 @@ function finalizeSeason(
   const champQualified = newChampionsCup && !newChampionsCup.playerEliminated;
   const shieldQualified = newShieldCup && !newShieldCup.playerEliminated;
 
+  // Clean up old external players (unattached players not in any club or free agent pool)
+  const oldFreeAgentSet = new Set(state.freeAgents);
+  for (const [pid, p] of Object.entries(newPlayers)) {
+    if (p.clubId === '' && !oldFreeAgentSet.has(pid)) {
+      delete newPlayers[pid];
+    }
+  }
+
   const transferMarket: TransferListing[] = [];
+  // Seed market with bench players from all clubs
   Object.values(newClubs).forEach(c => {
     const clubPlayers = c.playerIds.map(id => newPlayers[id]).filter(Boolean);
     const benched = clubPlayers.filter(p => !c.lineup.includes(p.id));
     if (benched.length > 2) {
       const listed = shuffle(benched).slice(0, INITIAL_LISTINGS_MIN + Math.floor(Math.random() * INITIAL_LISTINGS_RANGE));
       listed.forEach(p => {
-        transferMarket.push({ playerId: p.id, askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)), sellerClubId: c.id });
+        transferMarket.push({ playerId: p.id, askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)), sellerClubId: c.id, listedWeek: 1, listedSeason: newSeason, divisionId: c.divisionId });
       });
     }
   });
+  // Generate external market players for all divisions (new season market refresh)
+  const seasonMarket = generateInitialMarket(newSeason, 1);
+  Object.assign(newPlayers, seasonMarket.players);
+  transferMarket.push(...seasonMarket.listings);
 
   const playerClubForObjectives = newClubs[playerClubId];
   const objectives = playerClubForObjectives ? generateObjectives(playerClubForObjectives, newPlayerDivision) : [];
@@ -1820,16 +1836,27 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const leagueTable = divisionTables[playerDivision];
 
     const transferMarket: TransferListing[] = [];
+    // Seed market with bench players from all clubs
     Object.values(clubs).forEach(c => {
       const clubPlayers = c.playerIds.map(id => allPlayers[id]).filter(Boolean);
       const benched = clubPlayers.filter(p => !c.lineup.includes(p.id));
       if (benched.length > 2) {
         const listed = shuffle(benched).slice(0, INITIAL_LISTINGS_MIN + Math.floor(Math.random() * INITIAL_LISTINGS_RANGE));
         listed.forEach(p => {
-          transferMarket.push({ playerId: p.id, askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)), sellerClubId: c.id });
+          transferMarket.push({ playerId: p.id, askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)), sellerClubId: c.id, listedWeek: 1, listedSeason: 1, divisionId: c.divisionId });
         });
       }
     });
+
+    // Generate external market players for all divisions (realistic populated market)
+    const initialMarket = generateInitialMarket(1, 1);
+    Object.assign(allPlayers, initialMarket.players);
+    transferMarket.push(...initialMarket.listings);
+
+    // Generate initial free agent pool
+    const initialFreeAgents = generateInitialFreeAgents(1);
+    Object.assign(allPlayers, initialFreeAgents.players);
+    const initialFreeAgentIds = initialFreeAgents.freeAgentIds;
 
     const initClub = clubs[clubId];
     const objectives = generateObjectives(initClub);
@@ -1861,7 +1888,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       divisionFixtures, divisionTables, divisionClubs, playerDivision,
       lastSeasonTurnover: null, derbies: DERBIES,
       activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
-      transferMarket, shortlist: [], scoutWatchList: [], freeAgents: [], transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
+      transferMarket, shortlist: [], scoutWatchList: [], freeAgents: initialFreeAgentIds, transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
       messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', currentCupTieId: null,
       settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: true, hapticsEnabled: true },
@@ -3290,6 +3317,60 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         activeLoans: aiResult.activeLoans,
         transferNews: aiResult.transferNews,
       });
+    }
+
+    // Transfer market maintenance: replenish thin market, expire stale listings, spawn free agents
+    {
+      const mktState = get();
+
+      // Process listing expiry for external players (reduces stale listings)
+      const expiryResult = processListingExpiry(mktState.transferMarket, newWeek, season, TOTAL_WEEKS, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT);
+      let updatedMarket = expiryResult.market;
+
+      // Replenish if market is below threshold (keeps market populated across all divisions)
+      const updatedPlayers = { ...mktState.players };
+
+      // Clean up orphaned external players from expired listings
+      const freeAgentSet = new Set(mktState.freeAgents);
+      for (const pid of expiryResult.expiredPlayerIds) {
+        if (updatedPlayers[pid]?.clubId === '' && !freeAgentSet.has(pid)) {
+          delete updatedPlayers[pid];
+        }
+      }
+
+      if (updatedMarket.length < MARKET_REPLENISH_THRESHOLD) {
+        const fresh = replenishMarket(season, newWeek);
+        Object.assign(updatedPlayers, fresh.players);
+        updatedMarket = [...updatedMarket, ...fresh.listings];
+      }
+
+      // Spawn new free agents periodically
+      let updatedFreeAgents = [...mktState.freeAgents];
+      if (Math.random() < FREE_AGENT_SPAWN_CHANCE) {
+        const spawned = spawnFreeAgents(season);
+        Object.assign(updatedPlayers, spawned.players);
+        // Cap free agents at pool max
+        const maxFa = FREE_AGENT_POOL_MAX;
+        const combined = [...updatedFreeAgents, ...spawned.freeAgentIds];
+        if (combined.length > maxFa) {
+          // Evict weakest free agents to stay within cap
+          const sorted = combined
+            .map(id => ({ id, ovr: updatedPlayers[id]?.overall || 0 }))
+            .sort((a, b) => b.ovr - a.ovr);
+          updatedFreeAgents = sorted.slice(0, maxFa).map(x => x.id);
+          // Clean up evicted players from record
+          const kept = new Set(updatedFreeAgents);
+          for (const entry of sorted.slice(maxFa)) {
+            if (!kept.has(entry.id) && updatedPlayers[entry.id]?.clubId === '') {
+              delete updatedPlayers[entry.id];
+            }
+          }
+        } else {
+          updatedFreeAgents = combined;
+        }
+      }
+
+      set({ transferMarket: updatedMarket, players: updatedPlayers, freeAgents: updatedFreeAgents });
     }
 
     // Career mode: process manager stat growth, reputation, job market
