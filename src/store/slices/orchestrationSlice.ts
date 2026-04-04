@@ -1199,7 +1199,8 @@ function finalizeSeason(
     const toFill = gaps.length > 0 ? gaps : [];
     while (toFill.length < totalNeeded) toFill.push({ pos: pick(GENERIC_FILL_POSITIONS), deficit: 0 });
     for (const { pos: fillPos } of toFill) {
-      const quality = (club.reputation * REPLACEMENT_QUALITY_REP_MULTIPLIER) + REPLACEMENT_QUALITY_BASE + Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE);
+      const repQuality = (club.reputation * REPLACEMENT_QUALITY_REP_MULTIPLIER) + REPLACEMENT_QUALITY_BASE + Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE);
+      const quality = Math.round(repQuality * 0.4 + (club.squadQuality || repQuality) * 0.6);
       const newP = generatePlayer(fillPos, quality, club.id, newSeason, club.divisionId);
       newPlayers[newP.id] = newP;
       const fillClub = { ...newClubs[club.id] };
@@ -1225,7 +1226,8 @@ function finalizeSeason(
       const deficitCount = 11 - validIds.length;
       const safeClub = { ...newClubs[club.id], playerIds: [...validIds] };
       for (let d = 0; d < deficitCount; d++) {
-        const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), Math.max(35, (club.reputation * 10) + 20), club.id, newSeason, club.divisionId);
+        const emergencyQuality = Math.round(Math.max(35, (club.reputation * 10) + 20) * 0.4 + (club.squadQuality || 50) * 0.6);
+        const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), emergencyQuality, club.id, newSeason, club.divisionId);
         newPlayers[emergencyPlayer.id] = emergencyPlayer;
         safeClub.playerIds.push(emergencyPlayer.id);
         safeClub.wageBill += emergencyPlayer.wage;
@@ -1389,7 +1391,7 @@ function finalizeSeason(
   const youthCoachQ = getStaffBonus(state.staff.members, 'youth-coach');
   const pcForYouth = newClubs[playerClubId];
   const { prospects: newYouthProspects, players: youthPlayers } = generateYouthProspects(
-    playerClubId, pcForYouth.youthRating, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE)
+    playerClubId, pcForYouth.youthRating, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), pcForYouth.squadQuality
   );
   // Golden Generation perk: guarantee at least one high-potential youth
   if (hasPerk(state.managerProgression, 'golden_generation') && youthPlayers.length > 0) {
@@ -1887,7 +1889,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const availableHires = generateStaffMarket();
     const youthCoachQuality = getStaffBonus(initialStaff, 'youth-coach');
     const { prospects: youthProspects, players: youthPlayers } = generateYouthProspects(
-      clubId, pcInit.youthRating, youthCoachQuality, 1, 3 + Math.floor(Math.random() * 2)
+      clubId, pcInit.youthRating, youthCoachQuality, 1, 3 + Math.floor(Math.random() * 2), pcInit.squadQuality
     );
     youthPlayers.forEach(p => { allPlayers[p.id] = p; });
     const nextIntakePreview = generateIntakePreview(pcInit.youthRating);

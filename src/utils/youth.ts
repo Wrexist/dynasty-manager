@@ -6,6 +6,7 @@ import {
   YOUTH_QUALITY_MIN, YOUTH_QUALITY_MAX,
   YOUTH_BASE_AGE, YOUTH_AGE_RANGE,
   YOUTH_POTENTIAL_BASE_BONUS, YOUTH_POTENTIAL_MAX,
+  YOUTH_CLUB_QUALITY_WEIGHT,
   YOUTH_READY_OVERALL_THRESHOLD, YOUTH_DEV_SCORE_BASE, YOUTH_DEV_SCORE_RANGE,
   INTAKE_PREVIEW_MIN, INTAKE_PREVIEW_RANGE,
   INTAKE_PREVIEW_POTENTIAL_BASE, INTAKE_PREVIEW_POTENTIAL_RANGE,
@@ -19,6 +20,7 @@ export function generateYouthProspects(
   youthCoachQuality: number, // 0-10
   season: number,
   count: number = 3,
+  clubSquadQuality?: number,
 ): { prospects: YouthProspect[]; players: ReturnType<typeof generatePlayer>[] } {
   const prospects: YouthProspect[] = [];
   const newPlayers: ReturnType<typeof generatePlayer>[] = [];
@@ -26,7 +28,10 @@ export function generateYouthProspects(
   for (let i = 0; i < count; i++) {
     const pos = pick(YOUTH_POSITIONS);
     // Youth players are lower quality but with higher potential gap
-    const baseQuality = YOUTH_BASE_QUALITY + youthRating * YOUTH_RATING_MULTIPLIER + youthCoachQuality * YOUTH_COACH_MULTIPLIER + Math.floor(Math.random() * YOUTH_QUALITY_RANDOM_RANGE);
+    let baseQuality = YOUTH_BASE_QUALITY + youthRating * YOUTH_RATING_MULTIPLIER + youthCoachQuality * YOUTH_COACH_MULTIPLIER + Math.floor(Math.random() * YOUTH_QUALITY_RANDOM_RANGE);
+    if (clubSquadQuality !== undefined) {
+      baseQuality = Math.round(baseQuality * (1 - YOUTH_CLUB_QUALITY_WEIGHT) + clubSquadQuality * YOUTH_CLUB_QUALITY_WEIGHT);
+    }
     const quality = Math.min(YOUTH_QUALITY_MAX, Math.max(YOUTH_QUALITY_MIN, Math.round(baseQuality)));
 
     const player = generatePlayer(pos, quality, clubId, season);

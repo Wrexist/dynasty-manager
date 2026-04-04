@@ -218,7 +218,8 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     }
     star.attributes = starAttrs;
     star.overall = calculateOverall(starAttrs, star.position);
-    star.potential = clamp(star.overall + 3 + Math.floor(Math.random() * 3));
+    const starPotGap = Math.round((3 + Math.floor(Math.random() * 5)) * scale);
+    star.potential = clamp(Math.max(star.overall + starPotGap, star.potential));
     star.value = calculatePlayerValue(star.overall);
 
     const veterans = fillerPlayers.filter(p => p.age >= 30 && p !== star);
