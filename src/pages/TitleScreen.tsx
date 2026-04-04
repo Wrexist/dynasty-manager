@@ -101,11 +101,11 @@ const TitleScreen = () => {
 
   // Generate floating circle definitions once
   const floatingCircles = useMemo<FloatingCircle[]>(() => [
-    { id: 0, size: 280, x: 15, y: 10, opacity: 0.04, color: 'hsl(43 96% 46%)', duration: 22, driftX: 60, driftY: 40 },
+    { id: 0, size: 280, x: 15, y: 10, opacity: 0.04, color: 'hsl(160 84% 39%)', duration: 22, driftX: 60, driftY: 40 },
     { id: 1, size: 180, x: 75, y: 70, opacity: 0.03, color: 'hsl(215 60% 50%)', duration: 18, driftX: -50, driftY: 35 },
-    { id: 2, size: 350, x: 50, y: 40, opacity: 0.025, color: 'hsl(43 96% 46%)', duration: 25, driftX: 45, driftY: -55 },
+    { id: 2, size: 350, x: 50, y: 40, opacity: 0.025, color: 'hsl(160 84% 39%)', duration: 25, driftX: 45, driftY: -55 },
     { id: 3, size: 120, x: 20, y: 75, opacity: 0.05, color: 'hsl(215 60% 50%)', duration: 16, driftX: -40, driftY: -30 },
-    { id: 4, size: 220, x: 80, y: 20, opacity: 0.03, color: 'hsl(43 96% 46%)', duration: 20, driftX: -55, driftY: 50 },
+    { id: 4, size: 220, x: 80, y: 20, opacity: 0.03, color: 'hsl(160 84% 39%)', duration: 20, driftX: -55, driftY: 50 },
     { id: 5, size: 160, x: 40, y: 85, opacity: 0.04, color: 'hsl(215 60% 50%)', duration: 19, driftX: 35, driftY: -45 },
   ], []);
 

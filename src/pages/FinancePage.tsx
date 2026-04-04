@@ -109,7 +109,7 @@ const FinancePage = () => {
                 labelStyle={{ color: 'hsl(var(--foreground))' }}
                 formatter={(value: number) => [`£${value}M`, 'Balance']}
               />
-              <Line type="monotone" dataKey="balance" stroke="hsl(43, 96%, 46%)" strokeWidth={2} dot={false} />
+              <Line type="monotone" dataKey="balance" stroke="hsl(160, 84%, 39%)" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </GlassPanel>

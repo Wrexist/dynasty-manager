@@ -24,8 +24,10 @@
     --popover: 222 25% 11%;
     --popover-foreground: 220 15% 90%;
 
-    --primary: 43 96% 46%;
-    --primary-foreground: 222 30% 7%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+
+    --gold: 43 96% 46%;
 
     --secondary: 215 25% 18%;
     --secondary-foreground: 220 15% 85%;
@@ -41,18 +43,18 @@
 
     --border: 222 15% 18%;
     --input: 222 15% 18%;
-    --ring: 43 96% 46%;
+    --ring: 160 84% 39%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 222 25% 9%;
     --sidebar-foreground: 220 15% 85%;
-    --sidebar-primary: 43 96% 46%;
-    --sidebar-primary-foreground: 222 30% 7%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 20% 15%;
     --sidebar-accent-foreground: 220 15% 85%;
     --sidebar-border: 222 15% 18%;
-    --sidebar-ring: 43 96% 46%;
+    --sidebar-ring: 160 84% 39%;
   }
 }
 
@@ -123,7 +125,7 @@
   }
 
   @keyframes flashGlow {
-    0% { text-shadow: 0 0 8px hsl(43 96% 46% / 0.8); color: hsl(43 96% 46%); }
+    0% { text-shadow: 0 0 8px hsl(var(--gold) / 0.8); color: hsl(var(--gold)); }
     100% { text-shadow: none; }
   }
 }
@@ -199,8 +201,8 @@ input[type="range"]::-webkit-slider-thumb {
 .cabinet-vault { background: linear-gradient(135deg, hsl(220 20% 12%) 0%, hsl(220 15% 9%) 100%); border-color: hsl(40 20% 30% / 0.5); }
 
 /* ── Cosmetic HoM Frame Animations ── */
-.hom-frame-gold { box-shadow: 0 0 12px hsl(43 96% 46% / 0.15); border-color: hsl(43 96% 46% / 0.5); }
+.hom-frame-gold { box-shadow: 0 0 12px hsl(var(--gold) / 0.15); border-color: hsl(var(--gold) / 0.5); }
 .hom-frame-holographic {
-  border-image: linear-gradient(135deg, hsl(215 60% 50%), hsl(43 96% 46%), hsl(340 80% 55%)) 1;
+  border-image: linear-gradient(135deg, hsl(215 60% 50%), hsl(var(--gold)), hsl(340 80% 55%)) 1;
   box-shadow: 0 0 12px hsl(215 60% 50% / 0.2);
 }

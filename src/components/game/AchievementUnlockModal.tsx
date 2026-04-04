@@ -122,7 +122,7 @@ export function AchievementUnlockModal({ open, onClose, achievement }: Achieveme
                 className={cn(
                   'text-xl font-black font-display',
                   getTierColor(achievement.tier),
-                  achievement.tier === 'gold' && 'drop-shadow-[0_0_10px_hsl(43,96%,46%,0.5)]'
+                  achievement.tier === 'gold' && 'drop-shadow-[0_0_10px_hsl(var(--gold)/0.5)]'
                 )}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}

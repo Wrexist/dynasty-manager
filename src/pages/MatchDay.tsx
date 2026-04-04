@@ -492,7 +492,7 @@ const MatchDay = () => {
     <div className={cn("max-w-lg mx-auto px-4 py-4 space-y-3", stadiumTheme && `stadium-${stadiumTheme.replace('stadium-', '')}`)}>
       {phase === 'pre' && <PageHint screen="matchDay" title={PAGE_HINTS.matchDay.title} body={PAGE_HINTS.matchDay.body} />}
       {/* Score Header */}
-      <GlassPanel className={cn("p-5 transition-all duration-300", goalFlash && "border-primary/60 shadow-[0_0_20px_hsl(43_96%_46%/0.3)]")}>
+      <GlassPanel className={cn("p-5 transition-all duration-300", goalFlash && "border-primary/60 shadow-[0_0_20px_hsl(var(--primary)/0.3)]")}>
         <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center mb-3">
           {phase === 'pre' ? `Week ${week}${isCupMatch ? ' — Cup' : ''}` : phase === 'half_time' ? 'Half Time' : phase === 'extra_time_break' ? 'Extra Time' : phase === 'penalties' ? 'Penalties' : isLive ? `${currentMin}'` : 'Full Time'}
         </p>
@@ -525,7 +525,7 @@ const MatchDay = () => {
               <AnimatePresence mode="popLayout">
                 <motion.span
                   key={phase === 'half_time' ? `ht-h-${htHomeGoals}` : `h-${homeGoals}`}
-                  initial={{ scale: 1.4, color: 'hsl(43, 96%, 46%)' }}
+                  initial={{ scale: 1.4, color: 'hsl(160, 84%, 39%)' }}
                   animate={{ scale: 1, color: 'hsl(0, 0%, 95%)' }}
                   transition={{ duration: 0.4, type: 'spring', stiffness: 300 }}
                 >
@@ -536,7 +536,7 @@ const MatchDay = () => {
               <AnimatePresence mode="popLayout">
                 <motion.span
                   key={phase === 'half_time' ? `ht-a-${htAwayGoals}` : `a-${awayGoals}`}
-                  initial={{ scale: 1.4, color: 'hsl(43, 96%, 46%)' }}
+                  initial={{ scale: 1.4, color: 'hsl(160, 84%, 39%)' }}
                   animate={{ scale: 1, color: 'hsl(0, 0%, 95%)' }}
                   transition={{ duration: 0.4, type: 'spring', stiffness: 300 }}
                 >

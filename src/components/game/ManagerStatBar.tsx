@@ -9,7 +9,7 @@ interface ManagerStatBarProps {
 
 export function ManagerStatBar({ label, value, max = 20, className }: ManagerStatBarProps) {
   const pct = (value / max) * 100;
-  const color = value >= 15 ? 'bg-emerald-500' : value >= 10 ? 'bg-primary' : value >= 6 ? 'bg-amber-500' : 'bg-muted-foreground';
+  const color = value >= 15 ? 'bg-emerald-500' : value >= 10 ? 'bg-sky-500' : value >= 6 ? 'bg-amber-500' : 'bg-muted-foreground';
 
   return (
     <div className={cn('space-y-1', className)}>

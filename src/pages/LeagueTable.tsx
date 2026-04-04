@@ -152,7 +152,7 @@ const LeagueTable = () => {
                       className={cn(
                         'border-b border-border/10 cursor-pointer active:bg-muted/30 transition-colors',
                         zoneBgClass(zone),
-                        isPlayer && 'bg-primary/5 shadow-[inset_0_0_12px_hsl(43_96%_46%/0.05)] border-l-2 border-l-primary'
+                        isPlayer && 'bg-primary/5 shadow-[inset_0_0_12px_hsl(var(--primary)/0.05)] border-l-2 border-l-primary'
                       )}
                     >
                       <td className={cn('p-2 text-xs', pos === 1 ? 'text-primary font-bold' : 'text-muted-foreground')}>

@@ -197,7 +197,7 @@ const ManagerProfile = () => {
                 labelStyle={{ color: 'hsl(var(--foreground))' }}
                 formatter={(value: number) => [`${value}${value === 1 ? 'st' : value === 2 ? 'nd' : value === 3 ? 'rd' : 'th'}`, 'Position']}
               />
-              <Line type="monotone" dataKey="position" stroke="hsl(43, 96%, 46%)" strokeWidth={2} dot={{ fill: 'hsl(43, 96%, 46%)', r: 4 }} />
+              <Line type="monotone" dataKey="position" stroke="hsl(160, 84%, 39%)" strokeWidth={2} dot={{ fill: 'hsl(160, 84%, 39%)', r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </GlassPanel>

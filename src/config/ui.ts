@@ -8,7 +8,7 @@ import type { Position } from '@/types/game';
 // ── Rating Color Thresholds (overall, attribute values) ──
 export const RATING_COLOR_THRESHOLDS = [
   { min: 80, textClass: 'text-emerald-400', bgClass: 'bg-emerald-500' },
-  { min: 70, textClass: 'text-primary', bgClass: 'bg-primary' },
+  { min: 70, textClass: 'text-sky-400', bgClass: 'bg-sky-500' },
   { min: 60, textClass: 'text-amber-400', bgClass: 'bg-amber-500' },
   { min: 0,  textClass: 'text-muted-foreground', bgClass: 'bg-destructive' },
 ] as const;
@@ -16,7 +16,7 @@ export const RATING_COLOR_THRESHOLDS = [
 // ── Stat Bar Color Thresholds (percentage-based) ──
 export const STAT_BAR_THRESHOLDS = [
   { min: 80, bgClass: 'bg-emerald-500' },
-  { min: 60, bgClass: 'bg-primary' },
+  { min: 60, bgClass: 'bg-sky-500' },
   { min: 40, bgClass: 'bg-amber-500' },
   { min: 0,  bgClass: 'bg-destructive' },
 ] as const;
@@ -54,7 +54,7 @@ export const POSITION_FILTERS: { label: string; positions: Position[] }[] = [
 // ── Board Verdict Colors & Labels ──
 export const VERDICT_COLORS: Record<string, string> = {
   excellent: 'text-emerald-400',
-  good: 'text-primary',
+  good: 'text-sky-400',
   acceptable: 'text-muted-foreground',
   poor: 'text-amber-400',
   sacked: 'text-destructive',
@@ -71,14 +71,14 @@ export const VERDICT_LABELS: Record<string, string> = {
 // ── Match Rating Color Thresholds (used in MatchReview) ──
 export const MATCH_RATING_THRESHOLDS = [
   { min: 8, textClass: 'text-emerald-400' },
-  { min: 6, textClass: 'text-primary' },
+  { min: 6, textClass: 'text-sky-400' },
   { min: 0, textClass: 'text-amber-400' },
 ] as const;
 
 // ── Fitness Hex Colors (for SVG rendering on pitch) ──
 export const FITNESS_HEX_THRESHOLDS = [
   { min: 80, color: '#22c55e' },
-  { min: 60, color: '#eab308' },
+  { min: 60, color: '#38bdf8' },
   { min: 40, color: '#f97316' },
   { min: 0,  color: '#ef4444' },
 ] as const;
@@ -87,13 +87,13 @@ export const FITNESS_HEX_THRESHOLDS = [
 export const PITCH_COLORS = {
   FILL: '#1a3a2a',
   LINE: '#2d5a3f',
-  HOME_DEFAULT: '#D4A843',
+  HOME_DEFAULT: '#10b981',
   AWAY_DEFAULT: '#666',
 } as const;
 
 // ── Chart Colors ──
 export const CHART_COLORS = {
-  PRIMARY: 'hsl(43, 96%, 46%)',
+  PRIMARY: 'hsl(160, 84%, 39%)',
   COMPARISON: '#34d399',
   FILL_OPACITY_PRIMARY: 0.2,
   FILL_OPACITY_SECONDARY: 0.15,

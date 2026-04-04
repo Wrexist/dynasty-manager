@@ -34,7 +34,7 @@ function normalize(a: ManagerAppearance): ManagerAppearance {
     ...a,
     badgeShape: 1,  // shield
     backgroundColor: a.outfitColor || '#1a1a2e',
-    accentColor: a.tieColor || '#D4A017',
+    accentColor: a.tieColor || '#10b981',
     pattern: 0,     // solid
     icon: 0,        // suit
   };
@@ -126,7 +126,7 @@ export function ManagerAvatar({ appearance, size = 120, className, initials }: M
   const app = normalize(appearance);
 
   const bgColor = app.backgroundColor || '#1a1a2e';
-  const accentColor = app.accentColor || '#D4A017';
+  const accentColor = app.accentColor || '#10b981';
   const bgLight = lighten(bgColor, 0.12);
   const bgDark = darken(bgColor, 0.2);
 
