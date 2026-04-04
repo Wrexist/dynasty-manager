@@ -20,7 +20,7 @@ function avgOverall(players: Player[]): number {
 
 export function getSquadInsights(
   lineupPlayers: Player[],
-  formation: FormationType,
+  _formation: FormationType,
   slots: FormationSlot[],
   chemLinks: ChemistryLink[],
 ): SquadInsight[] {
@@ -88,6 +88,13 @@ export function getSquadInsights(
     insights.push({ type: 'warning', icon: 'alert-triangle', message: 'Right side has weak chemistry' });
   } else if (rightLinkCount > 0 && leftLinkCount === 0) {
     insights.push({ type: 'warning', icon: 'alert-triangle', message: 'Left side has weak chemistry' });
+  } else if (leftLinkCount === 0 && rightLinkCount === 0) {
+    const hasFlank = lineupPlayers.some((_, i) =>
+      slots[i] && (LEFT_POSITIONS.has(slots[i].pos) || RIGHT_POSITIONS.has(slots[i].pos))
+    );
+    if (hasFlank) {
+      insights.push({ type: 'warning', icon: 'alert-triangle', message: 'Flanks have no chemistry links' });
+    }
   }
 
   // Strongest unit

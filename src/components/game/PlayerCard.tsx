@@ -22,8 +22,8 @@ const COMPAT_RING_CLASSES = {
 };
 
 function getMoraleDotClass(morale: number): string {
-  if (morale >= 70) return 'bg-emerald-400';
-  if (morale >= 40) return 'bg-amber-400';
+  if (morale >= 60) return 'bg-emerald-400';
+  if (morale >= 35) return 'bg-amber-400';
   return 'bg-red-400';
 }
 
@@ -101,6 +101,7 @@ export const PlayerCard = memo(function PlayerCard({
             ? 'border-red-500/50 shadow-[0_0_6px_rgba(239,68,68,0.3)]'
             : 'border-border/30',
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
+        player.injured && 'opacity-60',
       )}
     >
       {/* Status badge (injury/suspension) */}

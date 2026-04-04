@@ -5,8 +5,7 @@ import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/ty
 import { MAX_SUBS } from '@/config/playerGeneration';
 import { PITCH_COLORS } from '@/config/ui';
 import { cn } from '@/lib/utils';
-import { calculateChemistryLinks } from '@/utils/chemistry';
-import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
+import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 import { getSquadInsights } from '@/utils/squadInsights';
 import { PlayerCard } from './PlayerCard';
 import { ChemistryBar } from './ChemistryBar';
@@ -339,14 +338,14 @@ export function LineupEditor() {
               <div className="flex items-center gap-3 mb-1.5 text-[9px]">
                 <span className="text-muted-foreground">
                   Morale: <span className={cn('font-bold',
-                    selectedPlayer.morale >= 70 ? 'text-emerald-400' :
-                    selectedPlayer.morale >= 40 ? 'text-amber-400' : 'text-red-400'
+                    selectedPlayer.morale >= 60 ? 'text-emerald-400' :
+                    selectedPlayer.morale >= 35 ? 'text-amber-400' : 'text-red-400'
                   )}>{selectedPlayer.morale}</span>
                 </span>
                 <span className="text-muted-foreground">
                   Form: <span className={cn('font-bold',
-                    selectedPlayer.form >= 70 ? 'text-emerald-400' :
-                    selectedPlayer.form >= 40 ? 'text-amber-400' : 'text-red-400'
+                    selectedPlayer.form >= 60 ? 'text-emerald-400' :
+                    selectedPlayer.form >= 35 ? 'text-amber-400' : 'text-red-400'
                   )}>{selectedPlayer.form}</span>
                 </span>
                 {!isLineupSelected && (

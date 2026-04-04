@@ -4,6 +4,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks } from '@/utils/chemistry';
+import { MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE } from '@/config/chemistry';
 import { getRatingColor } from '@/utils/uiHelpers';
 import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
@@ -258,7 +259,9 @@ const TacticsPage = () => {
                       const a = players[link.playerIdA];
                       const b = players[link.playerIdB];
                       if (!a || !b) return null;
-                      const senior = a.age >= 28 ? a : b;
+                      const senior = a.age >= MENTOR_SENIOR_AGE && b.age <= MENTOR_JUNIOR_AGE ? a
+                        : b.age >= MENTOR_SENIOR_AGE && a.age <= MENTOR_JUNIOR_AGE ? b
+                        : a;
                       const junior = senior === a ? b : a;
                       return (
                         <div key={`men-${i}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
