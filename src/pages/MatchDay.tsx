@@ -525,7 +525,7 @@ const MatchDay = () => {
               <AnimatePresence mode="popLayout">
                 <motion.span
                   key={phase === 'half_time' ? `ht-h-${htHomeGoals}` : `h-${homeGoals}`}
-                  initial={{ scale: 1.4, color: 'hsl(43, 96%, 46%)' }}
+                  initial={{ scale: 1.4, color: 'hsl(160, 84%, 39%)' }}
                   animate={{ scale: 1, color: 'hsl(0, 0%, 95%)' }}
                   transition={{ duration: 0.4, type: 'spring', stiffness: 300 }}
                 >
@@ -536,7 +536,7 @@ const MatchDay = () => {
               <AnimatePresence mode="popLayout">
                 <motion.span
                   key={phase === 'half_time' ? `ht-a-${htAwayGoals}` : `a-${awayGoals}`}
-                  initial={{ scale: 1.4, color: 'hsl(43, 96%, 46%)' }}
+                  initial={{ scale: 1.4, color: 'hsl(160, 84%, 39%)' }}
                   animate={{ scale: 1, color: 'hsl(0, 0%, 95%)' }}
                   transition={{ duration: 0.4, type: 'spring', stiffness: 300 }}
                 >

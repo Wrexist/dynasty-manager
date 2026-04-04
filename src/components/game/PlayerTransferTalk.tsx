@@ -89,7 +89,7 @@ export function PlayerTransferTalk() {
               <span className={cn(
                 'font-bold',
                 player.overall >= 80 ? 'text-emerald-400' :
-                player.overall >= 70 ? 'text-primary' :
+                player.overall >= 70 ? 'text-sky-400' :
                 player.overall >= 60 ? 'text-amber-400' : 'text-muted-foreground'
               )}>{player.overall} OVR</span>
             </div>

@@ -953,7 +953,7 @@ const Dashboard = () => {
                   </div>
                   <p className="text-[10px] text-muted-foreground truncate">{obj.description}</p>
                 </div>
-                <span className={cn('text-[10px] font-bold shrink-0', obj.completed ? 'text-emerald-400' : 'text-primary')}>
+                <span className={cn('text-[10px] font-bold shrink-0', obj.completed ? 'text-emerald-400' : 'text-sky-400')}>
                   {obj.completed ? '✓' : `+${obj.xpReward} XP`}
                 </span>
               </div>

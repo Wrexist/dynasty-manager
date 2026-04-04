@@ -698,7 +698,7 @@ const PlayerDetail = () => {
                 <span className="text-[10px] text-muted-foreground w-24">{t.label}</span>
                 <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
                   <div
-                    className={cn('h-full rounded-full', t.value >= ATTR_RATING_HIGH ? 'bg-emerald-400' : t.value >= ATTR_RATING_MID ? 'bg-primary' : t.value >= ATTR_RATING_LOW ? 'bg-amber-400' : 'bg-destructive')}
+                    className={cn('h-full rounded-full', t.value >= ATTR_RATING_HIGH ? 'bg-emerald-400' : t.value >= ATTR_RATING_MID ? 'bg-sky-400' : t.value >= ATTR_RATING_LOW ? 'bg-amber-400' : 'bg-destructive')}
                     style={{ width: `${(t.value / 20) * 100}%` }}
                   />
                 </div>

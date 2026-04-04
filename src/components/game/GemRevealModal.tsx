@@ -136,7 +136,7 @@ export function GemRevealModal() {
                 <p className="text-[10px] text-muted-foreground">Overall</p>
                 <p className={cn(
                   'text-lg font-black tabular-nums',
-                  player.overall >= 80 ? 'text-emerald-400' : player.overall >= 70 ? 'text-primary' : player.overall >= 60 ? 'text-amber-400' : 'text-foreground'
+                  player.overall >= 80 ? 'text-emerald-400' : player.overall >= 70 ? 'text-sky-400' : player.overall >= 60 ? 'text-amber-400' : 'text-foreground'
                 )}>{player.overall}</p>
               </div>
               <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 text-center">

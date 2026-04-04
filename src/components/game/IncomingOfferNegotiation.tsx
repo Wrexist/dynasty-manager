@@ -58,7 +58,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
 
   const particles = useMemo(() =>
     Array.from({ length: 24 }, (_, i) => ({
-      color: i % 4 === 0 ? '#eab308' : i % 4 === 1 ? '#22c55e' : i % 4 === 2 ? '#3b82f6' : '#f59e0b',
+      color: i % 4 === 0 ? '#10b981' : i % 4 === 1 ? '#22c55e' : i % 4 === 2 ? '#3b82f6' : '#38bdf8',
       left: 15 + Math.random() * 70,
       yTarget: -140 - Math.random() * 180,
       xTarget: (Math.random() - 0.5) * 160,
@@ -325,7 +325,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
               >
                 <motion.div
                   className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center"
-                  animate={{ scale: [1, 1.1, 1], borderColor: ['rgba(234,179,8,0.3)', 'rgba(234,179,8,0.6)', 'rgba(234,179,8,0.3)'] }}
+                  animate={{ scale: [1, 1.1, 1], borderColor: ['rgba(16,185,129,0.3)', 'rgba(16,185,129,0.6)', 'rgba(16,185,129,0.3)'] }}
                   transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
                 >
                   <Handshake className="w-7 h-7 text-primary" />
@@ -485,7 +485,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                   <button
                     type="button"
                     onClick={handleRevise}
-                    className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(234,179,8,0.15)]"
+                    className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(16,185,129,0.15)]"
                   >
                     <RotateCcw className="w-4 h-4" /> Revise Counter
                   </button>
@@ -571,7 +571,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                     <button
                       type="button"
                       onClick={handleAcceptBuyerCounter}
-                      className="flex-[1.5] flex items-center justify-center gap-1 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(234,179,8,0.15)]"
+                      className="flex-[1.5] flex items-center justify-center gap-1 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(16,185,129,0.15)]"
                     >
                       Accept <ArrowRight className="w-3.5 h-3.5" />
                     </button>
@@ -596,7 +596,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                 <button
                   type="button"
                   onClick={() => handleSubmitCounter(counterFee)}
-                  className="flex-[2] flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-black bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_24px_rgba(234,179,8,0.25)]"
+                  className="flex-[2] flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-black bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_24px_rgba(16,185,129,0.25)]"
                 >
                   Submit Counter <ArrowRight className="w-4 h-4" />
                 </button>

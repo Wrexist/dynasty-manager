@@ -23,7 +23,7 @@ interface PlayerAvatarProps {
 function getRatingHex(ovr: number | undefined): string {
   if (ovr == null) return '#6b7280'; // muted gray
   if (ovr >= 80) return '#34d399';   // emerald
-  if (ovr >= 70) return '#D4A843';   // gold/primary
+  if (ovr >= 70) return '#38bdf8';   // sky/good
   if (ovr >= 60) return '#fbbf24';   // amber
   return '#6b7280';                   // muted
 }

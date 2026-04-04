@@ -43,7 +43,7 @@ interface SubstitutionSheetProps {
 
 function getFormLabel(form: number): { text: string; className: string } {
   if (form >= 80) return { text: 'Hot', className: 'text-emerald-400' };
-  if (form >= 60) return { text: 'Good', className: 'text-primary' };
+  if (form >= 60) return { text: 'Good', className: 'text-sky-400' };
   if (form >= 40) return { text: 'Avg', className: 'text-muted-foreground' };
   return { text: 'Poor', className: 'text-destructive' };
 }
