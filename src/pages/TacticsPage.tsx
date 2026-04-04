@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { calculateChemistryLinks } from '@/utils/chemistry';
 import { MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE } from '@/config/chemistry';
 import { getRatingColor } from '@/utils/uiHelpers';
-import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS } from '@/config/tactics';
+import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
 import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, Sparkles, AlertTriangle } from 'lucide-react';
 import { getFlag } from '@/utils/nationality';
@@ -16,13 +16,6 @@ import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD, HELP_TEXTS 
 import { InfoTip } from '@/components/game/InfoTip';
 import { PlayerSelect } from '@/components/game/PlayerSelect';
 import { infoToast } from '@/utils/gameToast';
-
-const STYLE_PRESETS: (StylePreset & { description: string })[] = [
-  { label: 'Park the Bus', description: 'Ultra-defensive. Sit deep, absorb pressure, and protect the lead.', values: { mentality: 'defensive', width: 'narrow', tempo: 'slow', defensiveLine: 'deep', pressingIntensity: 25 } },
-  { label: 'Balanced', description: 'No extreme risks. A solid default for most matches.', values: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 } },
-  { label: 'All-Out Attack', description: 'Maximum attacking intent. High line, fast tempo. Risky but explosive.', values: { mentality: 'all-out-attack', width: 'wide', tempo: 'fast', defensiveLine: 'high', pressingIntensity: 75 } },
-  { label: 'Counter-Attack', description: 'Defend deep then strike quickly on fast transitions.', values: { mentality: 'cautious', width: 'narrow', tempo: 'fast', defensiveLine: 'deep', pressingIntensity: 40 } },
-];
 
 function pressingLabel(v: number): string {
   if (v <= PRESSING_LOW_THRESHOLD) return 'Low';
@@ -52,11 +45,18 @@ const TacticsPage = () => {
     return { chemLinks };
   }, [club, players, season]);
 
+  // Memoize lineup players (used by Starting XI list, set-piece filters, potentialGain)
+  const lineupPlayers = useMemo(() => {
+    if (!club) return [];
+    return club.lineup.map(id => players[id]).filter(Boolean);
+  }, [club, players]);
+
   // Potential rating gain for optimize button
   const potentialGain = useMemo(() => {
     if (!club) return 0;
-    const lineupAvg = club.lineup.map(id => players[id]).filter(Boolean)
-      .reduce((s, p) => s + p.overall, 0) / Math.max(1, club.lineup.filter(id => players[id]).length);
+    const lineupAvg = lineupPlayers.length > 0
+      ? lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length
+      : 0;
     const allAvailable = club.playerIds.map(id => players[id]).filter(p =>
       p && !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
     );
@@ -65,7 +65,7 @@ const TacticsPage = () => {
     if (bestXI.length === 0) return 0;
     const bestAvg = bestXI.reduce((s, p) => s + p.overall, 0) / bestXI.length;
     return Math.max(0, Math.round(bestAvg - lineupAvg));
-  }, [club, players, week]);
+  }, [club, players, week, lineupPlayers]);
 
   // Group chemistry links by type (memoized)
   const { natLinks, mentorLinks, partnershipLinks, loyaltyLinks } = useMemo(() => ({
@@ -76,8 +76,6 @@ const TacticsPage = () => {
   }), [chemLinks]);
 
   if (!club) return null;
-
-  const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
 
   const isPresetActive = (preset: StylePreset): boolean => {
     return (
@@ -187,23 +185,22 @@ const TacticsPage = () => {
             const oldLineup = [...club.lineup];
             const oldAvg = Math.round(oldLineup.map(id => players[id]).filter(Boolean)
               .reduce((s, p) => s + p.overall, 0) / Math.max(1, oldLineup.filter(id => players[id]).length));
-            requestAnimationFrame(() => {
-              autoFillTeam();
-              setAutoFilling(false);
-              // Show diff toast
-              const newClub = useGameStore.getState().clubs[playerClubId];
-              if (newClub) {
-                const changes = newClub.lineup.filter((id, i) => id !== oldLineup[i]).length;
-                const newAvg = Math.round(newClub.lineup.map(id => players[id]).filter(Boolean)
-                  .reduce((s, p) => s + p.overall, 0) / Math.max(1, newClub.lineup.filter(id => players[id]).length));
-                const diff = newAvg - oldAvg;
-                if (changes > 0) {
-                  infoToast(`${changes} change${changes > 1 ? 's' : ''} made${diff > 0 ? `, +${diff} OVR` : ''}`);
-                } else {
-                  infoToast('Lineup already optimal');
-                }
+            autoFillTeam();
+            setAutoFilling(false);
+            // Show diff toast using fresh state
+            const { clubs: newClubs, players: newPlayers } = useGameStore.getState();
+            const newClub = newClubs[playerClubId];
+            if (newClub) {
+              const changes = newClub.lineup.filter((id, i) => id !== oldLineup[i]).length;
+              const newAvg = Math.round(newClub.lineup.map(id => newPlayers[id]).filter(Boolean)
+                .reduce((s, p) => s + p.overall, 0) / Math.max(1, newClub.lineup.filter(id => newPlayers[id]).length));
+              const diff = newAvg - oldAvg;
+              if (changes > 0) {
+                infoToast(`${changes} change${changes > 1 ? 's' : ''} made${diff > 0 ? `, +${diff} OVR` : ''}`);
+              } else {
+                infoToast('Lineup already optimal');
               }
-            });
+            }
           }}
           disabled={autoFilling}
           className={cn(
