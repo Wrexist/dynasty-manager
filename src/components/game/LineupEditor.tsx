@@ -135,8 +135,8 @@ export function LineupEditor() {
     if (!club) return [];
     const lineupPlayers = club.lineup.map(id => players[id]).filter(Boolean);
     const slots = FORMATION_POSITIONS[club.formation] || [];
-    return getSquadInsights(lineupPlayers, club.formation, slots, chemLinks);
-  }, [club, players, chemLinks]);
+    return getSquadInsights(lineupPlayers, club.formation, slots, chemLinks, chemBonus);
+  }, [club, players, chemLinks, chemBonus]);
 
   // Selected player's chemistry links for detail panel
   const selectedPlayerLinks = useMemo(() => {
@@ -358,12 +358,12 @@ export function LineupEditor() {
                 <div className="border-t border-border/30 pt-1.5">
                   <p className="text-[9px] text-muted-foreground mb-1">Chemistry Links</p>
                   <div className="space-y-0.5">
-                    {selectedPlayerLinks.map((link, i) => {
+                    {selectedPlayerLinks.map((link) => {
                       const partnerId = link.playerIdA === selectedId ? link.playerIdB : link.playerIdA;
                       const partner = players[partnerId];
                       if (!partner) return null;
                       return (
-                        <div key={i} className="flex items-center gap-1.5 text-[9px]">
+                        <div key={`${link.playerIdA}-${link.playerIdB}-${link.type}`} className="flex items-center gap-1.5 text-[9px]">
                           <span className={cn(
                             'px-1 py-px rounded text-[8px] font-medium',
                             link.type === 'nationality' ? 'bg-primary/15 text-primary' :

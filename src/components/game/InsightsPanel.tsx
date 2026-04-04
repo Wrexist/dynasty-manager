@@ -18,7 +18,7 @@ export function InsightsPanel({ insights }: InsightsPanelProps) {
   return (
     <div className="space-y-1 px-1 mt-2">
       {insights.map((insight) => (
-        <div key={`${insight.type}-${insight.icon}`} className="flex items-center gap-1.5">
+        <div key={`${insight.type}-${insight.message}`} className="flex items-center gap-1.5">
           <DynamicIcon
             name={insight.icon}
             className={cn('w-3 h-3 shrink-0', INSIGHT_STYLES[insight.type])}

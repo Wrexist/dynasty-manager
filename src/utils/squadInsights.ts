@@ -1,5 +1,6 @@
 import type { Player, FormationType, FormationSlot, ChemistryLink, Position } from '@/types/game';
 import { POSITION_COMPATIBILITY } from '@/types/game';
+import { CHEMISTRY_GOOD_THRESHOLD } from '@/config/chemistry';
 
 export interface SquadInsight {
   type: 'warning' | 'positive' | 'info';
@@ -23,12 +24,13 @@ export function getSquadInsights(
   _formation: FormationType,
   slots: FormationSlot[],
   chemLinks: ChemistryLink[],
+  chemBonus?: number,
 ): SquadInsight[] {
   const insights: SquadInsight[] = [];
   if (lineupPlayers.length === 0) return insights;
 
-  // Low fitness warning
-  const lowFitnessPlayers = lineupPlayers.filter(p => p.fitness < 70);
+  // Low fitness warning (exclude critical — those get their own warning)
+  const lowFitnessPlayers = lineupPlayers.filter(p => p.fitness < 70 && p.fitness >= 50);
   if (lowFitnessPlayers.length >= 2) {
     insights.push({
       type: 'warning',
@@ -120,8 +122,8 @@ export function getSquadInsights(
     }
   }
 
-  // Positive: good chemistry
-  if (chemLinks.length >= 6) {
+  // Positive: good chemistry (use actual bonus value, not just link count)
+  if (chemBonus !== undefined ? chemBonus >= CHEMISTRY_GOOD_THRESHOLD : chemLinks.length >= 6) {
     insights.push({
       type: 'positive',
       icon: 'check-circle',

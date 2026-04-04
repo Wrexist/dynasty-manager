@@ -8,7 +8,7 @@ import { MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE } from '@/config/chemistry';
 import { getRatingColor } from '@/utils/uiHelpers';
 import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
-import { Globe, BookOpen, Handshake, ArrowRightLeft, Sparkles, AlertTriangle } from 'lucide-react';
+import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, Sparkles, AlertTriangle } from 'lucide-react';
 import { getFlag } from '@/utils/nationality';
 import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
@@ -66,6 +66,14 @@ const TacticsPage = () => {
     const bestAvg = bestXI.reduce((s, p) => s + p.overall, 0) / bestXI.length;
     return Math.max(0, Math.round(bestAvg - lineupAvg));
   }, [club, players, week]);
+
+  // Group chemistry links by type (memoized)
+  const { natLinks, mentorLinks, partnershipLinks, loyaltyLinks } = useMemo(() => ({
+    natLinks: chemLinks.filter(l => l.type === 'nationality'),
+    mentorLinks: chemLinks.filter(l => l.type === 'mentor'),
+    partnershipLinks: chemLinks.filter(l => l.type === 'partnership'),
+    loyaltyLinks: chemLinks.filter(l => l.type === 'loyalty'),
+  }), [chemLinks]);
 
   if (!club) return null;
 
@@ -216,89 +224,106 @@ const TacticsPage = () => {
       </GlassPanel>
 
       {/* Chemistry Links Detail */}
-      {chemLinks.length > 0 && (() => {
-        const natLinks = chemLinks.filter(l => l.type === 'nationality');
-        const mentorLinks = chemLinks.filter(l => l.type === 'mentor');
-        const partnershipLinks = chemLinks.filter(l => l.type === 'partnership');
-        return (
-          <GlassPanel className="p-4">
-            <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Chemistry Links ({chemLinks.length})</p>
+      {chemLinks.length > 0 && (
+        <GlassPanel className="p-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Chemistry Links ({chemLinks.length})</p>
 
-            <div className="space-y-2 max-h-[30vh] overflow-y-auto">
-              {natLinks.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Globe className="w-3 h-3 text-primary" />
-                    <span className="text-[10px] text-muted-foreground font-semibold">Nationality ({natLinks.length})</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {natLinks.map((link, i) => {
-                      const a = players[link.playerIdA];
-                      const b = players[link.playerIdB];
-                      if (!a || !b) return null;
-                      return (
-                        <div key={`nat-${i}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
-                          <span className="text-xs">{getFlag(a.nationality)}</span>
-                          <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
-                          <span className="text-[9px] text-primary font-bold">+{link.strength}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+          <div className="space-y-2 max-h-[30vh] overflow-y-auto">
+            {natLinks.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Globe className="w-3 h-3 text-primary" />
+                  <span className="text-[10px] text-muted-foreground font-semibold">Nationality ({natLinks.length})</span>
                 </div>
-              )}
+                <div className="space-y-0.5">
+                  {natLinks.map((link) => {
+                    const a = players[link.playerIdA];
+                    const b = players[link.playerIdB];
+                    if (!a || !b) return null;
+                    return (
+                      <div key={`nat-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
+                        <span className="text-xs">{getFlag(a.nationality)}</span>
+                        <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
+                        <span className="text-[9px] text-primary font-bold">+{link.strength}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-              {mentorLinks.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <BookOpen className="w-3 h-3 text-emerald-400" />
-                    <span className="text-[10px] text-muted-foreground font-semibold">Mentor ({mentorLinks.length})</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {mentorLinks.map((link, i) => {
-                      const a = players[link.playerIdA];
-                      const b = players[link.playerIdB];
-                      if (!a || !b) return null;
-                      const senior = a.age >= MENTOR_SENIOR_AGE && b.age <= MENTOR_JUNIOR_AGE ? a
-                        : b.age >= MENTOR_SENIOR_AGE && a.age <= MENTOR_JUNIOR_AGE ? b
-                        : a;
-                      const junior = senior === a ? b : a;
-                      return (
-                        <div key={`men-${i}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
-                          <span className="text-[10px] text-foreground flex-1">{senior.lastName} → {junior.lastName}</span>
-                          <span className="text-[9px] text-emerald-400 font-bold">+{link.strength}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+            {mentorLinks.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <BookOpen className="w-3 h-3 text-emerald-400" />
+                  <span className="text-[10px] text-muted-foreground font-semibold">Mentor ({mentorLinks.length})</span>
                 </div>
-              )}
+                <div className="space-y-0.5">
+                  {mentorLinks.map((link) => {
+                    const a = players[link.playerIdA];
+                    const b = players[link.playerIdB];
+                    if (!a || !b) return null;
+                    const senior = a.age >= MENTOR_SENIOR_AGE && b.age <= MENTOR_JUNIOR_AGE ? a
+                      : b.age >= MENTOR_SENIOR_AGE && a.age <= MENTOR_JUNIOR_AGE ? b
+                      : a;
+                    const junior = senior === a ? b : a;
+                    return (
+                      <div key={`men-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
+                        <span className="text-[10px] text-foreground flex-1">{senior.lastName} → {junior.lastName}</span>
+                        <span className="text-[9px] text-emerald-400 font-bold">+{link.strength}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
-              {partnershipLinks.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Handshake className="w-3 h-3 text-amber-400" />
-                    <span className="text-[10px] text-muted-foreground font-semibold">Partnership ({partnershipLinks.length})</span>
-                  </div>
-                  <div className="space-y-0.5">
-                    {partnershipLinks.map((link, i) => {
-                      const a = players[link.playerIdA];
-                      const b = players[link.playerIdB];
-                      if (!a || !b) return null;
-                      return (
-                        <div key={`part-${i}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
-                          <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
-                          <span className="text-[9px] text-amber-400 font-bold">+{link.strength}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+            {partnershipLinks.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Handshake className="w-3 h-3 text-amber-400" />
+                  <span className="text-[10px] text-muted-foreground font-semibold">Partnership ({partnershipLinks.length})</span>
                 </div>
-              )}
-            </div>
-          </GlassPanel>
-        );
-      })()}
+                <div className="space-y-0.5">
+                  {partnershipLinks.map((link) => {
+                    const a = players[link.playerIdA];
+                    const b = players[link.playerIdB];
+                    if (!a || !b) return null;
+                    return (
+                      <div key={`part-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
+                        <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
+                        <span className="text-[9px] text-amber-400 font-bold">+{link.strength}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {loyaltyLinks.length > 0 && (
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Heart className="w-3 h-3 text-sky-400" />
+                  <span className="text-[10px] text-muted-foreground font-semibold">Loyalty ({loyaltyLinks.length})</span>
+                </div>
+                <div className="space-y-0.5">
+                  {loyaltyLinks.map((link) => {
+                    const a = players[link.playerIdA];
+                    const b = players[link.playerIdB];
+                    if (!a || !b) return null;
+                    return (
+                      <div key={`loy-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
+                        <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
+                        <span className="text-[9px] text-sky-400 font-bold">+{link.strength}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Style Presets */}
       <GlassPanel className="p-4">

@@ -9,6 +9,7 @@ import {
   Sparkles, UserMinus, AlertTriangle, AlertCircle, RotateCcw,
   HeartCrack, Repeat, LayoutGrid, Award,
   Castle, Gem,
+  Users, Heart, ShoppingCart, DollarSign, FileText,
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -69,6 +70,11 @@ const ICON_MAP: Record<string, LucideIcon> = {
   award: Award,
   castle: Castle,
   gem: Gem,
+  users: Users,
+  heart: Heart,
+  'shopping-cart': ShoppingCart,
+  'dollar-sign': DollarSign,
+  'file-text': FileText,
 };
 
 interface DynamicIconProps {
