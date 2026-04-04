@@ -308,6 +308,7 @@ export function hungarianAssignment(scoreMatrix: number[][]): number[] {
       }
 
       j0 = j1;
+      if (j0 === -1) break; // Safety: no valid augmenting path found
     } while (p[j0] !== 0);
 
     // Trace back augmenting path
@@ -352,7 +353,7 @@ export function optimizeStarterPositions(
   for (let si = 0; si < slots.length; si++) {
     scores[si] = [];
     for (let pi = 0; pi < starters.length; pi++) {
-      scores[si][pi] = scorePlayerForSlot(starters[pi], slots[si].pos as Position);
+      scores[si][pi] = scorePlayerForSlot(starters[pi], slots[si].pos);
     }
   }
 
@@ -484,7 +485,7 @@ export function autoFillBestTeam(
       const p = currentLineup[i];
       if (p) {
         total += scores[i].get(p.id) || 0;
-        deployedPlayers.push({ ...p, position: slots[i].pos as Position });
+        deployedPlayers.push({ ...p, position: slots[i].pos });
       }
     }
     // Pass undefined for formation since positions are already set to slot positions
@@ -587,7 +588,7 @@ export function autoFillBestTeam(
   // ── Phase 5: Smart bench selection with strategic ordering ──
   const finalLineup = lineup.filter(Boolean) as Player[];
   // Use deployed slot positions (not natural positions) for formation gap detection
-  const lineupDeployedPositions = new Set<string>();
+  const lineupDeployedPositions = new Set<Position>();
   for (let i = 0; i < slots.length; i++) {
     if (lineup[i]) lineupDeployedPositions.add(slots[i].pos);
   }
@@ -595,7 +596,7 @@ export function autoFillBestTeam(
 
   // Positions used in the current formation
   const formationPositions = new Set(slots.map(s => s.pos));
-  const uniqueFormationPositions = [...formationPositions] as Position[];
+  const uniqueFormationPositions = [...formationPositions];
 
   // ── Starter vulnerability analysis ──
   const starterInSlot: { player: Player; slotPos: Position }[] = [];
@@ -751,7 +752,7 @@ export function autoFillBestTeam(
           const defPositions = new Set(defSlots.map(s => s.pos));
           const starterPositions = new Set(finalLineup.map(pl => pl.position));
           for (const defPos of defPositions) {
-            if (!starterPositions.has(defPos) && canCoverPosition(p.position, defPos as Position)) {
+            if (!starterPositions.has(defPos) && canCoverPosition(p.position, defPos)) {
               contextBenchBonus += BENCH_DEFENSIVE_FORMATION_COVER_BONUS;
               break; // One bonus per player, not per slot
             }
@@ -838,7 +839,7 @@ export function autoFillBestTeam(
   const deployedFinalLineup: Player[] = [];
   for (let i = 0; i < slots.length; i++) {
     const p = lineup[i];
-    if (p) deployedFinalLineup.push({ ...p, position: slots[i].pos as Position });
+    if (p) deployedFinalLineup.push({ ...p, position: slots[i].pos });
   }
   const chemBonus = getChemistryBonus(deployedFinalLineup, undefined, currentSeason);
   const chemLabel = getChemistryLabel(chemBonus);

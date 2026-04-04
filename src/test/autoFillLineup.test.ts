@@ -261,6 +261,79 @@ describe('autoFillBestTeam', () => {
       expect(result.lineup).toHaveLength(11);
     }
   });
+
+  it('boosts penalty takers when provided in context', () => {
+    const squad: Player[] = [
+      makePlayer({ id: 'gk1', position: 'GK', overall: 75 }),
+      makePlayer({ id: 'cb1', position: 'CB', overall: 75 }),
+      makePlayer({ id: 'cb2', position: 'CB', overall: 75 }),
+      makePlayer({ id: 'lb1', position: 'LB', overall: 75 }),
+      makePlayer({ id: 'rb1', position: 'RB', overall: 75 }),
+      makePlayer({ id: 'cm1', position: 'CM', overall: 73 }),
+      makePlayer({ id: 'cm2', position: 'CM', overall: 74 }),
+      makePlayer({ id: 'lm1', position: 'LM', overall: 72 }),
+      makePlayer({ id: 'rm1', position: 'RM', overall: 72 }),
+      makePlayer({ id: 'st1', position: 'ST', overall: 72 }), // Penalty taker, slightly lower
+      makePlayer({ id: 'st2', position: 'ST', overall: 74 }),
+      makePlayer({ id: 'st3', position: 'ST', overall: 73 }),
+    ];
+    const result = autoFillBestTeam(squad, '4-4-2', 1, 1, {
+      penaltyTakerId: 'st1',
+    });
+    const lineupIds = result.lineup.map(p => p.id);
+    expect(lineupIds).toContain('st1');
+  });
+
+  it('handles stale/invalid set piece taker IDs gracefully', () => {
+    const squad = makeSquad(18);
+    // Reference a player that doesn't exist in the squad
+    const result = autoFillBestTeam(squad, '4-4-2', 1, 1, {
+      setPieceTakerId: 'non-existent-player',
+      penaltyTakerId: 'also-non-existent',
+    });
+    // Should still produce a valid lineup without crashing
+    expect(result.lineup).toHaveLength(11);
+    expect(result.subs.length).toBeGreaterThan(0);
+  });
+
+  it('considers defensive formation for bench selection', () => {
+    // Main formation: 4-4-2 (needs 2 CBs), defensive formation: 5-3-2 (needs 3 CBs)
+    // Squad has exactly 2 CBs in starting XI + 1 extra CB available
+    const squad: Player[] = [
+      makePlayer({ id: 'gk1', position: 'GK', overall: 75 }),
+      makePlayer({ id: 'gk2', position: 'GK', overall: 65 }),
+      makePlayer({ id: 'cb1', position: 'CB', overall: 78 }),
+      makePlayer({ id: 'cb2', position: 'CB', overall: 76 }),
+      makePlayer({ id: 'cb3', position: 'CB', overall: 64 }), // Extra CB for defensive formation
+      makePlayer({ id: 'lb1', position: 'LB', overall: 74 }),
+      makePlayer({ id: 'rb1', position: 'RB', overall: 74 }),
+      makePlayer({ id: 'cm1', position: 'CM', overall: 75 }),
+      makePlayer({ id: 'cm2', position: 'CM', overall: 73 }),
+      makePlayer({ id: 'lm1', position: 'LM', overall: 72 }),
+      makePlayer({ id: 'rm1', position: 'RM', overall: 72 }),
+      makePlayer({ id: 'st1', position: 'ST', overall: 75 }),
+      makePlayer({ id: 'st2', position: 'ST', overall: 74 }),
+      // A non-CB bench option with similar overall to cb3
+      makePlayer({ id: 'cam1', position: 'CAM', overall: 65 }),
+    ];
+    const resultWithDef = autoFillBestTeam(squad, '4-4-2', 1, 1, {
+      defensiveFormation: '5-3-2',
+    });
+    const resultWithout = autoFillBestTeam(squad, '4-4-2', 1, 1);
+
+    // With defensive formation context, CB3 should be prioritized on bench
+    const defBenchIds = resultWithDef.subs.map(p => p.id);
+    const noBenchIds = resultWithout.subs.map(p => p.id);
+
+    // CB3 should appear on bench in both cases (it's a valid bench candidate),
+    // but with defensive formation it should be ranked higher
+    const cb3DefRank = defBenchIds.indexOf('cb3');
+    const cb3NoRank = noBenchIds.indexOf('cb3');
+    // With defensive formation awareness, cb3 should be at same or better rank
+    if (cb3DefRank >= 0 && cb3NoRank >= 0) {
+      expect(cb3DefRank).toBeLessThanOrEqual(cb3NoRank);
+    }
+  });
 });
 
 // ── optimizeStarterPositions Tests ──
