@@ -290,7 +290,7 @@ function processAIListings(
       if (Math.random() > chance && !isDeadlineWeek(week)) continue;
 
       const askingPrice = Math.round(p.value * (AI_SELL_LISTING_PRICE_MIN + Math.random() * AI_SELL_LISTING_PRICE_RANGE));
-      updMarket.push({ playerId: pid, askingPrice, sellerClubId: clubId });
+      updMarket.push({ playerId: pid, askingPrice, sellerClubId: clubId, listedWeek: week, divisionId: clubs[clubId]?.divisionId });
       updPlayers[pid] = { ...p, listedForSale: true };
     }
   }
@@ -357,13 +357,13 @@ function processAIBuying(
       return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx);
     })[0];
 
-    // Search transfer market first
+    // Search transfer market first (includes both club-listed and external/generated players)
     const availableListings = updMarket.filter(l => {
       if (l.sellerClubId === buyerClubId) return false;
       const p = updPlayers[l.playerId];
       if (!p) return false;
       if (p.position !== topNeed.position) return false;
-      if (p.clubId === playerClubId) return false; // Don't buy from player without negotiation
+      if (p.clubId === playerClubId && !l.externalPlayer) return false; // Don't buy from player without negotiation
       // Youth focus filter
       if (youthFocus > 0.6 && p.age > 26) return false;
       if (youthFocus < 0.3 && p.overall < 65) return false;
@@ -445,17 +445,21 @@ function processAIBuying(
     const finalBuyer = updClubs[finalBuyerClubId];
     if (finalFee > finalBuyer.budget * AI_BUY_MAX_BUDGET_RATIO) continue;
 
-    // Seller minimum squad check
+    // Seller minimum squad check (skip for external players with no club)
     const seller = updClubs[sellerClubId];
-    if (seller.playerIds.length <= MIN_SQUAD_SIZE) continue;
+    const isExternalPlayer = !seller || !seller.playerIds?.includes(target.id);
+    if (!isExternalPlayer && seller.playerIds.length <= MIN_SQUAD_SIZE) continue;
 
     // Execute transfer
-    const updSeller = { ...seller };
-    updSeller.playerIds = updSeller.playerIds.filter(id => id !== target!.id);
-    updSeller.lineup = updSeller.lineup.filter(id => id !== target!.id);
-    updSeller.subs = updSeller.subs.filter(id => id !== target!.id);
-    updSeller.budget += finalFee;
-    updSeller.wageBill -= target.wage;
+    if (!isExternalPlayer) {
+      const updSeller = { ...seller };
+      updSeller.playerIds = updSeller.playerIds.filter(id => id !== target!.id);
+      updSeller.lineup = updSeller.lineup.filter(id => id !== target!.id);
+      updSeller.subs = updSeller.subs.filter(id => id !== target!.id);
+      updSeller.budget += finalFee;
+      updSeller.wageBill -= target.wage;
+      updClubs[sellerClubId] = updSeller;
+    }
 
     const updBuyer = { ...finalBuyer };
     updBuyer.playerIds = [...updBuyer.playerIds, target.id];
@@ -463,7 +467,6 @@ function processAIBuying(
     updBuyer.wageBill += target.wage;
 
     updPlayers[target.id] = { ...target, clubId: finalBuyerClubId, listedForSale: false };
-    updClubs[sellerClubId] = updSeller;
     updClubs[finalBuyerClubId] = updBuyer;
 
     // Remove from market
@@ -487,10 +490,11 @@ function processAIBuying(
 
     // Generate inbox message for significant transfers
     if (finalFee >= AI_TRANSFER_NEWS_MIN_FEE) {
+      const fromName = isExternalPlayer ? 'the transfer market' : (updClubs[sellerClubId]?.shortName || 'Unknown');
       updMessages = addMsg(updMessages, {
         week, season, type: 'transfer',
         title: `${target.lastName} → ${updBuyer.shortName}`,
-        body: `${target.firstName} ${target.lastName} (${target.position}, ${target.overall} OVR) has moved from ${updSeller.shortName} to ${updBuyer.shortName} for ${formatMoney(finalFee)}.`,
+        body: `${target.firstName} ${target.lastName} (${target.position}, ${target.overall} OVR) has moved from ${fromName} to ${updBuyer.shortName} for ${formatMoney(finalFee)}.`,
       });
     }
 

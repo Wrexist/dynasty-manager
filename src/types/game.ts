@@ -249,6 +249,12 @@ export interface TransferListing {
   askingPrice: number;
   sellerClubId: string;
   scoutedPlayer?: boolean;
+  /** Week number the player was listed (for expiry tracking) */
+  listedWeek?: number;
+  /** Division tier the player belongs to (for UI display) */
+  divisionId?: string;
+  /** True if this is an externally generated player (not from an existing club roster) */
+  externalPlayer?: boolean;
 }
 
 export interface IncomingOffer {
