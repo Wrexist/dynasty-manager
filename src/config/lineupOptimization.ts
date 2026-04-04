@@ -4,16 +4,17 @@
  */
 
 // ── Player Scoring Weights ──
-export const LINEUP_POSITIONAL_OVERALL_WEIGHT = 0.55;
+// Calibrated to match engine: baseStrength = avgOverall * (0.7 + fitness*0.2 + morale*0.1)
+export const LINEUP_POSITIONAL_OVERALL_WEIGHT = 0.70;
 export const LINEUP_FORM_WEIGHT = 12;
-export const LINEUP_FITNESS_WEIGHT = 15;
+export const LINEUP_FITNESS_WEIGHT = 20;
 export const LINEUP_MORALE_WEIGHT = 10;
 
 // ── Position Match Bonuses/Penalties ──
-// Match engine: formation fit = 0-18% team strength. Mispositioned players cost ~1.6% per slot.
-export const LINEUP_NATURAL_POSITION_BONUS = 8;
-export const LINEUP_COMPATIBLE_POSITION_BONUS = 4;
-export const LINEUP_INCOMPATIBLE_POSITION_PENALTY = -30;
+// Match engine: formation fit = 0-25% team strength. Each of 10 outfield slots ≈ 2.5%.
+export const LINEUP_NATURAL_POSITION_BONUS = 15;
+export const LINEUP_COMPATIBLE_POSITION_BONUS = 8;
+export const LINEUP_INCOMPATIBLE_POSITION_PENALTY = -40;
 
 // ── Fitness & Morale ──
 export const LINEUP_LOW_FITNESS_EXTRA_PENALTY = -8;
@@ -129,8 +130,15 @@ export const BENCH_CUP_ATTACKER_BONUS = 3;
 /** Bonus for defensive bench players in away matches */
 export const BENCH_AWAY_DEFENDER_BONUS = 2;
 
-// ── Per-Slot Chemistry Affinity ──
-/** Weight per chemistry link strength point when scoring a player for a specific formation slot */
-export const LINEUP_SLOT_CHEMISTRY_WEIGHT = 3;
+// ── Set Piece Taker Bonuses ──
+/** Bonus for designated corner/free-kick taker (engine: +3% corner goal chance) */
+export const LINEUP_SET_PIECE_TAKER_BONUS = 6;
+/** Bonus for designated penalty taker (engine: +5% penalty conversion) */
+export const LINEUP_PENALTY_TAKER_BONUS = 6;
+
+// ── Defensive Formation Bench Coverage ──
+/** Bonus for bench players covering a defensive formation slot not covered by starters */
+export const BENCH_DEFENSIVE_FORMATION_COVER_BONUS = 8;
+
 /** Max number of best-first bench-to-starter swap passes */
 export const LINEUP_BENCH_SWAP_PASSES = 3;

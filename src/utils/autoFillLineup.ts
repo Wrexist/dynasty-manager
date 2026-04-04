@@ -56,11 +56,12 @@ import {
   BENCH_CONGESTED_FITNESS_THRESHOLD,
   BENCH_CUP_ATTACKER_BONUS,
   BENCH_AWAY_DEFENDER_BONUS,
-  LINEUP_SLOT_CHEMISTRY_WEIGHT,
+  LINEUP_SET_PIECE_TAKER_BONUS,
+  LINEUP_PENALTY_TAKER_BONUS,
+  BENCH_DEFENSIVE_FORMATION_COVER_BONUS,
   LINEUP_BENCH_SWAP_PASSES,
 } from '@/config/lineupOptimization';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
-import { ADJACENT_PAIRS, MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE, MENTOR_QUALITY_OVERALL_BASE, MENTOR_QUALITY_DIVISOR, MENTOR_MAX_STRENGTH, PARTNERSHIP_FORM_THRESHOLD, PARTNERSHIP_STRENGTH_DIVISOR, PARTNERSHIP_MAX_STRENGTH, LOYALTY_SEASONS_THRESHOLD, LOYALTY_MAX_STRENGTH } from '@/config/chemistry';
 
 interface AutoFillResult {
   lineup: Player[];
@@ -79,65 +80,16 @@ export interface AutoFillContext {
   derbyIntensity?: number;
   isCupMatch?: boolean;
   hasMatchNextWeek?: boolean;
+  setPieceTakerId?: string;
+  penaltyTakerId?: string;
+  defensiveFormation?: FormationType;
 }
 
 // Position role sets (mirrors match engine categories)
 const ATTACKING_POSITIONS: Position[] = ['ST', 'LW', 'RW', 'CAM'];
 const DEFENSIVE_POSITIONS: Position[] = ['CB', 'CDM', 'LB', 'RB'];
 
-/** Check whether two positions are adjacent per ADJACENT_PAIRS config. */
-function areAdjacent(posA: string, posB: string): boolean {
-  return ADJACENT_PAIRS.some(([p1, p2]) =>
-    (posA === p1 && posB === p2) || (posA === p2 && posB === p1)
-  );
-}
 
-/**
- * Estimate chemistry link strength a player would form with already-assigned neighbors.
- * Uses precomputed adjacency to avoid repeated ADJACENT_PAIRS scanning.
- * Checks all 4 link types: nationality, mentor, partnership, loyalty.
- */
-function estimateSlotChemistry(
-  player: Player,
-  currentLineup: (Player | null)[],
-  adjacentSlotIndices: number[],
-  currentSeason?: number,
-): number {
-  let linkScore = 0;
-
-  for (const j of adjacentSlotIndices) {
-    const neighbor = currentLineup[j];
-    if (!neighbor) continue;
-
-    // Nationality link
-    if (player.nationality === neighbor.nationality) {
-      linkScore += (player.clubId === neighbor.clubId) ? 2 : 1;
-    }
-
-    // Mentor link: experienced (28+) with young talent (<=22)
-    const senior = player.age >= MENTOR_SENIOR_AGE && neighbor.age <= MENTOR_JUNIOR_AGE ? player
-      : neighbor.age >= MENTOR_SENIOR_AGE && player.age <= MENTOR_JUNIOR_AGE ? neighbor : null;
-    if (senior) {
-      linkScore += Math.min(MENTOR_MAX_STRENGTH, Math.floor((senior.overall - MENTOR_QUALITY_OVERALL_BASE) / MENTOR_QUALITY_DIVISOR) + 1);
-    }
-
-    // Partnership link (high combined form)
-    if ((player.form + neighbor.form) > PARTNERSHIP_FORM_THRESHOLD) {
-      linkScore += Math.min(PARTNERSHIP_MAX_STRENGTH, Math.floor((player.form + neighbor.form - PARTNERSHIP_FORM_THRESHOLD) / PARTNERSHIP_STRENGTH_DIVISOR) + 1);
-    }
-
-    // Loyalty link: both at same club for 2+ seasons
-    if (currentSeason !== undefined && player.clubId === neighbor.clubId &&
-        player.joinedSeason !== undefined && neighbor.joinedSeason !== undefined) {
-      const minTenure = Math.min(currentSeason - player.joinedSeason, currentSeason - neighbor.joinedSeason);
-      if (minTenure >= LOYALTY_SEASONS_THRESHOLD) {
-        linkScore += Math.min(LOYALTY_MAX_STRENGTH, minTenure - LOYALTY_SEASONS_THRESHOLD + 1);
-      }
-    }
-  }
-
-  return linkScore;
-}
 
 /**
  * Calculate a player's effective overall for a specific target position
@@ -269,9 +221,112 @@ function scorePlayerForSlot(player: Player, slotPosition: Position, context?: Au
     if (player.personality?.leadership != null && player.personality.leadership >= CONTEXT_LEADERSHIP_BONUS_THRESHOLD) {
       score += CONTEXT_LEADERSHIP_STARTER_BONUS;
     }
+
+    // Set piece taker bonuses: ensure designated takers stay in the XI
+    // Engine gives +3% corner goal chance and +5% penalty conversion for designated takers
+    if (context.setPieceTakerId === player.id) score += LINEUP_SET_PIECE_TAKER_BONUS;
+    if (context.penaltyTakerId === player.id) score += LINEUP_PENALTY_TAKER_BONUS;
   }
 
   return score;
+}
+
+/**
+ * Hungarian algorithm (Kuhn-Munkres) for optimal assignment.
+ * Given an n×m score matrix (n slots, m players, n <= m), finds the assignment
+ * of players to slots that maximizes total score.
+ *
+ * Returns an array of length n where result[slot] = player index.
+ * Internally converts to a minimization problem on a square cost matrix.
+ */
+export function hungarianAssignment(scoreMatrix: number[][]): number[] {
+  const n = scoreMatrix.length;
+  if (n === 0 || !scoreMatrix[0]) return [];
+  const m = scoreMatrix[0].length;
+  if (m === 0) return new Array(n).fill(-1);
+
+  // Find max score for conversion to cost (minimization)
+  let maxScore = -Infinity;
+  for (let i = 0; i < n; i++) {
+    for (let j = 0; j < m; j++) {
+      if (scoreMatrix[i][j] > maxScore) maxScore = scoreMatrix[i][j];
+    }
+  }
+
+  // Build square cost matrix (size = max(n, m)), padding with zeros
+  const size = Math.max(n, m);
+  const cost: number[][] = [];
+  for (let i = 0; i < size; i++) {
+    cost[i] = [];
+    for (let j = 0; j < size; j++) {
+      if (i < n && j < m) {
+        cost[i][j] = maxScore - scoreMatrix[i][j];
+      } else {
+        cost[i][j] = 0; // dummy rows/cols
+      }
+    }
+  }
+
+  // Standard Hungarian algorithm
+  const u = new Array(size + 1).fill(0); // potential for rows
+  const v = new Array(size + 1).fill(0); // potential for cols
+  const p = new Array(size + 1).fill(0); // col j is matched to row p[j]
+  const way = new Array(size + 1).fill(0); // way[j] = previous col in augmenting path
+
+  for (let i = 1; i <= size; i++) {
+    p[0] = i;
+    let j0 = 0;
+    const minv = new Array(size + 1).fill(Infinity);
+    const used = new Array(size + 1).fill(false);
+
+    do {
+      used[j0] = true;
+      const i0 = p[j0];
+      let delta = Infinity;
+      let j1 = -1;
+
+      for (let j = 1; j <= size; j++) {
+        if (used[j]) continue;
+        const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) {
+          minv[j] = cur;
+          way[j] = j0;
+        }
+        if (minv[j] < delta) {
+          delta = minv[j];
+          j1 = j;
+        }
+      }
+
+      for (let j = 0; j <= size; j++) {
+        if (used[j]) {
+          u[p[j]] += delta;
+          v[j] -= delta;
+        } else {
+          minv[j] -= delta;
+        }
+      }
+
+      j0 = j1;
+      if (j0 === -1) break; // Safety: no valid augmenting path found
+    } while (p[j0] !== 0);
+
+    // Trace back augmenting path
+    do {
+      const j1 = way[j0];
+      p[j0] = p[j1];
+      j0 = j1;
+    } while (j0);
+  }
+
+  // Extract result: for each slot (row), find its assigned player (col)
+  const result: number[] = new Array(n).fill(-1);
+  for (let j = 1; j <= size; j++) {
+    if (p[j] > 0 && p[j] <= n && j <= m) {
+      result[p[j] - 1] = j - 1; // convert back to 0-indexed, skip dummy columns
+    }
+  }
+  return result;
 }
 
 /**
@@ -279,7 +334,7 @@ function scorePlayerForSlot(player: Player, slotPosition: Position, context?: Au
  * Does NOT swap bench players in — only rearranges the given starters for best positional fit.
  * Safe to use mid-match since it doesn't change WHO is playing, only WHERE they play.
  *
- * Uses a greedy assignment (constrained-slots-first) + pairwise swap optimization.
+ * Uses the Hungarian algorithm for optimal assignment + pairwise swap refinement.
  * Returns a new lineup array (same player IDs, potentially reordered).
  */
 export function optimizeStarterPositions(
@@ -291,41 +346,26 @@ export function optimizeStarterPositions(
   if (!slots || slots.length === 0) return starterIds;
 
   const starters = starterIds.map(id => playersMap[id]).filter(Boolean);
-  if (starters.length === 0) return starterIds;
+  if (starters.length === 0 || starters.length < slots.length) return starterIds;
 
   // Score every starter for every slot
   const scores: number[][] = [];
   for (let si = 0; si < slots.length; si++) {
     scores[si] = [];
     for (let pi = 0; pi < starters.length; pi++) {
-      scores[si][pi] = scorePlayerForSlot(starters[pi], slots[si].pos as Position);
+      scores[si][pi] = scorePlayerForSlot(starters[pi], slots[si].pos);
     }
   }
 
-  // Greedy assignment: constrained slots first (fewest high-scoring players)
+  // Optimal assignment via Hungarian algorithm
   const assigned: (Player | null)[] = new Array(slots.length).fill(null);
-  const used = new Set<number>();
-
-  // Order slots by number of compatible players (ascending = most constrained first)
-  const slotOrder = slots.map((_, i) => i).sort((a, b) => {
-    const countA = starters.filter((p, pi) => !used.has(pi) && scores[a][pi] > 0).length;
-    const countB = starters.filter((p, pi) => !used.has(pi) && scores[b][pi] > 0).length;
-    return countA - countB;
-  });
-
-  for (const si of slotOrder) {
-    let bestPi = -1;
-    let bestScore = -Infinity;
-    for (let pi = 0; pi < starters.length; pi++) {
-      if (used.has(pi)) continue;
-      if (scores[si][pi] > bestScore) {
-        bestScore = scores[si][pi];
-        bestPi = pi;
+  if (starters.length > 0) {
+    const assignment = hungarianAssignment(scores);
+    for (let si = 0; si < slots.length; si++) {
+      const pi = assignment[si];
+      if (pi >= 0 && pi < starters.length) {
+        assigned[si] = starters[pi];
       }
-    }
-    if (bestPi >= 0) {
-      assigned[si] = starters[bestPi];
-      used.add(bestPi);
     }
   }
 
@@ -372,7 +412,7 @@ export function optimizeStarterPositions(
  *
  * Algorithm:
  * 1. Score every available player for every formation slot (context-aware)
- * 2. Greedy assignment (constrained slots first: GK, then fewest-candidate slots)
+ * 2. Hungarian algorithm for globally optimal player-to-slot assignment
  * 3. Chemistry-aware pairwise swap optimization
  * 4. Chemistry-aware bench-to-starter refinement
  * 5. Smart bench selection: tiered ordering, vulnerability coverage, match context
@@ -409,46 +449,28 @@ export function autoFillBestTeam(
     return map;
   });
 
-  // ── Precompute slot adjacency map (avoids repeated ADJACENT_PAIRS scanning) ──
-  const adjacentSlots: number[][] = slots.map((slot, i) =>
-    slots.reduce<number[]>((acc, other, j) => {
-      if (i !== j && areAdjacent(slot.pos, other.pos)) acc.push(j);
-      return acc;
-    }, [])
-  );
-
-  // ── Phase 2: Greedy assignment (constrained slots first) ──
-  const slotOrder = slots.map((slot, idx) => ({
-    idx,
-    compatCount: available.filter(p => {
-      const compat = POSITION_COMPATIBILITY[p.position];
-      return p.position === slot.pos || (compat && compat.includes(slot.pos));
-    }).length,
-  }));
-  slotOrder.sort((a, b) => a.compatCount - b.compatCount);
+  // ── Phase 2: Optimal assignment via Hungarian algorithm ──
+  // Build score matrix: slots × available players (using precomputed scores)
+  const scoreMatrix: number[][] = [];
+  for (let si = 0; si < slots.length; si++) {
+    scoreMatrix[si] = [];
+    const slotScores = scores[si];
+    for (let pi = 0; pi < available.length; pi++) {
+      scoreMatrix[si][pi] = slotScores.get(available[pi].id) || 0;
+    }
+  }
 
   const lineup: (Player | null)[] = new Array(slots.length).fill(null);
   const used = new Set<string>();
 
-  for (const { idx } of slotOrder) {
-    const slotScores = scores[idx];
-    let bestPlayer: Player | null = null;
-    let bestScore = -Infinity;
-
-    for (const p of available) {
-      if (used.has(p.id)) continue;
-      let s = slotScores.get(p.id) || 0;
-      // Add chemistry affinity bonus based on already-assigned neighbors
-      s += estimateSlotChemistry(p, lineup, adjacentSlots[idx], currentSeason) * LINEUP_SLOT_CHEMISTRY_WEIGHT;
-      if (s > bestScore) {
-        bestScore = s;
-        bestPlayer = p;
+  if (available.length > 0) {
+    const assignment = hungarianAssignment(scoreMatrix);
+    for (let si = 0; si < slots.length; si++) {
+      const pi = assignment[si];
+      if (pi >= 0 && pi < available.length) {
+        lineup[si] = available[pi];
+        used.add(available[pi].id);
       }
-    }
-
-    if (bestPlayer) {
-      lineup[idx] = bestPlayer;
-      used.add(bestPlayer.id);
     }
   }
 
@@ -463,7 +485,7 @@ export function autoFillBestTeam(
       const p = currentLineup[i];
       if (p) {
         total += scores[i].get(p.id) || 0;
-        deployedPlayers.push({ ...p, position: slots[i].pos as Position });
+        deployedPlayers.push({ ...p, position: slots[i].pos });
       }
     }
     // Pass undefined for formation since positions are already set to slot positions
@@ -566,7 +588,7 @@ export function autoFillBestTeam(
   // ── Phase 5: Smart bench selection with strategic ordering ──
   const finalLineup = lineup.filter(Boolean) as Player[];
   // Use deployed slot positions (not natural positions) for formation gap detection
-  const lineupDeployedPositions = new Set<string>();
+  const lineupDeployedPositions = new Set<Position>();
   for (let i = 0; i < slots.length; i++) {
     if (lineup[i]) lineupDeployedPositions.add(slots[i].pos);
   }
@@ -574,7 +596,7 @@ export function autoFillBestTeam(
 
   // Positions used in the current formation
   const formationPositions = new Set(slots.map(s => s.pos));
-  const uniqueFormationPositions = [...formationPositions] as Position[];
+  const uniqueFormationPositions = [...formationPositions];
 
   // ── Starter vulnerability analysis ──
   const starterInSlot: { player: Player; slotPos: Position }[] = [];
@@ -721,6 +743,22 @@ export function autoFillBestTeam(
       if (context.isHome === false && isDefender) {
         contextBenchBonus += BENCH_AWAY_DEFENDER_BONUS;
       }
+
+      // Defensive formation coverage: bonus if bench player covers a slot needed
+      // by the defensive formation that starters don't cover (engine gives 50% fit bonus)
+      if (context.defensiveFormation) {
+        const defSlots = FORMATION_POSITIONS[context.defensiveFormation];
+        if (defSlots) {
+          const defPositions = new Set(defSlots.map(s => s.pos));
+          const starterPositions = new Set(finalLineup.map(pl => pl.position));
+          for (const defPos of defPositions) {
+            if (!starterPositions.has(defPos) && canCoverPosition(p.position, defPos)) {
+              contextBenchBonus += BENCH_DEFENSIVE_FORMATION_COVER_BONUS;
+              break; // One bonus per player, not per slot
+            }
+          }
+        }
+      }
     }
 
     // ── Total bench score ──
@@ -801,7 +839,7 @@ export function autoFillBestTeam(
   const deployedFinalLineup: Player[] = [];
   for (let i = 0; i < slots.length; i++) {
     const p = lineup[i];
-    if (p) deployedFinalLineup.push({ ...p, position: slots[i].pos as Position });
+    if (p) deployedFinalLineup.push({ ...p, position: slots[i].pos });
   }
   const chemBonus = getChemistryBonus(deployedFinalLineup, undefined, currentSeason);
   const chemLabel = getChemistryLabel(chemBonus);
