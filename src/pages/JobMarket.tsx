@@ -5,8 +5,9 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { ReputationBadge } from '@/components/game/ReputationBadge';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
-import { Briefcase, DollarSign, Clock, Send, Check, X, LogOut } from 'lucide-react';
+import { Briefcase, DollarSign, Clock, Send, Check, X, LogOut, ArrowLeft, Building2, TrendingUp, Handshake } from 'lucide-react';
 import { toast } from 'sonner';
+import { negotiateSalary } from '@/utils/managerCareer';
 import type { JobVacancy, JobOffer } from '@/types/game';
 
 const JobMarket = () => {
@@ -22,6 +23,7 @@ const JobMarket = () => {
   const respondToJobOffer = useGameStore(s => s.respondToJobOffer);
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const retireManager = useGameStore(s => s.retireManager);
+  const setScreen = useGameStore(s => s.setScreen);
 
   if (!careerManager) return null;
 
@@ -109,6 +111,19 @@ const JobMarket = () => {
           </div>
         )}
       </div>
+
+      {/* Return to Club button for employed managers */}
+      {careerManager.contract && (
+        <div className="pt-2">
+          <Button
+            variant="outline"
+            className="w-full h-11 gap-2"
+            onClick={() => setScreen('dashboard')}
+          >
+            <ArrowLeft className="w-4 h-4" /> Return to Club
+          </Button>
+        </div>
+      )}
 
       {/* Wait & Retire buttons */}
       {!careerManager.contract && (
@@ -199,11 +214,43 @@ function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canA
 }
 
 function OfferCard({ offer, onAccept, onDecline }: { offer: JobOffer; onAccept: (id: string) => void; onDecline: (id: string) => void }) {
+  const [negotiating, setNegotiating] = useState(false);
+  const [counterSalary, setCounterSalary] = useState(Math.round(offer.salary * 1.15));
+  const careerManager = useGameStore(s => s.careerManager);
+
+  const canNegotiate = offer.negotiationStatus !== 'final' && offer.negotiationStatus !== 'accepted';
+
+  const handleNegotiate = () => {
+    const updated = negotiateSalary(offer, counterSalary, careerManager?.attributes.negotiation || 5);
+    // Update the offer in state
+    const currentOffers = useGameStore.getState().jobOffers;
+    useGameStore.setState({ jobOffers: currentOffers.map(o => o.id === offer.id ? updated : o) });
+    setNegotiating(false);
+
+    if (updated.negotiationStatus === 'accepted') {
+      toast.success('Salary Accepted!', { description: `New salary: £${(updated.salary / 1000).toFixed(1)}k/wk` });
+    } else if (updated.negotiationStatus === 'final') {
+      toast('Final Offer', { description: `Board won't negotiate further. £${(updated.salary / 1000).toFixed(1)}k/wk` });
+    } else {
+      toast('Counter-Offer', { description: `Board countered: £${(updated.salary / 1000).toFixed(1)}k/wk` });
+    }
+  };
+
+  const maxSalary = Math.round((offer.initialSalary || offer.salary) * 1.4);
+  const minSalary = offer.salary;
+
   return (
     <GlassPanel className="p-3 border-primary/30 mb-2">
       <div className="flex items-center gap-2 mb-2">
-        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-        <h3 className="text-sm font-bold text-primary">{offer.clubName}</h3>
+        {offer.clubColor ? (
+          <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: offer.clubColor }} />
+        ) : (
+          <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
+        )}
+        <div className="min-w-0">
+          <h3 className="text-sm font-bold text-primary truncate">{offer.clubName}</h3>
+          {offer.leagueName && <p className="text-[9px] text-muted-foreground">{offer.leagueName}</p>}
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-1.5 text-[10px] mb-2">
         <div className="flex items-center gap-1 text-muted-foreground">
@@ -215,20 +262,80 @@ function OfferCard({ offer, onAccept, onDecline }: { offer: JobOffer; onAccept: 
           {offer.contractLength}yr contract
         </div>
       </div>
+
+      {/* Enriched club details */}
+      {(offer.expectedPosition || offer.facilities != null || offer.budget != null) && (
+        <div className="grid grid-cols-3 gap-1 text-[9px] text-muted-foreground/80 mb-2">
+          {offer.expectedPosition && (
+            <div className="flex items-center gap-0.5">
+              <TrendingUp className="w-2.5 h-2.5" />
+              {offer.expectedPosition}
+            </div>
+          )}
+          {offer.facilities != null && (
+            <div className="flex items-center gap-0.5">
+              <Building2 className="w-2.5 h-2.5" />
+              Fac. {offer.facilities}/10
+            </div>
+          )}
+          {offer.budget != null && offer.budget > 0 && (
+            <div className="flex items-center gap-0.5">
+              <DollarSign className="w-2.5 h-2.5" />
+              £{(offer.budget / 1_000_000).toFixed(1)}M
+            </div>
+          )}
+        </div>
+      )}
+
       <p className="text-[10px] text-primary/70 italic mb-3">"{offer.boardExpectations}"</p>
       {offer.bonuses.length > 0 && (
         <div className="flex flex-wrap gap-1 mb-3">
           {offer.bonuses.map((b, i) => (
             <span key={i} className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded">
-              {b.condition.replace('_', ' ')}: £{(b.amount / 1000).toFixed(0)}k
+              {b.condition.replace(/_/g, ' ')}: £{(b.amount / 1000).toFixed(0)}k
             </span>
           ))}
         </div>
       )}
+
+      {/* Salary Negotiation */}
+      {negotiating && (
+        <div className="bg-muted/20 rounded-lg p-2.5 mb-3 space-y-2">
+          <p className="text-[10px] font-semibold text-foreground">Counter-offer salary</p>
+          <input
+            type="range"
+            min={minSalary}
+            max={maxSalary}
+            step={500}
+            value={counterSalary}
+            onChange={e => setCounterSalary(Number(e.target.value))}
+            className="w-full h-1.5 accent-primary"
+          />
+          <div className="flex items-center justify-between text-[10px]">
+            <span className="text-muted-foreground">£{(minSalary / 1000).toFixed(1)}k</span>
+            <span className="text-primary font-bold">£{(counterSalary / 1000).toFixed(1)}k/wk</span>
+            <span className="text-muted-foreground">£{(maxSalary / 1000).toFixed(1)}k</span>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" className="flex-1 h-7 text-[10px] gap-1" onClick={handleNegotiate}>
+              <Handshake className="w-3 h-3" /> Submit
+            </Button>
+            <Button size="sm" variant="outline" className="flex-1 h-7 text-[10px]" onClick={() => setNegotiating(false)}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2">
         <Button size="sm" className="flex-1 h-8 text-xs gap-1" onClick={() => onAccept(offer.id)}>
           <Check className="w-3 h-3" /> Accept
         </Button>
+        {canNegotiate && !negotiating && (
+          <Button size="sm" variant="secondary" className="h-8 text-xs gap-1 px-3" onClick={() => setNegotiating(true)}>
+            <Handshake className="w-3 h-3" /> Negotiate
+          </Button>
+        )}
         <Button size="sm" variant="outline" className="flex-1 h-8 text-xs gap-1" onClick={() => onDecline(offer.id)}>
           <X className="w-3 h-3" /> Decline
         </Button>

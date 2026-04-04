@@ -35,6 +35,7 @@ const InboxPage = () => {
   const messages = useGameStore((s) => s.messages);
   const activeStorylineChains = useGameStore((s) => s.activeStorylineChains);
   const players = useGameStore((s) => s.players);
+  const gameMode = useGameStore((s) => s.gameMode);
   const markMessageRead = useGameStore((s) => s.markMessageRead);
   const markAllRead = useGameStore((s) => s.markAllRead);
   const setScreen = useGameStore((s) => s.setScreen);
@@ -351,7 +352,7 @@ const InboxPage = () => {
                                 }
                               }
                               const actions: { label: string; screen: GameScreen }[] = [];
-                              if (msg.type === 'contract') actions.push({ label: 'View Squad', screen: 'squad' });
+                              if (msg.type === 'contract') actions.push(gameMode === 'career' ? { label: 'Job Market', screen: 'job-market' } : { label: 'View Squad', screen: 'squad' });
                               if (msg.type === 'transfer') actions.push({ label: 'Transfers', screen: 'transfers' });
                               if (msg.type === 'injury') actions.push({ label: 'View Squad', screen: 'squad' });
                               if (msg.type === 'development') actions.push({ label: 'Youth Academy', screen: 'youth-academy' });

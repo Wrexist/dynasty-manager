@@ -1,5 +1,5 @@
 import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, LeagueId, SeasonTurnover, LeagueTableEntry, JobVacancy } from '@/types/game';
-import { calculateReputationTier, generateJobVacancies, getRetirementAge, calculateLegacyScore } from '@/utils/managerCareer';
+import { calculateReputationTier, generateJobVacancies, generateProactiveOffer, getRetirementAge, calculateLegacyScore } from '@/utils/managerCareer';
 import {
   GROWTH_TACTICAL_PER_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT,
   GROWTH_DISCIPLINE_PER_CLEAN_MATCH, MOD_DISCIPLINE_CARDS, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH,
@@ -7,6 +7,7 @@ import {
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY,
   REP_WIN, REP_DRAW, REP_LOSS, REP_TITLE, REP_CUP_WIN, REP_SACKING,
   FORCED_RETIREMENT_UNEMPLOYED_WEEKS,
+  PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING,
 } from '@/config/managerCareer';
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
@@ -1692,12 +1693,20 @@ function finalizeSeason(
             return met ? { ...b, met: true } : b;
           })};
           if (bonusPayout > 0) {
-            const bonusMsg = addMsg(get().messages, {
+            const bonusState = get();
+            const bonusClub = bonusState.clubs[bonusState.playerClubId];
+            const bonusMsg = addMsg(bonusState.messages, {
               week: TOTAL_WEEKS, season, type: 'general',
               title: 'Contract Bonuses Earned!',
               body: `You earned £${(bonusPayout / 1000).toFixed(0)}k in performance bonuses this season.`,
             });
-            set({ messages: bonusMsg });
+            set({
+              messages: bonusMsg,
+              clubs: {
+                ...bonusState.clubs,
+                [bonusState.playerClubId]: { ...bonusClub, budget: bonusClub.budget + bonusPayout },
+              },
+            });
           }
         }
 
@@ -1724,7 +1733,7 @@ function finalizeSeason(
 
         // Generate job vacancies
 
-        const vacancies = generateJobVacancies(cs.clubs, cm.reputationScore, cs.season + 1, 1);
+        const vacancies = generateJobVacancies(cs.clubs, cm.reputationScore, cs.season + 1, 1, cs.playerClubId);
 
         set({
           careerManager: cm,
@@ -1765,7 +1774,7 @@ function finalizeSeason(
             );
             cm.contract = null;
             cm.unemployedWeeks = 0;
-            careerUpdate.jobVacancies = generateJobVacancies(cs.clubs, cm.reputationScore, cs.season + 1, 1);
+            careerUpdate.jobVacancies = generateJobVacancies(cs.clubs, cm.reputationScore, cs.season + 1, 1, cs.playerClubId);
             careerUpdate.jobOffers = [];
             careerUpdate.currentScreen = 'job-market';
           }
@@ -1995,7 +2004,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       // Refresh job market on configured weeks
       let vacancies = state.jobVacancies;
       if (JOB_MARKET_REFRESH_WEEKS.includes(newWeek)) {
-        vacancies = generateJobVacancies(state.clubs, cm.reputationScore, state.season, newWeek);
+        vacancies = generateJobVacancies(state.clubs, cm.reputationScore, state.season, newWeek, state.playerClubId);
       }
       // Expire old vacancies
       vacancies = vacancies.filter(v => v.expiresSeason > state.season || (v.expiresSeason === state.season && v.expiresWeek > newWeek));
@@ -3417,7 +3426,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         let updatedVacancies: JobVacancy[] | null = null;
 
         if (JOB_MARKET_REFRESH_WEEKS.includes(newWeek)) {
-          updatedVacancies = generateJobVacancies(careerState.clubs, cm.reputationScore, season, newWeek);
+          updatedVacancies = generateJobVacancies(careerState.clubs, cm.reputationScore, season, newWeek, playerClubId);
         }
 
         // Expire old vacancies (from refreshed list or current list)
@@ -3450,6 +3459,40 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
         if (updatedVacancies) {
           set({ jobVacancies: updatedVacancies });
+        }
+
+        // --- Expire old job offers (before generating new ones) ---
+        {
+          const offerState = get();
+          const currentOffers = offerState.jobOffers;
+          const activeOffers = currentOffers.filter(o =>
+            o.expiresSeason > season || (o.expiresSeason === season && o.expiresWeek > newWeek)
+          );
+          if (activeOffers.length !== currentOffers.length) {
+            set({ jobOffers: activeOffers });
+          }
+        }
+
+        // --- Proactive job offers for employed managers ---
+        if (cm.contract && newWeek > 0 && newWeek % PROACTIVE_OFFER_CHECK_INTERVAL === 0) {
+          const offerState = get();
+          const currentOffers = offerState.jobOffers;
+          if (currentOffers.length < PROACTIVE_OFFER_MAX_PENDING) {
+            const existingClubIds = currentOffers.map(o => o.clubId);
+            const proactiveOffer = generateProactiveOffer(
+              cm, playerClubId, offerState.clubs,
+              offerState.leagueTable, offerState.fixtures, season, newWeek,
+              existingClubIds
+            );
+            if (proactiveOffer) {
+              set({ jobOffers: [...currentOffers, proactiveOffer] });
+              careerMessages = addMsg(careerMessages, {
+                week: newWeek, season, type: 'contract',
+                title: `Interest from ${proactiveOffer.clubName}`,
+                body: `${proactiveOffer.clubName} are impressed by your work and want to offer you the manager position. Visit the Job Market to review.`,
+              });
+            }
+          }
         }
 
         // --- Contract expiry warning ---
@@ -4417,7 +4460,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         managerNationality: data.managerNationality || null,
         // Career Mode
         gameMode: data.gameMode || 'sandbox',
-        careerManager: data.careerManager || null,
+        careerManager: data.careerManager
+          ? { ...data.careerManager, unemployedWeeks: data.careerManager.unemployedWeeks ?? 0 }
+          : null,
         jobVacancies: data.jobVacancies || [],
         jobOffers: data.jobOffers || [],
         seasonGrowthTracker: data.seasonGrowthTracker || {},
