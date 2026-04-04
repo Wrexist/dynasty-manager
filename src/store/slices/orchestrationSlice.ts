@@ -1677,12 +1677,20 @@ function finalizeSeason(
             return met ? { ...b, met: true } : b;
           })};
           if (bonusPayout > 0) {
-            const bonusMsg = addMsg(get().messages, {
+            const bonusState = get();
+            const bonusClub = bonusState.clubs[bonusState.playerClubId];
+            const bonusMsg = addMsg(bonusState.messages, {
               week: TOTAL_WEEKS, season, type: 'general',
               title: 'Contract Bonuses Earned!',
               body: `You earned £${(bonusPayout / 1000).toFixed(0)}k in performance bonuses this season.`,
             });
-            set({ messages: bonusMsg });
+            set({
+              messages: bonusMsg,
+              clubs: {
+                ...bonusState.clubs,
+                [bonusState.playerClubId]: { ...bonusClub, budget: bonusClub.budget + bonusPayout },
+              },
+            });
           }
         }
 
@@ -3389,9 +3397,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           const offerState = get();
           const currentOffers = offerState.jobOffers;
           if (currentOffers.length < PROACTIVE_OFFER_MAX_PENDING) {
+            const existingClubIds = currentOffers.map(o => o.clubId);
             const proactiveOffer = generateProactiveOffer(
               cm, playerClubId, offerState.clubs,
-              offerState.leagueTable, offerState.fixtures, season, newWeek
+              offerState.leagueTable, offerState.fixtures, season, newWeek,
+              existingClubIds
             );
             if (proactiveOffer) {
               set({ jobOffers: [...currentOffers, proactiveOffer] });
@@ -4369,7 +4379,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         managerNationality: data.managerNationality || null,
         // Career Mode
         gameMode: data.gameMode || 'sandbox',
-        careerManager: data.careerManager || null,
+        careerManager: data.careerManager
+          ? { ...data.careerManager, unemployedWeeks: data.careerManager.unemployedWeeks ?? 0 }
+          : null,
         jobVacancies: data.jobVacancies || [],
         jobOffers: data.jobOffers || [],
         seasonGrowthTracker: data.seasonGrowthTracker || {},

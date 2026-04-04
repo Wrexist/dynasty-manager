@@ -1,6 +1,6 @@
 import type { GameState } from '../storeTypes';
 import type { CareerManager, JobVacancy, JobOffer, GameMode } from '@/types/game';
-import { generateJobVacancies, getRetirementAge, generateDefaultBonuses } from '@/utils/managerCareer';
+import { generateJobVacancies, getRetirementAge, generateDefaultBonuses, estimateSquadValue, calculateExpectedPosition } from '@/utils/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY } from '@/config/gameBalance';
 import { generateAIManagerProfile } from '@/config/aiManager';
@@ -72,8 +72,9 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       return { success: false, message: `${vacancy.clubName} has chosen another candidate.` };
     }
 
-    // Convert vacancy to offer with bonuses
+    // Convert vacancy to offer with bonuses and enriched club data
     const league = LEAGUES.find(l => l.id === vacancy.divisionId);
+    const clubData = CLUBS_DATA.find(c => c.id === vacancy.clubId);
     const offer: JobOffer = {
       id: `offer-${Date.now()}`,
       clubId: vacancy.clubId,
@@ -85,6 +86,23 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       boardExpectations: vacancy.boardExpectations,
       expiresWeek: vacancy.expiresWeek,
       expiresSeason: vacancy.expiresSeason,
+      // Enriched club profile
+      leagueName: league?.name || '',
+      country: league?.country || '',
+      clubColor: clubData?.color || '#888888',
+      reputation: clubData?.reputation || 3,
+      budget: clubData?.budget || 0,
+      estimatedSquadValue: estimateSquadValue(clubData?.squadQuality || 50),
+      expectedPosition: calculateExpectedPosition(vacancy.clubId, vacancy.divisionId),
+      facilities: clubData?.facilities || 5,
+      youthRating: clubData?.youthRating || 5,
+      boardPatience: clubData?.boardPatience || 5,
+      stadiumName: clubData?.stadiumName || '',
+      stadiumCapacity: clubData?.stadiumCapacity || 0,
+      fanBase: clubData?.fanBase || 50,
+      initialSalary: vacancy.salary,
+      negotiationRound: 0,
+      negotiationStatus: 'pending',
     };
 
     set({

@@ -377,6 +377,7 @@ export function generateProactiveOffer(
   fixtures: Match[],
   season: number,
   week: number,
+  existingOfferClubIds: string[] = [],
 ): JobOffer | null {
   if (!manager.contract) return null;
 
@@ -436,6 +437,7 @@ export function generateProactiveOffer(
 
   const candidateClubs = CLUBS_DATA.filter(cd => {
     if (cd.id === playerClubId) return false;
+    if (existingOfferClubIds.includes(cd.id)) return false;
     const league = LEAGUES.find(l => l.id === cd.divisionId);
     if (!league) return false;
     if (!eligibleTiers.includes(league.qualityTier)) return false;
@@ -540,7 +542,12 @@ function generateBoardExpectation(qualityTier: 1 | 2 | 3 | 4, clubRep: number): 
 export function generateDefaultBonuses(qualityTier: 1 | 2 | 3 | 4): ManagerBonus[] {
   const bonuses: ManagerBonus[] = [];
 
-  if (qualityTier >= 2) {
+  if (qualityTier === 1) {
+    // Top flight: title and top-half bonuses (no promotion possible)
+    bonuses.push({ condition: 'title', amount: 200000, met: false });
+    bonuses.push({ condition: 'top_half', amount: 50000, met: false });
+  } else {
+    // Lower divisions: promotion bonus
     bonuses.push({
       condition: 'promotion',
       amount: qualityTier === 4 ? 25000 : qualityTier === 3 ? 50000 : 100000,
@@ -551,6 +558,12 @@ export function generateDefaultBonuses(qualityTier: 1 | 2 | 3 | 4): ManagerBonus
   bonuses.push({
     condition: 'avoid_relegation',
     amount: qualityTier === 4 ? 10000 : 25000,
+    met: false,
+  });
+
+  bonuses.push({
+    condition: 'cup_win',
+    amount: qualityTier === 1 ? 100000 : qualityTier === 2 ? 50000 : 25000,
     met: false,
   });
 
