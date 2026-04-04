@@ -198,7 +198,7 @@ const TrainingPage = () => {
               <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
                 <PolarGrid stroke="hsl(var(--border))" />
                 <PolarAngleAxis dataKey="attr" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                <Radar dataKey="value" stroke="hsl(43 96% 46%)" fill="hsl(43 96% 46%)" fillOpacity={0.2} strokeWidth={2} />
+                <Radar dataKey="value" stroke="hsl(160 84% 39%)" fill="hsl(160 84% 39%)" fillOpacity={0.2} strokeWidth={2} />
               </RadarChart>
             </ResponsiveContainer>
           </GlassPanel>

@@ -86,7 +86,7 @@ export function GemRevealModal() {
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-          className="w-full max-w-sm bg-card border border-primary/40 rounded-2xl overflow-hidden shadow-[0_0_30px_hsl(43_96%_46%/0.15)]"
+          className="w-full max-w-sm bg-card border border-primary/40 rounded-2xl overflow-hidden shadow-[0_0_30px_hsl(var(--primary)/0.15)]"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}

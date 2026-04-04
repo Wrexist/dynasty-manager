@@ -153,7 +153,7 @@ export function TopBar() {
           <div
             className={cn(
               'h-full bg-primary rounded-full transition-all duration-500',
-              xpGlow && 'shadow-[0_0_8px_hsl(43_96%_46%/0.5)] transition-shadow duration-700'
+              xpGlow && 'shadow-[0_0_8px_hsl(var(--primary)/0.5)] transition-shadow duration-700'
             )}
             style={{ width: `${xpProgress.percentage}%` }}
           />

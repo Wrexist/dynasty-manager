@@ -69,7 +69,7 @@ const HallOfManagers = () => {
                 <GlassPanel className={cn(
                   'p-4',
                   i === 0 && 'border-primary/40 bg-primary/5',
-                  homFrame === 'hom-frame-gold' && 'border-primary/60 shadow-[0_0_12px_hsl(43_96%_46%/0.15)]',
+                  homFrame === 'hom-frame-gold' && 'border-[hsl(var(--gold)/0.6)] shadow-[0_0_12px_hsl(var(--gold)/0.15)]',
                   homFrame === 'hom-frame-holographic' && 'border-accent/60 shadow-[0_0_12px_hsl(215_60%_50%/0.2)]',
                 )}>
                   <div className="flex items-center gap-3">

@@ -541,7 +541,7 @@ const Dashboard = () => {
           className={cn(
             'rounded-xl px-3 py-2 flex items-center justify-between border',
             raceMode === 'title'
-              ? 'bg-primary/10 border-primary/40 shadow-[0_0_12px_hsl(43_96%_46%/0.15)]'
+              ? 'bg-primary/10 border-primary/40 shadow-[0_0_12px_hsl(var(--primary)/0.15)]'
               : 'bg-destructive/10 border-destructive/40 shadow-[0_0_12px_hsl(0_84%_60%/0.15)]'
           )}
         >
@@ -726,8 +726,8 @@ const Dashboard = () => {
           </div>
           <Button className={cn(
             "w-full gap-2 active:scale-[0.97] transition-all",
-            isAdvancing && "animate-pulse shadow-[0_0_12px_hsl(43_96%_46%/0.3)]",
-            advanceDone && "scale-[1.03] shadow-[0_0_16px_hsl(43_96%_46%/0.4)]"
+            isAdvancing && "animate-pulse shadow-[0_0_12px_hsl(var(--primary)/0.3)]",
+            advanceDone && "scale-[1.03] shadow-[0_0_16px_hsl(var(--primary)/0.4)]"
           )} disabled={isAdvancing} onClick={() => {
             hapticMedium();
             setIsAdvancing(true);

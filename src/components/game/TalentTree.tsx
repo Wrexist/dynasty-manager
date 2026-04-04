@@ -68,9 +68,9 @@ export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
                 x1={160} y1={0} x2={x} y2={16}
                 stroke={
                   isCapstoneUnlocked
-                    ? 'hsl(43 96% 46%)'
+                    ? 'hsl(160 84% 39%)'
                     : branchReady
-                      ? 'hsl(43 96% 46% / 0.5)'
+                      ? 'hsl(160 84% 39% / 0.5)'
                       : 'hsl(215 20% 25%)'
                 }
                 strokeWidth={isCapstoneUnlocked || branchReady ? 2 : 1}
@@ -200,7 +200,7 @@ function TalentNode({ perk, progression, branchColor, isCapstone, justUnlocked, 
           'relative w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all',
           isCapstone && 'w-12 h-12',
           isUnlocked
-            ? 'border-primary bg-primary/20 shadow-[0_0_12px_hsl(43_96%_46%/0.4)]'
+            ? 'border-primary bg-primary/20 shadow-[0_0_12px_hsl(var(--primary)/0.4)]'
             : canBuy
               ? 'border-blue-400 bg-blue-500/10 shadow-[0_0_8px_hsl(215_60%_50%/0.3)]'
               : 'border-border/40 bg-muted/20',
