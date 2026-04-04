@@ -5,7 +5,7 @@ import { usePlayerClub } from '@/hooks/useGameSelectors';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { getRatingBadgeClasses, getFitnessHexColor } from '@/utils/uiHelpers';
+import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/types/game';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { getFlag } from '@/utils/nationality';
@@ -13,7 +13,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight, Wand2 } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 import { PITCH_COLORS } from '@/config/ui';
-import { PlayerAvatar } from './PlayerAvatar';
+import { PlayerCard } from './PlayerCard';
 import { computeSmartSub } from '@/utils/substitutionLogic';
 import { optimizeStarterPositions } from '@/utils/autoFillLineup';
 
@@ -54,12 +54,6 @@ function getCompatibility(playerPos: Position, slotPos: Position): 'natural' | '
   if (compat.includes(playerPos)) return 'compatible';
   return 'wrong';
 }
-
-const COMPAT_RING = {
-  natural: 'ring-2 ring-emerald-400',
-  compatible: 'ring-2 ring-amber-400',
-  wrong: 'ring-2 ring-red-500',
-};
 
 // Half-pitch viewBox constants
 const VP_Y = 46;
@@ -223,30 +217,25 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               key={`slot-${i}`}
               className="absolute"
               style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
-              onClick={() => handleLineupPlayerClick(playerId)}
             >
               <div className={cn(
-                'flex flex-col items-center cursor-pointer p-0.5 rounded-lg transition-all relative',
-                isSelectedOut ? 'ring-2 ring-destructive scale-110' : isInjuredInMatch ? 'ring-2 ring-destructive/70 animate-pulse' : 'hover:scale-105',
+                'relative rounded-lg',
+                isSelectedOut && 'ring-2 ring-destructive scale-110',
+                isInjuredInMatch && !isSelectedOut && 'ring-2 ring-destructive/70 animate-pulse',
               )}>
                 {isInjuredInMatch && !isSelectedOut && (
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full flex items-center justify-center z-10">
                     <span className="text-[6px] text-white font-bold">!</span>
                   </div>
                 )}
-                <PlayerAvatar playerId={player.id} jerseyColor={playerClub.color} size={26} overall={player.overall} position={slot.pos} />
-                <div
-                  className={cn(
-                    'rounded px-1 py-px -mt-0.5 text-center min-w-[32px]',
-                    isSelectedOut ? 'bg-destructive/80' : 'bg-black/70',
-                  )}
-                >
-                  <span className="text-[7px] text-white font-bold block leading-tight">{player.lastName.slice(0, 3).toUpperCase()}</span>
-                  <span className="text-[6px] text-gray-400 block leading-tight">{slot.pos} {player.overall}</span>
-                  <div className="w-full h-[2px] mt-0.5 rounded-full overflow-hidden bg-muted/40">
-                    <div className="h-full rounded-full" style={{ width: `${player.fitness}%`, backgroundColor: getFitnessHexColor(player.fitness) }} />
-                  </div>
-                </div>
+                <PlayerCard
+                  player={player}
+                  position={slot.pos}
+                  variant="starter"
+                  isSelected={false}
+                  chemistryLinkCount={0}
+                  onClick={() => handleLineupPlayerClick(playerId)}
+                />
               </div>
             </div>
           );
@@ -335,20 +324,19 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               <div
                 key={`bench-${id}`}
                 className={cn(
-                  'flex flex-col items-center shrink-0 cursor-pointer transition-all rounded-lg p-0.5',
-                  !selectedOutId ? 'opacity-50 pointer-events-none' : '',
-                  benchCompat ? COMPAT_RING[benchCompat] : '',
+                  'flex flex-col items-center shrink-0',
+                  !selectedOutId && 'opacity-50 pointer-events-none',
                 )}
-                onClick={() => selectedOutId && handleBenchClick(id)}
               >
-                <PlayerAvatar playerId={p.id} jerseyColor={playerClub.color} size={24} overall={p.overall} position={p.position} />
-                <div className="bg-black/60 rounded px-1 py-px -mt-0.5 text-center min-w-[28px]">
-                  <span className="text-[7px] text-white font-bold block leading-tight">{p.lastName.slice(0, 3).toUpperCase()}</span>
-                  <span className="text-[6px] text-gray-400 block leading-tight">{p.position} {p.overall}</span>
-                  <div className="w-full h-[2px] mt-0.5 rounded-full overflow-hidden bg-muted/40">
-                    <div className="h-full rounded-full" style={{ width: `${p.fitness}%`, backgroundColor: getFitnessHexColor(p.fitness) }} />
-                  </div>
-                </div>
+                <PlayerCard
+                  player={p}
+                  position={p.position}
+                  variant="bench"
+                  isSelected={false}
+                  chemistryLinkCount={0}
+                  compatRing={benchCompat}
+                  onClick={() => selectedOutId && handleBenchClick(id)}
+                />
                 <span className={cn('text-[7px] font-semibold mt-0.5', formInfo.className)}>{formInfo.text}</span>
               </div>
             );
