@@ -125,11 +125,15 @@ const TrainingPage = () => {
   const radarData = useMemo(() => {
     if (squadPlayers.length === 0) return [];
     const attrs = ['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'] as const;
+    const divId = club?.divisionId || '';
+    const benchmarks: Record<string, number> = { 'div-1': 72, 'div-2': 64, 'div-3': 57, 'div-4': 50 };
+    const benchmark = benchmarks[divId] || 60;
     return attrs.map(attr => ({
       attr: ATTR_LABELS[attr],
       value: Math.round(squadPlayers.reduce((s, p) => s + (p.attributes[attr] || 0), 0) / squadPlayers.length),
+      benchmark,
     }));
-  }, [squadPlayers]);
+  }, [squadPlayers, club?.divisionId]);
 
   return (
     <div className="max-w-lg mx-auto">
@@ -199,8 +203,19 @@ const TrainingPage = () => {
                 <PolarGrid stroke="hsl(var(--border))" />
                 <PolarAngleAxis dataKey="attr" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
                 <Radar dataKey="value" stroke="hsl(160 84% 39%)" fill="hsl(160 84% 39%)" fillOpacity={0.2} strokeWidth={2} />
+                <Radar dataKey="benchmark" stroke="hsl(var(--muted-foreground))" fill="none" strokeWidth={1} strokeDasharray="4 4" />
               </RadarChart>
             </ResponsiveContainer>
+            <div className="flex items-center justify-center gap-4 mt-1">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-0.5 rounded" style={{ backgroundColor: 'hsl(160 84% 39%)' }} />
+                <span className="text-[9px] text-muted-foreground">Your Squad</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-0.5 border-t border-dashed border-muted-foreground" />
+                <span className="text-[9px] text-muted-foreground">League Avg</span>
+              </div>
+            </div>
           </GlassPanel>
         )}
 

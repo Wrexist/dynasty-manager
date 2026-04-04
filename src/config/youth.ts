@@ -10,6 +10,8 @@ export const YOUTH_COACH_MULTIPLIER = 1.5;
 export const YOUTH_QUALITY_RANDOM_RANGE = 10;
 export const YOUTH_QUALITY_MIN = 30;
 export const YOUTH_QUALITY_MAX = 65;
+// Division quality scaling: youth quality is blended with club's squad quality
+export const YOUTH_CLUB_QUALITY_WEIGHT = 0.25;
 
 // ── Youth Age ──
 export const YOUTH_BASE_AGE = 16;

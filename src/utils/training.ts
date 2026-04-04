@@ -7,7 +7,8 @@ import {
   INTENSITY_MULTIPLIER as CONFIG_INTENSITY_MULTIPLIER,
   INTENSITY_FITNESS_COST as CONFIG_INTENSITY_FITNESS_COST,
   INTENSITY_INJURY_RISK as CONFIG_INTENSITY_INJURY_RISK,
-  BASE_GAIN_CHANCE, INDIVIDUAL_TRAINING_BONUS, STAFF_BONUS_MULTIPLIER,
+  BASE_GAIN_CHANCE, DIMINISHING_RETURNS_CEILING, DIMINISHING_RETURNS_DIVISOR,
+  INDIVIDUAL_TRAINING_BONUS, STAFF_BONUS_MULTIPLIER,
   INDIVIDUAL_BASE_GAIN, INDIVIDUAL_FITNESS_COST,
   FITNESS_RECOVERY_PER_DAY, FITNESS_RECOVERY_BASE, FITNESS_MIN,
   TRAINING_INJURY_AGE_THRESHOLD, TRAINING_INJURY_AGE_FACTOR,
@@ -89,7 +90,9 @@ export function applyWeeklyTraining(
       const individualBonus = playerPlan && MODULE_ATTR_MAP[playerPlan.focus]?.includes(attr)
         ? INDIVIDUAL_TRAINING_BONUS : 1.0;
       const personalityMult = getTrainingMultiplier(player.personality);
-      const gainChance = BASE_GAIN_CHANCE * weightedDays * mult * staffMult * individualBonus * personalityMult * streakMultiplier;
+      const currentVal = updated.attributes[attr] || 0;
+      const diminishingFactor = Math.max(0.05, (DIMINISHING_RETURNS_CEILING - currentVal) / DIMINISHING_RETURNS_DIVISOR);
+      const gainChance = BASE_GAIN_CHANCE * weightedDays * mult * staffMult * individualBonus * personalityMult * streakMultiplier * diminishingFactor;
       if (Math.random() < gainChance) {
         updated.attributes[attr] = clamp(updated.attributes[attr] + 1);
         gains[attr] = (gains[attr] || 0) + 1;
@@ -110,7 +113,9 @@ export function applyWeeklyTraining(
     const personalityMult = getTrainingMultiplier(player.personality);
     for (const attr of individualAttrs) {
       if (attrDayWeights[attr] && attrDayWeights[attr]! > 0) continue;
-      const gainChance = INDIVIDUAL_BASE_GAIN * staffMult * personalityMult;
+      const indCurrentVal = updated.attributes[attr] || 0;
+      const indDiminishing = Math.max(0.05, (DIMINISHING_RETURNS_CEILING - indCurrentVal) / DIMINISHING_RETURNS_DIVISOR);
+      const gainChance = INDIVIDUAL_BASE_GAIN * staffMult * personalityMult * indDiminishing;
       if (Math.random() < gainChance) {
         updated.attributes[attr] = clamp(updated.attributes[attr] + 1);
         gains[attr] = (gains[attr] || 0) + 1;

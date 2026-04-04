@@ -5,6 +5,7 @@ import { getDevelopmentMultiplier } from '@/utils/personality';
 import {
   MAX_SEASON_GROWTH, POSITION_DEV_BONUS,
   GROWTH_AGE_THRESHOLD, GROWTH_BASE_CHANCE, GROWTH_POTENTIAL_GAP_FACTOR,
+  DEV_DIMINISHING_RETURNS_CEILING, DEV_DIMINISHING_RETURNS_DIVISOR,
   PLAYING_TIME_BONUS_MAX, PLAYING_TIME_BONUS_PER_APP,
   DECLINE_AGE_THRESHOLD, STEEP_DECLINE_AGE_THRESHOLD,
   DECLINE_FACTOR_NORMAL, DECLINE_FACTOR_STEEP, DECLINE_BASE_CHANCE, DECLINE_ATTR_MULTIPLIERS,
@@ -35,7 +36,9 @@ export function applyPlayerDevelopment(p: Player, trainingFocus: string, mentorB
       for (const attr of attrs) {
         const positionBonus = posBonus[attr] || 0;
         const trainingBonus = trainedAttrs.includes(attr) ? TRAINING_FOCUS_BONUS : 0;
-        if (Math.random() < growthChance + positionBonus + trainingBonus) {
+        const currentVal = updated.attributes[attr] || 0;
+        const diminishingFactor = Math.max(0.05, (DEV_DIMINISHING_RETURNS_CEILING - currentVal) / DEV_DIMINISHING_RETURNS_DIVISOR);
+        if (Math.random() < (growthChance + positionBonus + trainingBonus) * diminishingFactor) {
           updated.attributes[attr] = clamp(updated.attributes[attr] + 1);
         }
       }

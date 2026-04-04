@@ -10,6 +10,7 @@ import {
   FITNESS_BASE, FITNESS_RANGE, MORALE_BASE, MORALE_RANGE, FORM_BASE, FORM_RANGE,
   SQUAD_TEMPLATE as CONFIG_SQUAD_TEMPLATE, AGE_BUCKETS as CONFIG_AGE_BUCKETS, PEAK_AGE_BUCKET,
   SQUAD_QUALITY_VARIANCE, SQUAD_QUALITY_MIN, SQUAD_QUALITY_MAX,
+  QUALITY_SCALING_REFERENCE, QUALITY_SCALING_FLOOR, SQUAD_QUALITY_MIN_LOW, VETERAN_MENTAL_BONUS,
   YOUNG_POTENTIAL_BOOST_BASE, YOUNG_POTENTIAL_BOOST_RANGE, YOUNG_POTENTIAL_AGE_THRESHOLD,
   STAR_PLAYER_BOOST_MIN, STAR_PLAYER_BOOST_MAX, VETERAN_BOOST_MIN, VETERAN_BOOST_MAX,
   EFFECTIVE_RATING_OVERALL_WEIGHT, EFFECTIVE_RATING_FORM_WEIGHT, EFFECTIVE_RATING_FITNESS_WEIGHT,
@@ -52,6 +53,10 @@ function pickNameForNationality(nationality: string): { firstName: string; lastN
 }
 
 const variance = (range = 15) => Math.floor(Math.random() * range * 2) - range;
+
+function qualityScale(clubQuality: number): number {
+  return Math.min(1, Math.max(QUALITY_SCALING_FLOOR, clubQuality / QUALITY_SCALING_REFERENCE));
+}
 
 function generateAttributes(position: Position, quality: number): PlayerAttributes {
   const q = quality;
@@ -147,6 +152,7 @@ function buildAgeTargets(count: number): { min: number; max: number }[] {
 }
 
 export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number | string): Player[] {
+  const scale = qualityScale(quality);
   const templates = CLUB_TEMPLATES[clubId] || [];
   const templatePlayers: Player[] = [];
 
@@ -187,7 +193,9 @@ export function generateSquad(clubId: string, quality: number, season: number, d
   // ── Step 3: Generate random filler players for remaining slots ──
   const ageTargets = buildAgeTargets(remainingPositions.length);
   const fillerPlayers = remainingPositions.map((pos, idx) => {
-    const q = clamp(quality + variance(SQUAD_QUALITY_VARIANCE), SQUAD_QUALITY_MIN, SQUAD_QUALITY_MAX);
+    const scaledVariance = Math.round(SQUAD_QUALITY_VARIANCE * scale);
+    const effectiveMin = Math.round(SQUAD_QUALITY_MIN_LOW + (SQUAD_QUALITY_MIN - SQUAD_QUALITY_MIN_LOW) * scale);
+    const q = clamp(quality + variance(scaledVariance), effectiveMin, SQUAD_QUALITY_MAX);
     const player = generatePlayer(pos, q, clubId, season, divisionTier);
     const ageBucket = ageTargets[idx];
     player.age = ageBucket.min + Math.floor(Math.random() * (ageBucket.max - ageBucket.min + 1));
@@ -203,25 +211,26 @@ export function generateSquad(clubId: string, quality: number, season: number, d
   if (fillerPlayers.length > 0) {
     const starIdx = fillerPlayers.reduce((best, p, i) => p.overall > fillerPlayers[best].overall ? i : best, 0);
     const star = fillerPlayers[starIdx];
-    const starBoost = STAR_PLAYER_BOOST_MIN + Math.floor(Math.random() * (STAR_PLAYER_BOOST_MAX - STAR_PLAYER_BOOST_MIN + 1));
+    const starBoost = Math.round((STAR_PLAYER_BOOST_MIN + Math.floor(Math.random() * (STAR_PLAYER_BOOST_MAX - STAR_PLAYER_BOOST_MIN + 1))) * scale);
     const starAttrs = { ...star.attributes };
     for (const key of Object.keys(starAttrs) as (keyof PlayerAttributes)[]) {
       starAttrs[key] = clamp(starAttrs[key] + starBoost, 1, 99);
     }
     star.attributes = starAttrs;
     star.overall = calculateOverall(starAttrs, star.position);
-    star.potential = clamp(star.overall + 3 + Math.floor(Math.random() * 3));
+    const starPotGap = Math.round((3 + Math.floor(Math.random() * 5)) * scale);
+    star.potential = clamp(Math.max(star.overall + starPotGap, star.potential));
     star.value = calculatePlayerValue(star.overall);
 
     const veterans = fillerPlayers.filter(p => p.age >= 30 && p !== star);
     if (veterans.length > 0) {
       const vet = veterans[Math.floor(Math.random() * veterans.length)];
-      const vetBoost = VETERAN_BOOST_MIN + Math.floor(Math.random() * (VETERAN_BOOST_MAX - VETERAN_BOOST_MIN + 1));
+      const vetBoost = Math.round((VETERAN_BOOST_MIN + Math.floor(Math.random() * (VETERAN_BOOST_MAX - VETERAN_BOOST_MIN + 1))) * scale);
       const vetAttrs = { ...vet.attributes };
       for (const key of Object.keys(vetAttrs) as (keyof PlayerAttributes)[]) {
         vetAttrs[key] = clamp(vetAttrs[key] + vetBoost, 1, 99);
       }
-      vetAttrs.mental = clamp(vetAttrs.mental + 10, 1, 99);
+      vetAttrs.mental = clamp(vetAttrs.mental + Math.round(VETERAN_MENTAL_BONUS * scale), 1, 99);
       vet.attributes = vetAttrs;
       vet.overall = calculateOverall(vetAttrs, vet.position);
       vet.potential = vet.overall;

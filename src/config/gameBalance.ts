@@ -20,6 +20,9 @@ export const GROWTH_AGE_THRESHOLD = 24;
 export const MAX_SEASON_GROWTH = 12;
 export const GROWTH_BASE_CHANCE = 0.05;
 export const GROWTH_POTENTIAL_GAP_FACTOR = 0.01;
+// Diminishing returns for natural development (same formula as training)
+export const DEV_DIMINISHING_RETURNS_CEILING = 100;
+export const DEV_DIMINISHING_RETURNS_DIVISOR = 60;
 export const PLAYING_TIME_BONUS_MAX = 0.20;
 export const PLAYING_TIME_BONUS_PER_APP = 0.007;
 

@@ -95,6 +95,14 @@ export const SQUAD_QUALITY_VARIANCE = 12;
 export const SQUAD_QUALITY_MIN = 35;
 export const SQUAD_QUALITY_MAX = 95;
 
+// ── Quality Scaling ──
+// Reference quality at which boost/variance values are at their full levels.
+// Clubs below this get proportionally reduced boosts and variance.
+export const QUALITY_SCALING_REFERENCE = 80;
+export const QUALITY_SCALING_FLOOR = 0.4;
+export const SQUAD_QUALITY_MIN_LOW = 25;
+export const VETERAN_MENTAL_BONUS = 10;
+
 /** Young player potential boost: +10 + random(0..14) */
 export const YOUNG_POTENTIAL_BOOST_BASE = 10;
 export const YOUNG_POTENTIAL_BOOST_RANGE = 15;

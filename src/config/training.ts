@@ -24,6 +24,11 @@ export const INTENSITY_INJURY_RISK = { light: 0.003, medium: 0.015, heavy: 0.04 
 /** Extra growth chance for attributes matching the player's dominant training focus (used by development.ts) */
 export const TRAINING_FOCUS_BONUS = 0.08;
 export const BASE_GAIN_CHANCE = 0.06;
+// Diminishing returns: higher attributes are harder to improve.
+// Formula: chance *= (CEILING - currentAttrValue) / DIVISOR
+// At attr 40: ~1.0x, attr 60: ~0.67x, attr 80: ~0.33x, attr 95: ~0.08x
+export const DIMINISHING_RETURNS_CEILING = 100;
+export const DIMINISHING_RETURNS_DIVISOR = 60;
 export const INDIVIDUAL_TRAINING_BONUS = 1.5;
 export const STAFF_BONUS_MULTIPLIER = 0.12;
 
