@@ -107,6 +107,9 @@ export const createClubSlice = (set: Set, get: Get) => ({
         derbyIntensity: derbyInt,
         isCupMatch,
         hasMatchNextWeek,
+        setPieceTakerId: club.setPieceTakerId,
+        penaltyTakerId: club.penaltyTakerId,
+        defensiveFormation: club.defensiveFormation,
       };
     }
 

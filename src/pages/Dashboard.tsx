@@ -459,7 +459,7 @@ const Dashboard = () => {
 
       {/* Career Mode Info Panel */}
       {gameMode === 'career' && careerManager && (
-        <GlassPanel className="p-3" onClick={() => setScreen('career-overview')}>
+        <GlassPanel className="p-3 cursor-pointer" onClick={() => setScreen(jobOffers.length > 0 ? 'job-market' : 'career-overview')}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -1150,7 +1150,7 @@ const Dashboard = () => {
           </div>
           <div className="space-y-1.5">
             {injuredPlayers.map(p => (
-              <div key={p.id} role="button" tabIndex={0} className="flex items-center justify-between cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition-colors" onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
+              <div key={p.id} role="button" tabIndex={0} className="flex items-center justify-between cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition-colors" onClick={(e) => { e.stopPropagation(); selectPlayer(p.id); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); selectPlayer(p.id); } }}>
                 <span className="text-sm text-foreground">
                   {p.firstName[0]}. {p.lastName}
                   <span className="text-xs text-muted-foreground ml-1.5">({p.position})</span>

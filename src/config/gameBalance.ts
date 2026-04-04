@@ -400,7 +400,7 @@ export const TRANSFER_TALK_CONVINCE_FAIL_MORALE = 5;
 
 // ── Free Agent Market ──
 /** Maximum free agents in the pool at any time */
-export const FREE_AGENT_POOL_MAX = 40;
+export const FREE_AGENT_POOL_MAX = 80;
 // ── Cliffhanger System ──
 /** Maximum number of cliffhangers shown per week */
 export const MAX_CLIFFHANGERS = 3;

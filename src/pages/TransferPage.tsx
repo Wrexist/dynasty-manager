@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users, Search, Calendar, Newspaper, X } from 'lucide-react';
+import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users, Search, Calendar, Newspaper, X, ArrowUpDown, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
@@ -67,6 +67,9 @@ const TransferPage = () => {
   const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ offerId: string; accept: boolean; playerName: string; fee: number } | null>(null);
   const [negotiatingOffer, setNegotiatingOffer] = useState<IncomingOffer | null>(null);
+  const [sortBy, setSortBy] = useState<'overall' | 'price' | 'age' | 'potential'>('overall');
+  const [faSortBy, setFaSortBy] = useState<'overall' | 'age' | 'potential' | 'wage'>('overall');
+  const [divFilter, setDivFilter] = useState<string>('all');
 
   const club = clubs[playerClubId];
 
@@ -83,6 +86,16 @@ const TransferPage = () => {
       });
     }
 
+    // Division filter
+    if (divFilter !== 'all') {
+      result = result.filter(l => {
+        if (l.divisionId) return l.divisionId === divFilter;
+        const sellerClub = clubs[l.sellerClubId];
+        if (!sellerClub) return false; // External player without divisionId — hide when filtering
+        return sellerClub.divisionId === divFilter;
+      });
+    }
+
     if (searchQuery.trim()) {
       const q = searchQuery.trim().toLowerCase();
       result = result.filter(l => {
@@ -93,9 +106,21 @@ const TransferPage = () => {
       });
     }
 
-    result.sort((a, b) => (players[b.playerId]?.overall || 0) - (players[a.playerId]?.overall || 0));
+    // Sort by selected criteria
+    result.sort((a, b) => {
+      const pa = players[a.playerId];
+      const pb = players[b.playerId];
+      if (!pa || !pb) return 0;
+      switch (sortBy) {
+        case 'price': return a.askingPrice - b.askingPrice;
+        case 'age': return pa.age - pb.age;
+        case 'potential': return (pb.potential || pb.overall) - (pa.potential || pa.overall);
+        case 'overall':
+        default: return pb.overall - pa.overall;
+      }
+    });
     return result;
-  }, [tab, transferMarket, shortlist, playerClubId, posFilter, players, searchQuery]);
+  }, [tab, transferMarket, shortlist, playerClubId, posFilter, players, searchQuery, sortBy, divFilter, clubs]);
 
   // Outgoing: own players listed for sale
   const outgoingPlayers = useMemo(() => {
@@ -112,8 +137,17 @@ const TransferPage = () => {
       const q = searchQuery.trim().toLowerCase();
       result = result.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q));
     }
-    return result.sort((a, b) => b.overall - a.overall);
-  }, [freeAgents, players, posFilter, searchQuery]);
+    result.sort((a, b) => {
+      switch (faSortBy) {
+        case 'age': return a.age - b.age;
+        case 'potential': return (b.potential || b.overall) - (a.potential || a.overall);
+        case 'wage': return a.wage - b.wage;
+        case 'overall':
+        default: return b.overall - a.overall;
+      }
+    });
+    return result;
+  }, [freeAgents, players, posFilter, searchQuery, faSortBy]);
 
   const handleOffer = (listing: TransferListing) => {
     if (!transferWindowOpen) {
@@ -300,7 +334,80 @@ const TransferPage = () => {
               </button>
             ))}
           </div>
+
+          {/* Free Agents Sort */}
+          {tab === 'freeAgents' && (
+            <div className="flex items-center justify-end">
+              <button
+                onClick={() => {
+                  hapticLight();
+                  const opts: typeof faSortBy[] = ['overall', 'age', 'potential', 'wage'];
+                  const next = opts[(opts.indexOf(faSortBy) + 1) % opts.length];
+                  setFaSortBy(next);
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <ArrowUpDown className="w-3 h-3" />
+                {faSortBy === 'overall' ? 'OVR' : faSortBy === 'age' ? 'Age' : faSortBy === 'potential' ? 'POT' : 'Wage'}
+              </button>
+            </div>
+          )}
+
+          {/* Division Filter & Sort (market tab only) */}
+          {tab === 'market' && (
+            <div className="flex items-center gap-2">
+              {/* Division Filter */}
+              <div className="flex gap-1 flex-1 overflow-x-auto scrollbar-hide">
+                {[
+                  { id: 'all', label: 'All Leagues' },
+                  { id: 'div-1', label: 'Div 1' },
+                  { id: 'div-2', label: 'Div 2' },
+                  { id: 'div-3', label: 'Div 3' },
+                  { id: 'div-4', label: 'Div 4' },
+                ].map(d => (
+                  <button
+                    key={d.id}
+                    onClick={() => { hapticLight(); setDivFilter(d.id); }}
+                    className={cn(
+                      'px-2 py-0.5 rounded text-[10px] font-medium shrink-0 transition-all',
+                      divFilter === d.id ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sort Selector */}
+              <button
+                onClick={() => {
+                  hapticLight();
+                  const opts: typeof sortBy[] = ['overall', 'price', 'age', 'potential'];
+                  const next = opts[(opts.indexOf(sortBy) + 1) % opts.length];
+                  setSortBy(next);
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <ArrowUpDown className="w-3 h-3" />
+                {sortBy === 'overall' ? 'OVR' : sortBy === 'price' ? 'Price' : sortBy === 'age' ? 'Age' : 'POT'}
+              </button>
+            </div>
+          )}
         </>
+      )}
+
+      {/* Market Stats Summary */}
+      {tab === 'market' && (
+        <GlassPanel className="p-2.5 flex items-center gap-3 text-[10px] text-muted-foreground">
+          <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span>{transferMarket.filter(l => l.sellerClubId !== playerClubId && !l.externalPlayer).length} from clubs</span>
+          <span className="text-border">|</span>
+          <span>{transferMarket.filter(l => l.externalPlayer).length} unattached</span>
+          <span className="text-border">|</span>
+          <span>{freeAgents.length} free agents</span>
+          <span className="text-border">|</span>
+          <span>{listings.length} match{listings.length !== 1 ? 'es' : ''}</span>
+        </GlassPanel>
       )}
 
       {/* Market / Shortlist Listings */}
@@ -340,8 +447,21 @@ const TransferPage = () => {
                   </div>
                   <div className="flex-1 min-w-0" role="button" tabIndex={0} aria-label={`View ${p.firstName} ${p.lastName}`} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
                     <p className="font-bold text-foreground text-sm">{getFlag(p.nationality)} {p.firstName} {p.lastName}</p>
-                    <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} {p.nationality}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">From: {seller?.shortName || '?'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {p.position} {'\u2022'} {p.age}y {'\u2022'} POT {p.potential || p.overall}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {listing.externalPlayer ? (
+                        <span className="text-amber-400">Unattached</span>
+                      ) : (
+                        <>From: {seller?.shortName || '?'}</>
+                      )}
+                      {listing.divisionId && (
+                        <span className="ml-1 text-[10px] text-muted-foreground/60">
+                          ({listing.divisionId === 'div-1' ? 'D1' : listing.divisionId === 'div-2' ? 'D2' : listing.divisionId === 'div-3' ? 'D3' : 'D4'})
+                        </span>
+                      )}
+                    </p>
                     {/* Top 3 Attributes */}
                     <div className="flex gap-2 mt-1.5">
                       {top3.map(attr => (
@@ -757,7 +877,9 @@ const TransferPage = () => {
                   </div>
                   <div className="flex-1 min-w-0" role="button" tabIndex={0} aria-label={`View ${p.firstName} ${p.lastName}`} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
                     <p className="font-bold text-foreground text-sm">{getFlag(p.nationality)} {p.firstName} {p.lastName}</p>
-                    <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} {p.nationality}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {p.position} {'\u2022'} {p.age}y {'\u2022'} POT {p.potential || p.overall}
+                    </p>
                     <div className="flex gap-2 mt-1.5">
                       {top3.map(attr => (
                         <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">

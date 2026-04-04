@@ -31,19 +31,19 @@ export const AI_POSITION_PRIORITY: Position[] = [
 ];
 
 // ── AI Transfer Activity ──
-export const AI_TRANSFER_WEEKLY_CHANCE = 0.18;        // 18% chance per AI club per week to evaluate transfers
+export const AI_TRANSFER_WEEKLY_CHANCE = 0.25;        // 25% chance per AI club per week to evaluate transfers
 export const AI_TRANSFER_DEADLINE_WEEKS = [7, 8, 23, 24] as const; // Deadline rush weeks
-export const AI_TRANSFER_DEADLINE_MULTIPLIER = 2.0;   // Double activity on deadline weeks
-export const AI_TRANSFER_MAX_PER_WEEK = 3;            // Max 3 AI-to-AI transfers per week (perf cap)
-export const AI_LOAN_MAX_PER_WEEK = 2;                // Max 2 AI-to-AI loans per week
+export const AI_TRANSFER_DEADLINE_MULTIPLIER = 2.5;   // 2.5x activity on deadline weeks
+export const AI_TRANSFER_MAX_PER_WEEK = 6;            // Max 6 AI-to-AI transfers per week
+export const AI_LOAN_MAX_PER_WEEK = 4;                // Max 4 AI-to-AI loans per week
 
 // ── AI Selling Logic ──
-export const AI_SELL_AGE_THRESHOLD = 31;              // Consider selling players 31+
+export const AI_SELL_AGE_THRESHOLD = 30;              // Consider selling players 30+
 export const AI_SELL_DECLINE_OVERALL_DROP = 3;        // Sell if player dropped 3+ from peak
 export const AI_SELL_SURPLUS_THRESHOLD = 3;           // Sell if 3+ players in one position
-export const AI_SELL_LISTING_CHANCE = 0.12;           // 12% chance to list a sellable player per week
-export const AI_SELL_LISTING_PRICE_MIN = 1.15;        // Min asking price multiplier vs value
-export const AI_SELL_LISTING_PRICE_RANGE = 0.35;      // Random range added to min
+export const AI_SELL_LISTING_CHANCE = 0.20;           // 20% chance to list a sellable player per week
+export const AI_SELL_LISTING_PRICE_MIN = 1.10;        // Min asking price multiplier vs value
+export const AI_SELL_LISTING_PRICE_RANGE = 0.45;      // Random range: 1.10-1.55x value
 
 // ── AI Buying Logic ──
 export const AI_BUY_MAX_BUDGET_RATIO = 0.50;         // Max 50% of budget on one player
@@ -64,9 +64,9 @@ export const AI_RENEW_YEARS_PEAK = 2;                 // 2-year contracts for pe
 export const AI_RENEW_YEARS_OLD = 1;                  // 1-year contracts for veterans
 
 // ── AI Free Agents ──
-export const AI_FREE_AGENT_CHANCE = 0.10;             // 10% per club per week
-export const AI_FREE_AGENT_MAX_WAGE_RATIO = 0.05;     // Free agent wage can't exceed 5% of budget
-export const AI_FREE_AGENT_MIN_OVERALL_GAP = 15;      // Don't sign players 15+ below club avg
+export const AI_FREE_AGENT_CHANCE = 0.15;             // 15% per club per week
+export const AI_FREE_AGENT_MAX_WAGE_RATIO = 0.08;     // Free agent wage can't exceed 8% of budget
+export const AI_FREE_AGENT_MIN_OVERALL_GAP = 12;      // Don't sign players 12+ below club avg
 
 // ── AI Inter-Club Loans ──
 export const AI_LOAN_WEEKLY_CHANCE = 0.10;            // 10% chance per club per week to loan out surplus

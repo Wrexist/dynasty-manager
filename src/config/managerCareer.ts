@@ -72,6 +72,15 @@ export const NEGOTIATION_SKILL_MODIFIER = 0.02;      // +2% per manager negotiat
 
 // ── Manager Contract ──
 
+// ── Proactive Job Offers (while employed) ──
+export const PROACTIVE_OFFER_CHECK_INTERVAL = 4;   // check every N weeks
+export const PROACTIVE_OFFER_BASE_CHANCE = 0.05;    // 5% base probability per check
+export const PROACTIVE_OFFER_REP_BONUS = 0.15;      // bonus when overqualified for current league
+export const PROACTIVE_OFFER_FORM_BONUS = 0.10;     // bonus for >75% recent win rate
+export const PROACTIVE_OFFER_POSITION_BONUS = 0.08; // bonus for top-3 finish in lower divisions
+export const PROACTIVE_OFFER_MAX_PENDING = 2;       // max pending proactive offers at once
+export const PROACTIVE_OFFER_DURATION_WEEKS = 6;    // how long an offer stays open
+
 // ── Retirement ──
 export const DEFAULT_RETIREMENT_AGE = 65;
 export const LEGENDARY_RETIREMENT_EXTENSION = 10;

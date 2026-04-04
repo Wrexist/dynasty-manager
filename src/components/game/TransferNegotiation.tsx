@@ -43,7 +43,9 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   const removeFromShortlist = useGameStore(s => s.removeFromShortlist);
 
   const player = players[listing.playerId];
-  const sellerClub = clubs[listing.sellerClubId] || { name: 'Unknown Club', shortName: 'Unknown', id: listing.sellerClubId };
+  const sellerClub = listing.externalPlayer
+    ? { name: 'Unattached', shortName: 'Unattached', id: '' }
+    : clubs[listing.sellerClubId] || { name: 'Unknown Club', shortName: 'Unknown', id: listing.sellerClubId };
   const buyerClub = clubs[playerClubId];
 
   const [offerFee, setOfferFee] = useState(listing.askingPrice);
