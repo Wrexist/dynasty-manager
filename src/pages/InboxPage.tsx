@@ -20,6 +20,41 @@ const typeIcon: Record<Message['type'], React.ElementType> = {
   general: Mail,
 };
 
+interface MessageColorScheme {
+  iconBg: string;
+  iconText: string;
+  border: string;
+  dot: string;
+}
+
+const typeColors: Record<Message['type'], MessageColorScheme> = {
+  injury:        { iconBg: 'bg-red-500/20',     iconText: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-500' },
+  sponsorship:   { iconBg: 'bg-emerald-500/20', iconText: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-500' },
+  transfer:      { iconBg: 'bg-amber-500/20',   iconText: 'text-amber-400',   border: 'border-amber-500/30',   dot: 'bg-amber-500' },
+  contract:      { iconBg: 'bg-orange-500/20',  iconText: 'text-orange-400',  border: 'border-orange-500/30',  dot: 'bg-orange-500' },
+  development:   { iconBg: 'bg-blue-500/20',    iconText: 'text-blue-400',    border: 'border-blue-500/30',    dot: 'bg-blue-500' },
+  board:         { iconBg: 'bg-purple-500/20',   iconText: 'text-purple-400',  border: 'border-purple-500/30',  dot: 'bg-purple-500' },
+  match_preview: { iconBg: 'bg-cyan-500/20',    iconText: 'text-cyan-400',    border: 'border-cyan-500/30',    dot: 'bg-cyan-500' },
+  match_result:  { iconBg: 'bg-primary/20',     iconText: 'text-primary',     border: 'border-primary/30',     dot: 'bg-primary' },
+  general:       { iconBg: 'bg-muted/50',       iconText: 'text-muted-foreground', border: 'border-border/50', dot: 'bg-muted-foreground' },
+};
+
+function getMatchResultColors(msg: Message): MessageColorScheme {
+  const t = msg.title.toLowerCase();
+  if (t.startsWith('victory') || t.includes('won')) {
+    return { iconBg: 'bg-emerald-500/20', iconText: 'text-emerald-400', border: 'border-emerald-500/30', dot: 'bg-emerald-500' };
+  }
+  if (t.startsWith('defeat') || t.includes('eliminated')) {
+    return { iconBg: 'bg-red-500/20', iconText: 'text-red-400', border: 'border-red-500/30', dot: 'bg-red-500' };
+  }
+  return { iconBg: 'bg-slate-400/20', iconText: 'text-slate-300', border: 'border-slate-400/30', dot: 'bg-slate-400' };
+}
+
+function getMessageColors(msg: Message): MessageColorScheme {
+  if (msg.type === 'match_result') return getMatchResultColors(msg);
+  return typeColors[msg.type];
+}
+
 const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.ElementType }[] = [
   { label: 'Match', types: ['match_preview', 'match_result'], icon: Trophy },
   { label: 'Board', types: ['board'], icon: Megaphone },
@@ -304,6 +339,7 @@ const InboxPage = () => {
               {msgs.map((msg, msgIdx) => {
                 const Icon = typeIcon[msg.type] || Mail;
                 const expanded = expandedId === msg.id;
+                const colors = getMessageColors(msg);
                 return (
                   <motion.div
                     key={msg.id}
@@ -312,18 +348,18 @@ const InboxPage = () => {
                     transition={{ delay: Math.min(msgIdx * 0.03, 0.45), duration: 0.2 }}
                   >
                   <GlassPanel
-                    className={cn('transition-all', !msg.read && 'border-primary/30')}
+                    className={cn('transition-all', !msg.read && colors.border)}
                     onClick={() => toggleExpand(msg.id)}
                   >
                     <div className="p-3">
                       <div className="flex items-start gap-3">
-                        <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', !msg.read ? 'bg-primary/20' : 'bg-muted/50')}>
-                          <Icon className={cn('w-4 h-4', !msg.read ? 'text-primary' : 'text-muted-foreground')} />
+                        <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center shrink-0', !msg.read ? colors.iconBg : 'bg-muted/50')}>
+                          <Icon className={cn('w-4 h-4', !msg.read ? colors.iconText : 'text-muted-foreground')} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-0.5">
                             <p className={cn('text-sm font-semibold truncate', !msg.read ? 'text-foreground' : 'text-foreground/70')}>{msg.title}</p>
-                            {!msg.read && <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0" />}
+                            {!msg.read && <div className={cn('w-1.5 h-1.5 rounded-full shrink-0', colors.dot)} />}
                           </div>
                           {!expanded && <p className="text-xs text-muted-foreground line-clamp-1">{msg.body}</p>}
                         </div>
@@ -357,11 +393,14 @@ const InboxPage = () => {
                               if (msg.type === 'injury') actions.push({ label: 'View Squad', screen: 'squad' });
                               if (msg.type === 'development') actions.push({ label: 'Youth Academy', screen: 'youth-academy' });
                               if (msg.type === 'board') actions.push({ label: 'Board', screen: 'board' });
+                              if (msg.type === 'sponsorship') actions.push({ label: 'Finance', screen: 'finance' });
+                              if (msg.type === 'match_preview') actions.push({ label: 'Match Prep', screen: 'match-prep' });
+                              if (msg.type === 'match_result') actions.push({ label: 'Match Review', screen: 'match-review' });
                               if (actions.length === 0) return null;
                               return (
                                 <button
                                   onClick={(e) => { e.stopPropagation(); setScreen(actions[0].screen); }}
-                                  className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 font-semibold transition-colors"
+                                  className={cn('flex items-center gap-1 text-[10px] font-semibold transition-colors', colors.iconText)}
                                 >
                                   {actions[0].label} <ExternalLink className="w-3 h-3" />
                                 </button>
