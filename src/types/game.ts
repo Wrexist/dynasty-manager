@@ -251,6 +251,8 @@ export interface TransferListing {
   scoutedPlayer?: boolean;
   /** Week number the player was listed (for expiry tracking) */
   listedWeek?: number;
+  /** Season the player was listed (for cross-season expiry tracking) */
+  listedSeason?: number;
   /** Division tier the player belongs to (for UI display) */
   divisionId?: string;
   /** True if this is an externally generated player (not from an existing club roster) */

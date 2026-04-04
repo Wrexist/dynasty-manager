@@ -68,6 +68,7 @@ const TransferPage = () => {
   const [confirmAction, setConfirmAction] = useState<{ offerId: string; accept: boolean; playerName: string; fee: number } | null>(null);
   const [negotiatingOffer, setNegotiatingOffer] = useState<IncomingOffer | null>(null);
   const [sortBy, setSortBy] = useState<'overall' | 'price' | 'age' | 'potential'>('overall');
+  const [faSortBy, setFaSortBy] = useState<'overall' | 'age' | 'potential' | 'wage'>('overall');
   const [divFilter, setDivFilter] = useState<string>('all');
 
   const club = clubs[playerClubId];
@@ -89,9 +90,9 @@ const TransferPage = () => {
     if (divFilter !== 'all') {
       result = result.filter(l => {
         if (l.divisionId) return l.divisionId === divFilter;
-        // Fall back to seller club's division
         const sellerClub = clubs[l.sellerClubId];
-        return sellerClub?.divisionId === divFilter;
+        if (!sellerClub) return false; // External player without divisionId — hide when filtering
+        return sellerClub.divisionId === divFilter;
       });
     }
 
@@ -136,8 +137,17 @@ const TransferPage = () => {
       const q = searchQuery.trim().toLowerCase();
       result = result.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q));
     }
-    return result.sort((a, b) => b.overall - a.overall);
-  }, [freeAgents, players, posFilter, searchQuery]);
+    result.sort((a, b) => {
+      switch (faSortBy) {
+        case 'age': return a.age - b.age;
+        case 'potential': return (b.potential || b.overall) - (a.potential || a.overall);
+        case 'wage': return a.wage - b.wage;
+        case 'overall':
+        default: return b.overall - a.overall;
+      }
+    });
+    return result;
+  }, [freeAgents, players, posFilter, searchQuery, faSortBy]);
 
   const handleOffer = (listing: TransferListing) => {
     if (!transferWindowOpen) {
@@ -325,6 +335,24 @@ const TransferPage = () => {
             ))}
           </div>
 
+          {/* Free Agents Sort */}
+          {tab === 'freeAgents' && (
+            <div className="flex items-center justify-end">
+              <button
+                onClick={() => {
+                  hapticLight();
+                  const opts: typeof faSortBy[] = ['overall', 'age', 'potential', 'wage'];
+                  const next = opts[(opts.indexOf(faSortBy) + 1) % opts.length];
+                  setFaSortBy(next);
+                }}
+                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground hover:text-foreground shrink-0"
+              >
+                <ArrowUpDown className="w-3 h-3" />
+                {faSortBy === 'overall' ? 'OVR' : faSortBy === 'age' ? 'Age' : faSortBy === 'potential' ? 'POT' : 'Wage'}
+              </button>
+            </div>
+          )}
+
           {/* Division Filter & Sort (market tab only) */}
           {tab === 'market' && (
             <div className="flex items-center gap-2">
@@ -372,7 +400,9 @@ const TransferPage = () => {
       {tab === 'market' && (
         <GlassPanel className="p-2.5 flex items-center gap-3 text-[10px] text-muted-foreground">
           <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span>{transferMarket.filter(l => l.sellerClubId !== playerClubId).length} listed</span>
+          <span>{transferMarket.filter(l => l.sellerClubId !== playerClubId && !l.externalPlayer).length} from clubs</span>
+          <span className="text-border">|</span>
+          <span>{transferMarket.filter(l => l.externalPlayer).length} unattached</span>
           <span className="text-border">|</span>
           <span>{freeAgents.length} free agents</span>
           <span className="text-border">|</span>

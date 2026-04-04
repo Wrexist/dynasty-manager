@@ -166,6 +166,7 @@ export function generateInitialMarket(
     const divisionId = pickWeightedDivision();
     const { player, listing } = generateMarketPlayer(season, divisionId);
     listing.listedWeek = week;
+    listing.listedSeason = season;
     players[player.id] = player;
     listings.push(listing);
   }
@@ -208,6 +209,7 @@ export function replenishMarket(
     const divisionId = pickWeightedDivision();
     const { player, listing } = generateMarketPlayer(season, divisionId);
     listing.listedWeek = week;
+    listing.listedSeason = season;
     players[player.id] = player;
     listings.push(listing);
   }
@@ -236,23 +238,28 @@ export function spawnFreeAgents(
 
 /**
  * Process listing expiry — remove stale listings and optionally relist at discount.
- * Returns updated market and any price adjustments.
+ * Returns updated market and list of expired external player IDs for cleanup.
  */
 export function processListingExpiry(
   transferMarket: TransferListing[],
   currentWeek: number,
+  currentSeason: number,
+  totalWeeks: number,
   expiryWeeks: number,
   relistChance: number,
   relistDiscount: number,
-): TransferListing[] {
-  return transferMarket.reduce<TransferListing[]>((acc, listing) => {
+): { market: TransferListing[]; expiredPlayerIds: string[] } {
+  const expiredPlayerIds: string[] = [];
+  const market = transferMarket.reduce<TransferListing[]>((acc, listing) => {
     // Listings without listedWeek or from clubs (non-external) don't expire
     if (!listing.externalPlayer || !listing.listedWeek) {
       acc.push(listing);
       return acc;
     }
 
-    const weeksListed = currentWeek - listing.listedWeek;
+    // Season-aware elapsed week calculation
+    const seasonDiff = currentSeason - (listing.listedSeason || currentSeason);
+    const weeksListed = seasonDiff * totalWeeks + (currentWeek - (listing.listedWeek || currentWeek));
     if (weeksListed < expiryWeeks) {
       acc.push(listing);
       return acc;
@@ -264,9 +271,13 @@ export function processListingExpiry(
         ...listing,
         askingPrice: Math.max(25_000, Math.round(listing.askingPrice * (1 - relistDiscount))),
         listedWeek: currentWeek,
+        listedSeason: currentSeason,
       });
+    } else {
+      // Player withdrawn — track for cleanup
+      expiredPlayerIds.push(listing.playerId);
     }
-    // Otherwise the listing is removed (player effectively withdrawn)
     return acc;
   }, []);
+  return { market, expiredPlayerIds };
 }

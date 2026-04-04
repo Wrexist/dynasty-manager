@@ -180,10 +180,11 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     // Check for counter-offer
     if (ratio >= COUNTER_OFFER_MIN_THRESHOLD && ratio < COUNTER_OFFER_MAX_THRESHOLD && Math.random() < COUNTER_OFFER_CHANCE) {
       const counterFee = Math.round(fee + (listing.askingPrice - fee) * (COUNTER_OFFER_BASE_RATIO + Math.random() * COUNTER_OFFER_RANDOM_RANGE));
-      return { outcome: 'counter', counterFee, message: `${state.clubs[listing.sellerClubId]?.shortName || 'The club'} want more — they counter with £${(counterFee / 1e6).toFixed(1)}M.` };
+      const sellerName = listing.externalPlayer ? 'The seller' : (state.clubs[listing.sellerClubId]?.shortName || 'The club');
+      return { outcome: 'counter', counterFee, message: `${sellerName} want${listing.externalPlayer ? 's' : ''} more — they counter with £${(counterFee / 1e6).toFixed(1)}M.` };
     }
 
-    return { outcome: 'rejected', message: 'Offer rejected. The selling club want a higher fee.' };
+    return { outcome: 'rejected', message: 'Offer rejected. They want a higher fee.' };
   },
 
   executeTransfer: (playerId: string, fee: number) => {

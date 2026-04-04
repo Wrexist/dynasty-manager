@@ -1320,6 +1320,14 @@ function finalizeSeason(
   const champQualified = newChampionsCup && !newChampionsCup.playerEliminated;
   const shieldQualified = newShieldCup && !newShieldCup.playerEliminated;
 
+  // Clean up old external players (unattached players not in any club or free agent pool)
+  const oldFreeAgentSet = new Set(state.freeAgents);
+  for (const [pid, p] of Object.entries(newPlayers)) {
+    if (p.clubId === '' && !oldFreeAgentSet.has(pid)) {
+      delete newPlayers[pid];
+    }
+  }
+
   const transferMarket: TransferListing[] = [];
   // Seed market with bench players from all clubs
   Object.values(newClubs).forEach(c => {
@@ -1328,7 +1336,7 @@ function finalizeSeason(
     if (benched.length > 2) {
       const listed = shuffle(benched).slice(0, INITIAL_LISTINGS_MIN + Math.floor(Math.random() * INITIAL_LISTINGS_RANGE));
       listed.forEach(p => {
-        transferMarket.push({ playerId: p.id, askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)), sellerClubId: c.id, listedWeek: 1, divisionId: c.divisionId });
+        transferMarket.push({ playerId: p.id, askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)), sellerClubId: c.id, listedWeek: 1, listedSeason: newSeason, divisionId: c.divisionId });
       });
     }
   });
@@ -1835,7 +1843,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       if (benched.length > 2) {
         const listed = shuffle(benched).slice(0, INITIAL_LISTINGS_MIN + Math.floor(Math.random() * INITIAL_LISTINGS_RANGE));
         listed.forEach(p => {
-          transferMarket.push({ playerId: p.id, askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)), sellerClubId: c.id, listedWeek: 1, divisionId: c.divisionId });
+          transferMarket.push({ playerId: p.id, askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)), sellerClubId: c.id, listedWeek: 1, listedSeason: 1, divisionId: c.divisionId });
         });
       }
     });
@@ -3316,10 +3324,20 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const mktState = get();
 
       // Process listing expiry for external players (reduces stale listings)
-      let updatedMarket = processListingExpiry(mktState.transferMarket, newWeek, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT);
+      const expiryResult = processListingExpiry(mktState.transferMarket, newWeek, season, TOTAL_WEEKS, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT);
+      let updatedMarket = expiryResult.market;
 
       // Replenish if market is below threshold (keeps market populated across all divisions)
       const updatedPlayers = { ...mktState.players };
+
+      // Clean up orphaned external players from expired listings
+      const freeAgentSet = new Set(mktState.freeAgents);
+      for (const pid of expiryResult.expiredPlayerIds) {
+        if (updatedPlayers[pid]?.clubId === '' && !freeAgentSet.has(pid)) {
+          delete updatedPlayers[pid];
+        }
+      }
+
       if (updatedMarket.length < MARKET_REPLENISH_THRESHOLD) {
         const fresh = replenishMarket(season, newWeek);
         Object.assign(updatedPlayers, fresh.players);

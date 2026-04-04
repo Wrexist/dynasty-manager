@@ -264,6 +264,7 @@ function processAIListings(
   transferMarket: TransferListing[],
   playerClubId: string,
   week: number,
+  season: number,
 ): { clubs: Record<string, Club>; players: Record<string, Player>; transferMarket: TransferListing[] } {
   const updPlayers = { ...players };
   const updMarket = [...transferMarket];
@@ -290,7 +291,7 @@ function processAIListings(
       if (Math.random() > chance && !isDeadlineWeek(week)) continue;
 
       const askingPrice = Math.round(p.value * (AI_SELL_LISTING_PRICE_MIN + Math.random() * AI_SELL_LISTING_PRICE_RANGE));
-      updMarket.push({ playerId: pid, askingPrice, sellerClubId: clubId, listedWeek: week, divisionId: clubs[clubId]?.divisionId });
+      updMarket.push({ playerId: pid, askingPrice, sellerClubId: clubId, listedWeek: week, listedSeason: season, divisionId: clubs[clubId]?.divisionId });
       updPlayers[pid] = { ...p, listedForSale: true };
     }
   }
@@ -823,7 +824,7 @@ export function processAIWeekly(
   // 3. Transfer Window activities
   if (transferWindowOpen) {
     // 3a. AI clubs list players for sale
-    const listingResult = processAIListings(updClubs, updPlayers, updMarket, playerClubId, week);
+    const listingResult = processAIListings(updClubs, updPlayers, updMarket, playerClubId, week, season);
     updPlayers = listingResult.players;
     updMarket = listingResult.transferMarket;
 
