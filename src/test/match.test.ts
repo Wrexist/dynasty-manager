@@ -366,3 +366,87 @@ describe('Match Engine — Numerical Disadvantage', () => {
     expect(homeGoalsTotal).toBeGreaterThan(awayGoalsTotal);
   });
 });
+
+describe('Match Engine — AI Substitutions', () => {
+  it('generates substitution events for AI teams with bench players', () => {
+    const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
+    const { club: awayClub, players: awayPlayers } = makeLineup('away', '4-3-3', 70);
+
+    // Create bench players for both teams
+    const positions: Player['position'][] = ['CB', 'CM', 'ST', 'LB', 'RW'];
+    const homeBench = positions.map((pos, i) => makePlayer(`home-bench${i}`, 'home', pos, 68));
+    const awayBench = positions.map((pos, i) => makePlayer(`away-bench${i}`, 'away', pos, 68));
+
+    let subEventSeen = false;
+    // Run many matches — tactical subs happen at minutes 60/70/80 with 70% chance
+    for (let i = 0; i < 50; i++) {
+      const match = makeMatch(`aisub-${i}`);
+      const { result } = simulateMatch(match, homeClub, awayClub, homePlayers, awayPlayers, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, homeBench, awayBench);
+      if (result.events.some(e => e.type === 'substitution')) {
+        subEventSeen = true;
+        break;
+      }
+    }
+
+    expect(subEventSeen).toBe(true);
+  });
+
+  it('AI subs injured players when bench is available', () => {
+    const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
+    const { club: awayClub, players: awayPlayers } = makeLineup('away', '4-3-3', 70);
+
+    const positions: Player['position'][] = ['CB', 'CM', 'ST', 'LB', 'RW'];
+    const homeBench = positions.map((pos, i) => makePlayer(`home-bench${i}`, 'home', pos, 68));
+    const awayBench = positions.map((pos, i) => makePlayer(`away-bench${i}`, 'away', pos, 68));
+
+    let injurySubSeen = false;
+    // Run many matches looking for injury followed by substitution for same team
+    for (let i = 0; i < 200; i++) {
+      const match = makeMatch(`injsub-${i}`);
+      const { result } = simulateMatch(match, homeClub, awayClub, homePlayers, awayPlayers, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, homeBench, awayBench);
+
+      // Check for pattern: injury event → substitution event for same club shortly after
+      for (let j = 0; j < result.events.length - 1; j++) {
+        if (result.events[j].type === 'injury') {
+          const injClub = result.events[j].clubId;
+          // Look for a sub event for the same club within the next few events
+          for (let k = j + 1; k < Math.min(j + 5, result.events.length); k++) {
+            if (result.events[k].type === 'substitution' && result.events[k].clubId === injClub) {
+              injurySubSeen = true;
+              break;
+            }
+          }
+        }
+        if (injurySubSeen) break;
+      }
+      if (injurySubSeen) break;
+    }
+
+    expect(injurySubSeen).toBe(true);
+  });
+});
+
+describe('Match Engine — Injury Strength Rebalance', () => {
+  it('injured team scores fewer goals than full team over many matches', () => {
+    const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
+    const { club: awayClub, players: awayPlayers } = makeLineup('away', '4-3-3', 70);
+
+    // Run matches where away starts with 10 players (simulating pre-match injury)
+    const reducedAway = awayPlayers.slice(0, 10);
+    awayClub.lineup = reducedAway.map(p => p.id);
+
+    let homeGoals = 0;
+    let awayGoals = 0;
+    const N = 200;
+
+    for (let i = 0; i < N; i++) {
+      const match = makeMatch(`injbal-${i}`);
+      const { result } = simulateMatch(match, homeClub, awayClub, homePlayers, reducedAway);
+      homeGoals += result.homeGoals;
+      awayGoals += result.awayGoals;
+    }
+
+    // Full team (with home advantage + numerical advantage) should score more
+    expect(homeGoals).toBeGreaterThan(awayGoals);
+  });
+});

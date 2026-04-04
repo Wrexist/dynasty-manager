@@ -58,6 +58,8 @@ import {
   COMMENTARY_GAP_MAX, COMMENTARY_CHANCE,
   MIN_PLAYERS_TO_CONTINUE,
   RED_CARD_STRENGTH_PENALTY_PER_PLAYER,
+  MAX_SUBSTITUTIONS,
+  AI_SUB_CHECK_MINUTES, AI_SUB_FITNESS_THRESHOLD, AI_TACTICAL_SUB_CHANCE,
 } from '@/config/matchEngine';
 import { generateCommentary } from '@/utils/matchCommentary';
 
@@ -82,6 +84,12 @@ export interface HalfState {
   awayXG: number;
   /** Injury details generated during the match, keyed by player ID */
   matchInjuries: Record<string, InjuryDetails>;
+  /** Substitutions used by each team (for AI sub tracking) */
+  homeSubsUsed: number;
+  awaySubsUsed: number;
+  /** Remaining bench player IDs for AI substitution logic */
+  homeBench: string[];
+  awayBench: string[];
 }
 
 /** Formation fit bonus: 0.0 to ~0.12 — mismatched players are a real penalty */
@@ -319,6 +327,74 @@ function generateInjuryDetails(isFoulRelated: boolean, medicalLevel: number = 5)
 }
 
 /**
+ * AI substitution logic: find the best bench replacement for a player.
+ * Used for injury replacements and tactical changes by non-player teams.
+ */
+function tryAISub(
+  benchPool: Player[], squad: Player[], unavailable: Set<string>, subsUsed: number,
+  reason: 'injury' | 'tactical', outPlayer?: Player,
+  matchFitness?: Record<string, number>, isLosing?: boolean, minute?: number,
+): { inPlayer: Player; outPlayer: Player } | null {
+  if (subsUsed >= MAX_SUBSTITUTIONS) return null;
+  const availBench = benchPool.filter(p => !unavailable.has(p.id) && !p.injured);
+  if (availBench.length === 0) return null;
+
+  if (reason === 'injury' && outPlayer) {
+    // Find best positional match for the injured player
+    const scored = availBench.map(p => {
+      let compat = 0.4; // default: wrong position
+      if (p.position === outPlayer.position) compat = 1.0;
+      else if ((POSITION_COMPATIBILITY[outPlayer.position] || []).includes(p.position)) compat = 0.8;
+      return { player: p, score: p.overall * compat };
+    }).sort((a, b) => b.score - a.score);
+    return scored.length > 0 ? { inPlayer: scored[0].player, outPlayer } : null;
+  }
+
+  if (reason === 'tactical') {
+    // Find the worst-performing available starter to replace
+    const availableStarters = squad.filter(p => !unavailable.has(p.id) && p.position !== 'GK');
+    if (availableStarters.length === 0) return null;
+
+    let bestOut: Player | null = null;
+    let bestIn: Player | null = null;
+    let bestScore = 0;
+
+    for (const starter of availableStarters) {
+      const starterFit = matchFitness?.[starter.id] ?? starter.fitness;
+      // Skip if starter is still relatively fresh
+      if (starterFit > AI_SUB_FITNESS_THRESHOLD && !isLosing && !(minute && minute >= 75)) continue;
+
+      for (const bench of availBench) {
+        let compat = 0.4;
+        if (bench.position === starter.position) compat = 1.0;
+        else if ((POSITION_COMPATIBILITY[starter.position] || []).includes(bench.position)) compat = 0.8;
+
+        // Score: improvement potential + fitness gain + tactical context
+        const fitnessGain = (bench.fitness - starterFit) / 100;
+        const qualityDiff = (bench.overall * compat - starter.overall) / 100;
+        let contextBonus = 0;
+        if (isLosing && minute && minute >= 70) {
+          // Prefer bringing on attackers when losing
+          if (['ST', 'LW', 'RW', 'CAM'].includes(bench.position)) contextBonus = 0.15;
+        } else if (!isLosing && minute && minute >= 80) {
+          // Prefer bringing on defenders when winning
+          if (['CB', 'LB', 'RB', 'CDM'].includes(bench.position)) contextBonus = 0.1;
+        }
+        const score = fitnessGain * 0.6 + qualityDiff * 0.3 + contextBonus;
+        if (score > bestScore) {
+          bestScore = score;
+          bestOut = starter;
+          bestIn = bench;
+        }
+      }
+    }
+    return bestOut && bestIn ? { inPlayer: bestIn, outPlayer: bestOut } : null;
+  }
+
+  return null;
+}
+
+/**
  * Simulate one half of a match (or a full match if startMin=1, endMin=90).
  * Returns a HalfState that can be continued with a second call for the second half.
  */
@@ -340,6 +416,8 @@ export function simulateHalf(
   awayMedicalLevel?: number,
   currentSeason?: number,
   careerDisciplineMod?: number,
+  homeBench?: Player[],
+  awayBench?: Player[],
 ): HalfState {
   // Guard against empty squads — return a forfeit-like state (clone refs to avoid mutation)
   if (homePlayers.length === 0 || awayPlayers.length === 0) {
@@ -363,6 +441,10 @@ export function simulateHalf(
       homeXG: prevState?.homeXG ?? 0,
       awayXG: prevState?.awayXG ?? 0,
       playerEvents: { ...(prevState?.playerEvents ?? {}) },
+      homeSubsUsed: prevState?.homeSubsUsed ?? 0,
+      awaySubsUsed: prevState?.awaySubsUsed ?? 0,
+      homeBench: [...(prevState?.homeBench ?? [])],
+      awayBench: [...(prevState?.awayBench ?? [])],
     };
   }
 
@@ -401,6 +483,22 @@ export function simulateHalf(
 
   // Match injuries: track generated InjuryDetails per player
   const matchInjuries: Record<string, InjuryDetails> = prevState?.matchInjuries ? { ...prevState.matchInjuries } : {};
+
+  // AI substitution tracking: bench pools and sub counts carry between halves
+  let homeSubsUsed = prevState?.homeSubsUsed ?? 0;
+  let awaySubsUsed = prevState?.awaySubsUsed ?? 0;
+  // Build bench pools: from params on first half, from prevState IDs on second half
+  const homeBenchPool: Player[] = prevState?.homeBench
+    ? prevState.homeBench.map(id => (homeBench || []).find(p => p.id === id) || (awayBench || []).find(p => p.id === id)).filter(Boolean) as Player[]
+    : [...(homeBench || [])];
+  const awayBenchPool: Player[] = prevState?.awayBench
+    ? prevState.awayBench.map(id => (awayBench || []).find(p => p.id === id) || (homeBench || []).find(p => p.id === id)).filter(Boolean) as Player[]
+    : [...(awayBench || [])];
+  // Track which players are active on the pitch (starters + subbed in, minus unavailable)
+  const homeActive = new Set(homePlayers.map(p => p.id));
+  const awayActive = new Set(awayPlayers.map(p => p.id));
+  // All players that could appear in this match (for playerEvents tracking when subbed in)
+  const allBenchPlayers = [...homeBenchPool, ...awayBenchPool];
 
   // Momentum: positive favours home, negative favours away. Carried between halves.
   let momentum = prevState?.momentum ?? 0;
@@ -573,6 +671,20 @@ export function simulateHalf(
 
   const MAX_MATCH_MINUTES = 150; // Safety cap to prevent infinite loops
   let abandonMatch = false;
+  // Helper: check if a team has fallen below minimum viable size (FIFA Law 3)
+  const checkAbandon = (minute: number): boolean => {
+    const homeAvailCount = homePlayers.filter(p => !unavailable.has(p.id)).length;
+    const awayAvailCount = awayPlayers.filter(p => !unavailable.has(p.id)).length;
+    if (homeAvailCount < MIN_PLAYERS_TO_CONTINUE || awayAvailCount < MIN_PLAYERS_TO_CONTINUE) {
+      const side = homeAvailCount < MIN_PLAYERS_TO_CONTINUE ? 'home' : 'away';
+      events.push({ minute, type: 'commentary', clubId: side === 'home' ? homeClub.id : awayClub.id, description: `Match abandoned — ${side === 'home' ? homeClub.shortName : awayClub.shortName} reduced below ${MIN_PLAYERS_TO_CONTINUE} players.` });
+      if (side === 'home') { homeGoals = Math.min(homeGoals, awayGoals); awayGoals = Math.max(awayGoals, homeGoals + 3); }
+      else { awayGoals = Math.min(awayGoals, homeGoals); homeGoals = Math.max(homeGoals, awayGoals + 3); }
+      abandonMatch = true;
+      return true;
+    }
+    return false;
+  };
   for (let min = startMin; min <= endMin + stoppageTime && min < MAX_MATCH_MINUTES; min++) {
     if (abandonMatch) break;
     // Calculate stoppage at the nominal end of each half
@@ -826,16 +938,7 @@ export function simulateHalf(
             // Rebalance strength after red card
             const recomputed = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = recomputed.homeStr; awayStr = recomputed.awayStr;
-            // Abandon match if a team falls below minimum viable size (FIFA Law 3)
-            const homeAvail = homePlayers.filter(p => !unavailable.has(p.id)).length;
-            const awayAvail = awayPlayers.filter(p => !unavailable.has(p.id)).length;
-            if (homeAvail < MIN_PLAYERS_TO_CONTINUE || awayAvail < MIN_PLAYERS_TO_CONTINUE) {
-              const forfeitSide = homeAvail < MIN_PLAYERS_TO_CONTINUE ? 'home' : 'away';
-              events.push({ minute: min, type: 'commentary', clubId: forfeitSide === 'home' ? homeClub.id : awayClub.id, description: `Match abandoned — ${forfeitSide === 'home' ? homeClub.shortName : awayClub.shortName} reduced below ${MIN_PLAYERS_TO_CONTINUE} players.` });
-              if (forfeitSide === 'home') { homeGoals = Math.min(homeGoals, awayGoals); awayGoals = Math.max(awayGoals, homeGoals + 3); }
-              else { awayGoals = Math.min(awayGoals, homeGoals); homeGoals = Math.max(homeGoals, awayGoals + 3); }
-              abandonMatch = true;
-            }
+            checkAbandon(min);
           } else {
             // Momentum swings toward the non-fouling team on yellow cards
             momentum = isHome
@@ -858,16 +961,7 @@ export function simulateHalf(
             // Rebalance strength after red card
             const recomputed2 = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = recomputed2.homeStr; awayStr = recomputed2.awayStr;
-            // Abandon match if a team falls below minimum viable size (FIFA Law 3)
-            const homeAvail2 = homePlayers.filter(p => !unavailable.has(p.id)).length;
-            const awayAvail2 = awayPlayers.filter(p => !unavailable.has(p.id)).length;
-            if (homeAvail2 < MIN_PLAYERS_TO_CONTINUE || awayAvail2 < MIN_PLAYERS_TO_CONTINUE) {
-              const forfeitSide2 = homeAvail2 < MIN_PLAYERS_TO_CONTINUE ? 'home' : 'away';
-              events.push({ minute: min, type: 'commentary', clubId: forfeitSide2 === 'home' ? homeClub.id : awayClub.id, description: `Match abandoned — ${forfeitSide2 === 'home' ? homeClub.shortName : awayClub.shortName} reduced below ${MIN_PLAYERS_TO_CONTINUE} players.` });
-              if (forfeitSide2 === 'home') { homeGoals = Math.min(homeGoals, awayGoals); awayGoals = Math.max(awayGoals, homeGoals + 3); }
-              else { awayGoals = Math.min(awayGoals, homeGoals); homeGoals = Math.max(homeGoals, awayGoals + 3); }
-              abandonMatch = true;
-            }
+            checkAbandon(min);
         }
       } else {
         // Momentum shifts toward the fouled team
@@ -890,6 +984,30 @@ export function simulateHalf(
           const injLabel = INJURY_TYPES[details.type].label;
           const sevLabel = details.severity === 'minor' ? 'Minor' : details.severity === 'moderate' ? 'Moderate' : 'Serious';
           events.push({ minute: min, type: 'injury', playerId: fouled.id, clubId: fouled.clubId, description: `${fouled.lastName} goes down injured after the foul! ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.` });
+          // Rebalance strength after injury (numerical disadvantage)
+          const injRecomp = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
+          homeStr = injRecomp.homeStr; awayStr = injRecomp.awayStr;
+          // AI substitution for injured player (non-player team only)
+          const injuredIsHome = fouled.clubId === homeClub.id;
+          const injuredIsPlayerTeam = fouled.clubId === playerClubId;
+          if (!injuredIsPlayerTeam) {
+            const subResult = tryAISub(injuredIsHome ? homeBenchPool : awayBenchPool, injuredIsHome ? homePlayers : awayPlayers, unavailable, injuredIsHome ? homeSubsUsed : awaySubsUsed, 'injury', fouled, undefined, undefined, min);
+            if (subResult) {
+              const { inPlayer, outPlayer } = subResult;
+              if (injuredIsHome) { homeSubsUsed++; homeActive.add(inPlayer.id); } else { awaySubsUsed++; awayActive.add(inPlayer.id); }
+              // Add subbed-in player to the players array and remove from bench
+              (injuredIsHome ? homePlayers : awayPlayers).push(inPlayer);
+              const benchPool = injuredIsHome ? homeBenchPool : awayBenchPool;
+              const benchIdx = benchPool.findIndex(p => p.id === inPlayer.id);
+              if (benchIdx >= 0) benchPool.splice(benchIdx, 1);
+              // Init playerEvents for sub
+              if (!playerEvents[inPlayer.id]) playerEvents[inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: injuredIsHome ? awayGoals : homeGoals };
+              events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: injuredIsHome ? homeClub.id : awayClub.id, description: `${inPlayer.lastName} replaces the injured ${outPlayer.lastName}.` });
+              // Rebalance after sub improves team
+              const subRecomp = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
+              homeStr = subRecomp.homeStr; awayStr = subRecomp.awayStr;
+            }
+          }
         }
       }
 
@@ -956,6 +1074,27 @@ export function simulateHalf(
         const injLabel = INJURY_TYPES[details.type].label;
         const sevLabel = details.severity === 'minor' ? 'Minor' : details.severity === 'moderate' ? 'Moderate' : 'Serious';
         events.push({ minute: min, type: 'injury', playerId: candidate.id, clubId: club.id, description: `${pick(injuryDescs)(candidate.lastName)} ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.` });
+        // Rebalance strength after injury (numerical disadvantage)
+        const injRecomp2 = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
+        homeStr = injRecomp2.homeStr; awayStr = injRecomp2.awayStr;
+        // AI substitution for injured player (non-player team only)
+        const candIsHome = club.id === homeClub.id;
+        const candIsPlayerTeam = club.id === playerClubId;
+        if (!candIsPlayerTeam) {
+          const subResult2 = tryAISub(candIsHome ? homeBenchPool : awayBenchPool, candIsHome ? homePlayers : awayPlayers, unavailable, candIsHome ? homeSubsUsed : awaySubsUsed, 'injury', candidate, undefined, undefined, min);
+          if (subResult2) {
+            const { inPlayer, outPlayer } = subResult2;
+            if (candIsHome) { homeSubsUsed++; homeActive.add(inPlayer.id); } else { awaySubsUsed++; awayActive.add(inPlayer.id); }
+            (candIsHome ? homePlayers : awayPlayers).push(inPlayer);
+            const benchPool2 = candIsHome ? homeBenchPool : awayBenchPool;
+            const benchIdx2 = benchPool2.findIndex(p => p.id === inPlayer.id);
+            if (benchIdx2 >= 0) benchPool2.splice(benchIdx2, 1);
+            if (!playerEvents[inPlayer.id]) playerEvents[inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: candIsHome ? awayGoals : homeGoals };
+            events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: club.id, description: `${inPlayer.lastName} replaces the injured ${outPlayer.lastName}.` });
+            const subRecomp2 = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
+            homeStr = subRecomp2.homeStr; awayStr = subRecomp2.awayStr;
+          }
+        }
       }
     }
     // === COMMENTARY FALLBACK (event roll passed but no shot/foul/injury triggered) ===
@@ -967,6 +1106,42 @@ export function simulateHalf(
         : Math.max(-100, momentum - MOMENTUM_COMMENTARY_SWING);
       events.push({ minute: min, type: 'commentary', clubId: club.id, description: desc, momentum });
     }
+    // === AI TACTICAL SUBSTITUTIONS at key minutes ===
+    if (AI_SUB_CHECK_MINUTES.includes(min)) {
+      // Home team AI tactical sub (skip if player's team)
+      if (homeClub.id !== playerClubId && homeSubsUsed < MAX_SUBSTITUTIONS && homeBenchPool.length > 0 && Math.random() < AI_TACTICAL_SUB_CHANCE) {
+        const homeLosing = homeGoals < awayGoals;
+        const aiSub = tryAISub(homeBenchPool, homePlayers, unavailable, homeSubsUsed, 'tactical', undefined, matchFitness, homeLosing, min);
+        if (aiSub) {
+          homeSubsUsed++; homeActive.add(aiSub.inPlayer.id);
+          homePlayers.push(aiSub.inPlayer);
+          unavailable.add(aiSub.outPlayer.id); // "rested" player treated as unavailable
+          const bIdx = homeBenchPool.findIndex(p => p.id === aiSub.inPlayer.id);
+          if (bIdx >= 0) homeBenchPool.splice(bIdx, 1);
+          if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: awayGoals };
+          events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: homeClub.id, description: `${aiSub.inPlayer.lastName} comes on for ${aiSub.outPlayer.lastName}.` });
+          const recomp = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
+          homeStr = recomp.homeStr; awayStr = recomp.awayStr;
+        }
+      }
+      // Away team AI tactical sub (skip if player's team)
+      if (awayClub.id !== playerClubId && awaySubsUsed < MAX_SUBSTITUTIONS && awayBenchPool.length > 0 && Math.random() < AI_TACTICAL_SUB_CHANCE) {
+        const awayLosing = awayGoals < homeGoals;
+        const aiSub = tryAISub(awayBenchPool, awayPlayers, unavailable, awaySubsUsed, 'tactical', undefined, matchFitness, awayLosing, min);
+        if (aiSub) {
+          awaySubsUsed++; awayActive.add(aiSub.inPlayer.id);
+          awayPlayers.push(aiSub.inPlayer);
+          unavailable.add(aiSub.outPlayer.id);
+          const bIdx = awayBenchPool.findIndex(p => p.id === aiSub.inPlayer.id);
+          if (bIdx >= 0) awayBenchPool.splice(bIdx, 1);
+          if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: homeGoals };
+          events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: awayClub.id, description: `${aiSub.inPlayer.lastName} comes on for ${aiSub.outPlayer.lastName}.` });
+          const recomp = computeStrengths(homeClub, awayClub, homePlayers.filter(p => !unavailable.has(p.id)), awayPlayers.filter(p => !unavailable.has(p.id)), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
+          homeStr = recomp.homeStr; awayStr = recomp.awayStr;
+        }
+      }
+    }
+
     // Update last event tracker
     if (events.length > 0 && events[events.length - 1].minute === min) {
       lastEventMinute = min;
@@ -992,6 +1167,8 @@ export function simulateHalf(
     events, homeGoals, awayGoals, homeShots, awayShots, homeSoT, awaySoT,
     homeFouls, awayFouls, homeCorners, awayCorners, sentOff: Array.from(sentOff), injured: Array.from(injured), playerEvents,
     momentum, homeXG, awayXG, matchInjuries,
+    homeSubsUsed, awaySubsUsed,
+    homeBench: homeBenchPool.map(p => p.id), awayBench: awayBenchPool.map(p => p.id),
   };
 }
 
@@ -1097,6 +1274,8 @@ export function simulateMatch(
   disciplinarianActive?: boolean,
   currentSeason?: number,
   careerDisciplineMod?: number,
+  homeBench?: Player[],
+  awayBench?: Player[],
 ): { result: Match; playerRatings: PlayerMatchRating[]; matchInjuries: Record<string, InjuryDetails> } {
   // Forfeit if either squad is invalid
   const homeIsPlayer = playerClubId === homeClub.id;
@@ -1117,7 +1296,7 @@ export function simulateMatch(
   const effectiveAwayTactics = awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS;
 
   // Simulate first half (1-45)
-  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod);
+  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod, homeBench, awayBench);
 
   // AI tactical reactivity: adjust tactics for second half based on scoreline
   let secondHalfHomeTactics = effectiveHomeTactics;
@@ -1131,7 +1310,7 @@ export function simulateMatch(
   }
 
   // Simulate second half (46-90) with potentially adjusted AI tactics
-  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod);
+  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod, homeBench, awayBench);
 
   const finalized = finalizeMatch(match, homeClub, awayClub, homePlayers, awayPlayers, fullState);
   return { ...finalized, matchInjuries: fullState.matchInjuries };

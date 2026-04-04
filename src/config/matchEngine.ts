@@ -259,6 +259,14 @@ export const SMART_SUB_LOSING_MINUTE = 55;
 /** When winning, suggest defensive subs after this minute */
 export const SMART_SUB_WINNING_LATE_MINUTE = 75;
 
+// ── AI Substitution Logic ──
+/** Minutes at which AI considers tactical substitutions */
+export const AI_SUB_CHECK_MINUTES: number[] = [60, 70, 80];
+/** Fitness threshold below which AI will sub a player */
+export const AI_SUB_FITNESS_THRESHOLD = 45;
+/** Chance AI makes a tactical sub at each check minute */
+export const AI_TACTICAL_SUB_CHANCE = 0.7;
+
 // ── Momentum System ──
 /** How much momentum swings toward the scoring team after a goal (-100 to +100 scale) */
 export const MOMENTUM_GOAL_SWING = 30;
