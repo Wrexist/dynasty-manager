@@ -1136,7 +1136,7 @@ const Dashboard = () => {
           </div>
           <div className="space-y-1.5">
             {injuredPlayers.map(p => (
-              <div key={p.id} role="button" tabIndex={0} className="flex items-center justify-between cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition-colors" onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
+              <div key={p.id} role="button" tabIndex={0} className="flex items-center justify-between cursor-pointer hover:bg-white/5 rounded px-1 -mx-1 py-0.5 transition-colors" onClick={(e) => { e.stopPropagation(); selectPlayer(p.id); }} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); selectPlayer(p.id); } }}>
                 <span className="text-sm text-foreground">
                   {p.firstName[0]}. {p.lastName}
                   <span className="text-xs text-muted-foreground ml-1.5">({p.position})</span>
