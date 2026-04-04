@@ -217,7 +217,6 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               key={`slot-${i}`}
               className="absolute"
               style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
-              onClick={() => handleLineupPlayerClick(playerId)}
             >
               <div className={cn(
                 'relative rounded-lg',
