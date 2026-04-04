@@ -4,43 +4,30 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { NATIONS } from '@/data/nations';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins, Palette, Dices, ChevronDown } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getFlag } from '@/utils/nationality';
 import type { ManagerTraitId, ManagerAppearance, JobOffer } from '@/types/game';
 import { ManagerTraitPicker } from '@/components/game/ManagerTraitPicker';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
-import {
-  BADGE_SHAPES,
-  BADGE_COLORS,
-  ACCENT_COLORS,
-  BADGE_PATTERNS,
-  BADGE_ICONS,
-  DEFAULT_MALE_APPEARANCE,
-  DEFAULT_FEMALE_APPEARANCE,
-  DEFAULT_APPEARANCE,
-} from '@/config/managerAppearance';
+import { DEFAULT_APPEARANCE } from '@/config/managerAppearance';
 import { createDefaultManager, generateStartingOffers, negotiateSalary } from '@/utils/managerCareer';
 import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROUNDS, SALARY_COUNTER_MAX_INCREASE } from '@/config/managerCareer';
 import { CLUBS_DATA } from '@/data/league';
 import { toast } from 'sonner';
 
-type Step = 'name' | 'appearance' | 'nationality' | 'age' | 'traits' | 'offers';
+type Step = 'name' | 'nationality' | 'age' | 'traits' | 'offers';
 
-const STEPS: Step[] = ['name', 'appearance', 'nationality', 'age', 'traits', 'offers'];
+const STEPS: Step[] = ['name', 'nationality', 'age', 'traits', 'offers'];
 
 const STEP_LABELS: Record<Step, string> = {
   name: 'Name',
-  appearance: 'Appearance',
   nationality: 'Nationality',
   age: 'Age',
   traits: 'Traits',
   offers: 'Starting Job',
 };
-
-// Badge customization section IDs
-type AppearanceSection = 'shape' | 'colors' | 'style';
 
 // Group nations by confederation for display
 const CONFEDERATION_LABELS: Record<string, string> = {
@@ -61,7 +48,7 @@ const ManagerCreation = () => {
 
   const [step, setStep] = useState<Step>('name');
   const [managerName, setManagerName] = useState('');
-  const [appearance, setAppearance] = useState<ManagerAppearance>({ ...DEFAULT_APPEARANCE });
+  const [appearance] = useState<ManagerAppearance>({ ...DEFAULT_APPEARANCE });
   const [nationality, setNationality] = useState<string | null>(null);
   const [age, setAge] = useState(38);
   const [selectedTraits, setSelectedTraits] = useState<ManagerTraitId[]>([]);
@@ -72,36 +59,6 @@ const ManagerCreation = () => {
   const [negotiatingOfferId, setNegotiatingOfferId] = useState<string | null>(null);
   const [counterSalary, setCounterSalary] = useState<number>(0);
   const [negotiationMessage, setNegotiationMessage] = useState<string | null>(null);
-  const [openSections, setOpenSections] = useState<Set<AppearanceSection>>(new Set(['shape', 'colors', 'style']));
-
-  const toggleSection = (section: AppearanceSection) => {
-    setOpenSections(prev => {
-      const next = new Set(prev);
-      if (next.has(section)) next.delete(section);
-      else next.add(section);
-      return next;
-    });
-  };
-
-  const handleGenderToggle = (gender: 'male' | 'female') => {
-    setAppearance(prev => ({
-      ...(gender === 'male' ? DEFAULT_MALE_APPEARANCE : DEFAULT_FEMALE_APPEARANCE),
-      backgroundColor: prev.backgroundColor,
-      accentColor: prev.accentColor,
-    }));
-  };
-
-  const randomizeAppearance = () => {
-    const gender = appearance.gender;
-    setAppearance({
-      gender,
-      badgeShape: Math.floor(Math.random() * BADGE_SHAPES.length),
-      backgroundColor: BADGE_COLORS[Math.floor(Math.random() * BADGE_COLORS.length)].color,
-      accentColor: ACCENT_COLORS[Math.floor(Math.random() * ACCENT_COLORS.length)].color,
-      pattern: Math.floor(Math.random() * BADGE_PATTERNS.length),
-      icon: Math.floor(Math.random() * BADGE_ICONS.length),
-    });
-  };
 
   // Derive initials from manager name for the emblem preview
   const managerInitials = managerName.trim()
@@ -112,7 +69,6 @@ const ManagerCreation = () => {
   const canProceed = (() => {
     switch (step) {
       case 'name': return managerName.trim().length >= 2;
-      case 'appearance': return true;
       case 'nationality': return nationality !== null;
       case 'age': return true;
       case 'traits': return selectedTraits.length === TRAITS_TO_PICK;
@@ -249,7 +205,7 @@ const ManagerCreation = () => {
           <h1 className="text-lg font-bold text-foreground">Create Manager</h1>
           <p className="text-xs text-muted-foreground">Step {stepIdx + 1} of {STEPS.length} — {STEP_LABELS[step]}</p>
         </div>
-        {stepIdx > 1 && (
+        {stepIdx > 0 && (
           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
             <ManagerAvatar appearance={appearance} size={36} initials={managerInitials} />
           </div>
@@ -294,173 +250,6 @@ const ManagerCreation = () => {
                     autoFocus
                   />
                   <p className="text-[10px] text-muted-foreground mt-2">This is how you'll be known throughout your career.</p>
-                </div>
-                {actionButton}
-              </div>
-            )}
-
-            {/* Step: Appearance (Badge Customization) */}
-            {step === 'appearance' && (
-              <div>
-                <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-4">
-                    <Palette className="w-5 h-5 text-primary" />
-                    <h2 className="text-base font-bold text-foreground flex-1">Your Emblem</h2>
-                    <button
-                      onClick={randomizeAppearance}
-                      className="flex items-center gap-1.5 text-[10px] text-primary font-semibold hover:text-primary/80 transition-colors"
-                      aria-label="Randomize emblem"
-                    >
-                      <Dices className="w-4 h-4" /> Randomize
-                    </button>
-                  </div>
-
-                  {/* Gender Toggle */}
-                  <div className="flex justify-center mb-4">
-                    <div className="flex bg-muted/30 rounded-lg p-0.5 border border-border/30">
-                      {(['male', 'female'] as const).map(g => (
-                        <button
-                          key={g}
-                          onClick={() => handleGenderToggle(g)}
-                          className={cn(
-                            'px-5 py-1.5 rounded-md text-xs font-semibold transition-all duration-200 capitalize',
-                            appearance.gender === g
-                              ? 'bg-primary text-primary-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground',
-                          )}
-                        >
-                          {g}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Live preview */}
-                  <div className="flex justify-center mb-5">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl" />
-                      <ManagerAvatar appearance={appearance} size={160} className="relative" initials={managerInitials} />
-                    </div>
-                  </div>
-
-                  {/* ─── Badge Shape ─── */}
-                  <SectionHeader title="Shape" section="shape" open={openSections.has('shape')} onToggle={toggleSection} />
-                  <div className={cn('overflow-hidden transition-all duration-300', openSections.has('shape') ? 'max-h-[200px] opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0')}>
-                    <div className="flex gap-2 justify-center mt-2">
-                      {BADGE_SHAPES.map((shape, i) => (
-                        <button
-                          key={shape.id}
-                          onClick={() => setAppearance(prev => ({ ...prev, badgeShape: i }))}
-                          aria-label={shape.label}
-                          className={cn(
-                            'flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-all duration-200',
-                            appearance.badgeShape === i
-                              ? 'bg-primary/20 border border-primary/40'
-                              : 'bg-muted/20 border border-transparent hover:bg-muted/40',
-                          )}
-                        >
-                          <ManagerAvatar appearance={{ ...appearance, badgeShape: i }} size={36} initials={managerInitials} />
-                          <span className="text-[8px] text-muted-foreground">{shape.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* ─── Colors ─── */}
-                  <SectionHeader title="Colors" section="colors" open={openSections.has('colors')} onToggle={toggleSection} />
-                  <div className={cn('overflow-hidden transition-all duration-300', openSections.has('colors') ? 'max-h-[300px] opacity-100 mb-4' : 'max-h-0 opacity-0 mb-0')}>
-                    {/* Background Color */}
-                    <div className="mb-4 mt-2">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Background</p>
-                      <div className="flex gap-2 justify-center flex-wrap">
-                        {BADGE_COLORS.map(({ color, label }) => (
-                          <button
-                            key={color}
-                            onClick={() => setAppearance(prev => ({ ...prev, backgroundColor: color }))}
-                            aria-label={label}
-                            title={label}
-                            className={cn(
-                              'w-9 h-9 rounded-full transition-all duration-200 border',
-                              appearance.backgroundColor === color
-                                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 border-primary/40'
-                                : 'border-border/30 hover:scale-105',
-                            )}
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    {/* Accent / Ring Color */}
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Accent Ring</p>
-                      <div className="flex gap-2 justify-center flex-wrap">
-                        {ACCENT_COLORS.map(({ color, label }) => (
-                          <button
-                            key={color}
-                            onClick={() => setAppearance(prev => ({ ...prev, accentColor: color }))}
-                            aria-label={label}
-                            title={label}
-                            className={cn(
-                              'w-9 h-9 rounded-full transition-all duration-200 border',
-                              appearance.accentColor === color
-                                ? 'ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 border-primary/40'
-                                : 'border-border/30 hover:scale-105',
-                            )}
-                            style={{ backgroundColor: color }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ─── Style (Pattern + Icon) ─── */}
-                  <SectionHeader title="Style" section="style" open={openSections.has('style')} onToggle={toggleSection} />
-                  <div className={cn('overflow-hidden transition-all duration-300', openSections.has('style') ? 'max-h-[400px] opacity-100 mb-2' : 'max-h-0 opacity-0 mb-0')}>
-                    {/* Pattern */}
-                    <div className="mb-4 mt-2">
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Pattern</p>
-                      <div className="flex gap-2 justify-center">
-                        {BADGE_PATTERNS.map((pat, i) => (
-                          <button
-                            key={pat.id}
-                            onClick={() => setAppearance(prev => ({ ...prev, pattern: i }))}
-                            aria-label={pat.label}
-                            className={cn(
-                              'flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg transition-all duration-200',
-                              appearance.pattern === i
-                                ? 'bg-primary/20 border border-primary/40'
-                                : 'bg-muted/20 border border-transparent hover:bg-muted/40',
-                            )}
-                          >
-                            <ManagerAvatar appearance={{ ...appearance, pattern: i }} size={36} initials={managerInitials} />
-                            <span className="text-[8px] text-muted-foreground">{pat.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    {/* Icon */}
-                    <div>
-                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">Icon</p>
-                      <div className="flex gap-2 justify-center flex-wrap">
-                        {BADGE_ICONS.map((ico, i) => (
-                          <button
-                            key={ico.id}
-                            onClick={() => setAppearance(prev => ({ ...prev, icon: i }))}
-                            aria-label={ico.label}
-                            className={cn(
-                              'flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg transition-all duration-200',
-                              appearance.icon === i
-                                ? 'bg-primary/20 border border-primary/40'
-                                : 'bg-muted/20 border border-transparent hover:bg-muted/40',
-                            )}
-                          >
-                            <ManagerAvatar appearance={{ ...appearance, icon: i }} size={42} initials={managerInitials} />
-                            <span className="text-[8px] text-muted-foreground">{ico.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
                 </div>
                 {actionButton}
               </div>
@@ -868,17 +657,5 @@ const ManagerCreation = () => {
   );
 };
 
-// Collapsible section header for badge customization
-function SectionHeader({ title, section, open, onToggle }: { title: string; section: AppearanceSection; open: boolean; onToggle: (s: AppearanceSection) => void }) {
-  return (
-    <button
-      onClick={() => onToggle(section)}
-      className="w-full flex items-center justify-between py-2 border-t border-border/20"
-    >
-      <span className="text-xs font-semibold text-foreground">{title}</span>
-      <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform duration-200', open && 'rotate-180')} />
-    </button>
-  );
-}
 
 export default ManagerCreation;
