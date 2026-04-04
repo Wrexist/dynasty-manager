@@ -1,7 +1,6 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
-import { getRatingColor } from '@/utils/uiHelpers';
-import { getFitnessHexColor } from '@/utils/uiHelpers';
+import { getRatingColor, getFitnessHexColor } from '@/utils/uiHelpers';
 import { Link, TrendingUp } from 'lucide-react';
 import type { Player } from '@/types/game';
 
@@ -22,6 +21,18 @@ const COMPAT_RING_CLASSES = {
   wrong: 'ring-2 ring-red-500',
 };
 
+function getMoraleDotClass(morale: number): string {
+  if (morale >= 70) return 'bg-emerald-400';
+  if (morale >= 40) return 'bg-amber-400';
+  return 'bg-red-400';
+}
+
+function getStatusLabel(player: Player): string | null {
+  if (player.injured) return 'INJ';
+  if (player.suspendedUntilWeek) return 'SUS';
+  return null;
+}
+
 export const PlayerCard = memo(function PlayerCard({
   player,
   position,
@@ -34,14 +45,16 @@ export const PlayerCard = memo(function PlayerCard({
 }: PlayerCardProps) {
   const isWarning = player.fitness < 50 || (chemistryLinkCount === 0 && variant === 'starter');
   const fitnessColor = getFitnessHexColor(player.fitness);
+  const statusLabel = getStatusLabel(player);
 
   if (variant === 'bench') {
     return (
       <div
         onClick={onClick}
         className={cn(
-          'flex flex-col items-center shrink-0 cursor-pointer transition-all rounded-lg px-1.5 py-1',
+          'flex flex-col items-center shrink-0 cursor-pointer rounded-lg px-1.5 py-1',
           'bg-black/60 border border-border/30 min-w-[40px]',
+          'transition-all duration-150',
           isSelected && 'ring-2 ring-primary scale-110',
           !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
           !isSelected && isBestSub && 'border-primary/60 shadow-[0_0_8px_hsl(var(--primary)/0.3)]',
@@ -59,6 +72,9 @@ export const PlayerCard = memo(function PlayerCard({
         <div className="flex items-center gap-1">
           <span className="text-[6px] text-gray-400">{player.position}</span>
           {isBestSub && <TrendingUp className="w-2 h-2 text-primary" />}
+          {statusLabel && (
+            <span className="text-[5px] font-bold text-red-400">{statusLabel}</span>
+          )}
         </div>
         {/* Fitness indicator */}
         <div className="w-full h-[1.5px] rounded-full bg-white/10 mt-0.5">
@@ -76,8 +92,9 @@ export const PlayerCard = memo(function PlayerCard({
     <div
       onClick={onClick}
       className={cn(
-        'flex flex-col items-center cursor-pointer transition-all rounded-lg',
+        'flex flex-col items-center cursor-pointer rounded-lg relative',
         'bg-black/70 border px-1.5 py-1 min-w-[38px]',
+        'transition-all duration-150',
         isSelected
           ? 'ring-2 ring-primary scale-110 border-primary/50'
           : isWarning
@@ -86,6 +103,13 @@ export const PlayerCard = memo(function PlayerCard({
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
       )}
     >
+      {/* Status badge (injury/suspension) */}
+      {statusLabel && (
+        <span className="absolute -top-1.5 -right-1.5 text-[5px] font-bold bg-red-500 text-white px-1 rounded-full leading-tight">
+          {statusLabel}
+        </span>
+      )}
+
       {/* Rating - largest element */}
       <span className={cn('text-sm font-bold font-display tabular-nums leading-none', getRatingColor(player.overall))}>
         {player.overall}
@@ -99,10 +123,13 @@ export const PlayerCard = memo(function PlayerCard({
         />
       </div>
 
-      {/* Name */}
-      <span className="text-[7px] font-bold text-white uppercase tracking-wide leading-tight">
-        {player.lastName.slice(0, 3).toUpperCase()}
-      </span>
+      {/* Name + morale dot */}
+      <div className="flex items-center gap-0.5">
+        <span className={cn('w-1 h-1 rounded-full shrink-0', getMoraleDotClass(player.morale))} />
+        <span className="text-[7px] font-bold text-white uppercase tracking-wide leading-tight">
+          {player.lastName.slice(0, 3).toUpperCase()}
+        </span>
+      </div>
 
       {/* Position + Chemistry */}
       <div className="flex items-center gap-0.5">

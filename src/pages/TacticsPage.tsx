@@ -175,9 +175,25 @@ const TacticsPage = () => {
         <button
           onClick={() => {
             setAutoFilling(true);
+            const oldLineup = [...club.lineup];
+            const oldAvg = Math.round(oldLineup.map(id => players[id]).filter(Boolean)
+              .reduce((s, p) => s + p.overall, 0) / Math.max(1, oldLineup.filter(id => players[id]).length));
             requestAnimationFrame(() => {
               autoFillTeam();
               setAutoFilling(false);
+              // Show diff toast
+              const newClub = useGameStore.getState().clubs[playerClubId];
+              if (newClub) {
+                const changes = newClub.lineup.filter((id, i) => id !== oldLineup[i]).length;
+                const newAvg = Math.round(newClub.lineup.map(id => players[id]).filter(Boolean)
+                  .reduce((s, p) => s + p.overall, 0) / Math.max(1, newClub.lineup.filter(id => players[id]).length));
+                const diff = newAvg - oldAvg;
+                if (changes > 0) {
+                  infoToast(`${changes} change${changes > 1 ? 's' : ''} made${diff > 0 ? `, +${diff} OVR` : ''}`);
+                } else {
+                  infoToast('Lineup already optimal');
+                }
+              }
             });
           }}
           disabled={autoFilling}

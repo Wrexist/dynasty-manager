@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/types/game';
@@ -13,8 +13,9 @@ import { ChemistryBar } from './ChemistryBar';
 import { InsightsPanel } from './InsightsPanel';
 import { getFlag } from '@/utils/nationality';
 import { getRatingColor } from '@/utils/uiHelpers';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
+import { hapticLight, hapticMedium } from '@/utils/haptics';
 
 // Half-pitch viewBox constants (bottom half only — your team)
 const VP_Y = 46;
@@ -41,6 +42,19 @@ export function LineupEditor() {
 
   const club = clubs[playerClubId];
 
+  // Clear selection when formation or lineup changes
+  const prevFormation = useRef(club?.formation);
+  const prevLineupKey = useRef(club?.lineup?.join(','));
+  useEffect(() => {
+    const currentFormation = club?.formation;
+    const currentLineupKey = club?.lineup?.join(',');
+    if (prevFormation.current !== currentFormation || prevLineupKey.current !== currentLineupKey) {
+      setSelectedId(null);
+    }
+    prevFormation.current = currentFormation;
+    prevLineupKey.current = currentLineupKey;
+  }, [club?.formation, club?.lineup]);
+
   // Chemistry links (memoized)
   const chemLinks = useMemo(() => {
     if (!club) return [];
@@ -66,6 +80,17 @@ export function LineupEditor() {
     }
     return counts;
   }, [chemLinks]);
+
+  // Set of player IDs that share a chemistry link with selected player
+  const selectedChemPartners = useMemo(() => {
+    if (!selectedId) return new Set<string>();
+    const partners = new Set<string>();
+    for (const link of chemLinks) {
+      if (link.playerIdA === selectedId) partners.add(link.playerIdB);
+      if (link.playerIdB === selectedId) partners.add(link.playerIdA);
+    }
+    return partners;
+  }, [selectedId, chemLinks]);
 
   const lineup = useMemo(() => club?.lineup || [], [club?.lineup]);
   const subs = useMemo(() => club?.subs || [], [club?.subs]);
@@ -95,7 +120,6 @@ export function LineupEditor() {
     for (const id of subAndBench) {
       const p = players[id];
       if (!p || p.injured) continue;
-      // Score: overall advantage over weakest starter + fitness bonus
       const advantage = p.overall - lowestStarter.overall;
       const fitnessBonus = (p.fitness - lowestStarter.fitness) / 100;
       const score = advantage + fitnessBonus;
@@ -170,6 +194,7 @@ export function LineupEditor() {
       }
     }
 
+    hapticMedium();
     updateLineup(newLineup, newSubs.slice(0, MAX_SUBS));
   }, [lineup, subs, subAndBench, updateLineup]);
 
@@ -177,6 +202,7 @@ export function LineupEditor() {
     const isEmptySlot = tappedId.startsWith('slot-');
     if (!selectedId) {
       if (isEmptySlot) return;
+      hapticLight();
       setSelectedId(tappedId);
     } else if (selectedId === tappedId) {
       setSelectedId(null);
@@ -199,11 +225,12 @@ export function LineupEditor() {
   if (!club) return null;
 
   const selectedPlayer = selectedId ? players[selectedId] : null;
+  const isLineupSelected = selectedId ? lineup.includes(selectedId) : false;
 
   return (
     <div>
       {/* Half Pitch (bottom half only) */}
-      <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: '24rem' }}>
+      <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: 'min(24rem, 100%)' }}>
         <svg viewBox={`0 ${VP_Y} ${VP_W} ${VP_H}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
           {/* Pitch background & markings */}
           <rect x="0" y="0" width="68" height="105" rx="1.5" fill={PITCH_COLORS.FILL} />
@@ -229,13 +256,14 @@ export function LineupEditor() {
           const isSelected = selectedId === playerId;
           const compat = selectedPlayer ? getCompatibility(selectedPlayer.position as Position, slot.pos as Position) : null;
 
+          // Fade non-selected, non-chemistry-linked players when someone is selected
+          const isFaded = selectedId && !isSelected && playerId && !selectedChemPartners.has(playerId);
+
           return (
-            <motion.div
+            <div
               key={`slot-${i}`}
-              className="absolute"
+              className={cn('absolute transition-opacity duration-200', isFaded && 'opacity-40')}
               style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
-              layout
-              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             >
               {player ? (
                 <PlayerCard
@@ -259,15 +287,16 @@ export function LineupEditor() {
                   <span className="text-[8px] text-white/40">{slot.pos}</span>
                 </div>
               )}
-            </motion.div>
+            </div>
           );
         })}
       </div>
 
       {/* Selected Player Detail Panel */}
       <AnimatePresence>
-        {selectedPlayer && lineup.includes(selectedId!) && (
+        {selectedPlayer && (
           <motion.div
+            key="detail-panel"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -285,6 +314,7 @@ export function LineupEditor() {
                     </p>
                     <p className="text-[10px] text-muted-foreground">
                       {selectedPlayer.position} · Age {selectedPlayer.age} · Fitness {selectedPlayer.fitness}%
+                      {selectedPlayer.injured && ' · Injured'}
                     </p>
                   </div>
                 </div>
@@ -303,6 +333,25 @@ export function LineupEditor() {
                     </span>
                   </div>
                 ))}
+              </div>
+
+              {/* Morale + Form row */}
+              <div className="flex items-center gap-3 mb-1.5 text-[9px]">
+                <span className="text-muted-foreground">
+                  Morale: <span className={cn('font-bold',
+                    selectedPlayer.morale >= 70 ? 'text-emerald-400' :
+                    selectedPlayer.morale >= 40 ? 'text-amber-400' : 'text-red-400'
+                  )}>{selectedPlayer.morale}</span>
+                </span>
+                <span className="text-muted-foreground">
+                  Form: <span className={cn('font-bold',
+                    selectedPlayer.form >= 70 ? 'text-emerald-400' :
+                    selectedPlayer.form >= 40 ? 'text-amber-400' : 'text-red-400'
+                  )}>{selectedPlayer.form}</span>
+                </span>
+                {!isLineupSelected && (
+                  <span className="text-primary text-[8px] ml-auto">BENCH</span>
+                )}
               </div>
 
               {/* Chemistry links for this player */}

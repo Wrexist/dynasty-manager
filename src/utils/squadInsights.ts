@@ -70,23 +70,24 @@ export function getSquadInsights(
     });
   }
 
-  // Chemistry side comparison
+  // Chemistry side comparison — use slot positions (what players are deployed as)
+  const playerSlotPos = new Map<string, string>();
+  lineupPlayers.forEach((p, i) => { if (slots[i]) playerSlotPos.set(p.id, slots[i].pos); });
+
   const leftLinkCount = chemLinks.filter(l => {
-    const ps = lineupPlayers;
-    const a = ps.find(p => p.id === l.playerIdA);
-    const b = ps.find(p => p.id === l.playerIdB);
-    return (a && LEFT_POSITIONS.has(a.position)) || (b && LEFT_POSITIONS.has(b.position));
+    const posA = playerSlotPos.get(l.playerIdA);
+    const posB = playerSlotPos.get(l.playerIdB);
+    return (posA && LEFT_POSITIONS.has(posA)) || (posB && LEFT_POSITIONS.has(posB));
   }).length;
   const rightLinkCount = chemLinks.filter(l => {
-    const ps = lineupPlayers;
-    const a = ps.find(p => p.id === l.playerIdA);
-    const b = ps.find(p => p.id === l.playerIdB);
-    return (a && RIGHT_POSITIONS.has(a.position)) || (b && RIGHT_POSITIONS.has(b.position));
+    const posA = playerSlotPos.get(l.playerIdA);
+    const posB = playerSlotPos.get(l.playerIdB);
+    return (posA && RIGHT_POSITIONS.has(posA)) || (posB && RIGHT_POSITIONS.has(posB));
   }).length;
   if (leftLinkCount > 0 && rightLinkCount === 0) {
-    insights.push({ type: 'warning', icon: 'AlertTriangle', message: 'Right side has weak chemistry' });
+    insights.push({ type: 'warning', icon: 'alert-triangle', message: 'Right side has weak chemistry' });
   } else if (rightLinkCount > 0 && leftLinkCount === 0) {
-    insights.push({ type: 'warning', icon: 'AlertTriangle', message: 'Left side has weak chemistry' });
+    insights.push({ type: 'warning', icon: 'alert-triangle', message: 'Left side has weak chemistry' });
   }
 
   // Strongest unit
