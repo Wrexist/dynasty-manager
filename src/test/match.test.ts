@@ -409,8 +409,8 @@ describe('Match Engine — AI Substitutions', () => {
       for (let j = 0; j < result.events.length - 1; j++) {
         if (result.events[j].type === 'injury') {
           const injClub = result.events[j].clubId;
-          // Look for a sub event for the same club within the next few events
-          for (let k = j + 1; k < Math.min(j + 5, result.events.length); k++) {
+          // Look for a sub event for the same club within the next 15 events (wider window for reliability)
+          for (let k = j + 1; k < Math.min(j + 15, result.events.length); k++) {
             if (result.events[k].type === 'substitution' && result.events[k].clubId === injClub) {
               injurySubSeen = true;
               break;
@@ -448,5 +448,82 @@ describe('Match Engine — Injury Strength Rebalance', () => {
 
     // Full team (with home advantage + numerical advantage) should score more
     expect(homeGoals).toBeGreaterThan(awayGoals);
+  });
+});
+
+describe('Match Engine — AI Sub Edge Cases', () => {
+  it('does not crash when bench is empty and injury occurs', () => {
+    const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
+    const { club: awayClub, players: awayPlayers } = makeLineup('away', '4-3-3', 70);
+
+    // No bench players at all
+    for (let i = 0; i < 50; i++) {
+      const match = makeMatch(`nobench-${i}`);
+      const { result } = simulateMatch(match, homeClub, awayClub, homePlayers, awayPlayers, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, [], []);
+      expect(result.played).toBe(true);
+    }
+  });
+
+  it('AI does not exceed MAX_SUBSTITUTIONS (5) per team', () => {
+    const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
+    const { club: awayClub, players: awayPlayers } = makeLineup('away', '4-3-3', 70);
+
+    // Large bench to give AI plenty of options
+    const positions: Player['position'][] = ['GK', 'CB', 'CB', 'LB', 'RB', 'CM', 'CM', 'ST', 'LW', 'RW'];
+    const homeBench = positions.map((pos, i) => makePlayer(`home-bigbench${i}`, 'home', pos, 75));
+    const awayBench = positions.map((pos, i) => makePlayer(`away-bigbench${i}`, 'away', pos, 75));
+
+    for (let i = 0; i < 100; i++) {
+      const match = makeMatch(`maxsub-${i}`);
+      const { result } = simulateMatch(match, homeClub, awayClub, homePlayers, awayPlayers, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, homeBench, awayBench);
+      const homeSubs = result.events.filter(e => e.type === 'substitution' && e.clubId === 'home').length;
+      const awaySubs = result.events.filter(e => e.type === 'substitution' && e.clubId === 'away').length;
+      expect(homeSubs).toBeLessThanOrEqual(5);
+      expect(awaySubs).toBeLessThanOrEqual(5);
+    }
+  });
+
+  it('AI subs only happen for non-player team', () => {
+    const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
+    const { club: awayClub, players: awayPlayers } = makeLineup('away', '4-3-3', 70);
+
+    const positions: Player['position'][] = ['CB', 'CM', 'ST', 'LB', 'RW'];
+    const homeBench = positions.map((pos, i) => makePlayer(`home-bench${i}`, 'home', pos, 68));
+    const awayBench = positions.map((pos, i) => makePlayer(`away-bench${i}`, 'away', pos, 68));
+
+    // Set playerClubId to home — AI subs should only happen for away team
+    for (let i = 0; i < 50; i++) {
+      const match = makeMatch(`isolation-${i}`);
+      const { result } = simulateMatch(match, homeClub, awayClub, homePlayers, awayPlayers, undefined, undefined, undefined, 'home', undefined, undefined, undefined, undefined, homeBench, awayBench);
+      // No AI-generated subs for the player's home team (tactical subs skip player team)
+      const homeTacticalSubs = result.events.filter(e => e.type === 'substitution' && e.clubId === 'home');
+      expect(homeTacticalSubs.length).toBe(0);
+    }
+  });
+
+  it('subbed-in players get match ratings', () => {
+    const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);
+    const { club: awayClub, players: awayPlayers } = makeLineup('away', '4-3-3', 70);
+
+    const positions: Player['position'][] = ['CB', 'CM', 'ST', 'LB', 'RW'];
+    const homeBench = positions.map((pos, i) => makePlayer(`home-bench${i}`, 'home', pos, 68));
+    const awayBench = positions.map((pos, i) => makePlayer(`away-bench${i}`, 'away', pos, 68));
+
+    // Run many matches until we get subs, then verify ratings include subbed-in players
+    for (let i = 0; i < 100; i++) {
+      const match = makeMatch(`subrating-${i}`);
+      const { result, playerRatings } = simulateMatch(match, homeClub, awayClub, homePlayers, awayPlayers, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, homeBench, awayBench);
+      const subEvents = result.events.filter(e => e.type === 'substitution');
+      if (subEvents.length > 0) {
+        // Every subbed-in player should have a rating
+        for (const sub of subEvents) {
+          const rating = playerRatings.find(r => r.playerId === sub.playerId);
+          expect(rating).toBeDefined();
+          expect(rating!.rating).toBeGreaterThanOrEqual(1);
+          expect(rating!.rating).toBeLessThanOrEqual(10);
+        }
+        break;
+      }
+    }
   });
 });

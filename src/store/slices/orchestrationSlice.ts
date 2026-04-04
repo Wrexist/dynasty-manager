@@ -2468,12 +2468,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const isPlayerMatch = newDomesticSuperCup.homeClubId === playerClubId || newDomesticSuperCup.awayClubId === playerClubId;
       if (!isPlayerMatch && hClub && aClub) {
         // AI simulation
-        const hPlayers = hClub.playerIds.map(id => newPlayers[id]).filter(Boolean).slice(0, 11);
-        const aPlayers = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).slice(0, 11);
+        const hAvailSC = hClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured);
+        const hPlayers = hAvailSC.slice(0, 11);
+        const hBenchSC = hAvailSC.slice(11, 18);
+        const aAvailSC = aClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured);
+        const aPlayers = aAvailSC.slice(0, 11);
+        const aBenchSC = aAvailSC.slice(11, 18);
         if (hPlayers.length > 0 && aPlayers.length > 0) {
           const { result: scResult } = simulateMatch(
             { id: 'super-cup', week, homeClubId: newDomesticSuperCup.homeClubId, awayClubId: newDomesticSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
-            hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, 0, undefined, season
+            hClub, aClub, hPlayers, aPlayers, undefined, undefined, undefined, undefined, 0, undefined, season, undefined, hBenchSC, aBenchSC
           );
           const winnerId = scResult.homeGoals > scResult.awayGoals ? newDomesticSuperCup.homeClubId :
             scResult.awayGoals > scResult.homeGoals ? newDomesticSuperCup.awayClubId :
@@ -2490,12 +2494,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const aClub = clubs[newContinentalSuperCup.awayClubId] || (state.virtualClubs || {})[newContinentalSuperCup.awayClubId];
       const isPlayerMatch = newContinentalSuperCup.homeClubId === playerClubId || newContinentalSuperCup.awayClubId === playerClubId;
       if (!isPlayerMatch && hClub && aClub) {
-        const hPlayers = (hClub as Club).playerIds ? (hClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).slice(0, 11) : [];
-        const aPlayers = (aClub as Club).playerIds ? (aClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).slice(0, 11) : [];
+        const hAvailCSC = (hClub as Club).playerIds ? (hClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured) : [];
+        const hPlayers = hAvailCSC.slice(0, 11);
+        const hBenchCSC = hAvailCSC.slice(11, 18);
+        const aAvailCSC = (aClub as Club).playerIds ? (aClub as Club).playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured) : [];
+        const aPlayers = aAvailCSC.slice(0, 11);
+        const aBenchCSC = aAvailCSC.slice(11, 18);
         if (hPlayers.length > 0 && aPlayers.length > 0) {
           const { result: scResult } = simulateMatch(
             { id: 'continental-super-cup', week, homeClubId: newContinentalSuperCup.homeClubId, awayClubId: newContinentalSuperCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] },
-            hClub as Club, aClub as Club, hPlayers, aPlayers, undefined, undefined, undefined, undefined, 0, undefined, season
+            hClub as Club, aClub as Club, hPlayers, aPlayers, undefined, undefined, undefined, undefined, 0, undefined, season, undefined, hBenchCSC, aBenchCSC
           );
           const winnerId = scResult.homeGoals > scResult.awayGoals ? newContinentalSuperCup.homeClubId :
             scResult.awayGoals > scResult.homeGoals ? newContinentalSuperCup.awayClubId :
@@ -3928,15 +3936,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const homeTactics = isPlayerHome ? tactics : undefined;
     const awayTactics = isPlayerHome ? undefined : tactics;
 
-    // Build bench arrays for AI substitution (second half uses halfTimeState bench IDs)
-    const hBench2 = (hc.subs || []).map(id => players[id]).filter(Boolean).filter(p => !p.injured);
-    const aBench2 = (ac.subs || []).map(id => players[id]).filter(Boolean).filter(p => !p.injured);
-
-    // Simulate second half, carrying forward first half state
+    // Simulate second half, carrying forward first half state (bench is carried in halfTimeState)
     const secondHalfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
     const secondHalfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
-    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, hBench2, aBench2);
+    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
     // Cup match ended in draw — need extra time (unless aggregate is already decided for 2-leg ties)
@@ -4055,11 +4059,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const derbyInt = getDerbyIntensity(currentMatchResult.homeClubId, currentMatchResult.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
 
-    // Simulate extra time as one 30-minute block (91-120)
+    // Simulate extra time as one 30-minute block (91-120) — bench is carried in halfTimeState
     const etCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
-    const etHBench = (hc.subs || []).map(id => players[id]).filter(Boolean).filter(p => !p.injured);
-    const etABench = (ac.subs || []).map(id => players[id]).filter(Boolean).filter(p => !p.injured);
-    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod, etHBench, etABench);
+    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod);
 
     // Build the extended match result
     const etResult: Match = {
@@ -4185,7 +4187,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     };
 
     // Finalize with extra events
-    const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState || { events: [], homeGoals: 0, awayGoals: 0, homeShots: 0, awayShots: 0, homeSoT: 0, awaySoT: 0, homeFouls: 0, awayFouls: 0, homeCorners: 0, awayCorners: 0, sentOff: [], injured: [], playerEvents: {}, momentum: 0, homeXG: 0, awayXG: 0, matchInjuries: {}, homeSubsUsed: 0, awaySubsUsed: 0, homeBench: [], awayBench: [] });
+    const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState || { events: [], homeGoals: 0, awayGoals: 0, homeShots: 0, awayShots: 0, homeSoT: 0, awaySoT: 0, homeFouls: 0, awayFouls: 0, homeCorners: 0, awayCorners: 0, sentOff: [], injured: [], playerEvents: {}, momentum: 0, homeXG: 0, awayXG: 0, matchInjuries: {}, homeSubsUsed: 0, awaySubsUsed: 0, homeBench: [], awayBench: [], homeSubbedIn: [], awaySubbedIn: [] });
 
     const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {});
     const penDrama = detectMatchDrama(result, playerClubId, clubs);
