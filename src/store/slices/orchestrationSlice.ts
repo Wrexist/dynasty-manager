@@ -14,6 +14,7 @@ import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } fro
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
 import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity, getDominantTrainingFocus, getStreakMultiplier, updateStreaks, generateTrainingReport } from '@/utils/training';
+import { INDIVIDUAL_INJURY_RISK_MODIFIER } from '@/config/training';
 import { completeAssignment } from '@/utils/scouting';
 import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
@@ -2127,7 +2128,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const hasCupThisWeek = state.cup.ties.some(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId));
         const hasLeagueThisWeek = state.fixtures.some(f => f.week === week && !f.played && (f.homeClubId === playerClubId || f.awayClubId === playerClubId));
         const congestionFactor = (hasCupThisWeek && hasLeagueThisWeek) ? CONGESTED_FIXTURE_INJURY_MULTIPLIER : 1;
-        const injuryRisk = baseInjuryRisk * physioReduction * perkReduction * congestionFactor;
+        const individualTrainingRisk = (training.individualPlans || []).some(
+          plan => plan.playerId === p.id
+        ) ? INDIVIDUAL_INJURY_RISK_MODIFIER : 1;
+        const injuryRisk = baseInjuryRisk * physioReduction * perkReduction * congestionFactor * individualTrainingRisk;
         if (Math.random() < injuryRisk && !p.injured) {
           const injDetails = generateAIInjuryDetails(facilities.medicalLevel);
           p.injured = true;

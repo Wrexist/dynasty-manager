@@ -11,7 +11,7 @@ import { PAGE_HINTS, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
 import { hapticLight } from '@/utils/haptics';
 import { successToast } from '@/utils/gameToast';
-import { TRAINING_PRESETS, DRILLS_BY_MODULE, STREAK_THRESHOLDS, STREAK_MULTIPLIERS } from '@/config/training';
+import { TRAINING_PRESETS, DRILLS_BY_MODULE, STREAK_THRESHOLDS, STREAK_MULTIPLIERS, MODULE_ATTR_MAP, INDIVIDUAL_FITNESS_COST } from '@/config/training';
 import { getTrainingRecommendation, getTrainingEffectivenessPreview, getSquadFitnessDistribution, getStreakTier, getDominantTrainingFocus } from '@/utils/training';
 import { getTrainingMultiplier } from '@/utils/personality';
 import { getStaffBonus } from '@/utils/staff';
@@ -202,13 +202,13 @@ const TrainingPage = () => {
               <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
                 <PolarGrid stroke="hsl(var(--border))" />
                 <PolarAngleAxis dataKey="attr" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                <Radar dataKey="value" stroke="hsl(43 96% 46%)" fill="hsl(43 96% 46%)" fillOpacity={0.2} strokeWidth={2} />
+                <Radar dataKey="value" stroke="hsl(160 84% 39%)" fill="hsl(160 84% 39%)" fillOpacity={0.2} strokeWidth={2} />
                 <Radar dataKey="benchmark" stroke="hsl(var(--muted-foreground))" fill="none" strokeWidth={1} strokeDasharray="4 4" />
               </RadarChart>
             </ResponsiveContainer>
             <div className="flex items-center justify-center gap-4 mt-1">
               <div className="flex items-center gap-1">
-                <div className="w-3 h-0.5 bg-primary rounded" />
+                <div className="w-3 h-0.5 rounded" style={{ backgroundColor: 'hsl(160 84% 39%)' }} />
                 <span className="text-[9px] text-muted-foreground">Your Squad</span>
               </div>
               <div className="flex items-center gap-1">
@@ -602,7 +602,7 @@ const TrainingPage = () => {
                 className="overflow-hidden"
               >
                 <p className="text-[10px] text-muted-foreground mt-2 mb-2">
-                  Assign a focus for +50% targeted gains. Tap a player to set or change.
+                  +50% gains on focus attributes. Extra sessions for skills not in team schedule. {Math.abs(INDIVIDUAL_FITNESS_COST)} fitness/wk cost per player.
                 </p>
                 <div className="space-y-1 max-h-72 overflow-y-auto">
                   {squadPlayers
@@ -620,8 +620,9 @@ const TrainingPage = () => {
                             className="flex items-center gap-2 w-full text-left hover:bg-muted/30 rounded-md px-1.5 py-1.5 transition-colors"
                           >
                             <span className="text-[10px] text-muted-foreground w-6 text-center tabular-nums">{p.overall}</span>
-                            <span className="text-xs text-foreground font-medium truncate flex-1">
+                            <span className={cn("text-xs font-medium truncate flex-1", p.injured ? "text-muted-foreground" : "text-foreground")}>
                               {p.firstName[0]}. {p.lastName}
+                              {p.injured && <Heart className="w-2.5 h-2.5 text-destructive inline ml-1" />}
                             </span>
                             <span className="text-[10px] text-muted-foreground w-8">{p.position}</span>
                             <span className={cn('text-[9px] w-8 text-right tabular-nums', multLabel)}>
@@ -657,6 +658,9 @@ const TrainingPage = () => {
                                     >
                                       <Icon className="w-3 h-3" />
                                       {label}
+                                      <span className="text-[8px] opacity-50">
+                                        ({MODULE_ATTR_MAP[module].map(a => ATTR_LABELS[a] || a).join('/')})
+                                      </span>
                                     </button>
                                   ))}
                                 </div>

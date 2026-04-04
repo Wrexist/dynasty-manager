@@ -74,7 +74,7 @@ export function getFamiliarityCap(matchesTogether: number): number {
 // ── Chemistry Line Colors ──
 /** Green — strong chemistry (strength >= 3) */
 export const CHEMISTRY_LINE_COLOR_STRONG = '#22c55e';
-/** Yellow — established chemistry (strength >= 2) */
-export const CHEMISTRY_LINE_COLOR_ESTABLISHED = '#eab308';
+/** Sky — established chemistry (strength >= 2) */
+export const CHEMISTRY_LINE_COLOR_ESTABLISHED = '#38bdf8';
 /** Dim white — developing chemistry (strength 1) */
 export const CHEMISTRY_LINE_COLOR_DEVELOPING = 'rgba(255,255,255,0.35)';

@@ -56,7 +56,7 @@ export const DEFAULT_MALE_APPEARANCE: ManagerAppearance = {
   gender: 'male',
   badgeShape: 1,            // shield
   backgroundColor: '#1a1a2e',
-  accentColor: '#D4A017',
+  accentColor: '#10b981',
   pattern: 0,               // solid
   icon: 0,                  // suit
 };
@@ -65,7 +65,7 @@ export const DEFAULT_FEMALE_APPEARANCE: ManagerAppearance = {
   gender: 'female',
   badgeShape: 0,            // circle
   backgroundColor: '#2e1a3a',
-  accentColor: '#D4A017',
+  accentColor: '#10b981',
   pattern: 0,               // solid
   icon: 0,                  // suit
 };

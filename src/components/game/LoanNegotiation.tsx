@@ -59,7 +59,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
 
   const particles = useMemo(() =>
     Array.from({ length: 24 }, (_, i) => ({
-      color: i % 4 === 0 ? '#3b82f6' : i % 4 === 1 ? '#22c55e' : i % 4 === 2 ? '#eab308' : '#06b6d4',
+      color: i % 4 === 0 ? '#3b82f6' : i % 4 === 1 ? '#22c55e' : i % 4 === 2 ? '#10b981' : '#06b6d4',
       left: 15 + Math.random() * 70,
       yTarget: -140 - Math.random() * 180,
       xTarget: (Math.random() - 0.5) * 160,

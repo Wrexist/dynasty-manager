@@ -124,7 +124,7 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
 
               {/* Title */}
               <motion.h2
-                className="text-xl font-black font-display text-primary drop-shadow-[0_0_10px_hsl(43,96%,46%,0.5)]"
+                className="text-xl font-black font-display text-[hsl(var(--gold))] drop-shadow-[0_0_10px_hsl(var(--gold)/0.5)]"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}

@@ -91,7 +91,7 @@ const NationalTeamPage = () => {
                 <div className={cn(
                   'w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold',
                   player.overall >= 80 ? 'bg-emerald-500/20 text-emerald-400' :
-                  player.overall >= 70 ? 'bg-primary/20 text-primary' :
+                  player.overall >= 70 ? 'bg-sky-500/20 text-sky-400' :
                   player.overall >= 60 ? 'bg-amber-500/20 text-amber-400' :
                   'bg-muted/20 text-muted-foreground'
                 )}>

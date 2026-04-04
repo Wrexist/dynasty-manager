@@ -214,7 +214,7 @@ export function getTierColor(tier: AchievementTier): string {
   switch (tier) {
     case 'bronze': return 'text-amber-600';
     case 'silver': return 'text-gray-300';
-    case 'gold': return 'text-primary';
+    case 'gold': return 'text-[hsl(var(--gold))]';
   }
 }
 

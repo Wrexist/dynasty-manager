@@ -9,6 +9,7 @@ import {
   INTENSITY_INJURY_RISK as CONFIG_INTENSITY_INJURY_RISK,
   BASE_GAIN_CHANCE, DIMINISHING_RETURNS_CEILING, DIMINISHING_RETURNS_DIVISOR,
   INDIVIDUAL_TRAINING_BONUS, STAFF_BONUS_MULTIPLIER,
+  INDIVIDUAL_BASE_GAIN, INDIVIDUAL_FITNESS_COST,
   FITNESS_RECOVERY_PER_DAY, FITNESS_RECOVERY_BASE, FITNESS_MIN,
   TRAINING_INJURY_AGE_THRESHOLD, TRAINING_INJURY_AGE_FACTOR,
   TACTICAL_FAMILIARITY_GAIN_PER_DAY, TACTICAL_FAMILIARITY_DECAY, TACTICAL_FAMILIARITY_MAX, TACTICAL_FAMILIARITY_MIN,
@@ -75,6 +76,9 @@ export function applyWeeklyTraining(
   const mult = INTENSITY_MULTIPLIER[training.intensity];
   const staffMult = 1 + staffBonus * STAFF_BONUS_MULTIPLIER;
 
+  // Look up individual plan for this player (used for gains and fitness cost)
+  const playerPlan = (training.individualPlans || []).find(plan => plan.playerId === player.id);
+
   // Apply attribute gains using weighted day contributions (respecting season growth cap)
   const gains: Partial<Record<keyof PlayerAttributes, number>> = {};
   const priorGrowth = seasonGrowthTracker[player.id] || 0;
@@ -83,9 +87,8 @@ export function applyWeeklyTraining(
       if (!weightedDays || weightedDays <= 0) continue;
 
       // Individual training focus: +50% gain if player's individual plan covers this attribute
-      const individualBonus = (training.individualPlans || []).some(
-        plan => plan.playerId === player.id && MODULE_ATTR_MAP[plan.focus]?.includes(attr)
-      ) ? INDIVIDUAL_TRAINING_BONUS : 1.0;
+      const individualBonus = playerPlan && MODULE_ATTR_MAP[playerPlan.focus]?.includes(attr)
+        ? INDIVIDUAL_TRAINING_BONUS : 1.0;
       const personalityMult = getTrainingMultiplier(player.personality);
       const currentVal = updated.attributes[attr] || 0;
       const diminishingFactor = Math.max(0.05, (DIMINISHING_RETURNS_CEILING - currentVal) / DIMINISHING_RETURNS_DIVISOR);
@@ -96,22 +99,47 @@ export function applyWeeklyTraining(
       }
     }
   }
+
+  // Update tracker after team pass so the independent pass sees accurate cap state
+  const teamOverall = calculateOverall(updated.attributes, updated.position);
+  const teamGrowth = Math.max(0, teamOverall - player.overall);
+  if (teamGrowth > 0) {
+    seasonGrowthTracker[player.id] = (seasonGrowthTracker[player.id] || 0) + teamGrowth;
+  }
+
+  // Independent individual training pass: gain chance for focus attributes NOT in team schedule
+  if (playerPlan && (seasonGrowthTracker[player.id] || 0) < MAX_SEASON_GROWTH) {
+    const individualAttrs = MODULE_ATTR_MAP[playerPlan.focus] || [];
+    const personalityMult = getTrainingMultiplier(player.personality);
+    for (const attr of individualAttrs) {
+      if (attrDayWeights[attr] && attrDayWeights[attr]! > 0) continue;
+      const indCurrentVal = updated.attributes[attr] || 0;
+      const indDiminishing = Math.max(0.05, (DIMINISHING_RETURNS_CEILING - indCurrentVal) / DIMINISHING_RETURNS_DIVISOR);
+      const gainChance = INDIVIDUAL_BASE_GAIN * staffMult * personalityMult * indDiminishing;
+      if (Math.random() < gainChance) {
+        updated.attributes[attr] = clamp(updated.attributes[attr] + 1);
+        gains[attr] = (gains[attr] || 0) + 1;
+      }
+    }
+  }
+
   updated.lastTrainingGains = Object.keys(gains).length > 0 ? gains : undefined;
 
   // Fitness recovery/drain (recovery facility bonus: +0.5 fitness per level per week)
   const fitnessDays = moduleCounts['fitness'] || 0;
   const recoveryBonus = recoveryLevel * RECOVERY_FITNESS_BONUS_PER_LEVEL;
-  updated.fitness = Math.max(FITNESS_MIN, Math.min(100, updated.fitness + fitnessDays * FITNESS_RECOVERY_PER_DAY + FITNESS_RECOVERY_BASE + recoveryBonus + INTENSITY_FITNESS_COST[training.intensity]));
+  const individualFitnessCost = playerPlan ? INDIVIDUAL_FITNESS_COST : 0;
+  updated.fitness = Math.max(FITNESS_MIN, Math.min(100, updated.fitness + fitnessDays * FITNESS_RECOVERY_PER_DAY + FITNESS_RECOVERY_BASE + recoveryBonus + INTENSITY_FITNESS_COST[training.intensity] + individualFitnessCost));
 
-  // Recalculate overall
-  const newOverall = calculateOverall(updated.attributes, updated.position);
-  updated.growthDelta = newOverall - player.overall;
-  updated.overall = newOverall;
+  // Recalculate final overall and track any additional growth from independent pass
+  const finalOverall = calculateOverall(updated.attributes, updated.position);
+  updated.growthDelta = finalOverall - player.overall;
+  updated.overall = finalOverall;
   updated.value = calculatePlayerValue(updated.overall);
 
-  // Track training growth toward season cap
-  if (updated.growthDelta > 0) {
-    seasonGrowthTracker[player.id] = (seasonGrowthTracker[player.id] || 0) + updated.growthDelta;
+  const additionalGrowth = Math.max(0, finalOverall - teamOverall);
+  if (additionalGrowth > 0) {
+    seasonGrowthTracker[player.id] = (seasonGrowthTracker[player.id] || 0) + additionalGrowth;
   }
 
   return updated;
