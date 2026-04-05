@@ -7,18 +7,13 @@ import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
+import { formatMoney } from '@/utils/helpers';
 import { getFlag } from '@/utils/nationality';
 import { LIST_PRICE_MULTIPLIER, LISTING_PRICE_FLOOR } from '@/config/transfers';
+import { hapticMedium } from '@/utils/haptics';
 import {
   X, Tag, TrendingUp, TrendingDown, Minus, Wallet, Users, Star, ArrowRight,
 } from 'lucide-react';
-
-/** Format money values compactly */
-function fmtM(v: number): string {
-  if (Math.abs(v) >= 1e6) return `£${(v / 1e6).toFixed(1)}M`;
-  if (Math.abs(v) >= 1e3) return `£${(v / 1e3).toFixed(0)}K`;
-  return `£${v}`;
-}
 
 interface Props {
   player: Player;
@@ -37,10 +32,12 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
 
   const club = clubs[playerClubId];
 
-  const defaultPrice = Math.max(LISTING_PRICE_FLOOR, Math.round(player.value * LIST_PRICE_MULTIPLIER));
-  const minPrice = Math.max(LISTING_PRICE_FLOOR, Math.round(player.value * 0.5));
-  const maxPrice = Math.round(player.value * 2.0);
-  const step = Math.max(50_000, Math.round(player.value * 0.02));
+  // Guard against zero/tiny values — use LISTING_PRICE_FLOOR as absolute minimum
+  const safeValue = Math.max(player.value, LISTING_PRICE_FLOOR);
+  const defaultPrice = Math.max(LISTING_PRICE_FLOOR, Math.round(safeValue * LIST_PRICE_MULTIPLIER));
+  const minPrice = Math.max(LISTING_PRICE_FLOOR, Math.round(safeValue * 0.5));
+  const maxPrice = Math.max(LISTING_PRICE_FLOOR * 2, Math.round(safeValue * 2.0));
+  const step = Math.max(10_000, Math.round(safeValue * 0.02));
 
   const [askingPrice, setAskingPrice] = useState(defaultPrice);
 
@@ -48,17 +45,19 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
 
   const top3 = useMemo(() => getTop3Attributes(player.attributes), [player]);
 
-  const priceRatio = player.value > 0 ? ((askingPrice - player.value) / player.value) * 100 : 0;
+  const priceRatio = safeValue > 0 ? ((askingPrice - safeValue) / safeValue) * 100 : 0;
+
+  const contractYears = Math.max(0, player.contractEnd - season);
 
   // Estimate how attractive this listing is to buyers
   const attractiveness = useMemo(() => {
-    const ratio = askingPrice / player.value;
+    const ratio = askingPrice / safeValue;
     if (ratio <= 0.8) return { label: 'Bargain', color: 'text-emerald-400' };
     if (ratio <= 1.1) return { label: 'Fair', color: 'text-emerald-400' };
     if (ratio <= 1.4) return { label: 'Normal', color: 'text-amber-400' };
     if (ratio <= 1.7) return { label: 'Steep', color: 'text-amber-400' };
     return { label: 'Unlikely', color: 'text-red-400' };
-  }, [askingPrice, player.value]);
+  }, [askingPrice, safeValue]);
 
   const positionCount = useMemo(() => {
     if (!club) return 0;
@@ -68,6 +67,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
   const hasPotential = player.potential > player.overall;
 
   const handleList = () => {
+    hapticMedium();
     const result = listPlayerForSale(player.id, askingPrice);
     onListed(result.appeased);
     onClose();
@@ -125,7 +125,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
                 <p className="text-[11px] text-muted-foreground/70 mt-0.5">
                   Wage: <span className="text-foreground/80">{formatWage(player.wage)}</span>
                   <span className="mx-1">·</span>
-                  Contract: <span className="text-foreground/80">{player.contractEnd - season}y</span>
+                  Contract: <span className="text-foreground/80">{contractYears}y</span>
                 </p>
               </div>
             </div>
@@ -147,18 +147,18 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
             <div className="flex items-center justify-between text-xs mb-3">
               <div>
                 <span className="text-muted-foreground">Market Value </span>
-                <span className="text-foreground font-semibold">{fmtM(player.value)}</span>
+                <span className="text-foreground font-semibold">{formatMoney(player.value)}</span>
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-muted-foreground">Suggested </span>
-                <span className="text-primary font-bold">{fmtM(defaultPrice)}</span>
+                <span className="text-primary font-bold">{formatMoney(defaultPrice)}</span>
               </div>
             </div>
 
             <div className="flex items-baseline justify-between mb-1">
               <span className="text-xs text-muted-foreground font-medium">Asking Price</span>
               <span className="text-xl font-black text-primary font-display tabular-nums">
-                {fmtM(askingPrice)}
+                {formatMoney(askingPrice)}
               </span>
             </div>
 
@@ -172,7 +172,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
               className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums mt-0.5">
-              <span>{fmtM(minPrice)}</span>
+              <span>{formatMoney(minPrice)}</span>
               <div className="flex items-center gap-1">
                 {priceRatio > 5 && <TrendingUp className="w-3 h-3 text-amber-400" />}
                 {priceRatio < -5 && <TrendingDown className="w-3 h-3 text-emerald-400" />}
@@ -183,7 +183,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
                   {priceRatio > 0 ? '+' : ''}{priceRatio.toFixed(0)}% vs value
                 </span>
               </div>
-              <span>{fmtM(maxPrice)}</span>
+              <span>{formatMoney(maxPrice)}</span>
             </div>
 
             {/* Buyer interest indicator */}
@@ -228,7 +228,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
               onClick={handleList}
               className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-black bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_24px_rgba(16,185,129,0.25)]"
             >
-              List for {fmtM(askingPrice)} <ArrowRight className="w-4 h-4" />
+              List for {formatMoney(askingPrice)} <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </motion.div>

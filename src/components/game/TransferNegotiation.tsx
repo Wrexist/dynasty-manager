@@ -7,10 +7,11 @@ import { cn } from '@/lib/utils';
 import { TransferListing } from '@/types/game';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
+import { formatMoney } from '@/utils/helpers';
 import { getFlag } from '@/utils/nationality';
 import {
   X, TrendingUp, TrendingDown,
-  ArrowRight, RotateCcw, Handshake, XCircle, Star, AlertTriangle, Wallet, Users,
+  ArrowRight, RotateCcw, Handshake, XCircle, Star, AlertTriangle, Wallet, Users, Unlock,
 } from 'lucide-react';
 
 function getInterpolatedChance(ratio: number): number {
@@ -18,13 +19,6 @@ function getInterpolatedChance(ratio: number): number {
   if (ratio >= 0.8) return 0.40 + (ratio - 0.8) / 0.2 * 0.45;
   if (ratio >= 0.5) return 0.10 + (ratio - 0.5) / 0.3 * 0.30;
   return 0.10;
-}
-
-/** Format money values compactly */
-function fmtM(v: number): string {
-  if (Math.abs(v) >= 1e6) return `£${(v / 1e6).toFixed(1)}M`;
-  if (Math.abs(v) >= 1e3) return `£${(v / 1e3).toFixed(0)}K`;
-  return `£${v}`;
 }
 
 interface Props {
@@ -49,9 +43,10 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   const removeFromShortlist = useGameStore(s => s.removeFromShortlist);
 
   const player = players[listing.playerId];
-  const sellerClub = listing.externalPlayer
-    ? { name: 'Unattached', shortName: 'Unattached', id: '' }
-    : clubs[listing.sellerClubId] || { name: 'Unknown Club', shortName: 'Unknown', id: listing.sellerClubId };
+  const rawSellerClub = listing.externalPlayer ? null : clubs[listing.sellerClubId];
+  const sellerClub = rawSellerClub
+    ? { ...rawSellerClub, shortName: rawSellerClub.shortName || rawSellerClub.name || 'Unknown' }
+    : { name: 'Unattached', shortName: 'Unattached', id: '' };
   const buyerClub = clubs[playerClubId];
 
   const [offerFee, setOfferFee] = useState(listing.askingPrice);
@@ -215,11 +210,11 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   <div className="flex items-center justify-between text-xs mb-3">
                     <div>
                       <span className="text-muted-foreground">Value </span>
-                      <span className="text-foreground font-semibold">{fmtM(player.value)}</span>
+                      <span className="text-foreground font-semibold">{formatMoney(player.value)}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className="text-muted-foreground">Asking </span>
-                      <span className="text-primary font-bold">{fmtM(listing.askingPrice)}</span>
+                      <span className="text-primary font-bold">{formatMoney(listing.askingPrice)}</span>
                       {valueDiff > 5 && <TrendingUp className="w-3 h-3 text-red-400" />}
                       {valueDiff < -5 && <TrendingDown className="w-3 h-3 text-emerald-400" />}
                       <span className={cn('text-[10px]',
@@ -230,11 +225,21 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     </div>
                   </div>
 
+                  {/* Release clause hint */}
+                  {player.releaseClause && (
+                    <div className="flex items-center gap-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-2.5 py-1.5 mb-3">
+                      <Unlock className="w-3 h-3 text-emerald-400 shrink-0" />
+                      <p className="text-[10px] text-emerald-400">
+                        Release clause: <span className="font-bold">{formatMoney(player.releaseClause)}</span> — guaranteed acceptance
+                      </p>
+                    </div>
+                  )}
+
                   {/* Your Offer */}
                   <div className="flex items-baseline justify-between mb-1">
                     <span className="text-xs text-muted-foreground font-medium">Your Offer</span>
                     <span className="text-xl font-black text-primary font-display tabular-nums">
-                      {fmtM(offerFee)}
+                      {formatMoney(offerFee)}
                     </span>
                   </div>
 
@@ -249,13 +254,13 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer"
                   />
                   <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums mt-0.5">
-                    <span>{fmtM(minFee)}</span>
+                    <span>{formatMoney(minFee)}</span>
                     <span className={cn('font-semibold',
                       feeRatio >= 1 ? 'text-emerald-400' : feeRatio >= 0.8 ? 'text-amber-400' : 'text-red-400'
                     )}>
                       {Math.round(feeRatio * 100)}% of asking
                     </span>
-                    <span>{fmtM(maxFee)}</span>
+                    <span>{formatMoney(maxFee)}</span>
                   </div>
 
                   {/* Acceptance bar — inline with label */}
@@ -288,7 +293,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                         <Wallet className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                         <span className="text-muted-foreground">Budget:</span>
                         <span className={cn('font-bold tabular-nums', evaluation.budgetAfter >= 0 ? 'text-foreground' : 'text-red-400')}>
-                          {fmtM(evaluation.budgetAfter)}
+                          {formatMoney(evaluation.budgetAfter)}
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 flex-1">
@@ -345,7 +350,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                 <div className="text-center">
                   <p className="text-sm font-bold text-foreground font-display">Negotiating...</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {sellerClub.shortName} are considering your {fmtM(finalFee)} offer
+                    {sellerClub.shortName} are considering your {formatMoney(finalFee)} offer
                   </p>
                 </div>
                 <div className="flex gap-1.5">
@@ -418,7 +423,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Fee</span>
-                    <span className="text-base font-black text-primary tabular-nums">{fmtM(finalFee)}</span>
+                    <span className="text-base font-black text-primary tabular-nums">{formatMoney(finalFee)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-muted-foreground">Wages</span>
@@ -427,7 +432,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   {finalFee < listing.askingPrice && (
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground">Saved</span>
-                      <span className="font-bold text-emerald-400 tabular-nums">{fmtM(listing.askingPrice - finalFee)}</span>
+                      <span className="font-bold text-emerald-400 tabular-nums">{formatMoney(listing.askingPrice - finalFee)}</span>
                     </div>
                   )}
                 </motion.div>
@@ -506,19 +511,19 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   <div className="flex items-center justify-center gap-3 py-3">
                     <div className="text-center">
                       <p className="text-[10px] text-muted-foreground mb-0.5">Your Bid</p>
-                      <p className="text-sm font-bold text-muted-foreground line-through tabular-nums">{fmtM(offerFee)}</p>
+                      <p className="text-sm font-bold text-muted-foreground line-through tabular-nums">{formatMoney(offerFee)}</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-amber-400" />
                     <div className="text-center">
                       <p className="text-[10px] text-amber-400 mb-0.5">They Want</p>
-                      <p className="text-base font-black text-amber-400 tabular-nums">{counterFee ? fmtM(counterFee) : '?'}</p>
+                      <p className="text-base font-black text-amber-400 tabular-nums">{counterFee ? formatMoney(counterFee) : '?'}</p>
                     </div>
                   </div>
                   {counterFee && (
                     <div className="text-center text-[10px] text-muted-foreground">
-                      Budget after: <span className={cn('font-semibold', buyerClub.budget - counterFee >= 0 ? 'text-foreground' : 'text-red-400')}>{fmtM(buyerClub.budget - counterFee)}</span>
+                      Budget after: <span className={cn('font-semibold', buyerClub.budget - counterFee >= 0 ? 'text-foreground' : 'text-red-400')}>{formatMoney(buyerClub.budget - counterFee)}</span>
                       <span className="mx-1.5">·</span>
-                      <span className="text-amber-400">+{fmtM(counterFee - offerFee)} more</span>
+                      <span className="text-amber-400">+{formatMoney(counterFee - offerFee)} more</span>
                     </div>
                   )}
                   {counterFee && counterFee > buyerClub.budget && (
@@ -563,7 +568,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_24px_rgba(16,185,129,0.25)]'
                 )}
               >
-                Submit Offer — {fmtM(offerFee)} <ArrowRight className="w-4 h-4" />
+                Submit Offer — {formatMoney(offerFee)} <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           )}

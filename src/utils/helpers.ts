@@ -38,7 +38,9 @@ export function addMsg(messages: Message[], msg: Omit<Message, 'id' | 'read'>): 
 }
 
 export function formatMoney(amount: number): string {
-  if (amount >= 1_000_000) return `£${(amount / 1_000_000).toFixed(1)}M`;
-  if (amount >= 1_000) return `£${Math.round(amount / 1_000)}K`;
-  return `£${amount}`;
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? '-' : '';
+  if (abs >= 1_000_000) return `${sign}£${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${sign}£${Math.round(abs / 1_000)}K`;
+  return `${sign}£${abs}`;
 }

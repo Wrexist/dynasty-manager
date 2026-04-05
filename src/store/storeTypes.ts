@@ -201,7 +201,7 @@ export interface GameState {
   makeOfferWithNegotiation: (playerId: string, fee: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string };
   addToShortlist: (id: string) => void;
   removeFromShortlist: (id: string) => void;
-  listPlayerForSale: (playerId: string) => { appeased: boolean };
+  listPlayerForSale: (playerId: string, customAskingPrice?: number) => { appeased: boolean };
   unlistPlayer: (playerId: string) => void;
   respondToOffer: (offerId: string, accept: boolean) => { success: boolean; message: string };
   negotiateIncomingOffer: (offerId: string, counterFee: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string };
