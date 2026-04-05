@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
@@ -12,7 +12,7 @@ import { ManagerTraitPicker } from '@/components/game/ManagerTraitPicker';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
 import { DEFAULT_APPEARANCE } from '@/config/managerAppearance';
-import { createDefaultManager, generateStartingOffers, negotiateSalary, getManagerBonusLabel } from '@/utils/managerCareer';
+import { createDefaultManager, generateBaseAttributes, applyTraitBonuses, generateStartingOffers, negotiateSalary, getManagerBonusLabel } from '@/utils/managerCareer';
 import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROUNDS, SALARY_COUNTER_MAX_INCREASE } from '@/config/managerCareer';
 import { CLUBS_DATA } from '@/data/league';
 import { toast } from 'sonner';
@@ -59,6 +59,9 @@ const ManagerCreation = () => {
   const [negotiatingOfferId, setNegotiatingOfferId] = useState<string | null>(null);
   const [counterSalary, setCounterSalary] = useState<number>(0);
   const [negotiationMessage, setNegotiationMessage] = useState<string | null>(null);
+
+  // Random base attributes generated once — trait bonuses applied deterministically on top
+  const baseAttributes = useRef(generateBaseAttributes());
 
   // Derive initials from manager name for the emblem preview
   const managerInitials = managerName.trim()
@@ -122,7 +125,8 @@ const ManagerCreation = () => {
     setLoading(true);
     requestAnimationFrame(() => {
       try {
-        const manager = createDefaultManager(managerName.trim(), nationality, age, selectedTraits, appearance);
+        const finalAttributes = applyTraitBonuses(baseAttributes.current, selectedTraits);
+        const manager = createDefaultManager(managerName.trim(), nationality, age, selectedTraits, appearance, finalAttributes);
 
         // Set contract from selected offer
         manager.contract = {
@@ -148,11 +152,10 @@ const ManagerCreation = () => {
     });
   };
 
-  // Preview the manager attributes based on current trait selection
-  const previewManager = useMemo(() => {
-    if (selectedTraits.length === 0) return null;
-    return createDefaultManager(managerName || 'Preview', nationality || '', age, selectedTraits, appearance);
-  }, [selectedTraits, managerName, nationality, age, appearance]);
+  // Preview attributes: stable base + deterministic trait bonuses
+  const previewAttributes = useMemo(() => {
+    return applyTraitBonuses(baseAttributes.current, selectedTraits);
+  }, [selectedTraits]);
 
   // Filtered nations for search
   const filteredNations = useMemo(() => {
@@ -343,20 +346,27 @@ const ManagerCreation = () => {
                   maxTraits={TRAITS_TO_PICK}
                   onToggle={handleTraitToggle}
                 />
-                {previewManager && (
-                  <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-4 mt-4">
-                    <p className="text-xs font-semibold text-foreground mb-3">Attribute Preview</p>
-                    <div className="space-y-2">
-                      <ManagerStatBar label="Tactical Knowledge" value={previewManager.attributes.tacticalKnowledge} />
-                      <ManagerStatBar label="Motivation" value={previewManager.attributes.motivation} />
-                      <ManagerStatBar label="Negotiation" value={previewManager.attributes.negotiation} />
-                      <ManagerStatBar label="Scouting Eye" value={previewManager.attributes.scoutingEye} />
-                      <ManagerStatBar label="Youth Development" value={previewManager.attributes.youthDevelopment} />
-                      <ManagerStatBar label="Discipline" value={previewManager.attributes.discipline} />
-                      <ManagerStatBar label="Media Handling" value={previewManager.attributes.mediaHandling} />
-                    </div>
+                <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-4 mt-4">
+                  <p className="text-xs font-semibold text-foreground mb-3">Attribute Preview</p>
+                  <div className="space-y-2">
+                    {([
+                      ['Tactical Knowledge', 'tacticalKnowledge'],
+                      ['Motivation', 'motivation'],
+                      ['Negotiation', 'negotiation'],
+                      ['Scouting Eye', 'scoutingEye'],
+                      ['Youth Development', 'youthDevelopment'],
+                      ['Discipline', 'discipline'],
+                      ['Media Handling', 'mediaHandling'],
+                    ] as [string, keyof typeof previewAttributes][]).map(([label, key]) => (
+                      <ManagerStatBar
+                        key={key}
+                        label={label}
+                        value={previewAttributes[key]}
+                        bonus={previewAttributes[key] - baseAttributes.current[key]}
+                      />
+                    ))}
                   </div>
-                )}
+                </div>
                 {actionButton}
               </div>
             )}
@@ -511,7 +521,7 @@ const ManagerCreation = () => {
                                   tabIndex={0}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const managerSkill = previewManager?.attributes.negotiation || 5;
+                                    const managerSkill = previewAttributes.negotiation;
                                     const result = negotiateSalary(offer, counterSalary, managerSkill);
                                     setStartingOffers(prev => prev.map(o => o.id === offer.id ? result : o));
                                     setSelectedOffer(result);

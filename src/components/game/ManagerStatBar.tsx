@@ -4,18 +4,25 @@ interface ManagerStatBarProps {
   label: string;
   value: number;
   max?: number;
+  bonus?: number;
   className?: string;
 }
 
-export function ManagerStatBar({ label, value, max = 20, className }: ManagerStatBarProps) {
-  const pct = (value / max) * 100;
-  const color = value >= 15 ? 'bg-emerald-500' : value >= 10 ? 'bg-sky-500' : value >= 6 ? 'bg-amber-500' : 'bg-muted-foreground';
+export function ManagerStatBar({ label, value, max = 20, bonus, className }: ManagerStatBarProps) {
+  const display = Math.floor(value);
+  const pct = (display / max) * 100;
+  const color = display >= 15 ? 'bg-emerald-500' : display >= 10 ? 'bg-sky-500' : display >= 6 ? 'bg-amber-500' : 'bg-muted-foreground';
 
   return (
     <div className={cn('space-y-1', className)}>
       <div className="flex justify-between items-center">
         <span className="text-xs text-muted-foreground">{label}</span>
-        <span className="text-xs font-bold text-foreground">{Math.floor(value)}</span>
+        <span className="text-xs font-bold text-foreground">
+          {display}
+          {bonus != null && bonus > 0 && (
+            <span className="text-emerald-400 ml-1 font-semibold">(+{bonus})</span>
+          )}
+        </span>
       </div>
       <div className="h-1.5 bg-muted/30 rounded-full overflow-hidden">
         <div

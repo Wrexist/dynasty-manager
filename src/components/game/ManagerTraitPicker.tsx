@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { MANAGER_TRAITS } from '@/config/managerCareer';
-import type { ManagerTraitId } from '@/types/game';
+import type { ManagerTraitId, ManagerAttributes } from '@/types/game';
 import { ClipboardList, Megaphone, Sprout, Handshake, ShieldCheck, Mic, Dumbbell, Search } from 'lucide-react';
 
 const TRAIT_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -12,6 +12,16 @@ const TRAIT_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
   Mic,
   Dumbbell,
   Search,
+};
+
+const ATTRIBUTE_LABELS: Record<keyof ManagerAttributes, string> = {
+  tacticalKnowledge: 'Tactical Knowledge',
+  motivation: 'Motivation',
+  negotiation: 'Negotiation',
+  scoutingEye: 'Scouting Eye',
+  youthDevelopment: 'Youth Development',
+  discipline: 'Discipline',
+  mediaHandling: 'Media Handling',
 };
 
 interface ManagerTraitPickerProps {
@@ -54,6 +64,13 @@ export function ManagerTraitPicker({ selected, maxTraits = 2, onToggle }: Manage
             <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-2">
               {trait.description}
             </p>
+            <div className="flex flex-wrap gap-1 mt-1.5">
+              {Object.entries(trait.attributeBonus).map(([key, bonus]) => (
+                <span key={key} className="text-[9px] font-semibold text-emerald-400 bg-emerald-500/10 rounded px-1 py-0.5">
+                  +{bonus} {ATTRIBUTE_LABELS[key as keyof ManagerAttributes]}
+                </span>
+              ))}
+            </div>
             <p className="text-[10px] text-primary/70 mt-1 italic">
               {trait.passiveEffect}
             </p>

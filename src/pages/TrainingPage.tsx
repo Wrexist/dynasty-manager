@@ -14,7 +14,7 @@ import { successToast } from '@/utils/gameToast';
 import { TRAINING_PRESETS, DRILLS_BY_MODULE, STREAK_THRESHOLDS, STREAK_MULTIPLIERS, MODULE_ATTR_MAP, INDIVIDUAL_FITNESS_COST } from '@/config/training';
 import { getTrainingRecommendation, getTrainingEffectivenessPreview, getSquadFitnessDistribution, getStreakTier, getDominantTrainingFocus } from '@/utils/training';
 import { getTrainingMultiplier } from '@/utils/personality';
-import { getStaffBonus } from '@/utils/staff';
+import { getTrainingStaffBonus } from '@/utils/staff';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -75,11 +75,7 @@ const TrainingPage = () => {
     return club.playerIds.map(id => players[id]).filter(Boolean);
   }, [club, players]);
 
-  const staffBonus = useMemo(() => {
-    const ftc = getStaffBonus(staff.members, 'first-team-coach');
-    const fc = getStaffBonus(staff.members, 'fitness-coach');
-    return ftc + fc * 0.5;
-  }, [staff.members]);
+  const staffBonus = useMemo(() => getTrainingStaffBonus(staff.members), [staff.members]);
 
   const handleDayChange = (day: typeof DAYS[number], mod: TrainingModule) => {
     hapticLight();

@@ -12,7 +12,8 @@ import {
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
-import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
+import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
+import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
 import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity, getDominantTrainingFocus, getStreakMultiplier, updateStreaks, generateTrainingReport } from '@/utils/training';
 import { INDIVIDUAL_INJURY_RISK_MODIFIER } from '@/config/training';
 import { completeAssignment } from '@/utils/scouting';
@@ -1918,7 +1919,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         intensity: 'medium', individualPlans: [], tacticalFamiliarity: STARTING_TACTICAL_FAMILIARITY,
       },
       staff: { members: initialStaff, availableHires },
-      scouting: { maxAssignments: Math.max(1, scoutCount), assignments: [], reports: [], discoveredPlayers: [] },
+      scouting: { maxAssignments: scoutCount, assignments: [], reports: [], discoveredPlayers: [] },
       youthAcademy: { prospects: youthProspects, nextIntakePreview, youthPreviewEnhanced: false },
       facilities: {
         trainingLevel: pcInit.facilities, youthLevel: pcInit.youthRating,
@@ -2065,10 +2066,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       return Math.round(ids.reduce((s, id) => s + (players[id]?.morale || 0), 0) / ids.length);
     })();
 
-    const fitnessCoachBonus = getStaffBonus(staff.members, 'fitness-coach');
-    const firstTeamCoachBonus = getStaffBonus(staff.members, 'first-team-coach');
     const physioBonus = getStaffBonus(staff.members, 'physio');
     const assistantManagerBonus = getStaffBonus(staff.members, 'assistant-manager');
+    const gkCoachBonus = getStaffBonus(staff.members, 'goalkeeping-coach');
 
     const playerClub = { ...clubs[playerClubId] };
     const improvedPlayers: { name: string; overall: number }[] = [];
@@ -2120,7 +2120,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const attrsBefore = { ...p.attributes };
 
       if (!p.injured) {
-        p = applyWeeklyTraining(p, training, firstTeamCoachBonus + fitnessCoachBonus * 0.5, facilities.recoveryLevel, streakMult);
+        p = applyWeeklyTraining(p, training, getTrainingStaffBonus(staff.members), facilities.recoveryLevel, streakMult);
         // Physio reduces training injury risk, age-scaled injury risk
         const baseInjuryRisk = getInjuryRisk(training, p.age);
         const physioReduction = 1 - physioBonus * PHYSIO_INJURY_REDUCTION_PER_QUALITY;
@@ -2145,7 +2145,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const allClubPlayers = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
       const mentorBonusVal = getMentorBonus(p, allClubPlayers);
       const trainingPerkBoost = hasPerk(state.managerProgression, 'training_ground') ? TRAINING_GROUND_BOOST : 0;
-      p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost);
+      const gkBoost = p.position === 'GK' ? gkCoachBonus * GK_COACH_DEV_BONUS_PER_QUALITY : 0;
+      p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + gkBoost);
       if (p.growthDelta && p.growthDelta > 0) {
         improvedPlayers.push({ name: p.lastName, overall: p.overall });
       } else if (p.growthDelta && p.growthDelta < 0) {
@@ -2863,6 +2864,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (newWeek === WINTER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Winter Deadline Approaching', body: 'The winter transfer window closes next week. Last chance for January deals!' });
     if (newWeek === WINTER_WINDOW_END) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Winter Window Closed', body: 'The January transfer window has closed. No more transfers until next season.' });
 
+    // Mid-season staff market refresh
+    let newStaff = staff;
+    if (newWeek === STAFF_MARKET_REFRESH_WEEK) {
+      const refreshedHires = generateStaffMarket();
+      newStaff = { ...staff, availableHires: refreshedHires };
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'New Staff Available', body: 'The mid-season staff market has refreshed. Check the Staff tab for new hiring options.' });
+    }
+
     // Scouting tick
     const newScouting = { ...scouting, assignments: [...scouting.assignments], reports: [...scouting.reports], discoveredPlayers: [...scouting.discoveredPlayers] };
     const scoutQuality = getStaffBonus(staff.members, 'scout');
@@ -3283,7 +3292,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       messages: newMessages, incomingOffers: newOffers, clubs: newClubs,
       matchSubsUsed: 0, boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
       training: { ...training, tacticalFamiliarity: newTacticalFamiliarity, streaks: newStreaks, lastReport: trainingReport },
-      scouting: newScouting, facilities: newFacilities, youthAcademy: newYouthAcademy,
+      staff: newStaff, scouting: newScouting, facilities: newFacilities, youthAcademy: newYouthAcademy,
       pendingGemReveal: gemReveals.length > 0 ? gemReveals[0] : null,
       financeHistory: newFinanceHistory,
       unlockedAchievements: allUnlocked,
