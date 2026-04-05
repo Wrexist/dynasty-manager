@@ -85,6 +85,9 @@ import {
   MARKET_REPLENISH_THRESHOLD, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT,
   FREE_AGENT_SPAWN_CHANCE, OFFER_EXPIRY_WEEKS,
   UNSOLICITED_OFFER_CHANCE, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE,
+  PERFORMANCE_GOAL_PREMIUM, PERFORMANCE_ASSIST_PREMIUM, PERFORMANCE_FORM_PREMIUM,
+  PERFORMANCE_APPEARANCE_THRESHOLD, PERFORMANCE_MAX_MULTIPLIER,
+  PERFORMANCE_FWD_GOAL_WEIGHT, PERFORMANCE_MID_GOAL_WEIGHT, PERFORMANCE_DEF_GOAL_WEIGHT,
 } from '@/config/transfers';
 import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
 import { PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
@@ -2652,6 +2655,29 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (transferWindowOpen) {
       const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
 
+      // Calculate performance multiplier based on season stats
+      const getPerformanceMultiplier = (tp: Player): number => {
+        // Position-specific goal weight
+        const fwdPositions: Position[] = ['ST', 'LW', 'RW'];
+        const midPositions: Position[] = ['CM', 'CDM', 'CAM', 'LM', 'RM'];
+        const goalWeight = fwdPositions.includes(tp.position)
+          ? PERFORMANCE_FWD_GOAL_WEIGHT
+          : midPositions.includes(tp.position)
+            ? PERFORMANCE_MID_GOAL_WEIGHT
+            : PERFORMANCE_DEF_GOAL_WEIGHT;
+
+        const goalBonus = tp.goals * PERFORMANCE_GOAL_PREMIUM * goalWeight;
+        const assistBonus = tp.assists * PERFORMANCE_ASSIST_PREMIUM;
+        const formBonus = tp.form > 50 ? (tp.form - 50) * PERFORMANCE_FORM_PREMIUM : 0;
+        // Scale bonus by appearances — need enough games to prove form
+        const appearanceScale = tp.appearances >= PERFORMANCE_APPEARANCE_THRESHOLD
+          ? 1.0
+          : tp.appearances / PERFORMANCE_APPEARANCE_THRESHOLD;
+
+        const rawMultiplier = 1 + (goalBonus + assistBonus + formBonus) * appearanceScale;
+        return Math.min(rawMultiplier, PERFORMANCE_MAX_MULTIPLIER);
+      };
+
       // Helper: attempt to generate an offer for a target player
       const tryGenerateOffer = (tp: Player, feeBase: number, feeRange: number) => {
         const buyerClubs = Object.values(clubs).filter(c => {
@@ -2663,12 +2689,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           return posCount < AI_OFFER_POSITION_THRESHOLD;
         });
         const candidates = shuffle([...buyerClubs]).slice(0, 3);
+        const perfMult = getPerformanceMultiplier(tp);
         for (const buyer of candidates) {
           const buyerSquad = buyer.playerIds.map(id => newPlayers[id]?.position).filter(Boolean);
           const posCount = buyerSquad.filter(pos => pos === tp.position).length;
           const urgencyMult = posCount === 0 ? URGENCY_NONE : posCount === 1 ? URGENCY_ONE : URGENCY_TWO_PLUS;
           const deadlinePremium = isDeadlineDay ? 1 + DEADLINE_DAY_BID_PREMIUM : 1;
-          const baseFee = tp.value * (feeBase + Math.random() * feeRange) * urgencyMult * deadlinePremium;
+          const baseFee = tp.value * (feeBase + Math.random() * feeRange) * urgencyMult * deadlinePremium * perfMult;
           let offerFee = Math.round(baseFee);
           const maxAffordable = Math.round(buyer.budget * OFFER_MAX_BUDGET_RATIO);
           if (offerFee > maxAffordable && maxAffordable >= tp.value * 0.7) {
