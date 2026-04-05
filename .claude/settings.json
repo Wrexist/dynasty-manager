@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run test*)",
+      "Bash(npm run lint*)",
+      "Bash(npm run build*)",
+      "Bash(npm run preflight*)",
+      "Bash(npm run typecheck*)",
+      "Bash(npm run dev*)",
+      "Bash(npm run ship*)",
+      "Bash(npm run branch*)",
+      "Bash(git status*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git branch*)",
+      "Bash(git add *)",
+      "Bash(git commit*)",
+      "Bash(git push -u origin*)",
+      "Bash(git fetch*)",
+      "Bash(git checkout*)",
+      "Bash(ls *)"
+    ],
+    "deny": [
+      "Bash(gh pr create*)",
+      "Bash(git add -A*)",
+      "Bash(git add .)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard*)",
+      "Bash(git clean -f*)",
+      "Bash(rm -rf*)",
+      "Bash(npm publish*)"
+    ]
+  }
+}

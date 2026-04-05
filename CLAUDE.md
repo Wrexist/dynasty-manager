@@ -58,6 +58,10 @@ Dynasty Manager is a mobile-first football management simulation with native iOS
 
 ## Architecture (~21,000 LOC across 142 TS/TSX files)
 ```
+.claude/
+├── commands/           → 7 slash commands: balance, feature, match-engine,
+│                         test, review, refactor, season
+├── settings.json       → Project-level Claude Code settings (deny rules)
 src/
 ├── components/
 │   ├── game/           → Components: TopBar, BottomNav, SubNav, GlassPanel,
@@ -195,13 +199,37 @@ Quick reference:
 - After push → always give the user: `https://github.com/Wrexist/dynasty-manager/pull/new/<branch>`
 - `gh pr create` is FORBIDDEN — no GitHub API auth available
 
+## Claude Code Slash Commands
+
+Custom project commands available via `/project:<name>` in Claude Code sessions. These encode dynasty-manager-specific knowledge, patterns, and context so every session starts with deep project understanding.
+
+| Command | Purpose | When to use |
+|---------|---------|-------------|
+| `/project:balance` | Game balance tuning | Adjusting config constants, analyzing cascading effects across 27 config files |
+| `/project:feature` | Feature scaffolding | Adding new game features (walks through types → config → slice → page → tests) |
+| `/project:match-engine` | Match engine dev | Modifying the 653-LOC match sim, event system, stats propagation |
+| `/project:test` | Test generation | Writing new tests or finding coverage gaps (follows existing Vitest patterns) |
+| `/project:review` | Code review | Reviewing changes against 20+ project-specific gotchas and conventions |
+| `/project:refactor` | Safe refactoring | Extracting logic from large files (especially orchestrationSlice at ~1,970 LOC) |
+| `/project:season` | Season & league logic | Working on promotion/relegation, playoffs, cup competitions, end-of-season |
+
+**How they work:** Each command is a markdown file in `.claude/commands/` that preloads context files, project rules, and domain knowledge. When invoked, Claude reads the relevant source files and applies project-specific patterns automatically.
+
+**Adding new commands:** Create a new `.md` file in `.claude/commands/`. It becomes available as `/project:<filename>`. Include `$ARGUMENTS` placeholder for user input.
+
+## Claude Code Project Settings
+
+`.claude/settings.json` enforces safety rails at the project level:
+- **Denied operations:** `git add -A`, `git push --force`, `git reset --hard`, `gh pr create` — these are blocked to prevent accidental destructive actions
+- Settings are version-controlled and apply to all Claude Code sessions on this repo
+
 ## CI/CD
 - **`ios-testflight.yml`** — Automated iOS TestFlight deployment
 - **`android-build.yml`** — Android APK/AAB building
 - **`pr-checks.yml`** — Pull request validation (lint + build + test)
 
 ## Known Tech Debt
-- `orchestrationSlice.ts` is ~1,970 lines — could be further split
+- `orchestrationSlice.ts` is ~1,970 lines — could be further split (use `/project:refactor` for guided extraction)
 - TS strict mode OFF (`strict: false`, `strictNullChecks: false`)
 - `getSuffix()`, `pick()`, `clamp()` are centralized in `src/utils/helpers.ts` (previously duplicated, now resolved)
 - framer-motion v12 is heavy (~30kb gzipped)
