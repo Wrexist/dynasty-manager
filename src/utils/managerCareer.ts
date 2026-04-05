@@ -157,6 +157,29 @@ export function getReputationTierLabel(tier: ReputationTier): string {
   return labels[tier];
 }
 
+export function getReputationTierShortLabel(tier: ReputationTier): string {
+  const labels: Record<ReputationTier, string> = {
+    unknown: 'New',
+    regional: 'Reg',
+    national: 'Nat',
+    continental: 'Con',
+    world_class: 'World',
+    legendary: 'Leg',
+  };
+  return labels[tier];
+}
+
+export function getManagerBonusLabel(condition: ManagerBonus['condition']): string {
+  const labels: Record<ManagerBonus['condition'], string> = {
+    promotion: 'Promotion',
+    top_half: 'Top Half',
+    title: 'Title',
+    cup_win: 'Cup Win',
+    avoid_relegation: 'Avoid Relegation',
+  };
+  return labels[condition];
+}
+
 export function getReputationColor(tier: ReputationTier): string {
   const colors: Record<ReputationTier, string> = {
     unknown: 'text-muted-foreground',

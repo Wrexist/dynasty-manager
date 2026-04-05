@@ -9,7 +9,7 @@ import { Trophy, Briefcase, Calendar, Award, LogOut, TrendingUp, GitBranch } fro
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
 import { cn } from '@/lib/utils';
 import { MANAGER_TRAITS } from '@/config/managerCareer';
-import { calculateLegacyScore, getRetirementAge } from '@/utils/managerCareer';
+import { calculateLegacyScore, getRetirementAge, getManagerBonusLabel } from '@/utils/managerCareer';
 import { getSpecializationTitle } from '@/utils/managerPerks';
 import { PageHint } from '@/components/game/PageHint';
 
@@ -116,7 +116,7 @@ const CareerOverview = () => {
                     b.met ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted/30 text-muted-foreground'
                   )}
                 >
-                  {b.condition.replace('_', ' ')}: £{(b.amount / 1000).toFixed(0)}k {b.met ? '✓' : ''}
+                  {getManagerBonusLabel(b.condition)}: £{(b.amount / 1000).toFixed(0)}k {b.met ? '✓' : ''}
                 </span>
               ))}
             </div>
