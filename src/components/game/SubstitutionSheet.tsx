@@ -10,12 +10,14 @@ import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/ty
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { getFlag } from '@/utils/nationality';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight, Wand2 } from 'lucide-react';
+import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight, Wand2, ArrowUp } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 import { PITCH_COLORS } from '@/config/ui';
 import { PlayerCard } from './PlayerCard';
+import { YellowCardIcon, RedCardIcon } from './PlayerAvatar';
 import { computeSmartSub } from '@/utils/substitutionLogic';
 import { optimizeStarterPositions } from '@/utils/autoFillLineup';
+import { successToast, infoToast } from '@/utils/gameToast';
 
 interface SubstitutionSheetProps {
   open: boolean;
@@ -39,6 +41,12 @@ interface SubstitutionSheetProps {
   playerGoals?: number;
   /** Current opponent goals for match context */
   opponentGoals?: number;
+  /** Per-player card status from match events */
+  playerCardStatus?: Map<string, 'yellow' | 'red'>;
+  /** Per-player goals & assists from match events */
+  playerMatchStats?: Map<string, { goals: number; assists: number }>;
+  /** IDs of players who were subbed on during this match */
+  subbedOnPlayerIds?: Set<string>;
 }
 
 function getFormLabel(form: number): { text: string; className: string } {
@@ -60,7 +68,7 @@ const VP_Y = 46;
 const VP_H = 59;
 const VP_W = 68;
 
-export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome, preSelectedOutId, forceMode, onDismissWithoutSub, injuredPlayerIds, playerGoals, opponentGoals }: SubstitutionSheetProps) {
+export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, homeGoals, awayGoals, homeShortName, awayShortName, isPlayerHome, preSelectedOutId, forceMode, onDismissWithoutSub, injuredPlayerIds, playerGoals, opponentGoals, playerCardStatus, playerMatchStats, subbedOnPlayerIds }: SubstitutionSheetProps) {
   const { players, matchSubsUsed, week } = useGameStore(useShallow(s => ({
     players: s.players,
     matchSubsUsed: s.matchSubsUsed,
@@ -211,6 +219,9 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
 
           const isSelectedOut = selectedOutId === playerId;
           const isInjuredInMatch = injuredPlayerIds?.includes(playerId);
+          const cardStatus = playerCardStatus?.get(playerId);
+          const matchStats = playerMatchStats?.get(playerId);
+          const isSubbedOn = subbedOnPlayerIds?.has(playerId);
 
           return (
             <div
@@ -220,12 +231,27 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
             >
               <div className={cn(
                 'relative rounded-lg',
-                isSelectedOut && 'ring-2 ring-destructive scale-110',
+                isSelectedOut && 'ring-2 ring-destructive scale-110 shadow-[0_0_12px_rgba(239,68,68,0.4)] animate-pulse',
                 isInjuredInMatch && !isSelectedOut && 'ring-2 ring-destructive/70 animate-pulse',
+                cardStatus === 'red' && !isSelectedOut && !isInjuredInMatch && 'ring-2 ring-red-600/70',
+                cardStatus === 'yellow' && !isSelectedOut && !isInjuredInMatch && 'ring-1 ring-amber-400/50',
               )}>
+                {/* Injury badge — top right */}
                 {isInjuredInMatch && !isSelectedOut && (
                   <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full flex items-center justify-center z-10">
                     <span className="text-[6px] text-white font-bold">!</span>
+                  </div>
+                )}
+                {/* Card badge — top left */}
+                {cardStatus && (
+                  <div className="absolute -top-1.5 -left-1.5 z-10">
+                    {cardStatus === 'red' ? <RedCardIcon size={7} /> : <YellowCardIcon size={7} />}
+                  </div>
+                )}
+                {/* Subbed on indicator — small arrow top-right (only if not injured) */}
+                {isSubbedOn && !isInjuredInMatch && (
+                  <div className="absolute -top-1 -right-1 z-10">
+                    <ArrowUp className="w-2.5 h-2.5 text-sky-400" />
                   </div>
                 )}
                 <PlayerCard
@@ -236,6 +262,17 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                   chemistryLinkCount={0}
                   onClick={() => handleLineupPlayerClick(playerId)}
                 />
+                {/* Goal/assist indicators — bottom */}
+                {(matchStats?.goals || matchStats?.assists) ? (
+                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 flex gap-px z-10">
+                    {matchStats.goals > 0 && Array.from({ length: Math.min(matchStats.goals, 3) }).map((_, gi) => (
+                      <div key={`g${gi}`} className="w-2 h-2 rounded-full bg-white border border-gray-600" title="Goal" />
+                    ))}
+                    {matchStats.assists > 0 && Array.from({ length: Math.min(matchStats.assists, 3) }).map((_, ai) => (
+                      <div key={`a${ai}`} className="w-2 h-2 rounded-full bg-primary/80 border border-primary" title="Assist" />
+                    ))}
+                  </div>
+                ) : null}
               </div>
             </div>
           );
@@ -262,19 +299,24 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
         </button>
       )}
 
-      {/* Optimize Positions — rearrange starters for best positional fit (no bench swaps) */}
+      {/* Optimize Lineup — rearrange starters for best positional fit (no bench swaps mid-match) */}
       {!selectedOutId && playerClub && (
         <button
           type="button"
           onClick={() => {
             setAutoFilling(true);
             hapticMedium();
-            // Run synchronously to keep state updates within React's batching
             try {
+              const oldLineup = [...lineup];
               const optimized = optimizeStarterPositions(lineup, players, playerClub.formation);
-              // Validate: must be same length and contain only valid player IDs
               if (optimized.length === lineup.length && optimized.every(id => players[id])) {
+                const changes = optimized.filter((id, i) => id !== oldLineup[i]).length;
                 updateLineup(optimized, playerClub.subs);
+                if (changes > 0) {
+                  successToast(`${changes} position${changes > 1 ? 's' : ''} rearranged`, 'Players moved to best-fit slots');
+                } else {
+                  infoToast('Lineup already optimal');
+                }
               }
             } catch (err) {
               console.error('[SubstitutionSheet] optimizeStarterPositions failed:', err);
@@ -291,7 +333,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
         >
           <Wand2 className={cn('w-4 h-4 text-primary shrink-0', autoFilling && 'animate-spin')} />
           <div className="flex-1 text-left min-w-0">
-            <p className="text-xs font-bold text-primary">{autoFilling ? 'Optimizing...' : 'Optimize Positions'}</p>
+            <p className="text-xs font-bold text-primary">{autoFilling ? 'Optimizing...' : 'Optimize Lineup'}</p>
             <p className="text-[10px] text-muted-foreground">Rearrange starters for best positional fit</p>
           </div>
         </button>
@@ -320,14 +362,20 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               ? getCompatibility(p.position as Position, selectedSlotPos)
               : null;
             const formInfo = getFormLabel(p.form);
+            const benchCardStatus = playerCardStatus?.get(id);
             return (
               <div
                 key={`bench-${id}`}
                 className={cn(
-                  'flex flex-col items-center shrink-0',
+                  'flex flex-col items-center shrink-0 relative',
                   !selectedOutId && 'opacity-50 pointer-events-none',
                 )}
               >
+                {benchCardStatus && (
+                  <div className="absolute -top-1 -left-0.5 z-10">
+                    {benchCardStatus === 'red' ? <RedCardIcon size={6} /> : <YellowCardIcon size={6} />}
+                  </div>
+                )}
                 <PlayerCard
                   player={p}
                   position={p.position}
