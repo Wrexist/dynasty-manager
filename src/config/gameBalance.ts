@@ -438,6 +438,19 @@ export const OBJECTIVE_STREAK_MULTIPLIER = 2;
 /** Bonus XP for completing all 3 objectives in a month */
 export const ALL_OBJECTIVES_BONUS_XP = 25;
 
+// ── Coach Checklist XP Rewards ──
+export const COACH_TASK_XP: Record<string, number> = {
+  'lineup': 5,
+  'first-match': 10,
+  'objectives': 10,
+  'scouting': 5,
+  'contracts': 5,
+  'transfers': 5,
+  'inbox': 5,
+};
+/** Bonus XP for completing ALL coach checklist tasks */
+export const COACH_ALL_TASKS_BONUS_XP = 15;
+
 // ── Achievement XP Rewards ──
 export const ACHIEVEMENT_XP_BRONZE = 15;
 export const ACHIEVEMENT_XP_SILVER = 30;

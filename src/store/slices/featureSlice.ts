@@ -1,6 +1,7 @@
 import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats, TransferTalk } from '@/types/game';
 import { MOD_MEDIA_PRESS, MOD_MOTIVATION_MORALE, GROWTH_MEDIA_PER_CONFERENCE, STAT_MAX } from '@/config/managerCareer';
-import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE } from '@/config/gameBalance';
+import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP } from '@/config/gameBalance';
+import { grantXP } from '@/utils/managerPerks';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
@@ -104,7 +105,18 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   markCoachTaskComplete: (taskId: string) => {
     const ids = get().completedCoachTaskIds;
     if (ids.includes(taskId)) return;
-    set({ completedCoachTaskIds: [...ids, taskId] });
+    const newIds = [...ids, taskId];
+
+    // Grant XP for the completed task
+    const xp = COACH_TASK_XP[taskId] ?? 5;
+    let updatedProgression = grantXP(get().managerProgression, xp);
+
+    // Bonus XP for completing all 7 tasks
+    if (newIds.length >= 7) {
+      updatedProgression = grantXP(updatedProgression, COACH_ALL_TASKS_BONUS_XP);
+    }
+
+    set({ completedCoachTaskIds: newIds, managerProgression: updatedProgression });
   },
 
   dismissPress: () => {

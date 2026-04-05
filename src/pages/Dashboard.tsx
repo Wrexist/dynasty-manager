@@ -16,6 +16,7 @@ import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getRoundName } from '@/data/cup';
 import { LEAGUES } from '@/data/league';
 import { motion } from 'framer-motion';
+import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
@@ -360,6 +361,39 @@ const Dashboard = () => {
       }
     }
   }, [coachTasks, completedCoachTaskIds, markCoachTaskComplete]);
+
+  // Track "just completed" for reward animations
+  const prevCompletedCoachRef = useRef<Set<string>>(new Set(coachTasks.filter(t => t.completed).map(t => t.id)));
+  const [justCompletedCoach, setJustCompletedCoach] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const prev = prevCompletedCoachRef.current;
+    const newlyDone = new Set<string>();
+    for (const task of coachTasks) {
+      if (task.completed && !prev.has(task.id)) newlyDone.add(task.id);
+    }
+    if (newlyDone.size > 0) {
+      setJustCompletedCoach(newlyDone);
+      setTimeout(() => setJustCompletedCoach(new Set()), 1000);
+    }
+    prevCompletedCoachRef.current = new Set(coachTasks.filter(t => t.completed).map(t => t.id));
+  }, [coachTasks]);
+
+  const prevCompletedObjRef = useRef<Set<string>>(new Set(weeklyObjectives.filter(o => o.completed).map(o => o.objectiveId)));
+  const [justCompletedObj, setJustCompletedObj] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const prev = prevCompletedObjRef.current;
+    const newlyDone = new Set<string>();
+    for (const obj of weeklyObjectives) {
+      if (obj.completed && !prev.has(obj.objectiveId)) newlyDone.add(obj.objectiveId);
+    }
+    if (newlyDone.size > 0) {
+      setJustCompletedObj(newlyDone);
+      setTimeout(() => setJustCompletedObj(new Set()), 1000);
+    }
+    prevCompletedObjRef.current = new Set(weeklyObjectives.filter(o => o.completed).map(o => o.objectiveId));
+  }, [weeklyObjectives]);
 
   // Last played match
   const lastMatchInfo = useMemo(() => {
@@ -895,29 +929,38 @@ const Dashboard = () => {
           </div>
           <div className="space-y-2">
             {coachTasks.map((task) => (
-              <button
-                key={task.id}
-                type="button"
-                disabled={!task.screen}
-                onClick={() => task.screen && setScreen(task.screen)}
-                className={cn(
-                  'w-full text-left rounded-lg px-3 py-2 border transition-colors',
-                  task.completed
-                    ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-muted/20 border-border/40 hover:bg-primary/5'
-                )}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
-                  <span className={cn(
-                    'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
-                    task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
-                  )}>
-                    {task.priority}
-                  </span>
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
-              </button>
+              <div key={task.id} className="relative">
+                <button
+                  type="button"
+                  disabled={!task.screen}
+                  onClick={() => task.screen && setScreen(task.screen)}
+                  className={cn(
+                    'w-full text-left rounded-lg px-3 py-2 border transition-colors',
+                    task.completed
+                      ? 'bg-emerald-500/10 border-emerald-500/30'
+                      : 'bg-muted/20 border-border/40 hover:bg-primary/5'
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {!task.completed && (
+                        <span className="text-[9px] font-bold text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded">
+                          +{task.xpReward} XP
+                        </span>
+                      )}
+                      <span className={cn(
+                        'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
+                        task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
+                      )}>
+                        {task.priority}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
+                </button>
+                <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
+              </div>
             ))}
           </div>
         </GlassPanel>
@@ -952,7 +995,7 @@ const Dashboard = () => {
               <div
                 key={obj.objectiveId}
                 className={cn(
-                  'flex items-center gap-2 rounded-lg px-3 py-2 transition-colors',
+                  'relative flex items-center gap-2 rounded-lg px-3 py-2 transition-colors',
                   obj.completed ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-muted/30 border border-border/30'
                 )}
               >
@@ -972,6 +1015,7 @@ const Dashboard = () => {
                 <span className={cn('text-[10px] font-bold shrink-0', obj.completed ? 'text-emerald-400' : 'text-sky-400')}>
                   {obj.completed ? '✓' : `+${obj.xpReward} XP`}
                 </span>
+                <FloatingXP amount={obj.xpReward} show={justCompletedObj.has(obj.objectiveId)} />
               </div>
             ))}
           </div>
