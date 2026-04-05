@@ -40,7 +40,7 @@ const ChallengePicker = () => {
   if (pickingClub && selected) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <div className="flex items-center gap-3 p-4 border-b border-border/30">
+        <div className="flex items-center gap-3 p-4 border-b border-border/30 safe-area-top">
           <button onClick={() => setPickingClub(false)} className="p-2 rounded-lg hover:bg-muted/50">
             <ArrowLeft className="w-5 h-5 text-foreground" />
           </button>
@@ -76,7 +76,7 @@ const ChallengePicker = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-border/30">
+      <div className="flex items-center gap-3 p-4 border-b border-border/30 safe-area-top">
         <button onClick={() => navigate('/')} className="p-2 rounded-lg hover:bg-muted/50">
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
