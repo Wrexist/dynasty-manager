@@ -18,11 +18,12 @@ export function SubNav({ items }: SubNavProps) {
 
   return (
     <div className="relative">
-      <div className="flex gap-1.5 overflow-x-auto px-4 pr-10 py-2 scrollbar-hide">
+      <nav aria-label="Sub navigation" className="flex gap-1.5 overflow-x-auto px-4 pr-10 py-2 scrollbar-hide">
         {items.map(({ screen, label }) => (
           <button
             key={screen}
             onClick={() => { hapticLight(); setScreen(screen); }}
+            aria-current={currentScreen === screen ? 'page' : undefined}
             className={cn(
               'px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0',
               currentScreen === screen
@@ -33,7 +34,7 @@ export function SubNav({ items }: SubNavProps) {
             {label}
           </button>
         ))}
-      </div>
+      </nav>
       {/* Scroll fade indicator */}
       <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-background to-transparent pointer-events-none" />
     </div>

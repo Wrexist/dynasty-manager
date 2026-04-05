@@ -304,7 +304,7 @@ const TransferPage = () => {
       )}
 
       {/* 4 Tabs */}
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+      <div role="tablist" aria-label="Transfer sections" className="flex gap-2 overflow-x-auto scrollbar-hide">
         {([
           { id: 'market' as const, icon: ShoppingCart, label: 'Market' },
           { id: 'shortlist' as const, icon: BookmarkCheck, label: `Shortlist (${shortlist.length})` },
@@ -316,6 +316,8 @@ const TransferPage = () => {
         ] as const).map(({ id, icon: TabIcon, label }) => (
           <button
             key={id}
+            role="tab"
+            aria-selected={tab === id}
             onClick={() => { hapticLight(); setTab(id); if (id !== 'news') setNewsTypeFilter('all'); }}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-colors relative',
@@ -467,16 +469,23 @@ const TransferPage = () => {
       {/* Market / Shortlist Listings */}
       {(tab === 'market' || tab === 'shortlist') && (
         <div className="space-y-2">
-          {listings.length === 0 && (
-            <GlassPanel className="p-8 text-center">
-              <p className="text-sm text-muted-foreground">
-                {tab === 'shortlist' ? 'No players in your shortlist' : 'No players on the transfer market'}
-              </p>
-              <p className="text-[10px] text-muted-foreground/60 mt-1">
-                {tab === 'shortlist' ? 'Tap the star icon on a player to add them' : 'Check back during the transfer window'}
-              </p>
-            </GlassPanel>
-          )}
+          {listings.length === 0 && (() => {
+            const hasFilters = posFilter !== 0 || searchQuery.trim() || divFilter !== 'all' || hideUnaffordable;
+            return (
+              <GlassPanel className="p-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  {hasFilters
+                    ? 'No players match your filters'
+                    : tab === 'shortlist' ? 'No players in your shortlist' : 'No players on the transfer market'}
+                </p>
+                <p className="text-[10px] text-muted-foreground/60 mt-1">
+                  {hasFilters
+                    ? 'Try adjusting your search, position, or division filters'
+                    : tab === 'shortlist' ? 'Tap the star icon on a player to add them' : 'Check back during the transfer window'}
+                </p>
+              </GlassPanel>
+            );
+          })()}
           {listings.map((listing, i) => {
             const p = players[listing.playerId];
             if (!p) return null;
