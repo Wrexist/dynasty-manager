@@ -4,7 +4,6 @@ import { selectBestLineup } from '@/utils/playerGen';
 import { autoFillBestTeam } from '@/utils/autoFillLineup';
 import type { AutoFillContext } from '@/utils/autoFillLineup';
 import { getDerbyIntensity } from '@/data/league';
-import { toast } from 'sonner';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -47,6 +46,7 @@ export const createClubSlice = (set: Set, get: Get) => ({
     const state = get();
     const club = { ...state.clubs[state.playerClubId] };
     const squad = club.playerIds.map(id => state.players[id]).filter(Boolean);
+    const oldLineup = [...club.lineup];
 
     // ── Build match context for opponent-aware optimization ──
     const leagueMatch = state.fixtures.find(
@@ -118,14 +118,24 @@ export const createClubSlice = (set: Set, get: Get) => ({
     club.subs = result.subs.map(p => p.id);
     set({ clubs: { ...state.clubs, [club.id]: club } });
 
-    if (result.lineup.length < 11) {
+    // Return metadata so UI can show a single unified toast
+    const changes = club.lineup.filter((id, i) => id !== oldLineup[i]).length;
+    const undersized = result.lineup.length < 11;
+    let undersizedDetail: string | undefined;
+    if (undersized) {
       const injuredCount = squad.filter(p => p.injured).length;
       const suspendedCount = squad.filter(p => p.suspendedUntilWeek && state.week !== undefined && p.suspendedUntilWeek > state.week).length;
       const onLoanCount = squad.filter(p => p.onLoan).length;
-      toast.warning(`Only ${result.lineup.length}/11 spots filled (${injuredCount} injured, ${suspendedCount} suspended, ${onLoanCount} on loan)`);
-    } else {
-      toast.success(`Lineup optimized — Chemistry: ${result.chemistryLabel} (+${(result.chemistryBonus * 100).toFixed(1)}%)`);
+      undersizedDetail = `Only ${result.lineup.length}/11 spots filled (${injuredCount} injured, ${suspendedCount} suspended, ${onLoanCount} on loan)`;
     }
+
+    return {
+      changes,
+      chemistryLabel: result.chemistryLabel,
+      chemistryBonus: result.chemistryBonus,
+      undersized,
+      undersizedDetail,
+    };
   },
 
   setTrainingFocus: (f: GameState['trainingFocus']) => set({ trainingFocus: f }),

@@ -1,13 +1,14 @@
-import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
-import { Swords, AlertTriangle, Flame, Info, Shield, Wand2, Zap } from 'lucide-react';
+import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
+import { Swords, AlertTriangle, Flame, Info, Shield, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
+import { useLineupOptimizer } from '@/hooks/useLineupOptimizer';
 import { Button } from '@/components/ui/button';
 import { getDerbyIntensity, getDerbyName } from '@/data/league';
 import { FormationType } from '@/types/game';
@@ -37,8 +38,9 @@ const MatchPrep = () => {
   })));
   const setScreen = useGameStore((s) => s.setScreen);
   const playCurrentMatch = useGameStore((s) => s.playCurrentMatch);
-  const autoFillTeam = useGameStore((s) => s.autoFillTeam);
-  const [autoFilling, setAutoFilling] = useState(false);
+  const { potentialGain, autoFilling, optimizeLineup } = useLineupOptimizer();
+
+  const myClub = clubs[playerClubId];
 
   const { match, isHome, opponent: oppClub } = useCurrentMatch();
   const oppClubId = match ? (isHome ? match.awayClubId : match.homeClubId) : '';
@@ -55,7 +57,6 @@ const MatchPrep = () => {
     );
   }
 
-  const myClub = clubs[playerClubId];
   const myEntry = leagueTable.find(e => e.clubId === playerClubId);
   const oppEntry = leagueTable.find(e => e.clubId === oppClubId);
 
@@ -352,28 +353,12 @@ const MatchPrep = () => {
 
       {/* Lineup & Bench */}
       <GlassPanel className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-semibold text-foreground">Your Formation: {myClub.formation}</h3>
-          <button
-            onClick={() => {
-              setAutoFilling(true);
-              requestAnimationFrame(() => {
-                autoFillTeam();
-                setAutoFilling(false);
-              });
-            }}
-            disabled={autoFilling}
-            className={cn(
-              'flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-lg transition-all',
-              autoFilling
-                ? 'bg-primary/30 text-primary/70 cursor-not-allowed'
-                : 'bg-primary/20 hover:bg-primary/30 text-primary'
-            )}
-          >
-            <Wand2 className={cn('w-3 h-3', autoFilling && 'animate-spin')} />
-            {autoFilling ? 'Filling...' : 'Smart Fill'}
-          </button>
+        <h3 className="text-sm font-semibold text-foreground mb-2">Your Formation: {myClub.formation}</h3>
+
+        <div className="mb-3">
+          <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
         </div>
+
         <LineupEditor />
       </GlassPanel>
 
