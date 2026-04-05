@@ -16,9 +16,9 @@ interface PlayerCardProps {
 }
 
 const COMPAT_RING_CLASSES = {
-  natural: 'ring-2 ring-emerald-400',
-  compatible: 'ring-2 ring-amber-400',
-  wrong: 'ring-2 ring-red-500',
+  natural: 'ring-2 ring-emerald-400/80',
+  compatible: 'ring-2 ring-amber-400/80',
+  wrong: 'ring-2 ring-red-500/80',
 };
 
 function getMoraleDotClass(morale: number): string {
@@ -52,32 +52,32 @@ export const PlayerCard = memo(function PlayerCard({
       <div
         onClick={onClick}
         className={cn(
-          'flex flex-col items-center shrink-0 cursor-pointer rounded-lg px-1.5 py-1',
-          'bg-black/60 border border-border/30 min-w-[40px]',
+          'flex flex-col items-center shrink-0 cursor-pointer rounded-lg px-2 py-1.5',
+          'bg-black/60 backdrop-blur-sm border border-white/[0.08] min-w-[44px]',
           'transition-all duration-150',
           isSelected && 'ring-2 ring-primary scale-110',
           !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
-          !isSelected && isBestSub && 'border-primary/60 shadow-[0_0_8px_hsl(var(--primary)/0.3)]',
+          !isSelected && isBestSub && 'border-primary/50 shadow-[0_0_8px_hsl(var(--primary)/0.25)]',
           player.injured && 'opacity-40',
         )}
       >
         <div className="flex items-center gap-1">
-          <span className="text-[7px] font-bold text-white uppercase tracking-wide">
+          <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide">
             {player.lastName.slice(0, 3).toUpperCase()}
           </span>
-          <span className={cn('text-[9px] font-bold font-display tabular-nums', getRatingColor(player.overall))}>
+          <span className={cn('text-[10px] font-bold font-display tabular-nums', getRatingColor(player.overall))}>
             {player.overall}
           </span>
         </div>
-        <div className="flex items-center gap-1">
-          <span className="text-[6px] text-gray-400">{player.position}</span>
+        <div className="flex items-center gap-1 mt-0.5">
+          <span className="text-[6px] text-gray-400 font-medium">{player.position}</span>
           {isBestSub && <TrendingUp className="w-2 h-2 text-primary" />}
           {statusLabel && (
             <span className="text-[5px] font-bold text-red-400">{statusLabel}</span>
           )}
         </div>
         {/* Fitness indicator */}
-        <div className="w-full h-[1.5px] rounded-full bg-white/10 mt-0.5">
+        <div className="w-full h-[2px] rounded-full bg-white/10 mt-1">
           <div
             className="h-full rounded-full transition-all"
             style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
@@ -93,20 +93,20 @@ export const PlayerCard = memo(function PlayerCard({
       onClick={onClick}
       className={cn(
         'flex flex-col items-center cursor-pointer rounded-lg relative',
-        'bg-black/70 border px-1.5 py-1 min-w-[38px]',
+        'bg-black/70 backdrop-blur-sm border px-2 py-1.5 min-w-[40px]',
         'transition-all duration-150',
         isSelected
-          ? 'ring-2 ring-primary scale-110 border-primary/50'
+          ? 'ring-2 ring-primary scale-110 border-primary/50 shadow-[0_0_12px_hsl(var(--primary)/0.3)]'
           : isWarning
-            ? 'border-red-500/50 shadow-[0_0_6px_rgba(239,68,68,0.3)]'
-            : 'border-border/30',
+            ? 'border-red-500/40 shadow-[0_0_6px_rgba(239,68,68,0.2)]'
+            : 'border-white/[0.08]',
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
         player.injured && 'opacity-60',
       )}
     >
       {/* Status badge (injury/suspension) */}
       {statusLabel && (
-        <span className="absolute -top-1.5 -right-1.5 text-[5px] font-bold bg-red-500 text-white px-1 rounded-full leading-tight">
+        <span className="absolute -top-1.5 -right-1.5 text-[5px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm">
           {statusLabel}
         </span>
       )}
@@ -126,17 +126,17 @@ export const PlayerCard = memo(function PlayerCard({
 
       {/* Name + morale dot */}
       <div className="flex items-center gap-0.5">
-        <span className={cn('w-1 h-1 rounded-full shrink-0', getMoraleDotClass(player.morale))} />
-        <span className="text-[7px] font-bold text-white uppercase tracking-wide leading-tight">
+        <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', getMoraleDotClass(player.morale))} />
+        <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide leading-tight">
           {player.lastName.slice(0, 3).toUpperCase()}
         </span>
       </div>
 
       {/* Position + Chemistry */}
-      <div className="flex items-center gap-0.5">
-        <span className="text-[6px] text-gray-400 leading-tight">{position}</span>
+      <div className="flex items-center gap-0.5 mt-px">
+        <span className="text-[6px] text-gray-400 font-medium leading-tight">{position}</span>
         {chemistryLinkCount > 0 && (
-          <span className="flex items-center gap-px text-[6px] text-primary leading-tight">
+          <span className="flex items-center gap-px text-[6px] text-primary font-semibold leading-tight">
             <Link className="w-1.5 h-1.5" />
             {chemistryLinkCount}
           </span>

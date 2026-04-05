@@ -6,9 +6,9 @@ import { SubNav } from '@/components/game/SubNav';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { Position } from '@/types/game';
-import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch, AlertTriangle, FileText, Users } from 'lucide-react';
+import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch, AlertTriangle, FileText, Users, LogOut, Smile, Meh, Frown } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getRatingColor, getFitnessColor, getMoraleBgColor } from '@/utils/uiHelpers';
+import { getRatingColor, getFitnessColor } from '@/utils/uiHelpers';
 import { successToast } from '@/utils/gameToast';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { POSITION_FILTERS, PAGE_HINTS } from '@/config/ui';
@@ -129,6 +129,12 @@ const SquadPage = () => {
       else next.add(key);
       return next;
     });
+  };
+
+  const getMoraleIcon = (morale: number) => {
+    if (morale >= 60) return { Icon: Smile, color: 'text-emerald-400', label: 'Happy' };
+    if (morale >= 35) return { Icon: Meh, color: 'text-amber-400', label: 'Unsettled' };
+    return { Icon: Frown, color: 'text-red-400', label: 'Low' };
   };
 
   const handleListForSale = (e: React.MouseEvent, playerId: string) => {
@@ -336,9 +342,9 @@ const SquadPage = () => {
         </div>
 
         {/* Player List */}
-        <GlassPanel className="divide-y divide-border/30">
+        <div className="space-y-1.5">
           {squad.length === 0 && (
-            <div className="p-8 text-center space-y-3">
+            <GlassPanel className="p-8 text-center space-y-3">
               <p className="text-sm text-muted-foreground">
                 {statusFilters.size > 0 ? 'No players match your filters' : 'No players in your squad'}
               </p>
@@ -355,33 +361,44 @@ const SquadPage = () => {
                   </button>
                 </div>
               )}
-            </div>
+            </GlassPanel>
           )}
           {squad.map((player, i) => {
             const fitnessColor = getFitnessColor(player.fitness);
-            const moraleColor = getMoraleBgColor(player.morale);
+            const morale = getMoraleIcon(player.morale);
 
             return (
               <motion.div
                 key={player.id}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: Math.min(i * 0.03, 0.45), duration: 0.2 }}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: Math.min(i * 0.025, 0.4), duration: 0.2 }}
                 onClick={() => selectPlayer(player.id)}
                 role="button"
                 tabIndex={0}
                 aria-label={`View ${player.firstName} ${player.lastName}`}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(player.id); } }}
-                className="flex items-center gap-2 py-2.5 px-3 hover:bg-muted/30 cursor-pointer transition-colors"
+                className={cn(
+                  'flex items-center gap-2.5 py-2.5 px-3 cursor-pointer transition-all rounded-xl',
+                  'bg-card/50 backdrop-blur-sm border border-border/30',
+                  'hover:bg-card/80 hover:border-border/50 active:scale-[0.99]',
+                  player.wantsToLeave && 'border-amber-500/25',
+                  player.injured && 'opacity-60',
+                )}
               >
-                {/* Overall */}
-                <span className={cn('font-mono font-black text-lg w-8 shrink-0 tabular-nums', getRatingColor(player.overall))}>
-                  {player.overall}
-                </span>
+                {/* Overall Rating Badge */}
+                <div className={cn(
+                  'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
+                  'bg-gradient-to-b from-white/[0.06] to-transparent border border-white/[0.06]',
+                )}>
+                  <span className={cn('font-display font-bold text-lg tabular-nums leading-none', getRatingColor(player.overall))}>
+                    {player.overall}
+                  </span>
+                </div>
 
-                {/* Name + growth indicator */}
+                {/* Player Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <p className="font-semibold text-foreground text-sm truncate">
                       {getFlag(player.nationality)} {player.firstName[0]}. {player.lastName}
                     </p>
@@ -393,8 +410,8 @@ const SquadPage = () => {
                     )}
                   </div>
 
-                  {/* Position badge + Age */}
-                  <div className="flex items-center gap-1.5 mt-0.5">
+                  {/* Position + Age + Status Row */}
+                  <div className="flex items-center gap-1.5 mt-1">
                     <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded', posBadgeColor(player.position))}>
                       {player.position}
                     </span>
@@ -411,47 +428,54 @@ const SquadPage = () => {
                   </div>
                 </div>
 
-                {/* Fitness bar */}
-                <div className="w-10 shrink-0 space-y-0.5" title={`Fitness ${player.fitness}%`}>
-                  <div className="h-1 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className={cn('h-full rounded-full', fitnessColor)}
-                      style={{ width: `${player.fitness}%` }}
-                    />
+                {/* Fitness + Morale Column */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {/* Fitness bar */}
+                  <div className="w-11 space-y-0.5" title={`Fitness ${player.fitness}%`}>
+                    <div className="h-1.5 bg-muted/80 rounded-full overflow-hidden">
+                      <div
+                        className={cn('h-full rounded-full transition-all', fitnessColor)}
+                        style={{ width: `${player.fitness}%` }}
+                      />
+                    </div>
+                    <p className="text-[8px] text-muted-foreground text-center tabular-nums">{player.fitness}%</p>
                   </div>
-                  <p className="text-[8px] text-muted-foreground text-center tabular-nums">{player.fitness}%</p>
+
+                  {/* Morale icon */}
+                  <morale.Icon className={cn('w-3.5 h-3.5 shrink-0', morale.color)} title={`Morale: ${morale.label} (${player.morale}%)`} />
                 </div>
 
-                {/* Morale dot */}
-                <div className={cn('w-2 h-2 rounded-full shrink-0', moraleColor)} title={`Morale ${player.morale}%`} />
-
-                {/* Status icons */}
-                <div className="flex items-center gap-1 w-10 justify-end shrink-0">
+                {/* Status Column */}
+                <div className="flex items-center gap-1 w-12 justify-end shrink-0">
                   {player.injured && (
                     <span className="flex items-center gap-0.5" title={`Injured — ${player.injuryWeeks || '?'} wk(s)`}>
                       <HeartPulse className="w-3.5 h-3.5 text-destructive" />
-                      <span className="text-[8px] font-bold text-destructive">{player.injuryWeeks}w</span>
+                      <span className="text-[8px] font-bold text-destructive tabular-nums">{player.injuryWeeks}w</span>
                     </span>
                   )}
                   {player.wantsToLeave && !player.injured && (
-                    <span className="text-[8px] font-bold text-destructive bg-destructive/10 px-1 py-0.5 rounded" title="Wants to leave">
-                      UNHAPPY
+                    <span
+                      className="flex items-center gap-0.5 text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-md"
+                      title="Wants to leave the club"
+                    >
+                      <LogOut className="w-2.5 h-2.5" />
+                      <span className="text-[7px] font-bold uppercase tracking-wide">Out</span>
                     </span>
                   )}
-                  {player.contractEnd <= season && !player.injured && (
-                    <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded" title="Contract expiring">
+                  {player.contractEnd <= season && !player.injured && !player.wantsToLeave && (
+                    <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-md" title="Contract expiring">
                       EXP
                     </span>
                   )}
                   {player.listedForSale && (
-                    <span className="text-[8px] font-bold text-primary bg-primary/10 px-1 py-0.5 rounded">
+                    <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
                       LISTED
                     </span>
                   )}
-                  {!player.listedForSale && !player.injured && (
+                  {!player.listedForSale && !player.injured && !player.wantsToLeave && (
                     <button
                       onClick={(e) => handleListForSale(e, player.id)}
-                      className="text-muted-foreground hover:text-primary transition-colors p-2"
+                      className="text-muted-foreground/40 hover:text-primary transition-colors p-1.5"
                       title="List for sale"
                     >
                       <Tag className="w-3 h-3" />
@@ -462,7 +486,7 @@ const SquadPage = () => {
             );
           })}
 
-        </GlassPanel>
+        </div>
       </div>
 
       {/* Confirm List for Sale Dialog */}
