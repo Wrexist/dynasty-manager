@@ -47,3 +47,8 @@ export function getStaffBonus(staff: StaffMember[], role: StaffRole): number {
   const member = staff.filter(s => s.role === role).sort((a, b) => b.quality - a.quality)[0];
   return member ? member.quality : 0;
 }
+
+/** Combined training staff bonus used by the engine: first-team-coach + fitness-coach * 0.5 */
+export function getTrainingStaffBonus(staff: StaffMember[]): number {
+  return getStaffBonus(staff, 'first-team-coach') + getStaffBonus(staff, 'fitness-coach') * 0.5;
+}

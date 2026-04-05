@@ -25,3 +25,15 @@ export const YOUTH_COACH_VARIANCE = 3;
 // ── Staff Market ──
 export const MARKET_QUALITY_BASE = 3;
 export const MARKET_QUALITY_RANGE = 5;
+
+// ── GK Coach ──
+/** Per-quality bonus added to GK position development chance */
+export const GK_COACH_DEV_BONUS_PER_QUALITY = 0.005;
+
+// ── Staff Market Refresh ──
+/** Week at which mid-season staff market refreshes */
+export const STAFF_MARKET_REFRESH_WEEK = 23;
+
+// ── Staff Hiring ──
+/** Weeks of salary charged as upfront hiring fee */
+export const STAFF_HIRING_FEE_WEEKS = 4;
