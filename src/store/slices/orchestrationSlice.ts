@@ -2628,40 +2628,46 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
-    // Incoming offers — AI clubs only bid for positions they actually need
+    // Incoming offers — AI clubs only bid during transfer windows for positions they need
     const newOffers = [...state.incomingOffers];
-    const listedPlayers = Object.values(newPlayers).filter(p => p.listedForSale && p.clubId === playerClubId);
-    for (const lp of listedPlayers) {
-      const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
-      const effectiveOfferChance = isDeadlineDay ? AI_OFFER_CHANCE * DEADLINE_DAY_OFFER_MULTIPLIER : AI_OFFER_CHANCE;
-      if (Math.random() < effectiveOfferChance) {
-        const buyerClubs = Object.values(clubs).filter(c => {
-          if (c.id === playerClubId) return false;
-          if (c.budget < lp.value * AI_OFFER_MIN_BUDGET_RATIO) return false;
-          if (newOffers.some(o => o.buyerClubId === c.id && o.playerId === lp.id)) return false;
-          // Squad need check: does this club need this position?
-          const squadPositions = c.playerIds.map(id => newPlayers[id]?.position).filter(Boolean);
-          const posCount = squadPositions.filter(pos => pos === lp.position).length;
-          // Only interested if they have fewer than 2 players in this position
-          return posCount < AI_OFFER_POSITION_THRESHOLD;
-        });
-        if (buyerClubs.length > 0) {
-          const buyer = pick(buyerClubs);
-          // Offer fee: factor in buyer urgency (fewer players at position = higher bid)
-          const buyerSquad = buyer.playerIds.map(id => newPlayers[id]?.position).filter(Boolean);
-          const posCount = buyerSquad.filter(pos => pos === lp.position).length;
-          const urgencyMult = posCount === 0 ? URGENCY_NONE : posCount === 1 ? URGENCY_ONE : URGENCY_TWO_PLUS;
-          const deadlinePremium = isDeadlineDay ? 1 + DEADLINE_DAY_BID_PREMIUM : 1;
-          const baseFee = lp.value * (OFFER_FEE_BASE + Math.random() * OFFER_FEE_RANDOM_RANGE) * urgencyMult * deadlinePremium;
-          const offerFee = Math.round(baseFee);
-          if (buyer.budget >= offerFee && offerFee <= buyer.budget * OFFER_MAX_BUDGET_RATIO) {
-            const offer: IncomingOffer = { id: crypto.randomUUID(), playerId: lp.id, buyerClubId: buyer.id, fee: offerFee, week: newWeek };
-            newOffers.push(offer);
-            newMessages = addMsg(newMessages, {
-              week: newWeek, season, type: 'transfer',
-              title: `Bid for ${lp.lastName}`,
-              body: `${buyer.name} have made a £${(offerFee / 1e6).toFixed(1)}M offer for ${lp.firstName} ${lp.lastName}.`,
-            });
+    if (transferWindowOpen) {
+      const listedPlayers = Object.values(newPlayers).filter(p => p.listedForSale && p.clubId === playerClubId);
+      for (const lp of listedPlayers) {
+        const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
+        const effectiveOfferChance = isDeadlineDay ? AI_OFFER_CHANCE * DEADLINE_DAY_OFFER_MULTIPLIER : AI_OFFER_CHANCE;
+        if (Math.random() < effectiveOfferChance) {
+          const buyerClubs = Object.values(clubs).filter(c => {
+            if (c.id === playerClubId) return false;
+            if (c.budget < lp.value * AI_OFFER_MIN_BUDGET_RATIO) return false;
+            if (newOffers.some(o => o.buyerClubId === c.id && o.playerId === lp.id)) return false;
+            const squadPositions = c.playerIds.map(id => newPlayers[id]?.position).filter(Boolean);
+            const posCount = squadPositions.filter(pos => pos === lp.position).length;
+            return posCount < AI_OFFER_POSITION_THRESHOLD;
+          });
+          // Try up to 3 eligible buyers to find one that can afford the fee
+          const candidates = shuffle([...buyerClubs]).slice(0, 3);
+          for (const buyer of candidates) {
+            const buyerSquad = buyer.playerIds.map(id => newPlayers[id]?.position).filter(Boolean);
+            const posCount = buyerSquad.filter(pos => pos === lp.position).length;
+            const urgencyMult = posCount === 0 ? URGENCY_NONE : posCount === 1 ? URGENCY_ONE : URGENCY_TWO_PLUS;
+            const deadlinePremium = isDeadlineDay ? 1 + DEADLINE_DAY_BID_PREMIUM : 1;
+            const baseFee = lp.value * (OFFER_FEE_BASE + Math.random() * OFFER_FEE_RANDOM_RANGE) * urgencyMult * deadlinePremium;
+            let offerFee = Math.round(baseFee);
+            // Cap fee to what buyer can afford, but not below 70% of player value
+            const maxAffordable = Math.round(buyer.budget * OFFER_MAX_BUDGET_RATIO);
+            if (offerFee > maxAffordable && maxAffordable >= lp.value * 0.7) {
+              offerFee = maxAffordable;
+            }
+            if (buyer.budget >= offerFee && offerFee <= buyer.budget * OFFER_MAX_BUDGET_RATIO) {
+              const offer: IncomingOffer = { id: crypto.randomUUID(), playerId: lp.id, buyerClubId: buyer.id, fee: offerFee, week: newWeek };
+              newOffers.push(offer);
+              newMessages = addMsg(newMessages, {
+                week: newWeek, season, type: 'transfer',
+                title: `Bid for ${lp.lastName}`,
+                body: `${buyer.name} have made a £${(offerFee / 1e6).toFixed(1)}M offer for ${lp.firstName} ${lp.lastName}.`,
+              });
+              break; // One offer per player per week
+            }
           }
         }
       }
