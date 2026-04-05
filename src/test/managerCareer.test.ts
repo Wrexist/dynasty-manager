@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   createDefaultManager,
   generateStartingAttributes,
+  generateBaseAttributes,
+  applyTraitBonuses,
   calculateReputationTier,
   calculateLegacyScore,
   generateStartingOffers,
@@ -13,6 +15,7 @@ import {
 } from '@/utils/managerCareer';
 import {
   STAT_MIN, STAT_MAX,
+  STARTING_ATTRIBUTE_MIN, STARTING_ATTRIBUTE_MAX,
   DEFAULT_RETIREMENT_AGE,
   LEGENDARY_RETIREMENT_EXTENSION,
 } from '@/config/managerCareer';
@@ -80,6 +83,97 @@ describe('Manager Career Mode', () => {
         totalWithout += generateStartingAttributes([]).tacticalKnowledge;
       }
       expect(totalWithTrait / runs).toBeGreaterThan(totalWithout / runs);
+    });
+  });
+
+  describe('generateBaseAttributes', () => {
+    it('should generate all 7 attributes within starting range', () => {
+      const attrs = generateBaseAttributes();
+      for (const value of Object.values(attrs)) {
+        expect(value).toBeGreaterThanOrEqual(STARTING_ATTRIBUTE_MIN);
+        expect(value).toBeLessThanOrEqual(STARTING_ATTRIBUTE_MAX);
+      }
+    });
+
+    it('should have all 7 attribute keys', () => {
+      const attrs = generateBaseAttributes();
+      expect(Object.keys(attrs)).toHaveLength(7);
+      expect(attrs).toHaveProperty('tacticalKnowledge');
+      expect(attrs).toHaveProperty('motivation');
+      expect(attrs).toHaveProperty('negotiation');
+      expect(attrs).toHaveProperty('scoutingEye');
+      expect(attrs).toHaveProperty('youthDevelopment');
+      expect(attrs).toHaveProperty('discipline');
+      expect(attrs).toHaveProperty('mediaHandling');
+    });
+  });
+
+  describe('applyTraitBonuses', () => {
+    const fixedBase = {
+      tacticalKnowledge: 5,
+      motivation: 5,
+      negotiation: 5,
+      scoutingEye: 5,
+      youthDevelopment: 5,
+      discipline: 5,
+      mediaHandling: 5,
+    };
+
+    it('should be deterministic — same base + same traits = same result', () => {
+      const a = applyTraitBonuses(fixedBase, ['tactician', 'motivator']);
+      const b = applyTraitBonuses(fixedBase, ['tactician', 'motivator']);
+      expect(a).toEqual(b);
+    });
+
+    it('should apply single-trait bonus correctly', () => {
+      const result = applyTraitBonuses(fixedBase, ['tactician']);
+      expect(result.tacticalKnowledge).toBe(8); // 5 + 3
+      expect(result.motivation).toBe(5); // unchanged
+    });
+
+    it('should stack multiple trait bonuses', () => {
+      const result = applyTraitBonuses(fixedBase, ['tactician', 'motivator']);
+      expect(result.tacticalKnowledge).toBe(8); // 5 + 3
+      expect(result.motivation).toBe(8); // 5 + 3
+    });
+
+    it('should handle multi-attribute traits (fitness_fanatic)', () => {
+      const result = applyTraitBonuses(fixedBase, ['fitness_fanatic']);
+      expect(result.discipline).toBe(7); // 5 + 2
+      expect(result.motivation).toBe(6); // 5 + 1
+    });
+
+    it('should clamp at STAT_MAX (20)', () => {
+      const highBase = { ...fixedBase, tacticalKnowledge: 19 };
+      const result = applyTraitBonuses(highBase, ['tactician']);
+      expect(result.tacticalKnowledge).toBe(STAT_MAX); // 19 + 3 clamped to 20
+    });
+
+    it('should not mutate the input base', () => {
+      const base = { ...fixedBase };
+      applyTraitBonuses(base, ['tactician']);
+      expect(base.tacticalKnowledge).toBe(5);
+    });
+
+    it('should return base unchanged when no traits given', () => {
+      const result = applyTraitBonuses(fixedBase, []);
+      expect(result).toEqual(fixedBase);
+    });
+  });
+
+  describe('createDefaultManager with precomputed attributes', () => {
+    it('should use precomputed attributes instead of generating new ones', () => {
+      const attrs = {
+        tacticalKnowledge: 10,
+        motivation: 10,
+        negotiation: 10,
+        scoutingEye: 10,
+        youthDevelopment: 10,
+        discipline: 10,
+        mediaHandling: 10,
+      };
+      const manager = createDefaultManager('Test', 'England', 35, [], undefined, attrs);
+      expect(manager.attributes).toEqual(attrs);
     });
   });
 

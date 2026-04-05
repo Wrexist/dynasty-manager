@@ -515,7 +515,7 @@ const ManagerCreation = () => {
                                   tabIndex={0}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const managerSkill = previewManager?.attributes.negotiation || 5;
+                                    const managerSkill = previewAttributes?.negotiation || 5;
                                     const result = negotiateSalary(offer, counterSalary, managerSkill);
                                     setStartingOffers(prev => prev.map(o => o.id === offer.id ? result : o));
                                     setSelectedOffer(result);
