@@ -237,8 +237,8 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                           {player.form >= 70 ? 'Good' : player.form >= 40 ? 'Average' : 'Poor'}
                         </span>
                         <span className="text-muted-foreground">/</span>
-                        <span className={cn('font-semibold', player.morale >= 70 ? 'text-emerald-400' : player.morale >= 40 ? 'text-amber-400' : 'text-red-400')}>
-                          {player.morale >= 70 ? 'Happy' : player.morale >= 40 ? 'Content' : 'Unhappy'}
+                        <span className={cn('font-semibold', player.morale >= 60 ? 'text-emerald-400' : player.morale >= 35 ? 'text-amber-400' : 'text-red-400')}>
+                          {player.morale >= 60 ? 'Happy' : player.morale >= 35 ? 'Unsettled' : 'Low'}
                         </span>
                       </div>
                     </div>
