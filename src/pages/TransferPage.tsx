@@ -23,6 +23,13 @@ import { formatMoney } from '@/utils/helpers';
 import { SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE } from '@/config/ui';
 import { getFlag } from '@/utils/nationality';
 
+const DIVISION_LABELS: Record<string, string> = {
+  'div-1': 'Prem',
+  'div-2': 'Champ',
+  'div-3': '1st Div',
+  'div-4': 'Found',
+};
+
 const TransferPage = () => {
   const {
     transferMarket, players, clubs, playerClubId, shortlist, transferWindowOpen,
@@ -70,6 +77,8 @@ const TransferPage = () => {
   const [sortBy, setSortBy] = useState<'overall' | 'price' | 'age' | 'potential'>('overall');
   const [faSortBy, setFaSortBy] = useState<'overall' | 'age' | 'potential' | 'wage'>('overall');
   const [divFilter, setDivFilter] = useState<string>('all');
+  const [newsTypeFilter, setNewsTypeFilter] = useState<'all' | 'transfer' | 'loan' | 'free_agent'>('all');
+  const [hideUnaffordable, setHideUnaffordable] = useState(false);
 
   const club = clubs[playerClubId];
 
@@ -106,6 +115,12 @@ const TransferPage = () => {
       });
     }
 
+    // Affordability filter (market only — don't hide shortlisted players)
+    if (hideUnaffordable && tab !== 'shortlist') {
+      const budget = club?.budget || 0;
+      result = result.filter(l => l.askingPrice <= budget);
+    }
+
     // Sort by selected criteria
     result.sort((a, b) => {
       const pa = players[a.playerId];
@@ -120,7 +135,7 @@ const TransferPage = () => {
       }
     });
     return result;
-  }, [tab, transferMarket, shortlist, playerClubId, posFilter, players, searchQuery, sortBy, divFilter, clubs]);
+  }, [tab, transferMarket, shortlist, playerClubId, posFilter, players, searchQuery, sortBy, divFilter, clubs, hideUnaffordable, club?.budget]);
 
   // Outgoing: own players listed for sale
   const outgoingPlayers = useMemo(() => {
@@ -148,6 +163,33 @@ const TransferPage = () => {
     });
     return result;
   }, [freeAgents, players, posFilter, searchQuery, faSortBy]);
+
+  // News tab computations (memoized)
+  const newsSummary = useMemo(() => {
+    const allNews = transferNews || [];
+    const totalTransfers = allNews.filter(e => e.type === 'transfer').length;
+    const totalLoans = allNews.filter(e => e.type === 'loan').length;
+    const totalFreeAgents = allNews.filter(e => e.type === 'free_agent').length;
+    const totalSpend = allNews.reduce((sum, e) => sum + (e.fee || 0), 0);
+    const biggestDeal = allNews.reduce((max, e) => (e.fee || 0) > (max?.fee || 0) ? e : max, allNews[0]);
+    const myClubDeals = allNews.filter(e => e.fromClubId === playerClubId || e.toClubId === playerClubId);
+    return { allNews, totalTransfers, totalLoans, totalFreeAgents, totalSpend, biggestDeal, myClubDeals };
+  }, [transferNews, playerClubId]);
+
+  const filteredGroupedNews = useMemo(() => {
+    const allNews = transferNews || [];
+    const filteredNews = newsTypeFilter === 'all'
+      ? [...allNews].reverse()
+      : allNews.filter(e => e.type === newsTypeFilter).reverse();
+
+    const grouped: Record<string, typeof filteredNews> = {};
+    for (const entry of filteredNews) {
+      const key = `S${entry.season} Wk ${entry.week}`;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(entry);
+    }
+    return { filteredNews, grouped };
+  }, [transferNews, newsTypeFilter]);
 
   const handleOffer = (listing: TransferListing) => {
     if (!transferWindowOpen) {
@@ -270,11 +312,11 @@ const TransferPage = () => {
           { id: 'outgoing' as const, icon: ArrowUpRight, label: `Outgoing (${outgoingPlayers.length})` },
           { id: 'loans' as const, icon: Repeat2, label: `Loans (${activeLoans.length})` },
           { id: 'freeAgents' as const, icon: Users, label: `Free (${freeAgents.length})` },
-          { id: 'news' as const, icon: Newspaper, label: `News (${(transferNews || []).length})` },
+          { id: 'news' as const, icon: Newspaper, label: `News (${newsTypeFilter !== 'all' ? filteredGroupedNews.filteredNews.length : (transferNews || []).length})` },
         ] as const).map(({ id, icon: TabIcon, label }) => (
           <button
             key={id}
-            onClick={() => { hapticLight(); setTab(id); }}
+            onClick={() => { hapticLight(); setTab(id); if (id !== 'news') setNewsTypeFilter('all'); }}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-colors relative',
               tab === id ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -360,10 +402,10 @@ const TransferPage = () => {
               <div className="flex gap-1 flex-1 overflow-x-auto scrollbar-hide">
                 {[
                   { id: 'all', label: 'All Leagues' },
-                  { id: 'div-1', label: 'Div 1' },
-                  { id: 'div-2', label: 'Div 2' },
-                  { id: 'div-3', label: 'Div 3' },
-                  { id: 'div-4', label: 'Div 4' },
+                  { id: 'div-1', label: DIVISION_LABELS['div-1'] },
+                  { id: 'div-2', label: DIVISION_LABELS['div-2'] },
+                  { id: 'div-3', label: DIVISION_LABELS['div-3'] },
+                  { id: 'div-4', label: DIVISION_LABELS['div-4'] },
                 ].map(d => (
                   <button
                     key={d.id}
@@ -377,6 +419,18 @@ const TransferPage = () => {
                   </button>
                 ))}
               </div>
+
+              {/* Affordability Filter */}
+              <button
+                onClick={() => { hapticLight(); setHideUnaffordable(!hideUnaffordable); }}
+                className={cn(
+                  'flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium shrink-0 transition-all',
+                  hideUnaffordable ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted/50 text-muted-foreground hover:text-foreground'
+                )}
+              >
+                {'\u00A3'}
+                {hideUnaffordable ? 'On' : 'Off'}
+              </button>
 
               {/* Sort Selector */}
               <button
@@ -400,9 +454,9 @@ const TransferPage = () => {
       {tab === 'market' && (
         <GlassPanel className="p-2.5 flex items-center gap-3 text-[10px] text-muted-foreground">
           <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span>{transferMarket.filter(l => l.sellerClubId !== playerClubId && !l.externalPlayer).length} from clubs</span>
+          <span>{listings.filter(l => !l.externalPlayer).length} from clubs</span>
           <span className="text-border">|</span>
-          <span>{transferMarket.filter(l => l.externalPlayer).length} unattached</span>
+          <span>{listings.filter(l => l.externalPlayer).length} unattached</span>
           <span className="text-border">|</span>
           <span>{freeAgents.length} free agents</span>
           <span className="text-border">|</span>
@@ -452,14 +506,23 @@ const TransferPage = () => {
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {listing.externalPlayer ? (
-                        <span className="text-amber-400">Unattached</span>
+                        <>
+                          <span className="text-amber-400">Unattached</span>
+                          {listing.divisionId && (
+                            <span className="ml-1 text-[10px] text-muted-foreground/60">
+                              ({DIVISION_LABELS[listing.divisionId] || 'Found'} tier)
+                            </span>
+                          )}
+                        </>
                       ) : (
-                        <>From: {seller?.shortName || '?'}</>
-                      )}
-                      {listing.divisionId && (
-                        <span className="ml-1 text-[10px] text-muted-foreground/60">
-                          ({listing.divisionId === 'div-1' ? 'D1' : listing.divisionId === 'div-2' ? 'D2' : listing.divisionId === 'div-3' ? 'D3' : 'D4'})
-                        </span>
+                        <>
+                          From: {seller?.shortName || '?'}
+                          {listing.divisionId && (
+                            <span className="ml-1 text-[10px] text-muted-foreground/60">
+                              ({DIVISION_LABELS[listing.divisionId] || 'Found'})
+                            </span>
+                          )}
+                        </>
                       )}
                     </p>
                     {/* Top 3 Attributes */}
@@ -915,73 +978,164 @@ const TransferPage = () => {
       )}
 
       {/* Transfer News Feed */}
-      {tab === 'news' && (
-        <div className="space-y-2">
-          {(transferNews || []).length > 0 ? (
-            [...(transferNews || [])].reverse().map((entry, i) => {
-              const fromClub = clubs[entry.fromClubId];
-              const toClub = clubs[entry.toClubId];
-              return (
-                <motion.div
-                  key={entry.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.2 }}
-                >
-                  <GlassPanel className="p-3">
-                    <div className="flex items-start gap-3">
-                      <div className={cn(
-                        'w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[10px] font-bold',
-                        entry.type === 'transfer' ? 'bg-primary/15 text-primary' :
-                        entry.type === 'loan' ? 'bg-amber-500/15 text-amber-400' :
-                        'bg-emerald-500/15 text-emerald-400'
-                      )}>
-                        {entry.type === 'transfer' ? <ArrowUpRight className="w-4 h-4" /> :
-                         entry.type === 'loan' ? <Repeat2 className="w-4 h-4" /> :
-                         <Users className="w-4 h-4" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-foreground">{entry.playerName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {entry.playerPosition} {'\u2022'} {entry.playerAge}y {'\u2022'} {entry.playerOverall} OVR
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {entry.type === 'free_agent' ? (
-                            <>Signed by <span className="text-foreground">{toClub?.shortName || '?'}</span> (free agent)</>
-                          ) : (
-                            <>
-                              <span className="text-foreground">{fromClub?.shortName || '?'}</span>
-                              {' → '}
-                              <span className="text-foreground">{toClub?.shortName || '?'}</span>
-                              {entry.type === 'loan' && entry.loanDuration && ` (${entry.loanDuration}wk loan)`}
-                            </>
-                          )}
-                        </p>
-                      </div>
-                      <div className="text-right shrink-0">
-                        {entry.fee ? (
-                          <span className="text-sm font-bold text-primary">{formatMoney(entry.fee)}</span>
-                        ) : entry.type === 'loan' ? (
-                          <span className="text-xs font-medium text-amber-400">LOAN</span>
-                        ) : (
-                          <span className="text-xs font-medium text-emerald-400">FREE</span>
-                        )}
-                        <p className="text-[10px] text-muted-foreground">Wk {entry.week}</p>
-                      </div>
+      {tab === 'news' && (() => {
+        const { allNews, totalTransfers, totalLoans, totalFreeAgents, totalSpend, biggestDeal, myClubDeals } = newsSummary;
+        const { filteredNews, grouped } = filteredGroupedNews;
+
+        return (
+          <div className="space-y-3">
+            {/* News Summary Stats */}
+            {allNews.length > 0 && (
+              <GlassPanel className="p-3 space-y-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <TrendingUp className="w-3.5 h-3.5 text-primary" />
+                  <span className="text-xs font-semibold text-foreground">Window Summary</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="bg-muted/30 rounded-lg p-2">
+                    <p className="text-[10px] text-muted-foreground">Total Spend</p>
+                    <p className="text-sm font-bold text-primary">{formatMoney(totalSpend)}</p>
+                  </div>
+                  <div className="bg-muted/30 rounded-lg p-2">
+                    <p className="text-[10px] text-muted-foreground">Deals</p>
+                    <p className="text-sm font-bold text-foreground">{allNews.length}</p>
+                  </div>
+                  {biggestDeal?.fee ? (
+                    <div className="bg-muted/30 rounded-lg p-2 col-span-2">
+                      <p className="text-[10px] text-muted-foreground">Biggest Deal</p>
+                      <p className="text-sm font-bold text-foreground">
+                        {biggestDeal.playerName} <span className="text-primary">{formatMoney(biggestDeal.fee)}</span>
+                      </p>
                     </div>
-                  </GlassPanel>
-                </motion.div>
-              );
-            })
-          ) : (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
-              <Newspaper className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No transfer activity yet this season</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">AI club transfers and loans will appear here</p>
-            </motion.div>
-          )}
-        </div>
-      )}
+                  ) : null}
+                </div>
+                {myClubDeals.length > 0 && (
+                  <div className="flex items-center gap-1.5 pt-1 border-t border-border/30">
+                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                    <span className="text-[10px] text-muted-foreground">
+                      Your club: <span className="text-foreground font-medium">{myClubDeals.length} deal{myClubDeals.length !== 1 ? 's' : ''}</span>
+                    </span>
+                  </div>
+                )}
+              </GlassPanel>
+            )}
+
+            {/* Type Filter */}
+            {allNews.length > 0 && (
+              <div className="flex gap-1.5">
+                {([
+                  { id: 'all' as const, label: 'All', count: allNews.length },
+                  { id: 'transfer' as const, label: 'Transfers', count: totalTransfers },
+                  { id: 'loan' as const, label: 'Loans', count: totalLoans },
+                  { id: 'free_agent' as const, label: 'Free Agents', count: totalFreeAgents },
+                ]).map(f => (
+                  <button
+                    key={f.id}
+                    onClick={() => { hapticLight(); setNewsTypeFilter(f.id); }}
+                    className={cn(
+                      'px-2 py-1 rounded text-[10px] font-medium shrink-0 transition-all',
+                      newsTypeFilter === f.id
+                        ? f.id === 'transfer' ? 'bg-primary/20 text-primary'
+                        : f.id === 'loan' ? 'bg-amber-500/20 text-amber-400'
+                        : f.id === 'free_agent' ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-secondary text-secondary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {f.label} ({f.count})
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Grouped News Feed */}
+            {filteredNews.length > 0 ? (
+              Object.entries(grouped).map(([weekLabel, entries]) => (
+                <div key={weekLabel} className="space-y-1.5">
+                  <div className="flex items-center gap-2 pt-1">
+                    <Calendar className="w-3 h-3 text-muted-foreground/50" />
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{weekLabel}</span>
+                    <div className="flex-1 h-px bg-border/30" />
+                  </div>
+                  {entries.map((entry, i) => {
+                    const fromClub = clubs[entry.fromClubId];
+                    const toClub = clubs[entry.toClubId];
+                    const involvesMyClub = entry.fromClubId === playerClubId || entry.toClubId === playerClubId;
+                    return (
+                      <motion.div
+                        key={entry.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.2 }}
+                      >
+                        <GlassPanel className={cn('p-3', involvesMyClub && 'ring-1 ring-primary/30')}>
+                          <div className="flex items-start gap-3">
+                            <div className={cn(
+                              'w-9 h-9 rounded-full flex items-center justify-center shrink-0',
+                              entry.type === 'transfer' ? 'bg-primary/15 text-primary' :
+                              entry.type === 'loan' ? 'bg-amber-500/15 text-amber-400' :
+                              'bg-emerald-500/15 text-emerald-400'
+                            )}>
+                              {entry.type === 'transfer' ? <ArrowUpRight className="w-4 h-4" /> :
+                               entry.type === 'loan' ? <Repeat2 className="w-4 h-4" /> :
+                               <Users className="w-4 h-4" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-bold text-foreground">{entry.playerName}</p>
+                                {involvesMyClub && (
+                                  <span className="text-[8px] font-bold bg-primary/20 text-primary px-1 py-0.5 rounded">YOU</span>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                {entry.playerPosition} {'\u2022'} {entry.playerAge}y {'\u2022'} {entry.playerOverall} OVR
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {entry.type === 'free_agent' ? (
+                                  <>Signed by <span className="text-foreground font-medium">{toClub?.shortName || '?'}</span></>
+                                ) : (
+                                  <>
+                                    <span className="text-foreground">{fromClub?.shortName || '?'}</span>
+                                    {' \u2192 '}
+                                    <span className="text-foreground">{toClub?.shortName || '?'}</span>
+                                    {entry.type === 'loan' && entry.loanDuration && (
+                                      <span className="text-amber-400 ml-1">({entry.loanDuration}wk loan)</span>
+                                    )}
+                                  </>
+                                )}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              {entry.fee ? (
+                                <span className="text-sm font-bold text-primary">{formatMoney(entry.fee)}</span>
+                              ) : entry.type === 'loan' ? (
+                                <span className="text-[10px] font-semibold bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded">LOAN</span>
+                              ) : (
+                                <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded">FREE</span>
+                              )}
+                            </div>
+                          </div>
+                        </GlassPanel>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              ))
+            ) : allNews.length > 0 ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
+                <Newspaper className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No {newsTypeFilter === 'transfer' ? 'transfers' : newsTypeFilter === 'loan' ? 'loans' : 'free agent signings'} this season</p>
+              </motion.div>
+            ) : (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
+                <Newspaper className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No transfer activity yet this season</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">AI club transfers and loans will appear here</p>
+              </motion.div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Free Agent Signing Modal */}
       {signingPlayer && (() => {
