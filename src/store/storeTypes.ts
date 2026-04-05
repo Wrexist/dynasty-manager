@@ -62,6 +62,7 @@ export interface GameState {
 
   // Systems
   tactics: TacticalInstructions;
+  tacticalPresets: import('@/types/game').TacticalPreset[];
   training: TrainingState;
   staff: { members: StaffMember[]; availableHires: StaffMember[] };
   scouting: ScoutingState;
@@ -233,6 +234,9 @@ export interface GameState {
 
   // Actions — Systems
   setTactics: (partial: Partial<TacticalInstructions>) => void;
+  saveTacticalPreset: (name: string) => void;
+  loadTacticalPreset: (presetId: string) => void;
+  deleteTacticalPreset: (presetId: string) => void;
   updateTraining: (schedule: Partial<TrainingState['schedule']>, intensity?: TrainingState['intensity']) => void;
   updateDrillSchedule: (drills: Partial<TrainingState['drillSchedule']>) => void;
   setIndividualTraining: (playerId: string, focus: TrainingModule | null) => void;

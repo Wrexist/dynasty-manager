@@ -557,6 +557,14 @@ export interface TacticalInstructions {
   pressingIntensity: number;
 }
 
+export interface TacticalPreset {
+  id: string;
+  name: string;
+  formation: FormationType;
+  tactics: TacticalInstructions;
+  createdAt: string;
+}
+
 // ── Training ──
 export type TrainingModule = 'fitness' | 'attacking' | 'defending' | 'mentality' | 'set-pieces' | 'tactical';
 export type TrainingIntensity = 'light' | 'medium' | 'heavy';

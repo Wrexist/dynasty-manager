@@ -2,14 +2,16 @@ import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PurchaseModal } from '@/components/game/PurchaseModal';
-import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw } from 'lucide-react';
+import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT } from '@/config/monetization';
+import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT, COSMETIC_ITEMS } from '@/config/monetization';
 import { isPro, hasProduct, isStarterKitAvailable, getStarterKitRemainingMs, getOwnedCosmetics, getActiveCosmetic, isSubscriptionActive } from '@/utils/monetization';
 import type { CosmeticCategory } from '@/types/game';
 import type { ProductId, ProFeature } from '@/types/game';
 import { purchaseProduct as purchaseViaSDK, restorePurchases as restoreViaSDK, presentPaywall, getEntitlements, getCustomerInfo, extractSubscriptionInfo, openSubscriptionManagement } from '@/utils/purchases';
 import { hapticMedium } from '@/utils/haptics';
+import { infoToast } from '@/utils/gameToast';
+import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 
 const formatPrice = (usd: number) => `$${usd.toFixed(2)}`;
 
@@ -36,6 +38,18 @@ const SUBSCRIPTION_PRODUCTS: ProductId[] = [
   'com.dynastymanager.pro.lifetime',
 ];
 
+const COSMETIC_PACK_IDS: ProductId[] = [
+  'com.dynastymanager.pack.manager',
+  'com.dynastymanager.pack.stadium',
+  'com.dynastymanager.pack.legends',
+];
+
+const BUNDLE_INDIVIDUAL_TOTAL = PRODUCTS['com.dynastymanager.pro'].priceUsd
+  + PRODUCTS['com.dynastymanager.pack.manager'].priceUsd
+  + PRODUCTS['com.dynastymanager.pack.stadium'].priceUsd
+  + PRODUCTS['com.dynastymanager.pack.legends'].priceUsd;
+const BUNDLE_SAVINGS_PCT = Math.round((1 - PRODUCTS['com.dynastymanager.bundle.all'].priceUsd / BUNDLE_INDIVIDUAL_TOTAL) * 100);
+
 const ShopPage = () => {
   const monetization = useGameStore(s => s.monetization);
   const restoreEntitlements = useGameStore(s => s.restoreEntitlements);
@@ -51,6 +65,7 @@ const ShopPage = () => {
 
   const [purchaseError, setPurchaseError] = useState<string | null>(null);
   const [purchasing, setPurchasing] = useState(false);
+  const [expandedPack, setExpandedPack] = useState<ProductId | null>(null);
 
   const handlePurchase = (productId: ProductId) => {
     setPurchaseError(null);
@@ -76,6 +91,7 @@ const ShopPage = () => {
       }
       await syncAfterPurchase();
       hapticMedium();
+      infoToast('Purchase complete!');
       setPurchaseProduct(null);
     } catch {
       setPurchaseError('Purchase failed. Please try again.');
@@ -152,6 +168,11 @@ const ShopPage = () => {
           </div>
           <h3 className="text-base font-display font-bold text-foreground">{STARTER_KIT.name}</h3>
           <p className="text-xs text-muted-foreground mt-1">{STARTER_KIT.description}</p>
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">12 Avatars</span>
+            <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">8 Title Badges</span>
+            <span className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">3 Celebration Texts</span>
+          </div>
           <button
             onClick={() => handlePurchase('com.dynastymanager.pack.manager')}
             className="mt-3 w-full py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform"
@@ -161,7 +182,8 @@ const ShopPage = () => {
         </GlassPanel>
       )}
 
-      {/* Subscription Plans */}
+      {/* Subscription Plans — show when not Pro or has active subscription */}
+      {(!userIsPro || hasActiveSub) && (
       <div>
         <div className="flex items-center justify-between mb-2">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
@@ -249,6 +271,7 @@ const ShopPage = () => {
           </div>
         )}
       </div>
+      )}
 
       {/* Dynasty Pro (one-time) */}
       <GlassPanel className={cn('p-4', userIsPro ? 'border-emerald-500/30' : 'border-primary/30')}>
@@ -300,9 +323,11 @@ const ShopPage = () => {
           Cosmetic Packs
         </p>
         <div className="space-y-3">
-          {(['com.dynastymanager.pack.manager', 'com.dynastymanager.pack.stadium', 'com.dynastymanager.pack.legends'] as ProductId[]).map(productId => {
+          {COSMETIC_PACK_IDS.map(productId => {
             const product = PRODUCTS[productId];
             const owned = hasProduct(monetization, productId);
+            const isExpanded = expandedPack === productId;
+            const packItems = COSMETIC_ITEMS.filter(c => c.pack === productId);
             return (
               <GlassPanel key={productId} className={cn('p-4', owned && 'border-emerald-500/20')}>
                 <div className="flex items-center justify-between mb-1">
@@ -313,7 +338,23 @@ const ShopPage = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mb-3">{product.description}</p>
+                <p className="text-xs text-muted-foreground mb-2">{product.description}</p>
+                <button
+                  onClick={() => setExpandedPack(isExpanded ? null : productId)}
+                  className="flex items-center gap-1 text-[10px] text-primary font-semibold mb-2 hover:text-primary/80 transition-colors"
+                >
+                  {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  {isExpanded ? 'Hide contents' : `View all ${packItems.length} items`}
+                </button>
+                {isExpanded && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {packItems.map(item => (
+                      <span key={item.id} className="text-[9px] bg-muted/40 text-muted-foreground px-2 py-0.5 rounded-full">
+                        {item.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 {!owned && (
                   <button
                     onClick={() => handlePurchase(productId)}
@@ -337,11 +378,14 @@ const ShopPage = () => {
               {PRODUCTS['com.dynastymanager.bundle.all'].name}
             </h3>
             <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold ml-auto">
-              Best Value
+              Save {BUNDLE_SAVINGS_PCT}%
             </span>
           </div>
-          <p className="text-xs text-muted-foreground mb-3">
+          <p className="text-xs text-muted-foreground mb-2">
             {PRODUCTS['com.dynastymanager.bundle.all'].description}
+          </p>
+          <p className="text-[10px] text-muted-foreground/60 mb-3">
+            <span className="line-through">{formatPrice(BUNDLE_INDIVIDUAL_TOTAL)}</span> individually
           </p>
           <button
             onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
@@ -411,10 +455,17 @@ const ShopPage = () => {
       })()}
 
       {/* Fine print */}
-      <p className="text-[10px] text-muted-foreground/60 text-center px-4 pb-4">
-        One-time purchases and subscriptions available. Subscriptions auto-renew until cancelled.
-        Purchases can be restored on any device linked to your App Store / Play Store account.
-      </p>
+      <div className="text-[10px] text-muted-foreground/60 text-center px-4 pb-4 space-y-1">
+        <p>
+          One-time purchases and subscriptions available. Subscriptions auto-renew until cancelled.
+          Purchases can be restored on any device linked to your App Store / Play Store account.
+        </p>
+        <p>
+          <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-muted-foreground">Terms of Service</a>
+          {' · '}
+          <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-muted-foreground">Privacy Policy</a>
+        </p>
+      </div>
 
       {/* Purchase Confirmation Modal */}
       {purchaseProduct && (

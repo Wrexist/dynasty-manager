@@ -484,12 +484,13 @@ const MatchDay = () => {
   const currentMomentum = latestMomentumEvent?.momentum ?? 0; // -100 (away) to +100 (home)
   const homeMomPct = Math.round(50 + currentMomentum / 2); // 0-100 scale
   const stadiumTheme = getActiveCosmetic(monetization, 'stadium_theme');
+  const pitchSkin = getActiveCosmetic(monetization, 'pitch_skin');
   const isPlayerHome = match?.homeClubId === playerClubId;
   const venueClub = match ? clubs[match.homeClubId] : null;
   const awayBarColor = homeClub && awayClub && areColorsSimilar(homeClub.color, awayClub.color) ? '#FFFFFF' : awayClub?.color;
 
   return (
-    <div className={cn("max-w-lg mx-auto px-4 py-4 space-y-3", stadiumTheme && `stadium-${stadiumTheme.replace('stadium-', '')}`)}>
+    <div className={cn("max-w-lg mx-auto px-4 py-4 space-y-3", stadiumTheme && `stadium-${stadiumTheme.replace('stadium-', '')}`, pitchSkin && `pitch-${pitchSkin.replace('pitch-', '')}`)}>
       {phase === 'pre' && <PageHint screen="matchDay" title={PAGE_HINTS.matchDay.title} body={PAGE_HINTS.matchDay.body} />}
       {/* Score Header */}
       <GlassPanel className={cn("p-5 transition-all duration-300", goalFlash && "border-primary/60 shadow-[0_0_20px_hsl(var(--primary)/0.3)]")}>

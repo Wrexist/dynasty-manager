@@ -11,6 +11,7 @@ import { removeFlag, clearFlagsByPrefix, deleteAllDynastyData } from '@/store/he
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
+import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 
 const APP_VERSION = 'v1.0.0 · Football Edition';
@@ -342,6 +343,10 @@ const SettingsPage = () => {
         <p className="text-[10px] text-muted-foreground mt-2">
           Having trouble with a purchase or subscription? Contact us for help.
         </p>
+        <div className="flex gap-3 mt-3">
+          <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" className="text-[10px] text-muted-foreground underline hover:text-foreground transition-colors">Terms of Service</a>
+          <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer" className="text-[10px] text-muted-foreground underline hover:text-foreground transition-colors">Privacy Policy</a>
+        </div>
       </GlassPanel>
 
       {/* Feedback */}

@@ -2,6 +2,7 @@ import { PRODUCTS } from '@/config/monetization';
 import type { ProductId } from '@/types/game';
 import { Crown, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TERMS_URL, PRIVACY_URL } from '@/config/legal';
 
 interface PurchaseModalProps {
   productId: ProductId;
@@ -82,6 +83,10 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading }: Purch
             {isSubscription && product.billingPeriod !== 'one-time'
               ? 'Auto-renews until cancelled. Manage in your App Store or Play Store settings.'
               : 'One-time purchase. Works offline. No recurring charges.'}
+            {' '}
+            <a href={TERMS_URL} target="_blank" rel="noopener noreferrer" className="underline">Terms</a>
+            {' · '}
+            <a href={PRIVACY_URL} target="_blank" rel="noopener noreferrer" className="underline">Privacy</a>
           </p>
         </motion.div>
       </motion.div>
