@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { Calendar, Save, ArrowLeft, Star, Check } from 'lucide-react';
+import { Calendar, Save, ArrowLeft, Star, Check, Mail } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/managerCareer';
 import { getSuffix } from '@/utils/helpers';
@@ -20,6 +20,7 @@ export function TopBar() {
     playerClubId: s.playerClubId, clubs: s.clubs, leagueTable: s.leagueTable,
     currentScreen: s.currentScreen, previousScreen: s.previousScreen,
     managerProgression: s.managerProgression, gameMode: s.gameMode, careerManager: s.careerManager,
+    messages: s.messages,
   })));
   const saveGame = useGameStore(s => s.saveGame);
   const setScreen = useGameStore(s => s.setScreen);
@@ -30,6 +31,7 @@ export function TopBar() {
   const posFlash = useFlash(typeof pos === 'number' ? pos : 0);
   const reputationTier = careerManager?.reputationTier ?? 'unknown';
   const reputationLabel = getReputationTierShortLabel(reputationTier);
+  const unreadCount = useMemo(() => messages.filter(m => !m.read).length, [messages]);
 
   // Save button feedback state
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
@@ -104,6 +106,18 @@ export function TopBar() {
           )}
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => { setScreen('inbox'); hapticMedium(); }}
+            aria-label={unreadCount > 0 ? `Inbox — ${unreadCount} unread` : 'Inbox'}
+            className="relative p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+          >
+            <Mail className="w-4 h-4" />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
           {/* Career mode: reputation badge or XP Level */}
           {gameMode === 'career' && careerManager ? (
             <button
