@@ -154,7 +154,6 @@ const ManagerCreation = () => {
 
   // Preview attributes: stable base + deterministic trait bonuses
   const previewAttributes = useMemo(() => {
-    if (selectedTraits.length === 0) return null;
     return applyTraitBonuses(baseAttributes.current, selectedTraits);
   }, [selectedTraits]);
 
@@ -347,20 +346,27 @@ const ManagerCreation = () => {
                   maxTraits={TRAITS_TO_PICK}
                   onToggle={handleTraitToggle}
                 />
-                {previewAttributes && (
-                  <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-4 mt-4">
-                    <p className="text-xs font-semibold text-foreground mb-3">Attribute Preview</p>
-                    <div className="space-y-2">
-                      <ManagerStatBar label="Tactical Knowledge" value={previewAttributes.tacticalKnowledge} />
-                      <ManagerStatBar label="Motivation" value={previewAttributes.motivation} />
-                      <ManagerStatBar label="Negotiation" value={previewAttributes.negotiation} />
-                      <ManagerStatBar label="Scouting Eye" value={previewAttributes.scoutingEye} />
-                      <ManagerStatBar label="Youth Development" value={previewAttributes.youthDevelopment} />
-                      <ManagerStatBar label="Discipline" value={previewAttributes.discipline} />
-                      <ManagerStatBar label="Media Handling" value={previewAttributes.mediaHandling} />
-                    </div>
+                <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-4 mt-4">
+                  <p className="text-xs font-semibold text-foreground mb-3">Attribute Preview</p>
+                  <div className="space-y-2">
+                    {([
+                      ['Tactical Knowledge', 'tacticalKnowledge'],
+                      ['Motivation', 'motivation'],
+                      ['Negotiation', 'negotiation'],
+                      ['Scouting Eye', 'scoutingEye'],
+                      ['Youth Development', 'youthDevelopment'],
+                      ['Discipline', 'discipline'],
+                      ['Media Handling', 'mediaHandling'],
+                    ] as [string, keyof typeof previewAttributes][]).map(([label, key]) => (
+                      <ManagerStatBar
+                        key={key}
+                        label={label}
+                        value={previewAttributes[key]}
+                        bonus={previewAttributes[key] - baseAttributes.current[key]}
+                      />
+                    ))}
                   </div>
-                )}
+                </div>
                 {actionButton}
               </div>
             )}
@@ -515,7 +521,7 @@ const ManagerCreation = () => {
                                   tabIndex={0}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const managerSkill = previewAttributes?.negotiation || 5;
+                                    const managerSkill = previewAttributes.negotiation;
                                     const result = negotiateSalary(offer, counterSalary, managerSkill);
                                     setStartingOffers(prev => prev.map(o => o.id === offer.id ? result : o));
                                     setSelectedOffer(result);
