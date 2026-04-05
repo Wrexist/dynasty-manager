@@ -24,7 +24,7 @@
     --popover: 222 25% 11%;
     --popover-foreground: 220 15% 90%;
 
-    --primary: 160 84% 39%;
+    --primary: 43 96% 46%;
     --primary-foreground: 0 0% 100%;
 
     --gold: 43 96% 46%;
@@ -43,19 +43,25 @@
 
     --border: 222 15% 18%;
     --input: 222 15% 18%;
-    --ring: 160 84% 39%;
+    --ring: 43 96% 46%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 222 25% 9%;
     --sidebar-foreground: 220 15% 85%;
-    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary: 43 96% 46%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 222 20% 15%;
     --sidebar-accent-foreground: 220 15% 85%;
     --sidebar-border: 222 15% 18%;
-    --sidebar-ring: 160 84% 39%;
+    --sidebar-ring: 43 96% 46%;
   }
+}
+
+/* In-game pages use green primary; title/settings stay gold */
+.game-theme {
+  --primary: 160 84% 39%;
+  --ring: 160 84% 39%;
 }
 
 @layer base {

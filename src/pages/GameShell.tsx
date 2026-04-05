@@ -202,7 +202,7 @@ const GameShell = () => {
   return (
     <ErrorBoundary>
       <InfoTipProvider>
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background game-theme">
         <TopBar />
         <main
           role="main"
