@@ -92,11 +92,24 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     if (!hire) return;
     const club = state.clubs[state.playerClubId];
     if (!club) return;
+    // One staff per role — auto-release existing holder
+    const existing = state.staff.members.find(s => s.role === hire.role);
+    const membersAfterRelease = existing
+      ? state.staff.members.filter(s => s.id !== existing.id)
+      : state.staff.members;
     const newClub = { ...club, budget: club.budget - hire.wage * 4 };
-    const newMembers = [...state.staff.members, hire];
+    const newMembers = [...membersAfterRelease, hire];
     const newAvailable = state.staff.availableHires.filter(s => s.id !== staffId);
     const scoutCount = newMembers.filter(s => s.role === 'scout').length;
-    const newMessages = addMsg(state.messages, {
+    let newMessages = state.messages;
+    if (existing) {
+      newMessages = addMsg(newMessages, {
+        week: state.week, season: state.season, type: 'general',
+        title: `${existing.firstName} ${existing.lastName} Released`,
+        body: `${existing.firstName} ${existing.lastName} has been released to make room for a new ${hire.role.replace(/-/g, ' ')}.`,
+      });
+    }
+    newMessages = addMsg(newMessages, {
       week: state.week, season: state.season, type: 'general',
       title: `${hire.firstName} ${hire.lastName} Hired`,
       body: `${hire.firstName} ${hire.lastName} has joined your staff as ${hire.role.replace(/-/g, ' ')}.`,
