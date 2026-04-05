@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
-import { ConfirmDialog } from '@/components/game/ConfirmDialog';
+import { ListForSaleModal } from '@/components/game/ListForSaleModal';
 import { cn } from '@/lib/utils';
 import { Position } from '@/types/game';
 import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch, AlertTriangle, FileText, Users, LogOut, Smile, Meh, Frown, Repeat2 } from 'lucide-react';
@@ -61,7 +61,6 @@ const SquadPage = () => {
     season: s.season, training: s.training,
   })));
   const selectPlayer = useGameStore(s => s.selectPlayer);
-  const listPlayerForSale = useGameStore(s => s.listPlayerForSale);
   const setScreen = useGameStore(s => s.setScreen);
   const [posFilter, setPosFilter] = useState(0);
   const [sortBy, setSortBy] = useState<SortKey>('overall');
@@ -164,16 +163,15 @@ const SquadPage = () => {
     setConfirmListId(playerId);
   };
 
-  const confirmList = () => {
+  const handleListComplete = (appeased: boolean) => {
     if (!confirmListId) return;
     const player = players[confirmListId];
     if (!player) return;
-    const result = listPlayerForSale(confirmListId);
     hapticMedium();
-    if (result.appeased) {
+    if (appeased) {
       successToast(`${player.lastName} appreciates your honesty!`, 'Transfer request withdrawn — morale improved.');
     } else {
-      successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M. Offers will appear in your Inbox.`);
+      successToast(`${player.lastName} listed for sale!`, 'Offers will appear in your Inbox.');
     }
     setConfirmListId(null);
   };
@@ -523,20 +521,14 @@ const SquadPage = () => {
         </div>
       </div>
 
-      {/* Confirm List for Sale Dialog */}
-      <ConfirmDialog
-        open={!!confirmListId}
-        onOpenChange={(open) => { if (!open) setConfirmListId(null); }}
-        title="List Player for Sale?"
-        description={
-          confirmListId && players[confirmListId]
-            ? `${players[confirmListId].firstName} ${players[confirmListId].lastName} (${players[confirmListId].overall} OVR) will be listed at ~£${(players[confirmListId].value / 1_000_000).toFixed(1)}M. Other clubs may make offers via your Inbox.`
-            : ''
-        }
-        confirmLabel="List for Sale"
-        variant="default"
-        onConfirm={confirmList}
-      />
+      {/* List for Sale Modal */}
+      {confirmListId && players[confirmListId] && (
+        <ListForSaleModal
+          player={players[confirmListId]}
+          onClose={() => setConfirmListId(null)}
+          onListed={handleListComplete}
+        />
+      )}
     </div>
   );
 };

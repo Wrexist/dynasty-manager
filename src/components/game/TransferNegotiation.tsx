@@ -9,8 +9,8 @@ import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, g
 import { formatWage } from '@/utils/contracts';
 import { getFlag } from '@/utils/nationality';
 import {
-  X, TrendingUp, TrendingDown, Minus, Users, Banknote,
-  Shield, ArrowRight, RotateCcw, Handshake, XCircle, CalendarClock, Star, AlertTriangle,
+  X, TrendingUp, TrendingDown,
+  ArrowRight, RotateCcw, Handshake, XCircle, Star, AlertTriangle, Wallet, Users,
 } from 'lucide-react';
 
 function getInterpolatedChance(ratio: number): number {
@@ -20,6 +20,12 @@ function getInterpolatedChance(ratio: number): number {
   return 0.10;
 }
 
+/** Format money values compactly */
+function fmtM(v: number): string {
+  if (Math.abs(v) >= 1e6) return `£${(v / 1e6).toFixed(1)}M`;
+  if (Math.abs(v) >= 1e3) return `£${(v / 1e3).toFixed(0)}K`;
+  return `£${v}`;
+}
 
 interface Props {
   listing: TransferListing;
@@ -128,11 +134,12 @@ export function TransferNegotiation({ listing, onClose }: Props) {
 
   const feeRatio = offerFee / listing.askingPrice;
   const valueDiff = player.value > 0 ? ((listing.askingPrice - player.value) / player.value) * 100 : 0;
+  const hasPotential = player.potential > player.overall;
 
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center px-4"
+        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -143,11 +150,11 @@ export function TransferNegotiation({ listing, onClose }: Props) {
 
         {/* Modal */}
         <motion.div
-          className="relative w-full max-w-sm mx-4 bg-card/95 backdrop-blur-xl border border-border/50 rounded-2xl overflow-hidden"
-          initial={{ scale: 0.85, opacity: 0, y: 40 }}
-          animate={{ scale: 1, opacity: 1, y: 0 }}
-          exit={{ scale: 0.9, opacity: 0, y: 20 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          className="relative w-full max-w-sm bg-card/95 backdrop-blur-xl border border-border/50 rounded-t-2xl sm:rounded-2xl overflow-hidden sm:mx-4"
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 60, opacity: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 28 }}
         >
           <div className="max-h-[85vh] overflow-y-auto overscroll-contain">
           {/* ── NEGOTIATE PHASE ── */}
@@ -160,229 +167,162 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-border/30">
-                  <div className="flex items-center gap-2">
-                    <Handshake className="w-5 h-5 text-primary" />
-                    <p className="text-sm font-bold text-foreground font-display">Transfer Negotiation</p>
+                {/* Player Header — compact hero section */}
+                <div className="p-4 pb-3">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Buy Player</p>
+                    <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted/50 transition-colors">
+                      <X className="w-4 h-4 text-muted-foreground" />
+                    </button>
                   </div>
-                  <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </button>
-                </div>
-
-                <div className="p-4 space-y-4">
-                  {/* Player Card */}
-                  <motion.div
-                    className="flex items-start gap-3"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                  >
-                    <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center shrink-0">
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 rounded-xl bg-muted/80 flex items-center justify-center shrink-0 relative">
                       <span className={cn('font-mono font-black text-2xl', getRatingColor(player.overall))}>
                         {player.overall}
                       </span>
+                      {hasPotential && (
+                        <span className="absolute -top-1 -right-1 bg-primary/20 border border-primary/40 rounded-md px-1 py-px text-[9px] font-bold text-primary flex items-center gap-0.5">
+                          <Star className="w-2.5 h-2.5" />{player.potential}
+                        </span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
-                      <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · {getFlag(player.nationality)} {player.nationality}</p>
+                      <p className="font-bold text-foreground font-display text-base leading-tight">{player.firstName} {player.lastName}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        From <span className="text-foreground">{sellerClub.name}</span>
+                        {player.position} · {player.age}y · {getFlag(player.nationality)} {player.nationality}
                       </p>
-                      <div className="flex gap-1.5 mt-2">
-                        {top3.map(attr => (
-                          <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">
-                            <span className="text-muted-foreground">{attr.label}</span>{' '}
-                            <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
-                          </span>
-                        ))}
-                      </div>
+                      <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                        From <span className="text-foreground/80">{sellerClub.name}</span>
+                      </p>
                     </div>
-                  </motion.div>
-
-                  {/* Valuation Insight */}
-                  <motion.div
-                    className="bg-muted/20 rounded-xl p-3 space-y-2"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.15 }}
-                  >
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Market Value</span>
-                      <span className="text-foreground font-semibold">£{(player.value / 1e6).toFixed(1)}M</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Asking Price</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-primary font-bold">£{(listing.askingPrice / 1e6).toFixed(1)}M</span>
-                        {valueDiff > 5 && <TrendingUp className="w-3 h-3 text-red-400" />}
-                        {valueDiff < -5 && <TrendingDown className="w-3 h-3 text-emerald-400" />}
-                        {Math.abs(valueDiff) <= 5 && <Minus className="w-3 h-3 text-muted-foreground" />}
-                        <span className={cn('text-[10px]',
-                          valueDiff > 5 ? 'text-red-400' : valueDiff < -5 ? 'text-emerald-400' : 'text-muted-foreground'
-                        )}>
-                          {valueDiff > 0 ? '+' : ''}{valueDiff.toFixed(0)}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Wage</span>
-                      <span className="text-foreground">{formatWage(player.wage)}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Form / Morale</span>
-                      <div className="flex items-center gap-2">
-                        <span className={cn('font-semibold', player.form >= 70 ? 'text-emerald-400' : player.form >= 40 ? 'text-amber-400' : 'text-red-400')}>
-                          {player.form >= 70 ? 'Good' : player.form >= 40 ? 'Average' : 'Poor'}
-                        </span>
-                        <span className="text-muted-foreground">/</span>
-                        <span className={cn('font-semibold', player.morale >= 60 ? 'text-emerald-400' : player.morale >= 35 ? 'text-amber-400' : 'text-red-400')}>
-                          {player.morale >= 60 ? 'Happy' : player.morale >= 35 ? 'Unsettled' : 'Low'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-muted-foreground">Contract</span>
-                      <span className="text-foreground">
-                        {player.contractEnd - season} year{player.contractEnd - season !== 1 ? 's' : ''} remaining
+                  </div>
+                  {/* Top attributes */}
+                  <div className="flex gap-1.5 mt-2.5">
+                    {top3.map(attr => (
+                      <span key={attr.label} className="text-[10px] font-mono bg-muted/60 px-1.5 py-0.5 rounded">
+                        <span className="text-muted-foreground">{attr.label}</span>{' '}
+                        <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
                       </span>
-                    </div>
-                    {player.potential > player.overall && (
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Potential</span>
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3 h-3 text-primary" />
-                          <span className={cn('font-semibold', getRatingColor(player.potential))}>
-                            {player.potential}
-                          </span>
-                          <span className="text-[10px] text-emerald-400">+{player.potential - player.overall}</span>
-                        </div>
-                      </div>
-                    )}
-                  </motion.div>
+                    ))}
+                  </div>
+                </div>
 
-                  {/* Fee Slider */}
-                  <motion.div
-                    className="space-y-3"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs text-muted-foreground font-medium">Your Offer</label>
-                      <span className="text-lg font-black text-primary font-display tabular-nums">
-                        £{(offerFee / 1e6).toFixed(1)}M
-                      </span>
+                <div className="h-px bg-border/30" />
+
+                {/* Price section */}
+                <div className="px-4 pt-3 pb-2">
+                  {/* Value vs Asking — inline */}
+                  <div className="flex items-center justify-between text-xs mb-3">
+                    <div>
+                      <span className="text-muted-foreground">Value </span>
+                      <span className="text-foreground font-semibold">{fmtM(player.value)}</span>
                     </div>
-                    <input
-                      type="range"
-                      min={minFee}
-                      max={maxFee}
-                      step={step}
-                      value={offerFee}
-                      onChange={(e) => setOfferFee(Number(e.target.value))}
-                      className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer"
-                    />
-                    <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums">
-                      <span>£{(minFee / 1e6).toFixed(1)}M</span>
-                      <span className={cn('font-semibold',
-                        feeRatio >= 1 ? 'text-emerald-400' : feeRatio >= 0.8 ? 'text-amber-400' : 'text-red-400'
+                    <div className="flex items-center gap-1">
+                      <span className="text-muted-foreground">Asking </span>
+                      <span className="text-primary font-bold">{fmtM(listing.askingPrice)}</span>
+                      {valueDiff > 5 && <TrendingUp className="w-3 h-3 text-red-400" />}
+                      {valueDiff < -5 && <TrendingDown className="w-3 h-3 text-emerald-400" />}
+                      <span className={cn('text-[10px]',
+                        valueDiff > 5 ? 'text-red-400' : valueDiff < -5 ? 'text-emerald-400' : 'text-muted-foreground'
                       )}>
-                        {Math.round(feeRatio * 100)}% of asking
+                        {valueDiff > 0 ? '+' : ''}{valueDiff.toFixed(0)}%
                       </span>
-                      <span>£{(maxFee / 1e6).toFixed(1)}M</span>
                     </div>
-                  </motion.div>
+                  </div>
 
-                  {/* Acceptance Gauge */}
+                  {/* Your Offer */}
+                  <div className="flex items-baseline justify-between mb-1">
+                    <span className="text-xs text-muted-foreground font-medium">Your Offer</span>
+                    <span className="text-xl font-black text-primary font-display tabular-nums">
+                      {fmtM(offerFee)}
+                    </span>
+                  </div>
+
+                  {/* Slider */}
+                  <input
+                    type="range"
+                    min={minFee}
+                    max={maxFee}
+                    step={step}
+                    value={offerFee}
+                    onChange={(e) => setOfferFee(Number(e.target.value))}
+                    className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums mt-0.5">
+                    <span>{fmtM(minFee)}</span>
+                    <span className={cn('font-semibold',
+                      feeRatio >= 1 ? 'text-emerald-400' : feeRatio >= 0.8 ? 'text-amber-400' : 'text-red-400'
+                    )}>
+                      {Math.round(feeRatio * 100)}% of asking
+                    </span>
+                    <span>{fmtM(maxFee)}</span>
+                  </div>
+
+                  {/* Acceptance bar — inline with label */}
                   {evaluation && (
-                    <motion.div
-                      className="space-y-2"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.25 }}
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">Acceptance Likelihood</span>
-                        <span className={cn('font-bold', getChanceColor(displayChance))}>
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-muted-foreground">Acceptance</span>
+                        <span className={cn('font-bold text-[11px]', getChanceColor(displayChance))}>
                           {getChanceLabel(displayChance)}
                         </span>
                       </div>
-                      <div className="h-2 bg-muted/50 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
                         <motion.div
                           className={cn('h-full rounded-full', getChanceBarColor(displayChance))}
                           animate={{ width: `${displayChance * 100}%` }}
                           transition={{ duration: 0.3, ease: 'easeOut' }}
                         />
                       </div>
-                    </motion.div>
-                  )}
-
-                  {/* Deal Impact */}
-                  {evaluation && (
-                    <motion.div
-                      className="grid grid-cols-3 gap-2"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3 }}
-                    >
-                      <div className="bg-muted/20 rounded-lg p-2.5 flex items-center gap-2">
-                        <Banknote className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <div>
-                          <p className="text-[10px] text-muted-foreground">Budget After</p>
-                          <p className={cn('text-xs font-bold tabular-nums',
-                            evaluation.budgetAfter >= 0 ? 'text-foreground' : 'text-red-400'
-                          )}>
-                            £{(evaluation.budgetAfter / 1e6).toFixed(1)}M
-                          </p>
-                        </div>
-                      </div>
-                      <div className="bg-muted/20 rounded-lg p-2.5 flex items-center gap-2">
-                        <Users className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <div>
-                          <p className="text-[10px] text-muted-foreground">{player.position}s / Squad</p>
-                          <p className="text-xs font-bold text-foreground">
-                            {evaluation.positionCount}+1 / {evaluation.totalSquadSize}+1
-                          </p>
-                        </div>
-                      </div>
-                      <div className="bg-muted/20 rounded-lg p-2.5 flex items-center gap-2">
-                        <CalendarClock className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <div>
-                          <p className="text-[10px] text-muted-foreground">Wage Bill</p>
-                          <p className="text-xs font-bold text-foreground tabular-nums">
-                            +{formatWage(evaluation.wageImpact)}
-                          </p>
-                        </div>
-                      </div>
-                      {evaluation.wouldTriggerSellOn && (
-                        <div className="col-span-3 bg-amber-500/5 border border-amber-500/20 rounded-lg p-2.5 flex items-center gap-2">
-                          <Shield className="w-4 h-4 text-amber-400 shrink-0" />
-                          <p className="text-[10px] text-amber-400">
-                            ~{evaluation.sellOnPct}% sell-on clause will apply to future sale
-                          </p>
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-
-                  {/* Warnings */}
-                  {evaluation && evaluation.budgetAfter < 0 && (
-                    <p className="text-[10px] text-red-400 text-center font-medium">
-                      Insufficient budget for this offer
-                    </p>
-                  )}
-                  {player.contractEnd - season <= 1 && (
-                    <div className="flex items-center gap-1.5 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
-                      <AlertTriangle className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                      <p className="text-[10px] text-amber-400">
-                        Contract expiring {player.contractEnd - season <= 0 ? 'this season' : 'next season'} — risky signing without renewal
-                      </p>
                     </div>
                   )}
-
                 </div>
+
+                <div className="h-px bg-border/30" />
+
+                {/* Deal Impact — compact row */}
+                {evaluation && (
+                  <div className="px-4 py-2.5">
+                    <div className="flex items-center gap-3 text-[11px]">
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <Wallet className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground">Budget:</span>
+                        <span className={cn('font-bold tabular-nums', evaluation.budgetAfter >= 0 ? 'text-foreground' : 'text-red-400')}>
+                          {fmtM(evaluation.budgetAfter)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 flex-1">
+                        <Users className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground">Squad:</span>
+                        <span className="font-bold text-foreground">{evaluation.totalSquadSize + 1}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-muted-foreground">Wage:</span>
+                        <span className="font-bold text-foreground tabular-nums">+{formatWage(evaluation.wageImpact)}</span>
+                      </div>
+                    </div>
+
+                    {/* Warnings */}
+                    {evaluation.wouldTriggerSellOn && (
+                      <p className="text-[10px] text-amber-400/80 mt-1.5">
+                        ~{evaluation.sellOnPct}% sell-on clause will apply to future sale
+                      </p>
+                    )}
+                    {evaluation.budgetAfter < 0 && (
+                      <p className="text-[10px] text-red-400 font-medium mt-1.5 text-center">
+                        Insufficient budget for this offer
+                      </p>
+                    )}
+                    {player.contractEnd - season <= 1 && (
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                        <p className="text-[10px] text-amber-400">
+                          Contract expiring {player.contractEnd - season <= 0 ? 'this season' : 'next season'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </motion.div>
             )}
 
@@ -390,29 +330,29 @@ export function TransferNegotiation({ listing, onClose }: Props) {
             {phase === 'thinking' && (
               <motion.div
                 key="thinking"
-                className="p-8 flex flex-col items-center justify-center gap-4 min-h-[280px]"
+                className="p-8 flex flex-col items-center justify-center gap-4 min-h-[260px]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
                 <motion.div
-                  className="w-16 h-16 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center"
-                  animate={{ scale: [1, 1.1, 1], borderColor: ['rgba(16,185,129,0.3)', 'rgba(16,185,129,0.6)', 'rgba(16,185,129,0.3)'] }}
+                  className="w-14 h-14 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center"
+                  animate={{ scale: [1, 1.08, 1], borderColor: ['rgba(16,185,129,0.3)', 'rgba(16,185,129,0.6)', 'rgba(16,185,129,0.3)'] }}
                   transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  <Handshake className="w-7 h-7 text-primary" />
+                  <Handshake className="w-6 h-6 text-primary" />
                 </motion.div>
                 <div className="text-center">
                   <p className="text-sm font-bold text-foreground font-display">Negotiating...</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {sellerClub.shortName} are considering your offer
+                    {sellerClub.shortName} are considering your {fmtM(finalFee)} offer
                   </p>
                 </div>
                 <div className="flex gap-1.5">
                   {[0, 1, 2].map(i => (
                     <motion.div
                       key={i}
-                      className="w-2 h-2 rounded-full bg-primary"
+                      className="w-1.5 h-1.5 rounded-full bg-primary"
                       animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1.2, 0.8] }}
                       transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
                     />
@@ -421,40 +361,26 @@ export function TransferNegotiation({ listing, onClose }: Props) {
               </motion.div>
             )}
 
-            {/* ── RESULT PHASE ── */}
+            {/* ── RESULT: ACCEPTED ── */}
             {phase === 'result' && outcome === 'accepted' && (
               <motion.div
                 key="accepted"
-                className="relative p-6 flex flex-col items-center justify-center gap-4 min-h-[380px] overflow-hidden"
+                className="relative p-5 flex flex-col items-center justify-center gap-3 min-h-[320px] overflow-hidden"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
-                {/* Celebration Particles */}
                 {particles.map((p, i) => (
                   <motion.div
                     key={i}
                     className="absolute rounded-full"
-                    style={{
-                      backgroundColor: p.color,
-                      left: `${p.left}%`,
-                      top: '55%',
-                      width: p.size,
-                      height: p.size,
-                    }}
-                    animate={{
-                      opacity: [1, 1, 0],
-                      y: [0, p.yTarget],
-                      x: [0, p.xTarget],
-                      scale: [1, 0.3],
-                      rotate: [0, 360],
-                    }}
+                    style={{ backgroundColor: p.color, left: `${p.left}%`, top: '50%', width: p.size, height: p.size }}
+                    animate={{ opacity: [1, 1, 0], y: [0, p.yTarget], x: [0, p.xTarget], scale: [1, 0.3], rotate: [0, 360] }}
                     transition={{ duration: p.duration, delay: p.delay }}
                   />
                 ))}
 
-                {/* Title */}
                 <motion.p
-                  className="text-xl font-black text-emerald-400 font-display tracking-wide"
+                  className="text-lg font-black text-emerald-400 font-display tracking-wide"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 }}
@@ -462,245 +388,158 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   Deal Complete!
                 </motion.p>
 
-                {/* New Signing Card */}
+                {/* Signing card */}
                 <motion.div
-                  className="w-full bg-emerald-500/5 border border-emerald-500/30 rounded-xl p-4"
+                  className="w-full bg-emerald-500/5 border border-emerald-500/30 rounded-xl p-3.5"
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.15 }}
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="w-14 h-14 rounded-xl bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center shrink-0">
-                      <span className={cn('font-mono font-black text-2xl', getRatingColor(player.overall))}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center shrink-0">
+                      <span className={cn('font-mono font-black text-xl', getRatingColor(player.overall))}>
                         {player.overall}
                       </span>
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-foreground font-display text-base">
-                        {player.firstName} {player.lastName}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {player.position} · {player.age}y · {getFlag(player.nationality)} {player.nationality}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Welcome to <span className="text-foreground font-medium">{buyerClub.name}</span>
-                      </p>
-                      {player.potential > player.overall && (
-                        <div className="flex items-center gap-1 mt-1.5">
-                          <Star className="w-3 h-3 text-primary" />
-                          <span className="text-xs font-bold text-primary">{player.potential}</span>
-                          <span className="text-[10px] text-muted-foreground">potential</span>
-                          <span className="text-[10px] font-bold text-emerald-400">+{player.potential - player.overall}</span>
-                        </div>
-                      )}
-                      <div className="flex gap-1.5 mt-2">
-                        {top3.map(attr => (
-                          <span key={attr.label} className="text-[10px] font-mono bg-muted/50 px-1.5 py-0.5 rounded">
-                            <span className="text-muted-foreground">{attr.label}</span>{' '}
-                            <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
-                          </span>
-                        ))}
-                      </div>
+                      <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
+                      <p className="text-[11px] text-muted-foreground">{player.position} · {player.age}y · {getFlag(player.nationality)}</p>
+                      <p className="text-[11px] text-emerald-400/80 mt-0.5">Welcome to {buyerClub.name}</p>
                     </div>
                   </div>
                 </motion.div>
 
-                {/* Deal summary card */}
+                {/* Deal summary */}
                 <motion.div
-                  className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4 w-full space-y-3"
+                  className="w-full space-y-2 text-xs"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 }}
+                  transition={{ delay: 0.3 }}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Transfer Fee</span>
-                    <span className="text-xl font-black text-primary tabular-nums">£{(finalFee / 1e6).toFixed(1)}M</span>
-                  </div>
-                  <div className="h-px bg-emerald-500/20" />
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Wages</span>
-                    <span className="text-sm font-bold text-foreground tabular-nums">{formatWage(player.wage)}</span>
+                    <span className="text-muted-foreground">Fee</span>
+                    <span className="text-base font-black text-primary tabular-nums">{fmtM(finalFee)}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">Contract</span>
-                    <span className="text-sm font-bold text-foreground">
-                      {player.contractEnd - season} year{player.contractEnd - season !== 1 ? 's' : ''}
-                    </span>
+                    <span className="text-muted-foreground">Wages</span>
+                    <span className="font-bold text-foreground tabular-nums">{formatWage(player.wage)}</span>
                   </div>
                   {finalFee < listing.askingPrice && (
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">Saved vs Asking</span>
-                      <span className="text-sm font-bold text-emerald-400 tabular-nums">
-                        £{((listing.askingPrice - finalFee) / 1e6).toFixed(1)}M
-                      </span>
+                      <span className="text-muted-foreground">Saved</span>
+                      <span className="font-bold text-emerald-400 tabular-nums">{fmtM(listing.askingPrice - finalFee)}</span>
                     </div>
-                  )}
-                  {top3.length > 0 && (
-                    <>
-                      <div className="h-px bg-emerald-500/20" />
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Top Skills</span>
-                        <div className="flex gap-1.5">
-                          {top3.map(attr => (
-                            <span key={attr.label} className="text-[10px] font-mono bg-muted/50 px-1.5 py-0.5 rounded">
-                              <span className="text-muted-foreground">{attr.label}</span>{' '}
-                              <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </>
                   )}
                 </motion.div>
 
                 <motion.button
                   onClick={handleCloseAfterAccepted}
-                  className="w-full py-3 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all mt-1 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                  className="w-full py-3 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 active:scale-[0.98] transition-all mt-1"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  transition={{ delay: 0.5 }}
+                  transition={{ delay: 0.45 }}
                 >
                   Continue
                 </motion.button>
               </motion.div>
             )}
 
+            {/* ── RESULT: REJECTED ── */}
             {phase === 'result' && outcome === 'rejected' && (
               <motion.div
                 key="rejected"
-                className="p-6 flex flex-col items-center justify-center gap-4 min-h-[300px]"
+                className="p-6 flex flex-col items-center justify-center gap-4 min-h-[260px]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
                 <motion.div
-                  className="w-20 h-20 rounded-full bg-red-500/10 border-2 border-red-500/30 flex items-center justify-center"
+                  className="w-16 h-16 rounded-full bg-red-500/10 border-2 border-red-500/30 flex items-center justify-center"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1, x: [0, -8, 8, -6, 6, -3, 3, 0] }}
                   transition={{ scale: { type: 'spring', stiffness: 300, damping: 15 }, x: { duration: 0.5, delay: 0.2 } }}
                 >
-                  <XCircle className="w-10 h-10 text-red-400" />
+                  <XCircle className="w-8 h-8 text-red-400" />
                 </motion.div>
 
-                <motion.div
-                  className="text-center"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                >
-                  <p className="text-lg font-black text-red-400 font-display">Offer Rejected</p>
+                <motion.div className="text-center" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                  <p className="text-lg font-black text-red-400 font-display">Rejected</p>
                   <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">{resultMessage}</p>
                 </motion.div>
 
-                <motion.div
-                  className="flex gap-2 w-full mt-2"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.35 }}
-                >
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all"
-                  >
+                <motion.div className="flex gap-2 w-full mt-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
+                  <button type="button" onClick={onClose}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all">
                     Walk Away
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleRevise}
-                    className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(16,185,129,0.15)]"
-                  >
+                  <button type="button" onClick={handleRevise}
+                    className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all">
                     <RotateCcw className="w-4 h-4" /> Revise Offer
                   </button>
                 </motion.div>
               </motion.div>
             )}
 
+            {/* ── RESULT: COUNTER ── */}
             {phase === 'result' && outcome === 'counter' && (
               <motion.div
                 key="counter"
-                className="p-6 flex flex-col items-center justify-center gap-4 min-h-[340px]"
+                className="p-5 flex flex-col items-center justify-center gap-3 min-h-[300px]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
               >
                 <motion.div
-                  className="w-16 h-16 rounded-full bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center"
+                  className="w-14 h-14 rounded-full bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center"
                   initial={{ scale: 0, rotate: -10 }}
                   animate={{ scale: 1, rotate: 0 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 15 }}
                 >
-                  <Handshake className="w-8 h-8 text-amber-400" />
+                  <Handshake className="w-7 h-7 text-amber-400" />
                 </motion.div>
 
-                <motion.div
-                  className="text-center"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
-                >
+                <motion.div className="text-center" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
                   <p className="text-lg font-black text-amber-400 font-display">Counter-Offer</p>
                   <p className="text-xs text-muted-foreground mt-1 max-w-[260px]">{resultMessage}</p>
                 </motion.div>
 
-                {/* Counter details */}
-                <motion.div
-                  className="w-full space-y-2"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.25 }}
-                >
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-muted/20 rounded-lg p-3 text-center">
-                      <p className="text-[10px] text-muted-foreground mb-1">Your Bid</p>
-                      <p className="text-sm font-bold text-muted-foreground line-through tabular-nums">£{(offerFee / 1e6).toFixed(1)}M</p>
+                {/* Price comparison */}
+                <motion.div className="w-full" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+                  <div className="flex items-center justify-center gap-3 py-3">
+                    <div className="text-center">
+                      <p className="text-[10px] text-muted-foreground mb-0.5">Your Bid</p>
+                      <p className="text-sm font-bold text-muted-foreground line-through tabular-nums">{fmtM(offerFee)}</p>
                     </div>
-                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 text-center">
-                      <p className="text-[10px] text-amber-400 mb-1">They Want</p>
-                      <p className="text-sm font-black text-amber-400 tabular-nums">£{counterFee ? (counterFee / 1e6).toFixed(1) : '?'}M</p>
+                    <ArrowRight className="w-4 h-4 text-amber-400" />
+                    <div className="text-center">
+                      <p className="text-[10px] text-amber-400 mb-0.5">They Want</p>
+                      <p className="text-base font-black text-amber-400 tabular-nums">{counterFee ? fmtM(counterFee) : '?'}</p>
                     </div>
                   </div>
                   {counterFee && (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-muted-foreground px-1">
-                        <span>Budget after: £{((buyerClub.budget - counterFee) / 1e6).toFixed(1)}M</span>
-                        <span className="text-amber-400 font-semibold">
-                          +£{((counterFee - offerFee) / 1e6).toFixed(1)}M more
-                        </span>
-                      </div>
-                      {counterFee > buyerClub.budget && (
-                        <p className="text-[10px] text-red-400 text-center font-medium">
-                          Insufficient budget to accept this counter-offer
-                        </p>
-                      )}
+                    <div className="text-center text-[10px] text-muted-foreground">
+                      Budget after: <span className={cn('font-semibold', buyerClub.budget - counterFee >= 0 ? 'text-foreground' : 'text-red-400')}>{fmtM(buyerClub.budget - counterFee)}</span>
+                      <span className="mx-1.5">·</span>
+                      <span className="text-amber-400">+{fmtM(counterFee - offerFee)} more</span>
                     </div>
+                  )}
+                  {counterFee && counterFee > buyerClub.budget && (
+                    <p className="text-[10px] text-red-400 text-center font-medium mt-1">
+                      Insufficient budget
+                    </p>
                   )}
                 </motion.div>
 
-                <motion.div
-                  className="flex gap-2 w-full mt-1"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.35 }}
-                >
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all"
-                  >
+                <motion.div className="flex gap-2 w-full mt-1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
+                  <button type="button" onClick={onClose}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all">
                     Walk Away
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleRevise}
-                    className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-sm font-semibold text-foreground bg-muted/50 hover:bg-muted/70 active:scale-[0.98] transition-all"
-                  >
+                  <button type="button" onClick={handleRevise}
+                    className="flex-1 flex items-center justify-center gap-1 py-2.5 rounded-xl text-sm font-semibold text-foreground bg-muted/50 hover:bg-muted/70 active:scale-[0.98] transition-all">
                     <RotateCcw className="w-3.5 h-3.5" /> Revise
                   </button>
                   {counterFee && counterFee <= buyerClub.budget && (
-                    <button
-                      type="button"
-                      onClick={handleAcceptCounter}
-                      className="flex-[1.5] flex items-center justify-center gap-1 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(16,185,129,0.15)]"
-                    >
+                    <button type="button" onClick={handleAcceptCounter}
+                      className="flex-[1.5] flex items-center justify-center gap-1 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all">
                       Accept <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   )}
@@ -710,31 +549,22 @@ export function TransferNegotiation({ listing, onClose }: Props) {
           </AnimatePresence>
           </div>
 
-          {/* Sticky action buttons — always visible at bottom */}
+          {/* Sticky action buttons */}
           {phase === 'negotiate' && (
             <div className="border-t border-border/30 bg-card/95 px-4 py-3">
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="flex-1 py-3 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSubmitOffer(offerFee)}
-                  disabled={evaluation ? evaluation.budgetAfter < 0 : false}
-                  className={cn(
-                    'flex-[2] flex items-center justify-center gap-2 py-3.5 rounded-xl text-base font-black active:scale-[0.98] transition-all',
-                    evaluation && evaluation.budgetAfter < 0
-                      ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
-                      : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_24px_rgba(16,185,129,0.25)]'
-                  )}
-                >
-                  Submit Offer <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleSubmitOffer(offerFee)}
+                disabled={evaluation ? evaluation.budgetAfter < 0 : false}
+                className={cn(
+                  'w-full flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-black active:scale-[0.98] transition-all',
+                  evaluation && evaluation.budgetAfter < 0
+                    ? 'bg-muted/50 text-muted-foreground cursor-not-allowed'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_24px_rgba(16,185,129,0.25)]'
+                )}
+              >
+                Submit Offer — {fmtM(offerFee)} <ArrowRight className="w-4 h-4" />
+              </button>
             </div>
           )}
         </motion.div>

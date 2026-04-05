@@ -8,7 +8,7 @@ import { POSITION_COMPATIBILITY, Position, TrainingModule } from '@/types/game';
 import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2 } from 'lucide-react';
 import { TransferApproach } from '@/components/game/TransferApproach';
 import { LoanNegotiation } from '@/components/game/LoanNegotiation';
-import { ConfirmDialog } from '@/components/game/ConfirmDialog';
+import { ListForSaleModal } from '@/components/game/ListForSaleModal';
 import { motion } from 'framer-motion';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
 import { cn } from '@/lib/utils';
@@ -67,7 +67,6 @@ const PlayerDetail = () => {
 
   const setScreen = useGameStore(s => s.setScreen);
   const selectPlayer = useGameStore(s => s.selectPlayer);
-  const listPlayerForSale = useGameStore(s => s.listPlayerForSale);
   const unlistPlayer = useGameStore(s => s.unlistPlayer);
   const respondToOffer = useGameStore(s => s.respondToOffer);
   const startNegotiation = useGameStore(s => s.startNegotiation);
@@ -125,12 +124,11 @@ const PlayerDetail = () => {
     }
   };
 
-  const confirmListForSale = () => {
-    const result = listPlayerForSale(player.id);
-    if (result.appeased) {
+  const handleListComplete = (appeased: boolean) => {
+    if (appeased) {
       successToast(`${player.lastName} appreciates your honesty!`, 'Transfer request withdrawn — morale improved.');
     } else {
-      successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M. Offers will appear in your Inbox.`);
+      successToast(`${player.lastName} listed for sale!`, 'Offers will appear in your Inbox.');
     }
     setShowListConfirm(false);
   };
@@ -993,16 +991,14 @@ const PlayerDetail = () => {
         <LoanNegotiation playerId={player.id} onClose={() => setShowLoanRequest(false)} />
       )}
 
-      {/* List for Sale Confirmation */}
-      <ConfirmDialog
-        open={showListConfirm}
-        onOpenChange={setShowListConfirm}
-        title="List Player for Sale?"
-        description={`${player.firstName} ${player.lastName} (${player.overall} OVR) will be listed at ~£${(player.value / 1_000_000).toFixed(1)}M. Other clubs may make offers via your Inbox.`}
-        confirmLabel="List for Sale"
-        variant="default"
-        onConfirm={confirmListForSale}
-      />
+      {/* List for Sale Modal */}
+      {showListConfirm && (
+        <ListForSaleModal
+          player={player}
+          onClose={() => setShowListConfirm(false)}
+          onListed={handleListComplete}
+        />
+      )}
     </div>
   );
 };
