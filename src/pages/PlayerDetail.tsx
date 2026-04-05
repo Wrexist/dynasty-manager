@@ -16,7 +16,7 @@ import { getRatingColor, getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
 import { getFlag } from '@/utils/nationality';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel, getTrainingMultiplier } from '@/utils/personality';
-import { PlayerAvatar } from '@/components/game/PlayerAvatar';
+import { darken, lighten } from '@/utils/colorUtils';
 import { PlayerRadarChart } from '@/components/game/PlayerRadarChart';
 import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
@@ -186,11 +186,30 @@ const PlayerDetail = () => {
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25 }}>
       <GlassPanel className="p-5">
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center relative overflow-hidden">
-              <PlayerAvatar playerId={player.id} jerseyColor={club?.color || '#888'} jerseyNumber={player.squadNumber} size={52} overall={player.overall} position={player.position} />
-            <span className={cn('absolute -bottom-0.5 -right-0.5 text-[10px] font-black bg-background rounded-full w-6 h-6 flex items-center justify-center border border-border tabular-nums', ratingColor)}>
-              {player.overall}
-            </span>
+          <div className="relative">
+            <div
+              className="w-[60px] h-[76px] rounded-xl flex flex-col items-center justify-between py-1.5 relative overflow-hidden border"
+              style={{
+                background: `linear-gradient(135deg, ${lighten(club?.color || '#888', 0.1)} 0%, ${darken(club?.color || '#888', 0.35)} 100%)`,
+                borderColor: `${darken(club?.color || '#888', 0.15)}`,
+              }}
+            >
+              {/* Diagonal shine */}
+              <div className="absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-black/10 pointer-events-none" />
+              {/* Position pill */}
+              <span className="relative z-10 text-[9px] font-bold bg-black/40 text-white px-2 py-0.5 rounded-full leading-tight tracking-wide">
+                {player.position}
+              </span>
+              {/* Overall rating */}
+              <span className={cn('relative z-10 text-2xl font-black font-display tabular-nums leading-none drop-shadow-md', ratingColor)}>
+                {player.overall}
+              </span>
+              {/* Jersey number */}
+              <span className="relative z-10 text-[10px] font-bold text-white/60 tabular-nums leading-tight">
+                #{player.squadNumber ?? '—'}
+              </span>
+            </div>
+            {/* Growth indicator */}
             {player.growthDelta > 0 && (
               <TrendingUp className="absolute -top-1 -left-1 w-4 h-4 text-emerald-400" />
             )}
