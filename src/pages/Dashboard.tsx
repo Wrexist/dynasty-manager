@@ -20,7 +20,7 @@ import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
-import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS } from '@/config/gameBalance';
+import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, COACH_ALL_TASKS_BONUS_XP } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
@@ -39,7 +39,7 @@ import { GemRevealModal } from '@/components/game/GemRevealModal';
 import { SessionRecap } from '@/components/game/SessionRecap';
 import { BoardWarning } from '@/components/game/BoardWarning';
 import { getWeekPreview, getFallbackPreview } from '@/utils/weekPreview';
-import { hapticMedium, hapticHeavy } from '@/utils/haptics';
+import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { InfoTip } from '@/components/game/InfoTip';
 import { WeeklyDigest } from '@/components/game/WeeklyDigest';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
@@ -363,36 +363,52 @@ const Dashboard = () => {
   }, [coachTasks, completedCoachTaskIds, markCoachTaskComplete]);
 
   // Track "just completed" for reward animations
-  const prevCompletedCoachRef = useRef<Set<string>>(new Set(coachTasks.filter(t => t.completed).map(t => t.id)));
+  const prevCompletedCoachRef = useRef<Set<string> | null>(null);
   const [justCompletedCoach, setJustCompletedCoach] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (prevCompletedCoachRef.current === null) {
+      prevCompletedCoachRef.current = new Set(coachTasks.filter(t => t.completed).map(t => t.id));
+      return;
+    }
     const prev = prevCompletedCoachRef.current;
     const newlyDone = new Set<string>();
     for (const task of coachTasks) {
       if (task.completed && !prev.has(task.id)) newlyDone.add(task.id);
     }
-    if (newlyDone.size > 0) {
-      setJustCompletedCoach(newlyDone);
-      setTimeout(() => setJustCompletedCoach(new Set()), 1000);
-    }
     prevCompletedCoachRef.current = new Set(coachTasks.filter(t => t.completed).map(t => t.id));
+    if (newlyDone.size > 0) {
+      hapticLight();
+      setJustCompletedCoach(newlyDone);
+      // Celebrate all-tasks-complete bonus
+      if (coachTasks.length > 0 && coachTasks.every(t => t.completed)) {
+        celebrationToast('Checklist Complete!', `+${COACH_ALL_TASKS_BONUS_XP} XP bonus earned`);
+      }
+      const id = setTimeout(() => setJustCompletedCoach(new Set()), 1000);
+      return () => clearTimeout(id);
+    }
   }, [coachTasks]);
 
-  const prevCompletedObjRef = useRef<Set<string>>(new Set(weeklyObjectives.filter(o => o.completed).map(o => o.objectiveId)));
+  const prevCompletedObjRef = useRef<Set<string> | null>(null);
   const [justCompletedObj, setJustCompletedObj] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (prevCompletedObjRef.current === null) {
+      prevCompletedObjRef.current = new Set(weeklyObjectives.filter(o => o.completed).map(o => o.objectiveId));
+      return;
+    }
     const prev = prevCompletedObjRef.current;
     const newlyDone = new Set<string>();
     for (const obj of weeklyObjectives) {
       if (obj.completed && !prev.has(obj.objectiveId)) newlyDone.add(obj.objectiveId);
     }
-    if (newlyDone.size > 0) {
-      setJustCompletedObj(newlyDone);
-      setTimeout(() => setJustCompletedObj(new Set()), 1000);
-    }
     prevCompletedObjRef.current = new Set(weeklyObjectives.filter(o => o.completed).map(o => o.objectiveId));
+    if (newlyDone.size > 0) {
+      hapticLight();
+      setJustCompletedObj(newlyDone);
+      const id = setTimeout(() => setJustCompletedObj(new Set()), 1000);
+      return () => clearTimeout(id);
+    }
   }, [weeklyObjectives]);
 
   // Last played match
@@ -944,11 +960,12 @@ const Dashboard = () => {
                   <div className="flex items-center justify-between gap-2">
                     <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      {!task.completed && (
-                        <span className="text-[9px] font-bold text-primary/70 bg-primary/10 px-1.5 py-0.5 rounded">
-                          +{task.xpReward} XP
-                        </span>
-                      )}
+                      <span className={cn(
+                        'text-[9px] font-bold px-1.5 py-0.5 rounded',
+                        task.completed ? 'text-emerald-400/70 bg-emerald-500/10' : 'text-primary/70 bg-primary/10'
+                      )}>
+                        {task.completed ? '✓' : '+'}{task.xpReward} XP
+                      </span>
                       <span className={cn(
                         'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
                         task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'

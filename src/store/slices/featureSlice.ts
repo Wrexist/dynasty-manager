@@ -111,8 +111,8 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     const xp = COACH_TASK_XP[taskId] ?? 5;
     let updatedProgression = grantXP(get().managerProgression, xp);
 
-    // Bonus XP for completing all 7 tasks
-    if (newIds.length >= 7) {
+    // Bonus XP for completing all 7 tasks (fires exactly once)
+    if (newIds.length === 7) {
       updatedProgression = grantXP(updatedProgression, COACH_ALL_TASKS_BONUS_XP);
     }
 
