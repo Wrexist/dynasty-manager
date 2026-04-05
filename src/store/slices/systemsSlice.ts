@@ -1,9 +1,10 @@
-import { TacticalInstructions, TrainingState, TrainingModule, ScoutRegion, FacilitiesState } from '@/types/game';
+import { TacticalInstructions, TrainingState, TrainingModule, ScoutRegion, FacilitiesState, TacticalPreset } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { GROWTH_YOUTH_PER_PROMOTION, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import { createAssignment } from '@/utils/scouting';
 import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL } from '@/config/gameBalance';
+import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -19,8 +20,40 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
   youthAcademy: { prospects: [], nextIntakePreview: [] } as GameState['youthAcademy'],
   facilities: { trainingLevel: 5, youthLevel: 5, stadiumLevel: 5, medicalLevel: 5, recoveryLevel: 5, upgradeInProgress: null } as GameState['facilities'],
   financeHistory: [] as GameState['financeHistory'],
+  tacticalPresets: [] as TacticalPreset[],
 
   setTactics: (partial: Partial<TacticalInstructions>) => set(s => ({ tactics: { ...s.tactics, ...partial } })),
+
+  saveTacticalPreset: (name: string) => {
+    const state = get();
+    if (state.tacticalPresets.length >= MAX_TACTICAL_PRESETS) return;
+    const club = state.clubs[state.playerClubId];
+    if (!club) return;
+    const preset: TacticalPreset = {
+      id: crypto.randomUUID(),
+      name,
+      formation: club.formation,
+      tactics: { ...state.tactics },
+      createdAt: new Date().toISOString(),
+    };
+    set({ tacticalPresets: [...state.tacticalPresets, preset] });
+  },
+
+  loadTacticalPreset: (presetId: string) => {
+    const state = get();
+    const preset = state.tacticalPresets.find(p => p.id === presetId);
+    if (!preset) return;
+    const club = state.clubs[state.playerClubId];
+    if (!club) return;
+    set({
+      tactics: { ...preset.tactics },
+      clubs: { ...state.clubs, [state.playerClubId]: { ...club, formation: preset.formation } },
+    });
+  },
+
+  deleteTacticalPreset: (presetId: string) => set(s => ({
+    tacticalPresets: s.tacticalPresets.filter(p => p.id !== presetId),
+  })),
 
   updateTraining: (schedule: Partial<TrainingState['schedule']>, intensity?: TrainingState['intensity']) => set(s => {
     // Clear drill for any day whose module changed

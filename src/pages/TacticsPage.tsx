@@ -9,7 +9,7 @@ import { MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE } from '@/config/chemistry';
 import { getRatingColor } from '@/utils/uiHelpers';
 import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
-import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, AlertTriangle } from 'lucide-react';
+import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, AlertTriangle, Save, Trash2, Upload } from 'lucide-react';
 import { getFlag } from '@/utils/nationality';
 import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
@@ -18,6 +18,9 @@ import { InfoTip } from '@/components/game/InfoTip';
 import { PlayerSelect } from '@/components/game/PlayerSelect';
 import { useLineupOptimizer } from '@/hooks/useLineupOptimizer';
 import { infoToast } from '@/utils/gameToast';
+import { isPro } from '@/utils/monetization';
+import { ProUpsell } from '@/components/game/ProUpsell';
+import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
 
 function pressingLabel(v: number): string {
   if (v <= PRESSING_LOW_THRESHOLD) return 'Low';
@@ -30,14 +33,21 @@ const TacticsPage = () => {
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players, tactics: s.tactics,
     season: s.season, training: s.training,
   })));
+  const monetization = useGameStore(s => s.monetization);
+  const tacticalPresets = useGameStore(s => s.tacticalPresets);
   const setFormation = useGameStore(s => s.setFormation);
   const setDefensiveFormation = useGameStore(s => s.setDefensiveFormation);
   const setTactics = useGameStore(s => s.setTactics);
+  const saveTacticalPreset = useGameStore(s => s.saveTacticalPreset);
+  const loadTacticalPreset = useGameStore(s => s.loadTacticalPreset);
+  const deleteTacticalPreset = useGameStore(s => s.deleteTacticalPreset);
   const updateLineup = useGameStore(s => s.updateLineup);
   const setSetPieceTaker = useGameStore(s => s.setSetPieceTaker);
   const setPenaltyTaker = useGameStore(s => s.setPenaltyTaker);
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
+  const [presetName, setPresetName] = useState('');
+  const userIsPro = isPro(monetization);
   const { potentialGain, autoFilling, optimizeLineup } = useLineupOptimizer();
   const { chemLinks } = useMemo(() => {
     if (!club) return { chemLinks: [] as ReturnType<typeof calculateChemistryLinks> };
@@ -293,6 +303,68 @@ const TacticsPage = () => {
           })}
         </div>
       </GlassPanel>
+
+      {/* Custom Tactical Presets (Pro Feature) */}
+      {userIsPro ? (
+        <GlassPanel className="p-4">
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">My Presets</p>
+          {tacticalPresets.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {tacticalPresets.map(preset => (
+                <div key={preset.id} className="flex items-center gap-2 bg-muted/20 rounded-lg px-3 py-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-foreground truncate">{preset.name}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {preset.formation} · {preset.tactics.mentality} · {preset.tactics.tempo} tempo
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { loadTacticalPreset(preset.id); infoToast(`Loaded "${preset.name}"`); }}
+                    className="p-1.5 rounded-lg hover:bg-primary/20 text-primary transition-colors"
+                    title="Load preset"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => deleteTacticalPreset(preset.id)}
+                    className="p-1.5 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-colors"
+                    title="Delete preset"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {tacticalPresets.length < MAX_TACTICAL_PRESETS ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={presetName}
+                onChange={e => setPresetName(e.target.value)}
+                placeholder="Preset name..."
+                maxLength={24}
+                className="flex-1 bg-muted/30 border border-border/30 rounded-lg px-3 py-1.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+              />
+              <button
+                onClick={() => {
+                  const name = presetName.trim() || `Preset ${tacticalPresets.length + 1}`;
+                  saveTacticalPreset(name);
+                  setPresetName('');
+                  infoToast(`Saved "${name}"`);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+              >
+                <Save className="w-3.5 h-3.5" /> Save
+              </button>
+            </div>
+          ) : (
+            <p className="text-[10px] text-muted-foreground">Maximum {MAX_TACTICAL_PRESETS} presets saved.</p>
+          )}
+        </GlassPanel>
+      ) : (
+        <ProUpsell feature="Custom Tactics Creator" />
+      )}
 
       {/* Tactical Instructions */}
       <GlassPanel className="p-4 space-y-4">

@@ -15,6 +15,7 @@ import { FormationType } from '@/types/game';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { isPro } from '@/utils/monetization';
+import { ProUpsell } from '@/components/game/ProUpsell';
 
 const FORMATION_HINTS: Record<FormationType, string> = {
   '4-4-2': 'Balanced and direct. Strong in midfield and up front.',
@@ -361,6 +362,11 @@ const MatchPrep = () => {
 
         <LineupEditor />
       </GlassPanel>
+
+      {/* Instant Sim Upsell (free users only) */}
+      {!isPro(monetization) && (
+        <ProUpsell feature="Instant Match Sim" />
+      )}
 
       {/* Ready Button — sticky at bottom */}
       <div className="fixed bottom-20 left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent">

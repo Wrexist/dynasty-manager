@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 38;
+const CURRENT_VERSION = 39;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -557,6 +557,13 @@ const migrations: Record<number, MigrationFn> = {
     version: 38,
     completedCoachTaskIds: data.completedCoachTaskIds || [],
     objectivesStartWeek: data.week || 1,
+  }),
+
+  // v38 → v39: Add tactical presets (Pro feature)
+  38: (data) => ({
+    ...data,
+    version: 39,
+    tacticalPresets: data.tacticalPresets || [],
   }),
 };
 

@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils';
 import { Mic, X, MessageSquare } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import type { PressResponseTone } from '@/types/game';
+import { isPro } from '@/utils/monetization';
+import { ProUpsell } from '@/components/game/ProUpsell';
 
 const TONE_STYLES: Record<PressResponseTone, { label: string; color: string; icon: string }> = {
   confident: { label: 'Bold', color: 'border-primary/50 hover:bg-primary/10', icon: 'dumbbell' },
@@ -17,6 +19,8 @@ export function PressConference() {
   const pendingPressConference = useGameStore(s => s.pendingPressConference);
   const respondToPress = useGameStore(s => s.respondToPress);
   const dismissPress = useGameStore(s => s.dismissPress);
+  const monetization = useGameStore(s => s.monetization);
+  const userIsPro = isPro(monetization);
 
   if (!pendingPressConference) return null;
 
@@ -80,6 +84,9 @@ export function PressConference() {
             </button>
           );
         })}
+        {!userIsPro && pendingPressConference.options.length <= 3 && (
+          <ProUpsell feature="Expanded Press Conferences" className="mt-1" />
+        )}
       </div>
     </div>
   );

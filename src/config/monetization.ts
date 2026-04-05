@@ -127,6 +127,9 @@ export const PRO_FEATURE_LABELS: Record<ProFeature, string> = {
   pro_badge: 'Pro Badge',
 };
 
+/** Maximum number of tactical presets a Pro user can save */
+export const MAX_TACTICAL_PRESETS = 5;
+
 // ── Rewarded Ad Constants ──
 // Budget bonuses are intentionally small relative to weekly income
 // to avoid breaking the in-game economy.
