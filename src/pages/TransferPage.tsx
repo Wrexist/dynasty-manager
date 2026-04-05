@@ -18,7 +18,7 @@ import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
+import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS } from '@/config/transfers';
 import { formatMoney } from '@/utils/helpers';
 import { SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE } from '@/config/ui';
 import { getFlag } from '@/utils/nationality';
@@ -562,8 +562,14 @@ const TransferPage = () => {
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-primary">{'\u00A3'}{(offer.fee / 1e6).toFixed(1)}M</p>
-                    <p className="text-[10px] text-muted-foreground">Value: {'\u00A3'}{(p.value / 1e6).toFixed(1)}M</p>
+                    <p className="text-sm font-bold text-primary">{formatMoney(offer.fee)}</p>
+                    <p className="text-[10px] text-muted-foreground">Value: {formatMoney(p.value)}</p>
+                    <div className="flex items-center justify-end gap-1 mt-0.5">
+                      <span className="text-[10px] text-muted-foreground/70">Wk {offer.week}</span>
+                      {week - offer.week >= OFFER_EXPIRY_WEEKS - 1 && (
+                        <span className="text-[9px] font-medium text-amber-500 bg-amber-500/10 px-1 rounded">Expiring</span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3">

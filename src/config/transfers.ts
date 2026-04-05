@@ -44,6 +44,14 @@ export const TRANSFER_SHARK_DISCOUNT = 0.15;
 // ── Transfer Rumors ──
 export const RUMOR_CHANCE = 0.15;
 
+// ── Offer Expiry ──
+export const OFFER_EXPIRY_WEEKS = 4;
+
+// ── Unsolicited Bids (unlisted star / unhappy players) ──
+export const UNSOLICITED_OFFER_CHANCE = 0.12;
+export const UNSOLICITED_FEE_BASE = 0.75;
+export const UNSOLICITED_FEE_RANGE = 0.25;
+
 // ── Deadline Day ──
 export const DEADLINE_DAY_OFFER_MULTIPLIER = 2.0;
 export const DEADLINE_DAY_BID_PREMIUM = 0.15;
