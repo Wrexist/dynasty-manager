@@ -89,7 +89,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
 
         {/* Modal */}
         <motion.div
-          className="relative w-full max-w-sm bg-card/95 backdrop-blur-xl border border-border/50 rounded-t-2xl sm:rounded-2xl overflow-hidden sm:mx-4"
+          className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto bg-card/95 backdrop-blur-xl border border-border/50 rounded-t-2xl sm:rounded-2xl sm:mx-4 mb-16"
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 60, opacity: 0 }}
