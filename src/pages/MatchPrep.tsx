@@ -1,20 +1,20 @@
-import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
-import { Swords, AlertTriangle, Flame, Info, Shield, Sparkles, Zap } from 'lucide-react';
+import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
+import { Swords, AlertTriangle, Flame, Info, Shield, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
+import { useLineupOptimizer } from '@/hooks/useLineupOptimizer';
 import { Button } from '@/components/ui/button';
 import { getDerbyIntensity, getDerbyName } from '@/data/league';
 import { FormationType } from '@/types/game';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { isPro } from '@/utils/monetization';
-import { infoToast } from '@/utils/gameToast';
 
 const FORMATION_HINTS: Record<FormationType, string> = {
   '4-4-2': 'Balanced and direct. Strong in midfield and up front.',
@@ -38,31 +38,9 @@ const MatchPrep = () => {
   })));
   const setScreen = useGameStore((s) => s.setScreen);
   const playCurrentMatch = useGameStore((s) => s.playCurrentMatch);
-  const autoFillTeam = useGameStore((s) => s.autoFillTeam);
-  const [autoFilling, setAutoFilling] = useState(false);
+  const { potentialGain, autoFilling, optimizeLineup } = useLineupOptimizer();
 
   const myClub = clubs[playerClubId];
-
-  // Potential rating gain for optimize button
-  const lineupPlayers = useMemo(() => {
-    if (!myClub) return [];
-    return myClub.lineup.map(id => players[id]).filter(Boolean);
-  }, [myClub, players]);
-
-  const potentialGain = useMemo(() => {
-    if (!myClub) return 0;
-    const lineupAvg = lineupPlayers.length > 0
-      ? lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length
-      : 0;
-    const allAvailable = myClub.playerIds.map(id => players[id]).filter(p =>
-      p && !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
-    );
-    allAvailable.sort((a, b) => b.overall - a.overall);
-    const bestXI = allAvailable.slice(0, 11);
-    if (bestXI.length === 0) return 0;
-    const bestAvg = bestXI.reduce((s, p) => s + p.overall, 0) / bestXI.length;
-    return Math.max(0, Math.round(bestAvg - lineupAvg));
-  }, [myClub, players, week, lineupPlayers]);
 
   const { match, isHome, opponent: oppClub } = useCurrentMatch();
   const oppClubId = match ? (isHome ? match.awayClubId : match.homeClubId) : '';
@@ -377,46 +355,8 @@ const MatchPrep = () => {
       <GlassPanel className="p-4">
         <h3 className="text-sm font-semibold text-foreground mb-2">Your Formation: {myClub.formation}</h3>
 
-        {/* Optimize Lineup */}
-        <div className="space-y-1 mb-3">
-          {potentialGain > 0 && (
-            <p className="text-[10px] text-center text-primary">
-              +{potentialGain} overall rating potential
-            </p>
-          )}
-          <button
-            onClick={() => {
-              setAutoFilling(true);
-              const oldLineup = [...myClub.lineup];
-              const oldAvg = Math.round(oldLineup.map(id => players[id]).filter(Boolean)
-                .reduce((s, p) => s + p.overall, 0) / Math.max(1, oldLineup.filter(id => players[id]).length));
-              autoFillTeam();
-              setAutoFilling(false);
-              const { clubs: newClubs, players: newPlayers } = useGameStore.getState();
-              const newClub = newClubs[playerClubId];
-              if (newClub) {
-                const changes = newClub.lineup.filter((id, i) => id !== oldLineup[i]).length;
-                const newAvg = Math.round(newClub.lineup.map(id => newPlayers[id]).filter(Boolean)
-                  .reduce((s, p) => s + p.overall, 0) / Math.max(1, newClub.lineup.filter(id => newPlayers[id]).length));
-                const diff = newAvg - oldAvg;
-                if (changes > 0) {
-                  infoToast(`${changes} change${changes > 1 ? 's' : ''} made${diff > 0 ? `, +${diff} OVR` : ''}`);
-                } else {
-                  infoToast('Lineup already optimal');
-                }
-              }
-            }}
-            disabled={autoFilling}
-            className={cn(
-              'w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]',
-              autoFilling
-                ? 'bg-primary/50 text-primary-foreground/70 cursor-not-allowed'
-                : 'bg-primary/90 hover:bg-primary text-primary-foreground'
-            )}
-          >
-            <Sparkles className={cn('w-4 h-4', autoFilling && 'animate-spin')} />
-            {autoFilling ? 'Optimizing...' : 'Optimize Lineup'}
-          </button>
+        <div className="mb-3">
+          <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
         </div>
 
         <LineupEditor />

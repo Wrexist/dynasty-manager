@@ -189,7 +189,7 @@ export interface GameState {
   setFormation: (f: FormationType) => void;
   setDefensiveFormation: (f: FormationType | null) => void;
   updateLineup: (lineup: string[], subs: string[]) => void;
-  autoFillTeam: () => void;
+  autoFillTeam: () => { changes: number; chemistryLabel: string; chemistryBonus: number; undersized: boolean; undersizedDetail?: string };
   setTrainingFocus: (f: 'fitness' | 'attacking' | 'defending' | 'mentality') => void;
   setSetPieceTaker: (playerId: string | undefined) => void;
   setPenaltyTaker: (playerId: string | undefined) => void;

@@ -2,19 +2,21 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
+import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks } from '@/utils/chemistry';
 import { MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE } from '@/config/chemistry';
 import { getRatingColor } from '@/utils/uiHelpers';
 import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
-import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, Sparkles, AlertTriangle } from 'lucide-react';
+import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, AlertTriangle } from 'lucide-react';
 import { getFlag } from '@/utils/nationality';
 import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
 import { PlayerSelect } from '@/components/game/PlayerSelect';
+import { useLineupOptimizer } from '@/hooks/useLineupOptimizer';
 import { infoToast } from '@/utils/gameToast';
 
 function pressingLabel(v: number): string {
@@ -24,20 +26,19 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, tactics, season, training, week } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, tactics, season, training } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players, tactics: s.tactics,
-    season: s.season, training: s.training, week: s.week,
+    season: s.season, training: s.training,
   })));
   const setFormation = useGameStore(s => s.setFormation);
   const setDefensiveFormation = useGameStore(s => s.setDefensiveFormation);
   const setTactics = useGameStore(s => s.setTactics);
   const updateLineup = useGameStore(s => s.updateLineup);
-  const autoFillTeam = useGameStore(s => s.autoFillTeam);
   const setSetPieceTaker = useGameStore(s => s.setSetPieceTaker);
   const setPenaltyTaker = useGameStore(s => s.setPenaltyTaker);
   const club = clubs[playerClubId];
   const [swapSubId, setSwapSubId] = useState<string | null>(null);
-  const [autoFilling, setAutoFilling] = useState(false);
+  const { potentialGain, autoFilling, optimizeLineup } = useLineupOptimizer();
   const { chemLinks } = useMemo(() => {
     if (!club) return { chemLinks: [] as ReturnType<typeof calculateChemistryLinks> };
     const lp = club.lineup.map(id => players[id]).filter(Boolean);
@@ -50,22 +51,6 @@ const TacticsPage = () => {
     if (!club) return [];
     return club.lineup.map(id => players[id]).filter(Boolean);
   }, [club, players]);
-
-  // Potential rating gain for optimize button
-  const potentialGain = useMemo(() => {
-    if (!club) return 0;
-    const lineupAvg = lineupPlayers.length > 0
-      ? lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length
-      : 0;
-    const allAvailable = club.playerIds.map(id => players[id]).filter(p =>
-      p && !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
-    );
-    allAvailable.sort((a, b) => b.overall - a.overall);
-    const bestXI = allAvailable.slice(0, 11);
-    if (bestXI.length === 0) return 0;
-    const bestAvg = bestXI.reduce((s, p) => s + p.overall, 0) / bestXI.length;
-    return Math.max(0, Math.round(bestAvg - lineupAvg));
-  }, [club, players, week, lineupPlayers]);
 
   // Group chemistry links by type (memoized)
   const { natLinks, mentorLinks, partnershipLinks, loyaltyLinks } = useMemo(() => ({
@@ -173,47 +158,7 @@ const TacticsPage = () => {
       </GlassPanel>
 
       {/* Optimize Lineup */}
-      <div className="space-y-1">
-        {potentialGain > 0 && (
-          <p className="text-[10px] text-center text-primary">
-            +{potentialGain} overall rating potential
-          </p>
-        )}
-        <button
-          onClick={() => {
-            setAutoFilling(true);
-            const oldLineup = [...club.lineup];
-            const oldAvg = Math.round(oldLineup.map(id => players[id]).filter(Boolean)
-              .reduce((s, p) => s + p.overall, 0) / Math.max(1, oldLineup.filter(id => players[id]).length));
-            autoFillTeam();
-            setAutoFilling(false);
-            // Show diff toast using fresh state
-            const { clubs: newClubs, players: newPlayers } = useGameStore.getState();
-            const newClub = newClubs[playerClubId];
-            if (newClub) {
-              const changes = newClub.lineup.filter((id, i) => id !== oldLineup[i]).length;
-              const newAvg = Math.round(newClub.lineup.map(id => newPlayers[id]).filter(Boolean)
-                .reduce((s, p) => s + p.overall, 0) / Math.max(1, newClub.lineup.filter(id => newPlayers[id]).length));
-              const diff = newAvg - oldAvg;
-              if (changes > 0) {
-                infoToast(`${changes} change${changes > 1 ? 's' : ''} made${diff > 0 ? `, +${diff} OVR` : ''}`);
-              } else {
-                infoToast('Lineup already optimal');
-              }
-            }
-          }}
-          disabled={autoFilling}
-          className={cn(
-            'w-full py-2.5 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98]',
-            autoFilling
-              ? 'bg-primary/50 text-primary-foreground/70 cursor-not-allowed'
-              : 'bg-primary/90 hover:bg-primary text-primary-foreground'
-          )}
-        >
-          <Sparkles className={cn('w-4 h-4', autoFilling && 'animate-spin')} />
-          {autoFilling ? 'Optimizing...' : 'Optimize Lineup'}
-        </button>
-      </div>
+      <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
 
       {/* Lineup Editor with Drag & Drop */}
       <GlassPanel className="p-4">
