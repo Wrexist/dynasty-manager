@@ -51,3 +51,9 @@ For each issue found:
 - **Fix** — What to change
 
 Summarize with a verdict: ✅ Ship it | ⚠️ Fix before shipping | 🛑 Needs rework
+
+## Cross-References
+
+- See `CLAUDE.md` → "Hard Rules" for the complete non-negotiable checklist
+- See `CLAUDE.md` → "Key Gotchas" for the full list of common pitfalls
+- See `CLAUDE.md` → "Code Conventions" for style rules

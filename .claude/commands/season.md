@@ -72,3 +72,11 @@ $ARGUMENTS
 - All balance constants in `src/config/` — never hardcode promotion spots, playoff sizes, etc.
 - Test with `npm run test -- --grep "promotion\|league\|playoff"` after changes
 - When modifying `endSeason()`, trace the full sequence to avoid missing steps
+
+## Cross-References
+
+- See `CLAUDE.md` → "League Structure" for the division/promotion reference table
+- See `CLAUDE.md` → "Key Patterns" → "Season end" for the high-level flow
+- Use `/project:balance` if season logic needs new config constants
+- Use `/project:match-engine` if changes affect how match results feed into standings
+- Use `/project:test` to generate promotion/relegation/playoff test scenarios

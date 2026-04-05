@@ -56,3 +56,10 @@ For each balance change, provide:
 2. **Proposed value** with reasoning
 3. **Affected systems** — which game mechanics will feel different
 4. **Risk level** — Low (cosmetic), Medium (gameplay feel), High (progression/economy)
+
+## Cross-References
+
+- See `CLAUDE.md` → "Hard Rules" for non-negotiable project constraints
+- See `CLAUDE.md` → "Key Patterns" for how balance feeds into game systems
+- Use `/project:match-engine` if the balance change requires engine modifications
+- Use `/project:test` to generate tests verifying the balance change

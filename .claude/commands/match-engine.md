@@ -63,3 +63,9 @@ $ARGUMENTS
 3. Add rendering in the MatchDay page component
 4. Add stat tracking in `src/store/helpers/matchProcessing.ts`
 5. Add test coverage in `src/test/match.test.ts`
+
+## Cross-References
+
+- See `CLAUDE.md` → "Key Patterns" → "Match sim" for high-level match flow
+- Use `/project:balance` if engine changes require new config constants
+- Use `/project:test` to generate comprehensive match test scenarios

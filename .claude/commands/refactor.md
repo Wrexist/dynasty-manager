@@ -82,3 +82,10 @@ set({ ...get(), ...updates });
 2. Identify logical blocks (look for comment headers like `// ── Section ──`)
 3. Propose the extraction plan to the user before cutting code
 4. Get agreement, then execute one block at a time
+
+## Cross-References
+
+- See `CLAUDE.md` → "Known Tech Debt" for acknowledged refactoring targets
+- See `CLAUDE.md` → "Key Patterns" for how the game loop orchestrates systems
+- Use `/project:test` after each extraction to verify nothing broke
+- Use `/project:review` before committing to check for convention violations

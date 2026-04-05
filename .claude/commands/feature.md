@@ -79,3 +79,11 @@ Read these before scaffolding:
 - `src/types/game.ts` — All type definitions
 - An existing slice similar to what you're building (check `src/store/slices/`)
 - An existing page similar to what you're building (check `src/pages/`)
+
+## Cross-References
+
+- See `CLAUDE.md` → "Code Conventions" and "Hard Rules" for all project constraints
+- See `CLAUDE.md` → "Key Gotchas" for common pitfalls when wiring features
+- Use `/project:balance` if the feature needs new config constants
+- Use `/project:test` after scaffolding to generate tests
+- Use `/project:review` before committing to verify conventions

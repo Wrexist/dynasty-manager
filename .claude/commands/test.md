@@ -75,3 +75,8 @@ describe('FeatureName', () => {
 3. Identify untested or under-tested modules
 4. Prioritize by risk: match engine > game loop > transfers > player gen > UI utils
 5. Report findings with specific file:function recommendations
+
+## Cross-References
+
+- See `CLAUDE.md` → "Key Gotchas" for common bugs to test against
+- Use `/project:review` after writing tests to verify they follow conventions
