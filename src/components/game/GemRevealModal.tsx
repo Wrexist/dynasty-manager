@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Sparkles, MapPin, TrendingUp, Banknote, Briefcase, UserCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { hapticHeavy } from '@/utils/haptics';
-import { PlayerAvatar } from '@/components/game/PlayerAvatar';
 import { calculateWageDemand, formatWage } from '@/utils/contracts';
+import { darken, lighten } from '@/utils/colorUtils';
 import { getPersonalityLabel } from '@/utils/personality';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { formatMoney } from '@/utils/helpers';
@@ -108,16 +108,26 @@ export function GemRevealModal() {
           {/* Player Info */}
           <div className="p-5 space-y-3">
             <div className="flex items-center gap-3">
-              {/* Player Avatar */}
-              <div className="w-14 h-14 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center overflow-hidden">
-                <PlayerAvatar
-                  playerId={player.id}
-                  jerseyColor={jerseyColor}
-                  jerseyNumber={undefined}
-                  size={48}
-                  overall={player.overall}
-                  position={player.position}
-                />
+              {/* Player Card */}
+              <div
+                className="w-[52px] h-[66px] rounded-xl flex flex-col items-center justify-between py-1.5 relative overflow-hidden border shrink-0"
+                style={{
+                  background: `linear-gradient(135deg, ${lighten(jerseyColor, 0.1)} 0%, ${darken(jerseyColor, 0.35)} 100%)`,
+                  borderColor: `${darken(jerseyColor, 0.15)}`,
+                }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-black/10 pointer-events-none" />
+                <span className="relative z-10 text-[8px] font-bold bg-black/40 text-white px-1.5 py-0.5 rounded-full leading-tight tracking-wide">
+                  {player.position}
+                </span>
+                <span className={cn('relative z-10 text-xl font-black font-display tabular-nums leading-none drop-shadow-md',
+                  player.overall >= 80 ? 'text-emerald-400' : player.overall >= 70 ? 'text-sky-400' : player.overall >= 60 ? 'text-amber-400' : 'text-white'
+                )}>
+                  {player.overall}
+                </span>
+                <span className="relative z-10 text-[9px] font-bold text-white/60 tabular-nums leading-tight">
+                  #{player.squadNumber ?? '—'}
+                </span>
               </div>
               <div className="flex-1">
                 <p className="text-sm font-bold text-foreground">{player.firstName} {player.lastName}</p>
