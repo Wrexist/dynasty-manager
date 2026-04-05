@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
+import { getReputationTierLabel, getManagerBonusLabel } from '@/utils/managerCareer';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ArrowDown } from 'lucide-react';
@@ -364,7 +365,7 @@ const SeasonSummary = () => {
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 <span className="text-muted-foreground">Reputation: </span>
-                <span className="text-foreground font-semibold capitalize">{(careerManager.reputationTier ?? 'unknown').replace('_', ' ')}</span>
+                <span className="text-foreground font-semibold capitalize">{getReputationTierLabel(careerManager.reputationTier ?? 'unknown')}</span>
               </div>
               <div>
                 <span className="text-muted-foreground">Age: </span>
@@ -394,7 +395,7 @@ const SeasonSummary = () => {
             )}
             {careerManager.contract?.bonuses.some(b => b.met) && (
               <p className="text-[10px] text-emerald-400 font-semibold">
-                Bonuses earned: {careerManager.contract.bonuses.filter(b => b.met).map(b => b.condition.replace('_', ' ')).join(', ')}
+                Bonuses earned: {careerManager.contract.bonuses.filter(b => b.met).map(b => getManagerBonusLabel(b.condition)).join(', ')}
               </p>
             )}
           </GlassPanel>

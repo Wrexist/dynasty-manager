@@ -3,6 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { Calendar, Save, ArrowLeft, Star, Check } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
+import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/managerCareer';
 import { getSuffix } from '@/utils/helpers';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
@@ -28,14 +29,7 @@ export function TopBar() {
   const xpProgress = getXPProgress(managerProgression);
   const posFlash = useFlash(typeof pos === 'number' ? pos : 0);
   const reputationTier = careerManager?.reputationTier ?? 'unknown';
-  const reputationLabel = {
-    unknown: 'Unk',
-    regional: 'Reg',
-    national: 'Nat',
-    continental: 'Con',
-    world_class: 'World',
-    legendary: 'Leg',
-  }[reputationTier] || reputationTier;
+  const reputationLabel = getReputationTierShortLabel(reputationTier);
 
   // Save button feedback state
   const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
@@ -115,7 +109,7 @@ export function TopBar() {
             <button
               onClick={() => setScreen('career-overview')}
               className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-              title={`${reputationTier.replace('_', ' ')} (${Math.round(careerManager.reputationScore)})`}
+              title={`${getReputationTierLabel(reputationTier)} (${Math.round(careerManager.reputationScore)})`}
             >
               <Star className="w-3 h-3 fill-primary" />
               <span className="font-bold capitalize">{reputationLabel}</span>

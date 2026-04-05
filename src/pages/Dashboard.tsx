@@ -21,6 +21,7 @@ import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
 import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
+import { getReputationTierLabel } from '@/utils/managerCareer';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
 import type { Celebration } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
@@ -417,7 +418,7 @@ const Dashboard = () => {
       </div>
     );
   }
-  const careerReputationTier = careerManager?.reputationTier ?? 'unknown';
+  const careerReputationLabel = getReputationTierLabel(careerManager?.reputationTier ?? 'unknown');
 
   // Training focus label map
   const trainingLabels: Record<string, string> = {
@@ -468,7 +469,7 @@ const Dashboard = () => {
               <div>
                 <p className="text-xs font-bold text-foreground">{careerManager.name}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  Age {careerManager.age} — {careerReputationTier.replace('_', ' ')}
+                  Age {careerManager.age} — {careerReputationLabel}
                 </p>
               </div>
             </div>

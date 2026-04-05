@@ -1,5 +1,5 @@
 import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, LeagueId, SeasonTurnover, LeagueTableEntry, JobVacancy } from '@/types/game';
-import { calculateReputationTier, generateJobVacancies, generateProactiveOffer, getRetirementAge, calculateLegacyScore } from '@/utils/managerCareer';
+import { calculateReputationTier, generateJobVacancies, generateProactiveOffer, getRetirementAge, calculateLegacyScore, getReputationTierLabel } from '@/utils/managerCareer';
 import {
   GROWTH_TACTICAL_PER_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT,
   GROWTH_DISCIPLINE_PER_CLEAN_MATCH, MOD_DISCIPLINE_CARDS, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH,
@@ -3583,11 +3583,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         // --- Reputation tier change notification ---
         cm.reputationTier = calculateReputationTier(cm.reputationScore);
         if (cm.reputationTier !== oldTier) {
-          const tierLabels = { unknown: 'Unknown', regional: 'Regional', national: 'National', continental: 'Continental', world_class: 'World Class', legendary: 'Legendary' };
           careerMessages = addMsg(careerMessages, {
             week: newWeek, season, type: 'general',
             title: 'Reputation Changed!',
-            body: `Your reputation has ${cm.reputationScore > (careerState.careerManager?.reputationScore || 0) ? 'grown' : 'declined'} to ${tierLabels[cm.reputationTier]}.`,
+            body: `Your reputation has ${cm.reputationScore > (careerState.careerManager?.reputationScore || 0) ? 'grown' : 'declined'} to ${getReputationTierLabel(cm.reputationTier)}.`,
           });
         }
 

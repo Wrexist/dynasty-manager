@@ -7,7 +7,7 @@ import { ReputationBadge } from '@/components/game/ReputationBadge';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { Briefcase, DollarSign, Clock, Send, Check, X, LogOut, ArrowLeft, Building2, TrendingUp, Handshake } from 'lucide-react';
 import { toast } from 'sonner';
-import { negotiateSalary } from '@/utils/managerCareer';
+import { negotiateSalary, getManagerBonusLabel } from '@/utils/managerCareer';
 import type { JobVacancy, JobOffer } from '@/types/game';
 
 const JobMarket = () => {
@@ -292,7 +292,7 @@ function OfferCard({ offer, onAccept, onDecline }: { offer: JobOffer; onAccept: 
         <div className="flex flex-wrap gap-1 mb-3">
           {offer.bonuses.map((b, i) => (
             <span key={i} className="text-[9px] bg-muted/30 text-muted-foreground px-1.5 py-0.5 rounded">
-              {b.condition.replace(/_/g, ' ')}: £{(b.amount / 1000).toFixed(0)}k
+              {getManagerBonusLabel(b.condition)}: £{(b.amount / 1000).toFixed(0)}k
             </span>
           ))}
         </div>

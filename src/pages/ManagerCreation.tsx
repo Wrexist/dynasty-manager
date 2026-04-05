@@ -12,7 +12,7 @@ import { ManagerTraitPicker } from '@/components/game/ManagerTraitPicker';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
 import { DEFAULT_APPEARANCE } from '@/config/managerAppearance';
-import { createDefaultManager, generateStartingOffers, negotiateSalary } from '@/utils/managerCareer';
+import { createDefaultManager, generateStartingOffers, negotiateSalary, getManagerBonusLabel } from '@/utils/managerCareer';
 import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROUNDS, SALARY_COUNTER_MAX_INCREASE } from '@/config/managerCareer';
 import { CLUBS_DATA } from '@/data/league';
 import { toast } from 'sonner';
@@ -459,7 +459,7 @@ const ManagerCreation = () => {
                               <div className="mt-1.5 flex flex-wrap gap-1">
                                 {offer.bonuses.map((b, i) => (
                                   <span key={i} className="text-[9px] bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded">
-                                    {b.condition.replace(/_/g, ' ')}: {formatMoney(b.amount)}
+                                    {getManagerBonusLabel(b.condition)}: {formatMoney(b.amount)}
                                   </span>
                                 ))}
                               </div>

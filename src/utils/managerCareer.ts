@@ -147,7 +147,7 @@ export function calculateReputationTier(score: number): ReputationTier {
 
 export function getReputationTierLabel(tier: ReputationTier): string {
   const labels: Record<ReputationTier, string> = {
-    unknown: 'Unknown',
+    unknown: 'Newcomer',
     regional: 'Regional',
     national: 'National',
     continental: 'Continental',
@@ -155,6 +155,29 @@ export function getReputationTierLabel(tier: ReputationTier): string {
     legendary: 'Legendary',
   };
   return labels[tier];
+}
+
+export function getReputationTierShortLabel(tier: ReputationTier): string {
+  const labels: Record<ReputationTier, string> = {
+    unknown: 'New',
+    regional: 'Reg',
+    national: 'Nat',
+    continental: 'Con',
+    world_class: 'World',
+    legendary: 'Leg',
+  };
+  return labels[tier];
+}
+
+export function getManagerBonusLabel(condition: ManagerBonus['condition']): string {
+  const labels: Record<ManagerBonus['condition'], string> = {
+    promotion: 'Promotion',
+    top_half: 'Top Half',
+    title: 'Title',
+    cup_win: 'Cup Win',
+    avoid_relegation: 'Avoid Relegation',
+  };
+  return labels[condition];
 }
 
 export function getReputationColor(tier: ReputationTier): string {

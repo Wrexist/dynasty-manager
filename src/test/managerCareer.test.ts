@@ -170,7 +170,7 @@ describe('Manager Career Mode', () => {
 
   describe('getReputationTierLabel', () => {
     it('should return readable labels', () => {
-      expect(getReputationTierLabel('unknown')).toBe('Unknown');
+      expect(getReputationTierLabel('unknown')).toBe('Newcomer');
       expect(getReputationTierLabel('world_class')).toBe('World Class');
       expect(getReputationTierLabel('legendary')).toBe('Legendary');
     });
