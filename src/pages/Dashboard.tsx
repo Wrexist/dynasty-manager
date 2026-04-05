@@ -473,16 +473,31 @@ const Dashboard = () => {
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              {careerManager.contract ? (
-                <p className="text-[10px] text-muted-foreground">
-                  Contract ends S{careerManager.contract.endSeason}
-                </p>
-              ) : (
-                <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-semibold">
-                  Unemployed
-                </span>
-              )}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="relative w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center transition-colors hover:bg-primary/20"
+                onClick={(e) => { e.stopPropagation(); setScreen('inbox'); }}
+                aria-label="Inbox"
+              >
+                <Mail className="w-4 h-4 text-primary" />
+                {unread > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-primary text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+                    {unread > 99 ? '99+' : unread}
+                  </span>
+                )}
+              </button>
+              <div className="text-right">
+                {careerManager.contract ? (
+                  <p className="text-[10px] text-muted-foreground">
+                    Contract ends S{careerManager.contract.endSeason}
+                  </p>
+                ) : (
+                  <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-semibold">
+                    Unemployed
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           {jobOffers.length > 0 && (
