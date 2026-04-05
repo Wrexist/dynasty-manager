@@ -441,6 +441,44 @@ const MatchDay = () => {
     [visibleEvents, playerClubId]
   );
 
+  // Per-player card status (yellow or red) for the substitution sheet
+  const playerCardStatus = useMemo(() => {
+    const map = new Map<string, 'yellow' | 'red'>();
+    for (const e of visibleEvents) {
+      if (e.type === 'red_card' && e.playerId) {
+        map.set(e.playerId, 'red');
+      } else if (e.type === 'yellow_card' && e.playerId) {
+        const yellowCount = visibleEvents.filter(ev => ev.type === 'yellow_card' && ev.playerId === e.playerId).length;
+        map.set(e.playerId, yellowCount >= 2 ? 'red' : 'yellow');
+      }
+    }
+    return map;
+  }, [visibleEvents]);
+
+  // Per-player match stats (goals & assists) for the substitution sheet
+  const playerMatchStats = useMemo(() => {
+    const map = new Map<string, { goals: number; assists: number }>();
+    for (const e of visibleEvents) {
+      if (isGoalEvent(e) && e.playerId) {
+        const prev = map.get(e.playerId) || { goals: 0, assists: 0 };
+        prev.goals++;
+        map.set(e.playerId, prev);
+      }
+      if (isGoalEvent(e) && e.assistPlayerId) {
+        const prev = map.get(e.assistPlayerId) || { goals: 0, assists: 0 };
+        prev.assists++;
+        map.set(e.assistPlayerId, prev);
+      }
+    }
+    return map;
+  }, [visibleEvents]);
+
+  // Players who were subbed on during this match
+  const subbedOnPlayerIds = useMemo(
+    () => new Set(visibleEvents.filter(e => e.type === 'substitution' && e.playerId).map(e => e.playerId!)),
+    [visibleEvents]
+  );
+
   // Auto-open substitution sheet when an injury key moment fires
   useEffect(() => {
     if (keyMoment?.type === 'injury' && keyMoment.playerId) {
@@ -952,6 +990,9 @@ const MatchDay = () => {
         homeShortName={homeClub?.shortName}
         awayShortName={awayClub?.shortName}
         isPlayerHome={playerClubId === match?.homeClubId}
+        playerCardStatus={playerCardStatus}
+        playerMatchStats={playerMatchStats}
+        subbedOnPlayerIds={subbedOnPlayerIds}
       />
     </div>
   );
