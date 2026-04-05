@@ -6,9 +6,10 @@ import { SubNav } from '@/components/game/SubNav';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { Position } from '@/types/game';
-import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch, AlertTriangle, FileText, Users, LogOut, Smile, Meh, Frown } from 'lucide-react';
+import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch, AlertTriangle, FileText, Users, LogOut, Smile, Meh, Frown, Repeat2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, getFitnessColor } from '@/utils/uiHelpers';
+import type { ElementType } from 'react';
 import { successToast } from '@/utils/gameToast';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { POSITION_FILTERS, PAGE_HINTS } from '@/config/ui';
@@ -26,6 +27,33 @@ type SortKey = 'overall' | 'potential' | 'age' | 'value' | 'fitness' | 'morale' 
 type StatusFilter = 'injured' | 'listed' | 'expiring' | 'onLoan' | 'youth' | 'starters' | 'bench' | 'unhappy';
 
 const SORT_OPTIONS: SortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
+
+function getMoraleIcon(morale: number): { Icon: ElementType; color: string; label: string } {
+  if (morale >= 60) return { Icon: Smile, color: 'text-emerald-400', label: 'Happy' };
+  if (morale >= 35) return { Icon: Meh, color: 'text-amber-400', label: 'Unsettled' };
+  return { Icon: Frown, color: 'text-red-400', label: 'Low' };
+}
+
+function posGroupLabel(pos: Position): string {
+  if (pos === 'GK') return 'GK';
+  if (['CB', 'LB', 'RB'].includes(pos)) return 'DEF';
+  if (['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(pos)) return 'MID';
+  return 'ATT';
+}
+
+function posBadgeColor(pos: Position): string {
+  const group = posGroupLabel(pos);
+  if (group === 'GK') return 'bg-amber-500/20 text-amber-400';
+  if (group === 'DEF') return 'bg-blue-500/20 text-blue-400';
+  if (group === 'MID') return 'bg-emerald-500/20 text-emerald-400';
+  return 'bg-red-500/20 text-red-400';
+}
+
+function getFormLabel(form: number): { label: string; color: string } {
+  if (form >= 70) return { label: 'Hot', color: 'text-emerald-400' };
+  if (form >= 45) return { label: 'OK', color: 'text-muted-foreground' };
+  return { label: 'Cold', color: 'text-red-400' };
+}
 
 const SquadPage = () => {
   const { playerClubId, clubs, players, season, training } = useGameStore(useShallow(s => ({
@@ -131,12 +159,6 @@ const SquadPage = () => {
     });
   };
 
-  const getMoraleIcon = (morale: number) => {
-    if (morale >= 60) return { Icon: Smile, color: 'text-emerald-400', label: 'Happy' };
-    if (morale >= 35) return { Icon: Meh, color: 'text-amber-400', label: 'Unsettled' };
-    return { Icon: Frown, color: 'text-red-400', label: 'Low' };
-  };
-
   const handleListForSale = (e: React.MouseEvent, playerId: string) => {
     e.stopPropagation();
     setConfirmListId(playerId);
@@ -154,21 +176,6 @@ const SquadPage = () => {
       successToast(`${player.lastName} listed for sale!`, `Asking price: £${(player.value / 1_000_000).toFixed(1)}M. Offers will appear in your Inbox.`);
     }
     setConfirmListId(null);
-  };
-
-  const posGroupLabel = (pos: Position): string => {
-    if (pos === 'GK') return 'GK';
-    if (['CB', 'LB', 'RB'].includes(pos)) return 'DEF';
-    if (['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(pos)) return 'MID';
-    return 'ATT';
-  };
-
-  const posBadgeColor = (pos: Position): string => {
-    const group = posGroupLabel(pos);
-    if (group === 'GK') return 'bg-amber-500/20 text-amber-400';
-    if (group === 'DEF') return 'bg-blue-500/20 text-blue-400';
-    if (group === 'MID') return 'bg-emerald-500/20 text-emerald-400';
-    return 'bg-red-500/20 text-red-400';
   };
 
   return (
@@ -366,13 +373,26 @@ const SquadPage = () => {
           {squad.map((player, i) => {
             const fitnessColor = getFitnessColor(player.fitness);
             const morale = getMoraleIcon(player.morale);
+            const form = getFormLabel(player.form);
+            // Determine the single most important status to show (priority order)
+            const statusBadge = player.injured
+              ? 'injured' as const
+              : player.wantsToLeave
+                ? 'wantsOut' as const
+                : player.onLoan
+                  ? 'onLoan' as const
+                  : player.listedForSale
+                    ? 'listed' as const
+                    : player.contractEnd <= season
+                      ? 'expiring' as const
+                      : null;
 
             return (
               <motion.div
                 key={player.id}
-                initial={{ opacity: 0, y: 6 }}
+                initial={i < 15 ? { opacity: 0, y: 6 } : false}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.025, 0.4), duration: 0.2 }}
+                transition={{ delay: Math.min(i * 0.02, 0.3), duration: 0.15 }}
                 onClick={() => selectPlayer(player.id)}
                 role="button"
                 tabIndex={0}
@@ -428,8 +448,13 @@ const SquadPage = () => {
                   </div>
                 </div>
 
-                {/* Fitness + Morale Column */}
+                {/* Fitness + Morale + Form Column */}
                 <div className="flex items-center gap-2 shrink-0">
+                  {/* Form indicator */}
+                  <span className={cn('text-[9px] font-bold tabular-nums w-6 text-center', form.color)} title={`Form: ${player.form}`}>
+                    {form.label}
+                  </span>
+
                   {/* Fitness bar */}
                   <div className="w-11 space-y-0.5" title={`Fitness ${player.fitness}%`}>
                     <div className="h-1.5 bg-muted/80 rounded-full overflow-hidden">
@@ -445,15 +470,15 @@ const SquadPage = () => {
                   <morale.Icon className={cn('w-3.5 h-3.5 shrink-0', morale.color)} title={`Morale: ${morale.label} (${player.morale}%)`} />
                 </div>
 
-                {/* Status Column */}
-                <div className="flex items-center gap-1 w-12 justify-end shrink-0">
-                  {player.injured && (
+                {/* Status Column — single priority badge to prevent overflow */}
+                <div className="flex items-center justify-end shrink-0 w-11">
+                  {statusBadge === 'injured' && (
                     <span className="flex items-center gap-0.5" title={`Injured — ${player.injuryWeeks || '?'} wk(s)`}>
                       <HeartPulse className="w-3.5 h-3.5 text-destructive" />
                       <span className="text-[8px] font-bold text-destructive tabular-nums">{player.injuryWeeks}w</span>
                     </span>
                   )}
-                  {player.wantsToLeave && !player.injured && (
+                  {statusBadge === 'wantsOut' && (
                     <span
                       className="flex items-center gap-0.5 text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-md"
                       title="Wants to leave the club"
@@ -462,17 +487,26 @@ const SquadPage = () => {
                       <span className="text-[7px] font-bold uppercase tracking-wide">Out</span>
                     </span>
                   )}
-                  {player.contractEnd <= season && !player.injured && !player.wantsToLeave && (
-                    <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-md" title="Contract expiring">
-                      EXP
+                  {statusBadge === 'onLoan' && (
+                    <span
+                      className="flex items-center gap-0.5 text-sky-400 bg-sky-400/10 border border-sky-400/20 px-1.5 py-0.5 rounded-md"
+                      title="On loan"
+                    >
+                      <Repeat2 className="w-2.5 h-2.5" />
+                      <span className="text-[7px] font-bold uppercase tracking-wide">Loan</span>
                     </span>
                   )}
-                  {player.listedForSale && (
+                  {statusBadge === 'listed' && (
                     <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
                       LISTED
                     </span>
                   )}
-                  {!player.listedForSale && !player.injured && !player.wantsToLeave && (
+                  {statusBadge === 'expiring' && (
+                    <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-md" title="Contract expiring">
+                      EXP
+                    </span>
+                  )}
+                  {!statusBadge && (
                     <button
                       onClick={(e) => handleListForSale(e, player.id)}
                       className="text-muted-foreground/40 hover:text-primary transition-colors p-1.5"
