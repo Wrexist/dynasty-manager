@@ -303,6 +303,8 @@ export interface GameState {
   initMonetizationTimestamp: () => void;
   applyTransferBudgetBonus: () => void;
   applySeasonBonus: () => void;
+  applyYouthPreview: () => void;
+  applyDoubleXP: () => void;
   updateSubscription: (info: SubscriptionInfo | null) => void;
 
   // Actions — National Team

@@ -1478,7 +1478,7 @@ function finalizeSeason(
       campaignCooldownWeeks: 0,
       kitLaunchUsedThisSeason: false,
     },
-    youthAcademy: { prospects: newYouthProspects, nextIntakePreview: newIntakePreview },
+    youthAcademy: { prospects: newYouthProspects, nextIntakePreview: newIntakePreview, youthPreviewEnhanced: false },
     staff: { ...state.staff, availableHires: newAvailableHires },
     scouting: { ...state.scouting, assignments: [], reports: [], discoveredPlayers: [] },
     cup: newCup,
@@ -1920,7 +1920,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       },
       staff: { members: initialStaff, availableHires },
       scouting: { maxAssignments: scoutCount, assignments: [], reports: [], discoveredPlayers: [] },
-      youthAcademy: { prospects: youthProspects, nextIntakePreview },
+      youthAcademy: { prospects: youthProspects, nextIntakePreview, youthPreviewEnhanced: false },
       facilities: {
         trainingLevel: pcInit.facilities, youthLevel: pcInit.youthRating,
         stadiumLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.fanBase / STADIUM_LEVEL_DIVISOR)),

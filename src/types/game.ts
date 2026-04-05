@@ -669,6 +669,7 @@ export interface YouthProspect {
 export interface YouthAcademyState {
   prospects: YouthProspect[];
   nextIntakePreview: { position: Position; estimatedPotential: number }[];
+  youthPreviewEnhanced: boolean;
 }
 
 // ── Facilities ──
