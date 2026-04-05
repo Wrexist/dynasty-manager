@@ -78,7 +78,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
   return (
     <AnimatePresence>
       <motion.div
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+        className="fixed inset-0 z-50 flex items-start sm:items-center justify-center pt-[env(safe-area-inset-top,40px)]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -89,10 +89,10 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
 
         {/* Modal */}
         <motion.div
-          className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto bg-card/95 backdrop-blur-xl border border-border/50 rounded-t-2xl sm:rounded-2xl sm:mx-4 mb-16"
-          initial={{ y: 100, opacity: 0 }}
+          className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto bg-card/95 backdrop-blur-xl border border-border/50 rounded-b-2xl sm:rounded-2xl sm:mx-4"
+          initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 60, opacity: 0 }}
+          exit={{ y: -60, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 28 }}
         >
           {/* Player Header */}
