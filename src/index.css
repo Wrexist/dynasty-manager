@@ -25,7 +25,7 @@
     --popover-foreground: 220 15% 90%;
 
     --primary: 43 96% 46%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 30 20% 10%;
 
     --gold: 43 96% 46%;
 
@@ -61,6 +61,7 @@
 /* In-game pages use green primary; title/settings stay gold */
 .game-theme {
   --primary: 160 84% 39%;
+  --primary-foreground: 0 0% 100%;
   --ring: 160 84% 39%;
 }
 
