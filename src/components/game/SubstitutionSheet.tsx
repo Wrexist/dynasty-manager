@@ -18,6 +18,7 @@ import { YellowCardIcon, RedCardIcon } from './PlayerAvatar';
 import { computeSmartSub } from '@/utils/substitutionLogic';
 import { optimizeStarterPositions } from '@/utils/autoFillLineup';
 import { successToast, infoToast } from '@/utils/gameToast';
+import { toast } from 'sonner';
 
 interface SubstitutionSheetProps {
   open: boolean;
@@ -76,6 +77,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
   })));
   const makeMatchSub = useGameStore(s => s.makeMatchSub);
   const updateLineup = useGameStore(s => s.updateLineup);
+  const autoFillTeam = useGameStore(s => s.autoFillTeam);
   const playerClub = usePlayerClub();
 
   const [selectedOutId, setSelectedOutId] = useState<string | null>(null);
@@ -299,7 +301,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
         </button>
       )}
 
-      {/* Optimize Lineup — rearrange starters for best positional fit (no bench swaps mid-match) */}
+      {/* Optimize Lineup — full optimization: rearrange positions + swap in better bench players (uses subs) */}
       {!selectedOutId && playerClub && (
         <button
           type="button"
@@ -307,19 +309,148 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
             setAutoFilling(true);
             hapticMedium();
             try {
-              const oldLineup = [...lineup];
-              const optimized = optimizeStarterPositions(lineup, players, playerClub.formation);
-              if (optimized.length === lineup.length && optimized.every(id => players[id])) {
-                const changes = optimized.filter((id, i) => id !== oldLineup[i]).length;
-                updateLineup(optimized, playerClub.subs);
-                if (changes > 0) {
-                  successToast(`${changes} position${changes > 1 ? 's' : ''} rearranged`, 'Players moved to best-fit slots');
+              const oldLineupIds = [...lineup];
+              const oldSubs = [...playerClub.subs];
+              const subsLeft = MAX_SUBSTITUTIONS - matchSubsUsed;
+
+              // Run full lineup optimizer (computes best XI + bench from entire squad)
+              const result = autoFillTeam();
+
+              if (result.undersized) {
+                toast.warning(result.undersizedDetail);
+                setAutoFilling(false);
+                return;
+              }
+
+              // Read the new lineup from fresh state (autoFillTeam already updated store)
+              const freshState = useGameStore.getState();
+              const freshClub = freshState.clubs[freshState.playerClubId];
+              if (!freshClub) { setAutoFilling(false); return; }
+
+              const newLineupIds = freshClub.lineup;
+              const newSubIds = freshClub.subs;
+
+              // Find which bench players were swapped into the starting XI
+              const benchToStarter = newLineupIds.filter(id => oldSubs.includes(id));
+              const starterToBench = oldLineupIds.filter(id => newSubIds.includes(id));
+
+              // We need to register each bench→starter swap as a match substitution
+              // Limited by remaining subs — if optimizer wants more swaps than we have subs, revert extras
+              const allowedSwaps = Math.min(benchToStarter.length, subsLeft);
+
+              if (allowedSwaps < benchToStarter.length) {
+                // Revert the autoFill and do a constrained version:
+                // First, revert to the old state
+                updateLineup(oldLineupIds, oldSubs);
+
+                if (allowedSwaps === 0) {
+                  // No subs left — just optimize positions
+                  const optimized = optimizeStarterPositions(oldLineupIds, players, playerClub.formation);
+                  if (optimized.length === oldLineupIds.length && optimized.every(id => players[id])) {
+                    const posChanges = optimized.filter((id, i) => id !== oldLineupIds[i]).length;
+                    updateLineup(optimized, oldSubs);
+                    if (posChanges > 0) {
+                      successToast(`Positions rearranged (no subs left)`, `${posChanges} position${posChanges > 1 ? 's' : ''} optimized`);
+                    } else {
+                      infoToast('Lineup already optimal');
+                    }
+                  }
+                  setAutoFilling(false);
+                  return;
+                }
+
+                // Re-run autoFillTeam and only apply the top N swaps
+                autoFillTeam();
+                const freshState2 = useGameStore.getState();
+                const freshClub2 = freshState2.clubs[freshState2.playerClubId];
+                if (!freshClub2) { updateLineup(oldLineupIds, oldSubs); setAutoFilling(false); return; }
+
+                // Score each swap by OVR gain (prioritize highest impact swaps)
+                const swapPairs: { outId: string; inId: string; gain: number }[] = [];
+                for (const inId of benchToStarter) {
+                  // Find which starter they replaced
+                  const outId = starterToBench.find(sId => {
+                    // Check if this outId's slot is now occupied by inId
+                    const oldIdx = oldLineupIds.indexOf(sId);
+                    return oldIdx >= 0 && freshClub2.lineup.includes(inId);
+                  });
+                  if (outId) {
+                    const inP = players[inId];
+                    const outP = players[outId];
+                    swapPairs.push({ outId, inId, gain: (inP?.overall || 0) - (outP?.overall || 0) });
+                  }
+                }
+                swapPairs.sort((a, b) => b.gain - a.gain);
+                const appliedSwaps = swapPairs.slice(0, allowedSwaps);
+
+                // Revert to old lineup, then apply limited swaps
+                updateLineup(oldLineupIds, oldSubs);
+                for (const swap of appliedSwaps) {
+                  makeMatchSub(swap.outId, swap.inId);
+                }
+
+                // Optimize positions of remaining starters
+                const state3 = useGameStore.getState();
+                const club3 = state3.clubs[state3.playerClubId];
+                if (club3) {
+                  const optimized = optimizeStarterPositions(club3.lineup, players, playerClub.formation);
+                  if (optimized.length === club3.lineup.length && optimized.every(id => players[id])) {
+                    updateLineup(optimized, club3.subs);
+                  }
+                }
+
+                successToast(
+                  `${appliedSwaps.length} sub${appliedSwaps.length > 1 ? 's' : ''} made`,
+                  `${benchToStarter.length - allowedSwaps} more swap${benchToStarter.length - allowedSwaps > 1 ? 's' : ''} skipped (no subs left)`
+                );
+                onSubMade?.();
+              } else if (benchToStarter.length > 0) {
+                // All swaps fit within sub limit — revert autoFill, then apply via makeMatchSub
+                updateLineup(oldLineupIds, oldSubs);
+                for (let i = 0; i < benchToStarter.length; i++) {
+                  makeMatchSub(starterToBench[i], benchToStarter[i]);
+                }
+
+                // Optimize positions of the resulting lineup
+                const state3 = useGameStore.getState();
+                const club3 = state3.clubs[state3.playerClubId];
+                if (club3) {
+                  const optimized = optimizeStarterPositions(club3.lineup, players, playerClub.formation);
+                  if (optimized.length === club3.lineup.length && optimized.every(id => players[id])) {
+                    updateLineup(optimized, club3.subs);
+                  }
+                }
+
+                const oldAvg = Math.round(
+                  oldLineupIds.map(id => players[id]).filter(Boolean)
+                    .reduce((s, p) => s + p.overall, 0) / Math.max(1, oldLineupIds.filter(id => players[id]).length)
+                );
+                const finalState = useGameStore.getState();
+                const finalClub = finalState.clubs[finalState.playerClubId];
+                const newAvg = finalClub
+                  ? Math.round(
+                      finalClub.lineup.map(id => finalState.players[id]).filter(Boolean)
+                        .reduce((s, p) => s + p.overall, 0) / Math.max(1, finalClub.lineup.filter(id => finalState.players[id]).length)
+                    )
+                  : oldAvg;
+                const diff = newAvg - oldAvg;
+                const ovrPart = diff !== 0 ? `, ${diff > 0 ? '+' : ''}${diff} OVR` : '';
+                successToast(
+                  `${benchToStarter.length} sub${benchToStarter.length > 1 ? 's' : ''} made${ovrPart}`,
+                  `Chemistry: ${result.chemistryLabel} (+${(result.chemistryBonus * 100).toFixed(1)}%)`
+                );
+                onSubMade?.();
+              } else {
+                // No bench swaps needed — just optimize positions (autoFill already rearranged)
+                if (result.changes > 0) {
+                  successToast(`${result.changes} position${result.changes > 1 ? 's' : ''} rearranged`, 'Players moved to best-fit slots');
                 } else {
                   infoToast('Lineup already optimal');
                 }
               }
             } catch (err) {
-              console.error('[SubstitutionSheet] optimizeStarterPositions failed:', err);
+              console.error('[SubstitutionSheet] optimize lineup failed:', err);
+              toast.error('Failed to optimize lineup');
             }
             setAutoFilling(false);
           }}
@@ -334,7 +465,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
           <Wand2 className={cn('w-4 h-4 text-primary shrink-0', autoFilling && 'animate-spin')} />
           <div className="flex-1 text-left min-w-0">
             <p className="text-xs font-bold text-primary">{autoFilling ? 'Optimizing...' : 'Optimize Lineup'}</p>
-            <p className="text-[10px] text-muted-foreground">Rearrange starters for best positional fit</p>
+            <p className="text-[10px] text-muted-foreground">Best XI from starters & bench (uses subs)</p>
           </div>
         </button>
       )}
