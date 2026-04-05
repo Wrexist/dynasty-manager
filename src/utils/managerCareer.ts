@@ -69,8 +69,9 @@ function randInt(min: number, max: number): number {
 
 // ── Manager Creation ──
 
-export function generateStartingAttributes(traits: ManagerTraitId[]): ManagerAttributes {
-  const attrs: ManagerAttributes = {
+/** Generate random base attributes without any trait bonuses applied. */
+export function generateBaseAttributes(): ManagerAttributes {
+  return {
     tacticalKnowledge: randInt(STARTING_ATTRIBUTE_MIN, STARTING_ATTRIBUTE_MAX),
     motivation: randInt(STARTING_ATTRIBUTE_MIN, STARTING_ATTRIBUTE_MAX),
     negotiation: randInt(STARTING_ATTRIBUTE_MIN, STARTING_ATTRIBUTE_MAX),
@@ -79,8 +80,11 @@ export function generateStartingAttributes(traits: ManagerTraitId[]): ManagerAtt
     discipline: randInt(STARTING_ATTRIBUTE_MIN, STARTING_ATTRIBUTE_MAX),
     mediaHandling: randInt(STARTING_ATTRIBUTE_MIN, STARTING_ATTRIBUTE_MAX),
   };
+}
 
-  // Apply trait bonuses
+/** Apply trait bonuses on top of base attributes (pure, no mutation). */
+export function applyTraitBonuses(base: ManagerAttributes, traits: ManagerTraitId[]): ManagerAttributes {
+  const attrs = { ...base };
   for (const traitId of traits) {
     const trait = MANAGER_TRAITS[traitId];
     if (!trait) continue;
@@ -89,8 +93,11 @@ export function generateStartingAttributes(traits: ManagerTraitId[]): ManagerAtt
       attrs[attrKey] = clamp(attrs[attrKey] + (bonus as number), STAT_MIN, STAT_MAX);
     }
   }
-
   return attrs;
+}
+
+export function generateStartingAttributes(traits: ManagerTraitId[]): ManagerAttributes {
+  return applyTraitBonuses(generateBaseAttributes(), traits);
 }
 
 export function createDefaultManager(
@@ -99,8 +106,9 @@ export function createDefaultManager(
   age: number,
   traits: ManagerTraitId[],
   appearance: ManagerAppearance = { ...DEFAULT_MALE_APPEARANCE },
+  precomputedAttributes?: ManagerAttributes,
 ): CareerManager {
-  const attributes = generateStartingAttributes(traits);
+  const attributes = precomputedAttributes ?? generateStartingAttributes(traits);
   const reputationScore = 30; // Start just above unknown tier
   const reputationTier = calculateReputationTier(reputationScore);
   const retirementAge = DEFAULT_RETIREMENT_AGE;
