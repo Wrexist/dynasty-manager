@@ -16,11 +16,12 @@ import { getDerbyName, getDerbyIntensity } from '@/data/league';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
+import { findTournamentMatch } from '@/hooks/useGameSelectors';
 import { motion } from 'framer-motion';
 import type { Club } from '@/types/game';
 
 const MatchReview = () => {
-  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs } = useGameStore(useShallow(s => ({
+  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs, fixtures, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup } = useGameStore(useShallow(s => ({
     currentMatchResult: s.currentMatchResult, clubs: s.clubs, players: s.players,
     playerClubId: s.playerClubId, boardConfidence: s.boardConfidence,
     matchPlayerRatings: s.matchPlayerRatings, week: s.week,
@@ -28,6 +29,9 @@ const MatchReview = () => {
     divisionTables: s.divisionTables, boardObjectives: s.boardObjectives,
     monetization: s.monetization, lastMatchCompetition: s.lastMatchCompetition,
     virtualClubs: s.virtualClubs,
+    fixtures: s.fixtures, cup: s.cup, leagueCup: s.leagueCup,
+    championsCup: s.championsCup, shieldCup: s.shieldCup,
+    domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
   })));
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const setScreen = useGameStore(s => s.setScreen);
@@ -78,8 +82,22 @@ const MatchReview = () => {
   const handleContinue = () => {
     setIsAdvancing(true);
     setTimeout(() => {
-      advanceWeek();
-      setScreen('dashboard');
+      // Check if there's still an unplayed match this week (league or cup)
+      const hasUnplayedLeague = fixtures.some(
+        m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)
+      );
+      const hasUnplayedTournament = !!findTournamentMatch({
+        week, playerClubId, cup, leagueCup,
+        championsCup, shieldCup, domesticSuperCup, continentalSuperCup,
+      });
+
+      if (hasUnplayedLeague || hasUnplayedTournament) {
+        // Another match this week — return to dashboard without advancing
+        setScreen('dashboard');
+      } else {
+        advanceWeek();
+        setScreen('dashboard');
+      }
       setIsAdvancing(false);
     }, 50);
   };

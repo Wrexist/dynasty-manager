@@ -2290,10 +2290,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       applyAIMatchEvents(result.events, newPlayers, clubs, week);
     }
 
-    // Simulate cup matches for this week
+    // Simulate cup matches for this week (and any orphaned ties from past weeks)
     let newCup = { ...state.cup, ties: [...state.cup.ties] };
     if (newCup.currentRound) {
-      const cupWeekMatches = newCup.ties.filter(t => t.week === week && !t.played && t.round === newCup.currentRound);
+      const cupWeekMatches = newCup.ties.filter(t => t.week <= week && !t.played && t.round === newCup.currentRound);
       for (const tie of cupWeekMatches) {
         const tieIdx = newCup.ties.findIndex(t => t.id === tie.id);
         const hClub = clubs[tie.homeClubId];
@@ -2305,7 +2305,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const aPlayers = aCupAvail.slice(0, 11);
 
         const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
-        if (isPlayerMatch) continue; // Player's cup match is played interactively
+        if (isPlayerMatch && tie.week === week) continue; // Player's current-week cup match is played interactively
         // Forfeit if either team has no available players
         if (hPlayers.length === 0 || aPlayers.length === 0) {
           const winnerId = hPlayers.length === 0 ? tie.awayClubId : tie.homeClubId;
@@ -2396,10 +2396,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
-    // ── League Cup Simulation ──
+    // ── League Cup Simulation (includes orphaned ties from past weeks) ──
     let newLeagueCup = state.leagueCup ? { ...state.leagueCup, ties: [...state.leagueCup.ties] } : null;
     if (newLeagueCup && newLeagueCup.currentRound) {
-      const lcWeekMatches = newLeagueCup.ties.filter(t => t.week === week && !t.played && t.round === newLeagueCup!.currentRound);
+      const lcWeekMatches = newLeagueCup.ties.filter(t => t.week <= week && !t.played && t.round === newLeagueCup!.currentRound);
       for (const tie of lcWeekMatches) {
         const tieIdx = newLeagueCup.ties.findIndex(t => t.id === tie.id);
         const hClub = clubs[tie.homeClubId];
@@ -2411,7 +2411,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const aPlayers = aLcAvail.slice(0, 11);
 
         const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
-        if (isPlayerMatch) continue; // Player's league cup match is played interactively
+        if (isPlayerMatch && tie.week === week) continue; // Player's current-week league cup match is played interactively
 
         if (hPlayers.length === 0 || aPlayers.length === 0) {
           const winnerId = hPlayers.length === 0 ? tie.awayClubId : tie.homeClubId;
@@ -2447,6 +2447,20 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
         newLeagueCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout };
         applyAIMatchEvents(lcResult.events, newPlayers, clubs, week);
+
+        // League Cup match result message for player (orphaned past-week matches)
+        if (isPlayerMatch) {
+          const isHome = tie.homeClubId === playerClubId;
+          const won = isHome ? hGoals > aGoals : aGoals > hGoals;
+          const oppName = clubs[isHome ? tie.awayClubId : tie.homeClubId]?.name || 'Unknown';
+          const roundName = getRoundName(tie.round);
+          if (won) {
+            newMessages = addMsg(newMessages, { week, season, type: 'match_result', title: `League Cup: ${roundName} Won!`, body: `You beat ${oppName} ${hGoals}-${aGoals} to advance in the League Cup!` });
+          } else {
+            newMessages = addMsg(newMessages, { week, season, type: 'match_result', title: `League Cup: Eliminated`, body: `You were knocked out by ${oppName} ${hGoals}-${aGoals} in the ${roundName}.` });
+            newLeagueCup.eliminated = true;
+          }
+        }
       }
 
       // Check if League Cup round is complete → advance
