@@ -29,7 +29,7 @@ export function TopBar() {
   const posFlash = useFlash(typeof pos === 'number' ? pos : 0);
   const reputationTier = careerManager?.reputationTier ?? 'unknown';
   const reputationLabel = {
-    unknown: 'Unk',
+    unknown: 'New',
     regional: 'Reg',
     national: 'Nat',
     continental: 'Con',

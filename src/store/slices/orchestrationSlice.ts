@@ -3583,7 +3583,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         // --- Reputation tier change notification ---
         cm.reputationTier = calculateReputationTier(cm.reputationScore);
         if (cm.reputationTier !== oldTier) {
-          const tierLabels = { unknown: 'Unknown', regional: 'Regional', national: 'National', continental: 'Continental', world_class: 'World Class', legendary: 'Legendary' };
+          const tierLabels = { unknown: 'Newcomer', regional: 'Regional', national: 'National', continental: 'Continental', world_class: 'World Class', legendary: 'Legendary' };
           careerMessages = addMsg(careerMessages, {
             week: newWeek, season, type: 'general',
             title: 'Reputation Changed!',

@@ -147,7 +147,7 @@ export function calculateReputationTier(score: number): ReputationTier {
 
 export function getReputationTierLabel(tier: ReputationTier): string {
   const labels: Record<ReputationTier, string> = {
-    unknown: 'Unknown',
+    unknown: 'Newcomer',
     regional: 'Regional',
     national: 'National',
     continental: 'Continental',

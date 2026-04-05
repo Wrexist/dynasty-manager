@@ -468,7 +468,7 @@ const Dashboard = () => {
               <div>
                 <p className="text-xs font-bold text-foreground">{careerManager.name}</p>
                 <p className="text-[10px] text-muted-foreground">
-                  Age {careerManager.age} — {careerReputationTier.replace('_', ' ')}
+                  Age {careerManager.age} — {careerReputationTier === 'unknown' ? 'Newcomer' : careerReputationTier.replace('_', ' ')}
                 </p>
               </div>
             </div>
