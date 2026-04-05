@@ -235,6 +235,10 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         titlesWon: 0,
       };
 
+      // Reset club-specific state for the new club
+      const newInitialStaff = generateInitialStaff(targetClub.reputation);
+      const newScoutCount = newInitialStaff.filter(s => s.role === 'scout').length;
+
       set({
         playerClubId: clubId,
         clubs: newClubs,
@@ -249,7 +253,6 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         jobOffers: [],
         boardConfidence: STARTING_BOARD_CONFIDENCE,
         currentScreen: 'dashboard',
-        // Reset club-specific state for the new club
         transferMarket: [],
         incomingOffers: [],
         incomingLoanOffers: [],
@@ -266,9 +269,10 @@ export const createCareerSlice = (set: Set, get: Get) => ({
           assignments: [],
           reports: [],
           discoveredPlayers: [],
+          maxAssignments: newScoutCount,
         },
         staff: {
-          members: generateInitialStaff(targetClub.reputation),
+          members: newInitialStaff,
           availableHires: generateStaffMarket(),
         },
       });

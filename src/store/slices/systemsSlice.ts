@@ -131,6 +131,8 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     if (!member) return;
     const newMembers = state.staff.members.filter(s => s.id !== staffId);
     const scoutCount = newMembers.filter(s => s.role === 'scout').length;
+    // Trim active assignments to match new scout capacity (keep oldest/most progressed)
+    const trimmedAssignments = state.scouting.assignments.slice(0, scoutCount);
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'general',
       title: `${member.firstName} ${member.lastName} Released`,
@@ -138,7 +140,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     });
     set({
       staff: { ...state.staff, members: newMembers },
-      scouting: { ...state.scouting, maxAssignments: scoutCount },
+      scouting: { ...state.scouting, maxAssignments: scoutCount, assignments: trimmedAssignments },
       messages: newMessages,
     });
   },

@@ -243,8 +243,17 @@ const ScoutingPage = () => {
         {scouting.assignments.length === 0 && scouting.reports.length === 0 && (
           <GlassPanel className="p-6 text-center">
             <Search className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-            <p className="text-sm text-muted-foreground">No scouting activity</p>
-            <p className="text-xs text-muted-foreground mt-1">Choose a region above to send your scouts and discover talent for your squad</p>
+            {scouting.maxAssignments === 0 ? (
+              <>
+                <p className="text-sm text-muted-foreground">No scout on staff</p>
+                <p className="text-xs text-muted-foreground mt-1">Hire a scout from the Staff tab to discover new talent</p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-muted-foreground">No scouting activity</p>
+                <p className="text-xs text-muted-foreground mt-1">Choose a region above to send your scouts and discover talent for your squad</p>
+              </>
+            )}
           </GlassPanel>
         )}
         </>)}
