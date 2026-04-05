@@ -23,6 +23,13 @@ import { formatMoney } from '@/utils/helpers';
 import { SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE } from '@/config/ui';
 import { getFlag } from '@/utils/nationality';
 
+const DIVISION_LABELS: Record<string, string> = {
+  'div-1': 'Prem',
+  'div-2': 'Champ',
+  'div-3': '1st Div',
+  'div-4': 'Found',
+};
+
 const TransferPage = () => {
   const {
     transferMarket, players, clubs, playerClubId, shortlist, transferWindowOpen,
@@ -108,8 +115,8 @@ const TransferPage = () => {
       });
     }
 
-    // Affordability filter
-    if (hideUnaffordable) {
+    // Affordability filter (market only — don't hide shortlisted players)
+    if (hideUnaffordable && tab !== 'shortlist') {
       const budget = club?.budget || 0;
       result = result.filter(l => l.askingPrice <= budget);
     }
@@ -156,6 +163,33 @@ const TransferPage = () => {
     });
     return result;
   }, [freeAgents, players, posFilter, searchQuery, faSortBy]);
+
+  // News tab computations (memoized)
+  const newsSummary = useMemo(() => {
+    const allNews = transferNews || [];
+    const totalTransfers = allNews.filter(e => e.type === 'transfer').length;
+    const totalLoans = allNews.filter(e => e.type === 'loan').length;
+    const totalFreeAgents = allNews.filter(e => e.type === 'free_agent').length;
+    const totalSpend = allNews.reduce((sum, e) => sum + (e.fee || 0), 0);
+    const biggestDeal = allNews.reduce((max, e) => (e.fee || 0) > (max?.fee || 0) ? e : max, allNews[0]);
+    const myClubDeals = allNews.filter(e => e.fromClubId === playerClubId || e.toClubId === playerClubId);
+    return { allNews, totalTransfers, totalLoans, totalFreeAgents, totalSpend, biggestDeal, myClubDeals };
+  }, [transferNews, playerClubId]);
+
+  const filteredGroupedNews = useMemo(() => {
+    const allNews = transferNews || [];
+    const filteredNews = newsTypeFilter === 'all'
+      ? [...allNews].reverse()
+      : allNews.filter(e => e.type === newsTypeFilter).reverse();
+
+    const grouped: Record<string, typeof filteredNews> = {};
+    for (const entry of filteredNews) {
+      const key = `S${entry.season} Wk ${entry.week}`;
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(entry);
+    }
+    return { filteredNews, grouped };
+  }, [transferNews, newsTypeFilter]);
 
   const handleOffer = (listing: TransferListing) => {
     if (!transferWindowOpen) {
@@ -278,11 +312,11 @@ const TransferPage = () => {
           { id: 'outgoing' as const, icon: ArrowUpRight, label: `Outgoing (${outgoingPlayers.length})` },
           { id: 'loans' as const, icon: Repeat2, label: `Loans (${activeLoans.length})` },
           { id: 'freeAgents' as const, icon: Users, label: `Free (${freeAgents.length})` },
-          { id: 'news' as const, icon: Newspaper, label: `News (${(transferNews || []).length})` },
+          { id: 'news' as const, icon: Newspaper, label: `News (${newsTypeFilter !== 'all' ? filteredGroupedNews.filteredNews.length : (transferNews || []).length})` },
         ] as const).map(({ id, icon: TabIcon, label }) => (
           <button
             key={id}
-            onClick={() => { hapticLight(); setTab(id); }}
+            onClick={() => { hapticLight(); setTab(id); if (id !== 'news') setNewsTypeFilter('all'); }}
             className={cn(
               'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-colors relative',
               tab === id ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
@@ -368,10 +402,10 @@ const TransferPage = () => {
               <div className="flex gap-1 flex-1 overflow-x-auto scrollbar-hide">
                 {[
                   { id: 'all', label: 'All Leagues' },
-                  { id: 'div-1', label: 'Div 1' },
-                  { id: 'div-2', label: 'Div 2' },
-                  { id: 'div-3', label: 'Div 3' },
-                  { id: 'div-4', label: 'Div 4' },
+                  { id: 'div-1', label: DIVISION_LABELS['div-1'] },
+                  { id: 'div-2', label: DIVISION_LABELS['div-2'] },
+                  { id: 'div-3', label: DIVISION_LABELS['div-3'] },
+                  { id: 'div-4', label: DIVISION_LABELS['div-4'] },
                 ].map(d => (
                   <button
                     key={d.id}
@@ -420,9 +454,9 @@ const TransferPage = () => {
       {tab === 'market' && (
         <GlassPanel className="p-2.5 flex items-center gap-3 text-[10px] text-muted-foreground">
           <TrendingUp className="w-3.5 h-3.5 text-primary shrink-0" />
-          <span>{transferMarket.filter(l => l.sellerClubId !== playerClubId && !l.externalPlayer).length} from clubs</span>
+          <span>{listings.filter(l => !l.externalPlayer).length} from clubs</span>
           <span className="text-border">|</span>
-          <span>{transferMarket.filter(l => l.externalPlayer).length} unattached</span>
+          <span>{listings.filter(l => l.externalPlayer).length} unattached</span>
           <span className="text-border">|</span>
           <span>{freeAgents.length} free agents</span>
           <span className="text-border">|</span>
@@ -472,14 +506,23 @@ const TransferPage = () => {
                     </p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {listing.externalPlayer ? (
-                        <span className="text-amber-400">Unattached</span>
+                        <>
+                          <span className="text-amber-400">Unattached</span>
+                          {listing.divisionId && (
+                            <span className="ml-1 text-[10px] text-muted-foreground/60">
+                              ({DIVISION_LABELS[listing.divisionId] || 'Found'} tier)
+                            </span>
+                          )}
+                        </>
                       ) : (
-                        <>From: {seller?.shortName || '?'}</>
-                      )}
-                      {!listing.externalPlayer && listing.divisionId && (
-                        <span className="ml-1 text-[10px] text-muted-foreground/60">
-                          ({listing.divisionId === 'div-1' ? 'Prem' : listing.divisionId === 'div-2' ? 'Champ' : listing.divisionId === 'div-3' ? '1st Div' : 'Found'})
-                        </span>
+                        <>
+                          From: {seller?.shortName || '?'}
+                          {listing.divisionId && (
+                            <span className="ml-1 text-[10px] text-muted-foreground/60">
+                              ({DIVISION_LABELS[listing.divisionId] || 'Found'})
+                            </span>
+                          )}
+                        </>
                       )}
                     </p>
                     {/* Top 3 Attributes */}
@@ -936,25 +979,8 @@ const TransferPage = () => {
 
       {/* Transfer News Feed */}
       {tab === 'news' && (() => {
-        const allNews = transferNews || [];
-        const totalTransfers = allNews.filter(e => e.type === 'transfer').length;
-        const totalLoans = allNews.filter(e => e.type === 'loan').length;
-        const totalFreeAgents = allNews.filter(e => e.type === 'free_agent').length;
-        const totalSpend = allNews.filter(e => e.fee).reduce((sum, e) => sum + (e.fee || 0), 0);
-        const biggestDeal = allNews.reduce((max, e) => (e.fee || 0) > (max?.fee || 0) ? e : max, allNews[0]);
-        const myClubDeals = allNews.filter(e => e.fromClubId === playerClubId || e.toClubId === playerClubId);
-
-        const filteredNews = newsTypeFilter === 'all'
-          ? [...allNews].reverse()
-          : [...allNews].reverse().filter(e => e.type === newsTypeFilter);
-
-        // Group by week
-        const grouped: Record<string, typeof filteredNews> = {};
-        for (const entry of filteredNews) {
-          const key = `S${entry.season} Wk ${entry.week}`;
-          if (!grouped[key]) grouped[key] = [];
-          grouped[key].push(entry);
-        }
+        const { allNews, totalTransfers, totalLoans, totalFreeAgents, totalSpend, biggestDeal, myClubDeals } = newsSummary;
+        const { filteredNews, grouped } = filteredGroupedNews;
 
         return (
           <div className="space-y-3">
