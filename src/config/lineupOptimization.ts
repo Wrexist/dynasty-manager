@@ -32,8 +32,8 @@ export const LINEUP_YELLOW_CARD_HIGH_THRESHOLD = 2;
 // ── Injury & Chemistry ──
 export const LINEUP_REINJURY_RISK_PENALTY_SCALE = -5;
 // Chemistry is 0-12% of match team strength — scale accordingly
-// Raised from 100→250 so chemistry competes with form/fitness differences in optimization
-export const LINEUP_CHEMISTRY_SCORE_SCALE = 250;
+// Lowered from 250→120 so rating clearly dominates; chemistry is a tiebreaker, not a driver
+export const LINEUP_CHEMISTRY_SCORE_SCALE = 120;
 
 // ── Optimization ──
 export const LINEUP_SWAP_OPTIMIZATION_PASSES = 3;

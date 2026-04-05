@@ -272,6 +272,7 @@ export function LineupEditor() {
                   isSelected={isSelected}
                   chemistryLinkCount={playerChemCounts.get(player.id) || 0}
                   compatRing={!isSelected ? compat : null}
+                  week={week}
                   onClick={() => handleTap(playerId)}
                 />
               ) : (
@@ -407,6 +408,7 @@ export function LineupEditor() {
                 chemistryLinkCount={playerChemCounts.get(p.id) || 0}
                 compatRing={!isSelected ? benchCompat : null}
                 isBestSub={id === bestSubId}
+                week={week}
                 onClick={() => handleTap(id)}
               />
             );
