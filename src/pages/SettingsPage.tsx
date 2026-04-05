@@ -284,7 +284,7 @@ const SettingsPage = () => {
               <span className="text-xs font-semibold text-foreground">
                 {PRODUCTS[monetization.subscription.productId]?.name || 'Dynasty Pro'}
               </span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold capitalize">
+              <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold capitalize">
                 {monetization.subscription.tier}
               </span>
             </div>
