@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Player } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getFitnessColor } from '@/utils/uiHelpers';
 import { getFlag } from '@/utils/nationality';
-import { ChevronDown, HeartPulse, Sparkles, X } from 'lucide-react';
+import { useScrollLock } from '@/hooks/useScrollLock';
+import { Check, ChevronDown, HeartPulse, Sparkles, X } from 'lucide-react';
 
 interface PlayerSelectProps {
   players: Player[];
@@ -31,9 +32,39 @@ function PlayerRow({ player }: { player: Player }) {
   );
 }
 
+const ANIM_MS = 200;
+
 export function PlayerSelect({ players, selectedId, onChange, placeholder }: PlayerSelectProps) {
   const [open, setOpen] = useState(false);
+  const [closing, setClosing] = useState(false);
   const selectedPlayer = selectedId ? players.find(p => p.id === selectedId) : undefined;
+
+  const sortedPlayers = useMemo(
+    () => [...players].sort((a, b) => b.overall - a.overall),
+    [players]
+  );
+
+  useScrollLock(open);
+
+  const handleClose = useCallback(() => {
+    setClosing(prev => {
+      if (prev) return prev;
+      setTimeout(() => {
+        setOpen(false);
+        setClosing(false);
+      }, ANIM_MS);
+      return true;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') handleClose();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open, handleClose]);
 
   return (
     <>
@@ -62,20 +93,28 @@ export function PlayerSelect({ players, selectedId, onChange, placeholder }: Pla
 
       {/* Bottom Sheet Overlay */}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={() => setOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center" onClick={handleClose}>
           {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60" />
+          <div className={cn(
+            'absolute inset-0 bg-black/60',
+            closing ? 'animate-out fade-out-0 duration-200' : 'animate-in fade-in-0 duration-200'
+          )} />
 
           {/* Sheet */}
           <div
             role="listbox"
             onClick={e => e.stopPropagation()}
-            className="relative w-full max-w-lg bg-card border-t border-border/50 rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-200"
+            className={cn(
+              'relative w-full max-w-lg bg-card border-t border-border/50 rounded-t-2xl shadow-2xl',
+              closing
+                ? 'animate-out slide-out-to-bottom duration-200'
+                : 'animate-in slide-in-from-bottom duration-200'
+            )}
           >
             {/* Handle + Header */}
             <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-border/30">
               <span className="text-sm font-semibold text-foreground">{placeholder}</span>
-              <button type="button" onClick={() => setOpen(false)} className="p-1 rounded-full hover:bg-muted/40">
+              <button type="button" onClick={handleClose} className="p-1 rounded-full hover:bg-muted/40">
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>
@@ -85,34 +124,35 @@ export function PlayerSelect({ players, selectedId, onChange, placeholder }: Pla
               type="button"
               role="option"
               aria-selected={!selectedId}
-              onClick={() => { onChange(undefined); setOpen(false); }}
+              onClick={() => { onChange(undefined); handleClose(); }}
               className={cn(
                 'flex items-center gap-2 w-full px-4 py-3 text-sm transition-colors',
                 !selectedId ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted/30'
               )}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>{placeholder}</span>
-              {!selectedId && <span className="ml-auto text-xs text-primary/70">Active</span>}
+              <span className="flex-1 text-left">{placeholder}</span>
+              {!selectedId && <Check className="w-4 h-4 text-primary shrink-0" />}
             </button>
 
             <div className="h-px bg-border/30" />
 
             {/* Player list — scrollable, max 60% viewport height */}
             <div className="overflow-y-auto overscroll-contain" style={{ maxHeight: '60vh' }}>
-              {players.map(p => (
+              {sortedPlayers.map(p => (
                 <button
                   key={p.id}
                   type="button"
                   role="option"
                   aria-selected={selectedId === p.id}
-                  onClick={() => { onChange(p.id); setOpen(false); }}
+                  onClick={() => { onChange(p.id); handleClose(); }}
                   className={cn(
                     'flex items-center gap-2 w-full px-4 py-2.5 transition-colors',
                     selectedId === p.id ? 'bg-primary/10' : 'hover:bg-muted/30'
                   )}
                 >
                   <PlayerRow player={p} />
+                  {selectedId === p.id && <Check className="w-4 h-4 text-primary shrink-0" />}
                 </button>
               ))}
             </div>
