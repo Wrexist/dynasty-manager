@@ -9,9 +9,9 @@ export const WINTER_WINDOW_START = 20;
 export const WINTER_WINDOW_END = 24;
 
 // ── AI Incoming Offers ──
-export const AI_OFFER_CHANCE = 0.2;
-export const AI_OFFER_MIN_BUDGET_RATIO = 0.5;
-export const AI_OFFER_POSITION_THRESHOLD = 2;
+export const AI_OFFER_CHANCE = 0.35;
+export const AI_OFFER_MIN_BUDGET_RATIO = 1.2;
+export const AI_OFFER_POSITION_THRESHOLD = 3;
 
 // ── Urgency Multipliers ──
 export const URGENCY_NONE = 1.1;
@@ -21,7 +21,7 @@ export const URGENCY_TWO_PLUS = 0.85;
 // ── Offer Fee Formula ──
 export const OFFER_FEE_BASE = 0.85;
 export const OFFER_FEE_RANDOM_RANGE = 0.35;
-export const OFFER_MAX_BUDGET_RATIO = 0.6;
+export const OFFER_MAX_BUDGET_RATIO = 0.75;
 
 // ── Offer Acceptance Chances ──
 export const ACCEPT_CHANCE_AT_ASKING = 0.85;
@@ -43,6 +43,14 @@ export const TRANSFER_SHARK_DISCOUNT = 0.15;
 
 // ── Transfer Rumors ──
 export const RUMOR_CHANCE = 0.15;
+
+// ── Offer Expiry ──
+export const OFFER_EXPIRY_WEEKS = 4;
+
+// ── Unsolicited Bids (unlisted star / unhappy players) ──
+export const UNSOLICITED_OFFER_CHANCE = 0.12;
+export const UNSOLICITED_FEE_BASE = 0.75;
+export const UNSOLICITED_FEE_RANGE = 0.25;
 
 // ── Deadline Day ──
 export const DEADLINE_DAY_OFFER_MULTIPLIER = 2.0;

@@ -19,7 +19,7 @@ import { completeAssignment } from '@/utils/scouting';
 import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
-import { addMsg, getSuffix, pick, shuffle } from '@/utils/helpers';
+import { addMsg, getSuffix, pick, shuffle, formatMoney } from '@/utils/helpers';
 import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot, trimFixturesForSave, trimFixtureArrayForSave } from '@/store/helpers/persistence';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
@@ -82,7 +82,8 @@ import {
   OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
   RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM,
   MARKET_REPLENISH_THRESHOLD, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT,
-  FREE_AGENT_SPAWN_CHANCE,
+  FREE_AGENT_SPAWN_CHANCE, OFFER_EXPIRY_WEEKS,
+  UNSOLICITED_OFFER_CHANCE, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE,
 } from '@/config/transfers';
 import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
 import { PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
@@ -2628,41 +2629,81 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
-    // Incoming offers — AI clubs only bid for positions they actually need
-    const newOffers = [...state.incomingOffers];
-    const listedPlayers = Object.values(newPlayers).filter(p => p.listedForSale && p.clubId === playerClubId);
-    for (const lp of listedPlayers) {
+    // Expire stale offers and notify player
+    let newOffers = [...state.incomingOffers];
+    const expiredOffers = newOffers.filter(o => newWeek - o.week > OFFER_EXPIRY_WEEKS);
+    if (expiredOffers.length > 0) {
+      newOffers = newOffers.filter(o => newWeek - o.week <= OFFER_EXPIRY_WEEKS);
+      for (const eo of expiredOffers) {
+        const ep = newPlayers[eo.playerId];
+        const ec = clubs[eo.buyerClubId];
+        if (ep && ec) {
+          newMessages = addMsg(newMessages, {
+            week: newWeek, season, type: 'transfer',
+            title: `Bid Expired: ${ep.lastName}`,
+            body: `${ec.name}'s ${formatMoney(eo.fee)} offer for ${ep.firstName} ${ep.lastName} has expired.`,
+          });
+        }
+      }
+    }
+
+    // Incoming offers — AI clubs only bid during transfer windows for positions they need
+    if (transferWindowOpen) {
       const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
-      const effectiveOfferChance = isDeadlineDay ? AI_OFFER_CHANCE * DEADLINE_DAY_OFFER_MULTIPLIER : AI_OFFER_CHANCE;
-      if (Math.random() < effectiveOfferChance) {
+
+      // Helper: attempt to generate an offer for a target player
+      const tryGenerateOffer = (tp: Player, feeBase: number, feeRange: number) => {
         const buyerClubs = Object.values(clubs).filter(c => {
           if (c.id === playerClubId) return false;
-          if (c.budget < lp.value * AI_OFFER_MIN_BUDGET_RATIO) return false;
-          if (newOffers.some(o => o.buyerClubId === c.id && o.playerId === lp.id)) return false;
-          // Squad need check: does this club need this position?
+          if (c.budget < tp.value * AI_OFFER_MIN_BUDGET_RATIO) return false;
+          if (newOffers.some(o => o.buyerClubId === c.id && o.playerId === tp.id)) return false;
           const squadPositions = c.playerIds.map(id => newPlayers[id]?.position).filter(Boolean);
-          const posCount = squadPositions.filter(pos => pos === lp.position).length;
-          // Only interested if they have fewer than 2 players in this position
+          const posCount = squadPositions.filter(pos => pos === tp.position).length;
           return posCount < AI_OFFER_POSITION_THRESHOLD;
         });
-        if (buyerClubs.length > 0) {
-          const buyer = pick(buyerClubs);
-          // Offer fee: factor in buyer urgency (fewer players at position = higher bid)
+        const candidates = shuffle([...buyerClubs]).slice(0, 3);
+        for (const buyer of candidates) {
           const buyerSquad = buyer.playerIds.map(id => newPlayers[id]?.position).filter(Boolean);
-          const posCount = buyerSquad.filter(pos => pos === lp.position).length;
+          const posCount = buyerSquad.filter(pos => pos === tp.position).length;
           const urgencyMult = posCount === 0 ? URGENCY_NONE : posCount === 1 ? URGENCY_ONE : URGENCY_TWO_PLUS;
           const deadlinePremium = isDeadlineDay ? 1 + DEADLINE_DAY_BID_PREMIUM : 1;
-          const baseFee = lp.value * (OFFER_FEE_BASE + Math.random() * OFFER_FEE_RANDOM_RANGE) * urgencyMult * deadlinePremium;
-          const offerFee = Math.round(baseFee);
+          const baseFee = tp.value * (feeBase + Math.random() * feeRange) * urgencyMult * deadlinePremium;
+          let offerFee = Math.round(baseFee);
+          const maxAffordable = Math.round(buyer.budget * OFFER_MAX_BUDGET_RATIO);
+          if (offerFee > maxAffordable && maxAffordable >= tp.value * 0.7) {
+            offerFee = maxAffordable;
+          }
           if (buyer.budget >= offerFee && offerFee <= buyer.budget * OFFER_MAX_BUDGET_RATIO) {
-            const offer: IncomingOffer = { id: crypto.randomUUID(), playerId: lp.id, buyerClubId: buyer.id, fee: offerFee, week: newWeek };
+            const offer: IncomingOffer = { id: crypto.randomUUID(), playerId: tp.id, buyerClubId: buyer.id, fee: offerFee, week: newWeek };
             newOffers.push(offer);
             newMessages = addMsg(newMessages, {
               week: newWeek, season, type: 'transfer',
-              title: `Bid for ${lp.lastName}`,
-              body: `${buyer.name} have made a £${(offerFee / 1e6).toFixed(1)}M offer for ${lp.firstName} ${lp.lastName}.`,
+              title: `Bid for ${tp.lastName}`,
+              body: `${buyer.name} have made a ${formatMoney(offerFee)} offer for ${tp.firstName} ${tp.lastName}.`,
             });
+            return true;
           }
+        }
+        return false;
+      };
+
+      // Listed player offers
+      const listedPlayers = Object.values(newPlayers).filter(p => p.listedForSale && p.clubId === playerClubId);
+      for (const lp of listedPlayers) {
+        const effectiveOfferChance = isDeadlineDay ? AI_OFFER_CHANCE * DEADLINE_DAY_OFFER_MULTIPLIER : AI_OFFER_CHANCE;
+        if (Math.random() < effectiveOfferChance) {
+          tryGenerateOffer(lp, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE);
+        }
+      }
+
+      // Unsolicited bids for unhappy or star unlisted players
+      const unsolicitedTargets = Object.values(newPlayers).filter(p =>
+        p.clubId === playerClubId && !p.listedForSale && !p.onLoan &&
+        (p.wantsToLeave || p.overall >= 75)
+      );
+      for (const tp of unsolicitedTargets) {
+        if (Math.random() < UNSOLICITED_OFFER_CHANCE) {
+          tryGenerateOffer(tp, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE);
         }
       }
     }
