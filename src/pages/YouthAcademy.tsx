@@ -3,11 +3,11 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
-import { PlayerAvatar } from '@/components/game/PlayerAvatar';
+import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { GraduationCap, Star, TrendingUp, ArrowUpRight, Trash2, Wrench, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getRatingBadgeClasses, getPotentialInfo, getTop3Attributes } from '@/utils/uiHelpers';
+import { getRatingColor, getPotentialInfo, getTop3Attributes } from '@/utils/uiHelpers';
 import { getFlag } from '@/utils/nationality';
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
@@ -152,21 +152,21 @@ const YouthAcademy = () => {
                     >
                       {/* Top row: Avatar + Info + Potential */}
                       <div className="flex items-center gap-3">
-                        {/* Player Avatar */}
-                        <div className="relative shrink-0">
-                          <PlayerAvatar
-                            jerseyColor={club?.color || '#333'}
-                            size={44}
-                            overall={player.overall}
-                            position={player.position}
-                          />
-                          {/* Overall badge overlay */}
-                          <div className={cn(
-                            'absolute -bottom-1 -right-1 w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-bold border border-background',
-                            getRatingBadgeClasses(player.overall)
-                          )}>
+                        {/* Player Card (matches tactics view) */}
+                        <div className="flex flex-col items-center shrink-0 rounded-lg bg-black/70 backdrop-blur-sm border border-white/[0.08] px-2 py-1.5 min-w-[40px]">
+                          <span className={cn('text-sm font-bold font-display tabular-nums leading-none', getRatingColor(player.overall))}>
                             {player.overall}
+                          </span>
+                          <div className="w-full h-[2px] rounded-full bg-white/10 my-0.5">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{ width: `${player.fitness}%`, backgroundColor: getFitnessHexColor(player.fitness) }}
+                            />
                           </div>
+                          <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide leading-tight">
+                            {player.lastName.slice(0, 3).toUpperCase()}
+                          </span>
+                          <span className="text-[6px] text-gray-400 font-medium leading-tight mt-px">{player.position}</span>
                         </div>
 
                         {/* Player Info */}
