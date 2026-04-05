@@ -301,7 +301,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     return get().executeTransfer(playerId, fee);
   },
 
-  listPlayerForSale: (playerId: string) => {
+  listPlayerForSale: (playerId: string, customAskingPrice?: number) => {
     const state = get();
     const player = state.players[playerId];
     if (!player || player.clubId !== state.playerClubId) return { appeased: false };
@@ -321,7 +321,9 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     }
 
     const newPlayers = { ...state.players, [playerId]: updatedPlayer };
-    const askingPrice = Math.max(LISTING_PRICE_FLOOR, Math.round(player.value * LIST_PRICE_MULTIPLIER));
+    const askingPrice = customAskingPrice != null
+      ? Math.max(LISTING_PRICE_FLOOR, Math.round(customAskingPrice))
+      : Math.max(LISTING_PRICE_FLOOR, Math.round(player.value * LIST_PRICE_MULTIPLIER));
     const newMarket = [...state.transferMarket, { playerId, askingPrice, sellerClubId: state.playerClubId }];
     let newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
