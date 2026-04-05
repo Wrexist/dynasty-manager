@@ -9,6 +9,9 @@ reviews:
     - "!src/components/ui/**"
     - "!dist/**"
     - "!package-lock.json"
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
   auto_review:
     enabled: true
     drafts: false
