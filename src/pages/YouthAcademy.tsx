@@ -27,7 +27,7 @@ const YouthAcademy = () => {
   const promoteYouth = useGameStore(s => s.promoteYouth);
   const releaseYouth = useGameStore(s => s.releaseYouth);
   const [confirmReleaseId, setConfirmReleaseId] = useState<string | null>(null);
-  const [youthPreviewEnhanced, setYouthPreviewEnhanced] = useState(false);
+  const youthPreviewEnhanced = youthAcademy.youthPreviewEnhanced;
   const club = clubs[playerClubId];
 
   return (
@@ -137,7 +137,7 @@ const YouthAcademy = () => {
         )}
 
         {/* Ad Reward: Youth Preview */}
-        <AdRewardButton rewardType="youth_preview" onRewardClaimed={() => setYouthPreviewEnhanced(true)} />
+        <AdRewardButton rewardType="youth_preview" onRewardClaimed={() => { useGameStore.getState().applyYouthPreview(); }} />
 
         {/* Next Intake */}
         {youthAcademy.nextIntakePreview.length > 0 && (

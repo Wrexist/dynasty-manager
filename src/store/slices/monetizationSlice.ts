@@ -1,6 +1,7 @@
 import type { GameState } from '../storeTypes';
 import type { ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
 import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
+import { grantXP } from '@/utils/managerPerks';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -186,6 +187,26 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
             },
           },
         };
+      });
+    },
+
+    /** Apply youth preview enhancement from ad reward */
+    applyYouthPreview: () => {
+      _set((s) => ({
+        youthAcademy: {
+          ...s.youthAcademy,
+          youthPreviewEnhanced: true,
+        },
+      }));
+    },
+
+    /** Apply double XP from ad reward for the last match */
+    applyDoubleXP: () => {
+      const state = _get();
+      const bonusXP = state.lastMatchXPGain;
+      if (bonusXP <= 0) return;
+      _set({
+        managerProgression: grantXP(state.managerProgression, bonusXP),
       });
     },
   };

@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
-import { grantXP } from '@/utils/managerPerks';
+
 import { isPro } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
@@ -586,13 +586,7 @@ const MatchReview = () => {
       <AdRewardButton
         rewardType="xp_double"
         claimContext={xpDoubleClaimContext}
-        onRewardClaimed={() => {
-          const s = useGameStore.getState();
-          const bonusXP = s.lastMatchXPGain;
-          if (bonusXP > 0) {
-            useGameStore.setState({ managerProgression: grantXP(s.managerProgression, bonusXP) });
-          }
-        }}
+        onRewardClaimed={() => { useGameStore.getState().applyDoubleXP(); }}
       />
 
     </div>
