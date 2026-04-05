@@ -5,6 +5,7 @@ import { GROWTH_YOUTH_PER_PROMOTION, STAT_MAX as CAREER_STAT_MAX } from '@/confi
 import { createAssignment } from '@/utils/scouting';
 import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL } from '@/config/gameBalance';
 import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
+import { STAFF_HIRING_FEE_WEEKS } from '@/config/staff';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -92,12 +93,14 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     if (!hire) return;
     const club = state.clubs[state.playerClubId];
     if (!club) return;
+    const hiringFee = hire.wage * STAFF_HIRING_FEE_WEEKS;
+    if (club.budget < hiringFee) return;
     // One staff per role — auto-release existing holder
     const existing = state.staff.members.find(s => s.role === hire.role);
     const membersAfterRelease = existing
       ? state.staff.members.filter(s => s.id !== existing.id)
       : state.staff.members;
-    const newClub = { ...club, budget: club.budget - hire.wage * 4 };
+    const newClub = { ...club, budget: club.budget - hiringFee };
     const newMembers = [...membersAfterRelease, hire];
     const newAvailable = state.staff.availableHires.filter(s => s.id !== staffId);
     const scoutCount = newMembers.filter(s => s.role === 'scout').length;
@@ -112,12 +115,12 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     newMessages = addMsg(newMessages, {
       week: state.week, season: state.season, type: 'general',
       title: `${hire.firstName} ${hire.lastName} Hired`,
-      body: `${hire.firstName} ${hire.lastName} has joined your staff as ${hire.role.replace(/-/g, ' ')}.`,
+      body: `${hire.firstName} ${hire.lastName} has joined your staff as ${hire.role.replace(/-/g, ' ')}. Hiring fee: £${Math.round(hiringFee / 1000)}K.`,
     });
     set({
       staff: { members: newMembers, availableHires: newAvailable },
       clubs: { ...state.clubs, [state.playerClubId]: newClub },
-      scouting: { ...state.scouting, maxAssignments: Math.max(1, scoutCount) },
+      scouting: { ...state.scouting, maxAssignments: scoutCount },
       messages: newMessages,
     });
   },
@@ -135,7 +138,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     });
     set({
       staff: { ...state.staff, members: newMembers },
-      scouting: { ...state.scouting, maxAssignments: Math.max(1, scoutCount) },
+      scouting: { ...state.scouting, maxAssignments: scoutCount },
       messages: newMessages,
     });
   },

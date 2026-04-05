@@ -22,7 +22,7 @@ import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW, HELP_TEXTS } from '
 import { InfoTip } from '@/components/game/InfoTip';
 import { MODULE_ATTR_MAP, STREAK_MULTIPLIERS, INDIVIDUAL_TRAINING_BONUS } from '@/config/training';
 import { getTrainingEffectivenessPreview, getStreakTier } from '@/utils/training';
-import { getStaffBonus } from '@/utils/staff';
+import { getTrainingStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
 import { hasPerk } from '@/utils/managerPerks';
 import { getWinStreak } from '@/utils/celebrations';
@@ -87,9 +87,7 @@ const PlayerDetail = () => {
     const currentFocus = (training.individualPlans || []).find(p => p.playerId === player.id)?.focus;
     const personalityMult = getTrainingMultiplier(player.personality);
     const multColor = personalityMult >= 1.15 ? 'text-emerald-400' : personalityMult <= 0.85 ? 'text-destructive' : 'text-muted-foreground';
-    const ftc = getStaffBonus(staff.members, 'first-team-coach');
-    const fc = getStaffBonus(staff.members, 'fitness-coach');
-    const staffBonus = ftc + fc * 0.5;
+    const staffBonus = getTrainingStaffBonus(staff.members);
     const preview = getTrainingEffectivenessPreview(training, staffBonus, [player]);
     const dominantModule = training.streaks ? Object.entries(training.streaks).sort((a, b) => (b[1] || 0) - (a[1] || 0))[0] : null;
     const streakCount = dominantModule ? (dominantModule[1] || 0) : 0;
