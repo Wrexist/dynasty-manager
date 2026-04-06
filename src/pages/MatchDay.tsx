@@ -133,8 +133,6 @@ const MatchDay = () => {
   const [showCustomTactics, setShowCustomTactics] = useState(false);
   // Full Time screen removed — PostMatchPopup navigates directly to Match Review
   const dismissedMomentsRef = useRef<Set<string>>(new Set());
-  // Clear dismissed moments when match changes (e.g. multi-match sessions)
-  useEffect(() => { dismissedMomentsRef.current.clear(); }, [match]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
   const phaseRef = useRef(phase);
@@ -191,6 +189,8 @@ const MatchDay = () => {
   const match = matchCacheRef.current?.match ?? liveMatch ?? cupMatch ?? leagueCupMatch ?? continentalMatch ?? superCupMatch;
   const homeClub = matchCacheRef.current?.homeClub ?? (match ? (clubs[match.homeClubId] || buildVirtualClubFallback(virtualClubs, match.homeClubId)) : null);
   const awayClub = matchCacheRef.current?.awayClub ?? (match ? (clubs[match.awayClubId] || buildVirtualClubFallback(virtualClubs, match.awayClubId)) : null);
+  // Clear dismissed moments when match changes (e.g. multi-match sessions)
+  useEffect(() => { dismissedMomentsRef.current.clear(); }, [match]);
   // No useEffect needed — PostMatchPopup now navigates directly to Match Review
 
   // No auto-start — show "Ready to Kick Off?" screen instead
