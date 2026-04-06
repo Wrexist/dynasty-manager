@@ -50,7 +50,9 @@ export function calculateWageDemand(player: Player, clubReputation: number): num
   const repFactor = 1 + clubReputation * CONTRACT_REP_MULTIPLIER;
 
   const demand = Math.round(baseDemand * ageFactor * qualityFactor * formFactor * moraleFactor * repFactor);
-  return Math.max(CONTRACT_MINIMUM_WAGE, demand);
+  // Round to nearest 1000 so demands align with the UI slider step
+  const rounded = Math.round(demand / 1000) * 1000;
+  return Math.max(CONTRACT_MINIMUM_WAGE, rounded || demand);
 }
 
 /** Get the player's preferred contract length based on age. */
@@ -117,7 +119,7 @@ export function createContractOffer(
     id: crypto.randomUUID(),
     playerId: player.id,
     type: isRenewal ? 'renewal' : 'new',
-    offeredWage: Math.round(demandedWage * CONTRACT_INITIAL_OFFER_MULTIPLIER),
+    offeredWage: Math.round(Math.round(demandedWage * CONTRACT_INITIAL_OFFER_MULTIPLIER) / 1000) * 1000 || Math.round(demandedWage * CONTRACT_INITIAL_OFFER_MULTIPLIER),
     demandedWage,
     agentFee,
     loyaltyBonus,
@@ -163,7 +165,8 @@ export function negotiateRound(offer: ContractOffer): ContractOffer {
 
   // Player compromises partially based on mood
   const compromise = CONTRACT_COMPROMISE_BASE + (offer.playerMood / 100) * CONTRACT_COMPROMISE_MOOD_SCALE;
-  const newDemand = Math.round(offer.demandedWage * (1 - compromise));
+  const rawDemand = Math.round(offer.demandedWage * (1 - compromise));
+  const newDemand = Math.round(rawDemand / 1000) * 1000 || rawDemand;
 
   // Player mood decreases if lowballed
   const moodChange = gap < CONTRACT_LOWBALL_GAP ? CONTRACT_MOOD_HIT_LOWBALL
@@ -183,6 +186,6 @@ export function negotiateRound(offer: ContractOffer): ContractOffer {
  */
 export function formatWage(wage: number): string {
   if (wage >= 1_000_000) return `£${(wage / 1_000_000).toFixed(1)}M/wk`;
-  if (wage >= 1_000) return `£${(wage / 1_000).toFixed(0)}K/wk`;
+  if (wage >= 1_000) return `£${Math.floor(wage / 1_000)}K/wk`;
   return `£${wage}/wk`;
 }

@@ -207,7 +207,7 @@ export function ContractNegotiation() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Wage bill change</span>
                       <span className={cn('font-semibold', wageDiff > 0 ? 'text-amber-400' : wageDiff < 0 ? 'text-emerald-400' : 'text-foreground')}>
-                        {wageDiff > 0 ? '+' : ''}{formatWage(wageDiff)}/wk
+                        {wageDiff > 0 ? '+' : ''}{formatWage(wageDiff)}
                       </span>
                     </div>
                     <div className="flex justify-between">
