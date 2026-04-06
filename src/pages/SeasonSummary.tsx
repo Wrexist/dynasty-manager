@@ -321,6 +321,78 @@ const SeasonSummary = () => {
         </GlassPanel>
         </motion.div>
 
+        {/* Financial Recap */}
+        {latest.financialSummary && (
+          <GlassPanel className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Financial Recap</p>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Income</p>
+                <p className="text-sm font-bold text-emerald-400">£{(latest.financialSummary.totalIncome / 1e6).toFixed(1)}M</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Expenses</p>
+                <p className="text-sm font-bold text-destructive">£{(latest.financialSummary.totalExpenses / 1e6).toFixed(1)}M</p>
+              </div>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Net</p>
+                <p className={cn('text-sm font-bold', latest.financialSummary.netBalance >= 0 ? 'text-emerald-400' : 'text-destructive')}>
+                  {latest.financialSummary.netBalance >= 0 ? '+' : ''}£{(latest.financialSummary.netBalance / 1e6).toFixed(1)}M
+                </p>
+              </div>
+            </div>
+          </GlassPanel>
+        )}
+
+        {/* Transfer Activity */}
+        {latest.transferActivity && (latest.transferActivity.bought.length > 0 || latest.transferActivity.sold.length > 0) && (
+          <GlassPanel className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Transfer Activity</p>
+            {latest.transferActivity.bought.length > 0 && (
+              <div className="mb-2">
+                <p className="text-[10px] text-emerald-400 font-semibold mb-1">Signed ({latest.transferActivity.bought.length})</p>
+                {latest.transferActivity.bought.map((t, i) => (
+                  <div key={i} className="flex justify-between text-xs">
+                    <span className="text-foreground">{t.playerName}</span>
+                    <span className="text-muted-foreground">£{(t.fee / 1e6).toFixed(1)}M</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {latest.transferActivity.sold.length > 0 && (
+              <div>
+                <p className="text-[10px] text-destructive font-semibold mb-1">Sold ({latest.transferActivity.sold.length})</p>
+                {latest.transferActivity.sold.map((t, i) => (
+                  <div key={i} className="flex justify-between text-xs">
+                    <span className="text-foreground">{t.playerName}</span>
+                    <span className="text-muted-foreground">£{(t.fee / 1e6).toFixed(1)}M</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </GlassPanel>
+        )}
+
+        {/* Squad Development */}
+        {latest.squadStrengthDelta && (
+          <GlassPanel className="p-4">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Squad Development</p>
+            <div className="flex items-center justify-center gap-4">
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">Start</p>
+                <p className="text-lg font-bold">{latest.squadStrengthDelta.startAvgOVR}</p>
+              </div>
+              <span className={cn('text-sm font-bold', latest.squadStrengthDelta.delta > 0 ? 'text-emerald-400' : latest.squadStrengthDelta.delta < 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                {latest.squadStrengthDelta.delta > 0 ? '+' : ''}{latest.squadStrengthDelta.delta} OVR
+              </span>
+              <div className="text-center">
+                <p className="text-xs text-muted-foreground">End</p>
+                <p className="text-lg font-bold">{latest.squadStrengthDelta.endAvgOVR}</p>
+              </div>
+            </div>
+          </GlassPanel>
+        )}
+
         {/* Season History */}
         {seasonHistory.length > 1 && (
           <GlassPanel className="p-4">

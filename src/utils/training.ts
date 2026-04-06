@@ -256,6 +256,7 @@ export function generateTrainingReport(
   season: number,
 ): TrainingReport {
   const starPerformers: TrainingReport['starPerformers'] = [];
+  const playerBreakdown: TrainingReport['playerBreakdown'] = [];
   let totalGains = 0;
   let preFitnessSum = 0;
   let postFitnessSum = 0;
@@ -271,6 +272,7 @@ export function generateTrainingReport(
 
     const gains = post.lastTrainingGains;
     if (gains) {
+      const playerGains: { attribute: string; amount: number; newValue: number }[] = [];
       for (const [attr, val] of Object.entries(gains)) {
         if (val && val > 0) {
           totalGains += val;
@@ -279,7 +281,19 @@ export function generateTrainingReport(
             attrGained: attr,
             newValue: post.attributes[attr as keyof PlayerAttributes],
           });
+          playerGains.push({
+            attribute: attr,
+            amount: val,
+            newValue: post.attributes[attr as keyof PlayerAttributes],
+          });
         }
+      }
+      if (playerGains.length > 0) {
+        playerBreakdown.push({
+          playerId: id,
+          playerName: `${post.firstName} ${post.lastName}`,
+          gains: playerGains,
+        });
       }
     }
   }
@@ -300,6 +314,7 @@ export function generateTrainingReport(
     injuries,
     streakProgress: { ...streaks },
     fitnessChange,
+    playerBreakdown,
   };
 }
 

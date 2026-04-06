@@ -1,4 +1,4 @@
-import type { Match, PlayerMatchRating, CareerMilestone, InjuryDetails } from '@/types/game';
+import type { Match, PlayerMatchRating, CareerMilestone, InjuryDetails, PlayerMatchRecord } from '@/types/game';
 import { buildLeagueTable } from '@/data/league';
 import { addMsg } from '@/utils/helpers';
 import { getPlayerNarratives, getNarrativeBonus } from '@/utils/playerNarratives';
@@ -15,6 +15,7 @@ import {
   CONFIDENCE_WARNING_THRESHOLD, CONFIDENCE_PLEASED_THRESHOLD, CONFIDENCE_MIN, CONFIDENCE_MAX,
   MORALE_APPEARANCE_BOOST, INJURY_TYPES,
   getExpectedPosition,
+  MAX_PLAYER_MATCH_HISTORY,
 } from '@/config/gameBalance';
 import { createMilestone, checkMatchMilestones } from '@/utils/milestones';
 import { grantXP, XP_REWARDS, hasPerk } from '@/utils/managerPerks';
@@ -193,6 +194,34 @@ export function processMatchResult(
   // XP for match result
   const xpGain = won ? XP_REWARDS.win : !lost ? XP_REWARDS.draw : 0;
   const updatedProgression = xpGain > 0 ? grantXP(state.managerProgression, xpGain) : state.managerProgression;
+
+  // Record match history for player club's lineup participants
+  const pcLineupForHistory = [...(pc.lineup || []), ...(pc.subs || [])];
+  const pcIsHome = match.homeClubId === playerClubId;
+  const pcOppId = pcIsHome ? match.awayClubId : match.homeClubId;
+  const pcOppClub = clubs[pcOppId];
+  const pcOppName = pcOppClub?.shortName || pcOppClub?.name || 'Unknown';
+  for (const pid of pcLineupForHistory) {
+    const player = newPlayers[pid];
+    if (!player) continue;
+    const rating = playerRatings.find(r => r.playerId === pid);
+    if (!rating) continue; // only record players who got rated (i.e. played)
+    const record: PlayerMatchRecord = {
+      week,
+      season,
+      opponentName: pcOppName,
+      isHome: pcIsHome,
+      goalsFor: pcIsHome ? result.homeGoals : result.awayGoals,
+      goalsAgainst: pcIsHome ? result.awayGoals : result.homeGoals,
+      rating: rating.rating,
+      goals: rating.goals,
+      assists: rating.assists,
+      yellowCards: rating.yellowCards,
+      redCards: rating.redCards,
+    };
+    const history = [...(player.matchHistory || []), record].slice(-MAX_PLAYER_MATCH_HISTORY);
+    newPlayers[pid] = { ...player, matchHistory: history };
+  }
 
   // Update head-to-head rivalry records (oppId already declared above)
   const prevRecord = state.rivalries?.[oppId] || { wins: 0, draws: 0, losses: 0, lastResult: null, grudgeLevel: 0 };

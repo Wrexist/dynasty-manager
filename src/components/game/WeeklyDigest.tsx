@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { Button } from '@/components/ui/button';
-import { DollarSign, Heart, AlertTriangle, Activity, Mail } from 'lucide-react';
+import { DollarSign, Heart, AlertTriangle, Activity, Mail, TrendingUp, Dumbbell, Check, Circle, FileText, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function WeeklyDigest() {
@@ -114,6 +114,73 @@ export function WeeklyDigest() {
                     <span className="text-foreground">{digest.offersReceived} new transfer offer{digest.offersReceived > 1 ? 's' : ''} received</span>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Player Development */}
+            {digest.playerDevelopment.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Development</p>
+                {digest.playerDevelopment.slice(0, 3).map((d, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
+                    <span className="text-emerald-400">{d.playerName} +1 {d.attribute.slice(0, 3).toUpperCase()}</span>
+                  </div>
+                ))}
+                {digest.playerDevelopment.length > 3 && (
+                  <p className="text-[10px] text-muted-foreground">+{digest.playerDevelopment.length - 3} more</p>
+                )}
+              </div>
+            )}
+
+            {/* Training Gains */}
+            {digest.trainingGains.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Training</p>
+                {digest.trainingGains.slice(0, 3).map((g, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <Dumbbell className="w-3 h-3 text-primary shrink-0" />
+                    <span className="text-foreground">{g.playerName} improved {g.attribute}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Objectives */}
+            {digest.objectiveProgress.length > 0 && (
+              <div className="space-y-1">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Objectives</p>
+                {digest.objectiveProgress.map((obj, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    {obj.completed ? (
+                      <>
+                        <Check className="w-3 h-3 text-primary shrink-0" />
+                        <span className="text-primary">{obj.title} (+{obj.xpEarned} XP)</span>
+                      </>
+                    ) : (
+                      <>
+                        <Circle className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="text-muted-foreground">{obj.title}</span>
+                      </>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Contract Warnings */}
+            {digest.contractWarnings.length > 0 && (
+              <div className="flex items-center gap-2 text-xs">
+                <FileText className="w-3 h-3 text-amber-400 shrink-0" />
+                <span className="text-amber-400">{digest.contractWarnings.length} contract{digest.contractWarnings.length > 1 ? 's' : ''} expiring soon</span>
+              </div>
+            )}
+
+            {/* Scout Reports */}
+            {digest.scoutReportsCompleted > 0 && (
+              <div className="flex items-center gap-2 text-xs">
+                <Search className="w-3 h-3 text-primary shrink-0" />
+                <span className="text-foreground">{digest.scoutReportsCompleted} scout report{digest.scoutReportsCompleted > 1 ? 's' : ''} ready</span>
               </div>
             )}
 

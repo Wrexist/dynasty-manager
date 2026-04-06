@@ -132,6 +132,7 @@ export interface Player {
   internationalCaps?: number;
   internationalGoals?: number;
   appearance?: PlayerAppearance;
+  matchHistory?: PlayerMatchRecord[];
 }
 
 export interface PlayerAppearance {
@@ -200,6 +201,15 @@ export interface MatchEvent {
   clubId: string;
   description: string;
   momentum?: number;
+}
+
+export interface PenaltyKick {
+  round: number;
+  isHome: boolean;
+  takerName: string;
+  scored: boolean;
+  homeTotal: number;
+  awayTotal: number;
 }
 
 export interface MatchStats {
@@ -450,6 +460,9 @@ export interface SeasonHistory {
   divisionId?: LeagueId;
   replaced?: boolean;
   awards?: SeasonAward[];
+  financialSummary?: { totalIncome: number; totalExpenses: number; netBalance: number };
+  transferActivity?: { bought: { playerName: string; fee: number }[]; sold: { playerName: string; fee: number }[] };
+  squadStrengthDelta?: { startAvgOVR: number; endAvgOVR: number; delta: number };
 }
 
 export interface FormationSlot {
@@ -527,6 +540,9 @@ export interface GameSettings {
   autoSave: boolean;
   hapticsEnabled: boolean;
 }
+
+// ── Team Talk ──
+export type TeamTalkType = 'motivate' | 'calm' | 'demand' | 'none';
 
 // ── Tactics ──
 export type Mentality = 'defensive' | 'cautious' | 'balanced' | 'attacking' | 'all-out-attack';
@@ -608,6 +624,7 @@ export interface TrainingReport {
   injuries: string[];
   streakProgress: TrainingStreaks;
   fitnessChange: number;
+  playerBreakdown?: { playerId: string; playerName: string; gains: { attribute: string; amount: number; newValue: number }[] }[];
 }
 
 export interface TrainingState {
@@ -748,6 +765,20 @@ export interface SponsorSlotDef {
 // ── Match Ratings ──
 export interface PlayerMatchRating {
   playerId: string;
+  rating: number;
+  goals: number;
+  assists: number;
+  yellowCards: number;
+  redCards: number;
+}
+
+export interface PlayerMatchRecord {
+  week: number;
+  season: number;
+  opponentName: string;
+  isHome: boolean;
+  goalsFor: number;
+  goalsAgainst: number;
   rating: number;
   goals: number;
   assists: number;

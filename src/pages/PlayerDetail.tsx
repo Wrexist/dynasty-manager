@@ -75,6 +75,7 @@ const PlayerDetail = () => {
   const [showApproach, setShowApproach] = useState(false);
   const [showLoanRequest, setShowLoanRequest] = useState(false);
   const [showListConfirm, setShowListConfirm] = useState(false);
+  const [showFullHistory, setShowFullHistory] = useState(false);
 
   const player = selectedPlayerId ? players[selectedPlayerId] : null;
 
@@ -763,6 +764,41 @@ const PlayerDetail = () => {
           </div>
         </div>
       </GlassPanel>
+
+      {/* Match History */}
+      {player.matchHistory && player.matchHistory.length > 0 && (
+        <GlassPanel className="p-4">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Recent Matches</p>
+          <div className="space-y-2">
+            {player.matchHistory.slice().reverse().slice(0, showFullHistory ? 20 : 5).map((m, i) => {
+              const won = m.goalsFor > m.goalsAgainst;
+              const drawn = m.goalsFor === m.goalsAgainst;
+              const resultLabel = won ? 'W' : drawn ? 'D' : 'L';
+              const resultColor = won ? 'text-emerald-400' : drawn ? 'text-amber-400' : 'text-destructive';
+              return (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className={cn('w-4 font-bold', resultColor)}>{resultLabel}</span>
+                  <span className="text-muted-foreground">{m.isHome ? 'vs' : '@'}</span>
+                  <span className="text-foreground flex-1 truncate">{m.opponentName}</span>
+                  <span className="text-muted-foreground tabular-nums">{m.goalsFor}-{m.goalsAgainst}</span>
+                  <span className={cn('font-bold tabular-nums w-8 text-right', getRatingColor(m.rating))}>{m.rating.toFixed(1)}</span>
+                  {m.goals > 0 && <span className="text-primary text-[10px]">{m.goals}G</span>}
+                  {m.assists > 0 && <span className="text-blue-400 text-[10px]">{m.assists}A</span>}
+                </div>
+              );
+            })}
+          </div>
+          {player.matchHistory.length > 5 && (
+            <button
+              type="button"
+              onClick={() => setShowFullHistory(!showFullHistory)}
+              className="text-[10px] text-primary mt-2 w-full text-center"
+            >
+              {showFullHistory ? 'Show Less' : `Show All (${player.matchHistory.length})`}
+            </button>
+          )}
+        </GlassPanel>
+      )}
 
       {/* Career Stats */}
       {player.careerAppearances > 0 && (
