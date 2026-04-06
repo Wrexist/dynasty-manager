@@ -60,6 +60,7 @@ import {
   RED_CARD_STRENGTH_PENALTY_PER_PLAYER,
   MAX_SUBSTITUTIONS,
   AI_SUB_CHECK_MINUTES, AI_SUB_FITNESS_THRESHOLD, AI_TACTICAL_SUB_CHANCE,
+  TACTICAL_INSIGHT_MIN_BONUS, FITNESS_SNAPSHOT_INTERVAL,
 } from '@/config/matchEngine';
 import { generateCommentary } from '@/utils/matchCommentary';
 
@@ -93,6 +94,10 @@ export interface HalfState {
   /** Players who were subbed into the match (for ratings/finalization) */
   homeSubbedIn: Player[];
   awaySubbedIn: Player[];
+  /** Snapshot of in-match fitness for all players (updated periodically) */
+  playerFitness: Record<string, number>;
+  /** Tactical insights generated during the half */
+  tacticalInsights: string[];
 }
 
 /** Formation fit bonus: 0.0 to ~0.12 — mismatched players are a real penalty */
@@ -477,6 +482,66 @@ export function simulateHalf(
     teamTalkFoulMod = foulMod;
   }
 
+  // Generate tactical insights for the player's team
+  const tacticalInsights: string[] = prevState?.tacticalInsights ? [...prevState.tacticalInsights] : [];
+  if (!prevState && playerClubId) {
+    const playerIsHome = playerClubId === homeClub.id;
+    const myTactics = playerIsHome ? homeTactics : awayTactics;
+    const oppTactics = playerIsHome ? awayTactics : homeTactics;
+    const oppClub = playerIsHome ? awayClub : homeClub;
+    if (myTactics && oppTactics) {
+      if (myTactics.pressingIntensity >= PRESSING_THRESHOLD && oppTactics.tempo === 'slow')
+        tacticalInsights.push(`High press countering ${oppClub.shortName}'s slow tempo (+${Math.round(PRESSING_VS_SLOW_BONUS * 100)}%)`);
+      if (myTactics.width === 'wide' && oppTactics.width === 'narrow')
+        tacticalInsights.push(`Wide play exploiting ${oppClub.shortName}'s narrow shape (+${Math.round(WIDE_VS_NARROW_BONUS * 100)}%)`);
+      if (myTactics.defensiveLine === 'deep' && oppTactics.defensiveLine === 'high')
+        tacticalInsights.push(`Deep line nullifying ${oppClub.shortName}'s high line (+${Math.round(DEEP_VS_HIGH_BONUS * 100)}%)`);
+      if (myTactics.tempo === 'fast' && (oppTactics.mentality === 'cautious' || oppTactics.mentality === 'defensive'))
+        tacticalInsights.push(`Fast tempo breaking down ${oppClub.shortName}'s caution (+${Math.round(FAST_VS_CAUTIOUS_BONUS * 100)}%)`);
+    }
+    const myFormation = playerIsHome ? homeClub.formation : awayClub.formation;
+    const oppFormation = playerIsHome ? awayClub.formation : homeClub.formation;
+    const formBonus = getFormationMatchupBonus(myFormation, oppFormation);
+    if (Math.abs(formBonus) >= TACTICAL_INSIGHT_MIN_BONUS) {
+      tacticalInsights.push(formBonus > 0
+        ? `Formation edge: ${myFormation} vs ${oppFormation} (+${Math.round(formBonus * 100)}%)`
+        : `Formation mismatch: ${myFormation} vs ${oppFormation} (${Math.round(formBonus * 100)}%)`);
+    }
+  }
+
+  // Second-half: generate fresh score-aware tactical insights
+  if (prevState && playerClubId) {
+    const playerIsHome = playerClubId === homeClub.id;
+    const myGoals = playerIsHome ? prevState.homeGoals : prevState.awayGoals;
+    const oppGoals = playerIsHome ? prevState.awayGoals : prevState.homeGoals;
+    const oppClub = playerIsHome ? awayClub : homeClub;
+    const oppTactics = playerIsHome ? awayTactics : homeTactics;
+
+    // Clear first-half insights and generate fresh ones
+    tacticalInsights.length = 0;
+
+    if (oppGoals > myGoals) {
+      if (oppTactics?.defensiveLine === 'deep')
+        tacticalInsights.push(`${oppClub.shortName} sitting deep — consider wide play to stretch them`);
+      else
+        tacticalInsights.push(`Trailing by ${oppGoals - myGoals} — pushing forward could create chances`);
+    } else if (myGoals > oppGoals) {
+      tacticalInsights.push(`Leading — ${oppClub.shortName} may push forward, watch for counters`);
+    } else {
+      tacticalInsights.push(`Level at half-time — tactical balance is key`);
+    }
+
+    // Re-evaluate formation matchup
+    const myFormation = playerIsHome ? homeClub.formation : awayClub.formation;
+    const oppFormation = playerIsHome ? awayClub.formation : homeClub.formation;
+    const formBonus = getFormationMatchupBonus(myFormation, oppFormation);
+    if (Math.abs(formBonus) >= TACTICAL_INSIGHT_MIN_BONUS) {
+      tacticalInsights.push(formBonus > 0
+        ? `Formation edge: ${myFormation} vs ${oppFormation} (+${Math.round(formBonus * 100)}%)`
+        : `Formation mismatch: ${myFormation} vs ${oppFormation} (${Math.round(formBonus * 100)}%)`);
+    }
+  }
+
   // Pre-compute defensive qualities for both teams
   const homeDefQuality = getDefenseQuality(homePlayers);
   const awayDefQuality = getDefenseQuality(awayPlayers);
@@ -538,10 +603,12 @@ export function simulateHalf(
   });
 
   // Track in-match fitness for each player (starters + any carried-over subs)
-  const matchFitness: Record<string, number> = {};
-  allMatchPlayers.forEach(p => { matchFitness[p.id] = p.fitness; });
-  homeSubbedIn.forEach(p => { matchFitness[p.id] = p.fitness; });
-  awaySubbedIn.forEach(p => { matchFitness[p.id] = p.fitness; });
+  const matchFitness: Record<string, number> = prevState?.playerFitness ? { ...prevState.playerFitness } : {};
+  allMatchPlayers.forEach(p => { if (matchFitness[p.id] === undefined) matchFitness[p.id] = p.fitness; });
+  homeSubbedIn.forEach(p => { if (matchFitness[p.id] === undefined) matchFitness[p.id] = p.fitness; });
+  awaySubbedIn.forEach(p => { if (matchFitness[p.id] === undefined) matchFitness[p.id] = p.fitness; });
+  // Fitness snapshot to attach to the next event
+  let fitnessSnapshot: Record<string, number> | undefined;
 
   // Helper: get available players for a side (starters + subs - unavailable)
   const homeAvail = () => [...homePlayers, ...homeSubbedIn].filter(p => !unavailable.has(p.id));
@@ -663,7 +730,7 @@ export function simulateHalf(
   ];
 
   if (startMin === 1) {
-    events.push({ minute: 0, type: 'kickoff', clubId: homeClub.id, description: 'Kick off!' });
+    events.push({ minute: 0, type: 'kickoff', clubId: homeClub.id, description: 'Kick off!', tacticalInsight: tacticalInsights.length > 0 ? tacticalInsights[0] : undefined });
 
     // Tactical counter-play commentary — describe active tactical matchups early in the match
     const homeMatchup = getTacticalMatchupBonus(homeTactics, awayTactics);
@@ -686,6 +753,11 @@ export function simulateHalf(
       }
       events.push({ minute: 5, type: 'commentary', clubId: advClub.id, description: desc });
     }
+  }
+
+  // Emit second-half kickoff with tactical insight if available
+  if (prevState && tacticalInsights.length > 0) {
+    events.push({ minute: startMin, type: 'kickoff', clubId: homeClub.id, description: 'Second half underway!', tacticalInsight: tacticalInsights[0] });
   }
 
   let lastEventMinute = startMin;
@@ -712,6 +784,7 @@ export function simulateHalf(
     return false;
   };
   for (let min = startMin; min <= endMin + stoppageTime && min < MAX_MATCH_MINUTES; min++) {
+    const prevEventCount = events.length;
     if (abandonMatch) break;
     // Calculate stoppage at the nominal end of each half
     if (min === nominalEnd && stoppageTime === 0) {
@@ -725,13 +798,21 @@ export function simulateHalf(
     if (AI_REACTIVITY_MINUTES.includes(min as 60 | 75)) {
       // Home AI reacts if no player tactics provided
       if (!homeTactics && homeClub.aiManagerProfile) {
+        const oldMentality = homeClub.aiManagerProfile.defaultTactics.mentality;
         const newHomeTactics = getAIReactiveTactics(homeClub.aiManagerProfile, true, homeGoals, awayGoals, min);
+        if (newHomeTactics.mentality !== oldMentality) {
+          events.push({ minute: min, type: 'ai_tactical_change', clubId: homeClub.id, description: `${homeClub.shortName} manager switches to ${newHomeTactics.mentality} mentality.`, momentum });
+        }
         const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), newHomeTactics, awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS, tacticalFamiliarity, playerClubId);
         homeStr = recomp.homeStr; awayStr = recomp.awayStr;
       }
       // Away AI reacts if no player tactics provided
       if (!awayTactics && awayClub.aiManagerProfile) {
+        const oldMentality = awayClub.aiManagerProfile.defaultTactics.mentality;
         const newAwayTactics = getAIReactiveTactics(awayClub.aiManagerProfile, false, homeGoals, awayGoals, min);
+        if (newAwayTactics.mentality !== oldMentality) {
+          events.push({ minute: min, type: 'ai_tactical_change', clubId: awayClub.id, description: `${awayClub.shortName} manager switches to ${newAwayTactics.mentality} mentality.`, momentum });
+        }
         const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics ?? homeClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS, newAwayTactics, tacticalFamiliarity, playerClubId);
         homeStr = recomp.homeStr; awayStr = recomp.awayStr;
       }
@@ -743,6 +824,18 @@ export function simulateHalf(
         matchFitness[p.id] = Math.max(0, matchFitness[p.id] - FITNESS_DEGRADE_PER_MINUTE - (Math.random() * FITNESS_DEGRADE_VARIANCE));
       }
     });
+
+    // Snapshot fitness periodically and attach tactical insight to first event of the half
+    if (min % FITNESS_SNAPSHOT_INTERVAL === 0) {
+      const snapshot: Record<string, number> = {};
+      for (const p of [...allMatchPlayers, ...homeSubbedIn, ...awaySubbedIn]) {
+        if (!unavailable.has(p.id) && matchFitness[p.id] !== undefined) {
+          snapshot[p.id] = Math.round(matchFitness[p.id]);
+        }
+      }
+      // Attach to last event of this minute if any, otherwise to a commentary event
+      fitnessSnapshot = snapshot;
+    }
 
     // Momentum decay toward neutral each minute
     if (momentum > 0) momentum = Math.max(0, momentum - MOMENTUM_DECAY_PER_MINUTE);
@@ -870,7 +963,7 @@ export function simulateHalf(
           minute: min, type: 'goal', playerId: scorer.id,
           assistPlayerId: assist?.id, clubId: club.id,
           description: goalDesc(scorerName, clubName) + (assist ? ` (assist: ${assist.lastName})` : ''),
-          momentum,
+          momentum, homeXG, awayXG,
         });
       } else if (Math.random() < oppGKSave) {
         // Shot on target but saved — GK quality determines save rate
@@ -889,7 +982,7 @@ export function simulateHalf(
           events.push({ minute: min, type: 'goal_line_clearance', playerId: scorer.id, clubId: club.id, description: clearDesc(scorer.lastName, defender.lastName), momentum });
         } else {
           const saveDesc = pick(saveDescs);
-          events.push({ minute: min, type: 'shot_saved', playerId: scorer.id, clubId: club.id, description: gk ? saveDesc(scorer.lastName, gk.lastName) : `${scorer.lastName}'s shot is saved.`, momentum });
+          events.push({ minute: min, type: 'shot_saved', playerId: scorer.id, clubId: club.id, description: gk ? saveDesc(scorer.lastName, gk.lastName) : `${scorer.lastName}'s shot is saved.`, momentum, homeXG, awayXG });
         }
         // Corner chance from saved shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_SAVE_CHANCE + widthCornerBonus) {
@@ -928,9 +1021,9 @@ export function simulateHalf(
           ? Math.min(100, momentum + MOMENTUM_SHOT_ATTEMPT_SWING)
           : Math.max(-100, momentum - MOMENTUM_SHOT_ATTEMPT_SWING);
         if (Math.random() < WOODWORK_CHANCE) {
-          events.push({ minute: min, type: 'hit_woodwork', playerId: scorer.id, clubId: club.id, description: pick(woodworkDescs)(scorer.lastName), momentum });
+          events.push({ minute: min, type: 'hit_woodwork', playerId: scorer.id, clubId: club.id, description: pick(woodworkDescs)(scorer.lastName), momentum, homeXG, awayXG });
         } else {
-          events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: pick(missDescs)(scorer.lastName), momentum });
+          events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: pick(missDescs)(scorer.lastName), momentum, homeXG, awayXG });
         }
         // Corner chance from missed shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_MISS_CHANCE + widthCornerBonus) {
@@ -1057,10 +1150,10 @@ export function simulateHalf(
             momentum = isHome
               ? Math.min(100, momentum + MOMENTUM_PENALTY_SWING)
               : Math.max(-100, momentum - MOMENTUM_PENALTY_SWING);
-            events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyGoalDescs)(penaltyTaker.lastName, club.shortName), momentum });
+            events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyGoalDescs)(penaltyTaker.lastName, club.shortName), momentum, homeXG, awayXG });
           } else {
             if (isHome) homeShots++; else awayShots++;
-            events.push({ minute: min, type: 'penalty_missed', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyMissDescs)(penaltyTaker.lastName), momentum });
+            events.push({ minute: min, type: 'penalty_missed', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyMissDescs)(penaltyTaker.lastName), momentum, homeXG, awayXG });
           }
         }
       }
@@ -1175,6 +1268,17 @@ export function simulateHalf(
     if (events.length > 0 && events[events.length - 1].minute === min) {
       lastEventMinute = min;
     }
+    // Attach pending fitness snapshot to the first event generated after the snapshot was taken
+    if (fitnessSnapshot && events.length > prevEventCount) {
+      events[events.length - 1].playerFitness = fitnessSnapshot;
+      fitnessSnapshot = undefined;
+    }
+  }
+
+  // Flush any remaining fitness snapshot to the last event
+  if (fitnessSnapshot && events.length > 0) {
+    events[events.length - 1].playerFitness = fitnessSnapshot;
+    fitnessSnapshot = undefined;
   }
 
   // Add half-time marker at end of first half (only once)
@@ -1199,6 +1303,8 @@ export function simulateHalf(
     homeSubsUsed, awaySubsUsed,
     homeBench: homeBenchPool, awayBench: awayBenchPool,
     homeSubbedIn, awaySubbedIn,
+    playerFitness: { ...matchFitness },
+    tacticalInsights,
   };
 }
 

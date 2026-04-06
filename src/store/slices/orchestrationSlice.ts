@@ -92,7 +92,7 @@ import {
 } from '@/config/transfers';
 import { getPerformanceMultiplier, getContractLengthFactor } from '@/utils/transferOffers';
 import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
-import { PENALTY_CONVERSION_RATE } from '@/config/matchEngine';
+import { PENALTY_CONVERSION_RATE, SHOUT_MODIFIERS, SHOUT_CUMULATIVE_SCALE } from '@/config/matchEngine';
 import { calculatePlayerValue } from '@/config/playerGeneration';
 import {
   VERDICT_EXCELLENT_OFFSET, VERDICT_ACCEPTABLE_OFFSET, BOARD_SACKING_THRESHOLD,
@@ -1828,6 +1828,22 @@ function finalizeSeason(
   }
 
   if (get().settings.autoSave) get().saveGame();
+}
+
+/** Compute cumulative shout modifiers from match shouts for use as simulation modifiers */
+function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS }[]) {
+  if (matchShouts.length === 0) return { attackMod: 0, defenseMod: 0, foulMod: 0 };
+  let aMod = 0, dMod = 0, fMod = 0;
+  for (const s of matchShouts) {
+    const m = SHOUT_MODIFIERS[s.type];
+    if ('attackMod' in m) aMod += m.attackMod;
+    if ('defenseMod' in m) dMod += m.defenseMod;
+    if ('cardReduction' in m) fMod -= m.cardReduction;
+    // time_waste: convert event chance reduction to small defensive bump
+    if ('eventChanceReduction' in m) dMod += 0.05;
+  }
+  const scale = SHOUT_CUMULATIVE_SCALE;
+  return { attackMod: aMod * scale, defenseMod: dMod * scale, foulMod: fMod * scale };
 }
 
 export const createOrchestrationSlice = (set: Set, get: Get) => ({
@@ -4147,7 +4163,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       return { attackMod: DEMAND_ATTACK_BOOST, defenseMod: -DEMAND_DEFENSE_PENALTY, foulMod: 0 };
     })();
 
-    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, teamTalkMods);
+    // Aggregate first-half shout effects as second-half modifiers
+    const shoutMods = computeShoutMods(state.matchShouts);
+
+    // Merge team talk + shout modifiers
+    const combinedMods = teamTalkMods
+      ? { attackMod: teamTalkMods.attackMod + shoutMods.attackMod, defenseMod: teamTalkMods.defenseMod + shoutMods.defenseMod, foulMod: teamTalkMods.foulMod + shoutMods.foulMod }
+      : (shoutMods.attackMod || shoutMods.defenseMod || shoutMods.foulMod) ? shoutMods : undefined;
+
+    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
     // Cup match ended in draw — need extra time (unless aggregate is already decided for 2-leg ties)
@@ -4268,7 +4292,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Simulate extra time as one 30-minute block (91-120) — bench is carried in halfTimeState
     const etCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
-    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod);
+    // Carry shout effects into extra time
+    const etShoutMods = computeShoutMods(state.matchShouts);
+    const etMods = (etShoutMods.attackMod || etShoutMods.defenseMod || etShoutMods.foulMod) ? etShoutMods : undefined;
+    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod, undefined, undefined, etMods);
 
     // Build the extended match result
     const etResult: Match = {

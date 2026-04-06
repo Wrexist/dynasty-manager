@@ -9,14 +9,16 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight } from '@/utils/haptics';
-import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT } from '@/config/matchEngine';
+import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD } from '@/config/matchEngine';
 import type { HalfState } from '@/engine/match';
+import type { ShoutType, KeyMomentChoice } from '@/types/game';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
-import { MENTALITIES } from '@/config/tactics';
+import { MENTALITIES, FORMATIONS } from '@/config/tactics';
+import { KEY_MOMENT_CHOICES } from '@/config/keyMoments';
 import { infoToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
@@ -24,6 +26,7 @@ import { getActiveCosmetic } from '@/utils/monetization';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
+import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers } from 'lucide-react';
 
 const isGoalEvent = (e: MatchEvent) => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored';
 
@@ -106,8 +109,12 @@ const MatchDay = () => {
   const playPenalties = useGameStore(s => s.playPenalties);
   const setScreen = useGameStore(s => s.setScreen);
   const setTactics = useGameStore(s => s.setTactics);
+  const setFormation = useGameStore(s => s.setFormation);
   const cleanupAbandonedMatch = useGameStore(s => s.cleanupAbandonedMatch);
   const setTeamTalk = useGameStore(s => s.setTeamTalk);
+  const activateShout = useGameStore(s => s.useShout);
+  const matchShouts = useGameStore(s => s.matchShouts);
+  const players = useGameStore(s => s.players);
 
   const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'extra_time_break' | 'extra_time' | 'penalties' | 'post'>('pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
@@ -121,8 +128,13 @@ const MatchDay = () => {
   // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
   const [keyMoment, setKeyMoment] = useState<{ type: string; description: string; playerId?: string } | null>(null);
   const [injurySubMode, setInjurySubMode] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showFitness, setShowFitness] = useState(false);
+  const [showCustomTactics, setShowCustomTactics] = useState(false);
   // Full Time screen removed — PostMatchPopup navigates directly to Match Review
   const dismissedMomentsRef = useRef<Set<string>>(new Set());
+  // Clear dismissed moments when match changes (e.g. multi-match sessions)
+  useEffect(() => { dismissedMomentsRef.current.clear(); }, [match]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
   const phaseRef = useRef(phase);
@@ -497,6 +509,54 @@ const MatchDay = () => {
     }
   }, [keyMoment]);
 
+  // Live match stats derived from visible events (must be before early return for hooks rules)
+  const matchHomeClubId = match?.homeClubId;
+  const liveStats = useMemo(() => {
+    let hShots = 0, aShots = 0, hSoT = 0, aSoT = 0, hFouls = 0, aFouls = 0;
+    let hGoals = 0, aGoals = 0, hYellows = 0, aYellows = 0, hReds = 0, aReds = 0;
+    let lastMomentum = 0, lastHomeXG = 0, lastAwayXG = 0;
+    for (const ev of visibleEvents) {
+      if (!matchHomeClubId) continue;
+      const isHomeEv = ev.clubId === matchHomeClubId;
+      if (ev.type === 'goal' || ev.type === 'penalty_scored' || ev.type === 'own_goal') {
+        if (isHomeEv) { hShots++; hSoT++; } else { aShots++; aSoT++; }
+      } else if (ev.type === 'shot_saved' || ev.type === 'goal_line_clearance') {
+        if (isHomeEv) { hShots++; hSoT++; } else { aShots++; aSoT++; }
+      } else if (ev.type === 'shot_missed' || ev.type === 'hit_woodwork') {
+        if (isHomeEv) hShots++; else aShots++;
+      } else if (ev.type === 'foul' || ev.type === 'yellow_card' || ev.type === 'red_card') {
+        if (isHomeEv) hFouls++; else aFouls++;
+      }
+      if (isGoalEvent(ev)) { if (isHomeEv) hGoals++; else aGoals++; }
+      if (ev.type === 'yellow_card') { if (isHomeEv) hYellows++; else aYellows++; }
+      if (ev.type === 'red_card') { if (isHomeEv) hReds++; else aReds++; }
+      if (ev.momentum !== undefined) lastMomentum = ev.momentum;
+      if (ev.homeXG !== undefined) { lastHomeXG = ev.homeXG; lastAwayXG = ev.awayXG ?? 0; }
+    }
+    return {
+      hShots, aShots, hSoT, aSoT, hFouls, aFouls,
+      hGoals, aGoals, hYellows, aYellows, hReds, aReds,
+      lastMomentum, lastHomeXG, lastAwayXG,
+    };
+  }, [visibleEvents, matchHomeClubId]);
+
+  // Latest fitness snapshot from events
+  const latestFitness = useMemo(() => {
+    for (let i = visibleEvents.length - 1; i >= 0; i--) {
+      if (visibleEvents[i].playerFitness) return visibleEvents[i].playerFitness!;
+    }
+    return null;
+  }, [visibleEvents]);
+
+  // Tactical insights: first-half from state, second-half from kickoff event (must be before early return)
+  const tacticalInsights = useMemo(() => {
+    if (phase === 'second_half' || phase === 'extra_time') {
+      const secondKickoff = visibleEvents.find(e => e.type === 'kickoff' && e.minute >= 46 && e.tacticalInsight);
+      return secondKickoff?.tacticalInsight ? [secondKickoff.tacticalInsight] : [];
+    }
+    return firstHalfState?.tacticalInsights ?? [];
+  }, [phase, visibleEvents, firstHalfState]);
+
   if (!match || !homeClub || !awayClub) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">
@@ -514,12 +574,12 @@ const MatchDay = () => {
   }
 
   const isLive = phase === 'first_half' || phase === 'second_half' || phase === 'extra_time';
-  const homeGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => isGoalEvent(e) && e.clubId === match.homeClubId).length;
-  const awayGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => isGoalEvent(e) && e.clubId === match.awayClubId).length;
-  const homeYellowCards = visibleEvents.filter(e => e.type === 'yellow_card' && e.clubId === match.homeClubId).length;
-  const awayYellowCards = visibleEvents.filter(e => e.type === 'yellow_card' && e.clubId === match.awayClubId).length;
-  const homeRedCards = visibleEvents.filter(e => e.type === 'red_card' && e.clubId === match.homeClubId).length;
-  const awayRedCards = visibleEvents.filter(e => e.type === 'red_card' && e.clubId === match.awayClubId).length;
+  const homeGoals = phase === 'pre' ? 0 : liveStats.hGoals;
+  const awayGoals = phase === 'pre' ? 0 : liveStats.aGoals;
+  const homeYellowCards = liveStats.hYellows;
+  const awayYellowCards = liveStats.aYellows;
+  const homeRedCards = liveStats.hReds;
+  const awayRedCards = liveStats.aReds;
   const homePlayersOnPitch = Math.max(7, 11 - homeRedCards);
   const awayPlayersOnPitch = Math.max(7, 11 - awayRedCards);
 
@@ -527,15 +587,43 @@ const MatchDay = () => {
   const htHomeGoals = firstHalfState?.homeGoals ?? homeGoals;
   const htAwayGoals = firstHalfState?.awayGoals ?? awayGoals;
 
-  // Momentum: use engine-calculated momentum from events, or fall back to event counting
-  const latestMomentumEvent = [...visibleEvents].reverse().find(e => e.momentum !== undefined);
-  const currentMomentum = latestMomentumEvent?.momentum ?? 0; // -100 (away) to +100 (home)
+  // Momentum & xG: derived from memoized liveStats scan
+  const currentMomentum = liveStats.lastMomentum; // -100 (away) to +100 (home)
   const homeMomPct = Math.round(50 + currentMomentum / 2); // 0-100 scale
+  const liveHomeXG = liveStats.lastHomeXG;
+  const liveAwayXG = liveStats.lastAwayXG;
+
+  // Shout cooldown check
+  const lastShout = matchShouts[matchShouts.length - 1];
+  const shoutOnCooldown = lastShout ? currentMin - lastShout.startMinute < SHOUT_COOLDOWN : false;
+  const shoutsRemaining = MAX_SHOUTS_PER_MATCH - matchShouts.length;
+  const activeShout = matchShouts.find(s => currentMin >= s.startMinute && currentMin < s.startMinute + SHOUT_DURATION);
+
   const stadiumTheme = getActiveCosmetic(monetization, 'stadium_theme');
   const pitchSkin = getActiveCosmetic(monetization, 'pitch_skin');
   const isPlayerHome = match?.homeClubId === playerClubId;
   const venueClub = match ? clubs[match.homeClubId] : null;
   const awayBarColor = homeClub && awayClub && areColorsSimilar(homeClub.color, awayClub.color) ? '#FFFFFF' : awayClub?.color;
+
+  const FormationPicker = () => (
+    <div>
+      <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1.5">Formation</p>
+      <div className="flex gap-1 flex-wrap">
+        {FORMATIONS.map(f => (
+          <button
+            key={f}
+            onClick={() => { hapticLight(); setFormation(f); infoToast(`Switched to ${f}`); }}
+            className={cn(
+              'px-2 py-1 rounded text-[9px] font-semibold transition-all',
+              clubs[playerClubId]?.formation === f
+                ? 'bg-primary/20 text-primary border border-primary/30'
+                : 'bg-muted/30 text-muted-foreground hover:bg-muted/40'
+            )}
+          >{f}</button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className={cn("max-w-lg mx-auto px-4 py-4 space-y-3", stadiumTheme && `stadium-${stadiumTheme.replace('stadium-', '')}`, pitchSkin && `pitch-${pitchSkin.replace('pitch-', '')}`)}>
@@ -619,8 +707,16 @@ const MatchDay = () => {
           </div>
         </div>
 
+        {/* Live xG Tracker */}
+        {(isLive || phase === 'half_time' || phase === 'extra_time_break') && (liveHomeXG > 0 || liveAwayXG > 0) && (
+          <div className="flex justify-between mt-2 text-[9px] text-muted-foreground/70 tabular-nums">
+            <span>xG: {liveHomeXG.toFixed(2)}</span>
+            <span>xG: {liveAwayXG.toFixed(2)}</span>
+          </div>
+        )}
+
         {(isLive || phase === 'half_time' || phase === 'extra_time_break') && (
-          <div className="mt-3">
+          <div className="mt-2">
             <div className="h-1 bg-muted rounded-full overflow-hidden">
               <motion.div className="h-full bg-primary rounded-full" animate={{ width: `${(currentMin / (phase === 'extra_time' ? 120 : 90)) * 100}%` }} />
             </div>
@@ -628,23 +724,59 @@ const MatchDay = () => {
         )}
       </GlassPanel>
 
-      {/* Momentum Bar */}
+      {/* Momentum Meter & Tactical Insights */}
       {isLive && (
-        <div className="px-1">
+        <div className="px-1 space-y-1.5">
           <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
             <span>Possession</span>
-            <span>{homeMomPct}% - {100 - homeMomPct}%</span>
+            <span className="tabular-nums">{homeMomPct}% - {100 - homeMomPct}%</span>
           </div>
-          <div className="flex h-1.5 rounded-full overflow-hidden gap-0.5">
-            <div
-              className={cn('rounded-full transition-all duration-700', currentMomentum > 70 && 'animate-pulse')}
-              style={{ width: `${homeMomPct}%`, backgroundColor: homeClub.color, ...(currentMomentum > 70 ? { boxShadow: `0 0 12px ${homeClub.color}` } : {}) }}
+          <div className="flex h-2 rounded-full overflow-hidden gap-0.5">
+            <motion.div
+              className={cn('rounded-full', currentMomentum > 70 && 'animate-pulse')}
+              animate={{ width: `${homeMomPct}%` }}
+              transition={{ duration: 0.7 }}
+              style={{ backgroundColor: homeClub.color, ...(currentMomentum > 70 ? { boxShadow: `0 0 12px ${homeClub.color}` } : {}) }}
             />
-            <div
-              className={cn('rounded-full transition-all duration-700 flex-1', currentMomentum < -70 && 'animate-pulse')}
+            <motion.div
+              className={cn('rounded-full flex-1', currentMomentum < -70 && 'animate-pulse')}
               style={{ backgroundColor: awayBarColor, ...(currentMomentum < -70 ? { boxShadow: `0 0 12px ${awayBarColor}` } : {}) }}
             />
           </div>
+          {/* Momentum label */}
+          {Math.abs(currentMomentum) > 40 && (
+            <p className="text-[9px] text-center font-semibold" style={{ color: currentMomentum > 0 ? homeClub.color : awayBarColor }}>
+              <Activity className="w-3 h-3 inline mr-0.5" />
+              {Math.abs(currentMomentum) > 70 ? 'Dominant' : 'Building'} momentum for {currentMomentum > 0 ? homeClub.shortName : awayClub.shortName}
+            </p>
+          )}
+          {/* Tactical Insight Pill */}
+          {tacticalInsights.length > 0 && (currentMin <= 10 || (currentMin >= 46 && currentMin <= 55)) && (
+            <motion.div
+              initial={{ opacity: 0, y: -5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center"
+            >
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium bg-primary/15 text-primary border border-primary/25">
+                <Zap className="w-2.5 h-2.5" />
+                {tacticalInsights[0]}
+              </span>
+            </motion.div>
+          )}
+          {/* Active Shout Indicator */}
+          {activeShout && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center"
+            >
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                <Megaphone className="w-2.5 h-2.5" />
+                {activeShout.type === 'push_forward' ? 'PUSH FORWARD!' : activeShout.type === 'hold_the_line' ? 'HOLD THE LINE!' : activeShout.type === 'calm_down' ? 'CALM DOWN!' : 'TIME WASTE!'}
+                <span className="text-amber-400/60 ml-1">({activeShout.startMinute + SHOUT_DURATION - currentMin}' left)</span>
+              </span>
+            </motion.div>
+          )}
         </div>
       )}
 
@@ -779,7 +911,9 @@ const MatchDay = () => {
           )}
 
           {/* Tactical changes at half-time */}
-          <GlassPanel className="p-4">
+          <GlassPanel className="p-4 space-y-3">
+            {/* Formation Switch at Half-Time */}
+            <FormationPicker />
             <TacticalPanel variant="full" tactics={tactics} setTactics={setTactics} />
           </GlassPanel>
 
@@ -875,6 +1009,9 @@ const MatchDay = () => {
 
                 <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
 
+                {/* In-Match Formation Switch */}
+                <FormationPicker />
+
                 {matchSubsUsed < MAX_SUBSTITUTIONS && (
                   <button
                     onClick={() => setSubSheetOpen(true)}
@@ -883,6 +1020,74 @@ const MatchDay = () => {
                     <RefreshCw className="w-3 h-3" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
                   </button>
                 )}
+
+                {/* Player Fitness Dashboard */}
+                <div>
+                  <button
+                    onClick={() => setShowFitness(!showFitness)}
+                    className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider w-full"
+                  >
+                    <Users className="w-3 h-3" /> Squad Fitness
+                    {showFitness ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
+                  </button>
+                  {showFitness && latestFitness && (
+                    <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                      {clubs[playerClubId]?.lineup.filter(Boolean).map(pid => {
+                        const p = players[pid];
+                        if (!p) return null;
+                        const fit = latestFitness[pid] ?? p.fitness;
+                        const fitColor = fit > 70 ? 'bg-emerald-500' : fit > MATCH_LOW_FITNESS_THRESHOLD ? 'bg-amber-500' : 'bg-red-500';
+                        return (
+                          <div key={pid} className="flex items-center gap-2 text-[10px]">
+                            <span className="w-5 text-muted-foreground">{p.position}</span>
+                            <span className="w-20 truncate text-foreground">{p.lastName}</span>
+                            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                              <div className={cn('h-full rounded-full transition-all', fitColor)} style={{ width: `${fit}%` }} />
+                            </div>
+                            <span className={cn('w-8 text-right tabular-nums', fit <= MATCH_LOW_FITNESS_THRESHOLD ? 'text-red-400' : 'text-muted-foreground')}>{Math.round(fit)}%</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Live Match Stats */}
+                <div>
+                  <button
+                    onClick={() => setShowStats(!showStats)}
+                    className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider w-full"
+                  >
+                    <BarChart3 className="w-3 h-3" /> Match Stats
+                    {showStats ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
+                  </button>
+                  {showStats && (
+                    <div className="mt-2 space-y-1.5">
+                      {[
+                        { label: 'Shots', home: liveStats.hShots, away: liveStats.aShots },
+                        { label: 'On Target', home: liveStats.hSoT, away: liveStats.aSoT },
+                        { label: 'Fouls', home: liveStats.hFouls, away: liveStats.aFouls },
+                        { label: 'xG', home: liveHomeXG, away: liveAwayXG, decimal: true },
+                      ].map(stat => {
+                        const total = (stat.home as number) + (stat.away as number) || 1;
+                        const homePct = ((stat.home as number) / total) * 100;
+                        return (
+                          <div key={stat.label} className="text-[10px]">
+                            <div className="flex justify-between text-muted-foreground mb-0.5">
+                              <span className="tabular-nums">{stat.decimal ? (stat.home as number).toFixed(2) : stat.home}</span>
+                              <span className="text-foreground/60">{stat.label}</span>
+                              <span className="tabular-nums">{stat.decimal ? (stat.away as number).toFixed(2) : stat.away}</span>
+                            </div>
+                            <div className="flex h-1 rounded-full overflow-hidden gap-0.5">
+                              <div className="rounded-full transition-all" style={{ width: `${homePct}%`, backgroundColor: homeClub.color }} />
+                              <div className="rounded-full flex-1" style={{ backgroundColor: awayBarColor }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
 
                 <div className="flex gap-2">
                   <Button size="sm" className="flex-1" onClick={handleResume}>
@@ -916,6 +1121,38 @@ const MatchDay = () => {
                   </button>
                 ))}
               </div>
+
+              {/* Touchline Shouts */}
+              {shoutsRemaining > 0 && !shoutOnCooldown && (
+                <div className="flex gap-1">
+                  {([
+                    { type: 'push_forward' as ShoutType, label: 'Push!', icon: '🔥' },
+                    { type: 'hold_the_line' as ShoutType, label: 'Hold!', icon: '🛡️' },
+                    { type: 'calm_down' as ShoutType, label: 'Calm!', icon: '✋' },
+                    ...(currentMin >= 80 ? [{ type: 'time_waste' as ShoutType, label: 'Waste!', icon: '⏰' }] : []),
+                  ]).map(s => (
+                    <button
+                      key={s.type}
+                      onClick={() => {
+                        hapticMedium();
+                        const success = activateShout(s.type, currentMin);
+                        if (success) infoToast(`${s.label} — Effect active for ${SHOUT_DURATION} minutes`);
+                      }}
+                      className="flex-1 py-1.5 rounded-md text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 active:scale-[0.97] transition-all"
+                    >
+                      <Megaphone className="w-3 h-3 mx-auto mb-0.5" />
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {shoutOnCooldown && shoutsRemaining > 0 && (
+                <p className="text-[9px] text-center text-muted-foreground/50">Shout on cooldown ({shoutsRemaining} left)</p>
+              )}
+              {shoutsRemaining === 0 && (
+                <p className="text-[9px] text-center text-muted-foreground/50">No shouts remaining</p>
+              )}
+
               <div className="flex justify-between items-center">
                 <button
                   onClick={handlePause}
@@ -939,11 +1176,13 @@ const MatchDay = () => {
               {visibleEvents.filter(e => e.type !== 'kickoff').map((ev, i) => {
                 const style = getCommentaryStyle(ev);
                 const isCardEvent = ev.type === 'yellow_card' || ev.type === 'red_card';
+                const isAITactical = ev.type === 'ai_tactical_change';
                 const cardStyle = ev.type === 'yellow_card'
                   ? 'border-amber-400/45 bg-amber-500/10 shadow-[0_0_12px_rgba(251,191,36,0.15)]'
                   : ev.type === 'red_card'
                     ? 'border-red-500/55 bg-red-500/15 shadow-[0_0_14px_rgba(239,68,68,0.25)]'
                     : '';
+                const aiTacticalStyle = isAITactical ? 'border-blue-400/30 bg-blue-500/10 rounded-lg border px-2 py-1.5' : '';
                 return (
                   <div
                     key={i}
@@ -951,13 +1190,15 @@ const MatchDay = () => {
                       'flex items-start gap-2 text-sm animate-[fadeSlideIn_0.2s_ease-out]',
                       isCardEvent && 'rounded-lg border px-2 py-1.5',
                       cardStyle,
+                      aiTacticalStyle,
                       style.textClass
                     )}
                   >
                     <span className="text-xs font-mono w-8 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
                     {ev.type === 'yellow_card' && <span className="leading-none mt-0.5"><YellowCardIcon size={12} /></span>}
                     {ev.type === 'red_card' && <span className="leading-none mt-0.5"><RedCardIcon size={12} /></span>}
-                    <span className="flex-1">{getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId)}</span>
+                    {isAITactical && <span className="leading-none mt-0.5"><Layers className="w-3 h-3 text-blue-400" /></span>}
+                    <span className={cn('flex-1', isAITactical && 'text-blue-300 italic')}>{getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId)}</span>
                     <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: clubs[ev.clubId]?.color || '#888' }} />
                   </div>
                 );
@@ -978,7 +1219,58 @@ const MatchDay = () => {
             </div>
             <p className="text-xs text-muted-foreground mb-3">{keyMoment.description}</p>
 
-            <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
+            {/* Branching Choices */}
+            {KEY_MOMENT_CHOICES[keyMoment.type] && (
+              <div className="space-y-2 mb-3">
+                {KEY_MOMENT_CHOICES[keyMoment.type].map((choice: KeyMomentChoice, idx: number) => {
+                  const ChoiceIcon = choice.icon === 'Flame' ? Flame : choice.icon === 'Shield' ? Shield : choice.icon === 'ShieldCheck' ? ShieldCheck : choice.icon === 'Zap' ? Zap : choice.icon === 'RefreshCw' ? RefreshCw : choice.icon === 'Layers' ? Layers : choice.icon === 'AlertTriangle' ? AlertTriangle : Zap;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => {
+                        hapticLight();
+                        if (choice.openSubSheet) {
+                          setSubSheetOpen(true);
+                        }
+                        if (choice.tactics) {
+                          setTactics(choice.tactics);
+                          infoToast(`Tactical change: ${choice.label}`);
+                        }
+                        if (choice.suggestFormation) {
+                          setFormation(choice.suggestFormation);
+                          infoToast(`Formation changed to ${choice.suggestFormation}`);
+                        }
+                        if (!choice.openSubSheet) {
+                          dismissKeyMoment();
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 active:scale-[0.98] border border-border/30 transition-all text-left"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                        <ChoiceIcon className="w-4 h-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-foreground">{choice.label}</p>
+                        <p className="text-[10px] text-muted-foreground">{choice.description}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Customize option — expand to full tactical panel */}
+            <button
+              onClick={() => setShowCustomTactics(!showCustomTactics)}
+              className="w-full text-[10px] text-muted-foreground/60 hover:text-muted-foreground py-1 mb-2 transition-colors"
+            >
+              {showCustomTactics ? 'Hide custom tactics' : 'Customize tactics manually...'}
+            </button>
+            {showCustomTactics && (
+              <div className="mb-3">
+                <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
+              </div>
+            )}
 
             {/* Quick sub button */}
             {matchSubsUsed < MAX_SUBSTITUTIONS && (
@@ -990,7 +1282,7 @@ const MatchDay = () => {
               </button>
             )}
 
-            <Button size="sm" className="w-full" onClick={dismissKeyMoment}>
+            <Button size="sm" className="w-full" onClick={() => { setShowCustomTactics(false); dismissKeyMoment(); }}>
               <Play className="w-3.5 h-3.5 mr-1.5" /> Continue Match
             </Button>
           </GlassPanel>
