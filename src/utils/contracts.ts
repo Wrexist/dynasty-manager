@@ -20,6 +20,8 @@ import {
   CONTRACT_LOWBALL_GAP, CONTRACT_MODERATE_GAP,
   CONTRACT_MOOD_HIT_LOWBALL, CONTRACT_MOOD_HIT_MODERATE, CONTRACT_MOOD_HIT_CLOSE,
   CONTRACT_MOOD_FLOOR,
+  CONTRACT_PREFERRED_YEARS_BRACKETS, CONTRACT_PREFERRED_YEARS_DEFAULT,
+  CONTRACT_YEARS_ACCEPTANCE_BONUS, CONTRACT_YEARS_ACCEPTANCE_PENALTY,
 } from '@/config/contracts';
 
 /**
@@ -49,6 +51,12 @@ export function calculateWageDemand(player: Player, clubReputation: number): num
 
   const demand = Math.round(baseDemand * ageFactor * qualityFactor * formFactor * moraleFactor * repFactor);
   return Math.max(CONTRACT_MINIMUM_WAGE, demand);
+}
+
+/** Get the player's preferred contract length based on age. */
+export function getPreferredYears(age: number): number {
+  const bracket = CONTRACT_PREFERRED_YEARS_BRACKETS.find(b => age < b.maxAge);
+  return bracket ? bracket.preferredYears : CONTRACT_PREFERRED_YEARS_DEFAULT;
 }
 
 /** Calculate agent fee based on player value and deal complexity. */
@@ -114,6 +122,7 @@ export function createContractOffer(
     agentFee,
     loyaltyBonus,
     contractYears,
+    playerAge: player.age,
     round: 1,
     status: 'in_progress',
     playerMood: willingness,
@@ -123,16 +132,26 @@ export function createContractOffer(
 /**
  * Process a negotiation round. Player responds to the offered wage.
  * Returns updated offer with new demanded wage (player may compromise) or rejection.
+ * Contract years affect the effective gap: offering more years than the player prefers
+ * gives a bonus, fewer years gives a penalty.
  */
 export function negotiateRound(offer: ContractOffer): ContractOffer {
   if (offer.demandedWage <= 0) return { ...offer, status: 'accepted', round: offer.round + 1 };
   const gap = offer.offeredWage / offer.demandedWage;
 
-  // Player accepts if offer meets or exceeds demand, or close enough + willing
+  // Years deviation adjusts the effective acceptance gap
+  const preferredYears = getPreferredYears(offer.playerAge);
+  const yearsDiff = offer.contractYears - preferredYears;
+  const yearsAdjustment = yearsDiff > 0
+    ? yearsDiff * CONTRACT_YEARS_ACCEPTANCE_BONUS
+    : yearsDiff * CONTRACT_YEARS_ACCEPTANCE_PENALTY;
+  const adjustedGap = gap + yearsAdjustment;
+
+  // Player accepts if offer meets or exceeds demand (adjusted for years), or close enough + willing
   if (
-    gap >= CONTRACT_GAP_ACCEPT ||
-    (gap >= CONTRACT_GAP_MOOD_ACCEPT && offer.playerMood >= CONTRACT_MOOD_ACCEPT_THRESHOLD) ||
-    (gap >= CONTRACT_GAP_HIGH_MOOD_ACCEPT && offer.playerMood >= CONTRACT_HIGH_MOOD_THRESHOLD)
+    adjustedGap >= CONTRACT_GAP_ACCEPT ||
+    (adjustedGap >= CONTRACT_GAP_MOOD_ACCEPT && offer.playerMood >= CONTRACT_MOOD_ACCEPT_THRESHOLD) ||
+    (adjustedGap >= CONTRACT_GAP_HIGH_MOOD_ACCEPT && offer.playerMood >= CONTRACT_HIGH_MOOD_THRESHOLD)
   ) {
     return { ...offer, status: 'accepted', round: offer.round + 1 };
   }

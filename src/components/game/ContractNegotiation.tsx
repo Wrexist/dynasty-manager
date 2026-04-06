@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
-import { FileText, X, ArrowRight, Check, AlertTriangle } from 'lucide-react';
-import { formatWage } from '@/utils/contracts';
+import { FileText, X, ArrowRight, Check, AlertTriangle, Minus, Plus } from 'lucide-react';
+import { formatWage, getPreferredYears } from '@/utils/contracts';
 import { getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { motion } from 'framer-motion';
 import { hapticMedium } from '@/utils/haptics';
+import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
 
 export function ContractNegotiation() {
   const { activeNegotiation, players, clubs, playerClubId } = useGameStore(useShallow(s => ({
@@ -16,6 +17,8 @@ export function ContractNegotiation() {
   const submitWageOffer = useGameStore(s => s.submitWageOffer);
   const cancelNegotiation = useGameStore(s => s.cancelNegotiation);
   const [customWage, setCustomWage] = useState<number | null>(null);
+  const [customYears, setCustomYears] = useState<number | null>(null);
+  const submittingRef = useRef(false);
 
   useScrollLock(!!activeNegotiation);
 
@@ -23,17 +26,28 @@ export function ContractNegotiation() {
     if (activeNegotiation) hapticMedium();
   }, [activeNegotiation]);
 
+  // Reset submitting guard when negotiation state changes (new round or complete)
+  useEffect(() => {
+    submittingRef.current = false;
+  }, [activeNegotiation?.round, activeNegotiation?.status]);
+
   if (!activeNegotiation) return null;
 
   const player = players[activeNegotiation.playerId];
   if (!player) return null;
 
   const isComplete = activeNegotiation.status === 'accepted' || activeNegotiation.status === 'rejected';
+  const currentYears = customYears ?? activeNegotiation.contractYears;
   const gap = (customWage || activeNegotiation.offeredWage) / activeNegotiation.demandedWage;
+  const preferredYears = getPreferredYears(activeNegotiation.playerAge);
+  const yearsDiff = currentYears - preferredYears;
 
   const handleSubmit = () => {
-    submitWageOffer(customWage || activeNegotiation.offeredWage);
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    submitWageOffer(customWage || activeNegotiation.offeredWage, customYears ?? activeNegotiation.contractYears);
     setCustomWage(null);
+    setCustomYears(null);
   };
 
   const moodColor = getMoodColor(activeNegotiation.playerMood);
@@ -116,12 +130,37 @@ export function ContractNegotiation() {
                 </span>
               </div>
 
-              {/* Details */}
-              <div className="space-y-1.5 text-xs text-muted-foreground">
-                <div className="flex justify-between">
-                  <span>Contract Length</span>
-                  <span className="text-foreground">{activeNegotiation.contractYears} year(s)</span>
+              {/* Contract Length Selector */}
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Contract Length</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCustomYears(Math.max(CONTRACT_MIN_YEARS, currentYears - 1))}
+                      disabled={currentYears <= CONTRACT_MIN_YEARS}
+                      className="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center hover:bg-muted/80 disabled:opacity-30 transition-colors"
+                    >
+                      <Minus className="w-3 h-3" />
+                    </button>
+                    <span className="text-foreground font-semibold w-14 text-center">{currentYears} yr(s)</span>
+                    <button
+                      onClick={() => setCustomYears(Math.min(CONTRACT_MAX_YEARS, currentYears + 1))}
+                      disabled={currentYears >= CONTRACT_MAX_YEARS}
+                      className="w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center hover:bg-muted/80 disabled:opacity-30 transition-colors"
+                    >
+                      <Plus className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
+                {yearsDiff !== 0 && (
+                  <p className={cn('text-[10px] text-right', yearsDiff > 0 ? 'text-emerald-400' : 'text-amber-400')}>
+                    {yearsDiff > 0 ? `+${yearsDiff} yr over` : `${yearsDiff} yr under`} player preferred ({preferredYears} yr)
+                  </p>
+                )}
+              </div>
+
+              {/* Other details */}
+              <div className="space-y-1.5 text-xs text-muted-foreground">
                 <div className="flex justify-between">
                   <span>Agent Fee</span>
                   <span className="text-foreground">£{(activeNegotiation.agentFee / 1000).toFixed(0)}K</span>

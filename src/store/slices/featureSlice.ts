@@ -202,12 +202,13 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     set({ activeNegotiation: offer });
   },
 
-  submitWageOffer: (wage: number) => {
+  submitWageOffer: (wage: number, years?: number) => {
     const state = get();
     const offer = state.activeNegotiation;
     if (!offer || offer.status !== 'in_progress') return;
 
     const updated = { ...offer, offeredWage: wage };
+    if (years !== undefined) updated.contractYears = years;
     const result = negotiateRound(updated);
 
     if (result.status === 'accepted') {

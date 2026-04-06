@@ -71,6 +71,22 @@ export const CONTRACT_HIGH_MOOD_THRESHOLD = 80;
 export const CONTRACT_COMPROMISE_BASE = 0.03;
 export const CONTRACT_COMPROMISE_MOOD_SCALE = 0.07;
 
+// ── Contract Years Range ──
+export const CONTRACT_MIN_YEARS = 1;
+export const CONTRACT_MAX_YEARS = 5;
+
+// Preferred years by age (player's ideal contract length)
+export const CONTRACT_PREFERRED_YEARS_BRACKETS = [
+  { maxAge: 24, preferredYears: 4 },  // Young players want long-term security
+  { maxAge: 28, preferredYears: 3 },  // Prime players want medium
+  { maxAge: 32, preferredYears: 2 },  // Aging players prefer shorter
+] as const;
+export const CONTRACT_PREFERRED_YEARS_DEFAULT = 1; // 32+ prefer 1-year deals
+
+// How much each year of deviation from preferred impacts the effective gap
+export const CONTRACT_YEARS_ACCEPTANCE_BONUS = 0.04;   // +4% per year over preferred
+export const CONTRACT_YEARS_ACCEPTANCE_PENALTY = 0.06;  // -6% per year under preferred
+
 // ── Mood Penalties (from lowballing) ──
 export const CONTRACT_LOWBALL_GAP = 0.7;
 export const CONTRACT_MODERATE_GAP = 0.85;

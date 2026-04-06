@@ -292,7 +292,7 @@ export interface GameState {
 
   // Actions — Contract Negotiation
   startNegotiation: (playerId: string, isRenewal: boolean) => void;
-  submitWageOffer: (wage: number) => void;
+  submitWageOffer: (wage: number, years?: number) => void;
   cancelNegotiation: () => void;
 
   // Actions — Challenge Mode

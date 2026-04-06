@@ -985,6 +985,7 @@ export interface ContractOffer {
   agentFee: number;
   loyaltyBonus: number;
   contractYears: number;
+  playerAge: number;   // cached for years-based acceptance calculation
   round: number;       // negotiation round (1-3)
   status: NegotiationStatus;
   playerMood: number;  // 0-100, willingness to accept
