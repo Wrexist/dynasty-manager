@@ -1,4 +1,5 @@
 import { ClubData, Match, LeagueTableEntry, LeagueId, LeagueInfo, DerbyRivalry } from '@/types/game';
+import { shuffle } from '@/utils/helpers';
 
 // ── Import all leagues ──
 import { ALL_LEAGUES, ALL_CLUBS_DATA } from './leagues';
@@ -99,7 +100,7 @@ export function generateFixtures(clubIds: string[]): Match[] {
   const n = clubIds.length;
   if (n < 2) return [];
   const matches: Match[] = [];
-  const teams = [...clubIds];
+  const teams = shuffle([...clubIds]);
 
   // If odd number of teams, add a "bye" placeholder
   const hasBye = n % 2 !== 0;

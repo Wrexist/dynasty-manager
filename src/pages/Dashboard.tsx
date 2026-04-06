@@ -70,7 +70,7 @@ const Dashboard = () => {
     boardConfidence, boardObjectives,
     currentMatchResult, incomingOffers, trainingFocus, cup,
     leagueCup, championsCup, shieldCup, virtualClubs, domesticSuperCup, continentalSuperCup,
-    weekCliffhangers, lastMatchDrama, objectiveStreak,
+    weekCliffhangers, objectiveStreak,
     facilities, scouting, divisionTables, playerDivision,
     managerProgression, clubRecords, transferWindowOpen, training,
     weeklyObjectives, shortlist, seasonPhase, totalWeeks,
@@ -88,7 +88,7 @@ const Dashboard = () => {
     leagueCup: s.leagueCup, championsCup: s.championsCup,
     shieldCup: s.shieldCup, virtualClubs: s.virtualClubs,
     domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
-    weekCliffhangers: s.weekCliffhangers, lastMatchDrama: s.lastMatchDrama,
+    weekCliffhangers: s.weekCliffhangers,
     objectiveStreak: s.objectiveStreak,
     facilities: s.facilities, scouting: s.scouting,
     divisionTables: s.divisionTables, playerDivision: s.playerDivision,
@@ -237,6 +237,7 @@ const Dashboard = () => {
       });
     }
     prevWeekRef.current = week;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [week]); // Only depend on week — read other values from getState() to avoid cascading re-renders
 
   // ── Derived data (memoized) — must be above early return to avoid conditional hooks ──

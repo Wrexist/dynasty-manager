@@ -1,7 +1,7 @@
 /**
  * Continental tournament logic: match simulation, group advancement, knockout resolution.
  */
-import type { ContinentalTournamentState, ContinentalKnockoutTie, VirtualClub, ContinentalCompetition, Club, Player, FormationType } from '@/types/game';
+import type { ContinentalTournamentState, ContinentalKnockoutTie, VirtualClub, Club, Player, FormationType } from '@/types/game';
 import {
   CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK,
   CONTINENTAL_EXTRA_TIME_GOAL_CHANCE,

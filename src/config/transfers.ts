@@ -127,8 +127,6 @@ export const LOAN_REQUEST_MIN_DURATION = 4;
 export const LOAN_REQUEST_MAX_DURATION = 46;
 
 // ── Transfer Market Population ──
-// Target number of listed players on the market at any given time
-export const MARKET_TARGET_SIZE = 60;
 // Minimum market size before replenishment kicks in
 export const MARKET_REPLENISH_THRESHOLD = 25;
 // How many external (generated) players to add per replenishment cycle
