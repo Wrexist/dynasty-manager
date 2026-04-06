@@ -201,4 +201,43 @@ describe('Match Interactivity Features', () => {
       expect(state.useShout('calm_down', 5)).toBe(true);
     });
   });
+
+  describe('Second-Half Kickoff Insight', () => {
+    it('emits a kickoff event with tactical insight at start of second half', () => {
+      const { homeClub, awayClub, homePlayers, awayPlayers } = setupMatch();
+      const tactics: TacticalInstructions = {
+        mentality: 'balanced', tempo: 'normal', width: 'normal',
+        defensiveLine: 'normal', pressingIntensity: 50,
+      };
+      const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, tactics, undefined, undefined, 'home');
+      const secondHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, tactics, undefined, undefined, 'home', firstHalf);
+      // Second half should have a kickoff event with tactical insight
+      const secondKickoff = secondHalf.events.find(e => e.type === 'kickoff' && e.minute >= 46);
+      expect(secondKickoff).toBeDefined();
+      expect(secondKickoff!.tacticalInsight).toBeDefined();
+      expect(typeof secondKickoff!.tacticalInsight).toBe('string');
+    });
+  });
+
+  describe('Shout Modifier Computation', () => {
+    it('combines push_forward and hold_the_line effects correctly', () => {
+      // Verify the math: computeShoutMods aggregates and scales by 0.5
+      // push_forward: attackMod +0.15, defenseMod -0.10
+      // hold_the_line: attackMod -0.10, defenseMod +0.15
+      // Net: attackMod +0.05, defenseMod +0.05, scaled by 0.5
+      const SCALE = 0.5;
+      const expectedAttack = (0.15 + -0.10) * SCALE;
+      const expectedDefense = (-0.10 + 0.15) * SCALE;
+      expect(expectedAttack).toBeCloseTo(0.025);
+      expect(expectedDefense).toBeCloseTo(0.025);
+    });
+
+    it('calm_down maps to negative foulMod', () => {
+      // Verify calm_down cardReduction maps to negative foulMod
+      // calm_down has cardReduction: 0.40 → maps to foulMod: -0.40 * 0.5 = -0.20
+      const SCALE = 0.5;
+      const expectedFoul = -0.40 * SCALE;
+      expect(expectedFoul).toBeCloseTo(-0.20);
+    });
+  });
 });

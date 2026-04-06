@@ -548,6 +548,15 @@ const MatchDay = () => {
     return null;
   }, [visibleEvents]);
 
+  // Tactical insights: first-half from state, second-half from kickoff event (must be before early return)
+  const tacticalInsights = useMemo(() => {
+    if (phase === 'second_half' || phase === 'extra_time') {
+      const secondKickoff = visibleEvents.find(e => e.type === 'kickoff' && e.minute >= 46 && e.tacticalInsight);
+      return secondKickoff?.tacticalInsight ? [secondKickoff.tacticalInsight] : [];
+    }
+    return firstHalfState?.tacticalInsights ?? [];
+  }, [phase, visibleEvents, firstHalfState]);
+
   if (!match || !homeClub || !awayClub) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">
@@ -584,9 +593,6 @@ const MatchDay = () => {
   const liveHomeXG = liveStats.lastHomeXG;
   const liveAwayXG = liveStats.lastAwayXG;
 
-  // Tactical insights from first half state
-  const tacticalInsights = firstHalfState?.tacticalInsights ?? [];
-
   // Shout cooldown check
   const lastShout = matchShouts[matchShouts.length - 1];
   const shoutOnCooldown = lastShout ? currentMin - lastShout.startMinute < SHOUT_COOLDOWN : false;
@@ -598,6 +604,26 @@ const MatchDay = () => {
   const isPlayerHome = match?.homeClubId === playerClubId;
   const venueClub = match ? clubs[match.homeClubId] : null;
   const awayBarColor = homeClub && awayClub && areColorsSimilar(homeClub.color, awayClub.color) ? '#FFFFFF' : awayClub?.color;
+
+  const FormationPicker = () => (
+    <div>
+      <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1.5">Formation</p>
+      <div className="flex gap-1 flex-wrap">
+        {FORMATIONS.map(f => (
+          <button
+            key={f}
+            onClick={() => { hapticLight(); setFormation(f); infoToast(`Switched to ${f}`); }}
+            className={cn(
+              'px-2 py-1 rounded text-[9px] font-semibold transition-all',
+              clubs[playerClubId]?.formation === f
+                ? 'bg-primary/20 text-primary border border-primary/30'
+                : 'bg-muted/30 text-muted-foreground hover:bg-muted/40'
+            )}
+          >{f}</button>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className={cn("max-w-lg mx-auto px-4 py-4 space-y-3", stadiumTheme && `stadium-${stadiumTheme.replace('stadium-', '')}`, pitchSkin && `pitch-${pitchSkin.replace('pitch-', '')}`)}>
@@ -725,7 +751,7 @@ const MatchDay = () => {
             </p>
           )}
           {/* Tactical Insight Pill */}
-          {tacticalInsights.length > 0 && currentMin <= 10 && (
+          {tacticalInsights.length > 0 && (currentMin <= 10 || (currentMin >= 46 && currentMin <= 55)) && (
             <motion.div
               initial={{ opacity: 0, y: -5 }}
               animate={{ opacity: 1, y: 0 }}
@@ -887,23 +913,7 @@ const MatchDay = () => {
           {/* Tactical changes at half-time */}
           <GlassPanel className="p-4 space-y-3">
             {/* Formation Switch at Half-Time */}
-            <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Formation</p>
-              <div className="flex gap-1 flex-wrap">
-                {FORMATIONS.map(f => (
-                  <button
-                    key={f}
-                    onClick={() => { hapticLight(); setFormation(f); infoToast(`Switched to ${f}`); }}
-                    className={cn(
-                      'px-2 py-1 rounded text-[9px] font-semibold transition-all',
-                      clubs[playerClubId]?.formation === f
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/40'
-                    )}
-                  >{f}</button>
-                ))}
-              </div>
-            </div>
+            <FormationPicker />
             <TacticalPanel variant="full" tactics={tactics} setTactics={setTactics} />
           </GlassPanel>
 
@@ -1000,23 +1010,7 @@ const MatchDay = () => {
                 <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
 
                 {/* In-Match Formation Switch */}
-                <div>
-                  <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1.5">Formation</p>
-                  <div className="flex gap-1 flex-wrap">
-                    {FORMATIONS.map(f => (
-                      <button
-                        key={f}
-                        onClick={() => { hapticLight(); setFormation(f); infoToast(`Switched to ${f}`); }}
-                        className={cn(
-                          'px-2 py-1 rounded text-[9px] font-semibold transition-all',
-                          clubs[playerClubId]?.formation === f
-                            ? 'bg-primary/20 text-primary border border-primary/30'
-                            : 'bg-muted/30 text-muted-foreground hover:bg-muted/40'
-                        )}
-                      >{f}</button>
-                    ))}
-                  </div>
-                </div>
+                <FormationPicker />
 
                 {matchSubsUsed < MAX_SUBSTITUTIONS && (
                   <button

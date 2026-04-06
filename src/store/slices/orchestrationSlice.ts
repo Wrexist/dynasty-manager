@@ -1830,6 +1830,22 @@ function finalizeSeason(
   if (get().settings.autoSave) get().saveGame();
 }
 
+/** Compute cumulative shout modifiers from match shouts for use as simulation modifiers */
+function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS }[]) {
+  if (matchShouts.length === 0) return { attackMod: 0, defenseMod: 0, foulMod: 0 };
+  let aMod = 0, dMod = 0, fMod = 0;
+  for (const s of matchShouts) {
+    const m = SHOUT_MODIFIERS[s.type];
+    if ('attackMod' in m) aMod += m.attackMod;
+    if ('defenseMod' in m) dMod += m.defenseMod;
+    if ('cardReduction' in m) fMod -= m.cardReduction;
+    // time_waste: convert event chance reduction to small defensive bump
+    if ('eventChanceReduction' in m) dMod += 0.05;
+  }
+  const scale = SHOUT_CUMULATIVE_SCALE;
+  return { attackMod: aMod * scale, defenseMod: dMod * scale, foulMod: fMod * scale };
+}
+
 export const createOrchestrationSlice = (set: Set, get: Get) => ({
   initGame: (clubId: string) => {
     resetSeasonGrowth();
@@ -4148,21 +4164,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     })();
 
     // Aggregate first-half shout effects as second-half modifiers
-    const shoutMods = (() => {
-      const shouts = state.matchShouts;
-      if (shouts.length === 0) return { attackMod: 0, defenseMod: 0, foulMod: 0 };
-      let aMod = 0, dMod = 0, fMod = 0;
-      for (const s of shouts) {
-        const m = SHOUT_MODIFIERS[s.type];
-        if ('attackMod' in m) aMod += m.attackMod;
-        if ('defenseMod' in m) dMod += m.defenseMod;
-        if ('cardReduction' in m) fMod -= m.cardReduction;
-        // time_waste: small defensive bump
-        if ('eventChanceReduction' in m) dMod += 0.05;
-      }
-      const scale = SHOUT_CUMULATIVE_SCALE;
-      return { attackMod: aMod * scale, defenseMod: dMod * scale, foulMod: fMod * scale };
-    })();
+    const shoutMods = computeShoutMods(state.matchShouts);
 
     // Merge team talk + shout modifiers
     const combinedMods = teamTalkMods
@@ -4290,7 +4292,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Simulate extra time as one 30-minute block (91-120) — bench is carried in halfTimeState
     const etCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
-    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod);
+    // Carry shout effects into extra time
+    const etShoutMods = computeShoutMods(state.matchShouts);
+    const etMods = (etShoutMods.attackMod || etShoutMods.defenseMod || etShoutMods.foulMod) ? etShoutMods : undefined;
+    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod, undefined, undefined, etMods);
 
     // Build the extended match result
     const etResult: Match = {

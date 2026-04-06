@@ -755,6 +755,11 @@ export function simulateHalf(
     }
   }
 
+  // Emit second-half kickoff with tactical insight if available
+  if (prevState && tacticalInsights.length > 0) {
+    events.push({ minute: startMin, type: 'kickoff', clubId: homeClub.id, description: 'Second half underway!', tacticalInsight: tacticalInsights[0] });
+  }
+
   let lastEventMinute = startMin;
 
   // Calculate stoppage time for this half
