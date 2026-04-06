@@ -12,6 +12,7 @@ interface PlayerCardProps {
   chemistryLinkCount: number;
   compatRing?: 'natural' | 'compatible' | 'wrong' | null;
   isBestSub?: boolean;
+  week?: number;
   onClick: () => void;
 }
 
@@ -27,9 +28,9 @@ function getMoraleDotClass(morale: number): string {
   return 'bg-red-400';
 }
 
-function getStatusLabel(player: Player): string | null {
+function getStatusLabel(player: Player, week?: number): string | null {
   if (player.injured) return 'INJ';
-  if (player.suspendedUntilWeek) return 'SUS';
+  if (player.suspendedUntilWeek && (week === undefined || player.suspendedUntilWeek > week)) return 'SUS';
   return null;
 }
 
@@ -41,11 +42,12 @@ export const PlayerCard = memo(function PlayerCard({
   chemistryLinkCount,
   compatRing,
   isBestSub,
+  week,
   onClick,
 }: PlayerCardProps) {
   const isWarning = player.fitness < 50 || (chemistryLinkCount === 0 && variant === 'starter');
   const fitnessColor = getFitnessHexColor(player.fitness);
-  const statusLabel = getStatusLabel(player);
+  const statusLabel = getStatusLabel(player, week);
 
   if (variant === 'bench') {
     return (
