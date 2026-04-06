@@ -1,4 +1,4 @@
-import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk } from '@/types/game';
+import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -56,6 +56,9 @@ export interface GameState {
   matchPlayerRatings: PlayerMatchRating[];
   halfTimeState: HalfState | null;
   matchPhase: 'none' | 'first_half' | 'half_time' | 'second_half' | 'full_time' | 'extra_time' | 'penalties';
+  matchTeamTalk: TeamTalkType;
+  penaltyShootoutKicks: PenaltyKick[];
+  penaltyShootoutRevealIndex: number;
   preMatchLeaguePosition: number;
   lastMatchXPGain: number;
   currentCupTieId: string | null;
@@ -119,6 +122,13 @@ export interface GameState {
   // Competition name for the last played match (e.g. 'Champions Cup - Group A, MD3')
   lastMatchCompetition: string | null;
 
+  // Season tracking fields for SeasonHistory enrichment
+  seasonStartAvgOVR: number;
+  seasonTransfersBought: { playerName: string; fee: number }[];
+  seasonTransfersSold: { playerName: string; fee: number }[];
+  seasonTotalIncome: number;
+  seasonTotalExpenses: number;
+
   // Session stats for session summary
   sessionStats: SessionStats;
 
@@ -136,6 +146,11 @@ export interface GameState {
     recoveriesThisWeek: string[];
     offersReceived: number;
     moraleChange: number;
+    playerDevelopment: { playerName: string; attribute: string; newValue: number }[];
+    trainingGains: { playerName: string; attribute: string }[];
+    scoutReportsCompleted: number;
+    contractWarnings: string[];
+    objectiveProgress: { title: string; completed: boolean; xpEarned: number }[];
   } | null;
 
   // Challenge Mode
@@ -178,6 +193,7 @@ export interface GameState {
   selectPlayer: (id: string | null) => void;
   selectClub: (id: string | null) => void;
   advanceWeek: () => void;
+  advanceToNextMatch: () => void;
   endSeason: () => void;
   saveGame: (slot?: number) => void;
   loadGame: (slot?: number) => boolean;
@@ -227,10 +243,13 @@ export interface GameState {
   playFirstHalf: () => HalfState | null;
   playSecondHalf: () => Match | null;
   playExtraTime: () => Match | null;
-  playPenalties: () => Match | null;
+  playPenalties: () => void;
+  revealNextPenaltyKick: () => void;
+  skipPenaltyShootout: () => void;
   clearMatchResult: () => void;
   cleanupAbandonedMatch: () => void;
   makeMatchSub: (outId: string, inId: string) => void;
+  setTeamTalk: (talk: TeamTalkType) => void;
 
   // Actions — Systems
   setTactics: (partial: Partial<TacticalInstructions>) => void;

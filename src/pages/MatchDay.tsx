@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubstitutionSheet } from '@/components/game/SubstitutionSheet';
 import { Button } from '@/components/ui/button';
-import { MatchEvent, Match, Club, ContinentalTournamentState, VirtualClub } from '@/types/game';
+import { MatchEvent, Match, Club, ContinentalTournamentState, VirtualClub, TeamTalkType } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy } from 'lucide-react';
@@ -16,12 +16,14 @@ import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
+import { MENTALITIES } from '@/config/tactics';
 import { infoToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
 import { getActiveCosmetic } from '@/utils/monetization';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
+import { PenaltyShootout } from '@/components/game/PenaltyShootout';
 
 const isGoalEvent = (e: MatchEvent) => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored';
 
@@ -79,7 +81,7 @@ function buildVirtualClubFallback(virtualClubs: Record<string, VirtualClub> | un
 }
 
 const MatchDay = () => {
-  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase } = useGameStore(useShallow(s => ({
+  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     week: s.week,
     clubs: s.clubs,
@@ -95,6 +97,8 @@ const MatchDay = () => {
     continentalSuperCup: s.continentalSuperCup,
     monetization: s.monetization,
     matchPhase: s.matchPhase,
+    matchTeamTalk: s.matchTeamTalk,
+    penaltyShootoutKicks: s.penaltyShootoutKicks,
   })));
   const playFirstHalf = useGameStore(s => s.playFirstHalf);
   const playSecondHalf = useGameStore(s => s.playSecondHalf);
@@ -103,6 +107,7 @@ const MatchDay = () => {
   const setScreen = useGameStore(s => s.setScreen);
   const setTactics = useGameStore(s => s.setTactics);
   const cleanupAbandonedMatch = useGameStore(s => s.cleanupAbandonedMatch);
+  const setTeamTalk = useGameStore(s => s.setTeamTalk);
 
   const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'extra_time_break' | 'extra_time' | 'penalties' | 'post'>('pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
@@ -229,12 +234,9 @@ const MatchDay = () => {
   };
 
   const handlePenalties = () => {
-    const result = playPenalties();
-    if (!result) return;
-    // Show all events including penalty events immediately
-    setAllEvents(result.events);
-    setVisibleEvents(result.events);
-    setPhase('post');
+    // playPenalties() now only pre-computes kicks and stores them for kick-by-kick reveal.
+    // The phase stays 'penalties' until the shootout is finalized via revealNextPenaltyKick / skipPenaltyShootout.
+    playPenalties();
   };
 
   // Detect key moments that should pause the match for player decisions
@@ -410,6 +412,14 @@ const MatchDay = () => {
   useEffect(() => {
     if (phase === 'post') hapticMedium();
   }, [phase]);
+
+  // When penalty shootout finalization completes (matchPhase becomes 'full_time'),
+  // transition the local phase from 'penalties' to 'post'
+  useEffect(() => {
+    if (phase === 'penalties' && matchPhase === 'full_time') {
+      setPhase('post');
+    }
+  }, [matchPhase, phase]);
 
   useEffect(() => {
     eventsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -740,9 +750,15 @@ const MatchDay = () => {
                     key={talk.id}
                     onClick={() => {
                       hapticLight();
+                      setTeamTalk(talk.id as TeamTalkType);
                       infoToast(`"${talk.description}"`);
                     }}
-                    className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-lg bg-muted/30 hover:bg-primary/10 transition-colors"
+                    className={cn(
+                      "flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-lg transition-colors",
+                      matchTeamTalk === talk.id
+                        ? 'bg-primary/20 border border-primary/40'
+                        : 'bg-muted/30 hover:bg-primary/10'
+                    )}
                   >
                     <TalkIcon className="w-4 h-4 text-primary" />
                     <span className="text-[10px] font-semibold text-foreground">{talk.label}</span>
@@ -830,13 +846,19 @@ const MatchDay = () => {
       {/* Penalties — cup match still drawn after extra time */}
       {phase === 'penalties' && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <GlassPanel className="p-5 space-y-4 text-center mb-20">
-            <p className="text-sm font-bold text-primary">Penalty Shootout</p>
-            <p className="text-xs text-muted-foreground">Still level after extra time. This match will be decided by penalties.</p>
-            <Button className="w-full h-12 text-base font-bold gap-2" onClick={handlePenalties}>
-              <Play className="w-5 h-5" /> Take Penalties
-            </Button>
-          </GlassPanel>
+          {penaltyShootoutKicks.length === 0 ? (
+            <GlassPanel className="p-5 space-y-4 text-center mb-20">
+              <p className="text-sm font-bold text-primary">Penalty Shootout</p>
+              <p className="text-xs text-muted-foreground">Still level after extra time. This match will be decided by penalties.</p>
+              <Button className="w-full h-12 text-base font-bold gap-2" onClick={handlePenalties}>
+                <Play className="w-5 h-5" /> Take Penalties
+              </Button>
+            </GlassPanel>
+          ) : (
+            <div className="mb-20">
+              <PenaltyShootout />
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -876,19 +898,38 @@ const MatchDay = () => {
               </GlassPanel>
             </motion.div>
           ) : (
-            <div className="flex justify-between items-center">
-              <button
-                onClick={handlePause}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 active:scale-[0.97] border border-border/30 transition-all"
-              >
-                <Pause className="w-3.5 h-3.5" /> Pause
-              </button>
-              <button
-                onClick={() => setSpeed(s => s === 200 ? 50 : 200)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 active:scale-[0.97] border border-border/30 transition-all"
-              >
-                <FastForward className="w-3.5 h-3.5" /> {speed === 50 ? 'Normal' : 'Fast'}
-              </button>
+            <div className="space-y-2">
+              {/* Quick Mentality Strip — change on the fly without pausing */}
+              <div className="flex gap-1">
+                {MENTALITIES.map(m => (
+                  <button
+                    key={m.value}
+                    onClick={() => { hapticLight(); setTactics({ mentality: m.value }); }}
+                    className={cn(
+                      'flex-1 py-1 rounded-md text-[9px] font-semibold capitalize transition-all',
+                      tactics.mentality === m.value
+                        ? 'bg-primary/20 text-primary border border-primary/30'
+                        : 'bg-muted/30 text-muted-foreground'
+                    )}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between items-center">
+                <button
+                  onClick={handlePause}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 active:scale-[0.97] border border-border/30 transition-all"
+                >
+                  <Pause className="w-3.5 h-3.5" /> Pause
+                </button>
+                <button
+                  onClick={() => setSpeed(s => s === 200 ? 50 : 200)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 active:scale-[0.97] border border-border/30 transition-all"
+                >
+                  <FastForward className="w-3.5 h-3.5" /> {speed === 50 ? 'Normal' : 'Fast'}
+                </button>
+              </div>
             </div>
           )}
 

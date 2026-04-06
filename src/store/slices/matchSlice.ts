@@ -1,4 +1,5 @@
 import type { GameState } from '../storeTypes';
+import type { TeamTalkType, PenaltyKick } from '@/types/game';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -10,11 +11,16 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   matchPlayerRatings: [] as GameState['matchPlayerRatings'],
   halfTimeState: null as GameState['halfTimeState'],
   matchPhase: 'none' as GameState['matchPhase'],
+  matchTeamTalk: 'none' as TeamTalkType,
   preMatchLeaguePosition: 10,
   lastMatchXPGain: 0,
   currentCupTieId: null as GameState['currentCupTieId'],
+  penaltyShootoutKicks: [] as PenaltyKick[],
+  penaltyShootoutRevealIndex: 0,
 
-  clearMatchResult: () => set({ currentMatchResult: null, halfTimeState: null, matchPhase: 'none', currentCupTieId: null }),
+  clearMatchResult: () => set({ currentMatchResult: null, halfTimeState: null, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null, penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0 }),
+
+  setTeamTalk: (talk: TeamTalkType) => set({ matchTeamTalk: talk }),
 
   makeMatchSub: (outId: string, inId: string) => {
     const state = get();

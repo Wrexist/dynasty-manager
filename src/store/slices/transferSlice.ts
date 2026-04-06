@@ -109,11 +109,13 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   const cleanedShortlist = state.shortlist.filter(id => id !== offer.playerId);
   const cleanedWatchList = state.scoutWatchList.filter(id => id !== offer.playerId);
 
+  const currentSold = state.seasonTransfersSold || [];
   set({
     players: newPlayers,
     clubs: updatedClubs,
     transferMarket: newMarket, incomingOffers: cleanedOffers, incomingLoanOffers: state.incomingLoanOffers.filter(o => o.playerId !== offer.playerId), activeLoans: cleanedLoans, messages: msg, managerStats: ms,
     shortlist: cleanedShortlist, scoutWatchList: cleanedWatchList,
+    seasonTransfersSold: [...currentSold, { playerName: `${player.firstName} ${player.lastName}`, fee }],
     ...(farewellEntry ? { pendingFarewell: [...state.pendingFarewell, farewellEntry] } : {}),
     ...merchDipUpdate,
   });
@@ -266,6 +268,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (player.value >= CAMPAIGN_STAR_SIGNING_MIN_VALUE) {
       merchUpdate.merchandise = { ...state.merchandise, starSigningBuzz: STAR_SIGNING_BUZZ_WEEKS };
     }
+    const currentBought = state.seasonTransfersBought || [];
     set({
       players: { ...state.players, [playerId]: updatedPlayer },
       clubs: updatedClubs,
@@ -273,6 +276,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       careerTimeline: newTimeline,
       shortlist: state.shortlist.filter(id => id !== playerId),
       scoutWatchList: state.scoutWatchList.filter(id => id !== playerId),
+      seasonTransfersBought: [...currentBought, { playerName: `${updatedPlayer.firstName} ${updatedPlayer.lastName}`, fee }],
       ...merchUpdate,
     });
     // Career mode: grow negotiation stat on successful transfer

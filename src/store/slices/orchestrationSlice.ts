@@ -1,4 +1,4 @@
-import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, LeagueId, SeasonTurnover, LeagueTableEntry, JobVacancy } from '@/types/game';
+import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, LeagueId, SeasonTurnover, LeagueTableEntry, JobVacancy, PenaltyKick } from '@/types/game';
 import { calculateReputationTier, generateJobVacancies, generateProactiveOffer, getRetirementAge, calculateLegacyScore, getReputationTierLabel } from '@/utils/managerCareer';
 import {
   GROWTH_TACTICAL_PER_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT,
@@ -41,6 +41,7 @@ import { getFarewellSummary } from '@/utils/playerNarratives';
 import { calculateWeeklyMerchRevenue, getDefaultMerchState } from '@/utils/merchandise';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import { MERCH_PRICING_TIERS, MERCH_CAMPAIGN_COOLDOWN_WEEKS } from '@/config/merchandise';
+import { MOTIVATE_ATTACK_BOOST, MOTIVATE_FOUL_BONUS, CALM_DEFENSE_BOOST, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY } from '@/config/teamTalk';
 import {
   TOTAL_WEEKS, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY,
   CONFIDENCE_MIN,
@@ -952,6 +953,10 @@ function endSeasonImpl(set: Set, get: Get) {
   const topScorer = allPlayersList.filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals)[0];
   const seasonAwards = calculateSeasonAwards(allPlayersList, clubs, leagueTable, playerClubId);
 
+  // Compute end-of-season squad average OVR for enrichment
+  const endPlayers = allPlayersList.filter(p => p.clubId === playerClubId);
+  const endAvgOVR = endPlayers.length > 0 ? Math.round(endPlayers.reduce((s, p) => s + p.overall, 0) / endPlayers.length) : 0;
+
   const pc = clubs[playerClubId];
   const expectedPos = getExpectedPosition(pc.reputation);
   let verdict: SeasonHistory['boardVerdict'] = 'acceptable';
@@ -973,6 +978,20 @@ function endSeasonImpl(set: Set, get: Get) {
     shieldCupResult: getContinentalResultForClub(state.shieldCup, playerClubId),
     divisionId: playerDiv,
     awards: seasonAwards,
+    financialSummary: {
+      totalIncome: state.seasonTotalIncome || 0,
+      totalExpenses: state.seasonTotalExpenses || 0,
+      netBalance: (state.seasonTotalIncome || 0) - (state.seasonTotalExpenses || 0),
+    },
+    transferActivity: {
+      bought: state.seasonTransfersBought || [],
+      sold: state.seasonTransfersSold || [],
+    },
+    squadStrengthDelta: {
+      startAvgOVR: state.seasonStartAvgOVR || 0,
+      endAvgOVR,
+      delta: endAvgOVR - (state.seasonStartAvgOVR || 0),
+    },
   };
 
   const topAssisterForRecords = allPlayersList.filter(p => p.clubId === playerClubId && p.assists > 0).sort((a, b) => b.assists - a.assists)[0];
@@ -1465,7 +1484,7 @@ function finalizeSeason(
     transferMarket, boardObjectives: objectives, boardConfidence: newConfidence,
     seasonHistory: [...state.seasonHistory, history],
     currentMatchResult: null, currentScreen: 'season-summary',
-    matchPhase: 'none' as const, pendingPressConference: null,
+    matchPhase: 'none' as const, matchTeamTalk: 'none', pendingPressConference: null,
     messages: newMessages, incomingOffers: [], matchSubsUsed: 0, shortlist: [], scoutWatchList: [],
     sponsorDeals: sponsorSeasonEnd.sponsorDeals || state.sponsorDeals,
     sponsorOffers: [],
@@ -1532,6 +1551,12 @@ function finalizeSeason(
       return xp;
     })()),
     seasonGrowthTracker: {},
+    // Reset season enrichment tracking for the new season
+    seasonStartAvgOVR: history.squadStrengthDelta?.endAvgOVR || 0,
+    seasonTransfersBought: [],
+    seasonTransfersSold: [],
+    seasonTotalIncome: 0,
+    seasonTotalExpenses: 0,
     activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
     // Reset monthly objectives for new season
     weeklyObjectives: generateMonthlyObjectives(true),
@@ -1882,6 +1907,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const initClub = clubs[clubId];
     const objectives = generateObjectives(initClub);
 
+    // Compute starting average OVR for season enrichment tracking
+    const startingPlayers = initClub.playerIds.map(id => allPlayers[id]).filter(Boolean);
+    const startAvgOVR = startingPlayers.length > 0
+      ? Math.round(startingPlayers.reduce((s, p) => s + p.overall, 0) / startingPlayers.length)
+      : 0;
+
     const messages: Message[] = [
       { id: crypto.randomUUID(), week: 1, season: 1, type: 'board', title: 'Welcome, Manager!', body: `The board of ${initClub.name} welcomes you. We expect great things this season. Check your objectives in the Club tab.`, read: false },
       { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Transfer Window Open', body: 'The transfer window is now open. Scout the market and strengthen your squad before it closes in Week 8.', read: false },
@@ -1911,7 +1942,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
       transferMarket, shortlist: [], scoutWatchList: [], freeAgents: initialFreeAgentIds, transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
-      messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', currentCupTieId: null,
+      messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null,
       settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: true, hapticsEnabled: true },
       tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
       training: {
@@ -1964,6 +1995,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       })(),
       lastMatchDrama: null,
       lastMatchCompetition: null,
+      seasonStartAvgOVR: startAvgOVR,
+      seasonTransfersBought: [],
+      seasonTransfersSold: [],
+      seasonTotalIncome: 0,
+      seasonTotalExpenses: 0,
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null,
       pendingStoryline: null,
@@ -3007,6 +3043,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const totalExpenses = playerClub.wageBill + staffWages + scoutingCosts;
     newClubs[playerClubId] = { ...playerClub, budget: playerClub.budget + weeklyIncome - totalExpenses };
 
+    // Accumulate season-level income/expense totals for SeasonHistory enrichment
+    const prevSeasonIncome = state.seasonTotalIncome || 0;
+    const prevSeasonExpenses = state.seasonTotalExpenses || 0;
+
     // Financial Fair Play check: warn/penalise when wages are too high relative to income
     let newBoardConfidence = boardConfidence;
     const wageToRevenueRatio = weeklyIncome > 0 ? totalExpenses / weeklyIncome : 1;
@@ -3285,6 +3325,41 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
+    // Collect new digest fields from data already computed above
+    const digestPlayerDevelopment: { playerName: string; attribute: string; newValue: number }[] = [];
+    for (const pid of playerClub.playerIds) {
+      const p = newPlayers[pid];
+      if (!p || !p.lastAttributeChanges) continue;
+      for (const [attr, delta] of Object.entries(p.lastAttributeChanges)) {
+        if (delta && delta > 0) {
+          digestPlayerDevelopment.push({
+            playerName: `${p.firstName} ${p.lastName}`,
+            attribute: attr,
+            newValue: p.attributes[attr as keyof typeof p.attributes],
+          });
+        }
+      }
+    }
+
+    const digestTrainingGains: { playerName: string; attribute: string }[] = trainingReport.starPerformers.map(sp => {
+      const p = newPlayers[sp.playerId];
+      return p ? { playerName: `${p.firstName} ${p.lastName}`, attribute: sp.attrGained } : null;
+    }).filter(Boolean) as { playerName: string; attribute: string }[];
+
+    const digestScoutReportsCompleted = completedAssignments.length;
+
+    const digestContractWarnings: string[] = (CONTRACT_WARNING_WEEKS as readonly number[]).includes(newWeek)
+      ? Object.values(newPlayers)
+          .filter(ep => ep.clubId === playerClubId && ep.contractEnd <= season && (ep.overall > CONTRACT_WARNING_OVERALL_THRESHOLD || (ep.age <= CONTRACT_WARNING_YOUTH_AGE_MAX && ep.potential >= CONTRACT_WARNING_YOUTH_POTENTIAL_MIN)))
+          .map(ep => `${ep.firstName} ${ep.lastName}`)
+      : [];
+
+    const digestObjectiveProgress = evalObjectives.map(obj => ({
+      title: obj.title,
+      completed: obj.completed,
+      xpEarned: obj.completed ? obj.xpReward : 0,
+    }));
+
     set({
       week: newWeek, fixtures: updatedFixtures, players: newPlayers,
       leagueTable, transferWindowOpen, currentMatchResult: null,
@@ -3320,6 +3395,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       merchandise: newMerch,
       fanMood: merchFanMood,
       seasonGrowthTracker: { ...seasonGrowthTracker },
+      seasonTotalIncome: prevSeasonIncome + weeklyIncome,
+      seasonTotalExpenses: prevSeasonExpenses + totalExpenses,
       weeklyDigest: {
         incomeEarned: weeklyIncome,
         expensesPaid: totalExpenses,
@@ -3327,6 +3404,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         recoveriesThisWeek: digestRecoveries,
         offersReceived: Math.max(0, digestOffersReceived),
         moraleChange: newAvgMorale - prevMorale,
+        playerDevelopment: digestPlayerDevelopment,
+        trainingGains: digestTrainingGains,
+        scoutReportsCompleted: digestScoutReportsCompleted,
+        contractWarnings: digestContractWarnings,
+        objectiveProgress: digestObjectiveProgress,
       },
     });
 
@@ -3646,6 +3728,30 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Auto-save after advancing week
     if (get().settings.autoSave) get().saveGame();
+  },
+
+  advanceToNextMatch: () => {
+    const hasMatchThisWeek = (s: GameState): boolean => {
+      const { week: w, fixtures, playerClubId: pcId, cup, leagueCup, domesticSuperCup, continentalSuperCup } = s;
+      if (fixtures.some(m => m.week === w && !m.played && (m.homeClubId === pcId || m.awayClubId === pcId))) return true;
+      if (cup?.ties?.some(t => t.week === w && !t.played && (t.homeClubId === pcId || t.awayClubId === pcId))) return true;
+      if (leagueCup?.ties?.some(t => t.week === w && !t.played && (t.homeClubId === pcId || t.awayClubId === pcId))) return true;
+      if (domesticSuperCup && !domesticSuperCup.played && domesticSuperCup.week === w) return true;
+      if (continentalSuperCup && !continentalSuperCup.played && continentalSuperCup.week === w) return true;
+      return false;
+    };
+
+    const MAX_SKIPS = 5;
+    for (let i = 0; i < MAX_SKIPS; i++) {
+      const s = get();
+      if (s.seasonPhase !== 'regular') break;
+      if (s.week >= s.totalWeeks) break;
+      if (hasMatchThisWeek(s)) break;
+      s.advanceWeek();
+      // Suppress the weekly digest for intermediate advances so the modal
+      // only shows for the final week (the one with the upcoming match).
+      set({ weeklyDigest: null });
+    }
   },
 
   playCurrentMatch: () => {
@@ -3995,7 +4101,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const secondHalfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
     const secondHalfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
-    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod);
+
+    // Compute team talk modifiers based on the manager's half-time team talk
+    const teamTalkMods = (() => {
+      const talk = state.matchTeamTalk;
+      if (talk === 'none') return undefined;
+      if (talk === 'motivate') return { attackMod: MOTIVATE_ATTACK_BOOST, defenseMod: 0, foulMod: MOTIVATE_FOUL_BONUS };
+      if (talk === 'calm') return { attackMod: 0, defenseMod: CALM_DEFENSE_BOOST, foulMod: -CALM_FOUL_REDUCTION };
+      // demand: high risk/reward
+      return { attackMod: DEMAND_ATTACK_BOOST, defenseMod: -DEMAND_DEFENSE_PENALTY, foulMod: 0 };
+    })();
+
+    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, teamTalkMods);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
     // Cup match ended in draw — need extra time (unless aggregate is already decided for 2-leg ties)
@@ -4192,7 +4309,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   playPenalties: () => {
     const state = get();
-    const { clubs, players, playerClubId, currentMatchResult, halfTimeState, currentCupTieId } = state;
+    const { clubs, players, currentMatchResult, currentCupTieId } = state;
     if (!currentMatchResult || !currentCupTieId) return null;
 
     const hc = clubs[currentMatchResult.homeClubId];
@@ -4201,36 +4318,82 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
     const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
 
-    // Penalty shootout
+    // Penalty shootout — pre-compute all kicks for kick-by-kick reveal
     const homeGK = hp.find(p => p.position === 'GK');
     const awayGK = ap.find(p => p.position === 'GK');
     const homeGKQuality = homeGK ? (homeGK.attributes.defending + homeGK.attributes.mental) / 200 : 0.5;
     const awayGKQuality = awayGK ? (awayGK.attributes.defending + awayGK.attributes.mental) / 200 : 0.5;
 
     let penHome = 0, penAway = 0;
-    const penEvents: MatchEvent[] = [];
+    const kicks: PenaltyKick[] = [];
     for (let i = 0; i < CUP_PENALTY_KICKS; i++) {
       const hScores = Math.random() > awayGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
       if (hScores) penHome++;
-      penEvents.push({ minute: 121 + i, type: 'penalty_shootout' as const, clubId: hc.id, description: hScores ? `${hc.shortName} SCORE! (${penHome}-${penAway})` : `${hc.shortName} miss! (${penHome}-${penAway})` });
+      kicks.push({ round: i + 1, isHome: true, takerName: hc.shortName, scored: hScores, homeTotal: penHome, awayTotal: penAway });
 
       const aScores = Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
       if (aScores) penAway++;
-      penEvents.push({ minute: 121 + i, type: 'penalty_shootout' as const, clubId: ac.id, description: aScores ? `${ac.shortName} SCORE! (${penHome}-${penAway})` : `${ac.shortName} miss! (${penHome}-${penAway})` });
+      kicks.push({ round: i + 1, isHome: false, takerName: ac.shortName, scored: aScores, homeTotal: penHome, awayTotal: penAway });
     }
     // Sudden death
+    let sdRound = CUP_PENALTY_KICKS;
     while (penHome === penAway) {
+      sdRound++;
       const hScores = Math.random() > awayGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
       if (hScores) penHome++;
-      penEvents.push({ minute: 130, type: 'penalty_shootout' as const, clubId: hc.id, description: hScores ? `${hc.shortName} SCORE! (${penHome}-${penAway})` : `${hc.shortName} miss! (${penHome}-${penAway})` });
+      kicks.push({ round: sdRound, isHome: true, takerName: hc.shortName, scored: hScores, homeTotal: penHome, awayTotal: penAway });
 
       const aScores = Math.random() > homeGKQuality * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE);
       if (aScores) penAway++;
-      penEvents.push({ minute: 130, type: 'penalty_shootout' as const, clubId: ac.id, description: aScores ? `${ac.shortName} SCORE! (${penHome}-${penAway})` : `${ac.shortName} miss! (${penHome}-${penAway})` });
+      kicks.push({ round: sdRound, isHome: false, takerName: ac.shortName, scored: aScores, homeTotal: penHome, awayTotal: penAway });
 
       if (hScores !== aScores) break;
     }
 
+    // Store kicks for kick-by-kick reveal — finalization happens in revealNextPenaltyKick / skipPenaltyShootout
+    set({ penaltyShootoutKicks: kicks, penaltyShootoutRevealIndex: 0 });
+    return currentMatchResult;
+  },
+
+  revealNextPenaltyKick: () => {
+    const state = get();
+    const newIndex = state.penaltyShootoutRevealIndex + 1;
+    set({ penaltyShootoutRevealIndex: newIndex });
+    if (newIndex >= state.penaltyShootoutKicks.length) {
+      // All kicks revealed — finalize the match
+      get().skipPenaltyShootout();
+    }
+  },
+
+  skipPenaltyShootout: () => {
+    const state = get();
+    const { clubs, players, playerClubId, currentMatchResult, halfTimeState, currentCupTieId, penaltyShootoutKicks } = state;
+    if (!currentMatchResult || !currentCupTieId || penaltyShootoutKicks.length === 0) return;
+
+    const hc = clubs[currentMatchResult.homeClubId];
+    const ac = clubs[currentMatchResult.awayClubId];
+    if (!hc || !ac) return;
+    const hp = (hc.lineup || []).map(id => players[id]).filter(Boolean);
+    const ap = (ac.lineup || []).map(id => players[id]).filter(Boolean);
+
+    // Reconstruct penEvents and final totals from pre-computed kicks
+    const penEvents: MatchEvent[] = penaltyShootoutKicks.map((kick) => {
+      const isSuddenDeath = kick.round > CUP_PENALTY_KICKS;
+      const minute = isSuddenDeath ? 130 : 121 + (kick.round - 1);
+      const clubId = kick.isHome ? hc.id : ac.id;
+      const teamName = kick.isHome ? hc.shortName : ac.shortName;
+      const score = `(${kick.homeTotal}-${kick.awayTotal})`;
+      return {
+        minute,
+        type: 'penalty_shootout' as const,
+        clubId,
+        description: kick.scored ? `${teamName} SCORE! ${score}` : `${teamName} miss! ${score}`,
+      };
+    });
+
+    const lastKick = penaltyShootoutKicks[penaltyShootoutKicks.length - 1];
+    const penHome = lastKick.homeTotal;
+    const penAway = lastKick.awayTotal;
     const winnerId = penHome > penAway ? hc.id : ac.id;
     const penaltyShootout = { home: penHome, away: penAway };
 
@@ -4250,7 +4413,6 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     const isTournament = currentCupTieId === '__tournament__';
     if (isTournament) {
-      // Tournament penalty: goals are drawn, use explicit winnerId via processTournamentResultWithWinner
       const tournamentUpdates = processTournamentResultWithWinner(state, { ...result, penaltyShootout }, playerClubId, processed, state.season, state.week, winnerId, penaltyShootout);
 
       set({
@@ -4264,6 +4426,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
         managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
         lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
+        penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
         ...tournamentUpdates.stateUpdates,
       });
     } else {
@@ -4287,9 +4450,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         managerProgression: processed.managerProgression, lastMatchXPGain: processed.xpGain,
         pendingPressConference: generatePressConference(press, isPro(get().monetization)),
         lastMatchDrama: penDrama, rivalries: processed.updatedRivalries, pairFamiliarity: processed.pairFamiliarity,
+        penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0,
       });
     }
-    return { ...result, penaltyShootout };
   },
 
   endSeason: () => {

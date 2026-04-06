@@ -506,3 +506,6 @@ export const FAN_RALLY_MORALE_BOOST = 5;
 export const SPONSOR_BONUS_MULTIPLIER = 0.10;
 /** Extra board confidence penalty during media scrutiny */
 export const MEDIA_SCRUTINY_CONFIDENCE_HIT = 3;
+
+// ── Player Match History ──
+export const MAX_PLAYER_MATCH_HISTORY = 20;

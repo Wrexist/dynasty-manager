@@ -10,7 +10,7 @@ import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
 import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
-  Dumbbell, AlertTriangle, Banknote, Users, Shield, Settings, BarChart3, UserPlus, Award, Flame, Zap, Loader2,
+  Dumbbell, AlertTriangle, Banknote, Users, Shield, Settings, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward,
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getRoundName } from '@/data/cup';
@@ -51,6 +51,9 @@ import { getActiveRecordChases } from '@/utils/records';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
 import { MidSeasonReport } from '@/components/game/MidSeasonReport';
 import { buildCoachTasks } from '@/utils/gameCoach';
+import { FormGuide } from '@/components/game/FormGuide';
+import { getRecentForm } from '@/utils/formGuide';
+import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
 
 const WELCOME_KEY = 'dynasty-welcome-shown';
 
@@ -105,6 +108,7 @@ const Dashboard = () => {
   // Actions — stable references, individual selectors
   const setScreen = useGameStore(s => s.setScreen);
   const advanceWeek = useGameStore(s => s.advanceWeek);
+  const advanceToNextMatch = useGameStore(s => s.advanceToNextMatch);
   const endSeason = useGameStore(s => s.endSeason);
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const markCoachTaskComplete = useGameStore(s => s.markCoachTaskComplete);
@@ -322,6 +326,9 @@ const Dashboard = () => {
     }));
   }, [leagueTable, entry, clubs, playerClubId]);
 
+  // Recent form — last 5 results
+  const recentForm = useMemo(() => getRecentForm(playerClubId, fixtures), [playerClubId, fixtures]);
+
   // Fan confidence
   const _fanConfidence = useMemo(() => club ? getFanConfidence(club.fanBase, boardConfidence) : 0, [club, boardConfidence]);
 
@@ -351,6 +358,21 @@ const Dashboard = () => {
     });
   }, [club, fixtures, playerClubId, unread, weeklyObjectives, players, transferWindowOpen, scouting.assignments, scouting.reports.length, shortlist.length, week, completedCoachTaskIds]);
   const completedCoachTasks = coachTasks.filter(task => task.completed).length;
+
+  const objectivesWithProgress = useMemo(() => {
+    if (!club) return weeklyObjectives;
+    const ctx = {
+      playerClubId,
+      players,
+      playerIds: club.playerIds,
+      fixtures,
+      leagueTable,
+      week,
+      season,
+      lineup: club.lineup || [],
+    };
+    return computeObjectiveProgress(weeklyObjectives, ctx);
+  }, [weeklyObjectives, club, players, playerClubId, fixtures, leagueTable, week, season]);
 
   // Persist newly completed coach tasks
   useEffect(() => {
@@ -757,6 +779,19 @@ const Dashboard = () => {
           }}>
             {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}
           </Button>
+          {!nextMatch && seasonPhase === 'regular' && week < totalWeeks && (
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              disabled={isAdvancing}
+              onClick={() => {
+                hapticMedium();
+                advanceToNextMatch();
+              }}
+            >
+              <FastForward className="w-4 h-4" /> Skip to Next Match
+            </Button>
+          )}
         </GlassPanel>
       )}
 
@@ -948,7 +983,7 @@ const Dashboard = () => {
             </div>
           </div>
           <div className="space-y-2">
-            {weeklyObjectives.map((obj) => (
+            {objectivesWithProgress.map((obj) => (
               <div
                 key={obj.objectiveId}
                 className={cn(
@@ -968,6 +1003,19 @@ const Dashboard = () => {
                     )}
                   </div>
                   <p className="text-[10px] text-muted-foreground truncate">{obj.description}</p>
+                  {!obj.completed && obj.progress && (
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary rounded-full transition-all"
+                          style={{ width: `${Math.min(100, (obj.progress.current / obj.progress.target) * 100)}%` }}
+                        />
+                      </div>
+                      <span className="text-[9px] text-muted-foreground tabular-nums">
+                        {obj.progress.current}/{obj.progress.target}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <span className={cn('text-[10px] font-bold shrink-0', obj.completed ? 'text-emerald-400' : 'text-sky-400')}>
                   {obj.completed ? '✓' : `+${obj.xpReward} XP`}
@@ -1239,6 +1287,7 @@ const Dashboard = () => {
             {pos}<span className="text-sm text-muted-foreground">/{leagueTable.length}</span>
           </p>
           <p className="text-[10px] text-muted-foreground truncate">{LEAGUES.find(d => d.id === playerDivision)?.shortName || ''} {'\u2022'} {entry?.points || 0} pts</p>
+          <FormGuide form={recentForm} className="mt-2" />
         </GlassPanel>
 
         <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('budget'); setFinanceSheetOpen(true); }}>

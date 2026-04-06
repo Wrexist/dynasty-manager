@@ -421,6 +421,7 @@ export function simulateHalf(
   careerDisciplineMod?: number,
   homeBench?: Player[],
   awayBench?: Player[],
+  teamTalkModifiers?: { attackMod: number; defenseMod: number; foulMod: number },
 ): HalfState {
   // Guard against empty squads — return a forfeit-like state (clone refs to avoid mutation)
   if (homePlayers.length === 0 || awayPlayers.length === 0) {
@@ -463,6 +464,18 @@ export function simulateHalf(
   );
   let { homeStr, awayStr } = _str;
   const { homeMods, awayMods } = _str;
+
+  // Apply team talk modifiers (second half only — when playerClubId is known)
+  let teamTalkFoulMod = 0;
+  if (teamTalkModifiers && playerClubId) {
+    const { attackMod, defenseMod, foulMod } = teamTalkModifiers;
+    if (playerClubId === homeClub.id) {
+      homeStr = homeStr * (1 + attackMod) * (1 + defenseMod);
+    } else if (playerClubId === awayClub.id) {
+      awayStr = awayStr * (1 + attackMod) * (1 + defenseMod);
+    }
+    teamTalkFoulMod = foulMod;
+  }
 
   // Pre-compute defensive qualities for both teams
   const homeDefQuality = getDefenseQuality(homePlayers);
@@ -926,7 +939,7 @@ export function simulateHalf(
       }
     }
     // === FOUL ===
-    else if (roll < FOUL_THRESHOLD + derbyFoulMod) {
+    else if (roll < FOUL_THRESHOLD + derbyFoulMod + teamTalkFoulMod) {
       const eligibleFoulers = squad.filter(p => !unavailable.has(p.id));
       if (eligibleFoulers.length === 0) continue;
       const fouler = pickFouler(eligibleFoulers);

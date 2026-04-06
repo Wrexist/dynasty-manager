@@ -185,6 +185,35 @@ const TrainingPage = () => {
                     </div>
                   </div>
                 )}
+                {report.playerBreakdown && report.playerBreakdown.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border/30">
+                    <button
+                      type="button"
+                      onClick={() => setShowAllDev(!showAllDev)}
+                      className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase tracking-wider mb-2 w-full"
+                    >
+                      <TrendingUp className="w-3 h-3" />
+                      <span>Player Development ({report.playerBreakdown.length})</span>
+                      {showAllDev ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
+                    </button>
+                    {showAllDev && (
+                      <div className="space-y-1">
+                        {report.playerBreakdown.map(entry => (
+                          <div key={entry.playerId} className="flex items-center justify-between text-xs">
+                            <span className="text-foreground truncate max-w-[60%]">{entry.playerName}</span>
+                            <div className="flex gap-1 flex-wrap justify-end">
+                              {entry.gains.map((g, i) => (
+                                <span key={i} className="text-emerald-400 font-semibold text-[10px]">
+                                  +{g.amount} {ATTR_LABELS[g.attribute] || g.attribute.toUpperCase().slice(0, 3)}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </GlassPanel>
             </motion.div>
           )}

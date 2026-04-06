@@ -26,6 +26,7 @@ export interface ObjectiveInstance {
   xpReward: number;
   completed: boolean;
   rarity?: ObjectiveRarity;
+  progress?: { current: number; target: number };
 }
 
 export interface ObjectiveContext {
@@ -86,6 +87,12 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
       const isHome = match.homeClubId === ctx.playerClubId;
       return (isHome ? match.homeGoals : match.awayGoals) >= 2;
     },
+    progress: (ctx) => {
+      const match = getThisWeekMatch(ctx);
+      if (!match) return { current: 0, target: 2 };
+      const isHome = match.homeClubId === ctx.playerClubId;
+      return { current: isHome ? match.homeGoals : match.awayGoals, target: 2 };
+    },
   },
   {
     id: 'win-by-2',
@@ -102,6 +109,14 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
       const ga = isHome ? match.awayGoals : match.homeGoals;
       return gf - ga >= 2;
     },
+    progress: (ctx) => {
+      const match = getThisWeekMatch(ctx);
+      if (!match) return { current: 0, target: 2 };
+      const isHome = match.homeClubId === ctx.playerClubId;
+      const gf = isHome ? match.homeGoals : match.awayGoals;
+      const ga = isHome ? match.awayGoals : match.homeGoals;
+      return { current: Math.max(0, gf - ga), target: 2 };
+    },
   },
   {
     id: 'youth-start',
@@ -116,6 +131,13 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
         return p && p.age <= 21;
       });
     },
+    progress: (ctx) => {
+      const youthInLineup = ctx.lineup.filter(id => {
+        const p = ctx.players[id];
+        return p && p.age <= 21;
+      }).length;
+      return { current: Math.min(youthInLineup, 1), target: 1 };
+    },
   },
   {
     id: 'score-3-plus',
@@ -129,6 +151,12 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
       if (!match) return false;
       const isHome = match.homeClubId === ctx.playerClubId;
       return (isHome ? match.homeGoals : match.awayGoals) >= 3;
+    },
+    progress: (ctx) => {
+      const match = getThisWeekMatch(ctx);
+      if (!match) return { current: 0, target: 3 };
+      const isHome = match.homeClubId === ctx.playerClubId;
+      return { current: isHome ? match.homeGoals : match.awayGoals, target: 3 };
     },
   },
   {
@@ -175,6 +203,11 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
         return !p || !p.injured;
       });
     },
+    progress: (ctx) => {
+      const players = ctx.playerIds.map(id => ctx.players[id]).filter(Boolean);
+      const healthy = players.filter(p => !p.injured).length;
+      return { current: healthy, target: players.length };
+    },
   },
   {
     id: 'high-morale',
@@ -188,6 +221,12 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
       if (players.length === 0) return false;
       const avg = players.reduce((s, p) => s + p.morale, 0) / players.length;
       return avg > 70;
+    },
+    progress: (ctx) => {
+      const players = ctx.playerIds.map(id => ctx.players[id]).filter(Boolean);
+      if (players.length === 0) return { current: 0, target: 70 };
+      const avg = Math.round(players.reduce((s, p) => s + p.morale, 0) / players.length);
+      return { current: avg, target: 70 };
     },
   },
 
@@ -294,6 +333,14 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
       const ga = isHome ? match.awayGoals : match.homeGoals;
       return gf - ga >= 5;
     },
+    progress: (ctx) => {
+      const match = getThisWeekMatch(ctx);
+      if (!match) return { current: 0, target: 5 };
+      const isHome = match.homeClubId === ctx.playerClubId;
+      const gf = isHome ? match.homeGoals : match.awayGoals;
+      const ga = isHome ? match.awayGoals : match.homeGoals;
+      return { current: Math.max(0, gf - ga), target: 5 };
+    },
   },
 ];
 
@@ -391,6 +438,20 @@ export function evaluateObjectives(
   }
 
   return { updated, xpEarned, allCompleted, newStreak };
+}
+
+/** Compute progress for all uncompleted objectives */
+export function computeObjectiveProgress(
+  objectives: ObjectiveInstance[],
+  ctx: ObjectiveContext,
+): ObjectiveInstance[] {
+  return objectives.map(inst => {
+    if (inst.completed) return inst;
+    const template = OBJECTIVE_TEMPLATES.find(t => t.id === inst.objectiveId);
+    if (!template?.progress) return inst;
+    const progress = template.progress(ctx);
+    return { ...inst, progress };
+  });
 }
 
 /** Calculate total XP from all completed objectives in a batch.
