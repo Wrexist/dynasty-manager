@@ -110,6 +110,13 @@ const Dashboard = () => {
   const markCoachTaskComplete = useGameStore(s => s.markCoachTaskComplete);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
+  const isCupMatch = !!competition;
+  const hasCupMatchToo = useMemo(() => {
+    if (competition) return false;
+    return !!findTournamentMatch({
+      week, playerClubId, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup,
+    });
+  }, [competition, week, playerClubId, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup]);
   const pos = useLeaguePosition();
   const unread = useUnreadCount();
   const budgetFlash = useFlash(club?.budget || 0);
@@ -681,13 +688,7 @@ const Dashboard = () => {
       )}
 
       {/* Next Match */}
-      {!seasonOver && nextMatch && opponent ? (() => {
-        // Detect double-header: league match showing but cup match also exists this week
-        const hasCupMatchToo = !competition && !!findTournamentMatch({
-          week, playerClubId, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup,
-        });
-        const isCupMatch = !!competition;
-        return (
+      {!seasonOver && nextMatch && opponent ? (
         <GlassPanel className={cn("p-5", isCupMatch && "border-primary/40")} onClick={() => setScreen('match-prep')}>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
             {isCupMatch && <Trophy className="w-3 h-3 inline mr-1 text-primary" />}
@@ -731,9 +732,7 @@ const Dashboard = () => {
             <Play className="w-4 h-4" /> Match Prep
           </Button>
         </GlassPanel>
-        );
-      })()
-       : !seasonOver && (
+      ) : !seasonOver && (
         <GlassPanel className="p-5 space-y-3">
           <p className="text-sm text-muted-foreground text-center">No match this week</p>
           {/* Activity suggestions */}

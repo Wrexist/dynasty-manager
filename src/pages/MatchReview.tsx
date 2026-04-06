@@ -21,7 +21,7 @@ import { motion } from 'framer-motion';
 import type { Club } from '@/types/game';
 
 const MatchReview = () => {
-  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs, fixtures, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup } = useGameStore(useShallow(s => ({
+  const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs } = useGameStore(useShallow(s => ({
     currentMatchResult: s.currentMatchResult, clubs: s.clubs, players: s.players,
     playerClubId: s.playerClubId, boardConfidence: s.boardConfidence,
     matchPlayerRatings: s.matchPlayerRatings, week: s.week,
@@ -29,9 +29,6 @@ const MatchReview = () => {
     divisionTables: s.divisionTables, boardObjectives: s.boardObjectives,
     monetization: s.monetization, lastMatchCompetition: s.lastMatchCompetition,
     virtualClubs: s.virtualClubs,
-    fixtures: s.fixtures, cup: s.cup, leagueCup: s.leagueCup,
-    championsCup: s.championsCup, shieldCup: s.shieldCup,
-    domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
   })));
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const setScreen = useGameStore(s => s.setScreen);
@@ -82,13 +79,16 @@ const MatchReview = () => {
   const handleContinue = () => {
     setIsAdvancing(true);
     setTimeout(() => {
-      // Check if there's still an unplayed match this week (league or cup)
-      const hasUnplayedLeague = fixtures.some(
-        m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)
+      // Read fresh state from the store (not stale closure from render time)
+      const s = useGameStore.getState();
+      const hasUnplayedLeague = s.fixtures.some(
+        m => m.week === s.week && !m.played && (m.homeClubId === s.playerClubId || m.awayClubId === s.playerClubId)
       );
       const hasUnplayedTournament = !!findTournamentMatch({
-        week, playerClubId, cup, leagueCup,
-        championsCup, shieldCup, domesticSuperCup, continentalSuperCup,
+        week: s.week, playerClubId: s.playerClubId, cup: s.cup,
+        leagueCup: s.leagueCup, championsCup: s.championsCup,
+        shieldCup: s.shieldCup, domesticSuperCup: s.domesticSuperCup,
+        continentalSuperCup: s.continentalSuperCup,
       });
 
       if (hasUnplayedLeague || hasUnplayedTournament) {
