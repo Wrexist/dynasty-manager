@@ -1,4 +1,5 @@
 import type { Club, GameScreen, Match, ObjectiveInstance, Player, ScoutAssignment } from '@/types/game';
+import { COACH_TASK_XP } from '@/config/gameBalance';
 
 export interface CoachTask {
   id: string;
@@ -7,6 +8,7 @@ export interface CoachTask {
   completed: boolean;
   screen?: GameScreen;
   priority: 'high' | 'medium' | 'low';
+  xpReward: number;
 }
 
 interface BuildCoachTasksContext {
@@ -40,6 +42,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       completed: done('lineup') || ctx.club.lineup.length >= 11,
       screen: 'squad',
       priority: 'high',
+      xpReward: COACH_TASK_XP['lineup'] ?? 5,
     },
     {
       id: 'first-match',
@@ -48,6 +51,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       completed: done('first-match') || playedMatches > 0,
       screen: 'dashboard',
       priority: 'high',
+      xpReward: COACH_TASK_XP['first-match'] ?? 5,
     },
     {
       id: 'objectives',
@@ -56,6 +60,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       completed: done('objectives') || completedObjectives > 0,
       screen: 'dashboard',
       priority: 'high',
+      xpReward: COACH_TASK_XP['objectives'] ?? 5,
     },
     {
       id: 'scouting',
@@ -64,6 +69,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       completed: done('scouting') || ctx.scoutAssignments.length > 0 || ctx.scoutReportsCount > 0,
       screen: 'scouting',
       priority: 'medium',
+      xpReward: COACH_TASK_XP['scouting'] ?? 5,
     },
     {
       id: 'contracts',
@@ -75,6 +81,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
         .every((player) => player.contractEnd > 1),
       screen: 'squad',
       priority: 'medium',
+      xpReward: COACH_TASK_XP['contracts'] ?? 5,
     },
     {
       id: 'transfers',
@@ -83,6 +90,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       completed: done('transfers') || ctx.shortlistCount > 0,
       screen: ctx.transferWindowOpen ? 'transfers' : 'scouting',
       priority: 'low',
+      xpReward: COACH_TASK_XP['transfers'] ?? 5,
     },
     {
       id: 'inbox',
@@ -91,6 +99,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       completed: done('inbox') || ctx.unreadMessages === 0,
       screen: 'inbox',
       priority: 'low',
+      xpReward: COACH_TASK_XP['inbox'] ?? 5,
     },
   ];
 
