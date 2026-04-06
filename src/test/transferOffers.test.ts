@@ -12,12 +12,12 @@ describe('getPerformanceMultiplier', () => {
   describe('baseline — no stats', () => {
     it('returns 1.0 for a player with zero appearances', () => {
       const p = makePlayer();
-      expect(getPerformanceMultiplier(p, 10)).toBe(1);
+      expect(getPerformanceMultiplier(p)).toBe(1);
     });
 
     it('returns 1.0 for a player with zero goals/assists and form at 50', () => {
       const p = makePlayer({ appearances: 20 });
-      expect(getPerformanceMultiplier(p, 22)).toBe(1);
+      expect(getPerformanceMultiplier(p)).toBe(1);
     });
   });
 
@@ -25,46 +25,46 @@ describe('getPerformanceMultiplier', () => {
     it('ST should produce higher multiplier than CM for same goals', () => {
       const st = makePlayer({ position: 'ST', goals: 10, appearances: 20, form: 50 });
       const cm = makePlayer({ position: 'CM', goals: 10, appearances: 20, form: 50 });
-      expect(getPerformanceMultiplier(st, 22)).toBeGreaterThan(getPerformanceMultiplier(cm, 22));
+      expect(getPerformanceMultiplier(st)).toBeGreaterThan(getPerformanceMultiplier(cm));
     });
 
     it('CM should produce higher multiplier than CB for same goals', () => {
       const cm = makePlayer({ position: 'CM', goals: 10, appearances: 20, form: 50 });
       const cb = makePlayer({ position: 'CB', goals: 10, appearances: 20, form: 50 });
-      expect(getPerformanceMultiplier(cm, 22)).toBeGreaterThan(getPerformanceMultiplier(cb, 22));
+      expect(getPerformanceMultiplier(cm)).toBeGreaterThan(getPerformanceMultiplier(cb));
     });
 
     it('LW and RW use forward weights', () => {
       const lw = makePlayer({ position: 'LW', goals: 8, appearances: 15, form: 50 });
       const rw = makePlayer({ position: 'RW', goals: 8, appearances: 15, form: 50 });
       const st = makePlayer({ position: 'ST', goals: 8, appearances: 15, form: 50 });
-      expect(getPerformanceMultiplier(lw, 20)).toBeCloseTo(getPerformanceMultiplier(st, 20), 5);
-      expect(getPerformanceMultiplier(rw, 20)).toBeCloseTo(getPerformanceMultiplier(st, 20), 5);
+      expect(getPerformanceMultiplier(lw)).toBeCloseTo(getPerformanceMultiplier(st), 5);
+      expect(getPerformanceMultiplier(rw)).toBeCloseTo(getPerformanceMultiplier(st), 5);
     });
 
     it('GK uses defender weights', () => {
       const gk = makePlayer({ position: 'GK', goals: 2, appearances: 20, form: 50 });
       const cb = makePlayer({ position: 'CB', goals: 2, appearances: 20, form: 50 });
-      expect(getPerformanceMultiplier(gk, 22)).toBeCloseTo(getPerformanceMultiplier(cb, 22), 5);
+      expect(getPerformanceMultiplier(gk)).toBeCloseTo(getPerformanceMultiplier(cb), 5);
     });
   });
 
   describe('per-game normalization (summer vs winter parity)', () => {
-    it('same goals-per-game rate produces similar multiplier regardless of week', () => {
-      // 3 goals in 6 games (week 6) vs 15 goals in 30 games (week 32) — same 0.5 GPG
-      const summer = makePlayer({ position: 'ST', goals: 3, appearances: 6, form: 50 });
-      const winter = makePlayer({ position: 'ST', goals: 15, appearances: 30, form: 50 });
-      const summerMult = getPerformanceMultiplier(summer, 6);
-      const winterMult = getPerformanceMultiplier(winter, 32);
+    it('same goals-per-game rate produces similar multiplier regardless of games played', () => {
+      // 3 goals in 6 games vs 15 goals in 30 games — same 0.5 GPG
+      const few = makePlayer({ position: 'ST', goals: 3, appearances: 6, form: 50 });
+      const many = makePlayer({ position: 'ST', goals: 15, appearances: 30, form: 50 });
+      const fewMult = getPerformanceMultiplier(few);
+      const manyMult = getPerformanceMultiplier(many);
       // Should be within 10% of each other (slight variance from appearance threshold scaling)
-      expect(Math.abs(summerMult - winterMult) / winterMult).toBeLessThan(0.1);
+      expect(Math.abs(fewMult - manyMult) / manyMult).toBeLessThan(0.1);
     });
 
     it('player with same rate but more games should not get disproportionately higher multiplier', () => {
       const few = makePlayer({ position: 'CM', goals: 5, assists: 3, appearances: 10, form: 60 });
       const many = makePlayer({ position: 'CM', goals: 10, assists: 6, appearances: 20, form: 60 });
-      const fewMult = getPerformanceMultiplier(few, 12);
-      const manyMult = getPerformanceMultiplier(many, 24);
+      const fewMult = getPerformanceMultiplier(few);
+      const manyMult = getPerformanceMultiplier(many);
       expect(Math.abs(fewMult - manyMult) / manyMult).toBeLessThan(0.05);
     });
   });
@@ -73,16 +73,23 @@ describe('getPerformanceMultiplier', () => {
     it('player below threshold gets dampened bonus', () => {
       const below = makePlayer({ position: 'ST', goals: 5, appearances: 4, form: 70 });
       const above = makePlayer({ position: 'ST', goals: 5, appearances: PERFORMANCE_APPEARANCE_THRESHOLD, form: 70 });
-      // Same raw stats but below threshold should get smaller multiplier
-      // (not exact comparison since per-game rates differ)
-      const belowMult = getPerformanceMultiplier(below, 6);
-      const aboveMult = getPerformanceMultiplier(above, 10);
-      expect(belowMult).toBeLessThan(aboveMult);
+      expect(getPerformanceMultiplier(below)).toBeLessThan(getPerformanceMultiplier(above));
+    });
+
+    it('player at exactly threshold gets full bonus', () => {
+      const atThreshold = makePlayer({ position: 'ST', goals: 8, appearances: PERFORMANCE_APPEARANCE_THRESHOLD, form: 70 });
+      const aboveThreshold = makePlayer({ position: 'ST', goals: 8, appearances: PERFORMANCE_APPEARANCE_THRESHOLD + 5, form: 70 });
+      // Same per-game rate at and above threshold → same multiplier
+      // (rates differ slightly due to different appearances, but scale factor is 1.0 for both)
+      const atMult = getPerformanceMultiplier(atThreshold);
+      const aboveMult = getPerformanceMultiplier(aboveThreshold);
+      expect(atMult).toBeGreaterThan(1);
+      expect(aboveMult).toBeGreaterThan(1);
     });
 
     it('0 appearances returns exactly 1.0 even with high form', () => {
       const p = makePlayer({ form: 95, appearances: 0 });
-      expect(getPerformanceMultiplier(p, 10)).toBe(1);
+      expect(getPerformanceMultiplier(p)).toBe(1);
     });
   });
 
@@ -90,18 +97,25 @@ describe('getPerformanceMultiplier', () => {
     it('form above 50 increases multiplier', () => {
       const base = makePlayer({ appearances: 20, form: 50 });
       const hot = makePlayer({ appearances: 20, form: 85 });
-      expect(getPerformanceMultiplier(hot, 22)).toBeGreaterThan(getPerformanceMultiplier(base, 22));
+      expect(getPerformanceMultiplier(hot)).toBeGreaterThan(getPerformanceMultiplier(base));
     });
 
     it('form below 50 gives no bonus', () => {
       const cold = makePlayer({ appearances: 20, form: 30 });
       const neutral = makePlayer({ appearances: 20, form: 50 });
-      expect(getPerformanceMultiplier(cold, 22)).toBe(getPerformanceMultiplier(neutral, 22));
+      expect(getPerformanceMultiplier(cold)).toBe(getPerformanceMultiplier(neutral));
     });
 
     it('form exactly 50 gives no form contribution', () => {
       const p = makePlayer({ appearances: 20, form: 50 });
-      expect(getPerformanceMultiplier(p, 22)).toBe(1);
+      expect(getPerformanceMultiplier(p)).toBe(1);
+    });
+
+    it('extreme form (100) stays within cap', () => {
+      const p = makePlayer({ position: 'ST', goals: 10, appearances: 20, form: 100 });
+      const mult = getPerformanceMultiplier(p);
+      expect(mult).toBeGreaterThan(1);
+      expect(mult).toBeLessThanOrEqual(PERFORMANCE_MAX_MULTIPLIER);
     });
   });
 
@@ -110,7 +124,7 @@ describe('getPerformanceMultiplier', () => {
       const monster = makePlayer({
         position: 'ST', goals: 35, assists: 20, appearances: 30, form: 99,
       });
-      const mult = getPerformanceMultiplier(monster, 32);
+      const mult = getPerformanceMultiplier(monster);
       expect(mult).toBe(PERFORMANCE_MAX_MULTIPLIER);
     });
 
@@ -118,7 +132,7 @@ describe('getPerformanceMultiplier', () => {
       const extreme = makePlayer({
         position: 'ST', goals: 50, assists: 30, appearances: 20, form: 100,
       });
-      expect(getPerformanceMultiplier(extreme, 40)).toBeLessThanOrEqual(PERFORMANCE_MAX_MULTIPLIER);
+      expect(getPerformanceMultiplier(extreme)).toBeLessThanOrEqual(PERFORMANCE_MAX_MULTIPLIER);
     });
   });
 });
@@ -137,11 +151,15 @@ describe('getContractLengthFactor', () => {
     expect(getContractLengthFactor(6, 1)).toBe(1.0);
   });
 
-  it('returns 0.75 for contract ending this season', () => {
+  it('returns 0.75 for contract ending this exact season', () => {
     expect(getContractLengthFactor(5, 5)).toBe(0.75);
   });
 
   it('handles expired contracts (end < current)', () => {
     expect(getContractLengthFactor(1, 3)).toBe(0.75);
+  });
+
+  it('returns 0.90 for exactly 2 years remaining', () => {
+    expect(getContractLengthFactor(5, 3)).toBe(0.90);
   });
 });

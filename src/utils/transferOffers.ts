@@ -21,7 +21,7 @@ const MID_POSITIONS: Position[] = ['CM', 'CDM', 'CAM', 'LM', 'RM'];
  * summer-window (few games) and winter-window (many games) produce
  * comparable multipliers for the same quality of performance.
  */
-export function getPerformanceMultiplier(player: Player, _currentWeek: number): number {
+export function getPerformanceMultiplier(player: Player): number {
   const goalWeight = FWD_POSITIONS.includes(player.position)
     ? PERFORMANCE_FWD_GOAL_WEIGHT
     : MID_POSITIONS.includes(player.position)

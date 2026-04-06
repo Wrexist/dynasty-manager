@@ -86,6 +86,8 @@ import {
   FREE_AGENT_SPAWN_CHANCE, OFFER_EXPIRY_WEEKS,
   UNSOLICITED_OFFER_CHANCE, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE,
   COMPETING_BID_PREMIUM,
+  ASKING_PRICE_BID_ANCHOR,
+  INJURY_BID_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD,
 } from '@/config/transfers';
 import { getPerformanceMultiplier, getContractLengthFactor } from '@/utils/transferOffers';
 import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
@@ -2655,24 +2657,29 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
 
       // Helper: attempt to generate an offer for a target player
-      const tryGenerateOffer = (tp: Player, feeBase: number, feeRange: number) => {
+      // valueOverride allows using asking price as base instead of raw player value
+      const tryGenerateOffer = (tp: Player, feeBase: number, feeRange: number, valueOverride?: number) => {
+        const effectiveValue = valueOverride ?? tp.value;
         const buyerClubs = Object.values(clubs).filter(c => {
           if (c.id === playerClubId) return false;
-          if (c.budget < tp.value * AI_OFFER_MIN_BUDGET_RATIO) return false;
+          if (c.budget < effectiveValue * AI_OFFER_MIN_BUDGET_RATIO) return false;
           if (newOffers.some(o => o.buyerClubId === c.id && o.playerId === tp.id)) return false;
           const squadPositions = c.playerIds.map(id => newPlayers[id]?.position).filter(Boolean);
           const posCount = squadPositions.filter(pos => pos === tp.position).length;
           return posCount < AI_OFFER_POSITION_THRESHOLD;
         });
         const candidates = shuffle([...buyerClubs]).slice(0, 3);
-        const perfMult = getPerformanceMultiplier(tp, newWeek);
+        const perfMult = getPerformanceMultiplier(tp);
         const contractFactor = getContractLengthFactor(tp.contractEnd, season);
+        const injuryFactor = tp.injured
+          ? (tp.injuryWeeks >= LONG_INJURY_WEEKS_THRESHOLD ? LONG_INJURY_BID_DISCOUNT : INJURY_BID_DISCOUNT)
+          : 1;
         for (const buyer of candidates) {
           const buyerSquad = buyer.playerIds.map(id => newPlayers[id]?.position).filter(Boolean);
           const posCount = buyerSquad.filter(pos => pos === tp.position).length;
           const urgencyMult = posCount === 0 ? URGENCY_NONE : posCount === 1 ? URGENCY_ONE : URGENCY_TWO_PLUS;
           const deadlinePremium = isDeadlineDay ? 1 + DEADLINE_DAY_BID_PREMIUM : 1;
-          let baseFee = tp.value * (feeBase + Math.random() * feeRange) * urgencyMult * deadlinePremium * perfMult * contractFactor;
+          let baseFee = effectiveValue * (feeBase + Math.random() * feeRange) * urgencyMult * deadlinePremium * perfMult * contractFactor * injuryFactor;
           // Competing bid premium — outbid existing offers for same player
           const existingOffers = newOffers.filter(o => o.playerId === tp.id);
           if (existingOffers.length > 0) {
@@ -2698,12 +2705,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         return false;
       };
 
-      // Listed player offers
-      const listedPlayers = Object.values(newPlayers).filter(p => p.listedForSale && p.clubId === playerClubId);
+      // Listed player offers — anchor bids toward asking price when higher than value
+      const listedPlayers = Object.values(newPlayers).filter(p => p.listedForSale && !p.onLoan && p.clubId === playerClubId);
+      const currentMarket = state.transferMarket;
       for (const lp of listedPlayers) {
         const effectiveOfferChance = isDeadlineDay ? AI_OFFER_CHANCE * DEADLINE_DAY_OFFER_MULTIPLIER : AI_OFFER_CHANCE;
         if (Math.random() < effectiveOfferChance) {
-          tryGenerateOffer(lp, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE);
+          const listing = currentMarket.find(l => l.playerId === lp.id);
+          const askingFloor = listing ? listing.askingPrice * ASKING_PRICE_BID_ANCHOR : 0;
+          const effectiveValue = Math.max(lp.value, askingFloor);
+          tryGenerateOffer(lp, OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, effectiveValue);
         }
       }
 

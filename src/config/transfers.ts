@@ -72,6 +72,14 @@ export const CONTRACT_2YR_BID_FACTOR = 0.90;           // 2 years left — sligh
 // ── Competing Bid Premium ──
 export const COMPETING_BID_PREMIUM = 0.05;             // 5% above highest existing offer
 
+// ── Asking Price Anchor ──
+export const ASKING_PRICE_BID_ANCHOR = 0.85;           // AI bids anchor at 85% of asking price as floor
+
+// ── Injury Discount ──
+export const INJURY_BID_DISCOUNT = 0.80;               // 20% discount for injured players
+export const LONG_INJURY_BID_DISCOUNT = 0.65;          // 35% discount for long-term injuries (8+ weeks)
+export const LONG_INJURY_WEEKS_THRESHOLD = 8;          // Weeks threshold for deep discount
+
 // ── Deadline Day ──
 export const DEADLINE_DAY_OFFER_MULTIPLIER = 2.0;
 export const DEADLINE_DAY_BID_PREMIUM = 0.15;
