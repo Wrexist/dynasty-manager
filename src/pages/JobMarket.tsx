@@ -8,6 +8,8 @@ import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { Briefcase, DollarSign, Clock, Send, Check, X, LogOut, ArrowLeft, Building2, TrendingUp, Handshake } from 'lucide-react';
 import { toast } from 'sonner';
 import { negotiateSalary, getManagerBonusLabel } from '@/utils/managerCareer';
+import { PageHint } from '@/components/game/PageHint';
+import { PAGE_HINTS } from '@/config/ui';
 import type { JobVacancy, JobOffer } from '@/types/game';
 
 const JobMarket = () => {
@@ -54,6 +56,7 @@ const JobMarket = () => {
 
   return (
     <div className="space-y-4 pb-24">
+      <PageHint screen="jobMarket" title={PAGE_HINTS.jobMarket.title} body={PAGE_HINTS.jobMarket.body} />
       {/* Header */}
       <GlassPanel className="p-4">
         <div className="flex items-center justify-between mb-3">

@@ -18,7 +18,8 @@ import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel, getTrainingMultiplier } from '@/utils/personality';
 import { darken, lighten } from '@/utils/colorUtils';
 import { PlayerRadarChart } from '@/components/game/PlayerRadarChart';
-import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW, HELP_TEXTS } from '@/config/ui';
+import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW, HELP_TEXTS, PAGE_HINTS } from '@/config/ui';
+import { PageHint } from '@/components/game/PageHint';
 import { InfoTip } from '@/components/game/InfoTip';
 import { MODULE_ATTR_MAP, STREAK_MULTIPLIERS, INDIVIDUAL_TRAINING_BONUS } from '@/config/training';
 import { getTrainingEffectivenessPreview, getStreakTier } from '@/utils/training';
@@ -174,6 +175,7 @@ const PlayerDetail = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+      <PageHint screen="playerDetail" title={PAGE_HINTS.playerDetail.title} body={PAGE_HINTS.playerDetail.body} />
       <button
         onClick={() => { selectPlayer(null); setScreen(previousScreen === 'team-detail' ? 'team-detail' : 'squad'); }}
         className="flex items-center gap-1 text-muted-foreground text-sm"

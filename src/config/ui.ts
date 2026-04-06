@@ -242,6 +242,14 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
     title: 'League Table',
     body: 'Track your division standings. Promotion zones are highlighted in green, relegation in red. Playoff contenders are marked in amber.',
   },
+  nationalTeam: {
+    title: 'National Team',
+    body: 'Manage your country\'s squad for international tournaments. Select players, set formation, and compete for glory on the world stage.',
+  },
+  jobMarket: {
+    title: 'Job Market',
+    body: 'Browse available managerial positions and apply for clubs that match your reputation. Wait for offers or seek new challenges.',
+  },
 } as const;
 
 // ── Dashboard Thresholds ──
