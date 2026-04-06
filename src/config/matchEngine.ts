@@ -316,6 +316,9 @@ export const SHOUT_MODIFIERS = {
   time_waste: { eventChanceReduction: 0.15, stoppageTimeAdd: 1 },
 } as const;
 
+/** Scale factor for cumulative shout effects on second-half simulation (0.5 = half as strong as team talks) */
+export const SHOUT_CUMULATIVE_SCALE = 0.5;
+
 // ── Tactical Insight Thresholds ──
 /** Minimum tactical bonus to show an insight pill */
 export const TACTICAL_INSIGHT_MIN_BONUS = 0.06;

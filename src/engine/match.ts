@@ -509,6 +509,39 @@ export function simulateHalf(
     }
   }
 
+  // Second-half: generate fresh score-aware tactical insights
+  if (prevState && playerClubId) {
+    const playerIsHome = playerClubId === homeClub.id;
+    const myGoals = playerIsHome ? prevState.homeGoals : prevState.awayGoals;
+    const oppGoals = playerIsHome ? prevState.awayGoals : prevState.homeGoals;
+    const oppClub = playerIsHome ? awayClub : homeClub;
+    const oppTactics = playerIsHome ? awayTactics : homeTactics;
+
+    // Clear first-half insights and generate fresh ones
+    tacticalInsights.length = 0;
+
+    if (oppGoals > myGoals) {
+      if (oppTactics?.defensiveLine === 'deep')
+        tacticalInsights.push(`${oppClub.shortName} sitting deep — consider wide play to stretch them`);
+      else
+        tacticalInsights.push(`Trailing by ${oppGoals - myGoals} — pushing forward could create chances`);
+    } else if (myGoals > oppGoals) {
+      tacticalInsights.push(`Leading — ${oppClub.shortName} may push forward, watch for counters`);
+    } else {
+      tacticalInsights.push(`Level at half-time — tactical balance is key`);
+    }
+
+    // Re-evaluate formation matchup
+    const myFormation = playerIsHome ? homeClub.formation : awayClub.formation;
+    const oppFormation = playerIsHome ? awayClub.formation : homeClub.formation;
+    const formBonus = getFormationMatchupBonus(myFormation, oppFormation);
+    if (Math.abs(formBonus) >= TACTICAL_INSIGHT_MIN_BONUS) {
+      tacticalInsights.push(formBonus > 0
+        ? `Formation edge: ${myFormation} vs ${oppFormation} (+${Math.round(formBonus * 100)}%)`
+        : `Formation mismatch: ${myFormation} vs ${oppFormation} (${Math.round(formBonus * 100)}%)`);
+    }
+  }
+
   // Pre-compute defensive qualities for both teams
   const homeDefQuality = getDefenseQuality(homePlayers);
   const awayDefQuality = getDefenseQuality(awayPlayers);
@@ -746,6 +779,7 @@ export function simulateHalf(
     return false;
   };
   for (let min = startMin; min <= endMin + stoppageTime && min < MAX_MATCH_MINUTES; min++) {
+    const prevEventCount = events.length;
     if (abandonMatch) break;
     // Calculate stoppage at the nominal end of each half
     if (min === nominalEnd && stoppageTime === 0) {
@@ -1225,14 +1259,21 @@ export function simulateHalf(
       }
     }
 
-    // Update last event tracker and attach fitness snapshot to latest event
+    // Update last event tracker
     if (events.length > 0 && events[events.length - 1].minute === min) {
       lastEventMinute = min;
-      if (fitnessSnapshot) {
-        events[events.length - 1].playerFitness = fitnessSnapshot;
-        fitnessSnapshot = undefined;
-      }
     }
+    // Attach pending fitness snapshot to the first event generated after the snapshot was taken
+    if (fitnessSnapshot && events.length > prevEventCount) {
+      events[events.length - 1].playerFitness = fitnessSnapshot;
+      fitnessSnapshot = undefined;
+    }
+  }
+
+  // Flush any remaining fitness snapshot to the last event
+  if (fitnessSnapshot && events.length > 0) {
+    events[events.length - 1].playerFitness = fitnessSnapshot;
+    fitnessSnapshot = undefined;
   }
 
   // Add half-time marker at end of first half (only once)

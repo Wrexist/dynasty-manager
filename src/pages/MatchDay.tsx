@@ -133,6 +133,8 @@ const MatchDay = () => {
   const [showCustomTactics, setShowCustomTactics] = useState(false);
   // Full Time screen removed — PostMatchPopup navigates directly to Match Review
   const dismissedMomentsRef = useRef<Set<string>>(new Set());
+  // Clear dismissed moments when match changes (e.g. multi-match sessions)
+  useEffect(() => { dismissedMomentsRef.current.clear(); }, [match]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const eventsEndRef = useRef<HTMLDivElement>(null);
   const phaseRef = useRef(phase);
@@ -511,7 +513,8 @@ const MatchDay = () => {
   const matchHomeClubId = match?.homeClubId;
   const liveStats = useMemo(() => {
     let hShots = 0, aShots = 0, hSoT = 0, aSoT = 0, hFouls = 0, aFouls = 0;
-    const hCorners = 0, aCorners = 0;
+    let hGoals = 0, aGoals = 0, hYellows = 0, aYellows = 0, hReds = 0, aReds = 0;
+    let lastMomentum = 0, lastHomeXG = 0, lastAwayXG = 0;
     for (const ev of visibleEvents) {
       if (!matchHomeClubId) continue;
       const isHomeEv = ev.clubId === matchHomeClubId;
@@ -524,8 +527,17 @@ const MatchDay = () => {
       } else if (ev.type === 'foul' || ev.type === 'yellow_card' || ev.type === 'red_card') {
         if (isHomeEv) hFouls++; else aFouls++;
       }
+      if (isGoalEvent(ev)) { if (isHomeEv) hGoals++; else aGoals++; }
+      if (ev.type === 'yellow_card') { if (isHomeEv) hYellows++; else aYellows++; }
+      if (ev.type === 'red_card') { if (isHomeEv) hReds++; else aReds++; }
+      if (ev.momentum !== undefined) lastMomentum = ev.momentum;
+      if (ev.homeXG !== undefined) { lastHomeXG = ev.homeXG; lastAwayXG = ev.awayXG ?? 0; }
     }
-    return { hShots, aShots, hSoT, aSoT, hFouls, aFouls, hCorners, aCorners };
+    return {
+      hShots, aShots, hSoT, aSoT, hFouls, aFouls,
+      hGoals, aGoals, hYellows, aYellows, hReds, aReds,
+      lastMomentum, lastHomeXG, lastAwayXG,
+    };
   }, [visibleEvents, matchHomeClubId]);
 
   // Latest fitness snapshot from events
@@ -553,12 +565,12 @@ const MatchDay = () => {
   }
 
   const isLive = phase === 'first_half' || phase === 'second_half' || phase === 'extra_time';
-  const homeGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => isGoalEvent(e) && e.clubId === match.homeClubId).length;
-  const awayGoals = phase === 'pre' ? 0 : visibleEvents.filter(e => isGoalEvent(e) && e.clubId === match.awayClubId).length;
-  const homeYellowCards = visibleEvents.filter(e => e.type === 'yellow_card' && e.clubId === match.homeClubId).length;
-  const awayYellowCards = visibleEvents.filter(e => e.type === 'yellow_card' && e.clubId === match.awayClubId).length;
-  const homeRedCards = visibleEvents.filter(e => e.type === 'red_card' && e.clubId === match.homeClubId).length;
-  const awayRedCards = visibleEvents.filter(e => e.type === 'red_card' && e.clubId === match.awayClubId).length;
+  const homeGoals = phase === 'pre' ? 0 : liveStats.hGoals;
+  const awayGoals = phase === 'pre' ? 0 : liveStats.aGoals;
+  const homeYellowCards = liveStats.hYellows;
+  const awayYellowCards = liveStats.aYellows;
+  const homeRedCards = liveStats.hReds;
+  const awayRedCards = liveStats.aReds;
   const homePlayersOnPitch = Math.max(7, 11 - homeRedCards);
   const awayPlayersOnPitch = Math.max(7, 11 - awayRedCards);
 
@@ -566,15 +578,11 @@ const MatchDay = () => {
   const htHomeGoals = firstHalfState?.homeGoals ?? homeGoals;
   const htAwayGoals = firstHalfState?.awayGoals ?? awayGoals;
 
-  // Momentum: use engine-calculated momentum from events, or fall back to event counting
-  const latestMomentumEvent = [...visibleEvents].reverse().find(e => e.momentum !== undefined);
-  const currentMomentum = latestMomentumEvent?.momentum ?? 0; // -100 (away) to +100 (home)
+  // Momentum & xG: derived from memoized liveStats scan
+  const currentMomentum = liveStats.lastMomentum; // -100 (away) to +100 (home)
   const homeMomPct = Math.round(50 + currentMomentum / 2); // 0-100 scale
-
-  // Live xG: derive from latest event with xG data
-  const latestXGEvent = [...visibleEvents].reverse().find(e => e.homeXG !== undefined);
-  const liveHomeXG = latestXGEvent?.homeXG ?? 0;
-  const liveAwayXG = latestXGEvent?.awayXG ?? 0;
+  const liveHomeXG = liveStats.lastHomeXG;
+  const liveAwayXG = liveStats.lastAwayXG;
 
   // Tactical insights from first half state
   const tacticalInsights = firstHalfState?.tacticalInsights ?? [];
@@ -1001,7 +1009,7 @@ const MatchDay = () => {
                         onClick={() => { hapticLight(); setFormation(f); infoToast(`Switched to ${f}`); }}
                         className={cn(
                           'px-2 py-1 rounded text-[9px] font-semibold transition-all',
-                          tactics.mentality && clubs[playerClubId]?.formation === f
+                          clubs[playerClubId]?.formation === f
                             ? 'bg-primary/20 text-primary border border-primary/30'
                             : 'bg-muted/30 text-muted-foreground hover:bg-muted/40'
                         )}
@@ -1146,6 +1154,9 @@ const MatchDay = () => {
               )}
               {shoutOnCooldown && shoutsRemaining > 0 && (
                 <p className="text-[9px] text-center text-muted-foreground/50">Shout on cooldown ({shoutsRemaining} left)</p>
+              )}
+              {shoutsRemaining === 0 && (
+                <p className="text-[9px] text-center text-muted-foreground/50">No shouts remaining</p>
               )}
 
               <div className="flex justify-between items-center">
