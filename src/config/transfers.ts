@@ -48,9 +48,37 @@ export const RUMOR_CHANCE = 0.15;
 export const OFFER_EXPIRY_WEEKS = 4;
 
 // ── Unsolicited Bids (unlisted star / unhappy players) ──
-export const UNSOLICITED_OFFER_CHANCE = 0.12;
+export const UNSOLICITED_OFFER_CHANCE = 0.05;
 export const UNSOLICITED_FEE_BASE = 0.75;
 export const UNSOLICITED_FEE_RANGE = 0.25;
+
+// ── Performance-Based Bid Premium ──
+// Season stats boost the bid fee — players in good form attract higher offers
+export const PERFORMANCE_GOAL_PREMIUM = 0.012;       // +1.2% per goal scored this season
+export const PERFORMANCE_ASSIST_PREMIUM = 0.008;     // +0.8% per assist this season
+export const PERFORMANCE_FORM_PREMIUM = 0.002;       // +0.2% per form point above 50
+export const PERFORMANCE_APPEARANCE_THRESHOLD = 8;    // Need 8+ appearances for full bonus
+export const PERFORMANCE_MAX_MULTIPLIER = 1.45;       // Cap at 45% premium from performance
+export const PERFORMANCE_EXPECTED_SEASON_APPEARANCES = 38; // Full-season equivalent for per-game rate normalization
+// Position-specific weights for goals (forwards valued more for goals, defenders for appearances)
+export const PERFORMANCE_FWD_GOAL_WEIGHT = 1.5;       // ST/LW/RW get 1.5x goal premium
+export const PERFORMANCE_MID_GOAL_WEIGHT = 1.2;       // CM/CDM/CAM/LM/RM get 1.2x goal premium
+export const PERFORMANCE_DEF_GOAL_WEIGHT = 0.5;       // CB/LB/RB/GK get 0.5x goal premium
+
+// ── Contract Length Bid Factor ──
+export const CONTRACT_1YR_BID_FACTOR = 0.75;           // 1 year left — clubs lowball
+export const CONTRACT_2YR_BID_FACTOR = 0.90;           // 2 years left — slight discount
+
+// ── Competing Bid Premium ──
+export const COMPETING_BID_PREMIUM = 0.05;             // 5% above highest existing offer
+
+// ── Asking Price Anchor ──
+export const ASKING_PRICE_BID_ANCHOR = 0.85;           // AI bids anchor at 85% of asking price as floor
+
+// ── Injury Discount ──
+export const INJURY_BID_DISCOUNT = 0.80;               // 20% discount for injured players
+export const LONG_INJURY_BID_DISCOUNT = 0.65;          // 35% discount for long-term injuries (8+ weeks)
+export const LONG_INJURY_WEEKS_THRESHOLD = 8;          // Weeks threshold for deep discount
 
 // ── Deadline Day ──
 export const DEADLINE_DAY_OFFER_MULTIPLIER = 2.0;

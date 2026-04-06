@@ -20,6 +20,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS } from '@/config/transfers';
 import { formatMoney } from '@/utils/helpers';
+import { getPerformanceMultiplier } from '@/utils/transferOffers';
 import { SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE } from '@/config/ui';
 import { getFlag } from '@/utils/nationality';
 
@@ -636,12 +637,32 @@ const TransferPage = () => {
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-primary">{formatMoney(offer.fee)}</p>
                     <p className="text-[10px] text-muted-foreground">Value: {formatMoney(p.value)}</p>
-                    <div className="flex items-center justify-end gap-1 mt-0.5">
-                      <span className="text-[10px] text-muted-foreground/70">Wk {offer.week}</span>
-                      {week - offer.week >= OFFER_EXPIRY_WEEKS - 1 && (
-                        <span className="text-[9px] font-medium text-amber-500 bg-amber-500/10 px-1 rounded">Expiring</span>
-                      )}
-                    </div>
+                    {(() => {
+                      if (p.value <= 0) return null;
+                      const pctDiff = Math.round(((offer.fee - p.value) / p.value) * 100);
+                      if (pctDiff === 0) return null;
+                      return (
+                        <p className={cn('text-[10px] font-medium', pctDiff > 0 ? 'text-emerald-400' : 'text-red-400')}>
+                          {pctDiff > 0 ? '+' : ''}{pctDiff}% {pctDiff > 0 ? 'above' : 'below'} value
+                        </p>
+                      );
+                    })()}
+                    {(() => {
+                      const perfMult = getPerformanceMultiplier(p);
+                      return (
+                        <div className="flex items-center justify-end gap-1 mt-0.5">
+                          <span className="text-[10px] text-muted-foreground/70">Wk {offer.week}</span>
+                          {perfMult >= 1.15 ? (
+                            <span className="text-[9px] font-medium text-orange-500 bg-orange-500/10 px-1 rounded">Hot form</span>
+                          ) : perfMult >= 1.05 ? (
+                            <span className="text-[9px] font-medium text-blue-400 bg-blue-400/10 px-1 rounded">Good form</span>
+                          ) : null}
+                          {week - offer.week >= OFFER_EXPIRY_WEEKS - 1 && (
+                            <span className="text-[9px] font-medium text-amber-500 bg-amber-500/10 px-1 rounded">Expiring</span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div className="flex gap-2 mt-3">
