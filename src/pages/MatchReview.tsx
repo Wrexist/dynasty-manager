@@ -16,6 +16,7 @@ import { getDerbyName, getDerbyIntensity } from '@/data/league';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
+import { findTournamentMatch } from '@/hooks/useGameSelectors';
 import { motion } from 'framer-motion';
 import type { Club } from '@/types/game';
 
@@ -78,8 +79,25 @@ const MatchReview = () => {
   const handleContinue = () => {
     setIsAdvancing(true);
     setTimeout(() => {
-      advanceWeek();
-      setScreen('dashboard');
+      // Read fresh state from the store (not stale closure from render time)
+      const s = useGameStore.getState();
+      const hasUnplayedLeague = s.fixtures.some(
+        m => m.week === s.week && !m.played && (m.homeClubId === s.playerClubId || m.awayClubId === s.playerClubId)
+      );
+      const hasUnplayedTournament = !!findTournamentMatch({
+        week: s.week, playerClubId: s.playerClubId, cup: s.cup,
+        leagueCup: s.leagueCup, championsCup: s.championsCup,
+        shieldCup: s.shieldCup, domesticSuperCup: s.domesticSuperCup,
+        continentalSuperCup: s.continentalSuperCup,
+      });
+
+      if (hasUnplayedLeague || hasUnplayedTournament) {
+        // Another match this week — return to dashboard without advancing
+        setScreen('dashboard');
+      } else {
+        advanceWeek();
+        setScreen('dashboard');
+      }
       setIsAdvancing(false);
     }, 50);
   };

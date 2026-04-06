@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
-import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount } from '@/hooks/useGameSelectors';
+import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PressConference } from '@/components/game/PressConference';
 import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
@@ -111,6 +111,13 @@ const Dashboard = () => {
   const markCoachTaskComplete = useGameStore(s => s.markCoachTaskComplete);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
+  const isCupMatch = !!competition;
+  const hasCupMatchToo = useMemo(() => {
+    if (competition) return false;
+    return !!findTournamentMatch({
+      week, playerClubId, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup,
+    });
+  }, [competition, week, playerClubId, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup]);
   const pos = useLeaguePosition();
   const unread = useUnreadCount();
   const budgetFlash = useFlash(club?.budget || 0);
@@ -732,8 +739,11 @@ const Dashboard = () => {
 
       {/* Next Match */}
       {!seasonOver && nextMatch && opponent ? (
-        <GlassPanel className="p-5" onClick={() => setScreen('match-prep')}>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">{competition || (inPlayoffs ? 'Playoff Match' : 'Match Day')} — Week {week}</p>
+        <GlassPanel className={cn("p-5", isCupMatch && "border-primary/40")} onClick={() => setScreen('match-prep')}>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
+            {isCupMatch && <Trophy className="w-3 h-3 inline mr-1 text-primary" />}
+            {competition || (inPlayoffs ? 'Playoff Match' : 'Match Day')} — Week {week}
+          </p>
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
               <div
@@ -759,6 +769,12 @@ const Dashboard = () => {
               <p className="text-[10px] text-muted-foreground">{isHome ? 'AWAY' : 'HOME'}</p>
             </div>
           </div>
+          {hasCupMatchToo && (
+            <div className="flex items-center justify-center gap-1.5 mt-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+              <Trophy className="w-3 h-3 text-primary" />
+              <span className="text-[10px] font-medium text-primary">Cup match also this week</span>
+            </div>
+          )}
           <Button
             className="w-full mt-4 gap-2"
             onClick={(e) => { e.stopPropagation(); setScreen('match-prep'); }}

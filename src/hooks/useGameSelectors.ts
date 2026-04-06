@@ -22,7 +22,7 @@ export function useLeaguePosition(clubId?: string): number {
 }
 
 /** Find any tournament match for the player this week (cup, league cup, continental, super cup). */
-function findTournamentMatch(s: { week: number; playerClubId: string; cup: CupState; leagueCup: LeagueCupState | null; championsCup: ContinentalTournamentState | null; shieldCup: ContinentalTournamentState | null; domesticSuperCup: SuperCupMatch | null; continentalSuperCup: SuperCupMatch | null }): { homeClubId: string; awayClubId: string; competition: string } | null {
+export function findTournamentMatch(s: { week: number; playerClubId: string; cup: CupState; leagueCup: LeagueCupState | null; championsCup: ContinentalTournamentState | null; shieldCup: ContinentalTournamentState | null; domesticSuperCup: SuperCupMatch | null; continentalSuperCup: SuperCupMatch | null }): { homeClubId: string; awayClubId: string; competition: string } | null {
   const w = s.week;
   const pid = s.playerClubId;
   // Dynasty Cup
