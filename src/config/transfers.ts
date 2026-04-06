@@ -59,10 +59,18 @@ export const PERFORMANCE_ASSIST_PREMIUM = 0.008;     // +0.8% per assist this se
 export const PERFORMANCE_FORM_PREMIUM = 0.002;       // +0.2% per form point above 50
 export const PERFORMANCE_APPEARANCE_THRESHOLD = 8;    // Need 8+ appearances for full bonus
 export const PERFORMANCE_MAX_MULTIPLIER = 1.45;       // Cap at 45% premium from performance
+export const PERFORMANCE_EXPECTED_SEASON_APPEARANCES = 38; // Full-season equivalent for per-game rate normalization
 // Position-specific weights for goals (forwards valued more for goals, defenders for appearances)
-export const PERFORMANCE_FWD_GOAL_WEIGHT = 1.5;       // GW/ST/LW/RW get 1.5x goal premium
-export const PERFORMANCE_MID_GOAL_WEIGHT = 1.2;       // CM/CDM/CAM get 1.2x goal premium
+export const PERFORMANCE_FWD_GOAL_WEIGHT = 1.5;       // ST/LW/RW get 1.5x goal premium
+export const PERFORMANCE_MID_GOAL_WEIGHT = 1.2;       // CM/CDM/CAM/LM/RM get 1.2x goal premium
 export const PERFORMANCE_DEF_GOAL_WEIGHT = 0.5;       // CB/LB/RB/GK get 0.5x goal premium
+
+// ── Contract Length Bid Factor ──
+export const CONTRACT_1YR_BID_FACTOR = 0.75;           // 1 year left — clubs lowball
+export const CONTRACT_2YR_BID_FACTOR = 0.90;           // 2 years left — slight discount
+
+// ── Competing Bid Premium ──
+export const COMPETING_BID_PREMIUM = 0.05;             // 5% above highest existing offer
 
 // ── Deadline Day ──
 export const DEADLINE_DAY_OFFER_MULTIPLIER = 2.0;
