@@ -195,12 +195,39 @@ export interface ClubData {
 
 export interface MatchEvent {
   minute: number;
-  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout' | 'commentary';
+  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout' | 'commentary' | 'ai_tactical_change';
   playerId?: string;
   assistPlayerId?: string;
   clubId: string;
   description: string;
   momentum?: number;
+  /** Cumulative xG at this point for the shooting team (set on shot events) */
+  homeXG?: number;
+  awayXG?: number;
+  /** Tactical insight pill text (e.g. "High press countering slow tempo +14%") */
+  tacticalInsight?: string;
+  /** Snapshot of player fitness levels at this minute */
+  playerFitness?: Record<string, number>;
+}
+
+// ── Touchline Shout System ──
+export type ShoutType = 'push_forward' | 'hold_the_line' | 'calm_down' | 'time_waste';
+
+export interface MatchShout {
+  type: ShoutType;
+  startMinute: number;
+}
+
+// ── Key Moment Branching Choices ──
+export interface KeyMomentChoice {
+  label: string;
+  description: string;
+  icon: string; // lucide icon name
+  tactics?: Partial<TacticalInstructions>;
+  /** If true, open substitution sheet instead of applying tactics */
+  openSubSheet?: boolean;
+  /** If set, suggest this formation */
+  suggestFormation?: FormationType;
 }
 
 export interface PenaltyKick {

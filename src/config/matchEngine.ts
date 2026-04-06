@@ -300,3 +300,24 @@ export const PENALTY_TAKER_BONUS = 0.05;
 // ── Commentary ──
 /** Minute threshold for "late game" commentary (slightly earlier than drama triggers) */
 export const COMMENTARY_LATE_MINUTE = 80;
+
+// ── Touchline Shouts ──
+/** Duration (in minutes) a shout effect lasts */
+export const SHOUT_DURATION = 5;
+/** Cooldown (in minutes) between shouts */
+export const SHOUT_COOLDOWN = 10;
+/** Maximum shouts per match */
+export const MAX_SHOUTS_PER_MATCH = 4;
+/** Shout modifier values */
+export const SHOUT_MODIFIERS = {
+  push_forward: { attackMod: 0.15, defenseMod: -0.10 },
+  hold_the_line: { attackMod: -0.10, defenseMod: 0.15 },
+  calm_down: { cardReduction: 0.40 },
+  time_waste: { eventChanceReduction: 0.15, stoppageTimeAdd: 1 },
+} as const;
+
+// ── Tactical Insight Thresholds ──
+/** Minimum tactical bonus to show an insight pill */
+export const TACTICAL_INSIGHT_MIN_BONUS = 0.06;
+/** Interval (in minutes) between fitness snapshots attached to events */
+export const FITNESS_SNAPSHOT_INTERVAL = 5;

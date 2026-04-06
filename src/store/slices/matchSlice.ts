@@ -1,6 +1,6 @@
 import type { GameState } from '../storeTypes';
-import type { TeamTalkType, PenaltyKick } from '@/types/game';
-import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
+import type { TeamTalkType, PenaltyKick, MatchShout, ShoutType } from '@/types/game';
+import { MAX_SUBSTITUTIONS, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH } from '@/config/matchEngine';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -17,8 +17,24 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   currentCupTieId: null as GameState['currentCupTieId'],
   penaltyShootoutKicks: [] as PenaltyKick[],
   penaltyShootoutRevealIndex: 0,
+  matchShouts: [] as MatchShout[],
 
-  clearMatchResult: () => set({ currentMatchResult: null, halfTimeState: null, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null, penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0 }),
+  clearMatchResult: () => set({ currentMatchResult: null, halfTimeState: null, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null, penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, matchShouts: [] }),
+
+  useShout: (type: ShoutType, minute: number) => {
+    const state = get();
+    if (state.matchShouts.length >= MAX_SHOUTS_PER_MATCH) return false;
+    const lastShout = state.matchShouts[state.matchShouts.length - 1];
+    if (lastShout && minute - lastShout.startMinute < SHOUT_COOLDOWN) return false;
+    set({ matchShouts: [...state.matchShouts, { type, startMinute: minute }] });
+    return true;
+  },
+
+  getActiveShout: (minute: number): MatchShout | null => {
+    const state = get();
+    const active = state.matchShouts.find(s => minute >= s.startMinute && minute < s.startMinute + SHOUT_DURATION);
+    return active || null;
+  },
 
   setTeamTalk: (talk: TeamTalkType) => set({ matchTeamTalk: talk }),
 
