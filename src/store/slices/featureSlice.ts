@@ -23,6 +23,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   pendingGemReveal: null as { playerId: string; region: string } | null,
   pendingTransferTalk: null as TransferTalk | null,
   activeStorylineChains: [] as ActiveStorylineChain[],
+  completedStorylineChainIds: [] as string[],
   freeAgents: [] as string[],
   unlockedAchievements: [] as string[],
   pendingAchievementIds: [] as string[],
@@ -139,7 +140,9 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     const { morale, boardConfidence, fanMood, targetPlayerId, playerMorale } = option.effects;
 
     const newPlayers = { ...state.players };
-    const club = state.clubs[state.playerClubId];
+    const newClubs = { ...state.clubs };
+    const club = newClubs[state.playerClubId] ? { ...newClubs[state.playerClubId] } : null;
+    if (club) newClubs[state.playerClubId] = club;
 
     // Apply squad-wide morale
     if (morale && club) {
@@ -158,7 +161,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     const newConfidence = clamp(state.boardConfidence + (boardConfidence || 0), 10, 100);
     const newFanMood = clamp(state.fanMood + (fanMood || 0), 0, 100);
 
-    const newMessages = addMsg(state.messages, {
+    let newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'general',
       title: storyline.title,
       body: `You chose: "${option.label}". ${option.text}`,
@@ -166,23 +169,142 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
 
     // Track choice in active storyline chain (if this event belongs to one)
     const updatedChains = [...(state.activeStorylineChains || [])];
+    let chainId = '';
+    let stepIdx = -1;
     if (storyline.id.startsWith('chain-')) {
       const parts = storyline.id.split('-');
       // Format: chain-{chainId}-step-{stepIdx}
-      const chainId = parts.slice(1, parts.length - 2).join('-');
+      chainId = parts.slice(1, parts.length - 2).join('-');
+      stepIdx = parseInt(parts[parts.length - 1], 10);
       const chainIdx = updatedChains.findIndex(c => c.chainId === chainId);
       if (chainIdx >= 0) {
         updatedChains[chainIdx] = { ...updatedChains[chainIdx], choices: [...updatedChains[chainIdx].choices, optionIndex] };
       }
     }
 
+    // Extra state for saga consequences
+    let extraState: Partial<GameState> = {};
+
+    // ── Star Player Transfer Saga: Final step real consequences ──
+    if (chainId === 'star-player-transfer-saga' && stepIdx === 3 && targetPlayerId && club) {
+      const player = newPlayers[targetPlayerId];
+      if (player && player.clubId === state.playerClubId) {
+        if (optionIndex === 1) {
+          // "Accept a record fee" — actually sell the player
+          const saleFee = Math.round(player.value * 1.5);
+          club.playerIds = club.playerIds.filter(id => id !== targetPlayerId);
+          club.lineup = club.lineup.filter(id => id !== targetPlayerId);
+          club.subs = club.subs.filter(id => id !== targetPlayerId);
+          club.budget += saleFee;
+          club.wageBill -= player.wage;
+
+          // Find a buyer club (AI club in a higher or same division, not the player's club)
+          const allClubs = Object.values(state.clubs).filter(c => c.id !== state.playerClubId);
+          const buyerClub = allClubs.length > 0
+            ? allClubs[Math.floor(Math.random() * allClubs.length)]
+            : null;
+
+          if (buyerClub) {
+            const buyer = { ...buyerClub };
+            buyer.playerIds = [...buyer.playerIds, targetPlayerId];
+            buyer.wageBill += player.wage;
+            newClubs[buyer.id] = buyer;
+            newPlayers[targetPlayerId] = { ...player, clubId: buyer.id, listedForSale: false };
+
+            newMessages = addMsg(newMessages, {
+              week: state.week, season: state.season, type: 'transfer',
+              title: `${player.lastName} Sold!`,
+              body: `${player.firstName} ${player.lastName} has been sold to ${buyer.name} for a record fee of £${(saleFee / 1e6).toFixed(1)}M.`,
+              playerId: targetPlayerId,
+            });
+          } else {
+            // No buyer found — sell to "foreign club" (remove from game)
+            newPlayers[targetPlayerId] = { ...player, clubId: '' };
+            newMessages = addMsg(newMessages, {
+              week: state.week, season: state.season, type: 'transfer',
+              title: `${player.lastName} Sold!`,
+              body: `${player.firstName} ${player.lastName} has been sold abroad for a record fee of £${(saleFee / 1e6).toFixed(1)}M.`,
+              playerId: targetPlayerId,
+            });
+          }
+
+          extraState = {
+            transferMarket: state.transferMarket.filter(l => l.playerId !== targetPlayerId),
+            shortlist: state.shortlist.filter(id => id !== targetPlayerId),
+            scoutWatchList: state.scoutWatchList.filter(id => id !== targetPlayerId),
+            incomingOffers: state.incomingOffers.filter(o => o.playerId !== targetPlayerId),
+            seasonTransfersSold: [...(state.seasonTransfersSold || []), { playerName: `${player.firstName} ${player.lastName}`, fee: saleFee }],
+            managerStats: { ...state.managerStats, totalEarned: state.managerStats.totalEarned + saleFee },
+          };
+        } else if (optionIndex === 2) {
+          // "Loan him out" — actually loan the player
+          const allClubs = Object.values(state.clubs).filter(c => c.id !== state.playerClubId);
+          const destClub = allClubs.length > 0
+            ? allClubs[Math.floor(Math.random() * allClubs.length)]
+            : null;
+
+          if (destClub) {
+            const remainingWeeks = Math.max(10, 46 - state.week);
+            const wageSplit = 50;
+            const loanWageShare = Math.round(player.wage * wageSplit / 100);
+
+            const loan: import('@/types/game').LoanDeal = {
+              id: crypto.randomUUID(),
+              playerId: targetPlayerId,
+              fromClubId: state.playerClubId,
+              toClubId: destClub.id,
+              startWeek: state.week,
+              startSeason: state.season,
+              durationWeeks: remainingWeeks,
+              wageSplit,
+              recallClause: true,
+            };
+
+            newPlayers[targetPlayerId] = {
+              ...player,
+              onLoan: true,
+              loanFromClubId: state.playerClubId,
+              loanToClubId: destClub.id,
+              clubId: destClub.id,
+            };
+
+            club.playerIds = club.playerIds.filter(id => id !== targetPlayerId);
+            club.lineup = club.lineup.filter(id => id !== targetPlayerId);
+            club.subs = club.subs.filter(id => id !== targetPlayerId);
+            club.wageBill -= loanWageShare;
+
+            const dest = { ...destClub };
+            dest.playerIds = [...dest.playerIds, targetPlayerId];
+            dest.wageBill += loanWageShare;
+            newClubs[dest.id] = dest;
+
+            newMessages = addMsg(newMessages, {
+              week: state.week, season: state.season, type: 'transfer',
+              title: `${player.lastName} Loaned Out`,
+              body: `${player.firstName} ${player.lastName} has joined ${dest.name} on loan for the rest of the season. Recall clause included.`,
+              playerId: targetPlayerId,
+            });
+
+            extraState = {
+              activeLoans: [...state.activeLoans, loan],
+              transferMarket: state.transferMarket.filter(l => l.playerId !== targetPlayerId),
+              shortlist: state.shortlist.filter(id => id !== targetPlayerId),
+              scoutWatchList: state.scoutWatchList.filter(id => id !== targetPlayerId),
+            };
+          }
+        }
+      }
+    }
+
     set({
       pendingStoryline: null,
       players: newPlayers,
+      clubs: newClubs,
       boardConfidence: newConfidence,
       fanMood: newFanMood,
       messages: newMessages,
       activeStorylineChains: updatedChains,
+      ...extraState,
     });
   },
 

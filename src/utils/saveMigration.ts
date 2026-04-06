@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 39;
+const CURRENT_VERSION = 40;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -564,6 +564,13 @@ const migrations: Record<number, MigrationFn> = {
     ...data,
     version: 39,
     tacticalPresets: data.tacticalPresets || [],
+  }),
+
+  // v39 → v40: Track completed storyline chains to prevent re-triggering
+  39: (data) => ({
+    ...data,
+    version: 40,
+    completedStorylineChainIds: data.completedStorylineChainIds || [],
   }),
 };
 
