@@ -201,12 +201,14 @@ const TransferPage = () => {
     setNegotiatingListing(listing);
   };
 
+  const confirmAllOffers = useGameStore(s => s.settings.confirmAllOffers);
+
   const handleRespondToOffer = (offerId: string, accept: boolean) => {
-    // Confirm significant offers (player overall >= 70 or fee >= 5M)
+    // Confirm significant offers (player overall >= 70 or fee >= 5M), or all offers if setting enabled
     if (accept) {
       const offer = incomingOffers.find(o => o.id === offerId);
       const p = offer ? players[offer.playerId] : null;
-      if (p && (p.overall >= SIGNIFICANT_OFFER_OVERALL || (offer && offer.fee >= SIGNIFICANT_OFFER_FEE))) {
+      if (p && (confirmAllOffers || p.overall >= SIGNIFICANT_OFFER_OVERALL || (offer && offer.fee >= SIGNIFICANT_OFFER_FEE))) {
         hapticMedium();
         setConfirmAction({ offerId, accept, playerName: `${p.firstName} ${p.lastName}`, fee: offer!.fee });
         return;

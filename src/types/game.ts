@@ -566,6 +566,9 @@ export interface GameSettings {
   showOverallOnPitch: boolean;
   autoSave: boolean;
   hapticsEnabled: boolean;
+  hidePageHints: boolean;
+  confirmAllOffers: boolean;
+  reducedMotion: boolean;
 }
 
 // ── Team Talk ──
