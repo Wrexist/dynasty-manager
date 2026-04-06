@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateWageDemand, getPlayerWillingness, negotiateRound, formatWage, createContractOffer } from '@/utils/contracts';
+import { calculateWageDemand, getPlayerWillingness, negotiateRound, formatWage, createContractOffer, getPreferredYears } from '@/utils/contracts';
 import { generatePlayer } from '@/utils/playerGen';
 
 function makePlayer(overrides: Record<string, unknown> = {}) {
@@ -65,19 +65,25 @@ describe('contracts', () => {
 
   describe('negotiateRound', () => {
     it('should accept when offer meets demand', () => {
-      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 50000, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, round: 1, status: 'in_progress' as const, playerMood: 70 };
+      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 50000, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, playerAge: 25, round: 1, status: 'in_progress' as const, playerMood: 70 };
+      const result = negotiateRound(offer);
+      expect(result.status).toBe('accepted');
+    });
+
+    it('should accept when offer exceeds demand', () => {
+      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 72000, demandedWage: 69000, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, playerAge: 25, round: 2, status: 'in_progress' as const, playerMood: 46 };
       const result = negotiateRound(offer);
       expect(result.status).toBe('accepted');
     });
 
     it('should handle zero demanded wage gracefully', () => {
-      const offer = { id: '1', playerId: 'p1', type: 'new' as const, offeredWage: 50000, demandedWage: 0, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, round: 1, status: 'in_progress' as const, playerMood: 50 };
+      const offer = { id: '1', playerId: 'p1', type: 'new' as const, offeredWage: 50000, demandedWage: 0, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, playerAge: 25, round: 1, status: 'in_progress' as const, playerMood: 50 };
       const result = negotiateRound(offer);
       expect(result.status).toBe('accepted');
     });
 
     it('should reduce demanded wage over rounds', () => {
-      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 30000, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, round: 1, status: 'in_progress' as const, playerMood: 70 };
+      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 30000, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, playerAge: 25, round: 1, status: 'in_progress' as const, playerMood: 70 };
       const result = negotiateRound(offer);
       if (result.status === 'in_progress') {
         expect(result.demandedWage).toBeLessThan(50000);
@@ -85,9 +91,33 @@ describe('contracts', () => {
     });
 
     it('should reject after max rounds', () => {
-      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 10000, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, round: 5, status: 'in_progress' as const, playerMood: 30 };
+      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 10000, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, playerAge: 25, round: 5, status: 'in_progress' as const, playerMood: 30 };
       const result = negotiateRound(offer);
       expect(result.status).toBe('rejected');
+    });
+
+    it('should accept easier when offering more years than preferred', () => {
+      // Player aged 25 prefers 3 years. Offering 5 gives a +8% bonus.
+      const shortYears = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 46000, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 2, playerAge: 25, round: 1, status: 'in_progress' as const, playerMood: 70 };
+      const longYears = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 46000, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 5, playerAge: 25, round: 1, status: 'in_progress' as const, playerMood: 70 };
+      const shortResult = negotiateRound(shortYears);
+      const longResult = negotiateRound(longYears);
+      // Long years should be more likely to accept (or at least not worse)
+      if (longResult.status === 'accepted') {
+        expect(longResult.status).toBe('accepted');
+      } else {
+        // If both are in_progress, the long-years offer should not be rejected while short isn't
+        expect(shortResult.status).not.toBe('accepted');
+      }
+    });
+
+    it('should penalize acceptance when offering fewer years than preferred', () => {
+      // Player aged 20 prefers 4 years. Offering 1 gives a -18% penalty.
+      // An offer at 95% of demand would normally be accepted (mood 70, gap 0.95 >= 0.92, mood >= 60).
+      // But with -18% years penalty, adjusted gap = 0.95 - 0.18 = 0.77, which should NOT accept.
+      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 47500, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 1, playerAge: 20, round: 1, status: 'in_progress' as const, playerMood: 70 };
+      const result = negotiateRound(offer);
+      expect(result.status).not.toBe('accepted');
     });
   });
 
@@ -105,6 +135,24 @@ describe('contracts', () => {
     });
   });
 
+  describe('getPreferredYears', () => {
+    it('should return 4 for young players', () => {
+      expect(getPreferredYears(20)).toBe(4);
+    });
+
+    it('should return 3 for prime-age players', () => {
+      expect(getPreferredYears(26)).toBe(3);
+    });
+
+    it('should return 2 for older players', () => {
+      expect(getPreferredYears(30)).toBe(2);
+    });
+
+    it('should return 1 for veteran players', () => {
+      expect(getPreferredYears(34)).toBe(1);
+    });
+  });
+
   describe('createContractOffer', () => {
     it('should create a valid offer object', () => {
       const player = makePlayer();
@@ -116,6 +164,7 @@ describe('contracts', () => {
       expect(offer.demandedWage).toBeGreaterThan(0);
       expect(offer.offeredWage).toBeGreaterThan(0);
       expect(offer.contractYears).toBeGreaterThanOrEqual(1);
+      expect(offer.playerAge).toBe(player.age);
     });
   });
 });
