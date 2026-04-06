@@ -220,7 +220,7 @@ const CalendarView = () => {
       entries: allEntries,
       stats: { wins, draws, losses, goalsFor, goalsAgainst, played: wins + draws + losses },
     };
-  }, [fixtures, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup, virtualClubs, playerClubId, clubs, weekCount, internationalTournament, nationalTeam]);
+  }, [fixtures, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup, playerClubId, weekCount, internationalTournament, nationalTeam]);
 
   // Recent form (last 5 league results)
   const recentForm = useMemo(() => {

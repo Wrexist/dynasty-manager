@@ -13,10 +13,11 @@ import { SAVE_INDICATOR_MS, XP_GLOW_MS } from '@/config/ui';
 
 export function TopBar() {
   const {
-    season, week, totalWeeks, playerClubId, clubs, leagueTable,
+    season, week, playerClubId, clubs, leagueTable,
     currentScreen, previousScreen, managerProgression, gameMode, careerManager,
+    messages,
   } = useGameStore(useShallow(s => ({
-    season: s.season, week: s.week, totalWeeks: s.totalWeeks,
+    season: s.season, week: s.week,
     playerClubId: s.playerClubId, clubs: s.clubs, leagueTable: s.leagueTable,
     currentScreen: s.currentScreen, previousScreen: s.previousScreen,
     managerProgression: s.managerProgression, gameMode: s.gameMode, careerManager: s.careerManager,

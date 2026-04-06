@@ -5,7 +5,7 @@ import {
   GROWTH_DISCIPLINE_PER_CLEAN_MATCH, MOD_DISCIPLINE_CARDS, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH,
   MOD_SCOUTING_SPEED, JOB_MARKET_REFRESH_WEEKS, STAT_MAX, MOTM_CHECK_INTERVAL, MOTM_MIN_MATCHES,
   REP_PROMOTION, REP_RELEGATION, REP_OVERACHIEVE_BONUS, REP_UNDERACHIEVE_PENALTY,
-  REP_WIN, REP_DRAW, REP_LOSS, REP_TITLE, REP_CUP_WIN, REP_SACKING,
+  REP_WIN, REP_DRAW, REP_LOSS, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
   FORCED_RETIREMENT_UNEMPLOYED_WEEKS,
   PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING,
 } from '@/config/managerCareer';
@@ -1648,7 +1648,7 @@ function finalizeSeason(
         // Title won
         if (latestHistory.position === 1) {
           cm.titlesWon += 1;
-          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_TITLE);
+          cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_TITLE);
           if (cm.careerHistory.length > 0) {
             cm.careerHistory = cm.careerHistory.map(e =>
               e.endSeason === null ? { ...e, titlesWon: e.titlesWon + 1 } : e
@@ -1659,40 +1659,40 @@ function finalizeSeason(
         // Cup win
         if (cs.cup.winner === cs.playerClubId) {
           cm.cupsWon += 1;
-          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CUP_WIN);
+          cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_CUP_WIN);
         }
 
         // League Cup win
         if (cs.leagueCup?.winner === cs.playerClubId) {
           cm.cupsWon += 1;
           cm.leagueCupsWon = (cm.leagueCupsWon || 0) + 1;
-          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_LEAGUE_CUP_WIN);
+          cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_LEAGUE_CUP_WIN);
         }
 
         // Champions Cup win / continental progress
         if (cs.championsCup?.winnerId === cs.playerClubId) {
           cm.cupsWon += 1;
           cm.continentalCupsWon = (cm.continentalCupsWon || 0) + 1;
-          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CHAMPIONS_CUP_WIN);
+          cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_CHAMPIONS_CUP_WIN);
         } else if (cs.championsCup && !cs.championsCup.playerEliminated) {
           // Advanced past group stage
-          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CONTINENTAL_GROUP);
+          cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_CONTINENTAL_GROUP);
           // Bonus per knockout round reached
           const knockoutRounds = ['R16', 'QF', 'SF', 'F'];
           const reached = knockoutRounds.indexOf(cs.championsCup.currentRound || '');
-          if (reached >= 0) cm.reputationScore = Math.min(1000, cm.reputationScore + (reached + 1) * REP_CONTINENTAL_KNOCKOUT);
+          if (reached >= 0) cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + (reached + 1) * REP_CONTINENTAL_KNOCKOUT);
         }
 
         // Shield Cup win / continental progress
         if (cs.shieldCup?.winnerId === cs.playerClubId) {
           cm.cupsWon += 1;
           cm.continentalCupsWon = (cm.continentalCupsWon || 0) + 1;
-          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_SHIELD_CUP_WIN);
+          cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_SHIELD_CUP_WIN);
         } else if (cs.shieldCup && !cs.shieldCup.playerEliminated) {
-          cm.reputationScore = Math.min(1000, cm.reputationScore + REP_CONTINENTAL_GROUP);
+          cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_CONTINENTAL_GROUP);
           const knockoutRounds = ['R16', 'QF', 'SF', 'F'];
           const reached = knockoutRounds.indexOf(cs.shieldCup.currentRound || '');
-          if (reached >= 0) cm.reputationScore = Math.min(1000, cm.reputationScore + (reached + 1) * REP_CONTINENTAL_KNOCKOUT);
+          if (reached >= 0) cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + (reached + 1) * REP_CONTINENTAL_KNOCKOUT);
         }
 
         // Promotion/relegation reputation
@@ -1703,20 +1703,20 @@ function finalizeSeason(
           // Promotion: finished in top auto-promotion slots (position <= teamCount - replacedSlots is safe, but top 2-3 = promoted)
           if (replacedSlots > 0 && latestHistory.position <= Math.min(3, replacedSlots)) {
             cm.promotionsWon += 1;
-            cm.reputationScore = Math.min(1000, cm.reputationScore + REP_PROMOTION);
+            cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_PROMOTION);
           }
           // Relegation: finished in bottom replacedSlots
           if (replacedSlots > 0 && latestHistory.position > teamCount - replacedSlots) {
-            cm.reputationScore = Math.max(0, cm.reputationScore + REP_RELEGATION);
+            cm.reputationScore = Math.max(REP_MIN, cm.reputationScore + REP_RELEGATION);
           }
         }
 
         // Overachievement / underachievement
         const expectedPos = getExpectedPosition(cs.clubs[cs.playerClubId]?.reputation || 3);
         if (latestHistory.position < expectedPos) {
-          cm.reputationScore = Math.min(1000, cm.reputationScore + (expectedPos - latestHistory.position) * REP_OVERACHIEVE_BONUS);
+          cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + (expectedPos - latestHistory.position) * REP_OVERACHIEVE_BONUS);
         } else if (latestHistory.position > expectedPos) {
-          cm.reputationScore = Math.max(0, cm.reputationScore + (expectedPos - latestHistory.position) * Math.abs(REP_UNDERACHIEVE_PENALTY));
+          cm.reputationScore = Math.max(REP_MIN, cm.reputationScore + (expectedPos - latestHistory.position) * Math.abs(REP_UNDERACHIEVE_PENALTY));
         }
 
         // Contract bonus tracking
@@ -1754,14 +1754,14 @@ function finalizeSeason(
         // Manager of the Season (overachievement ≥ 3 positions)
         if (expectedPos - latestHistory.position >= 3) {
           cm.awardsWon = [...cm.awardsWon, { type: 'manager_of_season', season, divisionId: cs.playerDivision }];
-          cm.reputationScore = Math.min(1000, cm.reputationScore + 15);
+          cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + 15);
         }
       }
 
       // Handle sacking in career mode
       if (latestHistory?.boardVerdict === 'sacked') {
         cm.sackedCount += 1;
-        cm.reputationScore = Math.max(0, cm.reputationScore + REP_SACKING);
+        cm.reputationScore = Math.max(REP_MIN, cm.reputationScore + REP_SACKING);
         cm.careerHistory = cm.careerHistory.map(e =>
           e.endSeason === null ? { ...e, endSeason: cs.season, reason: 'sacked' as const } : e
         );
@@ -3737,7 +3737,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             }).length;
             if (wins / recentMatches.length >= 0.75) {
               cm.awardsWon = [...cm.awardsWon, { type: 'manager_of_month', season, week: newWeek, divisionId: careerState.playerDivision }];
-              cm.reputationScore = Math.min(1000, cm.reputationScore + 5);
+              cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + 5);
               careerMessages = addMsg(careerMessages, {
                 week: newWeek, season, type: 'general',
                 title: 'Manager of the Month!',
@@ -3910,7 +3910,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       if (postMatch.gameMode === 'career' && postMatch.careerManager) {
         const cm = { ...postMatch.careerManager };
         const repDelta = processed.won ? REP_WIN : processed.lost ? REP_LOSS : REP_DRAW;
-        cm.reputationScore = Math.max(0, Math.min(1000, cm.reputationScore + repDelta));
+        cm.reputationScore = Math.max(REP_MIN, Math.min(REP_MAX, cm.reputationScore + repDelta));
 
         cm.reputationTier = calculateReputationTier(cm.reputationScore);
         set({ careerManager: cm });
