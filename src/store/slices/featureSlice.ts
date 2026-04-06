@@ -1,6 +1,6 @@
 import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats, TransferTalk } from '@/types/game';
 import { MOD_MEDIA_PRESS, MOD_MOTIVATION_MORALE, GROWTH_MEDIA_PER_CONFERENCE, STAT_MAX } from '@/config/managerCareer';
-import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP } from '@/config/gameBalance';
+import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP, TOTAL_WEEKS } from '@/config/gameBalance';
 import { grantXP } from '@/utils/managerPerks';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
@@ -8,6 +8,9 @@ import { createContractOffer, negotiateRound, formatWage } from '@/utils/contrac
 import { CHALLENGES } from '@/data/challenges';
 import { createEmptyRecords } from '@/utils/records';
 import { buildTransferTalk } from '@/utils/transferTalk';
+import { getFarewellSummary } from '@/utils/playerNarratives';
+import { getStarPlayerMerch } from '@/utils/merchandise';
+import { STAR_PLAYER_SALE_DIP_WEEKS } from '@/config/merchandise';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -188,63 +191,96 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     // ── Star Player Transfer Saga: Final step real consequences ──
     if (chainId === 'star-player-transfer-saga' && stepIdx === 3 && targetPlayerId && club) {
       const player = newPlayers[targetPlayerId];
-      if (player && player.clubId === state.playerClubId) {
-        if (optionIndex === 1) {
-          // "Accept a record fee" — actually sell the player
-          const saleFee = Math.round(player.value * 1.5);
-          club.playerIds = club.playerIds.filter(id => id !== targetPlayerId);
-          club.lineup = club.lineup.filter(id => id !== targetPlayerId);
-          club.subs = club.subs.filter(id => id !== targetPlayerId);
-          club.budget += saleFee;
-          club.wageBill -= player.wage;
+      if (!player || player.clubId !== state.playerClubId) {
+        // Player already left the club mid-saga — inform the user
+        const pName = player ? `${player.firstName} ${player.lastName}` : 'The star player';
+        newMessages = addMsg(newMessages, {
+          week: state.week, season: state.season, type: 'general',
+          title: 'Saga Concluded',
+          body: `${pName} has already left the club. The transfer saga concludes without further action.`,
+        });
+      } else if (optionIndex === 1) {
+        // "Accept a record fee" — actually sell the player
+        const saleFee = Math.round(player.value * 1.5);
+        club.playerIds = club.playerIds.filter(id => id !== targetPlayerId);
+        club.lineup = club.lineup.filter(id => id !== targetPlayerId);
+        club.subs = club.subs.filter(id => id !== targetPlayerId);
+        if (club.setPieceTakerId === targetPlayerId) club.setPieceTakerId = undefined;
+        if (club.penaltyTakerId === targetPlayerId) club.penaltyTakerId = undefined;
+        club.budget += saleFee;
+        club.wageBill -= player.wage;
 
-          // Find a buyer club (AI club in a higher or same division, not the player's club)
-          const allClubs = Object.values(state.clubs).filter(c => c.id !== state.playerClubId);
-          const buyerClub = allClubs.length > 0
-            ? allClubs[Math.floor(Math.random() * allClubs.length)]
-            : null;
+        // Find a buyer club (random AI club, not the player's club)
+        const allClubs = Object.values(state.clubs).filter(c => c.id !== state.playerClubId);
+        const buyerClub = allClubs.length > 0
+          ? allClubs[Math.floor(Math.random() * allClubs.length)]
+          : null;
 
-          if (buyerClub) {
-            const buyer = { ...buyerClub };
-            buyer.playerIds = [...buyer.playerIds, targetPlayerId];
-            buyer.wageBill += player.wage;
-            newClubs[buyer.id] = buyer;
-            newPlayers[targetPlayerId] = { ...player, clubId: buyer.id, listedForSale: false };
+        if (buyerClub) {
+          const buyer = { ...buyerClub };
+          buyer.playerIds = [...buyer.playerIds, targetPlayerId];
+          buyer.wageBill += player.wage;
+          newClubs[buyer.id] = buyer;
+          newPlayers[targetPlayerId] = { ...player, clubId: buyer.id, listedForSale: false };
 
-            newMessages = addMsg(newMessages, {
-              week: state.week, season: state.season, type: 'transfer',
-              title: `${player.lastName} Sold!`,
-              body: `${player.firstName} ${player.lastName} has been sold to ${buyer.name} for a record fee of £${(saleFee / 1e6).toFixed(1)}M.`,
-              playerId: targetPlayerId,
-            });
-          } else {
-            // No buyer found — sell to "foreign club" (remove from game)
-            newPlayers[targetPlayerId] = { ...player, clubId: '' };
-            newMessages = addMsg(newMessages, {
-              week: state.week, season: state.season, type: 'transfer',
-              title: `${player.lastName} Sold!`,
-              body: `${player.firstName} ${player.lastName} has been sold abroad for a record fee of £${(saleFee / 1e6).toFixed(1)}M.`,
-              playerId: targetPlayerId,
-            });
-          }
+          newMessages = addMsg(newMessages, {
+            week: state.week, season: state.season, type: 'transfer',
+            title: `${player.lastName} Sold!`,
+            body: `${player.firstName} ${player.lastName} has been sold to ${buyer.name} for a record fee of £${(saleFee / 1e6).toFixed(1)}M.`,
+            playerId: targetPlayerId,
+          });
+        } else {
+          // No buyer found — sell to "foreign club" (remove from game)
+          newPlayers[targetPlayerId] = { ...player, clubId: '' };
+          newMessages = addMsg(newMessages, {
+            week: state.week, season: state.season, type: 'transfer',
+            title: `${player.lastName} Sold!`,
+            body: `${player.firstName} ${player.lastName} has been sold abroad for a record fee of £${(saleFee / 1e6).toFixed(1)}M.`,
+            playerId: targetPlayerId,
+          });
+        }
 
-          extraState = {
-            transferMarket: state.transferMarket.filter(l => l.playerId !== targetPlayerId),
-            shortlist: state.shortlist.filter(id => id !== targetPlayerId),
-            scoutWatchList: state.scoutWatchList.filter(id => id !== targetPlayerId),
-            incomingOffers: state.incomingOffers.filter(o => o.playerId !== targetPlayerId),
-            seasonTransfersSold: [...(state.seasonTransfersSold || []), { playerName: `${player.firstName} ${player.lastName}`, fee: saleFee }],
-            managerStats: { ...state.managerStats, totalEarned: state.managerStats.totalEarned + saleFee },
-          };
-        } else if (optionIndex === 2) {
-          // "Loan him out" — actually loan the player
+        // Farewell check for long-serving players
+        const farewell = getFarewellSummary(player, state.season, player.joinedSeason);
+        const farewellEntry = farewell.shouldShow
+          ? { playerId: targetPlayerId, playerName: `${player.firstName} ${player.lastName}`, seasonsServed: farewell.seasonsServed, stats: farewell.stats }
+          : null;
+
+        // Merchandise dip when star player sold
+        let merchUpdate: Partial<GameState> = {};
+        const starPlayers = getStarPlayerMerch(club, state.players);
+        if (starPlayers.some(sp => sp.playerId === targetPlayerId)) {
+          const currentDip = state.merchandise?.starPlayerDip || 0;
+          merchUpdate = { merchandise: { ...state.merchandise, starPlayerDip: Math.max(currentDip, STAR_PLAYER_SALE_DIP_WEEKS) } };
+        }
+
+        extraState = {
+          transferMarket: state.transferMarket.filter(l => l.playerId !== targetPlayerId),
+          shortlist: state.shortlist.filter(id => id !== targetPlayerId),
+          scoutWatchList: state.scoutWatchList.filter(id => id !== targetPlayerId),
+          incomingOffers: state.incomingOffers.filter(o => o.playerId !== targetPlayerId),
+          seasonTransfersSold: [...(state.seasonTransfersSold || []), { playerName: `${player.firstName} ${player.lastName}`, fee: saleFee }],
+          managerStats: { ...state.managerStats, totalEarned: state.managerStats.totalEarned + saleFee },
+          ...(farewellEntry ? { pendingFarewell: [...state.pendingFarewell, farewellEntry] } : {}),
+          ...merchUpdate,
+        };
+      } else if (optionIndex === 2) {
+        // "Loan him out" — actually loan the player (only if transfer window open)
+        if (!state.transferWindowOpen) {
+          newMessages = addMsg(newMessages, {
+            week: state.week, season: state.season, type: 'transfer',
+            title: `${player.lastName}'s Loan Falls Through`,
+            body: `The loan move for ${player.firstName} ${player.lastName} collapsed — the transfer window is closed.`,
+            playerId: targetPlayerId,
+          });
+        } else {
           const allClubs = Object.values(state.clubs).filter(c => c.id !== state.playerClubId);
           const destClub = allClubs.length > 0
             ? allClubs[Math.floor(Math.random() * allClubs.length)]
             : null;
 
           if (destClub) {
-            const remainingWeeks = Math.max(10, 46 - state.week);
+            const remainingWeeks = Math.max(4, TOTAL_WEEKS - state.week);
             const wageSplit = 50;
             const loanWageShare = Math.round(player.wage * wageSplit / 100);
 
@@ -271,6 +307,8 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
             club.playerIds = club.playerIds.filter(id => id !== targetPlayerId);
             club.lineup = club.lineup.filter(id => id !== targetPlayerId);
             club.subs = club.subs.filter(id => id !== targetPlayerId);
+            if (club.setPieceTakerId === targetPlayerId) club.setPieceTakerId = undefined;
+            if (club.penaltyTakerId === targetPlayerId) club.penaltyTakerId = undefined;
             club.wageBill -= loanWageShare;
 
             const dest = { ...destClub };

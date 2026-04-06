@@ -324,12 +324,16 @@ const InboxPage = () => {
               const chainDef = STORYLINE_CHAINS.find(c => c.id === chain.chainId);
               const totalSteps = chainDef?.steps.length || 0;
               const targetPlayer = chain.targetPlayerId ? players[chain.targetPlayerId] : null;
+              const playerDeparted = chain.targetPlayerId && !targetPlayer;
               return (
                 <div key={chain.chainId} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-foreground truncate">{chainDef?.name || chain.chainId}</p>
                     {targetPlayer && (
                       <p className="text-[10px] text-amber-400 truncate">Featuring: {targetPlayer.firstName} {targetPlayer.lastName}</p>
+                    )}
+                    {playerDeparted && (
+                      <p className="text-[10px] text-muted-foreground/60 truncate">Player departed</p>
                     )}
                     <p className="text-[10px] text-muted-foreground">Step {chain.currentStep + 1} of {totalSteps}</p>
                   </div>

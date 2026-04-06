@@ -2025,6 +2025,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       weeklyDigest: null,
       pendingStoryline: null,
       activeStorylineChains: [],
+      completedStorylineChainIds: [],
       pendingFarewell: [],
       sponsorDeals: generateStarterDeals(pcInit.reputation, 1),
       sponsorOffers: [],
@@ -2948,7 +2949,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           let targetPlayerId: string | undefined;
           if (chainDef.id === 'star-player-transfer-saga') {
             const starPlayer = squadPlayers
-              .filter(p => p.overall >= 75)
+              .filter(p => p.overall >= 75 && !p.injured && !p.onLoan && !p.wantsToLeave && !p.listedForSale)
               .sort((a, b) => b.overall - a.overall)[0];
             if (starPlayer) targetPlayerId = starPlayer.id;
           }
@@ -4639,6 +4640,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sessionStats: state.sessionStats,
       pendingStoryline: state.pendingStoryline,
       activeStorylineChains: state.activeStorylineChains,
+      completedStorylineChainIds: state.completedStorylineChainIds,
       preMatchLeaguePosition: state.preMatchLeaguePosition,
       lastMatchXPGain: state.lastMatchXPGain,
       weeklyDigest: state.weeklyDigest,
@@ -4834,6 +4836,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         weeklyDigest: data.weeklyDigest || null,
         pendingStoryline: data.pendingStoryline || null,
         activeStorylineChains: data.activeStorylineChains || [],
+        completedStorylineChainIds: data.completedStorylineChainIds || [],
         preMatchLeaguePosition: data.preMatchLeaguePosition ?? 10,
         lastMatchXPGain: data.lastMatchXPGain ?? 0,
         scoutWatchList: data.scoutWatchList || [],
