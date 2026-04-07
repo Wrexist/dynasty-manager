@@ -251,6 +251,7 @@ export interface GameState {
   revealNextPenaltyKick: () => void;
   skipPenaltyShootout: () => void;
   clearMatchResult: () => void;
+  loadMatchForReview: (week: number) => void;
   cleanupAbandonedMatch: () => void;
   makeMatchSub: (outId: string, inId: string) => void;
   setTeamTalk: (talk: TeamTalkType) => void;

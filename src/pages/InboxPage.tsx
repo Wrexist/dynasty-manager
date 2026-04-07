@@ -106,6 +106,7 @@ const InboxPage = () => {
   const markMessageRead = useGameStore((s) => s.markMessageRead);
   const markAllRead = useGameStore((s) => s.markAllRead);
   const setScreen = useGameStore((s) => s.setScreen);
+  const loadMatchForReview = useGameStore((s) => s.loadMatchForReview);
   const openTransferTalk = useGameStore((s) => s.openTransferTalk);
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
   const [unreadOnly, setUnreadOnly] = useState(false);
@@ -433,7 +434,7 @@ const InboxPage = () => {
                               </button>
                             ) : action ? (
                               <button
-                                onClick={(e) => { e.stopPropagation(); setScreen(action.screen); }}
+                                onClick={(e) => { e.stopPropagation(); if (action.screen === 'match-review') loadMatchForReview(msg.week); setScreen(action.screen); }}
                                 className={cn('flex items-center gap-1 text-[10px] font-semibold transition-colors', colors.iconText)}
                               >
                                 {action.label} <ExternalLink className="w-3 h-3" />

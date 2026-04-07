@@ -14,7 +14,7 @@ interface PostMatchPopupProps {
 }
 
 export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
-  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players } = useGameStore(
+  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players, virtualClubs } = useGameStore(
     useShallow(s => ({
       currentMatchResult: s.currentMatchResult,
       clubs: s.clubs,
@@ -25,6 +25,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
       managerProgression: s.managerProgression,
       matchPlayerRatings: s.matchPlayerRatings,
       players: s.players,
+      virtualClubs: s.virtualClubs,
     }))
   );
 
@@ -39,8 +40,8 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
   const lost = goalsFor < goalsAgainst;
 
 
-  const homeClub = clubs[currentMatchResult.homeClubId];
-  const awayClub = clubs[currentMatchResult.awayClubId];
+  const homeClub = clubs[currentMatchResult.homeClubId] || (virtualClubs?.[currentMatchResult.homeClubId] ? { id: currentMatchResult.homeClubId, name: virtualClubs[currentMatchResult.homeClubId].name, shortName: virtualClubs[currentMatchResult.homeClubId].shortName, color: virtualClubs[currentMatchResult.homeClubId].color, secondaryColor: virtualClubs[currentMatchResult.homeClubId].secondaryColor } : null);
+  const awayClub = clubs[currentMatchResult.awayClubId] || (virtualClubs?.[currentMatchResult.awayClubId] ? { id: currentMatchResult.awayClubId, name: virtualClubs[currentMatchResult.awayClubId].name, shortName: virtualClubs[currentMatchResult.awayClubId].shortName, color: virtualClubs[currentMatchResult.awayClubId].color, secondaryColor: virtualClubs[currentMatchResult.awayClubId].secondaryColor } : null);
 
   // Current league position
   const currentEntry = leagueTable.find(e => e.clubId === playerClubId);

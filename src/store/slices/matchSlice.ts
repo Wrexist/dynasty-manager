@@ -1,5 +1,5 @@
 import type { GameState } from '../storeTypes';
-import type { TeamTalkType, PenaltyKick, MatchShout, ShoutType } from '@/types/game';
+import type { TeamTalkType, PenaltyKick, MatchShout, ShoutType, Match } from '@/types/game';
 import { MAX_SUBSTITUTIONS, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH } from '@/config/matchEngine';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -20,6 +20,67 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   matchShouts: [] as MatchShout[],
 
   clearMatchResult: () => set({ currentMatchResult: null, halfTimeState: null, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null, penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, matchShouts: [] }),
+
+  /** Load a historical match result for review (e.g. from inbox click). */
+  loadMatchForReview: (week: number) => {
+    const state = get();
+    const pid = state.playerClubId;
+
+    // 1. League fixtures (full Match objects with events)
+    const leagueMatch = state.fixtures.find(
+      m => m.week === week && m.played && (m.homeClubId === pid || m.awayClubId === pid)
+    );
+    if (leagueMatch) { set({ currentMatchResult: leagueMatch }); return; }
+
+    // Helper to build a basic Match from cup/tournament tie data
+    const buildMatch = (homeClubId: string, awayClubId: string, homeGoals: number, awayGoals: number, penaltyShootout?: { home: number; away: number }): Match => ({
+      id: `review-${week}-${homeClubId}-${awayClubId}`,
+      week, homeClubId, awayClubId, played: true, homeGoals, awayGoals, events: [],
+      ...(penaltyShootout ? { penaltyShootout } : {}),
+    });
+
+    // 2. Dynasty Cup
+    const cupTie = state.cup?.ties?.find(t => t.week === week && t.played && (t.homeClubId === pid || t.awayClubId === pid));
+    if (cupTie) { set({ currentMatchResult: buildMatch(cupTie.homeClubId, cupTie.awayClubId, cupTie.homeGoals, cupTie.awayGoals, cupTie.penaltyShootout) }); return; }
+
+    // 3. League Cup
+    const lcTie = state.leagueCup?.ties?.find(t => t.week === week && t.played && (t.homeClubId === pid || t.awayClubId === pid));
+    if (lcTie) { set({ currentMatchResult: buildMatch(lcTie.homeClubId, lcTie.awayClubId, lcTie.homeGoals, lcTie.awayGoals, lcTie.penaltyShootout) }); return; }
+
+    // 4. Continental tournaments (group + knockout)
+    for (const tourney of [state.championsCup, state.shieldCup]) {
+      if (!tourney) continue;
+      for (const group of tourney.groups || []) {
+        for (const m of group.matches || []) {
+          if (m.week === week && m.played && (m.homeClubId === pid || m.awayClubId === pid)) {
+            set({ currentMatchResult: buildMatch(m.homeClubId, m.awayClubId, m.homeGoals, m.awayGoals) });
+            return;
+          }
+        }
+      }
+      for (const tie of tourney.knockoutTies || []) {
+        if (tie.homeClubId !== pid && tie.awayClubId !== pid) continue;
+        if (tie.leg1Played && tie.week1 === week) {
+          set({ currentMatchResult: buildMatch(tie.homeClubId, tie.awayClubId, tie.leg1HomeGoals, tie.leg1AwayGoals) });
+          return;
+        }
+        if (tie.leg2Played && tie.week2 === week) {
+          set({ currentMatchResult: buildMatch(tie.awayClubId, tie.homeClubId, tie.leg2HomeGoals, tie.leg2AwayGoals, tie.penaltyShootout) });
+          return;
+        }
+      }
+    }
+
+    // 5. Super cups
+    for (const sc of [state.domesticSuperCup, state.continentalSuperCup]) {
+      if (sc && sc.played && sc.week === week && (sc.homeClubId === pid || sc.awayClubId === pid)) {
+        set({ currentMatchResult: buildMatch(sc.homeClubId, sc.awayClubId, sc.homeGoals, sc.awayGoals, sc.penaltyShootout) });
+        return;
+      }
+    }
+
+    // Not found — leave currentMatchResult as-is (MatchReview shows "No match to review")
+  },
 
   useShout: (type: ShoutType, minute: number) => {
     const state = get();

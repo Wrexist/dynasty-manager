@@ -240,7 +240,7 @@ const MatchReview = () => {
                     {g.type === 'own_goal' && <span className="text-amber-400"> (OG)</span>}
                     {g.type === 'goal' && assister && <span className="text-muted-foreground"> (ast. {assister.lastName})</span>}
                   </span>
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clubs[g.clubId]?.color }} />
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clubs[g.clubId]?.color || virtualClubs?.[g.clubId]?.color }} />
                 </div>
               );
             })}
@@ -531,7 +531,7 @@ const MatchReview = () => {
         }
 
         const opponentId = nextFixture.homeClubId === playerClubId ? nextFixture.awayClubId : nextFixture.homeClubId;
-        const opponent = clubs[opponentId];
+        const opponent = clubs[opponentId] || (virtualClubs?.[opponentId] ? { id: opponentId, name: virtualClubs[opponentId].name, shortName: virtualClubs[opponentId].shortName, color: virtualClubs[opponentId].color, secondaryColor: virtualClubs[opponentId].secondaryColor, stadiumName: '' } : null);
         const isNextHome = nextFixture.homeClubId === playerClubId;
         if (!opponent) return null;
 
