@@ -2,9 +2,9 @@ import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
-import { NATIONS } from '@/data/nations';
+import { NATIONS, NATION_STARS } from '@/data/nations';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import type { ManagerTraitId, ManagerAppearance, JobOffer } from '@/types/game';
@@ -261,38 +261,109 @@ const ManagerCreation = () => {
 
             {/* Step: Nationality */}
             {step === 'nationality' && (
-              <div className="space-y-3 pb-20">
-                <div className="relative mb-3">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <div className="space-y-5 pb-20">
+                {/* Search */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
                   <input
                     type="text"
                     value={nationSearch}
                     onChange={e => setNationSearch(e.target.value)}
                     placeholder="Search nations..."
-                    className="w-full bg-muted/30 border border-border/50 rounded-lg pl-9 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+                    className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-card/60 backdrop-blur-xl border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
                   />
+                  {nationSearch && (
+                    <button
+                      type="button"
+                      onClick={() => setNationSearch('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
+
+                {/* Nation list by confederation */}
                 {Object.entries(nationsByConfederation).map(([conf, nations]) => (
                   <div key={conf}>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1.5 px-1">
-                      {CONFEDERATION_LABELS[conf] || conf}
-                    </p>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {nations.map(nation => (
-                        <button
-                          key={nation.name}
-                          onClick={() => setNationality(nation.name)}
-                          className={cn(
-                            'flex items-center gap-2 px-3 py-2 rounded-lg text-left transition-all text-xs',
-                            nationality === nation.name
-                              ? 'bg-primary/20 border border-primary/30 text-foreground'
-                              : 'bg-card/40 border border-border/30 text-muted-foreground hover:border-border/50',
-                          )}
-                        >
-                          <FlagIcon nationality={nation.name} size={18} />
-                          <span className="truncate">{nation.name}</span>
-                        </button>
-                      ))}
+                    <div className="flex items-center gap-2 mb-3 px-1">
+                      <h3 className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest whitespace-nowrap">
+                        {CONFEDERATION_LABELS[conf] || conf}
+                      </h3>
+                      <div className="flex-1 h-px bg-border/30" />
+                      <span className="text-[10px] text-muted-foreground/50 font-medium tabular-nums">
+                        {nations.length}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {nations.map((nation, i) => {
+                        const stars = NATION_STARS[nation.name] || [];
+                        const isSelected = nationality === nation.name;
+                        return (
+                          <motion.div
+                            key={nation.name}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: i * 0.02, duration: 0.25 }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => setNationality(nation.name)}
+                              className={cn(
+                                'relative overflow-hidden rounded-xl border cursor-pointer w-full text-left',
+                                'active:scale-[0.98] transition-all duration-200 p-3',
+                                'bg-card/40 backdrop-blur-xl',
+                                isSelected
+                                  ? 'ring-2 ring-primary border-primary/30 bg-primary/5'
+                                  : 'border-border/30 hover:border-border/60 hover:bg-card/60'
+                              )}
+                            >
+                              {/* Top row: Flag + Name + Badges */}
+                              <div className="flex items-center gap-3">
+                                <FlagIcon nationality={nation.name} size={32} className="rounded-sm shadow-sm" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-[10px] font-medium text-muted-foreground bg-white/5 rounded px-1.5 py-0.5">
+                                      #{nation.baseRanking} FIFA
+                                    </span>
+                                    {nation.baseRanking <= 10 && (
+                                      <span className="text-[10px] font-medium text-primary bg-primary/10 rounded px-1.5 py-0.5">
+                                        Top 10
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                {isSelected && (
+                                  <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
+                                    <Check className="w-3.5 h-3.5 text-primary-foreground" />
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Star players */}
+                              {stars.length > 0 && (
+                                <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-border/20">
+                                  {stars.map((player) => (
+                                    <div key={player.name} className="flex-1 min-w-0">
+                                      <p className="text-[11px] text-foreground/80 font-medium truncate">{player.name}</p>
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="text-[10px] text-muted-foreground/60">{player.position}</span>
+                                        <span className={cn(
+                                          'text-[10px] font-bold',
+                                          player.rating >= 90 ? 'text-emerald-400' :
+                                          player.rating >= 85 ? 'text-primary' :
+                                          player.rating >= 80 ? 'text-amber-400' : 'text-muted-foreground'
+                                        )}>{player.rating}</span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </button>
+                          </motion.div>
+                        );
+                      })}
                     </div>
                   </div>
                 ))}
