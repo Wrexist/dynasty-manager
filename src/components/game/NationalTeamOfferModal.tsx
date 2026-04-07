@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useGameStore } from '@/store/gameStore';
 import { getNation } from '@/data/nations';
-import { FlagIcon } from '@/components/game/FlagIcon';
+import { getFlagUrl, getFlag } from '@/utils/nationality';
 
 export function NationalTeamOfferModal() {
   const showNationalTeamOffer = useGameStore(s => s.showNationalTeamOffer);
@@ -61,10 +61,33 @@ export function NationalTeamOfferModal() {
                 transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.15 }}
               >
                 <div
-                  className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg border-2 border-white/10"
+                  className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg border-2 border-white/10"
                   style={{ backgroundColor: nation?.color || '#333' }}
                 >
-                  <FlagIcon nationality={managerNationality} size={48} />
+                  {(() => {
+                    const url = getFlagUrl(managerNationality, 160);
+                    if (!url) {
+                      return (
+                        <div className="w-full h-full flex items-center justify-center text-4xl">
+                          {getFlag(managerNationality)}
+                        </div>
+                      );
+                    }
+                    return (
+                      <img
+                        src={url}
+                        alt={managerNationality}
+                        className="w-full h-full object-cover"
+                        loading="eager"
+                        onError={(e) => {
+                          const span = document.createElement('span');
+                          span.textContent = getFlag(managerNationality);
+                          span.className = 'text-4xl flex items-center justify-center w-full h-full';
+                          (e.target as HTMLElement).replaceWith(span);
+                        }}
+                      />
+                    );
+                  })()}
                 </div>
               </motion.div>
 
