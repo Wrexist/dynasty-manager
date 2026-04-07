@@ -124,7 +124,7 @@ export function generateTournament(
 }
 
 /** Simulate a single international match between two nations (AI vs AI or with player nation) */
-export function simulateInternationalMatch(
+function simulateInternationalMatch(
   homeNation: string,
   awayNation: string,
 ): { homeGoals: number; awayGoals: number } {

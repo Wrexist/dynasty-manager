@@ -10,7 +10,7 @@ import type { MonetizationState, ProductId, CosmeticCategory, AdRewardType, Subs
 import { COSMETIC_ITEMS, AD_REWARD_LIMITS, STARTER_KIT_WINDOW_MS, PRO_PRODUCT_IDS } from '@/config/monetization';
 
 /** Check if a subscription has expired */
-export function isSubscriptionExpired(sub: SubscriptionInfo): boolean {
+function isSubscriptionExpired(sub: SubscriptionInfo): boolean {
   if (!sub.expiresAt) return false; // lifetime never expires
   return new Date(sub.expiresAt) < new Date();
 }

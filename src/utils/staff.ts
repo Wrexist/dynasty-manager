@@ -12,7 +12,7 @@ import {
 const FIRST_NAMES = ['James', 'Carlos', 'Marco', 'Stefan', 'Pierre', 'Antonio', 'Rui', 'Hans', 'Igor', 'Luis', 'Erik', 'Sergio', 'Fabio', 'Nuno', 'Andre'];
 const LAST_NAMES = ['Silva', 'Martinez', 'Weber', 'Rossi', 'Dupont', 'Andersen', 'Kowalski', 'Fernandez', 'Santos', 'Nielsen', 'Bianchi', 'Mueller', 'Costa', 'Pereira', 'Garcia'];
 
-export function generateStaffMember(role: StaffRole, quality: number): StaffMember {
+function generateStaffMember(role: StaffRole, quality: number): StaffMember {
   return {
     id: crypto.randomUUID(),
     firstName: pick(FIRST_NAMES),
