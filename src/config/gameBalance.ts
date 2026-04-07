@@ -501,6 +501,8 @@ export const WORLD_CUP_TEAMS_PER_GROUP = 4;
 export const CONTINENTAL_CUP_GROUPS = 4;
 /** National team squad size */
 export const NATIONAL_SQUAD_SIZE = 23;
+/** Target size for national team candidate pool (generated on job acceptance) */
+export const NT_CANDIDATE_POOL_TARGET = 50;
 /** Morale boost for players called up to national team */
 export const NATIONAL_CALLUP_MORALE_BOOST = 5;
 /** Fitness cost per international match */

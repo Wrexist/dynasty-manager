@@ -2,6 +2,8 @@ import type { FormationType, NationalTeamState, InternationalTournamentState, Na
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
+import { generateNationalTeamPool, autoSelectNationalSquad } from '@/utils/international';
+import { selectBestLineup } from '@/utils/playerGen';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -66,12 +68,31 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     if (!offer || offer.status !== 'pending' || !state.managerNationality) return;
 
     const nationality = state.managerNationality;
+    const formation = '4-3-3' as FormationType;
+
+    // Generate national team candidate pool so there are enough eligible players
+    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season);
+    const allPlayers = { ...state.players, ...poolPlayers };
+
+    // Auto-select best 23-man squad from all eligible players
+    const squad = autoSelectNationalSquad(nationality, allPlayers);
+
+    // Auto-select best lineup and subs from the squad
+    const squadPlayerObjs = squad.map(id => allPlayers[id]).filter(Boolean);
+    let lineup: string[] = [];
+    let subs: string[] = [];
+    if (squadPlayerObjs.length >= 7) {
+      const best = selectBestLineup(squadPlayerObjs, formation);
+      lineup = best.lineup.map(p => p.id);
+      subs = best.subs.map(p => p.id).slice(0, 7);
+    }
+
     const nationalTeam: NationalTeamState = {
       nationality,
-      squad: [],
-      lineup: [],
-      subs: [],
-      formation: '4-3-3' as FormationType,
+      squad,
+      lineup,
+      subs,
+      formation,
       fifaRanking: 25,
       caps: {},
       internationalGoals: {},
@@ -81,7 +102,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     const messages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'national_team',
       title: `${nationality} National Team — Appointed!`,
-      body: `You have accepted the position of ${nationality} national team manager. Your squad will be selected before the next international tournament.`,
+      body: `You have accepted the position of ${nationality} national team manager. Your ${squad.length}-man squad has been selected — review and edit it on the National Team page.`,
     });
 
     const careerTimeline = state.gameMode === 'career' ? [
@@ -106,6 +127,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
       nationalTeam,
       nationalTeamOffer: null,
       showNationalTeamOffer: false,
+      players: allPlayers,
       messages,
       careerTimeline,
       careerManager,

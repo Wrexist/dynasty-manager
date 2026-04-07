@@ -44,7 +44,7 @@ function pickNationality(leagueId?: string): string {
   return pick(ALL_NATIONALITIES);
 }
 
-function pickNameForNationality(nationality: string): { firstName: string; lastName: string } {
+export function pickNameForNationality(nationality: string): { firstName: string; lastName: string } {
   const pool = NATIONALITY_NAME_POOLS[nationality];
   if (pool) {
     return { firstName: pick(pool.firstNames), lastName: pick(pool.lastNames) };
