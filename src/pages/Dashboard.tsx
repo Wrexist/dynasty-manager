@@ -368,6 +368,13 @@ const Dashboard = () => {
     });
   }, [club, fixtures, playerClubId, unread, weeklyObjectives, players, transferWindowOpen, scouting.assignments, scouting.reports.length, shortlist.length, week, completedCoachTaskIds]);
   const completedCoachTasks = coachTasks.filter(task => task.completed).length;
+  const allCoachTasksDone = coachTasks.length > 0 && completedCoachTasks === coachTasks.length;
+  const [coachCollapsed, setCoachCollapsed] = useState(false);
+
+  // Auto-collapse when all tasks complete
+  useEffect(() => {
+    if (allCoachTasksDone) setCoachCollapsed(true);
+  }, [allCoachTasksDone]);
 
   const objectivesWithProgress = useMemo(() => {
     if (!club) return weeklyObjectives;
@@ -989,53 +996,63 @@ const Dashboard = () => {
       {/* Guided checklist for new careers */}
       {!seasonOver && season <= 2 && coachTasks.length > 0 && (
         <GlassPanel className="p-4 border-primary/20">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
+          <button
+            type="button"
+            onClick={() => setCoachCollapsed(c => !c)}
+            className="w-full flex items-center justify-between mb-2"
+          >
+            <div className="flex items-center gap-1.5">
+              {coachCollapsed ? <ChevronRight className="w-3 h-3 text-primary" /> : <ChevronDown className="w-3 h-3 text-primary" />}
+              <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
+              {allCoachTasksDone && <span className="text-[9px] text-emerald-400 font-bold">&#10003; Complete</span>}
+            </div>
             <span className="text-[10px] text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
-          </div>
-          <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden mb-3">
+          </button>
+          <div className={cn('h-1.5 rounded-full bg-muted/40 overflow-hidden', coachCollapsed ? '' : 'mb-3')}>
             <div
-              className="h-full bg-primary transition-all duration-300"
+              className={cn('h-full transition-all duration-300', allCoachTasksDone ? 'bg-emerald-500' : 'bg-primary')}
               style={{ width: `${Math.round((completedCoachTasks / coachTasks.length) * 100)}%` }}
             />
           </div>
-          <div className="space-y-2">
-            {coachTasks.map((task) => (
-              <div key={task.id} className="relative">
-                <button
-                  type="button"
-                  disabled={!task.screen}
-                  onClick={() => task.screen && setScreen(task.screen)}
-                  className={cn(
-                    'w-full text-left rounded-lg px-3 py-2 border transition-colors',
-                    task.completed
-                      ? 'bg-emerald-500/10 border-emerald-500/30'
-                      : 'bg-muted/20 border-border/40 hover:bg-primary/5'
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={cn(
-                        'text-[9px] font-bold px-1.5 py-0.5 rounded',
-                        task.completed ? 'text-emerald-400/70 bg-emerald-500/10' : 'text-primary/70 bg-primary/10'
-                      )}>
-                        {task.completed ? '✓' : '+'}{task.xpReward} XP
-                      </span>
-                      <span className={cn(
-                        'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
-                        task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
-                      )}>
-                        {task.priority}
-                      </span>
+          {!coachCollapsed && (
+            <div className="space-y-2 mt-3">
+              {coachTasks.map((task) => (
+                <div key={task.id} className="relative">
+                  <button
+                    type="button"
+                    disabled={!task.screen}
+                    onClick={() => task.screen && setScreen(task.screen)}
+                    className={cn(
+                      'w-full text-left rounded-lg px-3 py-2 border transition-colors',
+                      task.completed
+                        ? 'bg-emerald-500/10 border-emerald-500/30'
+                        : 'bg-muted/20 border-border/40 hover:bg-primary/5'
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={cn(
+                          'text-[9px] font-bold px-1.5 py-0.5 rounded',
+                          task.completed ? 'text-emerald-400/70 bg-emerald-500/10' : 'text-primary/70 bg-primary/10'
+                        )}>
+                          {task.completed ? '✓' : '+'}{task.xpReward} XP
+                        </span>
+                        <span className={cn(
+                          'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
+                          task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
+                        )}>
+                          {task.priority}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
-                </button>
-                <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
-              </div>
-            ))}
-          </div>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
+                  </button>
+                  <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
+                </div>
+              ))}
+            </div>
+          )}
         </GlassPanel>
       )}
 
