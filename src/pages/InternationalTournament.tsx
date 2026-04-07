@@ -4,6 +4,8 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { cn } from '@/lib/utils';
 import { Globe, Trophy, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { PAGE_HINTS } from '@/config/ui';
+import { PageHint } from '@/components/game/PageHint';
 
 const PHASE_STEPS = [
   { key: 'group', label: 'Groups' },
@@ -55,6 +57,8 @@ const InternationalTournament = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-5 pb-24 space-y-5">
+      <PageHint screen="internationalTournament" title={PAGE_HINTS.internationalTournament.title} body={PAGE_HINTS.internationalTournament.body} />
+
       {/* Tournament header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -130,7 +134,7 @@ const InternationalTournament = () => {
               key={group.name}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: gi * 0.04 }}
+              transition={{ delay: 0.1 + gi * 0.1 }}
               className="bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl overflow-hidden"
             >
               <div className="px-4 py-2.5 bg-card/60 border-b border-border/20">
@@ -152,8 +156,11 @@ const InternationalTournament = () => {
                   const isPlayer = entry.nationality === managerNationality;
                   const qualifies = i < 2;
                   return (
-                    <div
+                    <motion.div
                       key={entry.nationality}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.15 + gi * 0.1 + i * 0.05 }}
                       className={cn(
                         'grid grid-cols-[1fr_24px_24px_24px_24px_40px_32px] gap-1 py-1.5 text-xs items-center',
                         isPlayer && 'bg-primary/5 -mx-1 px-1 rounded',
@@ -181,7 +188,7 @@ const InternationalTournament = () => {
                       <span className="text-center text-muted-foreground">{entry.lost}</span>
                       <span className="text-center text-muted-foreground">{entry.goalsFor - entry.goalsAgainst >= 0 ? '+' : ''}{entry.goalsFor - entry.goalsAgainst}</span>
                       <span className="text-center font-bold text-foreground">{entry.points}</span>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
@@ -217,6 +224,7 @@ const InternationalTournament = () => {
             </motion.div>
             );
           })}
+
         </div>
       )}
 
@@ -233,7 +241,7 @@ const InternationalTournament = () => {
                 key={round}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: ri * 0.05 }}
+                transition={{ delay: 0.1 + ri * 0.1 }}
                 className="bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl overflow-hidden"
               >
                 <div className="px-4 py-2.5 bg-card/60 border-b border-border/20 flex items-center gap-2">
@@ -251,7 +259,7 @@ const InternationalTournament = () => {
                         key={tie.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: ri * 0.05 + ti * 0.03 }}
+                        transition={{ delay: 0.15 + ri * 0.1 + ti * 0.05 }}
                         className={cn(
                           'flex items-center justify-between py-2 text-sm',
                           isPlayerMatch && 'bg-primary/5 -mx-2 px-2 rounded-lg'
@@ -261,7 +269,8 @@ const InternationalTournament = () => {
                           <FlagIcon nationality={tie.homeNation} size={16} />
                           <span className={cn(
                             'truncate',
-                            isWinner(tie.homeNation) ? 'font-bold text-foreground' : 'text-foreground/70'
+                            isWinner(tie.homeNation) ? 'font-bold text-foreground' :
+                            tie.winnerId && !isWinner(tie.homeNation) ? 'text-foreground/50' : 'text-foreground/70'
                           )}>
                             {tie.homeNation}
                           </span>
@@ -281,7 +290,8 @@ const InternationalTournament = () => {
                         <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
                           <span className={cn(
                             'truncate text-right',
-                            isWinner(tie.awayNation) ? 'font-bold text-foreground' : 'text-foreground/70'
+                            isWinner(tie.awayNation) ? 'font-bold text-foreground' :
+                            tie.winnerId && !isWinner(tie.awayNation) ? 'text-foreground/50' : 'text-foreground/70'
                           )}>
                             {tie.awayNation}
                           </span>

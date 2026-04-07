@@ -6,20 +6,26 @@ import { Shield, Trophy } from 'lucide-react';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
 import type { SuperCupMatch } from '@/types/game';
 
-function SuperCupMatchCard({ match, clubs, playerClubId }: {
+function SuperCupMatchCard({ match, clubs, playerClubId, index }: {
   match: SuperCupMatch;
   clubs: Record<string, { name: string; shortName: string; color: string }>;
   playerClubId: string;
+  index: number;
 }) {
   const home = clubs[match.homeClubId];
   const away = clubs[match.awayClubId];
   const isPlayer = match.homeClubId === playerClubId || match.awayClubId === playerClubId;
 
   return (
-    <div className={cn(
-      'bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-4',
-      isPlayer && 'ring-1 ring-amber-400/40'
-    )}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.15 + index * 0.1 }}
+      className={cn(
+        'bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-4',
+        isPlayer && 'ring-1 ring-amber-400/40'
+      )}
+    >
       <div className="text-center text-[10px] text-muted-foreground mb-3 uppercase tracking-wider">
         {match.type === 'domestic' ? 'Domestic Super Cup' : 'Continental Super Cup'}
       </div>
@@ -81,7 +87,7 @@ function SuperCupMatchCard({ match, clubs, playerClubId }: {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.1 }}
+          transition={{ delay: 0.3 + index * 0.1, type: 'spring', stiffness: 300, damping: 25 }}
           className="mt-3 text-center"
         >
           <div className={cn(
@@ -95,7 +101,7 @@ function SuperCupMatchCard({ match, clubs, playerClubId }: {
           </div>
         </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -121,22 +127,22 @@ const SuperCupPage = () => {
     );
   }
 
-  const cards = [domesticSuperCup, continentalSuperCup].filter(Boolean) as SuperCupMatch[];
-
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
-      <TournamentHeader competition="super_cup" subtitle="Season opener" />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <TournamentHeader competition="super_cup" subtitle="Season opener" />
+      </motion.div>
 
-      {cards.map((match, i) => (
-        <motion.div
-          key={match.type}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: i * 0.1 }}
-        >
-          <SuperCupMatchCard match={match} clubs={clubs} playerClubId={playerClubId} />
-        </motion.div>
-      ))}
+      {domesticSuperCup && (
+        <SuperCupMatchCard match={domesticSuperCup} clubs={clubs} playerClubId={playerClubId} index={0} />
+      )}
+      {continentalSuperCup && (
+        <SuperCupMatchCard match={continentalSuperCup} clubs={clubs} playerClubId={playerClubId} index={1} />
+      )}
     </div>
   );
 };

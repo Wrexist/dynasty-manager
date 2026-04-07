@@ -250,6 +250,10 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
     title: 'Job Market',
     body: 'Browse available managerial positions and apply for clubs that match your reputation. Wait for offers or seek new challenges.',
   },
+  internationalTournament: {
+    title: 'International Tournament',
+    body: 'Your national team competes in a group stage followed by knockout rounds. Advance the tournament week by week — win the final to become world champions!',
+  },
 } as const;
 
 // ── Dashboard Thresholds ──

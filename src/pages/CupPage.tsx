@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getRoundName, getCupWeek, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
 import { cn } from '@/lib/utils';
-import { Trophy, Shield, ChevronRight, ChevronDown, Calendar } from 'lucide-react';
+import { Trophy, Shield, ChevronRight, ChevronDown, Calendar, Target } from 'lucide-react';
 import type { CupRound, CupTie } from '@/types/game';
 import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
@@ -13,7 +13,9 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
   const home = clubs[tie.homeClubId];
   const away = clubs[tie.awayClubId];
   const isPlayerMatch = tie.homeClubId === playerClubId || tie.awayClubId === playerClubId;
-  const winnerId = tie.played ? (tie.homeGoals > tie.awayGoals ? tie.homeClubId : tie.awayClubId) : null;
+  const winnerId = tie.played
+    ? (tie.winnerId || (tie.homeGoals > tie.awayGoals ? tie.homeClubId : tie.awayClubId))
+    : null;
 
   return (
     <div className={cn(
@@ -28,7 +30,8 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
           </div>
           <span className={cn(
             'text-sm truncate',
-            tie.homeClubId === playerClubId ? 'text-primary' : 'text-foreground'
+            tie.homeClubId === playerClubId ? 'text-primary' :
+            winnerId && winnerId !== tie.homeClubId ? 'text-muted-foreground/60' : 'text-foreground'
           )}>
             {home?.shortName || '???'}
           </span>
@@ -37,8 +40,15 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
         {/* Score */}
         <div className="flex items-center gap-1 px-2">
           {tie.played ? (
-            <span className="text-sm font-mono font-bold text-foreground">
-              {tie.homeGoals} - {tie.awayGoals}
+            <span className={cn(
+              'text-sm font-mono font-bold',
+              winnerId === tie.homeClubId ? 'text-emerald-400' : winnerId === tie.awayClubId ? 'text-foreground' : 'text-foreground'
+            )}>
+              {tie.homeGoals}
+              <span className="text-muted-foreground mx-0.5">-</span>
+              <span className={winnerId === tie.awayClubId ? 'text-emerald-400' : ''}>
+                {tie.awayGoals}
+              </span>
             </span>
           ) : (
             <span className="text-xs text-muted-foreground">vs</span>
@@ -49,7 +59,8 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
         <div className={cn('flex-1 flex items-center gap-2 justify-end', winnerId === tie.awayClubId && 'font-bold')}>
           <span className={cn(
             'text-sm truncate',
-            tie.awayClubId === playerClubId ? 'text-primary' : 'text-foreground'
+            tie.awayClubId === playerClubId ? 'text-primary' :
+            winnerId && winnerId !== tie.awayClubId ? 'text-muted-foreground/60' : 'text-foreground'
           )}>
             {away?.shortName || '???'}
           </span>
@@ -58,6 +69,11 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
           </div>
         </div>
       </div>
+      {tie.penaltyShootout && (
+        <div className="text-[10px] text-center text-muted-foreground mt-1">
+          Pens: {tie.penaltyShootout.home}-{tie.penaltyShootout.away}
+        </div>
+      )}
     </div>
   );
 }
@@ -72,18 +88,15 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
   currentWeek: number;
   roundWeek: number;
 }) {
-  // Auto-expand current round and rounds with player matches; collapse completed large rounds
   const playerTie = ties.find(t => t.homeClubId === playerClubId || t.awayClubId === playerClubId);
   const isLargeRound = ties.length > 8;
   const [expanded, setExpanded] = useState(!allPlayed || isCurrent || !!playerTie);
 
-  // Update expanded when round state changes (e.g. round completes)
   useEffect(() => {
     if (allPlayed && !isCurrent && !playerTie) setExpanded(false);
     if (isCurrent) setExpanded(true);
   }, [allPlayed, isCurrent, playerTie]);
 
-  // Player's match always shown at top
   const sortedTies = playerTie
     ? [playerTie, ...ties.filter(t => t.id !== playerTie.id)]
     : ties;
@@ -126,36 +139,41 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
       </button>
 
       <AnimatePresence>
-      {expanded && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="overflow-hidden"
-        >
-        <div className="space-y-2">
-          {(isLargeRound && allPlayed && !isCurrent)
-            ? (
-              <>
-                {playerTie && (
-                  <TieCard tie={playerTie} playerClubId={playerClubId} clubs={clubs} />
-                )}
-                <div className="text-xs text-muted-foreground px-3 py-2 bg-card/30 rounded-lg">
-                  {ties.filter(t => t.played).length} matches completed
-                  {playerTie && ` · Your result: ${playerTie.homeGoals}-${playerTie.awayGoals}`}
-                </div>
-              </>
-            )
-            : sortedTies.map((tie, i) => (
-              <motion.div key={tie.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
-                <TieCard tie={tie} playerClubId={playerClubId} clubs={clubs} />
-              </motion.div>
-            ))
-          }
-        </div>
-        </motion.div>
-      )}
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-2">
+              {(isLargeRound && allPlayed && !isCurrent)
+                ? (
+                  <>
+                    {playerTie && (
+                      <TieCard tie={playerTie} playerClubId={playerClubId} clubs={clubs} />
+                    )}
+                    <div className="text-xs text-muted-foreground px-3 py-2 bg-card/30 rounded-lg">
+                      {ties.filter(t => t.played).length} matches completed
+                      {playerTie && ` · Your result: ${playerTie.homeGoals}-${playerTie.awayGoals}`}
+                    </div>
+                  </>
+                )
+                : sortedTies.map((tie, i) => (
+                  <motion.div
+                    key={tie.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <TieCard tie={tie} playerClubId={playerClubId} clubs={clubs} />
+                  </motion.div>
+                ))
+              }
+            </div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );
@@ -168,6 +186,19 @@ const CupPage = () => {
     playerClubId: s.playerClubId,
     week: s.week,
   })));
+
+  // Progression indicator: count rounds remaining to the final
+  const progressionText = useMemo(() => {
+    if (!cup || cup.eliminated || cup.winner) return null;
+    const currentRound = cup.currentRound;
+    if (!currentRound) return null;
+    const currentIdx = ROUND_ORDER.indexOf(currentRound);
+    const finalIdx = ROUND_ORDER.indexOf('F');
+    if (currentIdx < 0 || finalIdx < 0) return null;
+    const winsToFinal = finalIdx - currentIdx;
+    if (winsToFinal <= 0) return 'Cup Final!';
+    return `${getRoundName(currentRound)} — ${winsToFinal} win${winsToFinal > 1 ? 's' : ''} from the final`;
+  }, [cup]);
 
   if (!cup || !cup.ties.length) {
     return (
@@ -186,8 +217,14 @@ const CupPage = () => {
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
       <PageHint screen="cup" title={PAGE_HINTS.cup.title} body={PAGE_HINTS.cup.body} />
+
       {/* Header */}
-      <div className="flex items-center gap-3">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex items-center gap-3"
+      >
         <div className="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center">
           <Trophy className="w-5 h-5 text-primary" />
         </div>
@@ -203,13 +240,27 @@ const CupPage = () => {
                   : 'Complete'}
           </p>
         </div>
-      </div>
+      </motion.div>
+
+      {/* Progression indicator */}
+      {progressionText && !playerEliminated && !cupWinner && (
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-primary/5 border border-primary/20 rounded-xl p-2.5 flex items-center justify-center gap-2"
+        >
+          <Target className="w-3.5 h-3.5 text-primary shrink-0" />
+          <p className="text-xs text-primary font-medium">{progressionText}</p>
+        </motion.div>
+      )}
 
       {/* Your status banner */}
       {playerEliminated && !cupWinner && (
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.15 }}
           className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 text-center"
         >
           <p className="text-sm text-destructive font-medium">Eliminated from the cup</p>
@@ -229,8 +280,8 @@ const CupPage = () => {
         </motion.div>
       )}
 
-      {/* Rounds — filter out bye ties from display */}
-      {ROUND_ORDER.map((round) => {
+      {/* Rounds */}
+      {ROUND_ORDER.map((round, i) => {
         const ties = cup.ties.filter(t => t.round === round && t.awayClubId !== CUP_BYE_MARKER);
         if (ties.length === 0) return null;
 
@@ -239,17 +290,23 @@ const CupPage = () => {
         const roundWeek = getCupWeek(round as CupRound);
 
         return (
-          <RoundSection
+          <motion.div
             key={round}
-            round={round as CupRound}
-            ties={ties}
-            playerClubId={playerClubId}
-            clubs={clubs}
-            isCurrent={isCurrent}
-            allPlayed={allPlayed}
-            currentWeek={week}
-            roundWeek={roundWeek}
-          />
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 + i * 0.08 }}
+          >
+            <RoundSection
+              round={round as CupRound}
+              ties={ties}
+              playerClubId={playerClubId}
+              clubs={clubs}
+              isCurrent={isCurrent}
+              allPlayed={allPlayed}
+              currentWeek={week}
+              roundWeek={roundWeek}
+            />
+          </motion.div>
         );
       })}
     </div>

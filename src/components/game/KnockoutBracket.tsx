@@ -1,8 +1,8 @@
 import type { ContinentalKnockoutTie, VirtualClub } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { Shield, Trophy } from 'lucide-react';
-import { getKnockoutRoundName } from '@/utils/continental';
 import { motion } from 'framer-motion';
+import { getKnockoutRoundName } from '@/utils/continental';
 
 interface KnockoutBracketProps {
   ties: ContinentalKnockoutTie[];
@@ -50,7 +50,8 @@ function TieCard({ tie, virtualClubs, playerClubId, clubs }: {
         </div>
         <span className={cn(
           'text-xs flex-1 truncate',
-          tie.homeClubId === playerClubId ? 'text-primary' : 'text-foreground'
+          tie.homeClubId === playerClubId ? 'text-primary' :
+          isDecided && tie.winnerId !== tie.homeClubId ? 'text-muted-foreground/60' : 'text-foreground'
         )}>
           {home.shortName}
         </span>
@@ -58,7 +59,7 @@ function TieCard({ tie, virtualClubs, playerClubId, clubs }: {
           {tie.leg1Played && <span className="font-mono text-muted-foreground">{tie.leg1HomeGoals}</span>}
           {tie.leg2Played && !isFinal && <span className="font-mono text-muted-foreground">{tie.leg2AwayGoals}</span>}
           {(tie.leg1Played || tie.leg2Played) && !isFinal && (
-            <span className="font-mono font-bold text-foreground ml-1">({homeAgg})</span>
+            <span className={cn('font-mono font-bold ml-1', tie.winnerId === tie.homeClubId ? 'text-emerald-400' : 'text-foreground')}>({homeAgg})</span>
           )}
         </div>
       </div>
@@ -70,7 +71,8 @@ function TieCard({ tie, virtualClubs, playerClubId, clubs }: {
         </div>
         <span className={cn(
           'text-xs flex-1 truncate',
-          tie.awayClubId === playerClubId ? 'text-primary' : 'text-foreground'
+          tie.awayClubId === playerClubId ? 'text-primary' :
+          isDecided && tie.winnerId !== tie.awayClubId ? 'text-muted-foreground/60' : 'text-foreground'
         )}>
           {away.shortName}
         </span>
@@ -78,7 +80,7 @@ function TieCard({ tie, virtualClubs, playerClubId, clubs }: {
           {tie.leg1Played && <span className="font-mono text-muted-foreground">{tie.leg1AwayGoals}</span>}
           {tie.leg2Played && !isFinal && <span className="font-mono text-muted-foreground">{tie.leg2HomeGoals}</span>}
           {(tie.leg1Played || tie.leg2Played) && !isFinal && (
-            <span className="font-mono font-bold text-foreground ml-1">({awayAgg})</span>
+            <span className={cn('font-mono font-bold ml-1', tie.winnerId === tie.awayClubId ? 'text-emerald-400' : 'text-foreground')}>({awayAgg})</span>
           )}
         </div>
       </div>
@@ -129,7 +131,7 @@ export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, curre
         </motion.div>
       )}
 
-      {rounds.map((round, ri) => {
+      {rounds.map((round, roundIdx) => {
         const roundTies = ties.filter(t => t.round === round);
         if (roundTies.length === 0) return null;
 
@@ -139,9 +141,9 @@ export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, curre
         return (
           <motion.div
             key={round}
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: ri * 0.05 }}
+            transition={{ delay: roundIdx * 0.1 }}
             className="space-y-2"
           >
             <div className="flex items-center gap-2">
@@ -158,8 +160,13 @@ export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, curre
             </div>
 
             <div className={cn('grid gap-2', round === 'F' ? 'grid-cols-1' : 'grid-cols-2')}>
-              {roundTies.map((tie, ti) => (
-                <motion.div key={tie.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: ri * 0.05 + ti * 0.03 }}>
+              {roundTies.map((tie, tieIdx) => (
+                <motion.div
+                  key={tie.id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: roundIdx * 0.1 + tieIdx * 0.05 }}
+                >
                   <TieCard tie={tie} virtualClubs={virtualClubs} playerClubId={playerClubId} clubs={clubs} />
                 </motion.div>
               ))}
