@@ -676,11 +676,21 @@ function processTournamentResult(
     if (allPlayed) {
       if (newCup.currentRound === 'F') {
         const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
-        if (finalTie) { newCup.winner = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId; newCup.currentRound = null; }
+        if (finalTie) {
+          const cupWinnerId = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+          newCup.winner = cupWinnerId; newCup.currentRound = null;
+          awardPrizeMoney(cupWinnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up);
+        }
       } else { Object.assign(newCup, advanceCupRound(newCup)); }
     }
     const isHome = result.homeClubId === playerClubId;
     const playerWon = isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
+    // Award round prize money for winning
+    if (playerWon && newCup.currentRound !== null) {
+      const cupRoundPrize: Record<string, number> = { R1: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r1, R2: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r2, R3: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r3, R4: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r4, QF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_qf, SF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_sf };
+      const round = state.cup.currentRound;
+      if (round) awardPrizeMoney(cupRoundPrize[round] || 0);
+    }
     if (!playerWon) newCup.eliminated = true;
     updates.cup = newCup;
     return { stateUpdates: updates, cleanedPlayers };
@@ -4413,11 +4423,31 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         )};
         const playerWon = (currentMatchResult.homeClubId === playerClubId) ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
         if (!playerWon) newCup.eliminated = true;
+        // Award round prize money
+        if (playerWon) {
+          const cupRoundPrize: Record<string, number> = { R1: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r1, R2: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r2, R3: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r3, R4: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r4, QF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_qf, SF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_sf };
+          const round = state.cup.currentRound;
+          if (round && round !== 'F') {
+            const club = clubs[playerClubId];
+            if (club) {
+              const newBudget = club.budget + (cupRoundPrize[round] || 0);
+              set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: newBudget } } });
+            }
+          }
+        }
         const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
         if (allPlayed) {
           if (newCup.currentRound === 'F') {
             const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
-            if (finalTie) { newCup.winner = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId; newCup.currentRound = null; }
+            if (finalTie) {
+              const cupWinnerId = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+              newCup.winner = cupWinnerId; newCup.currentRound = null;
+              const prize = cupWinnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up;
+              const club = clubs[playerClubId];
+              if (club) {
+                set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + prize } } });
+              }
+            }
           } else { Object.assign(newCup, advanceCupRound(newCup)); }
         }
         set({
@@ -4572,10 +4602,22 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, penaltyShootout } : t
       )};
       if (winnerId !== playerClubId) newCup.eliminated = true;
+      // Award round prize money on pen win
+      if (winnerId === playerClubId) {
+        const cupRoundPrize: Record<string, number> = { R1: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r1, R2: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r2, R3: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r3, R4: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r4, QF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_qf, SF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_sf };
+        const round = state.cup.currentRound;
+        if (round && round !== 'F') {
+          const club = clubs[playerClubId];
+          if (club) set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + (cupRoundPrize[round] || 0) } } });
+        }
+      }
       const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
       if (allPlayed) {
         if (newCup.currentRound === 'F') {
           newCup.winner = winnerId; newCup.currentRound = null;
+          const prize = winnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up;
+          const club = clubs[playerClubId];
+          if (club) set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + prize } } });
         } else { Object.assign(newCup, advanceCupRound(newCup)); }
       }
       set({

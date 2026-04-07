@@ -2,6 +2,7 @@ import type { ContinentalGroup, ContinentalGroupMatch, VirtualClub } from '@/typ
 import { cn } from '@/lib/utils';
 import { Shield, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface GroupTableProps {
   group: ContinentalGroup;
@@ -78,92 +79,116 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
         )}
       </button>
 
-      {expanded && (
-        <div className="px-3 pb-3">
-          {/* Standings table */}
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-muted-foreground border-b border-border/30">
-                <th className="text-left py-1 w-5">#</th>
-                <th className="text-left py-1">Club</th>
-                <th className="text-center py-1 w-6">P</th>
-                <th className="text-center py-1 w-6">W</th>
-                <th className="text-center py-1 w-6">D</th>
-                <th className="text-center py-1 w-6">L</th>
-                <th className="text-center py-1 w-8">GD</th>
-                <th className="text-center py-1 w-7 font-bold">Pts</th>
-              </tr>
-            </thead>
-            <tbody>
-              {group.standings.map((s, idx) => {
-                const info = getClubInfo(s.clubId, clubs, virtualClubs);
-                const isPlayer = s.clubId === playerClubId;
-                const qualifies = idx < 2;
-
-                return (
-                  <tr key={s.clubId} className={cn(
-                    'border-b border-border/10',
-                    isPlayer && 'bg-primary/5',
-                    qualifies && !isPlayer && 'bg-emerald-500/5',
-                  )}>
-                    <td className={cn('py-1.5 font-medium', qualifies ? 'text-emerald-400' : 'text-muted-foreground')}>{idx + 1}</td>
-                    <td className="py-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <ClubBadge color={info.color} size="xs" />
-                        <span className={cn('truncate', isPlayer ? 'text-primary font-bold' : 'text-foreground')}>
-                          {info.shortName}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="text-center text-muted-foreground">{s.played}</td>
-                    <td className="text-center">{s.won}</td>
-                    <td className="text-center text-muted-foreground">{s.drawn}</td>
-                    <td className="text-center text-muted-foreground">{s.lost}</td>
-                    <td className="text-center">
-                      <span className={cn({
-                        'text-emerald-400': s.goalsFor - s.goalsAgainst > 0,
-                        'text-destructive': s.goalsFor - s.goalsAgainst < 0,
-                        'text-muted-foreground': s.goalsFor - s.goalsAgainst === 0,
-                      })}>
-                        {s.goalsFor - s.goalsAgainst > 0 ? '+' : ''}{s.goalsFor - s.goalsAgainst}
-                      </span>
-                    </td>
-                    <td className="text-center font-bold">{s.points}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          {/* Toggle matches */}
-          <button
-            onClick={() => setShowMatches(!showMatches)}
-            className="mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+      <AnimatePresence>
+        {expanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="overflow-hidden"
           >
-            {showMatches ? 'Hide matches' : 'Show matches'}
-          </button>
+            <div className="px-3 pb-3">
+              {/* Standings table */}
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-muted-foreground border-b border-border/30">
+                    <th className="text-left py-1 w-5">#</th>
+                    <th className="text-left py-1">Club</th>
+                    <th className="text-center py-1 w-6">P</th>
+                    <th className="text-center py-1 w-6">W</th>
+                    <th className="text-center py-1 w-6">D</th>
+                    <th className="text-center py-1 w-6">L</th>
+                    <th className="text-center py-1 w-8">GD</th>
+                    <th className="text-center py-1 w-7 font-bold">Pts</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {group.standings.map((s, idx) => {
+                    const info = getClubInfo(s.clubId, clubs, virtualClubs);
+                    const isPlayer = s.clubId === playerClubId;
+                    const qualifies = idx < 2;
 
-          {showMatches && (
-            <div className="mt-2 space-y-0.5">
-              {[1, 2, 3, 4, 5, 6].map(md => {
-                const mdMatches = group.matches.filter(m => m.matchday === md);
-                if (mdMatches.length === 0) return null;
-                const allPlayed = mdMatches.every(m => m.played);
-                return (
-                  <div key={md}>
-                    <div className={cn('text-[10px] font-medium py-1', md === currentMatchday ? 'text-primary' : 'text-muted-foreground')}>
-                      Matchday {md} {md === currentMatchday && !allPlayed ? '(Current)' : ''}
-                    </div>
-                    {mdMatches.map(m => (
-                      <MatchResult key={m.id} match={m} clubs={clubs} virtualClubs={virtualClubs} playerClubId={playerClubId} />
-                    ))}
-                  </div>
-                );
-              })}
+                    return (
+                      <motion.tr
+                        key={s.clubId}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: idx * 0.06 }}
+                        className={cn(
+                          'border-b border-border/10',
+                          isPlayer && 'bg-primary/5',
+                          qualifies && !isPlayer && 'bg-emerald-500/5',
+                        )}
+                      >
+                        <td className={cn('py-1.5 font-medium', qualifies ? 'text-emerald-400' : 'text-muted-foreground')}>{idx + 1}</td>
+                        <td className="py-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <ClubBadge color={info.color} size="xs" />
+                            <span className={cn('truncate', isPlayer ? 'text-primary font-bold' : 'text-foreground')}>
+                              {info.shortName}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="text-center text-muted-foreground">{s.played}</td>
+                        <td className="text-center">{s.won}</td>
+                        <td className="text-center text-muted-foreground">{s.drawn}</td>
+                        <td className="text-center text-muted-foreground">{s.lost}</td>
+                        <td className="text-center">
+                          <span className={cn({
+                            'text-emerald-400': s.goalsFor - s.goalsAgainst > 0,
+                            'text-destructive': s.goalsFor - s.goalsAgainst < 0,
+                            'text-muted-foreground': s.goalsFor - s.goalsAgainst === 0,
+                          })}>
+                            {s.goalsFor - s.goalsAgainst > 0 ? '+' : ''}{s.goalsFor - s.goalsAgainst}
+                          </span>
+                        </td>
+                        <td className="text-center font-bold">{s.points}</td>
+                      </motion.tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              {/* Toggle matches */}
+              <button
+                onClick={() => setShowMatches(!showMatches)}
+                className="mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+              >
+                {showMatches ? 'Hide matches' : 'Show matches'}
+              </button>
+
+              <AnimatePresence>
+                {showMatches && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden mt-2 space-y-0.5"
+                  >
+                    {[1, 2, 3, 4, 5, 6].map(md => {
+                      const mdMatches = group.matches.filter(m => m.matchday === md);
+                      if (mdMatches.length === 0) return null;
+                      const allPlayed = mdMatches.every(m => m.played);
+                      return (
+                        <div key={md}>
+                          <div className={cn('text-[10px] font-medium py-1', md === currentMatchday ? 'text-primary' : 'text-muted-foreground')}>
+                            Matchday {md} {md === currentMatchday && !allPlayed ? '(Current)' : ''}
+                          </div>
+                          {mdMatches.map(m => (
+                            <MatchResult key={m.id} match={m} clubs={clubs} virtualClubs={virtualClubs} playerClubId={playerClubId} />
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          )}
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

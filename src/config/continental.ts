@@ -77,6 +77,15 @@ export const CONTINENTAL_PRIZE_MONEY = {
   league_cup_runner_up: 100_000,
   domestic_super_cup: 100_000,
   continental_super_cup: 200_000,
+  // Domestic Dynasty Cup
+  dynasty_cup_r1: 10_000,
+  dynasty_cup_r2: 20_000,
+  dynasty_cup_r3: 40_000,
+  dynasty_cup_r4: 75_000,
+  dynasty_cup_qf: 125_000,
+  dynasty_cup_sf: 200_000,
+  dynasty_cup_winner: 500_000,
+  dynasty_cup_runner_up: 200_000,
 } as const;
 
 // ── Reputation Rewards ──
