@@ -415,7 +415,7 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         const avgMental = playerSquadIds.length > 0
           ? playerSquadIds.reduce((sum, id) => sum + (state.players[id]?.attributes?.mental || 55), 0) / playerSquadIds.length
           : 55;
-        const penWinChance = 0.35 + (avgMental / 100) * 0.3; // 0.35 to 0.65 based on mental
+        const penWinChance = 0.35 + (Math.min(100, avgMental) / 100) * 0.3; // 0.35 to 0.65 based on mental
         const homeWins = isHome ? Math.random() < penWinChance : Math.random() >= penWinChance;
         const winScore = 4 + Math.floor(Math.random() * 2); // 4 or 5
         const loseScore = winScore - 1 - Math.floor(Math.random() * 2); // 2-4

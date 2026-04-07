@@ -324,12 +324,12 @@ const NationalTeamPage = () => {
       {nationalTeam.results.length > 0 && (
         <div className="space-y-2">
           <h2 className="text-sm font-bold text-foreground px-1">Recent Results</h2>
-          {nationalTeam.results.slice(-10).reverse().map((result, i) => {
+          {nationalTeam.results.slice(-10).reverse().map((result) => {
             const won = result.goalsFor > result.goalsAgainst;
             const drew = result.goalsFor === result.goalsAgainst;
             return (
               <div
-                key={i}
+                key={`${result.season}-${result.opponent}-${result.round}`}
                 className="flex items-center gap-3 p-3 rounded-xl bg-card/30 border border-border/20"
               >
                 <div className={cn(

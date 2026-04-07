@@ -264,13 +264,14 @@ export function LineupEditor() {
             const slotA = slots[a];
             const slotB = slots[b];
             if (!slotA || !slotB) return null;
+            const idA = lineup[a];
+            const idB = lineup[b];
+            if (!idA || !idB) return null;
             const x1 = 2 + (slotA.x / 100) * 64;
             const y1 = 95 - (slotA.y / 100) * 39;
             const x2 = 2 + (slotB.x / 100) * 64;
             const y2 = 95 - (slotB.y / 100) * 39;
             // Fade lines not connected to selected player
-            const idA = lineup[a];
-            const idB = lineup[b];
             const isRelevant = !selectedId || idA === selectedId || idB === selectedId;
             return (
               <line
