@@ -5,7 +5,7 @@ import { getRoundName, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
 import { LEAGUE_CUP_WEEKS } from '@/config/continental';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
 import { cn } from '@/lib/utils';
-import { Shield, ChevronRight, ChevronDown, Calendar, Award } from 'lucide-react';
+import { Shield, ChevronRight, ChevronDown, Calendar, Award, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CupRound, CupTie } from '@/types/game';
 import { PageHint } from '@/components/game/PageHint';
@@ -204,8 +204,9 @@ const LeagueCupPage = () => {
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-emerald-400/5 border border-emerald-400/20 rounded-xl p-2.5 text-center"
+          className="bg-emerald-400/5 border border-emerald-400/20 rounded-xl p-2.5 flex items-center justify-center gap-2"
         >
+          <Target className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
           <p className="text-xs text-emerald-400 font-medium">{progressionText}</p>
         </motion.div>
       )}

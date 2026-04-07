@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getRoundName, getCupWeek, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
 import { cn } from '@/lib/utils';
-import { Trophy, Shield, ChevronRight, ChevronDown, Calendar } from 'lucide-react';
+import { Trophy, Shield, ChevronRight, ChevronDown, Calendar, Target } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CupRound, CupTie } from '@/types/game';
 import { PAGE_HINTS } from '@/config/ui';
@@ -248,8 +248,9 @@ const CupPage = () => {
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-primary/5 border border-primary/20 rounded-xl p-2.5 text-center"
+          className="bg-primary/5 border border-primary/20 rounded-xl p-2.5 flex items-center justify-center gap-2"
         >
+          <Target className="w-3.5 h-3.5 text-primary shrink-0" />
           <p className="text-xs text-primary font-medium">{progressionText}</p>
         </motion.div>
       )}
