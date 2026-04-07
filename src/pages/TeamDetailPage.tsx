@@ -7,7 +7,7 @@ import { ArrowLeft, Shield, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor } from '@/utils/uiHelpers';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { LEAGUES } from '@/data/league';
 import { getSuffix } from '@/utils/helpers';
 import type { Player, Position } from '@/types/game';
@@ -245,7 +245,7 @@ const TeamDetailPage = () => {
                     </div>
                   </div>
                   {/* Flag */}
-                  <span className="text-base shrink-0">{getFlag(p.nationality)}</span>
+                  <FlagIcon nationality={p.nationality} size={18} />
                   {/* Contract */}
                   <span className={cn(
                     'text-[10px] font-medium w-8 text-right shrink-0',

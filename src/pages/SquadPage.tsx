@@ -14,7 +14,7 @@ import { successToast } from '@/utils/gameToast';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { POSITION_FILTERS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 
 const SUBNAV_ITEMS = [
   { screen: 'squad' as const, label: 'Squad' },
@@ -418,7 +418,7 @@ const SquadPage = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5">
                     <p className="font-semibold text-foreground text-sm truncate">
-                      {getFlag(player.nationality)} {player.firstName[0]}. {player.lastName}
+                      <FlagIcon nationality={player.nationality} size={16} /> {player.firstName[0]}. {player.lastName}
                     </p>
                     {player.growthDelta > 0 && (
                       <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />

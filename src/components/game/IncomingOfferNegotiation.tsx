@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { IncomingOffer } from '@/types/game';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { INCOMING_NEGOTIATE_MAX_MULTIPLIER } from '@/config/transfers';
 import {
   X, Banknote, Users, Shield, ArrowRight, RotateCcw, Handshake, XCircle,
@@ -165,7 +165,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
-                      <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · {getFlag(player.nationality)} {player.nationality}</p>
+                      <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Bid from <span className="text-foreground">{buyerClub.name}</span>
                       </p>

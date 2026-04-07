@@ -6,7 +6,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { LOAN_REQUEST_MIN_DURATION, LOAN_REQUEST_MAX_DURATION } from '@/config/transfers';
 import {
   X, Repeat2, ArrowRight, RotateCcw, Handshake, XCircle, ToggleLeft, ToggleRight,
@@ -172,7 +172,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
-                      <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · {getFlag(player.nationality)} {player.nationality}</p>
+                      <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         From <span className="text-foreground">{ownerClub.name}</span>
                       </p>
@@ -453,7 +453,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                         {player.firstName} {player.lastName}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {player.position} · {player.age}y · {getFlag(player.nationality)} {player.nationality}
+                        {player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Welcome on loan to <span className="text-foreground font-medium">{userClub.name}</span>

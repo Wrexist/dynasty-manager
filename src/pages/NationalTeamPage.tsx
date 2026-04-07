@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { getNation } from '@/data/nations';
 import { cn } from '@/lib/utils';
 import { Globe, Users, Trophy, ChevronRight, CheckCircle, XCircle, Calendar, TrendingUp } from 'lucide-react';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { Button } from '@/components/ui/button';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
@@ -41,7 +41,7 @@ const NationalTeamPage = () => {
                 className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
                 style={{ backgroundColor: nation?.color || '#333' }}
               >
-                <span className="text-4xl leading-none">{getFlag(managerNationality)}</span>
+                <FlagIcon nationality={managerNationality} size={48} />
               </div>
               <div>
                 <p className="text-xs text-primary font-semibold uppercase tracking-wider">National Team Offer</p>
@@ -162,7 +162,7 @@ const NationalTeamPage = () => {
             className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
             style={{ backgroundColor: nation?.color || '#333' }}
           >
-            <span className="text-4xl leading-none">{getFlag(managerNationality)}</span>
+            <FlagIcon nationality={managerNationality} size={48} />
           </div>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-foreground font-display">{managerNationality}</h1>

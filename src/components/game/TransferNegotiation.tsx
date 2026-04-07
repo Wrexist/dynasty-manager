@@ -8,7 +8,7 @@ import { TransferListing } from '@/types/game';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { formatMoney } from '@/utils/helpers';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import {
   X, TrendingUp, TrendingDown,
   ArrowRight, RotateCcw, Handshake, XCircle, Star, AlertTriangle, Wallet, Users, Unlock,
@@ -184,7 +184,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display text-base leading-tight">{player.firstName} {player.lastName}</p>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        {player.position} · {player.age}y · {getFlag(player.nationality)} {player.nationality}
+                        {player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}
                       </p>
                       <p className="text-[11px] text-muted-foreground/70 mt-0.5">
                         From <span className="text-foreground/80">{sellerClub.name}</span>
@@ -408,7 +408,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
-                      <p className="text-[11px] text-muted-foreground">{player.position} · {player.age}y · {getFlag(player.nationality)}</p>
+                      <p className="text-[11px] text-muted-foreground">{player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /></p>
                       <p className="text-[11px] text-emerald-400/80 mt-0.5">Welcome to {buyerClub.name}</p>
                     </div>
                   </div>

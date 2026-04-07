@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { cn } from '@/lib/utils';
 import { Globe, Trophy, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -162,7 +162,7 @@ const InternationalTournament = () => {
                       )}
                     >
                       <span className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-sm shrink-0 leading-none">{getFlag(entry.nationality)}</span>
+                        <FlagIcon nationality={entry.nationality} size={14} />
                         <span className={cn('truncate', isPlayer ? 'font-bold text-foreground' : 'text-foreground/80')}>
                           {entry.nationality}
                         </span>
@@ -200,7 +200,7 @@ const InternationalTournament = () => {
                       )}
                     >
                       <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                        <span className="text-xs shrink-0 leading-none">{getFlag(fix.homeNation)}</span>
+                        <FlagIcon nationality={fix.homeNation} size={14} />
                         <span className="truncate">{fix.homeNation}</span>
                       </div>
                       <span className="font-mono px-2 shrink-0">
@@ -208,7 +208,7 @@ const InternationalTournament = () => {
                       </span>
                       <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
                         <span className="truncate text-right">{fix.awayNation}</span>
-                        <span className="text-xs shrink-0 leading-none">{getFlag(fix.awayNation)}</span>
+                        <FlagIcon nationality={fix.awayNation} size={14} />
                       </div>
                     </div>
                   );
@@ -258,7 +258,7 @@ const InternationalTournament = () => {
                         )}
                       >
                         <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-sm shrink-0 leading-none">{getFlag(tie.homeNation)}</span>
+                          <FlagIcon nationality={tie.homeNation} size={16} />
                           <span className={cn(
                             'truncate',
                             isWinner(tie.homeNation) ? 'font-bold text-foreground' : 'text-foreground/70'
@@ -285,7 +285,7 @@ const InternationalTournament = () => {
                           )}>
                             {tie.awayNation}
                           </span>
-                          <span className="text-sm shrink-0 leading-none">{getFlag(tie.awayNation)}</span>
+                          <FlagIcon nationality={tie.awayNation} size={16} />
                         </div>
                       </motion.div>
                     );
@@ -309,7 +309,7 @@ const InternationalTournament = () => {
             <Trophy className="w-10 h-10 text-primary mx-auto mb-2" />
           </motion.div>
           <h2 className="text-lg font-bold text-foreground font-display">
-            {getFlag(tournament.winner)} {tournament.winner}
+            <FlagIcon nationality={tournament.winner} size={20} /> {tournament.winner}
           </h2>
           <p className="text-sm text-primary font-medium">
             {tournament.winner === managerNationality ? 'Your Nation — Champions!' : 'Champions!'}

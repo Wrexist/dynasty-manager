@@ -6,7 +6,7 @@ import { NATIONS } from '@/data/nations';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import type { ManagerTraitId, ManagerAppearance, JobOffer } from '@/types/game';
 import { ManagerTraitPicker } from '@/components/game/ManagerTraitPicker';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
@@ -289,7 +289,7 @@ const ManagerCreation = () => {
                               : 'bg-card/40 border border-border/30 text-muted-foreground hover:border-border/50',
                           )}
                         >
-                          <span className="text-base">{getFlag(nation.name)}</span>
+                          <FlagIcon nationality={nation.name} size={18} />
                           <span className="truncate">{nation.name}</span>
                         </button>
                       ))}

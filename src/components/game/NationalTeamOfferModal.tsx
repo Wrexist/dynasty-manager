@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { useGameStore } from '@/store/gameStore';
 import { getNation } from '@/data/nations';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 
 export function NationalTeamOfferModal() {
   const showNationalTeamOffer = useGameStore(s => s.showNationalTeamOffer);
@@ -19,8 +19,6 @@ export function NationalTeamOfferModal() {
   if (!open || !managerNationality) return null;
 
   const nation = getNation(managerNationality);
-  const flag = getFlag(managerNationality);
-
   return (
     <AnimatePresence>
       {open && (
@@ -66,7 +64,7 @@ export function NationalTeamOfferModal() {
                   className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg border-2 border-white/10"
                   style={{ backgroundColor: nation?.color || '#333' }}
                 >
-                  <span className="text-5xl leading-none">{flag}</span>
+                  <FlagIcon nationality={managerNationality} size={48} />
                 </div>
               </motion.div>
 

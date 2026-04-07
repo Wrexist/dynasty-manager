@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/types/game';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight, Wand2, ArrowUp } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
@@ -636,7 +636,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                     {selectedOutPlayer.overall}
                   </div>
                   <p className="text-xs font-semibold text-foreground truncate">
-                    {getFlag(selectedOutPlayer.nationality)} {selectedOutPlayer.lastName}
+                    <FlagIcon nationality={selectedOutPlayer.nationality} size={14} /> {selectedOutPlayer.lastName}
                   </p>
                   <p className="text-[10px] text-muted-foreground">{selectedOutPlayer.position}</p>
                   <p className="text-[9px] text-muted-foreground mt-0.5">FIT {Math.round(selectedOutPlayer.fitness)}%</p>
@@ -654,7 +654,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                     {selectedInPlayer.overall}
                   </div>
                   <p className="text-xs font-semibold text-foreground truncate">
-                    {getFlag(selectedInPlayer.nationality)} {selectedInPlayer.lastName}
+                    <FlagIcon nationality={selectedInPlayer.nationality} size={14} /> {selectedInPlayer.lastName}
                   </p>
                   <p className="text-[10px] text-muted-foreground">{selectedInPlayer.position}</p>
                   <p className="text-[9px] text-muted-foreground mt-0.5">FIT {Math.round(selectedInPlayer.fitness)}%</p>

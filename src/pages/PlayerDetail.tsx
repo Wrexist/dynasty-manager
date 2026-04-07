@@ -13,7 +13,7 @@ import { motion } from 'framer-motion';
 import { getPlayerNarratives } from '@/utils/playerNarratives';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getMoodColor, getMoodLabel } from '@/utils/uiHelpers';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel, getTrainingMultiplier } from '@/utils/personality';
 import { darken, lighten } from '@/utils/colorUtils';
@@ -221,7 +221,7 @@ const PlayerDetail = () => {
           <div className="flex-1">
             <p className="text-xl font-black text-foreground">{player.firstName} {player.lastName}</p>
             <p className="text-sm text-muted-foreground">
-              {player.position} · {player.age} · {getFlag(player.nationality)} {player.nationality}
+              {player.position} · {player.age} · <FlagIcon nationality={player.nationality} size={16} /> {player.nationality}
               {player.potential > player.overall && <span className="text-primary"> · Pot {player.potential}</span>}
             </p>
             <div className="flex items-center gap-1.5 mt-1">
