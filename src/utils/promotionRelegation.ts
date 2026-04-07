@@ -288,7 +288,7 @@ export function generateReplacementClub(season: number, leagueId: LeagueId): { c
   const league = LEAGUES.find(l => l.id === leagueId);
 
   const id = `replaced-${leagueId}-${season}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
-  const baseQuality = league?.qualityTier === 1 ? 62 : league?.qualityTier === 2 ? 55 : league?.qualityTier === 3 ? 50 : 45;
+  const baseQuality = league?.qualityTier === 1 ? 58 : league?.qualityTier === 2 ? 48 : league?.qualityTier === 3 ? 40 : 33;
 
   const clubData: ClubData = {
     id,

@@ -136,10 +136,10 @@ export const MARKET_REPLENISH_BATCH_RANGE = 6; // 5-10 players per batch
 // ── Division Quality Ranges (overall rating) ──
 // Used when generating market players to match realistic quality per division
 export const DIVISION_QUALITY_RANGES: Record<string, { min: number; max: number; avgPrice: number }> = {
-  'div-1': { min: 68, max: 88, avgPrice: 15_000_000 },
-  'div-2': { min: 60, max: 78, avgPrice: 5_000_000 },
-  'div-3': { min: 52, max: 70, avgPrice: 1_500_000 },
-  'div-4': { min: 45, max: 64, avgPrice: 400_000 },
+  'div-1': { min: 65, max: 88, avgPrice: 15_000_000 },
+  'div-2': { min: 50, max: 75, avgPrice: 5_000_000 },
+  'div-3': { min: 40, max: 65, avgPrice: 1_500_000 },
+  'div-4': { min: 30, max: 50, avgPrice: 400_000 },
 };
 
 // Division weight for how many players from each tier appear on the market

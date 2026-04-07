@@ -13,7 +13,7 @@ export const YOUNG_POTENTIAL_GAP = 15;
 export const OLD_POTENTIAL_GAP = 5;
 
 // ── Attribute Generation ──
-export const PROFILE_ATTRIBUTE_VARIANCE = 10;
+export const PROFILE_ATTRIBUTE_VARIANCE = 6;
 
 // ── Position Weights for Overall Calculation ──
 // Order: [pace, shooting, passing, defending, physical, mental]

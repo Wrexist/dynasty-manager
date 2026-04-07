@@ -2,11 +2,26 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ChevronDown, Search, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { LEAGUES } from '@/data/league';
 import { PageHint } from '@/components/game/PageHint';
+
+const TIER_LABELS: Record<number, string> = {
+  1: 'Top Leagues',
+  2: 'Strong Leagues',
+  3: 'Mid-Tier Leagues',
+  4: 'Developing Leagues',
+};
+
+const TIER_ORDER = [1, 2, 3, 4];
+
+const leaguesByTier = TIER_ORDER.map(tier => ({
+  tier,
+  label: TIER_LABELS[tier],
+  leagues: LEAGUES.filter(l => l.qualityTier === tier).sort((a, b) => a.name.localeCompare(b.name)),
+})).filter(g => g.leagues.length > 0);
 
 const LeagueTable = () => {
   const { divisionTables, divisionFixtures, divisionClubs, clubs, players, playerClubId, playerDivision, week, totalWeeks } = useGameStore(useShallow((s) => ({
@@ -25,7 +40,11 @@ const LeagueTable = () => {
   const selectPlayer = useGameStore((s) => s.selectPlayer);
   const [tab, setTab] = useState<'table' | 'fixtures' | 'stats'>('table');
   const [browseWeek, setBrowseWeek] = useState(week);
-  const selectedDiv = playerDivision || 'eng';
+  const [selectedDiv, setSelectedDiv] = useState(playerDivision || 'eng');
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const isPlayerLeague = selectedDiv === playerDivision;
 
   const playerRowRef = useRef<HTMLTableRowElement>(null);
   const scrolledRef = useRef(false);
@@ -81,6 +100,25 @@ const LeagueTable = () => {
     }
   };
 
+  // Filtered leagues for picker search
+  const filteredTiers = useMemo(() => {
+    if (!searchQuery.trim()) return leaguesByTier;
+    const q = searchQuery.toLowerCase();
+    return leaguesByTier.map(group => ({
+      ...group,
+      leagues: group.leagues.filter(l =>
+        l.name.toLowerCase().includes(q) || l.country.toLowerCase().includes(q) || l.shortName.toLowerCase().includes(q)
+      ),
+    })).filter(g => g.leagues.length > 0);
+  }, [searchQuery]);
+
+  const handleLeagueSelect = (leagueId: string) => {
+    setSelectedDiv(leagueId);
+    setPickerOpen(false);
+    setSearchQuery('');
+    scrolledRef.current = false;
+  };
+
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <button onClick={() => setScreen('dashboard')} className="flex items-center gap-1 text-muted-foreground text-sm">
@@ -93,7 +131,102 @@ const LeagueTable = () => {
         body="Track standings, browse weekly fixtures, and see top scorers and assist leaders. Green zones mean promotion, red zones mean relegation. Tap any team to view their details."
       />
 
-      <h2 className="text-lg font-bold text-foreground font-display">{currentLeague?.name || 'League'}</h2>
+      {/* League Selector */}
+      <button
+        onClick={() => setPickerOpen(!pickerOpen)}
+        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-card/60 backdrop-blur-xl border border-border/50 active:bg-muted/40 transition-colors"
+      >
+        <img
+          src={`https://flagcdn.com/w40/${currentLeague?.countryCode?.toLowerCase() || 'gb'}.png`}
+          alt={currentLeague?.country || ''}
+          className="w-6 h-4 rounded-[2px] object-cover shrink-0"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
+        <div className="flex-1 text-left min-w-0">
+          <p className="text-sm font-bold text-foreground font-display truncate">{currentLeague?.name || 'League'}</p>
+          <p className="text-[10px] text-muted-foreground">{currentLeague?.country}{isPlayerLeague ? ' \u2022 Your League' : ''}</p>
+        </div>
+        <ChevronDown className={cn('w-4 h-4 text-muted-foreground transition-transform', pickerOpen && 'rotate-180')} />
+      </button>
+
+      {/* League Picker Dropdown */}
+      <AnimatePresence>
+        {pickerOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <GlassPanel className="p-3 space-y-3">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search leagues..."
+                  className="w-full pl-8 pr-8 py-2 text-sm bg-muted/50 rounded-lg border border-border/30 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <X className="w-3.5 h-3.5 text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+
+              {/* League List */}
+              <div className="max-h-72 overflow-y-auto space-y-3 -mx-1 px-1">
+                {filteredTiers.map(group => (
+                  <div key={group.tier}>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">{group.label}</p>
+                    <div className="space-y-0.5">
+                      {group.leagues.map(league => {
+                        const isActive = league.id === selectedDiv;
+                        const isPlayerHome = league.id === playerDivision;
+                        return (
+                          <button
+                            key={league.id}
+                            onClick={() => handleLeagueSelect(league.id)}
+                            className={cn(
+                              'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors',
+                              isActive ? 'bg-primary/15 border border-primary/30' : 'hover:bg-muted/40 active:bg-muted/60'
+                            )}
+                          >
+                            <img
+                              src={`https://flagcdn.com/w40/${league.countryCode.toLowerCase()}.png`}
+                              alt={league.country}
+                              className="w-5 h-3.5 rounded-[1px] object-cover shrink-0"
+                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                            />
+                            <span className={cn(
+                              'text-xs font-medium flex-1 truncate',
+                              isActive ? 'text-primary' : 'text-foreground'
+                            )}>
+                              {league.name}
+                            </span>
+                            {isPlayerHome && (
+                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-bold shrink-0">
+                                YOU
+                              </span>
+                            )}
+                            <span className="text-[10px] text-muted-foreground shrink-0">{league.teamCount}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                {filteredTiers.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">No leagues found</p>
+                )}
+              </div>
+            </GlassPanel>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tabs */}
       <div className="flex gap-2">
@@ -207,10 +340,12 @@ const LeagueTable = () => {
                 <span className="text-[10px] text-muted-foreground">Replaced ({currentLeague.replacedSlots} club{currentLeague.replacedSlots > 1 ? 's' : ''})</span>
               </div>
             )}
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-sm bg-foreground/30" />
-              <span className="text-[10px] text-muted-foreground">Your team</span>
-            </div>
+            {isPlayerLeague && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-foreground/30" />
+                <span className="text-[10px] text-muted-foreground">Your team</span>
+              </div>
+            )}
           </div>
         </GlassPanel>
       )}
