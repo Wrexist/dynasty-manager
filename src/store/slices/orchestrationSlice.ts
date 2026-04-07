@@ -1642,12 +1642,13 @@ function finalizeSeason(
     saveToHall(hallEntry);
   }
 
-  // Career mode: check if the FA should offer the national team job
+  // Career mode: check if the FA should re-offer the national team job (after sacking)
   {
     const cs = get();
     if (cs.gameMode === 'career' && cs.careerManager && cs.managerNationality
-      && !cs.nationalTeam && !cs.nationalTeamOffer) {
-      const threshold = cs.careerManager.nationalTeamSacked ? NT_JOB_REHIRE_REPUTATION : NT_JOB_MIN_REPUTATION;
+      && !cs.nationalTeam && !cs.nationalTeamOffer
+      && cs.careerManager.nationalTeamSacked) {
+      const threshold = NT_JOB_REHIRE_REPUTATION;
       const upcomingTournament = getTournamentForSeason(season + 1) || getTournamentForSeason(season + 2);
       if (cs.careerManager.reputationScore >= threshold && upcomingTournament) {
         const expWeek = cs.week + NT_JOB_OFFER_DURATION_WEEKS;
@@ -1668,7 +1669,7 @@ function finalizeSeason(
           title: `${cs.managerNationality} FA: National Team Position`,
           body: `The ${cs.managerNationality} Football Association has been impressed by your achievements in club football. They would like to offer you the position of ${cs.managerNationality} national team manager.`,
         });
-        set({ nationalTeamOffer: offer, messages: offerMsg });
+        set({ nationalTeamOffer: offer, showNationalTeamOffer: true, messages: offerMsg });
       }
     }
   }
@@ -4769,6 +4770,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       internationalTournament: state.internationalTournament,
       managerNationality: state.managerNationality,
       nationalTeamOffer: state.nationalTeamOffer,
+      showNationalTeamOffer: state.showNationalTeamOffer,
       // Cups & Continental
       leagueCup: state.leagueCup,
       championsCup: state.championsCup,

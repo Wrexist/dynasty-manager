@@ -1,6 +1,7 @@
 import type { FormationType, NationalTeamState, InternationalTournamentState, NationalTeamOffer } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
+import { NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -10,6 +11,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
   internationalTournament: null as InternationalTournamentState | null,
   managerNationality: null as string | null,
   nationalTeamOffer: null as NationalTeamOffer | null,
+  showNationalTeamOffer: false,
 
   initNationalTeam: (nationality: string) => {
     _set({
@@ -29,7 +31,33 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
   },
 
   setManagerNationality: (nationality: string) => {
-    _set({ managerNationality: nationality });
+    const state = _get();
+    // Career mode: immediately offer the national team job (shown as popup)
+    if (state.gameMode === 'career') {
+      const offer: NationalTeamOffer = {
+        id: crypto.randomUUID(),
+        nationality,
+        reason: 'initial',
+        offerSeason: 1,
+        offerWeek: 1,
+        expiresSeason: 1,
+        expiresWeek: 1 + NT_JOB_OFFER_DURATION_WEEKS,
+        status: 'pending',
+      };
+      const messages = addMsg(state.messages, {
+        week: 1, season: 1, type: 'national_team',
+        title: `${nationality} FA: National Team Position`,
+        body: `The ${nationality} Football Association would like to offer you the position of national team manager alongside your club duties.`,
+      });
+      _set({
+        managerNationality: nationality,
+        nationalTeamOffer: offer,
+        showNationalTeamOffer: true,
+        messages,
+      });
+    } else {
+      _set({ managerNationality: nationality });
+    }
   },
 
   acceptNationalTeamOffer: () => {
@@ -77,6 +105,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     _set({
       nationalTeam,
       nationalTeamOffer: null,
+      showNationalTeamOffer: false,
       messages,
       careerTimeline,
       careerManager,
@@ -95,6 +124,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
 
     _set({
       nationalTeamOffer: null,
+      showNationalTeamOffer: false,
       messages,
     });
   },

@@ -580,6 +580,7 @@ const migrations: Record<number, MigrationFn> = {
       ...data,
       version: 41,
       nationalTeamOffer: null,
+      showNationalTeamOffer: false,
       careerManager: cm ? {
         ...cm,
         nationalTeamAppointedSeason: data.nationalTeam ? ((data.season as number) || 1) : null,

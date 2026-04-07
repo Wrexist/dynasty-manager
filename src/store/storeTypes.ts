@@ -171,6 +171,7 @@ export interface GameState {
   internationalTournament: InternationalTournamentState | null;
   managerNationality: string | null;
   nationalTeamOffer: NationalTeamOffer | null;
+  showNationalTeamOffer: boolean;
 
   // Continental Tournaments
   championsCup: ContinentalTournamentState | null;
