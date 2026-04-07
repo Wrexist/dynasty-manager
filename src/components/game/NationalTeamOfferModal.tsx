@@ -61,10 +61,10 @@ export function NationalTeamOfferModal() {
                 transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.15 }}
               >
                 <div
-                  className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg border-2 border-white/10"
+                  className="w-24 h-24 rounded-2xl overflow-hidden shadow-lg border-2 border-white/10"
                   style={{ backgroundColor: nation?.color || '#333' }}
                 >
-                  <FlagIcon nationality={managerNationality} size={48} />
+                  <FlagIcon nationality={managerNationality} fill />
                 </div>
               </motion.div>
 

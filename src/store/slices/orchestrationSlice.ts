@@ -3915,7 +3915,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
                 title: 'National Team Offer Expired',
                 body: `The ${ntOffer.nationality} FA has withdrawn their offer after receiving no response. They will appoint another manager.`,
               });
-              set({ nationalTeamOffer: null });
+              set({ nationalTeamOffer: null, showNationalTeamOffer: false });
             }
           }
         }

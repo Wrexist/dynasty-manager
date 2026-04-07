@@ -114,7 +114,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
 
   declineNationalTeamOffer: () => {
     const state = _get();
-    if (!state.nationalTeamOffer) return;
+    if (!state.nationalTeamOffer || !state.managerNationality) return;
 
     const messages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'national_team',
