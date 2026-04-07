@@ -128,10 +128,10 @@ export const LOAN_REQUEST_MAX_DURATION = 46;
 
 // ── Transfer Market Population ──
 // Minimum market size before replenishment kicks in
-export const MARKET_REPLENISH_THRESHOLD = 25;
+export const MARKET_REPLENISH_THRESHOLD = 40;
 // How many external (generated) players to add per replenishment cycle
-export const MARKET_REPLENISH_BATCH_MIN = 5;
-export const MARKET_REPLENISH_BATCH_RANGE = 6; // 5-10 players per batch
+export const MARKET_REPLENISH_BATCH_MIN = 3;
+export const MARKET_REPLENISH_BATCH_RANGE = 4; // 3-6 players per batch
 
 // ── Division Quality Ranges (overall rating) ──
 // Used when generating market players to match realistic quality per division
@@ -181,8 +181,8 @@ export const FREE_AGENT_SPAWN_RANGE = 3; // 1-3 per spawn event
 
 // ── Initial Market Population ──
 // Number of generated players to seed market with at season start
-export const INITIAL_MARKET_GEN_MIN = 30;
-export const INITIAL_MARKET_GEN_RANGE = 21; // 30-50 players
+export const INITIAL_MARKET_GEN_MIN = 12;
+export const INITIAL_MARKET_GEN_RANGE = 9; // 12-20 players
 
 // ── Market Listing Expiry ──
 // Unsold listings are refreshed after this many weeks

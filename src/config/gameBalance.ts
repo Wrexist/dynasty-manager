@@ -177,8 +177,8 @@ export const GENERIC_FILL_POSITIONS: Position[] = ['CM', 'CB', 'ST', 'LW', 'RW']
 // ── Transfer Market Listing ──
 export const LISTING_PRICE_MIN_MULTIPLIER = 1.1;
 export const LISTING_PRICE_RANDOM_RANGE = 0.4;
-export const INITIAL_LISTINGS_MIN = 1;
-export const INITIAL_LISTINGS_RANGE = 2;
+export const INITIAL_LISTINGS_MIN = 2;
+export const INITIAL_LISTINGS_RANGE = 3;
 
 // ── Youth Intake at Season End ──
 export const SEASON_YOUTH_INTAKE_MIN = 2;

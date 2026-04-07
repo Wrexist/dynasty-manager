@@ -23,6 +23,8 @@ import {
   AI_TRANSFER_MAX_PER_WEEK, AI_LOAN_MAX_PER_WEEK,
   AI_SELL_AGE_THRESHOLD, AI_SELL_DECLINE_OVERALL_DROP, AI_SELL_SURPLUS_THRESHOLD,
   AI_SELL_LISTING_CHANCE, AI_SELL_LISTING_PRICE_MIN, AI_SELL_LISTING_PRICE_RANGE,
+  AI_SELL_BENCH_OVERALL_GAP, AI_SELL_BENCH_MIN_AGE,
+  AI_SELL_CONTRACT_SEASONS_LEFT, AI_SELL_OVERPAID_WAGE_RATIO,
   AI_BUY_MAX_BUDGET_RATIO, AI_BUY_FEE_BASE, AI_BUY_FEE_RANGE,
   AI_BUY_BIDDING_WAR_CHANCE, AI_BUY_BIDDING_INCREMENT,
   AI_RENEW_CHECK_WEEKS_BEFORE, AI_RENEW_CHANCE_PER_WEEK,
@@ -117,9 +119,12 @@ function identifySellCandidates(
   club: Club,
   players: Record<string, Player>,
   youthFocus: number,
+  season: number,
 ): string[] {
   const posCounts = getPositionCount(club, players);
   const avgOverall = getSquadAvgOverall(club, players);
+  const squad = club.playerIds.map(id => players[id]).filter(Boolean);
+  const avgWage = squad.length > 0 ? squad.reduce((sum, p) => sum + p.wage, 0) / squad.length : 0;
   const candidates: string[] = [];
 
   for (const pid of club.playerIds) {
@@ -143,6 +148,18 @@ function identifySellCandidates(
     }
     // Youth-focused managers sell old players more aggressively
     if (youthFocus > 0.6 && p.age >= 30 && p.overall < avgOverall) {
+      candidates.push(pid); continue;
+    }
+    // Bench warmers below squad average — clubs offload players not making the team
+    if (!club.lineup.includes(pid) && p.age >= AI_SELL_BENCH_MIN_AGE && p.overall < avgOverall - AI_SELL_BENCH_OVERALL_GAP) {
+      candidates.push(pid); continue;
+    }
+    // Expiring contracts — sell rather than lose for free
+    if (p.contractEnd > season && p.contractEnd <= season + AI_SELL_CONTRACT_SEASONS_LEFT) {
+      candidates.push(pid); continue;
+    }
+    // Overpaid squad players — free up wage budget
+    if (avgWage > 0 && p.wage > avgWage * AI_SELL_OVERPAID_WAGE_RATIO && p.overall < avgOverall) {
       candidates.push(pid); continue;
     }
   }
@@ -279,7 +296,7 @@ function processAIListings(
     const divIncome = estimateWeeklyIncome(club, []);
     const isWageCrisis = divIncome > 0 && club.wageBill / divIncome > AI_EMERGENCY_SELL_WAGE_RATIO;
 
-    const candidates = identifySellCandidates(club, updPlayers, youthFocus);
+    const candidates = identifySellCandidates(club, updPlayers, youthFocus, season);
 
     for (const pid of candidates) {
       const p = updPlayers[pid];
@@ -287,8 +304,9 @@ function processAIListings(
       // Already listed?
       if (updMarket.some(l => l.playerId === pid)) continue;
 
-      const chance = isWageCrisis ? AI_SELL_LISTING_CHANCE * 3 : AI_SELL_LISTING_CHANCE;
-      if (Math.random() > chance && !isDeadlineWeek(week)) continue;
+      let chance = isWageCrisis ? AI_SELL_LISTING_CHANCE * 3 : AI_SELL_LISTING_CHANCE;
+      if (isDeadlineWeek(week)) chance = Math.min(1, chance * AI_TRANSFER_DEADLINE_MULTIPLIER);
+      if (Math.random() > chance) continue;
 
       const askingPrice = Math.round(p.value * (AI_SELL_LISTING_PRICE_MIN + Math.random() * AI_SELL_LISTING_PRICE_RANGE));
       updMarket.push({ playerId: pid, askingPrice, sellerClubId: clubId, listedWeek: week, listedSeason: season, divisionId: clubs[clubId]?.divisionId });
