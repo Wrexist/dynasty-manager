@@ -328,7 +328,7 @@ const ScoutingPage = () => {
                           {!transferWindowOpen && !listing.scoutedPlayer ? 'Window Closed' : 'Sign'}
                         </button>
                       ) : (
-                        <span className="text-[10px] text-muted-foreground/60 italic">Unavailable</span>
+                        <span className="text-[10px] text-muted-foreground/60 italic">Signed elsewhere</span>
                       )}
                     </div>
                   </GlassPanel>

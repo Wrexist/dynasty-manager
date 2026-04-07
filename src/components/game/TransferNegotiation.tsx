@@ -91,6 +91,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   []);
 
   const handleSubmitOffer = useCallback((fee: number) => {
+    setLastCounterFee(null);
     setPhase('thinking');
     setFinalFee(fee);
     timersRef.current.push(setTimeout(() => {
