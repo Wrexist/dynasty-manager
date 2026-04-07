@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
@@ -40,9 +41,14 @@ function SuperCupMatchCard({ match, clubs, playerClubId }: {
         <div className="text-center px-3">
           {match.played ? (
             <div>
-              <span className="text-2xl font-mono font-bold text-foreground">
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+                className="text-2xl font-mono font-bold text-foreground inline-block"
+              >
                 {match.homeGoals} - {match.awayGoals}
-              </span>
+              </motion.span>
               {match.penaltyShootout && (
                 <div className="text-[10px] text-muted-foreground mt-0.5">
                   Pens: {match.penaltyShootout.home}-{match.penaltyShootout.away}
@@ -72,15 +78,22 @@ function SuperCupMatchCard({ match, clubs, playerClubId }: {
 
       {/* Winner */}
       {match.winnerId && (
-        <div className="mt-3 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.1 }}
+          className="mt-3 text-center"
+        >
           <div className={cn(
-            'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium',
-            match.winnerId === playerClubId ? 'bg-primary/20 text-primary' : 'bg-card text-foreground'
+            'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium',
+            match.winnerId === playerClubId
+              ? 'bg-primary/20 text-primary shadow-[0_0_16px_rgba(234,179,8,0.15)]'
+              : 'bg-card text-foreground'
           )}>
             <Trophy className="w-3 h-3" />
             {clubs[match.winnerId]?.name || 'Winner'}
           </div>
-        </div>
+        </motion.div>
       )}
     </div>
   );
@@ -108,16 +121,22 @@ const SuperCupPage = () => {
     );
   }
 
+  const cards = [domesticSuperCup, continentalSuperCup].filter(Boolean) as SuperCupMatch[];
+
   return (
     <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
       <TournamentHeader competition="super_cup" subtitle="Season opener" />
 
-      {domesticSuperCup && (
-        <SuperCupMatchCard match={domesticSuperCup} clubs={clubs} playerClubId={playerClubId} />
-      )}
-      {continentalSuperCup && (
-        <SuperCupMatchCard match={continentalSuperCup} clubs={clubs} playerClubId={playerClubId} />
-      )}
+      {cards.map((match, i) => (
+        <motion.div
+          key={match.type}
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: i * 0.1 }}
+        >
+          <SuperCupMatchCard match={match} clubs={clubs} playerClubId={playerClubId} />
+        </motion.div>
+      ))}
     </div>
   );
 };

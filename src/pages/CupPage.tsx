@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getRoundName, getCupWeek, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
@@ -124,12 +125,19 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
         )}
       </button>
 
+      <AnimatePresence>
       {expanded && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="overflow-hidden"
+        >
         <div className="space-y-2">
           {(isLargeRound && allPlayed && !isCurrent)
             ? (
               <>
-                {/* Show player's match prominently, then compact summary */}
                 {playerTie && (
                   <TieCard tie={playerTie} playerClubId={playerClubId} clubs={clubs} />
                 )}
@@ -139,12 +147,16 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
                 </div>
               </>
             )
-            : sortedTies.map(tie => (
-              <TieCard key={tie.id} tie={tie} playerClubId={playerClubId} clubs={clubs} />
+            : sortedTies.map((tie, i) => (
+              <motion.div key={tie.id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.03 }}>
+                <TieCard tie={tie} playerClubId={playerClubId} clubs={clubs} />
+              </motion.div>
             ))
           }
         </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -195,15 +207,26 @@ const CupPage = () => {
 
       {/* Your status banner */}
       {playerEliminated && !cupWinner && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 text-center"
+        >
           <p className="text-sm text-destructive font-medium">Eliminated from the cup</p>
-        </div>
+        </motion.div>
       )}
       {cupWinner === playerClubId && (
-        <div className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-center">
-          <Trophy className="w-6 h-6 text-primary mx-auto mb-1" />
-          <p className="text-sm text-primary font-bold">Cup Winners!</p>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          className="bg-gradient-to-br from-primary/20 via-amber-500/10 to-transparent border border-primary/30 rounded-xl p-4 text-center shadow-[0_0_24px_rgba(234,179,8,0.15)]"
+        >
+          <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+            <Trophy className="w-8 h-8 text-primary mx-auto mb-1" />
+          </motion.div>
+          <p className="text-base text-primary font-bold font-display">Cup Winners!</p>
+        </motion.div>
       )}
 
       {/* Rounds — filter out bye ties from display */}

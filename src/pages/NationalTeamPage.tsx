@@ -122,8 +122,11 @@ const NationalTeamPage = () => {
             const won = result.goalsFor > result.goalsAgainst;
             const drew = result.goalsFor === result.goalsAgainst;
             return (
-              <div
+              <motion.div
                 key={i}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.03 }}
                 className="flex items-center gap-3 p-3 rounded-xl bg-card/30 border border-border/20"
               >
                 <div className={cn(
@@ -139,7 +142,7 @@ const NationalTeamPage = () => {
                   <p className="text-[10px] text-muted-foreground">{result.tournament} &middot; {result.round}</p>
                 </div>
                 <p className="text-sm font-mono font-bold text-foreground">{result.goalsFor} - {result.goalsAgainst}</p>
-              </div>
+              </motion.div>
             );
           })}
         </div>

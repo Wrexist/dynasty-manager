@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
@@ -63,55 +64,55 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
       )}
 
       {/* Tab navigation */}
-      <div className="flex gap-1 bg-card/40 rounded-lg p-1">
-        <button
-          onClick={() => setTab('groups')}
-          className={cn(
-            'flex-1 py-1.5 text-xs font-medium rounded-md transition-colors',
-            tab === 'groups' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-          )}
-        >
-          Groups
-        </button>
-        <button
-          onClick={() => setTab('knockout')}
-          className={cn(
-            'flex-1 py-1.5 text-xs font-medium rounded-md transition-colors',
-            tab === 'knockout'
-              ? 'bg-card text-foreground shadow-sm'
-              : tournament.knockoutTies.length > 0 ? 'text-muted-foreground' : 'text-muted-foreground/40'
-          )}
-          disabled={tournament.knockoutTies.length === 0}
-        >
-          Knockout
-        </button>
+      <div className="flex gap-1 bg-card/40 rounded-lg p-1 relative">
+        {(['groups', 'knockout'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => t === 'knockout' && tournament.knockoutTies.length === 0 ? undefined : setTab(t)}
+            disabled={t === 'knockout' && tournament.knockoutTies.length === 0}
+            className={cn(
+              'flex-1 py-1.5 text-xs font-medium rounded-md transition-colors relative z-10',
+              tab === t ? 'text-foreground' : t === 'knockout' && tournament.knockoutTies.length === 0 ? 'text-muted-foreground/40' : 'text-muted-foreground'
+            )}
+          >
+            {tab === t && (
+              <motion.div
+                layoutId="continental-tab"
+                className="absolute inset-0 bg-card rounded-md shadow-sm"
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10">{t === 'groups' ? 'Groups' : 'Knockout'}</span>
+          </button>
+        ))}
       </div>
 
       {/* Content */}
       {tab === 'groups' && (
-        <div className="space-y-3">
-          {/* Player's group first */}
+        <motion.div key="groups" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.15 }} className="space-y-3">
           {tournament.groups
             .sort((a, b) => {
               if (a.id === tournament.playerGroupId) return -1;
               if (b.id === tournament.playerGroupId) return 1;
               return a.id.localeCompare(b.id);
             })
-            .map(group => (
-              <GroupTable
-                key={group.id}
-                group={group}
-                virtualClubs={virtualClubs}
-                playerClubId={playerClubId}
-                clubs={clubs}
-                isPlayerGroup={group.id === tournament.playerGroupId}
-                currentMatchday={currentMd}
-              />
+            .map((group, i) => (
+              <motion.div key={group.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                <GroupTable
+                  group={group}
+                  virtualClubs={virtualClubs}
+                  playerClubId={playerClubId}
+                  clubs={clubs}
+                  isPlayerGroup={group.id === tournament.playerGroupId}
+                  currentMatchday={currentMd}
+                />
+              </motion.div>
             ))}
-        </div>
+        </motion.div>
       )}
 
       {tab === 'knockout' && tournament.knockoutTies.length > 0 && (
+        <motion.div key="knockout" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.15 }}>
         <KnockoutBracket
           ties={tournament.knockoutTies}
           virtualClubs={virtualClubs}
@@ -120,6 +121,7 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
           currentRound={tournament.currentRound}
           winnerId={tournament.winnerId}
         />
+        </motion.div>
       )}
 
       {tab === 'knockout' && tournament.knockoutTies.length === 0 && (

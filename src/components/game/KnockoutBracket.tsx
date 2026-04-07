@@ -2,6 +2,7 @@ import type { ContinentalKnockoutTie, VirtualClub } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { Shield, Trophy } from 'lucide-react';
 import { getKnockoutRoundName } from '@/utils/continental';
+import { motion } from 'framer-motion';
 
 interface KnockoutBracketProps {
   ties: ContinentalKnockoutTie[];
@@ -106,17 +107,29 @@ export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, curre
     <div className="space-y-4">
       {/* Tournament winner banner */}
       {winnerId && (
-        <div className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-center">
-          <Trophy className="w-6 h-6 text-primary mx-auto mb-1" />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          className={cn(
+            'rounded-xl p-4 text-center border',
+            winnerId === playerClubId
+              ? 'bg-gradient-to-br from-primary/20 via-amber-500/10 to-transparent border-primary/30 shadow-[0_0_24px_rgba(234,179,8,0.15)]'
+              : 'bg-primary/10 border-primary/30'
+          )}
+        >
+          <motion.div animate={winnerId === playerClubId ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+            <Trophy className="w-7 h-7 text-primary mx-auto mb-1" />
+          </motion.div>
           <p className="text-sm text-primary font-bold">
             {winnerId === playerClubId
               ? 'You Won!'
               : `Winner: ${getClubInfo(winnerId, clubs, virtualClubs).name}`}
           </p>
-        </div>
+        </motion.div>
       )}
 
-      {rounds.map(round => {
+      {rounds.map((round, ri) => {
         const roundTies = ties.filter(t => t.round === round);
         if (roundTies.length === 0) return null;
 
@@ -124,7 +137,13 @@ export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, curre
         const allDecided = roundTies.every(t => t.winnerId !== null);
 
         return (
-          <div key={round} className="space-y-2">
+          <motion.div
+            key={round}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: ri * 0.05 }}
+            className="space-y-2"
+          >
             <div className="flex items-center gap-2">
               <h3 className={cn(
                 'text-sm font-display font-bold',
@@ -139,11 +158,13 @@ export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, curre
             </div>
 
             <div className={cn('grid gap-2', round === 'F' ? 'grid-cols-1' : 'grid-cols-2')}>
-              {roundTies.map(tie => (
-                <TieCard key={tie.id} tie={tie} virtualClubs={virtualClubs} playerClubId={playerClubId} clubs={clubs} />
+              {roundTies.map((tie, ti) => (
+                <motion.div key={tie.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: ri * 0.05 + ti * 0.03 }}>
+                  <TieCard tie={tie} virtualClubs={virtualClubs} playerClubId={playerClubId} clubs={clubs} />
+                </motion.div>
               ))}
             </div>
-          </div>
+          </motion.div>
         );
       })}
     </div>

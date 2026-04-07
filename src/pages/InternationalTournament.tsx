@@ -5,6 +5,28 @@ import { cn } from '@/lib/utils';
 import { Globe, Trophy, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+const PHASE_STEPS = [
+  { key: 'group', label: 'Groups' },
+  { key: 'R16', label: 'R16' },
+  { key: 'QF', label: 'QF' },
+  { key: 'SF', label: 'SF' },
+  { key: 'F', label: 'Final' },
+] as const;
+
+function getPhaseIndex(phase: string, currentRound: string | null): number {
+  if (phase === 'group') return 0;
+  if (phase === 'complete') return 4;
+  const roundMap: Record<string, number> = { R16: 1, QF: 2, SF: 3, F: 4 };
+  return roundMap[currentRound || ''] ?? 0;
+}
+
+function getAdvanceLabel(phase: string, currentRound: string | null): string {
+  if (phase === 'group') return 'Play Next Matchday';
+  if (phase === 'complete') return 'Complete Tournament & Start New Season';
+  const roundNames: Record<string, string> = { R16: 'Round of 16', QF: 'Quarter-Finals', SF: 'Semi-Finals', F: 'Final' };
+  return `Play ${roundNames[currentRound || ''] || 'Next Round'}`;
+}
+
 const InternationalTournament = () => {
   const internationalTournament = useGameStore((s) => s.internationalTournament);
   const managerNationality = useGameStore((s) => s.managerNationality);
@@ -29,6 +51,7 @@ const InternationalTournament = () => {
 
   const tournament = internationalTournament;
   const isInternationalPhase = seasonPhase === 'international';
+  const phaseIndex = getPhaseIndex(tournament.phase, tournament.currentRound);
 
   return (
     <div className="max-w-lg mx-auto px-4 py-5 pb-24 space-y-5">
@@ -53,16 +76,44 @@ const InternationalTournament = () => {
             </div>
           </div>
 
+          {/* Phase progress bar */}
+          <div className="flex items-center gap-1 mb-3">
+            {PHASE_STEPS.map((step, i) => (
+              <div key={step.key} className="flex items-center flex-1">
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: i * 0.05 }}
+                  className={cn(
+                    'flex flex-col items-center flex-1',
+                  )}
+                >
+                  <div className={cn(
+                    'w-full h-1.5 rounded-full transition-colors',
+                    i <= phaseIndex ? 'bg-primary' : 'bg-border/40',
+                    i === phaseIndex && tournament.phase !== 'complete' && 'animate-pulse'
+                  )} />
+                  <span className={cn(
+                    'text-[9px] mt-1 font-medium',
+                    i <= phaseIndex ? 'text-primary' : 'text-muted-foreground/50'
+                  )}>
+                    {step.label}
+                  </span>
+                </motion.div>
+              </div>
+            ))}
+          </div>
+
           {isInternationalPhase && tournament.phase !== 'complete' && (
             <Button className="w-full mt-2" onClick={advanceWeek}>
               <Play className="w-4 h-4 mr-2" />
-              Advance Tournament
+              {getAdvanceLabel(tournament.phase, tournament.currentRound)}
             </Button>
           )}
 
           {tournament.phase === 'complete' && isInternationalPhase && (
             <Button className="w-full mt-2" onClick={advanceWeek}>
-              Complete Tournament & Start New Season
+              {getAdvanceLabel(tournament.phase, tournament.currentRound)}
             </Button>
           )}
         </div>
@@ -72,8 +123,16 @@ const InternationalTournament = () => {
       {tournament.groups.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-sm font-bold text-foreground px-1">Group Stage</h2>
-          {tournament.groups.map((group) => (
-            <div key={group.name} className="bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl overflow-hidden">
+          {tournament.groups.map((group, gi) => {
+            const allPlayed = group.fixtures.every(f => f.played);
+            return (
+            <motion.div
+              key={group.name}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: gi * 0.04 }}
+              className="bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl overflow-hidden"
+            >
               <div className="px-4 py-2.5 bg-card/60 border-b border-border/20">
                 <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">{group.name}</h3>
               </div>
@@ -107,6 +166,14 @@ const InternationalTournament = () => {
                         <span className={cn('truncate', isPlayer ? 'font-bold text-foreground' : 'text-foreground/80')}>
                           {entry.nationality}
                         </span>
+                        {allPlayed && (
+                          <span className={cn(
+                            'text-[8px] font-bold px-1 py-0.5 rounded shrink-0',
+                            qualifies ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive'
+                          )}>
+                            {qualifies ? 'Q' : 'E'}
+                          </span>
+                        )}
                       </span>
                       <span className="text-center text-muted-foreground">{entry.played}</span>
                       <span className="text-center text-muted-foreground">{entry.won}</span>
@@ -147,8 +214,9 @@ const InternationalTournament = () => {
                   );
                 })}
               </div>
-            </div>
-          ))}
+            </motion.div>
+            );
+          })}
         </div>
       )}
 
@@ -156,22 +224,34 @@ const InternationalTournament = () => {
       {tournament.knockoutTies.length > 0 && (
         <div className="space-y-3">
           <h2 className="text-sm font-bold text-foreground px-1">Knockout Stage</h2>
-          {(['R16', 'QF', 'SF', 'F'] as const).map(round => {
+          {(['R16', 'QF', 'SF', 'F'] as const).map((round, ri) => {
             const roundTies = tournament.knockoutTies.filter(t => t.round === round);
             if (roundTies.length === 0) return null;
             const roundLabel = round === 'R16' ? 'Round of 16' : round === 'QF' ? 'Quarter-Finals' : round === 'SF' ? 'Semi-Finals' : 'Final';
             return (
-              <div key={round} className="bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl overflow-hidden">
-                <div className="px-4 py-2.5 bg-card/60 border-b border-border/20">
+              <motion.div
+                key={round}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: ri * 0.05 }}
+                className="bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl overflow-hidden"
+              >
+                <div className="px-4 py-2.5 bg-card/60 border-b border-border/20 flex items-center gap-2">
                   <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">{roundLabel}</h3>
+                  {tournament.currentRound === round && tournament.phase !== 'complete' && (
+                    <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">Current</span>
+                  )}
                 </div>
                 <div className="px-4 py-2 space-y-2">
-                  {roundTies.map(tie => {
+                  {roundTies.map((tie, ti) => {
                     const isPlayerMatch = tie.homeNation === managerNationality || tie.awayNation === managerNationality;
                     const isWinner = (nation: string) => tie.winnerId === nation;
                     return (
-                      <div
+                      <motion.div
                         key={tie.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: ri * 0.05 + ti * 0.03 }}
                         className={cn(
                           'flex items-center justify-between py-2 text-sm',
                           isPlayerMatch && 'bg-primary/5 -mx-2 px-2 rounded-lg'
@@ -207,11 +287,11 @@ const InternationalTournament = () => {
                           </span>
                           <span className="text-sm shrink-0 leading-none">{getFlag(tie.awayNation)}</span>
                         </div>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
@@ -220,13 +300,31 @@ const InternationalTournament = () => {
       {/* Tournament Winner */}
       {tournament.winner && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-gradient-to-br from-primary/20 via-amber-500/10 to-transparent border border-primary/30 rounded-2xl p-5 text-center"
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          className="bg-gradient-to-br from-primary/20 via-amber-500/10 to-transparent border border-primary/30 rounded-2xl p-5 text-center shadow-[0_0_30px_rgba(234,179,8,0.15)]"
         >
-          <Trophy className="w-10 h-10 text-primary mx-auto mb-2" />
-          <h2 className="text-lg font-bold text-foreground font-display">{tournament.winner}</h2>
-          <p className="text-sm text-primary">Champions!</p>
+          <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+            <Trophy className="w-10 h-10 text-primary mx-auto mb-2" />
+          </motion.div>
+          <h2 className="text-lg font-bold text-foreground font-display">
+            {getFlag(tournament.winner)} {tournament.winner}
+          </h2>
+          <p className="text-sm text-primary font-medium">
+            {tournament.winner === managerNationality ? 'Your Nation — Champions!' : 'Champions!'}
+          </p>
+        </motion.div>
+      )}
+
+      {/* Player eliminated banner */}
+      {tournament.playerEliminated && !tournament.winner && (
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 text-center"
+        >
+          <p className="text-sm text-destructive font-medium">Your nation has been eliminated</p>
         </motion.div>
       )}
 

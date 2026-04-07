@@ -2,6 +2,7 @@ import type { ContinentalGroup, ContinentalGroupMatch, VirtualClub } from '@/typ
 import { cn } from '@/lib/utils';
 import { Shield, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface GroupTableProps {
   group: ContinentalGroup;
@@ -78,7 +79,15 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
         )}
       </button>
 
+      <AnimatePresence>
       {expanded && (
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: 'auto', opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="overflow-hidden"
+        >
         <div className="px-3 pb-3">
           {/* Standings table */}
           <table className="w-full text-xs">
@@ -106,7 +115,13 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
                     isPlayer && 'bg-primary/5',
                     qualifies && !isPlayer && 'bg-emerald-500/5',
                   )}>
-                    <td className={cn('py-1.5 font-medium', qualifies ? 'text-emerald-400' : 'text-muted-foreground')}>{idx + 1}</td>
+                    <td className={cn('py-1.5 font-medium', qualifies ? 'text-emerald-400' : 'text-muted-foreground')}>
+                      {s.played >= 6 ? (
+                        <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded', qualifies ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive')}>
+                          {qualifies ? 'Q' : 'E'}
+                        </span>
+                      ) : idx + 1}
+                    </td>
                     <td className="py-1.5">
                       <div className="flex items-center gap-1.5">
                         <ClubBadge color={info.color} size="xs" />
@@ -143,7 +158,15 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
             {showMatches ? 'Hide matches' : 'Show matches'}
           </button>
 
+          <AnimatePresence>
           {showMatches && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
             <div className="mt-2 space-y-0.5">
               {[1, 2, 3, 4, 5, 6].map(md => {
                 const mdMatches = group.matches.filter(m => m.matchday === md);
@@ -161,9 +184,13 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
                 );
               })}
             </div>
+            </motion.div>
           )}
+          </AnimatePresence>
         </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
