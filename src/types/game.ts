@@ -370,7 +370,7 @@ export interface Message {
   id: string;
   week: number;
   season: number;
-  type: 'match_preview' | 'match_result' | 'board' | 'injury' | 'transfer' | 'contract' | 'development' | 'general' | 'sponsorship';
+  type: 'match_preview' | 'match_result' | 'board' | 'injury' | 'transfer' | 'contract' | 'development' | 'general' | 'sponsorship' | 'national_team';
   title: string;
   body: string;
   read: boolean;
@@ -401,7 +401,7 @@ export interface TransferTalk {
 
 export interface CareerMilestone {
   id: string;
-  type: 'first_win' | 'first_trophy' | 'promotion' | 'cup_win' | 'record_signing' | 'biggest_win' | 'milestone_matches' | 'unbeaten_run' | 'youth_graduate' | 'season_start' | 'prestige' | 'custom';
+  type: 'first_win' | 'first_trophy' | 'promotion' | 'cup_win' | 'record_signing' | 'biggest_win' | 'milestone_matches' | 'unbeaten_run' | 'youth_graduate' | 'season_start' | 'prestige' | 'national_team_appointed' | 'national_team_sacked' | 'custom';
   title: string;
   description: string;
   season: number;
@@ -1182,6 +1182,17 @@ export interface MonetizationState {
 
 // ── National Team System ──
 
+export interface NationalTeamOffer {
+  id: string;
+  nationality: string;
+  reason: 'initial' | 'vacancy';         // initial = first approach, vacancy = previous manager left
+  offerSeason: number;
+  offerWeek: number;
+  expiresSeason: number;
+  expiresWeek: number;
+  status: 'pending' | 'accepted' | 'declined' | 'expired';
+}
+
 export interface NationalTeamState {
   nationality: string;
   squad: string[];                        // player IDs called up (max 23)
@@ -1346,6 +1357,8 @@ export interface CareerManager {
   awardsWon: ManagerAward[];
   legacyScore: number;
   unemployedWeeks: number;             // tracks how long between jobs
+  nationalTeamAppointedSeason: number | null;  // null = never appointed
+  nationalTeamSacked: boolean;                 // true if previously sacked from NT
 }
 
 export interface ManagerCareerEntry {

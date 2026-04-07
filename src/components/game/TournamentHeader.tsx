@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { Trophy, Shield, Award } from 'lucide-react';
 import type { ContinentalCompetition } from '@/types/game';
 import { cn } from '@/lib/utils';
@@ -22,14 +23,26 @@ export function TournamentHeader({ competition, subtitle, winnerId, winnerName, 
   const Icon = config.icon;
 
   return (
-    <div className="flex items-center gap-3">
-      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', {
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex items-center gap-3"
+    >
+      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center transition-shadow', {
         'bg-primary/20': competition === 'champions_cup',
         'bg-accent/20': competition === 'shield_cup',
         'bg-emerald-400/20': competition === 'league_cup',
         'bg-amber-400/20': competition === 'super_cup',
+        'shadow-[0_0_20px_rgba(234,179,8,0.15)]': !!winnerId,
+        'opacity-50': playerEliminated && !winnerId,
       })}>
-        <Icon className={cn('w-5 h-5', config.color)} />
+        {winnerId ? (
+          <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+            <Icon className={cn('w-5 h-5', config.color)} />
+          </motion.div>
+        ) : (
+          <Icon className={cn('w-5 h-5', config.color)} />
+        )}
       </div>
       <div>
         <h1 className="text-lg font-display font-bold text-foreground">{config.name}</h1>
@@ -41,6 +54,6 @@ export function TournamentHeader({ competition, subtitle, winnerId, winnerName, 
               : subtitle}
         </p>
       </div>
-    </div>
+    </motion.div>
   );
 }

@@ -22,7 +22,7 @@ import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY
 import { formatMoney } from '@/utils/helpers';
 import { getPerformanceMultiplier } from '@/utils/transferOffers';
 import { SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE } from '@/config/ui';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 
 const DIVISION_LABELS: Record<string, string> = {
   'div-1': 'Prem',
@@ -512,7 +512,7 @@ const TransferPage = () => {
                     )}>{p.overall}</span>
                   </div>
                   <div className="flex-1 min-w-0" role="button" tabIndex={0} aria-label={`View ${p.firstName} ${p.lastName}`} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
-                    <p className="font-bold text-foreground text-sm">{getFlag(p.nationality)} {p.firstName} {p.lastName}</p>
+                    <p className="font-bold text-foreground text-sm"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName} {p.lastName}</p>
                     <p className="text-xs text-muted-foreground">
                       {p.position} {'\u2022'} {p.age}y {'\u2022'} POT {p.potential || p.overall}
                     </p>
@@ -718,7 +718,7 @@ const TransferPage = () => {
                     )}>{p.overall}</span>
                   </div>
                   <div className="flex-1 min-w-0" role="button" tabIndex={0} aria-label={`View ${p.firstName} ${p.lastName}`} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
-                    <p className="font-bold text-foreground text-sm">{getFlag(p.nationality)} {p.firstName} {p.lastName}</p>
+                    <p className="font-bold text-foreground text-sm"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName} {p.lastName}</p>
                     <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} {p.nationality}</p>
                     <div className="flex gap-2 mt-1.5">
                       {top3.map(attr => (
@@ -977,7 +977,7 @@ const TransferPage = () => {
                     <span className={cn('font-mono font-black text-lg', getRatingColor(p.overall))}>{p.overall}</span>
                   </div>
                   <div className="flex-1 min-w-0" role="button" tabIndex={0} aria-label={`View ${p.firstName} ${p.lastName}`} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
-                    <p className="font-bold text-foreground text-sm">{getFlag(p.nationality)} {p.firstName} {p.lastName}</p>
+                    <p className="font-bold text-foreground text-sm"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName} {p.lastName}</p>
                     <p className="text-xs text-muted-foreground">
                       {p.position} {'\u2022'} {p.age}y {'\u2022'} POT {p.potential || p.overall}
                     </p>

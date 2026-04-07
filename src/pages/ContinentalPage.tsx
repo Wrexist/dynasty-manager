@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
@@ -7,7 +8,6 @@ import { KnockoutBracket } from '@/components/game/KnockoutBracket';
 import type { ContinentalCompetition, ContinentalTournamentState } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { Globe, Trophy } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { getCurrentMatchday } from '@/utils/continental';
 import { CONTINENTAL_GROUP_WEEKS } from '@/config/continental';
 import { PageHint } from '@/components/game/PageHint';
@@ -80,34 +80,28 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
       )}
 
       {/* Tab navigation */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="flex gap-1 bg-card/40 rounded-lg p-1"
-      >
-        <button
-          onClick={() => setTab('groups')}
-          className={cn(
-            'flex-1 py-1.5 text-xs font-medium rounded-md transition-colors',
-            tab === 'groups' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-          )}
-        >
-          Groups
-        </button>
-        <button
-          onClick={() => setTab('knockout')}
-          className={cn(
-            'flex-1 py-1.5 text-xs font-medium rounded-md transition-colors',
-            tab === 'knockout'
-              ? 'bg-card text-foreground shadow-sm'
-              : tournament.knockoutTies.length > 0 ? 'text-muted-foreground' : 'text-muted-foreground/40'
-          )}
-          disabled={tournament.knockoutTies.length === 0}
-        >
-          Knockout
-        </button>
-      </motion.div>
+      <div className="flex gap-1 bg-card/40 rounded-lg p-1 relative">
+        {(['groups', 'knockout'] as const).map(t => (
+          <button
+            key={t}
+            onClick={() => t === 'knockout' && tournament.knockoutTies.length === 0 ? undefined : setTab(t)}
+            disabled={t === 'knockout' && tournament.knockoutTies.length === 0}
+            className={cn(
+              'flex-1 py-1.5 text-xs font-medium rounded-md transition-colors relative z-10',
+              tab === t ? 'text-foreground' : t === 'knockout' && tournament.knockoutTies.length === 0 ? 'text-muted-foreground/40' : 'text-muted-foreground'
+            )}
+          >
+            {tab === t && (
+              <motion.div
+                layoutId="continental-tab"
+                className="absolute inset-0 bg-card rounded-md shadow-sm"
+                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              />
+            )}
+            <span className="relative z-10">{t === 'groups' ? 'Groups' : 'Knockout'}</span>
+          </button>
+        ))}
+      </div>
 
       {/* Content with tab transitions */}
       <AnimatePresence mode="wait">
@@ -129,9 +123,9 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
               .map((group, i) => (
                 <motion.div
                   key={group.id}
-                  initial={{ opacity: 0, y: 15 }}
+                  initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.08 }}
+                  transition={{ delay: i * 0.06 }}
                 >
                   <GroupTable
                     group={group}

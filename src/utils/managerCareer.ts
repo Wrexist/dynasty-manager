@@ -137,6 +137,8 @@ export function createDefaultManager(
     awardsWon: [],
     legacyScore: 0,
     unemployedWeeks: 0,
+    nationalTeamAppointedSeason: null,
+    nationalTeamSacked: false,
   };
 }
 

@@ -11,7 +11,7 @@ import { getSquadInsights } from '@/utils/squadInsights';
 import { PlayerCard } from './PlayerCard';
 import { ChemistryBar } from './ChemistryBar';
 import { InsightsPanel } from './InsightsPanel';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { getRatingColor } from '@/utils/uiHelpers';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
@@ -353,7 +353,7 @@ export function LineupEditor() {
                   </span>
                   <div>
                     <p className="text-xs font-semibold text-foreground">
-                      {getFlag(selectedPlayer.nationality)} {selectedPlayer.firstName} {selectedPlayer.lastName}
+                      <FlagIcon nationality={selectedPlayer.nationality} size={14} /> {selectedPlayer.firstName} {selectedPlayer.lastName}
                     </p>
                     <p className="text-[10px] text-muted-foreground">
                       {selectedPlayer.position} · Age {selectedPlayer.age} · Fitness {selectedPlayer.fitness}%

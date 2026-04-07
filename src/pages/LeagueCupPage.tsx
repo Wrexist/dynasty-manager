@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getRoundName, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
@@ -6,7 +7,6 @@ import { LEAGUE_CUP_WEEKS } from '@/config/continental';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
 import { cn } from '@/lib/utils';
 import { Shield, ChevronRight, ChevronDown, Calendar, Award, Target } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import type { CupRound, CupTie } from '@/types/game';
 import { PageHint } from '@/components/game/PageHint';
 
@@ -213,8 +213,8 @@ const LeagueCupPage = () => {
 
       {leagueCup.eliminated && !leagueCup.winner && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, y: 12, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ delay: 0.15 }}
           className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 text-center"
         >
@@ -226,10 +226,12 @@ const LeagueCupPage = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="bg-emerald-400/10 border border-emerald-400/30 rounded-xl p-3 text-center"
+          className="bg-gradient-to-br from-emerald-400/20 via-emerald-500/10 to-transparent border border-emerald-400/30 rounded-xl p-4 text-center shadow-[0_0_24px_rgba(52,211,153,0.15)]"
         >
-          <Award className="w-6 h-6 text-emerald-400 mx-auto mb-1" />
-          <p className="text-sm text-emerald-400 font-bold">League Cup Winners!</p>
+          <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+            <Award className="w-8 h-8 text-emerald-400 mx-auto mb-1" />
+          </motion.div>
+          <p className="text-base text-emerald-400 font-bold font-display">League Cup Winners!</p>
         </motion.div>
       )}
 

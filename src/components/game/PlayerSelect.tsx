@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Player } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getFitnessColor } from '@/utils/uiHelpers';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { Check, ChevronDown, HeartPulse, Sparkles, X } from 'lucide-react';
 
@@ -19,7 +19,7 @@ function PlayerRow({ player }: { player: Player }) {
       <span className={cn('font-mono font-black text-sm w-7 text-right shrink-0', getRatingColor(player.overall))}>
         {player.overall}
       </span>
-      <span className="text-sm shrink-0">{getFlag(player.nationality)}</span>
+      <FlagIcon nationality={player.nationality} size={16} />
       <span className="text-sm text-foreground truncate flex-1">
         {player.firstName[0]}. {player.lastName}
       </span>

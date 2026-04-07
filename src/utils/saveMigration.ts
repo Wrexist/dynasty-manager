@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 40;
+const CURRENT_VERSION = 41;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -572,6 +572,22 @@ const migrations: Record<number, MigrationFn> = {
     version: 40,
     completedStorylineChainIds: data.completedStorylineChainIds || [],
   }),
+
+  // v40 → v41: National team job system (career mode earns the role)
+  40: (data) => {
+    const cm = data.careerManager as Record<string, unknown> | null;
+    return {
+      ...data,
+      version: 41,
+      nationalTeamOffer: null,
+      showNationalTeamOffer: false,
+      careerManager: cm ? {
+        ...cm,
+        nationalTeamAppointedSeason: data.nationalTeam ? ((data.season as number) || 1) : null,
+        nationalTeamSacked: false,
+      } : cm,
+    };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

@@ -8,7 +8,7 @@ import { Player } from '@/types/game';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { formatMoney } from '@/utils/helpers';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { LIST_PRICE_MULTIPLIER, LISTING_PRICE_FLOOR } from '@/config/transfers';
 import { hapticMedium } from '@/utils/haptics';
 import {
@@ -120,7 +120,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-foreground font-display text-base leading-tight">{player.firstName} {player.lastName}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  {player.position} · {player.age}y · {getFlag(player.nationality)} {player.nationality}
+                  {player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}
                 </p>
                 <p className="text-[11px] text-muted-foreground/70 mt-0.5">
                   Wage: <span className="text-foreground/80">{formatWage(player.wage)}</span>

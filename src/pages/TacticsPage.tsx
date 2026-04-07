@@ -10,7 +10,7 @@ import { getRatingColor } from '@/utils/uiHelpers';
 import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
 import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, AlertTriangle, Save, Trash2, Upload } from 'lucide-react';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD, HELP_TEXTS } from '@/config/ui';
@@ -195,7 +195,7 @@ const TacticsPage = () => {
                     if (!a || !b) return null;
                     return (
                       <div key={`nat-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
-                        <span className="text-xs">{getFlag(a.nationality)}</span>
+                        <FlagIcon nationality={a.nationality} size={14} />
                         <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
                         <span className="text-[9px] text-primary font-bold">+{link.strength}</span>
                       </div>
@@ -514,7 +514,7 @@ const TacticsPage = () => {
             <div key={p.id} className="flex items-center gap-2 py-1">
               <span className="text-xs text-muted-foreground w-5">{i + 1}</span>
               <span className="text-xs font-mono text-primary w-8">{p.position}</span>
-              <span className="text-sm text-foreground flex-1">{getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}</span>
+              <span className="text-sm text-foreground flex-1"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName[0]}. {p.lastName}</span>
               <span className={cn(
                 'text-xs font-mono',
                 getRatingColor(p.overall)
@@ -551,7 +551,7 @@ const TacticsPage = () => {
                 >
                   <ArrowRightLeft className="w-3 h-3 text-primary" />
                   <span className="text-xs font-mono text-muted-foreground w-8">{p.position}</span>
-                  <span className="text-sm text-foreground flex-1 text-left">{getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}</span>
+                  <span className="text-sm text-foreground flex-1 text-left"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName[0]}. {p.lastName}</span>
                   <span className={cn('text-xs font-mono', getRatingColor(p.overall))}>{p.overall}</span>
                 </button>
               ))}
@@ -570,7 +570,7 @@ const TacticsPage = () => {
               )}
             >
               <span className="text-xs font-mono text-muted-foreground w-8">{p.position}</span>
-              <span className="text-sm text-foreground/70 flex-1 text-left">{getFlag(p.nationality)} {p.firstName[0]}. {p.lastName}</span>
+              <span className="text-sm text-foreground/70 flex-1 text-left"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName[0]}. {p.lastName}</span>
               <span className={cn('text-xs font-mono', getRatingColor(p.overall))}>{p.overall}</span>
             </button>
           ))}

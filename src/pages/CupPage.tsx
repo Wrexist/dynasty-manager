@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getRoundName, getCupWeek, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
 import { cn } from '@/lib/utils';
 import { Trophy, Shield, ChevronRight, ChevronDown, Calendar, Target } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import type { CupRound, CupTie } from '@/types/game';
 import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
@@ -271,10 +271,12 @@ const CupPage = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-center"
+          className="bg-gradient-to-br from-primary/20 via-amber-500/10 to-transparent border border-primary/30 rounded-xl p-4 text-center shadow-[0_0_24px_rgba(234,179,8,0.15)]"
         >
-          <Trophy className="w-6 h-6 text-primary mx-auto mb-1" />
-          <p className="text-sm text-primary font-bold">Cup Winners!</p>
+          <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+            <Trophy className="w-8 h-8 text-primary mx-auto mb-1" />
+          </motion.div>
+          <p className="text-base text-primary font-bold font-display">Cup Winners!</p>
         </motion.div>
       )}
 

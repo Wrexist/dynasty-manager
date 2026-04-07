@@ -506,6 +506,26 @@ export const NATIONAL_CALLUP_MORALE_BOOST = 5;
 /** Fitness cost per international match */
 export const INTERNATIONAL_FITNESS_COST = 8;
 
+// ── National Team Job System (Career Mode) ──
+/** Minimum reputation to receive first national team offer */
+export const NT_JOB_MIN_REPUTATION = 350;
+/** Minimum reputation to be re-offered after being sacked */
+export const NT_JOB_REHIRE_REPUTATION = 550;
+/** Weeks before the offer expires */
+export const NT_JOB_OFFER_DURATION_WEEKS = 8;
+/** Reputation bonus for winning an international tournament */
+export const REP_INTL_TOURNAMENT_WIN = 100;
+/** Reputation bonus for reaching the final */
+export const REP_INTL_FINAL = 40;
+/** Reputation bonus for reaching the semi-final */
+export const REP_INTL_SEMI = 20;
+/** Reputation bonus for reaching knockouts */
+export const REP_INTL_KNOCKOUT = 10;
+/** Reputation penalty for group stage exit */
+export const REP_INTL_GROUP_EXIT = -15;
+/** Consecutive group-stage exits before sacking */
+export const NT_SACK_GROUP_EXIT_THRESHOLD = 2;
+
 // ── Random Mid-Season Events ──
 /** Base chance per week that a random event triggers */
 export const RANDOM_EVENT_BASE_CHANCE = 0.04;

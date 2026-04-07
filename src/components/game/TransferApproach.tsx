@@ -5,7 +5,7 @@ import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { LoanNegotiation } from '@/components/game/LoanNegotiation';
 import { X, Banknote, Repeat2 } from 'lucide-react';
@@ -94,7 +94,7 @@ export function TransferApproach({ playerId, onClose }: Props) {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
-                <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · {getFlag(player.nationality)} {player.nationality}</p>
+                <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   At <span className="text-foreground">{club.name}</span>
                 </p>

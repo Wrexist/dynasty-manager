@@ -121,7 +121,13 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
                           qualifies && !isPlayer && 'bg-emerald-500/5',
                         )}
                       >
-                        <td className={cn('py-1.5 font-medium', qualifies ? 'text-emerald-400' : 'text-muted-foreground')}>{idx + 1}</td>
+                        <td className={cn('py-1.5 font-medium', qualifies ? 'text-emerald-400' : 'text-muted-foreground')}>
+                          {s.played >= 6 ? (
+                            <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded', qualifies ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive')}>
+                              {qualifies ? 'Q' : 'E'}
+                            </span>
+                          ) : idx + 1}
+                        </td>
                         <td className="py-1.5">
                           <div className="flex items-center gap-1.5">
                             <ClubBadge color={info.color} size="xs" />

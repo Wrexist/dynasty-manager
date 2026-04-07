@@ -113,9 +113,16 @@ export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, curre
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-center"
+          className={cn(
+            'rounded-xl p-4 text-center border',
+            winnerId === playerClubId
+              ? 'bg-gradient-to-br from-primary/20 via-amber-500/10 to-transparent border-primary/30 shadow-[0_0_24px_rgba(234,179,8,0.15)]'
+              : 'bg-primary/10 border-primary/30'
+          )}
         >
-          <Trophy className="w-6 h-6 text-primary mx-auto mb-1" />
+          <motion.div animate={winnerId === playerClubId ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
+            <Trophy className="w-7 h-7 text-primary mx-auto mb-1" />
+          </motion.div>
           <p className="text-sm text-primary font-bold">
             {winnerId === playerClubId
               ? 'You Won!'

@@ -8,7 +8,7 @@ import { GraduationCap, Star, TrendingUp, ArrowUpRight, Trash2, Wrench, Users } 
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getPotentialInfo, getTop3Attributes } from '@/utils/uiHelpers';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
 import { PAGE_HINTS } from '@/config/ui';
@@ -174,7 +174,7 @@ const YouthAcademy = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
                             <p className="font-semibold text-foreground text-sm truncate">
-                              {getFlag(player.nationality)} {player.firstName[0]}. {player.lastName}
+                              <FlagIcon nationality={player.nationality} size={16} /> {player.firstName[0]}. {player.lastName}
                             </p>
                             <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
                           </div>

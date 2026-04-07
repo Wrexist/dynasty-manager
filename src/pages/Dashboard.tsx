@@ -38,6 +38,7 @@ import { FarewellModal } from '@/components/game/FarewellModal';
 import { GemRevealModal } from '@/components/game/GemRevealModal';
 import { SessionRecap } from '@/components/game/SessionRecap';
 import { BoardWarning } from '@/components/game/BoardWarning';
+import { NationalTeamOfferModal } from '@/components/game/NationalTeamOfferModal';
 import { getWeekPreview, getFallbackPreview } from '@/utils/weekPreview';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { InfoTip } from '@/components/game/InfoTip';
@@ -589,6 +590,9 @@ const Dashboard = () => {
           )}
         </GlassPanel>
       )}
+
+      {/* National Team Offer Popup */}
+      <NationalTeamOfferModal />
 
       {/* Press Conference (shown after matches) */}
       {pendingPressConference && <PressConference />}

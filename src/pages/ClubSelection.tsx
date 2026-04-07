@@ -5,7 +5,7 @@ import { useGameStore } from '@/store/gameStore';
 import { CLUBS_DATA, LEAGUES } from '@/data/league';
 import { CLUBS_BY_LEAGUE } from '@/data/leagues';
 import { NATIONS, NATION_STARS } from '@/data/nations';
-import { getFlag } from '@/utils/nationality';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ArrowLeft, Wallet, Users, Loader2, Search, Globe, X, Building2, Sprout } from 'lucide-react';
@@ -198,7 +198,7 @@ const ClubSelection = () => {
                   <>
                     <h1 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-foreground font-display outline-none">Choose League</h1>
                     <p className="text-[10px] text-muted-foreground truncate">
-                      {selectedNationality && <><span className="text-foreground/70">{getFlag(selectedNationality)} {selectedNationality}</span> · </>}
+                      {selectedNationality && <><span className="text-foreground/70"><FlagIcon nationality={selectedNationality} size={16} /> {selectedNationality}</span> · </>}
                       30 leagues across Europe
                     </p>
                   </>
@@ -208,7 +208,7 @@ const ClubSelection = () => {
                       {leagueInfo?.name}
                     </h1>
                     <p className="text-[10px] text-muted-foreground truncate">
-                      {selectedNationality && <><span className="text-foreground/70">{getFlag(selectedNationality)} {selectedNationality}</span> · </>}
+                      {selectedNationality && <><span className="text-foreground/70"><FlagIcon nationality={selectedNationality} size={16} /> {selectedNationality}</span> · </>}
                       {leagueClubs.length} clubs
                     </p>
                   </>
@@ -267,7 +267,6 @@ const ClubSelection = () => {
                   <div className="space-y-1.5">
                     {nations.map((nation, i) => {
                       const stars = NATION_STARS[nation.name] || [];
-                      const flag = getFlag(nation.name);
                       const isSelected = selectedNationality === nation.name;
                       return (
                         <motion.div
@@ -289,7 +288,7 @@ const ClubSelection = () => {
                             )}
                           >
                             <div className="flex items-center gap-3">
-                              <span className="text-2xl leading-none shrink-0" role="img" aria-label={`${nation.name} flag`}>{flag}</span>
+                              <FlagIcon nationality={nation.name} size={16} />
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
                                 <div className="flex items-center gap-2 mt-0.5">
