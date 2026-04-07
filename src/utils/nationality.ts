@@ -3,7 +3,7 @@
  * Flag emojis and 3-letter codes for all nationalities in the game.
  */
 
-export const NATIONALITY_DATA: Record<string, { flag: string; code: string }> = {
+const NATIONALITY_DATA: Record<string, { flag: string; code: string }> = {
   'England': { flag: '\u{1F3F4}\u{E0067}\u{E0062}\u{E0065}\u{E006E}\u{E0067}\u{E007F}', code: 'ENG' },
   'Spain': { flag: '\u{1F1EA}\u{1F1F8}', code: 'ESP' },
   'France': { flag: '\u{1F1EB}\u{1F1F7}', code: 'FRA' },
