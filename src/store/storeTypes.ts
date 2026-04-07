@@ -96,6 +96,7 @@ export interface GameState {
 
   // Storyline Chains
   activeStorylineChains: ActiveStorylineChain[];
+  completedStorylineChainIds: string[];
 
   // Sponsorship
   sponsorDeals: SponsorDeal[];

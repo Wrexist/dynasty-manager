@@ -1518,6 +1518,7 @@ function finalizeSeason(
     clubRecords: updatedRecords,
     activeChallenge: endChallenge,
     activeStorylineChains: [],
+    completedStorylineChainIds: [],
     pendingStoryline: null,
     freeAgents: freeAgentIds, transferNews: [],
     ...(farewells.length > 0 ? { pendingFarewell: farewells.sort((a, b) => b.seasonsServed - a.seasonsServed) } : {}),
@@ -2024,6 +2025,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       weeklyDigest: null,
       pendingStoryline: null,
       activeStorylineChains: [],
+      completedStorylineChainIds: [],
       pendingFarewell: [],
       sponsorDeals: generateStarterDeals(pcInit.reputation, 1),
       sponsorOffers: [],
@@ -2849,12 +2851,45 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // ── Multi-week Storyline Chains ──
+    // Helper: interpolate {playerName} in storyline text using chain's target player
+    const interpolatePlayerName = (text: string, chain: ActiveStorylineChain) => {
+      if (!chain.targetPlayerId) return text;
+      const p = newPlayers[chain.targetPlayerId];
+      const name = p ? `${p.firstName} ${p.lastName}` : 'your star player';
+      return text.replace(/\{playerName\}/g, name);
+    };
+    const interpolateEvent = (event: StorylineEvent, chain: ActiveStorylineChain): StorylineEvent => ({
+      ...event,
+      body: interpolatePlayerName(event.body, chain),
+      options: event.options.map(opt => ({
+        ...opt,
+        text: interpolatePlayerName(opt.text, chain),
+        effects: chain.targetPlayerId ? { ...opt.effects, targetPlayerId: chain.targetPlayerId } : opt.effects,
+      })),
+    });
+
+    const newCompletedChainIds = [...(state.completedStorylineChainIds || [])];
     const updatedChains: ActiveStorylineChain[] = (state.activeStorylineChains || []).reduce<ActiveStorylineChain[]>((kept, chain) => {
       const chainDef = STORYLINE_CHAINS.find(c => c.id === chain.chainId);
       if (!chainDef) return kept; // Remove chains with no definition
 
       const nextStepIdx = chain.currentStep + 1;
-      if (nextStepIdx >= chainDef.steps.length) return kept; // Chain complete — remove
+      if (nextStepIdx >= chainDef.steps.length) {
+        // Chain complete — add completion summary and track as completed
+        newCompletedChainIds.push(chain.chainId);
+        const targetPlayer = chain.targetPlayerId ? newPlayers[chain.targetPlayerId] : null;
+        const playerLabel = targetPlayer ? `${targetPlayer.firstName} ${targetPlayer.lastName}` : 'Your star player';
+        const lastChoice = chain.choices[chain.choices.length - 1];
+        const lastStep = chainDef.steps[chainDef.steps.length - 1];
+        const chosenOption = lastStep?.options[lastChoice];
+        const outcomeText = chosenOption ? `You chose: "${chosenOption.label}".` : '';
+        newMessages = addMsg(newMessages, {
+          week: newWeek, season, type: 'general',
+          title: `${chainDef.name} — Resolved`,
+          body: `The ${playerLabel} saga is over. ${outcomeText}`,
+        });
+        return kept; // Remove completed chain
+      }
 
       const nextStep = chainDef.steps[nextStepIdx];
       const dueWeek = chain.startWeek + nextStep.weekOffset;
@@ -2872,13 +2907,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
         // Trigger this chain step as a storyline event (only if no other event is pending)
         if (!pendingStorylineEvent) {
-          pendingStorylineEvent = {
+          const rawEvent: StorylineEvent = {
             id: `chain-${chain.chainId}-step-${nextStepIdx}`,
             title: nextStep.title,
             body: nextStep.body,
             icon: nextStep.icon,
             options: nextStep.options,
           };
+          pendingStorylineEvent = interpolateEvent(rawEvent, chain);
           kept.push({ ...chain, currentStep: nextStepIdx });
         } else {
           kept.push(chain);
@@ -2895,7 +2931,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const squadPlayers = Object.values(newPlayers).filter(p => p.clubId === playerClubId);
       const clubsList = Object.values(clubs);
       const avgBudget = clubsList.length > 0 ? clubsList.reduce((s, c) => s + c.budget, 0) / clubsList.length : 0;
-      const completedChainIds = new Set<string>(); // could track in state later
+      const completedChainIds = new Set<string>(newCompletedChainIds);
       for (const chainDef of STORYLINE_CHAINS) {
         if (completedChainIds.has(chainDef.id)) continue;
         const triggered = shouldTriggerChain(chainDef.id, {
@@ -2909,22 +2945,35 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           averageBudget: avgBudget,
         });
         if (triggered) {
+          // Identify the target player for player-specific chains
+          let targetPlayerId: string | undefined;
+          if (chainDef.id === 'star-player-transfer-saga') {
+            const starPlayer = squadPlayers
+              .filter(p => p.overall >= 75 && !p.injured && !p.onLoan && !p.wantsToLeave && !p.listedForSale)
+              .sort((a, b) => b.overall - a.overall)[0];
+            if (starPlayer) targetPlayerId = starPlayer.id;
+          }
+
+          const newChain: ActiveStorylineChain = {
+            chainId: chainDef.id,
+            startWeek: newWeek,
+            currentStep: 0,
+            choices: [],
+            targetPlayerId,
+          };
+
           const firstStep = chainDef.steps[0];
           if (!pendingStorylineEvent) {
-            pendingStorylineEvent = {
+            const rawEvent: StorylineEvent = {
               id: `chain-${chainDef.id}-step-0`,
               title: firstStep.title,
               body: firstStep.body,
               icon: firstStep.icon,
               options: firstStep.options,
             };
+            pendingStorylineEvent = interpolateEvent(rawEvent, newChain);
           }
-          updatedChains.push({
-            chainId: chainDef.id,
-            startWeek: newWeek,
-            currentStep: 0,
-            choices: [],
-          });
+          updatedChains.push(newChain);
           break;
         }
       }
@@ -3440,6 +3489,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       managerProgression: updatedProgression,
       pendingStoryline: pendingStorylineEvent || null,
       activeStorylineChains: updatedChains,
+      completedStorylineChainIds: newCompletedChainIds,
       ...(sponsorUpdates.sponsorDeals ? { sponsorDeals: sponsorUpdates.sponsorDeals } : {}),
       ...(sponsorUpdates.sponsorOffers ? { sponsorOffers: sponsorUpdates.sponsorOffers } : {}),
       ...(sponsorUpdates.sponsorSlotCooldowns ? { sponsorSlotCooldowns: sponsorUpdates.sponsorSlotCooldowns } : {}),
@@ -4590,6 +4640,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sessionStats: state.sessionStats,
       pendingStoryline: state.pendingStoryline,
       activeStorylineChains: state.activeStorylineChains,
+      completedStorylineChainIds: state.completedStorylineChainIds,
       preMatchLeaguePosition: state.preMatchLeaguePosition,
       lastMatchXPGain: state.lastMatchXPGain,
       weeklyDigest: state.weeklyDigest,
@@ -4785,6 +4836,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         weeklyDigest: data.weeklyDigest || null,
         pendingStoryline: data.pendingStoryline || null,
         activeStorylineChains: data.activeStorylineChains || [],
+        completedStorylineChainIds: data.completedStorylineChainIds || [],
         preMatchLeaguePosition: data.preMatchLeaguePosition ?? 10,
         lastMatchXPGain: data.lastMatchXPGain ?? 0,
         scoutWatchList: data.scoutWatchList || [],
@@ -4870,7 +4922,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       cup: { ties: [], currentRound: null, eliminated: false, winner: null },
       pendingPressConference: null, activeNegotiation: null,
       pendingFarewell: [], pendingStoryline: null,
-      activeStorylineChains: [], weeklyObjectives: [],
+      activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
       objectiveStreak: 0, objectivesStartWeek: 1, completedCoachTaskIds: [],
       weekCliffhangers: [], rivalries: {}, lastMatchDrama: null, lastMatchCompetition: null,
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },

@@ -1,15 +1,29 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { X, BookOpen } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { motion } from 'framer-motion';
 import { hapticMedium } from '@/utils/haptics';
+import { STORYLINE_CHAINS } from '@/data/storylineChains';
 
 export function StorylineModal() {
   const pendingStoryline = useGameStore(s => s.pendingStoryline);
+  const activeStorylineChains = useGameStore(s => s.activeStorylineChains);
   const respondToStoryline = useGameStore(s => s.respondToStoryline);
   const dismissStoryline = useGameStore(s => s.dismissStoryline);
+
+  // Derive chain context for multi-step storylines
+  const chainContext = useMemo(() => {
+    if (!pendingStoryline?.id.startsWith('chain-')) return null;
+    const parts = pendingStoryline.id.split('-');
+    const chainId = parts.slice(1, parts.length - 2).join('-');
+    const stepIdx = parseInt(parts[parts.length - 1], 10);
+    const chain = activeStorylineChains.find(c => c.chainId === chainId);
+    const chainDef = STORYLINE_CHAINS.find(c => c.id === chainId);
+    if (!chainDef) return null;
+    return { name: chainDef.name, step: stepIdx + 1, total: chainDef.steps.length, chain };
+  }, [pendingStoryline, activeStorylineChains]);
 
   useEffect(() => {
     if (pendingStoryline) hapticMedium();
@@ -31,8 +45,14 @@ export function StorylineModal() {
             <DynamicIcon name={pendingStoryline.icon} className="w-5 h-5 text-amber-400" />
           </div>
           <div>
-            <p className="text-xs font-bold text-amber-400 uppercase tracking-wide">Storyline Event</p>
-            <p className="text-[10px] text-muted-foreground">{pendingStoryline.title}</p>
+            <p className="text-xs font-bold text-amber-400 uppercase tracking-wide">
+              {chainContext ? chainContext.name : 'Storyline Event'}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {chainContext
+                ? `${pendingStoryline.title} — Step ${chainContext.step} of ${chainContext.total}`
+                : pendingStoryline.title}
+            </p>
           </div>
         </div>
         <button

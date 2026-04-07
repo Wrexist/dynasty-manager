@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lightbulb, X } from 'lucide-react';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
+import { useGameStore } from '@/store/gameStore';
 
 interface PageHintProps {
   screen: string;
@@ -10,8 +11,11 @@ interface PageHintProps {
 }
 
 export function PageHint({ screen, title, body }: PageHintProps) {
+  const hidePageHints = useGameStore(s => s.settings.hidePageHints);
   const storageKey = `dynasty-hint-${screen}-shown`;
   const [visible, setVisible] = useState(() => !getFlag(storageKey));
+
+  if (hidePageHints) return null;
 
   const dismiss = () => {
     setVisible(false);

@@ -18,6 +18,7 @@ import { InfoTip } from '@/components/game/InfoTip';
 import { PlayerSelect } from '@/components/game/PlayerSelect';
 import { useLineupOptimizer } from '@/hooks/useLineupOptimizer';
 import { infoToast } from '@/utils/gameToast';
+import { hapticLight } from '@/utils/haptics';
 import { isPro } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
@@ -135,7 +136,7 @@ const TacticsPage = () => {
         </p>
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           <button
-            onClick={() => setDefensiveFormation(null)}
+            onClick={() => { setDefensiveFormation(null); hapticLight(); infoToast('Defensive shape mirrors formation'); }}
             className={cn(
               'px-3 py-1.5 rounded-full text-sm font-mono font-bold transition-all shrink-0',
               !club.defensiveFormation
@@ -148,7 +149,7 @@ const TacticsPage = () => {
           {FORMATIONS.filter(f => f !== club.formation).map(f => (
             <button
               key={f}
-              onClick={() => setDefensiveFormation(f)}
+              onClick={() => { setDefensiveFormation(f); hapticLight(); infoToast(`Defensive shape set to ${f}`); }}
               className={cn(
                 'px-3 py-1.5 rounded-full text-sm font-mono font-bold transition-all shrink-0',
                 club.defensiveFormation === f
@@ -377,7 +378,7 @@ const TacticsPage = () => {
             {MENTALITIES.map(m => (
               <button
                 key={m.value}
-                onClick={() => setTactics({ mentality: m.value })}
+                onClick={() => { setTactics({ mentality: m.value }); hapticLight(); }}
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
                   tactics.mentality === m.value
@@ -398,7 +399,7 @@ const TacticsPage = () => {
             {WIDTHS.map(w => (
               <button
                 key={w.value}
-                onClick={() => setTactics({ width: w.value })}
+                onClick={() => { setTactics({ width: w.value }); hapticLight(); }}
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
                   tactics.width === w.value
@@ -419,7 +420,7 @@ const TacticsPage = () => {
             {TEMPOS.map(t => (
               <button
                 key={t.value}
-                onClick={() => setTactics({ tempo: t.value })}
+                onClick={() => { setTactics({ tempo: t.value }); hapticLight(); }}
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
                   tactics.tempo === t.value
@@ -440,7 +441,7 @@ const TacticsPage = () => {
             {DEFENSIVE_LINES.map(d => (
               <button
                 key={d.value}
-                onClick={() => setTactics({ defensiveLine: d.value })}
+                onClick={() => { setTactics({ defensiveLine: d.value }); hapticLight(); }}
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
                   tactics.defensiveLine === d.value
@@ -461,7 +462,7 @@ const TacticsPage = () => {
             {PRESSING_OPTIONS.map(p => (
               <button
                 key={p.value}
-                onClick={() => setTactics({ pressingIntensity: p.value })}
+                onClick={() => { setTactics({ pressingIntensity: p.value }); hapticLight(); }}
                 className={cn(
                   'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
                   tactics.pressingIntensity === p.value

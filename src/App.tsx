@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
+import { useGameStore } from "@/store/gameStore";
 import TitleScreen from "./pages/TitleScreen";
 import NotFound from "./pages/NotFound";
 
@@ -63,9 +64,12 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boole
   }
 }
 
-const App = () => (
+const App = () => {
+  const reducedMotion = useGameStore(s => s.settings.reducedMotion);
+
+  return (
   <ErrorBoundary>
-    <MotionConfig reducedMotion="user">
+    <MotionConfig reducedMotion={reducedMotion ? "always" : "user"}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -85,6 +89,7 @@ const App = () => (
       </TooltipProvider>
     </MotionConfig>
   </ErrorBoundary>
-);
+  );
+};
 
 export default App;

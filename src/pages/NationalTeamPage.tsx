@@ -5,6 +5,8 @@ import { cn } from '@/lib/utils';
 import { Globe, Users, Trophy, ChevronRight } from 'lucide-react';
 import { getFlag } from '@/utils/nationality';
 import { Button } from '@/components/ui/button';
+import { PageHint } from '@/components/game/PageHint';
+import { PAGE_HINTS } from '@/config/ui';
 
 const NationalTeamPage = () => {
   const nationalTeam = useGameStore(s => s.nationalTeam);
@@ -33,6 +35,7 @@ const NationalTeamPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-5 pb-24 space-y-5">
+      <PageHint screen="nationalTeam" title={PAGE_HINTS.nationalTeam.title} body={PAGE_HINTS.nationalTeam.body} />
       {/* Header card */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}

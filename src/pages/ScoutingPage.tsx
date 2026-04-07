@@ -13,6 +13,8 @@ import { PageHint } from '@/components/game/PageHint';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { formatMoney } from '@/utils/helpers';
 import { SCOUTING_COST_PER_ASSIGNMENT } from '@/config/gameBalance';
+import { infoToast } from '@/utils/gameToast';
+import { hapticLight } from '@/utils/haptics';
 
 const MARKET_SUB_NAV = [
   { screen: 'transfers' as const, label: 'Transfers' },
@@ -99,7 +101,7 @@ const ScoutingPage = () => {
                       <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
                     </div>
                     <button
-                      onClick={() => cancelAssignment(a.id)}
+                      onClick={() => { cancelAssignment(a.id); infoToast('Assignment Cancelled'); }}
                       className="text-[10px] text-destructive hover:text-destructive/80 font-semibold shrink-0"
                     >
                       Cancel
@@ -220,7 +222,7 @@ const ScoutingPage = () => {
               <GlassPanel
                 key={region}
                 className="p-3 cursor-pointer hover:border-primary/30 transition-colors"
-                onClick={() => assignScout(region)}
+                onClick={() => { assignScout(region); hapticLight(); infoToast('Scout Assigned', `Scouting ${label} region`); }}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -281,7 +283,7 @@ const ScoutingPage = () => {
                         </div>
                       </div>
                       <button
-                        onClick={() => removeFromWatchList(pid)}
+                        onClick={() => { removeFromWatchList(pid); infoToast('Removed from Watch List'); }}
                         className="p-1.5 rounded-md hover:bg-destructive/20 transition-colors"
                         title="Remove from watch list"
                       >

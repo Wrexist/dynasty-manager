@@ -8,6 +8,7 @@ import { StaffRole, StaffMember } from '@/types/game';
 import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { STAFF_HIRING_FEE_WEEKS } from '@/config/staff';
+import { successToast, infoToast } from '@/utils/gameToast';
 
 const SQUAD_SUB_NAV = [
   { screen: 'squad' as const, label: 'Squad' },
@@ -111,6 +112,7 @@ const StaffPage = () => {
       setConfirmReplaceId(upgrade.id);
     } else {
       hireStaff(upgrade.id);
+      successToast('Staff Hired', `${upgrade.firstName} ${upgrade.lastName} has joined the club`);
     }
   };
 
@@ -181,7 +183,7 @@ const StaffPage = () => {
                     </span>
                     {confirmFireId === current.id ? (
                       <div className="flex items-center gap-1.5">
-                        <button onClick={() => { fireStaff(current.id); setConfirmFireId(null); }} className="text-xs text-destructive font-bold py-1 px-2 min-h-[36px]">Confirm</button>
+                        <button onClick={() => { fireStaff(current.id); setConfirmFireId(null); infoToast('Staff Released', `${current.firstName} ${current.lastName} has left the club`); }} className="text-xs text-destructive font-bold py-1 px-2 min-h-[36px]">Confirm</button>
                         <button onClick={() => setConfirmFireId(null)} className="text-xs text-muted-foreground font-semibold py-1 px-2 min-h-[36px]">Cancel</button>
                       </div>
                     ) : (
@@ -226,7 +228,7 @@ const StaffPage = () => {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <button onClick={() => { hireStaff(upgrade.id); setConfirmReplaceId(null); }} className="text-xs text-primary font-bold py-1 px-2 min-h-[36px]">Confirm</button>
+                        <button onClick={() => { hireStaff(upgrade.id); setConfirmReplaceId(null); successToast('Staff Hired', `${upgrade.firstName} ${upgrade.lastName} has joined the club`); }} className="text-xs text-primary font-bold py-1 px-2 min-h-[36px]">Confirm</button>
                         <button onClick={() => setConfirmReplaceId(null)} className="text-xs text-muted-foreground font-semibold py-1 px-2 min-h-[36px]">Cancel</button>
                       </div>
                     </div>
