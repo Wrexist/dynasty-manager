@@ -34,6 +34,7 @@ import { getMentorBonus } from '@/utils/chemistry';
 import { INITIAL_FAMILIARITY_SEED } from '@/config/chemistry';
 import { checkChallengeComplete, checkChallengeFailed, CHALLENGES } from '@/data/challenges';
 import { calculateSeasonAwards } from '@/utils/seasonAwards';
+import { calculateBallonDOr, getBallonDOrValueBoost } from '@/utils/ballonDor';
 import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
 import { buildTransferTalk } from '@/utils/transferTalk';
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
@@ -1049,6 +1050,23 @@ function endSeasonImpl(set: Set, get: Get) {
   const topScorer = allPlayersList.filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals)[0];
   const seasonAwards = calculateSeasonAwards(allPlayersList, clubs, leagueTable, playerClubId);
 
+  // Ballon d'Or ranking — top 25 players of the season
+  const ballonDOrRanking = calculateBallonDOr(allPlayersList, clubs, leagueTable, state.divisionTables || {});
+
+  // Apply Ballon d'Or value boosts and record placements on players
+  for (const entry of ballonDOrRanking) {
+    const p = players[entry.playerId];
+    if (!p) continue;
+    const boost = getBallonDOrValueBoost(entry.rank);
+    const placement = { season, rank: entry.rank, score: entry.score };
+    const existing = p.ballonDOrPlacements || [];
+    players[entry.playerId] = {
+      ...p,
+      value: Math.round(p.value * (1 + boost)),
+      ballonDOrPlacements: [...existing, placement],
+    };
+  }
+
   // Compute end-of-season squad average OVR for enrichment
   const endPlayers = allPlayersList.filter(p => p.clubId === playerClubId);
   const endAvgOVR = endPlayers.length > 0 ? Math.round(endPlayers.reduce((s, p) => s + p.overall, 0) / endPlayers.length) : 0;
@@ -1074,6 +1092,7 @@ function endSeasonImpl(set: Set, get: Get) {
     shieldCupResult: getContinentalResultForClub(state.shieldCup, playerClubId),
     divisionId: playerDiv,
     awards: seasonAwards,
+    ballonDOrRanking,
     financialSummary: {
       totalIncome: state.seasonTotalIncome || 0,
       totalExpenses: state.seasonTotalExpenses || 0,

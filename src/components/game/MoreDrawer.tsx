@@ -52,6 +52,7 @@ const drawerSections: DrawerSection[] = [
     items: [
       { screen: 'manager-profile', label: 'Profile', icon: User, description: 'Your career history' },
       { screen: 'trophy-cabinet', label: 'Trophies', icon: Trophy, description: 'Your honours & achievements' },
+      { screen: 'ballon-dor', label: "Ballon d'Or", icon: Award, description: 'Top 25 players each season' },
       { screen: 'perks', label: 'Perks', icon: Star, description: 'Earn XP & unlock bonuses' },
       { screen: 'comparison', label: 'Compare', icon: GitCompare, description: 'Side-by-side player stats' },
       { screen: 'hall-of-managers', label: 'Hall of Fame', icon: Trophy, description: 'Cross-save leaderboard' },

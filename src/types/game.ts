@@ -47,7 +47,7 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor';
 
 export interface PlayerAttributes {
   pace: number;
@@ -133,6 +133,7 @@ export interface Player {
   internationalGoals?: number;
   appearance?: PlayerAppearance;
   matchHistory?: PlayerMatchRecord[];
+  ballonDOrPlacements?: BallonDOrPlacement[];
 }
 
 export interface PlayerAppearance {
@@ -462,6 +463,27 @@ export interface ClubRecords {
   hallOfFame: RecordEntry[];
 }
 
+export interface BallonDOrPlacement {
+  season: number;
+  rank: number;        // 1-25
+  score: number;       // total Ballon d'Or score
+}
+
+export interface BallonDOrEntry {
+  playerId: string;
+  playerName: string;
+  clubName: string;
+  clubColor: string;
+  position: Position;
+  overall: number;
+  age: number;
+  rank: number;
+  score: number;
+  goals: number;
+  assists: number;
+  appearances: number;
+}
+
 export interface SeasonAward {
   name: string;
   recipientName: string;
@@ -490,6 +512,7 @@ export interface SeasonHistory {
   financialSummary?: { totalIncome: number; totalExpenses: number; netBalance: number };
   transferActivity?: { bought: { playerName: string; fee: number }[]; sold: { playerName: string; fee: number }[] };
   squadStrengthDelta?: { startAvgOVR: number; endAvgOVR: number; delta: number };
+  ballonDOrRanking?: BallonDOrEntry[];
 }
 
 export interface FormationSlot {

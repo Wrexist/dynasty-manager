@@ -245,6 +245,56 @@ const PlayerDetail = () => {
         </div>
       )}
 
+      {/* Ballon d'Or Medals */}
+      {player.ballonDOrPlacements && player.ballonDOrPlacements.length > 0 && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-base">🏆</span>
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Ballon d'Or</p>
+            <span className="text-xs text-[hsl(43,96%,56%)] font-bold ml-auto">
+              {player.ballonDOrPlacements.length}x Top 25
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {[...player.ballonDOrPlacements].sort((a, b) => a.rank - b.rank || b.season - a.season).map((p, i) => {
+              const isGold = p.rank === 1;
+              const isSilver = p.rank === 2;
+              const isBronze = p.rank === 3;
+              const isPodium = p.rank <= 3;
+              const isTop10 = p.rank <= 10;
+              return (
+                <motion.div
+                  key={`${p.season}-${p.rank}`}
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: i * 0.06 }}
+                  className={cn(
+                    'flex flex-col items-center rounded-lg px-3 py-2 border min-w-[56px]',
+                    isGold && 'bg-[hsl(43,96%,46%)]/15 border-[hsl(43,96%,46%)]/30 shadow-[0_0_12px_hsl(43,96%,46%,0.2)]',
+                    isSilver && 'bg-gray-300/10 border-gray-300/25',
+                    isBronze && 'bg-amber-700/10 border-amber-700/25',
+                    !isPodium && isTop10 && 'bg-primary/8 border-primary/20',
+                    !isTop10 && 'bg-muted/20 border-border/30',
+                  )}
+                >
+                  <span className={cn(
+                    'text-lg font-black tabular-nums leading-none',
+                    isGold && 'text-[hsl(43,96%,56%)]',
+                    isSilver && 'text-gray-300',
+                    isBronze && 'text-amber-600',
+                    !isPodium && isTop10 && 'text-primary',
+                    !isTop10 && 'text-muted-foreground',
+                  )}>
+                    {p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : p.rank === 3 ? '🥉' : `#${p.rank}`}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground mt-0.5">S{p.season}</span>
+                </motion.div>
+              );
+            })}
+          </div>
+        </GlassPanel>
+      )}
+
       {/* Transfer Request Badge */}
       {player.wantsToLeave && (
         <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2 flex items-center gap-2">
