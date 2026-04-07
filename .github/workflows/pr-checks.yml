@@ -19,6 +19,60 @@ jobs:
       - run: npm run test
       - run: npm run build
 
+      - name: Check bundle size
+        run: |
+          set -euo pipefail
+
+          if [ ! -d "dist/assets" ]; then
+            echo "::error::dist/assets not found — build may have failed"
+            exit 1
+          fi
+
+          echo "## Bundle Size Report"
+          echo ""
+
+          # Total dist size
+          TOTAL_SIZE=$(du -sb dist | cut -f1)
+          TOTAL_MB=$(awk "BEGIN {printf \"%.2f\", $TOTAL_SIZE / 1048576}")
+          echo "Total dist size: ${TOTAL_MB} MB"
+
+          # JS chunk sizes (sorted by size descending)
+          echo ""
+          echo "| File | Size (KB) |"
+          echo "|------|-----------|"
+          shopt -s nullglob
+          for f in dist/assets/*.js; do
+            SIZE=$(wc -c < "$f")
+            SIZE_KB=$(awk "BEGIN {printf \"%.1f\", $SIZE / 1024}")
+            echo "| $(basename "$f") | ${SIZE_KB} |"
+          done | sort -t'|' -k3 -rn
+
+          # Total JS size
+          JS_TOTAL=$(find dist/assets -name '*.js' -type f -printf '%s\n' | awk '{sum += $1} END {print sum+0}')
+          JS_MB=$(awk "BEGIN {printf \"%.2f\", $JS_TOTAL / 1048576}")
+          echo ""
+          echo "Total JS: ${JS_MB} MB"
+
+          # Budget: fail if total JS exceeds 5 MB
+          if [ "$JS_TOTAL" -gt 5242880 ]; then
+            echo "::error::JS bundle size (${JS_MB} MB) exceeds budget (5.00 MB)"
+            exit 1
+          fi
+          echo "Bundle size OK (${JS_MB} MB JS, budget: 5.00 MB)"
+
+          # Main chunk budget: fail if largest index-*.js exceeds 1200 KB
+          MAIN_JS=$(find dist/assets -name 'index-*.js' -not -name '*.map' -type f -printf '%s %p\n' | sort -rn | head -1 | awk '{print $2}')
+          if [ -n "$MAIN_JS" ]; then
+            MAIN_SIZE=$(wc -c < "$MAIN_JS")
+            MAIN_KB=$(awk "BEGIN {printf \"%.1f\", $MAIN_SIZE / 1024}")
+            echo "Main chunk: ${MAIN_KB} KB"
+            if [ "$MAIN_SIZE" -gt 1228800 ]; then
+              echo "::error::Main chunk (${MAIN_KB} KB) exceeds budget (1200 KB)"
+              exit 1
+            fi
+            echo "Main chunk OK (${MAIN_KB} KB, budget: 1200 KB)"
+          fi
+
   code-review:
     runs-on: ubuntu-latest
     permissions:
