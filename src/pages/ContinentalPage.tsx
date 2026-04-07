@@ -7,6 +7,7 @@ import { KnockoutBracket } from '@/components/game/KnockoutBracket';
 import type { ContinentalCompetition, ContinentalTournamentState } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { Globe, Trophy } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getCurrentMatchday } from '@/utils/continental';
 import { CONTINENTAL_GROUP_WEEKS } from '@/config/continental';
 import { PageHint } from '@/components/game/PageHint';
@@ -41,29 +42,50 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
 
   return (
     <div className="space-y-4">
-      <TournamentHeader
-        competition={competition}
-        subtitle={subtitleParts.join(' · ')}
-        winnerId={tournament.winnerId}
-        winnerName={winnerClubInfo?.name}
-        playerEliminated={tournament.playerEliminated}
-      />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <TournamentHeader
+          competition={competition}
+          subtitle={subtitleParts.join(' · ')}
+          winnerId={tournament.winnerId}
+          winnerName={winnerClubInfo?.name}
+          playerEliminated={tournament.playerEliminated}
+        />
+      </motion.div>
 
       {/* Player status banners */}
       {tournament.playerEliminated && !tournament.winnerId && (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.15 }}
+          className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 text-center"
+        >
           <p className="text-sm text-destructive font-medium">Eliminated from the {compName}</p>
-        </div>
+        </motion.div>
       )}
       {tournament.winnerId === playerClubId && (
-        <div className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-center"
+        >
           <Trophy className="w-6 h-6 text-primary mx-auto mb-1" />
           <p className="text-sm text-primary font-bold">{compName} Winners!</p>
-        </div>
+        </motion.div>
       )}
 
       {/* Tab navigation */}
-      <div className="flex gap-1 bg-card/40 rounded-lg p-1">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+        className="flex gap-1 bg-card/40 rounded-lg p-1"
+      >
         <button
           onClick={() => setTab('groups')}
           className={cn(
@@ -85,50 +107,78 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
         >
           Knockout
         </button>
-      </div>
+      </motion.div>
 
-      {/* Content */}
-      {tab === 'groups' && (
-        <div className="space-y-3">
-          {/* Player's group first */}
-          {tournament.groups
-            .sort((a, b) => {
-              if (a.id === tournament.playerGroupId) return -1;
-              if (b.id === tournament.playerGroupId) return 1;
-              return a.id.localeCompare(b.id);
-            })
-            .map(group => (
-              <GroupTable
-                key={group.id}
-                group={group}
-                virtualClubs={virtualClubs}
-                playerClubId={playerClubId}
-                clubs={clubs}
-                isPlayerGroup={group.id === tournament.playerGroupId}
-                currentMatchday={currentMd}
-              />
-            ))}
-        </div>
-      )}
+      {/* Content with tab transitions */}
+      <AnimatePresence mode="wait">
+        {tab === 'groups' && (
+          <motion.div
+            key="groups"
+            initial={{ opacity: 0, x: -15 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 15 }}
+            transition={{ duration: 0.25 }}
+            className="space-y-3"
+          >
+            {tournament.groups
+              .sort((a, b) => {
+                if (a.id === tournament.playerGroupId) return -1;
+                if (b.id === tournament.playerGroupId) return 1;
+                return a.id.localeCompare(b.id);
+              })
+              .map((group, i) => (
+                <motion.div
+                  key={group.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08 }}
+                >
+                  <GroupTable
+                    group={group}
+                    virtualClubs={virtualClubs}
+                    playerClubId={playerClubId}
+                    clubs={clubs}
+                    isPlayerGroup={group.id === tournament.playerGroupId}
+                    currentMatchday={currentMd}
+                  />
+                </motion.div>
+              ))}
+          </motion.div>
+        )}
 
-      {tab === 'knockout' && tournament.knockoutTies.length > 0 && (
-        <KnockoutBracket
-          ties={tournament.knockoutTies}
-          virtualClubs={virtualClubs}
-          playerClubId={playerClubId}
-          clubs={clubs}
-          currentRound={tournament.currentRound}
-          winnerId={tournament.winnerId}
-        />
-      )}
+        {tab === 'knockout' && tournament.knockoutTies.length > 0 && (
+          <motion.div
+            key="knockout"
+            initial={{ opacity: 0, x: 15 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -15 }}
+            transition={{ duration: 0.25 }}
+          >
+            <KnockoutBracket
+              ties={tournament.knockoutTies}
+              virtualClubs={virtualClubs}
+              playerClubId={playerClubId}
+              clubs={clubs}
+              currentRound={tournament.currentRound}
+              winnerId={tournament.winnerId}
+            />
+          </motion.div>
+        )}
 
-      {tab === 'knockout' && tournament.knockoutTies.length === 0 && (
-        <div className="text-center text-muted-foreground py-8">
-          <Globe className="w-8 h-8 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">Knockout stage has not started yet.</p>
-          <p className="text-xs mt-1">Complete the group stage to see the draw.</p>
-        </div>
-      )}
+        {tab === 'knockout' && tournament.knockoutTies.length === 0 && (
+          <motion.div
+            key="knockout-empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="text-center text-muted-foreground py-8"
+          >
+            <Globe className="w-8 h-8 mx-auto mb-2 opacity-40" />
+            <p className="text-sm">Knockout stage has not started yet.</p>
+            <p className="text-xs mt-1">Complete the group stage to see the draw.</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -99,13 +99,6 @@ export function getConfidenceRisk(value: number): 'safe' | 'warning' | 'danger' 
   return 'danger';
 }
 
-/** Get background color class for morale dots/bars (uses mood thresholds) */
-export function getMoraleBgColor(morale: number): string {
-  if (morale >= 60) return 'bg-emerald-500';
-  if (morale >= 35) return 'bg-amber-500';
-  return 'bg-destructive';
-}
-
 /** Get text color class for player mood */
 export function getMoodColor(mood: number): string {
   for (const t of MOOD_COLOR_THRESHOLDS) {

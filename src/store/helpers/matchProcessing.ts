@@ -17,6 +17,7 @@ import {
   getExpectedPosition,
   MAX_PLAYER_MATCH_HISTORY,
 } from '@/config/gameBalance';
+import { DEMAND_MORALE_WIN_BONUS, DEMAND_MORALE_LOSS_PENALTY, MOTIVATE_FATIGUE_MULTIPLIER } from '@/config/teamTalk';
 import { createMilestone, checkMatchMilestones } from '@/utils/milestones';
 import { grantXP, XP_REWARDS, hasPerk } from '@/utils/managerPerks';
 import { getMoraleStability } from '@/utils/personality';
@@ -104,7 +105,10 @@ export function processMatchResult(
       const p = { ...newPlayers[pid] };
       // Only drain fitness from players who actually played
       if (matchParticipants.has(pid)) {
-        p.fitness = Math.max(FITNESS_MIN_POST_MATCH, p.fitness + FITNESS_DRAIN_PER_MATCH);
+        const fitnessDrain = state.matchTeamTalk === 'motivate'
+          ? FITNESS_DRAIN_PER_MATCH * MOTIVATE_FATIGUE_MULTIPLIER
+          : FITNESS_DRAIN_PER_MATCH;
+        p.fitness = Math.max(FITNESS_MIN_POST_MATCH, p.fitness + fitnessDrain);
       }
       let moraleDelta = won ? MORALE_WIN_CHANGE : lost ? MORALE_LOSS_CHANGE + narrativeMoraleLossReduction : 0;
       // Add team morale boost from narrative-tagged players (capped at +5)
@@ -113,6 +117,10 @@ export function processMatchResult(
       if (lost && hasPerk(state.managerProgression, 'iron_will')) moraleDelta = 0;
       // Fortress Mentality perk: home wins give extra morale
       if (won && isHome && hasPerk(state.managerProgression, 'fortress_mentality')) moraleDelta += 3;
+      // Team talk morale effects: "demand" is high risk/reward
+      if (state.matchTeamTalk === 'demand') {
+        moraleDelta += won ? DEMAND_MORALE_WIN_BONUS : lost ? -DEMAND_MORALE_LOSS_PENALTY : 0;
+      }
       // Career mode: motivation stat amplifies morale swings
       const motivationMod = (state.gameMode === 'career' && state.careerManager)
         ? 1 + state.careerManager.attributes.motivation * 0.025

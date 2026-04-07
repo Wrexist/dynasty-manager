@@ -246,15 +246,24 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
     );
 
     if (playerMatchThisWeek) {
-      // Player has a match this week — auto-sim it (they manage via the UI later in full version)
-      // For now, auto-sim all matches including the player's
+      // Simulate using squad quality: average overall of lineup/squad affects goal output
       const { homeGoals, awayGoals } = (() => {
-        // Simple sim based on ranking
         const isHome = playerMatchThisWeek.homeNation === nationality;
-        const homeStr = isHome ? 0.6 : 0.5;
-        const awayStr = isHome ? 0.5 : 0.6;
-        const hg = Math.floor(Math.random() * 3 * homeStr + Math.random());
-        const ag = Math.floor(Math.random() * 3 * awayStr + Math.random());
+        const natTeam = state.nationalTeam;
+        const playerSquadIds = natTeam ? (natTeam.lineup.length >= 7 ? natTeam.lineup : natTeam.squad) : [];
+        const playerAvgOVR = playerSquadIds.length > 0
+          ? playerSquadIds.reduce((sum, id) => sum + (state.players[id]?.overall || 60), 0) / playerSquadIds.length
+          : 65;
+        // Opponent strength from FIFA ranking (lower = better)
+        const opponentNation = isHome ? playerMatchThisWeek.awayNation : playerMatchThisWeek.homeNation;
+        const opponentRanking = tournament.groups.flatMap(g => g.table).find(t => t.nationality === opponentNation);
+        const opponentStr = opponentRanking ? Math.max(0.3, 0.7 - (opponentRanking.points || 0) * 0.02) : 0.5;
+        const playerStr = Math.min(0.85, (playerAvgOVR - 40) / 60 + 0.1); // 0.1 to 0.85 based on OVR 40-90
+        const homeBonus = 0.08;
+        const hStr = isHome ? playerStr + homeBonus : opponentStr;
+        const aStr = isHome ? opponentStr : playerStr + homeBonus;
+        const hg = Math.floor(Math.random() * 3 * hStr + Math.random() * 0.5);
+        const ag = Math.floor(Math.random() * 3 * aStr + Math.random() * 0.5);
         return { homeGoals: hg, awayGoals: ag };
       })();
 
@@ -385,16 +394,32 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
       tournament.knockoutTies, tournament.currentRound, nationality
     );
 
-    // Handle player's knockout tie (auto-sim for now)
+    // Handle player's knockout tie — use squad quality for simulation
     let finalTies = updatedTies;
     if (playerTie && !playerTie.played) {
       const isHome = playerTie.homeNation === nationality;
-      const hg = Math.floor(Math.random() * 2 + Math.random());
-      const ag = Math.floor(Math.random() * 2 + Math.random());
+      const natTeam = state.nationalTeam;
+      const playerSquadIds = natTeam ? (natTeam.lineup.length >= 7 ? natTeam.lineup : natTeam.squad) : [];
+      const playerAvgOVR = playerSquadIds.length > 0
+        ? playerSquadIds.reduce((sum, id) => sum + (state.players[id]?.overall || 60), 0) / playerSquadIds.length
+        : 65;
+      const playerStr = Math.min(0.8, (playerAvgOVR - 40) / 60 + 0.1);
+      const opponentStr = 0.45 + Math.random() * 0.2; // 0.45-0.65 — AI opponents
+      const hStr = isHome ? playerStr + 0.05 : opponentStr;
+      const aStr = isHome ? opponentStr : playerStr + 0.05;
+      const hg = Math.floor(Math.random() * 2 * hStr + Math.random() * 0.6);
+      const ag = Math.floor(Math.random() * 2 * aStr + Math.random() * 0.6);
       let updatedPlayerTie = { ...playerTie, played: true, homeGoals: hg, awayGoals: ag };
       if (hg === ag) {
-        const homeWins = Math.random() > 0.5;
-        updatedPlayerTie = { ...updatedPlayerTie, penaltyShootout: { home: homeWins ? 5 : 3, away: homeWins ? 3 : 5 }, winnerId: homeWins ? playerTie.homeNation : playerTie.awayNation };
+        // Penalty shootout weighted by squad mental/composure
+        const avgMental = playerSquadIds.length > 0
+          ? playerSquadIds.reduce((sum, id) => sum + (state.players[id]?.attributes?.mental || 55), 0) / playerSquadIds.length
+          : 55;
+        const penWinChance = 0.35 + (Math.min(100, avgMental) / 100) * 0.3; // 0.35 to 0.65 based on mental
+        const homeWins = isHome ? Math.random() < penWinChance : Math.random() >= penWinChance;
+        const winScore = 4 + Math.floor(Math.random() * 2); // 4 or 5
+        const loseScore = winScore - 1 - Math.floor(Math.random() * 2); // 2-4
+        updatedPlayerTie = { ...updatedPlayerTie, penaltyShootout: { home: homeWins ? winScore : loseScore, away: homeWins ? loseScore : winScore }, winnerId: homeWins ? playerTie.homeNation : playerTie.awayNation };
       } else {
         updatedPlayerTie.winnerId = hg > ag ? playerTie.homeNation : playerTie.awayNation;
       }
@@ -651,11 +676,21 @@ function processTournamentResult(
     if (allPlayed) {
       if (newCup.currentRound === 'F') {
         const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
-        if (finalTie) { newCup.winner = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId; newCup.currentRound = null; }
+        if (finalTie) {
+          const cupWinnerId = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+          newCup.winner = cupWinnerId; newCup.currentRound = null;
+          awardPrizeMoney(cupWinnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up);
+        }
       } else { Object.assign(newCup, advanceCupRound(newCup)); }
     }
     const isHome = result.homeClubId === playerClubId;
     const playerWon = isHome ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
+    // Award round prize money for winning
+    if (playerWon && newCup.currentRound !== null) {
+      const cupRoundPrize: Record<string, number> = { R1: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r1, R2: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r2, R3: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r3, R4: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r4, QF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_qf, SF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_sf };
+      const round = state.cup.currentRound;
+      if (round) awardPrizeMoney(cupRoundPrize[round] || 0);
+    }
     if (!playerWon) newCup.eliminated = true;
     updates.cup = newCup;
     return { stateUpdates: updates, cleanedPlayers };
@@ -4388,11 +4423,31 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         )};
         const playerWon = (currentMatchResult.homeClubId === playerClubId) ? result.homeGoals > result.awayGoals : result.awayGoals > result.homeGoals;
         if (!playerWon) newCup.eliminated = true;
+        // Award round prize money
+        if (playerWon) {
+          const cupRoundPrize: Record<string, number> = { R1: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r1, R2: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r2, R3: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r3, R4: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r4, QF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_qf, SF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_sf };
+          const round = state.cup.currentRound;
+          if (round && round !== 'F') {
+            const club = clubs[playerClubId];
+            if (club) {
+              const newBudget = club.budget + (cupRoundPrize[round] || 0);
+              set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: newBudget } } });
+            }
+          }
+        }
         const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
         if (allPlayed) {
           if (newCup.currentRound === 'F') {
             const finalTie = newCup.ties.find(t => t.round === 'F' && t.played);
-            if (finalTie) { newCup.winner = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId; newCup.currentRound = null; }
+            if (finalTie) {
+              const cupWinnerId = finalTie.homeGoals > finalTie.awayGoals ? finalTie.homeClubId : finalTie.awayClubId;
+              newCup.winner = cupWinnerId; newCup.currentRound = null;
+              const prize = cupWinnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up;
+              const club = clubs[playerClubId];
+              if (club) {
+                set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + prize } } });
+              }
+            }
           } else { Object.assign(newCup, advanceCupRound(newCup)); }
         }
         set({
@@ -4547,10 +4602,22 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         t.id === currentCupTieId ? { ...t, played: true, homeGoals: result.homeGoals, awayGoals: result.awayGoals, penaltyShootout } : t
       )};
       if (winnerId !== playerClubId) newCup.eliminated = true;
+      // Award round prize money on pen win
+      if (winnerId === playerClubId) {
+        const cupRoundPrize: Record<string, number> = { R1: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r1, R2: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r2, R3: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r3, R4: CONTINENTAL_PRIZE_MONEY.dynasty_cup_r4, QF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_qf, SF: CONTINENTAL_PRIZE_MONEY.dynasty_cup_sf };
+        const round = state.cup.currentRound;
+        if (round && round !== 'F') {
+          const club = clubs[playerClubId];
+          if (club) set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + (cupRoundPrize[round] || 0) } } });
+        }
+      }
       const allPlayed = newCup.ties.filter(t => t.round === newCup.currentRound).every(t => t.played);
       if (allPlayed) {
         if (newCup.currentRound === 'F') {
           newCup.winner = winnerId; newCup.currentRound = null;
+          const prize = winnerId === playerClubId ? CONTINENTAL_PRIZE_MONEY.dynasty_cup_winner : CONTINENTAL_PRIZE_MONEY.dynasty_cup_runner_up;
+          const club = clubs[playerClubId];
+          if (club) set({ clubs: { ...clubs, [playerClubId]: { ...club, budget: club.budget + prize } } });
         } else { Object.assign(newCup, advanceCupRound(newCup)); }
       }
       set({
