@@ -71,13 +71,23 @@ const CAREER_MODE_ITEMS: DrawerItem[] = [
 export function MoreDrawer() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const { messages, currentScreen, cup, gameMode, nationalTeamOffer } = useGameStore(useShallow(s => ({
+  const { messages, currentScreen, cup, gameMode, nationalTeamOffer, championsCup, shieldCup, domesticSuperCup, continentalSuperCup, internationalTournament, nationalTeam } = useGameStore(useShallow(s => ({
     messages: s.messages, currentScreen: s.currentScreen, cup: s.cup, gameMode: s.gameMode,
     nationalTeamOffer: s.nationalTeamOffer,
+    championsCup: s.championsCup, shieldCup: s.shieldCup,
+    domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
+    internationalTournament: s.internationalTournament, nationalTeam: s.nationalTeam,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const unread = messages.filter(m => !m.read).length;
   const hasPendingCupMatch = cup?.ties?.some(t => !t.played && (t.homeClubId || t.awayClubId));
+
+  // Hide competition screens when the player isn't participating
+  const hiddenScreens = new Set<GameScreen>();
+  if (!championsCup) hiddenScreens.add('champions-cup');
+  if (!shieldCup) hiddenScreens.add('shield-cup');
+  if (!domesticSuperCup && !continentalSuperCup) hiddenScreens.add('super-cup');
+  if (!internationalTournament && !nationalTeam) hiddenScreens.add('national-team');
 
   const handleNav = (screen: GameScreen) => {
     hapticLight();
@@ -125,12 +135,14 @@ export function MoreDrawer() {
         <div className="space-y-4">
           {drawerSections.map(section => {
             // In career mode, prepend career-specific items to the Career section
-            const allItems = (section.title === 'Career' && gameMode === 'career')
+            const baseItems = (section.title === 'Career' && gameMode === 'career')
               ? [...CAREER_MODE_ITEMS, ...section.items]
               : section.items;
+            // Hide competitions the player isn't participating in
+            const visibleItems = baseItems.filter(i => !hiddenScreens.has(i.screen));
             const items = search.trim()
-              ? allItems.filter(i => i.label.toLowerCase().includes(search.toLowerCase()) || i.description.toLowerCase().includes(search.toLowerCase()))
-              : allItems;
+              ? visibleItems.filter(i => i.label.toLowerCase().includes(search.toLowerCase()) || i.description.toLowerCase().includes(search.toLowerCase()))
+              : visibleItems;
             if (items.length === 0) return null;
             return (
             <div key={section.title}>

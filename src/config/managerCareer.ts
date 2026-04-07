@@ -128,7 +128,7 @@ export const MANAGER_TRAITS: Record<ManagerTraitId, ManagerTraitDef> = {
     description: 'Inspires players to give their best every match',
     icon: 'Megaphone',
     attributeBonus: { motivation: TRAIT_ATTRIBUTE_BONUS },
-    passiveEffect: 'Team talks always give minimum +2 morale',
+    passiveEffect: 'Amplifies morale changes from match results',
   },
   youth_developer: {
     id: 'youth_developer',
@@ -136,7 +136,7 @@ export const MANAGER_TRAITS: Record<ManagerTraitId, ManagerTraitDef> = {
     description: 'Nurtures young talent into world-class players',
     icon: 'Sprout',
     attributeBonus: { youthDevelopment: TRAIT_ATTRIBUTE_BONUS },
-    passiveEffect: 'Youth academy prospects develop 15% faster',
+    passiveEffect: 'Youth players develop faster each week',
   },
   transfer_guru: {
     id: 'transfer_guru',
@@ -144,7 +144,7 @@ export const MANAGER_TRAITS: Record<ManagerTraitId, ManagerTraitDef> = {
     description: 'Master negotiator who always gets the best deal',
     icon: 'Handshake',
     attributeBonus: { negotiation: TRAIT_ATTRIBUTE_BONUS },
-    passiveEffect: 'See true player value with no hidden range',
+    passiveEffect: 'Reduces transfer fees when buying players',
   },
   disciplinarian: {
     id: 'disciplinarian',
@@ -152,7 +152,7 @@ export const MANAGER_TRAITS: Record<ManagerTraitId, ManagerTraitDef> = {
     description: 'Keeps the squad focused and professional',
     icon: 'ShieldCheck',
     attributeBonus: { discipline: TRAIT_ATTRIBUTE_BONUS },
-    passiveEffect: 'Captain leadership bonus doubled',
+    passiveEffect: 'Players receive fewer cards in matches',
   },
   media_darling: {
     id: 'media_darling',
@@ -160,7 +160,7 @@ export const MANAGER_TRAITS: Record<ManagerTraitId, ManagerTraitDef> = {
     description: 'Commands the press room with charm and authority',
     icon: 'Mic',
     attributeBonus: { mediaHandling: TRAIT_ATTRIBUTE_BONUS },
-    passiveEffect: 'Fan mood recovers 20% faster after losses',
+    passiveEffect: 'Press conference effects are amplified',
   },
   fitness_fanatic: {
     id: 'fitness_fanatic',
@@ -168,7 +168,7 @@ export const MANAGER_TRAITS: Record<ManagerTraitId, ManagerTraitDef> = {
     description: 'Demands peak physical conditioning from every player',
     icon: 'Dumbbell',
     attributeBonus: { discipline: 2, motivation: 1 },
-    passiveEffect: 'Training injury risk reduced by 15%',
+    passiveEffect: 'Improved squad discipline and motivation',
   },
   scout_master: {
     id: 'scout_master',
@@ -176,6 +176,6 @@ export const MANAGER_TRAITS: Record<ManagerTraitId, ManagerTraitDef> = {
     description: 'An eye for talent that others miss',
     icon: 'Search',
     attributeBonus: { scoutingEye: TRAIT_ATTRIBUTE_BONUS },
-    passiveEffect: 'Scouting reveals player potential accurately',
+    passiveEffect: 'Scouting assignments complete faster',
   },
 };
