@@ -1,5 +1,6 @@
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
+import { resolveClub } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { Trophy, TrendingUp, TrendingDown, Minus, Zap, Shield, Star } from 'lucide-react';
@@ -40,8 +41,9 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
   const lost = goalsFor < goalsAgainst;
 
 
-  const homeClub = clubs[currentMatchResult.homeClubId] || (virtualClubs?.[currentMatchResult.homeClubId] ? { id: currentMatchResult.homeClubId, name: virtualClubs[currentMatchResult.homeClubId].name, shortName: virtualClubs[currentMatchResult.homeClubId].shortName, color: virtualClubs[currentMatchResult.homeClubId].color, secondaryColor: virtualClubs[currentMatchResult.homeClubId].secondaryColor } : null);
-  const awayClub = clubs[currentMatchResult.awayClubId] || (virtualClubs?.[currentMatchResult.awayClubId] ? { id: currentMatchResult.awayClubId, name: virtualClubs[currentMatchResult.awayClubId].name, shortName: virtualClubs[currentMatchResult.awayClubId].shortName, color: virtualClubs[currentMatchResult.awayClubId].color, secondaryColor: virtualClubs[currentMatchResult.awayClubId].secondaryColor } : null);
+  const homeClub = resolveClub(clubs, virtualClubs, currentMatchResult.homeClubId);
+  const awayClub = resolveClub(clubs, virtualClubs, currentMatchResult.awayClubId);
+  if (!homeClub || !awayClub) return null;
 
   // Current league position
   const currentEntry = leagueTable.find(e => e.clubId === playerClubId);

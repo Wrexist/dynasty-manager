@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getSuffix } from '@/utils/helpers';
+import { getSuffix, resolveClub } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -109,6 +109,7 @@ const Dashboard = () => {
   })));
   // Actions — stable references, individual selectors
   const setScreen = useGameStore(s => s.setScreen);
+  const loadMatchForReview = useGameStore(s => s.loadMatchForReview);
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const advanceToNextMatch = useGameStore(s => s.advanceToNextMatch);
   const endSeason = useGameStore(s => s.endSeason);
@@ -454,7 +455,7 @@ const Dashboard = () => {
     const pGoals = isH ? lastMatch.homeGoals : lastMatch.awayGoals;
     const oGoals = isH ? lastMatch.awayGoals : lastMatch.homeGoals;
     const result = pGoals > oGoals ? 'W' : pGoals < oGoals ? 'L' : 'D';
-    return { oppName: oppClub?.shortName || '?', score: `${lastMatch.homeGoals}-${lastMatch.awayGoals}`, result };
+    return { oppName: oppClub?.shortName || '?', score: `${lastMatch.homeGoals}-${lastMatch.awayGoals}`, result, week: lastMatch.week };
   }, [fixtures, playerClubId, clubs]);
 
   // Next 3 unplayed fixtures for player club
@@ -747,7 +748,7 @@ const Dashboard = () => {
       {/* Last Match Result */}
       {lastMatchInfo && !seasonOver && (
         <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }}>
-        <GlassPanel className="p-3 flex items-center justify-between" onClick={() => setScreen('match-review')} aria-label="View match review">
+        <GlassPanel className="p-3 flex items-center justify-between" onClick={() => { loadMatchForReview(lastMatchInfo.week); setScreen('match-review'); }} aria-label="View match review">
           <div className="flex items-center gap-2">
             <span className={cn(
               'w-6 h-6 rounded-md flex items-center justify-center text-xs font-black',
@@ -1261,7 +1262,7 @@ const Dashboard = () => {
           <GlassPanel className="p-4 border-primary/30" onClick={() => setScreen('match-review')}>
             <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Last Result</p>
             <p className="text-lg font-black text-foreground tabular-nums">
-              {clubs[currentMatchResult.homeClubId]?.shortName} {currentMatchResult.homeGoals} - {currentMatchResult.awayGoals} {clubs[currentMatchResult.awayClubId]?.shortName}
+              {resolveClub(clubs, virtualClubs, currentMatchResult.homeClubId)?.shortName} {currentMatchResult.homeGoals} - {currentMatchResult.awayGoals} {resolveClub(clubs, virtualClubs, currentMatchResult.awayClubId)?.shortName}
             </p>
           </GlassPanel>
         </motion.div>
