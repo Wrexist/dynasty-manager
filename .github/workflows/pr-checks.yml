@@ -19,6 +19,40 @@ jobs:
       - run: npm run test
       - run: npm run build
 
+      - name: Check bundle size
+        run: |
+          echo "## Bundle Size Report"
+          echo ""
+
+          # Total dist size
+          TOTAL_SIZE=$(du -sb dist | cut -f1)
+          TOTAL_MB=$(echo "scale=2; $TOTAL_SIZE / 1048576" | bc)
+          echo "Total dist size: ${TOTAL_MB} MB"
+
+          # JS chunk sizes
+          echo ""
+          echo "| File | Size (KB) |"
+          echo "|------|-----------|"
+          for f in dist/assets/*.js; do
+            SIZE=$(wc -c < "$f")
+            SIZE_KB=$(echo "scale=1; $SIZE / 1024" | bc)
+            echo "| $(basename "$f") | ${SIZE_KB} |"
+          done
+
+          # Total JS size
+          JS_TOTAL=$(find dist/assets -name '*.js' -exec wc -c {} + | tail -1 | awk '{print $1}')
+          JS_MB=$(echo "scale=2; $JS_TOTAL / 1048576" | bc)
+          echo ""
+          echo "Total JS: ${JS_MB} MB"
+
+          # Budget check: fail if total JS exceeds 5 MB
+          BUDGET=5242880
+          if [ "$JS_TOTAL" -gt "$BUDGET" ]; then
+            echo "::error::JS bundle size (${JS_MB} MB) exceeds budget (5 MB)"
+            exit 1
+          fi
+          echo "✓ JS bundle within budget (< 5 MB)"
+
   code-review:
     runs-on: ubuntu-latest
     permissions:

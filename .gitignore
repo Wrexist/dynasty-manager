@@ -35,6 +35,9 @@ dist-ssr
 # Test & coverage
 coverage
 
+# Bundle analysis
+stats.html
+
 # Capacitor native build artifacts
 android/app/build
 ios/App/Pods

@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
 import fs from "fs";
 
@@ -55,7 +56,16 @@ export default defineConfig(() => ({
       overlay: false,
     },
   },
-  plugins: [react(), serviceWorkerPlugin()],
+  plugins: [
+    react(),
+    serviceWorkerPlugin(),
+    process.env.ANALYZE === 'true' && visualizer({
+      filename: 'stats.html',
+      open: true,
+      gzipSize: true,
+      brotliSize: true,
+    }),
+  ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
