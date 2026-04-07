@@ -191,6 +191,15 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: 'full-house', title: 'Full House', description: 'Hire staff for all 7 roles', icon: 'building', tier: 'bronze',
     check: (s) => new Set(s.staff.members.map(m => m.role)).size >= 7 },
 
+  // ── International ──
+  { id: 'national-team-appointed', title: 'International Duty', description: 'Get appointed as national team manager', icon: 'globe', tier: 'silver',
+    check: (s) => !!s.nationalTeam },
+  { id: 'intl-tournament-win', title: 'World Beater', description: 'Win an international tournament as manager', icon: 'trophy', tier: 'gold', hidden: true,
+    check: (s) => {
+      if (!s.nationalTeam) return false;
+      return s.nationalTeam.results.some(r => r.round === 'Final' && r.goalsFor > r.goalsAgainst);
+    } },
+
   // ── Hidden ──
   { id: 'double', title: 'The Double', description: 'Win the league and cup in the same season', icon: 'trophy', tier: 'gold', hidden: true,
     check: (s) => {

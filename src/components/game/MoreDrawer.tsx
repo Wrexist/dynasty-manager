@@ -71,8 +71,9 @@ const CAREER_MODE_ITEMS: DrawerItem[] = [
 export function MoreDrawer() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const { messages, currentScreen, cup, gameMode } = useGameStore(useShallow(s => ({
+  const { messages, currentScreen, cup, gameMode, nationalTeamOffer } = useGameStore(useShallow(s => ({
     messages: s.messages, currentScreen: s.currentScreen, cup: s.cup, gameMode: s.gameMode,
+    nationalTeamOffer: s.nationalTeamOffer,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const unread = messages.filter(m => !m.read).length;
@@ -163,6 +164,9 @@ export function MoreDrawer() {
                           <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
                             LIVE
                           </span>
+                        )}
+                        {screen === 'national-team' && nationalTeamOffer?.status === 'pending' && (
+                          <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse shrink-0" />
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground">{description}</p>

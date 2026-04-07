@@ -43,6 +43,7 @@ const ManagerCreation = () => {
   const location = useLocation();
   const initCareerGame = useGameStore(s => s.initCareerGame);
   const initNationalTeam = useGameStore(s => s.initNationalTeam);
+  const setManagerNationality = useGameStore(s => s.setManagerNationality);
   const saveGame = useGameStore(s => s.saveGame);
   const slot = (location.state as { slot?: number })?.slot || 1;
 
@@ -138,7 +139,7 @@ const ManagerCreation = () => {
         };
 
         initCareerGame(manager, selectedOffer.clubId);
-        initNationalTeam(nationality);
+        setManagerNationality(nationality);
         useGameStore.setState({ activeSlot: slot });
         try { saveGame(slot); } catch { /* save failure shouldn't block */ }
         // Defer navigation so React flushes all batched store updates

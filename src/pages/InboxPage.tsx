@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle } from 'lucide-react';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle, Globe } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message, GameScreen } from '@/types/game';
@@ -18,6 +18,7 @@ const typeIcon: Record<Message['type'], React.ElementType> = {
   development: TrendingUp,
   sponsorship: Handshake,
   general: Mail,
+  national_team: Globe,
 };
 
 interface MessageColorScheme {
@@ -37,6 +38,7 @@ const typeColors: Record<Message['type'], MessageColorScheme> = {
   match_preview: { iconBg: 'bg-cyan-500/20',    iconText: 'text-cyan-400',    border: 'border-cyan-500/30',    dot: 'bg-cyan-500' },
   match_result:  { iconBg: 'bg-primary/20',     iconText: 'text-primary',     border: 'border-primary/30',     dot: 'bg-primary' },
   general:       { iconBg: 'bg-sky-500/15',      iconText: 'text-sky-400',         border: 'border-sky-500/20',     dot: 'bg-sky-400' },
+  national_team: { iconBg: 'bg-teal-500/20',    iconText: 'text-teal-400',       border: 'border-teal-500/30',    dot: 'bg-teal-500' },
 };
 
 function getMatchResultColors(msg: Message): MessageColorScheme {
@@ -80,6 +82,7 @@ function getMessageAction(msg: Message, gameMode: string | undefined): { label: 
   if (msg.type === 'match_preview') return { label: 'Match Prep', screen: 'match-prep' };
   if (msg.type === 'match_result') return { label: 'Match Review', screen: 'match-review' };
   if (msg.type === 'general') return getGeneralNavTarget(msg.title);
+  if (msg.type === 'national_team') return { label: 'National Team', screen: 'national-team' };
   return null;
 }
 
@@ -92,6 +95,7 @@ const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.Ele
   { label: 'Development', types: ['development'], icon: TrendingUp, color: 'text-blue-400' },
   { label: 'Sponsorship', types: ['sponsorship'], icon: Handshake, color: 'text-emerald-400' },
   { label: 'General', types: ['general'], icon: Mail, color: 'text-sky-400' },
+  { label: 'National Team', types: ['national_team'], icon: Globe, color: 'text-teal-400' },
 ];
 
 const InboxPage = () => {

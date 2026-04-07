@@ -104,7 +104,7 @@ import { generateStorylines } from '@/utils/storylines';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
 import { getTournamentForSeason, generateTournament, processGroupWeek, generateKnockoutBracket, processKnockoutRound, autoSelectNationalSquad } from '@/utils/international';
-import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST } from '@/config/gameBalance';
+import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST, NT_JOB_MIN_REPUTATION, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS, REP_INTL_TOURNAMENT_WIN, REP_INTL_FINAL, REP_INTL_SEMI, REP_INTL_KNOCKOUT, REP_INTL_GROUP_EXIT, NT_SACK_GROUP_EXIT_THRESHOLD } from '@/config/gameBalance';
 import { generateRandomEvents } from '@/utils/randomEvents';
 import { getWinStreak, detectMatchDrama } from '@/utils/celebrations';
 import { generateCliffhangers } from '@/utils/weekPreview';
@@ -520,7 +520,64 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
           : `${tournament.winner} won the ${tournament.name}. ${state.nationalTeam?.results.length ? 'Your national team gave it their best.' : ''}`,
       });
     }
-    set({ messages: newMessages, seasonPhase: 'regular', internationalTournament: null });
+
+    // Career mode: apply international reputation rewards and sacking check
+    let updatedCareerManager = state.careerManager;
+    let sacked = false;
+    let clearNationalTeam = false;
+    if (state.gameMode === 'career' && state.careerManager && state.nationalTeam) {
+      const cm = { ...state.careerManager };
+      const isWinner = tournament.winner === nationality;
+      const reachedKnockout = tournament.knockoutTies.some(t => t.homeNation === nationality || t.awayNation === nationality);
+      const reachedSF = tournament.knockoutTies.some(t => (t.homeNation === nationality || t.awayNation === nationality) && (t.round === 'SF' || t.round === 'F'));
+      const reachedFinal = tournament.knockoutTies.some(t => (t.homeNation === nationality || t.awayNation === nationality) && t.round === 'F');
+
+      // Apply reputation
+      if (isWinner) cm.reputationScore += REP_INTL_TOURNAMENT_WIN;
+      else if (reachedFinal) cm.reputationScore += REP_INTL_FINAL;
+      else if (reachedSF) cm.reputationScore += REP_INTL_SEMI;
+      else if (reachedKnockout) cm.reputationScore += REP_INTL_KNOCKOUT;
+      else cm.reputationScore += REP_INTL_GROUP_EXIT;
+
+      cm.reputationScore = Math.max(REP_MIN, Math.min(REP_MAX, cm.reputationScore));
+      cm.reputationTier = calculateReputationTier(cm.reputationScore);
+
+      // Sacking check: consecutive group stage exits
+      if (!reachedKnockout && !isWinner) {
+        // Count consecutive group exits from results history
+        const results = state.nationalTeam.results;
+        let consecutiveGroupExits = 1; // this tournament counts as one
+        const tournamentSeasons = [...new Set(results.map(r => r.season))].sort((a, b) => b - a);
+        for (const ts of tournamentSeasons) {
+          if (ts === state.season) continue; // skip current (already counted)
+          const tsResults = results.filter(r => r.season === ts);
+          // If this tournament's results are all group stage (no knockout rounds)
+          const hadKnockout = tsResults.some(r => r.round && (r.round.includes('16') || r.round.includes('Quarter') || r.round.includes('Semi') || r.round.includes('Final')));
+          if (!hadKnockout && tsResults.length > 0) consecutiveGroupExits++;
+          else break;
+        }
+        if (consecutiveGroupExits >= NT_SACK_GROUP_EXIT_THRESHOLD) {
+          sacked = true;
+          clearNationalTeam = true;
+          cm.nationalTeamSacked = true;
+          newMessages = addMsg(newMessages, {
+            week: state.week, season: state.season, type: 'national_team',
+            title: `Sacked as ${nationality} Manager`,
+            body: `Following ${consecutiveGroupExits} consecutive group-stage exits, the ${nationality} FA has relieved you of your duties as national team manager.`,
+          });
+        }
+      }
+
+      updatedCareerManager = cm;
+    }
+
+    set({
+      messages: newMessages,
+      seasonPhase: 'regular',
+      internationalTournament: null,
+      ...(updatedCareerManager && { careerManager: updatedCareerManager }),
+      ...(clearNationalTeam && { nationalTeam: null }),
+    });
     endSeasonImpl(set, get);
   }
 }
@@ -1585,10 +1642,43 @@ function finalizeSeason(
     saveToHall(hallEntry);
   }
 
+  // Career mode: check if the FA should offer the national team job
+  {
+    const cs = get();
+    if (cs.gameMode === 'career' && cs.careerManager && cs.managerNationality
+      && !cs.nationalTeam && !cs.nationalTeamOffer) {
+      const threshold = cs.careerManager.nationalTeamSacked ? NT_JOB_REHIRE_REPUTATION : NT_JOB_MIN_REPUTATION;
+      const upcomingTournament = getTournamentForSeason(season + 1) || getTournamentForSeason(season + 2);
+      if (cs.careerManager.reputationScore >= threshold && upcomingTournament) {
+        const expWeek = cs.week + NT_JOB_OFFER_DURATION_WEEKS;
+        const expSeason = expWeek > TOTAL_WEEKS ? newSeason + 1 : newSeason;
+        const finalExpWeek = expWeek > TOTAL_WEEKS ? expWeek - TOTAL_WEEKS : expWeek;
+        const offer = {
+          id: crypto.randomUUID(),
+          nationality: cs.managerNationality,
+          reason: cs.careerManager.nationalTeamSacked ? 'vacancy' as const : 'initial' as const,
+          offerSeason: newSeason,
+          offerWeek: 1,
+          expiresSeason: expSeason,
+          expiresWeek: finalExpWeek,
+          status: 'pending' as const,
+        };
+        const offerMsg = addMsg(cs.messages, {
+          week: 1, season: newSeason, type: 'national_team',
+          title: `${cs.managerNationality} FA: National Team Position`,
+          body: `The ${cs.managerNationality} Football Association has been impressed by your achievements in club football. They would like to offer you the position of ${cs.managerNationality} national team manager.`,
+        });
+        set({ nationalTeamOffer: offer, messages: offerMsg });
+      }
+    }
+  }
+
   // Check if an international tournament should start this season
   const postState = get();
   const tournamentType = getTournamentForSeason(season);
-  if (tournamentType && postState.managerNationality) {
+  // Sandbox: always participate. Career: only if national team is appointed.
+  const canParticipate = postState.managerNationality && (postState.gameMode === 'sandbox' || postState.nationalTeam !== null);
+  if (tournamentType && canParticipate) {
     const tournament = generateTournament(tournamentType, season, postState.managerNationality);
     // Auto-select national squad
     const squad = autoSelectNationalSquad(postState.managerNationality, postState.players);
@@ -3778,6 +3868,22 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           }
         }
 
+        // --- National team offer expiry ---
+        {
+          const ntOffer = get().nationalTeamOffer;
+          if (ntOffer && ntOffer.status === 'pending') {
+            const expired = season > ntOffer.expiresSeason || (season === ntOffer.expiresSeason && newWeek >= ntOffer.expiresWeek);
+            if (expired) {
+              careerMessages = addMsg(careerMessages, {
+                week: newWeek, season, type: 'national_team',
+                title: 'National Team Offer Expired',
+                body: `The ${ntOffer.nationality} FA has withdrawn their offer after receiving no response. They will appoint another manager.`,
+              });
+              set({ nationalTeamOffer: null });
+            }
+          }
+        }
+
         // --- Contract expiry warning ---
         if (cm.contract && cm.contract.endSeason === season && newWeek >= 40) {
           const alreadyWarned = careerMessages.some(m => m.title === 'Contract Expiring');
@@ -4662,6 +4768,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       nationalTeam: state.nationalTeam,
       internationalTournament: state.internationalTournament,
       managerNationality: state.managerNationality,
+      nationalTeamOffer: state.nationalTeamOffer,
       // Cups & Continental
       leagueCup: state.leagueCup,
       championsCup: state.championsCup,
