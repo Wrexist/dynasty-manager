@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
-import { Search, Globe, MapPin, Eye, Clock, Star, StarOff, Banknote, UserCheck } from 'lucide-react';
+import { Search, Globe, MapPin, Eye, Clock, Star, StarOff, Banknote, UserCheck, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScoutRegion, TransferListing } from '@/types/game';
 import { getPotentialInfo } from '@/utils/uiHelpers';
@@ -43,6 +43,7 @@ const ScoutingPage = () => {
   const cancelAssignment = useGameStore((s) => s.cancelAssignment);
   const addToWatchList = useGameStore((s) => s.addToWatchList);
   const removeFromWatchList = useGameStore((s) => s.removeFromWatchList);
+  const dismissScoutReport = useGameStore((s) => s.dismissScoutReport);
   const [activeTab, setActiveTab] = useState<typeof SCOUTING_TABS[number]>('Overview');
   const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
 
@@ -205,7 +206,16 @@ const ScoutingPage = () => {
                         {!transferWindowOpen && !listing.scoutedPlayer ? 'Window Closed' : 'Sign'}
                       </button>
                     ) : showOverall ? (
-                      <span className="text-[10px] text-muted-foreground/60 italic">Unavailable</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-muted-foreground/60 italic">Signed elsewhere</span>
+                        <button
+                          onClick={() => dismissScoutReport(report.id)}
+                          className="p-0.5 rounded hover:bg-destructive/20 transition-colors"
+                          title="Dismiss report"
+                        >
+                          <X className="w-3 h-3 text-muted-foreground/50 hover:text-destructive" />
+                        </button>
+                      </div>
                     ) : null}
                   </div>
                 </GlassPanel>
@@ -318,7 +328,7 @@ const ScoutingPage = () => {
                           {!transferWindowOpen && !listing.scoutedPlayer ? 'Window Closed' : 'Sign'}
                         </button>
                       ) : (
-                        <span className="text-[10px] text-muted-foreground/60 italic">Unavailable</span>
+                        <span className="text-[10px] text-muted-foreground/60 italic">Signed elsewhere</span>
                       )}
                     </div>
                   </GlassPanel>

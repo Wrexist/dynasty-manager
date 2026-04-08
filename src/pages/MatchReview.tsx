@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
+import { resolveClub } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
@@ -18,7 +19,6 @@ import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
 import { findTournamentMatch } from '@/hooks/useGameSelectors';
 import { motion } from 'framer-motion';
-import type { Club } from '@/types/game';
 
 const MatchReview = () => {
   const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs } = useGameStore(useShallow(s => ({
@@ -50,8 +50,8 @@ const MatchReview = () => {
   }
 
   const match = currentMatchResult;
-  const homeClub = clubs[match.homeClubId] || (virtualClubs?.[match.homeClubId] ? { id: match.homeClubId, name: virtualClubs[match.homeClubId].name, shortName: virtualClubs[match.homeClubId].shortName, color: virtualClubs[match.homeClubId].color, secondaryColor: virtualClubs[match.homeClubId].secondaryColor, stadiumName: '' } as Club : null);
-  const awayClub = clubs[match.awayClubId] || (virtualClubs?.[match.awayClubId] ? { id: match.awayClubId, name: virtualClubs[match.awayClubId].name, shortName: virtualClubs[match.awayClubId].shortName, color: virtualClubs[match.awayClubId].color, secondaryColor: virtualClubs[match.awayClubId].secondaryColor, stadiumName: '' } as Club : null);
+  const homeClub = resolveClub(clubs, virtualClubs, match.homeClubId);
+  const awayClub = resolveClub(clubs, virtualClubs, match.awayClubId);
   if (!homeClub || !awayClub) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">
@@ -76,7 +76,15 @@ const MatchReview = () => {
   const injuries = match.events.filter(e => e.type === 'injury');
   const cards = match.events.filter(e => e.type === 'yellow_card' || e.type === 'red_card');
 
+  // Historical review = match from a past week (e.g. opened from inbox)
+  const isHistoricalReview = match.week !== week;
+
   const handleContinue = () => {
+    if (isHistoricalReview) {
+      // Reviewing a past match — just go back, never advance the week
+      setScreen('dashboard');
+      return;
+    }
     setIsAdvancing(true);
     setTimeout(() => {
       // Read fresh state from the store (not stale closure from render time)
@@ -166,7 +174,7 @@ const MatchReview = () => {
       {/* Continue — sticky at top so player doesn't have to scroll */}
       <div className="sticky top-0 z-10 -mx-4 px-4 pt-1 pb-2 bg-gradient-to-b from-background via-background to-transparent">
         <Button size="lg" className="w-full h-12 text-base font-bold gap-2" disabled={isAdvancing} onClick={handleContinue}>
-          {isAdvancing ? 'Advancing...' : 'Continue'} {!isAdvancing && <ChevronRight className="w-5 h-5" />}
+          {isAdvancing ? 'Advancing...' : isHistoricalReview ? 'Back to Dashboard' : 'Continue'} {!isAdvancing && <ChevronRight className="w-5 h-5" />}
         </Button>
       </div>
 
@@ -240,7 +248,7 @@ const MatchReview = () => {
                     {g.type === 'own_goal' && <span className="text-amber-400"> (OG)</span>}
                     {g.type === 'goal' && assister && <span className="text-muted-foreground"> (ast. {assister.lastName})</span>}
                   </span>
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clubs[g.clubId]?.color }} />
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clubs[g.clubId]?.color || virtualClubs?.[g.clubId]?.color }} />
                 </div>
               );
             })}
@@ -531,7 +539,7 @@ const MatchReview = () => {
         }
 
         const opponentId = nextFixture.homeClubId === playerClubId ? nextFixture.awayClubId : nextFixture.homeClubId;
-        const opponent = clubs[opponentId];
+        const opponent = resolveClub(clubs, virtualClubs, opponentId);
         const isNextHome = nextFixture.homeClubId === playerClubId;
         if (!opponent) return null;
 

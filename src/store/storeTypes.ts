@@ -251,6 +251,7 @@ export interface GameState {
   revealNextPenaltyKick: () => void;
   skipPenaltyShootout: () => void;
   clearMatchResult: () => void;
+  loadMatchForReview: (week: number) => void;
   cleanupAbandonedMatch: () => void;
   makeMatchSub: (outId: string, inId: string) => void;
   setTeamTalk: (talk: TeamTalkType) => void;
@@ -270,6 +271,7 @@ export interface GameState {
   assignScout: (region: ScoutRegion) => void;
   cancelAssignment: (assignmentId: string) => void;
   boostScoutReports: () => void;
+  dismissScoutReport: (reportId: string) => void;
   addToWatchList: (playerId: string) => void;
   removeFromWatchList: (playerId: string) => void;
   promoteYouth: (playerId: string) => void;

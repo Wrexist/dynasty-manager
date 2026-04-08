@@ -1,5 +1,6 @@
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
+import { resolveClub } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { Trophy, TrendingUp, TrendingDown, Minus, Zap, Shield, Star } from 'lucide-react';
@@ -14,7 +15,7 @@ interface PostMatchPopupProps {
 }
 
 export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
-  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players } = useGameStore(
+  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players, virtualClubs } = useGameStore(
     useShallow(s => ({
       currentMatchResult: s.currentMatchResult,
       clubs: s.clubs,
@@ -25,6 +26,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
       managerProgression: s.managerProgression,
       matchPlayerRatings: s.matchPlayerRatings,
       players: s.players,
+      virtualClubs: s.virtualClubs,
     }))
   );
 
@@ -39,8 +41,9 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
   const lost = goalsFor < goalsAgainst;
 
 
-  const homeClub = clubs[currentMatchResult.homeClubId];
-  const awayClub = clubs[currentMatchResult.awayClubId];
+  const homeClub = resolveClub(clubs, virtualClubs, currentMatchResult.homeClubId);
+  const awayClub = resolveClub(clubs, virtualClubs, currentMatchResult.awayClubId);
+  if (!homeClub || !awayClub) return null;
 
   // Current league position
   const currentEntry = leagueTable.find(e => e.clubId === playerClubId);

@@ -3221,6 +3221,25 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (newScouting.reports.length > MAX_SCOUT_REPORTS) {
       newScouting.reports = newScouting.reports.slice(-MAX_SCOUT_REPORTS);
     }
+    // Auto-dismiss stale reports for players no longer on the market and not on user's club
+    const currentMarketIds = new Set(get().transferMarket.map(l => l.playerId));
+    const stalePlayerIds: string[] = [];
+    newScouting.reports = newScouting.reports.filter(r => {
+      if (currentMarketIds.has(r.playerId)) return true;
+      const p = newPlayers[r.playerId];
+      if (p && p.clubId === playerClubId) return true;
+      stalePlayerIds.push(r.playerId);
+      return false;
+    });
+    // Also clean watch list for auto-dismissed reports
+    if (stalePlayerIds.length > 0) {
+      const staleSet = new Set(stalePlayerIds);
+      const currentWatchList = get().scoutWatchList;
+      const cleanedWatchList = currentWatchList.filter(id => !staleSet.has(id));
+      if (cleanedWatchList.length < currentWatchList.length) {
+        set({ scoutWatchList: cleanedWatchList });
+      }
+    }
     // Add scouted player listings to the transfer market
     if (scoutedListings.length > 0) {
       const currentMarket = get().transferMarket;

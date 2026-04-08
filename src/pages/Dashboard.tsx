@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getSuffix } from '@/utils/helpers';
+import { getSuffix, resolveClub } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
 import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -15,12 +15,12 @@ import {
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getRoundName } from '@/data/cup';
 import { LEAGUES } from '@/data/league';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
-import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, COACH_ALL_TASKS_BONUS_XP } from '@/config/gameBalance';
+import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
@@ -53,11 +53,14 @@ import { getActiveRecordChases } from '@/utils/records';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
 import { MidSeasonReport } from '@/components/game/MidSeasonReport';
 import { buildCoachTasks } from '@/utils/gameCoach';
+import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { FormGuide } from '@/components/game/FormGuide';
 import { getRecentForm } from '@/utils/formGuide';
 import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
 
 const WELCOME_KEY = 'dynasty-welcome-shown';
+const COLLAPSE_SPRING = { type: 'spring' as const, stiffness: 300, damping: 24 };
+const VISIBLE_ACHIEVEMENT_COUNT = ACHIEVEMENTS.filter(a => !a.hidden).length;
 
 const Dashboard = () => {
   // ── Deferred mount guard (React #185 fix) ──
@@ -83,6 +86,7 @@ const Dashboard = () => {
     pendingPressConference, pendingStoryline, pendingTransferTalk,
     activeChallenge, youthAcademy, fanMood, sessionStats,
     pendingAchievementIds,
+    activeStorylineChains, unlockedAchievements,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
@@ -106,9 +110,12 @@ const Dashboard = () => {
     pendingTransferTalk: s.pendingTransferTalk, activeChallenge: s.activeChallenge,
     youthAcademy: s.youthAcademy, fanMood: s.fanMood, sessionStats: s.sessionStats,
     pendingAchievementIds: s.pendingAchievementIds,
+    activeStorylineChains: s.activeStorylineChains,
+    unlockedAchievements: s.unlockedAchievements,
   })));
   // Actions — stable references, individual selectors
   const setScreen = useGameStore(s => s.setScreen);
+  const loadMatchForReview = useGameStore(s => s.loadMatchForReview);
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const advanceToNextMatch = useGameStore(s => s.advanceToNextMatch);
   const endSeason = useGameStore(s => s.endSeason);
@@ -368,6 +375,45 @@ const Dashboard = () => {
     });
   }, [club, fixtures, playerClubId, unread, weeklyObjectives, players, transferWindowOpen, scouting.assignments, scouting.reports.length, shortlist.length, week, completedCoachTaskIds]);
   const completedCoachTasks = coachTasks.filter(task => task.completed).length;
+  const allCoachTasksDone = coachTasks.length > 0 && completedCoachTasks === coachTasks.length;
+  const [coachCollapsed, setCoachCollapsed] = useState(false);
+
+  // Auto-collapse when all tasks complete
+  useEffect(() => {
+    if (allCoachTasksDone) setCoachCollapsed(true);
+  }, [allCoachTasksDone]);
+
+  // ── Objectives collapse ──
+  const allObjectivesDone = weeklyObjectives.length > 0 && weeklyObjectives.every(o => o.completed);
+  const [objectivesCollapsed, setObjectivesCollapsed] = useState(false);
+  useEffect(() => {
+    if (allObjectivesDone) setObjectivesCollapsed(true);
+  }, [allObjectivesDone]);
+
+  // ── Active Sagas ──
+  const [sagaCollapsed, setSagaCollapsed] = useState(false);
+  const activeSagas = useMemo(() => {
+    return (activeStorylineChains || []).map(chain => {
+      const def = STORYLINE_CHAINS.find(c => c.id === chain.chainId);
+      if (!def) return null;
+      const targetPlayer = chain.targetPlayerId ? players[chain.targetPlayerId] : null;
+      return { chain, def, targetPlayer };
+    }).filter(Boolean);
+  }, [activeStorylineChains, players]);
+
+  // ── Achievement progress (top 5 closest to completion) ──
+  const [achievementsCollapsed, setAchievementsCollapsed] = useState(false);
+  const achievementProgress = useMemo(() => {
+    const state = useGameStore.getState();
+    const _tick = week; // re-evaluate when week advances (state snapshot changes)
+    return ACHIEVEMENTS
+      .filter(a => !a.hidden && !(unlockedAchievements || []).includes(a.id) && a.progress)
+      .map(a => ({ ...a, prog: a.progress!(state) }))
+      .filter(a => a.prog && a.prog.current > 0)
+      .sort((a, b) => (b.prog!.current / b.prog!.target) - (a.prog!.current / a.prog!.target))
+      .slice(0, 5);
+  }, [unlockedAchievements, week]);
+
 
   const objectivesWithProgress = useMemo(() => {
     if (!club) return weeklyObjectives;
@@ -454,7 +500,7 @@ const Dashboard = () => {
     const pGoals = isH ? lastMatch.homeGoals : lastMatch.awayGoals;
     const oGoals = isH ? lastMatch.awayGoals : lastMatch.homeGoals;
     const result = pGoals > oGoals ? 'W' : pGoals < oGoals ? 'L' : 'D';
-    return { oppName: oppClub?.shortName || '?', score: `${lastMatch.homeGoals}-${lastMatch.awayGoals}`, result };
+    return { oppName: oppClub?.shortName || '?', score: `${lastMatch.homeGoals}-${lastMatch.awayGoals}`, result, week: lastMatch.week };
   }, [fixtures, playerClubId, clubs]);
 
   // Next 3 unplayed fixtures for player club
@@ -747,7 +793,7 @@ const Dashboard = () => {
       {/* Last Match Result */}
       {lastMatchInfo && !seasonOver && (
         <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 25 }}>
-        <GlassPanel className="p-3 flex items-center justify-between" onClick={() => setScreen('match-review')} aria-label="View match review">
+        <GlassPanel className="p-3 flex items-center justify-between" onClick={() => { loadMatchForReview(lastMatchInfo.week); setScreen('match-review'); }} aria-label="View match review">
           <div className="flex items-center gap-2">
             <span className={cn(
               'w-6 h-6 rounded-md flex items-center justify-center text-xs font-black',
@@ -989,61 +1035,179 @@ const Dashboard = () => {
       {/* Guided checklist for new careers */}
       {!seasonOver && season <= 2 && coachTasks.length > 0 && (
         <GlassPanel className="p-4 border-primary/20">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
+          <button
+            type="button"
+            onClick={() => setCoachCollapsed(c => !c)}
+            aria-expanded={!coachCollapsed}
+            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-1.5">
+              <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
+                <ChevronRight className="w-3 h-3 text-primary" />
+              </motion.div>
+              <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
+              {allCoachTasksDone && <span className="text-[9px] text-emerald-400 font-bold">&#10003; Complete</span>}
+            </div>
             <span className="text-[10px] text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
-          </div>
-          <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden mb-3">
+          </button>
+          <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden mt-2">
             <div
-              className="h-full bg-primary transition-all duration-300"
+              className={cn('h-full transition-all duration-300', allCoachTasksDone ? 'bg-emerald-500' : 'bg-primary')}
               style={{ width: `${Math.round((completedCoachTasks / coachTasks.length) * 100)}%` }}
             />
           </div>
-          <div className="space-y-2">
-            {coachTasks.map((task) => (
-              <div key={task.id} className="relative">
-                <button
-                  type="button"
-                  disabled={!task.screen}
-                  onClick={() => task.screen && setScreen(task.screen)}
-                  className={cn(
-                    'w-full text-left rounded-lg px-3 py-2 border transition-colors',
-                    task.completed
-                      ? 'bg-emerald-500/10 border-emerald-500/30'
-                      : 'bg-muted/20 border-border/40 hover:bg-primary/5'
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={cn(
-                        'text-[9px] font-bold px-1.5 py-0.5 rounded',
-                        task.completed ? 'text-emerald-400/70 bg-emerald-500/10' : 'text-primary/70 bg-primary/10'
-                      )}>
-                        {task.completed ? '✓' : '+'}{task.xpReward} XP
-                      </span>
-                      <span className={cn(
-                        'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
-                        task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
-                      )}>
-                        {task.priority}
-                      </span>
+          <AnimatePresence initial={false}>
+            {!coachCollapsed && (
+              <motion.div
+                key="coach-content"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={COLLAPSE_SPRING}
+                className="overflow-hidden"
+              >
+                <div className="space-y-2 mt-3">
+                  {coachTasks.map((task) => (
+                    <div key={task.id} className="relative">
+                      <button
+                        type="button"
+                        disabled={!task.screen}
+                        onClick={() => task.screen && setScreen(task.screen)}
+                        className={cn(
+                          'w-full text-left rounded-lg px-3 py-2 border transition-colors',
+                          task.completed
+                            ? 'bg-emerald-500/10 border-emerald-500/30'
+                            : 'bg-muted/20 border-border/40 hover:bg-primary/5'
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className={cn(
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded',
+                              task.completed ? 'text-emerald-400/70 bg-emerald-500/10' : 'text-primary/70 bg-primary/10'
+                            )}>
+                              {task.completed ? '✓' : '+'}{task.xpReward} XP
+                            </span>
+                            <span className={cn(
+                              'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
+                              task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
+                            )}>
+                              {task.priority}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
+                      </button>
+                      <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
                     </div>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
-                </button>
-                <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
-              </div>
-            ))}
-          </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </GlassPanel>
+      )}
+
+      {/* Active Sagas */}
+      {!seasonOver && activeSagas.length > 0 && (
+        <GlassPanel className="p-4 border-amber-500/20">
+          <button
+            type="button"
+            onClick={() => setSagaCollapsed(c => !c)}
+            aria-expanded={!sagaCollapsed}
+            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-1.5">
+              <motion.div animate={{ rotate: sagaCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
+                <ChevronRight className="w-3 h-3 text-amber-400" />
+              </motion.div>
+              <p className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">Active Sagas</p>
+              <span className="text-[9px] text-muted-foreground">{activeSagas.length} active</span>
+            </div>
+          </button>
+          <AnimatePresence initial={false}>
+            {!sagaCollapsed && (
+              <motion.div
+                key="saga-content"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={COLLAPSE_SPRING}
+                className="overflow-hidden"
+              >
+                <div className="space-y-2 mt-3">
+                  {activeSagas.map((saga) => {
+                    if (!saga) return null;
+                    const { chain, def, targetPlayer } = saga;
+                    const totalSteps = def.steps.length;
+                    if (chain.currentStep >= totalSteps) return null;
+                    const currentStepDef = def.steps[chain.currentStep];
+                    const Wrapper = targetPlayer ? 'button' : 'div';
+                    return (
+                      <Wrapper
+                        key={chain.chainId}
+                        {...(targetPlayer ? { type: 'button' as const, onClick: () => selectPlayer(targetPlayer.id) } : {})}
+                        className={cn(
+                          'rounded-lg px-3 py-2.5 bg-amber-500/5 border border-amber-500/20 w-full text-left',
+                          targetPlayer && 'hover:bg-amber-500/10 transition-colors cursor-pointer'
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1.5">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {currentStepDef && <DynamicIcon name={currentStepDef.icon} className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                            <p className="text-xs font-semibold text-amber-400 truncate">{def.name}</p>
+                          </div>
+                          <span className="text-[9px] text-muted-foreground shrink-0">
+                            Step {chain.currentStep + 1}/{totalSteps}
+                          </span>
+                        </div>
+                        {targetPlayer && (
+                          <p className="text-[10px] text-muted-foreground mb-1.5">
+                            Involving: <span className="text-foreground font-medium">{targetPlayer.name}</span>
+                          </p>
+                        )}
+                        {/* Step progress dots */}
+                        <div className="flex items-center gap-1 mb-1.5">
+                          {def.steps.map((_, i) => (
+                            <div
+                              key={i}
+                              className={cn(
+                                'h-1.5 flex-1 rounded-full transition-colors',
+                                i < chain.currentStep ? 'bg-amber-400' : i === chain.currentStep ? 'bg-amber-400/60 animate-pulse' : 'bg-muted/40'
+                              )}
+                            />
+                          ))}
+                        </div>
+                        {currentStepDef && (
+                          <p className="text-[10px] text-muted-foreground">
+                            <span className="text-foreground font-medium">{currentStepDef.title}</span>
+                            {' — awaiting your decision'}
+                          </p>
+                        )}
+                      </Wrapper>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </GlassPanel>
       )}
 
       {/* Monthly Objectives */}
       {!seasonOver && weeklyObjectives.length > 0 && (
         <GlassPanel className="p-4">
-          <div className="flex items-center justify-between mb-2">
+          <button
+            type="button"
+            onClick={() => setObjectivesCollapsed(c => !c)}
+            aria-expanded={!objectivesCollapsed}
+            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
+          >
             <div className="flex items-center gap-2">
+              <motion.div animate={{ rotate: objectivesCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
+                <ChevronRight className="w-3 h-3 text-foreground" />
+              </motion.div>
               <p className="text-xs font-bold text-foreground uppercase tracking-wider">Monthly Objectives</p>
               <span className="text-[9px] text-muted-foreground">Week {Math.max(1, Math.min(week - (objectivesStartWeek || 1) + 1, OBJECTIVE_CYCLE_WEEKS))}/{OBJECTIVE_CYCLE_WEEKS}</span>
               {objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD && (
@@ -1051,6 +1215,7 @@ const Dashboard = () => {
                   2x XP
                 </span>
               )}
+              {allObjectivesDone && <span className="text-[9px] text-emerald-400 font-bold">&#10003; Complete</span>}
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] text-primary font-semibold">
@@ -1062,49 +1227,139 @@ const Dashboard = () => {
                 </span>
               )}
             </div>
-          </div>
-          <div className="space-y-2">
-            {objectivesWithProgress.map((obj) => (
-              <div
-                key={obj.objectiveId}
-                className={cn(
-                  'relative flex items-center gap-2 rounded-lg px-3 py-2 transition-colors',
-                  obj.completed ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-muted/30 border border-border/30'
-                )}
+          </button>
+          <AnimatePresence initial={false}>
+            {!objectivesCollapsed && (
+              <motion.div
+                key="objectives-content"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={COLLAPSE_SPRING}
+                className="overflow-hidden"
               >
-                <DynamicIcon name={obj.icon} className="w-4 h-4 text-primary shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className={cn('text-xs font-semibold truncate', obj.completed ? 'text-emerald-400 line-through' : 'text-foreground')}>{obj.title}</p>
-                    {obj.rarity === 'rare' && (
-                      <span className="text-[8px] font-bold text-blue-400 bg-blue-500/15 px-1 py-0.5 rounded shrink-0">RARE</span>
-                    )}
-                    {obj.rarity === 'legendary' && (
-                      <span className="text-[8px] font-bold text-primary bg-primary/15 px-1 py-0.5 rounded shrink-0 animate-pulse">LEGENDARY</span>
-                    )}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground truncate">{obj.description}</p>
-                  {!obj.completed && obj.progress && (
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-primary rounded-full transition-all"
-                          style={{ width: `${Math.min(100, (obj.progress.current / obj.progress.target) * 100)}%` }}
-                        />
+                <div className="space-y-2 mt-3">
+                  {objectivesWithProgress.map((obj) => (
+                    <div
+                      key={obj.objectiveId}
+                      className={cn(
+                        'relative flex items-center gap-2 rounded-lg px-3 py-2 transition-colors',
+                        obj.completed ? 'bg-emerald-500/10 border border-emerald-500/30' : 'bg-muted/30 border border-border/30'
+                      )}
+                    >
+                      <DynamicIcon name={obj.icon} className="w-4 h-4 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className={cn('text-xs font-semibold truncate', obj.completed ? 'text-emerald-400 line-through' : 'text-foreground')}>{obj.title}</p>
+                          {obj.rarity === 'rare' && (
+                            <span className="text-[8px] font-bold text-blue-400 bg-blue-500/15 px-1 py-0.5 rounded shrink-0">RARE</span>
+                          )}
+                          {obj.rarity === 'legendary' && (
+                            <span className="text-[8px] font-bold text-primary bg-primary/15 px-1 py-0.5 rounded shrink-0 animate-pulse">LEGENDARY</span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground truncate">{obj.description}</p>
+                        {!obj.completed && obj.progress && (
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-primary rounded-full transition-all"
+                                style={{ width: `${Math.min(100, (obj.progress.current / obj.progress.target) * 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-[9px] text-muted-foreground tabular-nums">
+                              {obj.progress.current}/{obj.progress.target}
+                            </span>
+                          </div>
+                        )}
                       </div>
-                      <span className="text-[9px] text-muted-foreground tabular-nums">
-                        {obj.progress.current}/{obj.progress.target}
+                      <span className={cn('text-[10px] font-bold shrink-0', obj.completed ? 'text-emerald-400' : 'text-sky-400')}>
+                        {obj.completed ? '✓' : `+${obj.xpReward} XP`}
                       </span>
+                      <FloatingXP amount={obj.xpReward} show={justCompletedObj.has(obj.objectiveId)} />
                     </div>
-                  )}
+                  ))}
                 </div>
-                <span className={cn('text-[10px] font-bold shrink-0', obj.completed ? 'text-emerald-400' : 'text-sky-400')}>
-                  {obj.completed ? '✓' : `+${obj.xpReward} XP`}
-                </span>
-                <FloatingXP amount={obj.xpReward} show={justCompletedObj.has(obj.objectiveId)} />
-              </div>
-            ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </GlassPanel>
+      )}
+
+      {/* Achievements In Progress */}
+      {!seasonOver && achievementProgress.length > 0 && (
+        <GlassPanel className="p-4 border-sky-500/20">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setAchievementsCollapsed(c => !c)}
+              aria-expanded={!achievementsCollapsed}
+              className="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
+            >
+              <motion.div animate={{ rotate: achievementsCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
+                <ChevronRight className="w-3 h-3 text-sky-400" />
+              </motion.div>
+              <p className="text-[10px] text-sky-400 uppercase tracking-wider font-semibold">Achievements</p>
+              <span className="text-[9px] text-muted-foreground">
+                {(unlockedAchievements || []).length}/{VISIBLE_ACHIEVEMENT_COUNT}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setScreen('trophyCabinet')}
+              className="text-[9px] text-sky-400 font-semibold hover:text-sky-300"
+            >
+              View All
+            </button>
           </div>
+          <AnimatePresence initial={false}>
+            {!achievementsCollapsed && (
+              <motion.div
+                key="achievements-content"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={COLLAPSE_SPRING}
+                className="overflow-hidden"
+              >
+                <div className="space-y-2 mt-3">
+                  {achievementProgress.map((a) => (
+                    <div
+                      key={a.id}
+                      className="flex items-center gap-2 rounded-lg px-3 py-2 bg-muted/30 border border-border/30"
+                    >
+                      <DynamicIcon name={a.icon} className="w-4 h-4 text-sky-400 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-semibold text-foreground truncate">{a.title}</p>
+                          <span className={cn(
+                            'text-[8px] font-bold uppercase px-1 py-0.5 rounded shrink-0',
+                            a.tier === 'gold' ? 'text-primary bg-primary/15' : a.tier === 'silver' ? 'text-slate-300 bg-slate-400/15' : 'text-amber-600 bg-amber-700/15'
+                          )}>
+                            {a.tier}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground truncate">{a.description}</p>
+                        {a.prog && (
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-sky-400 rounded-full transition-all"
+                                style={{ width: `${Math.min(100, (a.prog.current / a.prog.target) * 100)}%` }}
+                              />
+                            </div>
+                            <span className="text-[9px] text-muted-foreground tabular-nums">
+                              {a.prog.current}/{a.prog.target} · +{a.tier === 'gold' ? ACHIEVEMENT_XP_GOLD : a.tier === 'silver' ? ACHIEVEMENT_XP_SILVER : ACHIEVEMENT_XP_BRONZE} XP
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </GlassPanel>
       )}
 
@@ -1261,7 +1516,7 @@ const Dashboard = () => {
           <GlassPanel className="p-4 border-primary/30" onClick={() => setScreen('match-review')}>
             <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Last Result</p>
             <p className="text-lg font-black text-foreground tabular-nums">
-              {clubs[currentMatchResult.homeClubId]?.shortName} {currentMatchResult.homeGoals} - {currentMatchResult.awayGoals} {clubs[currentMatchResult.awayClubId]?.shortName}
+              {resolveClub(clubs, virtualClubs, currentMatchResult.homeClubId)?.shortName} {currentMatchResult.homeGoals} - {currentMatchResult.awayGoals} {resolveClub(clubs, virtualClubs, currentMatchResult.awayClubId)?.shortName}
             </p>
           </GlassPanel>
         </motion.div>

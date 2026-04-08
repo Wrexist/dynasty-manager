@@ -55,10 +55,17 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [resultMessage, setResultMessage] = useState('');
   const [counterFee, setCounterFee] = useState<number | null>(null);
+  const [lastCounterFee, setLastCounterFee] = useState<number | null>(null);
 
   const minFee = Math.round(listing.askingPrice * 0.5);
   const maxFee = Math.round(listing.askingPrice * 1.2);
   const step = Math.max(100_000, Math.round(listing.askingPrice * 0.01));
+
+  // Position helpers for markers on the slider track
+  const trackPercent = (value: number) => Math.min(100, Math.max(0, ((value - minFee) / (maxFee - minFee)) * 100));
+  const askingPercent = trackPercent(listing.askingPrice);
+  const zone80Percent = trackPercent(listing.askingPrice * 0.8);
+  const counterMarkerPercent = lastCounterFee ? trackPercent(lastCounterFee) : null;
 
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
@@ -84,6 +91,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   []);
 
   const handleSubmitOffer = useCallback((fee: number) => {
+    setLastCounterFee(null);
     setPhase('thinking');
     setFinalFee(fee);
     timersRef.current.push(setTimeout(() => {
@@ -115,8 +123,12 @@ export function TransferNegotiation({ listing, onClose }: Props) {
     setPhase('negotiate');
     setOutcome(null);
     setResultMessage('');
+    if (counterFee) {
+      setOfferFee(counterFee);
+      setLastCounterFee(counterFee);
+    }
     setCounterFee(null);
-  }, []);
+  }, [counterFee]);
 
   const handleCloseAfterAccepted = useCallback(() => {
     if (shortlist.includes(listing.playerId)) {
@@ -243,17 +255,45 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     </span>
                   </div>
 
-                  {/* Slider */}
-                  <input
-                    type="range"
-                    min={minFee}
-                    max={maxFee}
-                    step={step}
-                    value={offerFee}
-                    onChange={(e) => setOfferFee(Number(e.target.value))}
-                    className="w-full h-1.5 bg-muted rounded-full accent-primary cursor-pointer"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums mt-0.5">
+                  {/* Enhanced Slider with zone colors and markers */}
+                  <div className="relative pt-5 pb-5">
+                    {/* Zone-colored track background */}
+                    <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full overflow-hidden flex pointer-events-none">
+                      <div className="bg-red-500/20 h-full" style={{ width: `${zone80Percent}%` }} />
+                      <div className="bg-amber-500/20 h-full" style={{ width: `${askingPercent - zone80Percent}%` }} />
+                      <div className="bg-emerald-500/20 h-full" style={{ width: `${100 - askingPercent}%` }} />
+                    </div>
+
+                    {/* Asking price marker */}
+                    <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${askingPercent}%` }}>
+                      <div className="absolute left-0 top-3 bottom-3 w-px bg-primary/50" />
+                      <span className="absolute top-0 text-[9px] font-semibold text-primary/70 -translate-x-1/2 whitespace-nowrap">
+                        Asking
+                      </span>
+                    </div>
+
+                    {/* Counter-offer marker (visible after revise) */}
+                    {counterMarkerPercent != null && (
+                      <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${counterMarkerPercent}%` }}>
+                        <div className="absolute left-0 top-3 bottom-3 w-px bg-amber-400/50" />
+                        <span className="absolute bottom-0 text-[9px] font-semibold text-amber-400/70 -translate-x-1/2 whitespace-nowrap">
+                          Counter
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Slider input */}
+                    <input
+                      type="range"
+                      min={minFee}
+                      max={maxFee}
+                      step={step}
+                      value={offerFee}
+                      onChange={(e) => setOfferFee(Number(e.target.value))}
+                      className="relative z-10 w-full h-1.5 bg-transparent rounded-full accent-primary cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums -mt-2">
                     <span>{formatMoney(minFee)}</span>
                     <span className={cn('font-semibold',
                       feeRatio >= 1 ? 'text-emerald-400' : feeRatio >= 0.8 ? 'text-amber-400' : 'text-red-400'
@@ -263,13 +303,13 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     <span>{formatMoney(maxFee)}</span>
                   </div>
 
-                  {/* Acceptance bar — inline with label */}
+                  {/* Acceptance bar — inline with label and percentage */}
                   {evaluation && (
                     <div className="mt-3">
                       <div className="flex items-center justify-between text-xs mb-1">
                         <span className="text-muted-foreground">Acceptance</span>
                         <span className={cn('font-bold text-[11px]', getChanceColor(displayChance))}>
-                          {getChanceLabel(displayChance)}
+                          {getChanceLabel(displayChance)} ({Math.round(displayChance * 100)}%)
                         </span>
                       </div>
                       <div className="h-1.5 bg-muted/50 rounded-full overflow-hidden">
@@ -519,8 +559,35 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                       <p className="text-base font-black text-amber-400 tabular-nums">{counterFee ? formatMoney(counterFee) : '?'}</p>
                     </div>
                   </div>
+
+                  {/* Visual comparison bar — Your Bid / Counter / Asking on a scale */}
+                  {counterFee && (() => {
+                    const barMin = Math.min(offerFee, minFee);
+                    const barMax = Math.max(counterFee, maxFee) * 1.05;
+                    const barRange = barMax - barMin;
+                    const bidPct = ((offerFee - barMin) / barRange) * 100;
+                    const counterPct = ((counterFee - barMin) / barRange) * 100;
+                    const askPct = ((listing.askingPrice - barMin) / barRange) * 100;
+                    return (
+                      <div className="relative h-2 bg-muted/30 rounded-full mx-2 mb-3">
+                        {/* Fill from bid to counter */}
+                        <div className="absolute top-0 bottom-0 bg-amber-500/20 rounded-full" style={{ left: `${bidPct}%`, width: `${counterPct - bidPct}%` }} />
+                        {/* Your bid marker */}
+                        <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-muted-foreground border border-background" style={{ left: `${bidPct}%`, transform: `translate(-50%, -50%)` }} />
+                        {/* Asking price marker */}
+                        <div className="absolute top-0 bottom-0 w-px bg-primary/40" style={{ left: `${askPct}%` }} />
+                        {/* Counter marker */}
+                        <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-amber-400 border border-background" style={{ left: `${counterPct}%`, transform: `translate(-50%, -50%)` }} />
+                        {/* Labels */}
+                        <span className="absolute -bottom-3.5 text-[8px] text-muted-foreground -translate-x-1/2" style={{ left: `${bidPct}%` }}>You</span>
+                        <span className="absolute -top-3.5 text-[8px] text-primary/60 -translate-x-1/2" style={{ left: `${askPct}%` }}>Ask</span>
+                        <span className="absolute -bottom-3.5 text-[8px] text-amber-400 -translate-x-1/2" style={{ left: `${counterPct}%` }}>Counter</span>
+                      </div>
+                    );
+                  })()}
+
                   {counterFee && (
-                    <div className="text-center text-[10px] text-muted-foreground">
+                    <div className="text-center text-[10px] text-muted-foreground mt-2">
                       Budget after: <span className={cn('font-semibold', buyerClub.budget - counterFee >= 0 ? 'text-foreground' : 'text-red-400')}>{formatMoney(buyerClub.budget - counterFee)}</span>
                       <span className="mx-1.5">·</span>
                       <span className="text-amber-400">+{formatMoney(counterFee - offerFee)} more</span>
