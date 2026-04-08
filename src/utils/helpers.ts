@@ -1,4 +1,4 @@
-import type { Message } from '@/types/game';
+import type { Message, Club, VirtualClub } from '@/types/game';
 import { MAX_MESSAGES } from '@/config/gameBalance';
 
 export const pick = <T>(arr: T[]): T => {
@@ -35,6 +35,18 @@ export function addMsg(messages: Message[], msg: Omit<Message, 'id' | 'read'>): 
   const newMsg: Message = { ...msg, id: crypto.randomUUID(), read: false };
   const updated = [newMsg, ...messages];
   return updated.slice(0, MAX_MESSAGES);
+}
+
+/** Resolve a club ID to a Club object, falling back to virtualClubs for tournament opponents. */
+export function resolveClub(
+  clubs: Record<string, Club>,
+  virtualClubs: Record<string, VirtualClub> | undefined,
+  clubId: string
+): Club | null {
+  if (clubs[clubId]) return clubs[clubId];
+  const vc = virtualClubs?.[clubId];
+  if (!vc) return null;
+  return { id: clubId, name: vc.name, shortName: vc.shortName, color: vc.color, secondaryColor: vc.secondaryColor, stadiumName: '' } as Club;
 }
 
 export function formatMoney(amount: number): string {
