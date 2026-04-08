@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { Calendar, Settings, ArrowLeft, Star, Mail, Wallet } from 'lucide-react';
+import { Calendar, Settings, ArrowLeft, Star, Mail } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/managerCareer';
-import { formatMoney, getSuffix } from '@/utils/helpers';
+import { getSuffix } from '@/utils/helpers';
+import { getRecentForm } from '@/utils/formGuide';
+import { LEAGUES } from '@/data/league';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
@@ -13,12 +15,13 @@ import { XP_GLOW_MS } from '@/config/ui';
 
 export function TopBar() {
   const {
-    season, week, playerClubId, clubs, leagueTable,
+    season, week, playerClubId, clubs, leagueTable, playerDivision, fixtures,
     currentScreen, previousScreen, managerProgression, gameMode, careerManager,
     messages,
   } = useGameStore(useShallow(s => ({
     season: s.season, week: s.week,
     playerClubId: s.playerClubId, clubs: s.clubs, leagueTable: s.leagueTable,
+    playerDivision: s.playerDivision, fixtures: s.fixtures,
     currentScreen: s.currentScreen, previousScreen: s.previousScreen,
     managerProgression: s.managerProgression, gameMode: s.gameMode, careerManager: s.careerManager,
     messages: s.messages,
@@ -32,6 +35,9 @@ export function TopBar() {
   const reputationTier = careerManager?.reputationTier ?? 'unknown';
   const reputationLabel = getReputationTierShortLabel(reputationTier);
   const unreadCount = useMemo(() => messages.filter(m => !m.read).length, [messages]);
+  const league = LEAGUES.find(l => l.id === playerDivision);
+  const recentForm = useMemo(() => getRecentForm(playerClubId, fixtures), [playerClubId, fixtures]);
+  const hasPlayedMatches = recentForm.length > 0;
 
   // XP bar glow on gain
   const prevXpRef = useRef(xpProgress.percentage);
@@ -75,17 +81,29 @@ export function TopBar() {
               <p className={cn('text-[10px] text-muted-foreground truncate', posFlash)}>{club.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
             </div>
           ) : (
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="flex items-center gap-1.5">
-                <Wallet className="w-3.5 h-3.5 text-primary shrink-0" />
-                <span className="text-sm font-bold text-foreground">{formatMoney(club.budget)}</span>
-              </div>
-              {pos !== '-' && (
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-5 h-5 rounded-full shrink-0" style={{ backgroundColor: club.color }} />
+              {hasPlayedMatches && (
+                <div className="flex items-center gap-0.5">
+                  {recentForm.map((r, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        'w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white',
+                        r === 'W' ? 'bg-emerald-500' : r === 'D' ? 'bg-amber-500' : 'bg-destructive'
+                      )}
+                    >
+                      {r}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {hasPlayedMatches && pos !== '-' && league && (
                 <span className={cn(
                   'text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0',
-                  Number(pos) <= 3 ? 'bg-emerald-500/20 text-emerald-400' :
-                  Number(pos) <= 6 ? 'bg-primary/20 text-primary' :
-                  Number(pos) >= 21 ? 'bg-destructive/20 text-destructive' :
+                  Number(pos) <= league.replacedSlots ? 'bg-emerald-500/20 text-emerald-400' :
+                  Number(pos) <= league.replacedSlots + 4 ? 'bg-primary/20 text-primary' :
+                  Number(pos) > league.teamCount - league.replacedSlots ? 'bg-destructive/20 text-destructive' :
                   'bg-muted/50 text-muted-foreground',
                   posFlash
                 )}>
