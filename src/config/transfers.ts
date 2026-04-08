@@ -187,6 +187,8 @@ export const INITIAL_MARKET_GEN_RANGE = 9; // 12-20 players
 // ── Market Listing Expiry ──
 // Unsold listings are refreshed after this many weeks
 export const LISTING_EXPIRY_WEEKS = 12;
+// Club-listed players expire after more weeks (clubs are stickier than external market)
+export const CLUB_LISTING_EXPIRY_WEEKS = 16;
 // Chance to relist expired listing with reduced price
 export const LISTING_RELIST_CHANCE = 0.4;
 export const LISTING_RELIST_DISCOUNT = 0.15; // 15% price reduction

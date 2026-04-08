@@ -151,7 +151,7 @@ function identifySellCandidates(
       candidates.push(pid); continue;
     }
     // Bench warmers below squad average — clubs offload players not making the team
-    if (!club.lineup.includes(pid) && p.age >= AI_SELL_BENCH_MIN_AGE && p.overall < avgOverall - AI_SELL_BENCH_OVERALL_GAP) {
+    if (!club.lineup.includes(pid) && !club.subs.includes(pid) && p.age >= AI_SELL_BENCH_MIN_AGE && p.overall < avgOverall - AI_SELL_BENCH_OVERALL_GAP) {
       candidates.push(pid); continue;
     }
     // Expiring contracts — sell rather than lose for free
@@ -285,6 +285,7 @@ function processAIListings(
 ): { clubs: Record<string, Club>; players: Record<string, Player>; transferMarket: TransferListing[] } {
   const updPlayers = { ...players };
   const updMarket = [...transferMarket];
+  const listedPlayerIds = new Set(updMarket.map(l => l.playerId));
 
   for (const clubId of Object.keys(clubs)) {
     if (clubId === playerClubId) continue;
@@ -302,7 +303,7 @@ function processAIListings(
       const p = updPlayers[pid];
       if (!p) continue;
       // Already listed?
-      if (updMarket.some(l => l.playerId === pid)) continue;
+      if (listedPlayerIds.has(pid)) continue;
 
       let chance = isWageCrisis ? AI_SELL_LISTING_CHANCE * 3 : AI_SELL_LISTING_CHANCE;
       if (isDeadlineWeek(week)) chance = Math.min(1, chance * AI_TRANSFER_DEADLINE_MULTIPLIER);
@@ -310,6 +311,7 @@ function processAIListings(
 
       const askingPrice = Math.round(p.value * (AI_SELL_LISTING_PRICE_MIN + Math.random() * AI_SELL_LISTING_PRICE_RANGE));
       updMarket.push({ playerId: pid, askingPrice, sellerClubId: clubId, listedWeek: week, listedSeason: season, divisionId: clubs[clubId]?.divisionId });
+      listedPlayerIds.add(pid);
       updPlayers[pid] = { ...p, listedForSale: true };
     }
   }

@@ -238,7 +238,8 @@ export function spawnFreeAgents(
 
 /**
  * Process listing expiry — remove stale listings and optionally relist at discount.
- * Returns updated market and list of expired external player IDs for cleanup.
+ * Returns updated market, expired external player IDs for cleanup, and expired
+ * club player IDs so their listedForSale flag can be reset.
  */
 export function processListingExpiry(
   transferMarket: TransferListing[],
@@ -248,11 +249,13 @@ export function processListingExpiry(
   expiryWeeks: number,
   relistChance: number,
   relistDiscount: number,
-): { market: TransferListing[]; expiredPlayerIds: string[] } {
+  clubExpiryWeeks: number,
+): { market: TransferListing[]; expiredPlayerIds: string[]; expiredClubPlayerIds: string[] } {
   const expiredPlayerIds: string[] = [];
+  const expiredClubPlayerIds: string[] = [];
   const market = transferMarket.reduce<TransferListing[]>((acc, listing) => {
-    // Listings without listedWeek or from clubs (non-external) don't expire
-    if (!listing.externalPlayer || !listing.listedWeek) {
+    // Listings without listedWeek can't be age-checked — keep them
+    if (!listing.listedWeek) {
       acc.push(listing);
       return acc;
     }
@@ -260,24 +263,32 @@ export function processListingExpiry(
     // Season-aware elapsed week calculation
     const seasonDiff = currentSeason - (listing.listedSeason || currentSeason);
     const weeksListed = seasonDiff * totalWeeks + (currentWeek - (listing.listedWeek || currentWeek));
-    if (weeksListed < expiryWeeks) {
+
+    const isExternal = !!listing.externalPlayer;
+    const maxWeeks = isExternal ? expiryWeeks : clubExpiryWeeks;
+
+    if (weeksListed < maxWeeks) {
       acc.push(listing);
       return acc;
     }
 
-    // Expired — chance to relist at reduced price
-    if (Math.random() < relistChance) {
-      acc.push({
-        ...listing,
-        askingPrice: Math.max(25_000, Math.round(listing.askingPrice * (1 - relistDiscount))),
-        listedWeek: currentWeek,
-        listedSeason: currentSeason,
-      });
+    // Expired — external players may relist at discount, club players are simply withdrawn
+    if (isExternal) {
+      if (Math.random() < relistChance) {
+        acc.push({
+          ...listing,
+          askingPrice: Math.max(25_000, Math.round(listing.askingPrice * (1 - relistDiscount))),
+          listedWeek: currentWeek,
+          listedSeason: currentSeason,
+        });
+      } else {
+        expiredPlayerIds.push(listing.playerId);
+      }
     } else {
-      // Player withdrawn — track for cleanup
-      expiredPlayerIds.push(listing.playerId);
+      // Club listing expired — player withdrawn from market
+      expiredClubPlayerIds.push(listing.playerId);
     }
     return acc;
   }, []);
-  return { market, expiredPlayerIds };
+  return { market, expiredPlayerIds, expiredClubPlayerIds };
 }

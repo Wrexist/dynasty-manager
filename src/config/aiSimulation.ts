@@ -34,7 +34,7 @@ export const AI_POSITION_PRIORITY: Position[] = [
 export const AI_TRANSFER_WEEKLY_CHANCE = 0.25;        // 25% chance per AI club per week to evaluate transfers
 export const AI_TRANSFER_DEADLINE_WEEKS = [7, 8, 23, 24] as const; // Deadline rush weeks
 export const AI_TRANSFER_DEADLINE_MULTIPLIER = 2.5;   // 2.5x activity on deadline weeks
-export const AI_TRANSFER_MAX_PER_WEEK = 6;            // Max 6 AI-to-AI transfers per week
+export const AI_TRANSFER_MAX_PER_WEEK = 10;           // Max 10 AI-to-AI transfers per week
 export const AI_LOAN_MAX_PER_WEEK = 4;                // Max 4 AI-to-AI loans per week
 
 // ── AI Selling Logic ──
