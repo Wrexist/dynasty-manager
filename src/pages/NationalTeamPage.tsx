@@ -18,10 +18,11 @@ import { hapticLight } from '@/utils/haptics';
 import { successToast } from '@/utils/gameToast';
 
 const NationalTeamPage = () => {
-  const { nationalTeam, managerNationality, players, setScreen, updateNationalSquad, setNationalFormation } = useGameStore(useShallow(s => ({
+  const { nationalTeam, managerNationality, players, clubs, setScreen, updateNationalSquad, setNationalFormation } = useGameStore(useShallow(s => ({
     nationalTeam: s.nationalTeam,
     managerNationality: s.managerNationality,
     players: s.players,
+    clubs: s.clubs,
     setScreen: s.setScreen,
     updateNationalSquad: s.updateNationalSquad,
     setNationalFormation: s.setNationalFormation,
@@ -382,7 +383,10 @@ const NationalTeamPage = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-foreground truncate">{player.firstName} {player.lastName}</p>
-                    <p className="text-[10px] text-muted-foreground">{player.position} · Age {player.age} · {player.internationalCaps || 0} caps</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {player.position} · Age {player.age} · {player.internationalCaps || 0} caps
+                      {player.clubId && clubs[player.clubId] ? ` · ${clubs[player.clubId].shortName}` : ' · External'}
+                    </p>
                   </div>
                   {inSquad && (
                     <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center shrink-0">
@@ -436,7 +440,10 @@ const NationalTeamPage = () => {
                             {lineupSet.has(player.id) && <span className="text-primary text-[9px] mr-1">XI</span>}
                             {player.firstName} {player.lastName}
                           </p>
-                          <p className="text-[10px] text-muted-foreground">{player.position} &middot; Age {player.age}</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {player.position} &middot; Age {player.age}
+                            {player.clubId && clubs[player.clubId] ? ` · ${clubs[player.clubId].shortName}` : ' · External'}
+                          </p>
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-xs text-muted-foreground">{player.internationalCaps || 0} caps</p>

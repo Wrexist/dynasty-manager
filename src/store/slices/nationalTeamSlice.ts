@@ -16,18 +16,39 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
   showNationalTeamOffer: false,
 
   initNationalTeam: (nationality: string) => {
+    const state = _get();
+    const formation = '4-3-3' as FormationType;
+
+    // Generate national team candidate pool (sandbox mode starts with full squad)
+    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season || 1);
+    const allPlayers = { ...state.players, ...poolPlayers };
+    const poolPlayerIds = Object.keys(poolPlayers);
+
+    // Auto-select best 23-man squad
+    const squad = autoSelectNationalSquad(nationality, allPlayers);
+    const squadPlayerObjs = squad.map(id => allPlayers[id]).filter(Boolean);
+    let lineup: string[] = [];
+    let subs: string[] = [];
+    if (squadPlayerObjs.length >= 7) {
+      const best = selectBestLineup(squadPlayerObjs, formation);
+      lineup = best.lineup.map(p => p.id);
+      subs = best.subs.map(p => p.id).slice(0, 7);
+    }
+
     _set({
       managerNationality: nationality,
+      players: allPlayers,
       nationalTeam: {
         nationality,
-        squad: [],
-        lineup: [],
-        subs: [],
-        formation: '4-3-3' as FormationType,
-        fifaRanking: 25, // will be set properly during tournament generation
+        squad,
+        lineup,
+        subs,
+        formation,
+        fifaRanking: 25,
         caps: {},
         internationalGoals: {},
         results: [],
+        poolPlayerIds,
       },
     });
   },
@@ -97,6 +118,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
       caps: {},
       internationalGoals: {},
       results: [],
+      poolPlayerIds: Object.keys(poolPlayers),
     };
 
     const messages = addMsg(state.messages, {
