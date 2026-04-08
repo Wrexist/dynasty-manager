@@ -4210,15 +4210,83 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Career mode: block match play when unemployed
     if (state.gameMode === 'career' && !state.careerManager?.contract) return null;
     const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
-    const match = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+
+    // ── Detect match type: league → cup → continental → league cup → super cup ──
+    const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const cupTie = !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+    const champMatch = !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
+    const shieldMatch = !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
+    const continentalMatch = champMatch || shieldMatch;
+    const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : null;
+    const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : null;
+    const leagueCupTie = !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+    const superCup = !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
+      ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
+        || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
+      : null;
+
+    // Build match object from the detected source
+    let match: Match | null = null;
+    let ephemeralClub: { club: Club; players: Record<string, Player> } | null = null;
+    let effectiveClubs = clubs;
+    let effectivePlayers = players;
+
+    if (leagueMatch) {
+      match = leagueMatch;
+    } else if (cupTie) {
+      match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    } else if (continentalMatch && continentalTourney) {
+      let homeId: string, awayId: string, matchId: string;
+      if (continentalMatch.type === 'group') {
+        const gm = continentalTourney.groups[continentalMatch.groupIdx].matches[continentalMatch.matchIdx];
+        homeId = gm.homeClubId; awayId = gm.awayClubId; matchId = gm.id;
+      } else {
+        const tie = continentalTourney.knockoutTies[continentalMatch.tieIdx];
+        if (continentalMatch.leg === 1 || tie.round === 'F') {
+          homeId = tie.homeClubId; awayId = tie.awayClubId;
+        } else {
+          homeId = tie.awayClubId; awayId = tie.homeClubId;
+        }
+        matchId = tie.id;
+      }
+      const oppId = homeId === playerClubId ? awayId : homeId;
+      const vc = (state.virtualClubs || {})[oppId];
+      if (vc) {
+        ephemeralClub = createEphemeralClub(vc, season);
+        effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
+        effectivePlayers = { ...players, ...ephemeralClub.players };
+      }
+      match = { id: matchId, week, homeClubId: homeId, awayClubId: awayId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    } else if (leagueCupTie) {
+      match = { id: leagueCupTie.id, week: leagueCupTie.week, homeClubId: leagueCupTie.homeClubId, awayClubId: leagueCupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    } else if (superCup) {
+      const oppId = superCup.homeClubId === playerClubId ? superCup.awayClubId : superCup.homeClubId;
+      const vc = (state.virtualClubs || {})[oppId];
+      if (vc) {
+        ephemeralClub = createEphemeralClub(vc, season);
+        effectiveClubs = { ...clubs, [oppId]: ephemeralClub.club };
+        effectivePlayers = { ...players, ...ephemeralClub.players };
+      }
+      match = { id: `super-cup-${superCup.type}`, week, homeClubId: superCup.homeClubId, awayClubId: superCup.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
+    }
+
     if (!match) return null;
 
-    const hc = clubs[match.homeClubId];
-    const ac = clubs[match.awayClubId];
+    // Determine competition metadata
+    const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
+    const matchCompetition = cupTie ? `Dynasty Cup — ${cupTie.round}`
+      : leagueCupTie ? `League Cup — ${leagueCupTie.round}`
+      : continentalComp === 'champions_cup' ? 'Champions Cup'
+      : continentalComp === 'shield_cup' ? 'Shield Cup'
+      : superCup ? (superCup.type === 'domestic' ? 'Super Cup' : 'Continental Super Cup')
+      : null;
+
+    const hc = effectiveClubs[match.homeClubId];
+    const ac = effectiveClubs[match.awayClubId];
     if (!hc || !ac) return null;
     const isSuspended = (p: Player) => p.suspendedUntilWeek != null && p.suspendedUntilWeek > week;
     const backfillFromSubs = (lineup: Player[], club: typeof hc) => {
-      const availableSubs = (club.subs || []).map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
+      const availableSubs = (club.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p) && !p.injured);
       const ids = new Set(lineup.map(p => p.id));
       for (const sub of availableSubs) {
         if (lineup.length >= 11) break;
@@ -4226,11 +4294,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       return lineup;
     };
-    let hp = backfillFromSubs((hc.lineup || []).map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
-    let ap = backfillFromSubs((ac.lineup || []).map(id => players[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
+    let hp = backfillFromSubs((hc.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), hc);
+    let ap = backfillFromSubs((ac.lineup || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !isSuspended(p)), ac);
 
     // Need minimum players to simulate a match
     if (hp.length < 7 || ap.length < 7) return null;
+
+    // For ephemeral clubs: inject their players and club into state temporarily
+    if (ephemeralClub) {
+      set({ clubs: effectiveClubs, players: effectivePlayers });
+    }
 
     // Motivator perk: boost player team morale before match
     if (hasPerk(state.managerProgression, 'motivator')) {
@@ -4254,10 +4327,178 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Build bench for both teams
     const hpIdSet = new Set(hp.map(p => p.id));
     const apIdSet = new Set(ap.map(p => p.id));
-    const hBenchCM = (hc.subs || []).map(id => players[id]).filter(Boolean).filter(p => !hpIdSet.has(p.id) && !p.injured && !isSuspended(p));
-    const aBenchCM = (ac.subs || []).map(id => players[id]).filter(Boolean).filter(p => !apIdSet.has(p.id) && !p.injured && !isSuspended(p));
+    const hBenchCM = (hc.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !hpIdSet.has(p.id) && !p.injured && !isSuspended(p));
+    const aBenchCM = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIdSet.has(p.id) && !p.injured && !isSuspended(p));
     const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season, careerDisciplineMod, hBenchCM, aBenchCM);
 
+    // ── Cup/Tournament match path ──
+    if (isCupMatch) {
+      // Resolve draws for cup matches (extra time + penalties)
+      let finalResult = result;
+      let penaltyShootout: { home: number; away: number } | undefined;
+      let cupWinnerId: string | undefined;
+
+      if (result.homeGoals === result.awayGoals) {
+        const isContinentalGroup = continentalMatch?.type === 'group';
+        // Continental knockout leg 1 (non-final): draws are valid, aggregate decided after leg 2
+        const isContinentalLeg1 = continentalMatch?.type === 'knockout' && continentalMatch.leg === 1
+          && continentalTourney?.knockoutTies[continentalMatch.tieIdx]?.round !== 'F';
+        // Check aggregate for continental knockout leg 2
+        let isAggDecided = false;
+        if (continentalMatch && continentalMatch.type === 'knockout' && continentalTourney) {
+          const tie = continentalTourney.knockoutTies[continentalMatch.tieIdx];
+          if (continentalMatch.leg === 2 && tie.round !== 'F') {
+            const homeAgg = tie.leg1HomeGoals + result.awayGoals;
+            const awayAgg = tie.leg1AwayGoals + result.homeGoals;
+            isAggDecided = homeAgg !== awayAgg;
+          }
+        }
+
+        if (!isContinentalGroup && !isContinentalLeg1 && !isAggDecided) {
+          let hGoals = result.homeGoals;
+          let aGoals = result.awayGoals;
+          const cupEvents = [...result.events];
+
+          // Dynasty Cup: extra time first, then penalties
+          if (cupTie) {
+            const homeStr = hc.reputation / 5;
+            const awayStr = ac.reputation / 5;
+            if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * homeStr) {
+              hGoals++;
+              cupEvents.push({ minute: 105, type: 'extra_time_goal', clubId: match.homeClubId, description: `${hc.shortName} score in extra time!` });
+            }
+            if (Math.random() < CUP_EXTRA_TIME_GOAL_CHANCE * awayStr) {
+              aGoals++;
+              cupEvents.push({ minute: 115, type: 'extra_time_goal', clubId: match.awayClubId, description: `${ac.shortName} score in extra time!` });
+            }
+          }
+
+          // Penalties if still level (League Cup / continental / super cup go straight to pens; Dynasty Cup after ET)
+          if (hGoals === aGoals) {
+            const homeGK = hp.find(p => p.position === 'GK');
+            const awayGK = ap.find(p => p.position === 'GK');
+            const homeGKQ = homeGK ? (homeGK.attributes.defending + homeGK.attributes.mental) / 200 : 0.5;
+            const awayGKQ = awayGK ? (awayGK.attributes.defending + awayGK.attributes.mental) / 200 : 0.5;
+            let penHome = 0, penAway = 0;
+            for (let i = 0; i < CUP_PENALTY_KICKS; i++) {
+              if (Math.random() > awayGKQ * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penHome++;
+              if (Math.random() > homeGKQ * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penAway++;
+            }
+            while (penHome === penAway) {
+              if (Math.random() > awayGKQ * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penHome++;
+              if (Math.random() > homeGKQ * CUP_PENALTY_GK_QUALITY_FACTOR + (1 - PENALTY_CONVERSION_RATE)) penAway++;
+            }
+            penaltyShootout = { home: penHome, away: penAway };
+            if (penHome > penAway) hGoals++; else aGoals++;
+            cupEvents.push({ minute: 120, type: 'penalty_shootout', clubId: penHome > penAway ? match.homeClubId : match.awayClubId, description: `${penHome > penAway ? hc.shortName : ac.shortName} win on penalties (${penHome}-${penAway})!` });
+          }
+
+          finalResult = { ...result, homeGoals: hGoals, awayGoals: aGoals, events: cupEvents, penaltyShootout };
+          cupWinnerId = hGoals > aGoals ? match.homeClubId : match.awayClubId;
+        }
+      }
+
+      // Use effective clubs/players for processMatchResult (ephemeral clubs for continental/super cup opponents)
+      const effectiveState = ephemeralClub ? { ...state, clubs: effectiveClubs, players: effectivePlayers } : state;
+      const processed = processMatchResult(effectiveState, match, finalResult, playerRatings, () => get().week, matchInjuries);
+
+      // Build temporary state with tournament tracking fields for processTournamentResult
+      const tempCupTieId = cupTie ? cupTie.id : (leagueCupTie || continentalMatch || superCup) ? '__tournament__' : null;
+      const tempState = {
+        ...effectiveState,
+        players: processed.newPlayers,
+        currentCupTieId: tempCupTieId,
+        currentLeagueCupTieId: leagueCupTie ? leagueCupTie.id : null,
+        currentContinentalMatchId: continentalMatch ? `${continentalComp}-${continentalMatch.type === 'group' ? 'g' : 'k'}-${continentalMatch.type === 'group' ? continentalMatch.groupIdx : continentalMatch.tieIdx}` : null,
+        currentContinentalCompetition: continentalComp,
+      };
+
+      const tournamentUpdates = (penaltyShootout && cupWinnerId)
+        ? processTournamentResultWithWinner(tempState, { ...finalResult, penaltyShootout }, playerClubId, processed, season, week, cupWinnerId, penaltyShootout)
+        : processTournamentResult(tempState, finalResult, playerClubId, processed, season, week);
+
+      const cupDrama = detectMatchDrama(finalResult, playerClubId, effectiveClubs);
+      const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+
+      // Add tournament-specific inbox message (e.g. "Cup: R2 Won!" / "League Cup: Eliminated")
+      const oppClub = effectiveClubs[isPlayerHome ? match.awayClubId : match.homeClubId];
+      const oppName = oppClub?.name || 'Unknown';
+      const fScore = `${finalResult.homeGoals}-${finalResult.awayGoals}`;
+      let cupMessages = processed.newMessages;
+      if (cupTie) {
+        const roundName = getRoundName(cupTie.round);
+        if (processed.won) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the cup!` });
+        } else if (processed.lost) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` });
+        }
+      } else if (leagueCupTie) {
+        const roundName = getRoundName(leagueCupTie.round);
+        if (processed.won) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the League Cup!` });
+        } else if (processed.lost) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` });
+        }
+      } else if (continentalMatch) {
+        const compName = continentalComp === 'champions_cup' ? 'Champions Cup' : 'Shield Cup';
+        if (processed.won) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Victory`, body: `A great result against ${oppName} (${fScore}) in the ${compName}!` });
+        } else if (processed.lost) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Defeat`, body: `A tough loss against ${oppName} (${fScore}) in the ${compName}.` });
+        }
+      }
+
+      // Update session stats
+      const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
+      const sessionStats = {
+        ...prevSession,
+        matchesWon: prevSession.matchesWon + (processed.won ? 1 : 0),
+        matchesLost: prevSession.matchesLost + (processed.lost ? 1 : 0),
+      };
+
+      set({
+        currentMatchResult: finalResult,
+        players: tournamentUpdates.cleanedPlayers || processed.newPlayers,
+        boardConfidence: processed.confidence,
+        messages: cupMessages,
+        matchSubsUsed: 0,
+        matchPlayerRatings: processed.playerRatings,
+        managerStats: processed.managerStats,
+        matchPhase: 'full_time' as const,
+        currentCupTieId: null,
+        currentLeagueCupTieId: null,
+        currentContinentalMatchId: null,
+        currentContinentalCompetition: null,
+        lastMatchCompetition: matchCompetition,
+        pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
+        careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
+        managerProgression: processed.managerProgression,
+        preMatchLeaguePosition: prePos,
+        lastMatchXPGain: processed.xpGain,
+        lastMatchDrama: cupDrama,
+        rivalries: processed.updatedRivalries,
+        pairFamiliarity: processed.pairFamiliarity,
+        sessionStats,
+        ...tournamentUpdates.stateUpdates,
+      });
+
+      // Career mode: update reputation after match
+      {
+        const postMatch = get();
+        if (postMatch.gameMode === 'career' && postMatch.careerManager) {
+          const cm = { ...postMatch.careerManager };
+          const repDelta = processed.won ? REP_WIN : processed.lost ? REP_LOSS : REP_DRAW;
+          cm.reputationScore = Math.max(REP_MIN, Math.min(REP_MAX, cm.reputationScore + repDelta));
+          cm.reputationTier = calculateReputationTier(cm.reputationScore);
+          set({ careerManager: cm });
+        }
+      }
+
+      if (get().settings.autoSave) get().saveGame();
+      return finalResult;
+    }
+
+    // ── League match path ──
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
 
     // Simulate AI matches for the same week so league table position is accurate in PostMatchPopup
