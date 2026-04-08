@@ -187,7 +187,7 @@ const _btlCache = new Map<string, LeagueTableEntry[]>();
 
 export function buildLeagueTable(fixtures: Match[], clubIds: string[]): LeagueTableEntry[] {
   const playedCount = fixtures.filter(m => m.played).length;
-  const cacheKey = `${playedCount}:${clubIds.length}:${clubIds[0] || ''}`;
+  const cacheKey = `${playedCount}:${clubIds.join(',')}`;
   const cached = _btlCache.get(cacheKey);
   if (cached) return cached;
   if (_btlCache.size >= 8) _btlCache.clear();

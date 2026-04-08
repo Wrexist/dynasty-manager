@@ -326,11 +326,13 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
       }
       // Distribute goals among lineup players randomly
       const lineupIds = nt.lineup.filter(pid => newPlayers[pid]);
-      for (let g = 0; g < playerGoals; g++) {
-        const scorerId = lineupIds[Math.floor(Math.random() * lineupIds.length)];
-        if (scorerId && newPlayers[scorerId]) {
-          newPlayers[scorerId] = { ...newPlayers[scorerId], internationalGoals: (newPlayers[scorerId].internationalGoals || 0) + 1 };
-          updatedIntlGoals[scorerId] = (updatedIntlGoals[scorerId] || 0) + 1;
+      if (lineupIds.length > 0) {
+        for (let g = 0; g < playerGoals; g++) {
+          const scorerId = lineupIds[Math.floor(Math.random() * lineupIds.length)];
+          if (scorerId && newPlayers[scorerId]) {
+            newPlayers[scorerId] = { ...newPlayers[scorerId], internationalGoals: (newPlayers[scorerId].internationalGoals || 0) + 1 };
+            updatedIntlGoals[scorerId] = (updatedIntlGoals[scorerId] || 0) + 1;
+          }
         }
       }
       nt.caps = updatedCaps;
@@ -449,11 +451,13 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         }
       }
       const lineupIdsKO = nt.lineup.filter(pid => newPlayers[pid]);
-      for (let g = 0; g < playerGoalsKO; g++) {
-        const scorerId = lineupIdsKO[Math.floor(Math.random() * lineupIdsKO.length)];
-        if (scorerId && newPlayers[scorerId]) {
-          newPlayers[scorerId] = { ...newPlayers[scorerId], internationalGoals: (newPlayers[scorerId].internationalGoals || 0) + 1 };
-          updatedIntlGoalsKO[scorerId] = (updatedIntlGoalsKO[scorerId] || 0) + 1;
+      if (lineupIdsKO.length > 0) {
+        for (let g = 0; g < playerGoalsKO; g++) {
+          const scorerId = lineupIdsKO[Math.floor(Math.random() * lineupIdsKO.length)];
+          if (scorerId && newPlayers[scorerId]) {
+            newPlayers[scorerId] = { ...newPlayers[scorerId], internationalGoals: (newPlayers[scorerId].internationalGoals || 0) + 1 };
+            updatedIntlGoalsKO[scorerId] = (updatedIntlGoalsKO[scorerId] || 0) + 1;
+          }
         }
       }
       nt.caps = updatedCapsKO;

@@ -63,9 +63,15 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   const updatedClubs = { ...state.clubs };
   if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== state.playerClubId && updatedClubs[player.sellOnClubId]) {
     sellOnFee = Math.round(fee * (player.sellOnPercentage / 100));
-    const sellOnClub = { ...updatedClubs[player.sellOnClubId] };
-    sellOnClub.budget += sellOnFee;
-    updatedClubs[player.sellOnClubId] = sellOnClub;
+    if (player.sellOnClubId === offer.buyerClubId) {
+      // Buyer is the sell-on club — apply fee directly to buyer copy
+      // (avoids overwrite when updatedClubs[buyer.id] = buyer later)
+      buyer.budget += sellOnFee;
+    } else {
+      const sellOnClub = { ...updatedClubs[player.sellOnClubId] };
+      sellOnClub.budget += sellOnFee;
+      updatedClubs[player.sellOnClubId] = sellOnClub;
+    }
   }
   const netFee = fee - sellOnFee;
   sellerClub.budget += netFee;
