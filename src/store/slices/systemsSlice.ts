@@ -6,6 +6,7 @@ import { createAssignment } from '@/utils/scouting';
 import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS } from '@/config/gameBalance';
 import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
 import { STAFF_HIRING_FEE_WEEKS } from '@/config/staff';
+import { STAND_INFO } from '@/utils/facilities';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -252,7 +253,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       if (currentLevel >= FACILITY_MAX_LEVEL) return;
       cost = (currentLevel + 1) * STAND_COST_PER_LEVEL;
       upgradeWeeks = STAND_BASE_UPGRADE_WEEKS + currentLevel;
-      displayName = `${stand.charAt(0).toUpperCase() + stand.slice(1)} Stand`;
+      displayName = STAND_INFO[stand].label;
     } else {
       const key = `${type}Level` as keyof Pick<FacilitiesState, 'trainingLevel' | 'youthLevel' | 'medicalLevel' | 'recoveryLevel'>;
       currentLevel = state.facilities[key] as number;

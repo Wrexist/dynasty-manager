@@ -55,9 +55,13 @@ export function getWeekPreview(ctx: PreviewContext): PreviewItem[] {
   // Facility upgrade completing soon
   if (ctx.facilities.upgradeInProgress && ctx.facilities.upgradeInProgress.weeksRemaining <= 2) {
     const remaining = ctx.facilities.upgradeInProgress.weeksRemaining;
+    const rawType = ctx.facilities.upgradeInProgress.type;
+    const upgradeName = rawType.startsWith('stadium-')
+      ? rawType.replace('stadium-', '').charAt(0).toUpperCase() + rawType.replace('stadium-', '').slice(1) + ' Stand'
+      : rawType.charAt(0).toUpperCase() + rawType.slice(1);
     items.push({
       icon: 'wrench',
-      text: `${ctx.facilities.upgradeInProgress.type} upgrade completes in ${remaining} week${remaining > 1 ? 's' : ''}!`,
+      text: `${upgradeName} upgrade completes in ${remaining} week${remaining > 1 ? 's' : ''}!`,
       type: 'positive',
     });
   }

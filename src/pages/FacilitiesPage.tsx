@@ -206,7 +206,7 @@ const FacilitiesPage = () => {
                   canUpgrade={canUpgrade}
                   upgradeInProgress={!!facilities.upgradeInProgress}
                   upgradeCost={cost}
-                  upgradeWeeks={isThisUpgrading ? (facilities.upgradeInProgress?.weeksRemaining || 0) : FACILITY_BASE_UPGRADE_WEEKS}
+                  upgradeWeeks={isThisUpgrading ? (facilities.upgradeInProgress?.weeksRemaining || 0) : (FACILITY_BASE_UPGRADE_WEEKS + level)}
                   upgradeProgress={getUpgradeProgress(type)}
                   onUpgrade={() => setConfirmUpgrade(type)}
                 />
@@ -263,7 +263,7 @@ function StandUpgradePanel({
       <div className="flex items-center gap-3 mb-3">
         <div className="flex items-center gap-1.5">
           <TrendingUp className="w-3 h-3 text-emerald-400" />
-          <span className="text-[10px] text-muted-foreground">+£{((level * incomePerLevel) / 1000).toFixed(0)}K/wk revenue</span>
+          <span className="text-[10px] text-muted-foreground">£{((level * incomePerLevel) / 1000).toFixed(0)}K/wk from this stand</span>
         </div>
       </div>
 
@@ -313,13 +313,14 @@ function StandUpgradePanel({
           <span className="text-muted-foreground font-normal">({weeks}w)</span>
         </button>
       )}
-      {upgradeProgress === null && !isMax && !canUpgrade && (
-        <p className="text-[10px] text-muted-foreground text-center mt-1">
-          {upgradeInProgress ? 'Another upgrade in progress' : budget < cost ? 'Insufficient funds' : ''}
-        </p>
+      {upgradeProgress === null && !isMax && !canUpgrade && upgradeInProgress && (
+        <p className="text-[10px] text-muted-foreground text-center mt-1">Another upgrade in progress</p>
+      )}
+      {upgradeProgress === null && !isMax && !canUpgrade && !upgradeInProgress && budget < cost && (
+        <p className="text-[10px] text-muted-foreground text-center mt-1">Insufficient funds</p>
       )}
       {isMax && (
-        <p className="text-center text-xs text-[hsl(43_96%_46%)] font-semibold">Max Level</p>
+        <p className="text-center text-xs text-amber-400 font-semibold">Max Level</p>
       )}
     </GlassPanel>
   );

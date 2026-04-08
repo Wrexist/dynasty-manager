@@ -3401,14 +3401,22 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       upgrade.weeksRemaining = Math.max(0, upgrade.weeksRemaining - 1);
       if (upgrade.weeksRemaining === 0) {
         if (upgrade.type.startsWith('stadium-')) {
-          const stand = upgrade.type.replace('stadium-', '') as 'north' | 'south' | 'east' | 'west';
-          const newStands = { ...newFacilities.stadiumStands, [stand]: newFacilities.stadiumStands[stand] + 1 };
-          newFacilities = { ...newFacilities, stadiumStands: newStands, upgradeInProgress: null };
-          const standLabel = stand.charAt(0).toUpperCase() + stand.slice(1) + ' Stand';
-          newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: `Upgrade Complete`, body: `${standLabel} has been upgraded to level ${newStands[stand]}!` });
+          const standName = upgrade.type.replace('stadium-', '');
+          const validStands = ['north', 'south', 'east', 'west'] as const;
+          if (validStands.includes(standName as typeof validStands[number])) {
+            const stand = standName as typeof validStands[number];
+            const newLevel = Math.min(FACILITY_MAX_LEVEL, newFacilities.stadiumStands[stand] + 1);
+            const newStands = { ...newFacilities.stadiumStands, [stand]: newLevel };
+            newFacilities = { ...newFacilities, stadiumStands: newStands, upgradeInProgress: null };
+            const standLabel = stand.charAt(0).toUpperCase() + stand.slice(1) + ' Stand';
+            newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: `Upgrade Complete`, body: `${standLabel} has been upgraded to level ${newLevel}!` });
+          } else {
+            newFacilities = { ...newFacilities, upgradeInProgress: null };
+          }
         } else {
           const key = `${upgrade.type}Level` as keyof Pick<FacilitiesState, 'trainingLevel' | 'youthLevel' | 'medicalLevel' | 'recoveryLevel'>;
-          newFacilities = { ...newFacilities, [key]: (newFacilities[key] as number) + 1, upgradeInProgress: null };
+          const newLevel = Math.min(FACILITY_MAX_LEVEL, (newFacilities[key] as number) + 1);
+          newFacilities = { ...newFacilities, [key]: newLevel, upgradeInProgress: null };
           newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: `Upgrade Complete`, body: `Your ${upgrade.type} facility has been upgraded to level ${(newFacilities[key] as number)}!` });
         }
       } else {

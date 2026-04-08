@@ -76,7 +76,7 @@ export function FacilityCard({
           </svg>
           {/* Center text */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn('text-lg font-bold tabular-nums', isMax ? 'text-[hsl(43_96%_46%)]' : 'text-foreground')}>
+            <span className={cn('text-lg font-bold tabular-nums', isMax ? 'text-amber-400' : 'text-foreground')}>
               {level}
             </span>
             <span className="text-[9px] text-muted-foreground leading-none">/ {FACILITY_MAX_LEVEL}</span>
@@ -139,11 +139,11 @@ export function FacilityCard({
         >
           <ArrowUp className="w-3.5 h-3.5" />
           Level {level + 1} — £{(upgradeCost / 1e6).toFixed(1)}M
-          <span className="text-muted-foreground font-normal">({upgradeWeeks + level}w)</span>
+          <span className="text-muted-foreground font-normal">({upgradeWeeks}w)</span>
         </button>
       )}
       {isMax && (
-        <p className="text-center text-xs text-[hsl(43_96%_46%)] font-semibold mt-3">Max Level</p>
+        <p className="text-center text-xs text-amber-400 font-semibold mt-3">Max Level</p>
       )}
       {!canUpgrade && upgradeProgress === null && !isMax && upgradeInProgress && (
         <p className="text-[10px] text-muted-foreground text-center mt-1">Another upgrade in progress</p>

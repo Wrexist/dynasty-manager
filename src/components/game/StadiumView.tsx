@@ -160,18 +160,29 @@ interface StandRectProps {
   onClick: () => void;
 }
 
-function StandRect({ x, y, width, height, level, selected, upgrading, clubColor, onClick }: StandRectProps) {
+const GOLD = 'hsl(43, 96%, 46%)';
+const BORDER_DIM = 'hsl(222, 15%, 25%)';
+
+function StandRect({ x, y, width, height, standKey, level, selected, upgrading, clubColor, onClick }: StandRectProps) {
   const opacity = getStandOpacity(level);
   const isElite = level >= FACILITY_MAX_LEVEL;
+  const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } };
 
   return (
-    <g onClick={onClick} className="cursor-pointer" role="button" tabIndex={0}>
+    <g
+      onClick={onClick}
+      onKeyDown={handleKeyDown}
+      className="cursor-pointer outline-none"
+      role="button"
+      tabIndex={0}
+      aria-label={`${STAND_INFO[standKey].label}, level ${level}. ${selected ? 'Selected.' : 'Tap to select.'}`}
+    >
       {/* Stand base */}
       <rect
         x={x} y={y} width={width} height={height} rx={6}
         fill={clubColor}
         opacity={opacity}
-        stroke={selected ? 'hsl(43 96% 46%)' : isElite ? 'hsl(43 96% 46%)' : 'hsl(222 15% 25%)'}
+        stroke={selected ? GOLD : isElite ? GOLD : BORDER_DIM}
         strokeWidth={selected ? 2 : 1}
         filter={selected ? 'url(#glow)' : undefined}
       />
@@ -190,7 +201,7 @@ function StandRect({ x, y, width, height, level, selected, upgrading, clubColor,
           x={x + width * 0.3} y={y + height * 0.15}
           width={width * 0.4} height={height * 0.15}
           rx={2}
-          fill="hsl(43 96% 46%)"
+          fill={GOLD}
           opacity={0.25}
         />
       )}
