@@ -172,6 +172,15 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     });
   },
 
+  dismissScoutReport: (reportId: string) => {
+    const state = get();
+    const report = state.scouting.reports.find(r => r.id === reportId);
+    set({
+      scouting: { ...state.scouting, reports: state.scouting.reports.filter(r => r.id !== reportId) },
+      ...(report ? { scoutWatchList: state.scoutWatchList.filter(id => id !== report.playerId) } : {}),
+    });
+  },
+
   addToWatchList: (playerId: string) => set(s => ({
     scoutWatchList: s.scoutWatchList.includes(playerId) ? s.scoutWatchList : [...s.scoutWatchList, playerId],
   })),

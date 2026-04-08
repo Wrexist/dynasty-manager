@@ -270,6 +270,7 @@ export interface GameState {
   assignScout: (region: ScoutRegion) => void;
   cancelAssignment: (assignmentId: string) => void;
   boostScoutReports: () => void;
+  dismissScoutReport: (reportId: string) => void;
   addToWatchList: (playerId: string) => void;
   removeFromWatchList: (playerId: string) => void;
   promoteYouth: (playerId: string) => void;

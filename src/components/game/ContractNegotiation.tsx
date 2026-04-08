@@ -173,25 +173,55 @@ export function ContractNegotiation() {
                 )}
               </div>
 
-              {/* Wage slider */}
+              {/* Wage slider with zone coloring */}
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">Adjust wage offer</label>
-                <input
-                  type="range"
-                  min={Math.round(activeNegotiation.demandedWage * 0.5)}
-                  max={Math.round(activeNegotiation.demandedWage * 1.5)}
-                  step={1000}
-                  value={customWage || activeNegotiation.offeredWage}
-                  onChange={(e) => setCustomWage(Number(e.target.value))}
-                  className="w-full h-1.5 bg-muted rounded-full accent-primary"
-                />
-                <div className="flex justify-between text-[10px] text-muted-foreground">
+                {(() => {
+                  const sliderMin = Math.round(activeNegotiation.demandedWage * 0.5);
+                  const sliderMax = Math.round(activeNegotiation.demandedWage * 1.5);
+                  const sliderRange = sliderMax - sliderMin;
+                  const pct80 = ((activeNegotiation.demandedWage * 0.8 - sliderMin) / sliderRange) * 100;
+                  const pctDemand = ((activeNegotiation.demandedWage - sliderMin) / sliderRange) * 100;
+                  return (
+                    <div className="relative pt-5 pb-5">
+                      {/* Zone-colored track */}
+                      <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full overflow-hidden flex pointer-events-none">
+                        <div className="bg-red-500/20 h-full" style={{ width: `${pct80}%` }} />
+                        <div className="bg-amber-500/20 h-full" style={{ width: `${pctDemand - pct80}%` }} />
+                        <div className="bg-emerald-500/20 h-full" style={{ width: `${100 - pctDemand}%` }} />
+                      </div>
+
+                      {/* Demand marker */}
+                      <div className="absolute top-0 bottom-0 pointer-events-none" style={{ left: `${pctDemand}%` }}>
+                        <div className="absolute left-0 top-3 bottom-3 w-px bg-primary/50" />
+                        <span className="absolute top-0 text-[9px] font-semibold text-primary/70 -translate-x-1/2 whitespace-nowrap">
+                          Demand
+                        </span>
+                      </div>
+
+                      <input
+                        type="range"
+                        min={sliderMin}
+                        max={sliderMax}
+                        step={1000}
+                        value={customWage || activeNegotiation.offeredWage}
+                        onChange={(e) => setCustomWage(Number(e.target.value))}
+                        className="relative z-10 w-full h-1.5 bg-transparent rounded-full accent-primary cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
+                      />
+                    </div>
+                  );
+                })()}
+                <div className="flex justify-between text-[10px] text-muted-foreground -mt-2">
                   <span>{formatWage(Math.round(activeNegotiation.demandedWage * 0.5))}</span>
                   <span className={cn('font-semibold', gap >= 0.95 ? 'text-emerald-400' : gap >= 0.8 ? 'text-amber-400' : 'text-destructive')}>
                     {Math.round(gap * 100)}% of demand
                   </span>
                   <span>{formatWage(Math.round(activeNegotiation.demandedWage * 1.5))}</span>
                 </div>
+                {/* Mood impact hint */}
+                <p className={cn('text-[10px] text-right', gap >= 0.85 ? 'text-emerald-400/70' : gap >= 0.7 ? 'text-amber-400/70' : 'text-red-400/70')}>
+                  {gap >= 1 ? 'Meets demand — will accept' : gap >= 0.9 ? 'Close — likely to accept if mood is good' : gap >= 0.8 ? 'Below demand — mood will dip slightly' : gap >= 0.7 ? 'Lowball — mood will drop' : 'Very low — mood will drop significantly'}
+                </p>
               </div>
 
               {/* Budget Impact */}
