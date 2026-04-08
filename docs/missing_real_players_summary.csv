@@ -91,7 +91,7 @@ hun,Hungary,diosgyori,Diósgyőri VTK,0,25,25,0,needs_real_players
 swe,Sweden,djurgarden,Djurgårdens IF,0,25,25,0,needs_real_players
 cyp,Cyprus,doxa-katokopias,Doxa Katokopias,0,25,25,0,needs_real_players
 irl,Ireland,drogheda-united,Drogheda United,25,25,0,0,ready
-irl,Ireland,st-patricks-athletic,Dundalk FC,25,25,0,0,ready
+irl,Ireland,dundalk,Dundalk FC,25,25,0,0,ready
 sco,Scotland,dundee,Dundee FC,0,25,25,0,needs_real_players
 sco,Scotland,dundee-united,Dundee United,0,25,25,0,needs_real_players
 ukr,Ukraine,dynamo-kyiv,Dynamo Kyiv,0,25,25,0,needs_real_players
@@ -394,6 +394,7 @@ ita,Italy,lazio,SS Lazio,25,25,3,0,needs_real_players
 ita,Italy,napoli,SSC Napoli,23,25,2,0,needs_real_players
 sco,Scotland,st-johnstone,St Johnstone FC,0,25,25,0,needs_real_players
 sco,Scotland,st-mirren,St Mirren FC,0,25,25,0,needs_real_players
+irl,Ireland,st-patricks-athletic,St Patrick's Athletic,25,25,0,0,ready
 fra,France,brest,Stade Brestois 29,25,25,2,0,needs_real_players
 fra,France,reims,Stade de Reims,25,25,2,0,needs_real_players
 fra,France,rennes,Stade Rennais FC,26,25,1,1,needs_real_players

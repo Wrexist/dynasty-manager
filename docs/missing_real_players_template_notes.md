@@ -33,6 +33,10 @@ The detailed CSV now includes:
 3. Mark `source_verified = yes` when each row is validated.
 4. Keep this file as staging data until a dedicated import step is implemented.
 
+## Requirements
+
+- Python 3.10+ (uses modern type syntax)
+
 ## Regenerate
 
 ```bash

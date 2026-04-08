@@ -25,7 +25,11 @@ export const ALL_SQUAD_TEMPLATES: Record<string, PlayerTemplate[]> = {
   ...IRL_SQUADS,
 };
 
-/** Apply optional verified overrides generated from CSV planning sheet. */
+/**
+ * Merge verified overrides from CSV planning sheet into squad templates.
+ * NOTE: This mutates ALL_SQUAD_TEMPLATES at module init time by appending
+ * override entries. Callers see the merged result via the normal export.
+ */
 for (const [clubId, additions] of Object.entries(SQUAD_OVERRIDES)) {
   ALL_SQUAD_TEMPLATES[clubId] = [...(ALL_SQUAD_TEMPLATES[clubId] || []), ...additions];
 }

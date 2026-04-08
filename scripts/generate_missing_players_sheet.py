@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Generate planning spreadsheets for missing real players per club.
 
+Requires Python 3.10+.
+
 Outputs:
 - docs/missing_real_players_template.csv (row-per-missing-slot import-planning sheet)
 - docs/missing_real_players_summary.csv (team-level gap summary)
@@ -30,7 +32,8 @@ CLUB_ID_ALIASES = {
     'milan': 'ac-milan',
 }
 
-# Mirrors src/config/playerGeneration.ts SQUAD_TEMPLATE (25 players)
+# Mirrors src/config/playerGeneration.ts SQUAD_TEMPLATE (25 players).
+# IMPORTANT: keep in sync with src/config/playerGeneration.ts lines 71-79.
 SQUAD_TEMPLATE = [
     'GK', 'GK',
     'CB', 'CB', 'CB', 'CB', 'CB',
@@ -91,10 +94,19 @@ def clamp(v: int, lo: int, hi: int) -> int:
     return max(lo, min(hi, v))
 
 
+def _parse_quoted(pattern_prefix: str, text: str) -> str | None:
+    """Match a value after *pattern_prefix* that may be single- or double-quoted."""
+    m = re.search(pattern_prefix + r"""(?:'([^']*)'|"([^"]*)")""", text)
+    if not m:
+        return None
+    return m.group(1) if m.group(1) is not None else m.group(2)
+
+
 def parse_clubs() -> dict[str, ClubMeta]:
     clubs: dict[str, ClubMeta] = {}
     for path in glob.glob(LEAGUE_GLOB):
-        text = open(path, encoding='utf-8').read()
+        with open(path, encoding='utf-8') as f:
+            text = f.read()
         country_match = re.search(r"country:\s*'([^']+)'", text)
         country = country_match.group(1) if country_match else ''
         clubs_block_match = re.search(r"export const CLUBS:\s*ClubData\[\]\s*=\s*\[(.*?)\n\];", text, flags=re.S)
@@ -102,17 +114,25 @@ def parse_clubs() -> dict[str, ClubMeta]:
             continue
         clubs_block = clubs_block_match.group(1)
 
-        for block in re.finditer(
-            r"\{\s*[\s\S]*?id:\s*'([^']+)'[\s\S]*?name:\s*'([^']+)'[\s\S]*?"
-            r"squadQuality:\s*(\d+)[\s\S]*?divisionId:\s*'([^']+)'[\s\S]*?\},?",
-            clubs_block,
-        ):
-            club_id, name, squad_quality, division_id = block.groups()
+        # Split on top-level object braces to avoid cross-block regex matches.
+        for obj_match in re.finditer(r"\{([^{}]+)\}", clubs_block, flags=re.S):
+            obj_text = obj_match.group(1)
+            id_m = re.search(r"id:\s*'([^']+)'", obj_text)
+            if not id_m:
+                continue
+            club_id = id_m.group(1)
+            name = _parse_quoted(r'name:\s*', obj_text)
+            if not name:
+                continue
+            sq_m = re.search(r"squadQuality:\s*(\d+)", obj_text)
+            div_m = re.search(r"divisionId:\s*'([^']+)'", obj_text)
+            if not sq_m or not div_m:
+                continue
             clubs[club_id] = ClubMeta(
                 id=club_id,
                 name=name,
-                division_id=division_id,
-                squad_quality=int(squad_quality),
+                division_id=div_m.group(1),
+                squad_quality=int(sq_m.group(1)),
                 country=country,
             )
     return clubs
@@ -121,7 +141,12 @@ def parse_clubs() -> dict[str, ClubMeta]:
 def parse_squad_templates() -> dict[str, list[str]]:
     positions: dict[str, list[str]] = defaultdict(list)
     for path in glob.glob(SQUAD_GLOB):
-        text = open(path, encoding='utf-8').read()
+        # Skip non-squad files (index, overrides, etc.)
+        basename = os.path.basename(path)
+        if basename in ('index.ts', 'overrides.ts'):
+            continue
+        with open(path, encoding='utf-8') as f:
+            text = f.read()
         for team in re.finditer(r"'([^']+)':\s*\[(.*?)\],", text, flags=re.S):
             club_id, block = team.groups()
             club_id = CLUB_ID_ALIASES.get(club_id, club_id)
@@ -130,12 +155,11 @@ def parse_squad_templates() -> dict[str, list[str]]:
 
 
 def missing_positions_for_club(template_positions: Iterable[str]) -> list[str]:
-    have = Counter(template_positions)
-    tmp = Counter(have)
+    available = Counter(template_positions)
     missing: list[str] = []
     for pos in SQUAD_TEMPLATE:
-        if tmp[pos] > 0:
-            tmp[pos] -= 1
+        if available[pos] > 0:
+            available[pos] -= 1
         else:
             missing.append(pos)
     return missing
@@ -283,7 +307,7 @@ def main() -> None:
     write_csv(args.detail_out, detail_rows, detail_fields)
     write_csv(args.summary_out, summary_rows, summary_fields)
 
-    missing_team_count = sum(1 for r in summary_rows if int(r['missing_players_for_team']) > 0)
+    missing_team_count = sum(1 for r in summary_rows if r['missing_players_for_team'] > 0)
     print(f"Wrote {len(detail_rows)} missing-slot rows -> {args.detail_out}")
     print(f"Wrote {len(summary_rows)} team summary rows -> {args.summary_out}")
     print(f"Teams needing real-player fill: {missing_team_count}/{len(summary_rows)}")

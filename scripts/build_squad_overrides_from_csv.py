@@ -98,12 +98,16 @@ def main() -> None:
     lines.append(' */')
     lines.append('export const SQUAD_OVERRIDES: Record<string, PlayerTemplate[]> = {')
 
+    def esc(s: object) -> str:
+        """Escape single quotes for safe embedding in TS string literals."""
+        return str(s).replace("'", "\\'")
+
     for team_id in sorted(by_team.keys()):
-        lines.append(f"  '{team_id}': [")
+        lines.append(f"  '{esc(team_id)}': [")
         for p in by_team[team_id]:
             pot_text = f", pot: {p['pot']}" if 'pot' in p else ''
             lines.append(
-                f"    {{ fn: '{p['fn']}', ln: '{p['ln']}', pos: '{p['pos']}', age: {p['age']}, nat: '{p['nat']}', ovr: {p['ovr']}{pot_text} }},"
+                f"    {{ fn: '{esc(p['fn'])}', ln: '{esc(p['ln'])}', pos: '{esc(p['pos'])}', age: {p['age']}, nat: '{esc(p['nat'])}', ovr: {p['ovr']}{pot_text} }},"
             )
         lines.append('  ],')
     lines.append('};')
