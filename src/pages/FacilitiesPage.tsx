@@ -1,14 +1,15 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
+import { CelebrationModal } from '@/components/game/CelebrationModal';
 import { StadiumView } from '@/components/game/StadiumView';
 import { FacilityCard } from '@/components/game/FacilityCard';
 import { Dumbbell, GraduationCap, Stethoscope, RefreshCw, ArrowUp, Clock, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS, STADIUM_INCOME_PER_LEVEL } from '@/config/gameBalance';
 import { PageHint } from '@/components/game/PageHint';
-import { STAND_INFO, getEffectiveStadiumLevel } from '@/utils/facilities';
+import { STAND_INFO, getEffectiveStadiumLevel, getStadiumCapacity } from '@/utils/facilities';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { StandKey } from '@/types/game';
 
@@ -32,7 +33,30 @@ const FacilitiesPage = () => {
   const [tab, setTab] = useState<FacilityTab>('stadium');
   const [selectedStand, setSelectedStand] = useState<StandKey | null>(null);
   const [confirmUpgrade, setConfirmUpgrade] = useState<string | null>(null);
+  const [celebration, setCelebration] = useState<{ title: string; description: string } | null>(null);
+  const prevUpgradeRef = useRef(facilities.upgradeInProgress);
   const club = clubs[playerClubId];
+
+  // Detect when a max-level upgrade completes
+  useEffect(() => {
+    const prev = prevUpgradeRef.current;
+    prevUpgradeRef.current = facilities.upgradeInProgress;
+    if (prev && !facilities.upgradeInProgress) {
+      // An upgrade just completed — check if it reached max level
+      if (prev.type.startsWith('stadium-')) {
+        const stand = prev.type.replace('stadium-', '') as StandKey;
+        if (facilities.stadiumStands[stand] >= FACILITY_MAX_LEVEL) {
+          setCelebration({ title: `${STAND_INFO[stand].label} — Max Level!`, description: `Your ${STAND_INFO[stand].label} has reached world-class status! The fans are delighted.` });
+        }
+      } else {
+        const key = `${prev.type}Level` as keyof typeof facilities;
+        if ((facilities[key] as number) >= FACILITY_MAX_LEVEL) {
+          const label = prev.type.charAt(0).toUpperCase() + prev.type.slice(1);
+          setCelebration({ title: `${label} — Max Level!`, description: `Your ${label} facility is now world-class!` });
+        }
+      }
+    }
+  }, [facilities.upgradeInProgress, facilities.stadiumStands, facilities]);
 
   const effectiveLevel = getEffectiveStadiumLevel(facilities);
   const weeklyRevenue = effectiveLevel * STADIUM_INCOME_PER_LEVEL;
@@ -146,7 +170,7 @@ const FacilitiesPage = () => {
               </GlassPanel>
               <GlassPanel className="p-3 text-center">
                 <p className="text-[10px] text-muted-foreground mb-0.5">Capacity</p>
-                <p className="text-sm font-bold tabular-nums">{club?.stadiumCapacity ? (club.stadiumCapacity / 1000).toFixed(0) + 'K' : '—'}</p>
+                <p className="text-sm font-bold tabular-nums">{club?.stadiumCapacity ? (getStadiumCapacity(club.stadiumCapacity, facilities.stadiumStands) / 1000).toFixed(1) + 'K' : '—'}</p>
               </GlassPanel>
             </div>
 
@@ -225,6 +249,15 @@ const FacilitiesPage = () => {
         confirmLabel={confirmInfo.label}
         variant="default"
         onConfirm={handleConfirm}
+      />
+
+      {/* Max Level Celebration */}
+      <CelebrationModal
+        open={!!celebration}
+        onClose={() => setCelebration(null)}
+        title={celebration?.title || ''}
+        description={celebration?.description || ''}
+        icon="trophy"
       />
     </div>
   );

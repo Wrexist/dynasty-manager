@@ -11,6 +11,13 @@ export function getTotalStandLevels(stands: StadiumStands): number {
   return stands.north + stands.south + stands.east + stands.west;
 }
 
+/** Calculate dynamic stadium capacity based on stand levels. Up to +50% over base. */
+export function getStadiumCapacity(baseCapacity: number, stands: StadiumStands): number {
+  const total = getTotalStandLevels(stands);
+  // total ranges 0-40. At 20 (all level 5) = +25%, at 40 (all max) = +50%
+  return Math.round(baseCapacity * (1 + (total / 40) * 0.5));
+}
+
 export const STAND_INFO = {
   north: { label: 'North Stand', subtitle: 'Main Stand' },
   south: { label: 'South Stand', subtitle: 'The Kop' },

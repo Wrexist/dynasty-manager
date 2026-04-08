@@ -1,7 +1,8 @@
 import { cn } from '@/lib/utils';
 import type { StadiumStands, StandKey } from '@/types/game';
-import { STAND_INFO } from '@/utils/facilities';
+import { STAND_INFO, getEffectiveStadiumLevel } from '@/utils/facilities';
 import { FACILITY_MAX_LEVEL } from '@/config/gameBalance';
+import { hapticLight } from '@/utils/haptics';
 
 interface StadiumViewProps {
   stands: StadiumStands;
@@ -28,6 +29,9 @@ function getStandTier(level: number): string {
 
 export function StadiumView({ stands, selectedStand, onSelectStand, upgradeInProgressType, clubColor }: StadiumViewProps) {
   const isUpgrading = (stand: StandKey) => upgradeInProgressType === `stadium-${stand}`;
+  const effectiveLevel = getEffectiveStadiumLevel({ stadiumStands: stands, trainingLevel: 0, youthLevel: 0, medicalLevel: 0, recoveryLevel: 0, upgradeInProgress: null });
+  const showCorners = effectiveLevel >= 8;
+  const allMax = stands.north >= FACILITY_MAX_LEVEL && stands.south >= FACILITY_MAX_LEVEL && stands.east >= FACILITY_MAX_LEVEL && stands.west >= FACILITY_MAX_LEVEL;
 
   return (
     <div className="relative w-full" style={{ aspectRatio: '16/11' }}>
@@ -106,6 +110,28 @@ export function StadiumView({ stands, selectedStand, onSelectStand, upgradeInPro
           onClick={() => onSelectStand('east')}
         />
 
+        {/* Corner connectors — visible when effective stadium level >= 8 */}
+        {showCorners && (
+          <>
+            {/* NW corner */}
+            <rect x={46} y={38} width={18} height={12} rx={3}
+              fill={clubColor} opacity={0.4}
+              stroke={allMax ? GOLD : BORDER_DIM} strokeWidth={0.5} />
+            {/* NE corner */}
+            <rect x={256} y={38} width={18} height={12} rx={3}
+              fill={clubColor} opacity={0.4}
+              stroke={allMax ? GOLD : BORDER_DIM} strokeWidth={0.5} />
+            {/* SW corner */}
+            <rect x={46} y={170} width={18} height={12} rx={3}
+              fill={clubColor} opacity={0.4}
+              stroke={allMax ? GOLD : BORDER_DIM} strokeWidth={0.5} />
+            {/* SE corner */}
+            <rect x={256} y={170} width={18} height={12} rx={3}
+              fill={clubColor} opacity={0.4}
+              stroke={allMax ? GOLD : BORDER_DIM} strokeWidth={0.5} />
+          </>
+        )}
+
         {/* Stand Labels */}
         {STAND_KEYS.map(key => {
           const pos = LABEL_POSITIONS[key];
@@ -166,11 +192,12 @@ const BORDER_DIM = 'hsl(222, 15%, 25%)';
 function StandRect({ x, y, width, height, standKey, level, selected, upgrading, clubColor, onClick }: StandRectProps) {
   const opacity = getStandOpacity(level);
   const isElite = level >= FACILITY_MAX_LEVEL;
-  const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } };
+  const handleClick = () => { hapticLight(); onClick(); };
+  const handleKeyDown = (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(); } };
 
   return (
     <g
-      onClick={onClick}
+      onClick={handleClick}
       onKeyDown={handleKeyDown}
       className="cursor-pointer outline-none"
       role="button"
