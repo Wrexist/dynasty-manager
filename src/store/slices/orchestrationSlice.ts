@@ -104,7 +104,7 @@ import { applySeasonTurnover, generateReplacementClub } from '@/utils/promotionR
 import { generateStorylines } from '@/utils/storylines';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
-import { getTournamentForSeason, generateTournament, processGroupWeek, generateKnockoutBracket, processKnockoutRound, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
+import { getTournamentForSeason, generateTournament, processGroupWeek, generateKnockoutBracket, processKnockoutRound, autoSelectNationalSquad } from '@/utils/international';
 import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST, NT_JOB_MIN_REPUTATION, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS, REP_INTL_TOURNAMENT_WIN, REP_INTL_FINAL, REP_INTL_SEMI, REP_INTL_KNOCKOUT, REP_INTL_GROUP_EXIT, NT_SACK_GROUP_EXIT_THRESHOLD } from '@/config/gameBalance';
 import { generateRandomEvents } from '@/utils/randomEvents';
 import { getWinStreak, detectMatchDrama } from '@/utils/celebrations';
@@ -1398,29 +1398,17 @@ function finalizeSeason(
     }
   });
 
-  // Prune orphaned players: remove players not in any club, not free agents,
-  // and not in the national team pool
+  // Prune orphaned players: remove players not in any club and not free agents
   const activePlayerIds = new Set<string>();
   for (const club of Object.values(newClubs)) {
     for (const pid of club.playerIds) activePlayerIds.add(pid);
   }
   for (const pid of freeAgentIds) activePlayerIds.add(pid);
   const currentNT = state.nationalTeam;
-  const ntPoolIds = new Set(currentNT?.poolPlayerIds || []);
-  for (const pid of (currentNT?.squad || [])) ntPoolIds.add(pid);
   for (const pid of Object.keys(newPlayers)) {
-    if (!activePlayerIds.has(pid) && !ntPoolIds.has(pid)) {
+    if (!activePlayerIds.has(pid)) {
       delete newPlayers[pid];
     }
-  }
-
-  // Clean up aged-out national team pool players (35+) and update poolPlayerIds
-  let updatedNTPoolIds = currentNT?.poolPlayerIds || [];
-  if (currentNT && updatedNTPoolIds.length > 0) {
-    updatedNTPoolIds = updatedNTPoolIds.filter(pid => {
-      const p = newPlayers[pid];
-      return p && p.age <= 35;
-    });
   }
 
   const leagueClubIds = newDivisionClubs[newPlayerDivision] || [];
@@ -1721,9 +1709,8 @@ function finalizeSeason(
     objectivesStartWeek: 1,
     // Reset coach checklist so players re-do setup tasks each season
     completedCoachTaskIds: [],
-    // Update national team pool IDs (aged-out players removed)
     ...(currentNT ? {
-      nationalTeam: { ...currentNT, poolPlayerIds: updatedNTPoolIds },
+      nationalTeam: { ...currentNT, poolPlayerIds: [] },
     } : {}),
   });
 
@@ -1781,22 +1768,14 @@ function finalizeSeason(
   if (tournamentType && canParticipate) {
     const tournament = generateTournament(tournamentType, season, postState.managerNationality);
 
-    // Top up national team pool before tournament (replenishes aged-out players)
-    const topUpPlayers = generateNationalTeamPool(postState.managerNationality, postState.players, season);
-    const tournamentPlayers = Object.keys(topUpPlayers).length > 0
-      ? { ...postState.players, ...topUpPlayers }
-      : postState.players;
-    const existingPoolIds = postState.nationalTeam?.poolPlayerIds || [];
-    const mergedPoolIds = [...existingPoolIds, ...Object.keys(topUpPlayers)];
-
-    // Auto-select national squad from the full pool
-    const squad = autoSelectNationalSquad(postState.managerNationality, tournamentPlayers);
+    // Auto-select national squad from real club players
+    const squad = autoSelectNationalSquad(postState.managerNationality, postState.players);
     const nt = postState.nationalTeam
-      ? { ...postState.nationalTeam, squad, poolPlayerIds: mergedPoolIds }
+      ? { ...postState.nationalTeam, squad, poolPlayerIds: [] }
       : null;
 
     // Apply morale boost to called-up players
-    const boostedPlayers = { ...tournamentPlayers };
+    const boostedPlayers = { ...postState.players };
     for (const pid of squad) {
       if (boostedPlayers[pid]) {
         boostedPlayers[pid] = { ...boostedPlayers[pid], morale: Math.min(100, boostedPlayers[pid].morale + NATIONAL_CALLUP_MORALE_BOOST) };

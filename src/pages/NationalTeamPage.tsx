@@ -385,7 +385,7 @@ const NationalTeamPage = () => {
                     <p className="text-xs font-semibold text-foreground truncate">{player.firstName} {player.lastName}</p>
                     <p className="text-[10px] text-muted-foreground">
                       {player.position} · Age {player.age} · {player.internationalCaps || 0} caps
-                      {player.clubId && clubs[player.clubId] ? ` · ${clubs[player.clubId].shortName}` : ' · External'}
+                      {player.clubId && clubs[player.clubId] ? ` · ${clubs[player.clubId].shortName}` : ' · Free Agent'}
                     </p>
                   </div>
                   {inSquad && (
@@ -442,7 +442,7 @@ const NationalTeamPage = () => {
                           </p>
                           <p className="text-[10px] text-muted-foreground">
                             {player.position} &middot; Age {player.age}
-                            {player.clubId && clubs[player.clubId] ? ` · ${clubs[player.clubId].shortName}` : ' · External'}
+                            {player.clubId && clubs[player.clubId] ? ` · ${clubs[player.clubId].shortName}` : ' · Free Agent'}
                           </p>
                         </div>
                         <div className="text-right shrink-0">

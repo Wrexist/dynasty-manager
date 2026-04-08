@@ -13,7 +13,6 @@ import type {
   InternationalKnockoutTie,
   InternationalKnockoutRound,
   Player,
-  Position,
 } from '@/types/game';
 import { NATIONS, getNation } from '@/data/nations';
 import {
@@ -23,10 +22,7 @@ import {
   WORLD_CUP_FREQUENCY,
   CONTINENTAL_CUP_FREQUENCY,
   NATIONAL_SQUAD_SIZE,
-  NT_CANDIDATE_POOL_TARGET,
 } from '@/config/gameBalance';
-import { generatePlayer, pickNameForNationality } from '@/utils/playerGen';
-import { generatePlayerAppearance } from '@/config/playerAppearance';
 
 let fixtureCounter = 0;
 function nextFixtureId(): string {
@@ -435,80 +431,14 @@ export function autoSelectNationalSquad(
   return squad.map(p => p.id);
 }
 
-// Position template for national team pool generation (mirrors realistic squad shape)
-const NT_POOL_POSITIONS: Position[] = [
-  'GK', 'GK', 'GK',
-  'CB', 'CB', 'CB', 'CB', 'CB', 'CB',
-  'LB', 'LB', 'RB', 'RB',
-  'CDM', 'CDM', 'CM', 'CM', 'CM', 'CM', 'CM',
-  'CAM', 'CAM',
-  'LW', 'LW', 'RW', 'RW',
-  'ST', 'ST', 'ST', 'ST',
-];
-
-// Quality tiers: a few stars, mostly solid internationals, some young prospects
-const NT_QUALITY_TIERS = [
-  { min: 82, max: 88, count: 5 },   // star players
-  { min: 74, max: 81, count: 20 },  // solid internationals
-  { min: 68, max: 73, count: 15 },  // squad depth
-  { min: 60, max: 67, count: 10 },  // young prospects
-];
-
 /**
- * Generate a pool of national team candidate players for a given nationality.
- * Called when the user accepts the national team coaching job, to ensure
- * enough eligible players exist for squad selection.
+ * Legacy stub — previously generated synthetic national team pool players.
+ * Now returns empty: national squads are composed only of real club players.
  */
 export function generateNationalTeamPool(
-  nationality: string,
-  existingPlayers: Record<string, Player>,
-  season: number,
+  _nationality: string,
+  _existingPlayers: Record<string, Player>,
+  _season: number,
 ): Record<string, Player> {
-  const existing = Object.values(existingPlayers)
-    .filter(p => p.nationality === nationality && !p.injured && p.age >= 17);
-
-  const needed = NT_CANDIDATE_POOL_TARGET - existing.length;
-  if (needed <= 0) return {};
-
-  const newPlayers: Record<string, Player> = {};
-  let posIndex = 0;
-
-  // Build quality slots
-  const qualitySlots: number[] = [];
-  for (const tier of NT_QUALITY_TIERS) {
-    for (let i = 0; i < tier.count; i++) {
-      qualitySlots.push(tier.min + Math.floor(Math.random() * (tier.max - tier.min + 1)));
-    }
-  }
-  // Shuffle so positions aren't correlated with quality tiers
-  for (let i = qualitySlots.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [qualitySlots[i], qualitySlots[j]] = [qualitySlots[j], qualitySlots[i]];
-  }
-
-  for (let i = 0; i < needed; i++) {
-    const position = NT_POOL_POSITIONS[posIndex % NT_POOL_POSITIONS.length];
-    posIndex++;
-    const quality = qualitySlots[i % qualitySlots.length];
-
-    const player = generatePlayer(position, quality, '', season);
-
-    // Override nationality and name to match the target nation
-    player.nationality = nationality;
-    const { firstName, lastName } = pickNameForNationality(nationality);
-    player.firstName = firstName;
-    player.lastName = lastName;
-    player.clubId = ''; // external club player
-    player.appearance = generatePlayerAppearance(nationality, position);
-
-    // Varied age distribution skewed toward prime years
-    const ageRoll = Math.random();
-    if (ageRoll < 0.15) player.age = 18 + Math.floor(Math.random() * 3);       // 18-20
-    else if (ageRoll < 0.70) player.age = 23 + Math.floor(Math.random() * 7);   // 23-29
-    else player.age = 30 + Math.floor(Math.random() * 4);                        // 30-33
-
-    newPlayers[player.id] = player;
-  }
-
-  return newPlayers;
+  return {};
 }

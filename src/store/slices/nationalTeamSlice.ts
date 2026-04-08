@@ -2,7 +2,7 @@ import type { FormationType, NationalTeamState, InternationalTournamentState, Na
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
-import { generateNationalTeamPool, autoSelectNationalSquad } from '@/utils/international';
+import { autoSelectNationalSquad } from '@/utils/international';
 import { selectBestLineup } from '@/utils/playerGen';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -19,14 +19,9 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     const state = _get();
     const formation = '4-3-3' as FormationType;
 
-    // Generate national team candidate pool (sandbox mode starts with full squad)
-    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season || 1);
-    const allPlayers = { ...state.players, ...poolPlayers };
-    const poolPlayerIds = Object.keys(poolPlayers);
-
-    // Auto-select best 23-man squad
-    const squad = autoSelectNationalSquad(nationality, allPlayers);
-    const squadPlayerObjs = squad.map(id => allPlayers[id]).filter(Boolean);
+    // Auto-select best 23-man squad from real club players only
+    const squad = autoSelectNationalSquad(nationality, state.players);
+    const squadPlayerObjs = squad.map(id => state.players[id]).filter(Boolean);
     let lineup: string[] = [];
     let subs: string[] = [];
     if (squadPlayerObjs.length >= 7) {
@@ -37,7 +32,6 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
 
     _set({
       managerNationality: nationality,
-      players: allPlayers,
       nationalTeam: {
         nationality,
         squad,
@@ -48,7 +42,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
         caps: {},
         internationalGoals: {},
         results: [],
-        poolPlayerIds,
+        poolPlayerIds: [],
       },
     });
   },
@@ -91,15 +85,11 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     const nationality = state.managerNationality;
     const formation = '4-3-3' as FormationType;
 
-    // Generate national team candidate pool so there are enough eligible players
-    const poolPlayers = generateNationalTeamPool(nationality, state.players, state.season);
-    const allPlayers = { ...state.players, ...poolPlayers };
-
-    // Auto-select best 23-man squad from all eligible players
-    const squad = autoSelectNationalSquad(nationality, allPlayers);
+    // Auto-select best 23-man squad from real club players only
+    const squad = autoSelectNationalSquad(nationality, state.players);
 
     // Auto-select best lineup and subs from the squad
-    const squadPlayerObjs = squad.map(id => allPlayers[id]).filter(Boolean);
+    const squadPlayerObjs = squad.map(id => state.players[id]).filter(Boolean);
     let lineup: string[] = [];
     let subs: string[] = [];
     if (squadPlayerObjs.length >= 7) {
@@ -118,7 +108,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
       caps: {},
       internationalGoals: {},
       results: [],
-      poolPlayerIds: Object.keys(poolPlayers),
+      poolPlayerIds: [],
     };
 
     const messages = addMsg(state.messages, {
@@ -149,7 +139,6 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
       nationalTeam,
       nationalTeamOffer: null,
       showNationalTeamOffer: false,
-      players: allPlayers,
       messages,
       careerTimeline,
       careerManager,
