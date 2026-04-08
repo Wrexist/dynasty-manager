@@ -1,25 +1,40 @@
 # Missing Real Players Spreadsheet (Not Integrated)
 
-This spreadsheet is a planning file only and is **not integrated into gameplay**.
+This is a planning/export artifact only. It does **not** import players into the game yet.
 
-- File: `docs/missing_real_players_template.csv`
-- Scope: all clubs in `src/data/leagues/*.ts`
-- Target squad size: 25 players per club (matching `SQUAD_TEMPLATE`)
-- Included rows: only missing slots for clubs whose real template squad is incomplete
+## Generated files
 
-## Columns
+- `docs/missing_real_players_template.csv` (row-level, one row per missing player slot)
+- `docs/missing_real_players_summary.csv` (team-level completeness overview)
 
-- Team metadata: `league_id`, `country`, `team_id`, `team_name`
-- Gap tracking: `current_template_players`, `target_squad_size`, `missing_players_for_team`, `missing_slot_index`
-- Player identity placeholders: `required_real_player_name`, `age`, `nationality`, `preferred_foot`
-- FIFA-style rating targets:
-  - Outfield: `pace`, `shooting`, `passing`, `dribbling`, `defending`, `physical`
-  - Goalkeeper: `diving`, `handling`, `kicking`, `reflexes`, `speed`, `positioning`
-- Overall guidance: `target_overall`, `target_potential`
+## Coverage rules
 
-## How to use
+- Reads all clubs from `src/data/leagues/*.ts`
+- Reads existing template players from `src/data/squads/*.ts`
+- Compares against the 25-player squad template used by generation
+- Includes only missing slots for each club
 
-1. Filter one team in the CSV.
-2. Fill `required_real_player_name` and identity fields with real players only.
-3. Keep `position` and target ratings as baseline, then adjust after scouting/validation.
-4. Once all rows for a team are filled, that team is ready for manual import later.
+## Why this version is implementation-ready
+
+The detailed CSV now includes:
+
+- Team identity and gap-tracking columns (`team_id`, `team_name`, `current_template_players`, `missing_players_for_team`)
+- Real-player placeholders (`required_real_player_name`, `age`, `nationality`, `preferred_foot`)
+- Core game attributes needed by `PlayerAttributes` (`pace`, `shooting`, `passing`, `defending`, `physical`, `mental`)
+- Personality placeholders/guidance (`professionalism`, `ambition`, `temperament`, `loyalty`, `leadership`)
+- Economic/contract guidance (`target_value_eur`, `target_weekly_wage_eur`, `target_contract_years`)
+- FIFA-style expanded display stats (`fifa_*` columns for outfield and GK)
+- Source QA columns (`source_season`, `source_verified`, `notes`)
+
+## Usage workflow
+
+1. Open `missing_real_players_summary.csv` and filter teams with `status = needs_real_players`.
+2. Fill corresponding rows in `missing_real_players_template.csv` using only real players.
+3. Mark `source_verified = yes` when each row is validated.
+4. Keep this file as staging data until a dedicated import step is implemented.
+
+## Regenerate
+
+```bash
+python scripts/generate_missing_players_sheet.py
+```
