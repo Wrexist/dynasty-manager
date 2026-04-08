@@ -53,6 +53,7 @@ const NationalTeamPage = lazy(() => import('./NationalTeamPage'));
 const InternationalTournament = lazy(() => import('./InternationalTournament'));
 const JobMarket = lazy(() => import('./JobMarket'));
 const CareerOverview = lazy(() => import('./CareerOverview'));
+const BallonDor = lazy(() => import('./BallonDor'));
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -95,6 +96,7 @@ const screens: Record<string, React.ComponentType> = {
   'international-tournament': InternationalTournament,
   'job-market': JobMarket,
   'career-overview': CareerOverview,
+  'ballon-dor': BallonDor,
 };
 
 

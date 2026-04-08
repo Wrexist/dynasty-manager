@@ -311,6 +311,46 @@ const SeasonSummary = () => {
           </GlassPanel>
         )}
 
+        {/* Ballon d'Or Winner */}
+        {latest.ballonDOrRanking && latest.ballonDOrRanking.length > 0 && (() => {
+          const winner = latest.ballonDOrRanking[0];
+          const yourPlayers = latest.ballonDOrRanking.filter(e => e.clubName === playerClubShort);
+          return (
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.7, duration: 0.5, type: 'spring' }}>
+              <GlassPanel className="p-4 border-[hsl(43,96%,46%)]/20">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-[hsl(43,96%,46%)]/15 border border-[hsl(43,96%,46%)]/30 flex items-center justify-center shrink-0">
+                    <Trophy className="w-5 h-5 text-[hsl(43,96%,56%)]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] text-[hsl(43,96%,56%)] uppercase tracking-wider font-bold">Ballon d'Or Winner</p>
+                    <p className="text-sm font-black text-foreground truncate">{winner.playerName}</p>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: winner.clubColor }} />
+                      <span className="text-[10px] text-muted-foreground">{winner.clubName}</span>
+                      <span className="text-[10px] text-muted-foreground">·</span>
+                      <span className="text-[10px] text-muted-foreground">{winner.goals}G {winner.assists}A</span>
+                    </div>
+                  </div>
+                  <span className="text-lg font-black text-[hsl(43,96%,56%)] tabular-nums">{winner.score.toFixed(1)}</span>
+                </div>
+                {yourPlayers.length > 0 && (
+                  <p className="text-[10px] text-primary mt-2 pt-2 border-t border-border/30 text-center">
+                    {yourPlayers.length} of your players made the Ballon d'Or Top 25!
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setScreen('ballon-dor')}
+                  className="text-[10px] text-primary mt-1 w-full text-center font-bold hover:underline"
+                >
+                  View Full Rankings →
+                </button>
+              </GlassPanel>
+            </motion.div>
+          );
+        })()}
+
         {/* Board Verdict */}
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.75, duration: 0.4 }}>
         <GlassPanel className="p-4 text-center">

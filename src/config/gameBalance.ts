@@ -544,3 +544,26 @@ export const MEDIA_SCRUTINY_CONFIDENCE_HIT = 3;
 
 // ── Player Match History ──
 export const MAX_PLAYER_MATCH_HISTORY = 20;
+
+// ── Ballon d'Or ──
+export const BALLON_DOR_TOP_N = 25;
+/** Weights for the Ballon d'Or scoring formula */
+export const BALLON_DOR_WEIGHTS = {
+  overall: 2.5,
+  goals: 3.0,
+  assists: 2.0,
+  appearances: 0.3,
+  form: 0.5,
+  teamPosition: 1.5,   // bonus for playing on a high-finishing team
+  cleanSheets: 1.0,     // GK/defender bonus
+} as const;
+/** Value multiplier for Ballon d'Or top-25 placements (rank → multiplier) */
+export const BALLON_DOR_VALUE_BOOST: Record<number, number> = {
+  1: 0.30,   // Winner: +30% value
+  2: 0.22,
+  3: 0.18,
+  4: 0.14,
+  5: 0.12,
+  10: 0.08,  // Top 10: +8%
+  25: 0.04,  // Top 25: +4%
+} as const;
