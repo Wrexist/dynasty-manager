@@ -62,18 +62,18 @@ function generateAttributes(position: Position, quality: number): PlayerAttribut
   const q = quality;
   const v = () => variance(PROFILE_ATTRIBUTE_VARIANCE);
   const profiles: Record<string, () => PlayerAttributes> = {
-    'GK': () => ({ pace: clamp(q - 15 + v()), shooting: clamp(q - 30 + v()), passing: clamp(q - 10 + v()), defending: clamp(q + 5 + v()), physical: clamp(q + v()), mental: clamp(q + 5 + v()) }),
-    'CB': () => ({ pace: clamp(q - 5 + v()), shooting: clamp(q - 20 + v()), passing: clamp(q - 5 + v()), defending: clamp(q + 10 + v()), physical: clamp(q + 5 + v()), mental: clamp(q + v()) }),
-    'LB': () => ({ pace: clamp(q + 5 + v()), shooting: clamp(q - 15 + v()), passing: clamp(q + v()), defending: clamp(q + 5 + v()), physical: clamp(q + v()), mental: clamp(q - 5 + v()) }),
-    'RB': () => ({ pace: clamp(q + 5 + v()), shooting: clamp(q - 15 + v()), passing: clamp(q + v()), defending: clamp(q + 5 + v()), physical: clamp(q + v()), mental: clamp(q - 5 + v()) }),
-    'CDM': () => ({ pace: clamp(q - 5 + v()), shooting: clamp(q - 10 + v()), passing: clamp(q + 5 + v()), defending: clamp(q + 8 + v()), physical: clamp(q + 5 + v()), mental: clamp(q + 5 + v()) }),
-    'CM': () => ({ pace: clamp(q + v()), shooting: clamp(q + v()), passing: clamp(q + 10 + v()), defending: clamp(q + v()), physical: clamp(q + v()), mental: clamp(q + 5 + v()) }),
-    'CAM': () => ({ pace: clamp(q + v()), shooting: clamp(q + 5 + v()), passing: clamp(q + 10 + v()), defending: clamp(q - 15 + v()), physical: clamp(q - 5 + v()), mental: clamp(q + 5 + v()) }),
-    'LM': () => ({ pace: clamp(q + 8 + v()), shooting: clamp(q + v()), passing: clamp(q + 5 + v()), defending: clamp(q - 5 + v()), physical: clamp(q + v()), mental: clamp(q + v()) }),
-    'RM': () => ({ pace: clamp(q + 8 + v()), shooting: clamp(q + v()), passing: clamp(q + 5 + v()), defending: clamp(q - 5 + v()), physical: clamp(q + v()), mental: clamp(q + v()) }),
-    'LW': () => ({ pace: clamp(q + 10 + v()), shooting: clamp(q + 5 + v()), passing: clamp(q + 5 + v()), defending: clamp(q - 20 + v()), physical: clamp(q - 5 + v()), mental: clamp(q + v()) }),
-    'RW': () => ({ pace: clamp(q + 10 + v()), shooting: clamp(q + 5 + v()), passing: clamp(q + 5 + v()), defending: clamp(q - 20 + v()), physical: clamp(q - 5 + v()), mental: clamp(q + v()) }),
-    'ST': () => ({ pace: clamp(q + 5 + v()), shooting: clamp(q + 12 + v()), passing: clamp(q - 5 + v()), defending: clamp(q - 20 + v()), physical: clamp(q + 5 + v()), mental: clamp(q + v()) }),
+    'GK': () => ({ pace: clamp(q - 10 + v()), shooting: clamp(q - 20 + v()), passing: clamp(q - 7 + v()), defending: clamp(q + 3 + v()), physical: clamp(q + v()), mental: clamp(q + 3 + v()) }),
+    'CB': () => ({ pace: clamp(q - 3 + v()), shooting: clamp(q - 15 + v()), passing: clamp(q - 3 + v()), defending: clamp(q + 7 + v()), physical: clamp(q + 3 + v()), mental: clamp(q + v()) }),
+    'LB': () => ({ pace: clamp(q + 3 + v()), shooting: clamp(q - 10 + v()), passing: clamp(q + v()), defending: clamp(q + 3 + v()), physical: clamp(q + v()), mental: clamp(q - 3 + v()) }),
+    'RB': () => ({ pace: clamp(q + 3 + v()), shooting: clamp(q - 10 + v()), passing: clamp(q + v()), defending: clamp(q + 3 + v()), physical: clamp(q + v()), mental: clamp(q - 3 + v()) }),
+    'CDM': () => ({ pace: clamp(q - 3 + v()), shooting: clamp(q - 7 + v()), passing: clamp(q + 3 + v()), defending: clamp(q + 5 + v()), physical: clamp(q + 3 + v()), mental: clamp(q + 3 + v()) }),
+    'CM': () => ({ pace: clamp(q + v()), shooting: clamp(q + v()), passing: clamp(q + 7 + v()), defending: clamp(q + v()), physical: clamp(q + v()), mental: clamp(q + 3 + v()) }),
+    'CAM': () => ({ pace: clamp(q + v()), shooting: clamp(q + 3 + v()), passing: clamp(q + 7 + v()), defending: clamp(q - 10 + v()), physical: clamp(q - 3 + v()), mental: clamp(q + 3 + v()) }),
+    'LM': () => ({ pace: clamp(q + 5 + v()), shooting: clamp(q + v()), passing: clamp(q + 3 + v()), defending: clamp(q - 3 + v()), physical: clamp(q + v()), mental: clamp(q + v()) }),
+    'RM': () => ({ pace: clamp(q + 5 + v()), shooting: clamp(q + v()), passing: clamp(q + 3 + v()), defending: clamp(q - 3 + v()), physical: clamp(q + v()), mental: clamp(q + v()) }),
+    'LW': () => ({ pace: clamp(q + 7 + v()), shooting: clamp(q + 3 + v()), passing: clamp(q + 3 + v()), defending: clamp(q - 15 + v()), physical: clamp(q - 3 + v()), mental: clamp(q + v()) }),
+    'RW': () => ({ pace: clamp(q + 7 + v()), shooting: clamp(q + 3 + v()), passing: clamp(q + 3 + v()), defending: clamp(q - 15 + v()), physical: clamp(q - 3 + v()), mental: clamp(q + v()) }),
+    'ST': () => ({ pace: clamp(q + 3 + v()), shooting: clamp(q + 8 + v()), passing: clamp(q - 3 + v()), defending: clamp(q - 15 + v()), physical: clamp(q + 3 + v()), mental: clamp(q + v()) }),
   };
   return (profiles[position] || profiles['CM'])();
 }
