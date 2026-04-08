@@ -56,7 +56,7 @@ import {
   FAN_MOOD_BASE, FAN_MOOD_SCALE,
   STADIUM_LEVEL_DIVISOR, MEDICAL_LEVEL_FACTOR, RECOVERY_LEVEL_FACTOR, FACILITY_MAX_LEVEL,
   SEASON_END_CONFIDENCE,
-  MIN_SQUAD_SIZE, REPLACEMENT_QUALITY_REP_MULTIPLIER, REPLACEMENT_QUALITY_BASE, REPLACEMENT_QUALITY_VARIANCE,
+  MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, REPLACEMENT_QUALITY_REP_MULTIPLIER, REPLACEMENT_QUALITY_BASE, REPLACEMENT_QUALITY_VARIANCE,
   GENERIC_FILL_POSITIONS,
   LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, INITIAL_LISTINGS_MIN, INITIAL_LISTINGS_RANGE,
   SEASON_YOUTH_INTAKE_MIN, SEASON_YOUTH_INTAKE_RANGE,
@@ -1356,11 +1356,13 @@ function finalizeSeason(
     const toFill = gaps.length > 0 ? gaps : [];
     while (toFill.length < totalNeeded) toFill.push({ pos: pick(GENERIC_FILL_POSITIONS), deficit: 0 });
     for (const { pos: fillPos } of toFill) {
+      const currentClub = newClubs[club.id];
+      if (currentClub.playerIds.length >= MAX_SQUAD_SIZE) break;
       const repQuality = (club.reputation * REPLACEMENT_QUALITY_REP_MULTIPLIER) + REPLACEMENT_QUALITY_BASE + Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE);
       const quality = Math.round(repQuality * 0.4 + (club.squadQuality || repQuality) * 0.6);
       const newP = generatePlayer(fillPos, quality, club.id, newSeason, club.divisionId);
       newPlayers[newP.id] = newP;
-      const fillClub = { ...newClubs[club.id] };
+      const fillClub = { ...currentClub };
       fillClub.playerIds = [...fillClub.playerIds, newP.id];
       fillClub.wageBill += newP.wage;
       newClubs[club.id] = fillClub;
@@ -1383,6 +1385,7 @@ function finalizeSeason(
       const deficitCount = 11 - validIds.length;
       const safeClub = { ...newClubs[club.id], playerIds: [...validIds] };
       for (let d = 0; d < deficitCount; d++) {
+        if (safeClub.playerIds.length >= MAX_SQUAD_SIZE) break;
         const emergencyQuality = Math.round(Math.max(35, (club.reputation * 10) + 20) * 0.4 + (club.squadQuality || 50) * 0.6);
         const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), emergencyQuality, club.id, newSeason, club.divisionId);
         newPlayers[emergencyPlayer.id] = emergencyPlayer;

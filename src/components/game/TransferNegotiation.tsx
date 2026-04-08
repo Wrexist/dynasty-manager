@@ -8,6 +8,7 @@ import { TransferListing } from '@/types/game';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { formatMoney } from '@/utils/helpers';
+import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import {
   X, TrendingUp, TrendingDown,
@@ -363,6 +364,14 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                         <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
                         <p className="text-[10px] text-amber-400">
                           Contract expiring {player.contractEnd - season <= 0 ? 'this season' : 'next season'}
+                        </p>
+                      </div>
+                    )}
+                    {evaluation.totalSquadSize + 1 > MAX_SQUAD_SIZE && (
+                      <div className="flex items-center gap-1.5 mt-1.5">
+                        <AlertTriangle className="w-3 h-3 text-red-400 shrink-0" />
+                        <p className="text-[10px] text-red-400 font-medium">
+                          Squad full ({MAX_SQUAD_SIZE} players) — sell or release a player first
                         </p>
                       </div>
                     )}

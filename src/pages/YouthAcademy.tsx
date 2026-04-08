@@ -13,7 +13,7 @@ import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
 import { PAGE_HINTS } from '@/config/ui';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
-import { successToast, infoToast } from '@/utils/gameToast';
+import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
 import { Position } from '@/types/game';
 
@@ -230,7 +230,7 @@ const YouthAcademy = () => {
                     <div className="flex gap-2 px-3 pb-3 pt-1">
                       {prospect.readyToPromote ? (
                         <button
-                          onClick={(e) => { e.stopPropagation(); hapticLight(); promoteYouth(prospect.playerId); successToast('Player Promoted', `${prospect.firstName} ${prospect.lastName} joins the first team`); }}
+                          onClick={(e) => { e.stopPropagation(); hapticLight(); const r = promoteYouth(prospect.playerId); if (r.success) { successToast('Player Promoted', `${prospect.firstName} ${prospect.lastName} joins the first team`); } else { errorToast(r.message || 'Cannot promote player.'); } }}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/30 active:scale-[0.97] transition-all"
                         >
                           <ArrowUpRight className="w-3.5 h-3.5" /> Promote to Squad
