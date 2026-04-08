@@ -373,7 +373,7 @@ export interface Message {
   id: string;
   week: number;
   season: number;
-  type: 'match_preview' | 'match_result' | 'board' | 'injury' | 'transfer' | 'contract' | 'development' | 'general' | 'sponsorship' | 'national_team';
+  type: 'match_preview' | 'match_result' | 'board' | 'injury' | 'transfer' | 'contract' | 'development' | 'general' | 'sponsorship' | 'national_team' | 'warning';
   title: string;
   body: string;
   read: boolean;
