@@ -178,6 +178,22 @@ export const LOW_FITNESS_SHOT_PENALTY = 0.15;
 export const MATCH_LOW_FITNESS_THRESHOLD = 50;
 export const LOW_FITNESS_INJURY_BONUS = 0.02;
 
+// ── Tactical Fitness Drain Modifiers ──
+/** Extra drain per pressing point above 50 (pressing 75 = +5% drain) */
+export const PRESSING_FITNESS_DRAIN_PER_POINT = 0.002;
+/** Pressing baseline — no extra drain at this level */
+export const PRESSING_FITNESS_DRAIN_BASELINE = 50;
+/** Fast tempo fitness drain multiplier */
+export const TEMPO_FAST_FITNESS_DRAIN_MOD = 1.12;
+/** Slow tempo fitness drain multiplier */
+export const TEMPO_SLOW_FITNESS_DRAIN_MOD = 0.90;
+/** Fatigue commentary threshold — average team fitness below this triggers commentary */
+export const FATIGUE_COMMENTARY_THRESHOLD = 55;
+/** Minimum minute for fatigue commentary to start appearing */
+export const FATIGUE_COMMENTARY_MIN_MINUTE = 60;
+/** Interval between fatigue commentary events (minutes) */
+export const FATIGUE_COMMENTARY_INTERVAL = 10;
+
 // ── Fouler Position Weights ──
 export const FOULER_DEFENDER_WEIGHT = 3.0;
 export const FOULER_MIDFIELDER_WEIGHT = 2.0;
@@ -310,10 +326,10 @@ export const SHOUT_COOLDOWN = 10;
 export const MAX_SHOUTS_PER_MATCH = 4;
 /** Shout modifier values */
 export const SHOUT_MODIFIERS = {
-  push_forward: { attackMod: 0.15, defenseMod: -0.10 },
-  hold_the_line: { attackMod: -0.10, defenseMod: 0.15 },
-  calm_down: { cardReduction: 0.40 },
-  time_waste: { eventChanceReduction: 0.15, stoppageTimeAdd: 1 },
+  push_forward: { attackMod: 0.15, defenseMod: -0.10, fitnessDrainMod: 1.20 },
+  hold_the_line: { attackMod: -0.10, defenseMod: 0.15, fitnessDrainMod: 0.85 },
+  calm_down: { cardReduction: 0.40, fitnessDrainMod: 0.90 },
+  time_waste: { eventChanceReduction: 0.15, stoppageTimeAdd: 1, fitnessDrainMod: 1.05 },
 } as const;
 
 /** Scale factor for cumulative shout effects on second-half simulation (0.5 = half as strong as team talks) */
