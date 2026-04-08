@@ -38,3 +38,15 @@ The detailed CSV now includes:
 ```bash
 python scripts/generate_missing_players_sheet.py
 ```
+
+## Implement into game data (verified rows only)
+
+1. Fill rows in `docs/missing_real_players_template.csv` with real players.
+2. Set `source_verified = yes` only for rows you confirmed.
+3. Build squad overrides:
+
+```bash
+python scripts/build_squad_overrides_from_csv.py
+```
+
+4. The generated `src/data/squads/overrides.ts` is auto-loaded by `src/data/squads/index.ts`.

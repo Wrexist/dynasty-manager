@@ -11,6 +11,7 @@ import { SQUADS as NED_SQUADS } from './netherlands';
 // Remaining European leagues
 import { SQUADS as CRO_SQUADS } from './croatia';
 import { SQUADS as IRL_SQUADS } from './ireland';
+import { SQUAD_OVERRIDES } from './overrides';
 
 /** All club squad templates, keyed by club ID */
 export const ALL_SQUAD_TEMPLATES: Record<string, PlayerTemplate[]> = {
@@ -23,3 +24,8 @@ export const ALL_SQUAD_TEMPLATES: Record<string, PlayerTemplate[]> = {
   ...CRO_SQUADS,
   ...IRL_SQUADS,
 };
+
+/** Apply optional verified overrides generated from CSV planning sheet. */
+for (const [clubId, additions] of Object.entries(SQUAD_OVERRIDES)) {
+  ALL_SQUAD_TEMPLATES[clubId] = [...(ALL_SQUAD_TEMPLATES[clubId] || []), ...additions];
+}
