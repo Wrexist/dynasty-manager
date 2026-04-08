@@ -53,3 +53,15 @@ export const TRANSFER_DEMAND_MAX_LOYALTY = 12;
 export const TRANSFER_DEMAND_REP_MULTIPLIER = 12;
 export const TRANSFER_DEMAND_REP_OFFSET = 15;
 export const TRANSFER_DEMAND_CHANCE_FACTOR = 0.02;
+
+// ── Transfer Demand: Morale Reduction ──
+export const TRANSFER_DEMAND_HAPPY_MORALE = 70;
+export const TRANSFER_DEMAND_HAPPY_REDUCTION = 0.15;
+export const TRANSFER_DEMAND_CONTENT_MORALE = 50;
+export const TRANSFER_DEMAND_CONTENT_REDUCTION = 0.4;
+
+// ── Transfer Demand: Cooldown after convince ──
+export const TRANSFER_DEMAND_COOLDOWN_WEEKS = 8;
+
+// ── Transfer Talk: Retry cooldown ──
+export const TRANSFER_TALK_RETRY_WEEKS = 2;

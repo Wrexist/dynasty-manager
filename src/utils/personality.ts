@@ -19,6 +19,8 @@ import {
   TRANSFER_DEMAND_MIN_AMBITION, TRANSFER_DEMAND_MAX_LOYALTY,
   TRANSFER_DEMAND_REP_MULTIPLIER, TRANSFER_DEMAND_REP_OFFSET,
   TRANSFER_DEMAND_CHANCE_FACTOR,
+  TRANSFER_DEMAND_HAPPY_MORALE, TRANSFER_DEMAND_HAPPY_REDUCTION,
+  TRANSFER_DEMAND_CONTENT_MORALE, TRANSFER_DEMAND_CONTENT_REDUCTION,
 } from '@/config/personality';
 
 /** Generate random personality traits for a player */
@@ -87,7 +89,14 @@ export function wantsTransfer(player: Player, clubReputation: number): boolean {
   const { ambition, loyalty } = player.personality;
   if (ambition < TRANSFER_DEMAND_MIN_AMBITION || loyalty > TRANSFER_DEMAND_MAX_LOYALTY) return false;
   if (player.overall > clubReputation * TRANSFER_DEMAND_REP_MULTIPLIER + TRANSFER_DEMAND_REP_OFFSET) {
-    return Math.random() < (ambition - loyalty) * TRANSFER_DEMAND_CHANCE_FACTOR;
+    let chance = (ambition - loyalty) * TRANSFER_DEMAND_CHANCE_FACTOR;
+    // Happy players are much less likely to demand transfers
+    if (player.morale >= TRANSFER_DEMAND_HAPPY_MORALE) {
+      chance *= TRANSFER_DEMAND_HAPPY_REDUCTION;
+    } else if (player.morale >= TRANSFER_DEMAND_CONTENT_MORALE) {
+      chance *= TRANSFER_DEMAND_CONTENT_REDUCTION;
+    }
+    return Math.random() < chance;
   }
   return false;
 }

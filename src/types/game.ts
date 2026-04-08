@@ -129,6 +129,8 @@ export interface Player {
   isFromYouthAcademy?: boolean; // true if player was promoted from youth academy
   wantsToLeave?: boolean; // player has submitted a transfer request
   lowMoraleWeeks?: number; // consecutive weeks with morale below threshold
+  transferCooldownUntilWeek?: number; // after being convinced to stay, immune until this week
+  lastTransferTalkWeek?: number; // week of last transfer talk interaction (prevents spam)
   internationalCaps?: number;
   internationalGoals?: number;
   appearance?: PlayerAppearance;
@@ -376,6 +378,7 @@ export interface Message {
   body: string;
   read: boolean;
   playerId?: string;
+  actioned?: boolean;
 }
 
 // ── Transfer Talk (interactive dialog when player requests transfer) ──

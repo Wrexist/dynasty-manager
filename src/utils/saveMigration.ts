@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 43;
+const CURRENT_VERSION = 44;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -603,6 +603,12 @@ const migrations: Record<number, MigrationFn> = {
   42: (data) => ({
     ...data,
     version: 43,
+  }),
+
+  // v43 → v44: Player transfer cooldown + message actioned flag (optional fields, no data transform needed)
+  43: (data) => ({
+    ...data,
+    version: 44,
   }),
 };
 

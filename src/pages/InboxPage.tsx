@@ -5,6 +5,7 @@ import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, Trendi
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message, GameScreen } from '@/types/game';
+import { TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { PageHint } from '@/components/game/PageHint';
 
@@ -102,6 +103,7 @@ const InboxPage = () => {
   const messages = useGameStore((s) => s.messages);
   const activeStorylineChains = useGameStore((s) => s.activeStorylineChains);
   const players = useGameStore((s) => s.players);
+  const week = useGameStore((s) => s.week);
   const gameMode = useGameStore((s) => s.gameMode);
   const markMessageRead = useGameStore((s) => s.markMessageRead);
   const markAllRead = useGameStore((s) => s.markAllRead);
@@ -383,9 +385,12 @@ const InboxPage = () => {
                 const colors = getMessageColors(msg);
                 const action = getMessageAction(msg, gameMode);
                 // Transfer talk overrides normal action for unhappy players
-                const hasTransferTalk = msg.type === 'transfer' && msg.playerId && (() => {
+                const hasTransferTalk = msg.type === 'transfer' && msg.playerId && !msg.actioned && (() => {
                   const player = players[msg.playerId!];
-                  return player && player.wantsToLeave && !player.listedForSale;
+                  if (!player || !player.wantsToLeave || player.listedForSale) return false;
+                  // Prevent spam: hide button during talk retry cooldown
+                  if (player.lastTransferTalkWeek && week - player.lastTransferTalkWeek < TRANSFER_TALK_RETRY_WEEKS) return false;
+                  return true;
                 })();
                 const hasAction = hasTransferTalk || !!action;
                 return (
