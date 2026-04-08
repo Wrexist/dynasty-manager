@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getStatBarColor } from '@/utils/uiHelpers';
+import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 
 // ── Animation helpers ──
 
@@ -114,10 +115,16 @@ export function WeeklyDigest() {
     ? 'Phones ringing off the hook!'
     : null;
 
-  const headlineColor = digest.moraleChange >= 8 || netIncome >= 200_000 || digest.recoveriesThisWeek.length >= 2
-    ? 'text-emerald-400'
-    : digest.injuriesThisWeek.length >= 2 || digest.moraleChange <= -8
+  const headlineColor = digest.injuriesThisWeek.length >= 2
     ? 'text-destructive'
+    : digest.moraleChange >= 8
+    ? 'text-emerald-400'
+    : digest.moraleChange <= -8
+    ? 'text-destructive'
+    : netIncome >= 200_000
+    ? 'text-emerald-400'
+    : digest.recoveriesThisWeek.length >= 2
+    ? 'text-emerald-400'
     : 'text-primary';
 
   // Track section delay for staggering
@@ -187,9 +194,11 @@ export function WeeklyDigest() {
                     </motion.div>
                     <span className="text-[10px] text-muted-foreground">Net Income</span>
                   </div>
-                  <p className={cn('text-base font-bold tabular-nums', netIncome >= 0 ? 'text-emerald-400' : 'text-destructive')}>
-                    {netIncome >= 0 ? '+' : ''}£{(Math.abs(netIncome) / 1e3).toFixed(0)}K
-                  </p>
+                  <AnimatedNumber
+                    value={Math.abs(netIncome) / 1e3}
+                    formatFn={(n) => `${netIncome >= 0 ? '+' : '-'}£${n.toFixed(0)}K`}
+                    className={cn('text-base font-bold tabular-nums', netIncome >= 0 ? 'text-emerald-400' : 'text-destructive')}
+                  />
                 </div>
 
                 {/* Morale */}
@@ -213,9 +222,11 @@ export function WeeklyDigest() {
                     </motion.div>
                     <span className="text-[10px] text-muted-foreground">Morale</span>
                   </div>
-                  <p className={cn('text-base font-bold tabular-nums', digest.moraleChange > 0 ? 'text-emerald-400' : digest.moraleChange < 0 ? 'text-destructive' : 'text-muted-foreground')}>
-                    {digest.moraleChange > 0 ? '+' : ''}{digest.moraleChange} pts
-                  </p>
+                  <AnimatedNumber
+                    value={digest.moraleChange}
+                    formatFn={(n) => `${n > 0 ? '+' : ''}${Math.round(n)} pts`}
+                    className={cn('text-base font-bold tabular-nums', digest.moraleChange > 0 ? 'text-emerald-400' : digest.moraleChange < 0 ? 'text-destructive' : 'text-muted-foreground')}
+                  />
                 </div>
               </motion.div>
 
@@ -261,7 +272,7 @@ export function WeeklyDigest() {
                   <AnimatePresence mode="popLayout">
                     {visibleDev.map((entry, pi) => (
                       <motion.div
-                        key={entry.playerName}
+                        key={`${entry.playerName}-${pi}`}
                         className="bg-muted/20 rounded-lg px-3 py-2 space-y-1"
                         {...itemAnim(d, pi)}
                         layout
@@ -313,7 +324,7 @@ export function WeeklyDigest() {
                         <Dumbbell className="w-2.5 h-2.5 text-primary shrink-0" />
                         <span className="text-foreground truncate max-w-[120px]">{g.playerName}</span>
                         <span className="text-muted-foreground">·</span>
-                        <span className="text-primary font-medium">{g.attribute}</span>
+                        <span className="text-primary font-medium">{g.attribute.charAt(0).toUpperCase() + g.attribute.slice(1)}</span>
                       </motion.div>
                     ))}
                     {digest.trainingGains.length > 6 && (
@@ -363,6 +374,21 @@ export function WeeklyDigest() {
                       )}
                     </motion.div>
                   ))}
+                  {/* Total XP summary */}
+                  {digest.objectiveProgress.some(o => o.completed) && (() => {
+                    const totalXP = digest.objectiveProgress.reduce((sum, o) => sum + (o.completed ? o.xpEarned : 0), 0);
+                    return totalXP > 0 ? (
+                      <motion.div
+                        className="flex items-center justify-between bg-primary/10 rounded-lg px-3 py-1.5 mt-1"
+                        {...sectionAnim(d + digest.objectiveProgress.length * 0.06 + 0.1)}
+                      >
+                        <span className="text-[11px] text-foreground font-medium">Total XP earned</span>
+                        <span className="text-[11px] font-bold text-primary drop-shadow-[0_0_4px_hsl(43_96%_46%/0.3)]">
+                          <Zap className="w-2.5 h-2.5 inline -mt-px mr-0.5" />+{totalXP} XP
+                        </span>
+                      </motion.div>
+                    ) : null;
+                  })()}
                 </div>
               )}
 
