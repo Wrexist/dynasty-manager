@@ -192,7 +192,7 @@ export const CLUBS: ClubData[] = [
     youthRating: 3,
     fanBase: 8,
     boardPatience: 8,
-    squadQuality: 31,
+    squadQuality: 33,
     league: 'isl',
     divisionId: 'isl',
     stadiumName: 'Torfnesvöllur',

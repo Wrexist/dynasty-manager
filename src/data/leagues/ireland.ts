@@ -192,7 +192,7 @@ export const CLUBS: ClubData[] = [
     youthRating: 4,
     fanBase: 20,
     boardPatience: 7,
-    squadQuality: 32,
+    squadQuality: 33,
     league: 'irl',
     divisionId: 'irl',
     stadiumName: 'Eamonn Deacy Park',

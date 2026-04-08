@@ -38,11 +38,13 @@ const LeagueTable = () => {
   const setScreen = useGameStore((s) => s.setScreen);
   const selectClub = useGameStore((s) => s.selectClub);
   const selectPlayer = useGameStore((s) => s.selectPlayer);
+  const initializeLeague = useGameStore((s) => s.initializeLeague);
   const [tab, setTab] = useState<'table' | 'fixtures' | 'stats'>('table');
   const [browseWeek, setBrowseWeek] = useState(week);
   const [selectedDiv, setSelectedDiv] = useState(playerDivision || 'eng');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const isPlayerLeague = selectedDiv === playerDivision;
 
@@ -113,10 +115,22 @@ const LeagueTable = () => {
   }, [searchQuery]);
 
   const handleLeagueSelect = (leagueId: string) => {
-    setSelectedDiv(leagueId);
     setPickerOpen(false);
     setSearchQuery('');
     scrolledRef.current = false;
+
+    // Lazy-initialize the league if not yet loaded
+    if (!divisionClubs[leagueId]?.length && leagueId !== playerDivision) {
+      setIsLoading(true);
+      // Use setTimeout to let the UI update before the heavy computation
+      setTimeout(() => {
+        initializeLeague(leagueId);
+        setSelectedDiv(leagueId);
+        setIsLoading(false);
+      }, 50);
+    } else {
+      setSelectedDiv(leagueId);
+    }
   };
 
   return (
@@ -167,6 +181,7 @@ const LeagueTable = () => {
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Escape') setPickerOpen(false); }}
                   placeholder="Search leagues..."
                   className="w-full pl-8 pr-8 py-2 text-sm bg-muted/50 rounded-lg border border-border/30 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
                 />
@@ -198,7 +213,8 @@ const LeagueTable = () => {
                             <img
                               src={`https://flagcdn.com/w40/${league.countryCode.toLowerCase()}.png`}
                               alt={league.country}
-                              className="w-5 h-3.5 rounded-[1px] object-cover shrink-0"
+                              loading="lazy"
+                            className="w-5 h-3.5 rounded-[1px] object-cover shrink-0"
                               onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                             />
                             <span className={cn(
@@ -228,8 +244,18 @@ const LeagueTable = () => {
         )}
       </AnimatePresence>
 
+      {/* Loading State */}
+      {isLoading && (
+        <GlassPanel className="p-8 text-center">
+          <div className="animate-pulse space-y-2">
+            <p className="text-sm font-medium text-foreground">Loading league data...</p>
+            <p className="text-[10px] text-muted-foreground">Generating squads and simulating matches</p>
+          </div>
+        </GlassPanel>
+      )}
+
       {/* Tabs */}
-      <div className="flex gap-2">
+      {!isLoading && (<><div className="flex gap-2">
         {(['table', 'fixtures', 'stats'] as const).map(t => (
           <button
             key={t}
@@ -486,6 +512,7 @@ const LeagueTable = () => {
           </GlassPanel>
         </div>
       )}
+      </>)}
     </div>
   );
 };

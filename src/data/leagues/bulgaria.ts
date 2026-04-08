@@ -264,7 +264,7 @@ export const CLUBS: ClubData[] = [
     youthRating: 4,
     fanBase: 8,
     boardPatience: 8,
-    squadQuality: 31,
+    squadQuality: 33,
     league: 'bgr',
     divisionId: 'bgr',
     stadiumName: 'Stadion Septemvri',

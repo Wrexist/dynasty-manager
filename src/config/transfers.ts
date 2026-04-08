@@ -172,7 +172,7 @@ export const AGE_PRICE_MULTIPLIER: Record<string, number> = {
 export const INITIAL_FREE_AGENTS_MIN = 25;
 export const INITIAL_FREE_AGENTS_RANGE = 16; // 25-40
 // Quality range for generated free agents (slightly lower than market)
-export const FREE_AGENT_QUALITY_MIN = 45;
+export const FREE_AGENT_QUALITY_MIN = 35;
 export const FREE_AGENT_QUALITY_MAX = 72;
 // Weekly chance to spawn new free agents (keeps pool refreshed)
 export const FREE_AGENT_SPAWN_CHANCE = 0.25;

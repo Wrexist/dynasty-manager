@@ -1375,7 +1375,15 @@ function finalizeSeason(
   const leagueInfo = LEAGUES.find(l => l.id === newPlayerDivision);
   const leagueTotalWeeks = leagueInfo?.totalWeeks || TOTAL_WEEKS;
   const newDivisionFixtures: Record<string, Match[]> = { [newPlayerDivision]: generateDivisionFixtures(leagueClubIds, leagueTotalWeeks) };
-  const newDivisionTables: Record<string, LeagueTableEntry[]> = { [newPlayerDivision]: buildLeagueTable(newDivisionFixtures[newPlayerDivision], leagueClubIds) };
+
+  // Regenerate fixtures for all initialized non-player leagues
+  for (const [leagueId, clubIds] of Object.entries(newDivisionClubs)) {
+    if (leagueId === newPlayerDivision) continue;
+    const otherLeague = LEAGUES.find(l => l.id === leagueId);
+    newDivisionFixtures[leagueId] = generateDivisionFixtures(clubIds, otherLeague?.totalWeeks || TOTAL_WEEKS);
+  }
+
+  const newDivisionTables: Record<string, LeagueTableEntry[]> = buildAllDivisionTables(newDivisionFixtures, newDivisionClubs);
   const newFixtures = newDivisionFixtures[newPlayerDivision];
   const newLeagueTable = newDivisionTables[newPlayerDivision];
   const newCup = generateCupDraw(leagueClubIds);
@@ -2179,6 +2187,87 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     });
   },
 
+  initializeLeague: (leagueId: string) => {
+    const state = get();
+    // Already initialized — skip
+    if (state.divisionClubs[leagueId]?.length) return;
+
+    const league = LEAGUES.find(l => l.id === leagueId);
+    if (!league) return;
+
+    const leagueClubData = ALL_CLUBS.filter(cd => cd.divisionId === leagueId);
+    if (leagueClubData.length === 0) return;
+
+    const newPlayers: Record<string, Player> = { ...state.players };
+    const newClubs: Record<string, Club> = { ...state.clubs };
+    const leagueClubIds: string[] = [];
+
+    for (const cd of leagueClubData) {
+      const club: Club = {
+        id: cd.id, name: cd.name, shortName: cd.shortName,
+        color: cd.color, secondaryColor: cd.secondaryColor,
+        budget: cd.budget, wageBill: 0, reputation: cd.reputation,
+        facilities: cd.facilities, youthRating: cd.youthRating,
+        fanBase: cd.fanBase, boardPatience: cd.boardPatience,
+        playerIds: [], formation: '4-3-3', lineup: [], subs: [],
+        divisionId: cd.divisionId,
+        stadiumName: cd.stadiumName,
+        stadiumCapacity: cd.stadiumCapacity,
+      };
+
+      const squad = generateSquad(club.id, cd.squadQuality, state.season, leagueId);
+      let totalWages = 0;
+      squad.forEach(p => {
+        newPlayers[p.id] = p;
+        club.playerIds.push(p.id);
+        totalWages += p.wage;
+      });
+      club.wageBill = totalWages;
+
+      const { lineup, subs } = selectBestLineup(squad, '4-3-3');
+      club.lineup = lineup.map(p => p.id);
+      club.subs = subs.map(p => p.id);
+      club.aiManagerProfile = generateAIManagerProfile(club.id, cd.reputation);
+      newClubs[club.id] = club;
+      leagueClubIds.push(club.id);
+    }
+
+    // Generate fixtures and catch up to current week
+    const leagueTotalWeeks = league.totalWeeks || 46;
+    const fixtures = generateDivisionFixtures(leagueClubIds, leagueTotalWeeks);
+
+    // Simulate all matches up to the current week to populate the table
+    const currentWeek = state.week;
+    for (const m of fixtures) {
+      if (m.week > currentWeek || m.played) continue;
+      const hc = newClubs[m.homeClubId];
+      const ac = newClubs[m.awayClubId];
+      if (!hc || !ac) continue;
+      const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
+      const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
+      if (hp.length === 0 || ap.length === 0) {
+        m.played = true;
+        m.homeGoals = hp.length === 0 ? 0 : 3;
+        m.awayGoals = ap.length === 0 ? 0 : 3;
+        continue;
+      }
+      const { result } = simulateMatch(m, hc, ac, hp, ap);
+      Object.assign(m, result);
+    }
+
+    const newDivisionClubs = { ...state.divisionClubs, [leagueId]: leagueClubIds };
+    const newDivisionFixtures = { ...state.divisionFixtures, [leagueId]: fixtures };
+    const newDivisionTables = buildAllDivisionTables(newDivisionFixtures, newDivisionClubs);
+
+    set({
+      players: newPlayers,
+      clubs: newClubs,
+      divisionClubs: newDivisionClubs,
+      divisionFixtures: newDivisionFixtures,
+      divisionTables: newDivisionTables,
+    });
+  },
+
   advanceWeek: () => {
     const state = get();
 
@@ -2448,7 +2537,6 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const updatedFixtures = [...fixtures];
     const aiMatches = weekMatches.filter(m => m.homeClubId !== playerClubId && m.awayClubId !== playerClubId);
 
-    // Only one league — no other divisions to simulate
     const updatedDivisionFixtures = { ...state.divisionFixtures };
     const playerDiv = state.playerDivision;
 
@@ -2803,6 +2891,30 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Sync player's division fixtures back into divisionFixtures
     updatedDivisionFixtures[playerDiv] = updatedFixtures;
+
+    // Simulate non-player initialized leagues
+    for (const leagueId of Object.keys(state.divisionClubs)) {
+      if (leagueId === playerDiv) continue;
+      const leagueFixtures = updatedDivisionFixtures[leagueId];
+      if (!leagueFixtures) continue;
+      const leagueWeekMatches = leagueFixtures.filter(m => m.week === newWeek && !m.played);
+      for (const m of leagueWeekMatches) {
+        const hc = clubs[m.homeClubId];
+        const ac = clubs[m.awayClubId];
+        if (!hc || !ac) continue;
+        const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
+        const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
+        if (hp.length === 0 || ap.length === 0) {
+          m.played = true;
+          m.homeGoals = hp.length === 0 ? 0 : 3;
+          m.awayGoals = ap.length === 0 ? 0 : 3;
+          continue;
+        }
+        const { result } = simulateMatch(m, hc, ac, hp, ap);
+        Object.assign(m, result);
+      }
+    }
+
     // Build all division tables
     const divisionTables = buildAllDivisionTables(updatedDivisionFixtures, state.divisionClubs);
 
