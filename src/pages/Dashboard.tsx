@@ -60,6 +60,16 @@ import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
 
 const WELCOME_KEY = 'dynasty-welcome-shown';
 const COLLAPSE_SPRING = { type: 'spring' as const, stiffness: 300, damping: 24 };
+const QUICK_LINKS = [
+  { label: 'Schedule', screen: 'calendar' as const, icon: Calendar },
+  { label: 'League', screen: 'league-table' as const, icon: Trophy },
+  { label: 'Squad', screen: 'squad' as const, icon: Users },
+  { label: 'Tactics', screen: 'tactics' as const, icon: Shield },
+  { label: 'Training', screen: 'training' as const, icon: Dumbbell },
+  { label: 'Club', screen: 'club' as const, icon: Settings },
+  { label: 'Transfers', screen: 'transfers' as const, icon: UserPlus },
+  { label: 'Cup', screen: 'cup' as const, icon: BarChart3 },
+];
 const VISIBLE_ACHIEVEMENT_COUNT = ACHIEVEMENTS.filter(a => !a.hidden).length;
 
 const Dashboard = () => {
@@ -371,9 +381,10 @@ const Dashboard = () => {
       scoutReportsCount: scouting.reports.length,
       shortlistCount: shortlist.length,
       week,
+      season,
       completedTaskIds: completedCoachTaskIds,
     });
-  }, [club, fixtures, playerClubId, unread, weeklyObjectives, players, transferWindowOpen, scouting.assignments, scouting.reports.length, shortlist.length, week, completedCoachTaskIds]);
+  }, [club, fixtures, playerClubId, unread, weeklyObjectives, players, transferWindowOpen, scouting.assignments, scouting.reports.length, shortlist.length, week, season, completedCoachTaskIds]);
   const completedCoachTasks = coachTasks.filter(task => task.completed).length;
   const allCoachTasksDone = coachTasks.length > 0 && completedCoachTasks === coachTasks.length;
   const [coachCollapsed, setCoachCollapsed] = useState(false);
@@ -509,7 +520,7 @@ const Dashboard = () => {
     .sort((a, b) => a.week - b.week)
     .slice(0, 3), [fixtures, playerClubId, week]);
 
-  const inPlayoffs = seasonPhase === 'playoffs';
+  const inPlayoffs = (seasonPhase as string) === 'playoffs';
 
   // Season over check — 46-week season, but only when all player matches done and not in playoffs
   const seasonOver = useMemo(() => {
@@ -555,17 +566,12 @@ const Dashboard = () => {
     mentality: 'Mentality',
   };
 
-  // Quick links
-  const quickLinks = [
-    { label: 'Schedule', screen: 'calendar' as const, icon: Calendar },
-    { label: 'League', screen: 'league-table' as const, icon: Trophy },
-    { label: 'Squad', screen: 'squad' as const, icon: Users },
-    { label: 'Tactics', screen: 'tactics' as const, icon: Shield },
-    { label: 'Training', screen: 'training' as const, icon: Dumbbell },
-    { label: 'Club', screen: 'club' as const, icon: Settings },
-    { label: 'Transfers', screen: 'transfers' as const, icon: UserPlus },
-    { label: 'Cup', screen: 'cup' as const, icon: BarChart3 },
-  ];
+  // Attention dots for quick links
+  const lineupIncomplete = (club.lineup || []).filter(Boolean).length < 11;
+  const quickLinkDots: Record<string, string> = {
+    ...(lineupIncomplete ? { squad: 'bg-destructive' } : {}),
+    ...(transferWindowOpen ? { transfers: 'bg-emerald-500' } : {}),
+  };
 
   return (
     <>
@@ -584,6 +590,21 @@ const Dashboard = () => {
 
       {/* Weekly Digest (post-advanceWeek summary) */}
       <WeeklyDigest />
+
+      {/* Club Identity Hero */}
+      {!seasonOver && !inPlayoffs && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1.5">
+          <div className="h-1 rounded-full" style={{ background: `linear-gradient(to right, ${club.color}, transparent)` }} />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-lg font-bold font-display text-foreground">{season === 1 && week === 1 ? `Welcome to ${club.name}` : club.name}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Season {season} · {week <= SUMMER_WINDOW_END ? 'Pre-Season' : week < WINTER_WINDOW_START ? 'Autumn' : week <= WINTER_WINDOW_END ? 'Winter' : week <= 38 ? 'Spring' : 'Run-In'}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Career Mode Info Panel */}
       {gameMode === 'career' && careerManager && (
@@ -735,9 +756,11 @@ const Dashboard = () => {
         const weeksLeft = windowEnd - week;
         const windowName = week <= SUMMER_WINDOW_END ? 'Summer' : 'Winter';
         const isUrgent = weeksLeft <= 2;
+        // Only show full-width banner when <=4 weeks left; otherwise users find transfers via quick links
+        if (weeksLeft > 4) return null;
         return (
           <div className={cn(
-            'rounded-xl px-3 py-2 flex items-center justify-between',
+            'rounded-xl px-3 py-2 flex items-center justify-between cursor-pointer',
             isUrgent ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-primary/5 border border-primary/20'
           )} onClick={() => setScreen('transfers')}>
             <div className="flex items-center gap-2">
@@ -857,7 +880,14 @@ const Dashboard = () => {
         </GlassPanel>
       ) : !seasonOver && (
         <GlassPanel className="p-5 space-y-3">
-          <p className="text-sm text-muted-foreground text-center">No match this week</p>
+          <div className="text-center space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              {season === 1 && week <= 2 && (club.lineup || []).filter(Boolean).length < 11 ? 'Get Your Team Ready' : 'Training Week'}
+            </p>
+            {season === 1 && week <= 2 && (
+              <p className="text-[10px] text-muted-foreground">Set your lineup and tactics before advancing</p>
+            )}
+          </div>
           {/* Activity suggestions */}
           <div className="flex flex-wrap gap-2 justify-center">
             {transferWindowOpen && (
@@ -897,44 +927,148 @@ const Dashboard = () => {
             {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}
           </Button>
           {!nextMatch && seasonPhase === 'regular' && week < totalWeeks && (
-            <Button
-              variant="outline"
-              className="w-full gap-2"
+            <button
+              type="button"
+              className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5"
               disabled={isAdvancing}
               onClick={() => {
                 hapticMedium();
                 advanceToNextMatch();
               }}
             >
-              <FastForward className="w-4 h-4" /> Skip to Next Match
-            </Button>
+              <FastForward className="w-3.5 h-3.5 inline mr-1 align-[-2px]" /> Skip to Next Match
+            </button>
           )}
         </GlassPanel>
       )}
 
-      {/* Quick Links - Horizontal scrollable row */}
-      <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-        <div className="flex gap-3 w-max pb-1">
-          {quickLinks.map((link, i) => {
-            const Icon = link.icon;
-            return (
-              <motion.div
-                key={link.label}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04, duration: 0.2 }}
-              >
-                <GlassPanel
-                  className="px-4 py-3 flex flex-col items-center gap-1.5 min-w-[80px]"
-                  onClick={() => setScreen(link.screen)}
-                >
-                  <Icon className="w-5 h-5 text-primary" />
-                  <span className="text-[11px] font-medium text-foreground whitespace-nowrap">{link.label}</span>
-                </GlassPanel>
+      {/* Guided checklist for new careers */}
+      {!seasonOver && season <= 2 && coachTasks.length > 0 && (
+        <GlassPanel className="p-4 border-primary/20">
+          <button
+            type="button"
+            onClick={() => setCoachCollapsed(c => !c)}
+            aria-expanded={!coachCollapsed}
+            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-1.5">
+              <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
+                <ChevronRight className="w-3 h-3 text-primary" />
               </motion.div>
-            );
-          })}
-        </div>
+              <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
+              {allCoachTasksDone && <span className="text-[9px] text-emerald-400 font-bold">&#10003; Complete</span>}
+            </div>
+            <span className="text-[10px] text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
+          </button>
+          <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden mt-2">
+            <div
+              className={cn('h-full transition-all duration-300', allCoachTasksDone ? 'bg-emerald-500' : 'bg-primary')}
+              style={{ width: `${coachTasks.length > 0 ? Math.round((completedCoachTasks / coachTasks.length) * 100) : 0}%` }}
+            />
+          </div>
+          <AnimatePresence initial={false}>
+            {!coachCollapsed && (
+              <motion.div
+                key="coach-content"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={COLLAPSE_SPRING}
+                className="overflow-hidden"
+              >
+                <div className="space-y-2 mt-3">
+                  {coachTasks.map((task) => (
+                    <div key={task.id} className="relative">
+                      <button
+                        type="button"
+                        disabled={!task.screen}
+                        onClick={() => task.screen && setScreen(task.screen)}
+                        className={cn(
+                          'w-full text-left rounded-lg px-3 py-2 border transition-colors',
+                          task.completed
+                            ? 'bg-emerald-500/10 border-emerald-500/30'
+                            : 'bg-muted/20 border-border/40 hover:bg-primary/5'
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className={cn(
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded',
+                              task.completed ? 'text-emerald-400/70 bg-emerald-500/10' : 'text-primary/70 bg-primary/10'
+                            )}>
+                              {task.completed ? '✓' : '+'}{task.xpReward} XP
+                            </span>
+                            <span className={cn(
+                              'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
+                              task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
+                            )}>
+                              {task.priority}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
+                      </button>
+                      <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </GlassPanel>
+      )}
+
+      {/* Manager Tips */}
+      {!seasonOver && managerTips.length > 0 && (
+        <GlassPanel className="p-4 border-primary/20">
+          <p className="text-[10px] text-primary uppercase tracking-wider font-semibold mb-2">Manager Tips</p>
+          <div className="space-y-2">
+            {managerTips.map((tip, i) => (
+              <motion.div
+                key={tip.text}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.08 }}
+                className={cn(
+                  'flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors',
+                  tip.action ? 'cursor-pointer hover:bg-primary/5' : '',
+                  'bg-muted/20'
+                )}
+                onClick={() => tip.action && setScreen(tip.action)}
+              >
+                <DynamicIcon name={tip.icon} className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-xs text-foreground flex-1">{tip.text}</span>
+                {tip.action && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+              </motion.div>
+            ))}
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Quick Links Grid */}
+      <div className="grid grid-cols-4 gap-2">
+        {QUICK_LINKS.map((link, i) => {
+          const Icon = link.icon;
+          const dot = quickLinkDots[link.screen];
+          return (
+            <motion.div
+              key={link.label}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03, duration: 0.2 }}
+            >
+              <GlassPanel
+                className="relative px-2 py-3 flex flex-col items-center gap-1.5"
+                onClick={() => setScreen(link.screen)}
+              >
+                <Icon className="w-5 h-5 text-primary" />
+                <span className="text-[10px] font-medium text-foreground whitespace-nowrap">{link.label}</span>
+                {dot && <span className={cn('absolute top-1.5 right-1.5 w-2 h-2 rounded-full', dot)} />}
+              </GlassPanel>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Training Status Chip + Streaks */}
@@ -949,6 +1083,12 @@ const Dashboard = () => {
               <span className="text-[10px] text-primary/60">|</span>
               <span className="text-[10px] font-medium text-primary/70">Fam {training.tacticalFamiliarity}%</span>
             </div>
+            {transferWindowOpen && (
+              <div className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-2.5 py-1 cursor-pointer" onClick={() => setScreen('transfers')}>
+                <ShoppingBag className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[10px] font-medium text-muted-foreground">Window open</span>
+              </div>
+            )}
             <span className="text-[10px] text-muted-foreground">
               Wk {week} / S{season} · {week <= SUMMER_WINDOW_END ? 'Pre-Season' : week < WINTER_WINDOW_START ? 'Autumn' : week <= WINTER_WINDOW_END ? 'Winter' : week <= 38 ? 'Spring' : 'Run-In'}
             </span>
@@ -1003,110 +1143,6 @@ const Dashboard = () => {
             </div>
           )}
         </div>
-      )}
-
-      {/* Manager Tips */}
-      {!seasonOver && managerTips.length > 0 && (
-        <GlassPanel className="p-4 border-primary/20">
-          <p className="text-[10px] text-primary uppercase tracking-wider font-semibold mb-2">Manager Tips</p>
-          <div className="space-y-2">
-            {managerTips.map((tip, i) => (
-              <motion.div
-                key={tip.text}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.08 }}
-                className={cn(
-                  'flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors',
-                  tip.action ? 'cursor-pointer hover:bg-primary/5' : '',
-                  'bg-muted/20'
-                )}
-                onClick={() => tip.action && setScreen(tip.action)}
-              >
-                <DynamicIcon name={tip.icon} className="w-4 h-4 text-primary shrink-0" />
-                <span className="text-xs text-foreground flex-1">{tip.text}</span>
-                {tip.action && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
-              </motion.div>
-            ))}
-          </div>
-        </GlassPanel>
-      )}
-
-      {/* Guided checklist for new careers */}
-      {!seasonOver && season <= 2 && coachTasks.length > 0 && (
-        <GlassPanel className="p-4 border-primary/20">
-          <button
-            type="button"
-            onClick={() => setCoachCollapsed(c => !c)}
-            aria-expanded={!coachCollapsed}
-            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
-          >
-            <div className="flex items-center gap-1.5">
-              <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
-                <ChevronRight className="w-3 h-3 text-primary" />
-              </motion.div>
-              <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
-              {allCoachTasksDone && <span className="text-[9px] text-emerald-400 font-bold">&#10003; Complete</span>}
-            </div>
-            <span className="text-[10px] text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
-          </button>
-          <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden mt-2">
-            <div
-              className={cn('h-full transition-all duration-300', allCoachTasksDone ? 'bg-emerald-500' : 'bg-primary')}
-              style={{ width: `${Math.round((completedCoachTasks / coachTasks.length) * 100)}%` }}
-            />
-          </div>
-          <AnimatePresence initial={false}>
-            {!coachCollapsed && (
-              <motion.div
-                key="coach-content"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={COLLAPSE_SPRING}
-                className="overflow-hidden"
-              >
-                <div className="space-y-2 mt-3">
-                  {coachTasks.map((task) => (
-                    <div key={task.id} className="relative">
-                      <button
-                        type="button"
-                        disabled={!task.screen}
-                        onClick={() => task.screen && setScreen(task.screen)}
-                        className={cn(
-                          'w-full text-left rounded-lg px-3 py-2 border transition-colors',
-                          task.completed
-                            ? 'bg-emerald-500/10 border-emerald-500/30'
-                            : 'bg-muted/20 border-border/40 hover:bg-primary/5'
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded',
-                              task.completed ? 'text-emerald-400/70 bg-emerald-500/10' : 'text-primary/70 bg-primary/10'
-                            )}>
-                              {task.completed ? '✓' : '+'}{task.xpReward} XP
-                            </span>
-                            <span className={cn(
-                              'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
-                              task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
-                            )}>
-                              {task.priority}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
-                      </button>
-                      <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </GlassPanel>
       )}
 
       {/* Active Sagas */}
@@ -1164,7 +1200,7 @@ const Dashboard = () => {
                         </div>
                         {targetPlayer && (
                           <p className="text-[10px] text-muted-foreground mb-1.5">
-                            Involving: <span className="text-foreground font-medium">{targetPlayer.name}</span>
+                            Involving: <span className="text-foreground font-medium">{targetPlayer.firstName} {targetPlayer.lastName}</span>
                           </p>
                         )}
                         {/* Step progress dots */}
@@ -1306,7 +1342,7 @@ const Dashboard = () => {
             </button>
             <button
               type="button"
-              onClick={() => setScreen('trophyCabinet')}
+              onClick={() => setScreen('trophy-cabinet')}
               className="text-[9px] text-sky-400 font-semibold hover:text-sky-300"
             >
               View All
@@ -1558,7 +1594,7 @@ const Dashboard = () => {
                 </span>
                 <div className="flex items-center gap-2">
                   <div className="w-16 h-1 rounded-full bg-muted/40 overflow-hidden">
-                    <div className="h-full rounded-full bg-destructive" style={{ width: `${Math.max(10, 100 - (p.injuryWeeks / 5) * 100)}%` }} />
+                    <div className="h-full rounded-full bg-destructive" style={{ width: `${Math.min(100, Math.max(10, 100 - ((p.injuryWeeks || 0) / 5) * 100))}%` }} />
                   </div>
                   <span className="text-xs text-destructive font-medium tabular-nums">
                     {p.injuryWeeks} wk{p.injuryWeeks !== 1 ? 's' : ''}
@@ -1614,17 +1650,19 @@ const Dashboard = () => {
       )}
 
       {/* Stats Grid */}
+      <div className="space-y-3">
+      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Club Overview</p>
       <div className="grid grid-cols-2 gap-3">
         <GlassPanel className="p-4" onClick={() => setScreen('league-table')}>
           <div className="flex items-center gap-2 mb-1">
             <Trophy className="w-4 h-4 text-primary" />
             <span className="text-xs text-muted-foreground">League Pos</span>
           </div>
-          <p className="text-2xl font-black text-foreground tabular-nums">
+          <p className="text-3xl font-black text-foreground tabular-nums">
             {pos}<span className="text-sm text-muted-foreground">/{leagueTable.length}</span>
           </p>
           <p className="text-[10px] text-muted-foreground truncate">{LEAGUES.find(d => d.id === playerDivision)?.shortName || ''} {'\u2022'} {entry?.points || 0} pts</p>
-          <FormGuide form={recentForm} className="mt-2" />
+          {lastMatchInfo ? <FormGuide form={recentForm} className="mt-2" /> : <p className="text-[10px] text-muted-foreground mt-2">No games yet</p>}
         </GlassPanel>
 
         <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('budget'); setFinanceSheetOpen(true); }}>
@@ -1689,6 +1727,7 @@ const Dashboard = () => {
             </p>
           )}
         </GlassPanel>
+      </div>
       </div>
 
       {/* Finance Snapshot + Fan Confidence Row */}
