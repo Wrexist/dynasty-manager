@@ -20,7 +20,7 @@ import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
-import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, COACH_ALL_TASKS_BONUS_XP } from '@/config/gameBalance';
+import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
@@ -59,6 +59,8 @@ import { getRecentForm } from '@/utils/formGuide';
 import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
 
 const WELCOME_KEY = 'dynasty-welcome-shown';
+const COLLAPSE_SPRING = { type: 'spring' as const, stiffness: 300, damping: 24 };
+const VISIBLE_ACHIEVEMENT_COUNT = ACHIEVEMENTS.filter(a => !a.hidden).length;
 
 const Dashboard = () => {
   // ── Deferred mount guard (React #185 fix) ──
@@ -411,8 +413,6 @@ const Dashboard = () => {
       .slice(0, 5);
   }, [unlockedAchievements, week]);
 
-  // Shared spring config for all collapsible sections
-  const collapseSpring = { type: 'spring' as const, stiffness: 300, damping: 24 };
 
   const objectivesWithProgress = useMemo(() => {
     if (!club) return weeklyObjectives;
@@ -1037,10 +1037,11 @@ const Dashboard = () => {
           <button
             type="button"
             onClick={() => setCoachCollapsed(c => !c)}
-            className="w-full flex items-center justify-between"
+            aria-expanded={!coachCollapsed}
+            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
           >
             <div className="flex items-center gap-1.5">
-              <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={collapseSpring}>
+              <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
                 <ChevronRight className="w-3 h-3 text-primary" />
               </motion.div>
               <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
@@ -1061,7 +1062,7 @@ const Dashboard = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={collapseSpring}
+                transition={COLLAPSE_SPRING}
                 className="overflow-hidden"
               >
                 <div className="space-y-2 mt-3">
@@ -1113,10 +1114,11 @@ const Dashboard = () => {
           <button
             type="button"
             onClick={() => setSagaCollapsed(c => !c)}
-            className="w-full flex items-center justify-between"
+            aria-expanded={!sagaCollapsed}
+            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
           >
             <div className="flex items-center gap-1.5">
-              <motion.div animate={{ rotate: sagaCollapsed ? 0 : 90 }} transition={collapseSpring}>
+              <motion.div animate={{ rotate: sagaCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
                 <ChevronRight className="w-3 h-3 text-amber-400" />
               </motion.div>
               <p className="text-[10px] text-amber-400 uppercase tracking-wider font-semibold">Active Sagas</p>
@@ -1130,7 +1132,7 @@ const Dashboard = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={collapseSpring}
+                transition={COLLAPSE_SPRING}
                 className="overflow-hidden"
               >
                 <div className="space-y-2 mt-3">
@@ -1138,9 +1140,18 @@ const Dashboard = () => {
                     if (!saga) return null;
                     const { chain, def, targetPlayer } = saga;
                     const totalSteps = def.steps.length;
+                    if (chain.currentStep >= totalSteps) return null;
                     const currentStepDef = def.steps[chain.currentStep];
+                    const Wrapper = targetPlayer ? 'button' : 'div';
                     return (
-                      <div key={chain.chainId} className="rounded-lg px-3 py-2.5 bg-amber-500/5 border border-amber-500/20">
+                      <Wrapper
+                        key={chain.chainId}
+                        {...(targetPlayer ? { type: 'button' as const, onClick: () => selectPlayer(targetPlayer.id) } : {})}
+                        className={cn(
+                          'rounded-lg px-3 py-2.5 bg-amber-500/5 border border-amber-500/20 w-full text-left',
+                          targetPlayer && 'hover:bg-amber-500/10 transition-colors cursor-pointer'
+                        )}
+                      >
                         <div className="flex items-center justify-between gap-2 mb-1.5">
                           <div className="flex items-center gap-1.5 min-w-0">
                             {currentStepDef && <DynamicIcon name={currentStepDef.icon} className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
@@ -1173,7 +1184,7 @@ const Dashboard = () => {
                             {' — awaiting your decision'}
                           </p>
                         )}
-                      </div>
+                      </Wrapper>
                     );
                   })}
                 </div>
@@ -1189,10 +1200,11 @@ const Dashboard = () => {
           <button
             type="button"
             onClick={() => setObjectivesCollapsed(c => !c)}
-            className="w-full flex items-center justify-between"
+            aria-expanded={!objectivesCollapsed}
+            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
           >
             <div className="flex items-center gap-2">
-              <motion.div animate={{ rotate: objectivesCollapsed ? 0 : 90 }} transition={collapseSpring}>
+              <motion.div animate={{ rotate: objectivesCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
                 <ChevronRight className="w-3 h-3 text-foreground" />
               </motion.div>
               <p className="text-xs font-bold text-foreground uppercase tracking-wider">Monthly Objectives</p>
@@ -1222,7 +1234,7 @@ const Dashboard = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={collapseSpring}
+                transition={COLLAPSE_SPRING}
                 className="overflow-hidden"
               >
                 <div className="space-y-2 mt-3">
@@ -1276,28 +1288,29 @@ const Dashboard = () => {
       {/* Achievements In Progress */}
       {!seasonOver && achievementProgress.length > 0 && (
         <GlassPanel className="p-4 border-sky-500/20">
-          <button
-            type="button"
-            onClick={() => setAchievementsCollapsed(c => !c)}
-            className="w-full flex items-center justify-between"
-          >
-            <div className="flex items-center gap-1.5">
-              <motion.div animate={{ rotate: achievementsCollapsed ? 0 : 90 }} transition={collapseSpring}>
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => setAchievementsCollapsed(c => !c)}
+              aria-expanded={!achievementsCollapsed}
+              className="flex items-center gap-1.5 rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
+            >
+              <motion.div animate={{ rotate: achievementsCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
                 <ChevronRight className="w-3 h-3 text-sky-400" />
               </motion.div>
               <p className="text-[10px] text-sky-400 uppercase tracking-wider font-semibold">Achievements</p>
               <span className="text-[9px] text-muted-foreground">
-                {(unlockedAchievements || []).length}/{ACHIEVEMENTS.filter(a => !a.hidden).length}
+                {(unlockedAchievements || []).length}/{VISIBLE_ACHIEVEMENT_COUNT}
               </span>
-            </div>
+            </button>
             <button
               type="button"
-              onClick={(e) => { e.stopPropagation(); setScreen('trophyCabinet'); }}
+              onClick={() => setScreen('trophyCabinet')}
               className="text-[9px] text-sky-400 font-semibold hover:text-sky-300"
             >
               View All
             </button>
-          </button>
+          </div>
           <AnimatePresence initial={false}>
             {!achievementsCollapsed && (
               <motion.div
@@ -1305,7 +1318,7 @@ const Dashboard = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={collapseSpring}
+                transition={COLLAPSE_SPRING}
                 className="overflow-hidden"
               >
                 <div className="space-y-2 mt-3">
@@ -1335,7 +1348,7 @@ const Dashboard = () => {
                               />
                             </div>
                             <span className="text-[9px] text-muted-foreground tabular-nums">
-                              {a.prog.current}/{a.prog.target}
+                              {a.prog.current}/{a.prog.target} · +{a.tier === 'gold' ? ACHIEVEMENT_XP_GOLD : a.tier === 'silver' ? ACHIEVEMENT_XP_SILVER : ACHIEVEMENT_XP_BRONZE} XP
                             </span>
                           </div>
                         )}
