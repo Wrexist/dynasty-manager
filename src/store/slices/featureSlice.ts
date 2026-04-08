@@ -1,6 +1,7 @@
 import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats, TransferTalk } from '@/types/game';
 import { MOD_MEDIA_PRESS, MOD_MOTIVATION_MORALE, GROWTH_MEDIA_PER_CONFERENCE, STAT_MAX } from '@/config/managerCareer';
 import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP, TOTAL_WEEKS } from '@/config/gameBalance';
+import { TRANSFER_DEMAND_COOLDOWN_WEEKS } from '@/config/personality';
 import { grantXP } from '@/utils/managerPerks';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
@@ -455,7 +456,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     } else if (option.tone === 'convince') {
       succeeded = Math.random() < (option.effects.withdrawChance || 0);
       if (succeeded) {
-        newPlayers[talk.playerId] = { ...player, wantsToLeave: false, morale: clamp(player.morale + TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, 10, 100), lowMoraleWeeks: 0 };
+        newPlayers[talk.playerId] = { ...player, wantsToLeave: false, morale: clamp(player.morale + TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, 10, 100), lowMoraleWeeks: 0, transferCooldownUntilWeek: state.week + TRANSFER_DEMAND_COOLDOWN_WEEKS };
         msgTitle = `${player.lastName} Convinced to Stay!`;
         msgBody = `${player.firstName} ${player.lastName} has withdrawn the transfer request after your talk. The player is committed to the project.`;
       } else {
@@ -481,7 +482,14 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
       msgBody = `You refused ${player.firstName} ${player.lastName}'s transfer request. The player is unhappy and the squad has taken notice.`;
     }
 
-    const newMessages = addMsg(state.messages, {
+    // Mark all existing transfer messages for this player as actioned
+    const actionedMessages = state.messages.map(m =>
+      m.type === 'transfer' && m.playerId === talk.playerId && !m.actioned
+        ? { ...m, actioned: true }
+        : m
+    );
+
+    const newMessages = addMsg(actionedMessages, {
       week: state.week, season: state.season, type: 'transfer',
       title: msgTitle, body: msgBody, playerId: talk.playerId,
     });
@@ -504,7 +512,14 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     const msgTitle = `${player.lastName}: Transfer Listed`;
     const msgBody = `${player.firstName} ${player.lastName} has been listed for sale after requesting a transfer.`;
 
-    const newMessages = addMsg(state.messages, {
+    // Mark all existing transfer messages for this player as actioned
+    const actionedMessages = state.messages.map(m =>
+      m.type === 'transfer' && m.playerId === talk.playerId && !m.actioned
+        ? { ...m, actioned: true }
+        : m
+    );
+
+    const newMessages = addMsg(actionedMessages, {
       week: state.week, season: state.season, type: 'transfer',
       title: msgTitle, body: msgBody, playerId: talk.playerId,
     });

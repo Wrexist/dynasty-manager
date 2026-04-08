@@ -383,7 +383,7 @@ const InboxPage = () => {
                 const colors = getMessageColors(msg);
                 const action = getMessageAction(msg, gameMode);
                 // Transfer talk overrides normal action for unhappy players
-                const hasTransferTalk = msg.type === 'transfer' && msg.playerId && (() => {
+                const hasTransferTalk = msg.type === 'transfer' && msg.playerId && !msg.actioned && (() => {
                   const player = players[msg.playerId!];
                   return player && player.wantsToLeave && !player.listedForSale;
                 })();
