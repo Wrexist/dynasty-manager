@@ -17,7 +17,7 @@ import {
   getExpectedPosition,
   MAX_PLAYER_MATCH_HISTORY,
 } from '@/config/gameBalance';
-import { DEMAND_MORALE_WIN_BONUS, DEMAND_MORALE_LOSS_PENALTY, MOTIVATE_FATIGUE_MULTIPLIER } from '@/config/teamTalk';
+import { DEMAND_MORALE_WIN_BONUS, DEMAND_MORALE_LOSS_PENALTY, MOTIVATE_FATIGUE_MULTIPLIER, CALM_FATIGUE_MULTIPLIER, DEMAND_FATIGUE_MULTIPLIER } from '@/config/teamTalk';
 import { createMilestone, checkMatchMilestones } from '@/utils/milestones';
 import { grantXP, XP_REWARDS, hasPerk } from '@/utils/managerPerks';
 import { getMoraleStability } from '@/utils/personality';
@@ -105,9 +105,14 @@ export function processMatchResult(
       const p = { ...newPlayers[pid] };
       // Only drain fitness from players who actually played
       if (matchParticipants.has(pid)) {
-        const fitnessDrain = state.matchTeamTalk === 'motivate'
-          ? FITNESS_DRAIN_PER_MATCH * MOTIVATE_FATIGUE_MULTIPLIER
-          : FITNESS_DRAIN_PER_MATCH;
+        const fatigueMult = state.matchTeamTalk === 'motivate'
+          ? MOTIVATE_FATIGUE_MULTIPLIER
+          : state.matchTeamTalk === 'demand'
+          ? DEMAND_FATIGUE_MULTIPLIER
+          : state.matchTeamTalk === 'calm'
+          ? CALM_FATIGUE_MULTIPLIER
+          : 1;
+        const fitnessDrain = FITNESS_DRAIN_PER_MATCH * fatigueMult;
         p.fitness = Math.max(FITNESS_MIN_POST_MATCH, p.fitness + fitnessDrain);
       }
       let moraleDelta = won ? MORALE_WIN_CHANGE : lost ? MORALE_LOSS_CHANGE + narrativeMoraleLossReduction : 0;

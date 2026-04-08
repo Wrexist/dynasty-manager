@@ -41,6 +41,8 @@ import {
   STOPPAGE_TIME_BASE, STOPPAGE_TIME_MAX_EXTRA, STOPPAGE_TIME_INJURY_ADD, STOPPAGE_TIME_CARD_ADD,
   CORNER_GOAL_CHANCE, CORNER_GOAL_PHYSICAL_WEIGHT, CORNER_GOAL_DEFENDING_WEIGHT,
   FITNESS_DEGRADE_PER_MINUTE, FITNESS_DEGRADE_VARIANCE, LOW_FITNESS_SHOT_PENALTY, MATCH_LOW_FITNESS_THRESHOLD, LOW_FITNESS_INJURY_BONUS,
+  PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD,
+  FATIGUE_COMMENTARY_THRESHOLD, FATIGUE_COMMENTARY_MIN_MINUTE, FATIGUE_COMMENTARY_INTERVAL,
   FOULER_DEFENDER_WEIGHT, FOULER_MIDFIELDER_WEIGHT, FOULER_ATTACKER_WEIGHT,
   FORMATION_MATCHUP,
   DEFENSE_MODIFIER_SCALE,
@@ -426,7 +428,7 @@ export function simulateHalf(
   careerDisciplineMod?: number,
   homeBench?: Player[],
   awayBench?: Player[],
-  teamTalkModifiers?: { attackMod: number; defenseMod: number; foulMod: number },
+  teamTalkModifiers?: { attackMod: number; defenseMod: number; foulMod: number; fitnessDrainMult?: number },
 ): HalfState {
   // Guard against empty squads — return a forfeit-like state (clone refs to avoid mutation)
   if (homePlayers.length === 0 || awayPlayers.length === 0) {
@@ -819,9 +821,28 @@ export function simulateHalf(
     }
 
     // In-match fitness degradation (starters + subbed-in players)
+    // Team talk fitness multiplier applies only to the player's club
+    // Tactical modifiers (pressing/tempo) apply to each side independently
+    const teamTalkDrainMult = teamTalkModifiers?.fitnessDrainMult ?? 1;
+    const computeTacticalDrain = (t?: TacticalInstructions) => {
+      if (!t) return 1;
+      let mult = 1;
+      if (t.pressingIntensity > PRESSING_FITNESS_DRAIN_BASELINE) {
+        mult += (t.pressingIntensity - PRESSING_FITNESS_DRAIN_BASELINE) * PRESSING_FITNESS_DRAIN_PER_POINT;
+      }
+      if (t.tempo === 'fast') mult *= TEMPO_FAST_FITNESS_DRAIN_MOD;
+      else if (t.tempo === 'slow') mult *= TEMPO_SLOW_FITNESS_DRAIN_MOD;
+      return mult;
+    };
+    const homeTacticalDrain = computeTacticalDrain(homeTactics);
+    const awayTacticalDrain = computeTacticalDrain(awayTactics);
     [...allMatchPlayers, ...homeSubbedIn, ...awaySubbedIn].forEach(p => {
       if (!unavailable.has(p.id) && matchFitness[p.id] !== undefined) {
-        matchFitness[p.id] = Math.max(0, matchFitness[p.id] - FITNESS_DEGRADE_PER_MINUTE - (Math.random() * FITNESS_DEGRADE_VARIANCE));
+        const isHomeSide = homeActive.has(p.id) || homeSubbedIn.some(s => s.id === p.id);
+        const tacticalDrain = isHomeSide ? homeTacticalDrain : awayTacticalDrain;
+        const isPlayerTeam = playerClubId && (isHomeSide ? homeClub.id === playerClubId : awayClub.id === playerClubId);
+        const talkDrain = isPlayerTeam ? teamTalkDrainMult : 1;
+        matchFitness[p.id] = Math.max(0, matchFitness[p.id] - (FITNESS_DEGRADE_PER_MINUTE + Math.random() * FITNESS_DEGRADE_VARIANCE) * talkDrain * tacticalDrain);
       }
     });
 
@@ -835,6 +856,29 @@ export function simulateHalf(
       }
       // Attach to last event of this minute if any, otherwise to a commentary event
       fitnessSnapshot = snapshot;
+    }
+
+    // Fatigue commentary — check periodically in second half when players tire
+    if (min >= FATIGUE_COMMENTARY_MIN_MINUTE && min % FATIGUE_COMMENTARY_INTERVAL === 0) {
+      // Check each side's average fitness
+      const calcAvgFitness = (players: Player[], subbedIn: Player[]) => {
+        const all = [...players, ...subbedIn].filter(p => !unavailable.has(p.id) && matchFitness[p.id] !== undefined);
+        if (all.length === 0) return 100;
+        return all.reduce((sum, p) => sum + (matchFitness[p.id] ?? 100), 0) / all.length;
+      };
+      const homeAvgFit = calcAvgFitness(homePlayers, homeSubbedIn);
+      const awayAvgFit = calcAvgFitness(awayPlayers, awaySubbedIn);
+      const fatigueDescs = [
+        (club: string) => `Tired legs showing for ${club} — the pace is dropping.`,
+        (club: string) => `${club} are visibly tiring as the match wears on.`,
+        (club: string) => `The intensity is taking its toll on ${club}'s players.`,
+      ];
+      if (homeAvgFit < FATIGUE_COMMENTARY_THRESHOLD) {
+        events.push({ minute: min, type: 'commentary', clubId: homeClub.id, description: pick(fatigueDescs)(homeClub.shortName), momentum });
+      }
+      if (awayAvgFit < FATIGUE_COMMENTARY_THRESHOLD) {
+        events.push({ minute: min, type: 'commentary', clubId: awayClub.id, description: pick(fatigueDescs)(awayClub.shortName), momentum });
+      }
     }
 
     // Momentum decay toward neutral each minute
