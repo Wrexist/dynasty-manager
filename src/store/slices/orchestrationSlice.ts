@@ -2897,22 +2897,23 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       if (leagueId === playerDiv) continue;
       const leagueFixtures = updatedDivisionFixtures[leagueId];
       if (!leagueFixtures) continue;
-      const leagueWeekMatches = leagueFixtures.filter(m => m.week === newWeek && !m.played);
-      for (const m of leagueWeekMatches) {
+      const updatedLeagueFixtures = [...leagueFixtures];
+      for (let i = 0; i < updatedLeagueFixtures.length; i++) {
+        const m = updatedLeagueFixtures[i];
+        if (m.week !== week || m.played) continue;
         const hc = clubs[m.homeClubId];
         const ac = clubs[m.awayClubId];
         if (!hc || !ac) continue;
         const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
         const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, 11);
         if (hp.length === 0 || ap.length === 0) {
-          m.played = true;
-          m.homeGoals = hp.length === 0 ? 0 : 3;
-          m.awayGoals = ap.length === 0 ? 0 : 3;
+          updatedLeagueFixtures[i] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : 3, awayGoals: ap.length === 0 ? 0 : 3, events: [] };
           continue;
         }
         const { result } = simulateMatch(m, hc, ac, hp, ap);
-        Object.assign(m, result);
+        updatedLeagueFixtures[i] = result;
       }
+      updatedDivisionFixtures[leagueId] = updatedLeagueFixtures;
     }
 
     // Build all division tables
