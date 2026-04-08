@@ -83,7 +83,7 @@ import {
   URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS,
   OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
   RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM,
-  MARKET_REPLENISH_THRESHOLD, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT,
+  MARKET_REPLENISH_THRESHOLD, LISTING_EXPIRY_WEEKS, CLUB_LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT,
   FREE_AGENT_SPAWN_CHANCE, OFFER_EXPIRY_WEEKS,
   UNSOLICITED_OFFER_CHANCE, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE,
   COMPETING_BID_PREMIUM,
@@ -3760,8 +3760,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     {
       const mktState = get();
 
-      // Process listing expiry for external players (reduces stale listings)
-      const expiryResult = processListingExpiry(mktState.transferMarket, newWeek, season, TOTAL_WEEKS, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT);
+      // Process listing expiry for both external and club-listed players
+      const expiryResult = processListingExpiry(mktState.transferMarket, newWeek, season, TOTAL_WEEKS, LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT, CLUB_LISTING_EXPIRY_WEEKS);
       let updatedMarket = expiryResult.market;
 
       // Replenish if market is below threshold (keeps market populated across all divisions)
@@ -3772,6 +3772,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       for (const pid of expiryResult.expiredPlayerIds) {
         if (updatedPlayers[pid]?.clubId === '' && !freeAgentSet.has(pid)) {
           delete updatedPlayers[pid];
+        }
+      }
+
+      // Reset listedForSale flag on expired club player listings
+      for (const pid of expiryResult.expiredClubPlayerIds) {
+        if (updatedPlayers[pid]) {
+          updatedPlayers[pid] = { ...updatedPlayers[pid], listedForSale: false };
         }
       }
 
