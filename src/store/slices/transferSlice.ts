@@ -63,9 +63,15 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   const updatedClubs = { ...state.clubs };
   if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== state.playerClubId && updatedClubs[player.sellOnClubId]) {
     sellOnFee = Math.round(fee * (player.sellOnPercentage / 100));
-    const sellOnClub = { ...updatedClubs[player.sellOnClubId] };
-    sellOnClub.budget += sellOnFee;
-    updatedClubs[player.sellOnClubId] = sellOnClub;
+    if (player.sellOnClubId === offer.buyerClubId) {
+      // Buyer is the sell-on club — apply fee directly to buyer copy
+      // (avoids overwrite when updatedClubs[buyer.id] = buyer later)
+      buyer.budget += sellOnFee;
+    } else {
+      const sellOnClub = { ...updatedClubs[player.sellOnClubId] };
+      sellOnClub.budget += sellOnFee;
+      updatedClubs[player.sellOnClubId] = sellOnClub;
+    }
   }
   const netFee = fee - sellOnFee;
   sellerClub.budget += netFee;
@@ -222,9 +228,15 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== listing.sellerClubId && updatedClubs[player.sellOnClubId]) {
       sellOnFee = Math.round(fee * (player.sellOnPercentage / 100));
       sellOnClubName = state.clubs[player.sellOnClubId]?.name || 'former club';
-      const sellOnClub = { ...updatedClubs[player.sellOnClubId] };
-      sellOnClub.budget += sellOnFee;
-      updatedClubs[player.sellOnClubId] = sellOnClub;
+      if (player.sellOnClubId === state.playerClubId) {
+        // Buyer is the sell-on club — apply fee directly to newClub copy
+        // (avoids overwrite when updatedClubs[newClub.id] = newClub later)
+        newClub.budget += sellOnFee;
+      } else {
+        const sellOnClub = { ...updatedClubs[player.sellOnClubId] };
+        sellOnClub.budget += sellOnFee;
+        updatedClubs[player.sellOnClubId] = sellOnClub;
+      }
     }
     if (oldClub) {
       oldClub.budget += fee - sellOnFee;
@@ -484,7 +496,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     club.playerIds = [...club.playerIds, playerId];
     club.wageBill += wage;
 
-    const updatedPlayer = { ...player, clubId: state.playerClubId, wage, contractEnd: state.season + years, joinedSeason: state.season, listedForSale: false };
+    const updatedPlayer = { ...player, clubId: state.playerClubId, wage, contractEnd: state.season + years, joinedSeason: state.season, listedForSale: false, sellOnPercentage: undefined, sellOnClubId: undefined };
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Signed (Free)`,

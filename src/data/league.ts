@@ -185,9 +185,12 @@ export function generateAllDivisionFixtures(
 // ── League Table ──
 const _btlCache = new Map<string, LeagueTableEntry[]>();
 
+/** Clear the league table cache — call on game init/load to prevent stale data */
+export function clearLeagueTableCache() { _btlCache.clear(); }
+
 export function buildLeagueTable(fixtures: Match[], clubIds: string[]): LeagueTableEntry[] {
   const playedCount = fixtures.filter(m => m.played).length;
-  const cacheKey = `${playedCount}:${clubIds.length}:${clubIds[0] || ''}`;
+  const cacheKey = `${playedCount}:${clubIds.join(',')}`;
   const cached = _btlCache.get(cacheKey);
   if (cached) return cached;
   if (_btlCache.size >= 8) _btlCache.clear();

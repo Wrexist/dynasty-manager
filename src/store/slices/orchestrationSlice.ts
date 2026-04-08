@@ -9,7 +9,7 @@ import {
   FORCED_RETIREMENT_UNEMPLOYED_WEEKS,
   PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING,
 } from '@/config/managerCareer';
-import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName } from '@/data/league';
+import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache } from '@/data/league';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
@@ -325,10 +325,12 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
           updatedCaps[pid] = (updatedCaps[pid] || 0) + 1;
         }
       }
-      // Distribute goals among lineup players randomly
+      // Distribute goals among lineup players randomly (fall back to full squad if lineup empty)
       const lineupIds = nt.lineup.filter(pid => newPlayers[pid]);
+      const scorerPool = lineupIds.length > 0 ? lineupIds : nt.squad.filter(pid => newPlayers[pid]);
       for (let g = 0; g < playerGoals; g++) {
-        const scorerId = lineupIds[Math.floor(Math.random() * lineupIds.length)];
+        if (scorerPool.length === 0) break;
+        const scorerId = scorerPool[Math.floor(Math.random() * scorerPool.length)];
         if (scorerId && newPlayers[scorerId]) {
           newPlayers[scorerId] = { ...newPlayers[scorerId], internationalGoals: (newPlayers[scorerId].internationalGoals || 0) + 1 };
           updatedIntlGoals[scorerId] = (updatedIntlGoals[scorerId] || 0) + 1;
@@ -450,8 +452,10 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         }
       }
       const lineupIdsKO = nt.lineup.filter(pid => newPlayers[pid]);
+      const scorerPoolKO = lineupIdsKO.length > 0 ? lineupIdsKO : nt.squad.filter(pid => newPlayers[pid]);
       for (let g = 0; g < playerGoalsKO; g++) {
-        const scorerId = lineupIdsKO[Math.floor(Math.random() * lineupIdsKO.length)];
+        if (scorerPoolKO.length === 0) break;
+        const scorerId = scorerPoolKO[Math.floor(Math.random() * scorerPoolKO.length)];
         if (scorerId && newPlayers[scorerId]) {
           newPlayers[scorerId] = { ...newPlayers[scorerId], internationalGoals: (newPlayers[scorerId].internationalGoals || 0) + 1 };
           updatedIntlGoalsKO[scorerId] = (updatedIntlGoalsKO[scorerId] || 0) + 1;
@@ -2047,6 +2051,7 @@ function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS }[])
 export const createOrchestrationSlice = (set: Set, get: Get) => ({
   initGame: (clubId: string) => {
     resetSeasonGrowth();
+    clearLeagueTableCache();
     const allPlayers: Record<string, Player> = {};
     const clubs: Record<string, Club> = {};
 
@@ -5127,6 +5132,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   loadGame: (slot?: number) => {
     resetSeasonGrowth();
+    clearLeagueTableCache();
     migrateLegacySave();
     const s = slot ?? get().activeSlot;
     let raw = readSaveSlot(s);
