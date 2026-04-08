@@ -1,4 +1,5 @@
-import type { Club, GameScreen, Match, ObjectiveInstance, Player, ScoutAssignment } from '@/types/game';
+import type { Club, GameScreen, Match, Player, ScoutAssignment } from '@/types/game';
+import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import { COACH_TASK_XP } from '@/config/gameBalance';
 
 export interface CoachTask {
@@ -23,6 +24,7 @@ interface BuildCoachTasksContext {
   scoutReportsCount: number;
   shortlistCount: number;
   week: number;
+  season: number;
   completedTaskIds: string[];
 }
 
@@ -78,7 +80,7 @@ export function buildCoachTasks(ctx: BuildCoachTasksContext): CoachTask[] {
       completed: done('contracts') || ctx.club.playerIds
         .map((id) => ctx.players[id])
         .filter(Boolean)
-        .every((player) => player.contractEnd > 1),
+        .every((player) => player.contractEnd > ctx.season),
       screen: 'squad',
       priority: 'medium',
       xpReward: COACH_TASK_XP['contracts'] ?? 5,
