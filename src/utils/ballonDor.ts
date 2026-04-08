@@ -80,6 +80,10 @@ export function calculateBallonDOr(
   leagueTable: LeagueTableEntry[],
   divisionTables: Record<string, LeagueTableEntry[]>,
 ): BallonDOrEntry[] {
+  // No ranking possible without league data or players
+  if (leagueTable.length === 0 && Object.keys(divisionTables).length === 0) return [];
+  if (allPlayers.length === 0) return [];
+
   const totalTeams = leagueTable.length || 20;
 
   // Build a lookup: clubId → league position and clean sheets (across all divisions)

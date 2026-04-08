@@ -12,6 +12,7 @@ import { getActiveCosmetic } from '@/utils/monetization';
 import { PageHint } from '@/components/game/PageHint';
 
 const TrophyCabinet = () => {
+  const setScreen = useGameStore(s => s.setScreen);
   const { seasonHistory, unlockedAchievements, clubRecords, monetization } = useGameStore(useShallow(s => ({
     seasonHistory: s.seasonHistory,
     unlockedAchievements: s.unlockedAchievements,
@@ -236,6 +237,42 @@ const TrophyCabinet = () => {
           </div>
         </GlassPanel>
       )}
+
+      {/* Ballon d'Or History */}
+      {(() => {
+        const allWinners = seasonHistory
+          .filter(h => h.ballonDOrRanking && h.ballonDOrRanking.length > 0)
+          .map(h => ({ season: h.season, winner: h.ballonDOrRanking![0] }));
+        if (allWinners.length === 0) return null;
+        return (
+          <GlassPanel className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Trophy className="w-4 h-4 text-[hsl(43,96%,56%)]" />
+              <h3 className="text-sm font-semibold text-foreground">Ballon d'Or</h3>
+              <span className="text-xs text-[hsl(43,96%,56%)] font-bold ml-auto">{allWinners.length} season{allWinners.length !== 1 ? 's' : ''}</span>
+            </div>
+            <div className="space-y-1.5">
+              {allWinners.map(({ season, winner }) => (
+                <div key={season} className="flex items-center justify-between text-xs bg-[hsl(43,96%,46%)]/5 rounded-lg px-3 py-2">
+                  <span className="text-[hsl(43,96%,56%)] font-semibold">Season {season}</span>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: winner.clubColor }} />
+                    <span className="text-foreground font-medium">{winner.playerName}</span>
+                    <span className="text-muted-foreground">({winner.clubName})</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => setScreen('ballon-dor')}
+              className="text-[10px] text-primary mt-2 w-full text-center font-bold hover:underline"
+            >
+              View Full Rankings →
+            </button>
+          </GlassPanel>
+        );
+      })()}
 
       {/* Achievements */}
       <GlassPanel className="p-4">

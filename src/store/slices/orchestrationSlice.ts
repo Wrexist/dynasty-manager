@@ -1053,14 +1053,16 @@ function endSeasonImpl(set: Set, get: Get) {
   // Ballon d'Or ranking — top 25 players of the season
   const ballonDOrRanking = calculateBallonDOr(allPlayersList, clubs, leagueTable, state.divisionTables || {});
 
-  // Apply Ballon d'Or value boosts and record placements on players
+  // Apply Ballon d'Or value boosts and record placements on a shallow copy
+  // (avoid mutating the store's `players` reference directly)
+  const ballonDOrPlayers: Record<string, Player> = {};
   for (const entry of ballonDOrRanking) {
     const p = players[entry.playerId];
     if (!p) continue;
     const boost = getBallonDOrValueBoost(entry.rank);
     const placement = { season, rank: entry.rank, score: entry.score };
     const existing = p.ballonDOrPlacements || [];
-    players[entry.playerId] = {
+    ballonDOrPlayers[entry.playerId] = {
       ...p,
       value: Math.round(p.value * (1 + boost)),
       ballonDOrPlacements: [...existing, placement],
@@ -1148,7 +1150,7 @@ function endSeasonImpl(set: Set, get: Get) {
   if (!workingClubs[playerClubId] && clubs[playerClubId]) {
     workingClubs[playerClubId] = clubs[playerClubId];
   }
-  const workingPlayers = { ...players };
+  const workingPlayers = { ...players, ...ballonDOrPlayers };
   // Clean up players from replaced clubs
   for (const replacedId of turnover.replacedClubs) {
     const rClub = clubs[replacedId];
@@ -1200,6 +1202,20 @@ function endSeasonImpl(set: Set, get: Get) {
     if (replacedNames && newNames) {
       newMessages = addMsg(newMessages, { week: state.week, season, type: 'general', title: 'League Turnover', body: `${replacedNames} departed the league. Newcomers: ${newNames}.` });
     }
+  }
+
+  // Announce Ballon d'Or winner via inbox message
+  if (ballonDOrRanking.length > 0) {
+    const bdWinner = ballonDOrRanking[0];
+    const yourRanked = ballonDOrRanking.filter(e => e.clubName === clubs[playerClubId]?.shortName);
+    const yourNote = yourRanked.length > 0
+      ? ` ${yourRanked.length} of your player${yourRanked.length > 1 ? 's' : ''} made the Top 25.`
+      : '';
+    newMessages = addMsg(newMessages, {
+      week: state.week, season, type: 'general',
+      title: "Ballon d'Or Announced",
+      body: `${bdWinner.playerName} (${bdWinner.clubName}) has won the Ballon d'Or with a score of ${bdWinner.score.toFixed(1)}.${yourNote}`,
+    });
   }
 
   finalizeSeason(set, get, history, updatedRecords, workingClubs, workingPlayers, turnover, newDivisionClubs, playerDiv, newMessages);

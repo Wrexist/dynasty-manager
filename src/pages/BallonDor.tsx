@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Trophy, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { darken, lighten } from '@/utils/colorUtils';
@@ -28,86 +28,92 @@ function getRankLabel(rank: number): string {
   return `${rank}th`;
 }
 
-const WinnerSpotlight = ({ entry }: { entry: BallonDOrEntry }) => (
+const WinnerSpotlight = ({ entry, onNavigate }: { entry: BallonDOrEntry; onNavigate: () => void }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.8, y: 30 }}
     animate={{ opacity: 1, scale: 1, y: 0 }}
     transition={{ duration: 0.8, type: 'spring', bounce: 0.3 }}
   >
-    <GlassPanel className="p-6 text-center border-[hsl(43,96%,46%)]/30 relative overflow-hidden">
-      {/* Gold shimmer overlay */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-br from-[hsl(43,96%,46%)]/10 via-transparent to-[hsl(43,96%,46%)]/5 pointer-events-none"
-        animate={{ opacity: [0.3, 0.6, 0.3] }}
-        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-      />
+    <button
+      type="button"
+      onClick={onNavigate}
+      className="w-full text-left"
+    >
+      <GlassPanel className="p-6 text-center border-[hsl(43,96%,46%)]/30 relative overflow-hidden hover:brightness-110 transition-all">
+        {/* Gold shimmer overlay */}
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-br from-[hsl(43,96%,46%)]/10 via-transparent to-[hsl(43,96%,46%)]/5 pointer-events-none"
+          animate={{ opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        />
 
-      {/* Trophy icon */}
-      <motion.div
-        initial={{ scale: 0, rotate: -10 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ delay: 0.3, duration: 0.6, type: 'spring' }}
-        className="relative z-10 mx-auto mb-3"
-      >
-        <div className="w-20 h-20 rounded-full bg-[hsl(43,96%,46%)]/15 border-2 border-[hsl(43,96%,46%)]/30 flex items-center justify-center mx-auto shadow-[0_0_30px_hsl(43,96%,46%,0.25)]">
-          <span className="text-4xl">🏆</span>
-        </div>
-      </motion.div>
+        {/* Trophy icon */}
+        <motion.div
+          initial={{ scale: 0, rotate: -10 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ delay: 0.3, duration: 0.6, type: 'spring' }}
+          className="relative z-10 mx-auto mb-3"
+        >
+          <div className="w-20 h-20 rounded-full bg-[hsl(43,96%,46%)]/15 border-2 border-[hsl(43,96%,46%)]/30 flex items-center justify-center mx-auto shadow-[0_0_30px_hsl(43,96%,46%,0.25)]">
+            <Trophy className="w-10 h-10 text-[hsl(43,96%,56%)]" />
+          </div>
+        </motion.div>
 
-      <motion.p
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5, duration: 0.4 }}
-        className="relative z-10 text-[10px] text-[hsl(43,96%,56%)] uppercase tracking-[0.2em] font-bold mb-1"
-      >
-        Ballon d'Or Winner
-      </motion.p>
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.4 }}
+          className="relative z-10 text-[10px] text-[hsl(43,96%,56%)] uppercase tracking-[0.2em] font-bold mb-1"
+        >
+          Ballon d'Or Winner
+        </motion.p>
 
-      <motion.p
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6, duration: 0.4 }}
-        className="relative z-10 text-2xl font-black text-foreground font-display"
-      >
-        {entry.playerName}
-      </motion.p>
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6, duration: 0.4 }}
+          className="relative z-10 text-2xl font-black text-foreground font-display"
+        >
+          {entry.playerName}
+        </motion.p>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.7, duration: 0.4 }}
-        className="relative z-10 flex items-center justify-center gap-3 mt-2"
-      >
-        <div className="flex items-center gap-1.5">
-          <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.clubColor }} />
-          <span className="text-sm text-muted-foreground">{entry.clubName}</span>
-        </div>
-        <span className="text-xs text-muted-foreground">·</span>
-        <span className="text-sm font-bold text-primary">{entry.overall} OVR</span>
-        <span className="text-xs text-muted-foreground">·</span>
-        <span className="text-xs text-muted-foreground">{entry.position}</span>
-      </motion.div>
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7, duration: 0.4 }}
+          className="relative z-10 flex items-center justify-center gap-3 mt-2"
+        >
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: entry.clubColor }} />
+            <span className="text-sm text-muted-foreground">{entry.clubName}</span>
+          </div>
+          <span className="text-xs text-muted-foreground">·</span>
+          <span className="text-sm font-bold text-primary">{entry.overall} OVR</span>
+          <span className="text-xs text-muted-foreground">·</span>
+          <span className="text-xs text-muted-foreground">{entry.position}</span>
+        </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8, duration: 0.4 }}
-        className="relative z-10 grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-[hsl(43,96%,46%)]/20"
-      >
-        <div>
-          <p className="text-lg font-black text-foreground tabular-nums">{entry.goals}</p>
-          <p className="text-[10px] text-muted-foreground">Goals</p>
-        </div>
-        <div>
-          <p className="text-lg font-black text-foreground tabular-nums">{entry.assists}</p>
-          <p className="text-[10px] text-muted-foreground">Assists</p>
-        </div>
-        <div>
-          <p className="text-lg font-black text-[hsl(43,96%,56%)] tabular-nums">{entry.score.toFixed(1)}</p>
-          <p className="text-[10px] text-muted-foreground">Score</p>
-        </div>
-      </motion.div>
-    </GlassPanel>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8, duration: 0.4 }}
+          className="relative z-10 grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-[hsl(43,96%,46%)]/20"
+        >
+          <div>
+            <p className="text-lg font-black text-foreground tabular-nums">{entry.goals}</p>
+            <p className="text-[10px] text-muted-foreground">Goals</p>
+          </div>
+          <div>
+            <p className="text-lg font-black text-foreground tabular-nums">{entry.assists}</p>
+            <p className="text-[10px] text-muted-foreground">Assists</p>
+          </div>
+          <div>
+            <p className="text-lg font-black text-[hsl(43,96%,56%)] tabular-nums">{entry.score.toFixed(1)}</p>
+            <p className="text-[10px] text-muted-foreground">Score</p>
+          </div>
+        </motion.div>
+      </GlassPanel>
+    </button>
   </motion.div>
 );
 
@@ -228,11 +234,12 @@ const RankingRow = ({ entry, index, isExpanded, onToggle, isPlayerClub }: {
 };
 
 const BallonDor = () => {
-  const { seasonHistory, playerClubId, clubs, previousScreen } = useGameStore(useShallow(s => ({
+  const { seasonHistory, playerClubId, clubs, previousScreen, players } = useGameStore(useShallow(s => ({
     seasonHistory: s.seasonHistory,
     playerClubId: s.playerClubId,
     clubs: s.clubs,
     previousScreen: s.previousScreen,
+    players: s.players,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const selectPlayer = useGameStore(s => s.selectPlayer);
@@ -253,10 +260,16 @@ const BallonDor = () => {
 
   const playerClubName = clubs[playerClubId]?.shortName || '';
 
+  const navigateToPlayer = (playerId: string) => {
+    if (!players[playerId]) return;
+    selectPlayer(playerId);
+    setScreen('player-detail');
+  };
+
   if (seasonsWithData.length === 0) {
     return (
       <div className="max-w-lg mx-auto px-4 py-8 text-center space-y-3">
-        <p className="text-3xl mb-2">🏆</p>
+        <Trophy className="w-10 h-10 text-muted-foreground/30 mx-auto mb-2" />
         <p className="text-muted-foreground">
           The Ballon d'Or ceremony takes place at the end of each season.
         </p>
@@ -316,7 +329,12 @@ const BallonDor = () => {
       </motion.div>
 
       {/* Winner spotlight */}
-      {winner && <WinnerSpotlight entry={winner} />}
+      {winner && (
+        <WinnerSpotlight
+          entry={winner}
+          onNavigate={() => navigateToPlayer(winner.playerId)}
+        />
+      )}
 
       {/* Podium (2nd and 3rd) */}
       {ranking.length >= 3 && (
@@ -332,7 +350,7 @@ const BallonDor = () => {
               >
                 <button
                   type="button"
-                  onClick={() => { selectPlayer(entry.playerId); setScreen('player-detail'); }}
+                  onClick={() => navigateToPlayer(entry.playerId)}
                   className={cn(
                     'w-full p-3 rounded-xl text-center border transition-all hover:brightness-110',
                     style.bg, style.border, style.glow,
@@ -388,15 +406,18 @@ const BallonDor = () => {
         if (yourPlayers.length === 0) return null;
         return (
           <GlassPanel className="p-4 border-primary/20">
-            <p className="text-[10px] text-primary uppercase tracking-wider font-bold mb-2">
-              Your Players in Top 25
-            </p>
+            <div className="flex items-center gap-2 mb-2">
+              <Crown className="w-3.5 h-3.5 text-primary" />
+              <p className="text-[10px] text-primary uppercase tracking-wider font-bold">
+                Your Players in Top 25
+              </p>
+            </div>
             <div className="space-y-2">
               {yourPlayers.map(entry => (
                 <button
                   key={entry.playerId}
                   type="button"
-                  onClick={() => { selectPlayer(entry.playerId); setScreen('player-detail'); }}
+                  onClick={() => navigateToPlayer(entry.playerId)}
                   className="w-full flex items-center gap-3 text-left hover:bg-primary/5 rounded-lg p-1.5 transition-colors"
                 >
                   <span className="text-xs font-black text-primary tabular-nums w-6">

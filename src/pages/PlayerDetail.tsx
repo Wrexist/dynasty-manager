@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
 import { POSITION_COMPATIBILITY, Position, TrainingModule } from '@/types/game';
-import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2 } from 'lucide-react';
+import { ArrowLeft, Heart, Zap, TrendingUp, TrendingDown, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2, Trophy, Medal } from 'lucide-react';
 import { TransferApproach } from '@/components/game/TransferApproach';
 import { LoanNegotiation } from '@/components/game/LoanNegotiation';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
@@ -249,7 +249,7 @@ const PlayerDetail = () => {
       {player.ballonDOrPlacements && player.ballonDOrPlacements.length > 0 && (
         <GlassPanel className="p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-base">🏆</span>
+            <Trophy className="w-4 h-4 text-[hsl(43,96%,56%)]" />
             <p className="text-xs text-muted-foreground uppercase tracking-wider">Ballon d'Or</p>
             <span className="text-xs text-[hsl(43,96%,56%)] font-bold ml-auto">
               {player.ballonDOrPlacements.length}x Top 25
@@ -277,15 +277,28 @@ const PlayerDetail = () => {
                     !isTop10 && 'bg-muted/20 border-border/30',
                   )}
                 >
+                  {isPodium ? (
+                    <Trophy className={cn(
+                      'w-5 h-5',
+                      isGold && 'text-[hsl(43,96%,56%)]',
+                      isSilver && 'text-gray-300',
+                      isBronze && 'text-amber-600',
+                    )} />
+                  ) : (
+                    <Medal className={cn(
+                      'w-5 h-5',
+                      isTop10 ? 'text-primary' : 'text-muted-foreground',
+                    )} />
+                  )}
                   <span className={cn(
-                    'text-lg font-black tabular-nums leading-none',
+                    'text-[10px] font-black tabular-nums leading-none mt-0.5',
                     isGold && 'text-[hsl(43,96%,56%)]',
                     isSilver && 'text-gray-300',
                     isBronze && 'text-amber-600',
                     !isPodium && isTop10 && 'text-primary',
                     !isTop10 && 'text-muted-foreground',
                   )}>
-                    {p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : p.rank === 3 ? '🥉' : `#${p.rank}`}
+                    #{p.rank}
                   </span>
                   <span className="text-[9px] text-muted-foreground mt-0.5">S{p.season}</span>
                 </motion.div>

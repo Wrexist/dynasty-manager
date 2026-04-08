@@ -320,7 +320,7 @@ const SeasonSummary = () => {
               <GlassPanel className="p-4 border-[hsl(43,96%,46%)]/20">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[hsl(43,96%,46%)]/15 border border-[hsl(43,96%,46%)]/30 flex items-center justify-center shrink-0">
-                    <span className="text-xl">🏆</span>
+                    <Trophy className="w-5 h-5 text-[hsl(43,96%,56%)]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] text-[hsl(43,96%,56%)] uppercase tracking-wider font-bold">Ballon d'Or Winner</p>
