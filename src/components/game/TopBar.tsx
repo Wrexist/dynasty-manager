@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { Calendar, Save, ArrowLeft, Star, Check, Mail } from 'lucide-react';
+import { Calendar, Settings, ArrowLeft, Star, Mail, Wallet } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/managerCareer';
-import { getSuffix } from '@/utils/helpers';
+import { formatMoney, getSuffix } from '@/utils/helpers';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 import { useFlash } from '@/hooks/useFlash';
-import { SAVE_INDICATOR_MS, XP_GLOW_MS } from '@/config/ui';
+import { XP_GLOW_MS } from '@/config/ui';
 
 export function TopBar() {
   const {
@@ -23,7 +23,6 @@ export function TopBar() {
     managerProgression: s.managerProgression, gameMode: s.gameMode, careerManager: s.careerManager,
     messages: s.messages,
   })));
-  const saveGame = useGameStore(s => s.saveGame);
   const setScreen = useGameStore(s => s.setScreen);
   const club = clubs[playerClubId];
   const entry = leagueTable.find(e => e.clubId === playerClubId);
@@ -33,27 +32,6 @@ export function TopBar() {
   const reputationTier = careerManager?.reputationTier ?? 'unknown';
   const reputationLabel = getReputationTierShortLabel(reputationTier);
   const unreadCount = useMemo(() => messages.filter(m => !m.read).length, [messages]);
-
-  // Save button feedback state
-  const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
-  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
-
-  const handleSave = () => {
-    saveGame();
-    hapticMedium();
-    setSaveState('saved');
-    setLastSavedAt(Date.now());
-    setTimeout(() => setSaveState('idle'), SAVE_INDICATOR_MS);
-  };
-
-  // Format relative time for last saved
-  const getSavedAgo = () => {
-    if (!lastSavedAt) return null;
-    const mins = Math.floor((Date.now() - lastSavedAt) / 60000);
-    if (mins < 1) return 'just now';
-    if (mins === 1) return '1m ago';
-    return `${mins}m ago`;
-  };
 
   // XP bar glow on gain
   const prevXpRef = useRef(xpProgress.percentage);
@@ -97,13 +75,24 @@ export function TopBar() {
               <p className={cn('text-[10px] text-muted-foreground truncate', posFlash)}>{club.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
             </div>
           ) : (
-            <>
-              <div className="w-7 h-7 rounded-full shrink-0" style={{ backgroundColor: club.color }} />
-              <div className="min-w-0">
-                <p className="text-sm font-bold text-foreground truncate">{club.shortName}</p>
-                <p className={cn('text-[10px] text-muted-foreground', posFlash)}>{pos !== '-' ? `${pos}${getSuffix(Number(pos))}` : ''} in league</p>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <Wallet className="w-3.5 h-3.5 text-primary shrink-0" />
+                <span className="text-sm font-bold text-foreground">{formatMoney(club.budget)}</span>
               </div>
-            </>
+              {pos !== '-' && (
+                <span className={cn(
+                  'text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0',
+                  Number(pos) <= 3 ? 'bg-emerald-500/20 text-emerald-400' :
+                  Number(pos) <= 6 ? 'bg-primary/20 text-primary' :
+                  Number(pos) >= 21 ? 'bg-destructive/20 text-destructive' :
+                  'bg-muted/50 text-muted-foreground',
+                  posFlash
+                )}>
+                  {pos}{getSuffix(Number(pos))}
+                </span>
+              )}
+            </div>
           )}
         </div>
         <div className="flex items-center gap-3">
@@ -144,15 +133,11 @@ export function TopBar() {
             <span>W{week} · S{season}</span>
           </div>
           <button
-            onClick={handleSave}
-            aria-label="Save game"
-            title={lastSavedAt ? `Saved ${getSavedAgo()}` : 'Save game'}
-            className={cn(
-              'p-3 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center',
-              saveState === 'saved' ? 'text-emerald-400' : 'text-muted-foreground hover:text-foreground'
-            )}
+            onClick={() => { setScreen('settings'); hapticMedium(); }}
+            aria-label="Settings"
+            className="p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
-            {saveState === 'saved' ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+            <Settings className="w-4 h-4" />
           </button>
         </div>
       </div>
