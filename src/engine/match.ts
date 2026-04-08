@@ -426,7 +426,7 @@ export function simulateHalf(
   careerDisciplineMod?: number,
   homeBench?: Player[],
   awayBench?: Player[],
-  teamTalkModifiers?: { attackMod: number; defenseMod: number; foulMod: number },
+  teamTalkModifiers?: { attackMod: number; defenseMod: number; foulMod: number; fitnessDrainMult?: number },
 ): HalfState {
   // Guard against empty squads — return a forfeit-like state (clone refs to avoid mutation)
   if (homePlayers.length === 0 || awayPlayers.length === 0) {
@@ -819,9 +819,17 @@ export function simulateHalf(
     }
 
     // In-match fitness degradation (starters + subbed-in players)
+    // Team talk fitness multiplier applies only to the player's club
+    const fitnessDrainMult = teamTalkModifiers?.fitnessDrainMult ?? 1;
     [...allMatchPlayers, ...homeSubbedIn, ...awaySubbedIn].forEach(p => {
       if (!unavailable.has(p.id) && matchFitness[p.id] !== undefined) {
-        matchFitness[p.id] = Math.max(0, matchFitness[p.id] - FITNESS_DEGRADE_PER_MINUTE - (Math.random() * FITNESS_DEGRADE_VARIANCE));
+        const isPlayerTeam = playerClubId && (
+          (homeActive.has(p.id) || homeSubbedIn.some(s => s.id === p.id))
+            ? homeClub.id === playerClubId
+            : awayClub.id === playerClubId
+        );
+        const mult = isPlayerTeam ? fitnessDrainMult : 1;
+        matchFitness[p.id] = Math.max(0, matchFitness[p.id] - (FITNESS_DEGRADE_PER_MINUTE + Math.random() * FITNESS_DEGRADE_VARIANCE) * mult);
       }
     });
 

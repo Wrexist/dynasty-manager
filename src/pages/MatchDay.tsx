@@ -867,10 +867,14 @@ const MatchDay = () => {
 
           {/* Team Talk */}
           <GlassPanel className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Team Talk</p>
-            <div className="flex gap-2">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Team Talk</p>
+              <p className="text-[9px] text-muted-foreground/60">Your words affect intensity & energy</p>
+            </div>
+            <div className="space-y-2">
               {TEAM_TALK_OPTIONS.map(talk => {
                 const TalkIcon = talk.id === 'motivate' ? Flame : talk.id === 'calm' ? Shield : AlertTriangle;
+                const isSelected = matchTeamTalk === talk.id;
                 return (
                   <button
                     key={talk.id}
@@ -880,14 +884,43 @@ const MatchDay = () => {
                       infoToast(`"${talk.description}"`);
                     }}
                     className={cn(
-                      "flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-lg transition-colors",
-                      matchTeamTalk === talk.id
-                        ? 'bg-primary/20 border border-primary/40'
-                        : 'bg-muted/30 hover:bg-primary/10'
+                      "w-full flex items-start gap-3 p-3 rounded-xl transition-all text-left",
+                      isSelected
+                        ? 'bg-primary/15 border border-primary/50 shadow-[0_0_12px_rgba(var(--primary-rgb,234,179,8),0.1)]'
+                        : 'bg-muted/20 border border-transparent hover:bg-muted/40'
                     )}
                   >
-                    <TalkIcon className="w-4 h-4 text-primary" />
-                    <span className="text-[10px] font-semibold text-foreground">{talk.label}</span>
+                    <div className={cn(
+                      "mt-0.5 p-1.5 rounded-lg shrink-0",
+                      isSelected ? 'bg-primary/20' : 'bg-muted/30'
+                    )}>
+                      <TalkIcon className={cn("w-4 h-4", isSelected ? 'text-primary' : 'text-muted-foreground')} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={cn("text-xs font-semibold", isSelected ? 'text-primary' : 'text-foreground')}>{talk.label}</span>
+                        {isSelected && <span className="text-[8px] text-primary/70 uppercase tracking-wider font-medium">Selected</span>}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 italic">"{talk.description}"</p>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {talk.effects.map((effect, i) => (
+                          <span
+                            key={i}
+                            className={cn(
+                              "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium",
+                              effect.type === 'positive' && 'bg-emerald-500/15 text-emerald-400',
+                              effect.type === 'negative' && 'bg-red-500/15 text-red-400',
+                              effect.type === 'warning' && 'bg-amber-500/15 text-amber-400',
+                            )}
+                          >
+                            {(effect.label.toLowerCase().includes('energy') || effect.label.toLowerCase().includes('drain')) && (
+                              <Zap className="w-2.5 h-2.5" />
+                            )}
+                            {effect.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </button>
                 );
               })}
