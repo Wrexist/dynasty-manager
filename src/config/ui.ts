@@ -283,7 +283,6 @@ export const GOAL_FLASH_MS = 600;
 export const CELEBRATION_STAGGER_MS = 800;
 export const ADVANCE_DONE_MS = 300;
 export const FLASH_DURATION_MS = 600;
-export const SAVE_INDICATOR_MS = 1200;
 export const XP_GLOW_MS = 1500;
 
 // ── Team Talk Options (match day half-time) ──
