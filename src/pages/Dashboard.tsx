@@ -585,6 +585,21 @@ const Dashboard = () => {
       {/* Weekly Digest (post-advanceWeek summary) */}
       <WeeklyDigest />
 
+      {/* Club Identity Hero */}
+      {!seasonOver && !inPlayoffs && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-1.5">
+          <div className="h-1 rounded-full" style={{ background: `linear-gradient(to right, ${club.color}, transparent)` }} />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-lg font-bold font-display text-foreground">{season === 1 && week === 1 ? `Welcome to ${club.name}` : club.name}</p>
+              <p className="text-[10px] text-muted-foreground">
+                Season {season} · {week <= SUMMER_WINDOW_END ? 'Pre-Season' : week < WINTER_WINDOW_START ? 'Autumn' : week <= WINTER_WINDOW_END ? 'Winter' : week <= 38 ? 'Spring' : 'Run-In'}
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Career Mode Info Panel */}
       {gameMode === 'career' && careerManager && (
         <GlassPanel className="p-3 cursor-pointer" onClick={() => setScreen(jobOffers.length > 0 ? 'job-market' : 'career-overview')}>
@@ -735,9 +750,11 @@ const Dashboard = () => {
         const weeksLeft = windowEnd - week;
         const windowName = week <= SUMMER_WINDOW_END ? 'Summer' : 'Winter';
         const isUrgent = weeksLeft <= 2;
+        // Only show full-width banner when <=4 weeks left; otherwise users find transfers via quick links
+        if (weeksLeft > 4) return null;
         return (
           <div className={cn(
-            'rounded-xl px-3 py-2 flex items-center justify-between',
+            'rounded-xl px-3 py-2 flex items-center justify-between cursor-pointer',
             isUrgent ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-primary/5 border border-primary/20'
           )} onClick={() => setScreen('transfers')}>
             <div className="flex items-center gap-2">
@@ -857,7 +874,14 @@ const Dashboard = () => {
         </GlassPanel>
       ) : !seasonOver && (
         <GlassPanel className="p-5 space-y-3">
-          <p className="text-sm text-muted-foreground text-center">No match this week</p>
+          <div className="text-center space-y-1">
+            <p className="text-sm font-semibold text-foreground">
+              {season === 1 && week <= 2 && (club.lineup || []).filter(Boolean).length < 11 ? 'Get Your Team Ready' : 'Training Week'}
+            </p>
+            {season === 1 && week <= 2 && (
+              <p className="text-[10px] text-muted-foreground">Set your lineup and tactics before advancing</p>
+            )}
+          </div>
           {/* Activity suggestions */}
           <div className="flex flex-wrap gap-2 justify-center">
             {transferWindowOpen && (
@@ -897,18 +921,122 @@ const Dashboard = () => {
             {isAdvancing ? <><Loader2 className="w-4 h-4 animate-spin" /> Advancing...</> : <><ChevronRight className="w-4 h-4" /> Advance to Week {week + 1}</>}
           </Button>
           {!nextMatch && seasonPhase === 'regular' && week < totalWeeks && (
-            <Button
-              variant="outline"
-              className="w-full gap-2"
+            <button
+              type="button"
+              className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5"
               disabled={isAdvancing}
               onClick={() => {
                 hapticMedium();
                 advanceToNextMatch();
               }}
             >
-              <FastForward className="w-4 h-4" /> Skip to Next Match
-            </Button>
+              <FastForward className="w-3.5 h-3.5 inline mr-1 align-[-2px]" /> Skip to Next Match
+            </button>
           )}
+        </GlassPanel>
+      )}
+
+      {/* Guided checklist for new careers */}
+      {!seasonOver && season <= 2 && coachTasks.length > 0 && (
+        <GlassPanel className="p-4 border-primary/20">
+          <button
+            type="button"
+            onClick={() => setCoachCollapsed(c => !c)}
+            aria-expanded={!coachCollapsed}
+            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
+          >
+            <div className="flex items-center gap-1.5">
+              <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
+                <ChevronRight className="w-3 h-3 text-primary" />
+              </motion.div>
+              <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
+              {allCoachTasksDone && <span className="text-[9px] text-emerald-400 font-bold">&#10003; Complete</span>}
+            </div>
+            <span className="text-[10px] text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
+          </button>
+          <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden mt-2">
+            <div
+              className={cn('h-full transition-all duration-300', allCoachTasksDone ? 'bg-emerald-500' : 'bg-primary')}
+              style={{ width: `${Math.round((completedCoachTasks / coachTasks.length) * 100)}%` }}
+            />
+          </div>
+          <AnimatePresence initial={false}>
+            {!coachCollapsed && (
+              <motion.div
+                key="coach-content"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={COLLAPSE_SPRING}
+                className="overflow-hidden"
+              >
+                <div className="space-y-2 mt-3">
+                  {coachTasks.map((task) => (
+                    <div key={task.id} className="relative">
+                      <button
+                        type="button"
+                        disabled={!task.screen}
+                        onClick={() => task.screen && setScreen(task.screen)}
+                        className={cn(
+                          'w-full text-left rounded-lg px-3 py-2 border transition-colors',
+                          task.completed
+                            ? 'bg-emerald-500/10 border-emerald-500/30'
+                            : 'bg-muted/20 border-border/40 hover:bg-primary/5'
+                        )}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className={cn(
+                              'text-[9px] font-bold px-1.5 py-0.5 rounded',
+                              task.completed ? 'text-emerald-400/70 bg-emerald-500/10' : 'text-primary/70 bg-primary/10'
+                            )}>
+                              {task.completed ? '✓' : '+'}{task.xpReward} XP
+                            </span>
+                            <span className={cn(
+                              'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
+                              task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
+                            )}>
+                              {task.priority}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
+                      </button>
+                      <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </GlassPanel>
+      )}
+
+      {/* Manager Tips */}
+      {!seasonOver && managerTips.length > 0 && (
+        <GlassPanel className="p-4 border-primary/20">
+          <p className="text-[10px] text-primary uppercase tracking-wider font-semibold mb-2">Manager Tips</p>
+          <div className="space-y-2">
+            {managerTips.map((tip, i) => (
+              <motion.div
+                key={tip.text}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.08 }}
+                className={cn(
+                  'flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors',
+                  tip.action ? 'cursor-pointer hover:bg-primary/5' : '',
+                  'bg-muted/20'
+                )}
+                onClick={() => tip.action && setScreen(tip.action)}
+              >
+                <DynamicIcon name={tip.icon} className="w-4 h-4 text-primary shrink-0" />
+                <span className="text-xs text-foreground flex-1">{tip.text}</span>
+                {tip.action && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+              </motion.div>
+            ))}
+          </div>
         </GlassPanel>
       )}
 
@@ -1003,110 +1131,6 @@ const Dashboard = () => {
             </div>
           )}
         </div>
-      )}
-
-      {/* Manager Tips */}
-      {!seasonOver && managerTips.length > 0 && (
-        <GlassPanel className="p-4 border-primary/20">
-          <p className="text-[10px] text-primary uppercase tracking-wider font-semibold mb-2">Manager Tips</p>
-          <div className="space-y-2">
-            {managerTips.map((tip, i) => (
-              <motion.div
-                key={tip.text}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.08 }}
-                className={cn(
-                  'flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors',
-                  tip.action ? 'cursor-pointer hover:bg-primary/5' : '',
-                  'bg-muted/20'
-                )}
-                onClick={() => tip.action && setScreen(tip.action)}
-              >
-                <DynamicIcon name={tip.icon} className="w-4 h-4 text-primary shrink-0" />
-                <span className="text-xs text-foreground flex-1">{tip.text}</span>
-                {tip.action && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
-              </motion.div>
-            ))}
-          </div>
-        </GlassPanel>
-      )}
-
-      {/* Guided checklist for new careers */}
-      {!seasonOver && season <= 2 && coachTasks.length > 0 && (
-        <GlassPanel className="p-4 border-primary/20">
-          <button
-            type="button"
-            onClick={() => setCoachCollapsed(c => !c)}
-            aria-expanded={!coachCollapsed}
-            className="w-full flex items-center justify-between rounded-md px-1 -mx-1 hover:bg-white/5 transition-colors"
-          >
-            <div className="flex items-center gap-1.5">
-              <motion.div animate={{ rotate: coachCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
-                <ChevronRight className="w-3 h-3 text-primary" />
-              </motion.div>
-              <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Coach Checklist</p>
-              {allCoachTasksDone && <span className="text-[9px] text-emerald-400 font-bold">&#10003; Complete</span>}
-            </div>
-            <span className="text-[10px] text-muted-foreground">{completedCoachTasks}/{coachTasks.length} done</span>
-          </button>
-          <div className="h-1.5 rounded-full bg-muted/40 overflow-hidden mt-2">
-            <div
-              className={cn('h-full transition-all duration-300', allCoachTasksDone ? 'bg-emerald-500' : 'bg-primary')}
-              style={{ width: `${Math.round((completedCoachTasks / coachTasks.length) * 100)}%` }}
-            />
-          </div>
-          <AnimatePresence initial={false}>
-            {!coachCollapsed && (
-              <motion.div
-                key="coach-content"
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={COLLAPSE_SPRING}
-                className="overflow-hidden"
-              >
-                <div className="space-y-2 mt-3">
-                  {coachTasks.map((task) => (
-                    <div key={task.id} className="relative">
-                      <button
-                        type="button"
-                        disabled={!task.screen}
-                        onClick={() => task.screen && setScreen(task.screen)}
-                        className={cn(
-                          'w-full text-left rounded-lg px-3 py-2 border transition-colors',
-                          task.completed
-                            ? 'bg-emerald-500/10 border-emerald-500/30'
-                            : 'bg-muted/20 border-border/40 hover:bg-primary/5'
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <p className={cn('text-xs font-semibold', task.completed ? 'text-emerald-400' : 'text-foreground')}>{task.title}</p>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <span className={cn(
-                              'text-[9px] font-bold px-1.5 py-0.5 rounded',
-                              task.completed ? 'text-emerald-400/70 bg-emerald-500/10' : 'text-primary/70 bg-primary/10'
-                            )}>
-                              {task.completed ? '✓' : '+'}{task.xpReward} XP
-                            </span>
-                            <span className={cn(
-                              'text-[9px] uppercase tracking-wide px-1.5 py-0.5 rounded',
-                              task.priority === 'high' ? 'bg-destructive/15 text-destructive' : task.priority === 'medium' ? 'bg-amber-500/15 text-amber-400' : 'bg-muted text-muted-foreground'
-                            )}>
-                              {task.priority}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">{task.description}</p>
-                      </button>
-                      <FloatingXP amount={task.xpReward} show={justCompletedCoach.has(task.id)} />
-                    </div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </GlassPanel>
       )}
 
       {/* Active Sagas */}
