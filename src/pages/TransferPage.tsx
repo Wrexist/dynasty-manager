@@ -18,7 +18,7 @@ import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, SIGNING_BONUS_WEEKS_PER_YEAR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE } from '@/config/transfers';
+import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, SIGNING_BONUS_WEEKS_PER_YEAR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE, FREE_AGENT_DIV_BONUS } from '@/config/transfers';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { formatMoney } from '@/utils/helpers';
 import { getPerformanceMultiplier } from '@/utils/transferOffers';
@@ -55,6 +55,7 @@ const TransferPage = () => {
     freeAgents: s.freeAgents,
     scouting: s.scouting,
     transferNews: s.transferNews,
+    playerDivision: s.playerDivision,
   })));
 
   const addToShortlist = useGameStore(s => s.addToShortlist);
@@ -155,7 +156,8 @@ const TransferPage = () => {
       result = result.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q));
     }
     // Reputation gate: only show free agents within club's quality range
-    const maxOvr = FREE_AGENT_REP_BASE + (club?.reputation || 1) * FREE_AGENT_REP_SCALE;
+    const divBonus = FREE_AGENT_DIV_BONUS[playerDivision] || 0;
+    const maxOvr = FREE_AGENT_REP_BASE + (club?.reputation || 1) * FREE_AGENT_REP_SCALE + divBonus;
     result = result.filter(p => p.overall <= maxOvr);
     result.sort((a, b) => {
       switch (faSortBy) {
@@ -167,7 +169,7 @@ const TransferPage = () => {
       }
     });
     return result;
-  }, [freeAgents, players, posFilter, searchQuery, faSortBy, club?.reputation]);
+  }, [freeAgents, players, posFilter, searchQuery, faSortBy, club?.reputation, playerDivision]);
 
   // News tab computations (memoized)
   const newsSummary = useMemo(() => {
@@ -1234,6 +1236,12 @@ const TransferPage = () => {
                 <span className="text-muted-foreground">Signing Bonus</span>
                 <span className={cn('font-semibold', canAfford ? 'text-foreground' : 'text-destructive')}>
                   {'\u00A3'}{(signingBonus / 1e6).toFixed(1)}M
+                </span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">First Year Cost</span>
+                <span className="font-semibold text-muted-foreground">
+                  {'\u00A3'}{((signingBonus + offerWage * (totalWeeks || 46)) / 1e6).toFixed(1)}M
                 </span>
               </div>
               <div className="flex justify-between text-xs">

@@ -1,7 +1,29 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
-import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
-import { SIGNING_BONUS_WEEKS_PER_YEAR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE } from '@/config/transfers';
+import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE } from '@/config/gameBalance';
+import { SIGNING_BONUS_WEEKS_PER_YEAR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE, FREE_AGENT_DIV_BONUS } from '@/config/transfers';
+
+const CLUB_ID = 'celtic';
+
+function initAndGetState() {
+  useGameStore.getState().initGame(CLUB_ID);
+  return useGameStore.getState();
+}
+
+function padSquadToMax(state: ReturnType<typeof useGameStore.getState>) {
+  const club = state.clubs[state.playerClubId];
+  const fakeIds = Array.from({ length: MAX_SQUAD_SIZE - club.playerIds.length }, (_, i) => `fake-${i}`);
+  useGameStore.setState({
+    clubs: {
+      ...state.clubs,
+      [state.playerClubId]: {
+        ...club,
+        playerIds: [...club.playerIds, ...fakeIds],
+        budget: 999_999_999,
+      },
+    },
+  });
+}
 
 describe('freeAgentBalance', () => {
   describe('config constants', () => {
@@ -14,51 +36,38 @@ describe('freeAgentBalance', () => {
     });
 
     it('reputation gate formula covers expected ranges', () => {
-      // rep 1 → 42, rep 5 → 70
       expect(FREE_AGENT_REP_BASE + 1 * FREE_AGENT_REP_SCALE).toBe(42);
       expect(FREE_AGENT_REP_BASE + 5 * FREE_AGENT_REP_SCALE).toBe(70);
     });
 
+    it('division bonus adjusts reputation gate', () => {
+      expect(FREE_AGENT_DIV_BONUS['div-1']).toBe(6);
+      expect(FREE_AGENT_DIV_BONUS['div-4']).toBe(-3);
+      // div-1, rep 5: 35 + 35 + 6 = 76
+      expect(FREE_AGENT_REP_BASE + 5 * FREE_AGENT_REP_SCALE + FREE_AGENT_DIV_BONUS['div-1']).toBe(76);
+      // div-4, rep 1: 35 + 7 - 3 = 39
+      expect(FREE_AGENT_REP_BASE + 1 * FREE_AGENT_REP_SCALE + FREE_AGENT_DIV_BONUS['div-4']).toBe(39);
+    });
+
     it('signing bonus is meaningful relative to wages', () => {
-      // A 3-year deal at £5K/week should cost £180K, not £30K
       const wage = 5000;
       const years = 3;
       const bonus = wage * years * SIGNING_BONUS_WEEKS_PER_YEAR;
       expect(bonus).toBe(180000);
-      expect(bonus).toBeGreaterThan(100000);
     });
   });
 
   describe('signFreeAgent guards', () => {
-    const CLUB_ID = 'celtic';
-
-    beforeEach(() => {
-      useGameStore.getState().initGame(CLUB_ID);
-    });
+    beforeEach(() => { initAndGetState(); });
 
     it('should reject signing when squad is at MAX_SQUAD_SIZE', () => {
       const state = useGameStore.getState();
-      const club = state.clubs[state.playerClubId];
-
-      // Find a free agent to try to sign
-      if (state.freeAgents.length === 0) return; // skip if no free agents
+      if (state.freeAgents.length === 0) return;
       const freeAgentId = state.freeAgents[0];
       const freeAgent = state.players[freeAgentId];
       if (!freeAgent) return;
 
-      // Pad the club's playerIds to MAX_SQUAD_SIZE
-      const fakeIds = Array.from({ length: MAX_SQUAD_SIZE - club.playerIds.length }, (_, i) => `fake-${i}`);
-      useGameStore.setState({
-        clubs: {
-          ...state.clubs,
-          [state.playerClubId]: {
-            ...club,
-            playerIds: [...club.playerIds, ...fakeIds],
-            budget: 999_999_999,
-          },
-        },
-      });
-
+      padSquadToMax(state);
       const result = useGameStore.getState().signFreeAgent(freeAgentId, freeAgent.wage, 2);
       expect(result.success).toBe(false);
       expect(result.message).toContain('Squad is full');
@@ -67,70 +76,38 @@ describe('freeAgentBalance', () => {
     it('should reject signing free agent above reputation threshold', () => {
       const state = useGameStore.getState();
       const club = state.clubs[state.playerClubId];
+      const divBonus = FREE_AGENT_DIV_BONUS[state.playerDivision] || 0;
+      const maxOvr = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE + divBonus;
 
-      // Find a free agent with overall above the club's reputation threshold
-      const maxOvr = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE;
-      const highOvrAgent = state.freeAgents
-        .map(id => state.players[id])
-        .filter(Boolean)
-        .find(p => p.overall > maxOvr);
+      const anyAgent = state.freeAgents[0];
+      if (!anyAgent) return;
+      const player = state.players[anyAgent];
+      if (!player) return;
 
-      if (!highOvrAgent) {
-        // Create one by manipulating state
-        const anyAgent = state.freeAgents[0];
-        if (!anyAgent) return;
-        const player = state.players[anyAgent];
-        if (!player) return;
-
-        useGameStore.setState({
-          players: {
-            ...state.players,
-            [anyAgent]: { ...player, overall: maxOvr + 5 },
-          },
-          clubs: {
-            ...state.clubs,
-            [state.playerClubId]: { ...club, budget: 999_999_999 },
-          },
-        });
-
-        const result = useGameStore.getState().signFreeAgent(anyAgent, player.wage, 2);
-        expect(result.success).toBe(false);
-        expect(result.message).toContain('reputation limit');
-        return;
-      }
-
-      // Ensure budget
       useGameStore.setState({
-        clubs: {
-          ...state.clubs,
-          [state.playerClubId]: { ...club, budget: 999_999_999 },
-        },
+        players: { ...state.players, [anyAgent]: { ...player, overall: maxOvr + 5 } },
+        clubs: { ...state.clubs, [state.playerClubId]: { ...club, budget: 999_999_999 } },
       });
 
-      const result = useGameStore.getState().signFreeAgent(highOvrAgent.id, highOvrAgent.wage, 2);
+      const result = useGameStore.getState().signFreeAgent(anyAgent, player.wage, 2);
       expect(result.success).toBe(false);
       expect(result.message).toContain('reputation limit');
     });
 
-    it('should allow signing a free agent within reputation and squad limits', () => {
+    it('should allow signing a free agent within all limits', () => {
       const state = useGameStore.getState();
       const club = state.clubs[state.playerClubId];
-      const maxOvr = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE;
+      const divBonus = FREE_AGENT_DIV_BONUS[state.playerDivision] || 0;
+      const maxOvr = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE + divBonus;
 
-      // Find a free agent within reputation threshold
       const validAgent = state.freeAgents
         .map(id => state.players[id])
         .filter(Boolean)
         .find(p => p.overall <= maxOvr);
+      if (!validAgent) return;
 
-      if (!validAgent) return; // skip if none available
-
-      // Ensure budget and squad space
       useGameStore.setState({
-        clubs: {
-          ...state.clubs,
-          [state.playerClubId]: { ...club, budget: 999_999_999 },
-        },
+        clubs: { ...state.clubs, [state.playerClubId]: { ...club, budget: 999_999_999 } },
       });
 
       const result = useGameStore.getState().signFreeAgent(validAgent.id, validAgent.wage, 2);
@@ -139,37 +116,123 @@ describe('freeAgentBalance', () => {
   });
 
   describe('executeTransfer squad cap', () => {
-    const CLUB_ID = 'celtic';
-
-    beforeEach(() => {
-      useGameStore.getState().initGame(CLUB_ID);
-    });
+    beforeEach(() => { initAndGetState(); });
 
     it('should reject transfer when squad is at MAX_SQUAD_SIZE', () => {
       const state = useGameStore.getState();
-      const club = state.clubs[state.playerClubId];
-
-      // Find a player on the transfer market
       if (state.transferMarket.length === 0) return;
       const listing = state.transferMarket[0];
 
-      // Pad the club's playerIds to MAX_SQUAD_SIZE
-      const fakeIds = Array.from({ length: MAX_SQUAD_SIZE - club.playerIds.length }, (_, i) => `fake-${i}`);
+      padSquadToMax(state);
+      useGameStore.setState({ transferWindowOpen: true });
+      const result = useGameStore.getState().executeTransfer(listing.playerId, listing.askingPrice);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Squad is full');
+    });
+  });
+
+  describe('promoteYouth squad cap', () => {
+    beforeEach(() => { initAndGetState(); });
+
+    it('should reject promotion when squad is at MAX_SQUAD_SIZE', () => {
+      const state = useGameStore.getState();
+      const prospects = state.youthAcademy.prospects;
+      if (prospects.length === 0) return;
+
+      padSquadToMax(state);
+      const result = useGameStore.getState().promoteYouth(prospects[0].playerId);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Squad is full');
+    });
+  });
+
+  describe('recallLoan squad cap', () => {
+    beforeEach(() => { initAndGetState(); });
+
+    it('should reject recall when squad is at MAX_SQUAD_SIZE', () => {
+      const state = useGameStore.getState();
+      if (state.activeLoans.length === 0) return;
+
+      const loan = state.activeLoans.find(l => l.fromClubId === state.playerClubId && l.recallClause);
+      if (!loan) return;
+
+      padSquadToMax(state);
+      const result = useGameStore.getState().recallLoan(loan.id);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('Squad is full');
+    });
+  });
+
+  describe('releasePlayer', () => {
+    beforeEach(() => { initAndGetState(); });
+
+    it('should release a player and deduct severance', () => {
+      const state = useGameStore.getState();
+      const club = state.clubs[state.playerClubId];
+      // Ensure budget and find a player
+      useGameStore.setState({
+        clubs: { ...state.clubs, [state.playerClubId]: { ...club, budget: 999_999_999 } },
+      });
+
+      const playerId = club.playerIds[club.playerIds.length - 1];
+      const player = state.players[playerId];
+      if (!player) return;
+
+      const beforeBudget = useGameStore.getState().clubs[state.playerClubId].budget;
+      const result = useGameStore.getState().releasePlayer(playerId);
+
+      if (club.playerIds.length <= MIN_SQUAD_SIZE) {
+        expect(result.success).toBe(false);
+        return;
+      }
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('released');
+
+      const afterState = useGameStore.getState();
+      expect(afterState.clubs[state.playerClubId].playerIds).not.toContain(playerId);
+      expect(afterState.freeAgents).toContain(playerId);
+      expect(afterState.clubs[state.playerClubId].budget).toBeLessThan(beforeBudget);
+    });
+
+    it('should reject releasing below MIN_SQUAD_SIZE', () => {
+      const state = useGameStore.getState();
+      const club = state.clubs[state.playerClubId];
+
+      // Trim squad to exactly MIN_SQUAD_SIZE
       useGameStore.setState({
         clubs: {
           ...state.clubs,
           [state.playerClubId]: {
             ...club,
-            playerIds: [...club.playerIds, ...fakeIds],
+            playerIds: club.playerIds.slice(0, MIN_SQUAD_SIZE),
             budget: 999_999_999,
           },
         },
-        transferWindowOpen: true,
       });
 
-      const result = useGameStore.getState().executeTransfer(listing.playerId, listing.askingPrice);
+      const trimmedClub = useGameStore.getState().clubs[state.playerClubId];
+      const playerId = trimmedClub.playerIds[0];
+      const result = useGameStore.getState().releasePlayer(playerId);
       expect(result.success).toBe(false);
-      expect(result.message).toContain('Squad is full');
+      expect(result.message).toContain('minimum size');
+    });
+
+    it('should reject releasing a player on loan', () => {
+      const state = useGameStore.getState();
+      const club = state.clubs[state.playerClubId];
+      const playerId = club.playerIds[0];
+      const player = state.players[playerId];
+      if (!player) return;
+
+      useGameStore.setState({
+        players: { ...state.players, [playerId]: { ...player, onLoan: true } },
+        clubs: { ...state.clubs, [state.playerClubId]: { ...club, budget: 999_999_999 } },
+      });
+
+      const result = useGameStore.getState().releasePlayer(playerId);
+      expect(result.success).toBe(false);
+      expect(result.message).toContain('on loan');
     });
   });
 });
