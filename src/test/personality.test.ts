@@ -108,5 +108,51 @@ describe('personality', () => {
       // clubRep 5 => threshold = 5*12+15 = 75. overall 40 < 75
       expect(wantsTransfer(player, 5)).toBe(false);
     });
+
+    it('should almost never trigger for happy players (morale >= 70)', () => {
+      // Run 500 trials: with morale 80 the chance is multiplied by 0.15
+      // Base: (18-2)*0.02 = 0.32, dampened: 0.32 * 0.15 = 0.048
+      let triggers = 0;
+      for (let i = 0; i < 500; i++) {
+        const player = generatePlayer('ST', 80, 'club-1', 1);
+        player.overall = 80;
+        player.morale = 80;
+        player.personality = { professionalism: 10, ambition: 18, temperament: 10, loyalty: 2, leadership: 10 };
+        if (wantsTransfer(player, 3)) triggers++;
+      }
+      // Expect far fewer than the ~160 (32%) we'd get without dampening
+      expect(triggers).toBeLessThan(60);
+    });
+
+    it('should have reduced chance for content players (morale 50-69)', () => {
+      // With morale 55, chance is multiplied by 0.4
+      // Base: (18-2)*0.02 = 0.32, dampened: 0.32 * 0.4 = 0.128
+      let triggers = 0;
+      for (let i = 0; i < 500; i++) {
+        const player = generatePlayer('ST', 80, 'club-1', 1);
+        player.overall = 80;
+        player.morale = 55;
+        player.personality = { professionalism: 10, ambition: 18, temperament: 10, loyalty: 2, leadership: 10 };
+        if (wantsTransfer(player, 3)) triggers++;
+      }
+      // ~64 expected (12.8%) — should be notably less than undampened ~160
+      expect(triggers).toBeLessThan(120);
+      expect(triggers).toBeGreaterThan(10);
+    });
+
+    it('should apply full base chance for unhappy players (morale < 50)', () => {
+      // With morale 30, no dampening applies
+      // Base: (18-2)*0.02 = 0.32
+      let triggers = 0;
+      for (let i = 0; i < 500; i++) {
+        const player = generatePlayer('ST', 80, 'club-1', 1);
+        player.overall = 80;
+        player.morale = 30;
+        player.personality = { professionalism: 10, ambition: 18, temperament: 10, loyalty: 2, leadership: 10 };
+        if (wantsTransfer(player, 3)) triggers++;
+      }
+      // Expect around 160 (32%) — full base rate
+      expect(triggers).toBeGreaterThan(100);
+    });
   });
 });

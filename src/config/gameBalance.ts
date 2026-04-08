@@ -226,14 +226,14 @@ export const AI_LOAN_OBLIGATORY_BUY_MULTIPLIER = 0.8;
 
 // ── Win Streak Bonuses ──
 export const STREAK_MORALE_THRESHOLD = 3;
-export const STREAK_MORALE_BONUS = 2;
+export const STREAK_MORALE_BONUS = 3;
 export const STREAK_INCOME_THRESHOLD = 5;
 export const STREAK_INCOME_MULTIPLIER = 0.05; // +5% matchday income
 export const STREAK_FORM_THRESHOLD = 8;
 export const STREAK_FORM_BONUS = 3;
 
 // ── Morale: Benched Players ──
-export const MORALE_BENCH_WEEKLY_LOSS = 3;
+export const MORALE_BENCH_WEEKLY_LOSS = 2;
 export const MORALE_BENCH_MIN = 20;
 
 // ── Board Mid-Season Review ──
@@ -385,7 +385,7 @@ export const APPEASE_MORALE_BOOST = 25;
 
 // ── Transfer Talk ──
 /** Base chance (0-1) that "convince to stay" succeeds */
-export const TRANSFER_TALK_CONVINCE_BASE_CHANCE = 0.35;
+export const TRANSFER_TALK_CONVINCE_BASE_CHANCE = 0.42;
 /** Bonus to convince chance per point of player loyalty (scaled by 20) */
 export const TRANSFER_TALK_CONVINCE_LOYALTY_BONUS = 0.25;
 /** Morale penalty when manager refuses transfer request */

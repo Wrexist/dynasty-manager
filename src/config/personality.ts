@@ -62,3 +62,6 @@ export const TRANSFER_DEMAND_CONTENT_REDUCTION = 0.4;
 
 // ── Transfer Demand: Cooldown after convince ──
 export const TRANSFER_DEMAND_COOLDOWN_WEEKS = 8;
+
+// ── Transfer Talk: Retry cooldown ──
+export const TRANSFER_TALK_RETRY_WEEKS = 2;

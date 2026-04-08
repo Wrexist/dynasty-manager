@@ -1,7 +1,7 @@
 import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, ActiveStorylineChain, ManagerProgression, CliffhangerItem, MatchDramaType, SessionStats, TransferTalk } from '@/types/game';
 import { MOD_MEDIA_PRESS, MOD_MOTIVATION_MORALE, GROWTH_MEDIA_PER_CONFERENCE, STAT_MAX } from '@/config/managerCareer';
 import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP, TOTAL_WEEKS } from '@/config/gameBalance';
-import { TRANSFER_DEMAND_COOLDOWN_WEEKS } from '@/config/personality';
+import { TRANSFER_DEMAND_COOLDOWN_WEEKS, TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
 import { grantXP } from '@/utils/managerPerks';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
@@ -430,6 +430,8 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     const state = get();
     const player = state.players[playerId];
     if (!player || !player.wantsToLeave) return;
+    // Prevent spamming talk within retry cooldown period
+    if (player.lastTransferTalkWeek && state.week - player.lastTransferTalkWeek < TRANSFER_TALK_RETRY_WEEKS) return;
     const reason = (player.lowMoraleWeeks && player.lowMoraleWeeks >= 4) ? 'low_morale' as const : 'ambition' as const;
     set({ pendingTransferTalk: buildTransferTalk(player, reason) });
   },
@@ -450,26 +452,26 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     let succeeded: boolean | undefined;
 
     if (option.tone === 'empathize') {
-      newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + (option.effects.morale || 0), 10, 100), listedForSale: true };
+      newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + (option.effects.morale || 0), 10, 100), listedForSale: true, lastTransferTalkWeek: state.week };
       msgTitle = `${player.lastName}: Transfer Listed`;
       msgBody = `You listened to ${player.firstName} ${player.lastName}'s concerns and agreed to list them for sale.`;
     } else if (option.tone === 'convince') {
       succeeded = Math.random() < (option.effects.withdrawChance || 0);
       if (succeeded) {
-        newPlayers[talk.playerId] = { ...player, wantsToLeave: false, morale: clamp(player.morale + TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, 10, 100), lowMoraleWeeks: 0, transferCooldownUntilWeek: state.week + TRANSFER_DEMAND_COOLDOWN_WEEKS };
+        newPlayers[talk.playerId] = { ...player, wantsToLeave: false, morale: clamp(player.morale + TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, 10, 100), lowMoraleWeeks: 0, transferCooldownUntilWeek: state.week + TRANSFER_DEMAND_COOLDOWN_WEEKS, lastTransferTalkWeek: state.week };
         msgTitle = `${player.lastName} Convinced to Stay!`;
         msgBody = `${player.firstName} ${player.lastName} has withdrawn the transfer request after your talk. The player is committed to the project.`;
       } else {
-        newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale - TRANSFER_TALK_CONVINCE_FAIL_MORALE, 10, 100) };
+        newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale - TRANSFER_TALK_CONVINCE_FAIL_MORALE, 10, 100), lastTransferTalkWeek: state.week };
         msgTitle = `${player.lastName} Insists on Leaving`;
         msgBody = `${player.firstName} ${player.lastName} was not convinced. The player still wants to leave the club.`;
       }
     } else if (option.tone === 'promise') {
-      newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + (option.effects.morale || 0), 10, 100), listedForSale: true };
+      newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + (option.effects.morale || 0), 10, 100), listedForSale: true, lastTransferTalkWeek: state.week };
       msgTitle = `${player.lastName}: Move Promised`;
       msgBody = `You promised ${player.firstName} ${player.lastName} you'd find them the right move. They have been listed for sale.`;
     } else if (option.tone === 'refuse') {
-      newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + (option.effects.morale || 0), 10, 100) };
+      newPlayers[talk.playerId] = { ...player, morale: clamp(player.morale + (option.effects.morale || 0), 10, 100), lastTransferTalkWeek: state.week };
       // Apply team morale hit
       if (option.effects.teamMorale && club) {
         club.playerIds.forEach(pid => {

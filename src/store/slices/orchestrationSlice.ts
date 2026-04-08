@@ -1282,7 +1282,7 @@ function finalizeSeason(
       careerAppearances: (p.careerAppearances || 0) + p.appearances,
       goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0,
       suspendedUntilWeek: undefined, growthDelta: 0, lastAttributeChanges: undefined, lastTrainingGains: undefined, onLoan: false,
-      loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined,
+      loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined, lastTransferTalkWeek: undefined,
     };
     if (aged.contractEnd <= season) {
       const club = newClubs[aged.clubId];
@@ -2540,9 +2540,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         if (p.wantsToLeave && p.morale >= 50) {
           p.wantsToLeave = false;
           newMessages = addMsg(newMessages, {
-            week, season, type: 'general',
+            week, season, type: 'transfer',
             title: `${p.lastName} Settled`,
             body: `${p.firstName} ${p.lastName} appears to have settled down and withdrawn the transfer request.`,
+            playerId: pid, actioned: true,
           });
         }
       }

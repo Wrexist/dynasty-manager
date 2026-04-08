@@ -130,6 +130,7 @@ export interface Player {
   wantsToLeave?: boolean; // player has submitted a transfer request
   lowMoraleWeeks?: number; // consecutive weeks with morale below threshold
   transferCooldownUntilWeek?: number; // after being convinced to stay, immune until this week
+  lastTransferTalkWeek?: number; // week of last transfer talk interaction (prevents spam)
   internationalCaps?: number;
   internationalGoals?: number;
   appearance?: PlayerAppearance;
