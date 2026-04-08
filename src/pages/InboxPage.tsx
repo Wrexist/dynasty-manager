@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle, Globe } from 'lucide-react';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle, Globe, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message, GameScreen } from '@/types/game';
@@ -19,6 +19,7 @@ const typeIcon: Record<Message['type'], React.ElementType> = {
   sponsorship: Handshake,
   general: Mail,
   national_team: Globe,
+  warning: AlertTriangle,
 };
 
 interface MessageColorScheme {
@@ -39,6 +40,14 @@ const typeColors: Record<Message['type'], MessageColorScheme> = {
   match_result:  { iconBg: 'bg-primary/20',     iconText: 'text-primary',     border: 'border-primary/30',     dot: 'bg-primary' },
   general:       { iconBg: 'bg-sky-500/15',      iconText: 'text-sky-400',         border: 'border-sky-500/20',     dot: 'bg-sky-400' },
   national_team: { iconBg: 'bg-teal-500/20',    iconText: 'text-teal-400',       border: 'border-teal-500/30',    dot: 'bg-teal-500' },
+  warning:       { iconBg: 'bg-amber-500/20',   iconText: 'text-amber-400',      border: 'border-amber-500/30',   dot: 'bg-amber-500' },
+};
+
+const DEFAULT_COLORS: MessageColorScheme = {
+  iconBg: 'bg-muted/50',
+  iconText: 'text-muted-foreground',
+  border: 'border-border/50',
+  dot: 'bg-muted-foreground',
 };
 
 function getMatchResultColors(msg: Message): MessageColorScheme {
@@ -54,7 +63,7 @@ function getMatchResultColors(msg: Message): MessageColorScheme {
 
 function getMessageColors(msg: Message): MessageColorScheme {
   if (msg.type === 'match_result') return getMatchResultColors(msg);
-  return typeColors[msg.type];
+  return typeColors[msg.type] || DEFAULT_COLORS;
 }
 
 function getGeneralNavTarget(title: string): { label: string; screen: GameScreen } | null {
@@ -94,7 +103,7 @@ const FILTER_OPTIONS: { label: string; types: Message['type'][]; icon: React.Ele
   { label: 'Contract', types: ['contract'], icon: FileText, color: 'text-orange-400' },
   { label: 'Development', types: ['development'], icon: TrendingUp, color: 'text-blue-400' },
   { label: 'Sponsorship', types: ['sponsorship'], icon: Handshake, color: 'text-emerald-400' },
-  { label: 'General', types: ['general'], icon: Mail, color: 'text-sky-400' },
+  { label: 'General', types: ['general', 'warning'], icon: Mail, color: 'text-sky-400' },
   { label: 'National Team', types: ['national_team'], icon: Globe, color: 'text-teal-400' },
 ];
 
