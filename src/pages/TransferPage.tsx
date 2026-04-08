@@ -18,7 +18,8 @@ import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS } from '@/config/transfers';
+import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, SIGNING_BONUS_WEEKS_PER_YEAR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE } from '@/config/transfers';
+import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { formatMoney } from '@/utils/helpers';
 import { getPerformanceMultiplier } from '@/utils/transferOffers';
 import { SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE } from '@/config/ui';
@@ -153,6 +154,9 @@ const TransferPage = () => {
       const q = searchQuery.trim().toLowerCase();
       result = result.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q));
     }
+    // Reputation gate: only show free agents within club's quality range
+    const maxOvr = FREE_AGENT_REP_BASE + (club?.reputation || 1) * FREE_AGENT_REP_SCALE;
+    result = result.filter(p => p.overall <= maxOvr);
     result.sort((a, b) => {
       switch (faSortBy) {
         case 'age': return a.age - b.age;
@@ -163,7 +167,7 @@ const TransferPage = () => {
       }
     });
     return result;
-  }, [freeAgents, players, posFilter, searchQuery, faSortBy]);
+  }, [freeAgents, players, posFilter, searchQuery, faSortBy, club?.reputation]);
 
   // News tab computations (memoized)
   const newsSummary = useMemo(() => {
@@ -259,14 +263,22 @@ const TransferPage = () => {
         )}
       </div>
 
-      {/* Budget */}
-      <GlassPanel className="p-3 flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">Available Budget</span>
-        <AnimatedNumber
-          value={club?.budget || 0}
-          formatFn={(n) => '\u00A3' + (n / 1e6).toFixed(1) + 'M'}
-          className="text-lg font-black text-primary tabular-nums"
-        />
+      {/* Budget & Squad Size */}
+      <GlassPanel className="p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Available Budget</span>
+          <AnimatedNumber
+            value={club?.budget || 0}
+            formatFn={(n) => '\u00A3' + (n / 1e6).toFixed(1) + 'M'}
+            className="text-lg font-black text-primary tabular-nums"
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">Squad Size</span>
+          <span className={cn('text-xs font-bold tabular-nums', (club?.playerIds.length || 0) >= MAX_SQUAD_SIZE ? 'text-destructive' : 'text-muted-foreground')}>
+            {club?.playerIds.length || 0} / {MAX_SQUAD_SIZE}
+          </span>
+        </div>
       </GlassPanel>
 
       {/* Ad Reward: Budget Boost */}
@@ -1179,7 +1191,7 @@ const TransferPage = () => {
       {signingPlayer && (() => {
         const p = players[signingPlayer];
         if (!p) return null;
-        const signingBonus = Math.round(offerWage * offerYears * 4);
+        const signingBonus = Math.round(offerWage * offerYears * SIGNING_BONUS_WEEKS_PER_YEAR);
         const canAfford = (club?.budget || 0) >= signingBonus;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
@@ -1224,17 +1236,23 @@ const TransferPage = () => {
                   {'\u00A3'}{(signingBonus / 1e6).toFixed(1)}M
                 </span>
               </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Squad Size</span>
+                <span className={cn('font-semibold', (club?.playerIds.length || 0) >= MAX_SQUAD_SIZE ? 'text-destructive' : 'text-muted-foreground')}>
+                  {club?.playerIds.length || 0} / {MAX_SQUAD_SIZE}
+                </span>
+              </div>
               <div className="flex gap-2">
                 <Button
                   size="sm" className="flex-1 h-9 text-xs"
-                  disabled={!canAfford}
+                  disabled={!canAfford || (club?.playerIds.length || 0) >= MAX_SQUAD_SIZE}
                   onClick={() => {
                     const result = signFreeAgent(signingPlayer, offerWage, offerYears);
                     if (result.success) { hapticHeavy(); successToast(result.message); } else { errorToast(result.message); }
                     setSigningPlayer(null);
                   }}
                 >
-                  {canAfford ? 'Confirm Signing' : 'Cannot Afford'}
+                  {(club?.playerIds.length || 0) >= MAX_SQUAD_SIZE ? 'Squad Full' : canAfford ? 'Confirm Signing' : 'Cannot Afford'}
                 </Button>
                 <Button size="sm" variant="outline" className="flex-1 h-9 text-xs" onClick={() => setSigningPlayer(null)}>
                   Cancel

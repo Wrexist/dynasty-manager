@@ -13,11 +13,11 @@ import {
   SELL_ON_EVAL_HIGH_PCT, SELL_ON_EVAL_LOW_PCT,
   COUNTER_OFFER_BASE_RATIO, COUNTER_OFFER_RANDOM_RANGE,
   RECORD_SIGNING_SPEND_RATIO, RECORD_SIGNING_MIN_FEE,
-  LISTING_PRICE_FLOOR,
+  LISTING_PRICE_FLOOR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE,
   INCOMING_NEGOTIATE_ACCEPT_AT_OFFER, INCOMING_NEGOTIATE_ACCEPT_AT_120, INCOMING_NEGOTIATE_ACCEPT_AT_MAX,
   INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
 } from '@/config/transfers';
-import { MIN_SQUAD_SIZE, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST } from '@/config/gameBalance';
+import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
 import { getStarPlayerMerch } from '@/utils/merchandise';
@@ -204,6 +204,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (!listing) return { success: false, message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
     if (fee > club.budget) return { success: false, message: 'Insufficient funds.' };
+    if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
 
     const player = { ...state.players[playerId] };
     const isExternalPlayer = listing.externalPlayer || !listing.sellerClubId || !state.clubs[listing.sellerClubId];
@@ -488,9 +489,11 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const player = state.players[playerId];
     if (!player) return { success: false, message: 'Player not found.' };
     const club = { ...state.clubs[state.playerClubId] };
-    // Signing bonus: 4 weeks of wages per year
     const signingBonus = Math.round(wage * years * SIGNING_BONUS_WEEKS_PER_YEAR);
     if (club.budget < signingBonus) return { success: false, message: `Insufficient funds for signing bonus (£${(signingBonus / 1e6).toFixed(1)}M).` };
+    if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
+    const maxFreeAgentOvr = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE;
+    if (player.overall > maxFreeAgentOvr) return { success: false, message: `Player quality (${player.overall}) exceeds your club's reputation limit (${maxFreeAgentOvr}).` };
 
     club.budget -= signingBonus;
     club.playerIds = [...club.playerIds, playerId];
@@ -521,7 +524,6 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (years < CONTRACT_MIN_YEARS || years > CONTRACT_MAX_YEARS) return { success: false, message: 'Contract must be 1-5 years.' };
 
     const club = { ...state.clubs[state.playerClubId] };
-    // Signing bonus: 4 weeks of wages per year
     const signingBonus = Math.round(newWage * years * SIGNING_BONUS_WEEKS_PER_YEAR);
     if (club.budget < signingBonus) return { success: false, message: `Insufficient funds for signing bonus (£${(signingBonus / 1e6).toFixed(1)}M).` };
 

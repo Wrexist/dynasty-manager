@@ -114,7 +114,7 @@ export const INCOMING_NEGOTIATE_COUNTER_RANGE = 0.3;
 // ── Contract Renewal ──
 export const CONTRACT_MIN_YEARS = 1;
 export const CONTRACT_MAX_YEARS = 5;
-export const SIGNING_BONUS_WEEKS_PER_YEAR = 2;
+export const SIGNING_BONUS_WEEKS_PER_YEAR = 12;
 export const RENEWAL_MORALE_BOOST = 10;
 
 // ── Outgoing Loan Requests ──
@@ -178,6 +178,12 @@ export const FREE_AGENT_QUALITY_MAX = 72;
 export const FREE_AGENT_SPAWN_CHANCE = 0.25;
 export const FREE_AGENT_SPAWN_MIN = 1;
 export const FREE_AGENT_SPAWN_RANGE = 3; // 1-3 per spawn event
+
+// ── Reputation-Gated Free Agent Quality ──
+// Max OVR a club can sign as free agent = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE
+// rep 1 → 42, rep 2 → 49, rep 3 → 56, rep 4 → 63, rep 5 → 70
+export const FREE_AGENT_REP_BASE = 35;
+export const FREE_AGENT_REP_SCALE = 7;
 
 // ── Initial Market Population ──
 // Number of generated players to seed market with at season start
