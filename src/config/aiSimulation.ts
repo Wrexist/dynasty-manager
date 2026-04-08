@@ -34,16 +34,20 @@ export const AI_POSITION_PRIORITY: Position[] = [
 export const AI_TRANSFER_WEEKLY_CHANCE = 0.25;        // 25% chance per AI club per week to evaluate transfers
 export const AI_TRANSFER_DEADLINE_WEEKS = [7, 8, 23, 24] as const; // Deadline rush weeks
 export const AI_TRANSFER_DEADLINE_MULTIPLIER = 2.5;   // 2.5x activity on deadline weeks
-export const AI_TRANSFER_MAX_PER_WEEK = 6;            // Max 6 AI-to-AI transfers per week
+export const AI_TRANSFER_MAX_PER_WEEK = 10;           // Max 10 AI-to-AI transfers per week
 export const AI_LOAN_MAX_PER_WEEK = 4;                // Max 4 AI-to-AI loans per week
 
 // ── AI Selling Logic ──
 export const AI_SELL_AGE_THRESHOLD = 30;              // Consider selling players 30+
 export const AI_SELL_DECLINE_OVERALL_DROP = 3;        // Sell if player dropped 3+ from peak
 export const AI_SELL_SURPLUS_THRESHOLD = 3;           // Sell if 3+ players in one position
-export const AI_SELL_LISTING_CHANCE = 0.20;           // 20% chance to list a sellable player per week
+export const AI_SELL_LISTING_CHANCE = 0.40;           // 40% chance to list a sellable player per week
 export const AI_SELL_LISTING_PRICE_MIN = 1.10;        // Min asking price multiplier vs value
 export const AI_SELL_LISTING_PRICE_RANGE = 0.45;      // Random range: 1.10-1.55x value
+export const AI_SELL_BENCH_OVERALL_GAP = 2;           // Bench player must be 2+ below squad avg to list
+export const AI_SELL_BENCH_MIN_AGE = 22;              // Don't sell youth bench players
+export const AI_SELL_CONTRACT_SEASONS_LEFT = 1;       // Sell if ≤1 season remaining on contract
+export const AI_SELL_OVERPAID_WAGE_RATIO = 1.5;       // Sell if wage is 1.5x squad average wage
 
 // ── AI Buying Logic ──
 export const AI_BUY_MAX_BUDGET_RATIO = 0.50;         // Max 50% of budget on one player

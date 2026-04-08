@@ -177,8 +177,8 @@ export const GENERIC_FILL_POSITIONS: Position[] = ['CM', 'CB', 'ST', 'LW', 'RW']
 // ── Transfer Market Listing ──
 export const LISTING_PRICE_MIN_MULTIPLIER = 1.1;
 export const LISTING_PRICE_RANDOM_RANGE = 0.4;
-export const INITIAL_LISTINGS_MIN = 1;
-export const INITIAL_LISTINGS_RANGE = 2;
+export const INITIAL_LISTINGS_MIN = 2;
+export const INITIAL_LISTINGS_RANGE = 3;
 
 // ── Youth Intake at Season End ──
 export const SEASON_YOUTH_INTAKE_MIN = 2;
@@ -501,6 +501,8 @@ export const WORLD_CUP_TEAMS_PER_GROUP = 4;
 export const CONTINENTAL_CUP_GROUPS = 4;
 /** National team squad size */
 export const NATIONAL_SQUAD_SIZE = 23;
+/** Target size for national team candidate pool (generated on job acceptance) */
+export const NT_CANDIDATE_POOL_TARGET = 50;
 /** Morale boost for players called up to national team */
 export const NATIONAL_CALLUP_MORALE_BOOST = 5;
 /** Fitness cost per international match */

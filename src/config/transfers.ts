@@ -128,18 +128,18 @@ export const LOAN_REQUEST_MAX_DURATION = 46;
 
 // ── Transfer Market Population ──
 // Minimum market size before replenishment kicks in
-export const MARKET_REPLENISH_THRESHOLD = 25;
+export const MARKET_REPLENISH_THRESHOLD = 40;
 // How many external (generated) players to add per replenishment cycle
-export const MARKET_REPLENISH_BATCH_MIN = 5;
-export const MARKET_REPLENISH_BATCH_RANGE = 6; // 5-10 players per batch
+export const MARKET_REPLENISH_BATCH_MIN = 3;
+export const MARKET_REPLENISH_BATCH_RANGE = 4; // 3-6 players per batch
 
 // ── Division Quality Ranges (overall rating) ──
 // Used when generating market players to match realistic quality per division
 export const DIVISION_QUALITY_RANGES: Record<string, { min: number; max: number; avgPrice: number }> = {
-  'div-1': { min: 68, max: 88, avgPrice: 15_000_000 },
-  'div-2': { min: 60, max: 78, avgPrice: 5_000_000 },
-  'div-3': { min: 52, max: 70, avgPrice: 1_500_000 },
-  'div-4': { min: 45, max: 64, avgPrice: 400_000 },
+  'div-1': { min: 65, max: 88, avgPrice: 15_000_000 },
+  'div-2': { min: 50, max: 75, avgPrice: 5_000_000 },
+  'div-3': { min: 40, max: 65, avgPrice: 1_500_000 },
+  'div-4': { min: 30, max: 50, avgPrice: 400_000 },
 };
 
 // Division weight for how many players from each tier appear on the market
@@ -172,7 +172,7 @@ export const AGE_PRICE_MULTIPLIER: Record<string, number> = {
 export const INITIAL_FREE_AGENTS_MIN = 25;
 export const INITIAL_FREE_AGENTS_RANGE = 16; // 25-40
 // Quality range for generated free agents (slightly lower than market)
-export const FREE_AGENT_QUALITY_MIN = 45;
+export const FREE_AGENT_QUALITY_MIN = 35;
 export const FREE_AGENT_QUALITY_MAX = 72;
 // Weekly chance to spawn new free agents (keeps pool refreshed)
 export const FREE_AGENT_SPAWN_CHANCE = 0.25;
@@ -181,12 +181,14 @@ export const FREE_AGENT_SPAWN_RANGE = 3; // 1-3 per spawn event
 
 // ── Initial Market Population ──
 // Number of generated players to seed market with at season start
-export const INITIAL_MARKET_GEN_MIN = 30;
-export const INITIAL_MARKET_GEN_RANGE = 21; // 30-50 players
+export const INITIAL_MARKET_GEN_MIN = 12;
+export const INITIAL_MARKET_GEN_RANGE = 9; // 12-20 players
 
 // ── Market Listing Expiry ──
 // Unsold listings are refreshed after this many weeks
 export const LISTING_EXPIRY_WEEKS = 12;
+// Club-listed players expire after more weeks (clubs are stickier than external market)
+export const CLUB_LISTING_EXPIRY_WEEKS = 16;
 // Chance to relist expired listing with reduced price
 export const LISTING_RELIST_CHANCE = 0.4;
 export const LISTING_RELIST_DISCOUNT = 0.15; // 15% price reduction

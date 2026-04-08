@@ -1226,6 +1226,7 @@ export interface NationalTeamState {
   caps: Record<string, number>;           // playerId -> total caps
   internationalGoals: Record<string, number>; // playerId -> intl goals
   results: NationalTeamResult[];
+  poolPlayerIds: string[];                // IDs of generated national team pool players
 }
 
 export interface NationalTeamResult {

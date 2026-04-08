@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 42', () => {
-    expect(CURRENT_VERSION).toBe(42);
+  it('should have current version set to 43', () => {
+    expect(CURRENT_VERSION).toBe(43);
   });
 
   it('should migrate v1 data to current version', () => {

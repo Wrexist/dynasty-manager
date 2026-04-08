@@ -193,6 +193,7 @@ export interface GameState {
 
   // Actions — Core
   initGame: (clubId: string) => void;
+  initializeLeague: (leagueId: string) => void;
   setScreen: (screen: GameScreen) => void;
   selectPlayer: (id: string | null) => void;
   selectClub: (id: string | null) => void;

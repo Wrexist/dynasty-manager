@@ -628,6 +628,96 @@ describe('AI Simulation — processAIWeekly', () => {
       }
       expect(listedSt).toBe(true);
     });
+
+    it('bench warmers below squad average are candidates for sale', () => {
+      const world = createTestWorld();
+      // Pick a player that is NOT in lineup or subs (index 18+ should be pure bench)
+      const pid = world.clubs['ai-club-1'].playerIds[18];
+      const squad = world.clubs['ai-club-1'].playerIds.map(id => world.players[id]).filter(Boolean);
+      const avgOverall = Math.round(squad.reduce((s, p) => s + p.overall, 0) / squad.length);
+      world.players[pid] = {
+        ...world.players[pid],
+        age: 24,
+        overall: avgOverall - 5, // well below average
+      };
+      // Ensure not in lineup or subs
+      world.clubs['ai-club-1'] = {
+        ...world.clubs['ai-club-1'],
+        lineup: world.clubs['ai-club-1'].lineup.filter(id => id !== pid),
+        subs: world.clubs['ai-club-1'].subs.filter(id => id !== pid),
+      };
+
+      let listed = false;
+      for (let i = 0; i < 500; i++) {
+        const result = processAIWeekly(
+          world.clubs, world.players, world.messages,
+          world.transferMarket, world.freeAgents, world.activeLoans,
+          world.transferNews, world.divisionTables,
+          7, 1, world.playerClubId, true,
+        );
+        if (result.transferMarket.some(l => l.playerId === pid)) {
+          listed = true;
+          break;
+        }
+      }
+      expect(listed).toBe(true);
+    });
+
+    it('players with expiring contracts are candidates for sale', () => {
+      const world = createTestWorld();
+      const pid = world.clubs['ai-club-1'].playerIds[18];
+      world.players[pid] = {
+        ...world.players[pid],
+        contractEnd: 2, // expires at end of season 2 (1 season from season 1)
+        age: 28,
+      };
+
+      let listed = false;
+      for (let i = 0; i < 500; i++) {
+        const result = processAIWeekly(
+          world.clubs, world.players, world.messages,
+          world.transferMarket, world.freeAgents, world.activeLoans,
+          world.transferNews, world.divisionTables,
+          7, 1, world.playerClubId, true,
+        );
+        if (result.transferMarket.some(l => l.playerId === pid)) {
+          listed = true;
+          break;
+        }
+      }
+      expect(listed).toBe(true);
+    });
+
+    it('overpaid squad players are candidates for sale', () => {
+      const world = createTestWorld();
+      const club = world.clubs['ai-club-1'];
+      const squad = club.playerIds.map(id => world.players[id]).filter(Boolean);
+      const avgWage = squad.reduce((s, p) => s + p.wage, 0) / squad.length;
+      const avgOverall = Math.round(squad.reduce((s, p) => s + p.overall, 0) / squad.length);
+
+      const pid = club.playerIds[18];
+      world.players[pid] = {
+        ...world.players[pid],
+        wage: Math.round(avgWage * 2), // 2x squad average wage
+        overall: avgOverall - 3, // below average
+        age: 28,
+      };
+
+      let listed = false;
+      for (let i = 0; i < 500; i++) {
+        const result = processAIWeekly(
+          world.clubs, world.players, world.messages,
+          world.transferMarket, world.freeAgents, world.activeLoans,
+          world.transferNews, world.divisionTables,
+          7, 1, world.playerClubId, true,
+        );
+        if (result.transferMarket.some(l => l.playerId === pid)) {
+          listed = true;
+          break;
+        }
+      }
+      expect(listed).toBe(true);
+    });
   });
 
   // ── 5. AI Free Agent Signings ──
