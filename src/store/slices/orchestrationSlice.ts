@@ -4339,6 +4339,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
       if (result.homeGoals === result.awayGoals) {
         const isContinentalGroup = continentalMatch?.type === 'group';
+        // Continental knockout leg 1 (non-final): draws are valid, aggregate decided after leg 2
+        const isContinentalLeg1 = continentalMatch?.type === 'knockout' && continentalMatch.leg === 1
+          && continentalTourney?.knockoutTies[continentalMatch.tieIdx]?.round !== 'F';
         // Check aggregate for continental knockout leg 2
         let isAggDecided = false;
         if (continentalMatch && continentalMatch.type === 'knockout' && continentalTourney) {
@@ -4350,7 +4353,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           }
         }
 
-        if (!isContinentalGroup && !isAggDecided) {
+        if (!isContinentalGroup && !isContinentalLeg1 && !isAggDecided) {
           let hGoals = result.homeGoals;
           let aGoals = result.awayGoals;
           const cupEvents = [...result.events];
@@ -4416,6 +4419,34 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const cupDrama = detectMatchDrama(finalResult, playerClubId, effectiveClubs);
       const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
 
+      // Add tournament-specific inbox message (e.g. "Cup: R2 Won!" / "League Cup: Eliminated")
+      const oppClub = effectiveClubs[isPlayerHome ? match.awayClubId : match.homeClubId];
+      const oppName = oppClub?.name || 'Unknown';
+      const fScore = `${finalResult.homeGoals}-${finalResult.awayGoals}`;
+      let cupMessages = processed.newMessages;
+      if (cupTie) {
+        const roundName = getRoundName(cupTie.round);
+        if (processed.won) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the cup!` });
+        } else if (processed.lost) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` });
+        }
+      } else if (leagueCupTie) {
+        const roundName = getRoundName(leagueCupTie.round);
+        if (processed.won) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: ${roundName} Won!`, body: `You beat ${oppName} ${fScore} to advance in the League Cup!` });
+        } else if (processed.lost) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `League Cup: Eliminated`, body: `You were knocked out by ${oppName} ${fScore} in the ${roundName}.` });
+        }
+      } else if (continentalMatch) {
+        const compName = continentalComp === 'champions_cup' ? 'Champions Cup' : 'Shield Cup';
+        if (processed.won) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Victory`, body: `A great result against ${oppName} (${fScore}) in the ${compName}!` });
+        } else if (processed.lost) {
+          cupMessages = addMsg(cupMessages, { week, season, type: 'match_result', title: `${compName}: Defeat`, body: `A tough loss against ${oppName} (${fScore}) in the ${compName}.` });
+        }
+      }
+
       // Update session stats
       const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
       const sessionStats = {
@@ -4428,7 +4459,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         currentMatchResult: finalResult,
         players: tournamentUpdates.cleanedPlayers || processed.newPlayers,
         boardConfidence: processed.confidence,
-        messages: processed.newMessages,
+        messages: cupMessages,
         matchSubsUsed: 0,
         matchPlayerRatings: processed.playerRatings,
         managerStats: processed.managerStats,
