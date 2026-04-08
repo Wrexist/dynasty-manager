@@ -22,7 +22,7 @@ interface PlayerBadgeProps {
 
 const SIZE_CLASSES = {
   sm: 'w-[40px] h-[48px]',
-  md: 'w-[52px] h-[64px]',
+  md: 'w-[52px] h-[66px]',
   lg: 'w-[60px] h-[76px]',
 } as const;
 
@@ -55,7 +55,7 @@ export const PlayerBadge = memo(function PlayerBadge({
       <div
         className={cn(
           SIZE_CLASSES[size],
-          'rounded-xl flex flex-col items-center justify-center gap-0.5',
+          'rounded-xl flex flex-col items-center justify-between py-1.5',
           'bg-card/60 backdrop-blur-xl border border-border/50',
           'border-l-[3px]',
         )}

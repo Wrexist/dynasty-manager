@@ -7,6 +7,7 @@ import { Sparkles, MapPin, TrendingUp, Banknote, Briefcase, UserCheck } from 'lu
 import { cn } from '@/lib/utils';
 import { hapticHeavy } from '@/utils/haptics';
 import { calculateWageDemand, formatWage } from '@/utils/contracts';
+import { getRatingColor } from '@/utils/uiHelpers';
 import { getPersonalityLabel } from '@/utils/personality';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { PlayerBadge } from '@/components/game/PlayerBadge';
@@ -132,7 +133,7 @@ export function GemRevealModal() {
                 <p className="text-[10px] text-muted-foreground">Overall</p>
                 <p className={cn(
                   'text-lg font-black tabular-nums',
-                  player.overall >= 80 ? 'text-emerald-400' : player.overall >= 70 ? 'text-sky-400' : player.overall >= 60 ? 'text-amber-400' : 'text-foreground'
+                  getRatingColor(player.overall),
                 )}>{player.overall}</p>
               </div>
               <div className="bg-primary/10 border border-primary/20 rounded-lg p-2 text-center">
