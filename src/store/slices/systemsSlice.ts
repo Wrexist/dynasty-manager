@@ -1,9 +1,9 @@
-import { TacticalInstructions, TrainingState, TrainingModule, ScoutRegion, FacilitiesState, TacticalPreset } from '@/types/game';
+import { TacticalInstructions, TrainingState, TrainingModule, ScoutRegion, FacilitiesState, TacticalPreset, StadiumStands } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { GROWTH_YOUTH_PER_PROMOTION, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import { createAssignment } from '@/utils/scouting';
-import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL } from '@/config/gameBalance';
+import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS } from '@/config/gameBalance';
 import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
 import { STAFF_HIRING_FEE_WEEKS } from '@/config/staff';
 
@@ -19,7 +19,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
   staff: { members: [], availableHires: [] } as GameState['staff'],
   scouting: { maxAssignments: 1, assignments: [], reports: [], discoveredPlayers: [] } as GameState['scouting'],
   youthAcademy: { prospects: [], nextIntakePreview: [], youthPreviewEnhanced: false } as GameState['youthAcademy'],
-  facilities: { trainingLevel: 5, youthLevel: 5, stadiumLevel: 5, medicalLevel: 5, recoveryLevel: 5, upgradeInProgress: null } as GameState['facilities'],
+  facilities: { trainingLevel: 5, youthLevel: 5, stadiumStands: { north: 5, south: 5, east: 5, west: 5 }, medicalLevel: 5, recoveryLevel: 5, upgradeInProgress: null } as GameState['facilities'],
   financeHistory: [] as GameState['financeHistory'],
   tacticalPresets: [] as TacticalPreset[],
 
@@ -236,21 +236,39 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     });
   },
 
-  startUpgrade: (type: 'training' | 'youth' | 'stadium' | 'medical' | 'recovery') => {
+  startUpgrade: (type: 'training' | 'youth' | 'medical' | 'recovery' | 'stadium-north' | 'stadium-south' | 'stadium-east' | 'stadium-west') => {
     const state = get();
     if (state.facilities.upgradeInProgress) return;
-    const key = `${type}Level` as keyof Pick<FacilitiesState, 'trainingLevel' | 'youthLevel' | 'stadiumLevel' | 'medicalLevel' | 'recoveryLevel'>;
-    const currentLevel = state.facilities[key] as number;
-    if (currentLevel >= FACILITY_MAX_LEVEL) return;
-    const cost = (currentLevel + 1) * FACILITY_COST_PER_LEVEL;
+
+    const isStand = type.startsWith('stadium-');
+    let currentLevel: number;
+    let cost: number;
+    let upgradeWeeks: number;
+    let displayName: string;
+
+    if (isStand) {
+      const stand = type.replace('stadium-', '') as keyof StadiumStands;
+      currentLevel = state.facilities.stadiumStands[stand];
+      if (currentLevel >= FACILITY_MAX_LEVEL) return;
+      cost = (currentLevel + 1) * STAND_COST_PER_LEVEL;
+      upgradeWeeks = STAND_BASE_UPGRADE_WEEKS + currentLevel;
+      displayName = `${stand.charAt(0).toUpperCase() + stand.slice(1)} Stand`;
+    } else {
+      const key = `${type}Level` as keyof Pick<FacilitiesState, 'trainingLevel' | 'youthLevel' | 'medicalLevel' | 'recoveryLevel'>;
+      currentLevel = state.facilities[key] as number;
+      if (currentLevel >= FACILITY_MAX_LEVEL) return;
+      cost = (currentLevel + 1) * FACILITY_COST_PER_LEVEL;
+      upgradeWeeks = FACILITY_BASE_UPGRADE_WEEKS + currentLevel;
+      displayName = type.charAt(0).toUpperCase() + type.slice(1);
+    }
+
     const club = state.clubs[state.playerClubId];
     if (!club || club.budget < cost) return;
     const newClub = { ...club, budget: club.budget - cost };
-    const upgradeWeeks = FACILITY_BASE_UPGRADE_WEEKS + currentLevel;
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'general',
-      title: `${type.charAt(0).toUpperCase() + type.slice(1)} Upgrade Started`,
-      body: `Upgrading ${type} facility to level ${currentLevel + 1}. Estimated completion: ${upgradeWeeks} weeks.`,
+      title: `${displayName} Upgrade Started`,
+      body: `Upgrading ${displayName} to level ${currentLevel + 1}. Estimated completion: ${upgradeWeeks} weeks.`,
     });
     set({
       facilities: { ...state.facilities, upgradeInProgress: { type, weeksRemaining: upgradeWeeks, totalWeeks: upgradeWeeks } },

@@ -277,7 +277,7 @@ export interface GameState {
   removeFromWatchList: (playerId: string) => void;
   promoteYouth: (playerId: string) => void;
   releaseYouth: (playerId: string) => void;
-  startUpgrade: (type: 'training' | 'youth' | 'stadium' | 'medical' | 'recovery') => void;
+  startUpgrade: (type: 'training' | 'youth' | 'medical' | 'recovery' | 'stadium-north' | 'stadium-south' | 'stadium-east' | 'stadium-west') => void;
 
   // Actions — Achievements
   clearPendingAchievements: () => void;

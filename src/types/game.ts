@@ -746,10 +746,19 @@ export interface YouthAcademyState {
 }
 
 // ── Facilities ──
+export type StandKey = 'north' | 'south' | 'east' | 'west';
+
+export interface StadiumStands {
+  north: number;
+  south: number;
+  east: number;
+  west: number;
+}
+
 export interface FacilitiesState {
   trainingLevel: number;
   youthLevel: number;
-  stadiumLevel: number;
+  stadiumStands: StadiumStands;
   medicalLevel: number;
   recoveryLevel: number;
   upgradeInProgress: { type: string; weeksRemaining: number; totalWeeks: number } | null;

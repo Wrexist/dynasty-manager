@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 44;
+const CURRENT_VERSION = 45;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -610,6 +610,21 @@ const migrations: Record<number, MigrationFn> = {
     ...data,
     version: 44,
   }),
+
+  // v44 → v45: Stadium stands — replace flat stadiumLevel with per-stand levels
+  44: (data) => {
+    const facilities = (data.facilities || {}) as Record<string, unknown>;
+    const oldLevel = (facilities.stadiumLevel as number) || 5;
+    const { stadiumLevel: _, ...restFacilities } = facilities;
+    return {
+      ...data,
+      version: 45,
+      facilities: {
+        ...restFacilities,
+        stadiumStands: { north: oldLevel, south: oldLevel, east: oldLevel, west: oldLevel },
+      },
+    };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
