@@ -429,6 +429,14 @@ const MatchDay = () => {
     }
   }, [matchPhase, phase]);
 
+  // Force-close SubstitutionSheet when match ends to prevent overlay blocking PostMatchPopup
+  useEffect(() => {
+    if (phase === 'post') {
+      setSubSheetOpen(false);
+      setInjurySubMode(false);
+    }
+  }, [phase]);
+
   useEffect(() => {
     eventsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [visibleEvents.length]);
@@ -1372,6 +1380,7 @@ const MatchDay = () => {
         onSubMade={() => {
           if (injurySubMode) {
             setInjurySubMode(false);
+            setSubSheetOpen(false);
             dismissKeyMoment();
           }
         }}
