@@ -186,11 +186,12 @@ export function initGameImpl(set: Set, get: Get, clubId: string) {
   ];
 
   const pcInit = clubs[clubId];
+  const pcData = leagueClubData.find(cd => cd.id === clubId);
   const initialStaff = generateInitialStaff(pcInit.reputation);
   const availableHires = generateStaffMarket();
   const youthCoachQuality = getStaffBonus(initialStaff, 'youth-coach');
   const { prospects: youthProspects, players: youthPlayers } = generateYouthProspects(
-    clubId, pcInit.youthRating, youthCoachQuality, 1, 3 + Math.floor(Math.random() * 2), pcInit.squadQuality
+    clubId, pcInit.youthRating, youthCoachQuality, 1, 3 + Math.floor(Math.random() * 2), pcData?.squadQuality
   );
   youthPlayers.forEach(p => { allPlayers[p.id] = p; });
   const nextIntakePreview = generateIntakePreview(pcInit.youthRating);
@@ -200,7 +201,7 @@ export function initGameImpl(set: Set, get: Get, clubId: string) {
   const leagueCup = generateLeagueCupDraw(leagueClubIds);
 
   set({
-    gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: TOTAL_WEEKS,
+    gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: leagueTotalWeeks,
     gameMode: get().gameMode || 'sandbox',
     transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable,
     divisionFixtures, divisionTables, divisionClubs, playerDivision,

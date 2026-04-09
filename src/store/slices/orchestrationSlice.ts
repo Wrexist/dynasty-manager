@@ -42,6 +42,7 @@ import { getFarewellSummary } from '@/utils/playerNarratives';
 import { calculateWeeklyMerchRevenue, getDefaultMerchState } from '@/utils/merchandise';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
 import { MERCH_PRICING_TIERS, MERCH_CAMPAIGN_COOLDOWN_WEEKS } from '@/config/merchandise';
+import { getEffectiveStadiumLevel } from '@/utils/facilities';
 import { MOTIVATE_ATTACK_BOOST, MOTIVATE_FOUL_BONUS, CALM_DEFENSE_BOOST, CALM_FOUL_REDUCTION, DEMAND_ATTACK_BOOST, DEMAND_DEFENSE_PENALTY, MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DRAIN_MULT } from '@/config/teamTalk';
 import {
   TOTAL_WEEKS, STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY,
@@ -2230,7 +2231,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       youthAcademy: { prospects: youthProspects, nextIntakePreview, youthPreviewEnhanced: false },
       facilities: {
         trainingLevel: pcInit.facilities, youthLevel: pcInit.youthRating,
-        stadiumLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.fanBase / STADIUM_LEVEL_DIVISOR)),
+        stadiumStands: (() => { const lvl = Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.fanBase / STADIUM_LEVEL_DIVISOR)); return { north: lvl, south: lvl, east: lvl, west: lvl }; })(),
         medicalLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.facilities * MEDICAL_LEVEL_FACTOR)),
         recoveryLevel: Math.min(FACILITY_MAX_LEVEL, Math.round(pcInit.facilities * RECOVERY_LEVEL_FACTOR)),
         upgradeInProgress: null,
@@ -3459,11 +3460,27 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const upgrade = { ...newFacilities.upgradeInProgress };
       upgrade.weeksRemaining = Math.max(0, upgrade.weeksRemaining - 1);
       if (upgrade.weeksRemaining === 0) {
-        const key = `${upgrade.type}Level` as keyof Pick<FacilitiesState, 'trainingLevel' | 'youthLevel' | 'stadiumLevel' | 'medicalLevel' | 'recoveryLevel'>;
-        newFacilities = { ...newFacilities, [key]: (newFacilities[key] as number) + 1, upgradeInProgress: null };
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: `Upgrade Complete`, body: `Your ${upgrade.type} facility has been upgraded to level ${(newFacilities[key] as number)}!` });
+        if (upgrade.type.startsWith('stadium-')) {
+          const standName = upgrade.type.replace('stadium-', '');
+          const validStands = ['north', 'south', 'east', 'west'] as const;
+          if (validStands.includes(standName as typeof validStands[number])) {
+            const stand = standName as typeof validStands[number];
+            const newLevel = Math.min(FACILITY_MAX_LEVEL, newFacilities.stadiumStands[stand] + 1);
+            const newStands = { ...newFacilities.stadiumStands, [stand]: newLevel };
+            newFacilities = { ...newFacilities, stadiumStands: newStands, upgradeInProgress: null };
+            const standLabel = stand.charAt(0).toUpperCase() + stand.slice(1) + ' Stand';
+            newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: `Upgrade Complete`, body: `${standLabel} has been upgraded to level ${newLevel}!` });
+          } else {
+            newFacilities = { ...newFacilities, upgradeInProgress: null };
+          }
+        } else {
+          const key = `${upgrade.type}Level` as keyof Pick<FacilitiesState, 'trainingLevel' | 'youthLevel' | 'medicalLevel' | 'recoveryLevel'>;
+          const newLevel = Math.min(FACILITY_MAX_LEVEL, (newFacilities[key] as number) + 1);
+          newFacilities = { ...newFacilities, [key]: newLevel, upgradeInProgress: null };
+          newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: `Upgrade Complete`, body: `Your ${upgrade.type} facility has been upgraded to level ${(newFacilities[key] as number)}!` });
+        }
       } else {
-        newFacilities.upgradeInProgress = upgrade;
+        newFacilities = { ...newFacilities, upgradeInProgress: upgrade };
       }
     }
 
@@ -3504,7 +3521,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Weekly income — expanded sources
     const newClubs = { ...clubs };
     const fanFavMult = hasPerk(state.managerProgression, 'fan_favourite') ? 1.15 : 1;
-    const stadiumIncome = Math.round(newFacilities.stadiumLevel * STADIUM_INCOME_PER_LEVEL * fanFavMult);
+    const stadiumIncome = Math.round(getEffectiveStadiumLevel(newFacilities) * STADIUM_INCOME_PER_LEVEL * fanFavMult);
     const fanMoodMult = FAN_MOOD_BASE + (state.fanMood / 100) * FAN_MOOD_SCALE;
     // Derby income bonus: check if this week's played match was a derby
     const thisWeekMatch = updatedFixtures.find(m => m.week === week && m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));

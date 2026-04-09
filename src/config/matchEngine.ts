@@ -3,6 +3,12 @@
  * All coefficients, probabilities, and weights used by src/engine/match.ts
  */
 
+// ── Goal Event Types (single source of truth) ──
+/** All event types that count as goals for scoring/stats purposes */
+export const GOAL_EVENT_TYPES = ['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'] as const;
+/** Goal types + own_goal + var_check for display purposes (match feed, highlights) */
+export const GOAL_DISPLAY_TYPES = [...GOAL_EVENT_TYPES, 'own_goal', 'var_check'] as const;
+
 // ── Formation Fit ──
 /** Maximum bonus from perfect formation fit — mispositioned players are punished */
 export const FORMATION_FIT_MAX_BONUS = 0.25;
@@ -340,3 +346,20 @@ export const SHOUT_CUMULATIVE_SCALE = 0.5;
 export const TACTICAL_INSIGHT_MIN_BONUS = 0.06;
 /** Interval (in minutes) between fitness snapshots attached to events */
 export const FITNESS_SNAPSHOT_INTERVAL = 5;
+
+// ── Weather & Pitch System ──
+export const WEATHER_WEIGHTS: Record<string, number> = { clear: 0.55, rain: 0.25, snow: 0.08, wind: 0.12 };
+export const PITCH_WEIGHTS: Record<string, number> = { excellent: 0.30, good: 0.45, poor: 0.20, waterlogged: 0.05 };
+export const WEATHER_PASSING_MOD: Record<string, number> = { clear: 0, rain: -0.08, snow: -0.12, wind: -0.06 };
+export const WEATHER_PACE_MOD: Record<string, number> = { clear: 0, rain: -0.04, snow: -0.10, wind: -0.02 };
+export const WEATHER_FOUL_MOD: Record<string, number> = { clear: 0, rain: 0.04, snow: 0.06, wind: 0.02 };
+export const PITCH_SHOT_MOD: Record<string, number> = { excellent: 0.02, good: 0, poor: -0.04, waterlogged: -0.08 };
+export const WEATHER_GK_ERROR_MOD: Record<string, number> = { clear: 0, rain: 0.015, snow: 0.02, wind: 0.005 };
+
+// ── New Event Type Chances ──
+export const FREE_KICK_GOAL_CHANCE = 0.08;
+export const LONG_RANGE_GOAL_CHANCE = 0.10;
+export const COUNTER_ATTACK_GOAL_CHANCE = 0.12;
+export const HEADER_GOAL_CHANCE = 0.06;
+export const GK_ERROR_BASE_CHANCE = 0.03;
+export const VAR_CHECK_CHANCE = 0.12;

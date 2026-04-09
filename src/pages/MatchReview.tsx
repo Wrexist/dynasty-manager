@@ -8,6 +8,7 @@ import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 
 import { isPro } from '@/utils/monetization';
+import { GOAL_DISPLAY_TYPES } from '@/config/matchEngine';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor, areColorsSimilar } from '@/utils/uiHelpers';
@@ -72,7 +73,7 @@ const MatchReview = () => {
   const xpDoubleClaimContext = `match_w${week}_${match.homeClubId}_${match.awayClubId}_${match.homeGoals}-${match.awayGoals}_${lastMatchCompetition || 'league'}`;
 
   // Goals
-  const goals = match.events.filter(e => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored');
+  const goals = match.events.filter(e => (GOAL_DISPLAY_TYPES as readonly string[]).includes(e.type));
   const injuries = match.events.filter(e => e.type === 'injury');
   const cards = match.events.filter(e => e.type === 'yellow_card' || e.type === 'red_card');
 
@@ -180,7 +181,7 @@ const MatchReview = () => {
 
       {/* Key Highlights — animated timeline of the biggest moments */}
       {(() => {
-        const highlights = match.events.filter(e => ['goal', 'own_goal', 'penalty_scored', 'penalty_missed', 'red_card', 'injury'].includes(e.type));
+        const highlights = match.events.filter(e => ['goal', 'own_goal', 'penalty_scored', 'penalty_missed', 'red_card', 'injury', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error', 'var_check'].includes(e.type));
         if (highlights.length === 0) return null;
         return (
           <GlassPanel className="p-4">
@@ -199,19 +200,21 @@ const MatchReview = () => {
                   >
                     <div className={cn(
                       'absolute -left-[21px] w-2.5 h-2.5 rounded-full border-2 border-background',
-                      (ev.type === 'goal' || ev.type === 'penalty_scored') ? 'bg-emerald-400'
+                      (['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'].includes(ev.type)) ? 'bg-emerald-400'
                         : ev.type === 'red_card' ? 'bg-red-500'
+                        : ev.type === 'var_check' ? 'bg-blue-400'
                         : 'bg-amber-400'
                     )} />
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-mono text-primary tabular-nums w-5">{ev.minute}'</span>
                       <span className={cn(
                         'text-[10px] font-bold uppercase tracking-wider',
-                        (ev.type === 'goal' || ev.type === 'penalty_scored') ? 'text-emerald-400'
+                        (['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'].includes(ev.type)) ? 'text-emerald-400'
                           : ev.type === 'red_card' ? 'text-red-400'
+                          : ev.type === 'var_check' ? 'text-blue-400'
                           : 'text-amber-400'
                       )}>
-                        {ev.type === 'goal' ? 'GOAL' : ev.type === 'penalty_scored' ? 'PENALTY' : ev.type === 'own_goal' ? 'OWN GOAL' : ev.type === 'penalty_missed' ? 'PEN MISSED' : ev.type === 'red_card' ? 'RED CARD' : 'INJURY'}
+                        {ev.type === 'goal' ? 'GOAL' : ev.type === 'free_kick_goal' ? 'FREE KICK' : ev.type === 'long_range_goal' ? 'LONG RANGE' : ev.type === 'counter_attack_goal' ? 'COUNTER' : ev.type === 'header_goal' ? 'HEADER' : ev.type === 'goalkeeper_error' ? 'GK ERROR' : ev.type === 'var_check' ? 'VAR CHECK' : ev.type === 'penalty_scored' ? 'PENALTY' : ev.type === 'own_goal' ? 'OWN GOAL' : ev.type === 'penalty_missed' ? 'PEN MISSED' : ev.type === 'red_card' ? 'RED CARD' : 'INJURY'}
                       </span>
                       {evClub && (
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: evClub.color }} />
@@ -219,7 +222,7 @@ const MatchReview = () => {
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {evPlayer ? `${evPlayer.firstName} ${evPlayer.lastName}` : ev.description}
-                      {ev.type === 'goal' && ev.assistPlayerId && players[ev.assistPlayerId] && (
+                      {['goal', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'].includes(ev.type) && ev.assistPlayerId && players[ev.assistPlayerId] && (
                         <span className="text-primary/60"> (ast. {players[ev.assistPlayerId].lastName})</span>
                       )}
                     </p>

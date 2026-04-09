@@ -30,7 +30,8 @@ import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
 import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers } from 'lucide-react';
 
-const isGoalEvent = (e: MatchEvent) => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored';
+import { GOAL_DISPLAY_TYPES } from '@/config/matchEngine';
+const isGoalEvent = (e: MatchEvent) => (GOAL_DISPLAY_TYPES as readonly string[]).includes(e.type);
 
 /** Find player's continental match this week and return display-friendly info */
 function findPlayerContinentalMatchForUI(
