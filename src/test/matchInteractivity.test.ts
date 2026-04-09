@@ -106,10 +106,12 @@ describe('Match Interactivity Features', () => {
   describe('Goal Count Consistency', () => {
     it('goal events match HalfState goal counts', () => {
       const { homeClub, awayClub, homePlayers, awayPlayers } = setupMatch();
+      // GOAL_EVENT_TYPES covers regular scoring + own_goal (own goals also increment homeGoals/awayGoals)
+      const scoringTypes = [...GOAL_EVENT_TYPES, 'own_goal'] as readonly string[];
       for (let i = 0; i < 10; i++) {
         const halfState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45);
-        const homeGoalEvents = halfState.events.filter(e => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type) && e.clubId === homeClub.id).length;
-        const awayGoalEvents = halfState.events.filter(e => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type) && e.clubId === awayClub.id).length;
+        const homeGoalEvents = halfState.events.filter(e => scoringTypes.includes(e.type) && e.clubId === homeClub.id).length;
+        const awayGoalEvents = halfState.events.filter(e => scoringTypes.includes(e.type) && e.clubId === awayClub.id).length;
         expect(halfState.homeGoals).toBe(homeGoalEvents);
         expect(halfState.awayGoals).toBe(awayGoalEvents);
       }
