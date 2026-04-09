@@ -14,3 +14,13 @@ export const DEMAND_ATTACK_BOOST = 0.12;
 export const DEMAND_DEFENSE_PENALTY = 0.06;
 export const DEMAND_MORALE_WIN_BONUS = 3;
 export const DEMAND_MORALE_LOSS_PENALTY = 5;
+
+// In-match fitness degradation multiplier (applied to FITNESS_DEGRADE_PER_MINUTE during 2nd half)
+export const MOTIVATE_FITNESS_DRAIN_MULT = 1.10;   // 10% faster drain
+export const CALM_FITNESS_DRAIN_MULT = 0.75;       // 25% slower drain
+export const DEMAND_FITNESS_DRAIN_MULT = 1.30;     // 30% faster drain
+
+// Post-match fitness drain multiplier (applied to FITNESS_DRAIN_PER_MATCH)
+// MOTIVATE_FATIGUE_MULTIPLIER already exists above = 1.15
+export const CALM_FATIGUE_MULTIPLIER = 0.80;       // 20% less post-match drain
+export const DEMAND_FATIGUE_MULTIPLIER = 1.30;     // 30% more post-match drain

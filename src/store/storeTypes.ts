@@ -232,6 +232,7 @@ export interface GameState {
   acceptIncomingOfferAtFee: (offerId: string, fee: number) => { success: boolean; message: string };
   evaluateIncomingCounter: (offerId: string, counterFee: number) => { acceptChance: number; budgetAfter: number; squadSizeAfter: number; positionCountAfter: number } | null;
   signFreeAgent: (playerId: string, wage: number, years: number) => { success: boolean; message: string };
+  releasePlayer: (playerId: string) => { success: boolean; message: string };
 
   // Actions — Loans
   loanOut: (playerId: string, toClubId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => { success: boolean; message: string };
@@ -277,7 +278,7 @@ export interface GameState {
   dismissScoutReport: (reportId: string) => void;
   addToWatchList: (playerId: string) => void;
   removeFromWatchList: (playerId: string) => void;
-  promoteYouth: (playerId: string) => void;
+  promoteYouth: (playerId: string) => { success: boolean; message?: string };
   releaseYouth: (playerId: string) => void;
   startUpgrade: (type: 'training' | 'youth' | 'medical' | 'recovery' | 'stadium-north' | 'stadium-south' | 'stadium-east' | 'stadium-west') => void;
 

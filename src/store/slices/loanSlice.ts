@@ -1,7 +1,7 @@
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import type { LoanDeal, OutgoingLoanRequest } from '@/types/game';
-import { TOTAL_WEEKS, LOAN_MIN_WEEKS_BEFORE_RECALL } from '@/config/gameBalance';
+import { TOTAL_WEEKS, LOAN_MIN_WEEKS_BEFORE_RECALL, MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import {
   LOAN_REQUEST_BASE_ACCEPT, LOAN_REQUEST_LINEUP_PENALTY,
   LOAN_REQUEST_WAGE_BONUS, LOAN_REQUEST_AGE_BONUS,
@@ -115,6 +115,8 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       loanToClubId: undefined,
       clubId: loan.fromClubId,
     };
+
+    if (fromClub.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Sell or release a player before recalling.` };
 
     toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
     toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
@@ -381,6 +383,9 @@ export const createLoanSlice = (set: Set, get: Get) => ({
 
     const fromClub = { ...state.clubs[loan.fromClubId] };
     const toClub = { ...state.clubs[loan.toClubId] };
+
+    // Block if lending club (receiving player back) is at squad cap
+    if (fromClub.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Parent club squad is full (${MAX_SQUAD_SIZE} players). Cannot terminate loan.` };
 
     // Return player to parent club
     toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);

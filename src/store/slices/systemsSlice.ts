@@ -3,7 +3,7 @@ import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { GROWTH_YOUTH_PER_PROMOTION, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import { createAssignment } from '@/utils/scouting';
-import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS } from '@/config/gameBalance';
+import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVEL, STAND_COST_PER_LEVEL, STAND_BASE_UPGRADE_WEEKS, MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
 import { STAFF_HIRING_FEE_WEEKS } from '@/config/staff';
 import { STAND_INFO } from '@/utils/facilities';
@@ -193,11 +193,12 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
   promoteYouth: (playerId: string) => {
     const state = get();
     const prospect = state.youthAcademy.prospects.find(p => p.playerId === playerId);
-    if (!prospect) return;
+    if (!prospect) return { success: false, message: 'Prospect not found.' };
     const player = state.players[playerId];
-    if (!player) return;
-    const updatedPlayer = { ...player, isFromYouthAcademy: true, joinedSeason: player.joinedSeason ?? state.season };
+    if (!player) return { success: false, message: 'Player not found.' };
     const club = { ...state.clubs[state.playerClubId] };
+    if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
+    const updatedPlayer = { ...player, isFromYouthAcademy: true, joinedSeason: player.joinedSeason ?? state.season };
     club.playerIds = [...club.playerIds, playerId];
     club.wageBill += updatedPlayer.wage;
     const newProspects = state.youthAcademy.prospects.filter(p => p.playerId !== playerId);
@@ -223,6 +224,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       cm.attributes.youthDevelopment = Math.min(CAREER_STAT_MAX, cm.attributes.youthDevelopment + GROWTH_YOUTH_PER_PROMOTION);
       set({ careerManager: cm });
     }
+    return { success: true };
   },
 
   releaseYouth: (playerId: string) => {

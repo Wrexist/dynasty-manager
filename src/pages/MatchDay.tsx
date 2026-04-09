@@ -10,7 +10,8 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight } from '@/utils/haptics';
-import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD } from '@/config/matchEngine';
+import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
+import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DRAIN_MULT } from '@/config/teamTalk';
 import type { HalfState } from '@/engine/match';
 import type { ShoutType, KeyMomentChoice } from '@/types/game';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
@@ -874,10 +875,14 @@ const MatchDay = () => {
 
           {/* Team Talk */}
           <GlassPanel className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Team Talk</p>
-            <div className="flex gap-2">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Team Talk</p>
+              <p className="text-[9px] text-muted-foreground/60">Your words affect intensity & energy</p>
+            </div>
+            <div className="space-y-2">
               {TEAM_TALK_OPTIONS.map(talk => {
                 const TalkIcon = talk.id === 'motivate' ? Flame : talk.id === 'calm' ? Shield : AlertTriangle;
+                const isSelected = matchTeamTalk === talk.id;
                 return (
                   <button
                     key={talk.id}
@@ -887,14 +892,43 @@ const MatchDay = () => {
                       infoToast(`"${talk.description}"`);
                     }}
                     className={cn(
-                      "flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-lg transition-colors",
-                      matchTeamTalk === talk.id
-                        ? 'bg-primary/20 border border-primary/40'
-                        : 'bg-muted/30 hover:bg-primary/10'
+                      "w-full flex items-start gap-3 p-3 rounded-xl transition-all text-left",
+                      isSelected
+                        ? 'bg-primary/15 border border-primary/50 shadow-[0_0_12px_rgba(var(--primary-rgb,234,179,8),0.1)]'
+                        : 'bg-muted/20 border border-transparent hover:bg-muted/40'
                     )}
                   >
-                    <TalkIcon className="w-4 h-4 text-primary" />
-                    <span className="text-[10px] font-semibold text-foreground">{talk.label}</span>
+                    <div className={cn(
+                      "mt-0.5 p-1.5 rounded-lg shrink-0",
+                      isSelected ? 'bg-primary/20' : 'bg-muted/30'
+                    )}>
+                      <TalkIcon className={cn("w-4 h-4", isSelected ? 'text-primary' : 'text-muted-foreground')} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={cn("text-xs font-semibold", isSelected ? 'text-primary' : 'text-foreground')}>{talk.label}</span>
+                        {isSelected && <span className="text-[8px] text-primary/70 uppercase tracking-wider font-medium">Selected</span>}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 italic">"{talk.description}"</p>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {talk.effects.map((effect, i) => (
+                          <span
+                            key={i}
+                            className={cn(
+                              "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium",
+                              effect.type === 'positive' && 'bg-emerald-500/15 text-emerald-400',
+                              effect.type === 'negative' && 'bg-red-500/15 text-red-400',
+                              effect.type === 'warning' && 'bg-amber-500/15 text-amber-400',
+                            )}
+                          >
+                            {(effect.label.toLowerCase().includes('energy') || effect.label.toLowerCase().includes('drain')) && (
+                              <Zap className="w-2.5 h-2.5" />
+                            )}
+                            {effect.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   </button>
                 );
               })}
@@ -1031,26 +1065,65 @@ const MatchDay = () => {
                     <Users className="w-3 h-3" /> Squad Fitness
                     {showFitness ? <ChevronUp className="w-3 h-3 ml-auto" /> : <ChevronDown className="w-3 h-3 ml-auto" />}
                   </button>
-                  {showFitness && latestFitness && (
-                    <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
-                      {clubs[playerClubId]?.lineup.filter(Boolean).map(pid => {
-                        const p = players[pid];
-                        if (!p) return null;
-                        const fit = latestFitness[pid] ?? p.fitness;
-                        const fitColor = fit > 70 ? 'bg-emerald-500' : fit > MATCH_LOW_FITNESS_THRESHOLD ? 'bg-amber-500' : 'bg-red-500';
-                        return (
-                          <div key={pid} className="flex items-center gap-2 text-[10px]">
-                            <span className="w-5 text-muted-foreground">{p.position}</span>
-                            <span className="w-20 truncate text-foreground">{p.lastName}</span>
-                            <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
-                              <div className={cn('h-full rounded-full transition-all', fitColor)} style={{ width: `${fit}%` }} />
-                            </div>
-                            <span className={cn('w-8 text-right tabular-nums', fit <= MATCH_LOW_FITNESS_THRESHOLD ? 'text-red-400' : 'text-muted-foreground')}>{Math.round(fit)}%</span>
+                  {showFitness && latestFitness && (() => {
+                    // Compute current drain multiplier for display and predictions
+                    const talkMult = matchTeamTalk === 'motivate' ? MOTIVATE_FITNESS_DRAIN_MULT
+                      : matchTeamTalk === 'demand' ? DEMAND_FITNESS_DRAIN_MULT
+                      : matchTeamTalk === 'calm' ? CALM_FITNESS_DRAIN_MULT : 1;
+                    let tacticalMult = 1;
+                    if (tactics.pressingIntensity > PRESSING_FITNESS_DRAIN_BASELINE) {
+                      tacticalMult += (tactics.pressingIntensity - PRESSING_FITNESS_DRAIN_BASELINE) * PRESSING_FITNESS_DRAIN_PER_POINT;
+                    }
+                    if (tactics.tempo === 'fast') tacticalMult *= TEMPO_FAST_FITNESS_DRAIN_MOD;
+                    else if (tactics.tempo === 'slow') tacticalMult *= TEMPO_SLOW_FITNESS_DRAIN_MOD;
+                    const totalMult = talkMult * tacticalMult;
+                    const endMin = phase === 'extra_time' ? 120 : 90;
+                    const remainingMin = Math.max(0, endMin - currentMin);
+                    return (
+                      <div className="mt-2 space-y-1.5">
+                        {/* Drain context label */}
+                        {(phase === 'second_half' || phase === 'extra_time') && totalMult !== 1 && (
+                          <div className={cn(
+                            "flex items-center gap-1 px-2 py-1 rounded text-[9px] font-medium",
+                            totalMult > 1.05 ? 'bg-red-500/10 text-red-400' : totalMult < 0.95 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-muted/20 text-muted-foreground'
+                          )}>
+                            <Zap className="w-2.5 h-2.5" />
+                            Energy drain: {totalMult.toFixed(2)}x
+                            {matchTeamTalk !== 'none' && (
+                              <span className="text-muted-foreground/60 ml-1">
+                                ({matchTeamTalk === 'demand' ? 'Demand More' : matchTeamTalk === 'calm' ? 'Stay Calm' : 'Motivate'}
+                                {tacticalMult !== 1 ? ` + tactics` : ''})
+                              </span>
+                            )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        )}
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {clubs[playerClubId]?.lineup.filter(Boolean).map(pid => {
+                            const p = players[pid];
+                            if (!p) return null;
+                            const fit = latestFitness[pid] ?? p.fitness;
+                            const predicted = Math.max(0, Math.round(fit - remainingMin * FITNESS_DEGRADE_PER_MINUTE * totalMult));
+                            const fitColor = fit > 70 ? 'bg-emerald-500' : fit > MATCH_LOW_FITNESS_THRESHOLD ? 'bg-amber-500' : 'bg-red-500';
+                            return (
+                              <div key={pid} className="flex items-center gap-2 text-[10px]">
+                                <span className="w-5 text-muted-foreground">{p.position}</span>
+                                <span className="w-16 truncate text-foreground">{p.lastName}</span>
+                                <div className="flex-1 h-1.5 bg-muted/30 rounded-full overflow-hidden">
+                                  <div className={cn('h-full rounded-full transition-all', fitColor)} style={{ width: `${fit}%` }} />
+                                </div>
+                                <span className={cn('w-7 text-right tabular-nums', fit <= MATCH_LOW_FITNESS_THRESHOLD ? 'text-red-400' : 'text-muted-foreground')}>{Math.round(fit)}%</span>
+                                {remainingMin > 5 && (
+                                  <span className={cn('w-10 text-right tabular-nums text-[9px]', predicted <= MATCH_LOW_FITNESS_THRESHOLD ? 'text-red-400/70' : 'text-muted-foreground/50')}>
+                                    ~{predicted}%
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Live Match Stats */}

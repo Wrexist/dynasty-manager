@@ -283,12 +283,35 @@ export const GOAL_FLASH_MS = 600;
 export const CELEBRATION_STAGGER_MS = 800;
 export const ADVANCE_DONE_MS = 300;
 export const FLASH_DURATION_MS = 600;
-export const SAVE_INDICATOR_MS = 1200;
 export const XP_GLOW_MS = 1500;
 
 // ── Team Talk Options (match day half-time) ──
 export const TEAM_TALK_OPTIONS = [
-  { id: 'motivate', label: 'Motivate', icon: 'Flame', description: "Let's show them what we're made of!" },
-  { id: 'calm', label: 'Stay Calm', icon: 'Shield', description: 'Keep focused, stick to the game plan.' },
-  { id: 'demand', label: 'Demand More', icon: 'AlertTriangle', description: "I expect more from every one of you!" },
+  {
+    id: 'motivate', label: 'Motivate', icon: 'Flame',
+    description: "Let's show them what we're made of!",
+    effects: [
+      { label: '+8% Attack', type: 'positive' as const },
+      { label: 'Slight energy drain', type: 'warning' as const },
+    ],
+  },
+  {
+    id: 'calm', label: 'Stay Calm', icon: 'Shield',
+    description: 'Keep focused, stick to the game plan.',
+    effects: [
+      { label: '+6% Defence', type: 'positive' as const },
+      { label: 'Conserves energy', type: 'positive' as const },
+      { label: '-10% Fouls', type: 'positive' as const },
+    ],
+  },
+  {
+    id: 'demand', label: 'Demand More', icon: 'AlertTriangle',
+    description: "I expect more from every one of you!",
+    effects: [
+      { label: '+12% Attack', type: 'positive' as const },
+      { label: '-6% Defence', type: 'negative' as const },
+      { label: 'High energy drain', type: 'negative' as const },
+      { label: 'Morale risk', type: 'warning' as const },
+    ],
+  },
 ] as const;
