@@ -12,24 +12,8 @@ import { ArrowLeft, Wallet, Users, Loader2, Search, Globe, X, Building2, Sprout 
 import { cn } from '@/lib/utils';
 import type { LeagueId } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
+import { COUNTRY_FLAGS, LEAGUE_REGIONS } from '@/data/leagueConstants';
 import { toast } from 'sonner';
-
-const COUNTRY_FLAGS: Record<string, string> = {
-  GB: '🇬🇧', ES: '🇪🇸', IT: '🇮🇹', DE: '🇩🇪', FR: '🇫🇷',
-  NL: '🇳🇱', PT: '🇵🇹', BE: '🇧🇪', TR: '🇹🇷', CZ: '🇨🇿',
-  GR: '🇬🇷', PL: '🇵🇱', DK: '🇩🇰', NO: '🇳🇴', CH: '🇨🇭',
-  AT: '🇦🇹', SCO: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', SE: '🇸🇪', HR: '🇭🇷', HU: '🇭🇺',
-  RS: '🇷🇸', RO: '🇷🇴', UA: '🇺🇦', BG: '🇧🇬', SK: '🇸🇰',
-  FI: '🇫🇮', IS: '🇮🇸', IE: '🇮🇪', IL: '🇮🇱', CY: '🇨🇾',
-};
-
-const LEAGUE_REGIONS = [
-  { label: 'Top 5 Leagues', ids: ['eng', 'esp', 'ita', 'ger', 'fra'] },
-  { label: 'Strong Leagues', ids: ['ned', 'por', 'bel', 'tur', 'sco'] },
-  { label: 'Central & Eastern Europe', ids: ['cze', 'pol', 'hun', 'rou', 'ukr', 'srb', 'bgr', 'svk', 'cro'] },
-  { label: 'Nordic Leagues', ids: ['den', 'nor', 'swe', 'fin', 'isl'] },
-  { label: 'Other Leagues', ids: ['gre', 'che', 'aut', 'irl', 'isr', 'cyp'] },
-];
 
 const CONFEDERATION_LABELS: Record<string, string> = {
   UEFA: 'Europe',
