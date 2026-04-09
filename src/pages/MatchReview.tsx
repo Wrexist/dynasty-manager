@@ -412,8 +412,8 @@ const MatchReview = () => {
 
               return insights.map((ins, i) => (
                 <div key={`${ins.tone}-${i}`} className="flex items-start gap-2">
-                  <span className={cn('text-xs mt-0.5', ins.tone === 'good' ? 'text-emerald-400' : ins.tone === 'bad' ? 'text-amber-400' : 'text-muted-foreground')}>
-                    {ins.tone === 'good' ? '▲' : ins.tone === 'bad' ? '▼' : '—'}
+                  <span className={cn('mt-0.5 shrink-0', ins.tone === 'good' ? 'text-emerald-400' : ins.tone === 'bad' ? 'text-amber-400' : 'text-muted-foreground')}>
+                    {ins.tone === 'good' ? <TrendingUp className="w-3 h-3" /> : ins.tone === 'bad' ? <TrendingDown className="w-3 h-3" /> : <Minus className="w-3 h-3" />}
                   </span>
                   <p className="text-xs text-muted-foreground">{ins.text}</p>
                 </div>
