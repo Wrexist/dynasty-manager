@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { CLUBS_DATA, LEAGUES } from '@/data/league';
-import { CLUBS_BY_LEAGUE } from '@/data/leagues';
+import { CLUBS_BY_LEAGUE, LEAGUE_REGIONS } from '@/data/leagues';
 import { NATIONS, NATION_STARS } from '@/data/nations';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { Button } from '@/components/ui/button';
@@ -15,13 +15,6 @@ import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
 import { toast } from 'sonner';
 
 
-const LEAGUE_REGIONS = [
-  { label: 'Top 5 Leagues', ids: ['eng', 'esp', 'ita', 'ger', 'fra'] },
-  { label: 'Strong Leagues', ids: ['ned', 'por', 'bel', 'tur', 'sco'] },
-  { label: 'Central & Eastern Europe', ids: ['cze', 'pol', 'hun', 'rou', 'ukr', 'srb', 'bgr', 'svk', 'cro'] },
-  { label: 'Nordic Leagues', ids: ['den', 'nor', 'swe', 'fin', 'isl'] },
-  { label: 'Other Leagues', ids: ['gre', 'che', 'aut', 'irl', 'isr', 'cyp'] },
-];
 
 const CONFEDERATION_LABELS: Record<string, string> = {
   UEFA: 'Europe',

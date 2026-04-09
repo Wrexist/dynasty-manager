@@ -57,3 +57,12 @@ for (const club of ALL_CLUBS_DATA) {
   if (!CLUBS_BY_LEAGUE[club.divisionId]) CLUBS_BY_LEAGUE[club.divisionId] = [];
   CLUBS_BY_LEAGUE[club.divisionId].push(club);
 }
+
+/** League groupings by region — shared across club selection UIs */
+export const LEAGUE_REGIONS = [
+  { label: 'Top 5 Leagues', ids: ['eng', 'esp', 'ita', 'ger', 'fra'] },
+  { label: 'Strong Leagues', ids: ['ned', 'por', 'bel', 'tur', 'sco'] },
+  { label: 'Central & Eastern Europe', ids: ['cze', 'pol', 'hun', 'rou', 'ukr', 'srb', 'bgr', 'svk', 'cro'] },
+  { label: 'Nordic Leagues', ids: ['den', 'nor', 'swe', 'fin', 'isl'] },
+  { label: 'Other Leagues', ids: ['gre', 'che', 'aut', 'irl', 'isr', 'cyp'] },
+] as const;
