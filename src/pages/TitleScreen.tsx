@@ -119,7 +119,7 @@ const TitleScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 overflow-hidden relative safe-area-top safe-area-bottom">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 overflow-hidden relative safe-area-top safe-area-bottom">
       {/* Floating background circles — pure CSS animation for GPU efficiency */}
       {floatingCircles.map((circle) => (
         <div
@@ -151,82 +151,73 @@ const TitleScreen = () => {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
         >
-          <img src="/logo.png" alt="Dynasty Manager" className="w-32 h-32 mx-auto mb-6 drop-shadow-[0_0_20px_hsl(var(--primary)/0.4)]" />
+          <img src="/logo.png" alt="Dynasty Manager" className="w-20 h-20 mx-auto mb-3 drop-shadow-[0_0_20px_hsl(var(--primary)/0.4)]" />
         </motion.div>
-        <h1 className="text-5xl font-black text-foreground tracking-tight font-display">DYNASTY</h1>
-        <p className="text-xl text-primary font-bold tracking-[0.35em] mt-1 font-display">MANAGER</p>
-        <p className="text-sm text-muted-foreground mt-3 tracking-[0.35em] uppercase font-display">Football Edition</p>
+        <h1 className="text-4xl font-black text-foreground tracking-tight font-display">DYNASTY</h1>
+        <p className="text-base text-primary font-bold tracking-[0.35em] mt-0.5 font-display">MANAGER</p>
       </motion.div>
 
       {/* Save Slots */}
-      <div className="mt-12 flex flex-col gap-3 w-full max-w-xs relative z-10">
-        <motion.p
-          custom={0}
-          variants={buttonVariants}
-          initial="hidden"
-          animate="visible"
-          className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1"
-        >
-          Save Slots
-        </motion.p>
-
+      <div className="mt-6 flex flex-col gap-2 w-full max-w-xs relative z-10">
         {slots.map((slot, idx) => (
-          <motion.div key={slot.slot} custom={idx + 1} variants={buttonVariants} initial="hidden" animate="visible">
+          <motion.div key={slot.slot} custom={idx} variants={buttonVariants} initial="hidden" animate="visible">
             {slot.exists ? (
-              <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Save className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-bold text-foreground truncate">{slot.clubName}</p>
-                      {slot.gameMode === 'career' && (
-                        <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold shrink-0">Career</span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      Season {slot.season} — Week {slot.week}
-                      {slot.position && ` — ${slot.position}${getSuffix(Number(slot.position))} place`}
-                    </p>
-                  </div>
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <Button
-                    size="sm"
-                    className="flex-1 h-9 text-xs font-bold gap-1.5"
+              <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    className="flex items-center gap-2 flex-1 min-w-0 text-left"
                     onClick={() => handleContinue(slot.slot)}
                   >
-                    <RotateCcw className="w-3 h-3" /> Continue
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                      <Save className="w-3.5 h-3.5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs font-bold text-foreground truncate">{slot.clubName}</p>
+                        {slot.gameMode === 'career' && (
+                          <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold shrink-0">Career</span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground">
+                        S{slot.season} W{slot.week}
+                        {slot.position && ` — ${slot.position}${getSuffix(Number(slot.position))}`}
+                      </p>
+                    </div>
+                  </button>
+                  <Button
+                    size="sm"
+                    className="h-7 text-[11px] font-bold gap-1 px-2.5 shrink-0"
+                    onClick={() => handleContinue(slot.slot)}
+                  >
+                    <Play className="w-3 h-3" /> Play
                   </Button>
                   {confirmDelete === slot.slot ? (
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="destructive" className="h-9 text-xs px-3" onClick={() => handleDelete(slot.slot)}>
-                        Confirm
+                    <div className="flex gap-1 shrink-0">
+                      <Button size="sm" variant="destructive" className="h-7 text-[11px] px-2" onClick={() => handleDelete(slot.slot)}>
+                        Yes
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-9 text-xs px-2 hover:bg-muted/20 hover:text-foreground" onClick={() => setConfirmDelete(null)}>
-                        Cancel
+                      <Button size="sm" variant="ghost" className="h-7 text-[11px] px-1.5 hover:bg-muted/20 hover:text-foreground" onClick={() => setConfirmDelete(null)}>
+                        No
                       </Button>
                     </div>
                   ) : (
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-9 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20"
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20 shrink-0"
                       onClick={() => setConfirmDelete(slot.slot)}
                       aria-label={`Delete save slot ${slot.slot}`}
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3 h-3" />
                     </Button>
                   )}
                 </div>
               </div>
             ) : (
               <Button
-                size="lg"
+                size="sm"
                 variant="outline"
-                className="w-full h-14 text-base gap-3 border-dashed border-border/50 hover:bg-primary/10 hover:text-primary active:bg-primary/20"
+                className="w-full h-10 text-sm gap-2 border-dashed border-border/50 hover:bg-primary/10 hover:text-primary active:bg-primary/20"
                 onClick={() => handleNewGame(slot.slot)}
               >
                 <Play className="h-4 w-4" /> New Game — Slot {slot.slot}
@@ -236,21 +227,20 @@ const TitleScreen = () => {
         ))}
 
         {/* Challenge Mode button */}
-        <motion.div custom={slots.length + 1} variants={buttonVariants} initial="hidden" animate="visible">
+        <motion.div custom={slots.length} variants={buttonVariants} initial="hidden" animate="visible">
           <Button
-            size="lg"
             variant="outline"
-            className="w-full h-12 gap-3 border-primary/30 text-primary hover:bg-primary/10"
+            className="w-full h-10 gap-2 text-sm border-primary/30 text-primary hover:bg-primary/10"
             onClick={() => navigate('/challenge')}
           >
             <Swords className="h-4 w-4" /> Challenge Mode
           </Button>
         </motion.div>
 
-        <motion.div custom={slots.length + 2} variants={buttonVariants} initial="hidden" animate="visible">
+        <motion.div custom={slots.length + 1} variants={buttonVariants} initial="hidden" animate="visible">
           <Sheet>
             <SheetTrigger asChild>
-              <Button size="lg" variant="ghost" className="w-full h-12 text-muted-foreground gap-3 hover:bg-muted/20 hover:text-muted-foreground">
+              <Button variant="ghost" className="w-full h-10 text-sm text-muted-foreground gap-2 hover:bg-muted/20 hover:text-muted-foreground">
                 <Settings className="h-4 w-4" /> Settings
               </Button>
             </SheetTrigger>
@@ -437,7 +427,7 @@ const TitleScreen = () => {
         </motion.div>
       </div>
 
-      <p className="absolute bottom-6 text-[10px] text-muted-foreground/50 tracking-wider">v0.2 ALPHA</p>
+      <p className="absolute bottom-3 text-[10px] text-muted-foreground/50 tracking-wider">v0.2 ALPHA</p>
     </div>
   );
 };
