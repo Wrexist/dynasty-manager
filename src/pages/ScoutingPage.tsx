@@ -8,18 +8,13 @@ import { cn } from '@/lib/utils';
 import { ScoutRegion, TransferListing } from '@/types/game';
 import { getPotentialInfo } from '@/utils/uiHelpers';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
-import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS } from '@/config/ui';
+import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS, MARKET_SUB_NAV } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { formatMoney } from '@/utils/helpers';
 import { SCOUTING_COST_PER_ASSIGNMENT } from '@/config/gameBalance';
 import { infoToast } from '@/utils/gameToast';
 import { hapticLight } from '@/utils/haptics';
-
-const MARKET_SUB_NAV = [
-  { screen: 'transfers' as const, label: 'Transfers' },
-  { screen: 'scouting' as const, label: 'Scouting' },
-];
 
 const REGION_INFO: { region: ScoutRegion; label: string; weeks: number; description: string }[] = [
   { region: 'domestic', label: 'Domestic', weeks: 2, description: 'Quick results, familiar players' },
