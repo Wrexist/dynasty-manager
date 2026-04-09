@@ -363,6 +363,8 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       clubs: { ...state.clubs, [buyerClub.id]: buyerClub, [sellerClub.id]: sellerClub },
       activeLoans: state.activeLoans.filter(l => l.id !== loanId),
       messages: newMessages,
+      shortlist: state.shortlist.filter(id => id !== loan.playerId),
+      scoutWatchList: state.scoutWatchList.filter(id => id !== loan.playerId),
     });
 
     return { success: true, message: `${player.firstName} ${player.lastName} signed permanently for £${(fee / 1e6).toFixed(1)}M!` };

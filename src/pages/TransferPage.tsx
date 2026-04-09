@@ -13,16 +13,14 @@ import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { TransferListing, IncomingOffer } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
-import { POSITION_FILTERS } from '@/config/ui';
+import { POSITION_FILTERS, PAGE_HINTS, MARKET_SUB_NAV, SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE } from '@/config/ui';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
-import { PAGE_HINTS } from '@/config/ui';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, SIGNING_BONUS_WEEKS_PER_YEAR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE, FREE_AGENT_DIV_BONUS } from '@/config/transfers';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { formatMoney } from '@/utils/helpers';
 import { getPerformanceMultiplier } from '@/utils/transferOffers';
-import { SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE } from '@/config/ui';
 import { FlagIcon } from '@/components/game/FlagIcon';
 
 const DIVISION_LABELS: Record<string, string> = {
@@ -64,6 +62,7 @@ const TransferPage = () => {
   const respondToOffer = useGameStore(s => s.respondToOffer);
   const unlistPlayer = useGameStore(s => s.unlistPlayer);
   const recallLoan = useGameStore(s => s.recallLoan);
+  const buyLoanedPlayer = useGameStore(s => s.buyLoanedPlayer);
   const respondToLoanOffer = useGameStore(s => s.respondToLoanOffer);
   const signFreeAgent = useGameStore(s => s.signFreeAgent);
   const setScreen = useGameStore(s => s.setScreen);
@@ -243,10 +242,7 @@ const TransferPage = () => {
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       {/* SubNav */}
-      <SubNav items={[
-        { screen: 'transfers', label: 'Transfers' },
-        { screen: 'scouting', label: 'Scouting' },
-      ]} />
+      <SubNav items={MARKET_SUB_NAV} />
 
       <PageHint screen="transfers" title={PAGE_HINTS.transfers.title} body={PAGE_HINTS.transfers.body} />
 
@@ -597,17 +593,6 @@ const TransferPage = () => {
               </motion.div>
             );
           })}
-          {listings.length === 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
-              <Bookmark className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">
-                {tab === 'shortlist' ? 'No players in shortlist' : 'No players available'}
-              </p>
-              {tab === 'shortlist' && (
-                <p className="text-xs text-muted-foreground/60 mt-1">Bookmark players from the market to track them here</p>
-              )}
-            </motion.div>
-          )}
         </div>
       )}
 
@@ -952,9 +937,27 @@ const TransferPage = () => {
                               <div className="flex gap-3 mt-1 text-[10px] text-muted-foreground">
                                 <span>{remaining} weeks left</span>
                                 <span>Wage: {loan.wageSplit}%</span>
+                                {loan.obligatoryBuyFee && <span className="text-amber-400">{'\u00A3'}{(loan.obligatoryBuyFee / 1e6).toFixed(1)}M buy clause</span>}
                               </div>
                             </div>
                           </div>
+                          {transferWindowOpen && (
+                            <Button
+                              size="sm" variant="outline" className="w-full h-8 text-xs mt-3"
+                              onClick={() => {
+                                hapticMedium();
+                                const fee = loan.obligatoryBuyFee || Math.round(p.value * 1.2);
+                                if (fee > (club?.budget || 0)) {
+                                  errorToast(`Insufficient funds — need ${formatMoney(fee)}.`);
+                                  return;
+                                }
+                                const r = buyLoanedPlayer(loan.id);
+                                if (r.success) { hapticHeavy(); successToast(r.message); } else { errorToast(r.message); }
+                              }}
+                            >
+                              Buy Permanently — {formatMoney(loan.obligatoryBuyFee || Math.round(p.value * 1.2))}
+                            </Button>
+                          )}
                         </GlassPanel>
                       );
                     })}

@@ -3,7 +3,7 @@
  * Rating colors, confidence colors, position filters, verdict labels, and thresholds.
  */
 
-import type { Position } from '@/types/game';
+import type { GameScreen, Position } from '@/types/game';
 
 // ── Rating Color Thresholds (overall, attribute values) ──
 export const RATING_COLOR_THRESHOLDS = [
@@ -284,6 +284,12 @@ export const CELEBRATION_STAGGER_MS = 800;
 export const ADVANCE_DONE_MS = 300;
 export const FLASH_DURATION_MS = 600;
 export const XP_GLOW_MS = 1500;
+
+// ── Market Sub-Navigation ──
+export const MARKET_SUB_NAV: { screen: GameScreen; label: string }[] = [
+  { screen: 'transfers', label: 'Transfers' },
+  { screen: 'scouting', label: 'Scouting' },
+];
 
 // ── Team Talk Options (match day half-time) ──
 export const TEAM_TALK_OPTIONS = [
