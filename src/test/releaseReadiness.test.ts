@@ -123,8 +123,8 @@ describe('Loan deal structure', () => {
 // ── General: Data Integrity ──
 
 describe('Data integrity', () => {
-  it('all 6 challenge scenarios exist', () => {
-    expect(CHALLENGES.length).toBe(6);
+  it('all 10 challenge scenarios exist', () => {
+    expect(CHALLENGES.length).toBe(10);
     const ids = CHALLENGES.map(c => c.id);
     expect(ids).toContain('great-escape');
     expect(ids).toContain('invincibles');
@@ -132,6 +132,10 @@ describe('Data integrity', () => {
     expect(ids).toContain('penny-pincher');
     expect(ids).toContain('giant-killer');
     expect(ids).toContain('cup-specialist');
+    expect(ids).toContain('fortress');
+    expect(ids).toContain('goal-machine');
+    expect(ids).toContain('double-winner');
+    expect(ids).toContain('promotion-express');
   });
 
   it('challenge difficulties are valid', () => {

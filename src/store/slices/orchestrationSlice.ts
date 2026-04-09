@@ -2545,7 +2545,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       if (!p.injured) {
         p = applyWeeklyTraining(p, training, getTrainingStaffBonus(staff.members), facilities.recoveryLevel, streakMult);
         // Physio reduces training injury risk, age-scaled injury risk
-        const baseInjuryRisk = getInjuryRisk(training, p.age);
+        const baseInjuryRisk = getInjuryRisk(training, p.age, p.morale);
         const physioReduction = 1 - physioBonus * PHYSIO_INJURY_REDUCTION_PER_QUALITY;
         const perkReduction = hasPerk(state.managerProgression, 'fitness_guru') ? 0.8 : 1;
         // Congested fixtures: if player has both a league and cup match this week

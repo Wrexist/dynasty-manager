@@ -11,7 +11,7 @@ import {
   INDIVIDUAL_TRAINING_BONUS, STAFF_BONUS_MULTIPLIER,
   INDIVIDUAL_BASE_GAIN, INDIVIDUAL_FITNESS_COST,
   FITNESS_RECOVERY_PER_DAY, FITNESS_RECOVERY_BASE, FITNESS_MIN,
-  TRAINING_INJURY_AGE_THRESHOLD, TRAINING_INJURY_AGE_FACTOR,
+  TRAINING_INJURY_AGE_THRESHOLD, TRAINING_INJURY_AGE_FACTOR, TRAINING_INJURY_MORALE_THRESHOLD, TRAINING_INJURY_MORALE_FACTOR,
   TACTICAL_FAMILIARITY_GAIN_PER_DAY, TACTICAL_FAMILIARITY_DECAY, TACTICAL_FAMILIARITY_MAX, TACTICAL_FAMILIARITY_MIN,
   TRAINING_DRILLS,
   STREAK_THRESHOLDS, STREAK_MULTIPLIERS, STREAK_MAX,
@@ -145,11 +145,12 @@ export function applyWeeklyTraining(
   return updated;
 }
 
-/** Injury risk from training — scales with player age */
-export function getInjuryRisk(training: TrainingState, playerAge?: number): number {
+/** Injury risk from training — scales with player age and morale */
+export function getInjuryRisk(training: TrainingState, playerAge?: number, playerMorale?: number): number {
   const baseRisk = INTENSITY_INJURY_RISK[training.intensity];
   const ageFactor = playerAge && playerAge > TRAINING_INJURY_AGE_THRESHOLD ? 1 + (playerAge - TRAINING_INJURY_AGE_THRESHOLD) * TRAINING_INJURY_AGE_FACTOR : 1;
-  return baseRisk * ageFactor;
+  const moraleFactor = playerMorale !== undefined && playerMorale < TRAINING_INJURY_MORALE_THRESHOLD ? TRAINING_INJURY_MORALE_FACTOR : 1;
+  return baseRisk * ageFactor * moraleFactor;
 }
 
 /** Returns the most-scheduled training module across the 5-day week (ties broken by earliest day) */

@@ -70,6 +70,50 @@ export const CHALLENGES: ChallengeScenario[] = [
     constraints: ['Only cup results matter', 'League position is irrelevant'],
     budgetModifier: 1.0,
   },
+  {
+    id: 'fortress',
+    name: 'Fortress',
+    description: 'Go an entire season without losing a home match. Your ground must be impregnable.',
+    icon: 'shield',
+    difficulty: 'hard',
+    seasonLimit: 1,
+    winCondition: 'Complete the season unbeaten at home',
+    constraints: ['Any home defeat = challenge failed', 'Away results do not matter'],
+    budgetModifier: 1.0,
+  },
+  {
+    id: 'goal-machine',
+    name: 'Goal Machine',
+    description: 'Score 100+ league goals in a single season. Attack is the best form of defence.',
+    icon: 'flame',
+    difficulty: 'hard',
+    seasonLimit: 1,
+    winCondition: 'Score 100 or more league goals in one season',
+    constraints: ['Only league goals count', 'Defensive record is irrelevant'],
+    budgetModifier: 1.0,
+  },
+  {
+    id: 'double-winner',
+    name: 'The Double',
+    description: 'Win both the league title and the Dynasty Cup in the same season.',
+    icon: 'medal',
+    difficulty: 'extreme',
+    seasonLimit: 1,
+    winCondition: 'Win the league AND the Dynasty Cup',
+    constraints: ['Must win both competitions', 'No budget advantage'],
+    budgetModifier: 1.0,
+  },
+  {
+    id: 'promotion-express',
+    name: 'Promotion Express',
+    description: 'Get promoted to the top flight within 2 seasons starting from the third tier.',
+    icon: 'rocket',
+    difficulty: 'hard',
+    seasonLimit: 2,
+    winCondition: 'Reach the top division within 2 seasons',
+    constraints: ['Must start in the third tier or lower', 'Budget reduced by 30%'],
+    budgetModifier: 0.7,
+  },
 ];
 
 /** Get difficulty color for UI */
@@ -89,12 +133,13 @@ export function checkChallengeComplete(
   cupWinner: boolean,
   seasonHistory: { position: number }[],
   hasLost: boolean,
+  extraData?: { homeUnbeaten?: boolean; leagueGoals?: number; divisionId?: string },
 ): boolean {
   switch (challengeId) {
     case 'great-escape':
       return leaguePosition <= 17;
     case 'invincibles':
-      return !hasLost && leaguePosition > 0; // Checked at season end, hasLost tracked separately
+      return !hasLost && leaguePosition > 0;
     case 'youth-revolution':
       return leaguePosition <= 10;
     case 'penny-pincher':
@@ -103,6 +148,14 @@ export function checkChallengeComplete(
       return seasonHistory.some(h => h.position === 1);
     case 'cup-specialist':
       return cupWinner;
+    case 'fortress':
+      return extraData?.homeUnbeaten === true;
+    case 'goal-machine':
+      return (extraData?.leagueGoals || 0) >= 100;
+    case 'double-winner':
+      return leaguePosition === 1 && cupWinner;
+    case 'promotion-express':
+      return extraData?.divisionId === 'div-1';
     default:
       return false;
   }
@@ -114,12 +167,15 @@ export function checkChallengeFailed(
   seasonsRemaining: number,
   leaguePosition: number,
   hasLost: boolean,
+  extraData?: { homeLost?: boolean },
 ): boolean {
   if (seasonsRemaining <= 0) return true;
 
   switch (challengeId) {
     case 'invincibles':
       return hasLost;
+    case 'fortress':
+      return extraData?.homeLost === true;
     default:
       return false;
   }

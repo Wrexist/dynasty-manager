@@ -686,6 +686,14 @@ export function simulateHalf(
     (name: string, club: string) => `GOAL! Last-gasp goal from ${name}! ${club} score when it matters most!`,
   ];
 
+  const lateDramaAtmosphere = [
+    () => `The tension is unbearable! Every tackle is met with a roar from the crowd!`,
+    () => `Players are giving everything in these final minutes. You can feel the desperation!`,
+    () => `The fourth official holds up the board — hearts are racing in the stands!`,
+    () => `Nerves jangling now! One moment of quality could decide this match!`,
+    () => `The clock is ticking down. Neither side wants to make a mistake here!`,
+    () => `Frantic scenes! The ball is ping-ponging around the box!`,
+  ];
   const saveDescs = [
     (shooter: string, gk: string) => `${shooter}'s shot is saved by ${gk}.`,
     (shooter: string, gk: string) => `Great save from ${gk} to deny ${shooter}!`,
@@ -723,6 +731,17 @@ export function simulateHalf(
     (name: string) => `${name} goes into the book.`,
     (name: string) => `The referee shows ${name} a yellow card. He'll need to be careful now.`,
     (name: string) => `${name} picks up a booking for that challenge.`,
+  ];
+  const secondYellowDescs = [
+    (name: string) => `Second yellow! ${name} is sent off! A foolish challenge.`,
+    (name: string) => `That's a second booking for ${name}! Off you go! He leaves his team with 10 men.`,
+    (name: string) => `${name} can't believe it — second yellow and he's off! A reckless tackle.`,
+  ];
+  const straightRedDescs = [
+    (name: string) => `RED CARD! ${name} is sent off for violent conduct! A two-footed lunge!`,
+    (name: string) => `RED CARD! ${name} denies a clear goal-scoring opportunity! Last man, had to go!`,
+    (name: string) => `RED CARD! Straight red for ${name}! Serious foul play — no arguments there.`,
+    (name: string) => `RED CARD! ${name} sees red for an elbow off the ball! The ref had no choice.`,
   ];
   const injuryDescs = [
     (name: string) => `${name} goes down injured!`,
@@ -834,6 +853,7 @@ export function simulateHalf(
   }
 
   let lastEventMinute = startMin;
+  let lateDramaFired = false;
 
   // Calculate stoppage time for this half
   const isFirstHalf = startMin <= 45 && endMin <= 50;
@@ -962,6 +982,12 @@ export function simulateHalf(
     const baseChance = BASE_EVENT_CHANCE + (min > LATE_GAME_THRESHOLD_MINUTE ? LATE_GAME_EVENT_BONUS : 0) + derbyEventMod + tempoEventMod;
     const eventChance = baseChance + (homeMods.shotMod + awayMods.shotMod) * 0.5;
     if (Math.random() > eventChance) {
+      // Late drama atmosphere: inject once when game is tight in the final minutes
+      if (!lateDramaFired && min >= LATE_GAME_THRESHOLD_MINUTE && Math.abs(homeGoals - awayGoals) <= 1) {
+        lateDramaFired = true;
+        events.push({ minute: min, type: 'commentary', description: pick(lateDramaAtmosphere)(), momentum });
+        lastEventMinute = min;
+      }
       // Gap-filler: inject commentary if too many silent minutes have passed
       if (min - lastEventMinute >= COMMENTARY_GAP_MAX) {
         const isHome = Math.random() < 0.5;
@@ -1237,7 +1263,7 @@ export function simulateHalf(
             momentum = isHome
               ? Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING)
               : Math.min(100, momentum + MOMENTUM_RED_CARD_SWING);
-            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `Second yellow! ${fouler.lastName} is sent off!`, momentum });
+            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: pick(secondYellowDescs)(fouler.lastName), momentum });
             // Rebalance strength after red card
             const recomputed = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = recomputed.homeStr; awayStr = recomputed.awayStr;
@@ -1260,7 +1286,7 @@ export function simulateHalf(
           momentum = isHome
             ? Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING)
             : Math.min(100, momentum + MOMENTUM_RED_CARD_SWING);
-          events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `RED CARD! Straight red for ${fouler.lastName}! Dangerous play!`, momentum });
+          events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: pick(straightRedDescs)(fouler.lastName), momentum });
             // Rebalance strength after red card
             const recomputed2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = recomputed2.homeStr; awayStr = recomputed2.awayStr;
