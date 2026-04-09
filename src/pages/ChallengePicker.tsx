@@ -9,7 +9,62 @@ import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, ChevronRight, ChevronDown, Trophy, Star, Globe } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
-import type { ChallengeScenario } from '@/types/game';
+import type { ChallengeScenario, ClubData, LeagueInfo } from '@/types/game';
+
+/** Filter label shown below the header to explain why these clubs were selected */
+const FILTER_LABELS: Record<string, string> = {
+  relegation: 'Relegation zone — teams fighting for survival',
+  contender: 'Title contenders — strong enough to go unbeaten',
+  'youth-academy': 'Best youth academies — sorted by academy rating',
+  'mid-table': 'Mid-table clubs — can you win with an average squad?',
+  underdog: 'Underdogs — the giant-killers of each league',
+};
+
+/** Smart per-challenge filtering: returns the relevant clubs for a league */
+function filterClubsForChallenge(
+  clubs: ClubData[],
+  league: LeagueInfo,
+  filter: ChallengeScenario['clubFilter'],
+): ClubData[] {
+  const sorted = [...clubs].sort((a, b) => a.squadQuality - b.squadQuality);
+  const n = clubs.length;
+
+  switch (filter) {
+    case 'relegation': {
+      // Bottom clubs by squad quality — the relegation zone
+      const count = Math.max(league.replacedSlots, 3);
+      return sorted.slice(0, count);
+    }
+    case 'contender': {
+      // Top third excluding the #1 team — strong but not dominant
+      const topThird = Math.max(Math.ceil(n / 3), 3);
+      return sorted.slice(-topThird, -1).reverse();
+    }
+    case 'youth-academy': {
+      // Best youth academies in the league (top 3 by youthRating, tiebreak by facilities)
+      const byYouth = [...clubs].sort((a, b) =>
+        b.youthRating - a.youthRating || b.facilities - a.facilities
+      );
+      return byYouth.slice(0, Math.min(3, n));
+    }
+    case 'mid-table': {
+      // Middle third of the league — not favorites, not relegation
+      const third = Math.max(Math.floor(n / 3), 2);
+      const midStart = third;
+      const midEnd = n - third;
+      return sorted.slice(midStart, midEnd).reverse();
+    }
+    case 'underdog': {
+      // Lower half but above relegation zone — plucky underdogs
+      const relCount = Math.max(league.replacedSlots, 3);
+      const midpoint = Math.floor(n / 2);
+      return sorted.slice(relCount, midpoint + 1);
+    }
+    default:
+      // 'all' or unset — show everything sorted best-first
+      return sorted.reverse();
+  }
+}
 
 const ChallengePicker = () => {
   const navigate = useNavigate();
@@ -39,23 +94,16 @@ const ChallengePicker = () => {
     navigate('/game');
   };
 
-  // Build league-grouped club data based on the selected challenge's filter
+  // Build league-grouped club data using smart per-challenge filtering
   const leagueClubMap = useMemo(() => {
-    if (!selected) return new Map<string, typeof CLUBS_DATA>();
-    const isBottom = selected.clubFilter === 'bottom';
-    const map = new Map<string, typeof CLUBS_DATA>();
+    if (!selected) return new Map<string, ClubData[]>();
+    const map = new Map<string, ClubData[]>();
 
     for (const league of LEAGUES) {
       const clubs = CLUBS_BY_LEAGUE[league.id];
       if (!clubs || clubs.length === 0) continue;
-
-      if (isBottom) {
-        const sorted = [...clubs].sort((a, b) => a.squadQuality - b.squadQuality);
-        const count = Math.max(league.replacedSlots, 3);
-        map.set(league.id, sorted.slice(0, count));
-      } else {
-        map.set(league.id, [...clubs].sort((a, b) => b.squadQuality - a.squadQuality));
-      }
+      const filtered = filterClubsForChallenge(clubs, league, selected.clubFilter);
+      if (filtered.length > 0) map.set(league.id, filtered);
     }
     return map;
   }, [selected]);
@@ -78,6 +126,12 @@ const ChallengePicker = () => {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full">
+          {/* Filter context banner */}
+          {selected.clubFilter && selected.clubFilter !== 'all' && FILTER_LABELS[selected.clubFilter] && (
+            <div className="mb-4 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+              <p className="text-[11px] text-primary/80 font-medium">{FILTER_LABELS[selected.clubFilter]}</p>
+            </div>
+          )}
           <div className="space-y-5">
             {LEAGUE_REGIONS.map(region => {
               const regionLeagues = region.ids
@@ -161,18 +215,36 @@ const ChallengePicker = () => {
                                           {Array.from({ length: 5 }).map((_, si) => (
                                             <Star key={si} className={cn('w-2.5 h-2.5', si < club.reputation ? 'fill-primary text-primary' : 'text-muted-foreground/20')} />
                                           ))}
-                                          <span className="text-[10px] text-muted-foreground ml-1">{club.stadiumName}</span>
+                                          <span className="text-[10px] text-muted-foreground ml-1">
+                                            {selected.clubFilter === 'youth-academy'
+                                              ? `Youth: ${club.youthRating}/10`
+                                              : selected.clubFilter === 'mid-table' || selected.clubFilter === 'contender'
+                                              ? `Squad: ${club.squadQuality}`
+                                              : `£${(club.budget / 1_000_000).toFixed(0)}M`}
+                                          </span>
                                         </div>
                                       </div>
                                       <div className="shrink-0 text-right">
-                                        <span className={cn(
-                                          'text-xs font-bold tabular-nums',
-                                          club.budget >= 150_000_000 ? 'text-emerald-400' :
-                                          club.budget >= 80_000_000 ? 'text-foreground' :
-                                          club.budget >= 30_000_000 ? 'text-amber-400' : 'text-muted-foreground'
-                                        )}>
-                                          {'\u00A3'}{(club.budget / 1_000_000).toFixed(0)}M
-                                        </span>
+                                        {selected.clubFilter === 'youth-academy' ? (
+                                          <div className="text-center">
+                                            <span className={cn(
+                                              'text-xs font-bold tabular-nums',
+                                              club.facilities >= 8 ? 'text-emerald-400' :
+                                              club.facilities >= 6 ? 'text-primary' :
+                                              club.facilities >= 4 ? 'text-amber-400' : 'text-muted-foreground'
+                                            )}>{club.facilities}/10</span>
+                                            <p className="text-[8px] text-muted-foreground">Facilities</p>
+                                          </div>
+                                        ) : (
+                                          <span className={cn(
+                                            'text-xs font-bold tabular-nums',
+                                            club.budget >= 150_000_000 ? 'text-emerald-400' :
+                                            club.budget >= 80_000_000 ? 'text-foreground' :
+                                            club.budget >= 30_000_000 ? 'text-amber-400' : 'text-muted-foreground'
+                                          )}>
+                                            {'\u00A3'}{(club.budget / 1_000_000).toFixed(0)}M
+                                          </span>
+                                        )}
                                       </div>
                                     </motion.button>
                                   ))}

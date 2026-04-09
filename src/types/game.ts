@@ -1034,7 +1034,7 @@ export interface ChallengeScenario {
   budgetModifier: number;        // multiplier: 0.5 = half budget, 2.0 = double
   youthOnly?: boolean;           // can only use players under 23
   noTransfers?: boolean;         // cannot buy players
-  clubFilter?: 'bottom' | 'all'; // which clubs to show in picker (default: 'all')
+  clubFilter?: 'relegation' | 'contender' | 'youth-academy' | 'mid-table' | 'underdog' | 'all';
 }
 
 // ── Storyline Events ──

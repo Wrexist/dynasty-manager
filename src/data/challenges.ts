@@ -12,7 +12,7 @@ export const CHALLENGES: ChallengeScenario[] = [
     winCondition: 'Finish in the top 17 at the end of the season',
     constraints: ['Start at week 23 with 15 points', 'Budget reduced by 50%'],
     budgetModifier: 0.5,
-    clubFilter: 'bottom',
+    clubFilter: 'relegation',
   },
   {
     id: 'invincibles',
@@ -24,7 +24,7 @@ export const CHALLENGES: ChallengeScenario[] = [
     winCondition: 'Complete a 38-match season without losing',
     constraints: ['Any league defeat = challenge failed', 'No special advantages'],
     budgetModifier: 1.0,
-    clubFilter: 'bottom',
+    clubFilter: 'contender',
   },
   {
     id: 'youth-revolution',
@@ -37,7 +37,7 @@ export const CHALLENGES: ChallengeScenario[] = [
     constraints: ['Starting lineup must be all under 23', 'No transfers over £5M', 'Can only buy players under 21'],
     budgetModifier: 0.7,
     youthOnly: true,
-    clubFilter: 'bottom',
+    clubFilter: 'youth-academy',
   },
   {
     id: 'penny-pincher',
@@ -50,7 +50,7 @@ export const CHALLENGES: ChallengeScenario[] = [
     constraints: ['Cannot buy any players', 'Must use existing squad + youth academy', 'Free agents allowed'],
     budgetModifier: 1.0,
     noTransfers: true,
-    clubFilter: 'bottom',
+    clubFilter: 'mid-table',
   },
   {
     id: 'giant-killer',
@@ -73,7 +73,7 @@ export const CHALLENGES: ChallengeScenario[] = [
     winCondition: 'Win the Dynasty Cup',
     constraints: ['Only cup results matter', 'League position is irrelevant'],
     budgetModifier: 1.0,
-    clubFilter: 'bottom',
+    clubFilter: 'underdog',
   },
 ];
 
