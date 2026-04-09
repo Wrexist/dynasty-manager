@@ -977,6 +977,16 @@ export interface VirtualClub {
   countryCode: string;
 }
 
+// ── Continental Coefficients ──
+/** Tracks a club's continental performance over multiple seasons for seeding */
+export interface ContinentalCoefficient {
+  clubId: string;
+  /** Points accumulated across seasons (recent seasons weighted more) */
+  points: number;
+  /** Per-season breakdown: { season: points } */
+  seasonPoints: Record<number, number>;
+}
+
 // ── Super Cup ──
 export interface SuperCupMatch {
   type: 'domestic' | 'continental';

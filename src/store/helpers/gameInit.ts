@@ -219,6 +219,7 @@ export function initGameImpl(set: Set, get: Get, clubId: string) {
     shieldCup: null,
     virtualClubs: {},
     continentalQualification: null,
+    continentalCoefficients: {},
     domesticSuperCup: null,
     continentalSuperCup: null,
     currentContinentalMatchId: null,

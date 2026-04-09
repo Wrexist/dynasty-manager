@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 45;
+const CURRENT_VERSION = 46;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -630,6 +630,13 @@ const migrations: Record<number, MigrationFn> = {
       },
     };
   },
+
+  // v45 → v46: Add continental coefficients
+  45: (data) => ({
+    ...data,
+    version: 46,
+    continentalCoefficients: {},
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

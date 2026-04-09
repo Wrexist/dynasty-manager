@@ -30,6 +30,7 @@ import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getChampionsCupQualifiers, getShieldCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
+import { updateCoefficients } from '@/utils/continentalCoefficients';
 import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, getContinentalResultForClub, createEphemeralClub, findPlayerContinentalMatch } from '@/utils/continental';
 import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
 import { generatePressConference, getPressContext } from '@/data/pressConferences';
@@ -559,14 +560,23 @@ function finalizeSeason(
 
   const allVirtualClubs = { ...champQ.virtualClubs, ...shieldQ.virtualClubs };
 
+  // Update continental coefficients from completed tournaments
+  let coefficients = state.continentalCoefficients || {};
+  if (state.championsCup && state.championsCup.currentPhase === 'complete') {
+    coefficients = updateCoefficients(coefficients, state.championsCup, season);
+  }
+  if (state.shieldCup && state.shieldCup.currentPhase === 'complete') {
+    coefficients = updateCoefficients(coefficients, state.shieldCup, season);
+  }
+
   let newChampionsCup: import('@/types/game').ContinentalTournamentState | null = null;
   let newShieldCup: import('@/types/game').ContinentalTournamentState | null = null;
 
   if (champQ.qualifiers.length >= 8) {
-    newChampionsCup = generateContinentalDraw('champions_cup', newSeason, champQ.qualifiers, allVirtualClubs, playerClubId);
+    newChampionsCup = generateContinentalDraw('champions_cup', newSeason, champQ.qualifiers, allVirtualClubs, playerClubId, coefficients);
   }
   if (shieldQ.qualifiers.length >= 8) {
-    newShieldCup = generateContinentalDraw('shield_cup', newSeason, shieldQ.qualifiers, allVirtualClubs, playerClubId);
+    newShieldCup = generateContinentalDraw('shield_cup', newSeason, shieldQ.qualifiers, allVirtualClubs, playerClubId, coefficients);
   }
 
   // Domestic Super Cup: last season's league winner vs cup winner
@@ -767,6 +777,7 @@ function finalizeSeason(
     shieldCup: newShieldCup,
     virtualClubs: allVirtualClubs,
     continentalQualification: { champions: champQ.qualifiers, shield: shieldQ.qualifiers },
+    continentalCoefficients: coefficients,
     domesticSuperCup: newDomesticSuperCup,
     continentalSuperCup: newContinentalSuperCup,
     currentContinentalMatchId: null,

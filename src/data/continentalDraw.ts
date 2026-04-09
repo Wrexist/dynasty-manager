@@ -2,7 +2,7 @@
  * Continental tournament draw generation.
  * Creates virtual clubs from league data and generates group-stage draws.
  */
-import type { VirtualClub, ContinentalGroup, ContinentalGroupMatch, ContinentalGroupStanding, ContinentalTournamentState, ContinentalCompetition, LeagueTableEntry } from '@/types/game';
+import type { VirtualClub, ContinentalGroup, ContinentalGroupMatch, ContinentalGroupStanding, ContinentalTournamentState, ContinentalCompetition, LeagueTableEntry, ContinentalCoefficient } from '@/types/game';
 import { ALL_LEAGUES, CLUBS_BY_LEAGUE, ALL_CLUBS_DATA } from './leagues';
 import {
   CHAMPIONS_CUP_SPOTS, CHAMPIONS_CUP_TIER3_MAX, CHAMPIONS_CUP_GROUPS, CHAMPIONS_CUP_TEAMS_PER_GROUP,
@@ -10,6 +10,7 @@ import {
   CONTINENTAL_GROUP_WEEKS, GROUP_FIXTURE_TEMPLATE,
 } from '@/config/continental';
 import { shuffle } from '@/utils/helpers';
+import { getSeedingScore } from '@/utils/continentalCoefficients';
 
 /**
  * Build virtual clubs from a league's club data, sorted by reputation (highest first).
@@ -180,7 +181,8 @@ export function getShieldCupQualifiers(
 
 /**
  * Generate a continental tournament draw with seeded groups.
- * Pot 1: top 8 by reputation, Pot 2: next 8, etc.
+ * Seeding uses a blend of multi-season coefficient and reputation.
+ * Pot 1: top 8 by seeding score, Pot 2: next 8, etc.
  */
 export function generateContinentalDraw(
   competition: ContinentalCompetition,
@@ -188,12 +190,14 @@ export function generateContinentalDraw(
   qualifierIds: string[],
   virtualClubs: Record<string, VirtualClub>,
   playerClubId: string,
+  coefficients?: Record<string, ContinentalCoefficient>,
 ): ContinentalTournamentState {
-  // Sort by reputation for seeding
+  // Sort by coefficient-blended seeding score (falls back to reputation if no coefficients)
+  const coeffs = coefficients || {};
   const sorted = [...qualifierIds].sort((a, b) => {
     const repA = virtualClubs[a]?.reputation || 0;
     const repB = virtualClubs[b]?.reputation || 0;
-    return repB - repA;
+    return getSeedingScore(b, repB, coeffs) - getSeedingScore(a, repA, coeffs);
   });
 
   // Fill to 32 if needed (shouldn't happen, but safety)
