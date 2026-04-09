@@ -66,7 +66,7 @@ import {
   WEATHER_WEIGHTS, PITCH_WEIGHTS, WEATHER_PASSING_MOD, WEATHER_PACE_MOD, WEATHER_FOUL_MOD,
   PITCH_SHOT_MOD, WEATHER_GK_ERROR_MOD,
   FREE_KICK_GOAL_CHANCE, LONG_RANGE_GOAL_CHANCE, COUNTER_ATTACK_GOAL_CHANCE,
-  HEADER_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, VAR_CHECK_CHANCE,
+  HEADER_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, VAR_CHECK_CHANCE,
 } from '@/config/matchEngine';
 import { generateCommentary } from '@/utils/matchCommentary';
 
@@ -1151,7 +1151,7 @@ export function simulateHalf(
             }
           }
         }
-      } else if (Math.random() < GK_ERROR_BASE_CHANCE + weatherGKErrorMod) {
+      } else if (Math.random() < Math.min(GK_ERROR_BASE_CHANCE + weatherGKErrorMod, GK_ERROR_MAX_CHANCE)) {
         // Goalkeeper error — fumble leads to a goal (not a shot — GK dropped it)
         if (isHome) homeGoals++; else awayGoals++;
         const gkErrorAssist = pickAssist(squad, scorer.id);

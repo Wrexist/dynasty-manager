@@ -362,4 +362,5 @@ export const LONG_RANGE_GOAL_CHANCE = 0.10;
 export const COUNTER_ATTACK_GOAL_CHANCE = 0.12;
 export const HEADER_GOAL_CHANCE = 0.06;
 export const GK_ERROR_BASE_CHANCE = 0.03;
+export const GK_ERROR_MAX_CHANCE = 0.08;
 export const VAR_CHECK_CHANCE = 0.12;

@@ -1334,6 +1334,7 @@ function finalizeSeason(
       seasonRatingTotal: 0, seasonRatedMatches: 0,
       suspendedUntilWeek: undefined, growthDelta: 0, lastAttributeChanges: undefined, lastTrainingGains: undefined, onLoan: false,
       loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined, lastTransferTalkWeek: undefined,
+      listedForSale: false,
     };
     if (aged.contractEnd <= season) {
       const club = newClubs[aged.clubId];
@@ -2399,6 +2400,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const cm = { ...state.careerManager, attributes: { ...state.careerManager.attributes } };
       cm.unemployedWeeks = (cm.unemployedWeeks || 0) + 1;
       const newWeek = state.week + 1;
+
+      // Season end check — advance the world even while unemployed
+      if (newWeek > TOTAL_WEEKS) {
+        set({ careerManager: cm });
+        endSeasonImpl(set, get);
+        return;
+      }
 
       // Forced retirement after extended unemployment
       if (cm.unemployedWeeks >= FORCED_RETIREMENT_UNEMPLOYED_WEEKS) {
