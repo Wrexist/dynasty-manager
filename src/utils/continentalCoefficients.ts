@@ -87,13 +87,13 @@ export function updateCoefficients(
     updated[clubId] = { clubId, points: Math.round(weightedTotal * 10) / 10, seasonPoints: newSeasonPoints };
   }
 
-  // Prune old season data beyond the window
-  for (const coeff of Object.values(updated)) {
+  // Prune old season data beyond the window (immutable — create new objects)
+  for (const [clubId, coeff] of Object.entries(updated)) {
     const pruned: Record<number, number> = {};
     for (const [s, pts] of Object.entries(coeff.seasonPoints)) {
       if (Number(s) > season - COEFF_SEASON_WINDOW) pruned[Number(s)] = pts;
     }
-    coeff.seasonPoints = pruned;
+    updated[clubId] = { ...coeff, seasonPoints: pruned };
   }
 
   return updated;

@@ -1059,7 +1059,7 @@ export function simulateHalf(
             momentum,
           });
         }
-      } else if (Math.random() < oppGKSave - weatherGKErrorMod) {
+      } else if (Math.random() < Math.max(0, oppGKSave - weatherGKErrorMod)) {
         // Shot on target but saved — GK quality determines save rate (weather worsens handling)
         if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
         const gk = oppSquad.find(p => p.position === 'GK');
@@ -1108,9 +1108,11 @@ export function simulateHalf(
           }
         }
       } else if (Math.random() < GK_ERROR_BASE_CHANCE + weatherGKErrorMod) {
-        // Goalkeeper error — fumble leads to a goal
-        if (isHome) { homeGoals++; homeShots++; homeSoT++; } else { awayGoals++; awayShots++; awaySoT++; }
+        // Goalkeeper error — fumble leads to a goal (not a shot — GK dropped it)
+        if (isHome) homeGoals++; else awayGoals++;
+        const gkErrorAssist = pickAssist(squad, scorer.id);
         if (playerEvents[scorer.id]) playerEvents[scorer.id].goals++;
+        if (gkErrorAssist && playerEvents[gkErrorAssist.id]) playerEvents[gkErrorAssist.id].assists++;
         const oppGK = oppSquad.find(p => p.position === 'GK');
         oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
         momentum = isHome

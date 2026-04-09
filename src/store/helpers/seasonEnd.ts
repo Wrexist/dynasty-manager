@@ -131,7 +131,7 @@ import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
 import type { CareerMilestone, PerkId, ManagerProgression } from '@/types/game';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { processSponsorWeek, processSponsorSeasonEnd } from '@/store/slices/sponsorSlice';
-import { initGameImpl, generateObjectives, generateLeagueCupDraw } from '@/store/helpers/gameInit';
+import { generateObjectives, generateLeagueCupDraw } from '@/store/helpers/gameInit';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;

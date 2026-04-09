@@ -20,6 +20,8 @@ import {
   LISTING_PRICE_MIN_MULTIPLIER, LISTING_PRICE_RANDOM_RANGE, INITIAL_LISTINGS_MIN, INITIAL_LISTINGS_RANGE,
 } from '@/config/gameBalance';
 import { INITIAL_FAMILIARITY_SEED } from '@/config/chemistry';
+import { LEAGUE_CUP_WEEKS } from '@/config/continental';
+import { CUP_BYE_MARKER } from '@/data/cup';
 import { generateAIManagerProfile } from '@/config/aiManager';
 import { resetSeasonGrowth } from '@/store/helpers/development';
 import { createMilestone } from '@/utils/milestones';
@@ -75,9 +77,24 @@ function generateLeagueCupDraw(clubIds: string[]): import('@/types/game').League
       homeClubId: shuffled[i],
       awayClubId: shuffled[i + 1],
       played: false, homeGoals: 0, awayGoals: 0,
-      week: 0,
+      week: LEAGUE_CUP_WEEKS[startRound],
     });
   }
+
+  // Bye for odd number of clubs
+  if (shuffled.length % 2 === 1) {
+    ties.push({
+      id: crypto.randomUUID(),
+      round: startRound,
+      homeClubId: shuffled[shuffled.length - 1],
+      awayClubId: CUP_BYE_MARKER,
+      played: true,
+      homeGoals: 1,
+      awayGoals: 0,
+      week: LEAGUE_CUP_WEEKS[startRound],
+    });
+  }
+
   return { ties, currentRound: startRound, eliminated: false, winner: null };
 }
 
