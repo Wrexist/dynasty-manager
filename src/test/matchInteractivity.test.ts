@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { simulateHalf } from '@/engine/match';
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
 import { Club, Match, TacticalInstructions, MatchShout, ShoutType } from '@/types/game';
-import { SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, SHOUT_DURATION, GOAL_DISPLAY_TYPES } from '@/config/matchEngine';
+import { SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, SHOUT_DURATION, GOAL_EVENT_TYPES } from '@/config/matchEngine';
 
 function makeClub(id: string, name: string): Club {
   return {
@@ -108,8 +108,8 @@ describe('Match Interactivity Features', () => {
       const { homeClub, awayClub, homePlayers, awayPlayers } = setupMatch();
       for (let i = 0; i < 10; i++) {
         const halfState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45);
-        const homeGoalEvents = halfState.events.filter(e => (GOAL_DISPLAY_TYPES as readonly string[]).includes(e.type) && e.clubId === homeClub.id).length;
-        const awayGoalEvents = halfState.events.filter(e => (GOAL_DISPLAY_TYPES as readonly string[]).includes(e.type) && e.clubId === awayClub.id).length;
+        const homeGoalEvents = halfState.events.filter(e => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type) && e.clubId === homeClub.id).length;
+        const awayGoalEvents = halfState.events.filter(e => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type) && e.clubId === awayClub.id).length;
         expect(halfState.homeGoals).toBe(homeGoalEvents);
         expect(halfState.awayGoals).toBe(awayGoalEvents);
       }
