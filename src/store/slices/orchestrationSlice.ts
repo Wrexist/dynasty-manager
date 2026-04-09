@@ -107,7 +107,7 @@ import { generateStorylines } from '@/utils/storylines';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
 import { getTournamentForSeason, generateTournament, processGroupWeek, generateKnockoutBracket, processKnockoutRound, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
-import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST, NT_JOB_MIN_REPUTATION, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS, REP_INTL_TOURNAMENT_WIN, REP_INTL_FINAL, REP_INTL_SEMI, REP_INTL_KNOCKOUT, REP_INTL_GROUP_EXIT, NT_SACK_GROUP_EXIT_THRESHOLD } from '@/config/gameBalance';
+import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS, REP_INTL_TOURNAMENT_WIN, REP_INTL_FINAL, REP_INTL_SEMI, REP_INTL_KNOCKOUT, REP_INTL_GROUP_EXIT, NT_SACK_GROUP_EXIT_THRESHOLD } from '@/config/gameBalance';
 import { generateRandomEvents } from '@/utils/randomEvents';
 import { getWinStreak, detectMatchDrama } from '@/utils/celebrations';
 import { generateCliffhangers } from '@/utils/weekPreview';
@@ -603,7 +603,6 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
 
     // Career mode: apply international reputation rewards and sacking check
     let updatedCareerManager = state.careerManager;
-    let sacked = false;
     let clearNationalTeam = false;
     if (state.gameMode === 'career' && state.careerManager && state.nationalTeam) {
       const cm = { ...state.careerManager };
@@ -637,7 +636,6 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
           else break;
         }
         if (consecutiveGroupExits >= NT_SACK_GROUP_EXIT_THRESHOLD) {
-          sacked = true;
           clearNationalTeam = true;
           cm.nationalTeamSacked = true;
           newMessages = addMsg(newMessages, {

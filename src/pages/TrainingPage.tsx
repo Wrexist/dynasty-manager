@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
-import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronUp, Trophy, AlertTriangle, TrendingUp, Heart, Check } from 'lucide-react';
+import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronUp, Trophy, AlertTriangle, TrendingUp, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TrainingModule } from '@/types/game';
 import { PageHint } from '@/components/game/PageHint';

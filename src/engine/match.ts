@@ -1024,7 +1024,7 @@ export function simulateHalf(
       const moraleMod = (scorer.morale - MORALE_BASELINE) / 100 * MORALE_PERFORMANCE_WEIGHT;
 
       // Goal chance: attacker quality vs opponent defense, modified by tactics and weather
-      const goalChance = (shotQuality * fitnessFactor * GOAL_CHANCE_ATTACK_MULT) - (oppDefense * GOAL_CHANCE_DEFENSE_MULT) + atkMods.attackMod * GOAL_CHANCE_ATTACK_MOD_SCALE + oppMods.counterVuln * GOAL_CHANCE_COUNTER_VULN_SCALE - lowFitPenalty + moraleMod + pitchShotMod + weatherPaceMod;
+      const goalChance = (shotQuality * fitnessFactor * GOAL_CHANCE_ATTACK_MULT) - (oppDefense * GOAL_CHANCE_DEFENSE_MULT) + atkMods.attackMod * GOAL_CHANCE_ATTACK_MOD_SCALE + oppMods.counterVuln * GOAL_CHANCE_COUNTER_VULN_SCALE - lowFitPenalty + moraleMod + pitchShotMod + weatherPaceMod + weatherMod;
 
       // Accumulate xG for every shot attempt
       const clampedChance = Math.max(GOAL_CHANCE_MIN, goalChance);

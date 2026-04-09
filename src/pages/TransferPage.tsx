@@ -169,6 +169,7 @@ const TransferPage = () => {
       }
     });
     return result;
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- playerDivision is reactive Zustand state used in FREE_AGENT_DIV_BONUS lookup
   }, [freeAgents, players, posFilter, searchQuery, faSortBy, club?.reputation, playerDivision]);
 
   // News tab computations (memoized)

@@ -56,7 +56,7 @@ const FacilitiesPage = () => {
         }
       }
     }
-  }, [facilities.upgradeInProgress, facilities.stadiumStands]);
+  }, [facilities.upgradeInProgress, facilities.stadiumStands, facilities.trainingLevel, facilities.youthLevel, facilities.medicalLevel, facilities.recoveryLevel]);
 
   const effectiveLevel = getEffectiveStadiumLevel(facilities);
   const weeklyRevenue = effectiveLevel * STADIUM_INCOME_PER_LEVEL;

@@ -42,7 +42,6 @@ const ManagerCreation = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const initCareerGame = useGameStore(s => s.initCareerGame);
-  const initNationalTeam = useGameStore(s => s.initNationalTeam);
   const setManagerNationality = useGameStore(s => s.setManagerNationality);
   const saveGame = useGameStore(s => s.saveGame);
   const slot = (location.state as { slot?: number })?.slot || 1;
