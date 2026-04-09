@@ -122,7 +122,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
     toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
     const recallWageShare = Math.round(player.wage * loan.wageSplit / 100);
-    toClub.wageBill -= recallWageShare;
+    toClub.wageBill = Math.max(0, toClub.wageBill - recallWageShare);
 
     fromClub.playerIds = [...fromClub.playerIds, loan.playerId];
     fromClub.wageBill += recallWageShare;
@@ -191,7 +191,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     sellerClub.playerIds = sellerClub.playerIds.filter(id => id !== offer.playerId);
     sellerClub.lineup = sellerClub.lineup.filter(id => id !== offer.playerId);
     sellerClub.subs = sellerClub.subs.filter(id => id !== offer.playerId);
-    sellerClub.wageBill -= Math.round(player.wage * offer.wageSplit / 100);
+    sellerClub.wageBill = Math.max(0, sellerClub.wageBill - Math.round(player.wage * offer.wageSplit / 100));
 
     const buyerClub = { ...fromClub };
     buyerClub.playerIds = [...buyerClub.playerIds, offer.playerId];
@@ -269,7 +269,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         };
 
         // Fix wage bills — remove the split, add full wage to dest
-        fromClub.wageBill -= Math.round(player.wage * (100 - loan.wageSplit) / 100);
+        fromClub.wageBill = Math.max(0, fromClub.wageBill - Math.round(player.wage * (100 - loan.wageSplit) / 100));
         toClub.wageBill += Math.round(player.wage * (100 - loan.wageSplit) / 100);
 
         newClubs[fromClub.id] = fromClub;
@@ -291,7 +291,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
         toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
         toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
-        toClub.wageBill -= Math.round(player.wage * loan.wageSplit / 100);
+        toClub.wageBill = Math.max(0, toClub.wageBill - Math.round(player.wage * loan.wageSplit / 100));
 
         if (!fromClub.playerIds.includes(loan.playerId)) {
           fromClub.playerIds = [...fromClub.playerIds, loan.playerId];
@@ -345,7 +345,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
 
     // Fix wages: remove loan split, add full wage to buyer
     buyerClub.wageBill += Math.round(player.wage * (100 - loan.wageSplit) / 100);
-    sellerClub.wageBill -= Math.round(player.wage * (100 - loan.wageSplit) / 100);
+    sellerClub.wageBill = Math.max(0, sellerClub.wageBill - Math.round(player.wage * (100 - loan.wageSplit) / 100));
 
     // Remove from seller's roster (already at buyer from loan)
     sellerClub.playerIds = sellerClub.playerIds.filter(id => id !== loan.playerId);
@@ -391,7 +391,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
     toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
     toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
-    toClub.wageBill -= Math.round(player.wage * loan.wageSplit / 100);
+    toClub.wageBill = Math.max(0, toClub.wageBill - Math.round(player.wage * loan.wageSplit / 100));
 
     fromClub.playerIds = [...fromClub.playerIds, loan.playerId];
     fromClub.wageBill += Math.round(player.wage * loan.wageSplit / 100);
@@ -509,7 +509,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       updatedOwner.playerIds = updatedOwner.playerIds.filter(id => id !== playerId);
       updatedOwner.lineup = updatedOwner.lineup.filter(id => id !== playerId);
       updatedOwner.subs = updatedOwner.subs.filter(id => id !== playerId);
-      updatedOwner.wageBill -= Math.round(player.wage * wageSplit / 100);
+      updatedOwner.wageBill = Math.max(0, updatedOwner.wageBill - Math.round(player.wage * wageSplit / 100));
 
       const updatedUser = { ...userClub };
       updatedUser.playerIds = [...updatedUser.playerIds, playerId];

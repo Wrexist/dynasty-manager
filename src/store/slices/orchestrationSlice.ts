@@ -1342,7 +1342,7 @@ function finalizeSeason(
         updatedClub.playerIds = updatedClub.playerIds.filter(id => id !== aged.id);
         updatedClub.lineup = updatedClub.lineup.filter(id => id !== aged.id);
         updatedClub.subs = updatedClub.subs.filter(id => id !== aged.id);
-        updatedClub.wageBill -= aged.wage;
+        updatedClub.wageBill = Math.max(0, updatedClub.wageBill - aged.wage);
         newClubs[updatedClub.id] = updatedClub;
         // Track farewells for departing players from user's club
         if (p.clubId === playerClubId) {
@@ -1451,6 +1451,15 @@ function finalizeSeason(
       newClubs[club.id] = safeClub;
     }
   });
+
+  // Recalculate wageBill from actual player wages to fix accumulated rounding errors
+  // (loan splits use Math.round which can drift over multiple seasons)
+  for (const club of Object.values(newClubs)) {
+    const recalcWages = club.playerIds.reduce((sum, pid) => sum + (newPlayers[pid]?.wage || 0), 0);
+    if (recalcWages !== club.wageBill) {
+      newClubs[club.id] = { ...newClubs[club.id], wageBill: recalcWages };
+    }
+  }
 
   // Prune orphaned players: remove players not in any club, not free agents,
   // and not in the national team pool
