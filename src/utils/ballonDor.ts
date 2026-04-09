@@ -1,8 +1,9 @@
-import { Player, Club, LeagueTableEntry, BallonDOrEntry } from '@/types/game';
+import { Player, Club, LeagueTableEntry, BallonDOrEntry, ContinentalTournamentState } from '@/types/game';
 import {
   BALLON_DOR_TOP_N, BALLON_DOR_WEIGHTS, BALLON_DOR_VALUE_BOOST,
   BALLON_DOR_POSITION_MULTIPLIERS, BALLON_DOR_YELLOW_PENALTY,
   BALLON_DOR_RED_PENALTY, BALLON_DOR_DIVISION_BONUS,
+  BALLON_DOR_CONTINENTAL_BONUS,
 } from '@/config/gameBalance';
 import { LEAGUES } from '@/data/league';
 
@@ -18,10 +19,55 @@ function getAvgRating(player: Player): number {
 }
 
 /**
+ * Determine a club's deepest continental round and return the corresponding bonus.
+ */
+function getContinentalBonusForClub(
+  clubId: string,
+  championsCup: ContinentalTournamentState | null,
+  shieldCup: ContinentalTournamentState | null,
+): number {
+  let bonus = 0;
+
+  for (const [tournament, config] of [
+    [championsCup, BALLON_DOR_CONTINENTAL_BONUS.champions_cup] as const,
+    [shieldCup, BALLON_DOR_CONTINENTAL_BONUS.shield_cup] as const,
+  ]) {
+    if (!tournament) continue;
+
+    // Check if club won
+    if (tournament.winnerId === clubId) {
+      bonus = Math.max(bonus, config.winner);
+      continue;
+    }
+
+    // Check knockout rounds (deepest first)
+    const knockoutRounds: ('F' | 'SF' | 'QF' | 'R16')[] = ['F', 'SF', 'QF', 'R16'];
+    let found = false;
+    for (const round of knockoutRounds) {
+      const tie = tournament.knockoutTies.find(t => t.round === round && (t.homeClubId === clubId || t.awayClubId === clubId));
+      if (tie) {
+        bonus = Math.max(bonus, config[round]);
+        found = true;
+        break;
+      }
+    }
+    if (found) continue;
+
+    // Group stage participation
+    const group = tournament.groups.find(g => g.clubIds.includes(clubId));
+    if (group) {
+      bonus = Math.max(bonus, config.group);
+    }
+  }
+
+  return bonus;
+}
+
+/**
  * Calculate a player's Ballon d'Or score based on season performance.
  * Position-aware formula considers goals, assists, overall rating, average
  * match rating, appearances, form, team finishing position, clean sheets,
- * discipline, and division tier.
+ * discipline, division tier, and continental tournament performance.
  */
 function calculatePlayerScore(
   player: Player,
@@ -29,6 +75,7 @@ function calculatePlayerScore(
   totalTeams: number,
   teamCleanSheets: number,
   divisionTier: number,
+  continentalBonus: number,
 ): number {
   const w = BALLON_DOR_WEIGHTS;
   const pm = BALLON_DOR_POSITION_MULTIPLIERS[player.position] || DEFAULT_POSITION_MULTIPLIER;
@@ -62,8 +109,11 @@ function calculatePlayerScore(
   // Division tier bonus — higher divisions rewarded
   const divisionScore = (BALLON_DOR_DIVISION_BONUS[divisionTier] ?? 0) * w.divisionTier;
 
+  // Continental tournament bonus — deep runs in Champions Cup / Shield Cup
+  const continentalScore = continentalBonus * w.continentalBonus;
+
   return overallScore + goalScore + assistScore + appScore + formScore
-    + positionBonus + cleanSheetScore + ratingScore + disciplineScore + divisionScore;
+    + positionBonus + cleanSheetScore + ratingScore + disciplineScore + divisionScore + continentalScore;
 }
 
 /**
@@ -107,6 +157,8 @@ export function calculateBallonDOr(
   clubs: Record<string, Club>,
   leagueTable: LeagueTableEntry[],
   divisionTables: Record<string, LeagueTableEntry[]>,
+  championsCup?: ContinentalTournamentState | null,
+  shieldCup?: ContinentalTournamentState | null,
 ): BallonDOrEntry[] {
   // No ranking possible without league data or players
   if (leagueTable.length === 0 && Object.keys(divisionTables).length === 0) return [];
@@ -155,7 +207,8 @@ export function calculateBallonDOr(
     .filter(p => p.appearances >= 5 && p.clubId)
     .map(p => {
       const clubPos = clubPositionMap[p.clubId] || { position: 10, totalTeams: 20, cleanSheets: 0, divisionTier: 4 };
-      const score = calculatePlayerScore(p, clubPos.position, clubPos.totalTeams, clubPos.cleanSheets, clubPos.divisionTier);
+      const contBonus = getContinentalBonusForClub(p.clubId, championsCup || null, shieldCup || null);
+      const score = calculatePlayerScore(p, clubPos.position, clubPos.totalTeams, clubPos.cleanSheets, clubPos.divisionTier, contBonus);
       const club = clubs[p.clubId];
       const avgRating = Math.round(getAvgRating(p) * 10) / 10;
       return {

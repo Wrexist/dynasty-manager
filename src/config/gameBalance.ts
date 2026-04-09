@@ -560,6 +560,7 @@ export const BALLON_DOR_WEIGHTS = {
   avgRating: 3.0,         // average match rating (0-10 scale)
   discipline: 1.0,        // multiplier for card penalties
   divisionTier: 1.0,      // bonus for higher divisions
+  continentalBonus: 1.0,   // Champions Cup / Shield Cup progression bonus
 } as const;
 /** Position-specific multipliers for goals, assists, and clean sheets.
  *  Rarer contributions (e.g. GK goals) are rewarded more heavily. */
@@ -596,4 +597,28 @@ export const BALLON_DOR_VALUE_BOOST: Record<number, number> = {
   5: 0.12,
   10: 0.08,  // Top 10: +8%
   25: 0.04,  // Top 25: +4%
+} as const;
+
+// ── Global Team Power Rankings (ELO) ──
+/** K-factors per competition type (higher = more volatile) */
+export const ELO_K_FACTORS: Record<string, number> = {
+  league: 20,
+  cup: 15,
+  continental: 30,
+};
+/** Per-division-tier bonus added to initial ELO */
+export const ELO_INITIAL_TIER_BONUS: Record<number, number> = {
+  1: 400,   // div-1 (Premier)
+  2: 250,   // div-2 (Championship)
+  3: 100,   // div-3 (First Division)
+  4: 0,     // div-4 (Foundation)
+};
+/** Reputation multiplier for initial ELO (rating = rep * this + tierBonus) */
+export const ELO_REPUTATION_MULTIPLIER = 120;
+
+// ── Ballon d'Or Continental Bonus ──
+/** Round-based Ballon d'Or bonus for players on teams progressing in continental cups */
+export const BALLON_DOR_CONTINENTAL_BONUS = {
+  champions_cup: { group: 5, R16: 10, QF: 18, SF: 25, F: 30, winner: 40 },
+  shield_cup: { group: 2, R16: 5, QF: 8, SF: 12, F: 15, winner: 20 },
 } as const;

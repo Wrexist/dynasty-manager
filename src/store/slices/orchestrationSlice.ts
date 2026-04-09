@@ -122,6 +122,7 @@ import type { InjuryType, InjurySeverity, InjuryDetails } from '@/types/game';
 import { createMilestone } from '@/utils/milestones';
 import { createDefaultProgression, grantXP, XP_REWARDS, MANAGER_PERKS, canUnlockPerk, hasPerk } from '@/utils/managerPerks';
 import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
+import { initializeClubPowerRankings, updateEloRatings, getOpponentQualityBonus } from '@/utils/teamRankings';
 import type { CareerMilestone, PerkId, ManagerProgression } from '@/types/game';
 import { processMatchResult } from '@/store/helpers/matchProcessing';
 import { processSponsorWeek, processSponsorSeasonEnd, generateStarterDeals } from '@/store/slices/sponsorSlice';
@@ -176,6 +177,9 @@ function applyAIMatchEvents(
   awayLineup?: Player[],
   homeGoals?: number,
   awayGoals?: number,
+  rankings?: Record<string, number>,
+  homeClubId?: string,
+  awayClubId?: string,
 ) {
   // Track per-player goal/assist counts from events for synthetic rating
   const playerGoalCounts: Record<string, number> = {};
@@ -205,18 +209,23 @@ function applyAIMatchEvents(
 
   // Track appearances and synthetic match ratings for AI lineups
   if (homeLineup && awayLineup && homeGoals !== undefined && awayGoals !== undefined) {
-    const sides: { lineup: Player[]; won: boolean; lost: boolean }[] = [
-      { lineup: homeLineup, won: homeGoals > awayGoals, lost: homeGoals < awayGoals },
-      { lineup: awayLineup, won: awayGoals > homeGoals, lost: awayGoals < homeGoals },
+    const sides: { lineup: Player[]; won: boolean; lost: boolean; clubId: string; oppClubId: string }[] = [
+      { lineup: homeLineup, won: homeGoals > awayGoals, lost: homeGoals < awayGoals, clubId: homeClubId || '', oppClubId: awayClubId || '' },
+      { lineup: awayLineup, won: awayGoals > homeGoals, lost: awayGoals < homeGoals, clubId: awayClubId || '', oppClubId: homeClubId || '' },
     ];
     for (const side of sides) {
+      // Opponent quality bonus: performing well against strong teams earns higher ratings
+      const oppBonus = rankings && side.clubId && side.oppClubId
+        ? getOpponentQualityBonus(rankings[side.clubId] || 800, rankings[side.oppClubId] || 800)
+        : 0;
       for (const p of side.lineup) {
         if (!newPlayers[p.id]) continue;
-        // Synthetic match rating: base from result + quality + contribution bonuses
+        // Synthetic match rating: base from result + quality + contribution + opponent quality
         let rating = side.won ? 7.0 : side.lost ? 5.5 : 6.2;
         rating += (p.overall / 100) * 1.5;
         rating += (playerGoalCounts[p.id] || 0) * 0.5;
         rating += (playerAssistCounts[p.id] || 0) * 0.3;
+        rating += oppBonus;
         rating += (Math.random() - 0.5) * 0.6;
         rating = Math.max(3, Math.min(10, Math.round(rating * 10) / 10));
 
@@ -1095,7 +1104,7 @@ function endSeasonImpl(set: Set, get: Get) {
   const seasonAwards = calculateSeasonAwards(allPlayersList, clubs, leagueTable, playerClubId);
 
   // Ballon d'Or ranking — top 25 players of the season
-  const ballonDOrRanking = calculateBallonDOr(allPlayersList, clubs, leagueTable, state.divisionTables || {});
+  const ballonDOrRanking = calculateBallonDOr(allPlayersList, clubs, leagueTable, state.divisionTables || {}, state.championsCup, state.shieldCup);
 
   // Apply Ballon d'Or value boosts and record placements on a shallow copy
   // (avoid mutating the store's `players` reference directly)
@@ -2282,6 +2291,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       halfTimeState: null,
       preMatchLeaguePosition: 0,
       seasonPhase: 'regular',
+      clubPowerRankings: initializeClubPowerRankings(clubs, LEAGUES),
       activeNegotiation: null,
       pendingTransferTalk: null,
       pendingGemReveal: null,
@@ -2653,6 +2663,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const updatedDivisionFixtures = { ...state.divisionFixtures };
     const playerDiv = state.playerDivision;
 
+    // Mutable copy of power rankings — updated after every match this week
+    const eloRankings = { ...(state.clubPowerRankings || {}) };
+
     for (const m of aiMatches) {
       const idx = updatedFixtures.findIndex(f => f.id === m.id);
       const hc = clubs[m.homeClubId];
@@ -2672,7 +2685,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hBenchAI, aBenchAI);
       updatedFixtures[idx] = result;
-      applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals);
+      applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
+      updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
     }
 
     // Simulate cup matches for this week (and any orphaned ties from past weeks)
@@ -2744,7 +2758,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
         newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout };
 
-        applyAIMatchEvents(cupResult.events, newPlayers, clubs, week, hPlayers, aPlayers, cupResult.homeGoals, cupResult.awayGoals);
+        applyAIMatchEvents(cupResult.events, newPlayers, clubs, week, hPlayers, aPlayers, cupResult.homeGoals, cupResult.awayGoals, eloRankings, tie.homeClubId, tie.awayClubId);
+        updateEloRatings(eloRankings, tie.homeClubId, tie.awayClubId, cupResult.homeGoals, cupResult.awayGoals, 'cup');
 
         // Cup match result message for player
         if (isPlayerMatch) {
@@ -2831,7 +2846,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         }
 
         newLeagueCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout };
-        applyAIMatchEvents(lcResult.events, newPlayers, clubs, week, hPlayers, aPlayers, lcResult.homeGoals, lcResult.awayGoals);
+        applyAIMatchEvents(lcResult.events, newPlayers, clubs, week, hPlayers, aPlayers, lcResult.homeGoals, lcResult.awayGoals, eloRankings, tie.homeClubId, tie.awayClubId);
+        updateEloRatings(eloRankings, tie.homeClubId, tie.awayClubId, lcResult.homeGoals, lcResult.awayGoals, 'cup');
 
         // League Cup match result message for player (orphaned past-week matches)
         if (isPlayerMatch) {
@@ -3867,6 +3883,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       merchandise: newMerch,
       fanMood: merchFanMood,
       seasonGrowthTracker: { ...seasonGrowthTracker },
+      clubPowerRankings: eloRankings,
       seasonTotalIncome: prevSeasonIncome + weeklyIncome,
       seasonTotalExpenses: prevSeasonExpenses + totalExpenses,
       weeklyDigest: {
@@ -4551,6 +4568,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     );
     const fullFixtures = [...processed.updatedFixtures];
     const playersWithAI = { ...processed.newPlayers };
+    const eloRankings = { ...(state.clubPowerRankings || {}) };
+    // Update ELO for the player's own match
+    updateEloRatings(eloRankings, match.homeClubId, match.awayClubId, result.homeGoals, result.awayGoals, 'league');
     for (const m of aiWeekMatches) {
       const idx = fullFixtures.findIndex(f => f.id === m.id);
       const hc2 = clubs[m.homeClubId];
@@ -4566,7 +4586,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hAvail2.slice(11, 18), aAvail2.slice(11, 18));
       fullFixtures[idx] = aiResult;
-      applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals);
+      applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
+      updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
     }
     const divClubIds = state.divisionClubs[state.playerDivision] || Object.keys(clubs);
     const fullLeagueTable = buildLeagueTable(fullFixtures, divClubIds);
@@ -4602,6 +4623,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       lastMatchDrama: drama,
       rivalries: processed.updatedRivalries,
       pairFamiliarity: processed.pairFamiliarity,
+      clubPowerRankings: eloRankings,
       sessionStats,
     });
 
@@ -4905,6 +4927,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     );
     const fullFixtures2 = [...processed.updatedFixtures];
     const playersWithAI2 = { ...processed.newPlayers };
+    const eloRankings2 = { ...(state.clubPowerRankings || {}) };
+    updateEloRatings(eloRankings2, match.homeClubId, match.awayClubId, result.homeGoals, result.awayGoals, 'league');
     for (const m of aiWeekMatches2) {
       const idx = fullFixtures2.findIndex(f => f.id === m.id);
       const hc2 = clubs[m.homeClubId];
@@ -4920,7 +4944,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hAvail3.slice(11, 18), aAvail3.slice(11, 18));
       fullFixtures2[idx] = aiResult;
-      applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals);
+      applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals, eloRankings2, m.homeClubId, m.awayClubId);
+      updateEloRatings(eloRankings2, m.homeClubId, m.awayClubId, aiResult.homeGoals, aiResult.awayGoals, 'league');
     }
     const divClubIds2 = state.divisionClubs[state.playerDivision] || Object.keys(clubs);
     const fullLeagueTable2 = buildLeagueTable(fullFixtures2, divClubIds2);
@@ -4946,6 +4971,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       lastMatchDrama: leagueDrama,
       rivalries: processed.updatedRivalries,
       pairFamiliarity: processed.pairFamiliarity,
+      clubPowerRankings: eloRankings2,
     });
     return result;
     } catch (err) {

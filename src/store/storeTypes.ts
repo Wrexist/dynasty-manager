@@ -186,6 +186,9 @@ export interface GameState {
   domesticSuperCup: SuperCupMatch | null;
   continentalSuperCup: SuperCupMatch | null;
 
+  // Global Team Power Rankings (ELO-based, updated after every match)
+  clubPowerRankings: Record<string, number>;
+
   // Current continental match tracking
   currentContinentalMatchId: string | null;
   currentContinentalCompetition: ContinentalCompetition | null;
