@@ -81,6 +81,8 @@ export const NATIONALITY_DATA: Record<string, { flag: string; code: string; iso:
   'Slovenia': { flag: '🇸🇮', code: 'SVN', iso: 'si' },
   'Suriname': { flag: '🇸🇷', code: 'SUR', iso: 'sr' },
   'Tunisia': { flag: '🇹🇳', code: 'TUN', iso: 'tn' },
+  'Finland': { flag: '🇫🇮', code: 'FIN', iso: 'fi' },
+  'Czechia': { flag: '🇨🇿', code: 'CZE', iso: 'cz' },
 };
 
 /** Get emoji flag for a nationality string (legacy fallback) */

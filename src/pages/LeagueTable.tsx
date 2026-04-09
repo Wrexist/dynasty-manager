@@ -6,6 +6,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Chevron
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { LEAGUES } from '@/data/league';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { PageHint } from '@/components/game/PageHint';
 
 const TIER_LABELS: Record<number, string> = {
@@ -150,12 +151,7 @@ const LeagueTable = () => {
         onClick={() => setPickerOpen(!pickerOpen)}
         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-card/60 backdrop-blur-xl border border-border/50 active:bg-muted/40 transition-colors"
       >
-        <img
-          src={`https://flagcdn.com/w40/${currentLeague?.countryCode?.toLowerCase() || 'gb'}.png`}
-          alt={currentLeague?.country || ''}
-          className="w-6 h-4 rounded-[2px] object-cover shrink-0"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-        />
+        <FlagIcon nationality={currentLeague?.country || 'England'} size={24} className="rounded-[2px]" />
         <div className="flex-1 text-left min-w-0">
           <p className="text-sm font-bold text-foreground font-display truncate">{currentLeague?.name || 'League'}</p>
           <p className="text-[10px] text-muted-foreground">{currentLeague?.country}{isPlayerLeague ? ' \u2022 Your League' : ''}</p>
@@ -210,13 +206,7 @@ const LeagueTable = () => {
                               isActive ? 'bg-primary/15 border border-primary/30' : 'hover:bg-muted/40 active:bg-muted/60'
                             )}
                           >
-                            <img
-                              src={`https://flagcdn.com/w40/${league.countryCode.toLowerCase()}.png`}
-                              alt={league.country}
-                              loading="lazy"
-                            className="w-5 h-3.5 rounded-[1px] object-cover shrink-0"
-                              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                            />
+                            <FlagIcon nationality={league.country} size={20} className="rounded-[1px]" />
                             <span className={cn(
                               'text-xs font-medium flex-1 truncate',
                               isActive ? 'text-primary' : 'text-foreground'
