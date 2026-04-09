@@ -6,6 +6,7 @@ import type { Club, Player, Match, TransferListing, Message, LeagueTableEntry, B
 import type { GameState } from '../storeTypes';
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, DERBIES, LEAGUES, clearLeagueTableCache } from '@/data/league';
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
+import { initializeClubPowerRankings } from '@/utils/teamRankings';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus } from '@/utils/staff';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import { addMsg, shuffle } from '@/utils/helpers';
@@ -282,6 +283,7 @@ export function initGameImpl(set: Set, get: Get, clubId: string) {
     halfTimeState: null,
     preMatchLeaguePosition: 0,
     seasonPhase: 'regular',
+    clubPowerRankings: initializeClubPowerRankings(clubs, LEAGUES),
     activeNegotiation: null,
     pendingTransferTalk: null,
     pendingGemReveal: null,

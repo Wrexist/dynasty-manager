@@ -42,11 +42,11 @@ export function processMatchResult(
 
   // Process events: goals, assists, injuries, cards
   result.events.forEach(ev => {
-    const isGoalEvent = (GOAL_EVENT_TYPES as readonly string[]).includes(ev.type);
-    if (isGoalEvent && ev.playerId && newPlayers[ev.playerId]) {
+    const isGoalEv = (GOAL_EVENT_TYPES as readonly string[]).includes(ev.type);
+    if (isGoalEv && ev.playerId && newPlayers[ev.playerId]) {
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], goals: newPlayers[ev.playerId].goals + 1 };
     }
-    if (isGoalEvent && ev.type !== 'penalty_scored' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
+    if (isGoalEv && ev.type !== 'penalty_scored' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
       newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
     }
     if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
@@ -235,7 +235,12 @@ export function processMatchResult(
       redCards: rating.redCards,
     };
     const history = [...(player.matchHistory || []), record].slice(-MAX_PLAYER_MATCH_HISTORY);
-    newPlayers[pid] = { ...player, matchHistory: history };
+    newPlayers[pid] = {
+      ...player,
+      matchHistory: history,
+      seasonRatingTotal: (player.seasonRatingTotal || 0) + rating.rating,
+      seasonRatedMatches: (player.seasonRatedMatches || 0) + 1,
+    };
   }
 
   // Update head-to-head rivalry records (oppId already declared above)

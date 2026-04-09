@@ -30,7 +30,7 @@ import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
 import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers } from 'lucide-react';
 
-import { GOAL_EVENT_TYPES, GOAL_DISPLAY_TYPES } from '@/config/matchEngine';
+import { GOAL_DISPLAY_TYPES } from '@/config/matchEngine';
 const isGoalEvent = (e: MatchEvent) => (GOAL_DISPLAY_TYPES as readonly string[]).includes(e.type);
 
 /** Find player's continental match this week and return display-friendly info */
@@ -514,7 +514,7 @@ const MatchDay = () => {
     for (const ev of visibleEvents) {
       if (!matchHomeClubId) continue;
       const isHomeEv = ev.clubId === matchHomeClubId;
-      if (isGoalEvent(ev)) {
+      if (ev.type === 'goal' || ev.type === 'penalty_scored' || ev.type === 'own_goal') {
         if (isHomeEv) { hShots++; hSoT++; } else { aShots++; aSoT++; }
       } else if (ev.type === 'shot_saved' || ev.type === 'goal_line_clearance') {
         if (isHomeEv) { hShots++; hSoT++; } else { aShots++; aSoT++; }
@@ -626,15 +626,9 @@ const MatchDay = () => {
       {phase === 'pre' && <PageHint screen="matchDay" title={PAGE_HINTS.matchDay.title} body={PAGE_HINTS.matchDay.body} />}
       {/* Score Header */}
       <GlassPanel className={cn("p-5 transition-all duration-300", goalFlash && "border-primary/60 shadow-[0_0_20px_hsl(var(--primary)/0.3)]")}>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center mb-1">
+        <p className="text-[10px] text-muted-foreground uppercase tracking-wider text-center mb-3">
           {phase === 'pre' ? `Week ${week}${isCupMatch ? ' — Cup' : ''}` : phase === 'half_time' ? 'Half Time' : phase === 'extra_time_break' ? 'Extra Time' : phase === 'penalties' ? 'Penalties' : isLive ? `${currentMin}'` : 'Full Time'}
         </p>
-        {currentMatchResult?.weather && (
-          <p className="text-[9px] text-muted-foreground/60 text-center mb-2">
-            {currentMatchResult.weather.weather === 'rain' ? '🌧 Rain' : currentMatchResult.weather.weather === 'snow' ? '❄️ Snow' : currentMatchResult.weather.weather === 'wind' ? '💨 Wind' : '☀️ Clear'}
-            {currentMatchResult.weather.pitch !== 'good' && currentMatchResult.weather.pitch !== 'excellent' ? ` · ${currentMatchResult.weather.pitch} pitch` : ''}
-          </p>
-        )}
         <div className="flex items-center justify-center gap-6">
           <div className="text-center">
             <div className="w-12 h-12 rounded-full mx-auto mb-1 flex items-center justify-center text-xs font-bold" style={{ backgroundColor: homeClub.color, color: homeClub.secondaryColor }}>{homeClub.shortName}</div>

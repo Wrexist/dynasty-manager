@@ -17,9 +17,6 @@ import { getTrainingMultiplier } from '@/utils/personality';
 import { getTrainingStaffBonus } from '@/utils/staff';
 import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrainingGroundView } from '@/components/game/TrainingGroundView';
-import { DrillCard } from '@/components/game/DrillCard';
-import { DevelopmentHeatmap } from '@/components/game/DevelopmentHeatmap';
 
 const SQUAD_SUB_NAV = [
   { screen: 'squad' as const, label: 'Squad' },
@@ -54,13 +51,12 @@ const MODULE_COLORS: Record<string, { bg: string; border: string; text: string; 
 };
 
 const TrainingPage = () => {
-  const { training, players, clubs, playerClubId, staff, facilities } = useGameStore(useShallow(s => ({
+  const { training, players, clubs, playerClubId, staff } = useGameStore(useShallow(s => ({
     training: s.training,
     players: s.players,
     clubs: s.clubs,
     playerClubId: s.playerClubId,
     staff: s.staff,
-    facilities: s.facilities,
   })));
   const updateTraining = useGameStore(s => s.updateTraining);
   const updateDrillSchedule = useGameStore(s => s.updateDrillSchedule);
@@ -223,16 +219,6 @@ const TrainingPage = () => {
           )}
         </AnimatePresence>
 
-        {/* Training Ground Visualization */}
-        <GlassPanel className="p-3">
-          <TrainingGroundView
-            trainingLevel={facilities.trainingLevel}
-            activeModule={schedule[activeDay] || null}
-            schedule={schedule}
-            clubColor={club?.color || '#3b82f6'}
-          />
-        </GlassPanel>
-
         {/* Squad Attribute Radar Chart */}
         {radarData.length > 0 && (
           <GlassPanel className="p-3">
@@ -384,14 +370,31 @@ const TrainingPage = () => {
                 <p className="text-[10px] text-muted-foreground mb-1">Optional: pick a specific drill focus</p>
                 {DRILLS_BY_MODULE[schedule[activeDay]].map(drill => {
                   const isSelected = training.drillSchedule?.[activeDay] === drill.id;
+                  const weights = Object.entries(drill.attrWeights)
+                    .map(([a, w]) => `${ATTR_LABELS[a] || a} ${Math.round((w || 0) * 100)}%`)
+                    .join(' · ');
                   return (
-                    <DrillCard
+                    <motion.button
                       key={drill.id}
-                      drill={drill}
-                      selected={isSelected}
-                      onSelect={() => handleDrillChange(activeDay, drill.id)}
-                      injuryRisk={intensity === 'heavy' ? 0.04 : intensity === 'medium' ? 0.015 : 0.003}
-                    />
+                      onClick={() => handleDrillChange(activeDay, drill.id)}
+                      whileTap={{ scale: 0.98 }}
+                      className={cn(
+                        'flex items-center justify-between w-full px-3 py-2.5 rounded-lg border transition-all text-left',
+                        isSelected
+                          ? 'bg-primary/10 border-primary/30'
+                          : 'bg-muted/15 border-transparent hover:bg-muted/30'
+                      )}
+                    >
+                      <div className="flex flex-col">
+                        <span className={cn('text-xs font-semibold', isSelected ? 'text-primary' : 'text-foreground')}>
+                          {drill.name}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground mt-0.5">{weights}</span>
+                      </div>
+                      {isSelected && (
+                        <Check className="w-4 h-4 text-primary shrink-0" />
+                      )}
+                    </motion.button>
                   );
                 })}
               </motion.div>
@@ -760,17 +763,6 @@ const TrainingPage = () => {
             </GlassPanel>
           );
         })()}
-
-        {/* Player Development Heatmap */}
-        {club && (
-          <GlassPanel className="p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Development Heatmap</h3>
-            <DevelopmentHeatmap
-              players={club.playerIds.map(id => players[id]).filter(Boolean)}
-              maxRows={12}
-            />
-          </GlassPanel>
-        )}
       </div>
     </div>
   );
