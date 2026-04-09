@@ -616,6 +616,11 @@ const migrations: Record<number, MigrationFn> = {
     const facilities = (data.facilities || {}) as Record<string, unknown>;
     const oldLevel = (facilities.stadiumLevel as number) || 5;
     const { stadiumLevel: _, ...restFacilities } = facilities;
+    // Convert legacy in-flight "stadium" upgrades to new "stadium-north" format
+    const upgrade = restFacilities.upgradeInProgress as Record<string, unknown> | null;
+    if (upgrade && upgrade.type === 'stadium') {
+      restFacilities.upgradeInProgress = { ...upgrade, type: 'stadium-north' };
+    }
     return {
       ...data,
       version: 45,

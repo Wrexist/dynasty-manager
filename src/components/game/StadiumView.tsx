@@ -34,7 +34,7 @@ export function StadiumView({ stands, selectedStand, onSelectStand, upgradeInPro
   const allMax = stands.north >= FACILITY_MAX_LEVEL && stands.south >= FACILITY_MAX_LEVEL && stands.east >= FACILITY_MAX_LEVEL && stands.west >= FACILITY_MAX_LEVEL;
 
   return (
-    <div className="relative w-full" style={{ aspectRatio: '16/11' }}>
+    <div className="relative w-full aspect-[16/11]">
       <svg viewBox="0 0 320 220" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
         <defs>
           {/* Construction pattern for upgrading stands */}

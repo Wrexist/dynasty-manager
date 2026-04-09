@@ -56,7 +56,7 @@ const FacilitiesPage = () => {
         }
       }
     }
-  }, [facilities.upgradeInProgress, facilities.stadiumStands, facilities]);
+  }, [facilities.upgradeInProgress, facilities.stadiumStands]);
 
   const effectiveLevel = getEffectiveStadiumLevel(facilities);
   const weeklyRevenue = effectiveLevel * STADIUM_INCOME_PER_LEVEL;

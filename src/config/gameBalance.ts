@@ -561,6 +561,35 @@ export const BALLON_DOR_WEIGHTS = {
   teamPosition: 1.5,   // bonus for playing on a high-finishing team
   cleanSheets: 1.0,     // GK/defender bonus
 } as const;
+
+/** Milestone descriptions shown on facility cards at key levels */
+export const FACILITY_MILESTONES: Record<string, { level: number; label: string }[]> = {
+  training: [
+    { level: 3, label: 'Advanced drills unlocked' },
+    { level: 5, label: '+100% training effectiveness' },
+    { level: 7, label: 'Elite coaching methods' },
+    { level: 10, label: 'World-class facility' },
+  ],
+  youth: [
+    { level: 3, label: 'Better prospect intake' },
+    { level: 5, label: 'Academy sponsor slot' },
+    { level: 7, label: 'Elite development rate' },
+    { level: 10, label: 'World-class academy' },
+  ],
+  medical: [
+    { level: 3, label: 'Faster recovery times' },
+    { level: 5, label: 'Advanced injury prevention' },
+    { level: 7, label: 'Elite medical care' },
+    { level: 10, label: 'World-class medical' },
+  ],
+  recovery: [
+    { level: 3, label: '+3% weekly fitness' },
+    { level: 5, label: '+5% weekly fitness' },
+    { level: 7, label: 'Elite recovery protocols' },
+    { level: 10, label: 'World-class recovery' },
+  ],
+};
+
 /** Value multiplier for Ballon d'Or top-25 placements (rank → multiplier) */
 export const BALLON_DOR_VALUE_BOOST: Record<number, number> = {
   1: 0.30,   // Winner: +30% value

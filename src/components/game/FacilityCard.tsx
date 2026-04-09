@@ -1,7 +1,6 @@
 import { cn } from '@/lib/utils';
 import { ArrowUp, Clock, Check } from 'lucide-react';
-import { FACILITY_MAX_LEVEL } from '@/config/gameBalance';
-import { FACILITY_MILESTONES } from '@/utils/facilities';
+import { FACILITY_MAX_LEVEL, FACILITY_MILESTONES } from '@/config/gameBalance';
 import { GlassPanel } from '@/components/game/GlassPanel';
 
 interface FacilityCardProps {
