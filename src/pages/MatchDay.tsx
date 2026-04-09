@@ -991,15 +991,81 @@ const MatchDay = () => {
             <p className="text-xs text-muted-foreground">The scores are level after 90 minutes. 30 minutes of extra time will be played.</p>
           </GlassPanel>
 
+          {/* Team Talk before extra time */}
+          <GlassPanel className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Team Talk</p>
+              <p className="text-[9px] text-muted-foreground/60">Rally the squad before extra time</p>
+            </div>
+            <div className="space-y-2">
+              {TEAM_TALK_OPTIONS.map(talk => {
+                const TalkIcon = talk.id === 'motivate' ? Flame : talk.id === 'calm' ? Shield : AlertTriangle;
+                const isSelected = matchTeamTalk === talk.id;
+                return (
+                  <button
+                    key={talk.id}
+                    onClick={() => {
+                      hapticLight();
+                      setTeamTalk(talk.id as TeamTalkType);
+                      infoToast(`"${talk.description}"`);
+                    }}
+                    className={cn(
+                      "w-full flex items-start gap-3 p-3 rounded-xl transition-all text-left",
+                      isSelected
+                        ? 'bg-primary/15 border border-primary/50 shadow-[0_0_12px_rgba(var(--primary-rgb,234,179,8),0.1)]'
+                        : 'bg-muted/20 border border-transparent hover:bg-muted/40'
+                    )}
+                  >
+                    <div className={cn(
+                      "mt-0.5 p-1.5 rounded-lg shrink-0",
+                      isSelected ? 'bg-primary/20' : 'bg-muted/30'
+                    )}>
+                      <TalkIcon className={cn("w-4 h-4", isSelected ? 'text-primary' : 'text-muted-foreground')} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={cn("text-xs font-semibold", isSelected ? 'text-primary' : 'text-foreground')}>{talk.label}</span>
+                        {isSelected && <span className="text-[8px] text-primary/70 uppercase tracking-wider font-medium">Selected</span>}
+                      </div>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 italic">"{talk.description}"</p>
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {talk.effects.map((effect, i) => (
+                          <span
+                            key={i}
+                            className={cn(
+                              "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-medium",
+                              effect.type === 'positive' && 'bg-emerald-500/15 text-emerald-400',
+                              effect.type === 'negative' && 'bg-red-500/15 text-red-400',
+                              effect.type === 'warning' && 'bg-amber-500/15 text-amber-400',
+                            )}
+                          >
+                            {(effect.label.toLowerCase().includes('energy') || effect.label.toLowerCase().includes('drain')) && (
+                              <Zap className="w-2.5 h-2.5" />
+                            )}
+                            {effect.label}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </GlassPanel>
+
           {/* Sub button before extra time */}
           {matchSubsUsed < MAX_SUBSTITUTIONS && (
-            <Button className="w-full gap-2" onClick={() => setSubSheetOpen(true)}>
-              <RefreshCw className="w-4 h-4" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
-            </Button>
+            <GlassPanel className="p-4">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">Substitutions</p>
+              <Button className="w-full gap-2" onClick={() => setSubSheetOpen(true)}>
+                <RefreshCw className="w-4 h-4" /> Make Substitution ({MAX_SUBSTITUTIONS - matchSubsUsed} left)
+              </Button>
+            </GlassPanel>
           )}
 
           {/* Tactical changes before extra time */}
-          <GlassPanel className="p-4">
+          <GlassPanel className="p-4 space-y-3">
+            <FormationPicker />
             <TacticalPanel variant="full" tactics={tactics} setTactics={setTactics} />
           </GlassPanel>
 
@@ -1180,32 +1246,85 @@ const MatchDay = () => {
             </motion.div>
           ) : (
             <div className="space-y-2">
-              {/* Quick Mentality Strip — change on the fly without pausing */}
-              <div className="flex gap-1">
-                {MENTALITIES.map(m => (
+              {/* Active Team Talk indicator — shows effect badges during live play */}
+              {matchTeamTalk !== 'none' && (phase === 'second_half' || phase === 'extra_time') && (() => {
+                const activeTalk = TEAM_TALK_OPTIONS.find(t => t.id === matchTeamTalk);
+                if (!activeTalk) return null;
+                const TalkIcon = activeTalk.id === 'motivate' ? Flame : activeTalk.id === 'calm' ? Shield : AlertTriangle;
+                return (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
+                    <TalkIcon className="w-3 h-3 text-primary shrink-0" />
+                    <span className="text-[9px] font-semibold text-primary">{activeTalk.label}</span>
+                    <div className="flex flex-wrap gap-1 ml-auto">
+                      {activeTalk.effects.map((effect, i) => (
+                        <span
+                          key={i}
+                          className={cn(
+                            "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium",
+                            effect.type === 'positive' && 'bg-emerald-500/15 text-emerald-400',
+                            effect.type === 'negative' && 'bg-red-500/15 text-red-400',
+                            effect.type === 'warning' && 'bg-amber-500/15 text-amber-400',
+                          )}
+                        >
+                          {(effect.label.toLowerCase().includes('energy') || effect.label.toLowerCase().includes('drain')) && (
+                            <Zap className="w-2 h-2" />
+                          )}
+                          {effect.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Mentality — connected segmented pill with endpoint icons */}
+              <div className="relative flex items-center bg-muted/20 rounded-lg border border-border/30 p-0.5">
+                <Shield className="w-3 h-3 text-muted-foreground/30 ml-1.5 shrink-0" />
+                {MENTALITIES.map((m, idx) => (
                   <button
                     key={m.value}
                     onClick={() => { hapticLight(); setTactics({ mentality: m.value }); }}
+                    aria-label={`Set mentality to ${m.label}`}
                     className={cn(
-                      'flex-1 py-1 rounded-md text-[9px] font-semibold capitalize transition-all',
+                      'relative z-10 flex-1 py-1.5 text-[9px] font-semibold capitalize transition-all',
+                      idx === 0 && 'rounded-l-md',
+                      idx === MENTALITIES.length - 1 && 'rounded-r-md',
                       tactics.mentality === m.value
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'bg-muted/30 text-muted-foreground'
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    {m.label}
+                    {tactics.mentality === m.value && (
+                      <motion.div
+                        layoutId="mentality-indicator"
+                        className="absolute inset-0 bg-primary/15 border border-primary/30 rounded-md"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10">{m.label}</span>
                   </button>
                 ))}
+                <Flame className="w-3 h-3 text-muted-foreground/30 mr-1.5 shrink-0" />
               </div>
 
-              {/* Touchline Shouts */}
-              {shoutsRemaining > 0 && !shoutOnCooldown && (
-                <div className="flex gap-1">
-                  {([
-                    { type: 'push_forward' as ShoutType, label: 'Push!', Icon: Flame },
-                    { type: 'hold_the_line' as ShoutType, label: 'Hold!', Icon: Shield },
-                    { type: 'calm_down' as ShoutType, label: 'Calm!', Icon: Hand },
-                    ...(currentMin >= 80 ? [{ type: 'time_waste' as ShoutType, label: 'Waste!', Icon: Clock }] : []),
+              {/* Unified control row: Pause, Shouts, Speed */}
+              <div className="flex items-center gap-1.5">
+                {/* Pause */}
+                <button
+                  onClick={handlePause}
+                  aria-label="Pause match"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-muted/30 text-foreground hover:bg-muted/50 active:scale-[0.97] border border-border/30 transition-all"
+                >
+                  <Pause className="w-3 h-3" /> Pause
+                </button>
+
+                {/* Touchline Shouts — compact icon buttons */}
+                <div className="flex-1 flex items-center justify-center gap-1">
+                  {shoutsRemaining > 0 && !shoutOnCooldown ? ([
+                    { type: 'push_forward' as ShoutType, label: 'Push', Icon: Flame },
+                    { type: 'hold_the_line' as ShoutType, label: 'Hold', Icon: Shield },
+                    { type: 'calm_down' as ShoutType, label: 'Calm', Icon: Hand },
+                    ...(currentMin >= 80 ? [{ type: 'time_waste' as ShoutType, label: 'Waste', Icon: Clock }] : []),
                   ] as { type: ShoutType; label: string; Icon: LucideIcon }[]).map(s => (
                     <button
                       key={s.type}
@@ -1214,33 +1333,39 @@ const MatchDay = () => {
                         const success = activateShout(s.type, currentMin);
                         if (success) infoToast(`${s.label} — Effect active for ${SHOUT_DURATION} minutes`);
                       }}
-                      className="flex-1 py-1.5 rounded-md text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 active:scale-[0.97] transition-all"
+                      className={cn(
+                        "p-1.5 rounded-lg active:scale-[0.93] transition-all border",
+                        activeShout?.type === s.type
+                          ? 'bg-amber-500/25 border-amber-500/40 text-amber-300'
+                          : 'bg-amber-500/10 border-amber-500/15 text-amber-400 hover:bg-amber-500/15'
+                      )}
+                      title={s.label}
+                      aria-label={`Shout: ${s.label}`}
                     >
-                      <s.Icon className="w-3 h-3 mx-auto mb-0.5" />
-                      {s.label}
+                      <s.Icon className="w-3.5 h-3.5" />
                     </button>
-                  ))}
+                  )) : (
+                    <span className="text-[9px] text-muted-foreground/40">
+                      {shoutsRemaining === 0 ? 'No shouts left' : `Cooldown (${SHOUT_COOLDOWN - (currentMin - (lastShout?.startMinute ?? 0))}')`}
+                    </span>
+                  )}
+                  {shoutsRemaining > 0 && !shoutOnCooldown && (
+                    <span className="text-[8px] text-muted-foreground/40 ml-0.5">{shoutsRemaining}</span>
+                  )}
                 </div>
-              )}
-              {shoutOnCooldown && shoutsRemaining > 0 && (
-                <p className="text-[9px] text-center text-muted-foreground/50">Shout on cooldown ({shoutsRemaining} left)</p>
-              )}
-              {shoutsRemaining === 0 && (
-                <p className="text-[9px] text-center text-muted-foreground/50">No shouts remaining</p>
-              )}
 
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={handlePause}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 active:scale-[0.97] border border-border/30 transition-all"
-                >
-                  <Pause className="w-3.5 h-3.5" /> Pause
-                </button>
+                {/* Speed */}
                 <button
                   onClick={() => setSpeed(s => s === 200 ? 50 : 200)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 active:scale-[0.97] border border-border/30 transition-all"
+                  aria-label={speed === 50 ? 'Set normal speed' : 'Set fast speed'}
+                  className={cn(
+                    "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold active:scale-[0.97] border transition-all",
+                    speed === 50
+                      ? 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/20'
+                      : 'bg-muted/30 text-foreground border-border/30 hover:bg-muted/50'
+                  )}
                 >
-                  <FastForward className="w-3.5 h-3.5" /> {speed === 50 ? 'Normal' : 'Fast'}
+                  <FastForward className="w-3 h-3" /> {speed === 50 ? '2x' : '1x'}
                 </button>
               </div>
             </div>
