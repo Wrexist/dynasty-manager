@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { getStatBarColor } from '@/utils/uiHelpers';
+import { ChevronUp, ChevronDown } from 'lucide-react';
 
 interface StatBarProps {
   label: string;
@@ -29,7 +30,7 @@ export const StatBar = memo(function StatBar({ label, value, max = 99, size = 'm
           )}
           aria-label={change > 0 ? `Increased by ${change}` : `Decreased by ${Math.abs(change)}`}
         >
-          {change > 0 ? `▲+${change}` : `▼${change}`}
+          {change > 0 ? <><ChevronUp className="w-2.5 h-2.5 inline-block align-text-top" />+{change}</> : <><ChevronDown className="w-2.5 h-2.5 inline-block align-text-top" />{change}</>}
         </span>
       )}
     </div>

@@ -47,7 +47,7 @@ export const PlayerRadarChart = memo(function PlayerRadarChart({ attributes, cha
             dy={12}
             aria-label={change > 0 ? `Increased by ${change}` : `Decreased by ${Math.abs(change)}`}
           >
-            {change > 0 ? `▲+${change}` : `▼${change}`}
+            {change > 0 ? `↑+${change}` : `↓${change}`}
           </text>
         )}
       </g>

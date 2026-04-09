@@ -6,7 +6,6 @@ import { getNation } from '@/data/nations';
 import { cn } from '@/lib/utils';
 import { Globe, Users, Trophy, ChevronRight, ChevronDown, CheckCircle, XCircle, Calendar, TrendingUp, Check, Shuffle } from 'lucide-react';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { getFlag } from '@/utils/nationality';
 import { Button } from '@/components/ui/button';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';

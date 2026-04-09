@@ -8,7 +8,7 @@ import { MatchEvent, Match, Club, ContinentalTournamentState, TeamTalkType } fro
 import { resolveClub } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy } from 'lucide-react';
+import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, type LucideIcon } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight } from '@/utils/haptics';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
 import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DRAIN_MULT } from '@/config/teamTalk';
@@ -1193,11 +1193,11 @@ const MatchDay = () => {
               {shoutsRemaining > 0 && !shoutOnCooldown && (
                 <div className="flex gap-1">
                   {([
-                    { type: 'push_forward' as ShoutType, label: 'Push!', icon: '🔥' },
-                    { type: 'hold_the_line' as ShoutType, label: 'Hold!', icon: '🛡️' },
-                    { type: 'calm_down' as ShoutType, label: 'Calm!', icon: '✋' },
-                    ...(currentMin >= 80 ? [{ type: 'time_waste' as ShoutType, label: 'Waste!', icon: '⏰' }] : []),
-                  ]).map(s => (
+                    { type: 'push_forward' as ShoutType, label: 'Push!', Icon: Flame },
+                    { type: 'hold_the_line' as ShoutType, label: 'Hold!', Icon: Shield },
+                    { type: 'calm_down' as ShoutType, label: 'Calm!', Icon: Hand },
+                    ...(currentMin >= 80 ? [{ type: 'time_waste' as ShoutType, label: 'Waste!', Icon: Clock }] : []),
+                  ] as { type: ShoutType; label: string; Icon: LucideIcon }[]).map(s => (
                     <button
                       key={s.type}
                       onClick={() => {
@@ -1207,7 +1207,7 @@ const MatchDay = () => {
                       }}
                       className="flex-1 py-1.5 rounded-md text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 active:scale-[0.97] transition-all"
                     >
-                      <Megaphone className="w-3 h-3 mx-auto mb-0.5" />
+                      <s.Icon className="w-3 h-3 mx-auto mb-0.5" />
                       {s.label}
                     </button>
                   ))}

@@ -437,6 +437,27 @@ function finalizeSeason(
     newPlayers[aged.id] = aged;
   });
 
+  // Deduplicate players across clubs — if a player ended up in multiple clubs
+  // (e.g., due to AI transfer/loan timing), keep the one matching player.clubId
+  const seenPlayerClub = new Map<string, string>();
+  for (const club of Object.values(newClubs)) {
+    for (const pid of club.playerIds) {
+      if (seenPlayerClub.has(pid)) {
+        const player = newPlayers[pid];
+        const correctClubId = player?.clubId || '';
+        const prevClubId = seenPlayerClub.get(pid)!;
+        // Remove from the wrong club
+        const wrongClubId = correctClubId === club.id ? prevClubId : club.id;
+        const wrongClub = { ...newClubs[wrongClubId] };
+        wrongClub.playerIds = wrongClub.playerIds.filter(id => id !== pid);
+        wrongClub.lineup = wrongClub.lineup.filter(id => id !== pid);
+        wrongClub.subs = wrongClub.subs.filter(id => id !== pid);
+        newClubs[wrongClubId] = wrongClub;
+      }
+      seenPlayerClub.set(pid, club.id);
+    }
+  }
+
   // Fill squad gaps
   const TARGET_TEMPLATE: Record<string, number> = {
     'GK': 2, 'CB': 5, 'LB': 2, 'RB': 2, 'CDM': 1, 'CM': 5, 'CAM': 1, 'LW': 2, 'RW': 2, 'ST': 3,

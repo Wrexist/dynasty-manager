@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 
 interface Props {
@@ -27,7 +28,7 @@ export class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="min-h-screen bg-background flex items-center justify-center p-6">
           <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-8 max-w-md w-full text-center space-y-4">
-            <div className="text-4xl">⚠</div>
+            <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
             <h2 className="text-xl font-bold text-foreground">Something went wrong</h2>
             <p className="text-sm text-muted-foreground">
               An unexpected error occurred. You can return to the dashboard and continue playing.
