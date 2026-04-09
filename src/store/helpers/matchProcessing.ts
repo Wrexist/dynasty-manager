@@ -233,7 +233,12 @@ export function processMatchResult(
       redCards: rating.redCards,
     };
     const history = [...(player.matchHistory || []), record].slice(-MAX_PLAYER_MATCH_HISTORY);
-    newPlayers[pid] = { ...player, matchHistory: history };
+    newPlayers[pid] = {
+      ...player,
+      matchHistory: history,
+      seasonRatingTotal: (player.seasonRatingTotal || 0) + rating.rating,
+      seasonRatedMatches: (player.seasonRatedMatches || 0) + 1,
+    };
   }
 
   // Update head-to-head rivalry records (oppId already declared above)

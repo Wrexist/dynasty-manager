@@ -171,13 +171,22 @@ function applyAIMatchEvents(
   newPlayers: Record<string, Player>,
   clubs: Record<string, Club>,
   week: number,
+  homeLineup?: Player[],
+  awayLineup?: Player[],
+  homeGoals?: number,
+  awayGoals?: number,
 ) {
+  // Track per-player goal/assist counts from events for synthetic rating
+  const playerGoalCounts: Record<string, number> = {};
+  const playerAssistCounts: Record<string, number> = {};
   for (const ev of events) {
     if (ev.type === 'goal' && ev.playerId && newPlayers[ev.playerId]) {
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], goals: newPlayers[ev.playerId].goals + 1 };
+      playerGoalCounts[ev.playerId] = (playerGoalCounts[ev.playerId] || 0) + 1;
     }
     if (ev.type === 'goal' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
       newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
+      playerAssistCounts[ev.assistPlayerId] = (playerAssistCounts[ev.assistPlayerId] || 0) + 1;
     }
     if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {
       const clubFacilities = clubs[newPlayers[ev.playerId].clubId]?.facilities ?? 5;
@@ -190,6 +199,34 @@ function applyAIMatchEvents(
     }
     if (ev.type === 'red_card' && ev.playerId && newPlayers[ev.playerId]) {
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], redCards: newPlayers[ev.playerId].redCards + 1, suspendedUntilWeek: week + 1 + RED_CARD_SUSPENSION_MIN + Math.floor(Math.random() * RED_CARD_SUSPENSION_RANGE) };
+    }
+  }
+
+  // Track appearances and synthetic match ratings for AI lineups
+  if (homeLineup && awayLineup && homeGoals !== undefined && awayGoals !== undefined) {
+    const sides: { lineup: Player[]; won: boolean; lost: boolean }[] = [
+      { lineup: homeLineup, won: homeGoals > awayGoals, lost: homeGoals < awayGoals },
+      { lineup: awayLineup, won: awayGoals > homeGoals, lost: awayGoals < homeGoals },
+    ];
+    for (const side of sides) {
+      for (const p of side.lineup) {
+        if (!newPlayers[p.id]) continue;
+        // Synthetic match rating: base from result + quality + contribution bonuses
+        let rating = side.won ? 7.0 : side.lost ? 5.5 : 6.2;
+        rating += (p.overall / 100) * 1.5;
+        rating += (playerGoalCounts[p.id] || 0) * 0.5;
+        rating += (playerAssistCounts[p.id] || 0) * 0.3;
+        rating += (Math.random() - 0.5) * 0.6;
+        rating = Math.max(3, Math.min(10, Math.round(rating * 10) / 10));
+
+        const prev = newPlayers[p.id];
+        newPlayers[p.id] = {
+          ...prev,
+          appearances: prev.appearances + 1,
+          seasonRatingTotal: (prev.seasonRatingTotal || 0) + rating,
+          seasonRatedMatches: (prev.seasonRatedMatches || 0) + 1,
+        };
+      }
     }
   }
 }
@@ -1281,6 +1318,7 @@ function finalizeSeason(
       careerAssists: (p.careerAssists || 0) + p.assists,
       careerAppearances: (p.careerAppearances || 0) + p.appearances,
       goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0,
+      seasonRatingTotal: 0, seasonRatedMatches: 0,
       suspendedUntilWeek: undefined, growthDelta: 0, lastAttributeChanges: undefined, lastTrainingGains: undefined, onLoan: false,
       loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined, lastTransferTalkWeek: undefined,
     };
@@ -2631,7 +2669,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hBenchAI, aBenchAI);
       updatedFixtures[idx] = result;
-      applyAIMatchEvents(result.events, newPlayers, clubs, week);
+      applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals);
     }
 
     // Simulate cup matches for this week (and any orphaned ties from past weeks)
@@ -2703,7 +2741,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
         newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout };
 
-        applyAIMatchEvents(cupResult.events, newPlayers, clubs, week);
+        applyAIMatchEvents(cupResult.events, newPlayers, clubs, week, hPlayers, aPlayers, cupResult.homeGoals, cupResult.awayGoals);
 
         // Cup match result message for player
         if (isPlayerMatch) {
@@ -2790,7 +2828,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         }
 
         newLeagueCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout };
-        applyAIMatchEvents(lcResult.events, newPlayers, clubs, week);
+        applyAIMatchEvents(lcResult.events, newPlayers, clubs, week, hPlayers, aPlayers, lcResult.homeGoals, lcResult.awayGoals);
 
         // League Cup match result message for player (orphaned past-week matches)
         if (isPlayerMatch) {
@@ -4525,7 +4563,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hAvail2.slice(11, 18), aAvail2.slice(11, 18));
       fullFixtures[idx] = aiResult;
-      applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week);
+      applyAIMatchEvents(aiResult.events, playersWithAI, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals);
     }
     const divClubIds = state.divisionClubs[state.playerDivision] || Object.keys(clubs);
     const fullLeagueTable = buildLeagueTable(fullFixtures, divClubIds);
@@ -4879,7 +4917,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hAvail3.slice(11, 18), aAvail3.slice(11, 18));
       fullFixtures2[idx] = aiResult;
-      applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week);
+      applyAIMatchEvents(aiResult.events, playersWithAI2, clubs, week, hp2, ap2, aiResult.homeGoals, aiResult.awayGoals);
     }
     const divClubIds2 = state.divisionClubs[state.playerDivision] || Object.keys(clubs);
     const fullLeagueTable2 = buildLeagueTable(fullFixtures2, divClubIds2);

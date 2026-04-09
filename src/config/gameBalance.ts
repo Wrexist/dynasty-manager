@@ -550,14 +550,43 @@ export const MAX_PLAYER_MATCH_HISTORY = 20;
 export const BALLON_DOR_TOP_N = 25;
 /** Weights for the Ballon d'Or scoring formula */
 export const BALLON_DOR_WEIGHTS = {
-  overall: 2.5,
+  overall: 1.5,
   goals: 3.0,
   assists: 2.0,
-  appearances: 0.3,
+  appearances: 0.5,
   form: 0.5,
-  teamPosition: 1.5,   // bonus for playing on a high-finishing team
-  cleanSheets: 1.0,     // GK/defender bonus
+  teamPosition: 1.0,     // bonus for playing on a high-finishing team (sqrt curve)
+  cleanSheets: 1.0,       // GK/defender bonus (position-scaled)
+  avgRating: 3.0,         // average match rating (0-10 scale)
+  discipline: 1.0,        // multiplier for card penalties
+  divisionTier: 1.0,      // bonus for higher divisions
 } as const;
+/** Position-specific multipliers for goals, assists, and clean sheets.
+ *  Rarer contributions (e.g. GK goals) are rewarded more heavily. */
+export const BALLON_DOR_POSITION_MULTIPLIERS: Record<string, { goals: number; assists: number; cleanSheets: number }> = {
+  GK:  { goals: 4.0, assists: 2.0, cleanSheets: 2.0 },
+  CB:  { goals: 3.5, assists: 1.5, cleanSheets: 1.5 },
+  LB:  { goals: 3.0, assists: 2.0, cleanSheets: 1.2 },
+  RB:  { goals: 3.0, assists: 2.0, cleanSheets: 1.2 },
+  CDM: { goals: 2.5, assists: 2.0, cleanSheets: 0.5 },
+  CM:  { goals: 2.0, assists: 2.5, cleanSheets: 0 },
+  CAM: { goals: 1.5, assists: 2.5, cleanSheets: 0 },
+  LM:  { goals: 1.5, assists: 2.5, cleanSheets: 0 },
+  RM:  { goals: 1.5, assists: 2.5, cleanSheets: 0 },
+  LW:  { goals: 1.2, assists: 2.0, cleanSheets: 0 },
+  RW:  { goals: 1.2, assists: 2.0, cleanSheets: 0 },
+  ST:  { goals: 1.0, assists: 1.5, cleanSheets: 0 },
+};
+/** Per-card penalty subtracted from Ballon d'Or score */
+export const BALLON_DOR_YELLOW_PENALTY = 0.3;
+export const BALLON_DOR_RED_PENALTY = 3.0;
+/** Division-tier bonus points (qualityTier → flat bonus) */
+export const BALLON_DOR_DIVISION_BONUS: Record<number, number> = {
+  1: 20,   // div-1 (Premier): +20 points
+  2: 12,   // div-2 (Championship): +12
+  3: 6,    // div-3 (First Division): +6
+  4: 0,    // div-4 (Foundation): +0
+};
 /** Value multiplier for Ballon d'Or top-25 placements (rank → multiplier) */
 export const BALLON_DOR_VALUE_BOOST: Record<number, number> = {
   1: 0.30,   // Winner: +30% value

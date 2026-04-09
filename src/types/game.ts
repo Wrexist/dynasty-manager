@@ -136,6 +136,8 @@ export interface Player {
   appearance?: PlayerAppearance;
   matchHistory?: PlayerMatchRecord[];
   ballonDOrPlacements?: BallonDOrPlacement[];
+  seasonRatingTotal?: number;   // cumulative match ratings this season (for avg rating calc)
+  seasonRatedMatches?: number;  // number of matches with ratings this season
 }
 
 export interface PlayerAppearance {
