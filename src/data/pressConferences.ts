@@ -1,6 +1,6 @@
 import type { PressConference, PressOption, PressResponseTone } from '@/types/game';
 import { pick } from '@/utils/helpers';
-import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_WINS, PRESS_BIG_MATCH_REP_GAP } from '@/config/gameBalance';
+import { PRESS_TRANSFER_RUMOUR_CHANCE, PRESS_POOR_FORM_LOSSES, PRESS_GOOD_FORM_WINS, PRESS_BIG_MATCH_REP_GAP, PRESS_PROMOTION_RACE_TOP_N, PRESS_RELEGATION_BATTLE_BOTTOM_N, PRESS_INJURY_CRISIS_MIN, PRESS_DERBY_PREVIEW_CHANCE } from '@/config/gameBalance';
 
 interface QuestionDef {
   question: string;
@@ -335,6 +335,236 @@ const QUESTIONS: Record<PressConference['context'], QuestionDef[]> = {
       proOption: { tone: 'visionary', text: 'External noise is just validation of the project we\'re building. The data backs it up — our squad metrics are trending in the right direction across every category.', effects: { morale: 9, boardConfidence: 6, fanMood: 6 } },
     },
   ],
+  promotion_race: [
+    {
+      question: 'You\'re right in the promotion mix. How are you managing the pressure on the squad?',
+      options: {
+        confident: { text: 'Pressure? This is what we\'ve been building towards all season. The lads are loving every minute.', effects: { morale: 10, boardConfidence: 5, fanMood: 9 } },
+        humble: { text: 'We take it one game at a time. The table looks after itself if you focus on performances.', effects: { morale: 8, boardConfidence: 4, fanMood: 4 } },
+        deflect: { text: 'There\'s a long way to go yet. I refuse to get drawn into the promotion talk.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
+      },
+      proOption: { tone: 'strategic', text: 'We\'ve split the remaining fixtures into blocks. Each block has a points target — the players know exactly what\'s needed and when.', effects: { morale: 9, boardConfidence: 7, fanMood: 6 } },
+    },
+    {
+      question: 'Automatic promotion is within reach. Is that the target or would you settle for playoffs?',
+      options: {
+        confident: { text: 'Automatic. We don\'t want the lottery of the playoffs. We\'re good enough to go up as champions.', effects: { morale: 11, boardConfidence: 4, fanMood: 10 } },
+        humble: { text: 'Any promotion would be a fantastic achievement. We\'ll take whatever route gets us there.', effects: { morale: 7, boardConfidence: 5, fanMood: 5 } },
+        deflect: { text: 'I don\'t set public targets. That only creates unnecessary pressure.', effects: { morale: 3, boardConfidence: 3, fanMood: 1 } },
+      },
+    },
+    {
+      question: 'Several of your players have attracted interest from clubs in the league above. Is that a distraction?',
+      options: {
+        confident: { text: 'If we go up, those players will be playing at that level anyway. There\'s no better project than this one.', effects: { morale: 9, boardConfidence: 5, fanMood: 8 } },
+        humble: { text: 'It\'s flattering for the lads, but their heads are firmly here. We have unfinished business.', effects: { morale: 7, boardConfidence: 4, fanMood: 5 } },
+        deflect: { text: 'I don\'t engage with speculation about individual players during the business end of the season.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
+      },
+    },
+    {
+      question: 'Your recent results have been inconsistent. Are nerves creeping in as the finish line approaches?',
+      options: {
+        confident: { text: 'Not nerves — hunger. Every team around us is feeling the heat too. We handle it better than most.', effects: { morale: 8, boardConfidence: 3, fanMood: 7 } },
+        humble: { text: 'It would be strange if the players felt nothing at this stage. The key is channelling that energy positively.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
+        deflect: { text: 'Inconsistency is normal in a long season. I\'m not reading anything into a couple of results.', effects: { morale: 2, boardConfidence: 1, fanMood: -1 } },
+      },
+      proOption: { tone: 'analytical', text: 'Our underlying performance metrics are actually improving. The results haven\'t fully reflected that yet, but the process is right and outcomes will follow.', effects: { morale: 7, boardConfidence: 6, fanMood: 4 } },
+    },
+    {
+      question: 'The stadium has been packed recently. What does that support mean to you and the team?',
+      options: {
+        confident: { text: 'We feed off it. When this place is rocking, we\'re almost unbeatable. Keep coming, keep singing.', effects: { morale: 10, boardConfidence: 3, fanMood: 10 } },
+        humble: { text: 'The fans have been incredible. They deserve promotion as much as anyone in that dressing room.', effects: { morale: 9, boardConfidence: 4, fanMood: 8 } },
+        deflect: { text: 'Good atmosphere helps, but ultimately it\'s what happens on the pitch that decides things.', effects: { morale: 4, boardConfidence: 2, fanMood: 1 } },
+      },
+    },
+    {
+      question: 'If you secure promotion, how ready is the squad to compete at the higher level?',
+      options: {
+        confident: { text: 'This squad is ready right now. We won\'t just survive up there — we\'ll compete.', effects: { morale: 10, boardConfidence: 4, fanMood: 9 } },
+        humble: { text: 'We\'d need to strengthen, but the core group has shown they have the quality and mentality for it.', effects: { morale: 7, boardConfidence: 6, fanMood: 5 } },
+        deflect: { text: 'Let\'s get promoted first before we start planning for next season.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
+      },
+      proOption: { tone: 'visionary', text: 'We\'ve already started scenario-planning for both outcomes. The recruitment pipeline and tactical evolution are mapped out for the next two seasons regardless.', effects: { morale: 8, boardConfidence: 7, fanMood: 5 } },
+    },
+  ],
+  relegation_battle: [
+    {
+      question: 'Your team is in a relegation fight. How do you keep the dressing room together?',
+      options: {
+        confident: { text: 'We have too much quality to go down. The table is tight and a couple of wins changes everything.', effects: { morale: 8, boardConfidence: -2, fanMood: 4 } },
+        humble: { text: 'Honesty. We\'re in a scrap and everyone needs to accept that and fight for their lives.', effects: { morale: 4, boardConfidence: 5, fanMood: 5 } },
+        deflect: { text: 'I keep things calm. Panic never helped anyone in this situation.', effects: { morale: 2, boardConfidence: 0, fanMood: -1 } },
+      },
+      proOption: { tone: 'analytical', text: 'We\'ve mapped out every remaining fixture and identified the points total needed. The players know exactly what the target is — it makes it tangible, not abstract.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
+    },
+    {
+      question: 'The board is getting nervous. Have they given you any ultimatums?',
+      options: {
+        confident: { text: 'The board knows what I\'m doing. They hired me for situations exactly like this.', effects: { morale: 7, boardConfidence: -3, fanMood: 3 } },
+        humble: { text: 'We\'ve had honest conversations. They understand the challenges and we\'re working together to fix things.', effects: { morale: 3, boardConfidence: 6, fanMood: 3 } },
+        deflect: { text: 'What happens between me and the board stays private. My focus is on the pitch.', effects: { morale: 1, boardConfidence: 1, fanMood: -1 } },
+      },
+    },
+    {
+      question: 'Do you regret not strengthening the squad in the transfer window?',
+      options: {
+        confident: { text: 'Not at all. The players in this squad are good enough. They need to show it on the pitch.', effects: { morale: 6, boardConfidence: -2, fanMood: 1 } },
+        humble: { text: 'Hindsight is easy. We tried to bring people in but the right deals weren\'t there. We work with what we have.', effects: { morale: 3, boardConfidence: 4, fanMood: 4 } },
+        deflect: { text: 'Transfer windows are done. There\'s no point looking backwards. We focus on what\'s ahead.', effects: { morale: 2, boardConfidence: 1, fanMood: 0 } },
+      },
+    },
+    {
+      question: 'Some players look like they\'ve already given up. How do you motivate a squad in freefall?',
+      options: {
+        confident: { text: 'Given up? No. I see a group fighting for every ball. The character in that dressing room is not in question.', effects: { morale: 9, boardConfidence: -3, fanMood: 3 } },
+        humble: { text: 'It\'s tough mentally. We\'re bringing in extra support and working on the psychological side as much as the football.', effects: { morale: 5, boardConfidence: 5, fanMood: 5 } },
+        deflect: { text: 'I won\'t discuss individual players\' mentality publicly. That wouldn\'t help anyone.', effects: { morale: 0, boardConfidence: 0, fanMood: -2 } },
+      },
+      proOption: { tone: 'strategic', text: 'We\'ve simplified the game plan to give the players clarity. When you\'re struggling, complexity is the enemy. Simple structure, clear roles, maximum effort.', effects: { morale: 7, boardConfidence: 5, fanMood: 4 } },
+    },
+    {
+      question: 'Mathematically you can still survive. But realistically, what do you think?',
+      options: {
+        confident: { text: 'Forget mathematics — I believe in this group. Stranger things have happened in football.', effects: { morale: 10, boardConfidence: -2, fanMood: 6 } },
+        humble: { text: 'It\'s going to be incredibly tough, I won\'t lie. But as long as there\'s a chance, we fight.', effects: { morale: 5, boardConfidence: 4, fanMood: 5 } },
+        deflect: { text: 'I don\'t deal in hypotheticals. We focus on the next game and only the next game.', effects: { morale: 2, boardConfidence: 1, fanMood: 0 } },
+      },
+    },
+  ],
+  new_signing: [
+    {
+      question: 'You\'ve just completed a signing. What does this player bring to the squad?',
+      options: {
+        confident: { text: 'He\'s exactly what we needed. Quality, experience, and an immediate upgrade on what we had.', effects: { morale: 8, boardConfidence: 5, fanMood: 8 } },
+        humble: { text: 'He\'s a good addition. He\'ll need time to settle in, but we think he can really contribute.', effects: { morale: 5, boardConfidence: 4, fanMood: 4 } },
+        deflect: { text: 'We identified a need and filled it. That\'s smart business, nothing more.', effects: { morale: 3, boardConfidence: 3, fanMood: 1 } },
+      },
+      proOption: { tone: 'analytical', text: 'The data profile was a perfect match for our system. His pressing metrics and chance creation numbers in the final third are exactly what our model identified as the missing piece.', effects: { morale: 7, boardConfidence: 6, fanMood: 5 } },
+    },
+    {
+      question: 'Some fans think you overpaid. Was this signing worth the investment?',
+      options: {
+        confident: { text: 'Quality costs money. When the fans see him play, they\'ll know it was a bargain.', effects: { morale: 7, boardConfidence: 3, fanMood: 7 } },
+        humble: { text: 'The market dictates prices, not us. But we believe he\'ll give us great value over the life of his contract.', effects: { morale: 5, boardConfidence: 5, fanMood: 3 } },
+        deflect: { text: 'Transfer fees are between the clubs. I judge players by what they do on the pitch.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
+      },
+    },
+    {
+      question: 'How quickly can we expect to see the new signing in the starting lineup?',
+      options: {
+        confident: { text: 'He\'s fit, he\'s hungry, and he could go straight into the side. Competition for places just got fierce.', effects: { morale: 6, boardConfidence: 4, fanMood: 8 } },
+        humble: { text: 'We\'ll integrate him carefully. There\'s a settling-in period and we need to respect that.', effects: { morale: 4, boardConfidence: 5, fanMood: 3 } },
+        deflect: { text: 'Team selection is always based on training performance. He\'ll be treated no differently.', effects: { morale: 3, boardConfidence: 3, fanMood: 1 } },
+      },
+    },
+    {
+      question: 'Does this signing signal your ambition to the rest of the league?',
+      options: {
+        confident: { text: 'Absolutely. We\'re building something serious here and this proves we mean business.', effects: { morale: 9, boardConfidence: 5, fanMood: 10 } },
+        humble: { text: 'It shows we\'re committed to improving, step by step. But one player alone doesn\'t win a league.', effects: { morale: 6, boardConfidence: 5, fanMood: 5 } },
+        deflect: { text: 'We make signings to improve the squad, not to send signals to anyone else.', effects: { morale: 3, boardConfidence: 2, fanMood: 1 } },
+      },
+      proOption: { tone: 'visionary', text: 'This fits into a three-window recruitment plan we mapped out at the start. Each signing builds on the last — it\'s a deliberate, systematic squad evolution.', effects: { morale: 8, boardConfidence: 7, fanMood: 6 } },
+    },
+    {
+      question: 'Your current players in that position might be worried now. How do you handle that conversation?',
+      options: {
+        confident: { text: 'If they\'re worried, good. Healthy competition raises everyone\'s level.', effects: { morale: 5, boardConfidence: 4, fanMood: 6 } },
+        humble: { text: 'I\'ve spoken to them personally. Nobody loses their place without a fair fight for it.', effects: { morale: 7, boardConfidence: 4, fanMood: 4 } },
+        deflect: { text: 'Private conversations between me and my players stay private.', effects: { morale: 2, boardConfidence: 2, fanMood: 0 } },
+      },
+    },
+  ],
+  injury_crisis: [
+    {
+      question: 'Multiple first-team players are sidelined. How severely does this affect your plans?',
+      options: {
+        confident: { text: 'This is why you build a deep squad. The next man steps up — simple as that.', effects: { morale: 8, boardConfidence: 3, fanMood: 6 } },
+        humble: { text: 'It\'s a real blow, I won\'t pretend otherwise. But injuries are part of football and we have to adapt.', effects: { morale: 4, boardConfidence: 5, fanMood: 4 } },
+        deflect: { text: 'I\'m not going to make excuses. We deal with whatever hand we\'re dealt.', effects: { morale: 3, boardConfidence: 2, fanMood: 1 } },
+      },
+      proOption: { tone: 'analytical', text: 'We\'ve run squad depth analysis and rotated the schedule to manage workload. The science says we can maintain 90% performance output even with these absences.', effects: { morale: 7, boardConfidence: 6, fanMood: 4 } },
+    },
+    {
+      question: 'Is there a training or fitness issue behind so many injuries at once?',
+      options: {
+        confident: { text: 'No. These are contact injuries and bad luck, not a systemic problem.', effects: { morale: 5, boardConfidence: 2, fanMood: 3 } },
+        humble: { text: 'We\'re reviewing everything with the medical team. If something needs to change, we\'ll change it.', effects: { morale: 3, boardConfidence: 6, fanMood: 5 } },
+        deflect: { text: 'I don\'t discuss medical matters in detail. Our staff are excellent and I trust them completely.', effects: { morale: 2, boardConfidence: 2, fanMood: 0 } },
+      },
+    },
+    {
+      question: 'Are you considering dipping into the loan market to cover the gaps?',
+      options: {
+        confident: { text: 'We don\'t need emergency signings. The young lads coming through are ready — this is their moment.', effects: { morale: 9, boardConfidence: 2, fanMood: 7 } },
+        humble: { text: 'We\'re keeping all options open. If the right player is available to help in the short term, we\'d look at it.', effects: { morale: 4, boardConfidence: 5, fanMood: 3 } },
+        deflect: { text: 'Transfer decisions are made privately. We\'ll do whatever\'s best for the club.', effects: { morale: 2, boardConfidence: 2, fanMood: 0 } },
+      },
+    },
+    {
+      question: 'Your captain is among the injured. Who steps up as leader now?',
+      options: {
+        confident: { text: 'We have leaders all over the pitch. One man doesn\'t carry this squad.', effects: { morale: 7, boardConfidence: 3, fanMood: 5 } },
+        humble: { text: 'He\'s a huge loss on and off the pitch. But others have to show their leadership qualities now.', effects: { morale: 5, boardConfidence: 4, fanMood: 4 } },
+        deflect: { text: 'The armband goes to the next in line. That\'s been planned for a long time.', effects: { morale: 3, boardConfidence: 3, fanMood: 1 } },
+      },
+      proOption: { tone: 'strategic', text: 'We identified a leadership matrix at the start of the season. Four players share captaincy responsibilities across different game phases — it\'s distributed leadership, not one-man dependency.', effects: { morale: 8, boardConfidence: 6, fanMood: 5 } },
+    },
+    {
+      question: 'Fans are worried this injury run could derail the season. What\'s your message to them?',
+      options: {
+        confident: { text: 'Stay the faith. This is a test and we\'ll come through it stronger. Every great season has a crisis chapter.', effects: { morale: 9, boardConfidence: 2, fanMood: 8 } },
+        humble: { text: 'It\'s a difficult period but we\'re doing everything to get players back as quickly and safely as possible.', effects: { morale: 5, boardConfidence: 4, fanMood: 5 } },
+        deflect: { text: 'Worry doesn\'t help. We focus on what we can control and take it week by week.', effects: { morale: 2, boardConfidence: 1, fanMood: 0 } },
+      },
+    },
+  ],
+  derby_preview: [
+    {
+      question: 'The big derby is this weekend. What does this fixture mean to you personally?',
+      options: {
+        confident: { text: 'I live for these games. The atmosphere, the intensity — it\'s why you become a manager.', effects: { morale: 10, boardConfidence: 3, fanMood: 10 } },
+        humble: { text: 'I know what it means to the supporters and the community. We\'ll do everything to bring them joy.', effects: { morale: 8, boardConfidence: 4, fanMood: 7 } },
+        deflect: { text: 'It\'s three points like any other game. I try not to get caught up in the hype.', effects: { morale: 3, boardConfidence: 2, fanMood: -2 } },
+      },
+      proOption: { tone: 'visionary', text: 'Derbies define legacies. I want this group of players to be remembered as the team that dominated this rivalry for years to come.', effects: { morale: 11, boardConfidence: 5, fanMood: 9 } },
+    },
+    {
+      question: 'Their manager has been talking a big game in the press this week. Any response?',
+      options: {
+        confident: { text: 'Let them talk. We\'ll do our talking on the pitch. They\'ll be quiet enough after 90 minutes.', effects: { morale: 9, boardConfidence: 3, fanMood: 9 } },
+        humble: { text: 'Every manager has their own style. I respect them but we\'re fully focused on our own preparation.', effects: { morale: 6, boardConfidence: 4, fanMood: 3 } },
+        deflect: { text: 'I don\'t read what other managers say. My energy goes into the training ground.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
+      },
+    },
+    {
+      question: 'The form book goes out the window in derbies. Does that concern you?',
+      options: {
+        confident: { text: 'That suits us perfectly. We thrive when the pressure is on and emotions are high.', effects: { morale: 9, boardConfidence: 3, fanMood: 8 } },
+        humble: { text: 'It can be unpredictable, yes. But good preparation gives you the best chance regardless of the occasion.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
+        deflect: { text: 'I don\'t believe in those clichés. The better team on the day will win.', effects: { morale: 3, boardConfidence: 2, fanMood: 0 } },
+      },
+      proOption: { tone: 'analytical', text: 'Actually the data tells a different story. Derby outcomes correlate strongly with set-piece efficiency and second-ball wins. We\'ve drilled both relentlessly this week.', effects: { morale: 7, boardConfidence: 6, fanMood: 4 } },
+    },
+    {
+      question: 'There have been ugly scenes at this fixture in the past. How are you managing the emotional side?',
+      options: {
+        confident: { text: 'My players are professionals. They\'ll be fired up but disciplined. We don\'t need to be told how to behave.', effects: { morale: 7, boardConfidence: 4, fanMood: 6 } },
+        humble: { text: 'We\'ve spoken about keeping our composure. Passion is great, but not at the cost of discipline.', effects: { morale: 6, boardConfidence: 5, fanMood: 4 } },
+        deflect: { text: 'That\'s ancient history. This is a new squad and a new chapter.', effects: { morale: 3, boardConfidence: 2, fanMood: 1 } },
+      },
+    },
+    {
+      question: 'A derby win could define the season for the fans. Do you embrace that expectation or try to block it out?',
+      options: {
+        confident: { text: 'We embrace it. This squad wants to be remembered. Big players show up in big moments.', effects: { morale: 11, boardConfidence: 4, fanMood: 10 } },
+        humble: { text: 'The fans\' passion is the lifeblood of the club. We owe them a performance worthy of it.', effects: { morale: 8, boardConfidence: 4, fanMood: 7 } },
+        deflect: { text: 'One game doesn\'t define a season. But we\'ll give absolutely everything to win it.', effects: { morale: 4, boardConfidence: 3, fanMood: 2 } },
+      },
+      proOption: { tone: 'strategic', text: 'We\'ve studied their defensive structure extensively. There are three specific patterns we\'ve drilled to exploit their high line. The players know exactly what to do.', effects: { morale: 9, boardConfidence: 6, fanMood: 6 } },
+    },
+  ],
 };
 
 /** Pick a press conference appropriate to the context */
@@ -364,6 +594,15 @@ export function generatePressConference(context: PressConference['context'], pro
   };
 }
 
+/** Extra context data for richer press conference selection */
+export interface PressContextExtras {
+  leaguePosition?: number;
+  totalTeams?: number;
+  recentSigning?: boolean;
+  injuredCount?: number;
+  isDerby?: boolean;
+}
+
 /** Determine what kind of press conference to show based on game state */
 export function getPressContext(
   won: boolean | null,
@@ -372,6 +611,7 @@ export function getPressContext(
   hasListedPlayers: boolean,
   opponentReputation?: number,
   playerReputation?: number,
+  extras?: PressContextExtras,
 ): PressConference['context'] {
   // Post-match always takes priority
   if (won === true) return 'post_win';
@@ -383,7 +623,24 @@ export function getPressContext(
   const losses = last5.filter(r => r === 'L').length;
   const wins = last5.filter(r => r === 'W').length;
 
+  // New signing takes immediate priority (one-time event)
+  if (extras?.recentSigning) return 'new_signing';
+
+  // Derby preview before reputation-based big match
+  if (extras?.isDerby && Math.random() < PRESS_DERBY_PREVIEW_CHANCE) return 'derby_preview';
+
+  // Injury crisis
+  if (extras?.injuredCount && extras.injuredCount >= PRESS_INJURY_CRISIS_MIN) return 'injury_crisis';
+
+  // Transfer rumours
   if (hasListedPlayers && Math.random() < PRESS_TRANSFER_RUMOUR_CHANCE) return 'transfer_rumour';
+
+  // League position contexts (only when position data available)
+  if (extras?.leaguePosition && extras?.totalTeams) {
+    if (extras.leaguePosition <= PRESS_PROMOTION_RACE_TOP_N && wins >= 2) return 'promotion_race';
+    if (extras.leaguePosition > extras.totalTeams - PRESS_RELEGATION_BATTLE_BOTTOM_N) return 'relegation_battle';
+  }
+
   if (losses >= PRESS_POOR_FORM_LOSSES) return 'poor_form';
   if (wins >= PRESS_GOOD_FORM_WINS) return 'good_form';
   if (opponentReputation && playerReputation && opponentReputation >= playerReputation + PRESS_BIG_MATCH_REP_GAP) return 'pre_big_match';

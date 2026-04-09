@@ -178,6 +178,8 @@ export interface GameState {
   shieldCup: ContinentalTournamentState | null;
   virtualClubs: Record<string, VirtualClub>;
   continentalQualification: { champions: string[]; shield: string[] } | null;
+  /** Multi-season continental coefficients for seeding (clubId → coefficient) */
+  continentalCoefficients: Record<string, import('@/types/game').ContinentalCoefficient>;
 
   // League Cup (secondary domestic cup)
   leagueCup: LeagueCupState;
@@ -281,7 +283,7 @@ export interface GameState {
   removeFromWatchList: (playerId: string) => void;
   promoteYouth: (playerId: string) => { success: boolean; message?: string };
   releaseYouth: (playerId: string) => void;
-  startUpgrade: (type: 'training' | 'youth' | 'stadium' | 'medical' | 'recovery') => void;
+  startUpgrade: (type: 'training' | 'youth' | 'medical' | 'recovery' | 'stadium-north' | 'stadium-south' | 'stadium-east' | 'stadium-west') => void;
 
   // Actions — Achievements
   clearPendingAchievements: () => void;
