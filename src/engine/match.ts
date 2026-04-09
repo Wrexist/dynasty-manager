@@ -66,7 +66,7 @@ import {
   WEATHER_WEIGHTS, PITCH_WEIGHTS, WEATHER_PASSING_MOD, WEATHER_PACE_MOD, WEATHER_FOUL_MOD,
   PITCH_SHOT_MOD, WEATHER_GK_ERROR_MOD,
   FREE_KICK_GOAL_CHANCE, LONG_RANGE_GOAL_CHANCE, COUNTER_ATTACK_GOAL_CHANCE,
-  HEADER_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, VAR_CHECK_CHANCE,
+  HEADER_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
 } from '@/config/matchEngine';
 import { generateCommentary } from '@/utils/matchCommentary';
 
@@ -777,6 +777,11 @@ export function simulateHalf(
     (_club: string) => `VAR CHECK — A long delay while the officials check for offside... Play on! The goal is given!`,
     (_club: string) => `VAR CHECK — Was there a foul in the build-up? The screen shows... no foul. Goal confirmed!`,
   ];
+  const varDisallowDescs = [
+    (scorer: string) => `VAR CHECK — NO GOAL! ${scorer}'s effort is ruled out for offside. Agonising!`,
+    (scorer: string) => `VAR CHECK — DISALLOWED! A handball in the build-up means ${scorer}'s goal won't stand!`,
+    (scorer: string) => `VAR CHECK — OVERTURNED! The referee rules a foul in the build-up. ${scorer} can't believe it!`,
+  ];
   const woodworkDescs = [
     (name: string) => `${name}'s strike crashes off the crossbar! So close!`,
     (name: string) => `Off the post! ${name} is inches away from scoring!`,
@@ -1095,13 +1100,36 @@ export function simulateHalf(
           momentum, homeXG, awayXG,
         });
 
-        // VAR check — adds drama after some goals
+        // VAR check — adds drama after some goals, occasionally disallows
         if (Math.random() < VAR_CHECK_CHANCE) {
-          events.push({
-            minute: min, type: 'var_check', clubId: club.id,
-            description: pick(varCheckDescs)(clubName),
-            momentum,
-          });
+          if (Math.random() < VAR_DISALLOW_CHANCE) {
+            // VAR overturns the goal — reverse all scoring effects
+            if (isHome) homeGoals--; else awayGoals--;
+            if (playerEvents[scorer.id]) playerEvents[scorer.id].goals--;
+            if (assist && playerEvents[assist.id]) playerEvents[assist.id].assists--;
+            // Restore opponent GK clean sheet if no other goals conceded
+            const goalsAgainstGK = isHome ? awayGoals : homeGoals; // goals by scoring team AFTER reversal
+            if (goalsAgainstGK === 0) {
+              oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = true; });
+            }
+            // Reverse momentum swing
+            momentum = isHome
+              ? Math.max(-100, momentum - MOMENTUM_GOAL_SWING)
+              : Math.min(100, momentum + MOMENTUM_GOAL_SWING);
+            // Replace the goal event with a disallowed event
+            events.pop(); // remove the goal event we just pushed
+            events.push({
+              minute: min, type: 'var_disallowed', playerId: scorer.id, clubId: club.id,
+              description: pick(varDisallowDescs)(scorerName),
+              momentum, homeXG, awayXG,
+            });
+          } else {
+            events.push({
+              minute: min, type: 'var_check', clubId: club.id,
+              description: pick(varCheckDescs)(clubName),
+              momentum,
+            });
+          }
         }
       } else if (Math.random() < Math.max(0, oppGKSave - weatherGKErrorMod)) {
         // Shot on target but saved — GK quality determines save rate (weather worsens handling)
