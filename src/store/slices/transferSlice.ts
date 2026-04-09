@@ -75,7 +75,7 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   }
   const netFee = fee - sellOnFee;
   sellerClub.budget += netFee;
-  sellerClub.wageBill -= player.wage;
+  sellerClub.wageBill = Math.max(0, sellerClub.wageBill - player.wage);
 
   buyer.playerIds = [...buyer.playerIds, offer.playerId];
   buyer.budget -= fee;
@@ -218,7 +218,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
         oldClub.playerIds = oldClub.playerIds.filter(id => id !== playerId);
         oldClub.lineup = oldClub.lineup.filter(id => id !== playerId);
         oldClub.subs = oldClub.subs.filter(id => id !== playerId);
-        oldClub.wageBill -= player.wage;
+        oldClub.wageBill = Math.max(0, oldClub.wageBill - player.wage);
       }
     }
 
@@ -536,7 +536,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     club.playerIds = club.playerIds.filter(id => id !== playerId);
     club.lineup = club.lineup.filter(id => id !== playerId);
     club.subs = club.subs.filter(id => id !== playerId);
-    club.wageBill -= player.wage;
+    club.wageBill = Math.max(0, club.wageBill - player.wage);
 
     const releasedPlayer = { ...player, clubId: '', contractEnd: state.season, listedForSale: false, sellOnPercentage: undefined, sellOnClubId: undefined };
     const newMessages = addMsg(state.messages, {

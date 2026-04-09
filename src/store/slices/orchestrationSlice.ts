@@ -26,6 +26,7 @@ import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getChampionsCupQualifiers, getShieldCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
+import { updateCoefficients } from '@/utils/continentalCoefficients';
 import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, getContinentalResultForClub, createEphemeralClub, findPlayerContinentalMatch } from '@/utils/continental';
 import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
 import { generatePressConference } from '@/data/pressConferences';
@@ -107,7 +108,7 @@ import { generateStorylines } from '@/utils/storylines';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
 import { getTournamentForSeason, generateTournament, processGroupWeek, generateKnockoutBracket, processKnockoutRound, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
-import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST, NT_JOB_MIN_REPUTATION, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS, REP_INTL_TOURNAMENT_WIN, REP_INTL_FINAL, REP_INTL_SEMI, REP_INTL_KNOCKOUT, REP_INTL_GROUP_EXIT, NT_SACK_GROUP_EXIT_THRESHOLD } from '@/config/gameBalance';
+import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS, REP_INTL_TOURNAMENT_WIN, REP_INTL_FINAL, REP_INTL_SEMI, REP_INTL_KNOCKOUT, REP_INTL_GROUP_EXIT, NT_SACK_GROUP_EXIT_THRESHOLD } from '@/config/gameBalance';
 import { generateRandomEvents } from '@/utils/randomEvents';
 import { getWinStreak, detectMatchDrama } from '@/utils/celebrations';
 import { generateCliffhangers } from '@/utils/weekPreview';
@@ -603,7 +604,6 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
 
     // Career mode: apply international reputation rewards and sacking check
     let updatedCareerManager = state.careerManager;
-    let sacked = false;
     let clearNationalTeam = false;
     if (state.gameMode === 'career' && state.careerManager && state.nationalTeam) {
       const cm = { ...state.careerManager };
@@ -637,7 +637,6 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
           else break;
         }
         if (consecutiveGroupExits >= NT_SACK_GROUP_EXIT_THRESHOLD) {
-          sacked = true;
           clearNationalTeam = true;
           cm.nationalTeamSacked = true;
           newMessages = addMsg(newMessages, {
@@ -1334,6 +1333,7 @@ function finalizeSeason(
       seasonRatingTotal: 0, seasonRatedMatches: 0,
       suspendedUntilWeek: undefined, growthDelta: 0, lastAttributeChanges: undefined, lastTrainingGains: undefined, onLoan: false,
       loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined, lastTransferTalkWeek: undefined,
+      listedForSale: false,
     };
     if (aged.contractEnd <= season) {
       const club = newClubs[aged.clubId];
@@ -1342,7 +1342,7 @@ function finalizeSeason(
         updatedClub.playerIds = updatedClub.playerIds.filter(id => id !== aged.id);
         updatedClub.lineup = updatedClub.lineup.filter(id => id !== aged.id);
         updatedClub.subs = updatedClub.subs.filter(id => id !== aged.id);
-        updatedClub.wageBill -= aged.wage;
+        updatedClub.wageBill = Math.max(0, updatedClub.wageBill - aged.wage);
         newClubs[updatedClub.id] = updatedClub;
         // Track farewells for departing players from user's club
         if (p.clubId === playerClubId) {
@@ -1452,6 +1452,15 @@ function finalizeSeason(
     }
   });
 
+  // Recalculate wageBill from actual player wages to fix accumulated rounding errors
+  // (loan splits use Math.round which can drift over multiple seasons)
+  for (const club of Object.values(newClubs)) {
+    const recalcWages = club.playerIds.reduce((sum, pid) => sum + (newPlayers[pid]?.wage || 0), 0);
+    if (recalcWages !== club.wageBill) {
+      newClubs[club.id] = { ...newClubs[club.id], wageBill: recalcWages };
+    }
+  }
+
   // Prune orphaned players: remove players not in any club, not free agents,
   // and not in the national team pool
   const activePlayerIds = new Set<string>();
@@ -1508,14 +1517,23 @@ function finalizeSeason(
 
   const allVirtualClubs = { ...champQ.virtualClubs, ...shieldQ.virtualClubs };
 
+  // Update continental coefficients from completed tournaments
+  let updatedCoefficients = state.continentalCoefficients || {};
+  if (state.championsCup) {
+    updatedCoefficients = updateCoefficients(updatedCoefficients, state.championsCup, season);
+  }
+  if (state.shieldCup) {
+    updatedCoefficients = updateCoefficients(updatedCoefficients, state.shieldCup, season);
+  }
+
   let newChampionsCup: import('@/types/game').ContinentalTournamentState | null = null;
   let newShieldCup: import('@/types/game').ContinentalTournamentState | null = null;
 
   if (champQ.qualifiers.length >= 8) {
-    newChampionsCup = generateContinentalDraw('champions_cup', newSeason, champQ.qualifiers, allVirtualClubs, playerClubId);
+    newChampionsCup = generateContinentalDraw('champions_cup', newSeason, champQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
   }
   if (shieldQ.qualifiers.length >= 8) {
-    newShieldCup = generateContinentalDraw('shield_cup', newSeason, shieldQ.qualifiers, allVirtualClubs, playerClubId);
+    newShieldCup = generateContinentalDraw('shield_cup', newSeason, shieldQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
   }
 
   // Domestic Super Cup: last season's league winner vs cup winner
@@ -1714,6 +1732,7 @@ function finalizeSeason(
     leagueCup: newLeagueCup,
     championsCup: newChampionsCup,
     shieldCup: newShieldCup,
+    continentalCoefficients: updatedCoefficients,
     virtualClubs: allVirtualClubs,
     continentalQualification: { champions: champQ.qualifiers, shield: shieldQ.qualifiers },
     domesticSuperCup: newDomesticSuperCup,
@@ -2247,6 +2266,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       championsCup: null,
       shieldCup: null,
       virtualClubs: {},
+      continentalCoefficients: {},
       continentalQualification: null,
       domesticSuperCup: null,
       continentalSuperCup: null,
@@ -2400,6 +2420,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       cm.unemployedWeeks = (cm.unemployedWeeks || 0) + 1;
       const newWeek = state.week + 1;
 
+      // Season end check — advance the world even while unemployed
+      if (newWeek > TOTAL_WEEKS) {
+        set({ careerManager: cm });
+        endSeasonImpl(set, get);
+        return;
+      }
+
       // Forced retirement after extended unemployment
       if (cm.unemployedWeeks >= FORCED_RETIREMENT_UNEMPLOYED_WEEKS) {
         cm.careerHistory = cm.careerHistory.map(e =>
@@ -2518,7 +2545,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       if (!p.injured) {
         p = applyWeeklyTraining(p, training, getTrainingStaffBonus(staff.members), facilities.recoveryLevel, streakMult);
         // Physio reduces training injury risk, age-scaled injury risk
-        const baseInjuryRisk = getInjuryRisk(training, p.age);
+        const baseInjuryRisk = getInjuryRisk(training, p.age, p.morale);
         const physioReduction = 1 - physioBonus * PHYSIO_INJURY_REDUCTION_PER_QUALITY;
         const perkReduction = hasPerk(state.managerProgression, 'fitness_guru') ? 0.8 : 1;
         // Congested fixtures: if player has both a league and cup match this week
@@ -5394,6 +5421,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       currentLeagueCupTieId: state.currentLeagueCupTieId,
       currentContinentalMatchId: state.currentContinentalMatchId,
       currentContinentalCompetition: state.currentContinentalCompetition,
+      continentalCoefficients: state.continentalCoefficients || {},
       // Career Mode
       gameMode: state.gameMode,
       careerManager: state.careerManager,
@@ -5532,6 +5560,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         continentalSuperCup: data.continentalSuperCup || null,
         currentContinentalMatchId: data.currentContinentalMatchId || null,
         currentContinentalCompetition: data.currentContinentalCompetition || null,
+        continentalCoefficients: data.continentalCoefficients || {},
         currentLeagueCupTieId: data.currentLeagueCupTieId || null,
         fanMood: data.fanMood ?? 50,
         activeChallenge: data.activeChallenge || null,
@@ -5652,6 +5681,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       gameMode: 'sandbox', careerManager: null, jobVacancies: [], jobOffers: [],
       sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {},
       merchandise: getDefaultMerchState(),
+      continentalCoefficients: {},
       monetization: {
         ...DEFAULT_MONETIZATION_STATE,
         // Preserve purchases and subscription across save resets

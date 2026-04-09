@@ -352,13 +352,14 @@ function simulatePenalties(): { home: number; away: number } {
     if (Math.random() < CONTINENTAL_PENALTY_CONVERSION) home++;
     if (Math.random() < CONTINENTAL_PENALTY_CONVERSION) away++;
   }
-  // Sudden death
-  while (home === away) {
+  // Sudden death (safety limit to prevent theoretical infinite loop)
+  let sdRounds = 0;
+  while (home === away && sdRounds < 50) {
     if (Math.random() < CONTINENTAL_PENALTY_CONVERSION) home++;
     if (Math.random() < CONTINENTAL_PENALTY_CONVERSION) away++;
-    // If both score or both miss, continue
-    if (home === away) continue;
+    sdRounds++;
   }
+  if (home === away) home++; // fallback — astronomically unlikely
   return { home, away };
 }
 

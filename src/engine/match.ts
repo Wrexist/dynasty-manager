@@ -66,7 +66,7 @@ import {
   WEATHER_WEIGHTS, PITCH_WEIGHTS, WEATHER_PASSING_MOD, WEATHER_PACE_MOD, WEATHER_FOUL_MOD,
   PITCH_SHOT_MOD, WEATHER_GK_ERROR_MOD,
   FREE_KICK_GOAL_CHANCE, LONG_RANGE_GOAL_CHANCE, COUNTER_ATTACK_GOAL_CHANCE,
-  HEADER_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, VAR_CHECK_CHANCE,
+  HEADER_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
 } from '@/config/matchEngine';
 import { generateCommentary } from '@/utils/matchCommentary';
 
@@ -686,6 +686,14 @@ export function simulateHalf(
     (name: string, club: string) => `GOAL! Last-gasp goal from ${name}! ${club} score when it matters most!`,
   ];
 
+  const lateDramaAtmosphere = [
+    () => `The tension is unbearable! Every tackle is met with a roar from the crowd!`,
+    () => `Players are giving everything in these final minutes. You can feel the desperation!`,
+    () => `The fourth official holds up the board — hearts are racing in the stands!`,
+    () => `Nerves jangling now! One moment of quality could decide this match!`,
+    () => `The clock is ticking down. Neither side wants to make a mistake here!`,
+    () => `Frantic scenes! The ball is ping-ponging around the box!`,
+  ];
   const saveDescs = [
     (shooter: string, gk: string) => `${shooter}'s shot is saved by ${gk}.`,
     (shooter: string, gk: string) => `Great save from ${gk} to deny ${shooter}!`,
@@ -723,6 +731,17 @@ export function simulateHalf(
     (name: string) => `${name} goes into the book.`,
     (name: string) => `The referee shows ${name} a yellow card. He'll need to be careful now.`,
     (name: string) => `${name} picks up a booking for that challenge.`,
+  ];
+  const secondYellowDescs = [
+    (name: string) => `Second yellow! ${name} is sent off! A foolish challenge.`,
+    (name: string) => `That's a second booking for ${name}! Off you go! He leaves his team with 10 men.`,
+    (name: string) => `${name} can't believe it — second yellow and he's off! A reckless tackle.`,
+  ];
+  const straightRedDescs = [
+    (name: string) => `RED CARD! ${name} is sent off for violent conduct! A two-footed lunge!`,
+    (name: string) => `RED CARD! ${name} denies a clear goal-scoring opportunity! Last man, had to go!`,
+    (name: string) => `RED CARD! Straight red for ${name}! Serious foul play — no arguments there.`,
+    (name: string) => `RED CARD! ${name} sees red for an elbow off the ball! The ref had no choice.`,
   ];
   const injuryDescs = [
     (name: string) => `${name} goes down injured!`,
@@ -777,6 +796,11 @@ export function simulateHalf(
     (_club: string) => `VAR CHECK — A long delay while the officials check for offside... Play on! The goal is given!`,
     (_club: string) => `VAR CHECK — Was there a foul in the build-up? The screen shows... no foul. Goal confirmed!`,
   ];
+  const varDisallowDescs = [
+    (scorer: string) => `VAR CHECK — NO GOAL! ${scorer}'s effort is ruled out for offside. Agonising!`,
+    (scorer: string) => `VAR CHECK — DISALLOWED! A handball in the build-up means ${scorer}'s goal won't stand!`,
+    (scorer: string) => `VAR CHECK — OVERTURNED! The referee rules a foul in the build-up. ${scorer} can't believe it!`,
+  ];
   const woodworkDescs = [
     (name: string) => `${name}'s strike crashes off the crossbar! So close!`,
     (name: string) => `Off the post! ${name} is inches away from scoring!`,
@@ -829,6 +853,7 @@ export function simulateHalf(
   }
 
   let lastEventMinute = startMin;
+  let lateDramaFired = false;
 
   // Calculate stoppage time for this half
   const isFirstHalf = startMin <= 45 && endMin <= 50;
@@ -957,6 +982,12 @@ export function simulateHalf(
     const baseChance = BASE_EVENT_CHANCE + (min > LATE_GAME_THRESHOLD_MINUTE ? LATE_GAME_EVENT_BONUS : 0) + derbyEventMod + tempoEventMod;
     const eventChance = baseChance + (homeMods.shotMod + awayMods.shotMod) * 0.5;
     if (Math.random() > eventChance) {
+      // Late drama atmosphere: inject once when game is tight in the final minutes
+      if (!lateDramaFired && min >= LATE_GAME_THRESHOLD_MINUTE && Math.abs(homeGoals - awayGoals) <= 1) {
+        lateDramaFired = true;
+        events.push({ minute: min, type: 'commentary', description: pick(lateDramaAtmosphere)(), momentum });
+        lastEventMinute = min;
+      }
       // Gap-filler: inject commentary if too many silent minutes have passed
       if (min - lastEventMinute >= COMMENTARY_GAP_MAX) {
         const isHome = Math.random() < 0.5;
@@ -1024,7 +1055,7 @@ export function simulateHalf(
       const moraleMod = (scorer.morale - MORALE_BASELINE) / 100 * MORALE_PERFORMANCE_WEIGHT;
 
       // Goal chance: attacker quality vs opponent defense, modified by tactics and weather
-      const goalChance = (shotQuality * fitnessFactor * GOAL_CHANCE_ATTACK_MULT) - (oppDefense * GOAL_CHANCE_DEFENSE_MULT) + atkMods.attackMod * GOAL_CHANCE_ATTACK_MOD_SCALE + oppMods.counterVuln * GOAL_CHANCE_COUNTER_VULN_SCALE - lowFitPenalty + moraleMod + pitchShotMod + weatherPaceMod;
+      const goalChance = (shotQuality * fitnessFactor * GOAL_CHANCE_ATTACK_MULT) - (oppDefense * GOAL_CHANCE_DEFENSE_MULT) + atkMods.attackMod * GOAL_CHANCE_ATTACK_MOD_SCALE + oppMods.counterVuln * GOAL_CHANCE_COUNTER_VULN_SCALE - lowFitPenalty + moraleMod + pitchShotMod + weatherPaceMod + weatherMod;
 
       // Accumulate xG for every shot attempt
       const clampedChance = Math.max(GOAL_CHANCE_MIN, goalChance);
@@ -1095,13 +1126,36 @@ export function simulateHalf(
           momentum, homeXG, awayXG,
         });
 
-        // VAR check — adds drama after some goals
+        // VAR check — adds drama after some goals, occasionally disallows
         if (Math.random() < VAR_CHECK_CHANCE) {
-          events.push({
-            minute: min, type: 'var_check', clubId: club.id,
-            description: pick(varCheckDescs)(clubName),
-            momentum,
-          });
+          if (Math.random() < VAR_DISALLOW_CHANCE) {
+            // VAR overturns the goal — reverse all scoring effects
+            if (isHome) homeGoals--; else awayGoals--;
+            if (playerEvents[scorer.id]) playerEvents[scorer.id].goals--;
+            if (assist && playerEvents[assist.id]) playerEvents[assist.id].assists--;
+            // Restore opponent GK clean sheet if no other goals conceded
+            const goalsAgainstGK = isHome ? awayGoals : homeGoals; // goals by scoring team AFTER reversal
+            if (goalsAgainstGK === 0) {
+              oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = true; });
+            }
+            // Reverse momentum swing
+            momentum = isHome
+              ? Math.max(-100, momentum - MOMENTUM_GOAL_SWING)
+              : Math.min(100, momentum + MOMENTUM_GOAL_SWING);
+            // Replace the goal event with a disallowed event
+            events.pop(); // remove the goal event we just pushed
+            events.push({
+              minute: min, type: 'var_disallowed', playerId: scorer.id, clubId: club.id,
+              description: pick(varDisallowDescs)(scorerName),
+              momentum, homeXG, awayXG,
+            });
+          } else {
+            events.push({
+              minute: min, type: 'var_check', clubId: club.id,
+              description: pick(varCheckDescs)(clubName),
+              momentum,
+            });
+          }
         }
       } else if (Math.random() < Math.max(0, oppGKSave - weatherGKErrorMod)) {
         // Shot on target but saved — GK quality determines save rate (weather worsens handling)
@@ -1151,7 +1205,7 @@ export function simulateHalf(
             }
           }
         }
-      } else if (Math.random() < GK_ERROR_BASE_CHANCE + weatherGKErrorMod) {
+      } else if (Math.random() < Math.min(GK_ERROR_BASE_CHANCE + weatherGKErrorMod, GK_ERROR_MAX_CHANCE)) {
         // Goalkeeper error — fumble leads to a goal (not a shot — GK dropped it)
         if (isHome) homeGoals++; else awayGoals++;
         const gkErrorAssist = pickAssist(squad, scorer.id);
@@ -1209,7 +1263,7 @@ export function simulateHalf(
             momentum = isHome
               ? Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING)
               : Math.min(100, momentum + MOMENTUM_RED_CARD_SWING);
-            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `Second yellow! ${fouler.lastName} is sent off!`, momentum });
+            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: pick(secondYellowDescs)(fouler.lastName), momentum });
             // Rebalance strength after red card
             const recomputed = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = recomputed.homeStr; awayStr = recomputed.awayStr;
@@ -1232,7 +1286,7 @@ export function simulateHalf(
           momentum = isHome
             ? Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING)
             : Math.min(100, momentum + MOMENTUM_RED_CARD_SWING);
-          events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: `RED CARD! Straight red for ${fouler.lastName}! Dangerous play!`, momentum });
+          events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: pick(straightRedDescs)(fouler.lastName), momentum });
             // Rebalance strength after red card
             const recomputed2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = recomputed2.homeStr; awayStr = recomputed2.awayStr;

@@ -65,7 +65,7 @@ export function generateScoutReport(
   if (gks.length > 0 && gks[0].overall >= 75) strengths.push('Excellent goalkeeper');
 
   const youngTalent = squad.filter(p => p.age <= 22 && p.potential >= 75);
-  if (youngTalent.length >= 3) strengths.push('Strong youth contingent');
+  if (youngTalent.length >= 3 && squad.length > 0 && youngTalent.length / squad.length >= 0.15) strengths.push('Strong youth contingent');
 
   // Danger rating 1-5 based on reputation and quality
   const repDiff = opponentClub.reputation - playerReputation;

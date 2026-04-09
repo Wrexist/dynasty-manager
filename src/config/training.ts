@@ -48,6 +48,10 @@ export const FITNESS_MIN = 30;
 // ── Training Injury Age Scaling ──
 export const TRAINING_INJURY_AGE_THRESHOLD = 28;
 export const TRAINING_INJURY_AGE_FACTOR = 0.1;
+/** Morale threshold below which injury risk increases (unhappy players are prone to injury) */
+export const TRAINING_INJURY_MORALE_THRESHOLD = 35;
+/** Injury risk multiplier for players with low morale (1.4 = 40% more likely) */
+export const TRAINING_INJURY_MORALE_FACTOR = 1.4;
 
 // ── Training Presets ──
 export const TRAINING_PRESETS: { id: string; label: string; schedule: TrainingSchedule }[] = [

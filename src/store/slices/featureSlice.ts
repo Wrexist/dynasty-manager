@@ -209,7 +209,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
         if (club.setPieceTakerId === targetPlayerId) club.setPieceTakerId = undefined;
         if (club.penaltyTakerId === targetPlayerId) club.penaltyTakerId = undefined;
         club.budget += saleFee;
-        club.wageBill -= player.wage;
+        club.wageBill = Math.max(0, club.wageBill - player.wage);
 
         // Find a buyer club (random AI club, not the player's club)
         const allClubs = Object.values(state.clubs).filter(c => c.id !== state.playerClubId);
@@ -310,7 +310,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
             club.subs = club.subs.filter(id => id !== targetPlayerId);
             if (club.setPieceTakerId === targetPlayerId) club.setPieceTakerId = undefined;
             if (club.penaltyTakerId === targetPlayerId) club.penaltyTakerId = undefined;
-            club.wageBill -= loanWageShare;
+            club.wageBill = Math.max(0, club.wageBill - loanWageShare);
 
             const dest = { ...destClub };
             dest.playerIds = [...dest.playerIds, targetPlayerId];
@@ -389,7 +389,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
       const newClubs = { ...state.clubs };
       const club = { ...newClubs[state.playerClubId] };
       club.budget -= result.agentFee + result.loyaltyBonus;
-      club.wageBill = club.wageBill - player.wage + result.offeredWage;
+      club.wageBill = Math.max(0, club.wageBill - player.wage + result.offeredWage);
       newClubs[state.playerClubId] = club;
 
       const newMessages = addMsg(state.messages, {

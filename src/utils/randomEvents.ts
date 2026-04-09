@@ -4,7 +4,7 @@
  */
 
 import type { Player, Club, Message } from '@/types/game';
-import { addMsg } from '@/utils/helpers';
+import { addMsg, shuffle } from '@/utils/helpers';
 import {
   RANDOM_EVENT_BASE_CHANCE,
   BUSTUP_MORALE_HIT,
@@ -70,7 +70,7 @@ export function generateRandomEvents(
   switch (selected) {
     case 'bustup': {
       // Two random players clash — both lose morale
-      const shuffled = [...squadPlayers].sort(() => Math.random() - 0.5);
+      const shuffled = shuffle([...squadPlayers]);
       const p1 = shuffled[0];
       const p2 = shuffled[1];
       result.playerUpdates[p1.id] = { morale: Math.max(10, p1.morale - BUSTUP_MORALE_HIT) };
