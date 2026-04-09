@@ -1204,9 +1204,9 @@ function endSeasonImpl(set: Set, get: Get) {
     workingClubs[playerClubId] = clubs[playerClubId];
   }
   const workingPlayers = { ...players, ...ballonDOrPlayers };
-  // Clean up players from replaced clubs
+  // Clean up players from replaced clubs (prefer working copy for freshest playerIds)
   for (const replacedId of turnover.replacedClubs) {
-    const rClub = clubs[replacedId];
+    const rClub = workingClubs[replacedId] || clubs[replacedId];
     if (rClub) {
       rClub.playerIds.forEach(pid => { delete workingPlayers[pid]; });
     }

@@ -73,14 +73,6 @@ const QUICK_LINKS = [
 const VISIBLE_ACHIEVEMENT_COUNT = ACHIEVEMENTS.filter(a => !a.hidden).length;
 
 const Dashboard = () => {
-  // ── Deferred mount guard (React #185 fix) ──
-  // On first render after initGame(), many store properties change simultaneously.
-  // Rendering the full Dashboard (40+ subscriptions, 15+ memos, 5+ effects) in that
-  // same synchronous cycle causes cascading re-renders that exceed React's 50-update limit.
-  // By deferring the full render to the SECOND frame, we let the store stabilize first.
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
-
   // Use useShallow to only re-render when specific properties change (prevents React #185)
   const {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
@@ -221,7 +213,6 @@ const Dashboard = () => {
     }
   }, [season]);
   useEffect(() => {
-    if (!mounted) return; // Skip until deferred mount completes (React #185 fix)
     if (prevWeekRef.current !== week && prevWeekRef.current > 0) {
       // Read current values from store to avoid broad object dependencies (React #185 fix)
       const s = useGameStore.getState();
@@ -259,7 +250,6 @@ const Dashboard = () => {
       });
     }
     prevWeekRef.current = week;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [week]); // Only depend on week — read other values from getState() to avoid cascading re-renders
 
   // ── Derived data (memoized) — must be above early return to avoid conditional hooks ──
@@ -548,8 +538,7 @@ const Dashboard = () => {
     return null;
   }, [seasonOver, inPlayoffs, totalWeeks, week, entry, leagueTable]);
 
-  // Deferred mount guard — show spinner on first frame to break render cascade (React #185)
-  if (!mounted || !club) {
+  if (!club) {
     return (
       <div className="max-w-lg mx-auto px-4 py-8 flex items-center justify-center">
         <Loader2 className="w-6 h-6 text-primary animate-spin" />

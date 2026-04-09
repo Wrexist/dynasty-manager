@@ -17,7 +17,7 @@ import {
   INCOMING_NEGOTIATE_ACCEPT_AT_OFFER, INCOMING_NEGOTIATE_ACCEPT_AT_120, INCOMING_NEGOTIATE_ACCEPT_AT_MAX,
   INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
 } from '@/config/transfers';
-import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, TOTAL_WEEKS, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST } from '@/config/gameBalance';
+import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, TOTAL_WEEKS, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
 import { getStarPlayerMerch } from '@/utils/merchandise';
@@ -574,11 +574,26 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       morale: Math.min(100, player.morale + RENEWAL_MORALE_BOOST),
     };
 
-    const msg = addMsg(state.messages, {
+    let msg = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'contract',
       title: `${player.lastName} Renewed`,
       body: `${player.firstName} ${player.lastName} has signed a new ${years}-year contract (£${(newWage / 1000).toFixed(0)}K/week). Signing bonus: £${(signingBonus / 1e6).toFixed(1)}M.`,
     });
+
+    // FFP wage warning: check if new wage bill pushes ratio above warning threshold
+    const lastFinance = state.financeHistory[state.financeHistory.length - 1];
+    if (lastFinance && lastFinance.income > 0) {
+      const staffWages = state.staff.members.reduce((sum, s) => sum + s.wage, 0);
+      const projectedExpenses = club.wageBill + staffWages;
+      const wageRatio = projectedExpenses / lastFinance.income;
+      if (wageRatio >= FFP_WAGE_RATIO_WARNING) {
+        msg = addMsg(msg, {
+          week: state.week, season: state.season, type: 'board',
+          title: 'FFP: Wage Bill Warning',
+          body: `This contract pushes your wage-to-revenue ratio to ${Math.round(wageRatio * 100)}%. The board may penalise you if spending is not reduced.`,
+        });
+      }
+    }
 
     set({
       players: { ...state.players, [playerId]: updatedPlayer },

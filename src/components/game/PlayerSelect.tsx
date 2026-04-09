@@ -114,7 +114,7 @@ export function PlayerSelect({ players, selectedId, onChange, placeholder }: Pla
             {/* Handle + Header */}
             <div className="flex items-center justify-between px-4 pt-3 pb-2 border-b border-border/30">
               <span className="text-sm font-semibold text-foreground">{placeholder}</span>
-              <button type="button" onClick={handleClose} className="p-1 rounded-full hover:bg-muted/40">
+              <button type="button" onClick={handleClose} className="p-2 -mr-1 rounded-full hover:bg-muted/40">
                 <X className="w-4 h-4 text-muted-foreground" />
               </button>
             </div>

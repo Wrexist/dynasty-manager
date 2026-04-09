@@ -56,9 +56,8 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     name: 'Dynasty Pro Lifetime',
     description: 'All Pro features forever. One-time purchase.',
     priceUsd: 19.99,
-    type: 'subscription',
+    type: 'one_time',
     subscriptionTier: 'lifetime',
-    billingPeriod: 'one-time',
   },
   'com.dynastymanager.pack.manager': {
     id: 'com.dynastymanager.pack.manager',

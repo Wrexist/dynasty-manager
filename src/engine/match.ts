@@ -1568,11 +1568,12 @@ export function finalizeMatch(
       rating += ev.saves * RATING_SAVE_BONUS;
       rating -= ev.yellows * RATING_YELLOW_PENALTY;
       if (ev.redCard) rating -= RATING_RED_PENALTY;
-      // GK clean sheet: only if no goals conceded after they entered
+      // GK clean sheet: team must have kept a real clean sheet (0 goals conceded)
+      // AND the GK must not have conceded after entry
       if (p.position === 'GK') {
         const totalConceded = isHomeSide ? state.awayGoals : state.homeGoals;
         const concededAfterEntry = totalConceded - (ev.goalsAtEntry ?? 0);
-        if (concededAfterEntry === 0) rating += RATING_CLEAN_SHEET_BONUS;
+        if (totalConceded === 0 && concededAfterEntry === 0) rating += RATING_CLEAN_SHEET_BONUS;
       }
     }
 
