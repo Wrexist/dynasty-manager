@@ -27,6 +27,15 @@ interface FloatingCircle {
   driftY: number;
 }
 
+const buttonVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: 0.5 + i * 0.1, duration: 0.5, ease: 'easeOut' as const },
+  }),
+};
+
 const TitleScreen = () => {
   const navigate = useNavigate();
   const settings = useGameStore(s => s.settings);
@@ -109,15 +118,6 @@ const TitleScreen = () => {
     { id: 5, size: 160, x: 40, y: 85, opacity: 0.04, color: 'hsl(215 60% 50%)', duration: 19, driftX: 35, driftY: -45 },
   ], []);
 
-  const buttonVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (i: number) => ({
-      opacity: 1,
-      y: 0,
-      transition: { delay: 0.5 + i * 0.1, duration: 0.5, ease: 'easeOut' as const },
-    }),
-  };
-
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 overflow-hidden relative safe-area-top safe-area-bottom">
       {/* Floating background circles — pure CSS animation for GPU efficiency */}
@@ -165,7 +165,8 @@ const TitleScreen = () => {
               <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl px-3 py-2">
                 <div className="flex items-center gap-2">
                   <button
-                    className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                    type="button"
+                    className="flex items-center gap-2 flex-1 min-w-0 text-left rounded-lg -m-1 p-1 cursor-pointer transition-colors hover:bg-muted/10 active:bg-muted/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
                     onClick={() => handleContinue(slot.slot)}
                   >
                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -184,32 +185,34 @@ const TitleScreen = () => {
                       </p>
                     </div>
                   </button>
-                  <Button
-                    size="sm"
-                    className="h-7 text-[11px] font-bold gap-1 px-2.5 shrink-0"
-                    onClick={() => handleContinue(slot.slot)}
-                  >
-                    <Play className="w-3 h-3" /> Play
-                  </Button>
                   {confirmDelete === slot.slot ? (
-                    <div className="flex gap-1 shrink-0">
-                      <Button size="sm" variant="destructive" className="h-7 text-[11px] px-2" onClick={() => handleDelete(slot.slot)}>
-                        Yes
+                    <div className="flex gap-1 items-center shrink-0">
+                      <Button size="sm" variant="destructive" className="h-8 text-[11px] px-2.5" onClick={() => handleDelete(slot.slot)}>
+                        Delete
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-7 text-[11px] px-1.5 hover:bg-muted/20 hover:text-foreground" onClick={() => setConfirmDelete(null)}>
-                        No
+                      <Button size="sm" variant="ghost" className="h-8 text-[11px] px-2 hover:bg-muted/20 hover:text-foreground" onClick={() => setConfirmDelete(null)}>
+                        Cancel
                       </Button>
                     </div>
                   ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20 shrink-0"
-                      onClick={() => setConfirmDelete(slot.slot)}
-                      aria-label={`Delete save slot ${slot.slot}`}
-                    >
-                      <Trash2 className="w-3 h-3" />
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        className="h-8 text-[11px] font-bold gap-1 px-2.5 shrink-0"
+                        onClick={() => handleContinue(slot.slot)}
+                      >
+                        <Play className="w-3 h-3" /> Play
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20 shrink-0"
+                        onClick={() => setConfirmDelete(slot.slot)}
+                        aria-label={`Delete save slot ${slot.slot}`}
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
