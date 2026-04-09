@@ -437,7 +437,7 @@ describe('Match Engine — Injury Strength Rebalance', () => {
 
     let homeGoals = 0;
     let awayGoals = 0;
-    const N = 200;
+    const N = 500;
 
     for (let i = 0; i < N; i++) {
       const match = makeMatch(`injbal-${i}`);
