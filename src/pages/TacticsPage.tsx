@@ -6,10 +6,11 @@ import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
 import { cn } from '@/lib/utils';
 import { calculateChemistryLinks } from '@/utils/chemistry';
 import { MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE } from '@/config/chemistry';
-import { getRatingColor } from '@/utils/uiHelpers';
+import { getRatingColor, getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
-import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, AlertTriangle, Save, Trash2, Upload } from 'lucide-react';
+import { FORMATION_POSITIONS, type Position } from '@/types/game';
+import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, AlertTriangle, Save, Trash2, Upload, Shield, Swords, Target } from 'lucide-react';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
@@ -62,6 +63,43 @@ const TacticsPage = () => {
     if (!club) return [];
     return club.lineup.map(id => players[id]).filter(Boolean);
   }, [club, players]);
+
+  // Team rating breakdown by unit (DEF / MID / ATT)
+  const teamRating = useMemo(() => {
+    if (lineupPlayers.length === 0) return null;
+    const slots = FORMATION_POSITIONS[club.formation] || [];
+    const DEF = new Set<string>(['GK', 'CB', 'LB', 'RB']);
+    const MID = new Set<string>(['CDM', 'CM', 'CAM', 'LM', 'RM']);
+    const ATT = new Set<string>(['LW', 'RW', 'ST']);
+    const defPlayers: number[] = [];
+    const midPlayers: number[] = [];
+    const attPlayers: number[] = [];
+    lineupPlayers.forEach((p, i) => {
+      const pos = slots[i]?.pos as Position | undefined;
+      if (!pos) return;
+      if (DEF.has(pos)) defPlayers.push(p.overall);
+      else if (MID.has(pos)) midPlayers.push(p.overall);
+      else if (ATT.has(pos)) attPlayers.push(p.overall);
+    });
+    const avg = (arr: number[]) => arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0;
+    const subsPlayers = club.subs.map(id => players[id]).filter(Boolean);
+    const subsAvg = subsPlayers.length ? Math.round(subsPlayers.reduce((s, p) => s + p.overall, 0) / subsPlayers.length) : 0;
+    const avgFitness = Math.round(lineupPlayers.reduce((s, p) => s + p.fitness, 0) / lineupPlayers.length);
+    const defVal = avg(defPlayers);
+    const midVal = avg(midPlayers);
+    const attVal = avg(attPlayers);
+    const units = [defVal, midVal, attVal].filter(v => v > 0);
+    const weakest = units.length > 1 ? Math.min(...units) : null;
+    return {
+      overall: Math.round(lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length),
+      def: defVal,
+      mid: midVal,
+      att: attVal,
+      subsAvg,
+      avgFitness,
+      weakest,
+    };
+  }, [lineupPlayers, club, players]);
 
   // Group chemistry links by type (memoized)
   const { natLinks, mentorLinks, partnershipLinks, loyaltyLinks } = useMemo(() => ({
@@ -170,6 +208,61 @@ const TacticsPage = () => {
 
       {/* Optimize Lineup */}
       <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
+
+      {/* Team Rating Summary */}
+      {teamRating && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Swords className="w-4 h-4 text-primary" />
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Starting XI Rating</p>
+          </div>
+          <div className="flex items-center justify-center mb-3">
+            <div className={cn(
+              'w-16 h-16 rounded-xl flex flex-col items-center justify-center',
+              getRatingBadgeClasses(teamRating.overall)
+            )}>
+              <span className="text-2xl font-black tabular-nums leading-none">{teamRating.overall}</span>
+              <span className="text-[9px] font-semibold opacity-70 mt-0.5">OVR</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: 'DEF', value: teamRating.def, icon: <Shield className="w-3 h-3 text-sky-400" /> },
+              { label: 'MID', value: teamRating.mid, icon: <Swords className="w-3 h-3 text-amber-400" /> },
+              { label: 'ATT', value: teamRating.att, icon: <Target className="w-3 h-3 text-emerald-400" /> },
+            ].map(u => (
+              <div key={u.label} className={cn(
+                'text-center rounded-lg py-2',
+                teamRating.weakest !== null && u.value === teamRating.weakest
+                  ? 'bg-amber-500/10 border border-amber-500/20'
+                  : 'bg-muted/20'
+              )}>
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  {u.icon}
+                  <span className="text-[10px] text-muted-foreground font-semibold">{u.label}</span>
+                </div>
+                <span className={cn('text-sm font-bold tabular-nums', getRatingColor(u.value))}>{u.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-2 flex items-center justify-center gap-3 text-[10px]">
+            <span>
+              <span className="text-muted-foreground">Bench: </span>
+              <span className={cn('font-bold tabular-nums', getRatingColor(teamRating.subsAvg))}>{teamRating.subsAvg}</span>
+            </span>
+            <span className="text-muted-foreground/30">|</span>
+            <span>
+              <span className="text-muted-foreground">Fitness: </span>
+              <span className={cn(
+                'font-bold tabular-nums',
+                teamRating.avgFitness >= 80 ? 'text-emerald-400' :
+                teamRating.avgFitness >= 60 ? 'text-amber-400' :
+                'text-destructive'
+              )}>{teamRating.avgFitness}%</span>
+            </span>
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Lineup Editor with Drag & Drop */}
       <GlassPanel className="p-4">
@@ -501,14 +594,7 @@ const TacticsPage = () => {
 
       {/* Lineup List */}
       <GlassPanel className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Starting XI</p>
-          {lineupPlayers.length > 0 && (
-            <span className={cn('text-xs font-bold', getRatingColor(Math.round(lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length)))}>
-              {Math.round(lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length)} OVR
-            </span>
-          )}
-        </div>
+        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Starting XI</p>
         <div className="space-y-1">
           {lineupPlayers.map((p, i) => (
             <div key={p.id} className="flex items-center gap-2 py-1">

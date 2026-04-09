@@ -4,14 +4,15 @@ import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
-import { Swords, AlertTriangle, Flame, Info, Shield, Zap } from 'lucide-react';
+import { Swords, AlertTriangle, Flame, Info, Shield, Zap, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getRatingBadgeClasses } from '@/utils/uiHelpers';
+import { getRatingBadgeClasses, getRatingColor } from '@/utils/uiHelpers';
 import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
 import { useLineupOptimizer } from '@/hooks/useLineupOptimizer';
 import { Button } from '@/components/ui/button';
 import { getDerbyIntensity, getDerbyName } from '@/data/league';
-import { FormationType } from '@/types/game';
+import { FORMATION_POSITIONS, FormationType, type Position } from '@/types/game';
+import { useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { isPro } from '@/utils/monetization';
@@ -48,6 +49,44 @@ const MatchPrep = () => {
   const oppPos = useLeaguePosition(oppClubId);
   const myPos = useLeaguePosition();
 
+  // Resolve opponent club data for the rating memo (avoids depending on entire clubs record)
+  const oppClubData = match ? (isHome ? clubs[match.awayClubId] : clubs[match.homeClubId]) : undefined;
+
+  // Starting XI rating comparison (must be before early return to satisfy hooks rules)
+  const ratingComparison = useMemo(() => {
+    const empty = { def: 0, mid: 0, att: 0 };
+    if (!myClub || !oppClubData) return { myOvr: 0, oppOvr: 0, diff: 0, myUnits: empty, oppUnits: empty };
+
+    const myLineup = myClub.lineup.map(id => players[id]).filter(Boolean);
+    const oppLineup = oppClubData.lineup.map(id => players[id]).filter(Boolean);
+    const avg = (arr: { overall: number }[]) => arr.length ? Math.round(arr.reduce((s, p) => s + p.overall, 0) / arr.length) : 0;
+    const myOvr = avg(myLineup);
+    const oppOvr = avg(oppLineup);
+
+    const DEF = new Set<string>(['GK', 'CB', 'LB', 'RB']);
+    const MID = new Set<string>(['CDM', 'CM', 'CAM', 'LM', 'RM']);
+    const ATT = new Set<string>(['LW', 'RW', 'ST']);
+    const unitAvg = (lineup: typeof myLineup, formation: FormationType) => {
+      const slots = FORMATION_POSITIONS[formation] || [];
+      const def: number[] = [];
+      const mid: number[] = [];
+      const att: number[] = [];
+      lineup.forEach((p, i) => {
+        const pos = slots[i]?.pos as Position | undefined;
+        if (!pos) return;
+        if (DEF.has(pos)) def.push(p.overall);
+        else if (MID.has(pos)) mid.push(p.overall);
+        else if (ATT.has(pos)) att.push(p.overall);
+      });
+      const a = (arr: number[]) => arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0;
+      return { def: a(def), mid: a(mid), att: a(att) };
+    };
+    const myUnits = unitAvg(myLineup, myClub.formation);
+    const oppUnits = unitAvg(oppLineup, oppClubData.formation);
+
+    return { myOvr, oppOvr, diff: myOvr - oppOvr, myUnits, oppUnits };
+  }, [myClub, oppClubData, players]);
+
   if (!match || !oppClub) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">
@@ -83,7 +122,6 @@ const MatchPrep = () => {
   // Low-fitness lineup count
   const lowFitnessInLineup = mySquad.filter(p => lineupIds.has(p.id) && p.fitness < 75 && !p.injured).length;
 
-
   return (
     <div className="max-w-lg mx-auto px-4 py-4 pb-20 space-y-3">
       <h2 className="text-lg font-display font-bold text-foreground">Match Preparation</h2>
@@ -106,6 +144,101 @@ const MatchPrep = () => {
             <p className="text-xs font-bold text-foreground">{oppClub.shortName}</p>
             <p className="text-[10px] text-muted-foreground">{oppPos}{typeof oppPos === 'number' ? getSuffix(oppPos) : ''}</p>
           </div>
+        </div>
+      </GlassPanel>
+
+      {/* Team Rating Comparison */}
+      <GlassPanel className="p-4">
+        <div className="flex items-center justify-between mb-3">
+          {/* My team OVR */}
+          <div className="flex-1 flex flex-col items-center">
+            <div className={cn(
+              'w-14 h-14 rounded-xl flex flex-col items-center justify-center',
+              getRatingBadgeClasses(ratingComparison.myOvr)
+            )}>
+              <span className="text-xl font-black tabular-nums leading-none">{ratingComparison.myOvr}</span>
+              <span className="text-[8px] font-semibold opacity-70 mt-0.5">OVR</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">{myClub.shortName}</p>
+          </div>
+
+          {/* Rating difference */}
+          <div className="px-3 flex flex-col items-center">
+            <div className={cn(
+              'flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold',
+              ratingComparison.diff > 0 ? 'bg-emerald-500/15 text-emerald-400' :
+              ratingComparison.diff < 0 ? 'bg-destructive/15 text-destructive' :
+              'bg-muted/30 text-muted-foreground'
+            )}>
+              {ratingComparison.diff > 0 ? <ArrowUp className="w-3 h-3" /> :
+               ratingComparison.diff < 0 ? <ArrowDown className="w-3 h-3" /> :
+               <Minus className="w-3 h-3" />}
+              <span className="tabular-nums">{ratingComparison.diff > 0 ? '+' : ''}{ratingComparison.diff}</span>
+            </div>
+            <p className={cn(
+              'text-[9px] font-semibold mt-1',
+              ratingComparison.diff >= 5 ? 'text-emerald-400' :
+              ratingComparison.diff >= 1 ? 'text-emerald-400/70' :
+              ratingComparison.diff <= -5 ? 'text-destructive' :
+              ratingComparison.diff <= -1 ? 'text-destructive/70' :
+              'text-muted-foreground'
+            )}>
+              {ratingComparison.diff >= 5 ? 'Favoured' :
+               ratingComparison.diff >= 1 ? 'Slight Edge' :
+               ratingComparison.diff <= -5 ? 'Underdog' :
+               ratingComparison.diff <= -1 ? 'Tough Test' :
+               'Even Match'}
+            </p>
+          </div>
+
+          {/* Opponent OVR */}
+          <div className="flex-1 flex flex-col items-center">
+            <div className={cn(
+              'w-14 h-14 rounded-xl flex flex-col items-center justify-center',
+              getRatingBadgeClasses(ratingComparison.oppOvr)
+            )}>
+              <span className="text-xl font-black tabular-nums leading-none">{ratingComparison.oppOvr}</span>
+              <span className="text-[8px] font-semibold opacity-70 mt-0.5">OVR</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">{oppClub.shortName}</p>
+          </div>
+        </div>
+
+        {/* Unit comparison bars */}
+        <div className="space-y-1.5">
+          {[
+            { label: 'DEF', my: ratingComparison.myUnits.def, opp: ratingComparison.oppUnits.def },
+            { label: 'MID', my: ratingComparison.myUnits.mid, opp: ratingComparison.oppUnits.mid },
+            { label: 'ATT', my: ratingComparison.myUnits.att, opp: ratingComparison.oppUnits.att },
+          ].map(u => {
+            // Scale bars relative to max possible (99) so the visual gap is meaningful
+            const scale = 99;
+            const myW = Math.max(5, (u.my / scale) * 100);
+            const oppW = Math.max(5, (u.opp / scale) * 100);
+            return (
+              <div key={u.label} className="flex items-center gap-1.5 text-xs">
+                <span className={cn('w-7 text-right font-bold tabular-nums', getRatingColor(u.my))}>{u.my}</span>
+                <div className="flex-1 flex items-center gap-1">
+                  {/* My bar — grows right */}
+                  <div className="flex-1 flex justify-end">
+                    <div
+                      className={cn('h-2 rounded-full transition-all', u.my >= u.opp ? 'bg-emerald-500' : 'bg-muted-foreground/30')}
+                      style={{ width: `${myW}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] text-muted-foreground font-semibold w-7 text-center shrink-0">{u.label}</span>
+                  {/* Opp bar — grows left */}
+                  <div className="flex-1 flex justify-start">
+                    <div
+                      className={cn('h-2 rounded-full transition-all', u.opp > u.my ? 'bg-emerald-500' : 'bg-muted-foreground/30')}
+                      style={{ width: `${oppW}%` }}
+                    />
+                  </div>
+                </div>
+                <span className={cn('w-7 font-bold tabular-nums', getRatingColor(u.opp))}>{u.opp}</span>
+              </div>
+            );
+          })}
         </div>
       </GlassPanel>
 
@@ -322,20 +455,17 @@ const MatchPrep = () => {
       <GlassPanel className="p-4">
         <div className="flex items-center gap-2 mb-3">
           <Swords className="w-4 h-4 text-primary" />
-          <h3 className="text-sm font-semibold text-foreground">Squad Comparison</h3>
+          <h3 className="text-sm font-semibold text-foreground">Squad Depth</h3>
         </div>
         {(() => {
-          const myPlayers = myClub.playerIds.map(id => players[id]).filter(Boolean);
-          const myAvg = myPlayers.length ? Math.round(myPlayers.reduce((s, p) => s + p.overall, 0) / myPlayers.length) : 0;
-          const oppAvg = oppPlayers.length ? Math.round(oppPlayers.reduce((s, p) => s + p.overall, 0) / oppPlayers.length) : 0;
-          const myBest = myPlayers.length ? Math.max(...myPlayers.map(p => p.overall)) : 0;
+          const myAllPlayers = myClub.playerIds.map(id => players[id]).filter(Boolean);
+          const myBest = myAllPlayers.length ? Math.max(...myAllPlayers.map(p => p.overall)) : 0;
           const oppBest = oppPlayers.length ? Math.max(...oppPlayers.map(p => p.overall)) : 0;
-          const myInjured = myPlayers.filter(p => p.injured).length;
+          const myInjured = myAllPlayers.filter(p => p.injured).length;
           const oppInjured = oppPlayers.filter(p => p.injured).length;
           const rows = [
-            { label: 'Avg Rating', my: myAvg, opp: oppAvg },
             { label: 'Best Player', my: myBest, opp: oppBest },
-            { label: 'Squad Size', my: myPlayers.length, opp: oppPlayers.length },
+            { label: 'Squad Size', my: myAllPlayers.length, opp: oppPlayers.length },
             { label: 'Injured', my: myInjured, opp: oppInjured },
           ];
           return (
