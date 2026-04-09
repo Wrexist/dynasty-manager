@@ -1172,32 +1172,91 @@ const MatchDay = () => {
             </motion.div>
           ) : (
             <div className="space-y-2">
-              {/* Quick Mentality Strip — change on the fly without pausing */}
-              <div className="flex gap-1">
-                {MENTALITIES.map(m => (
+              {/* Active Team Talk indicator — shows effect badges during live play */}
+              {matchTeamTalk !== 'none' && (phase === 'second_half' || phase === 'extra_time') && (() => {
+                const activeTalk = TEAM_TALK_OPTIONS.find(t => t.id === matchTeamTalk);
+                if (!activeTalk) return null;
+                const TalkIcon = activeTalk.id === 'motivate' ? Flame : activeTalk.id === 'calm' ? Shield : AlertTriangle;
+                return (
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/8 border border-primary/20">
+                    <TalkIcon className="w-3 h-3 text-primary shrink-0" />
+                    <span className="text-[9px] font-semibold text-primary">{activeTalk.label}</span>
+                    <div className="flex flex-wrap gap-1 ml-auto">
+                      {activeTalk.effects.map((effect, i) => (
+                        <span
+                          key={i}
+                          className={cn(
+                            "inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-medium",
+                            effect.type === 'positive' && 'bg-emerald-500/15 text-emerald-400',
+                            effect.type === 'negative' && 'bg-red-500/15 text-red-400',
+                            effect.type === 'warning' && 'bg-amber-500/15 text-amber-400',
+                          )}
+                        >
+                          {effect.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Active Shout indicator */}
+              {activeShout && (
+                <div className="flex items-center gap-2 px-3 py-1 rounded-lg bg-amber-500/8 border border-amber-500/20">
+                  <Megaphone className="w-3 h-3 text-amber-400 shrink-0" />
+                  <span className="text-[9px] font-semibold text-amber-400 capitalize">
+                    {activeShout.type.replace(/_/g, ' ')}
+                  </span>
+                  <span className="text-[8px] text-amber-400/60 ml-auto">
+                    {Math.max(0, SHOUT_DURATION - (currentMin - activeShout.startMinute))}min left
+                  </span>
+                </div>
+              )}
+
+              {/* Mentality — connected segmented pill */}
+              <div className="relative flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
+                {MENTALITIES.map((m, idx) => (
                   <button
                     key={m.value}
                     onClick={() => { hapticLight(); setTactics({ mentality: m.value }); }}
                     className={cn(
-                      'flex-1 py-1 rounded-md text-[9px] font-semibold capitalize transition-all',
+                      'relative z-10 flex-1 py-1.5 text-[9px] font-semibold capitalize transition-all',
+                      idx === 0 && 'rounded-l-md',
+                      idx === MENTALITIES.length - 1 && 'rounded-r-md',
                       tactics.mentality === m.value
-                        ? 'bg-primary/20 text-primary border border-primary/30'
-                        : 'bg-muted/30 text-muted-foreground'
+                        ? 'text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    {m.label}
+                    {tactics.mentality === m.value && (
+                      <motion.div
+                        layoutId="mentality-indicator"
+                        className="absolute inset-0 bg-primary/15 border border-primary/30 rounded-md"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      />
+                    )}
+                    <span className="relative z-10">{m.label}</span>
                   </button>
                 ))}
               </div>
 
-              {/* Touchline Shouts */}
-              {shoutsRemaining > 0 && !shoutOnCooldown && (
-                <div className="flex gap-1">
-                  {([
-                    { type: 'push_forward' as ShoutType, label: 'Push!', Icon: Flame },
-                    { type: 'hold_the_line' as ShoutType, label: 'Hold!', Icon: Shield },
-                    { type: 'calm_down' as ShoutType, label: 'Calm!', Icon: Hand },
-                    ...(currentMin >= 80 ? [{ type: 'time_waste' as ShoutType, label: 'Waste!', Icon: Clock }] : []),
+              {/* Unified control row: Pause, Shouts, Speed */}
+              <div className="flex items-center gap-1.5">
+                {/* Pause */}
+                <button
+                  onClick={handlePause}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-muted/30 text-foreground hover:bg-muted/50 active:scale-[0.97] border border-border/30 transition-all"
+                >
+                  <Pause className="w-3 h-3" /> Pause
+                </button>
+
+                {/* Touchline Shouts — compact icon buttons */}
+                <div className="flex-1 flex items-center justify-center gap-1">
+                  {shoutsRemaining > 0 && !shoutOnCooldown ? ([
+                    { type: 'push_forward' as ShoutType, label: 'Push', Icon: Flame },
+                    { type: 'hold_the_line' as ShoutType, label: 'Hold', Icon: Shield },
+                    { type: 'calm_down' as ShoutType, label: 'Calm', Icon: Hand },
+                    ...(currentMin >= 80 ? [{ type: 'time_waste' as ShoutType, label: 'Waste', Icon: Clock }] : []),
                   ] as { type: ShoutType; label: string; Icon: LucideIcon }[]).map(s => (
                     <button
                       key={s.type}
@@ -1206,33 +1265,32 @@ const MatchDay = () => {
                         const success = activateShout(s.type, currentMin);
                         if (success) infoToast(`${s.label} — Effect active for ${SHOUT_DURATION} minutes`);
                       }}
-                      className="flex-1 py-1.5 rounded-md text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 active:scale-[0.97] transition-all"
+                      className={cn(
+                        "p-1.5 rounded-lg active:scale-[0.93] transition-all border",
+                        activeShout?.type === s.type
+                          ? 'bg-amber-500/25 border-amber-500/40 text-amber-300'
+                          : 'bg-amber-500/8 border-amber-500/15 text-amber-400 hover:bg-amber-500/15'
+                      )}
+                      title={s.label}
                     >
-                      <s.Icon className="w-3 h-3 mx-auto mb-0.5" />
-                      {s.label}
+                      <s.Icon className="w-3.5 h-3.5" />
                     </button>
-                  ))}
+                  )) : (
+                    <span className="text-[9px] text-muted-foreground/40">
+                      {shoutsRemaining === 0 ? 'No shouts left' : `Cooldown (${shoutsRemaining} left)`}
+                    </span>
+                  )}
+                  {shoutsRemaining > 0 && !shoutOnCooldown && (
+                    <span className="text-[8px] text-muted-foreground/40 ml-0.5">{shoutsRemaining}</span>
+                  )}
                 </div>
-              )}
-              {shoutOnCooldown && shoutsRemaining > 0 && (
-                <p className="text-[9px] text-center text-muted-foreground/50">Shout on cooldown ({shoutsRemaining} left)</p>
-              )}
-              {shoutsRemaining === 0 && (
-                <p className="text-[9px] text-center text-muted-foreground/50">No shouts remaining</p>
-              )}
 
-              <div className="flex justify-between items-center">
-                <button
-                  onClick={handlePause}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 active:scale-[0.97] border border-border/30 transition-all"
-                >
-                  <Pause className="w-3.5 h-3.5" /> Pause
-                </button>
+                {/* Speed */}
                 <button
                   onClick={() => setSpeed(s => s === 200 ? 50 : 200)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 active:scale-[0.97] border border-border/30 transition-all"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold bg-muted/30 text-foreground hover:bg-muted/50 active:scale-[0.97] border border-border/30 transition-all"
                 >
-                  <FastForward className="w-3.5 h-3.5" /> {speed === 50 ? 'Normal' : 'Fast'}
+                  <FastForward className="w-3 h-3" /> {speed === 50 ? '1x' : '2x'}
                 </button>
               </div>
             </div>
