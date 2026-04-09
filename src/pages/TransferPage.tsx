@@ -35,7 +35,7 @@ const TransferPage = () => {
     transferMarket, players, clubs, playerClubId, shortlist, transferWindowOpen,
     incomingOffers, activeLoans, incomingLoanOffers, outgoingLoanRequests,
     week, season, totalWeeks,
-    freeAgents, scouting, transferNews, playerDivision,
+    freeAgents, scouting, transferNews, playerDivision, transferFilters,
   } = useGameStore(useShallow(s => ({
     transferMarket: s.transferMarket,
     players: s.players,
