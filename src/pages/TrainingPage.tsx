@@ -229,8 +229,10 @@ const TrainingPage = () => {
             trainingLevel={facilities.trainingLevel}
             activeModule={schedule[activeDay] || null}
             schedule={schedule}
-            clubColor={club?.color || '#3b82f6'}
+            activeDay={activeDay}
+            onDayChange={(day) => { hapticLight(); setActiveDay(day as typeof DAYS[number]); }}
             onModuleSelect={(mod) => handleDayChange(activeDay, mod)}
+            dominantModule={dominantModule}
           />
         </GlassPanel>
 
@@ -345,35 +347,6 @@ const TrainingPage = () => {
             </AnimatePresence>
           )}
 
-          {/* Week Summary Strip */}
-          <div className="border-t border-border/30 pt-3 mt-3">
-            <div className="flex">
-              {DAYS.map((day, i) => {
-                const dayModule = schedule[day];
-                const dayInfo = MODULE_INFO.find(m => m.module === dayModule);
-                const colors = MODULE_COLORS[dayModule] || MODULE_COLORS['fitness'];
-                const isActive = activeDay === day;
-                return (
-                  <button
-                    key={day}
-                    onClick={() => { hapticLight(); setActiveDay(day); }}
-                    className={cn(
-                      'flex-1 flex flex-col items-center gap-0.5 py-1 rounded transition-colors',
-                      isActive ? 'bg-muted/30' : 'hover:bg-muted/20'
-                    )}
-                  >
-                    <span className="text-[9px] text-muted-foreground">{DAY_LABELS[i]}</span>
-                    <div className="flex items-center gap-1">
-                      <div className={cn('w-1.5 h-1.5 rounded-full', colors.dot)} />
-                      <span className={cn('text-[9px] font-medium', colors.text)}>
-                        {dayInfo?.label.slice(0, 3) || '???'}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </GlassPanel>
 
         {/* Intensity + Effectiveness Preview */}
