@@ -256,6 +256,10 @@ export const PRESS_TRANSFER_RUMOUR_CHANCE = 0.3;
 export const PRESS_POOR_FORM_LOSSES = 3;
 export const PRESS_GOOD_FORM_WINS = 4;
 export const PRESS_BIG_MATCH_REP_GAP = 2;
+export const PRESS_PROMOTION_RACE_TOP_N = 3;       // top N positions to trigger promotion_race
+export const PRESS_RELEGATION_BATTLE_BOTTOM_N = 3;  // bottom N positions to trigger relegation_battle
+export const PRESS_INJURY_CRISIS_MIN = 3;            // minimum injured players to trigger injury_crisis
+export const PRESS_DERBY_PREVIEW_CHANCE = 0.6;       // chance of derby_preview context before derby
 
 // ── Injury Types & Severity ──
 import type { InjuryType, InjurySeverity } from '@/types/game';

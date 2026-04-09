@@ -22,6 +22,8 @@ import { hasPerk } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
 import { getStarPlayerMerch } from '@/utils/merchandise';
 import { CHALLENGES } from '@/data/challenges';
+import { generatePressConference } from '@/data/pressConferences';
+import { isPro } from '@/utils/monetization';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -281,6 +283,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       merchUpdate.merchandise = { ...state.merchandise, starSigningBuzz: STAR_SIGNING_BUZZ_WEEKS };
     }
     const currentBought = state.seasonTransfersBought || [];
+    // Generate new_signing press conference for significant transfers
+    const signingPress = fee >= 1_000_000 ? generatePressConference('new_signing', isPro(state.monetization)) : null;
     set({
       players: { ...state.players, [playerId]: updatedPlayer },
       clubs: updatedClubs,
@@ -289,6 +293,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       shortlist: state.shortlist.filter(id => id !== playerId),
       scoutWatchList: state.scoutWatchList.filter(id => id !== playerId),
       seasonTransfersBought: [...currentBought, { playerName: `${updatedPlayer.firstName} ${updatedPlayer.lastName}`, fee }],
+      ...(signingPress && !state.pendingPressConference ? { pendingPressConference: signingPress } : {}),
       ...merchUpdate,
     });
     // Career mode: grow negotiation stat on successful transfer

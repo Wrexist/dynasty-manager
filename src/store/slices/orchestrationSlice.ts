@@ -28,7 +28,7 @@ import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CU
 import { getChampionsCupQualifiers, getShieldCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
 import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, getContinentalResultForClub, createEphemeralClub, findPlayerContinentalMatch } from '@/utils/continental';
 import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
-import { generatePressConference } from '@/data/pressConferences';
+import { generatePressConference, getPressContext } from '@/data/pressConferences';
 import { isPro } from '@/utils/monetization';
 import { getMentorBonus } from '@/utils/chemistry';
 import { INITIAL_FAMILIARITY_SEED } from '@/config/chemistry';
@@ -3108,6 +3108,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // Pre-match preview
+    let isNextMatchDerby = false;
     const nextMatch = updatedFixtures.find(m => m.week === newWeek && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
     if (nextMatch) {
       const isHome = nextMatch.homeClubId === playerClubId;
@@ -3124,6 +3125,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const derbyInt = getDerbyIntensity(nextMatch.homeClubId, nextMatch.awayClubId);
         const derbyNm = getDerbyName(nextMatch.homeClubId, nextMatch.awayClubId);
         if (derbyInt > 0 && derbyNm) {
+          isNextMatchDerby = true;
           newMessages = addMsg(newMessages, {
             week: newWeek, season, type: 'match_preview',
             title: `Derby Day: ${derbyNm}`,
@@ -3769,6 +3771,27 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
+    // Weekly press conference (~30% chance on non-match weeks for new contextual questions)
+    let weeklyPress = null;
+    if (Math.random() < 0.3) {
+      const playerTableEntry = leagueTable.find(e => e.clubId === playerClubId);
+      const weekForm = (playerTableEntry?.form || []) as ('W' | 'D' | 'L')[];
+      const injuredCount = Object.values(newPlayers).filter(p => p.clubId === playerClubId && p.injured).length;
+      const hasListed = Object.values(newPlayers).some(p => p.clubId === playerClubId && p.listedForSale);
+      const pClub = newClubs[playerClubId];
+      const totalTeams = (state.divisionClubs[playerDiv] || []).length;
+      const weekContext = getPressContext(null, null, weekForm, hasListed, undefined, undefined, {
+        leaguePosition: playerTableEntry?.position,
+        totalTeams,
+        injuredCount,
+        isDerby: isNextMatchDerby,
+      });
+      // Only generate for non-post-match contexts (avoid duplicating match-triggered ones)
+      if (!['post_win', 'post_loss', 'post_draw'].includes(weekContext)) {
+        weeklyPress = generatePressConference(weekContext, isPro(get().monetization));
+      }
+    }
+
     // Collect new digest fields from data already computed above
     const digestPlayerDevelopment: { playerName: string; attribute: string; newValue: number }[] = [];
     for (const pid of playerClub.playerIds) {
@@ -3807,7 +3830,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     set({
       week: newWeek, fixtures: updatedFixtures, players: newPlayers,
       leagueTable, transferWindowOpen, currentMatchResult: null,
-      matchPhase: 'none' as const, pendingPressConference: null,
+      matchPhase: 'none' as const, pendingPressConference: weeklyPress,
       messages: newMessages, incomingOffers: newOffers, clubs: newClubs,
       matchSubsUsed: 0, boardConfidence: newBoardConfidence, boardObjectives: updatedObjectives,
       training: { ...training, tacticalFamiliarity: newTacticalFamiliarity, streaks: newStreaks, lastReport: trainingReport },
