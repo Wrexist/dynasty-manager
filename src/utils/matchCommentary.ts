@@ -1,6 +1,6 @@
 import type { MatchEvent } from '@/types/game';
 import { pick } from '@/utils/helpers';
-import { COMMENTARY_LATE_MINUTE } from '@/config/matchEngine';
+import { COMMENTARY_LATE_MINUTE, GOAL_DISPLAY_TYPES } from '@/config/matchEngine';
 
 interface CommentaryContext {
   homeGoals: number;
@@ -80,8 +80,7 @@ export function getCommentaryStyle(event: MatchEvent): { textClass: string; pref
 }
 
 export function enrichDescription(event: MatchEvent, ctx: CommentaryContext): string {
-  const goalTypes: MatchEvent['type'][] = ['goal', 'penalty_scored', 'own_goal', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'];
-  if (!goalTypes.includes(event.type)) return event.description;
+  if (!(GOAL_DISPLAY_TYPES as readonly string[]).includes(event.type)) return event.description;
   const scoringClubIsHome = event.clubId === ctx.homeClubId;
   const extra = getScoreContext(ctx, scoringClubIsHome);
   return extra ? `${event.description} ${extra}` : event.description;

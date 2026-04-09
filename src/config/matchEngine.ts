@@ -3,6 +3,12 @@
  * All coefficients, probabilities, and weights used by src/engine/match.ts
  */
 
+// ── Goal Event Types (single source of truth) ──
+/** All event types that count as goals for scoring/stats purposes */
+export const GOAL_EVENT_TYPES = ['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'] as const;
+/** Goal types + own_goal + var_check for display purposes (match feed, highlights) */
+export const GOAL_DISPLAY_TYPES = [...GOAL_EVENT_TYPES, 'own_goal', 'var_check'] as const;
+
 // ── Formation Fit ──
 /** Maximum bonus from perfect formation fit — mispositioned players are punished */
 export const FORMATION_FIT_MAX_BONUS = 0.25;

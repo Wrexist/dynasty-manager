@@ -9,6 +9,7 @@ export interface OpponentScoutReport {
   weaknesses: string[];
   keyPlayer: { name: string; position: string; overall: number } | null;
   dangerRating: number; // 1-5
+  tacticalAdvice: string; // suggested counter-tactic
 }
 
 /** Determine the playing style description based on tactics and formation */
@@ -70,14 +71,25 @@ export function generateScoutReport(
   const repDiff = opponentClub.reputation - playerReputation;
   const dangerRating = Math.max(1, Math.min(5, Math.round(3 + repDiff + (avgOverall - 65) / 10)));
 
+  // Generate tactical counter-advice based on opponent style
+  const style = getPlayingStyle(opponentClub);
+  const tactics = opponentClub.aiManagerProfile?.defaultTactics;
+  let tacticalAdvice = 'Play your natural game and impose your style.';
+  if (style === 'High Pressing') tacticalAdvice = 'Use slow tempo to draw their press, then exploit space behind with quick passes.';
+  else if (style === 'Counter-Attacking' || style === 'Defensive') tacticalAdvice = 'Dominate possession with wide play to stretch their deep block. Be patient.';
+  else if (style === 'Attacking') tacticalAdvice = 'Sit deeper and hit them on the counter. Their high line is vulnerable to pace.';
+  else if (style === 'Wide Play') tacticalAdvice = 'Use narrow width to congest the middle and deny crossing angles.';
+  else if (tactics?.defensiveLine === 'high') tacticalAdvice = 'Their high line is exposed to through balls. Use fast tempo and direct passing.';
+
   return {
     clubId: opponentClub.id,
     clubName: opponentClub.name,
     formation: opponentClub.formation,
-    style: getPlayingStyle(opponentClub),
+    style,
     strengths: strengths.slice(0, 3),
     weaknesses: weaknesses.slice(0, 3),
     keyPlayer,
     dangerRating,
+    tacticalAdvice,
   };
 }

@@ -277,6 +277,7 @@ export interface Match {
   events: MatchEvent[];
   stats?: MatchStats;
   penaltyShootout?: { home: number; away: number };
+  weather?: MatchWeather;
 }
 
 export interface LeagueTableEntry {

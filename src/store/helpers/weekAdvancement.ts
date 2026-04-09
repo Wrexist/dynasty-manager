@@ -935,17 +935,19 @@ export function advanceWeekImpl(set: Set, get: Get) {
           });
         }
 
-        // Opposition scouting report (~40% chance before matches)
-        if (Math.random() < 0.4) {
+        // Opposition scouting report — higher chance for big matches/derbies
+        const scoutChance = isNextMatchDerby ? 0.8 : (oppClub.reputation >= (clubs[playerClubId]?.reputation || 3) + 1) ? 0.6 : 0.4;
+        if (Math.random() < scoutChance) {
           const playerClubRep = clubs[playerClubId]?.reputation || 5;
           const report = generateScoutReport(oppClub, Object.values(newPlayers), playerClubRep);
           const strengthsText = report.strengths.length > 0 ? `Strengths: ${report.strengths.join(', ')}.` : '';
           const weaknessText = report.weaknesses.length > 0 ? ` Weaknesses: ${report.weaknesses.join(', ')}.` : '';
           const keyPlayerText = report.keyPlayer ? ` Key threat: ${report.keyPlayer.name} (${report.keyPlayer.position}, ${report.keyPlayer.overall}).` : '';
+          const dangerStars = '★'.repeat(report.dangerRating) + '☆'.repeat(5 - report.dangerRating);
           newMessages = addMsg(newMessages, {
             week: newWeek, season, type: 'general',
-            title: `Scout Report: ${oppClub.shortName}`,
-            body: `${oppClub.name} (${report.formation}) play a ${report.style} style. ${strengthsText}${weaknessText}${keyPlayerText} Danger rating: ${'★'.repeat(report.dangerRating)}${'☆'.repeat(5 - report.dangerRating)}.`,
+            title: `Scout Report: ${oppClub.shortName} ${dangerStars}`,
+            body: `${oppClub.name} (${report.formation}) play a ${report.style} style. ${strengthsText}${weaknessText}${keyPlayerText}\n\nTactical advice: ${report.tacticalAdvice}`,
           });
         }
       }
@@ -1587,24 +1589,35 @@ export function advanceWeekImpl(set: Set, get: Get) {
       }
     }
 
-    // Weekly press conference (~30% chance on non-match weeks for new contextual questions)
+    // Weekly press conference — context-aware probability (higher for notable situations)
     let weeklyPress = null;
-    if (Math.random() < 0.3) {
+    {
       const playerTableEntry = leagueTable.find(e => e.clubId === playerClubId);
       const weekForm = (playerTableEntry?.form || []) as ('W' | 'D' | 'L')[];
       const injuredCount = Object.values(newPlayers).filter(p => p.clubId === playerClubId && p.injured).length;
       const hasListed = Object.values(newPlayers).some(p => p.clubId === playerClubId && p.listedForSale);
-      const pClub = newClubs[playerClubId];
       const totalTeams = (state.divisionClubs[playerDiv] || []).length;
-      const weekContext = getPressContext(null, null, weekForm, hasListed, undefined, undefined, {
-        leaguePosition: playerTableEntry?.position,
-        totalTeams,
-        injuredCount,
-        isDerby: isNextMatchDerby,
-      });
-      // Only generate for non-post-match contexts (avoid duplicating match-triggered ones)
-      if (!['post_win', 'post_loss', 'post_draw'].includes(weekContext)) {
-        weeklyPress = generatePressConference(weekContext, isPro(get().monetization));
+      const last5 = weekForm.slice(-5);
+      const wins = last5.filter(r => r === 'W').length;
+      const losses = last5.filter(r => r === 'L').length;
+      // Smart probability: high-stakes situations get more press attention
+      let pressChance = 0.25;
+      if (isNextMatchDerby) pressChance = 0.7;
+      else if (injuredCount >= 3) pressChance = 0.5;
+      else if (playerTableEntry?.position && (playerTableEntry.position <= 3 || playerTableEntry.position > totalTeams - 3)) pressChance = 0.45;
+      else if (wins >= 4 || losses >= 3) pressChance = 0.4;
+      else if (hasListed) pressChance = 0.35;
+
+      if (Math.random() < pressChance) {
+        const weekContext = getPressContext(null, null, weekForm, hasListed, undefined, undefined, {
+          leaguePosition: playerTableEntry?.position,
+          totalTeams,
+          injuredCount,
+          isDerby: isNextMatchDerby,
+        });
+        if (!['post_win', 'post_loss', 'post_draw'].includes(weekContext)) {
+          weeklyPress = generatePressConference(weekContext, isPro(get().monetization));
+        }
       }
     }
 

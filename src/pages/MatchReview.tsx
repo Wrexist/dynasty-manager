@@ -8,6 +8,7 @@ import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 
 import { isPro } from '@/utils/monetization';
+import { GOAL_DISPLAY_TYPES } from '@/config/matchEngine';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor, areColorsSimilar } from '@/utils/uiHelpers';
@@ -72,8 +73,7 @@ const MatchReview = () => {
   const xpDoubleClaimContext = `match_w${week}_${match.homeClubId}_${match.awayClubId}_${match.homeGoals}-${match.awayGoals}_${lastMatchCompetition || 'league'}`;
 
   // Goals
-  const goalTypes = ['goal', 'own_goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'];
-  const goals = match.events.filter(e => goalTypes.includes(e.type));
+  const goals = match.events.filter(e => (GOAL_DISPLAY_TYPES as readonly string[]).includes(e.type));
   const injuries = match.events.filter(e => e.type === 'injury');
   const cards = match.events.filter(e => e.type === 'yellow_card' || e.type === 'red_card');
 

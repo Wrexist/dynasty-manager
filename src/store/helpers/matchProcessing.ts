@@ -1,6 +1,7 @@
 import type { Match, PlayerMatchRating, CareerMilestone, InjuryDetails, PlayerMatchRecord } from '@/types/game';
 import { buildLeagueTable } from '@/data/league';
 import { addMsg } from '@/utils/helpers';
+import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { getPlayerNarratives, getNarrativeBonus } from '@/utils/playerNarratives';
 import {
   FITNESS_DRAIN_PER_MATCH, FITNESS_MIN_POST_MATCH,
@@ -41,7 +42,7 @@ export function processMatchResult(
 
   // Process events: goals, assists, injuries, cards
   result.events.forEach(ev => {
-    const isGoalEvent = ['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'].includes(ev.type);
+    const isGoalEvent = (GOAL_EVENT_TYPES as readonly string[]).includes(ev.type);
     if (isGoalEvent && ev.playerId && newPlayers[ev.playerId]) {
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], goals: newPlayers[ev.playerId].goals + 1 };
     }

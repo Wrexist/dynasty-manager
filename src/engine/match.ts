@@ -1566,5 +1566,7 @@ export function simulateMatch(
   const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather);
 
   const finalized = finalizeMatch(match, homeClub, awayClub, homePlayers, awayPlayers, fullState);
+  // Attach weather to the match result
+  finalized.result.weather = weather;
   return { ...finalized, matchInjuries: fullState.matchInjuries };
 }
