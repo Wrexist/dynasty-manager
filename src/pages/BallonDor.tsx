@@ -97,7 +97,7 @@ const WinnerSpotlight = ({ entry, onNavigate }: { entry: BallonDOrEntry; onNavig
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.4 }}
-          className="relative z-10 grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-[hsl(43,96%,46%)]/20"
+          className="relative z-10 grid grid-cols-4 gap-3 mt-4 pt-4 border-t border-[hsl(43,96%,46%)]/20"
         >
           <div>
             <p className="text-lg font-black text-foreground tabular-nums">{entry.goals}</p>
@@ -106,6 +106,10 @@ const WinnerSpotlight = ({ entry, onNavigate }: { entry: BallonDOrEntry; onNavig
           <div>
             <p className="text-lg font-black text-foreground tabular-nums">{entry.assists}</p>
             <p className="text-[10px] text-muted-foreground">Assists</p>
+          </div>
+          <div>
+            <p className="text-lg font-black text-foreground tabular-nums">{entry.avgRating?.toFixed(1) ?? '-'}</p>
+            <p className="text-[10px] text-muted-foreground">Avg Rating</p>
           </div>
           <div>
             <p className="text-lg font-black text-[hsl(43,96%,56%)] tabular-nums">{entry.score.toFixed(1)}</p>
@@ -207,7 +211,7 @@ const RankingRow = ({ entry, index, isExpanded, onToggle, isPlayerClub }: {
             className="overflow-hidden"
           >
             <div className={cn('mx-2 mt-1 mb-2 p-3 rounded-lg border', style.border, 'bg-card/40')}>
-              <div className="grid grid-cols-4 gap-3 text-center">
+              <div className="grid grid-cols-5 gap-2 text-center">
                 <div>
                   <p className="text-sm font-black text-foreground tabular-nums">{entry.goals}</p>
                   <p className="text-[9px] text-muted-foreground">Goals</p>
@@ -219,6 +223,10 @@ const RankingRow = ({ entry, index, isExpanded, onToggle, isPlayerClub }: {
                 <div>
                   <p className="text-sm font-black text-foreground tabular-nums">{entry.appearances}</p>
                   <p className="text-[9px] text-muted-foreground">Apps</p>
+                </div>
+                <div>
+                  <p className="text-sm font-black text-foreground tabular-nums">{entry.avgRating?.toFixed(1) ?? '-'}</p>
+                  <p className="text-[9px] text-muted-foreground">Rating</p>
                 </div>
                 <div>
                   <p className="text-sm font-black text-foreground tabular-nums">{entry.age}</p>

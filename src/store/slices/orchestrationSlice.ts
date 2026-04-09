@@ -77,6 +77,7 @@ import {
   MEDICAL_REINJURY_REDUCTION_PER_LEVEL,
   MAX_FINANCE_HISTORY, MAX_CAREER_TIMELINE,
   OBJECTIVE_CYCLE_WEEKS,
+  FORM_WIN_CHANGE, FORM_LOSS_CHANGE, FORM_DRAW_CHANGE,
 } from '@/config/gameBalance';
 import {
   SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END,
@@ -220,9 +221,11 @@ function applyAIMatchEvents(
         rating = Math.max(3, Math.min(10, Math.round(rating * 10) / 10));
 
         const prev = newPlayers[p.id];
+        const formChange = side.won ? FORM_WIN_CHANGE : side.lost ? FORM_LOSS_CHANGE : FORM_DRAW_CHANGE;
         newPlayers[p.id] = {
           ...prev,
           appearances: prev.appearances + 1,
+          form: Math.min(100, Math.max(10, prev.form + formChange)),
           seasonRatingTotal: (prev.seasonRatingTotal || 0) + rating,
           seasonRatedMatches: (prev.seasonRatedMatches || 0) + 1,
         };

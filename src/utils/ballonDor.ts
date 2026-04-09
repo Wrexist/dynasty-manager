@@ -8,6 +8,15 @@ import { LEAGUES } from '@/data/league';
 
 const DEFAULT_POSITION_MULTIPLIER = { goals: 1.0, assists: 1.5, cleanSheets: 0 };
 
+/** Compute a player's average match rating, falling back to an estimate from overall. */
+function getAvgRating(player: Player): number {
+  if (player.seasonRatedMatches && player.seasonRatedMatches > 0) {
+    return (player.seasonRatingTotal || 0) / player.seasonRatedMatches;
+  }
+  // Unrated players: estimate slightly below average based on overall
+  return 4.5 + (player.overall / 100) * 2.0;
+}
+
 /**
  * Calculate a player's Ballon d'Or score based on season performance.
  * Position-aware formula considers goals, assists, overall rating, average
@@ -45,10 +54,7 @@ function calculatePlayerScore(
   const cleanSheetScore = teamCleanSheets * w.cleanSheets * pm.cleanSheets;
 
   // Average match rating (0-10 scale, scaled up for meaningful impact)
-  const avgRating = (player.seasonRatedMatches && player.seasonRatedMatches > 0)
-    ? (player.seasonRatingTotal || 0) / player.seasonRatedMatches
-    : 6.0;
-  const ratingScore = avgRating * 10 * w.avgRating;
+  const ratingScore = getAvgRating(player) * 10 * w.avgRating;
 
   // Discipline penalty — yellow and red cards hurt ranking
   const disciplineScore = -(player.yellowCards * BALLON_DOR_YELLOW_PENALTY + player.redCards * BALLON_DOR_RED_PENALTY) * w.discipline;
@@ -117,10 +123,11 @@ export function calculateBallonDOr(
     divisionTierMap[league.id] = league.qualityTier;
   }
 
-  for (const entry of leagueTable) {
+  for (let i = 0; i < leagueTable.length; i++) {
+    const entry = leagueTable[i];
     const club = clubs[entry.clubId];
     clubPositionMap[entry.clubId] = {
-      position: leagueTable.indexOf(entry) + 1,
+      position: i + 1,
       totalTeams,
       cleanSheets: entry.cleanSheets || 0,
       divisionTier: club ? (divisionTierMap[club.divisionId] ?? 4) : 4,
@@ -129,11 +136,12 @@ export function calculateBallonDOr(
   // Also include other division tables
   for (const [, table] of Object.entries(divisionTables)) {
     const divTotal = table.length || 20;
-    for (const entry of table) {
+    for (let i = 0; i < table.length; i++) {
+      const entry = table[i];
       if (!clubPositionMap[entry.clubId]) {
         const club = clubs[entry.clubId];
         clubPositionMap[entry.clubId] = {
-          position: table.indexOf(entry) + 1,
+          position: i + 1,
           totalTeams: divTotal,
           cleanSheets: entry.cleanSheets || 0,
           divisionTier: club ? (divisionTierMap[club.divisionId] ?? 4) : 4,
@@ -149,6 +157,7 @@ export function calculateBallonDOr(
       const clubPos = clubPositionMap[p.clubId] || { position: 10, totalTeams: 20, cleanSheets: 0, divisionTier: 4 };
       const score = calculatePlayerScore(p, clubPos.position, clubPos.totalTeams, clubPos.cleanSheets, clubPos.divisionTier);
       const club = clubs[p.clubId];
+      const avgRating = Math.round(getAvgRating(p) * 10) / 10;
       return {
         playerId: p.id,
         playerName: `${p.firstName} ${p.lastName}`,
@@ -162,6 +171,7 @@ export function calculateBallonDOr(
         goals: p.goals,
         assists: p.assists,
         appearances: p.appearances,
+        avgRating,
       } as BallonDOrEntry;
     })
     .sort((a, b) => {

@@ -487,6 +487,7 @@ export interface BallonDOrEntry {
   goals: number;
   assists: number;
   appearances: number;
+  avgRating?: number;
 }
 
 export interface SeasonAward {
