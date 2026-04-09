@@ -136,6 +136,8 @@ export interface Player {
   appearance?: PlayerAppearance;
   matchHistory?: PlayerMatchRecord[];
   ballonDOrPlacements?: BallonDOrPlacement[];
+  seasonRatingTotal?: number;   // cumulative match ratings this season (for avg rating calc)
+  seasonRatedMatches?: number;  // number of matches with ratings this season
 }
 
 export interface PlayerAppearance {
@@ -198,7 +200,7 @@ export interface ClubData {
 
 export interface MatchEvent {
   minute: number;
-  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout' | 'commentary' | 'ai_tactical_change' | 'free_kick_goal' | 'long_range_goal' | 'counter_attack_goal' | 'header_goal' | 'goalkeeper_error' | 'var_check';
+  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout' | 'commentary' | 'ai_tactical_change';
   playerId?: string;
   assistPlayerId?: string;
   clubId: string;
@@ -211,15 +213,6 @@ export interface MatchEvent {
   tacticalInsight?: string;
   /** Snapshot of player fitness levels at this minute */
   playerFitness?: Record<string, number>;
-}
-
-// ── Weather & Pitch ──
-export type WeatherCondition = 'clear' | 'rain' | 'snow' | 'wind';
-export type PitchCondition = 'excellent' | 'good' | 'poor' | 'waterlogged';
-
-export interface MatchWeather {
-  weather: WeatherCondition;
-  pitch: PitchCondition;
 }
 
 // ── Touchline Shout System ──
@@ -277,7 +270,6 @@ export interface Match {
   events: MatchEvent[];
   stats?: MatchStats;
   penaltyShootout?: { home: number; away: number };
-  weather?: MatchWeather;
 }
 
 export interface LeagueTableEntry {
@@ -495,6 +487,7 @@ export interface BallonDOrEntry {
   goals: number;
   assists: number;
   appearances: number;
+  avgRating?: number;
 }
 
 export interface SeasonAward {
@@ -756,19 +749,10 @@ export interface YouthAcademyState {
 }
 
 // ── Facilities ──
-export type StandKey = 'north' | 'south' | 'east' | 'west';
-
-export interface StadiumStands {
-  north: number;
-  south: number;
-  east: number;
-  west: number;
-}
-
 export interface FacilitiesState {
   trainingLevel: number;
   youthLevel: number;
-  stadiumStands: StadiumStands;
+  stadiumLevel: number;
   medicalLevel: number;
   recoveryLevel: number;
   upgradeInProgress: { type: string; weeksRemaining: number; totalWeeks: number } | null;
@@ -978,16 +962,6 @@ export interface VirtualClub {
   countryCode: string;
 }
 
-// ── Continental Coefficients ──
-/** Tracks a club's continental performance over multiple seasons for seeding */
-export interface ContinentalCoefficient {
-  clubId: string;
-  /** Points accumulated across seasons (recent seasons weighted more) */
-  points: number;
-  /** Per-season breakdown: { season: points } */
-  seasonPoints: Record<number, number>;
-}
-
 // ── Super Cup ──
 export interface SuperCupMatch {
   type: 'domestic' | 'continental';
@@ -1016,7 +990,7 @@ export interface PressOption {
 
 export interface PressConference {
   id: string;
-  context: 'post_win' | 'post_loss' | 'post_draw' | 'pre_big_match' | 'transfer_rumour' | 'poor_form' | 'good_form' | 'promotion_race' | 'relegation_battle' | 'new_signing' | 'injury_crisis' | 'derby_preview';
+  context: 'post_win' | 'post_loss' | 'post_draw' | 'pre_big_match' | 'transfer_rumour' | 'poor_form' | 'good_form';
   question: string;
   options: [PressOption, PressOption, PressOption] | [PressOption, PressOption, PressOption, PressOption];
 }
@@ -1063,7 +1037,6 @@ export interface ChallengeScenario {
   budgetModifier: number;        // multiplier: 0.5 = half budget, 2.0 = double
   youthOnly?: boolean;           // can only use players under 23
   noTransfers?: boolean;         // cannot buy players
-  clubFilter?: 'relegation' | 'contender' | 'youth-academy' | 'mid-table' | 'underdog' | 'all';
 }
 
 // ── Storyline Events ──

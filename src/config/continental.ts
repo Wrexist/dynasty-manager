@@ -88,23 +88,6 @@ export const CONTINENTAL_PRIZE_MONEY = {
   dynasty_cup_runner_up: 600_000,
 } as const;
 
-// ── Continental Coefficient System ──
-/** Points awarded per achievement in continental tournaments */
-export const COEFF_GROUP_WIN = 2;
-export const COEFF_GROUP_DRAW = 1;
-export const COEFF_QUALIFY_KNOCKOUT = 4;   // bonus for reaching knockouts
-export const COEFF_R16_WIN = 2;
-export const COEFF_QF_WIN = 3;
-export const COEFF_SF_WIN = 4;
-export const COEFF_FINAL_WIN = 5;
-export const COEFF_SHIELD_MULTIPLIER = 0.7; // Shield Cup points are worth 70% of Champions Cup
-/** Number of seasons to include in coefficient calculation */
-export const COEFF_SEASON_WINDOW = 5;
-/** Weight decay per season (most recent = 1.0, oldest = 0.2) */
-export const COEFF_SEASON_WEIGHTS = [1.0, 0.8, 0.6, 0.4, 0.2];
-/** Blend ratio: coefficient vs reputation for seeding (0 = all reputation, 1 = all coefficient) */
-export const COEFF_SEEDING_BLEND = 0.6;
-
 // ── Reputation Rewards ──
 export const REP_CHAMPIONS_CUP_WIN = 80;
 export const REP_SHIELD_CUP_WIN = 50;

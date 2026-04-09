@@ -37,15 +37,11 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
   } as Player;
 }
 
-function makeFacilities(overrides: Partial<FacilitiesState> & { stadiumLevel?: number } = {}): FacilitiesState {
-  const { stadiumLevel, ...rest } = overrides;
-  const sLvl = stadiumLevel ?? 5;
+function makeFacilities(overrides: Partial<FacilitiesState> = {}): FacilitiesState {
   return {
-    trainingLevel: 5, youthLevel: 5,
-    stadiumStands: { north: sLvl, south: sLvl, east: sLvl, west: sLvl },
-    medicalLevel: 5, recoveryLevel: 1,
+    trainingLevel: 5, youthLevel: 5, stadiumLevel: 5, medicalLevel: 5, recoveryLevel: 1,
     upgradeInProgress: null,
-    ...rest,
+    ...overrides,
   };
 }
 

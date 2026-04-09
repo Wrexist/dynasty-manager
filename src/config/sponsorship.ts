@@ -3,9 +3,8 @@
  * Defines sponsor slots, sponsor pool, and all balancing constants.
  */
 
-import type { SponsorSlotDef, SponsorDef, SponsorBonusCondition, SponsorSlotId, FacilitiesState } from '@/types/game';
+import type { SponsorSlotDef, SponsorDef, SponsorBonusCondition, SponsorSlotId } from '@/types/game';
 import { pick } from '@/utils/helpers';
-import { getEffectiveStadiumLevel } from '@/utils/facilities';
 
 // ── Sponsor Slots ──
 
@@ -113,14 +112,14 @@ function getSlotDef(slotId: SponsorSlotId): SponsorSlotDef | undefined {
 /** Check if a sponsor slot is unlocked given current facility levels */
 export function isSlotUnlocked(
   slotId: SponsorSlotId,
-  facilities: FacilitiesState
+  facilities: { trainingLevel: number; youthLevel: number; stadiumLevel: number; medicalLevel: number }
 ): boolean {
   const slot = getSlotDef(slotId);
   if (!slot) return false;
   if (!slot.unlock) return true;
   const { facilityType, level } = slot.unlock;
   const facilityMap: Record<string, number> = {
-    stadium: getEffectiveStadiumLevel(facilities),
+    stadium: facilities.stadiumLevel,
     training: facilities.trainingLevel,
     youth: facilities.youthLevel,
     medical: facilities.medicalLevel,

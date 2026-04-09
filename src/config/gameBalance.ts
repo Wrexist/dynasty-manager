@@ -149,10 +149,6 @@ export const FACILITY_COST_PER_LEVEL = 5_000_000;
 export const FACILITY_BASE_UPGRADE_WEEKS = 2;
 export const FACILITY_MAX_LEVEL = 10;
 
-// ── Stadium Stand Upgrade ──
-export const STAND_COST_PER_LEVEL = 1_500_000;       // £1.5M per stand level
-export const STAND_BASE_UPGRADE_WEEKS = 1;            // 1 week base + stand level
-
 // ── Initial Facilities ──
 export const STADIUM_LEVEL_DIVISOR = 10;
 export const MEDICAL_LEVEL_FACTOR = 0.8;
@@ -257,10 +253,6 @@ export const PRESS_TRANSFER_RUMOUR_CHANCE = 0.3;
 export const PRESS_POOR_FORM_LOSSES = 3;
 export const PRESS_GOOD_FORM_WINS = 4;
 export const PRESS_BIG_MATCH_REP_GAP = 2;
-export const PRESS_PROMOTION_RACE_TOP_N = 3;       // top N positions to trigger promotion_race
-export const PRESS_RELEGATION_BATTLE_BOTTOM_N = 3;  // bottom N positions to trigger relegation_battle
-export const PRESS_INJURY_CRISIS_MIN = 3;            // minimum injured players to trigger injury_crisis
-export const PRESS_DERBY_PREVIEW_CHANCE = 0.6;       // chance of derby_preview context before derby
 
 // ── Injury Types & Severity ──
 import type { InjuryType, InjurySeverity } from '@/types/game';
@@ -558,43 +550,44 @@ export const MAX_PLAYER_MATCH_HISTORY = 20;
 export const BALLON_DOR_TOP_N = 25;
 /** Weights for the Ballon d'Or scoring formula */
 export const BALLON_DOR_WEIGHTS = {
-  overall: 2.5,
+  overall: 1.5,
   goals: 3.0,
   assists: 2.0,
-  appearances: 0.3,
+  appearances: 0.5,
   form: 0.5,
-  teamPosition: 1.5,   // bonus for playing on a high-finishing team
-  cleanSheets: 1.0,     // GK/defender bonus
+  teamPosition: 1.0,     // bonus for playing on a high-finishing team (sqrt curve)
+  cleanSheets: 1.0,       // GK/defender bonus (position-scaled)
+  avgRating: 3.0,         // average match rating (0-10 scale)
+  discipline: 1.0,        // multiplier for card penalties
+  divisionTier: 1.0,      // bonus for higher divisions
+  continentalBonus: 1.0,   // Champions Cup / Shield Cup progression bonus
 } as const;
-
-/** Milestone descriptions shown on facility cards at key levels */
-export const FACILITY_MILESTONES: Record<string, { level: number; label: string }[]> = {
-  training: [
-    { level: 3, label: 'Advanced drills unlocked' },
-    { level: 5, label: '+100% training effectiveness' },
-    { level: 7, label: 'Elite coaching methods' },
-    { level: 10, label: 'World-class facility' },
-  ],
-  youth: [
-    { level: 3, label: 'Better prospect intake' },
-    { level: 5, label: 'Academy sponsor slot' },
-    { level: 7, label: 'Elite development rate' },
-    { level: 10, label: 'World-class academy' },
-  ],
-  medical: [
-    { level: 3, label: 'Faster recovery times' },
-    { level: 5, label: 'Advanced injury prevention' },
-    { level: 7, label: 'Elite medical care' },
-    { level: 10, label: 'World-class medical' },
-  ],
-  recovery: [
-    { level: 3, label: '+3% weekly fitness' },
-    { level: 5, label: '+5% weekly fitness' },
-    { level: 7, label: 'Elite recovery protocols' },
-    { level: 10, label: 'World-class recovery' },
-  ],
+/** Position-specific multipliers for goals, assists, and clean sheets.
+ *  Rarer contributions (e.g. GK goals) are rewarded more heavily. */
+export const BALLON_DOR_POSITION_MULTIPLIERS: Record<string, { goals: number; assists: number; cleanSheets: number }> = {
+  GK:  { goals: 4.0, assists: 2.0, cleanSheets: 2.0 },
+  CB:  { goals: 3.5, assists: 1.5, cleanSheets: 1.5 },
+  LB:  { goals: 3.0, assists: 2.0, cleanSheets: 1.2 },
+  RB:  { goals: 3.0, assists: 2.0, cleanSheets: 1.2 },
+  CDM: { goals: 2.5, assists: 2.0, cleanSheets: 0.5 },
+  CM:  { goals: 2.0, assists: 2.5, cleanSheets: 0 },
+  CAM: { goals: 1.5, assists: 2.5, cleanSheets: 0 },
+  LM:  { goals: 1.5, assists: 2.5, cleanSheets: 0 },
+  RM:  { goals: 1.5, assists: 2.5, cleanSheets: 0 },
+  LW:  { goals: 1.2, assists: 2.0, cleanSheets: 0 },
+  RW:  { goals: 1.2, assists: 2.0, cleanSheets: 0 },
+  ST:  { goals: 1.0, assists: 1.5, cleanSheets: 0 },
 };
-
+/** Per-card penalty subtracted from Ballon d'Or score */
+export const BALLON_DOR_YELLOW_PENALTY = 0.3;
+export const BALLON_DOR_RED_PENALTY = 3.0;
+/** Division-tier bonus points (qualityTier → flat bonus) */
+export const BALLON_DOR_DIVISION_BONUS: Record<number, number> = {
+  1: 20,   // div-1 (Premier): +20 points
+  2: 12,   // div-2 (Championship): +12
+  3: 6,    // div-3 (First Division): +6
+  4: 0,    // div-4 (Foundation): +0
+};
 /** Value multiplier for Ballon d'Or top-25 placements (rank → multiplier) */
 export const BALLON_DOR_VALUE_BOOST: Record<number, number> = {
   1: 0.30,   // Winner: +30% value
@@ -604,4 +597,28 @@ export const BALLON_DOR_VALUE_BOOST: Record<number, number> = {
   5: 0.12,
   10: 0.08,  // Top 10: +8%
   25: 0.04,  // Top 25: +4%
+} as const;
+
+// ── Global Team Power Rankings (ELO) ──
+/** K-factors per competition type (higher = more volatile) */
+export const ELO_K_FACTORS: Record<string, number> = {
+  league: 20,
+  cup: 15,
+  continental: 30,
+};
+/** Per-division-tier bonus added to initial ELO */
+export const ELO_INITIAL_TIER_BONUS: Record<number, number> = {
+  1: 400,   // div-1 (Premier)
+  2: 250,   // div-2 (Championship)
+  3: 100,   // div-3 (First Division)
+  4: 0,     // div-4 (Foundation)
+};
+/** Reputation multiplier for initial ELO (rating = rep * this + tierBonus) */
+export const ELO_REPUTATION_MULTIPLIER = 120;
+
+// ── Ballon d'Or Continental Bonus ──
+/** Round-based Ballon d'Or bonus for players on teams progressing in continental cups */
+export const BALLON_DOR_CONTINENTAL_BONUS = {
+  champions_cup: { group: 5, R16: 10, QF: 18, SF: 25, F: 30, winner: 40 },
+  shield_cup: { group: 2, R16: 5, QF: 8, SF: 12, F: 15, winner: 20 },
 } as const;

@@ -138,6 +138,7 @@ type Get = () => GameState;
 // Shared helpers from other extracted files
 import { generateObjectives, generateLeagueCupDraw } from '@/store/helpers/gameInit';
 import { advanceInternationalWeekImpl, applyAIMatchEvents, generateAIInjuryDetails, advanceLeagueCupRound } from '@/store/slices/orchestrationSlice';
+import { updateEloRatings } from '@/utils/teamRankings';
 
 export function advanceWeekImpl(set: Set, get: Get) {
     const state = get();
@@ -412,6 +413,9 @@ export function advanceWeekImpl(set: Set, get: Get) {
     const updatedDivisionFixtures = { ...state.divisionFixtures };
     const playerDiv = state.playerDivision;
 
+    // Mutable copy of power rankings — updated after every match this week
+    const eloRankings = { ...(state.clubPowerRankings || {}) };
+
     for (const m of aiMatches) {
       const idx = updatedFixtures.findIndex(f => f.id === m.id);
       const hc = clubs[m.homeClubId];
@@ -431,7 +435,8 @@ export function advanceWeekImpl(set: Set, get: Get) {
       }
       const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hBenchAI, aBenchAI);
       updatedFixtures[idx] = result;
-      applyAIMatchEvents(result.events, newPlayers, clubs, week);
+      applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
+      updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
     }
 
     // Simulate cup matches for this week (and any orphaned ties from past weeks)
@@ -503,7 +508,8 @@ export function advanceWeekImpl(set: Set, get: Get) {
 
         newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout };
 
-        applyAIMatchEvents(cupResult.events, newPlayers, clubs, week);
+        applyAIMatchEvents(cupResult.events, newPlayers, clubs, week, hPlayers, aPlayers, cupResult.homeGoals, cupResult.awayGoals, eloRankings, tie.homeClubId, tie.awayClubId);
+        updateEloRatings(eloRankings, tie.homeClubId, tie.awayClubId, cupResult.homeGoals, cupResult.awayGoals, 'cup');
 
         // Cup match result message for player
         if (isPlayerMatch) {
@@ -590,7 +596,8 @@ export function advanceWeekImpl(set: Set, get: Get) {
         }
 
         newLeagueCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hGoals, awayGoals: aGoals, penaltyShootout };
-        applyAIMatchEvents(lcResult.events, newPlayers, clubs, week);
+        applyAIMatchEvents(lcResult.events, newPlayers, clubs, week, hPlayers, aPlayers, lcResult.homeGoals, lcResult.awayGoals, eloRankings, tie.homeClubId, tie.awayClubId);
+        updateEloRatings(eloRankings, tie.homeClubId, tie.awayClubId, lcResult.homeGoals, lcResult.awayGoals, 'cup');
 
         // League Cup match result message for player (orphaned past-week matches)
         if (isPlayerMatch) {
@@ -1692,6 +1699,7 @@ export function advanceWeekImpl(set: Set, get: Get) {
       merchandise: newMerch,
       fanMood: merchFanMood,
       seasonGrowthTracker: { ...seasonGrowthTracker },
+      clubPowerRankings: eloRankings,
       seasonTotalIncome: prevSeasonIncome + weeklyIncome,
       seasonTotalExpenses: prevSeasonExpenses + totalExpenses,
       weeklyDigest: {
