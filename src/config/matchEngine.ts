@@ -324,3 +324,47 @@ export const SHOUT_CUMULATIVE_SCALE = 0.5;
 export const TACTICAL_INSIGHT_MIN_BONUS = 0.06;
 /** Interval (in minutes) between fitness snapshots attached to events */
 export const FITNESS_SNAPSHOT_INTERVAL = 5;
+
+// ── Weather & Pitch System ──
+/** Weather probability weights (clear is most common) */
+export const WEATHER_WEIGHTS: Record<string, number> = {
+  clear: 0.55, rain: 0.25, snow: 0.08, wind: 0.12,
+};
+/** Pitch condition probability weights */
+export const PITCH_WEIGHTS: Record<string, number> = {
+  excellent: 0.30, good: 0.45, poor: 0.20, waterlogged: 0.05,
+};
+/** Passing accuracy modifier per weather condition (negative = harder) */
+export const WEATHER_PASSING_MOD: Record<string, number> = {
+  clear: 0, rain: -0.08, snow: -0.12, wind: -0.06,
+};
+/** Pace modifier per weather condition */
+export const WEATHER_PACE_MOD: Record<string, number> = {
+  clear: 0, rain: -0.04, snow: -0.10, wind: -0.02,
+};
+/** Foul frequency modifier per weather condition */
+export const WEATHER_FOUL_MOD: Record<string, number> = {
+  clear: 0, rain: 0.04, snow: 0.06, wind: 0.02,
+};
+/** Pitch condition modifiers on shot quality */
+export const PITCH_SHOT_MOD: Record<string, number> = {
+  excellent: 0.02, good: 0, poor: -0.04, waterlogged: -0.08,
+};
+/** Rain increases chance of goalkeeper errors */
+export const WEATHER_GK_ERROR_MOD: Record<string, number> = {
+  clear: 0, rain: 0.015, snow: 0.02, wind: 0.005,
+};
+
+// ── New Event Type Chances ──
+/** Chance that a goal is flavored as a free kick goal (from foul near box) */
+export const FREE_KICK_GOAL_CHANCE = 0.08;
+/** Chance that a goal is flavored as a long range strike */
+export const LONG_RANGE_GOAL_CHANCE = 0.10;
+/** Chance that a goal is flavored as a counter attack goal (high line opponent) */
+export const COUNTER_ATTACK_GOAL_CHANCE = 0.12;
+/** Chance that a header goal occurs from open play (physical-weighted) */
+export const HEADER_GOAL_CHANCE = 0.06;
+/** Base chance of a goalkeeper error leading to a goal */
+export const GK_ERROR_BASE_CHANCE = 0.03;
+/** Chance of a VAR check on a goal (adds drama, doesn't change outcome) */
+export const VAR_CHECK_CHANCE = 0.12;

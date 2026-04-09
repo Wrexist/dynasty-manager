@@ -198,7 +198,7 @@ export interface ClubData {
 
 export interface MatchEvent {
   minute: number;
-  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout' | 'commentary' | 'ai_tactical_change';
+  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout' | 'commentary' | 'ai_tactical_change' | 'free_kick_goal' | 'long_range_goal' | 'counter_attack_goal' | 'header_goal' | 'goalkeeper_error' | 'var_check';
   playerId?: string;
   assistPlayerId?: string;
   clubId: string;
@@ -211,6 +211,15 @@ export interface MatchEvent {
   tacticalInsight?: string;
   /** Snapshot of player fitness levels at this minute */
   playerFitness?: Record<string, number>;
+}
+
+// ── Weather & Pitch ──
+export type WeatherCondition = 'clear' | 'rain' | 'snow' | 'wind';
+export type PitchCondition = 'excellent' | 'good' | 'poor' | 'waterlogged';
+
+export interface MatchWeather {
+  weather: WeatherCondition;
+  pitch: PitchCondition;
 }
 
 // ── Touchline Shout System ──

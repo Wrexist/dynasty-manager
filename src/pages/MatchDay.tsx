@@ -29,7 +29,8 @@ import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
 import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers } from 'lucide-react';
 
-const isGoalEvent = (e: MatchEvent) => e.type === 'goal' || e.type === 'own_goal' || e.type === 'penalty_scored';
+const GOAL_EVENT_TYPES: MatchEvent['type'][] = ['goal', 'own_goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'];
+const isGoalEvent = (e: MatchEvent) => GOAL_EVENT_TYPES.includes(e.type);
 
 /** Find player's continental match this week and return display-friendly info */
 function findPlayerContinentalMatchForUI(
@@ -512,7 +513,7 @@ const MatchDay = () => {
     for (const ev of visibleEvents) {
       if (!matchHomeClubId) continue;
       const isHomeEv = ev.clubId === matchHomeClubId;
-      if (ev.type === 'goal' || ev.type === 'penalty_scored' || ev.type === 'own_goal') {
+      if (isGoalEvent(ev)) {
         if (isHomeEv) { hShots++; hSoT++; } else { aShots++; aSoT++; }
       } else if (ev.type === 'shot_saved' || ev.type === 'goal_line_clearance') {
         if (isHomeEv) { hShots++; hSoT++; } else { aShots++; aSoT++; }

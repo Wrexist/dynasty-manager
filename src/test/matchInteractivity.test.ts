@@ -108,7 +108,7 @@ describe('Match Interactivity Features', () => {
       const { homeClub, awayClub, homePlayers, awayPlayers } = setupMatch();
       for (let i = 0; i < 10; i++) {
         const halfState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45);
-        const goalTypes = ['goal', 'penalty_scored', 'own_goal'];
+        const goalTypes = ['goal', 'penalty_scored', 'own_goal', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'];
         const homeGoalEvents = halfState.events.filter(e => goalTypes.includes(e.type) && e.clubId === homeClub.id).length;
         const awayGoalEvents = halfState.events.filter(e => goalTypes.includes(e.type) && e.clubId === awayClub.id).length;
         expect(halfState.homeGoals).toBe(homeGoalEvents);

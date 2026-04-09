@@ -41,10 +41,11 @@ export function processMatchResult(
 
   // Process events: goals, assists, injuries, cards
   result.events.forEach(ev => {
-    if ((ev.type === 'goal' || ev.type === 'penalty_scored') && ev.playerId && newPlayers[ev.playerId]) {
+    const isGoalEvent = ['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'].includes(ev.type);
+    if (isGoalEvent && ev.playerId && newPlayers[ev.playerId]) {
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], goals: newPlayers[ev.playerId].goals + 1 };
     }
-    if (ev.type === 'goal' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
+    if (isGoalEvent && ev.type !== 'penalty_scored' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
       newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
     }
     if (ev.type === 'injury' && ev.playerId && newPlayers[ev.playerId]) {

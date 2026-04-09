@@ -39,6 +39,7 @@ import { getLeadershipBonus, wantsTransfer } from '@/utils/personality';
 import { buildTransferTalk } from '@/utils/transferTalk';
 import { createEmptyRecords, updateRecords, findBiggestWin } from '@/utils/records';
 import { getFarewellSummary } from '@/utils/playerNarratives';
+import { generateScoutReport } from '@/utils/scoutingReport';
 import { calculateWeeklyMerchRevenue, getDefaultMerchState } from '@/utils/merchandise';
 import { getEffectiveStadiumLevel } from '@/utils/facilities';
 import { DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
@@ -3130,6 +3131,20 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             week: newWeek, season, type: 'match_preview',
             title: `Derby Day: ${derbyNm}`,
             body: `This is a rivalry match! The ${derbyNm} is one of the most intense fixtures on the calendar. Expect a heated atmosphere, more fouls, and higher stakes.`,
+          });
+        }
+
+        // Opposition scouting report (~40% chance before matches)
+        if (Math.random() < 0.4) {
+          const playerClubRep = clubs[playerClubId]?.reputation || 5;
+          const report = generateScoutReport(oppClub, Object.values(newPlayers), playerClubRep);
+          const strengthsText = report.strengths.length > 0 ? `Strengths: ${report.strengths.join(', ')}.` : '';
+          const weaknessText = report.weaknesses.length > 0 ? ` Weaknesses: ${report.weaknesses.join(', ')}.` : '';
+          const keyPlayerText = report.keyPlayer ? ` Key threat: ${report.keyPlayer.name} (${report.keyPlayer.position}, ${report.keyPlayer.overall}).` : '';
+          newMessages = addMsg(newMessages, {
+            week: newWeek, season, type: 'general',
+            title: `Scout Report: ${oppClub.shortName}`,
+            body: `${oppClub.name} (${report.formation}) play a ${report.style} style. ${strengthsText}${weaknessText}${keyPlayerText} Danger rating: ${'★'.repeat(report.dangerRating)}${'☆'.repeat(5 - report.dangerRating)}.`,
           });
         }
       }
