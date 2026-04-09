@@ -223,40 +223,18 @@ const TrainingPage = () => {
           )}
         </AnimatePresence>
 
-        {/* Training Ground Visualization */}
+        {/* Training Facility Header */}
         <GlassPanel className="p-3">
           <TrainingGroundView
             trainingLevel={facilities.trainingLevel}
             activeModule={schedule[activeDay] || null}
             schedule={schedule}
-            clubColor={club?.color || '#3b82f6'}
+            activeDay={activeDay}
+            onDayChange={(day) => { hapticLight(); setActiveDay(day as typeof DAYS[number]); }}
+            onModuleSelect={(mod) => handleDayChange(activeDay, mod)}
+            dominantModule={dominantModule}
           />
         </GlassPanel>
-
-        {/* Squad Attribute Radar Chart */}
-        {radarData.length > 0 && (
-          <GlassPanel className="p-3">
-            <h3 className="text-xs font-semibold text-foreground mb-1">Squad Attributes</h3>
-            <ResponsiveContainer width="100%" height={180}>
-              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
-                <PolarGrid stroke="hsl(var(--border))" />
-                <PolarAngleAxis dataKey="attr" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
-                <Radar dataKey="value" stroke="hsl(160 84% 39%)" fill="hsl(160 84% 39%)" fillOpacity={0.2} strokeWidth={2} />
-                <Radar dataKey="benchmark" stroke="hsl(var(--muted-foreground))" fill="none" strokeWidth={1} strokeDasharray="4 4" />
-              </RadarChart>
-            </ResponsiveContainer>
-            <div className="flex items-center justify-center gap-4 mt-1">
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-0.5 rounded" style={{ backgroundColor: 'hsl(160 84% 39%)' }} />
-                <span className="text-[9px] text-muted-foreground">Your Squad</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="w-3 h-0.5 border-t border-dashed border-muted-foreground" />
-                <span className="text-[9px] text-muted-foreground">League Avg</span>
-              </div>
-            </div>
-          </GlassPanel>
-        )}
 
         {/* Training Recommendation */}
         {(() => {
@@ -341,35 +319,6 @@ const TrainingPage = () => {
             })}
           </div>
 
-          {/* Module Picker Grid — 3 columns × 2 rows */}
-          <div className="grid grid-cols-3 gap-2 mt-4">
-            {MODULE_INFO.map(({ module, label, icon: Icon }) => {
-              const isSelected = schedule[activeDay] === module;
-              const colors = MODULE_COLORS[module] || MODULE_COLORS['fitness'];
-              return (
-                <motion.button
-                  key={module}
-                  onClick={() => handleDayChange(activeDay, module)}
-                  whileTap={{ scale: 0.95 }}
-                  className={cn(
-                    'flex flex-col items-center gap-1.5 py-3 rounded-xl border transition-all',
-                    isSelected
-                      ? cn(colors.bg, colors.border)
-                      : 'bg-muted/20 border-transparent hover:bg-muted/40'
-                  )}
-                >
-                  <Icon className={cn('w-5 h-5', isSelected ? colors.text : 'text-muted-foreground')} />
-                  <span className={cn(
-                    'text-[11px] font-semibold',
-                    isSelected ? colors.text : 'text-muted-foreground'
-                  )}>
-                    {label}
-                  </span>
-                </motion.button>
-              );
-            })}
-          </div>
-
           {/* Drill Picker — vertical stack */}
           {DRILLS_BY_MODULE[schedule[activeDay]]?.length > 0 && (
             <AnimatePresence mode="wait">
@@ -398,35 +347,6 @@ const TrainingPage = () => {
             </AnimatePresence>
           )}
 
-          {/* Week Summary Strip */}
-          <div className="border-t border-border/30 pt-3 mt-3">
-            <div className="flex">
-              {DAYS.map((day, i) => {
-                const dayModule = schedule[day];
-                const dayInfo = MODULE_INFO.find(m => m.module === dayModule);
-                const colors = MODULE_COLORS[dayModule] || MODULE_COLORS['fitness'];
-                const isActive = activeDay === day;
-                return (
-                  <button
-                    key={day}
-                    onClick={() => { hapticLight(); setActiveDay(day); }}
-                    className={cn(
-                      'flex-1 flex flex-col items-center gap-0.5 py-1 rounded transition-colors',
-                      isActive ? 'bg-muted/30' : 'hover:bg-muted/20'
-                    )}
-                  >
-                    <span className="text-[9px] text-muted-foreground">{DAY_LABELS[i]}</span>
-                    <div className="flex items-center gap-1">
-                      <div className={cn('w-1.5 h-1.5 rounded-full', colors.dot)} />
-                      <span className={cn('text-[9px] font-medium', colors.text)}>
-                        {dayInfo?.label.slice(0, 3) || '???'}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </GlassPanel>
 
         {/* Intensity + Effectiveness Preview */}
@@ -529,6 +449,31 @@ const TrainingPage = () => {
             <span className="text-destructive">{fitnessDistribution.red} exhausted</span>
           </div>
         </GlassPanel>
+
+        {/* Squad Attribute Radar Chart */}
+        {radarData.length > 0 && (
+          <GlassPanel className="p-3">
+            <h3 className="text-xs font-semibold text-foreground mb-1">Squad Attributes</h3>
+            <ResponsiveContainer width="100%" height={180}>
+              <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="75%">
+                <PolarGrid stroke="hsl(var(--border))" />
+                <PolarAngleAxis dataKey="attr" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} />
+                <Radar dataKey="value" stroke="hsl(160 84% 39%)" fill="hsl(160 84% 39%)" fillOpacity={0.2} strokeWidth={2} />
+                <Radar dataKey="benchmark" stroke="hsl(var(--muted-foreground))" fill="none" strokeWidth={1} strokeDasharray="4 4" />
+              </RadarChart>
+            </ResponsiveContainer>
+            <div className="flex items-center justify-center gap-4 mt-1">
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-0.5 rounded" style={{ backgroundColor: 'hsl(160 84% 39%)' }} />
+                <span className="text-[9px] text-muted-foreground">Your Squad</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <div className="w-3 h-0.5 border-t border-dashed border-muted-foreground" />
+                <span className="text-[9px] text-muted-foreground">League Avg</span>
+              </div>
+            </div>
+          </GlassPanel>
+        )}
 
         {/* Training Streak */}
         <GlassPanel className="p-4">
