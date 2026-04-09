@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 46;
+const CURRENT_VERSION = 47;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -636,6 +636,16 @@ const migrations: Record<number, MigrationFn> = {
     ...data,
     version: 46,
     continentalCoefficients: {},
+  }),
+
+  // v46 → v47: Add persistent transfer page filters
+  46: (data) => ({
+    ...data,
+    version: 47,
+    transferFilters: {
+      tab: 'market', posFilter: 0, searchQuery: '', sortBy: 'overall',
+      faSortBy: 'overall', divFilter: 'all', newsTypeFilter: 'all', hideUnaffordable: false,
+    },
   }),
 };
 

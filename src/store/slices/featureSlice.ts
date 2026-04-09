@@ -45,6 +45,23 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   pairFamiliarity: {} as Record<string, number>,
   rivalries: {} as Record<string, import('@/types/game').HeadToHeadRecord>,
   seasonGrowthTracker: {} as Record<string, number>,
+  // Transfer page filter state (persisted across navigation)
+  transferFilters: {
+    tab: 'market' as 'market' | 'shortlist' | 'incoming' | 'outgoing' | 'loans' | 'freeAgents' | 'news',
+    posFilter: 0,
+    searchQuery: '',
+    sortBy: 'overall' as 'overall' | 'price' | 'age' | 'potential',
+    faSortBy: 'overall' as 'overall' | 'age' | 'potential' | 'wage',
+    divFilter: 'all',
+    newsTypeFilter: 'all' as 'all' | 'transfer' | 'loan' | 'free_agent',
+    hideUnaffordable: false,
+  },
+
+  // ── Transfer Filter Actions ──
+  setTransferFilter: (updates: Partial<GameState['transferFilters']>) => {
+    const state = get();
+    set({ transferFilters: { ...state.transferFilters, ...updates } });
+  },
 
   // ── Press Conference Actions ──
   respondToPress: (tone: import('@/types/game').PressResponseTone) => {

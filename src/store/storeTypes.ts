@@ -81,6 +81,17 @@ export interface GameState {
   cup: CupState;
   pairFamiliarity: Record<string, number>;
   seasonGrowthTracker: Record<string, number>;
+  transferFilters: {
+    tab: 'market' | 'shortlist' | 'incoming' | 'outgoing' | 'loans' | 'freeAgents' | 'news';
+    posFilter: number;
+    searchQuery: string;
+    sortBy: 'overall' | 'price' | 'age' | 'potential';
+    faSortBy: 'overall' | 'age' | 'potential' | 'wage';
+    divFilter: string;
+    newsTypeFilter: 'all' | 'transfer' | 'loan' | 'free_agent';
+    hideUnaffordable: boolean;
+  };
+  setTransferFilter: (updates: Partial<GameState['transferFilters']>) => void;
 
   // Press, Storylines & Contracts
   pendingPressConference: PressConference | null;

@@ -178,7 +178,7 @@ export function extractSubscriptionInfo(customerInfo: any): SubscriptionInfo | n
 
   const productId = proEntitlement.productIdentifier as ProductId;
   const product = PRODUCTS[productId];
-  if (!product || product.type !== 'subscription') return null;
+  if (!product || (product.type !== 'subscription' && product.subscriptionTier !== 'lifetime')) return null;
 
   return {
     tier: product.subscriptionTier!,

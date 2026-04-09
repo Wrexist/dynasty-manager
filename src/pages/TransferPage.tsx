@@ -54,6 +54,7 @@ const TransferPage = () => {
     scouting: s.scouting,
     transferNews: s.transferNews,
     playerDivision: s.playerDivision,
+    transferFilters: s.transferFilters,
   })));
 
   const addToShortlist = useGameStore(s => s.addToShortlist);
@@ -66,21 +67,26 @@ const TransferPage = () => {
   const respondToLoanOffer = useGameStore(s => s.respondToLoanOffer);
   const signFreeAgent = useGameStore(s => s.signFreeAgent);
   const setScreen = useGameStore(s => s.setScreen);
+  const setTransferFilter = useGameStore(s => s.setTransferFilter);
 
-  const [posFilter, setPosFilter] = useState(0);
-  const [tab, setTab] = useState<'market' | 'shortlist' | 'incoming' | 'outgoing' | 'loans' | 'freeAgents' | 'news'>('market');
+  // Persistent filters (survive navigation)
+  const { tab, posFilter, searchQuery, sortBy, faSortBy, divFilter, newsTypeFilter, hideUnaffordable } = transferFilters;
+  const setTab = (v: typeof tab) => setTransferFilter({ tab: v });
+  const setPosFilter = (v: number) => setTransferFilter({ posFilter: v });
+  const setSearchQuery = (v: string) => setTransferFilter({ searchQuery: v });
+  const setSortBy = (v: typeof sortBy) => setTransferFilter({ sortBy: v });
+  const setFaSortBy = (v: typeof faSortBy) => setTransferFilter({ faSortBy: v });
+  const setDivFilter = (v: string) => setTransferFilter({ divFilter: v });
+  const setNewsTypeFilter = (v: typeof newsTypeFilter) => setTransferFilter({ newsTypeFilter: v });
+  const setHideUnaffordable = (v: boolean) => setTransferFilter({ hideUnaffordable: v });
+
+  // Transient UI state (resets on navigation — modal/dialog state)
   const [signingPlayer, setSigningPlayer] = useState<string | null>(null);
   const [offerWage, setOfferWage] = useState(0);
   const [offerYears, setOfferYears] = useState(2);
-  const [searchQuery, setSearchQuery] = useState('');
   const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ offerId: string; accept: boolean; playerName: string; fee: number } | null>(null);
   const [negotiatingOffer, setNegotiatingOffer] = useState<IncomingOffer | null>(null);
-  const [sortBy, setSortBy] = useState<'overall' | 'price' | 'age' | 'potential'>('overall');
-  const [faSortBy, setFaSortBy] = useState<'overall' | 'age' | 'potential' | 'wage'>('overall');
-  const [divFilter, setDivFilter] = useState<string>('all');
-  const [newsTypeFilter, setNewsTypeFilter] = useState<'all' | 'transfer' | 'loan' | 'free_agent'>('all');
-  const [hideUnaffordable, setHideUnaffordable] = useState(false);
 
   const club = clubs[playerClubId];
 

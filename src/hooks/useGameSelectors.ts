@@ -5,6 +5,7 @@
 
 import { useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import type { Club, Match, CupState, LeagueCupState, ContinentalTournamentState, SuperCupMatch } from '@/types/game';
 
 /** Get the player's club object. */
@@ -56,17 +57,15 @@ export function findTournamentMatch(s: { week: number; playerClubId: string; cup
 
 /** Get the current week's match for the player's club + derived info. */
 export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; opponent: Club | undefined; competition?: string } {
-  const week = useGameStore(s => s.week);
-  const playerClubId = useGameStore(s => s.playerClubId);
-  const fixtures = useGameStore(s => s.fixtures);
-  const clubs = useGameStore(s => s.clubs);
-  const cup = useGameStore(s => s.cup);
-  const leagueCup = useGameStore(s => s.leagueCup);
-  const championsCup = useGameStore(s => s.championsCup);
-  const shieldCup = useGameStore(s => s.shieldCup);
-  const domesticSuperCup = useGameStore(s => s.domesticSuperCup);
-  const continentalSuperCup = useGameStore(s => s.continentalSuperCup);
-  const virtualClubs = useGameStore(s => s.virtualClubs);
+  const {
+    week, playerClubId, fixtures, clubs, cup, leagueCup,
+    championsCup, shieldCup, domesticSuperCup, continentalSuperCup, virtualClubs,
+  } = useGameStore(useShallow(s => ({
+    week: s.week, playerClubId: s.playerClubId, fixtures: s.fixtures, clubs: s.clubs,
+    cup: s.cup, leagueCup: s.leagueCup, championsCup: s.championsCup, shieldCup: s.shieldCup,
+    domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
+    virtualClubs: s.virtualClubs,
+  })));
 
   return useMemo(() => {
     const leagueMatch = fixtures.find(
