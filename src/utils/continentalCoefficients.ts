@@ -36,7 +36,7 @@ export function calculateTournamentPoints(
 
   // Knockout stage points
   for (const tie of tournament.knockoutTies) {
-    if (!tie.played) continue;
+    if (!tie.winnerId) continue;
     if (tie.winnerId !== clubId) continue;
 
     switch (tie.round) {
@@ -67,7 +67,7 @@ export function updateCoefficients(
   // Collect all club IDs from the tournament
   const clubIds = new Set<string>();
   for (const group of tournament.groups) {
-    for (const team of group.teams) clubIds.add(team.clubId);
+    for (const clubId of group.clubIds) clubIds.add(clubId);
   }
 
   for (const clubId of clubIds) {

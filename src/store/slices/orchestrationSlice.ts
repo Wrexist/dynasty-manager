@@ -26,6 +26,7 @@ import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getChampionsCupQualifiers, getShieldCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
+import { updateCoefficients } from '@/utils/continentalCoefficients';
 import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, getContinentalResultForClub, createEphemeralClub, findPlayerContinentalMatch } from '@/utils/continental';
 import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
 import { generatePressConference } from '@/data/pressConferences';
@@ -1507,14 +1508,23 @@ function finalizeSeason(
 
   const allVirtualClubs = { ...champQ.virtualClubs, ...shieldQ.virtualClubs };
 
+  // Update continental coefficients from completed tournaments
+  let updatedCoefficients = state.continentalCoefficients || {};
+  if (state.championsCup) {
+    updatedCoefficients = updateCoefficients(updatedCoefficients, state.championsCup, season);
+  }
+  if (state.shieldCup) {
+    updatedCoefficients = updateCoefficients(updatedCoefficients, state.shieldCup, season);
+  }
+
   let newChampionsCup: import('@/types/game').ContinentalTournamentState | null = null;
   let newShieldCup: import('@/types/game').ContinentalTournamentState | null = null;
 
   if (champQ.qualifiers.length >= 8) {
-    newChampionsCup = generateContinentalDraw('champions_cup', newSeason, champQ.qualifiers, allVirtualClubs, playerClubId);
+    newChampionsCup = generateContinentalDraw('champions_cup', newSeason, champQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
   }
   if (shieldQ.qualifiers.length >= 8) {
-    newShieldCup = generateContinentalDraw('shield_cup', newSeason, shieldQ.qualifiers, allVirtualClubs, playerClubId);
+    newShieldCup = generateContinentalDraw('shield_cup', newSeason, shieldQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
   }
 
   // Domestic Super Cup: last season's league winner vs cup winner
@@ -1713,6 +1723,7 @@ function finalizeSeason(
     leagueCup: newLeagueCup,
     championsCup: newChampionsCup,
     shieldCup: newShieldCup,
+    continentalCoefficients: updatedCoefficients,
     virtualClubs: allVirtualClubs,
     continentalQualification: { champions: champQ.qualifiers, shield: shieldQ.qualifiers },
     domesticSuperCup: newDomesticSuperCup,
@@ -2246,6 +2257,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       championsCup: null,
       shieldCup: null,
       virtualClubs: {},
+      continentalCoefficients: {},
       continentalQualification: null,
       domesticSuperCup: null,
       continentalSuperCup: null,
@@ -5400,6 +5412,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       currentLeagueCupTieId: state.currentLeagueCupTieId,
       currentContinentalMatchId: state.currentContinentalMatchId,
       currentContinentalCompetition: state.currentContinentalCompetition,
+      continentalCoefficients: state.continentalCoefficients || {},
       // Career Mode
       gameMode: state.gameMode,
       careerManager: state.careerManager,
@@ -5538,6 +5551,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         continentalSuperCup: data.continentalSuperCup || null,
         currentContinentalMatchId: data.currentContinentalMatchId || null,
         currentContinentalCompetition: data.currentContinentalCompetition || null,
+        continentalCoefficients: data.continentalCoefficients || {},
         currentLeagueCupTieId: data.currentLeagueCupTieId || null,
         fanMood: data.fanMood ?? 50,
         activeChallenge: data.activeChallenge || null,
@@ -5658,6 +5672,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       gameMode: 'sandbox', careerManager: null, jobVacancies: [], jobOffers: [],
       sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {},
       merchandise: getDefaultMerchState(),
+      continentalCoefficients: {},
       monetization: {
         ...DEFAULT_MONETIZATION_STATE,
         // Preserve purchases and subscription across save resets
