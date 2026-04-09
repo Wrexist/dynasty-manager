@@ -14,14 +14,6 @@ import type { LeagueId } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
 import { toast } from 'sonner';
 
-const COUNTRY_FLAGS: Record<string, string> = {
-  GB: '🇬🇧', ES: '🇪🇸', IT: '🇮🇹', DE: '🇩🇪', FR: '🇫🇷',
-  NL: '🇳🇱', PT: '🇵🇹', BE: '🇧🇪', TR: '🇹🇷', CZ: '🇨🇿',
-  GR: '🇬🇷', PL: '🇵🇱', DK: '🇩🇰', NO: '🇳🇴', CH: '🇨🇭',
-  AT: '🇦🇹', SCO: '🏴󠁧󠁢󠁳󠁣󠁴󠁿', SE: '🇸🇪', HR: '🇭🇷', HU: '🇭🇺',
-  RS: '🇷🇸', RO: '🇷🇴', UA: '🇺🇦', BG: '🇧🇬', SK: '🇸🇰',
-  FI: '🇫🇮', IS: '🇮🇸', IE: '🇮🇪', IL: '🇮🇱', CY: '🇨🇾',
-};
 
 const LEAGUE_REGIONS = [
   { label: 'Top 5 Leagues', ids: ['eng', 'esp', 'ita', 'ger', 'fra'] },
@@ -386,7 +378,7 @@ const ClubSelection = () => {
                 <GlassPanel className="p-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-xl leading-none">{COUNTRY_FLAGS[leagueInfo.countryCode] || ''}</span>
+                      <FlagIcon nationality={leagueInfo.country} size={24} className="rounded-sm" />
                       <div>
                         <h3 className="text-xs font-semibold text-foreground">{leagueInfo.country}</h3>
                         <p className="text-[10px] text-muted-foreground">{leagueInfo.totalWeeks} week season</p>
@@ -620,7 +612,6 @@ function DifficultyPips({ difficulty }: { difficulty: string }) {
 const LeagueCard = memo(function LeagueCard({ league, index, onSelect }: { league: typeof LEAGUES[number]; index: number; onSelect: (id: LeagueId) => void }) {
   const difficulty = DIFFICULTY_CONFIG[league.difficulty];
   const bars = DIFFICULTY_BARS[league.difficulty] || 1;
-  const flag = COUNTRY_FLAGS[league.countryCode] || '';
   const clubCount = LEAGUE_CLUB_COUNTS[league.id] || league.teamCount;
 
   return (
@@ -640,7 +631,7 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect }: { leagu
         )}
       >
         <div className="flex items-center gap-3">
-          <span className="text-2xl leading-none shrink-0" role="img" aria-label={`${league.country} flag`}>{flag}</span>
+          <FlagIcon nationality={league.country} size={28} className="rounded-sm" />
           <div className="flex-1 min-w-0">
             <h2 className="font-display font-bold text-sm text-foreground truncate">
               {league.name}
