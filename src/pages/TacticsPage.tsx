@@ -84,12 +84,20 @@ const TacticsPage = () => {
     const avg = (arr: number[]) => arr.length ? Math.round(arr.reduce((s, v) => s + v, 0) / arr.length) : 0;
     const subsPlayers = club.subs.map(id => players[id]).filter(Boolean);
     const subsAvg = subsPlayers.length ? Math.round(subsPlayers.reduce((s, p) => s + p.overall, 0) / subsPlayers.length) : 0;
+    const avgFitness = Math.round(lineupPlayers.reduce((s, p) => s + p.fitness, 0) / lineupPlayers.length);
+    const defVal = avg(defPlayers);
+    const midVal = avg(midPlayers);
+    const attVal = avg(attPlayers);
+    const units = [defVal, midVal, attVal].filter(v => v > 0);
+    const weakest = units.length > 1 ? Math.min(...units) : null;
     return {
       overall: Math.round(lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length),
-      def: avg(defPlayers),
-      mid: avg(midPlayers),
-      att: avg(attPlayers),
+      def: defVal,
+      mid: midVal,
+      att: attVal,
       subsAvg,
+      avgFitness,
+      weakest,
     };
   }, [lineupPlayers, club, players]);
 
@@ -218,31 +226,40 @@ const TacticsPage = () => {
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2">
-            <div className="text-center bg-muted/20 rounded-lg py-2">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <Shield className="w-3 h-3 text-sky-400" />
-                <span className="text-[10px] text-muted-foreground font-semibold">DEF</span>
+            {[
+              { label: 'DEF', value: teamRating.def, icon: <Shield className="w-3 h-3 text-sky-400" /> },
+              { label: 'MID', value: teamRating.mid, icon: <Swords className="w-3 h-3 text-amber-400" /> },
+              { label: 'ATT', value: teamRating.att, icon: <Target className="w-3 h-3 text-emerald-400" /> },
+            ].map(u => (
+              <div key={u.label} className={cn(
+                'text-center rounded-lg py-2',
+                teamRating.weakest !== null && u.value === teamRating.weakest
+                  ? 'bg-amber-500/10 border border-amber-500/20'
+                  : 'bg-muted/20'
+              )}>
+                <div className="flex items-center justify-center gap-1 mb-1">
+                  {u.icon}
+                  <span className="text-[10px] text-muted-foreground font-semibold">{u.label}</span>
+                </div>
+                <span className={cn('text-sm font-bold tabular-nums', getRatingColor(u.value))}>{u.value}</span>
               </div>
-              <span className={cn('text-sm font-bold tabular-nums', getRatingColor(teamRating.def))}>{teamRating.def}</span>
-            </div>
-            <div className="text-center bg-muted/20 rounded-lg py-2">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <Swords className="w-3 h-3 text-amber-400" />
-                <span className="text-[10px] text-muted-foreground font-semibold">MID</span>
-              </div>
-              <span className={cn('text-sm font-bold tabular-nums', getRatingColor(teamRating.mid))}>{teamRating.mid}</span>
-            </div>
-            <div className="text-center bg-muted/20 rounded-lg py-2">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <Target className="w-3 h-3 text-emerald-400" />
-                <span className="text-[10px] text-muted-foreground font-semibold">ATT</span>
-              </div>
-              <span className={cn('text-sm font-bold tabular-nums', getRatingColor(teamRating.att))}>{teamRating.att}</span>
-            </div>
+            ))}
           </div>
-          <div className="mt-2 text-center">
-            <span className="text-[10px] text-muted-foreground">Bench avg: </span>
-            <span className={cn('text-[10px] font-bold tabular-nums', getRatingColor(teamRating.subsAvg))}>{teamRating.subsAvg}</span>
+          <div className="mt-2 flex items-center justify-center gap-3 text-[10px]">
+            <span>
+              <span className="text-muted-foreground">Bench: </span>
+              <span className={cn('font-bold tabular-nums', getRatingColor(teamRating.subsAvg))}>{teamRating.subsAvg}</span>
+            </span>
+            <span className="text-muted-foreground/30">|</span>
+            <span>
+              <span className="text-muted-foreground">Fitness: </span>
+              <span className={cn(
+                'font-bold tabular-nums',
+                teamRating.avgFitness >= 80 ? 'text-emerald-400' :
+                teamRating.avgFitness >= 60 ? 'text-amber-400' :
+                'text-destructive'
+              )}>{teamRating.avgFitness}%</span>
+            </span>
           </div>
         </GlassPanel>
       )}

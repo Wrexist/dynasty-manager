@@ -4,7 +4,7 @@ import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
-import { Swords, AlertTriangle, Flame, Info, Shield, Zap, Target, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { Swords, AlertTriangle, Flame, Info, Shield, Zap, ArrowUp, ArrowDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses, getRatingColor } from '@/utils/uiHelpers';
 import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
@@ -49,11 +49,13 @@ const MatchPrep = () => {
   const oppPos = useLeaguePosition(oppClubId);
   const myPos = useLeaguePosition();
 
+  // Resolve opponent club data for the rating memo (avoids depending on entire clubs record)
+  const oppClubData = match ? (isHome ? clubs[match.awayClubId] : clubs[match.homeClubId]) : undefined;
+
   // Starting XI rating comparison (must be before early return to satisfy hooks rules)
   const ratingComparison = useMemo(() => {
-    if (!myClub || !match) return { myOvr: 0, oppOvr: 0, diff: 0, myUnits: { def: 0, mid: 0, att: 0 }, oppUnits: { def: 0, mid: 0, att: 0 } };
-    const oppClubData = isHome ? clubs[match.awayClubId] : clubs[match.homeClubId];
-    if (!oppClubData) return { myOvr: 0, oppOvr: 0, diff: 0, myUnits: { def: 0, mid: 0, att: 0 }, oppUnits: { def: 0, mid: 0, att: 0 } };
+    const empty = { def: 0, mid: 0, att: 0 };
+    if (!myClub || !oppClubData) return { myOvr: 0, oppOvr: 0, diff: 0, myUnits: empty, oppUnits: empty };
 
     const myLineup = myClub.lineup.map(id => players[id]).filter(Boolean);
     const oppLineup = oppClubData.lineup.map(id => players[id]).filter(Boolean);
@@ -83,7 +85,7 @@ const MatchPrep = () => {
     const oppUnits = unitAvg(oppLineup, oppClubData.formation);
 
     return { myOvr, oppOvr, diff: myOvr - oppOvr, myUnits, oppUnits };
-  }, [myClub, match, isHome, clubs, players]);
+  }, [myClub, oppClubData, players]);
 
   if (!match || !oppClub) {
     return (
@@ -173,7 +175,20 @@ const MatchPrep = () => {
                <Minus className="w-3 h-3" />}
               <span className="tabular-nums">{ratingComparison.diff > 0 ? '+' : ''}{ratingComparison.diff}</span>
             </div>
-            <p className="text-[9px] text-muted-foreground mt-1">Starting XI</p>
+            <p className={cn(
+              'text-[9px] font-semibold mt-1',
+              ratingComparison.diff >= 5 ? 'text-emerald-400' :
+              ratingComparison.diff >= 1 ? 'text-emerald-400/70' :
+              ratingComparison.diff <= -5 ? 'text-destructive' :
+              ratingComparison.diff <= -1 ? 'text-destructive/70' :
+              'text-muted-foreground'
+            )}>
+              {ratingComparison.diff >= 5 ? 'Favoured' :
+               ratingComparison.diff >= 1 ? 'Slight Edge' :
+               ratingComparison.diff <= -5 ? 'Underdog' :
+               ratingComparison.diff <= -1 ? 'Tough Test' :
+               'Even Match'}
+            </p>
           </div>
 
           {/* Opponent OVR */}
@@ -192,28 +207,38 @@ const MatchPrep = () => {
         {/* Unit comparison bars */}
         <div className="space-y-1.5">
           {[
-            { label: 'DEF', icon: <Shield className="w-3 h-3" />, my: ratingComparison.myUnits.def, opp: ratingComparison.oppUnits.def },
-            { label: 'MID', icon: <Swords className="w-3 h-3" />, my: ratingComparison.myUnits.mid, opp: ratingComparison.oppUnits.mid },
-            { label: 'ATT', icon: <Target className="w-3 h-3" />, my: ratingComparison.myUnits.att, opp: ratingComparison.oppUnits.att },
+            { label: 'DEF', my: ratingComparison.myUnits.def, opp: ratingComparison.oppUnits.def },
+            { label: 'MID', my: ratingComparison.myUnits.mid, opp: ratingComparison.oppUnits.mid },
+            { label: 'ATT', my: ratingComparison.myUnits.att, opp: ratingComparison.oppUnits.att },
           ].map(u => {
-            const total = (u.my + u.opp) || 1;
-            const myPct = (u.my / total) * 100;
+            // Scale bars relative to max possible (99) so the visual gap is meaningful
+            const scale = 99;
+            const myW = Math.max(5, (u.my / scale) * 100);
+            const oppW = Math.max(5, (u.opp / scale) * 100);
             return (
-              <div key={u.label} className="flex items-center gap-2 text-xs">
+              <div key={u.label} className="flex items-center gap-1.5 text-xs">
                 <span className={cn('w-7 text-right font-bold tabular-nums', getRatingColor(u.my))}>{u.my}</span>
-                <div className="flex-1 flex h-1.5 rounded-full overflow-hidden gap-0.5">
-                  <div className={cn('rounded-full transition-all', u.my >= u.opp ? 'bg-emerald-500' : 'bg-muted-foreground/40')} style={{ width: `${myPct}%` }} />
-                  <div className={cn('rounded-full transition-all', u.opp > u.my ? 'bg-emerald-500' : 'bg-muted-foreground/40')} style={{ width: `${100 - myPct}%` }} />
+                <div className="flex-1 flex items-center gap-1">
+                  {/* My bar — grows right */}
+                  <div className="flex-1 flex justify-end">
+                    <div
+                      className={cn('h-2 rounded-full transition-all', u.my >= u.opp ? 'bg-emerald-500' : 'bg-muted-foreground/30')}
+                      style={{ width: `${myW}%` }}
+                    />
+                  </div>
+                  <span className="text-[9px] text-muted-foreground font-semibold w-7 text-center shrink-0">{u.label}</span>
+                  {/* Opp bar — grows left */}
+                  <div className="flex-1 flex justify-start">
+                    <div
+                      className={cn('h-2 rounded-full transition-all', u.opp > u.my ? 'bg-emerald-500' : 'bg-muted-foreground/30')}
+                      style={{ width: `${oppW}%` }}
+                    />
+                  </div>
                 </div>
                 <span className={cn('w-7 font-bold tabular-nums', getRatingColor(u.opp))}>{u.opp}</span>
               </div>
             );
           })}
-          <div className="flex items-center justify-between text-[9px] text-muted-foreground pt-0.5">
-            <span>{myClub.shortName}</span>
-            <span className="uppercase tracking-wider">DEF · MID · ATT</span>
-            <span>{oppClub.shortName}</span>
-          </div>
         </div>
       </GlassPanel>
 
