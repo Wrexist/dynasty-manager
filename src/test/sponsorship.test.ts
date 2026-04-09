@@ -37,11 +37,15 @@ import type {
 
 // ── Factory Helpers ──
 
-function makeFacilities(overrides: Partial<FacilitiesState> = {}): FacilitiesState {
+function makeFacilities(overrides: Partial<FacilitiesState> & { stadiumLevel?: number } = {}): FacilitiesState {
+  const { stadiumLevel, ...rest } = overrides;
+  const sLvl = stadiumLevel ?? 1;
   return {
-    trainingLevel: 1, youthLevel: 1, stadiumLevel: 1, medicalLevel: 1, recoveryLevel: 1,
+    trainingLevel: 1, youthLevel: 1,
+    stadiumStands: { north: sLvl, south: sLvl, east: sLvl, west: sLvl },
+    medicalLevel: 1, recoveryLevel: 1,
     upgradeInProgress: null,
-    ...overrides,
+    ...rest,
   };
 }
 

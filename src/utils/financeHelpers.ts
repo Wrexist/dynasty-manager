@@ -17,6 +17,7 @@ import {
 import { hasPerk } from '@/utils/managerPerks';
 import { SPONSOR_SLOTS } from '@/config/sponsorship';
 import { calculateWeeklyMerchRevenue, getMerchOperatingCost } from '@/utils/merchandise';
+import { getEffectiveStadiumLevel } from '@/utils/facilities';
 
 import type { Club, LeagueTableEntry, FacilitiesState, ManagerProgression, SponsorDeal, MerchState, LeagueId, Player, StaffMember } from '@/types/game';
 
@@ -64,7 +65,7 @@ export function getFinanceBreakdown(opts: {
 
   const matchdayIncome = Math.round(club.fanBase * MATCHDAY_INCOME_PER_FAN * fanMoodMult);
   const commercialIncome = Math.round(COMMERCIAL_INCOME_BASE + club.reputation * COMMERCIAL_INCOME_PER_REP);
-  const stadiumIncome = Math.round(facilities.stadiumLevel * STADIUM_INCOME_PER_LEVEL * fanFavMult);
+  const stadiumIncome = Math.round(getEffectiveStadiumLevel(facilities) * STADIUM_INCOME_PER_LEVEL * fanFavMult);
 
   const playerTableIdx = leagueTable.findIndex(e => e.clubId === club.id);
   const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;

@@ -149,6 +149,10 @@ export const FACILITY_COST_PER_LEVEL = 5_000_000;
 export const FACILITY_BASE_UPGRADE_WEEKS = 2;
 export const FACILITY_MAX_LEVEL = 10;
 
+// ── Stadium Stand Upgrade ──
+export const STAND_COST_PER_LEVEL = 1_500_000;       // £1.5M per stand level
+export const STAND_BASE_UPGRADE_WEEKS = 1;            // 1 week base + stand level
+
 // ── Initial Facilities ──
 export const STADIUM_LEVEL_DIVISOR = 10;
 export const MEDICAL_LEVEL_FACTOR = 0.8;
@@ -253,6 +257,10 @@ export const PRESS_TRANSFER_RUMOUR_CHANCE = 0.3;
 export const PRESS_POOR_FORM_LOSSES = 3;
 export const PRESS_GOOD_FORM_WINS = 4;
 export const PRESS_BIG_MATCH_REP_GAP = 2;
+export const PRESS_PROMOTION_RACE_TOP_N = 3;       // top N positions to trigger promotion_race
+export const PRESS_RELEGATION_BATTLE_BOTTOM_N = 3;  // bottom N positions to trigger relegation_battle
+export const PRESS_INJURY_CRISIS_MIN = 3;            // minimum injured players to trigger injury_crisis
+export const PRESS_DERBY_PREVIEW_CHANCE = 0.6;       // chance of derby_preview context before derby
 
 // ── Injury Types & Severity ──
 import type { InjuryType, InjurySeverity } from '@/types/game';
@@ -558,6 +566,35 @@ export const BALLON_DOR_WEIGHTS = {
   teamPosition: 1.5,   // bonus for playing on a high-finishing team
   cleanSheets: 1.0,     // GK/defender bonus
 } as const;
+
+/** Milestone descriptions shown on facility cards at key levels */
+export const FACILITY_MILESTONES: Record<string, { level: number; label: string }[]> = {
+  training: [
+    { level: 3, label: 'Advanced drills unlocked' },
+    { level: 5, label: '+100% training effectiveness' },
+    { level: 7, label: 'Elite coaching methods' },
+    { level: 10, label: 'World-class facility' },
+  ],
+  youth: [
+    { level: 3, label: 'Better prospect intake' },
+    { level: 5, label: 'Academy sponsor slot' },
+    { level: 7, label: 'Elite development rate' },
+    { level: 10, label: 'World-class academy' },
+  ],
+  medical: [
+    { level: 3, label: 'Faster recovery times' },
+    { level: 5, label: 'Advanced injury prevention' },
+    { level: 7, label: 'Elite medical care' },
+    { level: 10, label: 'World-class medical' },
+  ],
+  recovery: [
+    { level: 3, label: '+3% weekly fitness' },
+    { level: 5, label: '+5% weekly fitness' },
+    { level: 7, label: 'Elite recovery protocols' },
+    { level: 10, label: 'World-class recovery' },
+  ],
+};
+
 /** Value multiplier for Ballon d'Or top-25 placements (rank → multiplier) */
 export const BALLON_DOR_VALUE_BOOST: Record<number, number> = {
   1: 0.30,   // Winner: +30% value
