@@ -1,9 +1,11 @@
 /**
- * Training Ground SVG visualization that evolves with facility level.
- * Shows 6 drill stations arranged around a central pitch area.
+ * Training Facility Header — interactive module overview with facility level indicator.
+ * Replaces the old SVG pitch visualization with a data-rich, tappable component.
  */
 import { cn } from '@/lib/utils';
 import { FACILITY_MAX_LEVEL } from '@/config/gameBalance';
+import { MODULE_ATTR_MAP } from '@/config/training';
+import { Dumbbell, Flame, Shield, Brain, Target, Zap } from 'lucide-react';
 import type { TrainingModule } from '@/types/game';
 
 interface TrainingGroundViewProps {
@@ -11,30 +13,30 @@ interface TrainingGroundViewProps {
   activeModule: TrainingModule | null;
   schedule: Record<string, TrainingModule>;
   clubColor: string;
+  onModuleSelect?: (module: TrainingModule) => void;
 }
 
-const MODULE_POSITIONS: Record<TrainingModule, { x: number; y: number; label: string }> = {
-  fitness: { x: 50, y: 30, label: 'Fitness' },
-  attacking: { x: 250, y: 30, label: 'Attack' },
-  defending: { x: 50, y: 170, label: 'Defence' },
-  mentality: { x: 250, y: 170, label: 'Mental' },
-  'set-pieces': { x: 50, y: 100, label: 'Set Pieces' },
-  tactical: { x: 250, y: 100, label: 'Tactical' },
+const MODULES: { module: TrainingModule; label: string; icon: React.ElementType }[] = [
+  { module: 'fitness', label: 'Fitness', icon: Dumbbell },
+  { module: 'attacking', label: 'Attack', icon: Flame },
+  { module: 'defending', label: 'Defence', icon: Shield },
+  { module: 'mentality', label: 'Mental', icon: Brain },
+  { module: 'set-pieces', label: 'Set Pieces', icon: Target },
+  { module: 'tactical', label: 'Tactical', icon: Zap },
+];
+
+const MODULE_STYLES: Record<TrainingModule, { bg: string; border: string; text: string; bar: string }> = {
+  fitness: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', text: 'text-emerald-400', bar: 'bg-emerald-500' },
+  attacking: { bg: 'bg-red-500/10', border: 'border-red-500/30', text: 'text-red-400', bar: 'bg-red-500' },
+  defending: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400', bar: 'bg-blue-500' },
+  mentality: { bg: 'bg-purple-500/10', border: 'border-purple-500/30', text: 'text-purple-400', bar: 'bg-purple-500' },
+  'set-pieces': { bg: 'bg-amber-500/10', border: 'border-amber-500/30', text: 'text-amber-400', bar: 'bg-amber-500' },
+  tactical: { bg: 'bg-primary/10', border: 'border-primary/30', text: 'text-primary', bar: 'bg-primary' },
 };
 
-const MODULE_COLORS: Record<TrainingModule, string> = {
-  fitness: '#22c55e',
-  attacking: '#ef4444',
-  defending: '#3b82f6',
-  mentality: '#a855f7',
-  'set-pieces': '#f59e0b',
-  tactical: '#06b6d4',
+const ATTR_LABELS: Record<string, string> = {
+  pace: 'PAC', shooting: 'SHO', passing: 'PAS', defending: 'DEF', physical: 'PHY', mental: 'MEN',
 };
-
-function getStationOpacity(level: number): number {
-  if (level <= 0) return 0.15;
-  return 0.25 + (level / FACILITY_MAX_LEVEL) * 0.75;
-}
 
 function getTierLabel(level: number): string {
   if (level >= 10) return 'Elite';
@@ -44,98 +46,92 @@ function getTierLabel(level: number): string {
   return 'None';
 }
 
-export function TrainingGroundView({ trainingLevel, activeModule, schedule, clubColor }: TrainingGroundViewProps) {
-  const opacity = getStationOpacity(trainingLevel);
-  const showAdvanced = trainingLevel >= 4;
-  const showElite = trainingLevel >= 7;
-  const todayModules = new Set(Object.values(schedule));
+function getTierColor(level: number): string {
+  if (level >= 10) return 'text-yellow-400';
+  if (level >= 7) return 'text-primary';
+  if (level >= 4) return 'text-foreground';
+  return 'text-muted-foreground';
+}
+
+function getBarColor(level: number): string {
+  if (level >= 10) return 'bg-yellow-400';
+  if (level >= 7) return 'bg-primary';
+  if (level >= 4) return 'bg-foreground/60';
+  return 'bg-muted-foreground/50';
+}
+
+export function TrainingGroundView({ trainingLevel, activeModule, schedule, onModuleSelect }: TrainingGroundViewProps) {
+  const dayCount = (mod: TrainingModule) => Object.values(schedule).filter(m => m === mod).length;
 
   return (
-    <div className="relative w-full aspect-[16/9]">
-      <svg viewBox="0 0 320 200" className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-        {/* Ground base */}
-        <rect x="0" y="0" width="320" height="200" rx="8" fill="hsl(222 30% 10%)" />
+    <div className="space-y-3">
+      {/* Facility Level */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="text-xs font-semibold text-foreground">Training Ground</h3>
+          <span className={cn('text-[10px] font-bold', getTierColor(trainingLevel))}>
+            Lv.{trainingLevel} {getTierLabel(trainingLevel)}
+          </span>
+        </div>
+      </div>
 
-        {/* Central pitch area */}
-        <rect x="110" y="40" width="100" height="120" rx="4" fill="hsl(142 40% 14%)" stroke="hsl(142 40% 25%)" strokeWidth="0.8" />
-        {/* Center circle */}
-        <circle cx="160" cy="100" r="16" fill="none" stroke="hsl(142 40% 25%)" strokeWidth="0.5" />
-        {/* Center dot */}
-        <circle cx="160" cy="100" r="2" fill="hsl(142 40% 25%)" />
+      {/* Level Progress Bar */}
+      <div className="flex gap-0.5">
+        {Array.from({ length: FACILITY_MAX_LEVEL }).map((_, i) => (
+          <div
+            key={i}
+            className={cn(
+              'h-1.5 flex-1 rounded-full transition-all',
+              i < trainingLevel ? getBarColor(trainingLevel) : 'bg-muted/30'
+            )}
+          />
+        ))}
+      </div>
 
-        {/* Training stations */}
-        {(Object.entries(MODULE_POSITIONS) as [TrainingModule, typeof MODULE_POSITIONS[TrainingModule]][]).map(([module, pos]) => {
+      {/* Module Tiles — 3x2 grid */}
+      <div className="grid grid-cols-3 gap-2">
+        {MODULES.map(({ module, label, icon: Icon }) => {
           const isActive = activeModule === module;
-          const isScheduled = todayModules.has(module);
-          const color = MODULE_COLORS[module];
+          const days = dayCount(module);
+          const styles = MODULE_STYLES[module];
+          const attrs = MODULE_ATTR_MAP[module] || [];
 
           return (
-            <g key={module}>
-              {/* Station base */}
-              <rect
-                x={pos.x} y={pos.y} width={60} height={28} rx={4}
-                fill={color}
-                opacity={isActive ? 0.9 : isScheduled ? 0.5 : opacity * 0.5}
-                stroke={isActive ? 'hsl(43, 96%, 46%)' : 'hsl(222, 15%, 25%)'}
-                strokeWidth={isActive ? 1.5 : 0.5}
-              />
-              {/* Station label */}
-              <text
-                x={pos.x + 30} y={pos.y + 12}
-                textAnchor="middle"
-                dominantBaseline="central"
-                className={cn(
-                  'text-[7px] font-semibold fill-current pointer-events-none select-none',
-                  isActive ? 'text-white' : 'text-foreground/80'
-                )}
-              >
-                {pos.label}
-              </text>
-              {/* Equipment indicators (visible at higher levels) */}
-              {showAdvanced && (
-                <rect
-                  x={pos.x + 4} y={pos.y + 18}
-                  width={52} height={6} rx={2}
-                  fill={color} opacity={0.3}
-                />
+            <button
+              key={module}
+              type="button"
+              onClick={() => onModuleSelect?.(module)}
+              className={cn(
+                'flex flex-col items-center gap-1 py-2.5 px-1 rounded-xl border transition-all',
+                isActive
+                  ? cn(styles.bg, styles.border)
+                  : 'bg-muted/15 border-transparent hover:bg-muted/30'
               )}
-              {showElite && (
-                <>
-                  <circle cx={pos.x + 10} cy={pos.y + 21} r={2} fill="white" opacity={0.4} />
-                  <circle cx={pos.x + 50} cy={pos.y + 21} r={2} fill="white" opacity={0.4} />
-                </>
-              )}
-              {/* Active pulse indicator */}
-              {isScheduled && (
-                <circle
-                  cx={pos.x + 55} cy={pos.y + 5}
-                  r={3}
-                  fill={color}
-                  className="animate-pulse"
-                />
-              )}
-            </g>
+            >
+              <Icon className={cn('w-4 h-4', isActive ? styles.text : 'text-muted-foreground')} />
+              <span className={cn('text-[11px] font-semibold leading-tight', isActive ? styles.text : 'text-muted-foreground')}>
+                {label}
+              </span>
+              {/* Days scheduled dots */}
+              <div className="flex gap-0.5">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      'w-1 h-1 rounded-full transition-all',
+                      i < days ? styles.bar : 'bg-muted/30'
+                    )}
+                  />
+                ))}
+              </div>
+              {/* Attribute tags */}
+              <span className="text-[8px] text-muted-foreground/70 leading-tight">
+                {attrs.map(a => ATTR_LABELS[a] || a).join(' / ')}
+              </span>
+            </button>
           );
         })}
-
-        {/* Facility level indicator */}
-        <text x="160" y="15" textAnchor="middle" className="text-[8px] font-semibold fill-current text-muted-foreground select-none">
-          Training Ground — Lv.{trainingLevel} {getTierLabel(trainingLevel)}
-        </text>
-
-        {/* Connectors from stations to pitch (visible at level 7+) */}
-        {showElite && (
-          <>
-            <line x1="110" y1="44" x2="110" y2="44" stroke={clubColor} strokeWidth="0.5" opacity={0.3} />
-          </>
-        )}
-
-        {/* Track/running path around pitch (visible at level 4+) */}
-        {showAdvanced && (
-          <rect x="105" y="35" width="110" height="130" rx="6"
-            fill="none" stroke="hsl(43, 96%, 46%)" strokeWidth="0.3" strokeDasharray="3 2" opacity={0.25} />
-        )}
-      </svg>
+      </div>
     </div>
   );
 }
