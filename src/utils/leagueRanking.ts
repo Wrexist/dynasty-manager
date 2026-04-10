@@ -129,20 +129,22 @@ export function getQualificationZones(
   const shieldCup: number[] = [];
   const conferenceCup: number[] = [];
 
+  // Don't let qualification zones extend into the replaced zone
+  const safeMax = teamCount - (league.replacedSlots || 0);
   let pos = 1;
 
   // Champions Cup positions (top of table)
-  for (let i = 0; i < clSpots && pos <= teamCount; i++) {
+  for (let i = 0; i < clSpots && pos <= safeMax; i++) {
     championsCup.push(pos++);
   }
 
   // Shield Cup positions (next after CL)
-  for (let i = 0; i < slSpots && pos <= teamCount; i++) {
+  for (let i = 0; i < slSpots && pos <= safeMax; i++) {
     shieldCup.push(pos++);
   }
 
   // Conference Cup positions (next after Shield)
-  for (let i = 0; i < ccSpots && pos <= teamCount; i++) {
+  for (let i = 0; i < ccSpots && pos <= safeMax; i++) {
     conferenceCup.push(pos++);
   }
 
