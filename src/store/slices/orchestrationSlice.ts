@@ -97,7 +97,7 @@ import {
 } from '@/config/transfers';
 import { getPerformanceMultiplier, getContractLengthFactor } from '@/utils/transferOffers';
 import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
-import { PENALTY_CONVERSION_RATE, SHOUT_MODIFIERS, SHOUT_CUMULATIVE_SCALE } from '@/config/matchEngine';
+import { PENALTY_CONVERSION_RATE, SHOUT_MODIFIERS, SHOUT_CUMULATIVE_SCALE, GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { calculatePlayerValue } from '@/config/playerGeneration';
 import {
   VERDICT_EXCELLENT_OFFSET, VERDICT_ACCEPTABLE_OFFSET, BOARD_SACKING_THRESHOLD,
@@ -188,11 +188,12 @@ function applyAIMatchEvents(
   const playerGoalCounts: Record<string, number> = {};
   const playerAssistCounts: Record<string, number> = {};
   for (const ev of events) {
-    if (ev.type === 'goal' && ev.playerId && newPlayers[ev.playerId]) {
+    const isGoalEv = (GOAL_EVENT_TYPES as readonly string[]).includes(ev.type);
+    if (isGoalEv && ev.playerId && newPlayers[ev.playerId]) {
       newPlayers[ev.playerId] = { ...newPlayers[ev.playerId], goals: newPlayers[ev.playerId].goals + 1 };
       playerGoalCounts[ev.playerId] = (playerGoalCounts[ev.playerId] || 0) + 1;
     }
-    if (ev.type === 'goal' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
+    if (isGoalEv && ev.type !== 'penalty_scored' && ev.assistPlayerId && newPlayers[ev.assistPlayerId]) {
       newPlayers[ev.assistPlayerId] = { ...newPlayers[ev.assistPlayerId], assists: newPlayers[ev.assistPlayerId].assists + 1 };
       playerAssistCounts[ev.assistPlayerId] = (playerAssistCounts[ev.assistPlayerId] || 0) + 1;
     }
