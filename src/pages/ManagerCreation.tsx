@@ -409,7 +409,7 @@ const ManagerCreation = () => {
 
             {/* Step: Traits */}
             {step === 'traits' && (
-              <div className="space-y-4">
+              <div className="space-y-4 pb-20">
                 <div className="flex items-center gap-3 mb-2">
                   <Sparkles className="w-5 h-5 text-primary" />
                   <div>
@@ -443,13 +443,12 @@ const ManagerCreation = () => {
                     ))}
                   </div>
                 </div>
-                {actionButton}
               </div>
             )}
 
             {/* Step: Starting Offers */}
             {step === 'offers' && (
-              <div className="space-y-4">
+              <div className="space-y-4 pb-20">
                 <div className="flex items-center gap-3 mb-2">
                   <Briefcase className="w-5 h-5 text-primary" />
                   <div>
@@ -721,7 +720,6 @@ const ManagerCreation = () => {
                     );
                   })
                 )}
-                {actionButton}
               </div>
             )}
           </motion.div>
@@ -736,6 +734,35 @@ const ManagerCreation = () => {
             onClick={handleNext}
           >
             Continue <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Floating continue button for traits step */}
+      {step === 'traits' && selectedTraits.length === TRAITS_TO_PICK && (
+        <div className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-6">
+          <Button
+            className="w-full h-12 text-base font-bold gap-2"
+            onClick={handleNext}
+          >
+            Continue <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Floating begin career button for offers step */}
+      {step === 'offers' && selectedOffer && (
+        <div className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-6">
+          <Button
+            className="w-full h-12 text-base font-bold gap-2"
+            disabled={loading}
+            onClick={handleStart}
+          >
+            {loading ? (
+              <><Loader2 className="w-4 h-4 animate-spin" /> Starting Career...</>
+            ) : (
+              <><Briefcase className="w-4 h-4" /> Begin Career</>
+            )}
           </Button>
         </div>
       )}
