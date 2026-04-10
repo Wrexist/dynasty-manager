@@ -200,7 +200,7 @@ const GameShell = () => {
     if (!MAIN_TABS.includes(currentScreen) && MAIN_TABS.includes(prev)) return 1;
     return 0;
   })();
-  useEffect(() => { prevScreenRef.current = currentScreen; }, [currentScreen]);
+  useEffect(() => { prevScreenRef.current = currentScreen; window.scrollTo(0, 0); }, [currentScreen]);
 
   return (
     <ErrorBoundary>

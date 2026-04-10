@@ -71,7 +71,7 @@ const TransferPage = () => {
 
   // Persistent filters (survive navigation)
   const { tab, posFilter, searchQuery, sortBy, faSortBy, divFilter, newsTypeFilter, hideUnaffordable, showShortlistOnly } = transferFilters;
-  const setTab = (v: typeof tab) => setTransferFilter({ tab: v });
+  const setTab = (v: typeof tab) => setTransferFilter({ tab: v, searchQuery: '' });
   const setPosFilter = (v: number) => setTransferFilter({ posFilter: v });
   const setSearchQuery = (v: string) => setTransferFilter({ searchQuery: v });
   const setSortBy = (v: typeof sortBy) => setTransferFilter({ sortBy: v });
