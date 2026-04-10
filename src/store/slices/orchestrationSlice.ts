@@ -4397,7 +4397,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         clubs: aiResult.clubs,
         players: aiResult.players,
         messages: aiResult.messages,
-        transferMarket: [...aiResult.transferMarket, ...deadlineBargains],
+        transferMarket: [...aiResult.transferMarket, ...deadlineBargains.filter(b => aiResult.players[b.playerId]?.clubId === b.sellerClubId)],
         freeAgents: aiResult.freeAgents,
         activeLoans: aiResult.activeLoans,
         transferNews: aiResult.transferNews,
