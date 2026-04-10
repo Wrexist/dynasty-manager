@@ -2303,7 +2303,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       transferMarket, shortlist: [], scoutWatchList: [], freeAgents: initialFreeAgentIds, transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
       messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null,
-      settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, hidePageHints: false, confirmAllOffers: false, reducedMotion: false },
+      settings: { matchSpeed: 600, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, hidePageHints: false, confirmAllOffers: false, reducedMotion: false },
       tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
       training: {
         schedule: { mon: 'fitness', tue: 'attacking', wed: 'defending', thu: 'mentality', fri: 'tactical' },
@@ -5664,7 +5664,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         activeSlot: s,
         // Backfill settings with defaults for fields added after save was created
         settings: {
-          matchSpeed: 'normal', showOverallOnPitch: true, autoSave: true, hapticsEnabled: true,
+          matchSpeed: 600, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true,
           hidePageHints: false, confirmAllOffers: false, reducedMotion: false,
           ...(data.settings || {}),
         },

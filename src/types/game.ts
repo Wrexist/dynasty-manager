@@ -616,7 +616,7 @@ export const POSITION_COMPATIBILITY: Record<Position, Position[]> = {
 
 // ── Settings ──
 export interface GameSettings {
-  matchSpeed: 'normal' | 'fast' | 'instant';
+  matchSpeed: number;
   showOverallOnPitch: boolean;
   autoSave: boolean;
   hapticsEnabled: boolean;

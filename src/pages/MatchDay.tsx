@@ -113,6 +113,8 @@ const MatchDay = () => {
   const activateShout = useGameStore(s => s.useShout);
   const matchShouts = useGameStore(s => s.matchShouts);
   const players = useGameStore(s => s.players);
+  const settings = useGameStore(s => s.settings);
+  const updateSettings = useGameStore(s => s.updateSettings);
 
   const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'extra_time_break' | 'extra_time' | 'penalties' | 'post'>('pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
@@ -120,7 +122,7 @@ const MatchDay = () => {
   const [currentMin, setCurrentMin] = useState(0);
   const currentMinRef = useRef(0);
   const [visibleEvents, setVisibleEvents] = useState<MatchEvent[]>([]);
-  const [speed, setSpeed] = useState(DEFAULT_MATCH_SPEED);
+  const [speed, setSpeed] = useState(settings.matchSpeed || DEFAULT_MATCH_SPEED);
   const [paused, setPaused] = useState(false);
   const [subSheetOpen, setSubSheetOpen] = useState(false);
   // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
@@ -405,6 +407,12 @@ const MatchDay = () => {
     }, speed);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [phase, allEvents, speed, keyMoment, paused]);
+
+  // Persist speed preference to settings so it carries across matches
+  useEffect(() => {
+    if (speed !== settings.matchSpeed) updateSettings({ matchSpeed: speed });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speed]);
 
   // Haptic feedback + goal flash for goals and final whistle
   const prevGoalCountRef = useRef(0);
@@ -983,6 +991,30 @@ const MatchDay = () => {
             </GlassPanel>
           )}
 
+          {/* Match Speed at half-time */}
+          <GlassPanel className="p-3">
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground mr-1">Speed:</span>
+              <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
+                {MATCH_SPEEDS.map(s => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => setSpeed(s.value)}
+                    className={cn(
+                      'px-2 py-1 rounded-md text-[10px] font-medium transition-all',
+                      speed === s.value
+                        ? 'bg-primary/20 text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </GlassPanel>
+
           <div className="h-16" /> {/* spacer for sticky button */}
           <div className="fixed left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
             <div className="max-w-lg mx-auto">
@@ -1078,6 +1110,30 @@ const MatchDay = () => {
           <GlassPanel className="p-4 space-y-3">
             <FormationPicker />
             <TacticalPanel variant="full" tactics={tactics} setTactics={setTactics} />
+          </GlassPanel>
+
+          {/* Match Speed before extra time */}
+          <GlassPanel className="p-3">
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground mr-1">Speed:</span>
+              <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
+                {MATCH_SPEEDS.map(s => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => setSpeed(s.value)}
+                    className={cn(
+                      'px-2 py-1 rounded-md text-[10px] font-medium transition-all',
+                      speed === s.value
+                        ? 'bg-primary/20 text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </GlassPanel>
 
           <div className="h-16" /> {/* spacer for sticky button */}

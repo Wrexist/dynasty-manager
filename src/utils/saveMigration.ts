@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 51;
+const CURRENT_VERSION = 52;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -690,6 +690,19 @@ const migrations: Record<number, MigrationFn> = {
     negotiationStrikes: {},
     version: 51,
   }),
+
+  // v51 → v52: Convert settings.matchSpeed from string ('normal'|'fast'|'instant') to number (ms)
+  51: (data) => {
+    const settings = (data.settings || {}) as Record<string, unknown>;
+    const speedMap: Record<string, number> = { normal: 600, fast: 200, instant: 20 };
+    const currentSpeed = settings.matchSpeed;
+    const numericSpeed = typeof currentSpeed === 'string' ? (speedMap[currentSpeed] ?? 600) : (currentSpeed ?? 600);
+    return {
+      ...data,
+      settings: { ...settings, matchSpeed: numericSpeed },
+      version: 52,
+    };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
