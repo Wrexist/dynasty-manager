@@ -490,8 +490,8 @@ export function simulateHalf(
       awayBench: prevState?.awayBench ? [...prevState.awayBench] : [...(awayBench || [])],
       homeSubbedIn: prevState?.homeSubbedIn ? [...prevState.homeSubbedIn] : [],
       awaySubbedIn: prevState?.awaySubbedIn ? [...prevState.awaySubbedIn] : [],
-      playerFitness: prevState?.playerFitness ?? {},
-      tacticalInsights: prevState?.tacticalInsights ?? [],
+      playerFitness: { ...(prevState?.playerFitness ?? {}) },
+      tacticalInsights: [...(prevState?.tacticalInsights ?? [])],
     };
   }
 

@@ -5350,8 +5350,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       penaltyShootout,
     };
 
-    // Finalize with extra events
-    const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState || { events: [], homeGoals: 0, awayGoals: 0, homeShots: 0, awayShots: 0, homeSoT: 0, awaySoT: 0, homeFouls: 0, awayFouls: 0, homeCorners: 0, awayCorners: 0, sentOff: [], injured: [], playerEvents: {}, momentum: 0, homeXG: 0, awayXG: 0, matchInjuries: {}, homeSubsUsed: 0, awaySubsUsed: 0, homeBench: [], awayBench: [], homeSubbedIn: [], awaySubbedIn: [], playerFitness: {}, tacticalInsights: [] });
+    // Finalize with extra events — halfTimeState must exist by this point
+    if (!halfTimeState) {
+      console.error('[Penalties] halfTimeState missing — aborting finalization to prevent data corruption');
+      set({ matchPhase: 'none', penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0 });
+      return;
+    }
+    const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState);
 
     const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {});
     const penDrama = detectMatchDrama(result, playerClubId, clubs);
@@ -5638,6 +5643,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       set({
         gameStarted: true, ...data, leagueTable,
         activeSlot: s,
+        // Backfill settings with defaults for fields added after save was created
+        settings: {
+          matchSpeed: 'normal', showOverallOnPitch: true, autoSave: true, hapticsEnabled: true,
+          hidePageHints: false, confirmAllOffers: false, reducedMotion: false,
+          ...(data.settings || {}),
+        },
         currentScreen: 'dashboard', previousScreen: null,
         currentMatchResult: null, selectedPlayerId: null,
         transferWindowOpen: data.week <= SUMMER_WINDOW_END || (data.week >= WINTER_WINDOW_START && data.week <= WINTER_WINDOW_END),
