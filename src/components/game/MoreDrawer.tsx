@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -11,6 +11,8 @@ import {
 import { hapticLight } from '@/utils/haptics';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PINNED_DRAWER_SCREENS, DRAWER_PROGRESSIVE_SCREENS } from '@/config/navigation';
+import { NEW_PLAYER_DRAWER_WEEK_THRESHOLD } from '@/config/ui';
+import { getSuffix } from '@/utils/helpers';
 
 interface DrawerItem {
   screen: GameScreen;
@@ -77,41 +79,61 @@ const ALL_ITEMS: DrawerItem[] = drawerSections.flatMap(s => s.items);
 const PINNED_ITEMS = PINNED_DRAWER_SCREENS.map(screen => ALL_ITEMS.find(i => i.screen === screen)).filter(Boolean) as DrawerItem[];
 const PINNED_SET = new Set(PINNED_DRAWER_SCREENS);
 
-// New players: collapse Management & Career until they've had a few weeks
-const NEW_PLAYER_WEEK_THRESHOLD = 4;
+// Sections that collapse by default for new players
+const NEW_PLAYER_COLLAPSED_SECTIONS = new Set(['Management', 'Career']);
 
 export function MoreDrawer() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const { messages, currentScreen, cup, gameMode, nationalTeamOffer, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, internationalTournament, nationalTeam, season, week } = useGameStore(useShallow(s => ({
-    messages: s.messages, currentScreen: s.currentScreen, cup: s.cup, gameMode: s.gameMode,
-    nationalTeamOffer: s.nationalTeamOffer,
+  const {
+    messages, currentScreen, cup, leagueCup, gameMode, nationalTeamOffer,
+    championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup,
+    internationalTournament, nationalTeam, season, week,
+    fixtures, playerClubId, leagueTable,
+  } = useGameStore(useShallow(s => ({
+    messages: s.messages, currentScreen: s.currentScreen, cup: s.cup, leagueCup: s.leagueCup,
+    gameMode: s.gameMode, nationalTeamOffer: s.nationalTeamOffer,
     championsCup: s.championsCup, shieldCup: s.shieldCup, conferenceCup: s.conferenceCup,
     domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
     internationalTournament: s.internationalTournament, nationalTeam: s.nationalTeam,
     season: s.season, week: s.week,
+    fixtures: s.fixtures, playerClubId: s.playerClubId, leagueTable: s.leagueTable,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const unread = messages.filter(m => !m.read).length;
   const hasPendingCupMatch = cup?.ties?.some(t => !t.played && (t.homeClubId || t.awayClubId));
+  const hasPendingLeagueCupMatch = leagueCup?.ties?.some(t => !t.played && (t.homeClubId || t.awayClubId));
 
-  const isNewPlayer = season === 1 && week <= NEW_PLAYER_WEEK_THRESHOLD;
+  // Contextual data for pinned items
+  const hasMatchThisWeek = useMemo(() =>
+    fixtures.some(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)),
+    [fixtures, week, playerClubId]
+  );
+  const leaguePosition = useMemo(() => {
+    const entry = leagueTable.find(e => e.clubId === playerClubId);
+    return entry ? leagueTable.indexOf(entry) + 1 : null;
+  }, [leagueTable, playerClubId]);
+
+  const isNewPlayer = season === 1 && week <= NEW_PLAYER_DRAWER_WEEK_THRESHOLD;
 
   // Section collapse state — smart defaults for new players
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
 
-  // Compute effective collapsed state: use explicit toggle if set, otherwise smart default
-  const isSectionCollapsed = (title: string) => {
-    if (collapsed[title] !== undefined) return collapsed[title];
-    // Smart defaults: collapse Management & Career for brand new players
-    if (isNewPlayer && (title === 'Management' || title === 'Career')) return true;
-    return false;
-  };
-
-  const toggleSection = (title: string) => {
+  const toggleSection = useCallback((title: string) => {
     hapticLight();
-    setCollapsed(prev => ({ ...prev, [title]: !isSectionCollapsed(title) }));
-  };
+    setCollapsed(prev => {
+      const currentlyCollapsed = prev[title] !== undefined
+        ? prev[title]
+        : (isNewPlayer && NEW_PLAYER_COLLAPSED_SECTIONS.has(title));
+      return { ...prev, [title]: !currentlyCollapsed };
+    });
+  }, [isNewPlayer]);
+
+  // Compute effective collapsed state: use explicit toggle if set, otherwise smart default
+  const isSectionCollapsed = useCallback((title: string) => {
+    if (collapsed[title] !== undefined) return collapsed[title];
+    return isNewPlayer && NEW_PLAYER_COLLAPSED_SECTIONS.has(title);
+  }, [collapsed, isNewPlayer]);
 
   // Hide competition screens when the player isn't participating
   const hiddenScreens = useMemo(() => {
@@ -124,33 +146,14 @@ export function MoreDrawer() {
     return hidden;
   }, [championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, internationalTournament, nationalTeam]);
 
-  const handleNav = (screen: GameScreen) => {
+  const handleNav = useCallback((screen: GameScreen) => {
     hapticLight();
     setScreen(screen);
     setOpen(false);
-  };
+  }, [setScreen]);
 
   const isSearching = search.trim().length > 0;
   const searchLower = search.toLowerCase();
-
-  // Render badge for a given screen
-  const renderBadge = (screen: GameScreen) => (
-    <>
-      {screen === 'inbox' && unread > 0 && (
-        <span className="text-[10px] bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full font-bold">
-          {unread}
-        </span>
-      )}
-      {screen === 'cup' && hasPendingCupMatch && (
-        <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
-          LIVE
-        </span>
-      )}
-      {screen === 'national-team' && nationalTeamOffer?.status === 'pending' && (
-        <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse shrink-0" />
-      )}
-    </>
-  );
 
   return (
     <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch(''); }}>
@@ -185,7 +188,7 @@ export function MoreDrawer() {
                 key={screen}
                 onClick={() => handleNav(screen)}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-xl active:scale-[0.96] transition-all",
+                  "flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-xl active:scale-[0.96] transition-all min-h-[56px] justify-center",
                   currentScreen === screen
                     ? "bg-primary/10 border border-primary/30"
                     : "bg-muted/30 hover:bg-muted/50"
@@ -200,6 +203,13 @@ export function MoreDrawer() {
                   )}
                 </div>
                 <span className="text-[11px] font-medium text-foreground">{label}</span>
+                {/* Contextual hints on pinned items */}
+                {screen === 'calendar' && hasMatchThisWeek && (
+                  <span className="text-[9px] text-emerald-400 font-semibold -mt-1">Match Day</span>
+                )}
+                {screen === 'league-table' && leaguePosition && (
+                  <span className="text-[9px] text-muted-foreground -mt-1">{leaguePosition}{getSuffix(leaguePosition)}</span>
+                )}
               </button>
             ))}
           </div>
@@ -212,7 +222,7 @@ export function MoreDrawer() {
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search screens..."
+            placeholder="Search all features..."
             className="w-full pl-8 pr-3 py-2 rounded-lg bg-muted/30 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
           />
         </div>
@@ -238,7 +248,18 @@ export function MoreDrawer() {
                     {section.title}
                   </p>
                   <div className="space-y-0.5">
-                    {items.map(item => renderListItem(item, currentScreen, handleNav, renderBadge))}
+                    {items.map(item => (
+                      <DrawerListItem
+                        key={item.screen}
+                        item={item}
+                        currentScreen={currentScreen}
+                        onNav={handleNav}
+                        unread={unread}
+                        hasPendingCupMatch={hasPendingCupMatch}
+                        hasPendingLeagueCupMatch={hasPendingLeagueCupMatch}
+                        nationalTeamOffer={nationalTeamOffer}
+                      />
+                    ))}
                   </div>
                 </div>
               );
@@ -261,7 +282,7 @@ export function MoreDrawer() {
               <div key={section.title}>
                 <button
                   onClick={() => toggleSection(section.title)}
-                  className="flex items-center gap-1.5 w-full px-3 mb-1 group"
+                  className="flex items-center gap-1.5 w-full px-3 py-2 -my-1 rounded-lg active:bg-muted/30 transition-colors"
                 >
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
                     {section.title}
@@ -270,13 +291,25 @@ export function MoreDrawer() {
                     {visibleItems.length}
                   </span>
                   <ChevronDown className={cn(
-                    "w-3 h-3 text-muted-foreground/50 transition-transform ml-auto",
+                    "w-3 h-3 text-muted-foreground/50 transition-transform duration-200 ml-auto",
                     sectionCollapsed && "-rotate-90"
                   )} />
                 </button>
                 <AnimatePresence initial={false}>
-                  {!sectionCollapsed && (
+                  {sectionCollapsed ? (
+                    <motion.p
+                      key="peek"
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="text-[10px] text-muted-foreground/40 px-3 pb-1 truncate overflow-hidden"
+                    >
+                      {visibleItems.map(i => i.label).join(' \u00b7 ')}
+                    </motion.p>
+                  ) : (
                     <motion.div
+                      key="list"
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
@@ -284,7 +317,18 @@ export function MoreDrawer() {
                       className="overflow-hidden"
                     >
                       <div className="space-y-0.5">
-                        {visibleItems.map(item => renderListItem(item, currentScreen, handleNav, renderBadge))}
+                        {visibleItems.map(item => (
+                          <DrawerListItem
+                            key={item.screen}
+                            item={item}
+                            currentScreen={currentScreen}
+                            onNav={handleNav}
+                            unread={unread}
+                            hasPendingCupMatch={hasPendingCupMatch}
+                            hasPendingLeagueCupMatch={hasPendingLeagueCupMatch}
+                            nationalTeamOffer={nationalTeamOffer}
+                          />
+                        ))}
                       </div>
                     </motion.div>
                   )}
@@ -298,16 +342,20 @@ export function MoreDrawer() {
   );
 }
 
-function renderListItem(
-  { screen, label, icon: Icon, description }: DrawerItem,
-  currentScreen: GameScreen,
-  handleNav: (screen: GameScreen) => void,
-  renderBadge: (screen: GameScreen) => React.ReactNode,
-) {
+// Extracted as a proper component for clean key handling and potential memoization
+function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch, hasPendingLeagueCupMatch, nationalTeamOffer }: {
+  item: DrawerItem;
+  currentScreen: GameScreen;
+  onNav: (screen: GameScreen) => void;
+  unread: number;
+  hasPendingCupMatch: boolean | undefined;
+  hasPendingLeagueCupMatch: boolean | undefined;
+  nationalTeamOffer: { status: string } | null | undefined;
+}) {
+  const { screen, label, icon: Icon, description } = item;
   return (
     <button
-      key={screen}
-      onClick={() => handleNav(screen)}
+      onClick={() => onNav(screen)}
       className={cn(
         "flex items-center gap-3 w-full p-3 rounded-xl active:scale-[0.98] transition-all",
         currentScreen === screen
@@ -321,7 +369,24 @@ function renderListItem(
       <div className="flex-1 text-left min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{label}</p>
-          {renderBadge(screen)}
+          {screen === 'inbox' && unread > 0 && (
+            <span className="text-[10px] bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full font-bold">
+              {unread}
+            </span>
+          )}
+          {screen === 'cup' && hasPendingCupMatch && (
+            <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
+              LIVE
+            </span>
+          )}
+          {screen === 'league-cup' && hasPendingLeagueCupMatch && (
+            <span className="text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full font-bold">
+              LIVE
+            </span>
+          )}
+          {screen === 'national-team' && nationalTeamOffer?.status === 'pending' && (
+            <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse shrink-0" />
+          )}
         </div>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
