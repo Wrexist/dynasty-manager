@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateWageDemand, getPlayerWillingness, negotiateRound, formatWage, createContractOffer, getPreferredYears } from '@/utils/contracts';
+import { calculateWageDemand, getPlayerWillingness, negotiateRound, formatWage, createContractOffer, getPreferredYears, getYearsAdjustment, getAcceptanceHint } from '@/utils/contracts';
 import { generatePlayer } from '@/utils/playerGen';
 
 function makePlayer(overrides: Record<string, unknown> = {}) {
@@ -97,7 +97,7 @@ describe('contracts', () => {
     });
 
     it('should accept easier when offering more years than preferred', () => {
-      // Player aged 25 prefers 3 years. Offering 5 gives a +8% bonus.
+      // Player aged 25 prefers 3 years. Offering 5 gives a +10% bonus.
       const shortYears = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 46000, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 2, playerAge: 25, round: 1, status: 'in_progress' as const, playerMood: 70 };
       const longYears = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 46000, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 5, playerAge: 25, round: 1, status: 'in_progress' as const, playerMood: 70 };
       const shortResult = negotiateRound(shortYears);
@@ -112,9 +112,9 @@ describe('contracts', () => {
     });
 
     it('should penalize acceptance when offering fewer years than preferred', () => {
-      // Player aged 20 prefers 4 years. Offering 1 gives a -18% penalty.
+      // Player aged 20 prefers 4 years. Offering 1 gives a -36% penalty (3 × 12%).
       // An offer at 95% of demand would normally be accepted (mood 70, gap 0.95 >= 0.92, mood >= 60).
-      // But with -18% years penalty, adjusted gap = 0.95 - 0.18 = 0.77, which should NOT accept.
+      // But with -36% years penalty, adjusted gap = 0.95 - 0.36 = 0.59, which should NOT accept.
       const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 47500, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 1, playerAge: 20, round: 1, status: 'in_progress' as const, playerMood: 70 };
       const result = negotiateRound(offer);
       expect(result.status).not.toBe('accepted');
@@ -150,6 +150,44 @@ describe('contracts', () => {
 
     it('should return 1 for veteran players', () => {
       expect(getPreferredYears(34)).toBe(1);
+    });
+  });
+
+  describe('getYearsAdjustment', () => {
+    it('should return 0 when years match preference', () => {
+      // Age 20 prefers 4 years
+      expect(getYearsAdjustment(20, 4)).toBe(0);
+    });
+
+    it('should return positive bonus for extra years', () => {
+      // Age 26 prefers 3 years, offering 5 = +2 × 5% = +10%
+      const adj = getYearsAdjustment(26, 5);
+      expect(adj).toBeCloseTo(0.10);
+    });
+
+    it('should return heavy penalty for fewer years', () => {
+      // Age 20 prefers 4 years, offering 1 = -3 × 12% = -36%
+      const adj = getYearsAdjustment(20, 1);
+      expect(adj).toBeCloseTo(-0.36);
+    });
+  });
+
+  describe('getAcceptanceHint', () => {
+    it('should say will accept when wage meets demand and years match', () => {
+      const hint = getAcceptanceHint(1.0, 26, 3, 70);
+      expect(hint.text).toContain('Will accept');
+    });
+
+    it('should warn when wage meets demand but years are short', () => {
+      // Wage at 100% but 2 years under preferred = -24% penalty, adjustedGap = 0.76
+      const hint = getAcceptanceHint(1.0, 20, 2, 50);
+      expect(hint.text).not.toContain('Will accept');
+    });
+
+    it('should accept when extra years compensate for lower wage', () => {
+      // Wage at 90% but 2 years over preferred = +10% bonus, adjustedGap = 1.0
+      const hint = getAcceptanceHint(0.90, 26, 5, 70);
+      expect(hint.text).toContain('Will accept');
     });
   });
 

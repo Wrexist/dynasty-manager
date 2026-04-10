@@ -84,8 +84,12 @@ export const CONTRACT_PREFERRED_YEARS_BRACKETS = [
 export const CONTRACT_PREFERRED_YEARS_DEFAULT = 1; // 32+ prefer 1-year deals
 
 // How much each year of deviation from preferred impacts the effective gap
-export const CONTRACT_YEARS_ACCEPTANCE_BONUS = 0.04;   // +4% per year over preferred
-export const CONTRACT_YEARS_ACCEPTANCE_PENALTY = 0.06;  // -6% per year under preferred
+export const CONTRACT_YEARS_ACCEPTANCE_BONUS = 0.05;   // +5% per year over preferred
+export const CONTRACT_YEARS_ACCEPTANCE_PENALTY = 0.12;  // -12% per year under preferred (players really care about length)
+
+// Years deviation also affects player mood during negotiation
+export const CONTRACT_YEARS_MOOD_PENALTY = 8;   // -8 mood per year under preferred
+export const CONTRACT_YEARS_MOOD_BONUS = 3;     // +3 mood per year over preferred
 
 // ── Mood Penalties (from lowballing) ──
 export const CONTRACT_LOWBALL_GAP = 0.7;

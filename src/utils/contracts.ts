@@ -23,6 +23,7 @@ import {
   CONTRACT_MOOD_FLOOR,
   CONTRACT_PREFERRED_YEARS_BRACKETS, CONTRACT_PREFERRED_YEARS_DEFAULT,
   CONTRACT_YEARS_ACCEPTANCE_BONUS, CONTRACT_YEARS_ACCEPTANCE_PENALTY,
+  CONTRACT_YEARS_MOOD_PENALTY, CONTRACT_YEARS_MOOD_BONUS,
 } from '@/config/contracts';
 
 export type ContractUrgency = 'expired' | 'near' | null;
@@ -179,8 +180,14 @@ export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): Contr
   const newDemand = Math.round(rawDemand / 1000) * 1000 || rawDemand;
 
   // Player mood decreases if lowballed
-  const moodChange = gap < CONTRACT_LOWBALL_GAP ? CONTRACT_MOOD_HIT_LOWBALL
+  const wageMoodChange = gap < CONTRACT_LOWBALL_GAP ? CONTRACT_MOOD_HIT_LOWBALL
     : gap < CONTRACT_MODERATE_GAP ? CONTRACT_MOOD_HIT_MODERATE : CONTRACT_MOOD_HIT_CLOSE;
+
+  // Years deviation also affects mood — offering fewer years than preferred frustrates players
+  const yearsMoodChange = yearsDiff > 0
+    ? yearsDiff * CONTRACT_YEARS_MOOD_BONUS
+    : yearsDiff * CONTRACT_YEARS_MOOD_PENALTY;
+  const moodChange = wageMoodChange + yearsMoodChange;
 
   return {
     ...offer,
@@ -189,6 +196,50 @@ export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): Contr
     round: offer.round + 1,
     status: 'in_progress',
   };
+}
+
+/**
+ * Compute the years adjustment percentage for display in the UI.
+ * Positive = bonus (offering more years), negative = penalty (offering fewer).
+ */
+export function getYearsAdjustment(age: number, offeredYears: number): number {
+  const preferred = getPreferredYears(age);
+  const diff = offeredYears - preferred;
+  if (diff > 0) return diff * CONTRACT_YEARS_ACCEPTANCE_BONUS;
+  if (diff < 0) return diff * CONTRACT_YEARS_ACCEPTANCE_PENALTY;
+  return 0;
+}
+
+/**
+ * Get an acceptance hint that accounts for BOTH wage gap AND years deviation.
+ * This is what the UI should display — not just the raw wage gap.
+ */
+export function getAcceptanceHint(
+  wageGap: number,
+  playerAge: number,
+  offeredYears: number,
+  playerMood: number,
+): { text: string; colorClass: string } {
+  const yearsAdj = getYearsAdjustment(playerAge, offeredYears);
+  const adjustedGap = wageGap + yearsAdj;
+
+  if (
+    adjustedGap >= CONTRACT_GAP_ACCEPT ||
+    (adjustedGap >= CONTRACT_GAP_MOOD_ACCEPT && playerMood >= CONTRACT_MOOD_ACCEPT_THRESHOLD) ||
+    (adjustedGap >= CONTRACT_GAP_HIGH_MOOD_ACCEPT && playerMood >= CONTRACT_HIGH_MOOD_THRESHOLD)
+  ) {
+    return { text: 'Will accept this deal', colorClass: 'text-emerald-400/70' };
+  }
+  if (adjustedGap >= 0.9) {
+    return { text: 'Close — may accept with better mood', colorClass: 'text-emerald-400/70' };
+  }
+  if (adjustedGap >= 0.8) {
+    return { text: 'Below expectations — mood will dip', colorClass: 'text-amber-400/70' };
+  }
+  if (adjustedGap >= 0.7) {
+    return { text: 'Poor offer — mood will drop', colorClass: 'text-amber-400/70' };
+  }
+  return { text: 'Insulting offer — mood will tank', colorClass: 'text-red-400/70' };
 }
 
 /**

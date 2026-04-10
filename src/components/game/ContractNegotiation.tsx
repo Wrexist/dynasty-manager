@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
-import { X, ArrowRight, Check, AlertTriangle, Minus, Plus } from 'lucide-react';
-import { formatWage, getPreferredYears } from '@/utils/contracts';
+import { X, ArrowRight, Check, AlertTriangle, Minus, Plus, Calendar } from 'lucide-react';
+import { formatWage, getPreferredYears, getYearsAdjustment, getAcceptanceHint } from '@/utils/contracts';
 import { getMoodColor, getMoodLabel, getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { motion } from 'framer-motion';
@@ -42,6 +42,9 @@ export function ContractNegotiation() {
   const gap = (customWage ?? activeNegotiation.offeredWage) / activeNegotiation.demandedWage;
   const preferredYears = getPreferredYears(activeNegotiation.playerAge);
   const yearsDiff = currentYears - preferredYears;
+  const yearsAdj = getYearsAdjustment(activeNegotiation.playerAge, currentYears);
+  const yearsAdjPct = Math.round(yearsAdj * 100);
+  const acceptanceHint = getAcceptanceHint(gap, activeNegotiation.playerAge, currentYears, activeNegotiation.playerMood);
 
   const handleSubmit = () => {
     if (submittingRef.current) return;
@@ -138,10 +141,14 @@ export function ContractNegotiation() {
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground mb-1">Player Demands</p>
                   <p className="text-lg font-bold text-foreground">{formatWage(activeNegotiation.demandedWage)}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">for {preferredYears} yr{preferredYears !== 1 ? 's' : ''}</p>
                 </div>
                 <div className="bg-primary/10 rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground mb-1">Your Offer</p>
                   <p className="text-lg font-bold text-primary">{formatWage(customWage ?? activeNegotiation.offeredWage)}</p>
+                  <p className={cn('text-[10px] mt-1 font-medium', yearsDiff === 0 ? 'text-emerald-400' : yearsDiff > 0 ? 'text-emerald-400' : 'text-red-400')}>
+                    for {currentYears} yr{currentYears !== 1 ? 's' : ''}
+                  </p>
                 </div>
               </div>
 
@@ -155,9 +162,18 @@ export function ContractNegotiation() {
               </div>
 
               {/* Contract Length Selector */}
-              <div className="space-y-1.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Contract Length</span>
+              <div className={cn(
+                'rounded-xl p-3 space-y-2 border',
+                yearsDiff === 0 ? 'bg-emerald-500/5 border-emerald-500/20' :
+                yearsDiff > 0 ? 'bg-emerald-500/5 border-emerald-500/15' :
+                yearsDiff >= -1 ? 'bg-amber-500/5 border-amber-500/20' :
+                'bg-red-500/5 border-red-500/20',
+              )}>
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-muted-foreground">Contract Length</span>
+                  </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setCustomYears(Math.max(CONTRACT_MIN_YEARS, currentYears - 1))}
@@ -166,7 +182,7 @@ export function ContractNegotiation() {
                     >
                       <Minus className="w-3 h-3" />
                     </button>
-                    <span className="text-foreground font-semibold w-14 text-center">{currentYears} yr(s)</span>
+                    <span className="text-foreground font-bold w-14 text-center text-sm">{currentYears} yr{currentYears !== 1 ? 's' : ''}</span>
                     <button
                       onClick={() => setCustomYears(Math.min(CONTRACT_MAX_YEARS, currentYears + 1))}
                       disabled={currentYears >= CONTRACT_MAX_YEARS}
@@ -176,11 +192,45 @@ export function ContractNegotiation() {
                     </button>
                   </div>
                 </div>
-                {yearsDiff !== 0 && (
-                  <p className={cn('text-[10px] text-right', yearsDiff > 0 ? 'text-emerald-400' : 'text-amber-400')}>
-                    {yearsDiff > 0 ? `+${yearsDiff} yr over` : `${yearsDiff} yr under`} player preferred ({preferredYears} yr)
-                  </p>
-                )}
+
+                {/* Years preference visual: dots showing 1-5 with preferred marked */}
+                <div className="flex items-center justify-center gap-1">
+                  {[1, 2, 3, 4, 5].map(yr => (
+                    <div key={yr} className="flex flex-col items-center gap-0.5">
+                      <div className={cn(
+                        'w-6 h-1.5 rounded-full transition-colors',
+                        yr <= currentYears
+                          ? yr <= preferredYears ? 'bg-emerald-500' : 'bg-emerald-500/40'
+                          : yr <= preferredYears ? 'bg-red-400/50' : 'bg-muted/30',
+                      )} />
+                      {yr === preferredYears && (
+                        <span className="text-[8px] text-muted-foreground leading-none">wanted</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Years feedback */}
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className={cn(
+                    'font-medium',
+                    yearsDiff === 0 ? 'text-emerald-400' :
+                    yearsDiff > 0 ? 'text-emerald-400' :
+                    yearsDiff >= -1 ? 'text-amber-400' : 'text-red-400',
+                  )}>
+                    {yearsDiff === 0 ? `Matches preferred (${preferredYears} yr${preferredYears !== 1 ? 's' : ''})` :
+                     yearsDiff > 0 ? `+${yearsDiff} yr${yearsDiff !== 1 ? 's' : ''} over preferred — player pleased` :
+                     `${yearsDiff} yr${yearsDiff !== -1 ? 's' : ''} under preferred — player unhappy`}
+                  </span>
+                  {yearsAdjPct !== 0 && (
+                    <span className={cn(
+                      'font-bold tabular-nums',
+                      yearsAdjPct > 0 ? 'text-emerald-400' : 'text-red-400',
+                    )}>
+                      {yearsAdjPct > 0 ? '+' : ''}{yearsAdjPct}%
+                    </span>
+                  )}
+                </div>
               </div>
 
               {/* Other details */}
@@ -244,9 +294,9 @@ export function ContractNegotiation() {
                   </span>
                   <span>{formatWage(Math.round(activeNegotiation.demandedWage * 1.5))}</span>
                 </div>
-                {/* Mood impact hint */}
-                <p className={cn('text-[10px] text-right', gap >= 0.85 ? 'text-emerald-400/70' : gap >= 0.7 ? 'text-amber-400/70' : 'text-red-400/70')}>
-                  {gap >= 1 ? 'Meets demand — will accept' : gap >= 0.9 ? 'Close — likely to accept if mood is good' : gap >= 0.8 ? 'Below demand — mood will dip slightly' : gap >= 0.7 ? 'Lowball — mood will drop' : 'Very low — mood will drop significantly'}
+                {/* Acceptance hint — accounts for both wage AND years */}
+                <p className={cn('text-[10px] text-right', acceptanceHint.colorClass)}>
+                  {acceptanceHint.text}
                 </p>
               </div>
 
