@@ -62,14 +62,14 @@ import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
 const WELCOME_KEY = 'dynasty-welcome-shown';
 const COLLAPSE_SPRING = { type: 'spring' as const, stiffness: 300, damping: 24 };
 const QUICK_LINKS = [
-  { label: 'Schedule', screen: 'calendar' as const, icon: Calendar, color: 'text-sky-400' },
+  { label: 'Schedule', screen: 'calendar' as const, icon: Calendar, color: 'text-cyan-400' },
   { label: 'League', screen: 'league-table' as const, icon: Trophy, color: 'text-amber-400' },
-  { label: 'Squad', screen: 'squad' as const, icon: Users, color: 'text-emerald-400' },
+  { label: 'Squad', screen: 'squad' as const, icon: Users, color: 'text-sky-400' },
   { label: 'Tactics', screen: 'tactics' as const, icon: Shield, color: 'text-blue-400' },
-  { label: 'Training', screen: 'training' as const, icon: Dumbbell, color: 'text-orange-400' },
+  { label: 'Training', screen: 'training' as const, icon: Dumbbell, color: 'text-emerald-400' },
   { label: 'Club', screen: 'club' as const, icon: Settings, color: 'text-primary' },
-  { label: 'Transfers', screen: 'transfers' as const, icon: UserPlus, color: 'text-teal-400' },
-  { label: 'Cup', screen: 'cup' as const, icon: BarChart3, color: 'text-amber-400' },
+  { label: 'Transfers', screen: 'transfers' as const, icon: UserPlus, color: 'text-amber-400' },
+  { label: 'Cup', screen: 'cup' as const, icon: BarChart3, color: 'text-orange-400' },
 ];
 const TIP_BG: Record<TipType, string> = {
   warning: 'bg-destructive/10',
