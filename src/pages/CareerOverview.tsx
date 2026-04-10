@@ -96,14 +96,18 @@ const CareerOverview = () => {
             <Briefcase className="w-4 h-4 text-primary" />
             <h3 className="text-sm font-bold text-foreground">Current Contract</h3>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-3 gap-2 text-xs">
             <div>
               <span className="text-muted-foreground">Salary: </span>
               <span className="text-foreground font-semibold">£{(careerManager.contract.salary / 1000).toFixed(1)}k/wk</span>
             </div>
             <div>
               <span className="text-muted-foreground">Expires: </span>
-              <span className="text-foreground font-semibold">End of Season {careerManager.contract.endSeason}</span>
+              <span className="text-foreground font-semibold">Season {careerManager.contract.endSeason}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Wealth: </span>
+              <span className="text-primary font-semibold">£{((careerManager.personalWealth || 0) / 1000).toFixed(0)}k</span>
             </div>
           </div>
           {careerManager.contract.bonuses.length > 0 && (

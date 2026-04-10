@@ -1424,6 +1424,7 @@ export interface CareerManager {
   resignedCount: number;
   awardsWon: ManagerAward[];
   legacyScore: number;
+  personalWealth: number;              // accumulated career earnings from salary + bonuses
   unemployedWeeks: number;             // tracks how long between jobs
   nationalTeamAppointedSeason: number | null;  // null = never appointed
   nationalTeamSacked: boolean;                 // true if previously sacked from NT

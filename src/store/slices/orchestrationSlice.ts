@@ -74,6 +74,7 @@ import {
   MOTIVATOR_MORALE_BOOST, YOUTH_DEVELOPER_BOOST,
   VALUE_AGE_MULTIPLIERS, TRAINING_GROUND_BOOST, GOLDEN_GEN_MIN_POTENTIAL,
   FFP_WAGE_RATIO_WARNING, FFP_WAGE_RATIO_CRITICAL, FFP_CONFIDENCE_PENALTY, FFP_CRITICAL_CONFIDENCE_PENALTY,
+  MANAGER_SALARY_RATIO_WARNING, MANAGER_SALARY_RATIO_CRITICAL, MANAGER_SALARY_CONFIDENCE_PENALTY,
   FREE_AGENT_POOL_MAX,
   UNHAPPY_THRESHOLD, UNHAPPY_WEEKS_TO_REQUEST, UNHAPPY_CONTAGION_WEEKS, UNHAPPY_CONTAGION_MORALE_HIT,
   MEDICAL_REINJURY_REDUCTION_PER_LEVEL,
@@ -2063,18 +2064,19 @@ function finalizeSeason(
             return met ? { ...b, met: true } : b;
           })};
           if (bonusPayout > 0) {
+            cm.personalWealth = (cm.personalWealth || 0) + bonusPayout;
             const bonusState = get();
             const bonusClub = bonusState.clubs[bonusState.playerClubId];
             const bonusMsg = addMsg(bonusState.messages, {
               week: TOTAL_WEEKS, season, type: 'general',
-              title: 'Contract Bonuses Earned!',
-              body: `You earned £${(bonusPayout / 1000).toFixed(0)}k in performance bonuses this season.`,
+              title: 'Contract Bonuses Paid',
+              body: `The club paid £${(bonusPayout / 1000).toFixed(0)}k in manager performance bonuses this season. Your personal wealth is now £${((cm.personalWealth) / 1000).toFixed(0)}k.`,
             });
             set({
               messages: bonusMsg,
               clubs: {
                 ...bonusState.clubs,
-                [bonusState.playerClubId]: { ...bonusClub, budget: bonusClub.budget + bonusPayout },
+                [bonusState.playerClubId]: { ...bonusClub, budget: bonusClub.budget - bonusPayout },
               },
             });
           }
@@ -3641,7 +3643,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const staffWages = staff.members.reduce((sum, s) => sum + s.wage, 0);
     // Scouting costs: each active assignment costs money per week
     const scoutingCosts = newScouting.assignments.length * SCOUTING_COST_PER_ASSIGNMENT;
-    const totalExpenses = playerClub.wageBill + staffWages + scoutingCosts;
+    // Manager salary: deducted weekly from club budget and accumulated as personal wealth
+    const managerSalary = state.careerManager?.contract?.salary ?? 0;
+    const totalExpenses = playerClub.wageBill + staffWages + scoutingCosts + managerSalary;
+    const updatedWealth = (state.careerManager?.personalWealth ?? 0) + managerSalary;
     newClubs[playerClubId] = { ...playerClub, budget: playerClub.budget + weeklyIncome - totalExpenses };
 
     // Accumulate season-level income/expense totals for SeasonHistory enrichment
@@ -3660,6 +3665,21 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - FFP_CONFIDENCE_PENALTY);
       if (newWeek % 8 === 0) {
         newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'FFP: Spending Warning', body: `Your wage bill is ${Math.round(wageToRevenueRatio * 100)}% of revenue. The board urges you to manage finances more carefully.` });
+      }
+    }
+
+    // Manager salary-to-income ratio check: board concern when manager is overpaid relative to club revenue
+    if (managerSalary > 0 && weeklyIncome > 0) {
+      const salaryToIncomeRatio = managerSalary / weeklyIncome;
+      if (salaryToIncomeRatio >= MANAGER_SALARY_RATIO_CRITICAL) {
+        newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - MANAGER_SALARY_CONFIDENCE_PENALTY);
+        if (newWeek % 8 === 0) {
+          newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Manager Compensation Concern', body: `The board feels your salary (£${(managerSalary / 1000).toFixed(1)}k/wk) is excessive relative to club revenue. Consider growing the club's income to justify your compensation.` });
+        }
+      } else if (salaryToIncomeRatio >= MANAGER_SALARY_RATIO_WARNING) {
+        if (newWeek % 12 === 0) {
+          newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Salary Review', body: `The board notes your compensation accounts for ${Math.round(salaryToIncomeRatio * 100)}% of weekly revenue. Growing the club's income would ease financial pressure.` });
+        }
       }
     }
 
@@ -3999,6 +4019,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       fanMood: merchFanMood,
       seasonGrowthTracker: { ...seasonGrowthTracker },
       clubPowerRankings: eloRankings,
+      ...(state.careerManager && managerSalary > 0 ? { careerManager: { ...state.careerManager, personalWealth: updatedWealth } } : {}),
       seasonTotalIncome: prevSeasonIncome + weeklyIncome,
       seasonTotalExpenses: prevSeasonExpenses + totalExpenses,
       weeklyDigest: {

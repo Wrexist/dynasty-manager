@@ -373,6 +373,14 @@ export const FFP_CONFIDENCE_PENALTY = 3;
 /** Board confidence penalty per week when above critical threshold */
 export const FFP_CRITICAL_CONFIDENCE_PENALTY = 6;
 
+// ── Manager Salary Impact ──
+/** Manager salary-to-income ratio that triggers a board warning */
+export const MANAGER_SALARY_RATIO_WARNING = 0.15;
+/** Manager salary-to-income ratio that triggers critical board concern */
+export const MANAGER_SALARY_RATIO_CRITICAL = 0.25;
+/** Board confidence penalty per week when manager salary ratio exceeds warning threshold */
+export const MANAGER_SALARY_CONFIDENCE_PENALTY = 1;
+
 // ── Training Focus Development ──
 // MODULE_ATTR_MAP and TRAINING_FOCUS_BONUS are now in src/config/training.ts (single source of truth)
 

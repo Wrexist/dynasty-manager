@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 49;
+const CURRENT_VERSION = 50;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -673,6 +673,16 @@ const migrations: Record<number, MigrationFn> = {
     version: 49,
     conferenceCup: null,
   }),
+
+  // v49 → v50: Add personalWealth to careerManager
+  49: (data) => {
+    const cm = data.careerManager as Record<string, unknown> | null;
+    return {
+      ...data,
+      version: 50,
+      ...(cm ? { careerManager: { ...cm, personalWealth: cm.personalWealth ?? 0 } } : {}),
+    };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
