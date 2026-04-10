@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
+import { getContractUrgency } from '@/utils/contracts';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
 import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
@@ -276,7 +277,7 @@ const Dashboard = () => {
   const expiringPlayers = useMemo(() => (club?.playerIds || [])
     .map(id => players[id])
     .filter(Boolean)
-    .filter(p => p.contractEnd <= season && !p.injured), [club, players, season]);
+    .filter(p => getContractUrgency(p.contractEnd, season) !== null && !p.injured), [club, players, season]);
 
   // Net weekly income
   const netWeeklyIncome = useMemo(() => club ? getNetWeeklyIncome(club) : 0, [club]);

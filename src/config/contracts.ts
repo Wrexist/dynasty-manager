@@ -94,3 +94,7 @@ export const CONTRACT_MOOD_HIT_LOWBALL = -20;
 export const CONTRACT_MOOD_HIT_MODERATE = -8;
 export const CONTRACT_MOOD_HIT_CLOSE = -3;
 export const CONTRACT_MOOD_FLOOR = 5;
+
+// ── Contract Expiry Visibility ──
+/** How many seasons ahead to flag a contract as "near expiry" on squad views */
+export const CONTRACT_NEAR_EXPIRY_SEASONS = 1;

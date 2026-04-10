@@ -25,6 +25,7 @@ import { MODULE_ATTR_MAP, STREAK_MULTIPLIERS, INDIVIDUAL_TRAINING_BONUS } from '
 import { getTrainingEffectivenessPreview, getStreakTier } from '@/utils/training';
 import { getTrainingStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
+import { getContractUrgency } from '@/utils/contracts';
 import { hasPerk } from '@/utils/managerPerks';
 import { getWinStreak } from '@/utils/celebrations';
 import { getLeadershipBonus } from '@/utils/personality';
@@ -161,7 +162,8 @@ const PlayerDetail = () => {
   }
   if (player.form > 70) moraleFactors.push({ label: 'Good form', impact: 'positive' });
   else if (player.form < 40) moraleFactors.push({ label: 'Poor form', impact: 'negative' });
-  if (player.contractEnd <= season) moraleFactors.push({ label: 'Contract expiring', impact: 'negative' });
+  if (getContractUrgency(player.contractEnd, season) === 'expired') moraleFactors.push({ label: 'Contract expiring', impact: 'negative' });
+  else if (getContractUrgency(player.contractEnd, season) === 'near') moraleFactors.push({ label: 'Contract expiring soon', impact: 'negative' });
   if (player.injured) moraleFactors.push({ label: 'Currently injured', impact: 'negative' });
   if (player.wantsToLeave) moraleFactors.push({ label: 'Wants to leave the club', impact: 'negative' });
   if (player.personality?.temperament && player.personality.temperament < 40) moraleFactors.push({ label: 'Volatile temperament', impact: 'negative' });
@@ -370,9 +372,11 @@ const PlayerDetail = () => {
         }
 
         // Contract
-        if (player.contractEnd <= season) {
+        if (getContractUrgency(player.contractEnd, season) !== null) {
           tips.push({
-            text: 'Offer a contract renewal — expiring contracts cause morale drops',
+            text: getContractUrgency(player.contractEnd, season) === 'expired'
+              ? 'Offer a contract renewal — expiring contracts cause morale drops'
+              : 'Contract expiring next season — negotiate a renewal soon',
             actionable: true,
             done: false,
           });
@@ -905,14 +909,19 @@ const PlayerDetail = () => {
           <div>
             <p className={cn(
               'text-sm font-bold tabular-nums',
-              player.contractEnd <= season ? 'text-destructive' : 'text-foreground'
+              getContractUrgency(player.contractEnd, season) === 'expired' ? 'text-destructive'
+                : getContractUrgency(player.contractEnd, season) === 'near' ? 'text-amber-400'
+                : 'text-foreground'
             )}>
               Season {player.contractEnd}
             </p>
             <p className="text-xs text-muted-foreground">
               Contract Until
-              {player.contractEnd <= season && (
+              {getContractUrgency(player.contractEnd, season) === 'expired' && (
                 <span className="text-destructive ml-1">· Expiring</span>
+              )}
+              {getContractUrgency(player.contractEnd, season) === 'near' && (
+                <span className="text-amber-400 ml-1">· Expiring Soon</span>
               )}
             </p>
           </div>
@@ -1013,7 +1022,7 @@ const PlayerDetail = () => {
       )}
 
       {/* Contract Renewal */}
-      {isOwnPlayer && player.contractEnd <= season + 1 && (
+      {isOwnPlayer && getContractUrgency(player.contractEnd, season) !== null && (
         <Button
           variant="outline"
           className="w-full gap-2 border-primary/30 text-primary hover:bg-primary/10 hover:text-primary"
