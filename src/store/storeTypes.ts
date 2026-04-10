@@ -1,4 +1,4 @@
-import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, MatchShout, ShoutType } from '@/types/game';
+import { Club, Player, Match, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, MatchShout, ShoutType, NegotiationStrike } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -46,6 +46,7 @@ export interface GameState {
   incomingLoanOffers: IncomingLoanOffer[];
   outgoingLoanRequests: OutgoingLoanRequest[];
   freeAgents: string[];
+  negotiationStrikes: Record<string, NegotiationStrike>;
 
   // Transfer News Feed
   transferNews: TransferNewsEntry[];
@@ -247,6 +248,11 @@ export interface GameState {
   negotiateIncomingOffer: (offerId: string, counterFee: number) => { outcome: 'accepted' | 'rejected' | 'counter'; counterFee?: number; message: string };
   acceptIncomingOfferAtFee: (offerId: string, fee: number) => { success: boolean; message: string };
   evaluateIncomingCounter: (offerId: string, counterFee: number) => { acceptChance: number; budgetAfter: number; squadSizeAfter: number; positionCountAfter: number } | null;
+  getPlayerStrikes: (playerId: string) => number;
+  isNegotiationLocked: (playerId: string) => { locked: boolean; weeksRemaining: number };
+  recordNegotiationStrike: (playerId: string) => number;
+  clearNegotiationStrikes: (playerId: string) => void;
+  clearExpiredCooldowns: () => void;
   signFreeAgent: (playerId: string, wage: number, years: number) => { success: boolean; message: string };
   releasePlayer: (playerId: string) => { success: boolean; message: string };
 

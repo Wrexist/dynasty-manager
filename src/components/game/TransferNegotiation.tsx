@@ -9,11 +9,12 @@ import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, g
 import { formatWage } from '@/utils/contracts';
 import { formatMoney } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
-import { NEGOTIATION_SLIDER_MIN_RATIO, NEGOTIATION_SLIDER_MAX_RATIO } from '@/config/transfers';
+import { NEGOTIATION_SLIDER_MIN_RATIO, NEGOTIATION_SLIDER_MAX_RATIO, NEGOTIATION_MAX_STRIKES } from '@/config/transfers';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { StrikeIndicator } from '@/components/game/StrikeIndicator';
 import {
   X, TrendingUp, TrendingDown,
-  ArrowRight, RotateCcw, Handshake, XCircle, Star, AlertTriangle, Wallet, Users, Unlock,
+  ArrowRight, RotateCcw, Handshake, XCircle, Star, AlertTriangle, Wallet, Users, Unlock, Lock,
 } from 'lucide-react';
 
 function getInterpolatedChance(ratio: number): number {
@@ -43,6 +44,10 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   const makeOfferWithNegotiation = useGameStore(s => s.makeOfferWithNegotiation);
   const executeTransfer = useGameStore(s => s.executeTransfer);
   const removeFromShortlist = useGameStore(s => s.removeFromShortlist);
+  const getPlayerStrikes = useGameStore(s => s.getPlayerStrikes);
+  const isNegotiationLocked = useGameStore(s => s.isNegotiationLocked);
+  const recordNegotiationStrike = useGameStore(s => s.recordNegotiationStrike);
+  const clearNegotiationStrikes = useGameStore(s => s.clearNegotiationStrikes);
 
   const player = players[listing.playerId];
   const rawSellerClub = listing.externalPlayer ? null : clubs[listing.sellerClubId];
@@ -58,6 +63,9 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   const [resultMessage, setResultMessage] = useState('');
   const [counterFee, setCounterFee] = useState<number | null>(null);
   const [lastCounterFee, setLastCounterFee] = useState<number | null>(null);
+  const [strikeCount, setStrikeCount] = useState(() => getPlayerStrikes(listing.playerId));
+  const [latestStrikeOutcome, setLatestStrikeOutcome] = useState<'rejected' | 'accepted' | null>(null);
+  const lockout = isNegotiationLocked(listing.playerId);
 
   const minFee = Math.round(listing.askingPrice * NEGOTIATION_SLIDER_MIN_RATIO);
   const maxFee = Math.round(listing.askingPrice * NEGOTIATION_SLIDER_MAX_RATIO);
@@ -94,6 +102,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
 
   const handleSubmitOffer = useCallback((fee: number) => {
     setLastCounterFee(null);
+    setLatestStrikeOutcome(null);
     setPhase('thinking');
     setFinalFee(fee);
     timersRef.current.push(setTimeout(() => {
@@ -103,9 +112,18 @@ export function TransferNegotiation({ listing, onClose }: Props) {
       if (result.outcome === 'counter' && result.counterFee) {
         setCounterFee(result.counterFee);
       }
+      if (result.outcome === 'rejected') {
+        const newStrikes = recordNegotiationStrike(listing.playerId);
+        setStrikeCount(newStrikes);
+        setLatestStrikeOutcome('rejected');
+      } else if (result.outcome === 'accepted') {
+        clearNegotiationStrikes(listing.playerId);
+        setStrikeCount(0);
+        setLatestStrikeOutcome('accepted');
+      }
       setPhase('result');
     }, 1500));
-  }, [listing.playerId, makeOfferWithNegotiation]);
+  }, [listing.playerId, makeOfferWithNegotiation, recordNegotiationStrike, clearNegotiationStrikes]);
 
   const handleAcceptCounter = useCallback(() => {
     if (!counterFee) return;
@@ -117,14 +135,20 @@ export function TransferNegotiation({ listing, onClose }: Props) {
       const result = executeTransfer(listing.playerId, fee);
       setOutcome(result.success ? 'accepted' : 'rejected');
       setResultMessage(result.message);
+      if (result.success) {
+        clearNegotiationStrikes(listing.playerId);
+        setStrikeCount(0);
+        setLatestStrikeOutcome('accepted');
+      }
       setPhase('result');
     }, 1000));
-  }, [counterFee, listing.playerId, executeTransfer]);
+  }, [counterFee, listing.playerId, executeTransfer, clearNegotiationStrikes]);
 
   const handleRevise = useCallback(() => {
     setPhase('negotiate');
     setOutcome(null);
     setResultMessage('');
+    setLatestStrikeOutcome(null);
     if (counterFee) {
       setOfferFee(counterFee);
       setLastCounterFee(counterFee);
@@ -176,10 +200,44 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
+                {/* Lockout screen — if cooldown is active */}
+                {lockout.locked && (
+                  <div className="p-6 flex flex-col items-center justify-center gap-4 min-h-[260px]">
+                    <motion.div
+                      className="w-16 h-16 rounded-full bg-red-500/10 border-2 border-red-500/30 flex items-center justify-center"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                    >
+                      <Lock className="w-7 h-7 text-red-400" />
+                    </motion.div>
+                    <div className="text-center">
+                      <p className="text-lg font-black text-red-400 font-display">Negotiations Locked</p>
+                      <p className="text-xs text-muted-foreground mt-1.5 max-w-[260px]">
+                        You've been rejected 3 times. The seller refuses to negotiate for now.
+                      </p>
+                      <p className="text-sm font-bold text-foreground mt-3 tabular-nums">
+                        {lockout.weeksRemaining} week{lockout.weeksRemaining !== 1 ? 's' : ''} remaining
+                      </p>
+                    </div>
+                    <StrikeIndicator strikes={NEGOTIATION_MAX_STRIKES} latestOutcome={null} />
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="w-full py-3 rounded-xl text-sm font-bold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all mt-2"
+                    >
+                      Close
+                    </button>
+                  </div>
+                )}
+
                 {/* Player Header — compact hero section */}
-                <div className="p-4 pb-3">
+                {!lockout.locked && (<><div className="p-4 pb-3">
                   <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Buy Player</p>
+                    <div className="flex items-center gap-2.5">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Buy Player</p>
+                      {strikeCount > 0 && <StrikeIndicator strikes={strikeCount} latestOutcome={null} />}
+                    </div>
                     <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted/50 transition-colors">
                       <X className="w-4 h-4 text-muted-foreground" />
                     </button>
@@ -378,6 +436,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     )}
                   </div>
                 )}
+                </>)}
               </motion.div>
             )}
 
@@ -521,15 +580,49 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">{resultMessage}</p>
                 </motion.div>
 
+                {/* Strike indicator */}
+                <motion.div
+                  className="flex flex-col items-center gap-1.5"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.28 }}
+                >
+                  <StrikeIndicator strikes={strikeCount} latestOutcome="rejected" />
+                  <p className="text-[10px] text-muted-foreground">
+                    Strike {strikeCount}/{NEGOTIATION_MAX_STRIKES}
+                  </p>
+                </motion.div>
+
+                {/* Final attempt warning */}
+                {strikeCount === NEGOTIATION_MAX_STRIKES - 1 && (
+                  <motion.p
+                    className="text-[11px] font-semibold text-amber-400"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    Final attempt — make it count!
+                  </motion.p>
+                )}
+
                 <motion.div className="flex gap-2 w-full mt-2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 }}>
                   <button type="button" onClick={onClose}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all">
+                    className={cn(
+                      'py-2.5 rounded-xl text-sm font-semibold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all',
+                      strikeCount >= NEGOTIATION_MAX_STRIKES ? 'flex-1' : 'flex-1'
+                    )}>
                     Walk Away
                   </button>
-                  <button type="button" onClick={handleRevise}
-                    className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all">
-                    <RotateCcw className="w-4 h-4" /> Revise Offer
-                  </button>
+                  {strikeCount < NEGOTIATION_MAX_STRIKES ? (
+                    <button type="button" onClick={handleRevise}
+                      className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all">
+                      <RotateCcw className="w-4 h-4" /> Revise Offer
+                    </button>
+                  ) : (
+                    <div className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-red-400/70 bg-red-500/10 border border-red-500/20">
+                      <Lock className="w-4 h-4" /> Locked Out
+                    </div>
+                  )}
                 </motion.div>
               </motion.div>
             )}
@@ -632,7 +725,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
           </div>
 
           {/* Sticky action buttons */}
-          {phase === 'negotiate' && (
+          {phase === 'negotiate' && !lockout.locked && (
             <div className="border-t border-border/30 bg-card/95 px-4 py-3">
               <button
                 type="button"
