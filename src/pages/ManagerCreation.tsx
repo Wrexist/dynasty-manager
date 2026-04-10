@@ -372,28 +372,33 @@ const ManagerCreation = () => {
             {/* Step: Age */}
             {step === 'age' && (
               <div>
-                <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-5">
-                  <div className="flex items-center gap-3 mb-4">
+                <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-6">
+                  <div className="flex items-center gap-3 mb-6">
                     <Globe className="w-5 h-5 text-primary" />
                     <h2 className="text-base font-bold text-foreground">Starting Age</h2>
                   </div>
-                  <div className="text-center mb-4">
-                    <span className="text-5xl font-black text-primary font-display">{age}</span>
-                    <p className="text-xs text-muted-foreground mt-1">years old</p>
+                  <div className="text-center mb-8">
+                    <span className="text-6xl font-black text-primary font-display">{age}</span>
+                    <p className="text-sm text-muted-foreground mt-1">years old</p>
                   </div>
-                  <input
-                    type="range"
-                    min={STARTING_AGE_MIN}
-                    max={STARTING_AGE_MAX}
-                    value={age}
-                    onChange={e => setAge(Number(e.target.value))}
-                    className="w-full accent-primary"
-                  />
-                  <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
-                    <span>{STARTING_AGE_MIN}</span>
-                    <span>{STARTING_AGE_MAX}</span>
+                  <div className="px-2">
+                    <input
+                      type="range"
+                      min={STARTING_AGE_MIN}
+                      max={STARTING_AGE_MAX}
+                      value={age}
+                      onChange={e => setAge(Number(e.target.value))}
+                      className="age-slider"
+                      style={{
+                        '--slider-progress': `${((age - STARTING_AGE_MIN) / (STARTING_AGE_MAX - STARTING_AGE_MIN)) * 100}%`,
+                      } as React.CSSProperties}
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                      <span>{STARTING_AGE_MIN}</span>
+                      <span>{STARTING_AGE_MAX}</span>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-3">
+                  <p className="text-xs text-muted-foreground mt-5 leading-relaxed">
                     Younger managers have longer careers but less starting experience.
                     Retirement age is 65 (75 if you reach Legendary reputation).
                   </p>
