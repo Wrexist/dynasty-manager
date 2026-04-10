@@ -1,5 +1,6 @@
 import type { Player, ContractOffer } from '@/types/game';
 import {
+  CONTRACT_NEAR_EXPIRY_SEASONS,
   CONTRACT_AGE_BRACKETS, CONTRACT_DEFAULT_AGE_FACTOR,
   CONTRACT_QUALITY_BASE_OVERALL, CONTRACT_QUALITY_SCALE,
   CONTRACT_FORM_HIGH, CONTRACT_FORM_LOW, CONTRACT_FORM_HIGH_FACTOR, CONTRACT_FORM_LOW_FACTOR,
@@ -23,6 +24,15 @@ import {
   CONTRACT_PREFERRED_YEARS_BRACKETS, CONTRACT_PREFERRED_YEARS_DEFAULT,
   CONTRACT_YEARS_ACCEPTANCE_BONUS, CONTRACT_YEARS_ACCEPTANCE_PENALTY,
 } from '@/config/contracts';
+
+export type ContractUrgency = 'expired' | 'near' | null;
+
+/** Determine the urgency level of a player's contract relative to the current season. */
+export function getContractUrgency(contractEnd: number, season: number): ContractUrgency {
+  if (contractEnd <= season) return 'expired';
+  if (contractEnd <= season + CONTRACT_NEAR_EXPIRY_SEASONS) return 'near';
+  return null;
+}
 
 /**
  * Generate a player's wage demand based on their attributes, age, and current contract.
