@@ -116,7 +116,7 @@ import { getWinStreak, detectMatchDrama } from '@/utils/celebrations';
 import { generateCliffhangers } from '@/utils/weekPreview';
 import { generateMonthlyObjectives, evaluateObjectives, calculateCompletedXP } from '@/utils/weeklyObjectives';
 import type { ObjectiveContext } from '@/utils/weeklyObjectives';
-import { generateAIManagerProfile } from '@/config/aiManager';
+import { generateAIManagerProfile, getAICounterTactics } from '@/config/aiManager';
 import { processAIWeekly } from '@/utils/aiSimulation';
 import {
   INJURY_TYPES, NON_FOUL_INJURY_TYPE_WEIGHTS,
@@ -2846,7 +2846,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         updatedFixtures[idx] = forfeit;
         continue;
       }
-      const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hBenchAI, aBenchAI);
+      // AI counter-tactics: each team reads the opponent's default setup
+      const hProfile = hc.aiManagerProfile;
+      const aProfile = ac.aiManagerProfile;
+      const hTacticsAI = hProfile && aProfile ? getAICounterTactics(hProfile, aProfile.defaultTactics, ac.formation || '4-4-2') : undefined;
+      const aTacticsAI = aProfile && hProfile ? getAICounterTactics(aProfile, hProfile.defaultTactics, hc.formation || '4-4-2') : undefined;
+      const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsAI, aTacticsAI, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hBenchAI, aBenchAI);
       updatedFixtures[idx] = result;
       applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
       updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
@@ -4662,8 +4667,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     const isPlayerHome = match.homeClubId === playerClubId;
-    const homeTactics = isPlayerHome ? tactics : undefined;
-    const awayTactics = isPlayerHome ? undefined : tactics;
+    // AI counter-tactics: opponent analyzes player's setup
+    const opponentClub = isPlayerHome ? ac : hc;
+    const opponentProfile = opponentClub.aiManagerProfile;
+    const counterReduction = hasPerk(state.managerProgression, 'counter_master') ? 0.25 : 0;
+    const aiCounterTactics = opponentProfile ? getAICounterTactics(opponentProfile, tactics, clubs[playerClubId]?.formation || '4-4-2', counterReduction) : undefined;
+    const homeTactics = isPlayerHome ? tactics : aiCounterTactics;
+    const awayTactics = isPlayerHome ? aiCounterTactics : tactics;
     // Store pre-match league position
     const preEntry = state.leagueTable.find(e => e.clubId === playerClubId);
     const prePos = preEntry ? state.leagueTable.indexOf(preEntry) + 1 : 10;
@@ -5089,8 +5099,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     const isPlayerHome = match.homeClubId === playerClubId;
-    const homeTactics = isPlayerHome ? tactics : undefined;
-    const awayTactics = isPlayerHome ? undefined : tactics;
+    const oppClubHalf = isPlayerHome ? ac : hc;
+    const oppProfileHalf = oppClubHalf.aiManagerProfile;
+    const ctrRedHalf = hasPerk(state.managerProgression, 'counter_master') ? 0.25 : 0;
+    const aiCtrHalf = oppProfileHalf ? getAICounterTactics(oppProfileHalf, tactics, clubs[playerClubId]?.formation || '4-4-2', ctrRedHalf) : undefined;
+    const homeTactics = isPlayerHome ? tactics : aiCtrHalf;
+    const awayTactics = isPlayerHome ? aiCtrHalf : tactics;
 
     // Store pre-match league position for post-match popup
     const preMatchEntry = state.leagueTable.find(e => e.clubId === playerClubId);
@@ -5186,8 +5200,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (hp.length < 7 || ap.length < 7) return null;
 
     const isPlayerHome = match.homeClubId === playerClubId;
-    const homeTactics = isPlayerHome ? tactics : undefined;
-    const awayTactics = isPlayerHome ? undefined : tactics;
+    const oppClub2H = isPlayerHome ? ac : hc;
+    const oppProfile2H = oppClub2H.aiManagerProfile;
+    const ctrRed2H = hasPerk(state.managerProgression, 'counter_master') ? 0.25 : 0;
+    const aiCtr2H = oppProfile2H ? getAICounterTactics(oppProfile2H, tactics, clubs[playerClubId]?.formation || '4-4-2', ctrRed2H) : undefined;
+    const homeTactics = isPlayerHome ? tactics : aiCtr2H;
+    const awayTactics = isPlayerHome ? aiCtr2H : tactics;
 
     // Simulate second half, carrying forward first half state (bench is carried in halfTimeState)
     const secondHalfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
@@ -5330,8 +5348,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (hp.length < 7 || ap.length < 7) return null;
 
     const isPlayerHome = currentMatchResult.homeClubId === playerClubId;
-    const homeTactics = isPlayerHome ? tactics : undefined;
-    const awayTactics = isPlayerHome ? undefined : tactics;
+    const oppClubET = isPlayerHome ? ac : hc;
+    const oppProfileET = oppClubET.aiManagerProfile;
+    const ctrRedET = hasPerk(state.managerProgression, 'counter_master') ? 0.25 : 0;
+    const aiCtrET = oppProfileET ? getAICounterTactics(oppProfileET, tactics, clubs[playerClubId]?.formation || '4-4-2', ctrRedET) : undefined;
+    const homeTactics = isPlayerHome ? tactics : aiCtrET;
+    const awayTactics = isPlayerHome ? aiCtrET : tactics;
     const derbyInt = getDerbyIntensity(currentMatchResult.homeClubId, currentMatchResult.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
 

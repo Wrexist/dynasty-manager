@@ -383,3 +383,7 @@ export const GK_ERROR_MAX_CHANCE = 0.08;
 export const VAR_CHECK_CHANCE = 0.12;
 /** Chance that a VAR review actually disallows the goal (offside, handball, foul in buildup) */
 export const VAR_DISALLOW_CHANCE = 0.08;
+
+// ── AI Counter-Tactics ──
+/** Chance of generating a tactical counter-insight comment at match start */
+export const AI_COUNTER_INSIGHT_CHANCE = 0.7;
