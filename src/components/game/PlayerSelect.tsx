@@ -5,6 +5,10 @@ import { getRatingColor, getFitnessColor } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { Check, ChevronDown, HeartPulse, Sparkles, X } from 'lucide-react';
+import {
+  PENALTY_TAKER_SHOOTING_WEIGHT, PENALTY_TAKER_MENTAL_WEIGHT,
+  SET_PIECE_TAKER_PASSING_WEIGHT, SET_PIECE_TAKER_SHOOTING_WEIGHT, SET_PIECE_TAKER_MENTAL_WEIGHT,
+} from '@/config/matchEngine';
 
 type SortMode = 'overall' | 'penalty' | 'setpiece';
 
@@ -17,8 +21,8 @@ interface PlayerSelectProps {
 }
 
 function getCompositeScore(player: Player, mode: SortMode): number {
-  if (mode === 'penalty') return Math.round(player.attributes.shooting * 0.6 + player.attributes.mental * 0.4);
-  if (mode === 'setpiece') return Math.round(player.attributes.passing * 0.5 + player.attributes.shooting * 0.3 + player.attributes.mental * 0.2);
+  if (mode === 'penalty') return Math.round(player.attributes.shooting * PENALTY_TAKER_SHOOTING_WEIGHT + player.attributes.mental * PENALTY_TAKER_MENTAL_WEIGHT);
+  if (mode === 'setpiece') return Math.round(player.attributes.passing * SET_PIECE_TAKER_PASSING_WEIGHT + player.attributes.shooting * SET_PIECE_TAKER_SHOOTING_WEIGHT + player.attributes.mental * SET_PIECE_TAKER_MENTAL_WEIGHT);
   return player.overall;
 }
 
@@ -30,7 +34,7 @@ function StatPill({ label, value }: { label: string; value: number }) {
   );
 }
 
-function PlayerRow({ player, sortMode = 'overall' }: { player: Player; sortMode?: SortMode }) {
+function PlayerRow({ player, sortMode = 'overall', showStats = false }: { player: Player; sortMode?: SortMode; showStats?: boolean }) {
   const score = getCompositeScore(player, sortMode);
   return (
     <>
@@ -44,13 +48,13 @@ function PlayerRow({ player, sortMode = 'overall' }: { player: Player; sortMode?
       <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground shrink-0">
         {player.position}
       </span>
-      {sortMode === 'penalty' && (
+      {showStats && sortMode === 'penalty' && (
         <>
           <StatPill label="SHO" value={player.attributes.shooting} />
           <StatPill label="MEN" value={player.attributes.mental} />
         </>
       )}
-      {sortMode === 'setpiece' && (
+      {showStats && sortMode === 'setpiece' && (
         <>
           <StatPill label="PAS" value={player.attributes.passing} />
           <StatPill label="SHO" value={player.attributes.shooting} />
@@ -181,7 +185,7 @@ export function PlayerSelect({ players, selectedId, onChange, placeholder, sortM
                     selectedId === p.id ? 'bg-primary/10' : 'hover:bg-muted/30'
                   )}
                 >
-                  <PlayerRow player={p} sortMode={sortMode} />
+                  <PlayerRow player={p} sortMode={sortMode} showStats />
                   {selectedId === p.id && <Check className="w-4 h-4 text-primary shrink-0" />}
                 </button>
               ))}

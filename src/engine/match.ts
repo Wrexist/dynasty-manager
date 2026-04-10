@@ -58,7 +58,6 @@ import {
   SUB_FRESHNESS_BONUS,
   SET_PIECE_TAKER_CORNER_BONUS, PENALTY_TAKER_BONUS,
   PENALTY_TAKER_SHOOTING_WEIGHT, PENALTY_TAKER_MENTAL_WEIGHT,
-  SET_PIECE_TAKER_PASSING_WEIGHT, SET_PIECE_TAKER_SHOOTING_WEIGHT, SET_PIECE_TAKER_MENTAL_WEIGHT,
   COMMENTARY_GAP_MAX, COMMENTARY_CHANCE,
   MIN_PLAYERS_TO_CONTINUE,
   RED_CARD_STRENGTH_PENALTY_PER_PLAYER,
@@ -149,22 +148,8 @@ function pickAttacker(players: Player[]): Player {
 
 /** Pick the best penalty taker weighted by shooting + mental */
 function pickPenaltyTaker(players: Player[]): Player {
-  if (players.length === 0) return players[0];
+  if (players.length <= 1) return players[0];
   const weights = players.map(p => (p.attributes.shooting * PENALTY_TAKER_SHOOTING_WEIGHT + p.attributes.mental * PENALTY_TAKER_MENTAL_WEIGHT) / 100);
-  const totalWeight = weights.reduce((a, b) => a + b, 0);
-  if (totalWeight <= 0) return players[Math.floor(Math.random() * players.length)];
-  let r = Math.random() * totalWeight;
-  for (let i = 0; i < players.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return players[i];
-  }
-  return players[players.length - 1];
-}
-
-/** Pick the best set-piece taker weighted by passing + shooting + mental */
-export function pickSetPieceTaker(players: Player[]): Player {
-  if (players.length === 0) return players[0];
-  const weights = players.map(p => (p.attributes.passing * SET_PIECE_TAKER_PASSING_WEIGHT + p.attributes.shooting * SET_PIECE_TAKER_SHOOTING_WEIGHT + p.attributes.mental * SET_PIECE_TAKER_MENTAL_WEIGHT) / 100);
   const totalWeight = weights.reduce((a, b) => a + b, 0);
   if (totalWeight <= 0) return players[Math.floor(Math.random() * players.length)];
   let r = Math.random() * totalWeight;
@@ -1150,9 +1135,13 @@ export function simulateHalf(
         } else if (scorer.attributes.physical >= 70 && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE) {
           goalType = 'header_goal';
           goalDescription = pick(headerGoalDescs)(scorerName, clubName);
-        } else if (scorer.attributes.shooting >= 70 && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE + FREE_KICK_GOAL_CHANCE) {
-          goalType = 'free_kick_goal';
-          goalDescription = pick(freeKickGoalDescs)(scorerName, clubName);
+        } else if (flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE + FREE_KICK_GOAL_CHANCE) {
+          // Designated set-piece taker needs lower shooting to score free kicks
+          const freeKickThreshold = (club.setPieceTakerId && scorer.id === club.setPieceTakerId) ? 60 : 70;
+          if (scorer.attributes.shooting >= freeKickThreshold) {
+            goalType = 'free_kick_goal';
+            goalDescription = pick(freeKickGoalDescs)(scorerName, clubName);
+          }
         }
 
         events.push({
