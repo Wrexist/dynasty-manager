@@ -56,12 +56,14 @@ export async function purchaseProduct(productId: ProductId): Promise<ProductId[]
 
   try {
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
-    const offerings = await Purchases.getOfferings();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const offerings: any = await Purchases.getOfferings();
 
     // Find the package matching our product ID across all offerings
     const allPackages = [
       ...(offerings.current?.availablePackages || []),
-      ...Object.values(offerings.all || {}).flatMap(o => o.availablePackages || []),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ...Object.values(offerings.all || {}).flatMap((o: any) => o.availablePackages || []),
     ];
     const pkg = allPackages.find(p => p.product.identifier === productId);
 

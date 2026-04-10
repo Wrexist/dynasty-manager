@@ -486,6 +486,8 @@ export function simulateHalf(
       awayBench: prevState?.awayBench ? [...prevState.awayBench] : [...(awayBench || [])],
       homeSubbedIn: prevState?.homeSubbedIn ? [...prevState.homeSubbedIn] : [],
       awaySubbedIn: prevState?.awaySubbedIn ? [...prevState.awaySubbedIn] : [],
+      playerFitness: prevState?.playerFitness ?? {},
+      tacticalInsights: prevState?.tacticalInsights ?? [],
     };
   }
 
@@ -985,7 +987,7 @@ export function simulateHalf(
       // Late drama atmosphere: inject once when game is tight in the final minutes
       if (!lateDramaFired && min >= LATE_GAME_THRESHOLD_MINUTE && Math.abs(homeGoals - awayGoals) <= 1) {
         lateDramaFired = true;
-        events.push({ minute: min, type: 'commentary', description: pick(lateDramaAtmosphere)(), momentum });
+        events.push({ minute: min, type: 'commentary', clubId: Math.random() < 0.5 ? homeClub.id : awayClub.id, description: pick(lateDramaAtmosphere)(), momentum });
         lastEventMinute = min;
       }
       // Gap-filler: inject commentary if too many silent minutes have passed

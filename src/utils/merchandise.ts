@@ -8,6 +8,7 @@ import type {
   MerchProductLine, MerchState, MerchCampaignType,
 } from '@/types/game';
 import { LEAGUES } from '@/data/league';
+import { getEffectiveStadiumLevel } from '@/utils/facilities';
 import {
   MERCH_PRODUCT_LINES, MERCH_PRICING_TIERS, MERCH_BASE_INCOME_PER_FAN,
   MERCH_QUALITY_TIER_SCALE, MERCH_TOTAL_REVENUE_FACTORS,
@@ -61,7 +62,7 @@ export function isProductLineUnlocked(
   if (req.minReputation && club.reputation < req.minReputation) {
     return false;
   }
-  if (req.minStadiumLevel && facilities.stadiumLevel < req.minStadiumLevel) return false;
+  if (req.minStadiumLevel && getEffectiveStadiumLevel(facilities) < req.minStadiumLevel) return false;
   return true;
 }
 

@@ -112,8 +112,7 @@ export const INCOMING_NEGOTIATE_COUNTER_BASE = 0.4;
 export const INCOMING_NEGOTIATE_COUNTER_RANGE = 0.3;
 
 // ── Contract Renewal ──
-export const CONTRACT_MIN_YEARS = 1;
-export const CONTRACT_MAX_YEARS = 5;
+// CONTRACT_MIN_YEARS and CONTRACT_MAX_YEARS are canonical in contracts.ts
 export const SIGNING_BONUS_WEEKS_PER_YEAR = 12;
 export const RENEWAL_MORALE_BOOST = 10;
 

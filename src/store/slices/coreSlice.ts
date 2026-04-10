@@ -23,6 +23,18 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   activeSlot: 1,
   transferNews: [] as TransferNewsEntry[],
 
+  // Season tracking (enriches SeasonHistory at endSeason)
+  lastMatchCompetition: null as string | null,
+  seasonStartAvgOVR: 0,
+  seasonTransfersBought: [] as { playerName: string; fee: number }[],
+  seasonTransfersSold: [] as { playerName: string; fee: number }[],
+  seasonTotalIncome: 0,
+  seasonTotalExpenses: 0,
+
+  // Continental & rankings
+  continentalCoefficients: {} as GameState['continentalCoefficients'],
+  clubPowerRankings: {} as Record<string, number>,
+
   // League system defaults
   seasonPhase: 'regular' as SeasonPhase,
   divisionFixtures: {} as GameState['divisionFixtures'],

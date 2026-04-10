@@ -230,7 +230,7 @@ const YouthAcademy = () => {
                     <div className="flex gap-2 px-3 pb-3 pt-1">
                       {prospect.readyToPromote ? (
                         <button
-                          onClick={(e) => { e.stopPropagation(); hapticLight(); const r = promoteYouth(prospect.playerId); if (r.success) { successToast('Player Promoted', `${prospect.firstName} ${prospect.lastName} joins the first team`); } else { errorToast(r.message || 'Cannot promote player.'); } }}
+                          onClick={(e) => { e.stopPropagation(); hapticLight(); const yp = players[prospect.playerId]; const r = promoteYouth(prospect.playerId); if (r.success) { successToast('Player Promoted', `${yp?.firstName ?? ''} ${yp?.lastName ?? ''} joins the first team`); } else { errorToast(r.message || 'Cannot promote player.'); } }}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/30 active:scale-[0.97] transition-all"
                         >
                           <ArrowUpRight className="w-3.5 h-3.5" /> Promote to Squad
@@ -243,7 +243,7 @@ const YouthAcademy = () => {
                       {confirmReleaseId === prospect.playerId ? (
                         <div className="flex items-center gap-1.5">
                           <button
-                            onClick={(e) => { e.stopPropagation(); releaseYouth(prospect.playerId); setConfirmReleaseId(null); infoToast('Player Released', `${prospect.firstName} ${prospect.lastName} has left the academy`); }}
+                            onClick={(e) => { e.stopPropagation(); const rp = players[prospect.playerId]; releaseYouth(prospect.playerId); setConfirmReleaseId(null); infoToast('Player Released', `${rp?.firstName ?? ''} ${rp?.lastName ?? ''} has left the academy`); }}
                             className="flex items-center justify-center gap-1 py-2 px-3 rounded-lg bg-destructive/20 text-destructive text-xs font-bold active:scale-[0.97] transition-all min-h-[36px]"
                           >
                             Confirm

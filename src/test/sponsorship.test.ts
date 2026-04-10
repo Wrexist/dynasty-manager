@@ -39,7 +39,7 @@ import type {
 
 function makeFacilities(overrides: Partial<FacilitiesState> = {}): FacilitiesState {
   return {
-    trainingLevel: 1, youthLevel: 1, stadiumLevel: 1, medicalLevel: 1, recoveryLevel: 1,
+    trainingLevel: 1, youthLevel: 1, stadiumStands: { north: 1, south: 1, east: 1, west: 1 }, medicalLevel: 1, recoveryLevel: 1,
     upgradeInProgress: null,
     ...overrides,
   };
@@ -161,18 +161,18 @@ describe('sponsorship config helpers', () => {
     });
 
     it('returns false when facility level is too low', () => {
-      const facilities = makeFacilities({ stadiumLevel: 2 });
+      const facilities = makeFacilities({ stadiumStands: { north: 2, south: 2, east: 2, west: 2 } });
       // kit_sleeve requires stadium level 3
       expect(isSlotUnlocked('kit_sleeve', facilities)).toBe(false);
     });
 
     it('returns true when facility level is sufficient', () => {
-      const facilities = makeFacilities({ stadiumLevel: 3 });
+      const facilities = makeFacilities({ stadiumStands: { north: 3, south: 3, east: 3, west: 3 } });
       expect(isSlotUnlocked('kit_sleeve', facilities)).toBe(true);
     });
 
     it('returns true when facility level exceeds requirement', () => {
-      const facilities = makeFacilities({ stadiumLevel: 6 });
+      const facilities = makeFacilities({ stadiumStands: { north: 6, south: 6, east: 6, west: 6 } });
       // match_ball requires stadium level 4
       expect(isSlotUnlocked('match_ball', facilities)).toBe(true);
     });

@@ -39,7 +39,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
 
 function makeFacilities(overrides: Partial<FacilitiesState> = {}): FacilitiesState {
   return {
-    trainingLevel: 5, youthLevel: 5, stadiumLevel: 5, medicalLevel: 5, recoveryLevel: 1,
+    trainingLevel: 5, youthLevel: 5, stadiumStands: { north: 5, south: 5, east: 5, west: 5 }, medicalLevel: 5, recoveryLevel: 1,
     upgradeInProgress: null,
     ...overrides,
   };
@@ -107,8 +107,8 @@ describe('merchandise', () => {
 
     it('digital_global requires rep 4 and stadium level 6', () => {
       const club = makeClub({ reputation: 4 });
-      expect(isProductLineUnlocked('digital_global', club, 'eng', makeFacilities({ stadiumLevel: 5 }))).toBe(false);
-      expect(isProductLineUnlocked('digital_global', club, 'eng', makeFacilities({ stadiumLevel: 6 }))).toBe(true);
+      expect(isProductLineUnlocked('digital_global', club, 'eng', makeFacilities({ stadiumStands: { north: 5, south: 5, east: 5, west: 5 } }))).toBe(false);
+      expect(isProductLineUnlocked('digital_global', club, 'eng', makeFacilities({ stadiumStands: { north: 6, south: 6, east: 6, west: 6 } }))).toBe(true);
     });
   });
 

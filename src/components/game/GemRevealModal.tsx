@@ -113,7 +113,7 @@ export function GemRevealModal() {
                 clubColor={jerseyColor}
                 overall={player.overall}
                 position={player.position}
-                jerseyNumber={player.squadNumber}
+                jerseyNumber={undefined}
                 size="md"
               />
               <div className="flex-1">

@@ -801,7 +801,8 @@ describe('AI Simulation — processAIWeekly', () => {
       world.freeAgents = [freeGk.id];
 
       // Run until the free agent is signed
-      let result;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let result: any;
       let signed = false;
       for (let i = 0; i < 100; i++) {
         result = processAIWeekly(
@@ -813,7 +814,8 @@ describe('AI Simulation — processAIWeekly', () => {
         if (!result.freeAgents.includes(freeGk.id)) {
           signed = true;
           // Only one club should have signed them
-          const signingClubs = Object.values(result.clubs).filter(c =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const signingClubs = Object.values(result.clubs).filter((c: any) =>
             c.playerIds.includes(freeGk.id)
           );
           expect(signingClubs.length).toBe(1);

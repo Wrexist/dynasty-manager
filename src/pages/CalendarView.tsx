@@ -119,14 +119,14 @@ const CalendarView = () => {
         if (tie.week1) {
           const w = tie.week1;
           const existing = weekMap.get(w) || [];
-          existing.push({ week: w, type: 'cup', match: null, cupTie: { id: `${name}-ko-${w}`, week: w, round: tie.round as CupRound, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: tie.leg1Played, homeGoals: tie.leg1Home || 0, awayGoals: tie.leg1Away || 0 }, competitionLabel: `${name} ${tie.round}` });
+          existing.push({ week: w, type: 'cup', match: null, cupTie: { id: `${name}-ko-${w}`, week: w, round: tie.round as CupRound, homeClubId: tie.homeClubId, awayClubId: tie.awayClubId, played: tie.leg1Played, homeGoals: tie.leg1HomeGoals || 0, awayGoals: tie.leg1AwayGoals || 0 }, competitionLabel: `${name} ${tie.round}` });
           weekMap.set(w, existing);
         }
         // Leg 2 (not for finals)
         if (tie.week2 && tie.round !== 'F') {
           const w = tie.week2;
           const existing = weekMap.get(w) || [];
-          existing.push({ week: w, type: 'cup', match: null, cupTie: { id: `${name}-ko2-${w}`, week: w, round: tie.round as CupRound, homeClubId: tie.awayClubId, awayClubId: tie.homeClubId, played: tie.leg2Played, homeGoals: tie.leg2Home || 0, awayGoals: tie.leg2Away || 0 }, competitionLabel: `${name} ${tie.round} Leg 2` });
+          existing.push({ week: w, type: 'cup', match: null, cupTie: { id: `${name}-ko2-${w}`, week: w, round: tie.round as CupRound, homeClubId: tie.awayClubId, awayClubId: tie.homeClubId, played: tie.leg2Played, homeGoals: tie.leg2HomeGoals || 0, awayGoals: tie.leg2AwayGoals || 0 }, competitionLabel: `${name} ${tie.round} Leg 2` });
           weekMap.set(w, existing);
         }
       }
@@ -654,10 +654,10 @@ const CalendarView = () => {
         {/* Markers */}
         <div className="flex items-center gap-1">
           {isCongested && !isPast && (
-            <AlertTriangle className="w-3 h-3 text-amber-500/70 shrink-0" title="Congested fixture week" />
+            <span title="Congested fixture week"><AlertTriangle className="w-3 h-3 text-amber-500/70 shrink-0" /></span>
           )}
           {isBoardReview && !isPast && (
-            <Briefcase className="w-3 h-3 text-amber-400/60 shrink-0" title="Board review week" />
+            <span title="Board review week"><Briefcase className="w-3 h-3 text-amber-400/60 shrink-0" /></span>
           )}
         </div>
 
@@ -752,7 +752,7 @@ const CalendarView = () => {
 
         {/* Markers */}
         {isCongested && !isPast && (
-          <AlertTriangle className="w-3 h-3 text-amber-500/70 shrink-0" title="Congested fixture week" />
+          <span title="Congested fixture week"><AlertTriangle className="w-3 h-3 text-amber-500/70 shrink-0" /></span>
         )}
 
         {/* Result / Status */}
