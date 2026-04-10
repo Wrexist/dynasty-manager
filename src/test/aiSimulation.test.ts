@@ -801,7 +801,7 @@ describe('AI Simulation — processAIWeekly', () => {
       world.freeAgents = [freeGk.id];
 
       // Run until the free agent is signed
-      let result;
+      let result: ReturnType<typeof processAIWeekly> | undefined;
       let signed = false;
       for (let i = 0; i < 100; i++) {
         result = processAIWeekly(
@@ -813,7 +813,7 @@ describe('AI Simulation — processAIWeekly', () => {
         if (!result.freeAgents.includes(freeGk.id)) {
           signed = true;
           // Only one club should have signed them
-          const signingClubs = Object.values(result.clubs).filter(c =>
+          const signingClubs = Object.values(result!.clubs).filter(c =>
             c.playerIds.includes(freeGk.id)
           );
           expect(signingClubs.length).toBe(1);

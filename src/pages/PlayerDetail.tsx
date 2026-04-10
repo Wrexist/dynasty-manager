@@ -190,7 +190,7 @@ const PlayerDetail = () => {
             clubColor={club?.color || '#888'}
             overall={player.overall}
             position={player.position}
-            jerseyNumber={player.squadNumber}
+            jerseyNumber={undefined}
             size="lg"
             growthDelta={player.growthDelta}
           />

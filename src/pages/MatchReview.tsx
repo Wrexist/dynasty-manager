@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
+import type { Club } from '@/types/game';
 import { resolveClub } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft } from 'lucide-react';

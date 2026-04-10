@@ -9,7 +9,7 @@ export const WINTER_WINDOW_START = 20;
 export const WINTER_WINDOW_END = 24;
 
 // ── AI Incoming Offers ──
-export const AI_OFFER_CHANCE = 0.35;
+export const AI_OFFER_CHANCE = 0.50;
 export const AI_OFFER_MIN_BUDGET_RATIO = 1.2;
 export const AI_OFFER_POSITION_THRESHOLD = 3;
 
@@ -112,8 +112,7 @@ export const INCOMING_NEGOTIATE_COUNTER_BASE = 0.4;
 export const INCOMING_NEGOTIATE_COUNTER_RANGE = 0.3;
 
 // ── Contract Renewal ──
-export const CONTRACT_MIN_YEARS = 1;
-export const CONTRACT_MAX_YEARS = 5;
+// CONTRACT_MIN_YEARS and CONTRACT_MAX_YEARS are canonical in contracts.ts
 export const SIGNING_BONUS_WEEKS_PER_YEAR = 12;
 export const RENEWAL_MORALE_BOOST = 10;
 
@@ -212,7 +211,7 @@ export const LOAN_TERMINATION_MORALE_PENALTY = 10;     // Morale hit for early l
 
 // ── Free Agent Signing ──
 export const FREE_AGENT_DEFAULT_CONTRACT_YEARS = 2;    // Default contract years for signing
-export const FREE_AGENT_MIN_WAGE_RATIO = 0.5;          // Min wage offer = 50% of player wage
+export const FREE_AGENT_MIN_WAGE_RATIO = 0.7;          // Min wage offer = 70% of player wage
 export const FREE_AGENT_MAX_WAGE_RATIO = 2.0;          // Max wage offer = 200% of player wage
 
 // ── Market Listing Expiry ──

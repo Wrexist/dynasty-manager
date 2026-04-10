@@ -71,7 +71,7 @@ const TransferPage = () => {
 
   // Persistent filters (survive navigation)
   const { tab, posFilter, searchQuery, sortBy, faSortBy, divFilter, newsTypeFilter, hideUnaffordable, showShortlistOnly } = transferFilters;
-  const setTab = (v: typeof tab) => setTransferFilter({ tab: v });
+  const setTab = (v: typeof tab) => setTransferFilter({ tab: v, searchQuery: '' });
   const setPosFilter = (v: number) => setTransferFilter({ posFilter: v });
   const setSearchQuery = (v: string) => setTransferFilter({ searchQuery: v });
   const setSortBy = (v: typeof sortBy) => setTransferFilter({ sortBy: v });
@@ -326,11 +326,11 @@ const TransferPage = () => {
       {/* Transfer Tabs (4 tabs) */}
       <div role="tablist" aria-label="Transfer sections" className="flex gap-1.5">
         {([
-          { id: 'market' as const, icon: ShoppingCart, label: 'Market' },
+          { id: 'market' as const, icon: ShoppingCart, label: 'Market', count: 0 },
           { id: 'deals' as const, icon: ArrowDownLeft, label: 'Deals', count: incomingOffers.length + outgoingPlayers.length + activeLoans.length + incomingLoanOffers.length },
-          { id: 'freeAgents' as const, icon: Users, label: 'Free Agents' },
-          { id: 'news' as const, icon: Newspaper, label: 'News' },
-        ] as const).map(({ id, icon: TabIcon, label, count }) => (
+          { id: 'freeAgents' as const, icon: Users, label: 'Free Agents', count: 0 },
+          { id: 'news' as const, icon: Newspaper, label: 'News', count: 0 },
+        ]).map(({ id, icon: TabIcon, label, count }) => (
           <button
             key={id}
             role="tab"

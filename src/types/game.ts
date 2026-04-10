@@ -532,6 +532,7 @@ export interface SeasonHistory {
   conferenceCupResult?: string;
   divisionId?: LeagueId;
   replaced?: boolean;
+  promoted?: boolean;
   awards?: SeasonAward[];
   financialSummary?: { totalIncome: number; totalExpenses: number; netBalance: number };
   transferActivity?: { bought: { playerName: string; fee: number }[]; sold: { playerName: string; fee: number }[] };

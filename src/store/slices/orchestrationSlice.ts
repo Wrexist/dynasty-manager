@@ -729,7 +729,7 @@ function getContinentalMatchLabel(
  * Returns true if the aggregate is NOT tied (i.e., extra time is NOT needed).
  * For non-knockout, non-leg-2, or missing data, returns false (allow normal extra time logic).
  */
-function isAggregateDecided(state: ReturnType<typeof get>, leg2HomeGoals: number, leg2AwayGoals: number): boolean {
+function isAggregateDecided(state: GameState, leg2HomeGoals: number, leg2AwayGoals: number): boolean {
   if (!state.currentContinentalMatchId || !state.currentContinentalCompetition) return false;
   const tourney = state.currentContinentalCompetition === 'champions_cup' ? state.championsCup : state.currentContinentalCompetition === 'shield_cup' ? state.shieldCup : state.conferenceCup;
   if (!tourney) return false;
@@ -748,7 +748,7 @@ function isAggregateDecided(state: ReturnType<typeof get>, leg2HomeGoals: number
  * Returns state updates to spread into the set() call.
  */
 function processTournamentResult(
-  state: ReturnType<typeof get>,
+  state: GameState,
   result: Match,
   playerClubId: string,
   processed: { newPlayers: Record<string, import('@/types/game').Player> },
@@ -942,7 +942,7 @@ function processTournamentResult(
 
 /** Variant of processTournamentResult for penalty shootout results — takes explicit winnerId */
 function processTournamentResultWithWinner(
-  state: ReturnType<typeof get>,
+  state: GameState,
   result: Match,
   playerClubId: string,
   processed: { newPlayers: Record<string, import('@/types/game').Player> },
@@ -1425,7 +1425,9 @@ function finalizeSeason(
       const currentClub = newClubs[club.id];
       if (currentClub.playerIds.length >= MAX_SQUAD_SIZE) break;
       const repQuality = (club.reputation * REPLACEMENT_QUALITY_REP_MULTIPLIER) + REPLACEMENT_QUALITY_BASE + Math.floor(Math.random() * REPLACEMENT_QUALITY_VARIANCE);
-      const quality = Math.round(repQuality * 0.4 + (club.squadQuality || repQuality) * 0.6);
+      const clubSquad = currentClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
+      const avgOvr = clubSquad.length > 0 ? clubSquad.reduce((s, p) => s + p.overall, 0) / clubSquad.length : repQuality;
+      const quality = Math.round(repQuality * 0.4 + avgOvr * 0.6);
       const newP = generatePlayer(fillPos, quality, club.id, newSeason, club.divisionId);
       newPlayers[newP.id] = newP;
       const fillClub = { ...currentClub };
@@ -1452,7 +1454,9 @@ function finalizeSeason(
       const safeClub = { ...newClubs[club.id], playerIds: [...validIds] };
       for (let d = 0; d < deficitCount; d++) {
         if (safeClub.playerIds.length >= MAX_SQUAD_SIZE) break;
-        const emergencyQuality = Math.round(Math.max(35, (club.reputation * 10) + 20) * 0.4 + (club.squadQuality || 50) * 0.6);
+        const emergencySquad = safeClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
+        const emergencyAvgOvr = emergencySquad.length > 0 ? emergencySquad.reduce((s, p) => s + p.overall, 0) / emergencySquad.length : 50;
+        const emergencyQuality = Math.round(Math.max(35, (club.reputation * 10) + 20) * 0.4 + emergencyAvgOvr * 0.6);
         const emergencyPlayer = generatePlayer(pick(GENERIC_FILL_POSITIONS), emergencyQuality, club.id, newSeason, club.divisionId);
         newPlayers[emergencyPlayer.id] = emergencyPlayer;
         safeClub.playerIds.push(emergencyPlayer.id);
@@ -1677,8 +1681,10 @@ function finalizeSeason(
 
   const youthCoachQ = getStaffBonus(state.staff.members, 'youth-coach');
   const pcForYouth = newClubs[playerClubId];
+  const youthSquad = pcForYouth.playerIds.map(id => newPlayers[id]).filter(Boolean);
+  const youthSquadQuality = youthSquad.length > 0 ? youthSquad.reduce((s, p) => s + p.overall, 0) / youthSquad.length : undefined;
   const { prospects: newYouthProspects, players: youthPlayers } = generateYouthProspects(
-    playerClubId, pcForYouth.youthRating, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), pcForYouth.squadQuality
+    playerClubId, pcForYouth.youthRating, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), youthSquadQuality
   );
   // Golden Generation perk: guarantee at least one high-potential youth
   if (hasPerk(state.managerProgression, 'golden_generation') && youthPlayers.length > 0) {
@@ -2275,7 +2281,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const availableHires = generateStaffMarket();
     const youthCoachQuality = getStaffBonus(initialStaff, 'youth-coach');
     const { prospects: youthProspects, players: youthPlayers } = generateYouthProspects(
-      clubId, pcInit.youthRating, youthCoachQuality, 1, 3 + Math.floor(Math.random() * 2), pcInit.squadQuality
+      clubId, pcInit.youthRating, youthCoachQuality, 1, 3 + Math.floor(Math.random() * 2), selectedClubData?.squadQuality
     );
     youthPlayers.forEach(p => { allPlayers[p.id] = p; });
     const nextIntakePreview = generateIntakePreview(pcInit.youthRating);
@@ -2295,7 +2301,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       transferMarket, shortlist: [], scoutWatchList: [], freeAgents: initialFreeAgentIds, transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
       messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null,
-      settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: true, hapticsEnabled: true },
+      settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, hidePageHints: false, confirmAllOffers: false, reducedMotion: false },
       tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
       training: {
         schedule: { mon: 'fitness', tue: 'attacking', wed: 'defending', thu: 'mentality', fri: 'tactical' },
@@ -5345,8 +5351,24 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       penaltyShootout,
     };
 
-    // Finalize with extra events
-    const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState || { events: [], homeGoals: 0, awayGoals: 0, homeShots: 0, awayShots: 0, homeSoT: 0, awaySoT: 0, homeFouls: 0, awayFouls: 0, homeCorners: 0, awayCorners: 0, sentOff: [], injured: [], playerEvents: {}, momentum: 0, homeXG: 0, awayXG: 0, matchInjuries: {}, homeSubsUsed: 0, awaySubsUsed: 0, homeBench: [], awayBench: [], homeSubbedIn: [], awaySubbedIn: [] });
+    // Finalize with extra events — halfTimeState must exist by this point
+    if (!halfTimeState) {
+      console.error('[Penalties] halfTimeState missing — aborting finalization to prevent data corruption');
+      set({
+        matchPhase: 'none',
+        penaltyShootoutKicks: [],
+        penaltyShootoutRevealIndex: 0,
+        currentMatchResult: null,
+        currentCupTieId: null,
+        currentLeagueCupTieId: null,
+        currentContinentalMatchId: null,
+        currentContinentalCompetition: null,
+        halfTimeState: null,
+        matchSubsUsed: 0,
+      });
+      return;
+    }
+    const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState);
 
     const processed = processMatchResult(state, finalResult, result, playerRatings, () => get().week, halfTimeState?.matchInjuries || {});
     const penDrama = detectMatchDrama(result, playerClubId, clubs);
@@ -5563,7 +5585,6 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       );
       if (!hasSaveWarningThisWeek) {
         const msgs = addMsg(state.messages, {
-          id: `save-fail-${Date.now()}`,
           type: 'warning',
           title: 'Save Failed',
           body: 'Your game could not be saved — storage may be full. Try freeing up space on your device.',
@@ -5634,6 +5655,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       set({
         gameStarted: true, ...data, leagueTable,
         activeSlot: s,
+        // Backfill settings with defaults for fields added after save was created
+        settings: {
+          matchSpeed: 'normal', showOverallOnPitch: true, autoSave: true, hapticsEnabled: true,
+          hidePageHints: false, confirmAllOffers: false, reducedMotion: false,
+          ...(data.settings || {}),
+        },
         currentScreen: 'dashboard', previousScreen: null,
         currentMatchResult: null, selectedPlayerId: null,
         transferWindowOpen: data.week <= SUMMER_WINDOW_END || (data.week >= WINTER_WINDOW_START && data.week <= WINTER_WINDOW_END),

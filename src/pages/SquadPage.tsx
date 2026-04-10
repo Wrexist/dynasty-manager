@@ -441,7 +441,7 @@ const SquadPage = () => {
                       <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded">SUB</span>
                     )}
                     {(training.individualPlans || []).some(p => p.playerId === player.id) && (
-                      <Dumbbell className="w-3 h-3 text-primary/70 shrink-0" title="Individual training plan set" />
+                      <span title="Individual training plan set"><Dumbbell className="w-3 h-3 text-primary/70 shrink-0" /></span>
                     )}
                   </div>
                 </div>

@@ -6,12 +6,12 @@ import { cn } from '@/lib/utils';
 import { FACILITY_MAX_LEVEL } from '@/config/gameBalance';
 import { MODULE_ATTR_MAP } from '@/config/training';
 import { Dumbbell, Flame, Shield, Brain, Target, Zap } from 'lucide-react';
-import type { TrainingModule } from '@/types/game';
+import type { TrainingModule, TrainingSchedule } from '@/types/game';
 
 interface TrainingGroundViewProps {
   trainingLevel: number;
   activeModule: TrainingModule | null;
-  schedule: Record<string, TrainingModule>;
+  schedule: TrainingSchedule;
   activeDay: string;
   onDayChange: (day: string) => void;
   onModuleSelect?: (module: TrainingModule) => void;

@@ -5,7 +5,7 @@ import { GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_NEGOTIATION_GROWTH, STAT_MAX 
 import {
   ACCEPT_CHANCE_AT_ASKING, ACCEPT_CHANCE_AT_80_PERCENT, ACCEPT_CHANCE_BELOW, ACCEPT_80_PERCENT_THRESHOLD,
   LIST_PRICE_MULTIPLIER,
-  CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS, SIGNING_BONUS_WEEKS_PER_YEAR, RENEWAL_MORALE_BOOST,
+  SIGNING_BONUS_WEEKS_PER_YEAR, RENEWAL_MORALE_BOOST,
   COUNTER_OFFER_MIN_THRESHOLD, COUNTER_OFFER_MAX_THRESHOLD, COUNTER_OFFER_CHANCE,
   TRANSFER_SHARK_DISCOUNT,
   SELL_ON_HIGH_FEE_THRESHOLD, SELL_ON_LOW_FEE_THRESHOLD,
@@ -17,6 +17,7 @@ import {
   INCOMING_NEGOTIATE_ACCEPT_AT_OFFER, INCOMING_NEGOTIATE_ACCEPT_AT_120, INCOMING_NEGOTIATE_ACCEPT_AT_MAX,
   INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
 } from '@/config/transfers';
+import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
 import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, TOTAL_WEEKS, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
@@ -170,7 +171,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const player = state.players[playerId];
     if (player?.releaseClause && fee >= player.releaseClause) {
       const result = get().executeTransfer(playerId, fee);
-      return { outcome: result.success ? 'accepted' : 'rejected', message: result.success ? `Release clause triggered — ${player.name} joins for £${(fee / 1e6).toFixed(1)}M!` : result.message };
+      return { outcome: result.success ? 'accepted' : 'rejected', message: result.success ? `Release clause triggered — ${player.firstName} ${player.lastName} joins for £${(fee / 1e6).toFixed(1)}M!` : result.message };
     }
 
     // Transfer Shark perk: treat asking price as 15% lower for acceptance calculation

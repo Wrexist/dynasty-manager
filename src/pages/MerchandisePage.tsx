@@ -357,10 +357,6 @@ const MerchandisePage = () => {
 function getUnlockText(line: MerchProductLine): string {
   const req = MERCH_PRODUCT_LINES[line].unlockRequirement;
   const parts: string[] = [];
-  if (req.minDivision) {
-    const league = LEAGUES.find(l => l.id === req.minDivision);
-    parts.push(league?.shortName || req.minDivision);
-  }
   if (req.minReputation) parts.push(`Rep ${req.minReputation}+`);
   if (req.minStadiumLevel) parts.push(`Stadium Lv${req.minStadiumLevel}+`);
   return parts.length > 0 ? `Requires: ${parts.join(' or ')}` : 'Locked';

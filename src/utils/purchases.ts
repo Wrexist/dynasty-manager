@@ -56,7 +56,11 @@ export async function purchaseProduct(productId: ProductId): Promise<ProductId[]
 
   try {
     const { Purchases } = await import('@revenuecat/purchases-capacitor');
-    const offerings = await Purchases.getOfferings();
+    // SDK types unavailable in web builds — use structural typing
+    const offerings = await Purchases.getOfferings() as {
+      current?: { availablePackages: { product: { identifier: string } }[] };
+      all?: Record<string, { availablePackages: { product: { identifier: string } }[] }>;
+    };
 
     // Find the package matching our product ID across all offerings
     const allPackages = [

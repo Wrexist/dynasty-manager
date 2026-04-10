@@ -17,7 +17,7 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
     goals: 0, assists: 0, appearances: 0,
     careerGoals: 0, careerAssists: 0, careerAppearances: 0,
     yellowCards: 0, redCards: 0,
-    personality: { ambition: 12, professionalism: 12, loyalty: 12, temperament: 12, leadership: 10, creativity: 10, composure: 10, adaptability: 10 },
+    personality: { ambition: 12, professionalism: 12, loyalty: 12, temperament: 12, leadership: 10 },
     joinedSeason: 1,
     ...overrides,
   };

@@ -272,6 +272,8 @@ export const DISCIPLINARIAN_CARD_REDUCTION = 0.30;
 
 // ── Substitutions ──
 export const MAX_SUBSTITUTIONS = 5;
+/** Match fitness bonus when a substitute enters (simulates fresh legs off the bench) */
+export const SUB_ENTRY_FITNESS_BOOST = 20;
 
 // ── Smart Sub Thresholds ──
 /** Don't suggest non-urgent subs before this minute */
