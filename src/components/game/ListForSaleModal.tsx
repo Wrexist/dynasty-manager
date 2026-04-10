@@ -9,7 +9,8 @@ import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { formatMoney } from '@/utils/helpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { LIST_PRICE_MULTIPLIER, LISTING_PRICE_FLOOR } from '@/config/transfers';
+import { LIST_PRICE_MULTIPLIER, LISTING_PRICE_FLOOR, LISTING_PRICE_MIN_RATIO, LISTING_PRICE_MAX_RATIO } from '@/config/transfers';
+import { LISTING_ATTRACTIVENESS } from '@/config/ui';
 import { hapticMedium } from '@/utils/haptics';
 import {
   X, Tag, TrendingUp, TrendingDown, Minus, Wallet, Users, Star, ArrowRight,
@@ -35,8 +36,8 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
   // Guard against zero/tiny values — use LISTING_PRICE_FLOOR as absolute minimum
   const safeValue = Math.max(player.value, LISTING_PRICE_FLOOR);
   const defaultPrice = Math.max(LISTING_PRICE_FLOOR, Math.round(safeValue * LIST_PRICE_MULTIPLIER));
-  const minPrice = Math.max(LISTING_PRICE_FLOOR, Math.round(safeValue * 0.5));
-  const maxPrice = Math.max(LISTING_PRICE_FLOOR * 2, Math.round(safeValue * 2.0));
+  const minPrice = Math.max(LISTING_PRICE_FLOOR, Math.round(safeValue * LISTING_PRICE_MIN_RATIO));
+  const maxPrice = Math.max(LISTING_PRICE_FLOOR * 2, Math.round(safeValue * LISTING_PRICE_MAX_RATIO));
   const step = Math.max(10_000, Math.round(safeValue * 0.02));
 
   const [askingPrice, setAskingPrice] = useState(defaultPrice);
@@ -52,11 +53,8 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
   // Estimate how attractive this listing is to buyers
   const attractiveness = useMemo(() => {
     const ratio = askingPrice / safeValue;
-    if (ratio <= 0.8) return { label: 'Bargain', color: 'text-emerald-400' };
-    if (ratio <= 1.1) return { label: 'Fair', color: 'text-emerald-400' };
-    if (ratio <= 1.4) return { label: 'Normal', color: 'text-amber-400' };
-    if (ratio <= 1.7) return { label: 'Steep', color: 'text-amber-400' };
-    return { label: 'Unlikely', color: 'text-red-400' };
+    const tier = LISTING_ATTRACTIVENESS.find(t => ratio <= t.maxRatio) || LISTING_ATTRACTIVENESS[LISTING_ATTRACTIVENESS.length - 1];
+    return { label: tier.label, color: tier.color };
   }, [askingPrice, safeValue]);
 
   const positionCount = useMemo(() => {

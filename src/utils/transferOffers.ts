@@ -10,6 +10,8 @@ import {
   PERFORMANCE_FWD_GOAL_WEIGHT, PERFORMANCE_MID_GOAL_WEIGHT, PERFORMANCE_DEF_GOAL_WEIGHT,
   PERFORMANCE_EXPECTED_SEASON_APPEARANCES,
   CONTRACT_1YR_BID_FACTOR, CONTRACT_2YR_BID_FACTOR,
+  FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE, FREE_AGENT_DIV_BONUS,
+  SIGNING_BONUS_WEEKS_PER_YEAR,
 } from '@/config/transfers';
 
 const FWD_POSITIONS: Position[] = ['ST', 'LW', 'RW'];
@@ -44,6 +46,21 @@ export function getPerformanceMultiplier(player: Player): number {
 
   const rawMultiplier = 1 + (goalBonus + assistBonus + formBonus) * appearanceScale;
   return Math.min(rawMultiplier, PERFORMANCE_MAX_MULTIPLIER);
+}
+
+/**
+ * Max free agent overall a club can sign, based on reputation and division.
+ */
+export function getMaxFreeAgentOverall(reputation: number, divisionId: string): number {
+  const divBonus = FREE_AGENT_DIV_BONUS[divisionId] || 0;
+  return FREE_AGENT_REP_BASE + reputation * FREE_AGENT_REP_SCALE + divBonus;
+}
+
+/**
+ * Calculate the signing bonus for a free agent contract.
+ */
+export function calculateSigningBonus(wage: number, years: number): number {
+  return Math.round(wage * years * SIGNING_BONUS_WEEKS_PER_YEAR);
 }
 
 /**

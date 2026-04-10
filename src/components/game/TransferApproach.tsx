@@ -8,6 +8,8 @@ import { formatWage } from '@/utils/contracts';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { LoanNegotiation } from '@/components/game/LoanNegotiation';
+import { UNLISTED_PLAYER_PREMIUM } from '@/config/transfers';
+import { formatMoney } from '@/utils/helpers';
 import { X, Banknote, Repeat2 } from 'lucide-react';
 
 interface Props {
@@ -45,7 +47,7 @@ export function TransferApproach({ playerId, onClose }: Props) {
   if (mode === 'transfer' && !existingListing) {
     const syntheticListing = {
       playerId: player.id,
-      askingPrice: Math.round(player.value * 1.5),
+      askingPrice: Math.round(player.value * UNLISTED_PLAYER_PREMIUM),
       sellerClubId: player.clubId,
     };
     return <TransferNegotiation listing={syntheticListing} onClose={onClose} />;
@@ -138,7 +140,7 @@ export function TransferApproach({ playerId, onClose }: Props) {
                 <div className="text-left">
                   <p className="text-sm font-bold text-foreground">Transfer Offer</p>
                   <p className="text-[10px] text-muted-foreground">
-                    Make a bid to sign permanently · Est. {'\u00A3'}{(Math.round(player.value * 1.5) / 1e6).toFixed(1)}M
+                    Make a bid to sign permanently · Est. {formatMoney(Math.round(player.value * UNLISTED_PLAYER_PREMIUM))}
                   </p>
                 </div>
               </button>

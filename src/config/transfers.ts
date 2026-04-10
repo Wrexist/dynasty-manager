@@ -195,6 +195,26 @@ export const FREE_AGENT_DIV_BONUS: Record<string, number> = {
 export const INITIAL_MARKET_GEN_MIN = 12;
 export const INITIAL_MARKET_GEN_RANGE = 9; // 12-20 players
 
+// ── Negotiation UI Slider Bounds ──
+export const NEGOTIATION_SLIDER_MIN_RATIO = 0.5;    // Min offer = 50% of asking price
+export const NEGOTIATION_SLIDER_MAX_RATIO = 1.2;    // Max offer = 120% of asking price
+export const LISTING_PRICE_MIN_RATIO = 0.5;          // Min listing = 50% of value
+export const LISTING_PRICE_MAX_RATIO = 2.0;          // Max listing = 200% of value
+export const UNLISTED_PLAYER_PREMIUM = 1.5;           // Synthetic listing = 150% of value
+
+// ── Loan Defaults ──
+export const LOAN_DEFAULT_DURATION = 16;               // Default loan duration in weeks
+export const LOAN_DEFAULT_WAGE_SPLIT = 50;             // Default wage split percentage
+export const LOAN_BUY_FEE_MULTIPLIER = 1.2;           // Default buy fee = 120% of value
+export const LOAN_BUY_FEE_MIN_RATIO = 0.8;            // Min buy fee = 80% of value
+export const LOAN_BUY_FEE_MAX_RATIO = 2.0;            // Max buy fee = 200% of value
+export const LOAN_TERMINATION_MORALE_PENALTY = 10;     // Morale hit for early loan termination
+
+// ── Free Agent Signing ──
+export const FREE_AGENT_DEFAULT_CONTRACT_YEARS = 2;    // Default contract years for signing
+export const FREE_AGENT_MIN_WAGE_RATIO = 0.5;          // Min wage offer = 50% of player wage
+export const FREE_AGENT_MAX_WAGE_RATIO = 2.0;          // Max wage offer = 200% of player wage
+
 // ── Market Listing Expiry ──
 // Unsold listings are refreshed after this many weeks
 export const LISTING_EXPIRY_WEEKS = 12;
