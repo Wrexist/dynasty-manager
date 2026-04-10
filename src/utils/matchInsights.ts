@@ -1,5 +1,5 @@
 import type { Match, MatchEvent } from '@/types/game';
-import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
+import { GOAL_SCORING_TYPES } from '@/config/matchEngine';
 
 export interface MatchInsight {
   icon: string;
@@ -83,7 +83,7 @@ export function generateMatchInsights(
   }
 
   // Late drama
-  const lateGoals = match.events.filter((e: MatchEvent) => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type) && e.minute >= 85);
+  const lateGoals = match.events.filter((e: MatchEvent) => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type) && e.minute >= 85);
   if (lateGoals.length > 0) {
     const playerLateGoals = lateGoals.filter(e => {
       return isHome ? e.clubId === match.homeClubId : e.clubId === match.awayClubId;

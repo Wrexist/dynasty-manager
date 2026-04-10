@@ -4,9 +4,9 @@ import {
   GOAL_MILESTONES, ASSIST_MILESTONES, UNBEATEN_MILESTONES, WIN_MILESTONES,
   CLEAN_SHEET_MILESTONES, CAREER_GOAL_MILESTONES, CAREER_APP_MILESTONES,
 } from '@/config/gameBalance';
-import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
+import { GOAL_SCORING_TYPES } from '@/config/matchEngine';
 
-const isScoring = (type: string) => (GOAL_EVENT_TYPES as readonly string[]).includes(type);
+const isScoring = (type: string) => (GOAL_SCORING_TYPES as readonly string[]).includes(type);
 
 type CelebrationSeverity = 'minor' | 'major' | 'legendary';
 
@@ -243,10 +243,6 @@ export function detectMatchDrama(
       if (isScoring(e.type)) {
         if (e.clubId === playerClubId) playerGoals++;
         else oppGoals++;
-      } else if (e.type === 'own_goal') {
-        // Own goals benefit the opposing team
-        if (e.clubId === playerClubId) oppGoals++;
-        else playerGoals++;
       }
       if (oppGoals > playerGoals) wasLosing = true;
     }

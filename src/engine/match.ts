@@ -1089,7 +1089,7 @@ export function simulateHalf(
         const preGoalAwayGoals = awayGoals;
         if (isHome) homeGoals++; else awayGoals++;
         if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
-        const assist = pickAssist(squad, scorer.id);
+        let assist = pickAssist(squad, scorer.id);
         if (playerEvents[scorer.id]) playerEvents[scorer.id].goals++;
         if (assist && playerEvents[assist.id]) playerEvents[assist.id].assists++;
         oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = false; });
@@ -1158,6 +1158,12 @@ export function simulateHalf(
               actualScorerId = fkScorer.id;
             }
           }
+        }
+
+        // Clear assist if the free-kick override made the assist player the scorer
+        if (assist && assist.id === actualScorerId) {
+          if (playerEvents[assist.id]) playerEvents[assist.id].assists--;
+          assist = undefined;
         }
 
         events.push({
