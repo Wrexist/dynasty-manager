@@ -136,6 +136,7 @@ export function createDefaultManager(
     resignedCount: 0,
     awardsWon: [],
     legacyScore: 0,
+    personalWealth: 0,
     unemployedWeeks: 0,
     nationalTeamAppointedSeason: null,
     nationalTeamSacked: false,

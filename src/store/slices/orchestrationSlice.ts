@@ -2064,12 +2064,13 @@ function finalizeSeason(
             return met ? { ...b, met: true } : b;
           })};
           if (bonusPayout > 0) {
+            cm.personalWealth = (cm.personalWealth || 0) + bonusPayout;
             const bonusState = get();
             const bonusClub = bonusState.clubs[bonusState.playerClubId];
             const bonusMsg = addMsg(bonusState.messages, {
               week: TOTAL_WEEKS, season, type: 'general',
               title: 'Contract Bonuses Paid',
-              body: `The club paid £${(bonusPayout / 1000).toFixed(0)}k in manager performance bonuses this season.`,
+              body: `The club paid £${(bonusPayout / 1000).toFixed(0)}k in manager performance bonuses this season. Your personal wealth is now £${((cm.personalWealth) / 1000).toFixed(0)}k.`,
             });
             set({
               messages: bonusMsg,
@@ -3642,9 +3643,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const staffWages = staff.members.reduce((sum, s) => sum + s.wage, 0);
     // Scouting costs: each active assignment costs money per week
     const scoutingCosts = newScouting.assignments.length * SCOUTING_COST_PER_ASSIGNMENT;
-    // Manager salary: deducted weekly from club budget
+    // Manager salary: deducted weekly from club budget and accumulated as personal wealth
     const managerSalary = state.careerManager?.contract?.salary ?? 0;
     const totalExpenses = playerClub.wageBill + staffWages + scoutingCosts + managerSalary;
+    const updatedWealth = (state.careerManager?.personalWealth ?? 0) + managerSalary;
     newClubs[playerClubId] = { ...playerClub, budget: playerClub.budget + weeklyIncome - totalExpenses };
 
     // Accumulate season-level income/expense totals for SeasonHistory enrichment
@@ -4017,6 +4019,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       fanMood: merchFanMood,
       seasonGrowthTracker: { ...seasonGrowthTracker },
       clubPowerRankings: eloRankings,
+      ...(state.careerManager && managerSalary > 0 ? { careerManager: { ...state.careerManager, personalWealth: updatedWealth } } : {}),
       seasonTotalIncome: prevSeasonIncome + weeklyIncome,
       seasonTotalExpenses: prevSeasonExpenses + totalExpenses,
       weeklyDigest: {
