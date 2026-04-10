@@ -264,20 +264,26 @@ const TitleScreen = () => {
                 <div className="bg-card/60 rounded-xl p-4">
                   <h3 className="text-sm font-semibold text-foreground mb-3">Match Speed</h3>
                   <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
-                    {MATCH_SPEEDS.map(s => (
-                      <button
-                        key={s.value}
-                        onClick={() => updateSettings({ matchSpeed: s.value })}
-                        className={cn(
-                          'flex-1 flex items-center justify-center py-2.5 rounded-md text-xs font-semibold transition-all',
-                          settings.matchSpeed === s.value
-                            ? 'bg-primary/20 text-primary'
-                            : 'text-muted-foreground hover:text-foreground'
-                        )}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
+                    {MATCH_SPEEDS.map(s => {
+                      const locked = s.pro && !userIsPro;
+                      return (
+                        <button
+                          key={s.value}
+                          onClick={() => !locked && updateSettings({ matchSpeed: s.value })}
+                          className={cn(
+                            'flex-1 flex items-center justify-center gap-0.5 py-2.5 rounded-md text-xs font-semibold transition-all',
+                            locked
+                              ? 'text-muted-foreground/40 cursor-default'
+                              : settings.matchSpeed === s.value
+                                ? 'bg-primary/20 text-primary'
+                                : 'text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          {locked && <Crown className="w-2.5 h-2.5" />}
+                          {s.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
