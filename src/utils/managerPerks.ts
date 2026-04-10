@@ -174,6 +174,11 @@ export function hasPerk(prog: ManagerProgression, perkId: PerkId): boolean {
   return prog.unlockedPerks.includes(perkId);
 }
 
+/** Get the dynasty builder multiplier (1.1x if Dynasty Builder perk is active, 1.0x otherwise) */
+export function dynastyMult(prog: ManagerProgression): number {
+  return prog.unlockedPerks.includes('dynasty_builder') ? 1.1 : 1;
+}
+
 /** Get the full prerequisite chain for a perk (bottom to top, excluding the perk itself) */
 export function getPrerequisiteChain(perk: ManagerPerk): ManagerPerk[] {
   const chain: ManagerPerk[] = [];

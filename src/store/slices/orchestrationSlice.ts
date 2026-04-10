@@ -124,7 +124,7 @@ import {
 } from '@/config/gameBalance';
 import type { InjuryType, InjurySeverity, InjuryDetails } from '@/types/game';
 import { createMilestone } from '@/utils/milestones';
-import { createDefaultProgression, grantXP, XP_REWARDS, MANAGER_PERKS, canUnlockPerk, hasPerk } from '@/utils/managerPerks';
+import { createDefaultProgression, grantXP, XP_REWARDS, MANAGER_PERKS, canUnlockPerk, hasPerk, dynastyMult } from '@/utils/managerPerks';
 import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
 import { initializeClubPowerRankings, updateEloRatings, getOpponentQualityBonus } from '@/utils/teamRankings';
 import type { CareerMilestone, PerkId, ManagerProgression } from '@/types/game';
@@ -1758,6 +1758,12 @@ function finalizeSeason(
   const { prospects: newYouthProspects, players: youthPlayers } = generateYouthProspects(
     playerClubId, pcForYouth.youthRating, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), youthSquadQuality
   );
+  // Wonder Coach perk: +5 potential on all youth intake
+  if (hasPerk(state.managerProgression, 'wonder_coach') && youthPlayers.length > 0) {
+    for (let i = 0; i < youthPlayers.length; i++) {
+      youthPlayers[i] = { ...youthPlayers[i], potential: Math.min(99, youthPlayers[i].potential + 5) };
+    }
+  }
   // Golden Generation perk: guarantee at least one high-potential youth
   if (hasPerk(state.managerProgression, 'golden_generation') && youthPlayers.length > 0) {
     const hasHighPotential = youthPlayers.some(p => p.potential >= GOLDEN_GEN_MIN_POTENTIAL);
@@ -2716,7 +2722,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
       const allClubPlayers = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
       const mentorBonusVal = getMentorBonus(p, allClubPlayers);
-      const trainingPerkBoost = hasPerk(state.managerProgression, 'training_ground') ? TRAINING_GROUND_BOOST : 0;
+      const dm = dynastyMult(state.managerProgression);
+      const trainingPerkBoost = hasPerk(state.managerProgression, 'training_ground') ? TRAINING_GROUND_BOOST * dm : 0;
       const dnaCoachBoost = hasPerk(state.managerProgression, 'dna_coach') && p.age < 24 ? 0.1 : 0;
       const gkBoost = p.position === 'GK' ? gkCoachBonus * GK_COACH_DEV_BONUS_PER_QUALITY : 0;
       p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + dnaCoachBoost + gkBoost);
@@ -3952,7 +3959,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         lp.morale = Math.min(100, Math.max(30, lp.morale + 2)); // playing regularly boosts morale
         // Development: young players on loan develop from playing time
         if (lp.age < LOAN_YOUNG_AGE_THRESHOLD && lp.overall < lp.potential) {
-          const devChance = LOAN_DEV_BASE_CHANCE + (loanClub.reputation * LOAN_DEV_REP_FACTOR); // better clubs = slightly better development
+          const loanMasterMult = hasPerk(state.managerProgression, 'loan_master') ? 1.3 : 1;
+          const devChance = (LOAN_DEV_BASE_CHANCE + (loanClub.reputation * LOAN_DEV_REP_FACTOR)) * loanMasterMult;
           if (Math.random() < devChance) {
             const attrs = { ...lp.attributes };
             const attrKeys = Object.keys(attrs) as (keyof PlayerAttributes)[];

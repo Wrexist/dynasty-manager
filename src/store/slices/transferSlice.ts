@@ -368,7 +368,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const club = state.clubs[state.playerClubId];
     if (fee > club.budget) return { success: false, message: 'Insufficient funds.' };
     const careerFeeDiscount = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.negotiation * 0.005 : 0;
-    const effAsk = (hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT) : listing.askingPrice) * (1 - careerFeeDiscount);
+    const deadlineDealerMult = (hasPerk(state.managerProgression, 'deadline_dealer') && (state.week === 8 || state.week === 24)) ? 0.8 : 1;
+    const effAsk = (hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT) : listing.askingPrice) * (1 - careerFeeDiscount) * deadlineDealerMult;
     const acceptChance = fee >= effAsk ? ACCEPT_CHANCE_AT_ASKING : fee >= effAsk * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
     if (Math.random() > acceptChance) return { success: false, message: 'Offer rejected. Try a higher fee.' };
     return get().executeTransfer(playerId, fee);

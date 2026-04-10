@@ -27,6 +27,7 @@ import { infoToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
 import { getActiveCosmetic, isPro } from '@/utils/monetization';
+import { hasPerk } from '@/utils/managerPerks';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
@@ -256,6 +257,8 @@ const MatchDay = () => {
   };
 
   // Detect key moments that should pause the match for player decisions
+  const managerProgression = useGameStore(s => s.managerProgression);
+  const hasPuppetMaster = hasPerk(managerProgression, 'puppet_master');
   const checkKeyMoment = useCallback((minute: number, events: MatchEvent[]) => {
     if (!match) return false;
     const playerGoals = events.filter(e => isGoalEvent(e) && e.clubId === playerClubId).length;
@@ -307,9 +310,10 @@ const MatchDay = () => {
       }
     }
 
-    // Losing late — offer tactical push
-    if (minute === KEY_MOMENT_LOSING_MINUTE && isLosing) {
-      const key = 'losing-70';
+    // Losing late — offer tactical push (puppet_master: also triggers at 55)
+    const losingMinute = hasPuppetMaster ? KEY_MOMENT_LOSING_MINUTE - 15 : KEY_MOMENT_LOSING_MINUTE;
+    if ((minute === losingMinute || minute === KEY_MOMENT_LOSING_MINUTE) && isLosing) {
+      const key = `losing-${minute}`;
       if (!dismissedMomentsRef.current.has(key)) {
         dismissedMomentsRef.current.add(key);
         return { type: 'losing_late', description: `You trail with 20 minutes left. Time for changes?` };
@@ -357,7 +361,7 @@ const MatchDay = () => {
     }
 
     return false;
-  }, [match, playerClubId]);
+  }, [match, playerClubId, hasPuppetMaster]);
 
   // Use refs to avoid unstable dependencies in the animation effect.
   // checkKeyMoment and matchPhase are read inside the interval callback,
