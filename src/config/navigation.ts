@@ -93,3 +93,14 @@ export const SCREEN_GROUPS: GameScreen[][] = [
   ['squad', 'training', 'staff', 'youth-academy'],
   ['transfers', 'scouting'],
 ];
+
+// Pinned screens shown as quick-access icons at the top of the More drawer
+export const PINNED_DRAWER_SCREENS: GameScreen[] = ['inbox', 'league-table', 'calendar', 'help'];
+
+// Minimum season required before certain drawer items become visible (progressive disclosure)
+export const DRAWER_PROGRESSIVE_SCREENS: Partial<Record<GameScreen, number>> = {
+  'ballon-dor': 2,
+  'hall-of-managers': 2,
+  'comparison': 2,
+  'shop': 2,
+};

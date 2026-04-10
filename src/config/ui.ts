@@ -256,6 +256,9 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
   },
 } as const;
 
+// ── More Drawer (New Player Onboarding) ──
+export const NEW_PLAYER_DRAWER_WEEK_THRESHOLD = 4;
+
 // ── Dashboard Thresholds ──
 export const MID_SEASON_WEEK = 23;
 export const CONFIDENCE_CRITICAL_THRESHOLD = 35;
