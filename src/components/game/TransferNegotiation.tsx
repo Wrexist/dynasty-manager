@@ -316,7 +316,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   </div>
 
                   {/* Enhanced Slider with zone colors and markers */}
-                  <div className="relative pt-5 pb-5">
+                  <div className="relative pt-5 pb-5" style={{ touchAction: 'auto' }}>
                     {/* Zone-colored track background */}
                     <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1.5 rounded-full overflow-hidden flex pointer-events-none">
                       <div className="bg-red-500/20 h-full" style={{ width: `${zone80Percent}%` }} />
@@ -350,7 +350,8 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                       step={step}
                       value={offerFee}
                       onChange={(e) => setOfferFee(Number(e.target.value))}
-                      className="relative z-10 w-full h-1.5 bg-transparent rounded-full accent-primary cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
+                      style={{ touchAction: 'auto' }}
+                      className="relative z-10 w-full h-1.5 bg-transparent rounded-full accent-primary cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
                     />
                   </div>
                   <div className="flex justify-between text-[10px] text-muted-foreground tabular-nums -mt-2">

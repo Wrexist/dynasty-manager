@@ -4,20 +4,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { X, ArrowRight, Check, AlertTriangle, Minus, Plus } from 'lucide-react';
 import { formatWage, getPreferredYears } from '@/utils/contracts';
-import { getMoodColor, getMoodLabel, getRatingColor } from '@/utils/uiHelpers';
+import { getMoodColor, getMoodLabel, getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { motion } from 'framer-motion';
 import { hapticMedium } from '@/utils/haptics';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { Position } from '@/types/game';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
-
-function posBadgeColor(pos: Position): string {
-  if (pos === 'GK') return 'bg-amber-500/20 text-amber-400';
-  if (['CB', 'LB', 'RB'].includes(pos)) return 'bg-blue-500/20 text-blue-400';
-  if (['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(pos)) return 'bg-emerald-500/20 text-emerald-400';
-  return 'bg-red-500/20 text-red-400';
-}
 
 export function ContractNegotiation() {
   const { activeNegotiation, players, clubs, playerClubId } = useGameStore(useShallow(s => ({
@@ -47,14 +39,14 @@ export function ContractNegotiation() {
 
   const isComplete = activeNegotiation.status === 'accepted' || activeNegotiation.status === 'rejected';
   const currentYears = customYears ?? activeNegotiation.contractYears;
-  const gap = (customWage || activeNegotiation.offeredWage) / activeNegotiation.demandedWage;
+  const gap = (customWage ?? activeNegotiation.offeredWage) / activeNegotiation.demandedWage;
   const preferredYears = getPreferredYears(activeNegotiation.playerAge);
   const yearsDiff = currentYears - preferredYears;
 
   const handleSubmit = () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
-    submitWageOffer(customWage || activeNegotiation.offeredWage, customYears ?? activeNegotiation.contractYears);
+    submitWageOffer(customWage ?? activeNegotiation.offeredWage, customYears ?? activeNegotiation.contractYears);
     setCustomWage(null);
     setCustomYears(null);
   };
@@ -78,7 +70,7 @@ export function ContractNegotiation() {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/30">
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0 flex-1">
             <div className={cn(
               'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
               'bg-gradient-to-b from-white/[0.06] to-transparent border border-white/[0.06]',
@@ -87,13 +79,13 @@ export function ContractNegotiation() {
                 {player.overall}
               </span>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-bold text-foreground">
                 {activeNegotiation.type === 'renewal' ? 'Contract Renewal' : 'New Contract'}
               </p>
-              <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                 <FlagIcon nationality={player.nationality} size={14} />
-                <span className="text-xs text-muted-foreground">{player.firstName} {player.lastName}</span>
+                <span className="text-xs text-muted-foreground truncate">{player.firstName} {player.lastName}</span>
                 <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded leading-none', posBadgeColor(player.position))}>
                   {player.position}
                 </span>
@@ -133,6 +125,14 @@ export function ContractNegotiation() {
 
           {!isComplete && (
             <>
+              {/* Current wage context */}
+              {activeNegotiation.type === 'renewal' && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-muted-foreground">Current wage</span>
+                  <span className="text-foreground font-semibold">{formatWage(player.wage)}</span>
+                </div>
+              )}
+
               {/* Player demand vs your offer */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
@@ -141,7 +141,7 @@ export function ContractNegotiation() {
                 </div>
                 <div className="bg-primary/10 rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground mb-1">Your Offer</p>
-                  <p className="text-lg font-bold text-primary">{formatWage(customWage || activeNegotiation.offeredWage)}</p>
+                  <p className="text-lg font-bold text-primary">{formatWage(customWage ?? activeNegotiation.offeredWage)}</p>
                 </div>
               </div>
 
@@ -229,10 +229,10 @@ export function ContractNegotiation() {
                         min={sliderMin}
                         max={sliderMax}
                         step={dynamicStep}
-                        value={customWage || activeNegotiation.offeredWage}
+                        value={customWage ?? activeNegotiation.offeredWage}
                         onChange={(e) => setCustomWage(Number(e.target.value))}
                         style={{ touchAction: 'auto' }}
-                        className="relative z-10 w-full h-1.5 bg-transparent rounded-full accent-primary cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
+                        className="relative z-10 w-full h-1.5 bg-transparent rounded-full accent-primary cursor-pointer appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-background [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-background [&::-moz-range-thumb]:cursor-pointer [&::-webkit-slider-runnable-track]:bg-transparent [&::-moz-range-track]:bg-transparent"
                       />
                     </div>
                   );
@@ -254,7 +254,7 @@ export function ContractNegotiation() {
               {(() => {
                 const club = clubs[playerClubId];
                 if (!club) return null;
-                const offeredWage = customWage || activeNegotiation.offeredWage;
+                const offeredWage = customWage ?? activeNegotiation.offeredWage;
                 const wageDiff = offeredWage - player.wage;
                 const totalCost = activeNegotiation.agentFee + (activeNegotiation.loyaltyBonus || 0);
                 return (

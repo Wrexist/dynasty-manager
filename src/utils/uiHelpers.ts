@@ -3,7 +3,7 @@
  * Centralized color/rating logic used across pages and components.
  */
 
-import { PlayerAttributes } from '@/types/game';
+import { PlayerAttributes, Position } from '@/types/game';
 import { FAN_CONFIDENCE_FAN_WEIGHT, FAN_CONFIDENCE_BOARD_WEIGHT } from '@/config/gameBalance';
 import {
   RATING_COLOR_THRESHOLDS,
@@ -82,6 +82,14 @@ export function getMatchRatingColor(rating: number): string {
     if (rating >= t.min) return t.textClass;
   }
   return 'text-amber-400';
+}
+
+/** Get bg + text classes for a position badge (GK=amber, DEF=blue, MID=emerald, ATT=red) */
+export function posBadgeColor(pos: Position): string {
+  if (pos === 'GK') return 'bg-amber-500/20 text-amber-400';
+  if (['CB', 'LB', 'RB'].includes(pos)) return 'bg-blue-500/20 text-blue-400';
+  if (['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(pos)) return 'bg-emerald-500/20 text-emerald-400';
+  return 'bg-red-500/20 text-red-400';
 }
 
 /** Get combined bg + text classes for a rating badge (e.g. 'bg-emerald-500/20 text-emerald-400') */
