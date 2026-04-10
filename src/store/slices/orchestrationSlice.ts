@@ -3798,7 +3798,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         } else {
           const baseDevGain = 1 + youthCoachQuality * 0.3 + newFacilities.youthLevel * 0.2;
           const careerYouthMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.youthDevelopment * MOD_YOUTH_GROWTH : 0;
-          const devGain = hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST + careerYouthMod) : baseDevGain * (1 + careerYouthMod);
+          const ydm = dynastyMult(state.managerProgression);
+          const devGain = hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST * ydm + careerYouthMod) : baseDevGain * (1 + careerYouthMod);
           prospect.developmentScore = Math.min(100, prospect.developmentScore + devGain);
         }
         // Bust risk: low-potential prospects can lose potential permanently (1% per week)
@@ -3820,7 +3821,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Weekly income — expanded sources
     const newClubs = { ...clubs };
-    const fanFavMult = hasPerk(state.managerProgression, 'fan_favourite') ? 1.15 : 1;
+    const fanFavMult = hasPerk(state.managerProgression, 'fan_favourite') ? 1 + 0.15 * dynastyMult(state.managerProgression) : 1;
     const stadiumIncome = Math.round(getEffectiveStadiumLevel(newFacilities) * STADIUM_INCOME_PER_LEVEL * fanFavMult);
     const fanMoodMult = FAN_MOOD_BASE + (state.fanMood / 100) * FAN_MOOD_SCALE;
     // Derby income bonus: check if this week's played match was a derby
@@ -4780,7 +4781,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Motivator perk: boost player team morale before match
     if (hasPerk(state.managerProgression, 'motivator')) {
       const boostPlayers = (ps: typeof hp, clubId: string) =>
-        clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + MOTIVATOR_MORALE_BOOST) })) : ps;
+        clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + Math.round(MOTIVATOR_MORALE_BOOST * dynastyMult(state.managerProgression))) })) : ps;
       hp = boostPlayers(hp, match.homeClubId);
       ap = boostPlayers(ap, match.awayClubId);
     }
@@ -4811,7 +4812,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       set({ preMatchSnapshot: { fixtures: [...state.fixtures], divisionFixtures: { ...state.divisionFixtures }, players: { ...state.players }, boardConfidence: state.boardConfidence, leagueTable: [...state.leagueTable], divisionTables: { ...state.divisionTables } } });
     }
 
-    const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season, careerDisciplineMod, hBenchCM, aBenchCM);
+    const spCoachInstant = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
+    const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season, careerDisciplineMod, hBenchCM, aBenchCM, undefined, spCoachInstant);
 
     // ── Cup/Tournament match path ──
     if (isCupMatch) {
@@ -5217,7 +5219,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Motivator perk: boost player team morale before match
     if (hasPerk(state.managerProgression, 'motivator')) {
       const boostPlayers = (ps: typeof hp, clubId: string) =>
-        clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + MOTIVATOR_MORALE_BOOST) })) : ps;
+        clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + Math.round(MOTIVATOR_MORALE_BOOST * dynastyMult(state.managerProgression))) })) : ps;
       hp = boostPlayers(hp, match.homeClubId);
       ap = boostPlayers(ap, match.awayClubId);
     }
@@ -5243,7 +5245,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
     const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
-    const spCoachBonus = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 : 0;
+    const spCoachBonus = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
     const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, halfCareerMod, hBench, aBench, undefined, undefined, spCoachBonus);
 
     // Determine which cup tracking IDs to set
@@ -5355,7 +5357,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       ? { attackMod: teamTalkMods.attackMod + shoutMods.attackMod, defenseMod: teamTalkMods.defenseMod + shoutMods.defenseMod, foulMod: teamTalkMods.foulMod + shoutMods.foulMod, fitnessDrainMult: teamTalkMods.fitnessDrainMult }
       : (shoutMods.attackMod || shoutMods.defenseMod || shoutMods.foulMod) ? { ...shoutMods, fitnessDrainMult: 1 as number } : undefined;
 
-    const spCoachBonus2H = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 : 0;
+    const spCoachBonus2H = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
     const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, undefined, spCoachBonus2H);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
@@ -5497,7 +5499,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const etMods = etTeamTalkMods
       ? { attackMod: etTeamTalkMods.attackMod + etShoutMods.attackMod, defenseMod: etTeamTalkMods.defenseMod + etShoutMods.defenseMod, foulMod: etTeamTalkMods.foulMod + etShoutMods.foulMod, fitnessDrainMult: etTeamTalkMods.fitnessDrainMult }
       : (etShoutMods.attackMod || etShoutMods.defenseMod || etShoutMods.foulMod) ? { ...etShoutMods, fitnessDrainMult: 1 as number } : undefined;
-    const spCoachBonusET = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 : 0;
+    const spCoachBonusET = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
     const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod, undefined, undefined, etMods, undefined, spCoachBonusET);
 
     // Build the extended match result

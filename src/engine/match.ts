@@ -1687,6 +1687,7 @@ export function simulateMatch(
   homeBench?: Player[],
   awayBench?: Player[],
   matchWeather?: MatchWeather,
+  setPieceCoachBonus?: number,
 ): { result: Match; playerRatings: PlayerMatchRating[]; matchInjuries: Record<string, InjuryDetails> } {
   // Generate weather if not provided
   const weather = matchWeather || generateMatchWeather();
@@ -1709,7 +1710,7 @@ export function simulateMatch(
   const effectiveAwayTactics = awayTactics ?? awayClub.aiManagerProfile?.defaultTactics ?? AI_DEFAULT_TACTICS;
 
   // Simulate first half (1-45)
-  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather);
+  const firstHalf = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 1, 45, effectiveHomeTactics, effectiveAwayTactics, tacticalFamiliarity, playerClubId, undefined, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
 
   // AI tactical reactivity: adjust tactics for second half based on scoreline
   let secondHalfHomeTactics = effectiveHomeTactics;
@@ -1723,7 +1724,7 @@ export function simulateMatch(
   }
 
   // Simulate second half (46-90) with potentially adjusted AI tactics
-  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather);
+  const fullState = simulateHalf(homeClub, awayClub, homePlayers, awayPlayers, 46, 90, secondHalfHomeTactics, secondHalfAwayTactics, tacticalFamiliarity, playerClubId, firstHalf, derbyIntensity, disciplinarianActive, homeClub.facilities, awayClub.facilities, currentSeason, careerDisciplineMod, homeBench, awayBench, undefined, weather, setPieceCoachBonus);
 
   const finalized = finalizeMatch(match, homeClub, awayClub, homePlayers, awayPlayers, fullState);
   // Attach weather to the match result
