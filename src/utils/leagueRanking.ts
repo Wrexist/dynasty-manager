@@ -71,8 +71,8 @@ export function getLeagueRankings(
     score: computeLeagueScore(league, coefficients),
   }));
 
-  // Sort by score descending
-  scored.sort((a, b) => b.score - a.score);
+  // Sort by score descending, with alphabetical league ID as tiebreaker for determinism
+  scored.sort((a, b) => b.score - a.score || a.leagueId.localeCompare(b.leagueId));
 
   return scored.map((entry, i) => {
     const rank = i + 1;

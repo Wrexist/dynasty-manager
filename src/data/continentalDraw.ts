@@ -97,9 +97,19 @@ function collectQualifiers(
     qualifiers.push(cupWinnerId);
     const c = playerClubs[cupWinnerId];
     if (c) {
+      // Cup winner is a player-league club
       const league = ALL_LEAGUES.find(l => l.id === playerLeagueId);
       const vc = makePlayerVirtualClub(cupWinnerId, playerClubs, playerLeagueId, league?.country || '', league?.countryCode || '');
       if (vc) virtualClubs[cupWinnerId] = vc;
+    } else {
+      // Cup winner is from a non-player league — look up in static data
+      for (const lg of ALL_LEAGUES) {
+        const staticClub = buildVirtualClubsForLeague(lg.id).find(vc => vc.id === cupWinnerId);
+        if (staticClub) {
+          virtualClubs[cupWinnerId] = staticClub;
+          break;
+        }
+      }
     }
   }
 
@@ -122,11 +132,11 @@ function collectQualifiers(
         if (vc) virtualClubs[entry.clubId] = vc;
       }
     } else {
-      // Use static data — top clubs by reputation for non-player leagues
+      // Use static data — skip positions BEFORE filtering to get correct league positions
       const vClubs = buildVirtualClubsForLeague(ranking.leagueId);
-      const available = vClubs.filter(vc => !alreadyQualified.has(vc.id) && !qualifiers.includes(vc.id));
-      const startIdx = Math.min(skip, available.length);
-      for (let i = startIdx; i < Math.min(startIdx + spots, available.length); i++) {
+      const afterSkip = vClubs.slice(skip);
+      const available = afterSkip.filter(vc => !alreadyQualified.has(vc.id) && !qualifiers.includes(vc.id));
+      for (let i = 0; i < Math.min(spots, available.length); i++) {
         qualifiers.push(available[i].id);
         virtualClubs[available[i].id] = available[i];
       }
