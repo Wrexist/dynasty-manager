@@ -6,18 +6,36 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { Check, ChevronDown, HeartPulse, Sparkles, X } from 'lucide-react';
 
+type SortMode = 'overall' | 'penalty' | 'setpiece';
+
 interface PlayerSelectProps {
   players: Player[];
   selectedId: string | undefined;
   onChange: (playerId: string | undefined) => void;
   placeholder: string;
+  sortMode?: SortMode;
 }
 
-function PlayerRow({ player }: { player: Player }) {
+function getCompositeScore(player: Player, mode: SortMode): number {
+  if (mode === 'penalty') return Math.round(player.attributes.shooting * 0.6 + player.attributes.mental * 0.4);
+  if (mode === 'setpiece') return Math.round(player.attributes.passing * 0.5 + player.attributes.shooting * 0.3 + player.attributes.mental * 0.2);
+  return player.overall;
+}
+
+function StatPill({ label, value }: { label: string; value: number }) {
+  return (
+    <span className={cn('text-[9px] font-mono font-bold px-1 py-0.5 rounded bg-muted/40 shrink-0', getRatingColor(value))}>
+      {label}:{value}
+    </span>
+  );
+}
+
+function PlayerRow({ player, sortMode = 'overall' }: { player: Player; sortMode?: SortMode }) {
+  const score = getCompositeScore(player, sortMode);
   return (
     <>
-      <span className={cn('font-mono font-black text-sm w-7 text-right shrink-0', getRatingColor(player.overall))}>
-        {player.overall}
+      <span className={cn('font-mono font-black text-sm w-7 text-right shrink-0', getRatingColor(score))}>
+        {score}
       </span>
       <FlagIcon nationality={player.nationality} size={16} />
       <span className="text-sm text-foreground truncate flex-1">
@@ -26,6 +44,18 @@ function PlayerRow({ player }: { player: Player }) {
       <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted/50 text-muted-foreground shrink-0">
         {player.position}
       </span>
+      {sortMode === 'penalty' && (
+        <>
+          <StatPill label="SHO" value={player.attributes.shooting} />
+          <StatPill label="MEN" value={player.attributes.mental} />
+        </>
+      )}
+      {sortMode === 'setpiece' && (
+        <>
+          <StatPill label="PAS" value={player.attributes.passing} />
+          <StatPill label="SHO" value={player.attributes.shooting} />
+        </>
+      )}
       {player.injured && <HeartPulse className="w-3.5 h-3.5 text-destructive shrink-0" />}
       <span className={cn('w-2 h-2 rounded-full shrink-0', getFitnessColor(player.fitness))} />
     </>
@@ -34,14 +64,14 @@ function PlayerRow({ player }: { player: Player }) {
 
 const ANIM_MS = 200;
 
-export function PlayerSelect({ players, selectedId, onChange, placeholder }: PlayerSelectProps) {
+export function PlayerSelect({ players, selectedId, onChange, placeholder, sortMode = 'overall' }: PlayerSelectProps) {
   const [open, setOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const selectedPlayer = selectedId ? players.find(p => p.id === selectedId) : undefined;
 
   const sortedPlayers = useMemo(
-    () => [...players].sort((a, b) => b.overall - a.overall),
-    [players]
+    () => [...players].sort((a, b) => getCompositeScore(b, sortMode) - getCompositeScore(a, sortMode)),
+    [players, sortMode]
   );
 
   useScrollLock(open);
@@ -81,7 +111,7 @@ export function PlayerSelect({ players, selectedId, onChange, placeholder }: Pla
         )}
       >
         {selectedPlayer ? (
-          <PlayerRow player={selectedPlayer} />
+          <PlayerRow player={selectedPlayer} sortMode={sortMode} />
         ) : (
           <span className="flex items-center gap-1.5 text-muted-foreground flex-1">
             <Sparkles className="w-3.5 h-3.5" />
@@ -151,7 +181,7 @@ export function PlayerSelect({ players, selectedId, onChange, placeholder }: Pla
                     selectedId === p.id ? 'bg-primary/10' : 'hover:bg-muted/30'
                   )}
                 >
-                  <PlayerRow player={p} />
+                  <PlayerRow player={p} sortMode={sortMode} />
                   {selectedId === p.id && <Check className="w-4 h-4 text-primary shrink-0" />}
                 </button>
               ))}

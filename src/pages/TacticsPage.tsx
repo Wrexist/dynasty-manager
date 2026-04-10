@@ -674,7 +674,8 @@ const TacticsPage = () => {
               players={lineupPlayers.filter(p => p.position !== 'GK')}
               selectedId={club.setPieceTakerId}
               onChange={setSetPieceTaker}
-              placeholder="Auto (best available)"
+              placeholder="Auto (best passing + shooting)"
+              sortMode="setpiece"
             />
           </div>
           <div>
@@ -683,7 +684,8 @@ const TacticsPage = () => {
               players={lineupPlayers.filter(p => p.position !== 'GK')}
               selectedId={club.penaltyTakerId}
               onChange={setPenaltyTaker}
-              placeholder="Auto (best attacker)"
+              placeholder="Auto (best shooting + mental)"
+              sortMode="penalty"
             />
           </div>
         </div>

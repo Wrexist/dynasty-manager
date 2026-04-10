@@ -57,6 +57,8 @@ import {
   MOMENTUM_DECAY_PER_MINUTE, MOMENTUM_STRENGTH_SCALE,
   SUB_FRESHNESS_BONUS,
   SET_PIECE_TAKER_CORNER_BONUS, PENALTY_TAKER_BONUS,
+  PENALTY_TAKER_SHOOTING_WEIGHT, PENALTY_TAKER_MENTAL_WEIGHT,
+  SET_PIECE_TAKER_PASSING_WEIGHT, SET_PIECE_TAKER_SHOOTING_WEIGHT, SET_PIECE_TAKER_MENTAL_WEIGHT,
   COMMENTARY_GAP_MAX, COMMENTARY_CHANCE,
   MIN_PLAYERS_TO_CONTINUE,
   RED_CARD_STRENGTH_PENALTY_PER_PLAYER,
@@ -143,6 +145,34 @@ function pickAttacker(players: Player[]): Player {
   if (attackers.length > 0 && Math.random() < ATTACKER_SELECTION_CHANCE) return weightedPick(attackers);
   if (midfielders.length > 0 && Math.random() < MIDFIELDER_SELECTION_CHANCE) return weightedPick(midfielders);
   return weightedPick(players);
+}
+
+/** Pick the best penalty taker weighted by shooting + mental */
+function pickPenaltyTaker(players: Player[]): Player {
+  if (players.length === 0) return players[0];
+  const weights = players.map(p => (p.attributes.shooting * PENALTY_TAKER_SHOOTING_WEIGHT + p.attributes.mental * PENALTY_TAKER_MENTAL_WEIGHT) / 100);
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  if (totalWeight <= 0) return players[Math.floor(Math.random() * players.length)];
+  let r = Math.random() * totalWeight;
+  for (let i = 0; i < players.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return players[i];
+  }
+  return players[players.length - 1];
+}
+
+/** Pick the best set-piece taker weighted by passing + shooting + mental */
+export function pickSetPieceTaker(players: Player[]): Player {
+  if (players.length === 0) return players[0];
+  const weights = players.map(p => (p.attributes.passing * SET_PIECE_TAKER_PASSING_WEIGHT + p.attributes.shooting * SET_PIECE_TAKER_SHOOTING_WEIGHT + p.attributes.mental * SET_PIECE_TAKER_MENTAL_WEIGHT) / 100);
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  if (totalWeight <= 0) return players[Math.floor(Math.random() * players.length)];
+  let r = Math.random() * totalWeight;
+  for (let i = 0; i < players.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return players[i];
+  }
+  return players[players.length - 1];
 }
 
 /** Pick an assist provider weighted by passing quality */
@@ -1362,7 +1392,7 @@ export function simulateHalf(
         if (atkEligible.length > 0) {
           // Prefer designated penalty taker if on the pitch
           const designatedTaker = club.penaltyTakerId ? atkEligible.find(p => p.id === club.penaltyTakerId) : null;
-          const penaltyTaker = designatedTaker || pickAttacker(atkEligible);
+          const penaltyTaker = designatedTaker || pickPenaltyTaker(atkEligible);
           const penaltyBonus = designatedTaker ? PENALTY_TAKER_BONUS : 0;
           // xG for penalty attempt (standard ~0.76) — added regardless of outcome
           if (isHome) homeXG += PENALTY_CONVERSION_RATE; else awayXG += PENALTY_CONVERSION_RATE;
