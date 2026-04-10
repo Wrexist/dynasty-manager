@@ -1140,7 +1140,7 @@ export function simulateHalf(
             if (playerEvents[scorer.id]) playerEvents[scorer.id].goals--;
             if (assist && playerEvents[assist.id]) playerEvents[assist.id].assists--;
             // Restore opponent GK clean sheet if no other goals conceded
-            const goalsAgainstGK = isHome ? awayGoals : homeGoals; // goals by scoring team AFTER reversal
+            const goalsAgainstGK = isHome ? homeGoals : awayGoals; // goals by scoring team AFTER reversal
             if (goalsAgainstGK === 0) {
               oppSquad.forEach(p => { if (p.position === 'GK' && playerEvents[p.id]) playerEvents[p.id].cleanSheet = true; });
             }
@@ -1197,7 +1197,7 @@ export function simulateHalf(
               for (let i = 0; i < headerCandidates.length; i++) { rr -= headerWeights[i]; if (rr <= 0) { header = headerCandidates[i]; break; } }
               if (Math.random() < Math.max(CORNER_HEADER_MIN_CHANCE, (header.attributes.physical / 100) * CORNER_HEADER_PHYSICAL_SCALE)) {
                 if (isHome) homeGoals++; else awayGoals++;
-                if (isHome) homeSoT++; else awaySoT++;
+                if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
                 if (playerEvents[header.id]) playerEvents[header.id].goals++;
                 const cornerAssist = pickAssist(squad, header.id);
                 if (cornerAssist && playerEvents[cornerAssist.id]) playerEvents[cornerAssist.id].assists++;
@@ -1224,8 +1224,8 @@ export function simulateHalf(
           : Math.max(-100, momentum - MOMENTUM_GOAL_SWING);
         const gkName = oppGK ? oppGK.lastName : 'the keeper';
         events.push({
-          minute: min, type: 'goalkeeper_error', playerId: scorer.id, clubId: club.id,
-          description: pick(gkErrorDescs)(scorer.lastName, gkName, club.shortName),
+          minute: min, type: 'goalkeeper_error', playerId: scorer.id, assistPlayerId: gkErrorAssist?.id, clubId: club.id,
+          description: pick(gkErrorDescs)(scorer.lastName, gkName, club.shortName) + (gkErrorAssist ? ` (assist: ${gkErrorAssist.lastName})` : ''),
           momentum, homeXG, awayXG,
         });
       } else {
