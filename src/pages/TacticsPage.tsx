@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { calculateChemistryLinks } from '@/utils/chemistry';
 import { MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE } from '@/config/chemistry';
 import { getRatingColor, getRatingBadgeClasses } from '@/utils/uiHelpers';
-import { FORMATIONS, MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS } from '@/config/tactics';
+import { MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS, getAvailableFormations } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
 import { FORMATION_POSITIONS, type Position } from '@/types/game';
 import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, AlertTriangle, Save, Trash2, Upload, Shield, Swords, Target } from 'lucide-react';
@@ -21,6 +21,7 @@ import { useLineupOptimizer } from '@/hooks/useLineupOptimizer';
 import { infoToast } from '@/utils/gameToast';
 import { hapticLight } from '@/utils/haptics';
 import { isPro } from '@/utils/monetization';
+import { hasPerk } from '@/utils/managerPerks';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
 
@@ -36,6 +37,8 @@ const TacticsPage = () => {
     season: s.season, training: s.training,
   })));
   const monetization = useGameStore(s => s.monetization);
+  const managerProgression = useGameStore(s => s.managerProgression);
+  const hasFormationMasterPerk = hasPerk(managerProgression, 'formation_master');
   const tacticalPresets = useGameStore(s => s.tacticalPresets);
   const setFormation = useGameStore(s => s.setFormation);
   const setDefensiveFormation = useGameStore(s => s.setDefensiveFormation);
@@ -144,7 +147,7 @@ const TacticsPage = () => {
           </div>
         </div>
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-          {FORMATIONS.map(f => (
+          {getAvailableFormations(hasFormationMasterPerk).map(f => (
             <button
               key={f}
               onClick={() => { if (club.formation !== f) { setFormation(f); infoToast(`Formation set to ${f}`); } }}
@@ -184,7 +187,7 @@ const TacticsPage = () => {
           >
             Same
           </button>
-          {FORMATIONS.filter(f => f !== club.formation).map(f => (
+          {getAvailableFormations(hasFormationMasterPerk).filter(f => f !== club.formation).map(f => (
             <button
               key={f}
               onClick={() => { setDefensiveFormation(f); hapticLight(); infoToast(`Defensive shape set to ${f}`); }}

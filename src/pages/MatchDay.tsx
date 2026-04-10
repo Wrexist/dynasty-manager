@@ -21,7 +21,7 @@ import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
 import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED } from '@/config/matchSpeed';
 import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
-import { MENTALITIES, FORMATIONS } from '@/config/tactics';
+import { MENTALITIES, getAvailableFormations } from '@/config/tactics';
 import { KEY_MOMENT_CHOICES } from '@/config/keyMoments';
 import { infoToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
@@ -632,7 +632,7 @@ const MatchDay = () => {
     <div>
       <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1.5">Formation</p>
       <div className="flex gap-1 flex-wrap">
-        {FORMATIONS.map(f => (
+        {getAvailableFormations(hasPerk(managerProgression, 'formation_master')).map(f => (
           <button
             key={f}
             onClick={() => { hapticLight(); setFormation(f); infoToast(`Switched to ${f}`); }}

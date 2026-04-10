@@ -477,6 +477,7 @@ export function simulateHalf(
   awayBench?: Player[],
   teamTalkModifiers?: { attackMod: number; defenseMod: number; foulMod: number; fitnessDrainMult?: number },
   matchWeather?: MatchWeather,
+  setPieceCoachBonus?: number,
 ): HalfState {
   // Guard against empty squads — return a forfeit-like state (clone refs to avoid mutation)
   if (homePlayers.length === 0 || awayPlayers.length === 0) {
@@ -1226,7 +1227,8 @@ export function simulateHalf(
           if (isHome) homeCorners++; else awayCorners++;
           // Corner goal attempt — designated set-piece taker improves delivery
           const setPieceBonus = (club.setPieceTakerId && eligibleSquad.some(p => p.id === club.setPieceTakerId)) ? SET_PIECE_TAKER_CORNER_BONUS : 0;
-          if (Math.random() < CORNER_GOAL_CHANCE + setPieceBonus) {
+          const perkSetPieceBonus = (isHome && setPieceCoachBonus) ? setPieceCoachBonus : 0;
+          if (Math.random() < CORNER_GOAL_CHANCE + setPieceBonus + perkSetPieceBonus) {
             const headerCandidates = eligibleSquad.filter(p => p.position !== 'GK');
             if (headerCandidates.length > 0) {
               const headerWeights = headerCandidates.map(p => p.attributes.physical * CORNER_GOAL_PHYSICAL_WEIGHT + p.attributes.defending * CORNER_GOAL_DEFENDING_WEIGHT);

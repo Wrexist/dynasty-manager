@@ -217,7 +217,9 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { outcome: 'rejected', message: 'Transfer window is closed.' };
     if (!listing) return { outcome: 'rejected', message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
-    if (fee > club.budget) return { outcome: 'rejected', message: 'Insufficient funds.' };
+    const galacticoAllowed = hasPerk(state.managerProgression, 'galactico') && !state.galacticoUsedThisSeason;
+    const maxBudget = galacticoAllowed ? Math.floor(club.budget * 1.2) : club.budget;
+    if (fee > maxBudget) return { outcome: 'rejected', message: 'Insufficient funds.' };
 
     // Release clause: if fee meets or exceeds it, auto-accept
     const player = state.players[playerId];
@@ -259,7 +261,9 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { success: false, message: 'Transfer window is closed.' };
     if (!listing) return { success: false, message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
-    if (fee > club.budget) return { success: false, message: 'Insufficient funds.' };
+    const galacticoOk = hasPerk(state.managerProgression, 'galactico') && !state.galacticoUsedThisSeason;
+    const budgetCap = galacticoOk ? Math.floor(club.budget * 1.2) : club.budget;
+    if (fee > budgetCap) return { success: false, message: 'Insufficient funds.' };
     if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
 
     const player = { ...state.players[playerId] };
@@ -347,6 +351,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       scoutWatchList: state.scoutWatchList.filter(id => id !== playerId),
       seasonTransfersBought: [...currentBought, { playerName: `${updatedPlayer.firstName} ${updatedPlayer.lastName}`, fee }],
       ...merchUpdate,
+      ...(fee > club.budget && galacticoOk ? { galacticoUsedThisSeason: true } : {}),
     });
     // Career mode: grow negotiation stat on successful transfer
     const postState = get();
@@ -366,7 +371,9 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (!state.transferWindowOpen && !listing?.scoutedPlayer) return { success: false, message: 'Transfer window is closed.' };
     if (!listing) return { success: false, message: 'Player not available.' };
     const club = state.clubs[state.playerClubId];
-    if (fee > club.budget) return { success: false, message: 'Insufficient funds.' };
+    const galacticoAvail = hasPerk(state.managerProgression, 'galactico') && !state.galacticoUsedThisSeason;
+    const budgetLimit = galacticoAvail ? Math.floor(club.budget * 1.2) : club.budget;
+    if (fee > budgetLimit) return { success: false, message: 'Insufficient funds.' };
     const careerFeeDiscount = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.negotiation * 0.005 : 0;
     const deadlineDealerMult = (hasPerk(state.managerProgression, 'deadline_dealer') && (state.week === 8 || state.week === 24)) ? 0.8 : 1;
     const effAsk = (hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT) : listing.askingPrice) * (1 - careerFeeDiscount) * deadlineDealerMult;

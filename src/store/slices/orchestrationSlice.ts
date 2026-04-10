@@ -1843,7 +1843,7 @@ function finalizeSeason(
     seasonHistory: [...state.seasonHistory, history],
     currentMatchResult: null, currentScreen: 'season-summary',
     matchPhase: 'none' as const, matchTeamTalk: 'none', pendingPressConference: null,
-    messages: newMessages, incomingOffers: [], matchSubsUsed: 0, shortlist: [], scoutWatchList: [],
+    messages: newMessages, incomingOffers: [], matchSubsUsed: 0, galacticoUsedThisSeason: false, invincibleUsedThisSeason: false, preMatchSnapshot: null, shortlist: [], scoutWatchList: [],
     sponsorDeals: sponsorSeasonEnd.sponsorDeals || state.sponsorDeals,
     sponsorOffers: [],
     sponsorSlotCooldowns: {},
@@ -4803,6 +4803,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const apIdSet = new Set(ap.map(p => p.id));
     const hBenchCM = (hc.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !hpIdSet.has(p.id) && !p.injured && !isSuspended(p));
     const aBenchCM = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIdSet.has(p.id) && !p.injured && !isSuspended(p));
+    // Capture pre-match snapshot for Invincible perk (match rewind on loss)
+    if (hasPerk(state.managerProgression, 'invincible') && !state.invincibleUsedThisSeason && !isFriendly) {
+      set({ preMatchSnapshot: { fixtures: [...state.fixtures], divisionFixtures: { ...state.divisionFixtures }, players: { ...state.players }, boardConfidence: state.boardConfidence, leagueTable: [...state.leagueTable] } });
+    }
+
     const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season, careerDisciplineMod, hBenchCM, aBenchCM);
 
     // ── Cup/Tournament match path ──
@@ -5235,7 +5240,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
     const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
-    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, halfCareerMod, hBench, aBench);
+    const spCoachBonus = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 : 0;
+    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, halfCareerMod, hBench, aBench, undefined, undefined, spCoachBonus);
 
     // Determine which cup tracking IDs to set
     const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
@@ -5346,7 +5352,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       ? { attackMod: teamTalkMods.attackMod + shoutMods.attackMod, defenseMod: teamTalkMods.defenseMod + shoutMods.defenseMod, foulMod: teamTalkMods.foulMod + shoutMods.foulMod, fitnessDrainMult: teamTalkMods.fitnessDrainMult }
       : (shoutMods.attackMod || shoutMods.defenseMod || shoutMods.foulMod) ? { ...shoutMods, fitnessDrainMult: 1 as number } : undefined;
 
-    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods);
+    const spCoachBonus2H = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 : 0;
+    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, undefined, spCoachBonus2H);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
     // Cup match ended in draw — need extra time (unless aggregate is already decided for 2-leg ties)
@@ -5487,7 +5494,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const etMods = etTeamTalkMods
       ? { attackMod: etTeamTalkMods.attackMod + etShoutMods.attackMod, defenseMod: etTeamTalkMods.defenseMod + etShoutMods.defenseMod, foulMod: etTeamTalkMods.foulMod + etShoutMods.foulMod, fitnessDrainMult: etTeamTalkMods.fitnessDrainMult }
       : (etShoutMods.attackMod || etShoutMods.defenseMod || etShoutMods.foulMod) ? { ...etShoutMods, fitnessDrainMult: 1 as number } : undefined;
-    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod, undefined, undefined, etMods);
+    const spCoachBonusET = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 : 0;
+    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod, undefined, undefined, etMods, undefined, spCoachBonusET);
 
     // Build the extended match result
     const etResult: Match = {

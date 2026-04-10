@@ -40,6 +40,9 @@ export interface GameState {
 
   // Transfer & Loans
   transferMarket: TransferListing[];
+  galacticoUsedThisSeason: boolean;
+  invincibleUsedThisSeason: boolean;
+  preMatchSnapshot: { fixtures: Match[]; divisionFixtures: Record<string, Match[]>; players: Record<string, Player>; boardConfidence: number; leagueTable: LeagueTableEntry[] } | null;
   shortlist: string[];
   scoutWatchList: string[];
   incomingOffers: IncomingOffer[];
@@ -278,6 +281,7 @@ export interface GameState {
   revealNextPenaltyKick: () => void;
   skipPenaltyShootout: () => void;
   clearMatchResult: () => void;
+  rewindMatch: () => void;
   loadMatchForReview: (week: number) => void;
   cleanupAbandonedMatch: () => void;
   makeMatchSub: (outId: string, inId: string) => void;
