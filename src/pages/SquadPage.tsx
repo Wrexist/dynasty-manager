@@ -264,12 +264,18 @@ const SquadPage = () => {
                           >
                             {p.lastName}
                           </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); hapticLight(); startNegotiation(p.id, true); }}
-                            className="text-[8px] font-bold text-destructive/80 hover:text-destructive bg-destructive/10 hover:bg-destructive/20 px-1.5 py-0.5 rounded transition-colors"
-                          >
-                            Renew
-                          </button>
+                          {p.injured ? (
+                            <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while injured">INJ</span>
+                          ) : p.onLoan ? (
+                            <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while on loan">LOAN</span>
+                          ) : (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); hapticLight(); startNegotiation(p.id, true); }}
+                              className="text-[8px] font-bold text-destructive/80 hover:text-destructive bg-destructive/10 hover:bg-destructive/20 px-1.5 py-0.5 rounded transition-colors"
+                            >
+                              Renew
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -296,12 +302,18 @@ const SquadPage = () => {
                           >
                             {p.lastName}
                           </button>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); hapticLight(); startNegotiation(p.id, true); }}
-                            className="text-[8px] font-bold text-amber-400/80 hover:text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 px-1.5 py-0.5 rounded transition-colors"
-                          >
-                            Renew
-                          </button>
+                          {p.injured ? (
+                            <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while injured">INJ</span>
+                          ) : p.onLoan ? (
+                            <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while on loan">LOAN</span>
+                          ) : (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); hapticLight(); startNegotiation(p.id, true); }}
+                              className="text-[8px] font-bold text-amber-400/80 hover:text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 px-1.5 py-0.5 rounded transition-colors"
+                            >
+                              Renew
+                            </button>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -446,9 +458,7 @@ const SquadPage = () => {
                   ? 'onLoan' as const
                   : player.listedForSale
                     ? 'listed' as const
-                    : contractUrgency !== null
-                      ? 'expiring' as const
-                      : null;
+                    : null;
 
             return (
               <motion.div
@@ -534,7 +544,7 @@ const SquadPage = () => {
                 </div>
 
                 {/* Contract urgency indicator — independent of status badge */}
-                {contractUrgency && (
+                {contractUrgency && !player.onLoan && !player.injured && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -585,11 +595,6 @@ const SquadPage = () => {
                   {statusBadge === 'listed' && (
                     <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
                       LISTED
-                    </span>
-                  )}
-                  {statusBadge === 'expiring' && (
-                    <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded-md" title="Contract expiring">
-                      EXP
                     </span>
                   )}
                   {!statusBadge && (
