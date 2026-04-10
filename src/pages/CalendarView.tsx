@@ -32,7 +32,7 @@ interface PhaseGroup {
 const CalendarView = () => {
   const {
     week, season, fixtures, clubs, playerClubId,
-    transferWindowOpen, cup, leagueCup, championsCup, shieldCup,
+    transferWindowOpen, cup, leagueCup, championsCup, shieldCup, conferenceCup,
     domesticSuperCup, continentalSuperCup, virtualClubs,
     totalWeeks, internationalTournament,
     nationalTeam, currentMatchResult,
@@ -47,6 +47,7 @@ const CalendarView = () => {
     leagueCup: s.leagueCup,
     championsCup: s.championsCup,
     shieldCup: s.shieldCup,
+    conferenceCup: s.conferenceCup,
     domesticSuperCup: s.domesticSuperCup,
     continentalSuperCup: s.continentalSuperCup,
     virtualClubs: s.virtualClubs,
@@ -132,6 +133,7 @@ const CalendarView = () => {
     };
     addContinentalFixtures(championsCup, 'Champions Cup');
     addContinentalFixtures(shieldCup, 'Shield Cup');
+    addContinentalFixtures(conferenceCup, 'Conference Cup');
 
     // Super Cup fixtures
     const addSuperCup = (sc: SuperCupMatch | null, label: string) => {
@@ -220,7 +222,7 @@ const CalendarView = () => {
       entries: allEntries,
       stats: { wins, draws, losses, goalsFor, goalsAgainst, played: wins + draws + losses },
     };
-  }, [fixtures, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup, playerClubId, weekCount, internationalTournament, nationalTeam]);
+  }, [fixtures, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, playerClubId, weekCount, internationalTournament, nationalTeam]);
 
   // Recent form (last 5 league results)
   const recentForm = useMemo(() => {

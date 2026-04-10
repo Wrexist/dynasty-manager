@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 47;
+const CURRENT_VERSION = 48;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -646,6 +646,13 @@ const migrations: Record<number, MigrationFn> = {
       tab: 'market', posFilter: 0, searchQuery: '', sortBy: 'overall',
       faSortBy: 'overall', divFilter: 'all', newsTypeFilter: 'all', hideUnaffordable: false,
     },
+  }),
+
+  // v47 → v48: Add Conference Cup (third continental competition)
+  47: (data) => ({
+    ...data,
+    version: 48,
+    conferenceCup: null,
   }),
 };
 

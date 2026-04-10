@@ -80,7 +80,7 @@ function getEnrichedDescription(ev: MatchEvent, events: MatchEvent[], homeClubId
 }
 
 const MatchDay = () => {
-  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks } = useGameStore(useShallow(s => ({
+  const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     week: s.week,
     clubs: s.clubs,
@@ -90,6 +90,7 @@ const MatchDay = () => {
     leagueCup: s.leagueCup,
     championsCup: s.championsCup,
     shieldCup: s.shieldCup,
+    conferenceCup: s.conferenceCup,
     virtualClubs: s.virtualClubs,
     currentCupTieId: s.currentCupTieId,
     domesticSuperCup: s.domesticSuperCup,
@@ -156,7 +157,8 @@ const MatchDay = () => {
   // Detect continental match (Champions Cup / Shield Cup)
   const champMatch = !liveMatch && !cupTie && !leagueCupTie ? findPlayerContinentalMatchForUI(championsCup, week, playerClubId) : null;
   const shieldMatch = !liveMatch && !cupTie && !leagueCupTie && !champMatch ? findPlayerContinentalMatchForUI(shieldCup, week, playerClubId) : null;
-  const continentalMatchInfo = champMatch || shieldMatch;
+  const confMatch = !liveMatch && !cupTie && !leagueCupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatchForUI(conferenceCup, week, playerClubId) : null;
+  const continentalMatchInfo = champMatch || shieldMatch || confMatch;
   const continentalMatch = continentalMatchInfo ? { id: continentalMatchInfo.id, week, homeClubId: continentalMatchInfo.homeClubId, awayClubId: continentalMatchInfo.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null;
 
   // Detect super cup match
@@ -175,6 +177,7 @@ const MatchDay = () => {
     : leagueCupTie ? { name: 'League Cup', round: leagueCupTie.round, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' }
     : champMatch ? { name: 'Champions Cup', round: champMatch.roundLabel, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/30' }
     : shieldMatch ? { name: 'Shield Cup', round: shieldMatch.roundLabel, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30' }
+    : confMatch ? { name: 'Conference Cup', round: confMatch.roundLabel, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' }
     : superCupMatch ? { name: domesticSuperCup?.week === week ? 'Super Cup' : 'Continental Super Cup', round: 'Final', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/30' }
     : null;
 

@@ -20,6 +20,13 @@ export interface LeagueInfo {
   qualityTier: 1 | 2 | 3 | 4;
 }
 
+export interface QualificationZones {
+  championsCup: number[];  // league positions that qualify for Champions Cup
+  shieldCup: number[];     // league positions that qualify for Shield Cup
+  conferenceCup: number[]; // league positions that qualify for Conference Cup
+  replaced: number[];      // league positions that get replaced
+}
+
 export interface SeasonTurnover {
   replacedClubs: string[];
   newClubs: string[];
@@ -47,7 +54,7 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor';
 
 export interface PlayerAttributes {
   pace: number;
@@ -522,6 +529,7 @@ export interface SeasonHistory {
   leagueCupResult?: string;
   championsCupResult?: string;
   shieldCupResult?: string;
+  conferenceCupResult?: string;
   divisionId?: LeagueId;
   replaced?: boolean;
   awards?: SeasonAward[];
@@ -907,7 +915,7 @@ export interface LeagueCupState {
 }
 
 // ── Continental Club Competitions ──
-export type ContinentalCompetition = 'champions_cup' | 'shield_cup';
+export type ContinentalCompetition = 'champions_cup' | 'shield_cup' | 'conference_cup';
 export type ContinentalRound = 'group' | 'R16' | 'QF' | 'SF' | 'F';
 
 export interface ContinentalGroupMatch {

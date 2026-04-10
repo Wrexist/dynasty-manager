@@ -78,7 +78,7 @@ const Dashboard = () => {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
     boardConfidence, boardObjectives,
     currentMatchResult, incomingOffers, trainingFocus, cup,
-    leagueCup, championsCup, shieldCup, virtualClubs, domesticSuperCup, continentalSuperCup,
+    leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, domesticSuperCup, continentalSuperCup,
     weekCliffhangers, objectiveStreak,
     facilities, scouting, divisionTables, playerDivision,
     managerProgression, clubRecords, transferWindowOpen, training,
@@ -96,7 +96,7 @@ const Dashboard = () => {
     currentMatchResult: s.currentMatchResult, incomingOffers: s.incomingOffers,
     trainingFocus: s.trainingFocus, cup: s.cup,
     leagueCup: s.leagueCup, championsCup: s.championsCup,
-    shieldCup: s.shieldCup, virtualClubs: s.virtualClubs,
+    shieldCup: s.shieldCup, conferenceCup: s.conferenceCup, virtualClubs: s.virtualClubs,
     domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
     weekCliffhangers: s.weekCliffhangers,
     objectiveStreak: s.objectiveStreak,
@@ -129,9 +129,9 @@ const Dashboard = () => {
   const hasCupMatchToo = useMemo(() => {
     if (competition) return false;
     return !!findTournamentMatch({
-      week, playerClubId, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup,
+      week, playerClubId, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup,
     });
-  }, [competition, week, playerClubId, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup]);
+  }, [competition, week, playerClubId, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup]);
   const pos = useLeaguePosition();
   const unread = useUnreadCount();
   const budgetFlash = useFlash(club?.budget || 0);
@@ -1935,6 +1935,28 @@ const Dashboard = () => {
                     : shieldCup.playerEliminated ? 'Eliminated'
                     : shieldCup.currentPhase === 'group' ? 'Group Stage'
                     : shieldCup.currentRound || 'Knockout'}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Conference Cup Status */}
+      {conferenceCup && (
+        <GlassPanel className="p-4" onClick={() => setScreen('conference-cup')}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Award className={cn('w-5 h-5', conferenceCup.winnerId === playerClubId ? 'text-emerald-400' : conferenceCup.playerEliminated ? 'text-destructive' : 'text-emerald-400/70')} />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Conference Cup</p>
+                <p className="text-xs text-muted-foreground">
+                  {conferenceCup.winnerId
+                    ? `Winner: ${(clubs[conferenceCup.winnerId] || virtualClubs[conferenceCup.winnerId])?.shortName || '?'}`
+                    : conferenceCup.playerEliminated ? 'Eliminated'
+                    : conferenceCup.currentPhase === 'group' ? 'Group Stage'
+                    : conferenceCup.currentRound || 'Knockout'}
                 </p>
               </div>
             </div>

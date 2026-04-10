@@ -14,6 +14,7 @@ interface TournamentHeaderProps {
 const COMP_CONFIG = {
   champions_cup: { name: 'Champions Cup', icon: Trophy, color: 'text-primary' },
   shield_cup: { name: 'Shield Cup', icon: Shield, color: 'text-accent' },
+  conference_cup: { name: 'Conference Cup', icon: Award, color: 'text-emerald-400' },
   league_cup: { name: 'League Cup', icon: Award, color: 'text-emerald-400' },
   super_cup: { name: 'Super Cup', icon: Trophy, color: 'text-amber-400' },
 };
@@ -31,7 +32,7 @@ export function TournamentHeader({ competition, subtitle, winnerId, winnerName, 
       <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center transition-shadow', {
         'bg-primary/20': competition === 'champions_cup',
         'bg-accent/20': competition === 'shield_cup',
-        'bg-emerald-400/20': competition === 'league_cup',
+        'bg-emerald-400/20': competition === 'conference_cup' || competition === 'league_cup',
         'bg-amber-400/20': competition === 'super_cup',
         'shadow-[0_0_20px_rgba(234,179,8,0.15)]': !!winnerId,
         'opacity-50': playerEliminated && !winnerId,

@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { LEAGUES } from '@/data/league';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { PageHint } from '@/components/game/PageHint';
+import { getQualificationZones } from '@/utils/leagueRanking';
 
 const TIER_LABELS: Record<number, string> = {
   1: 'Top Leagues',
@@ -87,17 +88,24 @@ const LeagueTable = () => {
     return { topScorers: scorers, topAssisters: assisters };
   }, [players, divisionClubs, selectedDiv]);
 
-  // Zone boundaries for current league
-  const getZone = (pos: number, tableLen: number): 'champion' | 'replaced' | null => {
-    if (!currentLeague) return null;
-    if (pos === 1) return 'champion';
-    if (currentLeague.replacedSlots > 0 && pos > tableLen - currentLeague.replacedSlots) return 'replaced';
+  // Qualification zones for current league (Champions Cup, Shield Cup, Conference Cup, Replaced)
+  const qualZones = useMemo(() => getQualificationZones(selectedDiv), [selectedDiv]);
+
+  type ZoneType = 'champions_cup' | 'shield_cup' | 'conference_cup' | 'replaced' | null;
+
+  const getZone = (pos: number): ZoneType => {
+    if (qualZones.championsCup.includes(pos)) return 'champions_cup';
+    if (qualZones.shieldCup.includes(pos)) return 'shield_cup';
+    if (qualZones.conferenceCup.includes(pos)) return 'conference_cup';
+    if (qualZones.replaced.includes(pos)) return 'replaced';
     return null;
   };
 
-  const zoneBgClass = (zone: ReturnType<typeof getZone>) => {
+  const zoneBgClass = (zone: ZoneType) => {
     switch (zone) {
-      case 'champion': return 'bg-primary/10 border-l-2 border-l-primary';
+      case 'champions_cup': return 'bg-blue-500/10 border-l-2 border-l-blue-400';
+      case 'shield_cup': return 'bg-orange-500/10 border-l-2 border-l-orange-400';
+      case 'conference_cup': return 'bg-emerald-500/10 border-l-2 border-l-emerald-400';
       case 'replaced': return 'bg-destructive/10 border-l-2 border-l-destructive/60';
       default: return '';
     }
@@ -288,7 +296,7 @@ const LeagueTable = () => {
                   const club = clubs[entry.clubId];
                   const isPlayer = entry.clubId === playerClubId;
                   const pos = i + 1;
-                  const zone = getZone(pos, currentTable.length);
+                  const zone = getZone(pos);
 
                   return (
                     <motion.tr
@@ -345,15 +353,29 @@ const LeagueTable = () => {
           </div>
 
           {/* Zone Legend */}
-          <div className="flex flex-wrap items-center gap-3 px-3 py-2 border-t border-border/20">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-sm bg-primary/40" />
-              <span className="text-[10px] text-muted-foreground">Champion</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 border-t border-border/20">
+            {qualZones.championsCup.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-blue-400/50" />
+                <span className="text-[10px] text-muted-foreground">Champions Cup</span>
+              </div>
+            )}
+            {qualZones.shieldCup.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-orange-400/50" />
+                <span className="text-[10px] text-muted-foreground">Shield Cup</span>
+              </div>
+            )}
+            {qualZones.conferenceCup.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-emerald-400/50" />
+                <span className="text-[10px] text-muted-foreground">Conference Cup</span>
+              </div>
+            )}
             {currentLeague && currentLeague.replacedSlots > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-destructive/50" />
-                <span className="text-[10px] text-muted-foreground">Replaced ({currentLeague.replacedSlots} club{currentLeague.replacedSlots > 1 ? 's' : ''})</span>
+                <span className="text-[10px] text-muted-foreground">Replaced</span>
               </div>
             )}
             {isPlayerLeague && (

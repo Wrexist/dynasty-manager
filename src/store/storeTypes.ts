@@ -187,8 +187,9 @@ export interface GameState {
   // Continental Tournaments
   championsCup: ContinentalTournamentState | null;
   shieldCup: ContinentalTournamentState | null;
+  conferenceCup: ContinentalTournamentState | null;
   virtualClubs: Record<string, VirtualClub>;
-  continentalQualification: { champions: string[]; shield: string[] } | null;
+  continentalQualification: { champions: string[]; shield: string[]; conference: string[] } | null;
   /** Multi-season continental coefficients for seeding (clubId → coefficient) */
   continentalCoefficients: Record<string, import('@/types/game').ContinentalCoefficient>;
 

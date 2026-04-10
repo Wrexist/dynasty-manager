@@ -180,11 +180,13 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
 const ContinentalPage = () => {
   const championsCup = useGameStore(s => s.championsCup);
   const shieldCup = useGameStore(s => s.shieldCup);
+  const conferenceCup = useGameStore(s => s.conferenceCup);
   const currentScreen = useGameStore(s => s.currentScreen);
 
   const isChampions = currentScreen === 'champions-cup';
-  const tournament = isChampions ? championsCup : shieldCup;
-  const competition: ContinentalCompetition = isChampions ? 'champions_cup' : 'shield_cup';
+  const isShield = currentScreen === 'shield-cup';
+  const tournament = isChampions ? championsCup : isShield ? shieldCup : conferenceCup;
+  const competition: ContinentalCompetition = isChampions ? 'champions_cup' : isShield ? 'shield_cup' : 'conference_cup';
 
   if (!tournament) {
     return (
@@ -192,7 +194,7 @@ const ContinentalPage = () => {
         <div className="text-center text-muted-foreground py-12">
           <Globe className="w-12 h-12 mx-auto mb-3 opacity-40" />
           <p className="text-sm">
-            {isChampions ? 'You have not qualified for the Champions Cup.' : 'You have not qualified for the Shield Cup.'}
+            {isChampions ? 'You have not qualified for the Champions Cup.' : isShield ? 'You have not qualified for the Shield Cup.' : 'You have not qualified for the Conference Cup.'}
           </p>
           <p className="text-xs mt-1">Finish higher in the league to qualify next season.</p>
         </div>

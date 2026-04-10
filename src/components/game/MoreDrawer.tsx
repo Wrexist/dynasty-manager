@@ -32,6 +32,7 @@ const drawerSections: DrawerSection[] = [
       { screen: 'league-cup', label: 'League Cup', icon: Award, description: 'Secondary cup competition' },
       { screen: 'champions-cup', label: 'Champions Cup', icon: Trophy, description: 'Elite continental tournament' },
       { screen: 'shield-cup', label: 'Shield Cup', icon: Trophy, description: 'Secondary continental cup' },
+      { screen: 'conference-cup', label: 'Conference Cup', icon: Award, description: 'Third-tier continental cup' },
       { screen: 'super-cup', label: 'Super Cup', icon: Award, description: 'Season-opening showcase' },
       { screen: 'national-team', label: 'National Team', icon: Globe, description: 'International management' },
       { screen: 'calendar', label: 'Calendar', icon: Calendar, description: 'Season schedule' },
@@ -72,10 +73,10 @@ const CAREER_MODE_ITEMS: DrawerItem[] = [
 export function MoreDrawer() {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const { messages, currentScreen, cup, gameMode, nationalTeamOffer, championsCup, shieldCup, domesticSuperCup, continentalSuperCup, internationalTournament, nationalTeam } = useGameStore(useShallow(s => ({
+  const { messages, currentScreen, cup, gameMode, nationalTeamOffer, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, internationalTournament, nationalTeam } = useGameStore(useShallow(s => ({
     messages: s.messages, currentScreen: s.currentScreen, cup: s.cup, gameMode: s.gameMode,
     nationalTeamOffer: s.nationalTeamOffer,
-    championsCup: s.championsCup, shieldCup: s.shieldCup,
+    championsCup: s.championsCup, shieldCup: s.shieldCup, conferenceCup: s.conferenceCup,
     domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
     internationalTournament: s.internationalTournament, nationalTeam: s.nationalTeam,
   })));
@@ -87,6 +88,7 @@ export function MoreDrawer() {
   const hiddenScreens = new Set<GameScreen>();
   if (!championsCup) hiddenScreens.add('champions-cup');
   if (!shieldCup) hiddenScreens.add('shield-cup');
+  if (!conferenceCup) hiddenScreens.add('conference-cup');
   if (!domesticSuperCup && !continentalSuperCup) hiddenScreens.add('super-cup');
   if (!internationalTournament && !nationalTeam) hiddenScreens.add('national-team');
 

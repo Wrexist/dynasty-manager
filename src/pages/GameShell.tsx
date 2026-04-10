@@ -84,6 +84,7 @@ const screens: Record<string, React.ComponentType> = {
   'league-cup': LeagueCupPage,
   'champions-cup': ContinentalPage,
   'shield-cup': ContinentalPage,
+  'conference-cup': ContinentalPage,
   'super-cup': SuperCupPage,
   perks: PerksPage,
   'trophy-cabinet': TrophyCabinet,

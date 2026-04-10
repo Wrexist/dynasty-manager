@@ -219,6 +219,25 @@ const TrophyCabinet = () => {
         </GlassPanel>
       )}
 
+      {/* Conference Cup Wins */}
+      {seasonHistory.filter(h => h.conferenceCupResult === 'Winner').length > 0 && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Award className="w-4 h-4 text-emerald-400" />
+            <h3 className="text-sm font-semibold text-foreground">Conference Cup Wins</h3>
+            <span className="text-xs text-emerald-400 font-bold ml-auto">{seasonHistory.filter(h => h.conferenceCupResult === 'Winner').length}</span>
+          </div>
+          <div className="grid grid-cols-4 gap-2">
+            {seasonHistory.filter(h => h.conferenceCupResult === 'Winner').map((h, i) => (
+              <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2 text-center">
+                <Award className="w-5 h-5 text-emerald-400 mx-auto mb-1" />
+                <p className="text-[10px] font-bold text-emerald-400">S{h.season}</p>
+              </motion.div>
+            ))}
+          </div>
+        </GlassPanel>
+      )}
+
       {/* Promotions */}
       {promotions.length > 0 && (
         <GlassPanel className="p-4">
