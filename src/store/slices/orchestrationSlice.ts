@@ -5353,7 +5353,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Finalize with extra events — halfTimeState must exist by this point
     if (!halfTimeState) {
       console.error('[Penalties] halfTimeState missing — aborting finalization to prevent data corruption');
-      set({ matchPhase: 'none', penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0 });
+      set({
+        matchPhase: 'none',
+        penaltyShootoutKicks: [],
+        penaltyShootoutRevealIndex: 0,
+        currentMatchResult: null,
+        currentCupTieId: null,
+        currentLeagueCupTieId: null,
+        currentContinentalMatchId: null,
+        currentContinentalCompetition: null,
+        halfTimeState: null,
+        matchSubsUsed: 0,
+      });
       return;
     }
     const { result, playerRatings } = finalizeMatch(finalResult, hc, ac, hp, ap, halfTimeState);
