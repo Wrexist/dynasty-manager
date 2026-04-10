@@ -19,6 +19,7 @@ import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
 import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED } from '@/config/matchSpeed';
+import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
 import { MENTALITIES, FORMATIONS } from '@/config/tactics';
 import { KEY_MOMENT_CHOICES } from '@/config/keyMoments';
@@ -900,6 +901,52 @@ const MatchDay = () => {
                 : 'Make substitutions and tactical changes before the second half.'}
             </p>
           </GlassPanel>
+
+          {/* Halftime Tactical Analysis */}
+          {firstHalfState && match && (() => {
+            const analysis = analyzeHalftime(firstHalfState, playerClubId, match.homeClubId);
+            return (
+              <GlassPanel className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tactical Analysis</p>
+                </div>
+                <p className="text-xs font-bold text-foreground mb-1">{analysis.headline}</p>
+                <p className="text-[10px] text-muted-foreground mb-3">{analysis.description}</p>
+                <div className="space-y-2">
+                  {analysis.choices.map((choice, idx) => {
+                    const ChoiceIcon = choice.icon === 'Flame' ? Flame : choice.icon === 'Shield' ? Shield : choice.icon === 'ShieldCheck' ? ShieldCheck : choice.icon === 'Zap' ? Zap : choice.icon === 'RefreshCw' ? RefreshCw : choice.icon === 'Layers' ? Layers : Zap;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          hapticLight();
+                          if (choice.openSubSheet) setSubSheetOpen(true);
+                          if (choice.tactics) {
+                            setTactics(choice.tactics);
+                            infoToast(`Tactical change: ${choice.label}`);
+                          }
+                          if (choice.suggestFormation) {
+                            setFormation(choice.suggestFormation);
+                            infoToast(`Formation changed to ${choice.suggestFormation}`);
+                          }
+                        }}
+                        className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 active:scale-[0.98] border border-border/30 transition-all text-left"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                          <ChoiceIcon className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground">{choice.label}</p>
+                          <p className="text-[10px] text-muted-foreground">{choice.description}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </GlassPanel>
+            );
+          })()}
 
           {/* Team Talk */}
           <GlassPanel className="p-4">

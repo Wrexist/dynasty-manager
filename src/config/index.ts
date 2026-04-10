@@ -16,3 +16,4 @@ export * from './contracts';
 export * from './playoffs';
 export * from './lineupOptimization';
 export * from './matchSpeed';
+export * from './halftimeAnalysis';
