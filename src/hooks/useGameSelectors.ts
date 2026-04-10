@@ -58,10 +58,10 @@ export function findTournamentMatch(s: { week: number; playerClubId: string; cup
 /** Get the current week's match for the player's club + derived info. */
 export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; opponent: Club | undefined; competition?: string } {
   const {
-    week, playerClubId, fixtures, clubs, cup, leagueCup,
+    week, playerClubId, fixtures, friendlies, clubs, cup, leagueCup,
     championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs,
   } = useGameStore(useShallow(s => ({
-    week: s.week, playerClubId: s.playerClubId, fixtures: s.fixtures, clubs: s.clubs,
+    week: s.week, playerClubId: s.playerClubId, fixtures: s.fixtures, friendlies: s.friendlies, clubs: s.clubs,
     cup: s.cup, leagueCup: s.leagueCup, championsCup: s.championsCup, shieldCup: s.shieldCup,
     conferenceCup: s.conferenceCup,
     domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
@@ -69,6 +69,16 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
   })));
 
   return useMemo(() => {
+    // Check friendlies first (pre-season weeks 1-3)
+    const friendlyMatch = friendlies?.find(
+      m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)
+    );
+    if (friendlyMatch) {
+      const isHome = friendlyMatch.homeClubId === playerClubId;
+      const opponent = clubs[isHome ? friendlyMatch.awayClubId : friendlyMatch.homeClubId];
+      return { match: friendlyMatch, isHome, opponent, competition: 'Pre-Season Friendly' };
+    }
+
     const leagueMatch = fixtures.find(
       m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)
     );
@@ -118,7 +128,7 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
     }
 
     return { match: undefined, isHome: false, opponent: undefined };
-  }, [fixtures, week, playerClubId, clubs, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs]);
+  }, [friendlies, fixtures, week, playerClubId, clubs, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs]);
 }
 
 /** Get count of unread messages. */

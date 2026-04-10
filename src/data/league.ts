@@ -166,6 +166,28 @@ export function generateDivisionFixtures(clubIds: string[], totalWeeks: number):
 export const generateLeagueFixtures = generateDivisionFixtures;
 
 /**
+ * Generate 3 pre-season friendly matches for weeks 1-3.
+ * Opponents are randomly selected from the same division.
+ */
+export function generateFriendlies(playerClubId: string, divisionClubIds: string[]): Match[] {
+  const opponents = shuffle(divisionClubIds.filter(id => id !== playerClubId)).slice(0, 3);
+  return opponents.map((opponentId, i) => {
+    const week = i + 1;
+    const isHome = i % 2 === 0; // home, away, home
+    return {
+      id: crypto.randomUUID(),
+      week,
+      homeClubId: isHome ? playerClubId : opponentId,
+      awayClubId: isHome ? opponentId : playerClubId,
+      played: false,
+      homeGoals: 0,
+      awayGoals: 0,
+      events: [],
+    };
+  });
+}
+
+/**
  * Generate fixtures for all leagues at once.
  */
 export function generateAllDivisionFixtures(

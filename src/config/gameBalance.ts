@@ -8,6 +8,7 @@ import type { PlayerAttributes, Position } from '@/types/game';
 // ── Season Structure ──
 export const TOTAL_WEEKS = 46;
 export const STARTING_BOARD_CONFIDENCE = 50;
+export const FRIENDLY_BOARD_CONFIDENCE_MULT = 0.25;
 export const LINEUP_SIZE = 11;
 export const LOW_FITNESS_THRESHOLD = 65;
 

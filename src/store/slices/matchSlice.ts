@@ -6,6 +6,7 @@ type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)
 type Get = () => GameState;
 
 export const createMatchSlice = (set: Set, get: Get) => ({
+  friendlies: [] as Match[],
   currentMatchResult: null as GameState['currentMatchResult'],
   matchSubsUsed: 0,
   matchPlayerRatings: [] as GameState['matchPlayerRatings'],
@@ -25,6 +26,12 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   loadMatchForReview: (week: number) => {
     const state = get();
     const pid = state.playerClubId;
+
+    // 0. Friendlies
+    const friendlyMatch = state.friendlies?.find(
+      m => m.week === week && m.played && (m.homeClubId === pid || m.awayClubId === pid)
+    );
+    if (friendlyMatch) { set({ currentMatchResult: friendlyMatch }); return; }
 
     // 1. League fixtures (full Match objects with events)
     const leagueMatch = state.fixtures.find(

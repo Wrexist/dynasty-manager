@@ -9,7 +9,8 @@ import {
   FORCED_RETIREMENT_UNEMPLOYED_WEEKS,
   PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING,
 } from '@/config/managerCareer';
-import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache } from '@/data/league';
+import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies } from '@/data/league';
+import { FRIENDLY_BOARD_CONFIDENCE_MULT } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
@@ -1523,6 +1524,7 @@ function finalizeSeason(
   const newLeagueTable = newDivisionTables[newPlayerDivision];
   const newCup = generateCupDraw(leagueClubIds);
   const newLeagueCup = generateLeagueCupDraw(leagueClubIds);
+  const newFriendlies = generateFriendlies(state.playerClubId, leagueClubIds);
 
   // Generate continental tournaments based on previous season's league table
   const prevLeagueTable = state.leagueTable;
@@ -1775,6 +1777,7 @@ function finalizeSeason(
     scouting: { ...state.scouting, assignments: [], reports: [], discoveredPlayers: [] },
     cup: newCup,
     leagueCup: newLeagueCup,
+    friendlies: newFriendlies,
     championsCup: newChampionsCup,
     shieldCup: newShieldCup,
     conferenceCup: newConferenceCup,
@@ -2289,14 +2292,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const nextIntakePreview = generateIntakePreview(pcInit.youthRating);
     const scoutCount = initialStaff.filter(s => s.role === 'scout').length;
 
-    // Generate cup draws
+    // Generate cup draws and pre-season friendlies
     const cup = generateCupDraw(leagueClubIds);
     const leagueCup = generateLeagueCupDraw(leagueClubIds);
+    const friendlies = generateFriendlies(clubId, leagueClubIds);
 
     set({
       gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: TOTAL_WEEKS,
       gameMode: get().gameMode || 'sandbox',
-      transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable,
+      transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable, friendlies,
       divisionFixtures, divisionTables, divisionClubs, playerDivision,
       lastSeasonTurnover: null, derbies: DERBIES,
       activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
@@ -4393,7 +4397,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   advanceToNextMatch: () => {
     const hasMatchThisWeek = (s: GameState): boolean => {
-      const { week: w, fixtures, playerClubId: pcId, cup, leagueCup, domesticSuperCup, continentalSuperCup } = s;
+      const { week: w, fixtures, friendlies, playerClubId: pcId, cup, leagueCup, domesticSuperCup, continentalSuperCup } = s;
+      if (friendlies?.some(m => m.week === w && !m.played && (m.homeClubId === pcId || m.awayClubId === pcId))) return true;
       if (fixtures.some(m => m.week === w && !m.played && (m.homeClubId === pcId || m.awayClubId === pcId))) return true;
       if (cup?.ties?.some(t => t.week === w && !t.played && (t.homeClubId === pcId || t.awayClubId === pcId))) return true;
       if (leagueCup?.ties?.some(t => t.week === w && !t.played && (t.homeClubId === pcId || t.awayClubId === pcId))) return true;
@@ -4421,17 +4426,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (state.gameMode === 'career' && !state.careerManager?.contract) return null;
     const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
 
-    // ── Detect match type: league → cup → continental → league cup → super cup ──
-    const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
-    const cupTie = !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
-    const champMatch = !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
-    const shieldMatch = !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
-    const confMatch = !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
+    // ── Detect match type: friendly → league → cup → continental → league cup → super cup ──
+    const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const leagueMatch = !friendlyMatch ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
+    const cupTie = !friendlyMatch && !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+    const champMatch = !friendlyMatch && !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
+    const shieldMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
+    const confMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
     const continentalMatch = champMatch || shieldMatch || confMatch;
     const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : confMatch ? 'conference_cup' as const : null;
     const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
-    const leagueCupTie = !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
-    const superCup = !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
+    const leagueCupTie = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+    const superCup = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
       ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
         || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
       : null;
@@ -4442,7 +4448,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     let effectiveClubs = clubs;
     let effectivePlayers = players;
 
-    if (leagueMatch) {
+    if (friendlyMatch) {
+      match = friendlyMatch;
+    } else if (leagueMatch) {
       match = leagueMatch;
     } else if (cupTie) {
       match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
@@ -4484,8 +4492,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (!match) return null;
 
     // Determine competition metadata
+    const isFriendly = !!friendlyMatch;
     const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
-    const matchCompetition = cupTie ? `Dynasty Cup — ${cupTie.round}`
+    const matchCompetition = isFriendly ? 'Pre-Season Friendly'
+      : cupTie ? `Dynasty Cup — ${cupTie.round}`
       : leagueCupTie ? `League Cup — ${leagueCupTie.round}`
       : continentalComp === 'champions_cup' ? 'Champions Cup'
       : continentalComp === 'shield_cup' ? 'Shield Cup'
@@ -4709,6 +4719,47 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       return finalResult;
     }
 
+    // ── Friendly match path ──
+    if (isFriendly) {
+      const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
+      // Scale board confidence delta for friendlies (25% impact)
+      const confDelta = (processed.confidence - (state.boardConfidence || 50)) * FRIENDLY_BOARD_CONFIDENCE_MULT;
+      const friendlyConfidence = Math.max(0, Math.min(100, (state.boardConfidence || 50) + confDelta));
+
+      const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+      const press = generatePressConference(pressContext, isPro(get().monetization));
+      const drama = detectMatchDrama(result, playerClubId, clubs);
+      const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
+
+      set({
+        friendlies: state.friendlies.map(f => f.id === match.id ? result : f),
+        currentMatchResult: result,
+        players: processed.newPlayers,
+        boardConfidence: friendlyConfidence,
+        messages: processed.newMessages,
+        matchSubsUsed: 0,
+        matchPlayerRatings: processed.playerRatings,
+        managerStats: processed.managerStats,
+        matchPhase: 'full_time' as const,
+        lastMatchCompetition: 'Pre-Season Friendly',
+        pendingPressConference: press,
+        careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
+        managerProgression: processed.managerProgression,
+        preMatchLeaguePosition: prePos,
+        lastMatchXPGain: Math.round((processed.xpGain || 0) * 0.5),
+        lastMatchDrama: drama,
+        pairFamiliarity: processed.pairFamiliarity,
+        sessionStats: {
+          ...prevSession,
+          matchesWon: prevSession.matchesWon + (processed.won ? 1 : 0),
+          matchesLost: prevSession.matchesLost + (processed.lost ? 1 : 0),
+        },
+      });
+
+      if (get().settings.autoSave) get().saveGame();
+      return result;
+    }
+
     // ── League match path ──
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
 
@@ -4804,24 +4855,25 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   playFirstHalf: () => {
     const state = get();
     const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
-    const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const leagueMatch = !friendlyMatch ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
 
-    // Check for cup tie if no league match
-    const cupTie = !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+    // Check for cup tie if no league/friendly match
+    const cupTie = !friendlyMatch && !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
 
     // Check continental matches
-    const champMatch = !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
-    const shieldMatch = !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
-    const confMatch = !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
+    const champMatch = !friendlyMatch && !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
+    const shieldMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
+    const confMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
     const continentalMatch = champMatch || shieldMatch || confMatch;
     const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : confMatch ? 'conference_cup' as const : null;
     const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
 
     // Check league cup
-    const leagueCupTie = !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+    const leagueCupTie = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
 
     // Check super cups
-    const superCup = !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
+    const superCup = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
       ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
         || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
       : null;
@@ -4832,7 +4884,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     let effectiveClubs = clubs;
     let effectivePlayers = players;
 
-    if (leagueMatch) {
+    if (friendlyMatch) {
+      match = friendlyMatch;
+    } else if (leagueMatch) {
       match = leagueMatch;
     } else if (cupTie) {
       match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
@@ -4928,7 +4982,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Determine which cup tracking IDs to set
     const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
-    const matchCompetition = cupTie ? `Dynasty Cup — ${cupTie.round}`
+    const matchCompetition = friendlyMatch ? 'Pre-Season Friendly'
+      : cupTie ? `Dynasty Cup — ${cupTie.round}`
       : leagueCupTie ? `League Cup — ${leagueCupTie.round}`
       : champMatch && continentalTourney ? getContinentalMatchLabel('Champions Cup', champMatch, continentalTourney)
       : shieldMatch && continentalTourney ? getContinentalMatchLabel('Shield Cup', shieldMatch, continentalTourney)
@@ -4951,8 +5006,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (!halfTimeState) return null;
 
     try {
-    // Find league match or cup/tournament match
-    const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    // Find friendly, league match, or cup/tournament match
+    const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const leagueMatch = !friendlyMatch ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
     const isRealCupTie = state.currentCupTieId && state.currentCupTieId !== '__tournament__';
     const cupTie = isRealCupTie ? state.cup.ties.find(t => t.id === state.currentCupTieId) : null;
     const isTournamentMatch = state.currentCupTieId === '__tournament__';
@@ -4987,7 +5043,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
-    const match = leagueMatch || (cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null) || tournamentMatch;
+    const match = friendlyMatch || leagueMatch || (cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null) || tournamentMatch;
     if (!match) return null;
 
     const hc = clubs[match.homeClubId];
@@ -5488,6 +5544,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       unlockedAchievements: state.unlockedAchievements, managerStats: state.managerStats,
       activeLoans: state.activeLoans, incomingLoanOffers: state.incomingLoanOffers, outgoingLoanRequests: state.outgoingLoanRequests,
       cup: state.cup,
+      friendlies: state.friendlies,
       fanMood: state.fanMood,
       activeChallenge: state.activeChallenge,
       divisionFixtures: trimmedDivFixtures,
@@ -5681,6 +5738,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         incomingLoanOffers: data.incomingLoanOffers || [],
         outgoingLoanRequests: data.outgoingLoanRequests || [],
         cup: data.cup || generateCupDraw(clubIds),
+        friendlies: data.friendlies || [],
         leagueCup: data.leagueCup || { ties: [], currentRound: null, eliminated: false, winner: null },
         championsCup: data.championsCup || null,
         shieldCup: data.shieldCup || null,

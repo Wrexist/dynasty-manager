@@ -148,7 +148,7 @@ const MatchDay = () => {
     };
   }, [cleanupAbandonedMatch]);
 
-  const { match: liveMatch } = useCurrentMatch();
+  const { match: liveMatch, competition: liveCompetition } = useCurrentMatch();
 
   // Detect cup match if no league match this week
   const cupTie = !liveMatch ? cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
@@ -177,7 +177,8 @@ const MatchDay = () => {
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCupMatch || !!currentCupTieId;
 
   // Competition context for display
-  const competitionInfo = cupTie ? { name: 'Dynasty Cup', round: cupTie.round, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' }
+  const competitionInfo = liveCompetition === 'Pre-Season Friendly' ? { name: 'Pre-Season Friendly', round: '', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' }
+    : cupTie ? { name: 'Dynasty Cup', round: cupTie.round, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' }
     : leagueCupTie ? { name: 'League Cup', round: leagueCupTie.round, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/30' }
     : champMatch ? { name: 'Champions Cup', round: champMatch.roundLabel, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/30' }
     : shieldMatch ? { name: 'Shield Cup', round: shieldMatch.roundLabel, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30' }

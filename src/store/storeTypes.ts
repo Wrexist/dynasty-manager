@@ -25,6 +25,7 @@ export interface GameState {
   clubs: Record<string, Club>;
   players: Record<string, Player>;
   fixtures: Match[];
+  friendlies: Match[];
   leagueTable: LeagueTableEntry[];
   trainingFocus: 'fitness' | 'attacking' | 'defending' | 'mentality';
 
