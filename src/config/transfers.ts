@@ -214,6 +214,11 @@ export const FREE_AGENT_DEFAULT_CONTRACT_YEARS = 2;    // Default contract years
 export const FREE_AGENT_MIN_WAGE_RATIO = 0.7;          // Min wage offer = 70% of player wage
 export const FREE_AGENT_MAX_WAGE_RATIO = 2.0;          // Max wage offer = 200% of player wage
 
+// ── Negotiation Strikes ──
+export const NEGOTIATION_MAX_STRIKES = 3;
+export const NEGOTIATION_COOLDOWN_WEEKS = 12;  // ~3 months game time
+export const NEGOTIATION_STRIKE_PENALTY = 0.05; // -5% acceptance per existing strike
+
 // ── Market Listing Expiry ──
 // Unsold listings are refreshed after this many weeks
 export const LISTING_EXPIRY_WEEKS = 12;

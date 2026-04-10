@@ -16,7 +16,9 @@ import {
   LISTING_PRICE_FLOOR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE, FREE_AGENT_DIV_BONUS,
   INCOMING_NEGOTIATE_ACCEPT_AT_OFFER, INCOMING_NEGOTIATE_ACCEPT_AT_120, INCOMING_NEGOTIATE_ACCEPT_AT_MAX,
   INCOMING_NEGOTIATE_COUNTER_CHANCE, INCOMING_NEGOTIATE_COUNTER_BASE, INCOMING_NEGOTIATE_COUNTER_RANGE,
+  NEGOTIATION_MAX_STRIKES, NEGOTIATION_COOLDOWN_WEEKS, NEGOTIATION_STRIKE_PENALTY,
 } from '@/config/transfers';
+import { NegotiationStrike } from '@/types/game';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
 import { MIN_SQUAD_SIZE, MAX_SQUAD_SIZE, TOTAL_WEEKS, APPEASE_BASE_CHANCE, APPEASE_MORALE_BOOST, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
 import { hasPerk } from '@/utils/managerPerks';
@@ -135,8 +137,58 @@ export const createTransferSlice = (set: Set, get: Get) => ({
   scoutWatchList: [] as string[],
   incomingOffers: [] as GameState['incomingOffers'],
 
+  negotiationStrikes: {} as Record<string, NegotiationStrike>,
+
   addToShortlist: (id: string) => set(s => ({ shortlist: s.shortlist.includes(id) ? s.shortlist : [...s.shortlist, id] })),
   removeFromShortlist: (id: string) => set(s => ({ shortlist: s.shortlist.filter(x => x !== id) })),
+
+  // ── Negotiation Strikes ──
+  getPlayerStrikes: (playerId: string): number => {
+    return get().negotiationStrikes[playerId]?.strikes || 0;
+  },
+
+  isNegotiationLocked: (playerId: string): { locked: boolean; weeksRemaining: number } => {
+    const state = get();
+    const entry = state.negotiationStrikes[playerId];
+    if (!entry?.cooldownUntil) return { locked: false, weeksRemaining: 0 };
+    const absoluteWeek = state.season * TOTAL_WEEKS + state.week;
+    if (entry.cooldownUntil <= absoluteWeek) return { locked: false, weeksRemaining: 0 };
+    return { locked: true, weeksRemaining: entry.cooldownUntil - absoluteWeek };
+  },
+
+  recordNegotiationStrike: (playerId: string): number => {
+    const state = get();
+    const current = state.negotiationStrikes[playerId] || { strikes: 0 };
+    const newStrikes = Math.min(current.strikes + 1, NEGOTIATION_MAX_STRIKES);
+    const absoluteWeek = state.season * TOTAL_WEEKS + state.week;
+    const updated: NegotiationStrike = {
+      strikes: newStrikes,
+      ...(newStrikes >= NEGOTIATION_MAX_STRIKES ? { cooldownUntil: absoluteWeek + NEGOTIATION_COOLDOWN_WEEKS } : {}),
+    };
+    set({ negotiationStrikes: { ...state.negotiationStrikes, [playerId]: updated } });
+    return newStrikes;
+  },
+
+  clearNegotiationStrikes: (playerId: string) => {
+    const state = get();
+    const updated = { ...state.negotiationStrikes };
+    delete updated[playerId];
+    set({ negotiationStrikes: updated });
+  },
+
+  clearExpiredCooldowns: () => {
+    const state = get();
+    const absoluteWeek = state.season * TOTAL_WEEKS + state.week;
+    const strikes = { ...state.negotiationStrikes };
+    let changed = false;
+    for (const key of Object.keys(strikes)) {
+      if (strikes[key].cooldownUntil && strikes[key].cooldownUntil! <= absoluteWeek) {
+        delete strikes[key];
+        changed = true;
+      }
+    }
+    if (changed) set({ negotiationStrikes: strikes });
+  },
 
   evaluateOffer: (playerId: string, fee: number) => {
     const state = get();
@@ -177,7 +229,10 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     // Transfer Shark perk: treat asking price as 15% lower for acceptance calculation
     const effectiveAskingPrice = hasPerk(state.managerProgression, 'transfer_shark') ? listing.askingPrice * (1 - TRANSFER_SHARK_DISCOUNT) : listing.askingPrice;
     const ratio = fee / effectiveAskingPrice;
-    const acceptChance = fee >= effectiveAskingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= effectiveAskingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
+    const baseChance = fee >= effectiveAskingPrice ? ACCEPT_CHANCE_AT_ASKING : fee >= effectiveAskingPrice * ACCEPT_80_PERCENT_THRESHOLD ? ACCEPT_CHANCE_AT_80_PERCENT : ACCEPT_CHANCE_BELOW;
+    // Apply strike penalty: each previous rejection makes the seller less receptive
+    const existingStrikes = state.negotiationStrikes[playerId]?.strikes || 0;
+    const acceptChance = Math.max(0, baseChance - existingStrikes * NEGOTIATION_STRIKE_PENALTY);
     const roll = Math.random();
 
     if (roll <= acceptChance) {
@@ -426,7 +481,11 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
     // Acceptance curve: ratio of counter to original offer
     const ratio = counterFee / offer.fee;
-    const acceptChance = getIncomingAcceptChance(ratio);
+    const baseChance = getIncomingAcceptChance(ratio);
+    // Apply strike penalty: each previous rejection makes the buyer less receptive
+    const strikeKey = `incoming-${offer.playerId}-${offer.buyerClubId}`;
+    const existingStrikes = state.negotiationStrikes[strikeKey]?.strikes || 0;
+    const acceptChance = Math.max(0, baseChance - existingStrikes * NEGOTIATION_STRIKE_PENALTY);
     const roll = Math.random();
 
     if (roll <= acceptChance) {

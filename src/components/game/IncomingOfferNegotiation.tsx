@@ -8,9 +8,10 @@ import { IncomingOffer } from '@/types/game';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { INCOMING_NEGOTIATE_MAX_MULTIPLIER } from '@/config/transfers';
+import { INCOMING_NEGOTIATE_MAX_MULTIPLIER, NEGOTIATION_MAX_STRIKES } from '@/config/transfers';
+import { StrikeIndicator } from '@/components/game/StrikeIndicator';
 import {
-  X, Banknote, Users, Shield, ArrowRight, RotateCcw, Handshake, XCircle,
+  X, Banknote, Users, Shield, ArrowRight, RotateCcw, Handshake, XCircle, Lock,
 } from 'lucide-react';
 
 interface Props {
@@ -31,6 +32,10 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
   const evaluateIncomingCounter = useGameStore(s => s.evaluateIncomingCounter);
   const negotiateIncomingOffer = useGameStore(s => s.negotiateIncomingOffer);
   const acceptIncomingOfferAtFee = useGameStore(s => s.acceptIncomingOfferAtFee);
+  const getPlayerStrikes = useGameStore(s => s.getPlayerStrikes);
+  const isNegotiationLocked = useGameStore(s => s.isNegotiationLocked);
+  const recordNegotiationStrike = useGameStore(s => s.recordNegotiationStrike);
+  const clearNegotiationStrikes = useGameStore(s => s.clearNegotiationStrikes);
 
   const player = players[offer.playerId];
   const buyerClub = clubs[offer.buyerClubId];
@@ -46,6 +51,10 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [resultMessage, setResultMessage] = useState('');
   const [buyerCounterFee, setBuyerCounterFee] = useState<number | null>(null);
+  const strikeKey = `incoming-${offer.playerId}-${offer.buyerClubId}`;
+  const [strikeCount, setStrikeCount] = useState(() => getPlayerStrikes(strikeKey));
+  const [latestStrikeOutcome, setLatestStrikeOutcome] = useState<'rejected' | 'accepted' | null>(null);
+  const lockout = isNegotiationLocked(strikeKey);
 
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
@@ -71,6 +80,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
   const handleSubmitCounter = useCallback((fee: number) => {
     setPhase('thinking');
     setFinalFee(fee);
+    setLatestStrikeOutcome(null);
     timersRef.current.push(setTimeout(() => {
       const result = negotiateIncomingOffer(offer.id, fee);
       setOutcome(result.outcome);
@@ -78,9 +88,18 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
       if (result.outcome === 'counter' && result.counterFee) {
         setBuyerCounterFee(result.counterFee);
       }
+      if (result.outcome === 'rejected') {
+        const newStrikes = recordNegotiationStrike(strikeKey);
+        setStrikeCount(newStrikes);
+        setLatestStrikeOutcome('rejected');
+      } else if (result.outcome === 'accepted') {
+        clearNegotiationStrikes(strikeKey);
+        setStrikeCount(0);
+        setLatestStrikeOutcome('accepted');
+      }
       setPhase('result');
     }, 1500));
-  }, [offer.id, negotiateIncomingOffer]);
+  }, [offer.id, negotiateIncomingOffer, strikeKey, recordNegotiationStrike, clearNegotiationStrikes]);
 
   const handleAcceptBuyerCounter = useCallback(() => {
     if (!buyerCounterFee) return;
@@ -92,15 +111,21 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
       const result = acceptIncomingOfferAtFee(offer.id, fee);
       setOutcome(result.success ? 'accepted' : 'rejected');
       setResultMessage(result.message);
+      if (result.success) {
+        clearNegotiationStrikes(strikeKey);
+        setStrikeCount(0);
+        setLatestStrikeOutcome('accepted');
+      }
       setPhase('result');
     }, 1000));
-  }, [buyerCounterFee, offer.id, acceptIncomingOfferAtFee]);
+  }, [buyerCounterFee, offer.id, acceptIncomingOfferAtFee, strikeKey, clearNegotiationStrikes]);
 
   const handleRevise = useCallback(() => {
     setPhase('negotiate');
     setOutcome(null);
     setResultMessage('');
     setBuyerCounterFee(null);
+    setLatestStrikeOutcome(null);
   }, []);
 
   if (!player || !buyerClub || !sellerClub) return null;
@@ -139,11 +164,43 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.2 }}
               >
+                {/* Lockout screen */}
+                {lockout.locked && (
+                  <div className="p-6 flex flex-col items-center justify-center gap-4 min-h-[260px]">
+                    <motion.div
+                      className="w-16 h-16 rounded-full bg-red-500/10 border-2 border-red-500/30 flex items-center justify-center"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 15 }}
+                    >
+                      <Lock className="w-7 h-7 text-red-400" />
+                    </motion.div>
+                    <div className="text-center">
+                      <p className="text-lg font-black text-red-400 font-display">Negotiations Locked</p>
+                      <p className="text-xs text-muted-foreground mt-1.5 max-w-[260px]">
+                        You've been rejected 3 times. The buyer refuses to negotiate for now.
+                      </p>
+                      <p className="text-sm font-bold text-foreground mt-3 tabular-nums">
+                        {lockout.weeksRemaining} week{lockout.weeksRemaining !== 1 ? 's' : ''} remaining
+                      </p>
+                    </div>
+                    <StrikeIndicator strikes={NEGOTIATION_MAX_STRIKES} latestOutcome={null} />
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="w-full py-3 rounded-xl text-sm font-bold text-muted-foreground bg-muted/30 hover:bg-muted/50 active:scale-[0.98] transition-all mt-2"
+                    >
+                      Close
+                    </button>
+                  </div>
+                )}
+
                 {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b border-border/30">
+                {!lockout.locked && (<><div className="flex items-center justify-between p-4 border-b border-border/30">
                   <div className="flex items-center gap-2">
                     <Handshake className="w-5 h-5 text-primary" />
                     <p className="text-sm font-bold text-foreground font-display">Counter-Offer</p>
+                    {strikeCount > 0 && <StrikeIndicator strikes={strikeCount} latestOutcome={null} />}
                   </div>
                   <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors">
                     <X className="w-4 h-4 text-muted-foreground" />
@@ -311,6 +368,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                   )}
 
                 </div>
+                </>)}
               </motion.div>
             )}
 
@@ -469,6 +527,31 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                   <p className="text-xs text-muted-foreground mt-1 max-w-[240px]">{resultMessage}</p>
                 </motion.div>
 
+                {/* Strike indicator */}
+                <motion.div
+                  className="flex flex-col items-center gap-1.5"
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.28 }}
+                >
+                  <StrikeIndicator strikes={strikeCount} latestOutcome="rejected" />
+                  <p className="text-[10px] text-muted-foreground">
+                    Strike {strikeCount}/{NEGOTIATION_MAX_STRIKES}
+                  </p>
+                </motion.div>
+
+                {/* Final attempt warning */}
+                {strikeCount === NEGOTIATION_MAX_STRIKES - 1 && (
+                  <motion.p
+                    className="text-[11px] font-semibold text-amber-400"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    Final attempt — make it count!
+                  </motion.p>
+                )}
+
                 <motion.div
                   className="flex gap-2 w-full mt-2"
                   initial={{ opacity: 0 }}
@@ -482,13 +565,19 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                   >
                     Walk Away
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleRevise}
-                    className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(16,185,129,0.15)]"
-                  >
-                    <RotateCcw className="w-4 h-4" /> Revise Counter
-                  </button>
+                  {strikeCount < NEGOTIATION_MAX_STRIKES ? (
+                    <button
+                      type="button"
+                      onClick={handleRevise}
+                      className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(16,185,129,0.15)]"
+                    >
+                      <RotateCcw className="w-4 h-4" /> Revise Counter
+                    </button>
+                  ) : (
+                    <div className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-red-400/70 bg-red-500/10 border border-red-500/20">
+                      <Lock className="w-4 h-4" /> Locked Out
+                    </div>
+                  )}
                 </motion.div>
               </motion.div>
             )}
@@ -583,7 +672,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
           </div>
 
           {/* Sticky action buttons — negotiate phase */}
-          {phase === 'negotiate' && (
+          {phase === 'negotiate' && !lockout.locked && (
             <div className="border-t border-border/30 bg-card/95 px-4 py-3">
               <div className="flex gap-2">
                 <button

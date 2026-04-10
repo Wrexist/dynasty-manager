@@ -1760,6 +1760,7 @@ function finalizeSeason(
     sponsorDeals: sponsorSeasonEnd.sponsorDeals || state.sponsorDeals,
     sponsorOffers: [],
     sponsorSlotCooldowns: {},
+    negotiationStrikes: {},
     merchandise: {
       ...state.merchandise,
       lastSeasonRevenue: state.merchandise.currentSeasonRevenue,
@@ -2369,6 +2370,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sponsorDeals: generateStarterDeals(pcInit.reputation, 1),
       sponsorOffers: [],
       sponsorSlotCooldowns: {},
+      negotiationStrikes: {},
       merchandise: getDefaultMerchState(),
       fanMood: 50,
       pendingPressConference: null,
@@ -4044,6 +4046,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       },
     });
 
+    // Clear expired negotiation cooldowns
+    get().clearExpiredCooldowns();
+
     // Process loan returns
     get().processLoanReturns();
 
@@ -5510,6 +5515,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sponsorDeals: state.sponsorDeals,
       sponsorOffers: state.sponsorOffers,
       sponsorSlotCooldowns: state.sponsorSlotCooldowns,
+      negotiationStrikes: state.negotiationStrikes,
       merchandise: state.merchandise,
       pairFamiliarity: state.pairFamiliarity,
       rivalries: state.rivalries,
@@ -5720,6 +5726,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         sponsorDeals: data.sponsorDeals || [],
         sponsorOffers: data.sponsorOffers || [],
         sponsorSlotCooldowns: data.sponsorSlotCooldowns || {},
+        negotiationStrikes: data.negotiationStrikes || {},
         merchandise: data.merchandise || getDefaultMerchState(),
         halfTimeState: null,
         matchPhase: 'none' as const,
@@ -5803,7 +5810,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null, careerTimeline: [],
       gameMode: 'sandbox', careerManager: null, jobVacancies: [], jobOffers: [],
-      sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {},
+      sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {}, negotiationStrikes: {},
       merchandise: getDefaultMerchState(),
       continentalCoefficients: {},
       monetization: {
