@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { LOAN_REQUEST_MIN_DURATION, LOAN_REQUEST_MAX_DURATION } from '@/config/transfers';
+import { LOAN_REQUEST_MIN_DURATION, LOAN_REQUEST_MAX_DURATION, LOAN_DEFAULT_DURATION, LOAN_DEFAULT_WAGE_SPLIT, LOAN_BUY_FEE_MULTIPLIER, LOAN_BUY_FEE_MIN_RATIO, LOAN_BUY_FEE_MAX_RATIO } from '@/config/transfers';
 import {
   X, Repeat2, ArrowRight, RotateCcw, Handshake, XCircle, ToggleLeft, ToggleRight,
 } from 'lucide-react';
@@ -34,19 +34,19 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
   const ownerClub = player ? clubs[player.clubId] : null;
   const userClub = clubs[playerClubId];
 
-  const [duration, setDuration] = useState(16);
-  const [wageSplit, setWageSplit] = useState(50);
+  const [duration, setDuration] = useState(LOAN_DEFAULT_DURATION);
+  const [wageSplit, setWageSplit] = useState(LOAN_DEFAULT_WAGE_SPLIT);
   const [recallClause, setRecallClause] = useState(false);
   const [buyOption, setBuyOption] = useState(false);
-  const [buyFee, setBuyFee] = useState(player ? Math.round(player.value * 1.2) : 5_000_000);
+  const [buyFee, setBuyFee] = useState(player ? Math.round(player.value * LOAN_BUY_FEE_MULTIPLIER) : 5_000_000);
 
   const [phase, setPhase] = useState<Phase>('negotiate');
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [resultMessage, setResultMessage] = useState('');
   const [counterWageSplit, setCounterWageSplit] = useState<number | null>(null);
   const [counterDuration, setCounterDuration] = useState<number | null>(null);
-  const [finalDuration, setFinalDuration] = useState(16);
-  const [finalWageSplit, setFinalWageSplit] = useState(50);
+  const [finalDuration, setFinalDuration] = useState(LOAN_DEFAULT_DURATION);
+  const [finalWageSplit, setFinalWageSplit] = useState(LOAN_DEFAULT_WAGE_SPLIT);
 
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
@@ -112,8 +112,8 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
   if (!player || !ownerClub || !userClub) return null;
 
   const buyFeeStep = Math.max(100_000, Math.round((player.value || 1_000_000) * 0.05));
-  const buyFeeMin = Math.round((player.value || 1_000_000) * 0.8);
-  const buyFeeMax = Math.round((player.value || 1_000_000) * 2.0);
+  const buyFeeMin = Math.round((player.value || 1_000_000) * LOAN_BUY_FEE_MIN_RATIO);
+  const buyFeeMax = Math.round((player.value || 1_000_000) * LOAN_BUY_FEE_MAX_RATIO);
 
   return (
     <AnimatePresence>

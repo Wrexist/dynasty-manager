@@ -82,7 +82,7 @@ export interface GameState {
   pairFamiliarity: Record<string, number>;
   seasonGrowthTracker: Record<string, number>;
   transferFilters: {
-    tab: 'market' | 'shortlist' | 'incoming' | 'outgoing' | 'loans' | 'freeAgents' | 'news';
+    tab: 'market' | 'deals' | 'freeAgents' | 'news';
     posFilter: number;
     searchQuery: string;
     sortBy: 'overall' | 'price' | 'age' | 'potential';
@@ -90,6 +90,7 @@ export interface GameState {
     divFilter: string;
     newsTypeFilter: 'all' | 'transfer' | 'loan' | 'free_agent';
     hideUnaffordable: boolean;
+    showShortlistOnly: boolean;
   };
   setTransferFilter: (updates: Partial<GameState['transferFilters']>) => void;
 

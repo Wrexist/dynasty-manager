@@ -5,7 +5,7 @@ import { TOTAL_WEEKS, LOAN_MIN_WEEKS_BEFORE_RECALL, MAX_SQUAD_SIZE } from '@/con
 import {
   LOAN_REQUEST_BASE_ACCEPT, LOAN_REQUEST_LINEUP_PENALTY,
   LOAN_REQUEST_WAGE_BONUS, LOAN_REQUEST_AGE_BONUS,
-  LOAN_REQUEST_COUNTER_CHANCE,
+  LOAN_REQUEST_COUNTER_CHANCE, LOAN_TERMINATION_MORALE_PENALTY,
 } from '@/config/transfers';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -405,7 +405,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       loanFromClubId: undefined,
       loanToClubId: undefined,
       clubId: loan.fromClubId,
-      morale: Math.max(0, player.morale - 10),
+      morale: Math.max(0, player.morale - LOAN_TERMINATION_MORALE_PENALTY),
     };
 
     const newMessages = addMsg(state.messages, {

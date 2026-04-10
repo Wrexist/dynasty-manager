@@ -271,6 +271,19 @@ export const PRESSING_MED_THRESHOLD = 60;
 // ── Transfer Page Thresholds ──
 export const SIGNIFICANT_OFFER_OVERALL = 70;
 export const SIGNIFICANT_OFFER_FEE = 5_000_000;
+export const BUDGET_WARNING_THRESHOLD = 0.5;         // Amber affordability dot at 50% of budget
+export const HOT_FORM_THRESHOLD = 1.15;              // Performance multiplier for "Hot form" badge
+export const GOOD_FORM_THRESHOLD = 1.05;             // Performance multiplier for "Good form" badge
+export const OFFER_EXPIRY_WARNING_WEEKS = 2;         // Show "Expiring" badge this many weeks early
+
+// ── Listing Attractiveness Thresholds (ListForSaleModal) ──
+export const LISTING_ATTRACTIVENESS = [
+  { maxRatio: 0.8, label: 'Bargain', color: 'text-emerald-400' },
+  { maxRatio: 1.1, label: 'Fair', color: 'text-emerald-400' },
+  { maxRatio: 1.4, label: 'Normal', color: 'text-amber-400' },
+  { maxRatio: 1.7, label: 'Steep', color: 'text-amber-400' },
+  { maxRatio: Infinity, label: 'Unlikely', color: 'text-red-400' },
+] as const;
 
 // ── Attribute Rating Thresholds (for per-attribute color coding in PlayerDetail/TeamDetail) ──
 export const ATTR_RATING_HIGH = 15;

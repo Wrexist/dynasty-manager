@@ -9,6 +9,7 @@ import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, g
 import { formatWage } from '@/utils/contracts';
 import { formatMoney } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
+import { NEGOTIATION_SLIDER_MIN_RATIO, NEGOTIATION_SLIDER_MAX_RATIO } from '@/config/transfers';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import {
   X, TrendingUp, TrendingDown,
@@ -58,8 +59,8 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   const [counterFee, setCounterFee] = useState<number | null>(null);
   const [lastCounterFee, setLastCounterFee] = useState<number | null>(null);
 
-  const minFee = Math.round(listing.askingPrice * 0.5);
-  const maxFee = Math.round(listing.askingPrice * 1.2);
+  const minFee = Math.round(listing.askingPrice * NEGOTIATION_SLIDER_MIN_RATIO);
+  const maxFee = Math.round(listing.askingPrice * NEGOTIATION_SLIDER_MAX_RATIO);
   const step = Math.max(100_000, Math.round(listing.askingPrice * 0.01));
 
   // Position helpers for markers on the slider track
