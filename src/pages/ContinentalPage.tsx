@@ -22,7 +22,12 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
   const [tab, setTab] = useState<'groups' | 'knockout'>(tournament.currentPhase === 'knockout' || tournament.currentPhase === 'complete' ? 'knockout' : 'groups');
 
   const currentMd = tournament.currentPhase === 'group' ? getCurrentMatchday(tournament) : 6;
-  const compName = competition === 'champions_cup' ? 'Champions Cup' : 'Shield Cup';
+  const compName = competition === 'champions_cup' ? 'Champions Cup' : competition === 'shield_cup' ? 'Shield Cup' : 'Conference Cup';
+  const compStyles = competition === 'champions_cup'
+    ? { winnerBg: 'bg-blue-400/10 border border-blue-400/30', text: 'text-blue-400' }
+    : competition === 'shield_cup'
+    ? { winnerBg: 'bg-orange-400/10 border border-orange-400/30', text: 'text-orange-400' }
+    : { winnerBg: 'bg-emerald-400/10 border border-emerald-400/30', text: 'text-emerald-400' };
 
   const subtitleParts: string[] = [];
   if (tournament.currentPhase === 'group') {
@@ -72,10 +77,10 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-center"
+          className={cn(compStyles.winnerBg, 'rounded-xl p-3 text-center')}
         >
-          <Trophy className="w-6 h-6 text-primary mx-auto mb-1" />
-          <p className="text-sm text-primary font-bold">{compName} Winners!</p>
+          <Trophy className={cn('w-6 h-6 mx-auto mb-1', compStyles.text)} />
+          <p className={cn('text-sm font-bold', compStyles.text)}>{compName} Winners!</p>
         </motion.div>
       )}
 
@@ -134,6 +139,7 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
                     clubs={clubs}
                     isPlayerGroup={group.id === tournament.playerGroupId}
                     currentMatchday={currentMd}
+                    competition={competition}
                   />
                 </motion.div>
               ))}

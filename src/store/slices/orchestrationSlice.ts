@@ -1818,7 +1818,7 @@ function finalizeSeason(
       else if (state.championsCup && !state.championsCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
       if (state.shieldCup?.winnerId === playerClubId) xp += XP_REWARDS.shieldCupWin;
       else if (state.shieldCup && !state.shieldCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
-      if (state.conferenceCup?.winnerId === playerClubId) xp += XP_REWARDS.shieldCupWin; // Conference win ~ Shield win XP
+      if (state.conferenceCup?.winnerId === playerClubId) xp += XP_REWARDS.conferenceCupWin;
       else if (state.conferenceCup && !state.conferenceCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
       return xp;
     })()),

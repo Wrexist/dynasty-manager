@@ -21,7 +21,7 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
   return (
     <div className={cn(
       'bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-3',
-      isPlayerMatch && 'ring-1 ring-emerald-400/40'
+      isPlayerMatch && 'ring-1 ring-cyan-400/40'
     )}>
       <div className="flex items-center gap-2">
         <div className={cn('flex-1 flex items-center gap-2', winnerId === tie.homeClubId && 'font-bold')}>
@@ -40,11 +40,11 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
           {tie.played ? (
             <span className={cn(
               'text-sm font-mono font-bold',
-              winnerId === tie.homeClubId ? 'text-emerald-400' : winnerId === tie.awayClubId ? 'text-foreground' : 'text-foreground'
+              winnerId === tie.homeClubId ? 'text-cyan-400' : winnerId === tie.awayClubId ? 'text-foreground' : 'text-foreground'
             )}>
               {tie.homeGoals}
               <span className="text-muted-foreground mx-0.5">-</span>
-              <span className={winnerId === tie.awayClubId ? 'text-emerald-400' : ''}>
+              <span className={winnerId === tie.awayClubId ? 'text-cyan-400' : ''}>
                 {tie.awayGoals}
               </span>
             </span>
@@ -95,11 +95,11 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
     <div className="space-y-2">
       <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 w-full text-left">
         {expanded ? <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" /> : <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />}
-        <h2 className={cn('text-sm font-display font-bold', isCurrent ? 'text-emerald-400' : allPlayed ? 'text-muted-foreground' : 'text-foreground')}>
+        <h2 className={cn('text-sm font-display font-bold', isCurrent ? 'text-cyan-400' : allPlayed ? 'text-muted-foreground' : 'text-foreground')}>
           {getRoundName(round)}
         </h2>
         <span className="text-[10px] text-muted-foreground">{ties.length} {ties.length === 1 ? 'tie' : 'ties'}</span>
-        {isCurrent && <span className="text-[10px] bg-emerald-400/20 text-emerald-400 px-2 py-0.5 rounded-full font-medium">Current</span>}
+        {isCurrent && <span className="text-[10px] bg-cyan-400/20 text-cyan-400 px-2 py-0.5 rounded-full font-medium">Current</span>}
         {!allPlayed && (
           <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground ml-auto shrink-0">
             <Calendar className="w-2.5 h-2.5" />
@@ -204,10 +204,10 @@ const LeagueCupPage = () => {
           initial={{ opacity: 0, x: -10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-emerald-400/5 border border-emerald-400/20 rounded-xl p-2.5 flex items-center justify-center gap-2"
+          className="bg-cyan-400/5 border border-cyan-400/20 rounded-xl p-2.5 flex items-center justify-center gap-2"
         >
-          <Target className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-          <p className="text-xs text-emerald-400 font-medium">{progressionText}</p>
+          <Target className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+          <p className="text-xs text-cyan-400 font-medium">{progressionText}</p>
         </motion.div>
       )}
 
@@ -226,12 +226,12 @@ const LeagueCupPage = () => {
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="bg-gradient-to-br from-emerald-400/20 via-emerald-500/10 to-transparent border border-emerald-400/30 rounded-xl p-4 text-center shadow-[0_0_24px_rgba(52,211,153,0.15)]"
+          className="bg-gradient-to-br from-cyan-400/20 via-cyan-500/10 to-transparent border border-cyan-400/30 rounded-xl p-4 text-center shadow-[0_0_24px_rgba(52,211,153,0.15)]"
         >
           <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
-            <Award className="w-8 h-8 text-emerald-400 mx-auto mb-1" />
+            <Award className="w-8 h-8 text-cyan-400 mx-auto mb-1" />
           </motion.div>
-          <p className="text-base text-emerald-400 font-bold font-display">League Cup Winners!</p>
+          <p className="text-base text-cyan-400 font-bold font-display">League Cup Winners!</p>
         </motion.div>
       )}
 

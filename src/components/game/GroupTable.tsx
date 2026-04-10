@@ -1,8 +1,14 @@
-import type { ContinentalGroup, ContinentalGroupMatch, VirtualClub } from '@/types/game';
+import type { ContinentalGroup, ContinentalGroupMatch, ContinentalCompetition, VirtualClub } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { Shield, ChevronDown, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const COMP_QUALIFY_COLORS: Record<string, { text: string; bg: string; rowBg: string; badge: string }> = {
+  champions_cup: { text: 'text-blue-400', bg: 'bg-blue-500/20', rowBg: 'bg-blue-500/5', badge: 'bg-blue-500/20 text-blue-400' },
+  shield_cup: { text: 'text-orange-400', bg: 'bg-orange-500/20', rowBg: 'bg-orange-500/5', badge: 'bg-orange-500/20 text-orange-400' },
+  conference_cup: { text: 'text-emerald-400', bg: 'bg-emerald-500/20', rowBg: 'bg-emerald-500/5', badge: 'bg-emerald-500/20 text-emerald-400' },
+};
 
 interface GroupTableProps {
   group: ContinentalGroup;
@@ -11,6 +17,7 @@ interface GroupTableProps {
   clubs: Record<string, { name: string; shortName: string; color: string }>;
   isPlayerGroup: boolean;
   currentMatchday: number;
+  competition?: ContinentalCompetition;
 }
 
 function ClubBadge({ color, size = 'sm' }: { color: string; size?: 'sm' | 'xs' }) {
@@ -60,9 +67,10 @@ function MatchResult({ match, clubs, virtualClubs, playerClubId }: {
   );
 }
 
-export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerGroup, currentMatchday }: GroupTableProps) {
+export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerGroup, currentMatchday, competition }: GroupTableProps) {
   const [expanded, setExpanded] = useState(isPlayerGroup);
   const [showMatches, setShowMatches] = useState(false);
+  const qColors = COMP_QUALIFY_COLORS[competition || 'champions_cup'];
 
   return (
     <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl overflow-hidden">
@@ -118,12 +126,12 @@ export function GroupTable({ group, virtualClubs, playerClubId, clubs, isPlayerG
                         className={cn(
                           'border-b border-border/10',
                           isPlayer && 'bg-primary/5',
-                          qualifies && !isPlayer && 'bg-emerald-500/5',
+                          qualifies && !isPlayer && qColors.rowBg,
                         )}
                       >
-                        <td className={cn('py-1.5 font-medium', qualifies ? 'text-emerald-400' : 'text-muted-foreground')}>
+                        <td className={cn('py-1.5 font-medium', qualifies ? qColors.text : 'text-muted-foreground')}>
                           {s.played >= 6 ? (
-                            <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded', qualifies ? 'bg-emerald-500/20 text-emerald-400' : 'bg-destructive/20 text-destructive')}>
+                            <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded', qualifies ? qColors.badge : 'bg-destructive/20 text-destructive')}>
                               {qualifies ? 'Q' : 'E'}
                             </span>
                           ) : idx + 1}

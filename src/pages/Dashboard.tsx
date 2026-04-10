@@ -1904,7 +1904,7 @@ const Dashboard = () => {
         <GlassPanel className="p-4" onClick={() => setScreen('champions-cup')}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Trophy className={cn('w-5 h-5', championsCup.winnerId === playerClubId ? 'text-primary' : championsCup.playerEliminated ? 'text-destructive' : 'text-primary/70')} />
+              <Trophy className={cn('w-5 h-5', championsCup.winnerId === playerClubId ? 'text-blue-400' : championsCup.playerEliminated ? 'text-destructive' : 'text-blue-400/70')} />
               <div>
                 <p className="text-sm font-semibold text-foreground">Champions Cup</p>
                 <p className="text-xs text-muted-foreground">
@@ -1926,7 +1926,7 @@ const Dashboard = () => {
         <GlassPanel className="p-4" onClick={() => setScreen('shield-cup')}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Shield className={cn('w-5 h-5', shieldCup.winnerId === playerClubId ? 'text-accent' : shieldCup.playerEliminated ? 'text-destructive' : 'text-accent/70')} />
+              <Shield className={cn('w-5 h-5', shieldCup.winnerId === playerClubId ? 'text-orange-400' : shieldCup.playerEliminated ? 'text-destructive' : 'text-orange-400/70')} />
               <div>
                 <p className="text-sm font-semibold text-foreground">Shield Cup</p>
                 <p className="text-xs text-muted-foreground">

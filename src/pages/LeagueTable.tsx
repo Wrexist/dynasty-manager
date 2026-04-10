@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ChevronDown, Search, X } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ChevronDown, Search, X, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { LEAGUES } from '@/data/league';
@@ -47,6 +47,7 @@ const LeagueTable = () => {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [infoOpen, setInfoOpen] = useState(false);
 
   const isPlayerLeague = selectedDiv === playerDivision;
 
@@ -253,7 +254,7 @@ const LeagueTable = () => {
       )}
 
       {/* Tabs */}
-      {!isLoading && (<><div className="flex gap-2">
+      {!isLoading && (<><div className="flex gap-2 items-center">
         {(['table', 'fixtures', 'stats'] as const).map(t => (
           <button
             key={t}
@@ -273,7 +274,97 @@ const LeagueTable = () => {
             )}
           </button>
         ))}
+        <button
+          onClick={() => setInfoOpen(!infoOpen)}
+          className={cn(
+            'ml-auto p-1.5 rounded-lg transition-colors shrink-0',
+            infoOpen ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+          )}
+          aria-label="Qualification info"
+        >
+          <Info className="w-4 h-4" />
+        </button>
       </div>
+
+      {/* Qualification Info Panel */}
+      <AnimatePresence>
+        {infoOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <GlassPanel className="p-4 space-y-3">
+              <p className="text-xs font-bold text-foreground font-display">
+                {currentLeague?.name || 'League'} — Qualification Spots
+              </p>
+
+              {qualZones.championsCup.length > 0 && (
+                <div className="flex items-start gap-2">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-blue-400/50 mt-1 shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-blue-400">Champions Cup</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Position{qualZones.championsCup.length > 1 ? 's' : ''} {qualZones.championsCup.join(', ')} qualify for the elite continental tournament.
+                      Top 2 in each group advance to knockouts.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {qualZones.shieldCup.length > 0 && (
+                <div className="flex items-start gap-2">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-orange-400/50 mt-1 shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-orange-400">Shield Cup</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Position{qualZones.shieldCup.length > 1 ? 's' : ''} {qualZones.shieldCup.join(', ')} qualify for the secondary continental cup.
+                      Shield Cup winners earn a Champions Cup spot next season.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {qualZones.conferenceCup.length > 0 && (
+                <div className="flex items-start gap-2">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-emerald-400/50 mt-1 shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-emerald-400">Conference Cup</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Position{qualZones.conferenceCup.length > 1 ? 's' : ''} {qualZones.conferenceCup.join(', ')} qualify for the third-tier continental cup.
+                      Conference Cup winners earn a Shield Cup spot next season.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {qualZones.championsCup.length === 0 && qualZones.shieldCup.length === 0 && qualZones.conferenceCup.length === 0 && (
+                <p className="text-[10px] text-muted-foreground">This league does not have continental qualification spots.</p>
+              )}
+
+              {currentLeague && currentLeague.replacedSlots > 0 && (
+                <div className="flex items-start gap-2">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-destructive/50 mt-1 shrink-0" />
+                  <div>
+                    <p className="text-xs font-medium text-destructive">Replaced Zone</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Bottom {currentLeague.replacedSlots} club{currentLeague.replacedSlots > 1 ? 's' : ''} are replaced at end of season.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-1 border-t border-border/20">
+                <p className="text-[10px] text-muted-foreground italic">
+                  Domestic cup winners may also earn continental spots. Spots are based on league ranking which evolves with continental performance over seasons.
+                </p>
+              </div>
+            </GlassPanel>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Table Tab */}
       {tab === 'table' && (
