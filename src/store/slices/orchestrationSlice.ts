@@ -95,9 +95,10 @@ import {
   COMPETING_BID_PREMIUM,
   ASKING_PRICE_BID_ANCHOR,
   INJURY_BID_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD,
+  PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER,
 } from '@/config/transfers';
 import { getPerformanceMultiplier, getContractLengthFactor } from '@/utils/transferOffers';
-import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
+import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, replenishMarketPreSeason, generatePreSeasonMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
 import { PENALTY_CONVERSION_RATE, SHOUT_MODIFIERS, SHOUT_CUMULATIVE_SCALE, GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { calculatePlayerValue } from '@/config/playerGeneration';
 import {
@@ -1680,6 +1681,11 @@ function finalizeSeason(
   Object.assign(newPlayers, seasonMarket.players);
   transferMarket.push(...seasonMarket.listings);
 
+  // Pre-season bonus: flood market with extra higher-quality players during friendlies
+  const preSeasonMarket = generatePreSeasonMarket(newSeason, 1);
+  Object.assign(newPlayers, preSeasonMarket.players);
+  transferMarket.push(...preSeasonMarket.listings);
+
   // Board objective end-of-season rewards
   let objectiveXP = 0;
   let objectiveBudgetBoost = 0;
@@ -2346,6 +2352,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const initialMarket = generateInitialMarket(1, 1);
     Object.assign(allPlayers, initialMarket.players);
     transferMarket.push(...initialMarket.listings);
+
+    // Pre-season bonus: flood market with extra higher-quality players during friendlies
+    const preSeasonMarket = generatePreSeasonMarket(1, 1);
+    Object.assign(allPlayers, preSeasonMarket.players);
+    transferMarket.push(...preSeasonMarket.listings);
 
     // Generate initial free agent pool
     const initialFreeAgents = generateInitialFreeAgents(1);
@@ -3382,11 +3393,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         return false;
       };
 
+      // Pre-season boost: more offers during friendlies period (weeks 1-3)
+      const isPreSeason = newWeek <= PRE_SEASON_END;
+      const preSeasonOfferMult = isPreSeason ? PRE_SEASON_OFFER_MULTIPLIER : 1;
+      const preSeasonUnsolicitedMult = isPreSeason ? PRE_SEASON_UNSOLICITED_MULTIPLIER : 1;
+
       // Listed player offers — anchor bids toward asking price when higher than value
       const listedPlayers = Object.values(newPlayers).filter(p => p.listedForSale && !p.onLoan && p.clubId === playerClubId);
       const currentMarket = state.transferMarket;
       for (const lp of listedPlayers) {
-        const effectiveOfferChance = isDeadlineDay ? AI_OFFER_CHANCE * DEADLINE_DAY_OFFER_MULTIPLIER : AI_OFFER_CHANCE;
+        const effectiveOfferChance = isDeadlineDay
+          ? AI_OFFER_CHANCE * DEADLINE_DAY_OFFER_MULTIPLIER
+          : AI_OFFER_CHANCE * preSeasonOfferMult;
         if (Math.random() < effectiveOfferChance) {
           const listing = currentMarket.find(l => l.playerId === lp.id);
           const askingFloor = listing ? listing.askingPrice * ASKING_PRICE_BID_ANCHOR : 0;
@@ -3401,7 +3419,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         (p.wantsToLeave || p.overall >= 75)
       );
       for (const tp of unsolicitedTargets) {
-        if (Math.random() < UNSOLICITED_OFFER_CHANCE) {
+        if (Math.random() < UNSOLICITED_OFFER_CHANCE * preSeasonUnsolicitedMult) {
           tryGenerateOffer(tp, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE);
         }
       }
@@ -4431,7 +4449,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
 
       if (updatedMarket.length < MARKET_REPLENISH_THRESHOLD) {
-        const fresh = replenishMarket(season, newWeek);
+        // Use larger, higher-quality batches during pre-season (friendlies weeks 1-3)
+        const fresh = newWeek <= PRE_SEASON_END
+          ? replenishMarketPreSeason(season, newWeek)
+          : replenishMarket(season, newWeek);
         Object.assign(updatedPlayers, fresh.players);
         updatedMarket = [...updatedMarket, ...fresh.listings];
       }

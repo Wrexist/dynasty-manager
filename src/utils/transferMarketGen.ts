@@ -16,6 +16,9 @@ import {
   FREE_AGENT_QUALITY_MIN, FREE_AGENT_QUALITY_MAX,
   MARKET_REPLENISH_BATCH_MIN, MARKET_REPLENISH_BATCH_RANGE,
   FREE_AGENT_SPAWN_MIN, FREE_AGENT_SPAWN_RANGE,
+  PRE_SEASON_EXTRA_MARKET_MIN, PRE_SEASON_EXTRA_MARKET_RANGE,
+  PRE_SEASON_QUALITY_BOOST, PRE_SEASON_DIVISION_WEIGHTS,
+  PRE_SEASON_REPLENISH_BATCH_MIN, PRE_SEASON_REPLENISH_BATCH_RANGE,
 } from '@/config/transfers';
 
 // Position distribution weights (mirrors realistic squad composition)
@@ -210,6 +213,135 @@ export function replenishMarket(
     const { player, listing } = generateMarketPlayer(season, divisionId);
     listing.listedWeek = week;
     listing.listedSeason = season;
+    players[player.id] = player;
+    listings.push(listing);
+  }
+
+  return { players, listings };
+}
+
+/**
+ * Generate extra higher-quality players for the pre-season transfer market.
+ * Called at season start alongside generateInitialMarket to flood the market
+ * with better talent during the friendlies period.
+ */
+export function generatePreSeasonMarket(
+  season: number,
+  week: number,
+): { players: Record<string, Player>; listings: TransferListing[] } {
+  const count = PRE_SEASON_EXTRA_MARKET_MIN + Math.floor(Math.random() * PRE_SEASON_EXTRA_MARKET_RANGE);
+  const players: Record<string, Player> = {};
+  const listings: TransferListing[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const divisionId = pickWeightedDivisionPreSeason();
+    const range = DIVISION_QUALITY_RANGES[divisionId] || DIVISION_QUALITY_RANGES['div-3'];
+    // Boost minimum quality so pre-season market skews toward better players
+    const boostedMin = Math.min(range.min + PRE_SEASON_QUALITY_BOOST, range.max);
+    const quality = boostedMin + Math.floor(Math.random() * (range.max - boostedMin + 1));
+    const position = pickWeightedPosition();
+    const age = pickWeightedAge();
+
+    const player = generatePlayer(position, quality, '', season, divisionId);
+    player.age = age;
+
+    const baseValue = calculatePlayerValue(player.overall);
+    const ageMultiplier = getAgePriceMultiplier(age);
+    player.value = Math.round(baseValue * ageMultiplier);
+    player.wage = calculatePlayerWage(player.overall);
+
+    if (age <= 22) {
+      player.potential = Math.min(99, player.overall + 5 + Math.floor(Math.random() * 12));
+    } else if (age <= 26) {
+      player.potential = Math.min(99, player.overall + Math.floor(Math.random() * 6));
+    } else {
+      player.potential = player.overall + Math.floor(Math.random() * 2);
+    }
+
+    player.contractEnd = season + 1 + Math.floor(Math.random() * 3);
+
+    const markup = 1.1 + Math.random() * 0.4;
+    const askingPrice = Math.max(50_000, Math.round(player.value * markup));
+
+    const listing: TransferListing = {
+      playerId: player.id,
+      askingPrice,
+      sellerClubId: '',
+      externalPlayer: true,
+      divisionId,
+      listedWeek: week,
+      listedSeason: season,
+    };
+
+    players[player.id] = player;
+    listings.push(listing);
+  }
+
+  return { players, listings };
+}
+
+/** Pick a division using pre-season weights (more top-flight talent) */
+function pickWeightedDivisionPreSeason(): string {
+  const entries = Object.entries(PRE_SEASON_DIVISION_WEIGHTS);
+  const total = entries.reduce((s, [, w]) => s + w, 0);
+  let r = Math.random() * total;
+  for (const [div, weight] of entries) {
+    r -= weight;
+    if (r <= 0) return div;
+  }
+  return 'div-2';
+}
+
+/**
+ * Replenish the transfer market during pre-season with larger batches and higher quality.
+ */
+export function replenishMarketPreSeason(
+  season: number,
+  week: number,
+): { players: Record<string, Player>; listings: TransferListing[] } {
+  const count = PRE_SEASON_REPLENISH_BATCH_MIN + Math.floor(Math.random() * PRE_SEASON_REPLENISH_BATCH_RANGE);
+  const players: Record<string, Player> = {};
+  const listings: TransferListing[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const divisionId = pickWeightedDivisionPreSeason();
+    const range = DIVISION_QUALITY_RANGES[divisionId] || DIVISION_QUALITY_RANGES['div-3'];
+    const boostedMin = Math.min(range.min + PRE_SEASON_QUALITY_BOOST, range.max);
+    const quality = boostedMin + Math.floor(Math.random() * (range.max - boostedMin + 1));
+    const position = pickWeightedPosition();
+    const age = pickWeightedAge();
+
+    const player = generatePlayer(position, quality, '', season, divisionId);
+    player.age = age;
+
+    const baseValue = calculatePlayerValue(player.overall);
+    const ageMultiplier = getAgePriceMultiplier(age);
+    player.value = Math.round(baseValue * ageMultiplier);
+    player.wage = calculatePlayerWage(player.overall);
+
+    if (age <= 22) {
+      player.potential = Math.min(99, player.overall + 5 + Math.floor(Math.random() * 12));
+    } else if (age <= 26) {
+      player.potential = Math.min(99, player.overall + Math.floor(Math.random() * 6));
+    } else {
+      player.potential = player.overall + Math.floor(Math.random() * 2);
+    }
+
+    player.contractEnd = season + 1 + Math.floor(Math.random() * 3);
+
+    const markup = 1.1 + Math.random() * 0.4;
+    const askingPrice = Math.max(50_000, Math.round(player.value * markup));
+
+    const listing: TransferListing = {
+      playerId: player.id,
+      askingPrice,
+      sellerClubId: '',
+      externalPlayer: true,
+      divisionId,
+      listedWeek: week,
+      listedSeason: season,
+    };
+
     players[player.id] = player;
     listings.push(listing);
   }

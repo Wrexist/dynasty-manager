@@ -197,6 +197,29 @@ export const FREE_AGENT_DIV_BONUS: Record<string, number> = {
   'div-1': 6, 'div-2': 3, 'div-3': 0, 'div-4': -3,
 };
 
+// ── Pre-Season Transfer Boost (Friendlies Period, Weeks 1-3) ──
+// Pre-season is the busiest transfer window: more players listed, better quality available
+export const PRE_SEASON_END = 3;
+// Extra market players generated at season start on top of normal initial market
+export const PRE_SEASON_EXTRA_MARKET_MIN = 15;
+export const PRE_SEASON_EXTRA_MARKET_RANGE = 10; // 15-24 extra players
+// Quality boost: min quality raised by this amount for pre-season market players
+export const PRE_SEASON_QUALITY_BOOST = 5;
+// Division weight shift: more top-flight talent available in pre-season
+export const PRE_SEASON_DIVISION_WEIGHTS: Record<string, number> = {
+  'div-1': 0.40,  // 40% top flight (vs 30% normal)
+  'div-2': 0.30,  // 30% Championship
+  'div-3': 0.20,  // 20% League One (vs 25% normal)
+  'div-4': 0.10,  // 10% League Two (vs 15% normal)
+};
+// Multiplier on incoming offer chance during pre-season weeks
+export const PRE_SEASON_OFFER_MULTIPLIER = 1.75;
+// Multiplier on unsolicited bid chance during pre-season
+export const PRE_SEASON_UNSOLICITED_MULTIPLIER = 2.5;
+// Larger replenishment batches during pre-season weeks
+export const PRE_SEASON_REPLENISH_BATCH_MIN = 8;
+export const PRE_SEASON_REPLENISH_BATCH_RANGE = 6; // 8-13 per batch
+
 // ── Initial Market Population ──
 // Number of generated players to seed market with at season start
 export const INITIAL_MARKET_GEN_MIN = 12;
