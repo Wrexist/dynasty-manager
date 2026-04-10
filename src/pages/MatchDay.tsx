@@ -30,8 +30,9 @@ import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
 import { Megaphone, BarChart3, Activity, ChevronDown, ChevronUp, Users, ShieldCheck, Layers } from 'lucide-react';
 
-import { GOAL_SCORING_TYPES, GOAL_SHOT_TYPES } from '@/config/matchEngine';
-const isGoalEvent = (e: MatchEvent) => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type);
+import { GOAL_EVENT_TYPES, GOAL_SHOT_TYPES } from '@/config/matchEngine';
+const isGoalEvent = (e: MatchEvent) => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type);
+const isScoreChangingEvent = (e: MatchEvent) => isGoalEvent(e) || e.type === 'own_goal';
 
 /** Find player's continental match this week and return display-friendly info */
 function findPlayerContinentalMatchForUI(
@@ -71,7 +72,7 @@ function findPlayerContinentalMatchForUI(
 function getEnrichedDescription(ev: MatchEvent, events: MatchEvent[], homeClubId: string, isPlayerHome: boolean): string {
   let hg = 0, ag = 0;
   for (const e of events) {
-    if (isGoalEvent(e)) {
+    if (isScoreChangingEvent(e)) {
       if (e.clubId === homeClubId) hg++; else ag++;
     }
     if (e === ev) break;
@@ -253,13 +254,13 @@ const MatchDay = () => {
   // Detect key moments that should pause the match for player decisions
   const checkKeyMoment = useCallback((minute: number, events: MatchEvent[]) => {
     if (!match) return false;
-    const playerGoals = events.filter(e => isGoalEvent(e) && e.clubId === playerClubId).length;
-    const opponentGoals = events.filter(e => isGoalEvent(e) && e.clubId !== playerClubId).length;
+    const playerGoals = events.filter(e => isScoreChangingEvent(e) && e.clubId === playerClubId).length;
+    const opponentGoals = events.filter(e => isScoreChangingEvent(e) && e.clubId !== playerClubId).length;
     const isLosing = opponentGoals > playerGoals;
     const deficit = opponentGoals - playerGoals;
 
     // Check for opponent goal just scored
-    const justConceded = events.filter(e => isGoalEvent(e) && e.clubId !== playerClubId && e.minute === minute);
+    const justConceded = events.filter(e => isScoreChangingEvent(e) && e.clubId !== playerClubId && e.minute === minute);
     if (justConceded.length > 0) {
       const key = `goal-conceded-${minute}`;
       if (!dismissedMomentsRef.current.has(key)) {
@@ -289,10 +290,10 @@ const MatchDay = () => {
     }
 
     // Comeback: was down 2+, just scored to narrow gap to 1
-    const justScored = events.filter(e => isGoalEvent(e) && e.clubId === playerClubId && e.minute === minute);
+    const justScored = events.filter(e => isScoreChangingEvent(e) && e.clubId === playerClubId && e.minute === minute);
     if (justScored.length > 0 && deficit === 1) {
       // Check if we were down by 2+ before this goal
-      const prevPlayerGoals = events.filter(e => isGoalEvent(e) && e.clubId === playerClubId && e.minute < minute).length;
+      const prevPlayerGoals = events.filter(e => isScoreChangingEvent(e) && e.clubId === playerClubId && e.minute < minute).length;
       if (opponentGoals - prevPlayerGoals >= 2) {
         const key = `comeback-${minute}`;
         if (!dismissedMomentsRef.current.has(key)) {
@@ -409,7 +410,7 @@ const MatchDay = () => {
   const prevGoalCountRef = useRef(0);
   const [goalFlash, setGoalFlash] = useState(false);
   const goalFlashTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const currentGoalCount = visibleEvents.filter(e => isGoalEvent(e)).length;
+  const currentGoalCount = visibleEvents.filter(e => isScoreChangingEvent(e)).length;
   useEffect(() => {
     if (currentGoalCount > prevGoalCountRef.current) {
       hapticHeavy();
@@ -534,7 +535,7 @@ const MatchDay = () => {
       } else if (ev.type === 'foul' || ev.type === 'yellow_card' || ev.type === 'red_card') {
         if (isHomeEv) hFouls++; else aFouls++;
       }
-      if (isGoalEvent(ev)) { if (isHomeEv) hGoals++; else aGoals++; }
+      if (isScoreChangingEvent(ev)) { if (isHomeEv) hGoals++; else aGoals++; }
       if (ev.type === 'yellow_card') { if (isHomeEv) hYellows++; else aYellows++; }
       if (ev.type === 'red_card') { if (isHomeEv) hReds++; else aReds++; }
       if (ev.momentum !== undefined) lastMomentum = ev.momentum;
