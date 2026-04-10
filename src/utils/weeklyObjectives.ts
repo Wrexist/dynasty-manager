@@ -6,6 +6,7 @@ import {
   ALL_OBJECTIVES_BONUS_XP,
   RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER,
 } from '@/config/gameBalance';
+import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 
 export interface WeeklyObjective {
   id: string;
@@ -246,7 +247,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
       const ga = isHome ? match.awayGoals : match.homeGoals;
       if (gf <= ga) return false;
       // Check if opponent scored first
-      const firstGoal = match.events.find(e => e.type === 'goal' || e.type === 'penalty_scored');
+      const firstGoal = match.events.find(e => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type));
       return !!firstGoal && firstGoal.clubId !== ctx.playerClubId;
     },
   },
@@ -261,7 +262,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
       const match = getThisWeekMatch(ctx);
       if (!match || !match.events) return false;
       return match.events.some(
-        e => (e.type === 'goal' || e.type === 'penalty_scored') &&
+        e => (GOAL_EVENT_TYPES as readonly string[]).includes(e.type) &&
           e.clubId === ctx.playerClubId && e.minute >= 85
       );
     },

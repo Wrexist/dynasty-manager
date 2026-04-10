@@ -8,6 +8,10 @@
 export const GOAL_EVENT_TYPES = ['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'] as const;
 /** Goal types + own_goal + var_check for display purposes (match feed, highlights) */
 export const GOAL_DISPLAY_TYPES = [...GOAL_EVENT_TYPES, 'own_goal', 'var_check', 'var_disallowed'] as const;
+/** Goal event types that count as actual scored goals (for counting goals from events) */
+export const GOAL_SCORING_TYPES = [...GOAL_EVENT_TYPES, 'own_goal'] as const;
+/** Goal event types that also count as a shot on target (excludes goalkeeper_error and own_goal) */
+export const GOAL_SHOT_TYPES = ['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal'] as const;
 
 // ── Formation Fit ──
 /** Maximum bonus from perfect formation fit — mispositioned players are punished */
@@ -329,6 +333,8 @@ export const PENALTY_TAKER_MENTAL_WEIGHT = 0.4;
 export const SET_PIECE_TAKER_PASSING_WEIGHT = 0.5;
 export const SET_PIECE_TAKER_SHOOTING_WEIGHT = 0.3;
 export const SET_PIECE_TAKER_MENTAL_WEIGHT = 0.2;
+/** Chance the designated set-piece taker becomes the scorer on free kicks */
+export const FREE_KICK_SET_PIECE_TAKER_CHANCE = 0.7;
 
 // ── Commentary ──
 /** Minute threshold for "late game" commentary (slightly earlier than drama triggers) */

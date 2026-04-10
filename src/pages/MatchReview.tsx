@@ -9,7 +9,7 @@ import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 
 import { isPro } from '@/utils/monetization';
-import { GOAL_DISPLAY_TYPES } from '@/config/matchEngine';
+import { GOAL_SCORING_TYPES, GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor, areColorsSimilar } from '@/utils/uiHelpers';
@@ -74,7 +74,7 @@ const MatchReview = () => {
   const xpDoubleClaimContext = `match_w${week}_${match.homeClubId}_${match.awayClubId}_${match.homeGoals}-${match.awayGoals}_${lastMatchCompetition || 'league'}`;
 
   // Goals
-  const goals = match.events.filter(e => (GOAL_DISPLAY_TYPES as readonly string[]).includes(e.type));
+  const goals = match.events.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type));
   const injuries = match.events.filter(e => e.type === 'injury');
   const cards = match.events.filter(e => e.type === 'yellow_card' || e.type === 'red_card');
 
@@ -224,7 +224,7 @@ const MatchReview = () => {
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {evPlayer ? `${evPlayer.firstName} ${evPlayer.lastName}` : ev.description}
-                      {['goal', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'].includes(ev.type) && ev.assistPlayerId && players[ev.assistPlayerId] && (
+                      {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && ev.assistPlayerId && players[ev.assistPlayerId] && (
                         <span className="text-primary/60"> (ast. {players[ev.assistPlayerId].lastName})</span>
                       )}
                     </p>
@@ -251,7 +251,12 @@ const MatchReview = () => {
                     {scorer ? `${scorer.firstName} ${scorer.lastName}` : 'Unknown'}
                     {g.type === 'penalty_scored' && <span className="text-muted-foreground"> (pen)</span>}
                     {g.type === 'own_goal' && <span className="text-amber-400"> (OG)</span>}
-                    {g.type === 'goal' && assister && <span className="text-muted-foreground"> (ast. {assister.lastName})</span>}
+                    {g.type === 'free_kick_goal' && <span className="text-muted-foreground"> (FK)</span>}
+                    {g.type === 'long_range_goal' && <span className="text-muted-foreground"> (LR)</span>}
+                    {g.type === 'counter_attack_goal' && <span className="text-muted-foreground"> (cnt)</span>}
+                    {g.type === 'header_goal' && <span className="text-muted-foreground"> (hdr)</span>}
+                    {g.type === 'goalkeeper_error' && <span className="text-muted-foreground"> (GKE)</span>}
+                    {(GOAL_EVENT_TYPES as readonly string[]).includes(g.type) && g.type !== 'penalty_scored' && assister && <span className="text-muted-foreground"> (ast. {assister.lastName})</span>}
                   </span>
                   <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clubs[g.clubId]?.color || virtualClubs?.[g.clubId]?.color }} />
                 </div>

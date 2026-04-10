@@ -68,6 +68,7 @@ import {
   PITCH_SHOT_MOD, WEATHER_GK_ERROR_MOD,
   FREE_KICK_GOAL_CHANCE, LONG_RANGE_GOAL_CHANCE, COUNTER_ATTACK_GOAL_CHANCE,
   HEADER_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
+  FREE_KICK_SET_PIECE_TAKER_CHANCE,
 } from '@/config/matchEngine';
 import { generateCommentary } from '@/utils/matchCommentary';
 
@@ -1124,6 +1125,7 @@ export function simulateHalf(
         // Determine goal flavor — new event types add variety
         let goalType: MatchEvent['type'] = 'goal';
         let goalDescription = goalDesc(scorerName, clubName);
+        let actualScorerId = scorer.id; // Can be overridden by free kick taker
         const hasHighLine = oppMods.counterVuln > 0.1;
         const flavorRoll = Math.random();
         if (hasHighLine && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE) {
@@ -1136,16 +1138,30 @@ export function simulateHalf(
           goalType = 'header_goal';
           goalDescription = pick(headerGoalDescs)(scorerName, clubName);
         } else if (flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE + FREE_KICK_GOAL_CHANCE) {
-          // Designated set-piece taker needs lower shooting to score free kicks
-          const freeKickThreshold = (club.setPieceTakerId && scorer.id === club.setPieceTakerId) ? 60 : 70;
-          if (scorer.attributes.shooting >= freeKickThreshold) {
+          // Prefer designated set-piece taker for free kicks
+          let fkScorer = scorer;
+          if (club.setPieceTakerId && club.setPieceTakerId !== scorer.id) {
+            const designatedTaker = eligibleSquad.find(p => p.id === club.setPieceTakerId);
+            if (designatedTaker && Math.random() < FREE_KICK_SET_PIECE_TAKER_CHANCE) {
+              fkScorer = designatedTaker;
+            }
+          }
+          const freeKickThreshold = (club.setPieceTakerId && fkScorer.id === club.setPieceTakerId) ? 60 : 70;
+          if (fkScorer.attributes.shooting >= freeKickThreshold) {
             goalType = 'free_kick_goal';
-            goalDescription = pick(freeKickGoalDescs)(scorerName, clubName);
+            const fkScorerName = `${fkScorer.firstName} ${fkScorer.lastName}`;
+            goalDescription = pick(freeKickGoalDescs)(fkScorerName, clubName);
+            // Transfer goal credit to the free kick taker if different from original scorer
+            if (fkScorer.id !== scorer.id) {
+              if (playerEvents[scorer.id]) playerEvents[scorer.id].goals--;
+              if (playerEvents[fkScorer.id]) playerEvents[fkScorer.id].goals++;
+              actualScorerId = fkScorer.id;
+            }
           }
         }
 
         events.push({
-          minute: min, type: goalType, playerId: scorer.id,
+          minute: min, type: goalType, playerId: actualScorerId,
           assistPlayerId: assist?.id, clubId: club.id,
           description: goalDescription + (assist ? ` (assist: ${assist.lastName})` : ''),
           momentum, homeXG, awayXG,
@@ -1156,7 +1172,7 @@ export function simulateHalf(
           if (Math.random() < VAR_DISALLOW_CHANCE) {
             // VAR overturns the goal — reverse all scoring effects
             if (isHome) homeGoals--; else awayGoals--;
-            if (playerEvents[scorer.id]) playerEvents[scorer.id].goals--;
+            if (playerEvents[actualScorerId]) playerEvents[actualScorerId].goals--;
             if (assist && playerEvents[assist.id]) playerEvents[assist.id].assists--;
             // Restore opponent GK clean sheet if no other goals conceded
             const goalsAgainstGK = isHome ? homeGoals : awayGoals; // goals by scoring team AFTER reversal
@@ -1169,9 +1185,13 @@ export function simulateHalf(
               : Math.min(100, momentum + MOMENTUM_GOAL_SWING);
             // Replace the goal event with a disallowed event
             events.pop(); // remove the goal event we just pushed
+            const disallowedPlayer = actualScorerId !== scorer.id
+              ? eligibleSquad.find(p => p.id === actualScorerId) : scorer;
+            const disallowedName = disallowedPlayer
+              ? `${disallowedPlayer.firstName} ${disallowedPlayer.lastName}` : scorerName;
             events.push({
-              minute: min, type: 'var_disallowed', playerId: scorer.id, clubId: club.id,
-              description: pick(varDisallowDescs)(scorerName),
+              minute: min, type: 'var_disallowed', playerId: actualScorerId, clubId: club.id,
+              description: pick(varDisallowDescs)(disallowedName),
               momentum, homeXG, awayXG,
             });
           } else {
