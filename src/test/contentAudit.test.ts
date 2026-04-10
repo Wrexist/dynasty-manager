@@ -7,6 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { CHALLENGES } from '@/data/challenges';
+import { QUESTIONS as PRESS_QUESTIONS } from '@/data/pressConferences';
 import { generateFixtures } from '@/data/league';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import { MANAGER_PERKS, xpForLevel } from '@/utils/managerPerks';
@@ -31,38 +32,33 @@ describe('3A: Storyline Chain Content', () => {
     }
   });
 
-  it('flags content depth — 4 chains will repeat after ~2 seasons at 15% trigger rate', () => {
-    // With 15% trigger chance per week and 46 weeks, expected triggers per season = ~7
-    // With 4 chains (only 1 active at a time, each lasting 3-5 weeks), expect ~2-3 per season
-    // Content exhaustion: ~2 seasons for full coverage
+  it('has enough chains for multi-season variety at 15% trigger rate', () => {
     const chainsCount = STORYLINE_CHAINS.length;
     const expectedTriggersPerSeason = 46 * 0.15;
     const seasonsToExhaust = Math.ceil(chainsCount / Math.min(expectedTriggersPerSeason, chainsCount));
     console.log(`[Content Audit] Storyline chains: ${chainsCount}, estimated seasons to see all: ~${seasonsToExhaust}`);
-    // Flag if fewer than 8 — currently 4, which IS flagged
-    if (chainsCount < 8) {
-      console.warn(`[CONTENT WARNING] Only ${chainsCount} storyline chains — recommend adding more for 20+ season gameplay`);
-    }
-    expect(chainsCount).toBeGreaterThanOrEqual(4); // Current minimum
+    // With 10+ chains at ~7 triggers/season, takes ~2 seasons to see all
+    // 15+ chains would push this to 3+ seasons
+    expect(chainsCount).toBeGreaterThanOrEqual(10);
   });
 });
 
 describe('3B: Press Conference Variety', () => {
   it('has questions for all expected contexts', () => {
-    // Import dynamically to check the structure
-    const _expectedContexts = ['post_win', 'post_loss', 'post_draw', 'pre_big_match', 'transfer_rumour', 'poor_form', 'good_form'];
-    // We know from exploration there are 7 contexts with 11 total questions
-    // Each has 3 tone options (confident/humble/deflect) = 33 unique responses
-    const totalQuestions = 11;
-    const totalResponses = totalQuestions * 3; // 3 tones each
-    console.log(`[Content Audit] Press conferences: ${totalQuestions} questions × 3 tones = ${totalResponses} unique responses`);
+    const contexts = Object.keys(PRESS_QUESTIONS);
+    const totalQuestions = Object.values(PRESS_QUESTIONS).reduce((sum, qs) => sum + qs.length, 0);
+    const totalResponses = totalQuestions * 3; // 3 base tones each
+    const proOptions = Object.values(PRESS_QUESTIONS).flat().filter(q => q.proOption).length;
+    console.log(`[Content Audit] Press conferences: ${contexts.length} contexts, ${totalQuestions} questions × 3 tones = ${totalResponses} base responses (+${proOptions} pro options)`);
 
-    // ~1-2 press conferences per week, 46 weeks = ~46-92 per season
-    // With 11 questions, content will repeat within 1 season
-    if (totalQuestions < 20) {
-      console.warn(`[CONTENT WARNING] Only ${totalQuestions} press conference questions — will repeat within a single season`);
+    // At least 10 contexts for situational variety
+    expect(contexts.length).toBeGreaterThanOrEqual(10);
+    // At least 50 total questions to avoid single-season repetition
+    expect(totalQuestions).toBeGreaterThanOrEqual(50);
+    // Every context should have at least 4 questions
+    for (const [ctx, questions] of Object.entries(PRESS_QUESTIONS)) {
+      expect(questions.length, `Context "${ctx}" has too few questions`).toBeGreaterThanOrEqual(4);
     }
-    expect(totalQuestions).toBeGreaterThanOrEqual(7); // At least 1 per context
   });
 });
 
@@ -93,28 +89,24 @@ describe('3D: Challenge Replayability', () => {
   });
 });
 
-describe('3E: Fixture Determinism', () => {
-  it('generates the same fixture order for the same clubs — FLAGS as content issue', () => {
+describe('3E: Fixture Randomization', () => {
+  it('generates different fixture orders across calls due to shuffle', () => {
     const clubs = Array.from({ length: 20 }, (_, i) => `club-${i}`);
 
     const fixtures1 = generateFixtures(clubs);
     const fixtures2 = generateFixtures(clubs);
 
-    // Check if fixtures are identical (deterministic)
+    // Both should produce valid fixture sets
+    expect(fixtures1.length).toBe(380); // 20 × 19
+    expect(fixtures2.length).toBe(380);
+
+    // With 20 teams shuffled, the probability of identical fixture orders is astronomically low
     const identical = fixtures1.every((f, i) =>
       f.homeClubId === fixtures2[i].homeClubId &&
-      f.awayClubId === fixtures2[i].awayClubId &&
-      f.week === fixtures2[i].week
+      f.awayClubId === fixtures2[i].awayClubId
     );
-
-    // This test DOCUMENTS the issue — fixtures are deterministic
-    if (identical) {
-      console.warn('[CONTENT WARNING] Fixtures are deterministic — same schedule every season. Recommend shuffling fixture generation.');
-    }
-
-    // The fixtures should at minimum be generated
-    expect(fixtures1.length).toBeGreaterThan(0);
-    expect(fixtures1.length).toBe(fixtures2.length);
+    expect(identical).toBe(false);
+    console.log('[Content Audit] Fixtures are randomized via Fisher-Yates shuffle — different order each season');
   });
 
   it('generates correct number of fixtures for various league sizes', () => {

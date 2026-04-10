@@ -408,6 +408,202 @@ export const STORYLINE_CHAINS: StorylineChainDef[] = [
       },
     ],
   },
+  {
+    id: 'record-breaking-run',
+    name: 'Record-Breaking Run',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Historic Run Begins',
+        body: 'The media have picked up on your recent form — you\'re on the verge of breaking the club\'s all-time unbeaten record. The pressure is building with every game.',
+        icon: 'trophy',
+        options: [
+          { label: 'Embrace the spotlight', text: 'You tell the squad they\'re making history and to enjoy every moment.', effects: { morale: 8, boardConfidence: 5, fanMood: 10 } },
+          { label: 'Downplay it', text: 'You ban any talk of records in the dressing room. Focus on the next game only.', effects: { morale: 4, boardConfidence: 3, fanMood: 2 } },
+          { label: 'Use it as fuel', text: 'You tell the players that records exist to be broken and they should attack every match.', effects: { morale: 6, boardConfidence: 4, fanMood: 7 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'National Attention',
+        body: 'TV cameras and national journalists have descended on the training ground. Sponsorship offers are flooding in. The club has never had this kind of attention before.',
+        icon: 'newspaper',
+        options: [
+          { label: 'Shield the players', text: 'You limit media access and keep the squad in a protective bubble.', effects: { morale: 5, boardConfidence: 2, fanMood: -2 } },
+          { label: 'Let them enjoy it', text: 'You allow interviews and appearances — the players have earned this moment.', effects: { morale: 3, boardConfidence: 4, fanMood: 8 } },
+          { label: 'Channel the attention', text: 'You use the spotlight to promote the club\'s youth academy and community work.', effects: { morale: 4, boardConfidence: 6, fanMood: 6 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'The Record Match',
+        body: 'This is it — one more result and you\'ll have the longest unbeaten run in the club\'s history. The stadium is sold out and the atmosphere is electric.',
+        icon: 'star',
+        options: [
+          { label: 'Name your strongest XI', text: 'No experimentation today. You pick your best eleven and go for it.', effects: { morale: 10, boardConfidence: 5, fanMood: 10 } },
+          { label: 'Stay true to rotation', text: 'You rotate as usual, showing faith in the whole squad.', effects: { morale: 7, boardConfidence: 4, fanMood: 3 } },
+          { label: 'Dedicate it to the fans', text: 'You make a pre-match speech dedicating the performance to the supporters.', effects: { morale: 8, boardConfidence: 3, fanMood: 12 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'local-academy-talent',
+    name: 'Local Academy Talent',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Scout\'s Report',
+        body: 'Your head scout is buzzing. He\'s found a 16-year-old from a local school with exceptional talent. Other clubs haven\'t noticed him yet, but they will soon.',
+        icon: 'eye',
+        options: [
+          { label: 'Fast-track to academy', text: 'You bring him in immediately and begin intensive development.', effects: { morale: 3, boardConfidence: 4 } },
+          { label: 'Monitor from distance', text: 'You assign a scout to watch his next few games before committing.', effects: { morale: 1, boardConfidence: 2 } },
+          { label: 'Invite for trial week', text: 'You bring him in for a week-long trial to assess his temperament and ability.', effects: { morale: 2, boardConfidence: 3, fanMood: 2 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'Interest Grows',
+        body: 'Word has spread. Two bigger clubs have been spotted watching the youngster. His parents are fielding calls from agents. You need to act decisively or risk losing him.',
+        icon: 'alert-triangle',
+        options: [
+          { label: 'Sign him immediately', text: 'You present a scholarship contract and personal development plan to his family.', effects: { morale: 2, boardConfidence: 5, fanMood: 5 } },
+          { label: 'Promise first-team exposure', text: 'You guarantee opportunities with the senior squad to set yourself apart.', effects: { morale: 4, boardConfidence: 2, fanMood: 6 } },
+          { label: 'Let him decide freely', text: 'You tell the family you won\'t pressure them — the right choice will be obvious.', effects: { morale: 3, boardConfidence: 3, fanMood: 3 } },
+        ],
+      },
+      {
+        weekOffset: 4,
+        title: 'The Decision',
+        body: 'The youngster has made his choice. All eyes are on whether he joins your club or moves to a bigger team. It comes down to trust and vision.',
+        icon: 'handshake',
+        requiredPrevChoice: 0,
+        options: [
+          { label: 'Announce with fanfare', text: 'You make a public announcement celebrating the signing as a triumph for local development.', effects: { morale: 6, boardConfidence: 6, fanMood: 10 } },
+          { label: 'Quietly integrate', text: 'You bring him in with no fuss and let his football do the talking.', effects: { morale: 4, boardConfidence: 4, fanMood: 4 } },
+          { label: 'Assign a mentor', text: 'You pair him with your most experienced player to guide his development.', effects: { morale: 5, boardConfidence: 5, fanMood: 6 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'stadium-expansion',
+    name: 'Stadium Expansion',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Capacity Concerns',
+        body: 'The stadium has been selling out regularly and the board are considering a major expansion. But construction will be disruptive and expensive.',
+        icon: 'building',
+        options: [
+          { label: 'Push for expansion', text: 'You back the board\'s plan. A bigger stadium means more revenue and a louder atmosphere.', effects: { morale: 3, boardConfidence: 5, fanMood: 8 } },
+          { label: 'Express caution', text: 'You warn that the financial risk could impact the transfer budget for years.', effects: { morale: -1, boardConfidence: 3, fanMood: -2 } },
+          { label: 'Suggest phased approach', text: 'You propose expanding in stages to minimise disruption and financial risk.', effects: { morale: 2, boardConfidence: 6, fanMood: 4 } },
+        ],
+      },
+      {
+        weekOffset: 3,
+        title: 'Construction Begins',
+        body: 'Building work has started on the new stand. The noise and reduced capacity are affecting the matchday atmosphere. Some fans are unhappy about the disruption.',
+        icon: 'hard-hat',
+        options: [
+          { label: 'Rally the fans', text: 'You ask supporters to be patient and paint a picture of the future.', effects: { morale: 2, boardConfidence: 4, fanMood: 5 } },
+          { label: 'Focus on away form', text: 'You tell the squad to treat the next few months as a chance to build a fearsome away record.', effects: { morale: 6, boardConfidence: 3, fanMood: 2 } },
+          { label: 'Complain publicly', text: 'You criticise the timing and the impact it\'s having on your team.', effects: { morale: 3, boardConfidence: -5, fanMood: 4 } },
+        ],
+      },
+      {
+        weekOffset: 6,
+        title: 'Grand Opening',
+        body: 'The new stand is complete! Capacity has increased significantly and there\'s a real buzz around the club. The first match in the expanded stadium is a big occasion.',
+        icon: 'sparkles',
+        options: [
+          { label: 'Put on a show', text: 'You pick your most attacking line-up and promise entertaining football for the opening match.', effects: { morale: 10, boardConfidence: 5, fanMood: 12 } },
+          { label: 'Dedicate it to the community', text: 'You invite local schools and community groups to fill the new stand.', effects: { morale: 7, boardConfidence: 6, fanMood: 10 } },
+          { label: 'Business as usual', text: 'You treat it like any other match. The focus is on three points, not celebrations.', effects: { morale: 4, boardConfidence: 4, fanMood: 2 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'cup-giant-killing',
+    name: 'Cup Giant-Killing',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Big Draw',
+        body: 'The cup draw has been kind — or cruel, depending on your perspective. You\'ve been drawn against one of the biggest clubs in the country. The media are already calling it a potential giant-killing.',
+        icon: 'swords',
+        options: [
+          { label: 'Relish the occasion', text: 'You tell the media this is what cup football is all about and you fancy your chances.', effects: { morale: 8, boardConfidence: 3, fanMood: 10 } },
+          { label: 'Play down expectations', text: 'You say it\'s a free hit — no pressure, just enjoy the experience.', effects: { morale: 5, boardConfidence: 4, fanMood: 4 } },
+          { label: 'Focus on preparation', text: 'You demand the squad treats this like any other match with full professionalism.', effects: { morale: 4, boardConfidence: 5, fanMood: 2 } },
+        ],
+      },
+      {
+        weekOffset: 1,
+        title: 'Media Circus',
+        body: 'The build-up has been enormous. National media are requesting interviews, former players are sharing memories of past upsets, and the atmosphere around the club is electric.',
+        icon: 'tv',
+        options: [
+          { label: 'Ride the wave', text: 'You let the excitement build naturally and feed off the energy.', effects: { morale: 6, boardConfidence: 2, fanMood: 8 } },
+          { label: 'Limit distractions', text: 'You close the training ground and focus purely on the tactical plan.', effects: { morale: 3, boardConfidence: 5, fanMood: 0 } },
+          { label: 'Study the opposition', text: 'You obsess over video analysis, looking for any weakness to exploit.', effects: { morale: 4, boardConfidence: 4, fanMood: 3 } },
+        ],
+      },
+      {
+        weekOffset: 2,
+        title: 'The Aftermath',
+        body: 'The cup tie is over. Regardless of the result, the experience has galvanised the squad and brought the club together. There\'s a sense that something special is building.',
+        icon: 'heart',
+        options: [
+          { label: 'Channel the momentum', text: 'You use the cup experience to drive the squad forward in the league campaign.', effects: { morale: 10, boardConfidence: 5, fanMood: 8 } },
+          { label: 'Keep perspective', text: 'You remind everyone that the league is what really matters and refocus the group.', effects: { morale: 5, boardConfidence: 6, fanMood: 3 } },
+          { label: 'Celebrate the journey', text: 'You organise a team dinner to mark the occasion and strengthen bonds.', effects: { morale: 8, boardConfidence: 3, fanMood: 6 } },
+        ],
+      },
+    ],
+  },
+  {
+    id: 'captain-retirement',
+    name: 'Captain\'s Farewell',
+    steps: [
+      {
+        weekOffset: 0,
+        title: 'Retirement Announcement',
+        body: 'Your long-serving captain has told you privately that he plans to retire at the end of the season. He wants to go out on his own terms but is emotional about leaving.',
+        icon: 'heart',
+        options: [
+          { label: 'Plan a testimonial', text: 'You begin planning a special testimonial match and proper send-off.', effects: { morale: 8, boardConfidence: 4, fanMood: 8 } },
+          { label: 'Keep it private for now', text: 'You agree to keep it between you until the time is right to announce.', effects: { morale: 4, boardConfidence: 2, fanMood: 0 } },
+          { label: 'Try to change his mind', text: 'You tell him he still has a lot to offer and ask him to reconsider.', effects: { morale: 6, boardConfidence: 1, fanMood: 3 } },
+        ],
+      },
+      {
+        weekOffset: 3,
+        title: 'Passing the Armband',
+        body: 'With the captain\'s retirement approaching, you need to think about succession. Several players have shown leadership qualities, and the dressing room is watching your decision closely.',
+        icon: 'shield',
+        options: [
+          { label: 'Let the squad vote', text: 'You hold a secret ballot and let the players choose their next leader.', effects: { morale: 7, boardConfidence: 3, fanMood: 5 } },
+          { label: 'Pick the natural leader', text: 'You appoint the player who\'s been the most vocal and consistent presence.', effects: { morale: 5, boardConfidence: 5, fanMood: 4 } },
+          { label: 'Create a leadership group', text: 'Instead of one captain, you establish a group of four senior players.', effects: { morale: 6, boardConfidence: 4, fanMood: 3 } },
+        ],
+      },
+      {
+        weekOffset: 5,
+        title: 'Final Match',
+        body: 'It\'s the captain\'s last game. The stadium is packed, fans are holding scarves aloft, and there\'s a lump in everyone\'s throat. How do you mark the occasion?',
+        icon: 'award',
+        options: [
+          { label: 'Start him and sub him off late', text: 'You give him one last run-out and bring him off to a standing ovation.', effects: { morale: 12, boardConfidence: 4, fanMood: 12 } },
+          { label: 'Make him lead the team out', text: 'He walks the team out as captain one final time, with his children by his side.', effects: { morale: 10, boardConfidence: 3, fanMood: 10 } },
+          { label: 'Keep it professional', text: 'You pick the team on merit. If he plays, great. The match comes first.', effects: { morale: 3, boardConfidence: 5, fanMood: -3 } },
+        ],
+      },
+    ],
+  },
 ];
 
 /** Check if a chain should trigger based on game context */
@@ -445,6 +641,16 @@ export function shouldTriggerChain(
       return ctx.recentLosses >= 1 && ctx.week >= 8;
     case 'contract-holdout':
       return ctx.hasStarPlayer && ctx.week >= 12;
+    case 'record-breaking-run':
+      return ctx.recentWins >= 4 && ctx.week >= 10;
+    case 'local-academy-talent':
+      return ctx.hasYouthProspect && ctx.week >= 8 && ctx.week <= 30;
+    case 'stadium-expansion':
+      return ctx.boardConfidence >= 60 && ctx.week >= 15;
+    case 'cup-giant-killing':
+      return ctx.week >= 5 && ctx.week <= 35;
+    case 'captain-retirement':
+      return ctx.week >= 25 && ctx.hasStarPlayer;
     default:
       return false;
   }
