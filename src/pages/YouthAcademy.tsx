@@ -7,7 +7,7 @@ import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { GraduationCap, Star, TrendingUp, ArrowUpRight, Trash2, Wrench, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getPotentialInfo, getTop3Attributes } from '@/utils/uiHelpers';
+import { getRatingColor, getPotentialInfo, getTop3Attributes, posBadgeColor } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
@@ -15,21 +15,12 @@ import { PAGE_HINTS } from '@/config/ui';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
-import { Position } from '@/types/game';
-
 const SQUAD_SUB_NAV = [
   { screen: 'squad' as const, label: 'Squad' },
   { screen: 'training' as const, label: 'Training' },
   { screen: 'staff' as const, label: 'Staff' },
   { screen: 'youth-academy' as const, label: 'Youth' },
 ];
-
-function posBadgeColor(pos: Position): string {
-  if (pos === 'GK') return 'bg-amber-500/20 text-amber-400';
-  if (['CB', 'LB', 'RB'].includes(pos)) return 'bg-blue-500/20 text-blue-400';
-  if (['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(pos)) return 'bg-emerald-500/20 text-emerald-400';
-  return 'bg-red-500/20 text-red-400';
-}
 
 function devBarColor(score: number): string {
   if (score >= 80) return 'bg-emerald-500';
