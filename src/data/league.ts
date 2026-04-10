@@ -170,7 +170,12 @@ export const generateLeagueFixtures = generateDivisionFixtures;
  * Opponents are randomly selected from the same division.
  */
 export function generateFriendlies(playerClubId: string, divisionClubIds: string[]): Match[] {
-  const opponents = shuffle(divisionClubIds.filter(id => id !== playerClubId)).slice(0, 3);
+  const pool = shuffle(divisionClubIds.filter(id => id !== playerClubId));
+  // If fewer than 3 opponents available, allow rematches to fill 3 slots
+  const opponents: string[] = [];
+  for (let i = 0; i < 3 && pool.length > 0; i++) {
+    opponents.push(pool[i % pool.length]);
+  }
   return opponents.map((opponentId, i) => {
     const week = i + 1;
     const isHome = i % 2 === 0; // home, away, home

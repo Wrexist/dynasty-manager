@@ -3612,13 +3612,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
     if (isDeadlineDay) {
       const windowName = newWeek === SUMMER_WINDOW_END ? 'summer' : 'winter';
-      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'DEADLINE DAY', body: `The ${windowName} transfer window slams shut tonight! Clubs across the league are scrambling to complete last-minute deals. Check your incoming offers — expect some desperate bids.` });
 
       // Generate panic incoming offers for player's club
       const playerClub = clubs[playerClubId];
       const playerSquad = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
       const sellableTargets = playerSquad.filter(p => p.overall >= 65 && !p.injured && p.age <= 32);
       const aiClubIds = Object.keys(clubs).filter(id => id !== playerClubId);
+      const deadlineBody = sellableTargets.length > 0
+        ? `The ${windowName} transfer window slams shut tonight! Clubs are scrambling — expect desperate bids for your best players.`
+        : `The ${windowName} transfer window closes tonight. Clubs across the league are finalising last-minute deals.`;
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'DEADLINE DAY', body: deadlineBody });
       for (const target of shuffle(sellableTargets).slice(0, DEADLINE_PANIC_OFFER_COUNT)) {
         const bidderId = aiClubIds[Math.floor(Math.random() * aiClubIds.length)];
         const bidder = clubs[bidderId];
@@ -4805,7 +4808,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const aBenchCM = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIdSet.has(p.id) && !p.injured && !isSuspended(p));
     // Capture pre-match snapshot for Invincible perk (match rewind on loss)
     if (hasPerk(state.managerProgression, 'invincible') && !state.invincibleUsedThisSeason && !isFriendly) {
-      set({ preMatchSnapshot: { fixtures: [...state.fixtures], divisionFixtures: { ...state.divisionFixtures }, players: { ...state.players }, boardConfidence: state.boardConfidence, leagueTable: [...state.leagueTable] } });
+      set({ preMatchSnapshot: { fixtures: [...state.fixtures], divisionFixtures: { ...state.divisionFixtures }, players: { ...state.players }, boardConfidence: state.boardConfidence, leagueTable: [...state.leagueTable], divisionTables: { ...state.divisionTables } } });
     }
 
     const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season, careerDisciplineMod, hBenchCM, aBenchCM);
@@ -5818,6 +5821,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       activeLoans: state.activeLoans, incomingLoanOffers: state.incomingLoanOffers, outgoingLoanRequests: state.outgoingLoanRequests,
       cup: state.cup,
       friendlies: state.friendlies,
+      galacticoUsedThisSeason: state.galacticoUsedThisSeason,
+      invincibleUsedThisSeason: state.invincibleUsedThisSeason,
       fanMood: state.fanMood,
       activeChallenge: state.activeChallenge,
       divisionFixtures: trimmedDivFixtures,
@@ -6012,6 +6017,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         outgoingLoanRequests: data.outgoingLoanRequests || [],
         cup: data.cup || generateCupDraw(clubIds),
         friendlies: data.friendlies || [],
+        galacticoUsedThisSeason: data.galacticoUsedThisSeason || false,
+        invincibleUsedThisSeason: data.invincibleUsedThisSeason || false,
+        preMatchSnapshot: data.preMatchSnapshot || null,
         leagueCup: data.leagueCup || { ties: [], currentRound: null, eliminated: false, winner: null },
         championsCup: data.championsCup || null,
         shieldCup: data.shieldCup || null,

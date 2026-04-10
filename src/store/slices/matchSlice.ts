@@ -32,6 +32,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     set({
       fixtures: state.preMatchSnapshot.fixtures,
       divisionFixtures: state.preMatchSnapshot.divisionFixtures,
+      divisionTables: state.preMatchSnapshot.divisionTables,
       players: state.preMatchSnapshot.players,
       boardConfidence: state.preMatchSnapshot.boardConfidence,
       leagueTable: state.preMatchSnapshot.leagueTable,

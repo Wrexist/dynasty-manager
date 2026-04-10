@@ -42,7 +42,7 @@ export interface GameState {
   transferMarket: TransferListing[];
   galacticoUsedThisSeason: boolean;
   invincibleUsedThisSeason: boolean;
-  preMatchSnapshot: { fixtures: Match[]; divisionFixtures: Record<string, Match[]>; players: Record<string, Player>; boardConfidence: number; leagueTable: LeagueTableEntry[] } | null;
+  preMatchSnapshot: { fixtures: Match[]; divisionFixtures: Record<string, Match[]>; divisionTables: Record<string, LeagueTableEntry[]>; players: Record<string, Player>; boardConfidence: number; leagueTable: LeagueTableEntry[] } | null;
   shortlist: string[];
   scoutWatchList: string[];
   incomingOffers: IncomingOffer[];
