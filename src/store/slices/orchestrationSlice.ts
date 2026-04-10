@@ -3677,6 +3677,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Manager Compensation Concern', body: `The board feels your salary (£${(managerSalary / 1000).toFixed(1)}k/wk) is excessive relative to club revenue. Consider growing the club's income to justify your compensation.` });
         }
       } else if (salaryToIncomeRatio >= MANAGER_SALARY_RATIO_WARNING) {
+        newBoardConfidence = Math.max(CONFIDENCE_MIN, newBoardConfidence - MANAGER_SALARY_CONFIDENCE_PENALTY);
         if (newWeek % 12 === 0) {
           newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Salary Review', body: `The board notes your compensation accounts for ${Math.round(salaryToIncomeRatio * 100)}% of weekly revenue. Growing the club's income would ease financial pressure.` });
         }
