@@ -254,7 +254,11 @@ const TransferPage = () => {
 
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground font-display">Transfers</h2>
-        {transferWindowOpen ? (
+        {(week === SUMMER_WINDOW_END || week === WINTER_WINDOW_END) ? (
+          <span className="flex items-center gap-1 text-xs bg-destructive/15 text-destructive px-2.5 py-1 rounded-md font-bold uppercase tracking-wide animate-pulse">
+            <Clock className="w-3 h-3" /> Deadline Day
+          </span>
+        ) : transferWindowOpen ? (
           <span className="flex items-center gap-1 text-xs bg-emerald-500/15 text-emerald-400 px-2 py-1 rounded-md">
             <Clock className="w-3 h-3" />
             {week <= SUMMER_WINDOW_END

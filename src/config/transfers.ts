@@ -83,6 +83,14 @@ export const LONG_INJURY_WEEKS_THRESHOLD = 8;          // Weeks threshold for de
 // ── Deadline Day ──
 export const DEADLINE_DAY_OFFER_MULTIPLIER = 2.0;
 export const DEADLINE_DAY_BID_PREMIUM = 0.15;
+/** Extra incoming panic offers generated for the player's club on deadline day */
+export const DEADLINE_PANIC_OFFER_COUNT = 4;
+/** Panic buyers bid this much above market value */
+export const DEADLINE_PANIC_BID_PREMIUM = 0.30;
+/** Surplus players listed at this discount on deadline day */
+export const DEADLINE_BARGAIN_DISCOUNT = 0.20;
+/** Chance of a competing bid on the same player during deadline frenzy */
+export const DEADLINE_MULTI_BID_CHANCE = 0.4;
 
 // ── Sell-On Clauses ──
 export const SELL_ON_HIGH_FEE_THRESHOLD = 10_000_000;

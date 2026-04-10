@@ -88,7 +88,7 @@ import {
   AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD,
   URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS,
   OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
-  RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM,
+  RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_MULTI_BID_CHANCE,
   MARKET_REPLENISH_THRESHOLD, LISTING_EXPIRY_WEEKS, CLUB_LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT,
   FREE_AGENT_SPAWN_CHANCE, OFFER_EXPIRY_WEEKS,
   UNSOLICITED_OFFER_CHANCE, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE,
@@ -3604,10 +3604,67 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Transfer window messages
     if (newWeek === SUMMER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Transfer Deadline Approaching', body: 'The summer transfer window closes next week. Finalise any deals now!' });
-    if (newWeek === SUMMER_WINDOW_END) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Window Closing', body: 'The transfer window closes this week. Make your final moves!' });
     if (newWeek === WINTER_WINDOW_START) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'January Window Opens', body: 'The winter transfer window is now open until Week 24.' });
     if (newWeek === WINTER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Winter Deadline Approaching', body: 'The winter transfer window closes next week. Last chance for January deals!' });
-    if (newWeek === WINTER_WINDOW_END) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Winter Window Closed', body: 'The January transfer window has closed. No more transfers until next season.' });
+
+    // ── Deadline Day Drama ──
+    const deadlineBargains: { playerId: string; askingPrice: number; sellerClubId: string }[] = [];
+    const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
+    if (isDeadlineDay) {
+      const windowName = newWeek === SUMMER_WINDOW_END ? 'summer' : 'winter';
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'DEADLINE DAY', body: `The ${windowName} transfer window slams shut tonight! Clubs across the league are scrambling to complete last-minute deals. Check your incoming offers — expect some desperate bids.` });
+
+      // Generate panic incoming offers for player's club
+      const playerClub = clubs[playerClubId];
+      const playerSquad = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
+      const sellableTargets = playerSquad.filter(p => p.overall >= 65 && !p.injured && p.age <= 32);
+      const aiClubIds = Object.keys(clubs).filter(id => id !== playerClubId);
+      for (const target of shuffle(sellableTargets).slice(0, DEADLINE_PANIC_OFFER_COUNT)) {
+        const bidderId = aiClubIds[Math.floor(Math.random() * aiClubIds.length)];
+        const bidder = clubs[bidderId];
+        if (!bidder) continue;
+        const panicFee = Math.round(target.value * (1 + DEADLINE_PANIC_BID_PREMIUM));
+        if (panicFee > bidder.budget * 0.6) continue; // Don't bid more than 60% of budget
+        const existingOffer = newOffers.find(o => o.playerId === target.id && o.buyerClubId === bidderId);
+        if (existingOffer) continue;
+        newOffers.push({ id: crypto.randomUUID(), playerId: target.id, buyerClubId: bidderId, fee: panicFee, week: newWeek });
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: `URGENT: Bid for ${target.lastName}`, body: `${bidder.name} have made a last-minute bid of £${(panicFee / 1e6).toFixed(1)}M for ${target.firstName} ${target.lastName}! Respond before the window closes.` });
+        // Multi-bid: chance of a second club bidding for the same player
+        if (Math.random() < DEADLINE_MULTI_BID_CHANCE) {
+          const secondBidderId = aiClubIds.filter(id => id !== bidderId)[Math.floor(Math.random() * (aiClubIds.length - 1))];
+          const secondBidder = secondBidderId ? clubs[secondBidderId] : null;
+          if (secondBidder) {
+            const rivalFee = Math.round(panicFee * 1.1); // 10% above first bid
+            if (rivalFee <= secondBidder.budget * 0.6) {
+              newOffers.push({ id: crypto.randomUUID(), playerId: target.id, buyerClubId: secondBidderId, fee: rivalFee, week: newWeek });
+              newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: `BIDDING WAR: ${target.lastName}`, body: `${secondBidder.name} have entered the race for ${target.firstName} ${target.lastName} with a rival bid of £${(rivalFee / 1e6).toFixed(1)}M!` });
+            }
+          }
+        }
+      }
+
+      // Add bargain listings from AI clubs dumping surplus players
+      const bargainCount = Math.min(3, aiClubIds.length);
+      for (let i = 0; i < bargainCount; i++) {
+        const sellerId = aiClubIds[Math.floor(Math.random() * aiClubIds.length)];
+        const sellerClub = clubs[sellerId];
+        if (!sellerClub) continue;
+        const surplus = sellerClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => p.overall >= 60 && p.overall <= 75 && p.age >= 27);
+        const toSell = surplus[Math.floor(Math.random() * surplus.length)];
+        if (!toSell) continue;
+        const alreadyListed = deadlineBargains.some(l => l.playerId === toSell.id);
+        if (alreadyListed) continue;
+        const bargainPrice = Math.round(toSell.value * (1 - DEADLINE_BARGAIN_DISCOUNT));
+        deadlineBargains.push({ playerId: toSell.id, askingPrice: Math.max(100000, bargainPrice), sellerClubId: sellerId });
+      }
+    }
+
+    // Post-deadline summary (week after window closes)
+    if (newWeek === SUMMER_WINDOW_END + 1 || newWeek === WINTER_WINDOW_END + 1) {
+      const completedDeals = (state.transferNews || []).filter(n => n.week === newWeek - 1 && n.season === season).length;
+      const expiredOffers = newOffers.filter(o => o.week <= newWeek - 1).length;
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Transfer Window Closed', body: `The window is shut. ${completedDeals} deals were completed league-wide${expiredOffers > 0 ? ` and ${expiredOffers} offer${expiredOffers > 1 ? 's' : ''} expired` : ''}. No more transfers until the ${newWeek <= 10 ? 'January' : 'summer'} window.` });
+    }
 
     // Mid-season staff market refresh
     let newStaff = staff;
@@ -4336,7 +4393,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         clubs: aiResult.clubs,
         players: aiResult.players,
         messages: aiResult.messages,
-        transferMarket: aiResult.transferMarket,
+        transferMarket: [...aiResult.transferMarket, ...deadlineBargains],
         freeAgents: aiResult.freeAgents,
         activeLoans: aiResult.activeLoans,
         transferNews: aiResult.transferNews,
