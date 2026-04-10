@@ -25,6 +25,7 @@ export interface GameState {
   clubs: Record<string, Club>;
   players: Record<string, Player>;
   fixtures: Match[];
+  friendlies: Match[];
   leagueTable: LeagueTableEntry[];
   trainingFocus: 'fitness' | 'attacking' | 'defending' | 'mentality';
 
@@ -39,6 +40,9 @@ export interface GameState {
 
   // Transfer & Loans
   transferMarket: TransferListing[];
+  galacticoUsedThisSeason: boolean;
+  invincibleUsedThisSeason: boolean;
+  preMatchSnapshot: { fixtures: Match[]; divisionFixtures: Record<string, Match[]>; divisionTables: Record<string, LeagueTableEntry[]>; players: Record<string, Player>; boardConfidence: number; leagueTable: LeagueTableEntry[] } | null;
   shortlist: string[];
   scoutWatchList: string[];
   incomingOffers: IncomingOffer[];
@@ -277,6 +281,7 @@ export interface GameState {
   revealNextPenaltyKick: () => void;
   skipPenaltyShootout: () => void;
   clearMatchResult: () => void;
+  rewindMatch: () => void;
   loadMatchForReview: (week: number) => void;
   cleanupAbandonedMatch: () => void;
   makeMatchSub: (outId: string, inId: string) => void;
@@ -367,6 +372,7 @@ export interface GameState {
   declineNationalTeamOffer: () => void;
   updateNationalSquad: (squad: string[], lineup: string[], subs: string[]) => void;
   setNationalFormation: (f: FormationType) => void;
+  replaceInjuredInternationalPlayer: (outId: string, inId: string) => void;
   // advanceInternationalWeek and playInternationalMatch are handled
   // internally by orchestrationSlice.advanceWeek() — no public actions needed.
 

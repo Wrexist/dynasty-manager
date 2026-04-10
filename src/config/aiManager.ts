@@ -1,8 +1,9 @@
 /**
  * AI Manager Configuration
- * Defines manager styles, tactical defaults, and mid-match reactivity for AI clubs.
+ * Defines manager styles, tactical defaults, mid-match reactivity,
+ * and opponent-aware counter-tactics for AI clubs.
  */
-import { AIManagerStyle, AIManagerProfile, TacticalInstructions } from '@/types/game';
+import { AIManagerStyle, AIManagerProfile, TacticalInstructions, FormationType } from '@/types/game';
 
 // ── Style-to-Tactics Mappings ──
 
@@ -194,6 +195,66 @@ export function getAIReactiveTactics(
     tactics.mentality = 'cautious';
     tactics.tempo = 'slow';
     tactics.pressingIntensity = Math.max(20, tactics.pressingIntensity - 20);
+  }
+
+  return tactics;
+}
+
+/**
+ * Generate pre-match counter-tactics based on opponent's setup.
+ * AI reads the opponent's formation and tactical instructions, then adjusts
+ * 1-3 parameters to exploit weaknesses (rock-paper-scissors countering).
+ * @param counterReduction 0-1 factor to reduce counter effectiveness (e.g. Counter-Master perk)
+ */
+export function getAICounterTactics(
+  profile: AIManagerProfile,
+  opponentTactics: TacticalInstructions,
+  _opponentFormation: FormationType,
+  counterReduction = 0,
+): TacticalInstructions {
+  const tactics = { ...profile.defaultTactics };
+
+  // Only counter if adaptability check passes
+  if (Math.random() > profile.adaptability) return tactics;
+
+  // Scale: higher adaptability = more adjustments applied
+  const strength = profile.adaptability * (1 - counterReduction);
+  if (strength < 0.1) return tactics;
+
+  // Counter high defensive line → fast tempo + deep counter-attack
+  if (opponentTactics.defensiveLine === 'high' && Math.random() < strength) {
+    tactics.tempo = 'fast';
+    tactics.defensiveLine = 'deep';
+  }
+
+  // Counter wide play → narrow + compact
+  if (opponentTactics.width === 'wide' && Math.random() < strength) {
+    tactics.width = 'narrow';
+    tactics.pressingIntensity = Math.min(100, tactics.pressingIntensity + 10);
+  }
+
+  // Counter slow tempo → high pressing to suffocate
+  if (opponentTactics.tempo === 'slow' && Math.random() < strength) {
+    tactics.pressingIntensity = Math.min(100, tactics.pressingIntensity + 20);
+  }
+
+  // Counter attacking/all-out → absorb and counter
+  if ((opponentTactics.mentality === 'attacking' || opponentTactics.mentality === 'all-out-attack') && Math.random() < strength) {
+    tactics.mentality = 'cautious';
+    tactics.defensiveLine = 'deep';
+    tactics.tempo = 'fast';
+  }
+
+  // Counter defensive/parking the bus → wide patient build-up
+  if (opponentTactics.mentality === 'defensive' && Math.random() < strength) {
+    tactics.width = 'wide';
+    tactics.tempo = 'slow';
+    tactics.mentality = 'attacking';
+  }
+
+  // Counter high pressing → fast direct play to bypass
+  if (opponentTactics.pressingIntensity >= 70 && Math.random() < strength) {
+    tactics.tempo = 'fast';
   }
 
   return tactics;

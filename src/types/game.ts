@@ -50,7 +50,7 @@ export interface HeadToHeadRecord {
 
 export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LM' | 'RM' | 'LW' | 'RW' | 'ST';
 
-export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' | '3-4-3' | '5-3-2';
+export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' | '3-4-3' | '5-3-2' | '4-5-1' | '4-1-2-1-2' | '3-4-1-2';
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
@@ -392,6 +392,19 @@ export interface BoardObjective {
   description: string;
   priority: 'critical' | 'important' | 'optional';
   completed: boolean;
+  // Tiered objective fields (optional — backward-compatible)
+  checkType?: 'league_position' | 'cup_round' | 'budget';
+  targetMin?: number;
+  targetOverachieve?: number;
+  overachieved?: boolean;
+  xpReward?: number;
+  xpRewardOverachieve?: number;
+  budgetBoost?: number;
+  progressCurrent?: number;
+  // Mid-season adjustment tracking
+  adjusted?: boolean;
+  originalDescription?: string;
+  originalTargetMin?: number;
 }
 
 export interface Message {
@@ -447,7 +460,12 @@ export type PerkId =
   | 'galactico' | 'wonder_coach'
   | 'dynasty_builder' | 'invincible'
   // Talent tree additions
-  | 'fortress_mentality' | 'training_ground' | 'golden_generation';
+  | 'fortress_mentality' | 'training_ground' | 'golden_generation'
+  // Prestige-exclusive perks
+  | 'counter_master' | 'puppet_master'
+  | 'cult_hero' | 'icon_status'
+  | 'war_chest' | 'kingmaker'
+  | 'prodigy_factory' | 'dna_coach';
 
 export type TalentBranch = 'tactician' | 'motivator' | 'dealmaker' | 'developer';
 
@@ -457,10 +475,11 @@ export interface ManagerPerk {
   description: string;
   icon: string;
   cost: number; // XP cost
-  tier: 1 | 2 | 3 | 4 | 5;
+  tier: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   prerequisite?: PerkId;
   branch: TalentBranch | 'capstone';
-  row: number; // 0-4 within branch, 5 for capstone
+  row: number; // 0-4 within branch, 5 for capstone, 5-6 for prestige
+  prestigeRequired?: number; // Minimum prestige level to unlock
 }
 
 export interface ManagerProgression {
@@ -597,6 +616,28 @@ export const FORMATION_POSITIONS: Record<FormationType, FormationSlot[]> = {
     { x: 30, y: 45, pos: 'CM' }, { x: 50, y: 42, pos: 'CM' }, { x: 70, y: 45, pos: 'CM' },
     { x: 36, y: 72, pos: 'ST' }, { x: 64, y: 72, pos: 'ST' },
   ],
+  // ── Formation Master perk formations ──
+  '4-5-1': [
+    { x: 50, y: 5, pos: 'GK' },
+    { x: 18, y: 25, pos: 'LB' }, { x: 38, y: 20, pos: 'CB' }, { x: 62, y: 20, pos: 'CB' }, { x: 82, y: 25, pos: 'RB' },
+    { x: 10, y: 50, pos: 'LM' }, { x: 32, y: 45, pos: 'CM' }, { x: 50, y: 42, pos: 'CDM' }, { x: 68, y: 45, pos: 'CM' }, { x: 90, y: 50, pos: 'RM' },
+    { x: 50, y: 78, pos: 'ST' },
+  ],
+  '4-1-2-1-2': [
+    { x: 50, y: 5, pos: 'GK' },
+    { x: 18, y: 25, pos: 'LB' }, { x: 38, y: 20, pos: 'CB' }, { x: 62, y: 20, pos: 'CB' }, { x: 82, y: 25, pos: 'RB' },
+    { x: 50, y: 35, pos: 'CDM' },
+    { x: 30, y: 50, pos: 'CM' }, { x: 70, y: 50, pos: 'CM' },
+    { x: 50, y: 62, pos: 'CAM' },
+    { x: 36, y: 78, pos: 'ST' }, { x: 64, y: 78, pos: 'ST' },
+  ],
+  '3-4-1-2': [
+    { x: 50, y: 5, pos: 'GK' },
+    { x: 28, y: 20, pos: 'CB' }, { x: 50, y: 18, pos: 'CB' }, { x: 72, y: 20, pos: 'CB' },
+    { x: 15, y: 42, pos: 'LM' }, { x: 38, y: 38, pos: 'CM' }, { x: 62, y: 38, pos: 'CM' }, { x: 85, y: 42, pos: 'RM' },
+    { x: 50, y: 60, pos: 'CAM' },
+    { x: 36, y: 78, pos: 'ST' }, { x: 64, y: 78, pos: 'ST' },
+  ],
 };
 
 export const POSITION_COMPATIBILITY: Record<Position, Position[]> = {
@@ -616,7 +657,7 @@ export const POSITION_COMPATIBILITY: Record<Position, Position[]> = {
 
 // ── Settings ──
 export interface GameSettings {
-  matchSpeed: 'normal' | 'fast' | 'instant';
+  matchSpeed: number;
   showOverallOnPitch: boolean;
   autoSave: boolean;
   hapticsEnabled: boolean;

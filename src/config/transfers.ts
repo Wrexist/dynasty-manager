@@ -83,6 +83,14 @@ export const LONG_INJURY_WEEKS_THRESHOLD = 8;          // Weeks threshold for de
 // ── Deadline Day ──
 export const DEADLINE_DAY_OFFER_MULTIPLIER = 2.0;
 export const DEADLINE_DAY_BID_PREMIUM = 0.15;
+/** Extra incoming panic offers generated for the player's club on deadline day */
+export const DEADLINE_PANIC_OFFER_COUNT = 4;
+/** Panic buyers bid this much above market value */
+export const DEADLINE_PANIC_BID_PREMIUM = 0.30;
+/** Surplus players listed at this discount on deadline day */
+export const DEADLINE_BARGAIN_DISCOUNT = 0.20;
+/** Chance of a competing bid on the same player during deadline frenzy */
+export const DEADLINE_MULTI_BID_CHANCE = 0.4;
 
 // ── Sell-On Clauses ──
 export const SELL_ON_HIGH_FEE_THRESHOLD = 10_000_000;
@@ -127,10 +135,10 @@ export const LOAN_REQUEST_MAX_DURATION = 46;
 
 // ── Transfer Market Population ──
 // Minimum market size before replenishment kicks in
-export const MARKET_REPLENISH_THRESHOLD = 40;
+export const MARKET_REPLENISH_THRESHOLD = 60;
 // How many external (generated) players to add per replenishment cycle
-export const MARKET_REPLENISH_BATCH_MIN = 3;
-export const MARKET_REPLENISH_BATCH_RANGE = 4; // 3-6 players per batch
+export const MARKET_REPLENISH_BATCH_MIN = 5;
+export const MARKET_REPLENISH_BATCH_RANGE = 4; // 5-8 players per batch
 
 // ── Division Quality Ranges (overall rating) ──
 // Used when generating market players to match realistic quality per division
@@ -143,10 +151,10 @@ export const DIVISION_QUALITY_RANGES: Record<string, { min: number; max: number;
 
 // Division weight for how many players from each tier appear on the market
 export const DIVISION_MARKET_WEIGHTS: Record<string, number> = {
-  'div-1': 0.20,  // 20% of generated players are top flight quality
+  'div-1': 0.30,  // 30% of generated players are top flight quality
   'div-2': 0.30,  // 30% Championship quality
-  'div-3': 0.30,  // 30% League One quality
-  'div-4': 0.20,  // 20% League Two quality
+  'div-3': 0.25,  // 25% League One quality
+  'div-4': 0.15,  // 15% League Two quality
 };
 
 // ── Age Distribution for Market Players ──

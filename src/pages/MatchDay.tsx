@@ -8,7 +8,7 @@ import { MatchEvent, Match, Club, ContinentalTournamentState, TeamTalkType } fro
 import { resolveClub } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, Crown, type LucideIcon } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight } from '@/utils/haptics';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
 import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DRAIN_MULT } from '@/config/teamTalk';
@@ -18,13 +18,16 @@ import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
+import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED } from '@/config/matchSpeed';
+import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
-import { MENTALITIES, FORMATIONS } from '@/config/tactics';
+import { MENTALITIES, getAvailableFormations } from '@/config/tactics';
 import { KEY_MOMENT_CHOICES } from '@/config/keyMoments';
 import { infoToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, GOAL_FLASH_MS } from '@/config/ui';
-import { getActiveCosmetic } from '@/utils/monetization';
+import { getActiveCosmetic, isPro } from '@/utils/monetization';
+import { hasPerk } from '@/utils/managerPerks';
 import { areColorsSimilar } from '@/utils/uiHelpers';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { PenaltyShootout } from '@/components/game/PenaltyShootout';
@@ -113,6 +116,8 @@ const MatchDay = () => {
   const activateShout = useGameStore(s => s.useShout);
   const matchShouts = useGameStore(s => s.matchShouts);
   const players = useGameStore(s => s.players);
+  const settings = useGameStore(s => s.settings);
+  const updateSettings = useGameStore(s => s.updateSettings);
 
   const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'extra_time_break' | 'extra_time' | 'penalties' | 'post'>('pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
@@ -120,7 +125,7 @@ const MatchDay = () => {
   const [currentMin, setCurrentMin] = useState(0);
   const currentMinRef = useRef(0);
   const [visibleEvents, setVisibleEvents] = useState<MatchEvent[]>([]);
-  const [speed, setSpeed] = useState(200);
+  const [speed, setSpeed] = useState(settings.matchSpeed || DEFAULT_MATCH_SPEED);
   const [paused, setPaused] = useState(false);
   const [subSheetOpen, setSubSheetOpen] = useState(false);
   // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
@@ -145,7 +150,7 @@ const MatchDay = () => {
     };
   }, [cleanupAbandonedMatch]);
 
-  const { match: liveMatch } = useCurrentMatch();
+  const { match: liveMatch, competition: liveCompetition } = useCurrentMatch();
 
   // Detect cup match if no league match this week
   const cupTie = !liveMatch ? cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
@@ -174,7 +179,8 @@ const MatchDay = () => {
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCupMatch || !!currentCupTieId;
 
   // Competition context for display
-  const competitionInfo = cupTie ? { name: 'Dynasty Cup', round: cupTie.round, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' }
+  const competitionInfo = liveCompetition === 'Pre-Season Friendly' ? { name: 'Pre-Season Friendly', round: '', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' }
+    : cupTie ? { name: 'Dynasty Cup', round: cupTie.round, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' }
     : leagueCupTie ? { name: 'League Cup', round: leagueCupTie.round, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/30' }
     : champMatch ? { name: 'Champions Cup', round: champMatch.roundLabel, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/30' }
     : shieldMatch ? { name: 'Shield Cup', round: shieldMatch.roundLabel, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30' }
@@ -252,6 +258,8 @@ const MatchDay = () => {
   };
 
   // Detect key moments that should pause the match for player decisions
+  const managerProgression = useGameStore(s => s.managerProgression);
+  const hasPuppetMaster = hasPerk(managerProgression, 'puppet_master');
   const checkKeyMoment = useCallback((minute: number, events: MatchEvent[]) => {
     if (!match) return false;
     const playerGoals = events.filter(e => isScoreChangingEvent(e) && e.clubId === playerClubId).length;
@@ -303,9 +311,10 @@ const MatchDay = () => {
       }
     }
 
-    // Losing late — offer tactical push
-    if (minute === KEY_MOMENT_LOSING_MINUTE && isLosing) {
-      const key = 'losing-70';
+    // Losing late — offer tactical push (puppet_master: also triggers at 55)
+    const losingMinute = hasPuppetMaster ? KEY_MOMENT_LOSING_MINUTE - 15 : KEY_MOMENT_LOSING_MINUTE;
+    if ((minute === losingMinute || minute === KEY_MOMENT_LOSING_MINUTE) && isLosing) {
+      const key = `losing-${minute}`;
       if (!dismissedMomentsRef.current.has(key)) {
         dismissedMomentsRef.current.add(key);
         return { type: 'losing_late', description: `You trail with 20 minutes left. Time for changes?` };
@@ -353,7 +362,7 @@ const MatchDay = () => {
     }
 
     return false;
-  }, [match, playerClubId]);
+  }, [match, playerClubId, hasPuppetMaster]);
 
   // Use refs to avoid unstable dependencies in the animation effect.
   // checkKeyMoment and matchPhase are read inside the interval callback,
@@ -405,6 +414,12 @@ const MatchDay = () => {
     }, speed);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [phase, allEvents, speed, keyMoment, paused]);
+
+  // Persist speed preference to settings so it carries across matches
+  useEffect(() => {
+    if (speed !== settings.matchSpeed) updateSettings({ matchSpeed: speed });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [speed]);
 
   // Haptic feedback + goal flash for goals and final whistle
   const prevGoalCountRef = useRef(0);
@@ -607,6 +622,7 @@ const MatchDay = () => {
   const shoutsRemaining = MAX_SHOUTS_PER_MATCH - matchShouts.length;
   const activeShout = matchShouts.find(s => currentMin >= s.startMinute && currentMin < s.startMinute + SHOUT_DURATION);
 
+  const userIsPro = isPro(monetization);
   const stadiumTheme = getActiveCosmetic(monetization, 'stadium_theme');
   const pitchSkin = getActiveCosmetic(monetization, 'pitch_skin');
   const isPlayerHome = match?.homeClubId === playerClubId;
@@ -617,7 +633,7 @@ const MatchDay = () => {
     <div>
       <p className="text-[9px] text-muted-foreground uppercase tracking-wider mb-1.5">Formation</p>
       <div className="flex gap-1 flex-wrap">
-        {FORMATIONS.map(f => (
+        {getAvailableFormations(hasPerk(managerProgression, 'formation_master')).map(f => (
           <button
             key={f}
             onClick={() => { hapticLight(); setFormation(f); infoToast(`Switched to ${f}`); }}
@@ -847,18 +863,31 @@ const MatchDay = () => {
               <span className="text-primary font-bold">vs</span>
               <span>{awayClub.shortName}: {clubs[match.awayClubId]?.formation || '4-3-3'}</span>
             </div>
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-[10px] text-muted-foreground">Speed:</span>
-              <button
-                type="button"
-                onClick={() => setSpeed(200)}
-                className={cn('px-2.5 py-1 rounded text-[10px] font-medium transition-all', speed === 200 ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground')}
-              >Normal</button>
-              <button
-                type="button"
-                onClick={() => setSpeed(50)}
-                className={cn('px-2.5 py-1 rounded text-[10px] font-medium transition-all', speed === 50 ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground')}
-              >Fast</button>
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground mr-1">Speed:</span>
+              <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
+                {MATCH_SPEEDS.map(s => {
+                  const locked = s.pro && !userIsPro;
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => locked ? setScreen('shop') : setSpeed(s.value)}
+                      className={cn(
+                        'px-2 py-1 rounded-md text-[10px] font-medium transition-all flex items-center gap-0.5',
+                        locked
+                          ? 'text-muted-foreground/40 cursor-default'
+                          : speed === s.value
+                            ? 'bg-primary/20 text-primary'
+                            : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      {locked && <Crown className="w-2.5 h-2.5" />}
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
             <Button className="w-full h-12 text-base font-bold gap-2" onClick={() => { hapticLight(); kickOff(); }}>
               <Play className="w-5 h-5" /> Kick Off
@@ -878,6 +907,52 @@ const MatchDay = () => {
                 : 'Make substitutions and tactical changes before the second half.'}
             </p>
           </GlassPanel>
+
+          {/* Halftime Tactical Analysis */}
+          {firstHalfState && match && (() => {
+            const analysis = analyzeHalftime(firstHalfState, playerClubId, match.homeClubId);
+            return (
+              <GlassPanel className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="w-4 h-4 text-primary" />
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tactical Analysis</p>
+                </div>
+                <p className="text-xs font-bold text-foreground mb-1">{analysis.headline}</p>
+                <p className="text-[10px] text-muted-foreground mb-3">{analysis.description}</p>
+                <div className="space-y-2">
+                  {analysis.choices.map((choice, idx) => {
+                    const ChoiceIcon = choice.icon === 'Flame' ? Flame : choice.icon === 'Shield' ? Shield : choice.icon === 'ShieldCheck' ? ShieldCheck : choice.icon === 'Zap' ? Zap : choice.icon === 'RefreshCw' ? RefreshCw : choice.icon === 'Layers' ? Layers : Zap;
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          hapticLight();
+                          if (choice.openSubSheet) setSubSheetOpen(true);
+                          if (choice.tactics) {
+                            setTactics(choice.tactics);
+                            infoToast(`Tactical change: ${choice.label}`);
+                          }
+                          if (choice.suggestFormation) {
+                            setFormation(choice.suggestFormation);
+                            infoToast(`Formation changed to ${choice.suggestFormation}`);
+                          }
+                        }}
+                        className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 active:scale-[0.98] border border-border/30 transition-all text-left"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
+                          <ChoiceIcon className="w-4 h-4 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-foreground">{choice.label}</p>
+                          <p className="text-[10px] text-muted-foreground">{choice.description}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </GlassPanel>
+            );
+          })()}
 
           {/* Team Talk */}
           <GlassPanel className="p-4">
@@ -976,6 +1051,36 @@ const MatchDay = () => {
             </GlassPanel>
           )}
 
+          {/* Match Speed at half-time */}
+          <GlassPanel className="p-3">
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground mr-1">Speed:</span>
+              <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
+                {MATCH_SPEEDS.map(s => {
+                  const locked = s.pro && !userIsPro;
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => locked ? setScreen('shop') : setSpeed(s.value)}
+                      className={cn(
+                        'px-2 py-1 rounded-md text-[10px] font-medium transition-all flex items-center gap-0.5',
+                        locked
+                          ? 'text-muted-foreground/40 cursor-default'
+                          : speed === s.value
+                            ? 'bg-primary/20 text-primary'
+                            : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      {locked && <Crown className="w-2.5 h-2.5" />}
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </GlassPanel>
+
           <div className="h-16" /> {/* spacer for sticky button */}
           <div className="fixed left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent" style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}>
             <div className="max-w-lg mx-auto">
@@ -1071,6 +1176,36 @@ const MatchDay = () => {
           <GlassPanel className="p-4 space-y-3">
             <FormationPicker />
             <TacticalPanel variant="full" tactics={tactics} setTactics={setTactics} />
+          </GlassPanel>
+
+          {/* Match Speed before extra time */}
+          <GlassPanel className="p-3">
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground mr-1">Speed:</span>
+              <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
+                {MATCH_SPEEDS.map(s => {
+                  const locked = s.pro && !userIsPro;
+                  return (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => locked ? setScreen('shop') : setSpeed(s.value)}
+                      className={cn(
+                        'px-2 py-1 rounded-md text-[10px] font-medium transition-all flex items-center gap-0.5',
+                        locked
+                          ? 'text-muted-foreground/40 cursor-default'
+                          : speed === s.value
+                            ? 'bg-primary/20 text-primary'
+                            : 'text-muted-foreground hover:text-foreground'
+                      )}
+                    >
+                      {locked && <Crown className="w-2.5 h-2.5" />}
+                      {s.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </GlassPanel>
 
           <div className="h-16" /> {/* spacer for sticky button */}
@@ -1240,10 +1375,15 @@ const MatchDay = () => {
                     <Play className="w-3.5 h-3.5 mr-1.5" /> Resume
                   </Button>
                   <button
-                    onClick={() => setSpeed(s => s === 200 ? 50 : 200)}
+                    onClick={() => {
+                      const available = MATCH_SPEEDS.filter(s => !s.pro || userIsPro);
+                      const idx = available.findIndex(s => s.value === speed);
+                      const next = available[(idx + 1) % available.length];
+                      setSpeed(next.value);
+                    }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 border border-border/30 transition-all"
                   >
-                    <FastForward className="w-3.5 h-3.5" /> {speed === 50 ? 'Normal' : 'Fast'}
+                    <FastForward className="w-3.5 h-3.5" /> {MATCH_SPEEDS.find(s => s.value === speed)?.label ?? 'Normal'}
                   </button>
                 </div>
               </GlassPanel>
@@ -1360,16 +1500,21 @@ const MatchDay = () => {
 
                 {/* Speed */}
                 <button
-                  onClick={() => setSpeed(s => s === 200 ? 50 : 200)}
-                  aria-label={speed === 50 ? 'Set normal speed' : 'Set fast speed'}
+                  onClick={() => {
+                    const available = MATCH_SPEEDS.filter(s => !s.pro || userIsPro);
+                    const idx = available.findIndex(s => s.value === speed);
+                    const next = available[(idx + 1) % available.length];
+                    setSpeed(next.value);
+                  }}
+                  aria-label={`Match speed: ${MATCH_SPEEDS.find(s => s.value === speed)?.label ?? 'Normal'}. Tap to change.`}
                   className={cn(
                     "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold active:scale-[0.97] border transition-all",
-                    speed === 50
+                    speed < DEFAULT_MATCH_SPEED
                       ? 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/20'
                       : 'bg-muted/30 text-foreground border-border/30 hover:bg-muted/50'
                   )}
                 >
-                  <FastForward className="w-3 h-3" /> {speed === 50 ? '2x' : '1x'}
+                  <FastForward className="w-3 h-3" /> {MATCH_SPEEDS.find(s => s.value === speed)?.shortLabel ?? '1x'}
                 </button>
               </div>
             </div>

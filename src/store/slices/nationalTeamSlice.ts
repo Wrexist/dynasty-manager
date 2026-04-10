@@ -200,4 +200,22 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
   // advanceInternationalWeek and playInternationalMatch are handled by
   // orchestrationSlice (advanceInternationalWeekImpl). These slice-level
   // stubs are intentionally omitted — orchestration owns the game loop.
+
+  /** Replace an injured player in the national team tournament squad */
+  replaceInjuredInternationalPlayer: (outId: string, inId: string) => {
+    const state = get();
+    if (!state.nationalTeam) return;
+    const nt = { ...state.nationalTeam };
+    // Swap in squad
+    nt.squad = nt.squad.map(id => id === outId ? inId : id);
+    // Swap in lineup if present
+    nt.lineup = nt.lineup.map(id => id === outId ? inId : id);
+    // Swap in subs if present
+    nt.subs = nt.subs.map(id => id === outId ? inId : id);
+    // If the outgoing player was in lineup, put replacement in subs instead (safer)
+    if (state.nationalTeam.lineup.includes(outId) && !nt.lineup.includes(inId)) {
+      nt.subs = [...nt.subs.filter(id => id !== inId), inId];
+    }
+    set({ nationalTeam: nt });
+  },
 });

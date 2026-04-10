@@ -810,6 +810,30 @@ const PlayerDetail = () => {
         </div>
       </GlassPanel>
 
+      {/* International Stats */}
+      {(player.internationalCaps || 0) > 0 && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <FlagIcon nationality={player.nationality} size={14} />
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">International Career</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p className="text-lg font-black text-foreground tabular-nums">{player.internationalCaps || 0}</p>
+              <p className="text-[10px] text-muted-foreground">Caps</p>
+            </div>
+            <div>
+              <p className="text-lg font-black text-foreground tabular-nums">{player.internationalGoals || 0}</p>
+              <p className="text-[10px] text-muted-foreground">Goals</p>
+            </div>
+            <div>
+              <p className="text-lg font-black text-foreground tabular-nums">{player.nationality}</p>
+              <p className="text-[10px] text-muted-foreground">Nation</p>
+            </div>
+          </div>
+        </GlassPanel>
+      )}
+
       {/* Match History */}
       {player.matchHistory && player.matchHistory.length > 0 && (
         <GlassPanel className="p-4">

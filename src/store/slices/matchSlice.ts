@@ -6,6 +6,10 @@ type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)
 type Get = () => GameState;
 
 export const createMatchSlice = (set: Set, get: Get) => ({
+  friendlies: [] as Match[],
+  galacticoUsedThisSeason: false,
+  invincibleUsedThisSeason: false,
+  preMatchSnapshot: null as GameState['preMatchSnapshot'],
   currentMatchResult: null as GameState['currentMatchResult'],
   matchSubsUsed: 0,
   matchPlayerRatings: [] as GameState['matchPlayerRatings'],
@@ -21,10 +25,36 @@ export const createMatchSlice = (set: Set, get: Get) => ({
 
   clearMatchResult: () => set({ currentMatchResult: null, halfTimeState: null, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null, penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, matchShouts: [] }),
 
+  /** Invincible perk: rewind a lost match by restoring pre-match state */
+  rewindMatch: () => {
+    const state = get();
+    if (!state.preMatchSnapshot || state.invincibleUsedThisSeason) return;
+    set({
+      fixtures: state.preMatchSnapshot.fixtures,
+      divisionFixtures: state.preMatchSnapshot.divisionFixtures,
+      divisionTables: state.preMatchSnapshot.divisionTables,
+      players: state.preMatchSnapshot.players,
+      boardConfidence: state.preMatchSnapshot.boardConfidence,
+      leagueTable: state.preMatchSnapshot.leagueTable,
+      currentMatchResult: null,
+      halfTimeState: null,
+      matchPhase: 'none',
+      preMatchSnapshot: null,
+      invincibleUsedThisSeason: true,
+      currentScreen: 'dashboard',
+    });
+  },
+
   /** Load a historical match result for review (e.g. from inbox click). */
   loadMatchForReview: (week: number) => {
     const state = get();
     const pid = state.playerClubId;
+
+    // 0. Friendlies
+    const friendlyMatch = state.friendlies?.find(
+      m => m.week === week && m.played && (m.homeClubId === pid || m.awayClubId === pid)
+    );
+    if (friendlyMatch) { set({ currentMatchResult: friendlyMatch }); return; }
 
     // 1. League fixtures (full Match objects with events)
     const leagueMatch = state.fixtures.find(

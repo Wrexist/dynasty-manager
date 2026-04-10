@@ -25,6 +25,8 @@ const NationalTeamPage = () => {
     setScreen: s.setScreen,
     updateNationalSquad: s.updateNationalSquad,
     setNationalFormation: s.setNationalFormation,
+    internationalTournament: s.internationalTournament,
+    replaceInjuredInternationalPlayer: s.replaceInjuredInternationalPlayer,
   })));
   const nationalTeamOffer = useGameStore(s => s.nationalTeamOffer);
   const gameMode = useGameStore(s => s.gameMode);
@@ -446,6 +448,9 @@ const NationalTeamPage = () => {
                         </div>
                         <div className="text-right shrink-0">
                           <p className="text-xs text-muted-foreground">{player.internationalCaps || 0} caps</p>
+                          {player.injured && internationalTournament && internationalTournament.phase !== 'complete' && (
+                            <p className="text-[9px] text-destructive font-semibold">Injured</p>
+                          )}
                         </div>
                         <ChevronRight className="w-4 h-4 text-muted-foreground/50" />
                       </button>

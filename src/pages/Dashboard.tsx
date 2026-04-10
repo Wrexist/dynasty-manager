@@ -750,13 +750,18 @@ const Dashboard = () => {
 
       {/* Transfer Window Countdown / Deadline Day */}
       {(week === SUMMER_WINDOW_END || week === WINTER_WINDOW_END) ? (
-        <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2 flex items-center justify-between animate-pulse">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4 text-destructive" />
-            <span className="text-xs font-bold text-destructive uppercase tracking-wide">Deadline Day!</span>
+        <button type="button" onClick={() => setScreen('transfers')} className="w-full bg-destructive/10 border border-destructive/30 rounded-xl px-3 py-2.5 text-left animate-pulse">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-destructive" />
+              <span className="text-xs font-bold text-destructive uppercase tracking-wide">Deadline Day!</span>
+            </div>
+            <span className="text-[10px] text-muted-foreground">Window closes tonight</span>
           </div>
-          <span className="text-[10px] text-muted-foreground">Transfer window closes today</span>
-        </div>
+          {pendingOffers > 0 && (
+            <p className="text-[10px] text-destructive/80 mt-1 font-semibold">{pendingOffers} incoming offer{pendingOffers !== 1 ? 's' : ''} — respond before the window shuts!</p>
+          )}
+        </button>
       ) : transferWindowOpen && (() => {
         const windowEnd = week <= SUMMER_WINDOW_END ? SUMMER_WINDOW_END : WINTER_WINDOW_END;
         const weeksLeft = windowEnd - week;

@@ -100,11 +100,19 @@ export function TalentTree({ progression, onUnlock }: TalentTreeProps) {
         })}
       </div>
 
-      {/* Talent Tree Grid — rows 4 down to 0, with connection lines between */}
-      {[4, 3, 2, 1, 0].map(row => (
+      {/* Talent Tree Grid — rows 6 down to 0, with connection lines between */}
+      {[6, 5, 4, 3, 2, 1, 0].map(row => (
         <div key={row}>
+          {/* Prestige separator between row 4 and row 5 */}
+          {row === 4 && getBranchPerks('tactician').some(p => p.row === 5) && (
+            <div className="flex items-center gap-2 my-2 px-1">
+              <div className="flex-1 h-px bg-primary/20" />
+              <span className="text-[8px] font-bold text-primary/50 uppercase tracking-widest">Prestige</span>
+              <div className="flex-1 h-px bg-primary/20" />
+            </div>
+          )}
           {/* Connection line from the row above to this row */}
-          {row < 4 && (
+          {row < 6 && (
             <div className="grid grid-cols-4 gap-1.5 -mb-1 pointer-events-none" aria-hidden>
               {TALENT_BRANCHES.map(branch => {
                 const upper = getBranchPerks(branch.id).find(p => p.row === row + 1);
@@ -177,6 +185,8 @@ function TalentNode({ perk, progression, branchColor, isCapstone, justUnlocked, 
   const isUnlocked = progression.unlockedPerks.includes(perk.id);
   const check = canUnlockPerk(perk, progression);
   const canBuy = check.canUnlock;
+  const isPrestige = !!perk.prestigeRequired;
+  const prestigeLocked = isPrestige && (progression.prestigeLevel || 0) < perk.prestigeRequired!;
 
   return (
     <motion.button
@@ -184,7 +194,7 @@ function TalentNode({ perk, progression, branchColor, isCapstone, justUnlocked, 
       className={cn(
         'relative flex flex-col items-center gap-0.5 p-1.5 rounded-xl transition-all min-w-0',
         isCapstone && 'px-4',
-        isUnlocked && 'bg-primary/15',
+        isUnlocked && (isPrestige ? 'bg-amber-500/10' : 'bg-primary/15'),
         canBuy && !isUnlocked && 'bg-blue-500/10',
         !isUnlocked && !canBuy && 'opacity-40',
       )}
@@ -199,11 +209,13 @@ function TalentNode({ perk, progression, branchColor, isCapstone, justUnlocked, 
         className={cn(
           'relative w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all',
           isCapstone && 'w-12 h-12',
-          isUnlocked
-            ? 'border-primary bg-primary/20 shadow-[0_0_12px_hsl(var(--primary)/0.4)]'
-            : canBuy
-              ? 'border-blue-400 bg-blue-500/10 shadow-[0_0_8px_hsl(215_60%_50%/0.3)]'
-              : 'border-border/40 bg-muted/20',
+          isUnlocked && isPrestige
+            ? 'border-amber-400 bg-amber-500/20 shadow-[0_0_12px_hsl(38_92%_50%/0.4)]'
+            : isUnlocked
+              ? 'border-primary bg-primary/20 shadow-[0_0_12px_hsl(var(--primary)/0.4)]'
+              : canBuy
+                ? 'border-blue-400 bg-blue-500/10 shadow-[0_0_8px_hsl(215_60%_50%/0.3)]'
+                : 'border-border/40 bg-muted/20',
         )}
       >
         <DynamicIcon
@@ -211,7 +223,7 @@ function TalentNode({ perk, progression, branchColor, isCapstone, justUnlocked, 
           className={cn(
             'w-5 h-5',
             isCapstone && 'w-6 h-6',
-            isUnlocked ? 'text-primary' : canBuy ? 'text-blue-400' : 'text-muted-foreground/50',
+            isUnlocked && isPrestige ? 'text-amber-400' : isUnlocked ? 'text-primary' : canBuy ? 'text-blue-400' : 'text-muted-foreground/50',
           )}
         />
         {/* Pulse ring for available perks */}
@@ -240,7 +252,10 @@ function TalentNode({ perk, progression, branchColor, isCapstone, justUnlocked, 
         {perk.name}
       </p>
       {/* Cost / Status */}
-      {!isUnlocked && (
+      {!isUnlocked && prestigeLocked && (
+        <p className="text-[8px] text-amber-400/60">P{perk.prestigeRequired}</p>
+      )}
+      {!isUnlocked && !prestigeLocked && (
         <p className={cn(
           'text-[8px]',
           canBuy ? 'text-blue-400' : 'text-muted-foreground/40',
@@ -249,7 +264,7 @@ function TalentNode({ perk, progression, branchColor, isCapstone, justUnlocked, 
         </p>
       )}
       {isUnlocked && (
-        <p className="text-[8px] text-emerald-400 font-bold">Active</p>
+        <p className={cn('text-[8px] font-bold', isPrestige ? 'text-amber-400' : 'text-emerald-400')}>Active</p>
       )}
     </motion.button>
   );

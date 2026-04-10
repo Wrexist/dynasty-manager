@@ -9,7 +9,8 @@ import {
   FORCED_RETIREMENT_UNEMPLOYED_WEEKS,
   PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING,
 } from '@/config/managerCareer';
-import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache } from '@/data/league';
+import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies } from '@/data/league';
+import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
@@ -87,7 +88,7 @@ import {
   AI_OFFER_CHANCE, AI_OFFER_MIN_BUDGET_RATIO, AI_OFFER_POSITION_THRESHOLD,
   URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS,
   OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
-  RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM,
+  RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_MULTI_BID_CHANCE,
   MARKET_REPLENISH_THRESHOLD, LISTING_EXPIRY_WEEKS, CLUB_LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT,
   FREE_AGENT_SPAWN_CHANCE, OFFER_EXPIRY_WEEKS,
   UNSOLICITED_OFFER_CHANCE, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE,
@@ -115,7 +116,7 @@ import { getWinStreak, detectMatchDrama } from '@/utils/celebrations';
 import { generateCliffhangers } from '@/utils/weekPreview';
 import { generateMonthlyObjectives, evaluateObjectives, calculateCompletedXP } from '@/utils/weeklyObjectives';
 import type { ObjectiveContext } from '@/utils/weeklyObjectives';
-import { generateAIManagerProfile } from '@/config/aiManager';
+import { generateAIManagerProfile, getAICounterTactics } from '@/config/aiManager';
 import { processAIWeekly } from '@/utils/aiSimulation';
 import {
   INJURY_TYPES, NON_FOUL_INJURY_TYPE_WEIGHTS,
@@ -123,7 +124,7 @@ import {
 } from '@/config/gameBalance';
 import type { InjuryType, InjurySeverity, InjuryDetails } from '@/types/game';
 import { createMilestone } from '@/utils/milestones';
-import { createDefaultProgression, grantXP, XP_REWARDS, MANAGER_PERKS, canUnlockPerk, hasPerk } from '@/utils/managerPerks';
+import { createDefaultProgression, grantXP, XP_REWARDS, MANAGER_PERKS, canUnlockPerk, hasPerk, dynastyMult } from '@/utils/managerPerks';
 import { buildHallEntry, saveToHall } from '@/utils/hallOfManagers';
 import { initializeClubPowerRankings, updateEloRatings, getOpponentQualityBonus } from '@/utils/teamRankings';
 import type { CareerMilestone, PerkId, ManagerProgression } from '@/types/game';
@@ -254,28 +255,57 @@ function generateObjectives(club: Club, leagueId?: LeagueId): BoardObjective[] {
   const teamCount = league?.teamCount || 20;
   const replacedSlots = league?.replacedSlots || 0;
   const safePos = teamCount - replacedSlots;
+  const half = Math.floor(teamCount / 2);
 
   // League objectives based on reputation
   if (club.reputation >= 5) {
-    objectives.push({ id: '1', description: 'Win the League', priority: 'critical', completed: false });
-    objectives.push({ id: '2', description: 'Finish in Top 3', priority: 'important', completed: false });
+    objectives.push({ id: '1', description: 'Win the League', priority: 'critical', completed: false,
+      checkType: 'league_position', targetMin: 1, targetOverachieve: 1,
+      xpReward: BOARD_OBJ_XP_CRITICAL, xpRewardOverachieve: BOARD_OBJ_XP_CRITICAL });
+    objectives.push({ id: '2', description: 'Finish in Top 3', priority: 'important', completed: false,
+      checkType: 'league_position', targetMin: 3, targetOverachieve: 1,
+      xpReward: BOARD_OBJ_XP_IMPORTANT, xpRewardOverachieve: BOARD_OBJ_XP_IMPORTANT * BOARD_OBJ_XP_OVERACHIEVE_MULT,
+      budgetBoost: BOARD_OBJ_BUDGET_BOOST });
   } else if (club.reputation >= 4) {
-    objectives.push({ id: '1', description: 'Finish in Top 6', priority: 'critical', completed: false });
-    objectives.push({ id: '2', description: 'Reach Top Half', priority: 'important', completed: false });
+    objectives.push({ id: '1', description: 'Finish in Top 6', priority: 'critical', completed: false,
+      checkType: 'league_position', targetMin: 6, targetOverachieve: 3,
+      xpReward: BOARD_OBJ_XP_CRITICAL, xpRewardOverachieve: BOARD_OBJ_XP_CRITICAL * BOARD_OBJ_XP_OVERACHIEVE_MULT,
+      budgetBoost: BOARD_OBJ_BUDGET_BOOST });
+    objectives.push({ id: '2', description: `Reach Top Half`, priority: 'important', completed: false,
+      checkType: 'league_position', targetMin: half, targetOverachieve: 6,
+      xpReward: BOARD_OBJ_XP_IMPORTANT, xpRewardOverachieve: BOARD_OBJ_XP_IMPORTANT * BOARD_OBJ_XP_OVERACHIEVE_MULT });
   } else if (club.reputation >= 3) {
-    objectives.push({ id: '1', description: 'Reach Top Half', priority: 'critical', completed: false });
+    objectives.push({ id: '1', description: 'Reach Top Half', priority: 'critical', completed: false,
+      checkType: 'league_position', targetMin: half, targetOverachieve: Math.max(1, half - 3),
+      xpReward: BOARD_OBJ_XP_CRITICAL, xpRewardOverachieve: BOARD_OBJ_XP_CRITICAL * BOARD_OBJ_XP_OVERACHIEVE_MULT,
+      budgetBoost: BOARD_OBJ_BUDGET_BOOST });
   } else {
-    objectives.push({ id: '1', description: replacedSlots > 0 ? `Avoid Replacement (Top ${safePos})` : 'Finish in Top Half', priority: 'critical', completed: false });
+    const target = replacedSlots > 0 ? safePos : half;
+    const desc = replacedSlots > 0 ? `Avoid Replacement (Top ${safePos})` : 'Finish in Top Half';
+    objectives.push({ id: '1', description: desc, priority: 'critical', completed: false,
+      checkType: 'league_position', targetMin: target, targetOverachieve: Math.max(1, target - 4),
+      xpReward: BOARD_OBJ_XP_CRITICAL, xpRewardOverachieve: BOARD_OBJ_XP_CRITICAL * BOARD_OBJ_XP_OVERACHIEVE_MULT,
+      budgetBoost: BOARD_OBJ_BUDGET_BOOST });
   }
+
   // Cup objectives based on reputation
   if (club.reputation >= 5) {
-    objectives.push({ id: '4', description: 'Win the Cup', priority: 'important', completed: false });
+    objectives.push({ id: '4', description: 'Win the Cup', priority: 'important', completed: false,
+      checkType: 'cup_round', targetMin: 1, xpReward: BOARD_OBJ_XP_IMPORTANT });
   } else if (club.reputation >= 4) {
-    objectives.push({ id: '4', description: 'Reach Cup Semi-Final', priority: 'important', completed: false });
+    objectives.push({ id: '4', description: 'Reach Cup Semi-Final', priority: 'important', completed: false,
+      checkType: 'cup_round', targetMin: 2, targetOverachieve: 1,
+      xpReward: BOARD_OBJ_XP_IMPORTANT, xpRewardOverachieve: BOARD_OBJ_XP_IMPORTANT * BOARD_OBJ_XP_OVERACHIEVE_MULT });
   } else if (club.reputation >= 3) {
-    objectives.push({ id: '4', description: 'Reach Cup Quarter-Final', priority: 'optional', completed: false });
+    objectives.push({ id: '4', description: 'Reach Cup Quarter-Final', priority: 'optional', completed: false,
+      checkType: 'cup_round', targetMin: 3, targetOverachieve: 2,
+      xpReward: BOARD_OBJ_XP_OPTIONAL, xpRewardOverachieve: BOARD_OBJ_XP_OPTIONAL * BOARD_OBJ_XP_OVERACHIEVE_MULT });
   }
-  objectives.push({ id: '3', description: 'Stay within budget', priority: 'optional', completed: false });
+
+  objectives.push({ id: '3', description: 'Stay within budget', priority: 'optional', completed: false,
+    checkType: 'budget', targetMin: 0,
+    xpReward: BOARD_OBJ_XP_OPTIONAL });
+
   return objectives;
 }
 
@@ -652,8 +682,23 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
       updatedCareerManager = cm;
     }
 
+    // Post-tournament fatigue: reduce fitness for players who participated
+    const postTourneyPlayers = { ...state.players };
+    if (state.nationalTeam?.squad) {
+      const matchesPlayed = state.nationalTeam.results?.length || 0;
+      const fatigueCost = matchesPlayed >= 3 ? POST_TOURNAMENT_FITNESS_COST_HIGH : matchesPlayed >= 1 ? POST_TOURNAMENT_FITNESS_COST_LOW : 0;
+      if (fatigueCost > 0) {
+        for (const pid of state.nationalTeam.squad) {
+          if (postTourneyPlayers[pid]) {
+            postTourneyPlayers[pid] = { ...postTourneyPlayers[pid], fitness: Math.max(30, postTourneyPlayers[pid].fitness - fatigueCost) };
+          }
+        }
+      }
+    }
+
     set({
       messages: newMessages,
+      players: postTourneyPlayers,
       seasonPhase: 'regular',
       internationalTournament: null,
       ...(updatedCareerManager && { careerManager: updatedCareerManager }),
@@ -1523,6 +1568,7 @@ function finalizeSeason(
   const newLeagueTable = newDivisionTables[newPlayerDivision];
   const newCup = generateCupDraw(leagueClubIds);
   const newLeagueCup = generateLeagueCupDraw(leagueClubIds);
+  const newFriendlies = generateFriendlies(state.playerClubId, leagueClubIds);
 
   // Generate continental tournaments based on previous season's league table
   const prevLeagueTable = state.leagueTable;
@@ -1634,10 +1680,35 @@ function finalizeSeason(
   Object.assign(newPlayers, seasonMarket.players);
   transferMarket.push(...seasonMarket.listings);
 
+  // Board objective end-of-season rewards
+  let objectiveXP = 0;
+  let objectiveBudgetBoost = 0;
+  let objectiveConfidenceBonus = 0;
+  for (const obj of state.boardObjectives) {
+    if (obj.completed) {
+      objectiveXP += obj.overachieved ? (obj.xpRewardOverachieve ?? obj.xpReward ?? 0) : (obj.xpReward ?? 0);
+      if (obj.overachieved && obj.budgetBoost) objectiveBudgetBoost += obj.budgetBoost;
+    }
+  }
+  const allObjCompleted = state.boardObjectives.length > 0 && state.boardObjectives.every(o => o.completed);
+  if (allObjCompleted) {
+    objectiveXP += BOARD_OBJ_ALL_COMPLETE_XP;
+    objectiveConfidenceBonus += BOARD_OBJ_ALL_COMPLETE_CONFIDENCE;
+  }
+  // Apply budget boost to the club entering the new season
+  if (objectiveBudgetBoost > 0 && newClubs[playerClubId]) {
+    newClubs[playerClubId] = { ...newClubs[playerClubId], budget: newClubs[playerClubId].budget + objectiveBudgetBoost };
+  }
+  // War Chest prestige perk: +15% starting budget each season
+  if (hasPerk(state.managerProgression, 'war_chest') && newClubs[playerClubId]) {
+    newClubs[playerClubId] = { ...newClubs[playerClubId], budget: Math.round(newClubs[playerClubId].budget * 1.15) };
+  }
+
   const playerClubForObjectives = newClubs[playerClubId];
   const objectives = playerClubForObjectives ? generateObjectives(playerClubForObjectives, newPlayerDivision) : [];
   const verdict = history.boardVerdict;
-  const newConfidence = SEASON_END_CONFIDENCE[verdict] || CONFIDENCE_MIN;
+  const baseConfidence = SEASON_END_CONFIDENCE[verdict] || CONFIDENCE_MIN;
+  const newConfidence = Math.min(100, baseConfidence + objectiveConfidenceBonus);
 
   let newMessages = addMsg(inputMessages, {
     week: 1, season: newSeason, type: 'board',
@@ -1687,6 +1758,12 @@ function finalizeSeason(
   const { prospects: newYouthProspects, players: youthPlayers } = generateYouthProspects(
     playerClubId, pcForYouth.youthRating, youthCoachQ, newSeason, SEASON_YOUTH_INTAKE_MIN + Math.floor(Math.random() * SEASON_YOUTH_INTAKE_RANGE), youthSquadQuality
   );
+  // Wonder Coach perk: +5 potential on all youth intake
+  if (hasPerk(state.managerProgression, 'wonder_coach') && youthPlayers.length > 0) {
+    for (let i = 0; i < youthPlayers.length; i++) {
+      youthPlayers[i] = { ...youthPlayers[i], potential: Math.min(99, youthPlayers[i].potential + 5) };
+    }
+  }
   // Golden Generation perk: guarantee at least one high-potential youth
   if (hasPerk(state.managerProgression, 'golden_generation') && youthPlayers.length > 0) {
     const hasHighPotential = youthPlayers.some(p => p.potential >= GOLDEN_GEN_MIN_POTENTIAL);
@@ -1696,6 +1773,15 @@ function finalizeSeason(
     }
   }
   youthPlayers.forEach(p => { newPlayers[p.id] = p; });
+  // Prodigy Factory prestige perk: 2 extra youth prospects
+  if (hasPerk(state.managerProgression, 'prodigy_factory')) {
+    const { prospects: bonusProspects, players: bonusPlayers } = generateYouthProspects(
+      playerClubId, pcForYouth.youthRating, youthCoachQ, newSeason, 2, youthSquadQuality
+    );
+    newYouthProspects.push(...bonusProspects);
+    youthPlayers.push(...bonusPlayers);
+  }
+
   const newIntakePreview = generateIntakePreview(pcForYouth.youthRating);
 
   newMessages = addMsg(newMessages, {
@@ -1757,7 +1843,7 @@ function finalizeSeason(
     seasonHistory: [...state.seasonHistory, history],
     currentMatchResult: null, currentScreen: 'season-summary',
     matchPhase: 'none' as const, matchTeamTalk: 'none', pendingPressConference: null,
-    messages: newMessages, incomingOffers: [], matchSubsUsed: 0, shortlist: [], scoutWatchList: [],
+    messages: newMessages, incomingOffers: [], matchSubsUsed: 0, galacticoUsedThisSeason: false, invincibleUsedThisSeason: false, preMatchSnapshot: null, shortlist: [], scoutWatchList: [],
     sponsorDeals: sponsorSeasonEnd.sponsorDeals || state.sponsorDeals,
     sponsorOffers: [],
     sponsorSlotCooldowns: {},
@@ -1775,6 +1861,7 @@ function finalizeSeason(
     scouting: { ...state.scouting, assignments: [], reports: [], discoveredPlayers: [] },
     cup: newCup,
     leagueCup: newLeagueCup,
+    friendlies: newFriendlies,
     championsCup: newChampionsCup,
     shieldCup: newShieldCup,
     conferenceCup: newConferenceCup,
@@ -1829,6 +1916,7 @@ function finalizeSeason(
       else if (state.shieldCup && !state.shieldCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
       if (state.conferenceCup?.winnerId === playerClubId) xp += XP_REWARDS.conferenceCupWin;
       else if (state.conferenceCup && !state.conferenceCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
+      xp += objectiveXP;
       return xp;
     })()),
     seasonGrowthTracker: {},
@@ -2289,21 +2377,22 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const nextIntakePreview = generateIntakePreview(pcInit.youthRating);
     const scoutCount = initialStaff.filter(s => s.role === 'scout').length;
 
-    // Generate cup draws
+    // Generate cup draws and pre-season friendlies
     const cup = generateCupDraw(leagueClubIds);
     const leagueCup = generateLeagueCupDraw(leagueClubIds);
+    const friendlies = generateFriendlies(clubId, leagueClubIds);
 
     set({
       gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: TOTAL_WEEKS,
       gameMode: get().gameMode || 'sandbox',
-      transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable,
+      transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable, friendlies,
       divisionFixtures, divisionTables, divisionClubs, playerDivision,
       lastSeasonTurnover: null, derbies: DERBIES,
       activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
       transferMarket, shortlist: [], scoutWatchList: [], freeAgents: initialFreeAgentIds, transferNews: [], boardObjectives: objectives, boardConfidence: STARTING_BOARD_CONFIDENCE,
       currentScreen: 'dashboard', previousScreen: null, currentMatchResult: null, trainingFocus: 'fitness',
       messages, seasonHistory: [], incomingOffers: [], matchSubsUsed: 0, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null,
-      settings: { matchSpeed: 'normal', showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, hidePageHints: false, confirmAllOffers: false, reducedMotion: false },
+      settings: { matchSpeed: 600, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, hidePageHints: false, confirmAllOffers: false, reducedMotion: false },
       tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
       training: {
         schedule: { mon: 'fitness', tue: 'attacking', wed: 'defending', thu: 'mentality', fri: 'tactical' },
@@ -2633,9 +2722,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
       const allClubPlayers = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
       const mentorBonusVal = getMentorBonus(p, allClubPlayers);
-      const trainingPerkBoost = hasPerk(state.managerProgression, 'training_ground') ? TRAINING_GROUND_BOOST : 0;
+      const dm = dynastyMult(state.managerProgression);
+      const trainingPerkBoost = hasPerk(state.managerProgression, 'training_ground') ? TRAINING_GROUND_BOOST * dm : 0;
+      const dnaCoachBoost = hasPerk(state.managerProgression, 'dna_coach') && p.age < 24 ? 0.1 : 0;
       const gkBoost = p.position === 'GK' ? gkCoachBonus * GK_COACH_DEV_BONUS_PER_QUALITY : 0;
-      p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + gkBoost);
+      p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + dnaCoachBoost + gkBoost);
       if (p.growthDelta && p.growthDelta > 0) {
         improvedPlayers.push({ name: p.lastName, overall: p.overall });
       } else if (p.growthDelta && p.growthDelta < 0) {
@@ -2749,6 +2840,42 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const careerTactBoost = (state.gameMode === 'career' && state.careerManager) ? Math.round((baseTactFam - training.tacticalFamiliarity) * state.careerManager.attributes.tacticalKnowledge * MOD_TACTICAL_FAMILIARITY) : 0;
     const newTacticalFamiliarity = Math.min(100, baseTactFam + amBoost + tactGeniusBoost + careerTactBoost);
 
+    // International break: call up players, apply fitness cost, send notifications
+    if (INTERNATIONAL_BREAK_WEEKS.includes(week)) {
+      const playerClub = clubs[playerClubId];
+      const calledUp: string[] = [];
+      const snubbed: string[] = [];
+      for (const pid of playerClub.playerIds) {
+        const p = newPlayers[pid];
+        if (!p || p.injured) continue;
+        // Top nations (rough: any player with nationality matching a known nation and high enough OVR)
+        if (p.overall >= INTERNATIONAL_CALLUP_MIN_OVR && p.age >= 17 && p.age <= 36) {
+          calledUp.push(pid);
+          newPlayers[pid] = {
+            ...newPlayers[pid],
+            fitness: Math.max(30, newPlayers[pid].fitness - INTERNATIONAL_BREAK_FITNESS_COST),
+            morale: Math.min(100, newPlayers[pid].morale + NATIONAL_CALLUP_MORALE_BOOST),
+            internationalCaps: (newPlayers[pid].internationalCaps || 0) + 1,
+          };
+        } else if (p.overall >= INTERNATIONAL_SNUB_MIN_OVR && p.age >= 17 && p.age <= 36) {
+          snubbed.push(pid);
+          newPlayers[pid] = {
+            ...newPlayers[pid],
+            morale: Math.max(0, newPlayers[pid].morale + CALLUP_SNUB_MORALE_PENALTY),
+          };
+        }
+      }
+      if (calledUp.length > 0) {
+        const names = calledUp.slice(0, 5).map(id => newPlayers[id]?.lastName || 'Unknown').join(', ');
+        const extra = calledUp.length > 5 ? ` and ${calledUp.length - 5} more` : '';
+        newMessages = addMsg(newMessages, {
+          week, season, type: 'general',
+          title: 'International Break',
+          body: `${calledUp.length} player${calledUp.length > 1 ? 's' : ''} called up for international duty: ${names}${extra}. They may return with reduced fitness.`,
+        });
+      }
+    }
+
     // Simulate AI matches for player's division
     const weekMatches = fixtures.filter(m => m.week === week && !m.played);
     const updatedFixtures = [...fixtures];
@@ -2777,7 +2904,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         updatedFixtures[idx] = forfeit;
         continue;
       }
-      const { result } = simulateMatch(m, hc, ac, hp, ap, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hBenchAI, aBenchAI);
+      // AI counter-tactics: each team reads the opponent's default setup
+      const hProfile = hc.aiManagerProfile;
+      const aProfile = ac.aiManagerProfile;
+      const hTacticsAI = hProfile && aProfile ? getAICounterTactics(hProfile, aProfile.defaultTactics, ac.formation || '4-4-2') : undefined;
+      const aTacticsAI = aProfile && hProfile ? getAICounterTactics(aProfile, hProfile.defaultTactics, hc.formation || '4-4-2') : undefined;
+      const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsAI, aTacticsAI, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hBenchAI, aBenchAI);
       updatedFixtures[idx] = result;
       applyAIMatchEvents(result.events, newPlayers, clubs, week, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
       updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
@@ -3472,10 +3604,70 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Transfer window messages
     if (newWeek === SUMMER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Transfer Deadline Approaching', body: 'The summer transfer window closes next week. Finalise any deals now!' });
-    if (newWeek === SUMMER_WINDOW_END) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Window Closing', body: 'The transfer window closes this week. Make your final moves!' });
     if (newWeek === WINTER_WINDOW_START) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'January Window Opens', body: 'The winter transfer window is now open until Week 24.' });
     if (newWeek === WINTER_WINDOW_END - 1) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'Winter Deadline Approaching', body: 'The winter transfer window closes next week. Last chance for January deals!' });
-    if (newWeek === WINTER_WINDOW_END) newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Winter Window Closed', body: 'The January transfer window has closed. No more transfers until next season.' });
+
+    // ── Deadline Day Drama ──
+    const deadlineBargains: { playerId: string; askingPrice: number; sellerClubId: string }[] = [];
+    const isDeadlineDay = newWeek === SUMMER_WINDOW_END || newWeek === WINTER_WINDOW_END;
+    if (isDeadlineDay) {
+      const windowName = newWeek === SUMMER_WINDOW_END ? 'summer' : 'winter';
+
+      // Generate panic incoming offers for player's club
+      const playerClub = clubs[playerClubId];
+      const playerSquad = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
+      const sellableTargets = playerSquad.filter(p => p.overall >= 65 && !p.injured && p.age <= 32);
+      const aiClubIds = Object.keys(clubs).filter(id => id !== playerClubId);
+      const deadlineBody = sellableTargets.length > 0
+        ? `The ${windowName} transfer window slams shut tonight! Clubs are scrambling — expect desperate bids for your best players.`
+        : `The ${windowName} transfer window closes tonight. Clubs across the league are finalising last-minute deals.`;
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: 'DEADLINE DAY', body: deadlineBody });
+      for (const target of shuffle(sellableTargets).slice(0, DEADLINE_PANIC_OFFER_COUNT)) {
+        const bidderId = aiClubIds[Math.floor(Math.random() * aiClubIds.length)];
+        const bidder = clubs[bidderId];
+        if (!bidder) continue;
+        const panicFee = Math.round(target.value * (1 + DEADLINE_PANIC_BID_PREMIUM));
+        if (panicFee > bidder.budget * 0.6) continue; // Don't bid more than 60% of budget
+        const existingOffer = newOffers.find(o => o.playerId === target.id && o.buyerClubId === bidderId);
+        if (existingOffer) continue;
+        newOffers.push({ id: crypto.randomUUID(), playerId: target.id, buyerClubId: bidderId, fee: panicFee, week: newWeek });
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: `URGENT: Bid for ${target.lastName}`, body: `${bidder.name} have made a last-minute bid of £${(panicFee / 1e6).toFixed(1)}M for ${target.firstName} ${target.lastName}! Respond before the window closes.` });
+        // Multi-bid: chance of a second club bidding for the same player
+        if (Math.random() < DEADLINE_MULTI_BID_CHANCE) {
+          const secondBidderId = aiClubIds.filter(id => id !== bidderId)[Math.floor(Math.random() * (aiClubIds.length - 1))];
+          const secondBidder = secondBidderId ? clubs[secondBidderId] : null;
+          if (secondBidder) {
+            const rivalFee = Math.round(panicFee * 1.1); // 10% above first bid
+            if (rivalFee <= secondBidder.budget * 0.6) {
+              newOffers.push({ id: crypto.randomUUID(), playerId: target.id, buyerClubId: secondBidderId, fee: rivalFee, week: newWeek });
+              newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: `BIDDING WAR: ${target.lastName}`, body: `${secondBidder.name} have entered the race for ${target.firstName} ${target.lastName} with a rival bid of £${(rivalFee / 1e6).toFixed(1)}M!` });
+            }
+          }
+        }
+      }
+
+      // Add bargain listings from AI clubs dumping surplus players
+      const bargainCount = Math.min(3, aiClubIds.length);
+      for (let i = 0; i < bargainCount; i++) {
+        const sellerId = aiClubIds[Math.floor(Math.random() * aiClubIds.length)];
+        const sellerClub = clubs[sellerId];
+        if (!sellerClub) continue;
+        const surplus = sellerClub.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => p.overall >= 60 && p.overall <= 75 && p.age >= 27);
+        const toSell = surplus[Math.floor(Math.random() * surplus.length)];
+        if (!toSell) continue;
+        const alreadyListed = deadlineBargains.some(l => l.playerId === toSell.id);
+        if (alreadyListed) continue;
+        const bargainPrice = Math.round(toSell.value * (1 - DEADLINE_BARGAIN_DISCOUNT));
+        deadlineBargains.push({ playerId: toSell.id, askingPrice: Math.max(100000, bargainPrice), sellerClubId: sellerId });
+      }
+    }
+
+    // Post-deadline summary (week after window closes)
+    if (newWeek === SUMMER_WINDOW_END + 1 || newWeek === WINTER_WINDOW_END + 1) {
+      const completedDeals = (state.transferNews || []).filter(n => n.week === newWeek - 1 && n.season === season).length;
+      const expiredOffers = newOffers.filter(o => o.week <= newWeek - 1).length;
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'general', title: 'Transfer Window Closed', body: `The window is shut. ${completedDeals} deals were completed league-wide${expiredOffers > 0 ? ` and ${expiredOffers} offer${expiredOffers > 1 ? 's' : ''} expired` : ''}. No more transfers until the ${newWeek <= 10 ? 'January' : 'summer'} window.` });
+    }
 
     // Mid-season staff market refresh
     let newStaff = staff;
@@ -3606,7 +3798,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         } else {
           const baseDevGain = 1 + youthCoachQuality * 0.3 + newFacilities.youthLevel * 0.2;
           const careerYouthMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.youthDevelopment * MOD_YOUTH_GROWTH : 0;
-          const devGain = hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST + careerYouthMod) : baseDevGain * (1 + careerYouthMod);
+          const ydm = dynastyMult(state.managerProgression);
+          const devGain = hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST * ydm + careerYouthMod) : baseDevGain * (1 + careerYouthMod);
           prospect.developmentScore = Math.min(100, prospect.developmentScore + devGain);
         }
         // Bust risk: low-potential prospects can lose potential permanently (1% per week)
@@ -3628,7 +3821,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Weekly income — expanded sources
     const newClubs = { ...clubs };
-    const fanFavMult = hasPerk(state.managerProgression, 'fan_favourite') ? 1.15 : 1;
+    const fanFavMult = hasPerk(state.managerProgression, 'fan_favourite') ? 1 + 0.15 * dynastyMult(state.managerProgression) : 1;
     const stadiumIncome = Math.round(getEffectiveStadiumLevel(newFacilities) * STADIUM_INCOME_PER_LEVEL * fanFavMult);
     const fanMoodMult = FAN_MOOD_BASE + (state.fanMood / 100) * FAN_MOOD_SCALE;
     // Derby income bonus: check if this week's played match was a derby
@@ -3719,7 +3912,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (newMerch.starSigningBuzz > 0) newMerch.starSigningBuzz -= 1;
     // Apply pricing fan mood impact
     const pricingMoodDelta = MERCH_PRICING_TIERS[newMerch.pricingTier].fanMoodImpact;
-    const merchFanMood = Math.max(0, Math.min(100, state.fanMood + pricingMoodDelta));
+    const cultHeroFloor = hasPerk(state.managerProgression, 'cult_hero') ? 40 : 0;
+    const merchFanMood = Math.max(cultHeroFloor, Math.min(100, state.fanMood + pricingMoodDelta));
 
     // Process sponsorship system (offers, satisfaction, new deals)
     const sponsorUpdates = processSponsorWeek({ ...state, week: newWeek, clubs: newClubs, messages: newMessages, currentMatchResult: thisWeekMatch ? state.currentMatchResult : null });
@@ -3729,24 +3923,46 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const playerPos = playerTableIdx >= 0 ? playerTableIdx + 1 : 20;
     const updatedObjectives = state.boardObjectives.map(obj => {
       const o = { ...obj };
-      if (obj.description === 'Win the League') o.completed = playerPos === 1;
-      else if (obj.description === 'Finish in Top 3') o.completed = playerPos <= 3;
-      else if (obj.description === 'Finish in Top 6') o.completed = playerPos <= 6;
-      else if (obj.description === 'Reach Top Half' || obj.description === 'Finish in Top Half') o.completed = playerPos <= 10;
-      else if (obj.description.startsWith('Avoid Replacement')) {
-        const posMatch = obj.description.match(/Top (\d+)/);
-        const safePos = posMatch ? parseInt(posMatch[1]) : 17;
-        o.completed = playerPos <= safePos;
-      }
-      else if (obj.description === 'Stay within budget') o.completed = newClubs[playerClubId].budget >= 0;
-      else if (obj.description === 'Win the Cup') o.completed = newCup.winner === playerClubId;
-      else if (obj.description === 'Reach Cup Semi-Final') {
-        const sfOrBetter = ['SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
-        o.completed = !newCup.eliminated && sfOrBetter;
-      }
-      else if (obj.description === 'Reach Cup Quarter-Final') {
-        const qfOrBetter = ['QF', 'SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
-        o.completed = !newCup.eliminated && qfOrBetter;
+
+      // Structured evaluation (new format with checkType)
+      if (obj.checkType === 'league_position') {
+        o.completed = playerPos <= (obj.targetMin ?? 20);
+        o.overachieved = obj.targetOverachieve != null && playerPos <= obj.targetOverachieve;
+        o.progressCurrent = playerPos;
+      } else if (obj.checkType === 'cup_round') {
+        // targetMin: 1=Winner, 2=SF+, 3=QF+
+        const cupStage = obj.targetMin ?? 4;
+        if (cupStage <= 1) o.completed = newCup.winner === playerClubId;
+        else if (cupStage <= 2) { const ok = ['SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null; o.completed = !newCup.eliminated && ok; }
+        else { const ok = ['QF', 'SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null; o.completed = !newCup.eliminated && ok; }
+        // Overachieve check
+        if (obj.targetOverachieve != null) {
+          if (obj.targetOverachieve <= 1) o.overachieved = newCup.winner === playerClubId;
+          else if (obj.targetOverachieve <= 2) { const ok = ['SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null; o.overachieved = !newCup.eliminated && ok; }
+        }
+      } else if (obj.checkType === 'budget') {
+        o.completed = newClubs[playerClubId].budget >= (obj.targetMin ?? 0);
+      } else {
+        // Legacy string-matching fallback (backward compat for old saves)
+        if (obj.description === 'Win the League') o.completed = playerPos === 1;
+        else if (obj.description === 'Finish in Top 3') o.completed = playerPos <= 3;
+        else if (obj.description === 'Finish in Top 6') o.completed = playerPos <= 6;
+        else if (obj.description === 'Reach Top Half' || obj.description === 'Finish in Top Half') o.completed = playerPos <= 10;
+        else if (obj.description.startsWith('Avoid Replacement')) {
+          const posMatch = obj.description.match(/Top (\d+)/);
+          const sp = posMatch ? parseInt(posMatch[1]) : 17;
+          o.completed = playerPos <= sp;
+        }
+        else if (obj.description === 'Stay within budget') o.completed = newClubs[playerClubId].budget >= 0;
+        else if (obj.description === 'Win the Cup') o.completed = newCup.winner === playerClubId;
+        else if (obj.description === 'Reach Cup Semi-Final') {
+          const sfOrBetter = ['SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
+          o.completed = !newCup.eliminated && sfOrBetter;
+        }
+        else if (obj.description === 'Reach Cup Quarter-Final') {
+          const qfOrBetter = ['QF', 'SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
+          o.completed = !newCup.eliminated && qfOrBetter;
+        }
       }
       return o;
     });
@@ -3804,7 +4020,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         lp.morale = Math.min(100, Math.max(30, lp.morale + 2)); // playing regularly boosts morale
         // Development: young players on loan develop from playing time
         if (lp.age < LOAN_YOUNG_AGE_THRESHOLD && lp.overall < lp.potential) {
-          const devChance = LOAN_DEV_BASE_CHANCE + (loanClub.reputation * LOAN_DEV_REP_FACTOR); // better clubs = slightly better development
+          const loanMasterMult = hasPerk(state.managerProgression, 'loan_master') ? 1.3 : 1;
+          const devChance = (LOAN_DEV_BASE_CHANCE + (loanClub.reputation * LOAN_DEV_REP_FACTOR)) * loanMasterMult;
           if (Math.random() < devChance) {
             const attrs = { ...lp.attributes };
             const attrKeys = Object.keys(attrs) as (keyof PlayerAttributes)[];
@@ -3828,16 +4045,55 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (BOARD_REVIEW_WEEKS.includes(newWeek)) {
       const expectedPos = getExpectedPosition(playerClub.reputation);
       const actualPos = playerTableIdx >= 0 ? playerTableIdx + 1 : 20;
-      const diff = expectedPos - actualPos;
-      if (diff >= 3) {
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: Impressive', body: `The board acknowledges your excellent work. Finishing ${actualPos}${getSuffix(actualPos)} exceeds expectations. Keep it up!` });
-      } else if (diff >= 0) {
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: On Track', body: `The board is satisfied with progress. Current position of ${actualPos}${getSuffix(actualPos)} meets expectations.` });
-      } else if (diff >= -3) {
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: Concerns', body: `The board notes the team is underperforming. A position of ${actualPos}${getSuffix(actualPos)} is below expectations. Improvement is needed.` });
+      const diff = actualPos - expectedPos; // positive = underperforming, negative = overperforming
+      let reviewBody = '';
+
+      if (diff <= -5) {
+        reviewBody = `The board acknowledges your excellent work. Finishing ${actualPos}${getSuffix(actualPos)} exceeds expectations. Keep it up!`;
+      } else if (diff <= 0) {
+        reviewBody = `The board is satisfied with progress. Current position of ${actualPos}${getSuffix(actualPos)} meets expectations.`;
+      } else if (diff <= 3) {
+        reviewBody = `The board notes the team is underperforming. A position of ${actualPos}${getSuffix(actualPos)} is below expectations. Improvement is needed.`;
       } else {
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: Serious Concerns', body: `The board is deeply unhappy. Current position of ${actualPos}${getSuffix(actualPos)} is well below the expected ${expectedPos}${getSuffix(expectedPos)}. Results must improve immediately.` });
+        reviewBody = `The board is deeply unhappy. Current position of ${actualPos}${getSuffix(actualPos)} is well below the expected ${expectedPos}${getSuffix(expectedPos)}. Results must improve immediately.`;
       }
+
+      // Adjust league position objectives based on performance
+      const lid = state.playerDivision;
+      const lge = LEAGUES.find(l => l.id === lid);
+      const tc = lge?.teamCount || 20;
+      let adjustmentNote = '';
+      for (let i = 0; i < updatedObjectives.length; i++) {
+        const obj = updatedObjectives[i];
+        if (obj.checkType !== 'league_position' || obj.targetMin == null) continue;
+
+        if (diff >= BOARD_REVIEW_RAISE_THRESHOLD && obj.targetMin > 1) {
+          // Underperforming badly — relax targets
+          const relaxed = Math.min(tc, obj.targetMin + BOARD_REVIEW_ADJUST_POSITIONS);
+          updatedObjectives[i] = { ...obj,
+            originalDescription: obj.originalDescription || obj.description,
+            originalTargetMin: obj.originalTargetMin ?? obj.targetMin,
+            targetMin: relaxed,
+            description: relaxed === 1 ? 'Win the League' : `Finish in Top ${relaxed}`,
+            adjusted: true,
+          };
+          adjustmentNote = ' The board has relaxed your league target given the circumstances.';
+        } else if (diff <= BOARD_REVIEW_RELAX_THRESHOLD && obj.targetMin > 1) {
+          // Overperforming — raise expectations
+          const raised = Math.max(1, obj.targetMin - BOARD_REVIEW_ADJUST_POSITIONS);
+          updatedObjectives[i] = { ...obj,
+            originalDescription: obj.originalDescription || obj.description,
+            originalTargetMin: obj.originalTargetMin ?? obj.targetMin,
+            targetMin: raised,
+            description: raised === 1 ? 'Win the League' : `Finish in Top ${raised}`,
+            adjusted: true,
+          };
+          adjustmentNote = ' Impressed by your form, the board has raised expectations.';
+        }
+      }
+
+      const reviewTitle = diff <= -5 ? 'Board Review: Impressive' : diff <= 0 ? 'Board Review: On Track' : diff <= 3 ? 'Board Review: Concerns' : 'Board Review: Serious Concerns';
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: reviewTitle, body: reviewBody + adjustmentNote });
     }
 
     // Evaluate monthly objectives — mark completions every week, cycle every OBJECTIVE_CYCLE_WEEKS weeks
@@ -4141,7 +4397,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         clubs: aiResult.clubs,
         players: aiResult.players,
         messages: aiResult.messages,
-        transferMarket: aiResult.transferMarket,
+        transferMarket: [...aiResult.transferMarket, ...deadlineBargains.filter(b => aiResult.players[b.playerId]?.clubId === b.sellerClubId)],
         freeAgents: aiResult.freeAgents,
         activeLoans: aiResult.activeLoans,
         transferNews: aiResult.transferNews,
@@ -4393,7 +4649,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   advanceToNextMatch: () => {
     const hasMatchThisWeek = (s: GameState): boolean => {
-      const { week: w, fixtures, playerClubId: pcId, cup, leagueCup, domesticSuperCup, continentalSuperCup } = s;
+      const { week: w, fixtures, friendlies, playerClubId: pcId, cup, leagueCup, domesticSuperCup, continentalSuperCup } = s;
+      if (friendlies?.some(m => m.week === w && !m.played && (m.homeClubId === pcId || m.awayClubId === pcId))) return true;
       if (fixtures.some(m => m.week === w && !m.played && (m.homeClubId === pcId || m.awayClubId === pcId))) return true;
       if (cup?.ties?.some(t => t.week === w && !t.played && (t.homeClubId === pcId || t.awayClubId === pcId))) return true;
       if (leagueCup?.ties?.some(t => t.week === w && !t.played && (t.homeClubId === pcId || t.awayClubId === pcId))) return true;
@@ -4421,17 +4678,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (state.gameMode === 'career' && !state.careerManager?.contract) return null;
     const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
 
-    // ── Detect match type: league → cup → continental → league cup → super cup ──
-    const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
-    const cupTie = !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
-    const champMatch = !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
-    const shieldMatch = !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
-    const confMatch = !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
+    // ── Detect match type: friendly → league → cup → continental → league cup → super cup ──
+    const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const leagueMatch = !friendlyMatch ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
+    const cupTie = !friendlyMatch && !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+    const champMatch = !friendlyMatch && !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
+    const shieldMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
+    const confMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
     const continentalMatch = champMatch || shieldMatch || confMatch;
     const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : confMatch ? 'conference_cup' as const : null;
     const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
-    const leagueCupTie = !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
-    const superCup = !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
+    const leagueCupTie = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+    const superCup = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
       ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
         || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
       : null;
@@ -4442,7 +4700,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     let effectiveClubs = clubs;
     let effectivePlayers = players;
 
-    if (leagueMatch) {
+    if (friendlyMatch) {
+      match = friendlyMatch;
+    } else if (leagueMatch) {
       match = leagueMatch;
     } else if (cupTie) {
       match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
@@ -4484,8 +4744,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (!match) return null;
 
     // Determine competition metadata
+    const isFriendly = !!friendlyMatch;
     const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
-    const matchCompetition = cupTie ? `Dynasty Cup — ${cupTie.round}`
+    const matchCompetition = isFriendly ? 'Pre-Season Friendly'
+      : cupTie ? `Dynasty Cup — ${cupTie.round}`
       : leagueCupTie ? `League Cup — ${leagueCupTie.round}`
       : continentalComp === 'champions_cup' ? 'Champions Cup'
       : continentalComp === 'shield_cup' ? 'Shield Cup'
@@ -4519,14 +4781,19 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Motivator perk: boost player team morale before match
     if (hasPerk(state.managerProgression, 'motivator')) {
       const boostPlayers = (ps: typeof hp, clubId: string) =>
-        clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + MOTIVATOR_MORALE_BOOST) })) : ps;
+        clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + Math.round(MOTIVATOR_MORALE_BOOST * dynastyMult(state.managerProgression))) })) : ps;
       hp = boostPlayers(hp, match.homeClubId);
       ap = boostPlayers(ap, match.awayClubId);
     }
 
     const isPlayerHome = match.homeClubId === playerClubId;
-    const homeTactics = isPlayerHome ? tactics : undefined;
-    const awayTactics = isPlayerHome ? undefined : tactics;
+    // AI counter-tactics: opponent analyzes player's setup
+    const opponentClub = isPlayerHome ? ac : hc;
+    const opponentProfile = opponentClub.aiManagerProfile;
+    const counterReduction = hasPerk(state.managerProgression, 'counter_master') ? 0.25 : 0;
+    const aiCounterTactics = opponentProfile ? getAICounterTactics(opponentProfile, tactics, clubs[playerClubId]?.formation || '4-4-2', counterReduction) : undefined;
+    const homeTactics = isPlayerHome ? tactics : aiCounterTactics;
+    const awayTactics = isPlayerHome ? aiCounterTactics : tactics;
     // Store pre-match league position
     const preEntry = state.leagueTable.find(e => e.clubId === playerClubId);
     const prePos = preEntry ? state.leagueTable.indexOf(preEntry) + 1 : 10;
@@ -4540,7 +4807,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const apIdSet = new Set(ap.map(p => p.id));
     const hBenchCM = (hc.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !hpIdSet.has(p.id) && !p.injured && !isSuspended(p));
     const aBenchCM = (ac.subs || []).map(id => effectivePlayers[id]).filter(Boolean).filter(p => !apIdSet.has(p.id) && !p.injured && !isSuspended(p));
-    const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season, careerDisciplineMod, hBenchCM, aBenchCM);
+    // Capture pre-match snapshot for Invincible perk (match rewind on loss)
+    if (hasPerk(state.managerProgression, 'invincible') && !state.invincibleUsedThisSeason && !isFriendly) {
+      set({ preMatchSnapshot: { fixtures: [...state.fixtures], divisionFixtures: { ...state.divisionFixtures }, players: { ...state.players }, boardConfidence: state.boardConfidence, leagueTable: [...state.leagueTable], divisionTables: { ...state.divisionTables } } });
+    }
+
+    const spCoachInstant = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
+    const { result, playerRatings, matchInjuries } = simulateMatch(match, hc, ac, hp, ap, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, matchDerbyIntensity, hasDisciplinarian, season, careerDisciplineMod, hBenchCM, aBenchCM, undefined, spCoachInstant);
 
     // ── Cup/Tournament match path ──
     if (isCupMatch) {
@@ -4709,6 +4982,47 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       return finalResult;
     }
 
+    // ── Friendly match path ──
+    if (isFriendly) {
+      const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
+      // Scale board confidence delta for friendlies (25% impact)
+      const confDelta = (processed.confidence - (state.boardConfidence || 50)) * FRIENDLY_BOARD_CONFIDENCE_MULT;
+      const friendlyConfidence = Math.max(0, Math.min(100, (state.boardConfidence || 50) + confDelta));
+
+      const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+      const press = generatePressConference(pressContext, isPro(get().monetization));
+      const drama = detectMatchDrama(result, playerClubId, clubs);
+      const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
+
+      set({
+        friendlies: state.friendlies.map(f => f.id === match.id ? result : f),
+        currentMatchResult: result,
+        players: processed.newPlayers,
+        boardConfidence: friendlyConfidence,
+        messages: processed.newMessages,
+        matchSubsUsed: 0,
+        matchPlayerRatings: processed.playerRatings,
+        managerStats: processed.managerStats,
+        matchPhase: 'full_time' as const,
+        lastMatchCompetition: 'Pre-Season Friendly',
+        pendingPressConference: press,
+        careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
+        managerProgression: processed.managerProgression,
+        preMatchLeaguePosition: prePos,
+        lastMatchXPGain: Math.round((processed.xpGain || 0) * 0.5),
+        lastMatchDrama: drama,
+        pairFamiliarity: processed.pairFamiliarity,
+        sessionStats: {
+          ...prevSession,
+          matchesWon: prevSession.matchesWon + (processed.won ? 1 : 0),
+          matchesLost: prevSession.matchesLost + (processed.lost ? 1 : 0),
+        },
+      });
+
+      if (get().settings.autoSave) get().saveGame();
+      return result;
+    }
+
     // ── League match path ──
     const processed = processMatchResult(state, match, result, playerRatings, () => get().week, matchInjuries);
 
@@ -4804,24 +5118,25 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   playFirstHalf: () => {
     const state = get();
     const { week, fixtures, clubs, players, playerClubId, tactics, training, season } = state;
-    const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const leagueMatch = !friendlyMatch ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
 
-    // Check for cup tie if no league match
-    const cupTie = !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+    // Check for cup tie if no league/friendly match
+    const cupTie = !friendlyMatch && !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
 
     // Check continental matches
-    const champMatch = !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
-    const shieldMatch = !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
-    const confMatch = !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
+    const champMatch = !friendlyMatch && !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
+    const shieldMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
+    const confMatch = !friendlyMatch && !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
     const continentalMatch = champMatch || shieldMatch || confMatch;
     const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : confMatch ? 'conference_cup' as const : null;
     const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
 
     // Check league cup
-    const leagueCupTie = !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
+    const leagueCupTie = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
 
     // Check super cups
-    const superCup = !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
+    const superCup = !friendlyMatch && !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
       ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
         || (state.continentalSuperCup && !state.continentalSuperCup.played && state.continentalSuperCup.week === week && (state.continentalSuperCup.homeClubId === playerClubId || state.continentalSuperCup.awayClubId === playerClubId) ? state.continentalSuperCup : null)
       : null;
@@ -4832,7 +5147,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     let effectiveClubs = clubs;
     let effectivePlayers = players;
 
-    if (leagueMatch) {
+    if (friendlyMatch) {
+      match = friendlyMatch;
+    } else if (leagueMatch) {
       match = leagueMatch;
     } else if (cupTie) {
       match = { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match;
@@ -4902,14 +5219,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Motivator perk: boost player team morale before match
     if (hasPerk(state.managerProgression, 'motivator')) {
       const boostPlayers = (ps: typeof hp, clubId: string) =>
-        clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + MOTIVATOR_MORALE_BOOST) })) : ps;
+        clubId === playerClubId ? ps.map(p => ({ ...p, morale: Math.min(100, p.morale + Math.round(MOTIVATOR_MORALE_BOOST * dynastyMult(state.managerProgression))) })) : ps;
       hp = boostPlayers(hp, match.homeClubId);
       ap = boostPlayers(ap, match.awayClubId);
     }
 
     const isPlayerHome = match.homeClubId === playerClubId;
-    const homeTactics = isPlayerHome ? tactics : undefined;
-    const awayTactics = isPlayerHome ? undefined : tactics;
+    const oppClubHalf = isPlayerHome ? ac : hc;
+    const oppProfileHalf = oppClubHalf.aiManagerProfile;
+    const ctrRedHalf = hasPerk(state.managerProgression, 'counter_master') ? 0.25 : 0;
+    const aiCtrHalf = oppProfileHalf ? getAICounterTactics(oppProfileHalf, tactics, clubs[playerClubId]?.formation || '4-4-2', ctrRedHalf) : undefined;
+    const homeTactics = isPlayerHome ? tactics : aiCtrHalf;
+    const awayTactics = isPlayerHome ? aiCtrHalf : tactics;
 
     // Store pre-match league position for post-match popup
     const preMatchEntry = state.leagueTable.find(e => e.clubId === playerClubId);
@@ -4924,11 +5245,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const halfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
     const halfCareerMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.discipline * MOD_DISCIPLINE_CARDS : 0;
-    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, halfCareerMod, hBench, aBench);
+    const spCoachBonus = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
+    const halfState = simulateHalf(hc, ac, hp, ap, 1, 45, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, undefined, halfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, halfCareerMod, hBench, aBench, undefined, undefined, spCoachBonus);
 
     // Determine which cup tracking IDs to set
     const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCup;
-    const matchCompetition = cupTie ? `Dynasty Cup — ${cupTie.round}`
+    const matchCompetition = friendlyMatch ? 'Pre-Season Friendly'
+      : cupTie ? `Dynasty Cup — ${cupTie.round}`
       : leagueCupTie ? `League Cup — ${leagueCupTie.round}`
       : champMatch && continentalTourney ? getContinentalMatchLabel('Champions Cup', champMatch, continentalTourney)
       : shieldMatch && continentalTourney ? getContinentalMatchLabel('Shield Cup', shieldMatch, continentalTourney)
@@ -4951,8 +5274,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (!halfTimeState) return null;
 
     try {
-    // Find league match or cup/tournament match
-    const leagueMatch = fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    // Find friendly, league match, or cup/tournament match
+    const friendlyMatch = state.friendlies?.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
+    const leagueMatch = !friendlyMatch ? fixtures.find(m => m.week === week && !m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId)) : null;
     const isRealCupTie = state.currentCupTieId && state.currentCupTieId !== '__tournament__';
     const cupTie = isRealCupTie ? state.cup.ties.find(t => t.id === state.currentCupTieId) : null;
     const isTournamentMatch = state.currentCupTieId === '__tournament__';
@@ -4987,7 +5311,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
     }
 
-    const match = leagueMatch || (cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null) || tournamentMatch;
+    const match = friendlyMatch || leagueMatch || (cupTie ? { id: cupTie.id, week: cupTie.week, homeClubId: cupTie.homeClubId, awayClubId: cupTie.awayClubId, played: false, homeGoals: 0, awayGoals: 0, events: [] } as Match : null) || tournamentMatch;
     if (!match) return null;
 
     const hc = clubs[match.homeClubId];
@@ -5003,8 +5327,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (hp.length < 7 || ap.length < 7) return null;
 
     const isPlayerHome = match.homeClubId === playerClubId;
-    const homeTactics = isPlayerHome ? tactics : undefined;
-    const awayTactics = isPlayerHome ? undefined : tactics;
+    const oppClub2H = isPlayerHome ? ac : hc;
+    const oppProfile2H = oppClub2H.aiManagerProfile;
+    const ctrRed2H = hasPerk(state.managerProgression, 'counter_master') ? 0.25 : 0;
+    const aiCtr2H = oppProfile2H ? getAICounterTactics(oppProfile2H, tactics, clubs[playerClubId]?.formation || '4-4-2', ctrRed2H) : undefined;
+    const homeTactics = isPlayerHome ? tactics : aiCtr2H;
+    const awayTactics = isPlayerHome ? aiCtr2H : tactics;
 
     // Simulate second half, carrying forward first half state (bench is carried in halfTimeState)
     const secondHalfDerbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
@@ -5029,7 +5357,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       ? { attackMod: teamTalkMods.attackMod + shoutMods.attackMod, defenseMod: teamTalkMods.defenseMod + shoutMods.defenseMod, foulMod: teamTalkMods.foulMod + shoutMods.foulMod, fitnessDrainMult: teamTalkMods.fitnessDrainMult }
       : (shoutMods.attackMod || shoutMods.defenseMod || shoutMods.foulMod) ? { ...shoutMods, fitnessDrainMult: 1 as number } : undefined;
 
-    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods);
+    const spCoachBonus2H = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
+    const fullState = simulateHalf(hc, ac, hp, ap, 46, 90, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, secondHalfDerbyIntensity, hasDisciplinarian, hc.facilities, ac.facilities, season, secondHalfCareerMod, undefined, undefined, combinedMods, undefined, spCoachBonus2H);
     const { result, playerRatings } = finalizeMatch(match, hc, ac, hp, ap, fullState);
 
     // Cup match ended in draw — need extra time (unless aggregate is already decided for 2-leg ties)
@@ -5147,8 +5476,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (hp.length < 7 || ap.length < 7) return null;
 
     const isPlayerHome = currentMatchResult.homeClubId === playerClubId;
-    const homeTactics = isPlayerHome ? tactics : undefined;
-    const awayTactics = isPlayerHome ? undefined : tactics;
+    const oppClubET = isPlayerHome ? ac : hc;
+    const oppProfileET = oppClubET.aiManagerProfile;
+    const ctrRedET = hasPerk(state.managerProgression, 'counter_master') ? 0.25 : 0;
+    const aiCtrET = oppProfileET ? getAICounterTactics(oppProfileET, tactics, clubs[playerClubId]?.formation || '4-4-2', ctrRedET) : undefined;
+    const homeTactics = isPlayerHome ? tactics : aiCtrET;
+    const awayTactics = isPlayerHome ? aiCtrET : tactics;
     const derbyInt = getDerbyIntensity(currentMatchResult.homeClubId, currentMatchResult.awayClubId);
     const hasDisciplinarian = hasPerk(state.managerProgression, 'disciplinarian');
 
@@ -5166,7 +5499,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const etMods = etTeamTalkMods
       ? { attackMod: etTeamTalkMods.attackMod + etShoutMods.attackMod, defenseMod: etTeamTalkMods.defenseMod + etShoutMods.defenseMod, foulMod: etTeamTalkMods.foulMod + etShoutMods.foulMod, fitnessDrainMult: etTeamTalkMods.fitnessDrainMult }
       : (etShoutMods.attackMod || etShoutMods.defenseMod || etShoutMods.foulMod) ? { ...etShoutMods, fitnessDrainMult: 1 as number } : undefined;
-    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod, undefined, undefined, etMods);
+    const spCoachBonusET = hasPerk(state.managerProgression, 'set_piece_coach') ? 0.009 * dynastyMult(state.managerProgression) : 0;
+    const etState = simulateHalf(hc, ac, hp, ap, 91, 120, homeTactics, awayTactics, training.tacticalFamiliarity, playerClubId, halfTimeState, derbyInt, hasDisciplinarian, hc.facilities, ac.facilities, season, etCareerMod, undefined, undefined, etMods, undefined, spCoachBonusET);
 
     // Build the extended match result
     const etResult: Match = {
@@ -5488,6 +5822,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       unlockedAchievements: state.unlockedAchievements, managerStats: state.managerStats,
       activeLoans: state.activeLoans, incomingLoanOffers: state.incomingLoanOffers, outgoingLoanRequests: state.outgoingLoanRequests,
       cup: state.cup,
+      friendlies: state.friendlies,
+      galacticoUsedThisSeason: state.galacticoUsedThisSeason,
+      invincibleUsedThisSeason: state.invincibleUsedThisSeason,
       fanMood: state.fanMood,
       activeChallenge: state.activeChallenge,
       divisionFixtures: trimmedDivFixtures,
@@ -5664,7 +6001,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         activeSlot: s,
         // Backfill settings with defaults for fields added after save was created
         settings: {
-          matchSpeed: 'normal', showOverallOnPitch: true, autoSave: true, hapticsEnabled: true,
+          matchSpeed: 600, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true,
           hidePageHints: false, confirmAllOffers: false, reducedMotion: false,
           ...(data.settings || {}),
         },
@@ -5681,6 +6018,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         incomingLoanOffers: data.incomingLoanOffers || [],
         outgoingLoanRequests: data.outgoingLoanRequests || [],
         cup: data.cup || generateCupDraw(clubIds),
+        friendlies: data.friendlies || [],
+        galacticoUsedThisSeason: data.galacticoUsedThisSeason || false,
+        invincibleUsedThisSeason: data.invincibleUsedThisSeason || false,
+        preMatchSnapshot: data.preMatchSnapshot || null,
         leagueCup: data.leagueCup || { ties: [], currentRound: null, eliminated: false, winner: null },
         championsCup: data.championsCup || null,
         shieldCup: data.shieldCup || null,

@@ -12,6 +12,7 @@ import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractS
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
 import { SAVE_CONFIRMATION_MS } from '@/config/ui';
+import { MATCH_SPEEDS } from '@/config/matchSpeed';
 
 const APP_VERSION = 'v1.0.0 · Football Edition';
 
@@ -153,22 +154,27 @@ const SettingsPage = () => {
                 <p className="text-[10px] text-muted-foreground">How fast match events play out</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              {(['normal', 'fast', 'instant'] as const).map(speed => (
-                <button
-                  key={speed}
-                  onClick={() => updateSettings({ matchSpeed: speed })}
-                  className={cn(
-                    'flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-xs font-semibold capitalize transition-all',
-                    settings.matchSpeed === speed
-                      ? 'bg-primary/20 text-primary border border-primary/30'
-                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                  )}
-                >
-                  {speed === 'fast' && <Zap className="w-3.5 h-3.5" />}
-                  {speed}
-                </button>
-              ))}
+            <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
+              {MATCH_SPEEDS.map(s => {
+                const locked = s.pro && !userIsPro;
+                return (
+                  <button
+                    key={s.value}
+                    onClick={() => locked ? setScreen('shop') : updateSettings({ matchSpeed: s.value })}
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-0.5 py-2.5 rounded-md text-xs font-semibold transition-all',
+                      locked
+                        ? 'text-muted-foreground/40 cursor-default'
+                        : settings.matchSpeed === s.value
+                          ? 'bg-primary/20 text-primary'
+                          : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {locked && <Crown className="w-2.5 h-2.5" />}
+                    {s.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

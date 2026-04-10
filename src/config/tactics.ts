@@ -9,6 +9,14 @@ import { FORMATION_POSITIONS } from '@/types/game';
 // Derive available formations from the canonical FORMATION_POSITIONS map
 export const FORMATIONS: FormationType[] = Object.keys(FORMATION_POSITIONS) as FormationType[];
 
+/** Formations that require the Formation Master perk to unlock */
+export const FORMATION_MASTER_FORMATIONS: FormationType[] = ['4-5-1', '4-1-2-1-2', '3-4-1-2'];
+
+/** Get available formations based on whether the Formation Master perk is unlocked */
+export function getAvailableFormations(hasFormationMaster: boolean): FormationType[] {
+  return hasFormationMaster ? FORMATIONS : FORMATIONS.filter(f => !FORMATION_MASTER_FORMATIONS.includes(f));
+}
+
 export const MENTALITIES: { value: Mentality; label: string }[] = [
   { value: 'defensive', label: 'Defensive' },
   { value: 'cautious', label: 'Cautious' },

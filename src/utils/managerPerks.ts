@@ -1,6 +1,6 @@
 import { ManagerPerk, PerkId, ManagerProgression, TalentBranch } from '@/types/game';
 import { getPrestigeXPMultiplier } from '@/utils/prestige';
-import { MANAGER_XP_BASE, MANAGER_XP_PER_LEVEL, CAPSTONE_MIN_BRANCHES } from '@/config/gameBalance';
+import { MANAGER_XP_BASE, MANAGER_XP_PER_LEVEL, CAPSTONE_MIN_BRANCHES, PRESTIGE_PERK_TIER_6_COST, PRESTIGE_PERK_TIER_7_COST } from '@/config/gameBalance';
 
 export const MANAGER_PERKS: ManagerPerk[] = [
   // ── Tactician Branch (match day & formations) ──
@@ -33,6 +33,19 @@ export const MANAGER_PERKS: ManagerPerk[] = [
 
   // ── Capstone (requires 2+ branches at row 3+) ──
   { id: 'dynasty_builder', name: 'Dynasty Builder', description: 'All perk effects boosted by 10%', icon: 'crown', cost: 1200, tier: 5, branch: 'capstone', row: 5 },
+
+  // ── Prestige-Exclusive Perks (Tier 6: Prestige 1+, Tier 7: Prestige 2+) ──
+  { id: 'counter_master', name: 'Counter-Master', description: 'AI tactical advantage reduced by 25%', icon: 'shield-off', cost: PRESTIGE_PERK_TIER_6_COST, tier: 6, prerequisite: 'iron_will', branch: 'tactician', row: 5, prestigeRequired: 1 },
+  { id: 'puppet_master', name: 'Puppet Master', description: 'Key moments trigger 50% more frequently', icon: 'sliders-horizontal', cost: PRESTIGE_PERK_TIER_7_COST, tier: 7, prerequisite: 'counter_master', branch: 'tactician', row: 6, prestigeRequired: 2 },
+
+  { id: 'cult_hero', name: 'Cult Hero', description: 'Fan mood never drops below 40', icon: 'heart', cost: PRESTIGE_PERK_TIER_6_COST, tier: 6, prerequisite: 'invincible', branch: 'motivator', row: 5, prestigeRequired: 1 },
+  { id: 'icon_status', name: 'Icon Status', description: 'Contract negotiations start at +20% acceptance', icon: 'badge', cost: PRESTIGE_PERK_TIER_7_COST, tier: 7, prerequisite: 'cult_hero', branch: 'motivator', row: 6, prestigeRequired: 2 },
+
+  { id: 'war_chest', name: 'War Chest', description: 'Starting budget +15% each season', icon: 'vault', cost: PRESTIGE_PERK_TIER_6_COST, tier: 6, prerequisite: 'galactico', branch: 'dealmaker', row: 5, prestigeRequired: 1 },
+  { id: 'kingmaker', name: 'Kingmaker', description: 'Sell players for 20% above market value', icon: 'trending-up', cost: PRESTIGE_PERK_TIER_7_COST, tier: 7, prerequisite: 'war_chest', branch: 'dealmaker', row: 6, prestigeRequired: 2 },
+
+  { id: 'prodigy_factory', name: 'Prodigy Factory', description: 'Youth intake produces 2 extra prospects', icon: 'users', cost: PRESTIGE_PERK_TIER_6_COST, tier: 6, prerequisite: 'golden_generation', branch: 'developer', row: 5, prestigeRequired: 1 },
+  { id: 'dna_coach', name: 'DNA Coach', description: 'Training gains +10% for under-24 players', icon: 'dna', cost: PRESTIGE_PERK_TIER_7_COST, tier: 7, prerequisite: 'prodigy_factory', branch: 'developer', row: 6, prestigeRequired: 2 },
 ];
 
 /** Branch display metadata */
@@ -121,6 +134,10 @@ export const XP_REWARDS = {
 /** Check if a perk can be unlocked */
 export function canUnlockPerk(perk: ManagerPerk, prog: ManagerProgression): { canUnlock: boolean; reason?: string } {
   if (prog.unlockedPerks.includes(perk.id)) return { canUnlock: false, reason: 'Already unlocked' };
+  // Prestige requirement check
+  if (perk.prestigeRequired && (prog.prestigeLevel || 0) < perk.prestigeRequired) {
+    return { canUnlock: false, reason: `Requires Prestige ${perk.prestigeRequired}` };
+  }
   // Capstone requires 2+ branches at row 3+
   if (perk.branch === 'capstone') {
     const highBranches = countHighBranches(prog);
@@ -155,6 +172,11 @@ export function getTotalXP(prog: ManagerProgression): number {
 /** Check if a specific perk is active */
 export function hasPerk(prog: ManagerProgression, perkId: PerkId): boolean {
   return prog.unlockedPerks.includes(perkId);
+}
+
+/** Get the dynasty builder multiplier (1.1x if Dynasty Builder perk is active, 1.0x otherwise) */
+export function dynastyMult(prog: ManagerProgression): number {
+  return prog.unlockedPerks.includes('dynasty_builder') ? 1.1 : 1;
 }
 
 /** Get the full prerequisite chain for a perk (bottom to top, excluding the perk itself) */

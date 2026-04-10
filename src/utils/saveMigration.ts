@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 51;
+const CURRENT_VERSION = 54;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -690,6 +690,46 @@ const migrations: Record<number, MigrationFn> = {
     negotiationStrikes: {},
     version: 51,
   }),
+
+  // v51 → v52: Convert settings.matchSpeed from string ('normal'|'fast'|'instant') to number (ms)
+  51: (data) => {
+    const settings = (data.settings || {}) as Record<string, unknown>;
+    const speedMap: Record<string, number> = { normal: 600, fast: 200, instant: 20 };
+    const currentSpeed = settings.matchSpeed;
+    const numericSpeed = typeof currentSpeed === 'string' ? (speedMap[currentSpeed] ?? 600) : (currentSpeed ?? 600);
+    return {
+      ...data,
+      settings: { ...settings, matchSpeed: numericSpeed },
+      version: 52,
+    };
+  },
+
+  // v52 → v53: Add pre-season friendlies array
+  52: (data) => ({
+    ...data,
+    friendlies: data.friendlies || [],
+    version: 53,
+  }),
+
+  // v53 → v54: Backfill board objectives with structured checkType fields
+  53: (data) => {
+    const objectives = (data.boardObjectives || []) as Record<string, unknown>[];
+    const updated = objectives.map(obj => {
+      if (obj.checkType) return obj; // Already has structured fields
+      const desc = (obj.description || '') as string;
+      if (desc === 'Win the League') return { ...obj, checkType: 'league_position', targetMin: 1, xpReward: 40 };
+      if (desc === 'Finish in Top 3') return { ...obj, checkType: 'league_position', targetMin: 3, targetOverachieve: 1, xpReward: 25, xpRewardOverachieve: 50 };
+      if (desc === 'Finish in Top 6') return { ...obj, checkType: 'league_position', targetMin: 6, targetOverachieve: 3, xpReward: 40, xpRewardOverachieve: 80, budgetBoost: 2000000 };
+      if (desc.includes('Top Half') || desc.includes('Reach Top Half')) return { ...obj, checkType: 'league_position', targetMin: 10, targetOverachieve: 6, xpReward: 40, xpRewardOverachieve: 80 };
+      if (desc.startsWith('Avoid Replacement')) { const m = desc.match(/Top (\d+)/); return { ...obj, checkType: 'league_position', targetMin: m ? parseInt(m[1]) : 17, xpReward: 40 }; }
+      if (desc === 'Stay within budget') return { ...obj, checkType: 'budget', targetMin: 0, xpReward: 15 };
+      if (desc === 'Win the Cup') return { ...obj, checkType: 'cup_round', targetMin: 1, xpReward: 25 };
+      if (desc === 'Reach Cup Semi-Final') return { ...obj, checkType: 'cup_round', targetMin: 2, targetOverachieve: 1, xpReward: 25, xpRewardOverachieve: 50 };
+      if (desc === 'Reach Cup Quarter-Final') return { ...obj, checkType: 'cup_round', targetMin: 3, targetOverachieve: 2, xpReward: 15, xpRewardOverachieve: 30 };
+      return obj;
+    });
+    return { ...data, boardObjectives: updated, version: 54 };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

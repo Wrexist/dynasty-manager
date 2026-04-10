@@ -2,7 +2,7 @@ import type { PressConference, ContractOffer, ActiveChallenge, StorylineEvent, A
 import { MOD_MEDIA_PRESS, MOD_MOTIVATION_MORALE, GROWTH_MEDIA_PER_CONFERENCE, STAT_MAX } from '@/config/managerCareer';
 import { TRANSFER_TALK_EMPATHIZE_MORALE_BOOST, TRANSFER_TALK_CONVINCE_SUCCESS_MORALE, TRANSFER_TALK_CONVINCE_FAIL_MORALE, COACH_TASK_XP, COACH_ALL_TASKS_BONUS_XP, TOTAL_WEEKS } from '@/config/gameBalance';
 import { TRANSFER_DEMAND_COOLDOWN_WEEKS, TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
-import { grantXP } from '@/utils/managerPerks';
+import { grantXP, hasPerk, dynastyMult } from '@/utils/managerPerks';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
@@ -74,6 +74,14 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     if (!option) return;
 
     let { morale: moraleEffect, boardConfidence: boardEffect, fanMood: fanEffect } = option.effects;
+
+    // Media Savvy perk: double press conference effects (dynasty builder boosts further)
+    if (hasPerk(state.managerProgression, 'media_savvy')) {
+      const mediaDm = 2 * dynastyMult(state.managerProgression);
+      moraleEffect = Math.round(moraleEffect * mediaDm);
+      boardEffect = Math.round(boardEffect * mediaDm);
+      fanEffect = Math.round(fanEffect * mediaDm);
+    }
 
     // Career mode: apply media handling modifier to press effects
     if (state.gameMode === 'career' && state.careerManager) {
@@ -388,7 +396,8 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
 
     const updated = { ...offer, offeredWage: wage };
     if (years !== undefined) updated.contractYears = years;
-    const result = negotiateRound(updated);
+    const iconBonus = hasPerk(state.managerProgression, 'icon_status') ? 0.2 : 0;
+    const result = negotiateRound(updated, iconBonus);
 
     if (result.status === 'accepted') {
       // Apply the contract

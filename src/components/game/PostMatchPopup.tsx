@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Trophy, TrendingUp, TrendingDown, Minus, Zap, Shield, Star } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { xpForLevel } from '@/utils/managerPerks';
+import { xpForLevel, hasPerk } from '@/utils/managerPerks';
 import { getSuffix } from '@/utils/helpers';
+import { RotateCcw } from 'lucide-react';
 import { useScrollLock } from '@/hooks/useScrollLock';
 
 interface PostMatchPopupProps {
@@ -15,7 +16,7 @@ interface PostMatchPopupProps {
 }
 
 export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
-  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players, virtualClubs } = useGameStore(
+  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players, virtualClubs, invincibleUsedThisSeason, preMatchSnapshot } = useGameStore(
     useShallow(s => ({
       currentMatchResult: s.currentMatchResult,
       clubs: s.clubs,
@@ -27,8 +28,11 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
       matchPlayerRatings: s.matchPlayerRatings,
       players: s.players,
       virtualClubs: s.virtualClubs,
+      invincibleUsedThisSeason: s.invincibleUsedThisSeason,
+      preMatchSnapshot: s.preMatchSnapshot,
     }))
   );
+  const rewindMatch = useGameStore(s => s.rewindMatch);
 
   useScrollLock(!!currentMatchResult);
 
@@ -184,6 +188,14 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
             </div>
           )}
 
+          {lost && hasPerk(managerProgression, 'invincible') && !invincibleUsedThisSeason && preMatchSnapshot && (
+            <button
+              onClick={() => rewindMatch()}
+              className="w-full flex items-center justify-center gap-2 h-10 mb-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 text-sm font-bold hover:bg-amber-500/25 transition-all"
+            >
+              <RotateCcw className="w-4 h-4" /> Rewind Match (1 per season)
+            </button>
+          )}
           <Button className="w-full h-11 text-sm font-bold" onClick={onContinue}>
             Continue
           </Button>

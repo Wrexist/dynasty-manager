@@ -147,7 +147,7 @@ export function createContractOffer(
  * Contract years affect the effective gap: offering more years than the player prefers
  * gives a bonus, fewer years gives a penalty.
  */
-export function negotiateRound(offer: ContractOffer): ContractOffer {
+export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): ContractOffer {
   if (offer.demandedWage <= 0) return { ...offer, status: 'accepted', round: offer.round + 1 };
   const gap = offer.offeredWage / offer.demandedWage;
 
@@ -157,7 +157,7 @@ export function negotiateRound(offer: ContractOffer): ContractOffer {
   const yearsAdjustment = yearsDiff > 0
     ? yearsDiff * CONTRACT_YEARS_ACCEPTANCE_BONUS
     : yearsDiff * CONTRACT_YEARS_ACCEPTANCE_PENALTY;
-  const adjustedGap = gap + yearsAdjustment;
+  const adjustedGap = gap + yearsAdjustment + iconStatusBonus;
 
   // Player accepts if offer meets or exceeds demand (adjusted for years), or close enough + willing
   if (

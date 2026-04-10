@@ -8,6 +8,7 @@ import type { PlayerAttributes, Position } from '@/types/game';
 // ── Season Structure ──
 export const TOTAL_WEEKS = 46;
 export const STARTING_BOARD_CONFIDENCE = 50;
+export const FRIENDLY_BOARD_CONFIDENCE_MULT = 0.25;
 export const LINEUP_SIZE = 11;
 export const LOW_FITNESS_THRESHOLD = 65;
 
@@ -243,6 +244,22 @@ export const MORALE_BENCH_MIN = 20;
 
 // ── Board Mid-Season Review ──
 export const BOARD_REVIEW_WEEKS = [15, 30];
+export const BOARD_REVIEW_RELAX_THRESHOLD = -5;
+export const BOARD_REVIEW_RAISE_THRESHOLD = 5;
+export const BOARD_REVIEW_ADJUST_POSITIONS = 2;
+
+// ── Board Objective Rewards ──
+export const BOARD_OBJ_XP_CRITICAL = 40;
+export const BOARD_OBJ_XP_IMPORTANT = 25;
+export const BOARD_OBJ_XP_OPTIONAL = 15;
+export const BOARD_OBJ_XP_OVERACHIEVE_MULT = 2;
+export const BOARD_OBJ_BUDGET_BOOST = 2_000_000;
+export const BOARD_OBJ_ALL_COMPLETE_XP = 50;
+export const BOARD_OBJ_ALL_COMPLETE_CONFIDENCE = 8;
+
+// ── Prestige Perk Costs ──
+export const PRESTIGE_PERK_TIER_6_COST = 1000;
+export const PRESTIGE_PERK_TIER_7_COST = 1500;
 
 // ── Fan Confidence Formula ──
 export const FAN_CONFIDENCE_FAN_WEIGHT = 0.5;
@@ -524,6 +541,20 @@ export const NT_CANDIDATE_POOL_TARGET = 50;
 export const NATIONAL_CALLUP_MORALE_BOOST = 5;
 /** Fitness cost per international match */
 export const INTERNATIONAL_FITNESS_COST = 8;
+/** Weeks during the regular season when international breaks occur */
+export const INTERNATIONAL_BREAK_WEEKS = [10, 24, 38];
+/** Fitness cost for players returning from an international break */
+export const INTERNATIONAL_BREAK_FITNESS_COST = 5;
+/** Minimum overall rating to be eligible for international call-up */
+export const INTERNATIONAL_CALLUP_MIN_OVR = 70;
+/** Minimum overall to feel "snubbed" if not called up */
+export const INTERNATIONAL_SNUB_MIN_OVR = 75;
+/** Morale penalty for snubbed players */
+export const CALLUP_SNUB_MORALE_PENALTY = -3;
+/** Fitness cost for players who played 3+ tournament matches */
+export const POST_TOURNAMENT_FITNESS_COST_HIGH = 15;
+/** Fitness cost for players who played 1-2 tournament matches */
+export const POST_TOURNAMENT_FITNESS_COST_LOW = 8;
 
 // ── National Team Job System (Career Mode) ──
 /** Minimum reputation to receive first national team offer */
