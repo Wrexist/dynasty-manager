@@ -4,6 +4,9 @@ import {
   GOAL_MILESTONES, ASSIST_MILESTONES, UNBEATEN_MILESTONES, WIN_MILESTONES,
   CLEAN_SHEET_MILESTONES, CAREER_GOAL_MILESTONES, CAREER_APP_MILESTONES,
 } from '@/config/gameBalance';
+import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
+
+const isScoring = (type: string) => (GOAL_EVENT_TYPES as readonly string[]).includes(type);
 
 type CelebrationSeverity = 'minor' | 'major' | 'legendary';
 
@@ -211,7 +214,7 @@ export function detectMatchDrama(
   // Late winner (85+ minute winning goal by player's team)
   if (won && match.events) {
     const lateGoals = match.events.filter(
-      e => (e.type === 'goal' || e.type === 'penalty_scored') &&
+      e => isScoring(e.type) &&
         e.clubId === playerClubId && e.minute >= DRAMA_LATE_MINUTE
     );
     // Check if the late goal was the decisive one
@@ -223,7 +226,7 @@ export function detectMatchDrama(
   // Heartbreak loss (opponent scores late winner)
   if (lost && match.events) {
     const lateOppGoals = match.events.filter(
-      e => (e.type === 'goal' || e.type === 'penalty_scored') &&
+      e => isScoring(e.type) &&
         e.clubId !== playerClubId && e.minute >= DRAMA_LATE_MINUTE
     );
     if (lateOppGoals.length > 0 && margin <= 1) {
@@ -237,7 +240,7 @@ export function detectMatchDrama(
     let oppGoals = 0;
     let wasLosing = false;
     for (const e of match.events) {
-      if (e.type === 'goal' || e.type === 'penalty_scored') {
+      if (isScoring(e.type)) {
         if (e.clubId === playerClubId) playerGoals++;
         else oppGoals++;
       } else if (e.type === 'own_goal') {

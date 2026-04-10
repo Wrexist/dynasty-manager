@@ -111,6 +111,7 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
     tips.push({
       icon: 'trending-down',
       text: 'Board confidence is low — prioritize winning matches.',
+      action: 'board',
       priority: 5,
       type: 'warning',
     });
