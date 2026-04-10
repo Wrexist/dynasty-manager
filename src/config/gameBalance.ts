@@ -541,6 +541,20 @@ export const NT_CANDIDATE_POOL_TARGET = 50;
 export const NATIONAL_CALLUP_MORALE_BOOST = 5;
 /** Fitness cost per international match */
 export const INTERNATIONAL_FITNESS_COST = 8;
+/** Weeks during the regular season when international breaks occur */
+export const INTERNATIONAL_BREAK_WEEKS = [10, 24, 38];
+/** Fitness cost for players returning from an international break */
+export const INTERNATIONAL_BREAK_FITNESS_COST = 5;
+/** Minimum overall rating to be eligible for international call-up */
+export const INTERNATIONAL_CALLUP_MIN_OVR = 70;
+/** Minimum overall to feel "snubbed" if not called up */
+export const INTERNATIONAL_SNUB_MIN_OVR = 75;
+/** Morale penalty for snubbed players */
+export const CALLUP_SNUB_MORALE_PENALTY = -3;
+/** Fitness cost for players who played 3+ tournament matches */
+export const POST_TOURNAMENT_FITNESS_COST_HIGH = 15;
+/** Fitness cost for players who played 1-2 tournament matches */
+export const POST_TOURNAMENT_FITNESS_COST_LOW = 8;
 
 // ── National Team Job System (Career Mode) ──
 /** Minimum reputation to receive first national team offer */

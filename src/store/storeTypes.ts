@@ -368,6 +368,7 @@ export interface GameState {
   declineNationalTeamOffer: () => void;
   updateNationalSquad: (squad: string[], lineup: string[], subs: string[]) => void;
   setNationalFormation: (f: FormationType) => void;
+  replaceInjuredInternationalPlayer: (outId: string, inId: string) => void;
   // advanceInternationalWeek and playInternationalMatch are handled
   // internally by orchestrationSlice.advanceWeek() — no public actions needed.
 

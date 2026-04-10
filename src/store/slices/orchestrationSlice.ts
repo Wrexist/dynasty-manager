@@ -10,7 +10,7 @@ import {
   PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING,
 } from '@/config/managerCareer';
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies } from '@/data/league';
-import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS } from '@/config/gameBalance';
+import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
@@ -682,8 +682,23 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
       updatedCareerManager = cm;
     }
 
+    // Post-tournament fatigue: reduce fitness for players who participated
+    const postTourneyPlayers = { ...state.players };
+    if (state.nationalTeam?.squad) {
+      const matchesPlayed = state.nationalTeam.results?.length || 0;
+      const fatigueCost = matchesPlayed >= 3 ? POST_TOURNAMENT_FITNESS_COST_HIGH : matchesPlayed >= 1 ? POST_TOURNAMENT_FITNESS_COST_LOW : 0;
+      if (fatigueCost > 0) {
+        for (const pid of state.nationalTeam.squad) {
+          if (postTourneyPlayers[pid]) {
+            postTourneyPlayers[pid] = { ...postTourneyPlayers[pid], fitness: Math.max(30, postTourneyPlayers[pid].fitness - fatigueCost) };
+          }
+        }
+      }
+    }
+
     set({
       messages: newMessages,
+      players: postTourneyPlayers,
       seasonPhase: 'regular',
       internationalTournament: null,
       ...(updatedCareerManager && { careerManager: updatedCareerManager }),
@@ -2817,6 +2832,42 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const tactGeniusBoost = hasPerk(state.managerProgression, 'tactical_genius') ? Math.round((baseTactFam - training.tacticalFamiliarity) * 0.3) : 0;
     const careerTactBoost = (state.gameMode === 'career' && state.careerManager) ? Math.round((baseTactFam - training.tacticalFamiliarity) * state.careerManager.attributes.tacticalKnowledge * MOD_TACTICAL_FAMILIARITY) : 0;
     const newTacticalFamiliarity = Math.min(100, baseTactFam + amBoost + tactGeniusBoost + careerTactBoost);
+
+    // International break: call up players, apply fitness cost, send notifications
+    if (INTERNATIONAL_BREAK_WEEKS.includes(week)) {
+      const playerClub = clubs[playerClubId];
+      const calledUp: string[] = [];
+      const snubbed: string[] = [];
+      for (const pid of playerClub.playerIds) {
+        const p = newPlayers[pid];
+        if (!p || p.injured) continue;
+        // Top nations (rough: any player with nationality matching a known nation and high enough OVR)
+        if (p.overall >= INTERNATIONAL_CALLUP_MIN_OVR && p.age >= 17 && p.age <= 36) {
+          calledUp.push(pid);
+          newPlayers[pid] = {
+            ...newPlayers[pid],
+            fitness: Math.max(30, newPlayers[pid].fitness - INTERNATIONAL_BREAK_FITNESS_COST),
+            morale: Math.min(100, newPlayers[pid].morale + NATIONAL_CALLUP_MORALE_BOOST),
+            internationalCaps: (newPlayers[pid].internationalCaps || 0) + 1,
+          };
+        } else if (p.overall >= INTERNATIONAL_SNUB_MIN_OVR && p.age >= 17 && p.age <= 36) {
+          snubbed.push(pid);
+          newPlayers[pid] = {
+            ...newPlayers[pid],
+            morale: Math.max(0, newPlayers[pid].morale + CALLUP_SNUB_MORALE_PENALTY),
+          };
+        }
+      }
+      if (calledUp.length > 0) {
+        const names = calledUp.slice(0, 5).map(id => newPlayers[id]?.lastName || 'Unknown').join(', ');
+        const extra = calledUp.length > 5 ? ` and ${calledUp.length - 5} more` : '';
+        newMessages = addMsg(newMessages, {
+          week, season, type: 'general',
+          title: 'International Break',
+          body: `${calledUp.length} player${calledUp.length > 1 ? 's' : ''} called up for international duty: ${names}${extra}. They may return with reduced fitness.`,
+        });
+      }
+    }
 
     // Simulate AI matches for player's division
     const weekMatches = fixtures.filter(m => m.week === week && !m.played);
