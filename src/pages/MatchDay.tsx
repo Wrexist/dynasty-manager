@@ -18,6 +18,7 @@ import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
+import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED } from '@/config/matchSpeed';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
 import { MENTALITIES, FORMATIONS } from '@/config/tactics';
 import { KEY_MOMENT_CHOICES } from '@/config/keyMoments';
@@ -119,7 +120,7 @@ const MatchDay = () => {
   const [currentMin, setCurrentMin] = useState(0);
   const currentMinRef = useRef(0);
   const [visibleEvents, setVisibleEvents] = useState<MatchEvent[]>([]);
-  const [speed, setSpeed] = useState(200);
+  const [speed, setSpeed] = useState(DEFAULT_MATCH_SPEED);
   const [paused, setPaused] = useState(false);
   const [subSheetOpen, setSubSheetOpen] = useState(false);
   // showTacticUI removed — tactical controls now embedded directly in key moment and half-time UIs
@@ -846,18 +847,25 @@ const MatchDay = () => {
               <span className="text-primary font-bold">vs</span>
               <span>{awayClub.shortName}: {clubs[match.awayClubId]?.formation || '4-3-3'}</span>
             </div>
-            <div className="flex items-center justify-center gap-3">
-              <span className="text-[10px] text-muted-foreground">Speed:</span>
-              <button
-                type="button"
-                onClick={() => setSpeed(200)}
-                className={cn('px-2.5 py-1 rounded text-[10px] font-medium transition-all', speed === 200 ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground')}
-              >Normal</button>
-              <button
-                type="button"
-                onClick={() => setSpeed(50)}
-                className={cn('px-2.5 py-1 rounded text-[10px] font-medium transition-all', speed === 50 ? 'bg-primary/20 text-primary' : 'bg-muted/30 text-muted-foreground')}
-              >Fast</button>
+            <div className="flex items-center justify-center gap-1.5">
+              <span className="text-[10px] text-muted-foreground mr-1">Speed:</span>
+              <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
+                {MATCH_SPEEDS.map(s => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => setSpeed(s.value)}
+                    className={cn(
+                      'px-2 py-1 rounded-md text-[10px] font-medium transition-all',
+                      speed === s.value
+                        ? 'bg-primary/20 text-primary'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
             <Button className="w-full h-12 text-base font-bold gap-2" onClick={() => { hapticLight(); kickOff(); }}>
               <Play className="w-5 h-5" /> Kick Off
@@ -1239,10 +1247,14 @@ const MatchDay = () => {
                     <Play className="w-3.5 h-3.5 mr-1.5" /> Resume
                   </Button>
                   <button
-                    onClick={() => setSpeed(s => s === 200 ? 50 : 200)}
+                    onClick={() => {
+                      const idx = MATCH_SPEEDS.findIndex(s => s.value === speed);
+                      const next = MATCH_SPEEDS[(idx + 1) % MATCH_SPEEDS.length];
+                      setSpeed(next.value);
+                    }}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/40 text-foreground hover:bg-muted/60 border border-border/30 transition-all"
                   >
-                    <FastForward className="w-3.5 h-3.5" /> {speed === 50 ? 'Normal' : 'Fast'}
+                    <FastForward className="w-3.5 h-3.5" /> {MATCH_SPEEDS.find(s => s.value === speed)?.label ?? 'Normal'}
                   </button>
                 </div>
               </GlassPanel>
@@ -1359,16 +1371,20 @@ const MatchDay = () => {
 
                 {/* Speed */}
                 <button
-                  onClick={() => setSpeed(s => s === 200 ? 50 : 200)}
-                  aria-label={speed === 50 ? 'Set normal speed' : 'Set fast speed'}
+                  onClick={() => {
+                    const idx = MATCH_SPEEDS.findIndex(s => s.value === speed);
+                    const next = MATCH_SPEEDS[(idx + 1) % MATCH_SPEEDS.length];
+                    setSpeed(next.value);
+                  }}
+                  aria-label={`Match speed: ${MATCH_SPEEDS.find(s => s.value === speed)?.label ?? 'Normal'}. Tap to change.`}
                   className={cn(
                     "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold active:scale-[0.97] border transition-all",
-                    speed === 50
+                    speed < DEFAULT_MATCH_SPEED
                       ? 'bg-primary/15 text-primary border-primary/30 hover:bg-primary/20'
                       : 'bg-muted/30 text-foreground border-border/30 hover:bg-muted/50'
                   )}
                 >
-                  <FastForward className="w-3 h-3" /> {speed === 50 ? '2x' : '1x'}
+                  <FastForward className="w-3 h-3" /> {MATCH_SPEEDS.find(s => s.value === speed)?.shortLabel ?? '1x'}
                 </button>
               </div>
             </div>
