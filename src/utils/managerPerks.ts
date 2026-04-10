@@ -113,6 +113,7 @@ export const XP_REWARDS = {
   titleWin: 100,
   championsCupWin: 500,
   shieldCupWin: 300,
+  conferenceCupWin: 200,
   leagueCupWin: 150,
   continentalGroupAdvance: 100,
 } as const;

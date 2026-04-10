@@ -22,7 +22,12 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
   const [tab, setTab] = useState<'groups' | 'knockout'>(tournament.currentPhase === 'knockout' || tournament.currentPhase === 'complete' ? 'knockout' : 'groups');
 
   const currentMd = tournament.currentPhase === 'group' ? getCurrentMatchday(tournament) : 6;
-  const compName = competition === 'champions_cup' ? 'Champions Cup' : 'Shield Cup';
+  const compName = competition === 'champions_cup' ? 'Champions Cup' : competition === 'shield_cup' ? 'Shield Cup' : 'Conference Cup';
+  const compStyles = competition === 'champions_cup'
+    ? { winnerBg: 'bg-blue-400/10 border border-blue-400/30', text: 'text-blue-400' }
+    : competition === 'shield_cup'
+    ? { winnerBg: 'bg-orange-400/10 border border-orange-400/30', text: 'text-orange-400' }
+    : { winnerBg: 'bg-emerald-400/10 border border-emerald-400/30', text: 'text-emerald-400' };
 
   const subtitleParts: string[] = [];
   if (tournament.currentPhase === 'group') {
@@ -72,10 +77,10 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="bg-primary/10 border border-primary/30 rounded-xl p-3 text-center"
+          className={cn(compStyles.winnerBg, 'rounded-xl p-3 text-center')}
         >
-          <Trophy className="w-6 h-6 text-primary mx-auto mb-1" />
-          <p className="text-sm text-primary font-bold">{compName} Winners!</p>
+          <Trophy className={cn('w-6 h-6 mx-auto mb-1', compStyles.text)} />
+          <p className={cn('text-sm font-bold', compStyles.text)}>{compName} Winners!</p>
         </motion.div>
       )}
 
@@ -134,6 +139,7 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
                     clubs={clubs}
                     isPlayerGroup={group.id === tournament.playerGroupId}
                     currentMatchday={currentMd}
+                    competition={competition}
                   />
                 </motion.div>
               ))}
@@ -155,6 +161,7 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
               clubs={clubs}
               currentRound={tournament.currentRound}
               winnerId={tournament.winnerId}
+              competition={competition}
             />
           </motion.div>
         )}
@@ -180,11 +187,13 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
 const ContinentalPage = () => {
   const championsCup = useGameStore(s => s.championsCup);
   const shieldCup = useGameStore(s => s.shieldCup);
+  const conferenceCup = useGameStore(s => s.conferenceCup);
   const currentScreen = useGameStore(s => s.currentScreen);
 
   const isChampions = currentScreen === 'champions-cup';
-  const tournament = isChampions ? championsCup : shieldCup;
-  const competition: ContinentalCompetition = isChampions ? 'champions_cup' : 'shield_cup';
+  const isShield = currentScreen === 'shield-cup';
+  const tournament = isChampions ? championsCup : isShield ? shieldCup : conferenceCup;
+  const competition: ContinentalCompetition = isChampions ? 'champions_cup' : isShield ? 'shield_cup' : 'conference_cup';
 
   if (!tournament) {
     return (
@@ -192,7 +201,7 @@ const ContinentalPage = () => {
         <div className="text-center text-muted-foreground py-12">
           <Globe className="w-12 h-12 mx-auto mb-3 opacity-40" />
           <p className="text-sm">
-            {isChampions ? 'You have not qualified for the Champions Cup.' : 'You have not qualified for the Shield Cup.'}
+            {isChampions ? 'You have not qualified for the Champions Cup.' : isShield ? 'You have not qualified for the Shield Cup.' : 'You have not qualified for the Conference Cup.'}
           </p>
           <p className="text-xs mt-1">Finish higher in the league to qualify next season.</p>
         </div>

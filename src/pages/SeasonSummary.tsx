@@ -233,6 +233,18 @@ const SeasonSummary = () => {
             )}
           </GlassPanel>
         )}
+        {latest.conferenceCupResult && (
+          <GlassPanel className="p-4 flex items-center gap-3">
+            <Trophy className="w-5 h-5 text-emerald-400" />
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground">Conference Cup</p>
+              <p className="text-sm font-bold text-foreground">{latest.conferenceCupResult}</p>
+            </div>
+            {latest.conferenceCupResult === 'Winner' && (
+              <Trophy className="w-5 h-5 text-emerald-400" />
+            )}
+          </GlassPanel>
+        )}
 
         {/* Season Awards */}
         {individualAwards.length > 0 && (
@@ -446,6 +458,7 @@ const SeasonSummary = () => {
                     {sh.cupResult === 'Winner' ? ' · Cup Winner' : sh.cupResult === 'Final' ? ' · Cup Final' : ''}
                     {sh.championsCupResult === 'Winner' ? ' · CC Winner' : ''}
                     {sh.shieldCupResult === 'Winner' ? ' · SC Winner' : ''}
+                    {sh.conferenceCupResult === 'Winner' ? ' · Conf Winner' : ''}
                     {sh.leagueCupResult === 'Winner' ? ' · LC Winner' : ''}
                   </span>
                 </div>

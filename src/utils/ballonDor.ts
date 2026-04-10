@@ -25,12 +25,14 @@ function getContinentalBonusForClub(
   clubId: string,
   championsCup: ContinentalTournamentState | null,
   shieldCup: ContinentalTournamentState | null,
+  conferenceCup?: ContinentalTournamentState | null,
 ): number {
   let bonus = 0;
 
   for (const [tournament, config] of [
     [championsCup, BALLON_DOR_CONTINENTAL_BONUS.champions_cup] as const,
     [shieldCup, BALLON_DOR_CONTINENTAL_BONUS.shield_cup] as const,
+    [conferenceCup || null, BALLON_DOR_CONTINENTAL_BONUS.conference_cup] as const,
   ]) {
     if (!tournament) continue;
 
@@ -159,6 +161,7 @@ export function calculateBallonDOr(
   divisionTables: Record<string, LeagueTableEntry[]>,
   championsCup?: ContinentalTournamentState | null,
   shieldCup?: ContinentalTournamentState | null,
+  conferenceCup?: ContinentalTournamentState | null,
 ): BallonDOrEntry[] {
   // No ranking possible without league data or players
   if (leagueTable.length === 0 && Object.keys(divisionTables).length === 0) return [];
@@ -207,7 +210,7 @@ export function calculateBallonDOr(
     .filter(p => p.appearances >= 5 && p.clubId)
     .map(p => {
       const clubPos = clubPositionMap[p.clubId] || { position: 10, totalTeams: 20, cleanSheets: 0, divisionTier: 4 };
-      const contBonus = getContinentalBonusForClub(p.clubId, championsCup || null, shieldCup || null);
+      const contBonus = getContinentalBonusForClub(p.clubId, championsCup || null, shieldCup || null, conferenceCup || null);
       const score = calculatePlayerScore(p, clubPos.position, clubPos.totalTeams, clubPos.cleanSheets, clubPos.divisionTier, contBonus);
       const club = clubs[p.clubId];
       const avgRating = Math.round(getAvgRating(p) * 10) / 10;

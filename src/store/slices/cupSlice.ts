@@ -37,8 +37,9 @@ export const createCupSlice = (_set: Set, _get: Get) => ({
   // Continental tournaments
   championsCup: null as ContinentalTournamentState | null,
   shieldCup: null as ContinentalTournamentState | null,
+  conferenceCup: null as ContinentalTournamentState | null,
   virtualClubs: {} as Record<string, VirtualClub>,
-  continentalQualification: null as { champions: string[]; shield: string[] } | null,
+  continentalQualification: null as { champions: string[]; shield: string[]; conference: string[] } | null,
 
   // Super Cups
   domesticSuperCup: null as SuperCupMatch | null,

@@ -96,7 +96,8 @@ const MatchReview = () => {
       const hasUnplayedTournament = !!findTournamentMatch({
         week: s.week, playerClubId: s.playerClubId, cup: s.cup,
         leagueCup: s.leagueCup, championsCup: s.championsCup,
-        shieldCup: s.shieldCup, domesticSuperCup: s.domesticSuperCup,
+        shieldCup: s.shieldCup, conferenceCup: s.conferenceCup,
+        domesticSuperCup: s.domesticSuperCup,
         continentalSuperCup: s.continentalSuperCup,
       });
 

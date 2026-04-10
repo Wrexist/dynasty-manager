@@ -1,37 +1,64 @@
 import type { CupRound } from '@/types/game';
 
-// ── Continental Champions Cup ──
-export const CHAMPIONS_CUP_GROUPS = 8;
-export const CHAMPIONS_CUP_TEAMS_PER_GROUP = 4;
+// ── Continental Tournament Groups ──
+export const CONTINENTAL_GROUPS = 8;
+export const CONTINENTAL_TEAMS_PER_GROUP = 4;
+export const CONTINENTAL_TOTAL_TEAMS = CONTINENTAL_GROUPS * CONTINENTAL_TEAMS_PER_GROUP; // 32
 
-// Qualification spots per league quality tier
-// Tier 1 (5 leagues × 4) = 20, Tier 2 (4 leagues × 2) = 8, Tier 3 (top 4 × 1) = 4 → 32 total
-export const CHAMPIONS_CUP_SPOTS: Record<number, number> = {
-  1: 4,
-  2: 2,
-  3: 1,
-  4: 0,
+// Keep old exports as aliases for backwards compatibility in imports
+export const CHAMPIONS_CUP_GROUPS = CONTINENTAL_GROUPS;
+export const CHAMPIONS_CUP_TEAMS_PER_GROUP = CONTINENTAL_TEAMS_PER_GROUP;
+
+// ── Rank-Based Qualification Spots ──
+// Leagues are ranked 1-30 based on coefficient + reputation.
+// Spots per league rank for each continental competition.
+
+// Champions Cup: 32 teams total
+// Rank 1-4: 4 spots, Rank 5: 3, Rank 6-8: 2, Rank 9-15: 1 (champion), 16+: 0
+// + 1 reserved for Shield Cup holder (bumps out last slot if needed)
+export const CHAMPIONS_CUP_SPOTS_BY_RANK: Record<number, number> = {
+  1: 4, 2: 4, 3: 4, 4: 4,
+  5: 3,
+  6: 2, 7: 2, 8: 2,
+  9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1, 15: 1,
 };
-// Max Tier 3 leagues that get a Champions Cup spot
+
+// Shield Cup: 32 teams total
+// Rank 1-4: 2 spots (positions after CL), Rank 5: 2, Rank 6-8: 1,
+// Rank 9-15: 1 (runner-up or cup winner), Rank 16-26: 1 (cup winner)
+// 31 league spots + Conference Cup holder = 32
+export const SHIELD_CUP_SPOTS_BY_RANK: Record<number, number> = {
+  1: 2, 2: 2, 3: 2, 4: 2,
+  5: 2,
+  6: 1, 7: 1, 8: 1,
+  9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1, 15: 1,
+  16: 1, 17: 1, 18: 1, 19: 1, 20: 1, 21: 1, 22: 1,
+  23: 1, 24: 1, 25: 1, 26: 1,
+};
+
+// Conference Cup: 32 teams total
+// Rank 1-5: 1 spot (next position after Shield), Rank 6-15: 1 spot,
+// Rank 16-30: 1 spot (champion or cup winner)
+// 30 league spots + domestic cup winner + placeholders fill to 32
+export const CONFERENCE_CUP_SPOTS_BY_RANK: Record<number, number> = {
+  1: 1, 2: 1, 3: 1, 4: 1, 5: 1,
+  6: 1, 7: 1, 8: 1, 9: 1, 10: 1,
+  11: 1, 12: 1, 13: 1, 14: 1, 15: 1,
+  16: 1, 17: 1, 18: 1, 19: 1, 20: 1,
+  21: 1, 22: 1, 23: 1, 24: 1, 25: 1,
+  26: 1, 27: 1, 28: 1, 29: 1, 30: 1,
+};
+
+// ── Legacy tier-based exports (kept for any remaining references) ──
+export const CHAMPIONS_CUP_SPOTS: Record<number, number> = { 1: 4, 2: 2, 3: 1, 4: 0 };
 export const CHAMPIONS_CUP_TIER3_MAX = 4;
-
-// ── Continental Shield Cup ──
 export const SHIELD_CUP_TOTAL_TEAMS = 32;
-
-// Shield Cup spots: next positions after Champions Cup qualifiers + cup winners
-export const SHIELD_CUP_SPOTS: Record<number, number> = {
-  1: 3, // positions 5-7 from tier 1
-  2: 2, // positions 3-4 from tier 2
-  3: 1, // domestic cup winner from tier 3 (remaining 10 leagues)
-  4: 1, // domestic cup winner from tier 4
-};
-// Max Tier 3 Shield slots (remaining T3 leagues not in Champions Cup)
+export const SHIELD_CUP_SPOTS: Record<number, number> = { 1: 3, 2: 2, 3: 1, 4: 1 };
 export const SHIELD_CUP_TIER3_MAX = 10;
-// Max Tier 4 Shield slots
 export const SHIELD_CUP_TIER4_MAX = 7;
 
 // ── Week Schedule ──
-// Continental group stage matchdays (6 matchdays)
+// Continental group stage matchdays (6 matchdays) — shared by all 3 competitions
 export const CONTINENTAL_GROUP_WEEKS = [6, 10, 16, 22, 26, 30] as const;
 // Continental knockout rounds (2-leg ties, except final which is single leg)
 export const CONTINENTAL_R16_WEEKS = [34, 35] as const;
@@ -61,18 +88,28 @@ export const CONTINENTAL_PENALTY_CONVERSION = 0.75;
 
 // ── Prize Money ──
 export const CONTINENTAL_PRIZE_MONEY = {
+  // Champions Cup (elite)
   champions_group: 300_000,       // per match (6 matches = 1.8M potential)
   champions_r16: 500_000,
   champions_qf: 750_000,
   champions_sf: 1_000_000,
   champions_winner: 3_000_000,
   champions_runner_up: 1_500_000,
+  // Shield Cup (secondary)
   shield_group: 150_000,          // per match (6 matches = 900k potential)
   shield_r16: 250_000,
   shield_qf: 400_000,
   shield_sf: 600_000,
   shield_winner: 1_000_000,
   shield_runner_up: 500_000,
+  // Conference Cup (third tier)
+  conference_group: 75_000,       // per match (6 matches = 450k potential)
+  conference_r16: 125_000,
+  conference_qf: 200_000,
+  conference_sf: 300_000,
+  conference_winner: 500_000,
+  conference_runner_up: 250_000,
+  // Domestic cups
   league_cup_winner: 300_000,
   league_cup_runner_up: 100_000,
   domestic_super_cup: 100_000,
@@ -97,7 +134,8 @@ export const COEFF_R16_WIN = 2;
 export const COEFF_QF_WIN = 3;
 export const COEFF_SF_WIN = 4;
 export const COEFF_FINAL_WIN = 5;
-export const COEFF_SHIELD_MULTIPLIER = 0.7; // Shield Cup points are worth 70% of Champions Cup
+export const COEFF_SHIELD_MULTIPLIER = 0.7;     // Shield Cup points are worth 70% of Champions Cup
+export const COEFF_CONFERENCE_MULTIPLIER = 0.5;  // Conference Cup points are worth 50% of Champions Cup
 /** Number of seasons to include in coefficient calculation */
 export const COEFF_SEASON_WINDOW = 5;
 /** Weight decay per season (most recent = 1.0, oldest = 0.2) */
@@ -108,6 +146,7 @@ export const COEFF_SEEDING_BLEND = 0.6;
 // ── Reputation Rewards ──
 export const REP_CHAMPIONS_CUP_WIN = 80;
 export const REP_SHIELD_CUP_WIN = 50;
+export const REP_CONFERENCE_CUP_WIN = 30;
 export const REP_LEAGUE_CUP_WIN = 25;
 export const REP_CONTINENTAL_GROUP = 15;
 export const REP_CONTINENTAL_KNOCKOUT = 10; // per round advanced

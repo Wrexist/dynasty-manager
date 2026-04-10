@@ -78,7 +78,7 @@ const Dashboard = () => {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
     boardConfidence, boardObjectives,
     currentMatchResult, incomingOffers, trainingFocus, cup,
-    leagueCup, championsCup, shieldCup, virtualClubs, domesticSuperCup, continentalSuperCup,
+    leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, domesticSuperCup, continentalSuperCup,
     weekCliffhangers, objectiveStreak,
     facilities, scouting, divisionTables, playerDivision,
     managerProgression, clubRecords, transferWindowOpen, training,
@@ -96,7 +96,7 @@ const Dashboard = () => {
     currentMatchResult: s.currentMatchResult, incomingOffers: s.incomingOffers,
     trainingFocus: s.trainingFocus, cup: s.cup,
     leagueCup: s.leagueCup, championsCup: s.championsCup,
-    shieldCup: s.shieldCup, virtualClubs: s.virtualClubs,
+    shieldCup: s.shieldCup, conferenceCup: s.conferenceCup, virtualClubs: s.virtualClubs,
     domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
     weekCliffhangers: s.weekCliffhangers,
     objectiveStreak: s.objectiveStreak,
@@ -129,9 +129,9 @@ const Dashboard = () => {
   const hasCupMatchToo = useMemo(() => {
     if (competition) return false;
     return !!findTournamentMatch({
-      week, playerClubId, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup,
+      week, playerClubId, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup,
     });
-  }, [competition, week, playerClubId, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup]);
+  }, [competition, week, playerClubId, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup]);
   const pos = useLeaguePosition();
   const unread = useUnreadCount();
   const budgetFlash = useFlash(club?.budget || 0);
@@ -1904,7 +1904,7 @@ const Dashboard = () => {
         <GlassPanel className="p-4" onClick={() => setScreen('champions-cup')}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Trophy className={cn('w-5 h-5', championsCup.winnerId === playerClubId ? 'text-primary' : championsCup.playerEliminated ? 'text-destructive' : 'text-primary/70')} />
+              <Trophy className={cn('w-5 h-5', championsCup.winnerId === playerClubId ? 'text-blue-400' : championsCup.playerEliminated ? 'text-destructive' : 'text-blue-400/70')} />
               <div>
                 <p className="text-sm font-semibold text-foreground">Champions Cup</p>
                 <p className="text-xs text-muted-foreground">
@@ -1926,7 +1926,7 @@ const Dashboard = () => {
         <GlassPanel className="p-4" onClick={() => setScreen('shield-cup')}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Shield className={cn('w-5 h-5', shieldCup.winnerId === playerClubId ? 'text-accent' : shieldCup.playerEliminated ? 'text-destructive' : 'text-accent/70')} />
+              <Shield className={cn('w-5 h-5', shieldCup.winnerId === playerClubId ? 'text-orange-400' : shieldCup.playerEliminated ? 'text-destructive' : 'text-orange-400/70')} />
               <div>
                 <p className="text-sm font-semibold text-foreground">Shield Cup</p>
                 <p className="text-xs text-muted-foreground">
@@ -1935,6 +1935,28 @@ const Dashboard = () => {
                     : shieldCup.playerEliminated ? 'Eliminated'
                     : shieldCup.currentPhase === 'group' ? 'Group Stage'
                     : shieldCup.currentRound || 'Knockout'}
+                </p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground" />
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* Conference Cup Status */}
+      {conferenceCup && (
+        <GlassPanel className="p-4" onClick={() => setScreen('conference-cup')}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Award className={cn('w-5 h-5', conferenceCup.winnerId === playerClubId ? 'text-emerald-400' : conferenceCup.playerEliminated ? 'text-destructive' : 'text-emerald-400/70')} />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Conference Cup</p>
+                <p className="text-xs text-muted-foreground">
+                  {conferenceCup.winnerId
+                    ? `Winner: ${(clubs[conferenceCup.winnerId] || virtualClubs[conferenceCup.winnerId])?.shortName || '?'}`
+                    : conferenceCup.playerEliminated ? 'Eliminated'
+                    : conferenceCup.currentPhase === 'group' ? 'Group Stage'
+                    : conferenceCup.currentRound || 'Knockout'}
                 </p>
               </div>
             </div>

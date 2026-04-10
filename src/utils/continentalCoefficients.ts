@@ -6,7 +6,8 @@ import type { ContinentalTournamentState, ContinentalCoefficient } from '@/types
 import {
   COEFF_GROUP_WIN, COEFF_GROUP_DRAW, COEFF_QUALIFY_KNOCKOUT,
   COEFF_R16_WIN, COEFF_QF_WIN, COEFF_SF_WIN, COEFF_FINAL_WIN,
-  COEFF_SHIELD_MULTIPLIER, COEFF_SEASON_WINDOW, COEFF_SEASON_WEIGHTS,
+  COEFF_SHIELD_MULTIPLIER, COEFF_CONFERENCE_MULTIPLIER,
+  COEFF_SEASON_WINDOW, COEFF_SEASON_WEIGHTS,
   COEFF_SEEDING_BLEND,
 } from '@/config/continental';
 
@@ -16,8 +17,9 @@ export function calculateTournamentPoints(
   clubId: string,
 ): number {
   let points = 0;
-  const isShield = tournament.competition === 'shield_cup';
-  const multiplier = isShield ? COEFF_SHIELD_MULTIPLIER : 1;
+  const multiplier = tournament.competition === 'shield_cup' ? COEFF_SHIELD_MULTIPLIER
+    : tournament.competition === 'conference_cup' ? COEFF_CONFERENCE_MULTIPLIER
+    : 1;
 
   // Group stage points (wins + draws)
   for (const group of tournament.groups) {

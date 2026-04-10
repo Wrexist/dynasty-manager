@@ -23,7 +23,7 @@ export function useLeaguePosition(clubId?: string): number {
 }
 
 /** Find any tournament match for the player this week (cup, league cup, continental, super cup). */
-export function findTournamentMatch(s: { week: number; playerClubId: string; cup: CupState; leagueCup: LeagueCupState | null; championsCup: ContinentalTournamentState | null; shieldCup: ContinentalTournamentState | null; domesticSuperCup: SuperCupMatch | null; continentalSuperCup: SuperCupMatch | null }): { homeClubId: string; awayClubId: string; competition: string } | null {
+export function findTournamentMatch(s: { week: number; playerClubId: string; cup: CupState; leagueCup: LeagueCupState | null; championsCup: ContinentalTournamentState | null; shieldCup: ContinentalTournamentState | null; conferenceCup?: ContinentalTournamentState | null; domesticSuperCup: SuperCupMatch | null; continentalSuperCup: SuperCupMatch | null }): { homeClubId: string; awayClubId: string; competition: string } | null {
   const w = s.week;
   const pid = s.playerClubId;
   // Dynasty Cup
@@ -33,7 +33,7 @@ export function findTournamentMatch(s: { week: number; playerClubId: string; cup
   const lcTie = s.leagueCup?.ties?.find(t => t.week === w && !t.played && (t.homeClubId === pid || t.awayClubId === pid));
   if (lcTie) return { homeClubId: lcTie.homeClubId, awayClubId: lcTie.awayClubId, competition: 'League Cup' };
   // Continental group + knockout
-  for (const [tourney, name] of [[s.championsCup, 'Champions Cup'], [s.shieldCup, 'Shield Cup']] as const) {
+  for (const [tourney, name] of [[s.championsCup, 'Champions Cup'], [s.shieldCup, 'Shield Cup'], [s.conferenceCup || null, 'Conference Cup']] as const) {
     if (!tourney) continue;
     for (const group of tourney.groups || []) {
       for (const m of group.matches || []) {
@@ -59,10 +59,11 @@ export function findTournamentMatch(s: { week: number; playerClubId: string; cup
 export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; opponent: Club | undefined; competition?: string } {
   const {
     week, playerClubId, fixtures, clubs, cup, leagueCup,
-    championsCup, shieldCup, domesticSuperCup, continentalSuperCup, virtualClubs,
+    championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs,
   } = useGameStore(useShallow(s => ({
     week: s.week, playerClubId: s.playerClubId, fixtures: s.fixtures, clubs: s.clubs,
     cup: s.cup, leagueCup: s.leagueCup, championsCup: s.championsCup, shieldCup: s.shieldCup,
+    conferenceCup: s.conferenceCup,
     domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
     virtualClubs: s.virtualClubs,
   })));
@@ -85,6 +86,7 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
       leagueCup,
       championsCup,
       shieldCup,
+      conferenceCup,
       domesticSuperCup,
       continentalSuperCup,
     });
@@ -116,7 +118,7 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
     }
 
     return { match: undefined, isHome: false, opponent: undefined };
-  }, [fixtures, week, playerClubId, clubs, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup, virtualClubs]);
+  }, [fixtures, week, playerClubId, clubs, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs]);
 }
 
 /** Get count of unread messages. */

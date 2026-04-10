@@ -1,20 +1,25 @@
 /**
  * Continental tournament draw generation.
  * Creates virtual clubs from league data and generates group-stage draws.
+ *
+ * Qualification is rank-based: leagues are ranked 1-30 by coefficient/reputation,
+ * and spots per competition are assigned by rank (mirroring real UEFA coefficients).
  */
 import type { VirtualClub, ContinentalGroup, ContinentalGroupMatch, ContinentalGroupStanding, ContinentalTournamentState, ContinentalCompetition, LeagueTableEntry, ContinentalCoefficient } from '@/types/game';
 import { ALL_LEAGUES, CLUBS_BY_LEAGUE, ALL_CLUBS_DATA } from './leagues';
 import {
-  CHAMPIONS_CUP_SPOTS, CHAMPIONS_CUP_TIER3_MAX, CHAMPIONS_CUP_GROUPS, CHAMPIONS_CUP_TEAMS_PER_GROUP,
-  SHIELD_CUP_SPOTS, SHIELD_CUP_TIER3_MAX, SHIELD_CUP_TIER4_MAX, SHIELD_CUP_TOTAL_TEAMS,
+  CONTINENTAL_GROUPS, CONTINENTAL_TEAMS_PER_GROUP,
+  CONTINENTAL_TOTAL_TEAMS,
   CONTINENTAL_GROUP_WEEKS, GROUP_FIXTURE_TEMPLATE,
+  // Legacy exports kept for any remaining external references
+  CHAMPIONS_CUP_GROUPS, CHAMPIONS_CUP_TEAMS_PER_GROUP,
 } from '@/config/continental';
 import { shuffle } from '@/utils/helpers';
 import { getSeedingScore } from '@/utils/continentalCoefficients';
+import { getLeagueRankings, type RankedLeague } from '@/utils/leagueRanking';
 
 /**
  * Build virtual clubs from a league's club data, sorted by reputation (highest first).
- * For the player's league, we use real club IDs; for other leagues, we use the data as-is.
  */
 function buildVirtualClubsForLeague(leagueId: string): VirtualClub[] {
   const clubs = CLUBS_BY_LEAGUE[leagueId] || [];
@@ -35,148 +40,193 @@ function buildVirtualClubsForLeague(leagueId: string): VirtualClub[] {
 }
 
 /**
- * Determine which clubs qualify for the Champions Cup.
- * For the player's league, use actual league table positions.
- * For other leagues, pick top N clubs by reputation from static data.
+ * Create a VirtualClub entry from the player's club data.
  */
-export function getChampionsCupQualifiers(
+function makePlayerVirtualClub(
+  clubId: string,
+  playerClubs: Record<string, { name: string; shortName: string; color: string; reputation: number }>,
+  leagueId: string,
+  country: string,
+  countryCode: string,
+): VirtualClub | null {
+  const c = playerClubs[clubId];
+  if (!c) return null;
+  const clubData = ALL_CLUBS_DATA.find(cd => cd.id === clubId);
+  return {
+    id: clubId,
+    name: c.name,
+    shortName: c.shortName,
+    color: c.color,
+    secondaryColor: clubData?.secondaryColor || c.color,
+    leagueId,
+    reputation: c.reputation,
+    country,
+    countryCode,
+  };
+}
+
+/**
+ * Generic qualifier builder — collects clubs from all leagues based on rank-based spot allocations.
+ *
+ * @param rankings          Precomputed league rankings
+ * @param spotsKey          Which spot count to read from each ranking entry
+ * @param playerLeagueId    The player's league
+ * @param playerLeagueTable Actual league table for the player's league
+ * @param playerClubs       Club info map from state
+ * @param skipPositions     How many top positions to skip (e.g., skip CL spots when building Shield)
+ * @param alreadyQualified  Set of club IDs already qualified for a higher competition
+ * @param cupWinnerId       Optional: cup winner from a lower competition who earns a spot
+ * @param totalTeams        Target number of qualifiers (default 32)
+ */
+function collectQualifiers(
+  rankings: RankedLeague[],
+  spotsKey: 'championsCupSpots' | 'shieldCupSpots' | 'conferenceCupSpots',
   playerLeagueId: string,
   playerLeagueTable: LeagueTableEntry[],
   playerClubs: Record<string, { name: string; shortName: string; color: string; reputation: number }>,
+  skipPositions: (ranking: RankedLeague) => number,
+  alreadyQualified: Set<string>,
+  cupWinnerId: string | null,
+  totalTeams: number = CONTINENTAL_TOTAL_TEAMS,
 ): { qualifiers: string[]; virtualClubs: Record<string, VirtualClub> } {
   const qualifiers: string[] = [];
   const virtualClubs: Record<string, VirtualClub> = {};
 
-  const tier3Leagues = ALL_LEAGUES.filter(l => l.qualityTier === 3);
-  // Sort tier 3 leagues by average club reputation to determine top 4
-  const tier3Sorted = tier3Leagues
-    .map(l => ({ league: l, avgRep: (CLUBS_BY_LEAGUE[l.id] || []).reduce((s, c) => s + c.reputation, 0) / (CLUBS_BY_LEAGUE[l.id]?.length || 1) }))
-    .sort((a, b) => b.avgRep - a.avgRep);
-  const topTier3Ids = new Set(tier3Sorted.slice(0, CHAMPIONS_CUP_TIER3_MAX).map(t => t.league.id));
-
-  for (const league of ALL_LEAGUES) {
-    const spots = CHAMPIONS_CUP_SPOTS[league.qualityTier] || 0;
-    if (spots === 0) continue;
-    // Tier 3 leagues: only top N get a spot
-    if (league.qualityTier === 3 && !topTier3Ids.has(league.id)) continue;
-
-    if (league.id === playerLeagueId) {
-      // Use actual league table positions
-      const topClubs = playerLeagueTable.slice(0, spots);
-      for (const entry of topClubs) {
-        qualifiers.push(entry.clubId);
-        const c = playerClubs[entry.clubId];
-        if (c) {
-          const clubData = ALL_CLUBS_DATA.find(cd => cd.id === entry.clubId);
-          virtualClubs[entry.clubId] = {
-            id: entry.clubId,
-            name: c.name,
-            shortName: c.shortName,
-            color: c.color,
-            secondaryColor: clubData?.secondaryColor || c.color,
-            leagueId: playerLeagueId,
-            reputation: c.reputation,
-            country: league.country,
-            countryCode: league.countryCode,
-          };
-        }
-      }
+  // Add cup winner first (guaranteed spot) if not already in a higher competition
+  if (cupWinnerId && !alreadyQualified.has(cupWinnerId) && !qualifiers.includes(cupWinnerId)) {
+    qualifiers.push(cupWinnerId);
+    const c = playerClubs[cupWinnerId];
+    if (c) {
+      // Cup winner is a player-league club
+      const league = ALL_LEAGUES.find(l => l.id === playerLeagueId);
+      const vc = makePlayerVirtualClub(cupWinnerId, playerClubs, playerLeagueId, league?.country || '', league?.countryCode || '');
+      if (vc) virtualClubs[cupWinnerId] = vc;
     } else {
-      // Use static data — top clubs by reputation
-      const vClubs = buildVirtualClubsForLeague(league.id);
-      for (let i = 0; i < Math.min(spots, vClubs.length); i++) {
-        qualifiers.push(vClubs[i].id);
-        virtualClubs[vClubs[i].id] = vClubs[i];
+      // Cup winner is from a non-player league — look up in static data
+      for (const lg of ALL_LEAGUES) {
+        const staticClub = buildVirtualClubsForLeague(lg.id).find(vc => vc.id === cupWinnerId);
+        if (staticClub) {
+          virtualClubs[cupWinnerId] = staticClub;
+          break;
+        }
       }
     }
   }
+
+  for (const ranking of rankings) {
+    const spots = ranking[spotsKey];
+    if (spots === 0) continue;
+
+    const league = ALL_LEAGUES.find(l => l.id === ranking.leagueId);
+    if (!league) continue;
+
+    const skip = skipPositions(ranking);
+
+    if (ranking.leagueId === playerLeagueId) {
+      // Use actual league table positions for the player's league
+      const candidates = playerLeagueTable.slice(skip, skip + spots);
+      for (const entry of candidates) {
+        if (alreadyQualified.has(entry.clubId) || qualifiers.includes(entry.clubId)) continue;
+        qualifiers.push(entry.clubId);
+        const vc = makePlayerVirtualClub(entry.clubId, playerClubs, playerLeagueId, league.country, league.countryCode);
+        if (vc) virtualClubs[entry.clubId] = vc;
+      }
+    } else {
+      // Use static data — skip positions BEFORE filtering to get correct league positions
+      const vClubs = buildVirtualClubsForLeague(ranking.leagueId);
+      const afterSkip = vClubs.slice(skip);
+      const available = afterSkip.filter(vc => !alreadyQualified.has(vc.id) && !qualifiers.includes(vc.id));
+      for (let i = 0; i < Math.min(spots, available.length); i++) {
+        qualifiers.push(available[i].id);
+        virtualClubs[available[i].id] = available[i];
+      }
+    }
+
+    if (qualifiers.length >= totalTeams) break;
+  }
+
+  // Cap at target
+  while (qualifiers.length > totalTeams) qualifiers.pop();
 
   return { qualifiers, virtualClubs };
 }
 
 /**
- * Determine which clubs qualify for the Shield Cup.
- * Takes positions just below Champions Cup qualifiers + domestic cup winners.
+ * Determine which clubs qualify for the Champions Cup (top tier).
+ * Uses rank-based spots. Shield Cup winner earns a guaranteed spot.
+ */
+export function getChampionsCupQualifiers(
+  playerLeagueId: string,
+  playerLeagueTable: LeagueTableEntry[],
+  playerClubs: Record<string, { name: string; shortName: string; color: string; reputation: number }>,
+  coefficients?: Record<string, ContinentalCoefficient>,
+  shieldCupWinnerId?: string | null,
+): { qualifiers: string[]; virtualClubs: Record<string, VirtualClub> } {
+  const rankings = getLeagueRankings(coefficients);
+  return collectQualifiers(
+    rankings,
+    'championsCupSpots',
+    playerLeagueId,
+    playerLeagueTable,
+    playerClubs,
+    () => 0, // start from position 1
+    new Set(), // no one to skip (this is the top competition)
+    shieldCupWinnerId || null,
+  );
+}
+
+/**
+ * Determine which clubs qualify for the Shield Cup (second tier).
+ * Takes positions just below Champions Cup qualifiers.
+ * Conference Cup winner earns a guaranteed spot.
  */
 export function getShieldCupQualifiers(
   playerLeagueId: string,
   playerLeagueTable: LeagueTableEntry[],
   playerClubs: Record<string, { name: string; shortName: string; color: string; reputation: number }>,
   championsCupIds: Set<string>,
-  domesticCupWinnerId: string | null,
+  coefficients?: Record<string, ContinentalCoefficient>,
+  conferenceCupWinnerId?: string | null,
 ): { qualifiers: string[]; virtualClubs: Record<string, VirtualClub> } {
-  const qualifiers: string[] = [];
-  const virtualClubs: Record<string, VirtualClub> = {};
+  const rankings = getLeagueRankings(coefficients);
+  return collectQualifiers(
+    rankings,
+    'shieldCupSpots',
+    playerLeagueId,
+    playerLeagueTable,
+    playerClubs,
+    (r) => r.championsCupSpots, // skip CL positions
+    championsCupIds,
+    conferenceCupWinnerId || null,
+  );
+}
 
-  const tier3Leagues = ALL_LEAGUES.filter(l => l.qualityTier === 3);
-  const tier3Sorted = tier3Leagues
-    .map(l => ({ league: l, avgRep: (CLUBS_BY_LEAGUE[l.id] || []).reduce((s, c) => s + c.reputation, 0) / (CLUBS_BY_LEAGUE[l.id]?.length || 1) }))
-    .sort((a, b) => b.avgRep - a.avgRep);
-  // Tier 3 leagues NOT in Champions Cup get Shield spots
-  const champTier3Ids = new Set(tier3Sorted.slice(0, CHAMPIONS_CUP_TIER3_MAX).map(t => t.league.id));
-  const shieldTier3 = tier3Sorted.filter(t => !champTier3Ids.has(t.league.id)).slice(0, SHIELD_CUP_TIER3_MAX);
-  const shieldTier3Ids = new Set(shieldTier3.map(t => t.league.id));
-
-  const tier4Leagues = ALL_LEAGUES.filter(l => l.qualityTier === 4);
-  const tier4Sorted = tier4Leagues
-    .map(l => ({ league: l, avgRep: (CLUBS_BY_LEAGUE[l.id] || []).reduce((s, c) => s + c.reputation, 0) / (CLUBS_BY_LEAGUE[l.id]?.length || 1) }))
-    .sort((a, b) => b.avgRep - a.avgRep);
-  const shieldTier4Ids = new Set(tier4Sorted.slice(0, SHIELD_CUP_TIER4_MAX).map(t => t.league.id));
-
-  for (const league of ALL_LEAGUES) {
-    const spots = SHIELD_CUP_SPOTS[league.qualityTier] || 0;
-    if (spots === 0) continue;
-    if (league.qualityTier === 3 && !shieldTier3Ids.has(league.id)) continue;
-    if (league.qualityTier === 4 && !shieldTier4Ids.has(league.id)) continue;
-
-    if (league.id === playerLeagueId) {
-      // Get next N positions after Champions Cup qualifiers
-      const champSpots = CHAMPIONS_CUP_SPOTS[league.qualityTier] || 0;
-      const startPos = champSpots;
-      const candidates = playerLeagueTable.slice(startPos, startPos + spots);
-      for (const entry of candidates) {
-        if (championsCupIds.has(entry.clubId)) continue;
-        qualifiers.push(entry.clubId);
-        const c = playerClubs[entry.clubId];
-        if (c) {
-          const clubData = ALL_CLUBS_DATA.find(cd => cd.id === entry.clubId);
-          virtualClubs[entry.clubId] = {
-            id: entry.clubId, name: c.name, shortName: c.shortName,
-            color: c.color, secondaryColor: clubData?.secondaryColor || c.color,
-            leagueId: playerLeagueId, reputation: c.reputation,
-            country: league.country, countryCode: league.countryCode,
-          };
-        }
-      }
-      // Also add domestic cup winner if not already qualified
-      if (domesticCupWinnerId && !championsCupIds.has(domesticCupWinnerId) && !qualifiers.includes(domesticCupWinnerId)) {
-        qualifiers.push(domesticCupWinnerId);
-        const c = playerClubs[domesticCupWinnerId];
-        if (c) {
-          const clubData = ALL_CLUBS_DATA.find(cd => cd.id === domesticCupWinnerId);
-          virtualClubs[domesticCupWinnerId] = {
-            id: domesticCupWinnerId, name: c.name, shortName: c.shortName,
-            color: c.color, secondaryColor: clubData?.secondaryColor || c.color,
-            leagueId: playerLeagueId, reputation: c.reputation,
-            country: league.country, countryCode: league.countryCode,
-          };
-        }
-      }
-    } else {
-      const vClubs = buildVirtualClubsForLeague(league.id);
-      // Take clubs after champions qualifiers
-      const available = vClubs.filter(vc => !championsCupIds.has(vc.id));
-      for (let i = 0; i < Math.min(spots, available.length); i++) {
-        qualifiers.push(available[i].id);
-        virtualClubs[available[i].id] = available[i];
-      }
-    }
-  }
-
-  // Cap at total teams
-  while (qualifiers.length > SHIELD_CUP_TOTAL_TEAMS) qualifiers.pop();
-
-  return { qualifiers, virtualClubs };
+/**
+ * Determine which clubs qualify for the Conference Cup (third tier).
+ * Takes positions below Shield Cup qualifiers.
+ * Domestic cup winner earns a spot if not already qualified for higher competitions.
+ */
+export function getConferenceCupQualifiers(
+  playerLeagueId: string,
+  playerLeagueTable: LeagueTableEntry[],
+  playerClubs: Record<string, { name: string; shortName: string; color: string; reputation: number }>,
+  championsCupIds: Set<string>,
+  shieldCupIds: Set<string>,
+  coefficients?: Record<string, ContinentalCoefficient>,
+  domesticCupWinnerId?: string | null,
+): { qualifiers: string[]; virtualClubs: Record<string, VirtualClub> } {
+  const rankings = getLeagueRankings(coefficients);
+  const alreadyQualified = new Set([...championsCupIds, ...shieldCupIds]);
+  return collectQualifiers(
+    rankings,
+    'conferenceCupSpots',
+    playerLeagueId,
+    playerLeagueTable,
+    playerClubs,
+    (r) => r.championsCupSpots + r.shieldCupSpots, // skip CL + Shield positions
+    alreadyQualified,
+    domesticCupWinnerId || null,
+  );
 }
 
 /**
@@ -201,8 +251,7 @@ export function generateContinentalDraw(
   });
 
   // Fill to 32 if needed (shouldn't happen, but safety)
-  while (sorted.length < CHAMPIONS_CUP_GROUPS * CHAMPIONS_CUP_TEAMS_PER_GROUP) {
-    // Generate a placeholder - use a remaining club from data
+  while (sorted.length < CONTINENTAL_GROUPS * CONTINENTAL_TEAMS_PER_GROUP) {
     const placeholderId = `placeholder-${sorted.length}`;
     sorted.push(placeholderId);
     virtualClubs[placeholderId] = {
@@ -230,7 +279,7 @@ export function generateContinentalDraw(
   const groups: ContinentalGroup[] = [];
   let playerGroupId: string | null = null;
 
-  for (let g = 0; g < CHAMPIONS_CUP_GROUPS; g++) {
+  for (let g = 0; g < CONTINENTAL_GROUPS; g++) {
     const groupId = String.fromCharCode(65 + g); // A-H
     const clubIds = [pots[0][g], pots[1][g], pots[2][g], pots[3][g]];
 

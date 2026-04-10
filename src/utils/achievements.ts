@@ -180,8 +180,10 @@ export const ACHIEVEMENTS: Achievement[] = [
     check: (s) => s.seasonHistory.some(h => h.championsCupResult === 'Winner') },
   { id: 'shield-cup-winner', title: 'Shield Bearer', description: 'Win the Shield Cup', icon: 'shield', tier: 'silver',
     check: (s) => s.seasonHistory.some(h => h.shieldCupResult === 'Winner') },
+  { id: 'conference-cup-winner', title: 'Conference Champion', description: 'Win the Conference Cup', icon: 'award', tier: 'silver',
+    check: (s) => s.seasonHistory.some(h => h.conferenceCupResult === 'Winner') },
   { id: 'continental-debut', title: 'Continental Debut', description: 'Play in a continental competition', icon: 'globe', tier: 'bronze',
-    check: (s) => !!((s.championsCup && !s.championsCup.playerEliminated) || (s.shieldCup && !s.shieldCup.playerEliminated)) },
+    check: (s) => !!((s.championsCup && !s.championsCup.playerEliminated) || (s.shieldCup && !s.shieldCup.playerEliminated) || (s.conferenceCup && !s.conferenceCup.playerEliminated)) },
   { id: 'continental-treble', title: 'The Treble', description: 'Win League + Domestic Cup + Champions Cup in one season', icon: 'star', tier: 'gold', hidden: true,
     check: (s) => {
       return s.seasonHistory.some(h => h.position === 1 && h.cupResult === 'Winner' && h.championsCupResult === 'Winner');

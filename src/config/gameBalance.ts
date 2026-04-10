@@ -630,4 +630,5 @@ export const ELO_REPUTATION_MULTIPLIER = 120;
 export const BALLON_DOR_CONTINENTAL_BONUS = {
   champions_cup: { group: 5, R16: 10, QF: 18, SF: 25, F: 30, winner: 40 },
   shield_cup: { group: 2, R16: 5, QF: 8, SF: 12, F: 15, winner: 20 },
+  conference_cup: { group: 1, R16: 3, QF: 5, SF: 8, F: 10, winner: 14 },
 } as const;

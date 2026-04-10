@@ -25,10 +25,10 @@ import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBacku
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CUP_BYE_MARKER } from '@/data/cup';
-import { getChampionsCupQualifiers, getShieldCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
+import { getChampionsCupQualifiers, getShieldCupQualifiers, getConferenceCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
 import { updateCoefficients } from '@/utils/continentalCoefficients';
 import { simulateGroupMatchday, getCurrentMatchday, isGroupStageComplete, generateKnockoutFromGroups, simulateKnockoutLeg, isKnockoutRoundComplete, advanceKnockoutRound, getContinentalResultForClub, createEphemeralClub, findPlayerContinentalMatch } from '@/utils/continental';
-import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
+import { CONTINENTAL_GROUP_WEEKS, CONTINENTAL_R16_WEEKS, CONTINENTAL_QF_WEEKS, CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK, LEAGUE_CUP_WEEKS, DOMESTIC_SUPER_CUP_WEEK, CONTINENTAL_SUPER_CUP_WEEK, CONTINENTAL_PRIZE_MONEY, REP_CHAMPIONS_CUP_WIN, REP_SHIELD_CUP_WIN, REP_CONFERENCE_CUP_WIN, REP_LEAGUE_CUP_WIN, REP_CONTINENTAL_GROUP, REP_CONTINENTAL_KNOCKOUT } from '@/config/continental';
 import { generatePressConference } from '@/data/pressConferences';
 import { isPro } from '@/utils/monetization';
 import { getMentorBonus } from '@/utils/chemistry';
@@ -730,7 +730,7 @@ function getContinentalMatchLabel(
  */
 function isAggregateDecided(state: ReturnType<typeof get>, leg2HomeGoals: number, leg2AwayGoals: number): boolean {
   if (!state.currentContinentalMatchId || !state.currentContinentalCompetition) return false;
-  const tourney = state.currentContinentalCompetition === 'champions_cup' ? state.championsCup : state.shieldCup;
+  const tourney = state.currentContinentalCompetition === 'champions_cup' ? state.championsCup : state.currentContinentalCompetition === 'shield_cup' ? state.shieldCup : state.conferenceCup;
   if (!tourney) return false;
   const matchInfo = findPlayerContinentalMatch(tourney, state.week, state.playerClubId);
   if (!matchInfo || matchInfo.type !== 'knockout' || matchInfo.leg !== 2) return false;
@@ -833,8 +833,15 @@ function processTournamentResult(
 
   // Continental match
   if (state.currentContinentalMatchId && state.currentContinentalCompetition) {
-    const compKey = state.currentContinentalCompetition === 'champions_cup' ? 'championsCup' : 'shieldCup';
+    const compKey = state.currentContinentalCompetition === 'champions_cup' ? 'championsCup' : state.currentContinentalCompetition === 'shield_cup' ? 'shieldCup' : 'conferenceCup';
     const isChampions = state.currentContinentalCompetition === 'champions_cup';
+    const isShield = state.currentContinentalCompetition === 'shield_cup';
+    const prizeGroup = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_group : isShield ? CONTINENTAL_PRIZE_MONEY.shield_group : CONTINENTAL_PRIZE_MONEY.conference_group;
+    const prizeR16 = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_r16 : isShield ? CONTINENTAL_PRIZE_MONEY.shield_r16 : CONTINENTAL_PRIZE_MONEY.conference_r16;
+    const prizeQF = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_qf : isShield ? CONTINENTAL_PRIZE_MONEY.shield_qf : CONTINENTAL_PRIZE_MONEY.conference_qf;
+    const prizeSF = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_sf : isShield ? CONTINENTAL_PRIZE_MONEY.shield_sf : CONTINENTAL_PRIZE_MONEY.conference_sf;
+    const prizeWinner = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_winner : isShield ? CONTINENTAL_PRIZE_MONEY.shield_winner : CONTINENTAL_PRIZE_MONEY.conference_winner;
+    const prizeRunnerUp = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_runner_up : isShield ? CONTINENTAL_PRIZE_MONEY.shield_runner_up : CONTINENTAL_PRIZE_MONEY.conference_runner_up;
     const tourney = state[compKey];
     if (tourney) {
       const matchInfo = findPlayerContinentalMatch(tourney, week, playerClubId);
@@ -860,7 +867,7 @@ function processTournamentResult(
           newTourney.groups[matchInfo.groupIdx] = newGroup;
 
           // Award group stage match prize money
-          awardPrizeMoney(isChampions ? CONTINENTAL_PRIZE_MONEY.champions_group : CONTINENTAL_PRIZE_MONEY.shield_group);
+          awardPrizeMoney(prizeGroup);
 
           // Check if all groups complete → generate knockout
           if (isGroupStageComplete(newTourney)) {
@@ -891,12 +898,11 @@ function processTournamentResult(
             const round = tie.round;
             if (tie.winnerId !== playerClubId) newTourney.playerEliminated = true;
             // Award knockout round advancement / final prize money
-            const prizeMap = isChampions
-              ? { R16: CONTINENTAL_PRIZE_MONEY.champions_r16, QF: CONTINENTAL_PRIZE_MONEY.champions_qf, SF: CONTINENTAL_PRIZE_MONEY.champions_sf }
-              : { R16: CONTINENTAL_PRIZE_MONEY.shield_r16, QF: CONTINENTAL_PRIZE_MONEY.shield_qf, SF: CONTINENTAL_PRIZE_MONEY.shield_sf };
+            const prizeMap =
+              { R16: prizeR16, QF: prizeQF, SF: prizeSF };
             if (round === 'F') {
-              const winPrize = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_winner : CONTINENTAL_PRIZE_MONEY.shield_winner;
-              const losePrize = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_runner_up : CONTINENTAL_PRIZE_MONEY.shield_runner_up;
+              const winPrize = prizeWinner;
+              const losePrize = prizeRunnerUp;
               awardPrizeMoney(tie.winnerId === playerClubId ? winPrize : losePrize);
             } else if (tie.winnerId === playerClubId) {
               awardPrizeMoney(prizeMap[round as keyof typeof prizeMap] || 0);
@@ -988,8 +994,15 @@ function processTournamentResultWithWinner(
 
   // Continental knockout (penalties only happen in knockout/finals)
   if (state.currentContinentalMatchId && state.currentContinentalCompetition) {
-    const compKey = state.currentContinentalCompetition === 'champions_cup' ? 'championsCup' : 'shieldCup';
+    const compKey = state.currentContinentalCompetition === 'champions_cup' ? 'championsCup' : state.currentContinentalCompetition === 'shield_cup' ? 'shieldCup' : 'conferenceCup';
     const isChampions = state.currentContinentalCompetition === 'champions_cup';
+    const isShield = state.currentContinentalCompetition === 'shield_cup';
+    const prizeGroup = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_group : isShield ? CONTINENTAL_PRIZE_MONEY.shield_group : CONTINENTAL_PRIZE_MONEY.conference_group;
+    const prizeR16 = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_r16 : isShield ? CONTINENTAL_PRIZE_MONEY.shield_r16 : CONTINENTAL_PRIZE_MONEY.conference_r16;
+    const prizeQF = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_qf : isShield ? CONTINENTAL_PRIZE_MONEY.shield_qf : CONTINENTAL_PRIZE_MONEY.conference_qf;
+    const prizeSF = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_sf : isShield ? CONTINENTAL_PRIZE_MONEY.shield_sf : CONTINENTAL_PRIZE_MONEY.conference_sf;
+    const prizeWinner = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_winner : isShield ? CONTINENTAL_PRIZE_MONEY.shield_winner : CONTINENTAL_PRIZE_MONEY.conference_winner;
+    const prizeRunnerUp = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_runner_up : isShield ? CONTINENTAL_PRIZE_MONEY.shield_runner_up : CONTINENTAL_PRIZE_MONEY.conference_runner_up;
     const tourney = state[compKey];
     if (tourney) {
       const matchInfo = findPlayerContinentalMatch(tourney, week, playerClubId);
@@ -1007,12 +1020,11 @@ function processTournamentResultWithWinner(
         if (winnerId !== playerClubId) newTourney.playerEliminated = true;
         // Award knockout prize money
         const round = tie.round;
-        const prizeMap = isChampions
-          ? { R16: CONTINENTAL_PRIZE_MONEY.champions_r16, QF: CONTINENTAL_PRIZE_MONEY.champions_qf, SF: CONTINENTAL_PRIZE_MONEY.champions_sf }
-          : { R16: CONTINENTAL_PRIZE_MONEY.shield_r16, QF: CONTINENTAL_PRIZE_MONEY.shield_qf, SF: CONTINENTAL_PRIZE_MONEY.shield_sf };
+        const prizeMap =
+              { R16: prizeR16, QF: prizeQF, SF: prizeSF };
         if (round === 'F') {
-          const winPrize = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_winner : CONTINENTAL_PRIZE_MONEY.shield_winner;
-          const losePrize = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_runner_up : CONTINENTAL_PRIZE_MONEY.shield_runner_up;
+          const winPrize = prizeWinner;
+          const losePrize = prizeRunnerUp;
           awardPrizeMoney(winnerId === playerClubId ? winPrize : losePrize);
         } else if (winnerId === playerClubId) {
           awardPrizeMoney(prizeMap[round as keyof typeof prizeMap] || 0);
@@ -1104,7 +1116,7 @@ function endSeasonImpl(set: Set, get: Get) {
   const seasonAwards = calculateSeasonAwards(allPlayersList, clubs, leagueTable, playerClubId);
 
   // Ballon d'Or ranking — top 25 players of the season
-  const ballonDOrRanking = calculateBallonDOr(allPlayersList, clubs, leagueTable, state.divisionTables || {}, state.championsCup, state.shieldCup);
+  const ballonDOrRanking = calculateBallonDOr(allPlayersList, clubs, leagueTable, state.divisionTables || {}, state.championsCup, state.shieldCup, state.conferenceCup);
 
   // Apply Ballon d'Or value boosts and record placements on a shallow copy
   // (avoid mutating the store's `players` reference directly)
@@ -1145,6 +1157,7 @@ function endSeasonImpl(set: Set, get: Get) {
     leagueCupResult: state.leagueCup?.winner ? (state.leagueCup.winner === playerClubId ? 'Winner' : getCupResultForClub(state.leagueCup, playerClubId)) : undefined,
     championsCupResult: getContinentalResultForClub(state.championsCup, playerClubId),
     shieldCupResult: getContinentalResultForClub(state.shieldCup, playerClubId),
+    conferenceCupResult: getContinentalResultForClub(state.conferenceCup, playerClubId),
     divisionId: playerDiv,
     awards: seasonAwards,
     ballonDOrRanking,
@@ -1171,7 +1184,8 @@ function endSeasonImpl(set: Set, get: Get) {
     (state.cup.winner === playerClubId ? 1 : 0) +
     (state.leagueCup?.winner === playerClubId ? 1 : 0) +
     (state.championsCup?.winnerId === playerClubId ? 1 : 0) +
-    (state.shieldCup?.winnerId === playerClubId ? 1 : 0);
+    (state.shieldCup?.winnerId === playerClubId ? 1 : 0) +
+    (state.conferenceCup?.winnerId === playerClubId ? 1 : 0);
   const updatedRecords = updateRecords(
     state.clubRecords || createEmptyRecords(),
     season, pos, playerEntry?.points || 0,
@@ -1511,12 +1525,6 @@ function finalizeSeason(
     playerClubMap[id] = { name: club.name, shortName: club.shortName, color: club.color, reputation: club.reputation };
   }
 
-  const champQ = getChampionsCupQualifiers(newPlayerDivision, prevLeagueTable, playerClubMap);
-  const champIds = new Set(champQ.qualifiers);
-  const shieldQ = getShieldCupQualifiers(newPlayerDivision, prevLeagueTable, playerClubMap, champIds, state.cup.winner);
-
-  const allVirtualClubs = { ...champQ.virtualClubs, ...shieldQ.virtualClubs };
-
   // Update continental coefficients from completed tournaments
   let updatedCoefficients = state.continentalCoefficients || {};
   if (state.championsCup) {
@@ -1525,15 +1533,35 @@ function finalizeSeason(
   if (state.shieldCup) {
     updatedCoefficients = updateCoefficients(updatedCoefficients, state.shieldCup, season);
   }
+  if (state.conferenceCup) {
+    updatedCoefficients = updateCoefficients(updatedCoefficients, state.conferenceCup, season);
+  }
+
+  // Cup winner pathways: Shield Cup winner → CL spot, Conference Cup winner → Shield spot
+  const prevShieldCupWinner = state.shieldCup?.winnerId || null;
+  const prevConferenceCupWinner = state.conferenceCup?.winnerId || null;
+
+  // Rank-based qualification using coefficients
+  const champQ = getChampionsCupQualifiers(newPlayerDivision, prevLeagueTable, playerClubMap, updatedCoefficients, prevShieldCupWinner);
+  const champIds = new Set(champQ.qualifiers);
+  const shieldQ = getShieldCupQualifiers(newPlayerDivision, prevLeagueTable, playerClubMap, champIds, updatedCoefficients, prevConferenceCupWinner);
+  const shieldIds = new Set(shieldQ.qualifiers);
+  const confQ = getConferenceCupQualifiers(newPlayerDivision, prevLeagueTable, playerClubMap, champIds, shieldIds, updatedCoefficients, state.cup.winner);
+
+  const allVirtualClubs = { ...champQ.virtualClubs, ...shieldQ.virtualClubs, ...confQ.virtualClubs };
 
   let newChampionsCup: import('@/types/game').ContinentalTournamentState | null = null;
   let newShieldCup: import('@/types/game').ContinentalTournamentState | null = null;
+  let newConferenceCup: import('@/types/game').ContinentalTournamentState | null = null;
 
   if (champQ.qualifiers.length >= 8) {
     newChampionsCup = generateContinentalDraw('champions_cup', newSeason, champQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
   }
   if (shieldQ.qualifiers.length >= 8) {
     newShieldCup = generateContinentalDraw('shield_cup', newSeason, shieldQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
+  }
+  if (confQ.qualifiers.length >= 8) {
+    newConferenceCup = generateContinentalDraw('conference_cup', newSeason, confQ.qualifiers, allVirtualClubs, playerClubId, updatedCoefficients);
   }
 
   // Domestic Super Cup: last season's league winner vs cup winner
@@ -1573,6 +1601,7 @@ function finalizeSeason(
   // Continental messages
   const champQualified = newChampionsCup && !newChampionsCup.playerEliminated;
   const shieldQualified = newShieldCup && !newShieldCup.playerEliminated;
+  const confQualified = newConferenceCup && !newConferenceCup.playerEliminated;
 
   // Clean up old external players (unattached players not in any club or free agent pool)
   const oldFreeAgentSet = new Set(state.freeAgents);
@@ -1625,6 +1654,13 @@ function finalizeSeason(
       week: 1, season: newSeason, type: 'board',
       title: 'Shield Cup Qualification!',
       body: `Your club has qualified for the Shield Cup! Group stage begins in Week 6.`,
+    });
+  }
+  if (confQualified) {
+    newMessages = addMsg(newMessages, {
+      week: 1, season: newSeason, type: 'board',
+      title: 'Conference Cup Qualification!',
+      body: `Your club has qualified for the Conference Cup! Group stage begins in Week 6.`,
     });
   }
   if (newDomesticSuperCup) {
@@ -1732,9 +1768,10 @@ function finalizeSeason(
     leagueCup: newLeagueCup,
     championsCup: newChampionsCup,
     shieldCup: newShieldCup,
+    conferenceCup: newConferenceCup,
     continentalCoefficients: updatedCoefficients,
     virtualClubs: allVirtualClubs,
-    continentalQualification: { champions: champQ.qualifiers, shield: shieldQ.qualifiers },
+    continentalQualification: { champions: champQ.qualifiers, shield: shieldQ.qualifiers, conference: confQ.qualifiers },
     domesticSuperCup: newDomesticSuperCup,
     continentalSuperCup: newContinentalSuperCup,
     currentContinentalMatchId: null,
@@ -1767,6 +1804,9 @@ function finalizeSeason(
       if (state.shieldCup?.winnerId === playerClubId) {
         milestones.push(createMilestone('cup_win', 'Shield Cup Winners!', `Won the Shield Cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
       }
+      if (state.conferenceCup?.winnerId === playerClubId) {
+        milestones.push(createMilestone('cup_win', 'Conference Cup Winners!', `Won the Conference Cup in Season ${season}!`, season, TOTAL_WEEKS, 'medal'));
+      }
       return milestones;
     })(),
     managerProgression: grantXP(state.managerProgression, (() => {
@@ -1778,6 +1818,8 @@ function finalizeSeason(
       else if (state.championsCup && !state.championsCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
       if (state.shieldCup?.winnerId === playerClubId) xp += XP_REWARDS.shieldCupWin;
       else if (state.shieldCup && !state.shieldCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
+      if (state.conferenceCup?.winnerId === playerClubId) xp += XP_REWARDS.conferenceCupWin;
+      else if (state.conferenceCup && !state.conferenceCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
       return xp;
     })()),
     seasonGrowthTracker: {},
@@ -1967,6 +2009,18 @@ function finalizeSeason(
           cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_CONTINENTAL_GROUP);
           const knockoutRounds = ['R16', 'QF', 'SF', 'F'];
           const reached = knockoutRounds.indexOf(cs.shieldCup.currentRound || '');
+          if (reached >= 0) cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + (reached + 1) * REP_CONTINENTAL_KNOCKOUT);
+        }
+
+        // Conference Cup win / continental progress
+        if (cs.conferenceCup?.winnerId === cs.playerClubId) {
+          cm.cupsWon += 1;
+          cm.continentalCupsWon = (cm.continentalCupsWon || 0) + 1;
+          cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_CONFERENCE_CUP_WIN);
+        } else if (cs.conferenceCup && !cs.conferenceCup.playerEliminated) {
+          cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + REP_CONTINENTAL_GROUP);
+          const knockoutRounds = ['R16', 'QF', 'SF', 'F'];
+          const reached = knockoutRounds.indexOf(cs.conferenceCup.currentRound || '');
           if (reached >= 0) cm.reputationScore = Math.min(REP_MAX, cm.reputationScore + (reached + 1) * REP_CONTINENTAL_KNOCKOUT);
         }
 
@@ -2265,6 +2319,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       leagueCup,
       championsCup: null,
       shieldCup: null,
+      conferenceCup: null,
       virtualClubs: {},
       continentalCoefficients: {},
       continentalQualification: null,
@@ -2971,6 +3026,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // ── Continental Tournament Simulation ──
     let newChampionsCup = state.championsCup;
     let newShieldCup = state.shieldCup;
+    let newConferenceCup = state.conferenceCup;
     const virtualClubs = state.virtualClubs || {};
 
     // Continental group stage matchdays
@@ -3005,12 +3061,26 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           }
         }
       }
+      if (newConferenceCup && newConferenceCup.currentPhase === 'group') {
+        const md = getCurrentMatchday(newConferenceCup);
+        if (groupWeeks[md - 1] === week) {
+          newConferenceCup = simulateGroupMatchday(newConferenceCup, md, virtualClubs, playerClubId);
+          if (isGroupStageComplete(newConferenceCup)) {
+            newConferenceCup = generateKnockoutFromGroups(newConferenceCup, playerClubId);
+            if (!newConferenceCup.playerEliminated) {
+              newMessages = addMsg(newMessages, { week, season, type: 'board', title: 'Conference Cup Knockout!', body: 'You have qualified for the Conference Cup knockout rounds!' });
+            } else {
+              newMessages = addMsg(newMessages, { week, season, type: 'match_result', title: 'Conference Cup Eliminated', body: 'You have been eliminated from the Conference Cup group stage.' });
+            }
+          }
+        }
+      }
     }
 
     // Continental knockout rounds
     const allKnockoutWeeks = [...CONTINENTAL_R16_WEEKS, ...CONTINENTAL_QF_WEEKS, ...CONTINENTAL_SF_WEEKS, CONTINENTAL_FINAL_WEEK];
     if (allKnockoutWeeks.includes(week)) {
-      for (const [tourney, setTourney] of [[newChampionsCup, (t: typeof newChampionsCup) => { newChampionsCup = t; }], [newShieldCup, (t: typeof newShieldCup) => { newShieldCup = t; }]] as const) {
+      for (const [tourney, setTourney] of [[newChampionsCup, (t: typeof newChampionsCup) => { newChampionsCup = t; }], [newShieldCup, (t: typeof newShieldCup) => { newShieldCup = t; }], [newConferenceCup, (t: typeof newConferenceCup) => { newConferenceCup = t; }]] as const) {
         if (!tourney || tourney.currentPhase !== 'knockout' || !tourney.currentRound || tourney.currentRound === 'group') continue;
         const round = tourney.currentRound as 'R16' | 'QF' | 'SF' | 'F';
 
@@ -3907,6 +3977,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       leagueCup: newLeagueCup || state.leagueCup,
       championsCup: newChampionsCup,
       shieldCup: newShieldCup,
+      conferenceCup: newConferenceCup,
       domesticSuperCup: newDomesticSuperCup,
       continentalSuperCup: newContinentalSuperCup,
       activeChallenge: updatedChallenge,
@@ -4321,9 +4392,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const cupTie = !leagueMatch ? state.cup.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
     const champMatch = !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
     const shieldMatch = !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
-    const continentalMatch = champMatch || shieldMatch;
-    const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : null;
-    const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : null;
+    const confMatch = !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
+    const continentalMatch = champMatch || shieldMatch || confMatch;
+    const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : confMatch ? 'conference_cup' as const : null;
+    const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
     const leagueCupTie = !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
     const superCup = !leagueMatch && !cupTie && !continentalMatch && !leagueCupTie
       ? (state.domesticSuperCup && !state.domesticSuperCup.played && state.domesticSuperCup.week === week && (state.domesticSuperCup.homeClubId === playerClubId || state.domesticSuperCup.awayClubId === playerClubId) ? state.domesticSuperCup : null)
@@ -4706,9 +4778,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Check continental matches
     const champMatch = !leagueMatch && !cupTie ? findPlayerContinentalMatch(state.championsCup, week, playerClubId) : null;
     const shieldMatch = !leagueMatch && !cupTie && !champMatch ? findPlayerContinentalMatch(state.shieldCup, week, playerClubId) : null;
-    const continentalMatch = champMatch || shieldMatch;
-    const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : null;
-    const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : null;
+    const confMatch = !leagueMatch && !cupTie && !champMatch && !shieldMatch ? findPlayerContinentalMatch(state.conferenceCup, week, playerClubId) : null;
+    const continentalMatch = champMatch || shieldMatch || confMatch;
+    const continentalComp = champMatch ? 'champions_cup' as const : shieldMatch ? 'shield_cup' as const : confMatch ? 'conference_cup' as const : null;
+    const continentalTourney = champMatch ? state.championsCup : shieldMatch ? state.shieldCup : confMatch ? state.conferenceCup : null;
 
     // Check league cup
     const leagueCupTie = !leagueMatch && !cupTie && !continentalMatch ? state.leagueCup?.ties.find(t => t.week === week && !t.played && (t.homeClubId === playerClubId || t.awayClubId === playerClubId)) : null;
@@ -4854,7 +4927,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     let tournamentMatch: Match | null = null;
     if (isTournamentMatch) {
       if (state.currentContinentalMatchId && state.currentContinentalCompetition) {
-        const tourney = state.currentContinentalCompetition === 'champions_cup' ? state.championsCup : state.shieldCup;
+        const tourney = state.currentContinentalCompetition === 'champions_cup' ? state.championsCup : state.currentContinentalCompetition === 'shield_cup' ? state.shieldCup : state.conferenceCup;
         const matchInfo = tourney ? findPlayerContinentalMatch(tourney, week, playerClubId) : null;
         if (matchInfo && tourney) {
           if (matchInfo.type === 'group') {
@@ -5414,6 +5487,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       leagueCup: state.leagueCup,
       championsCup: state.championsCup,
       shieldCup: state.shieldCup,
+      conferenceCup: state.conferenceCup,
       virtualClubs: state.virtualClubs,
       continentalQualification: state.continentalQualification,
       domesticSuperCup: state.domesticSuperCup,
@@ -5554,6 +5628,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         leagueCup: data.leagueCup || { ties: [], currentRound: null, eliminated: false, winner: null },
         championsCup: data.championsCup || null,
         shieldCup: data.shieldCup || null,
+        conferenceCup: data.conferenceCup || null,
         virtualClubs: data.virtualClubs || {},
         continentalQualification: data.continentalQualification || null,
         domesticSuperCup: data.domesticSuperCup || null,
