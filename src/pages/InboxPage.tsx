@@ -442,14 +442,20 @@ const InboxPage = () => {
                             {hasTransferTalk ? (
                               <button
                                 onClick={(e) => { e.stopPropagation(); openTransferTalk(msg.playerId!); setScreen('dashboard'); }}
-                                className={cn('flex items-center gap-1 text-[10px] font-semibold transition-colors', colors.iconText)}
+                                className={cn(
+                                  'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:brightness-125',
+                                  colors.iconBg, colors.iconText
+                                )}
                               >
                                 Talk to Player <MessageCircle className="w-3 h-3" />
                               </button>
                             ) : action ? (
                               <button
                                 onClick={(e) => { e.stopPropagation(); if (action.screen === 'match-review') loadMatchForReview(msg.week); setScreen(action.screen); }}
-                                className={cn('flex items-center gap-1 text-[10px] font-semibold transition-colors', colors.iconText)}
+                                className={cn(
+                                  'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:brightness-125',
+                                  colors.iconBg, colors.iconText
+                                )}
                               >
                                 {action.label} <ExternalLink className="w-3 h-3" />
                               </button>
