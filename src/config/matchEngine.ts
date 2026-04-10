@@ -321,6 +321,15 @@ export const SET_PIECE_TAKER_CORNER_BONUS = 0.03;
 /** Bonus to penalty conversion when a designated penalty taker shoots */
 export const PENALTY_TAKER_BONUS = 0.05;
 
+// ── Penalty Taker Auto-Selection ──
+export const PENALTY_TAKER_SHOOTING_WEIGHT = 0.6;
+export const PENALTY_TAKER_MENTAL_WEIGHT = 0.4;
+
+// ── Set-Piece Taker Auto-Selection ──
+export const SET_PIECE_TAKER_PASSING_WEIGHT = 0.5;
+export const SET_PIECE_TAKER_SHOOTING_WEIGHT = 0.3;
+export const SET_PIECE_TAKER_MENTAL_WEIGHT = 0.2;
+
 // ── Commentary ──
 /** Minute threshold for "late game" commentary (slightly earlier than drama triggers) */
 export const COMMENTARY_LATE_MINUTE = 80;
