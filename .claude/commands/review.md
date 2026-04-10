@@ -57,3 +57,12 @@ Summarize with a verdict: ✅ Ship it | ⚠️ Fix before shipping | 🛑 Needs 
 - See `CLAUDE.md` → "Hard Rules" for the complete non-negotiable checklist
 - See `CLAUDE.md` → "Key Gotchas" for the full list of common pitfalls
 - See `CLAUDE.md` → "Code Conventions" for style rules
+
+## Plugin-Enhanced Review
+
+After completing the dynasty-manager review above, suggest running `/code-review` for multi-perspective analysis if the change:
+- Touches 3+ files
+- Modifies store slices or match engine
+- Adds new state fields or persistence changes
+
+`/code-review` provides 5 independent reviewers with confidence scoring (0-100, threshold 80) — catching issues this project-specific checklist may miss.

@@ -87,3 +87,10 @@ Read these before scaffolding:
 - Use `/project:balance` if the feature needs new config constants
 - Use `/project:test` after scaffolding to generate tests
 - Use `/project:review` before committing to verify conventions
+
+## Plugin-Enhanced Workflow
+
+- Use `/brainstorming` (superpowers) BEFORE this command to explore the design space
+- Append "use context7" when looking up React/Zustand/Tailwind API patterns
+- Use `/execute-plan` (superpowers) for TDD red-green-refactor after scaffolding
+- Use `/code-review` after implementation for multi-perspective confidence scoring

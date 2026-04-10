@@ -89,3 +89,11 @@ set({ ...get(), ...updates });
 - See `CLAUDE.md` → "Key Patterns" for how the game loop orchestrates systems
 - Use `/project:test` after each extraction to verify nothing broke
 - Use `/project:review` before committing to check for convention violations
+
+## Iterative Extraction with Batch Loop
+
+For large extractions from orchestrationSlice.ts, use the batch pattern:
+1. Plan extractions using this command first
+2. Execute: `/ralph-loop "extract [block] from orchestrationSlice" --max-iterations 5`
+3. Each iteration: extract one block → test → verify
+4. Safer than attempting all extractions in one pass

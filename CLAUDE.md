@@ -217,10 +217,70 @@ Custom project commands available via `/project:<name>` in Claude Code sessions.
 
 **Adding new commands:** Create a new `.md` file in `.claude/commands/`. It becomes available as `/project:<filename>`. Include `$ARGUMENTS` placeholder for user input.
 
+## Plugin Integration (Opus 4.6)
+
+11 plugins are active. They enhance every Claude session automatically or via commands.
+
+### Automatic Plugins (no commands needed)
+| Plugin | What it does | Dynasty Manager benefit |
+|--------|-------------|------------------------|
+| **security-guidance** | Scans Write/Edit for vulnerabilities (XSS, eval, injection) | Catches unsafe patterns in match engine, store slices, player input |
+| **frontend-design** | Applies production-grade design judgment to UI work | Ensures new pages match dark glass-morphism aesthetic |
+| **context7** | Fetches real-time library docs via MCP (`.mcp.json`) | Prevents deprecated API usage — append "use context7" to any prompt |
+
+### Command Plugins
+| Plugin | Command | When to use |
+|--------|---------|-------------|
+| **code-review** | `/code-review` | Multi-perspective PR review with confidence scoring — use AFTER `/project:review` |
+| **commit-commands** | `/commit` | AI-powered commit messages — alternative to `npm run ship` for message generation |
+| **feature-dev** | *(7-phase workflow)* | Complex multi-file features with agent-driven architecture — complements `/project:feature` |
+| **superpowers** | `/brainstorming`, `/execute-plan` | TDD enforcement with red-green-refactor — use for test-first development |
+| **ralph-wiggum** | `/ralph-loop "prompt" --max-iterations N` | Autonomous batch loops for refactors, test coverage, documentation |
+| **hookify** | `/hookify`, `/hookify:list` | Create behavioral guardrails on the fly |
+| **plugin-dev** | `/plugin-dev:create-plugin` | Build new Claude Code plugins for this project |
+| **github** | *(MCP tools)* | Read PRs, issues, CI status via `mcp__github__*` — replaces `gh` CLI |
+
+### Plugin Workflow Patterns
+
+**New feature (large, multi-file):**
+1. `/brainstorming` (superpowers) — explore design space
+2. `/project:feature` — scaffold with dynasty-manager conventions
+3. Append "use context7" when unsure about library APIs
+4. `/project:review` → `/code-review` — dual-layer review
+5. `npm run ship -- "msg"` — ship it
+
+**Code review (enhanced):**
+1. `/project:review` — dynasty-manager-specific (Zustand patterns, player ID safety, mobile layout)
+2. `/code-review` — 5 independent reviewers with confidence score (threshold: 80)
+
+**Batch mechanical work:**
+- `/ralph-loop "Add tests for untested utils" --max-iterations 10`
+- `/ralph-loop "Extract helpers from orchestrationSlice" --max-iterations 5`
+- Always set `--max-iterations` to a reasonable limit
+
+**TDD workflow:**
+- `/brainstorming` → `/execute-plan` (enforces red-green-refactor cycles)
+
+### Plugin + Slash Command Synergy
+| Existing Command | Enhanced By | How |
+|-----------------|------------|-----|
+| `/project:review` | code-review | Adds generic multi-perspective analysis after project-specific review |
+| `/project:feature` | feature-dev, superpowers | Adds agent-driven architecture + TDD execution |
+| `/project:refactor` | ralph-wiggum | Automates repetitive extraction steps |
+| `/project:test` | ralph-wiggum, superpowers | Batch test generation + TDD enforcement |
+| `/project:balance` | context7 | Real-time docs for config patterns |
+
+### Plugin Conflict Notes
+- **commit-commands vs `npm run ship`:** `npm run ship` remains the preferred workflow (includes preflight). Use `/commit` only for smart message generation.
+- **feature-dev vs `/project:feature`:** `/project:feature` has dynasty-manager-specific scaffolding knowledge. feature-dev adds architectural analysis. Use both for complex features.
+- **GitHub MCP vs `gh` CLI:** `gh pr create` remains FORBIDDEN (no CLI auth). The GitHub MCP tools (`mcp__github__*`) use separate auth and ARE available for PR/issue operations.
+
 ## Claude Code Project Settings
 
 `.claude/settings.json` enforces safety rails at the project level:
-- **Denied operations:** `git add -A`, `git push --force`, `git reset --hard`, `gh pr create` — these are blocked to prevent accidental destructive actions
+- **Denied operations:** `git add -A`, `git push --force`, `git reset --hard`, `gh pr create` — blocked to prevent destructive actions
+- **Auto-allowed MCP:** Read-only GitHub operations (PR reads, issue reads, code search, commit history)
+- **MCP servers:** context7 configured in `.mcp.json` for real-time documentation lookup
 - Settings are version-controlled and apply to all Claude Code sessions on this repo
 
 ## CI/CD

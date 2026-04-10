@@ -18,7 +18,14 @@
       "Bash(git push -u origin*)",
       "Bash(git fetch*)",
       "Bash(git checkout*)",
-      "Bash(ls *)"
+      "Bash(ls *)",
+      "mcp__github__pull_request_read",
+      "mcp__github__list_pull_requests",
+      "mcp__github__list_issues",
+      "mcp__github__issue_read",
+      "mcp__github__search_code",
+      "mcp__github__list_commits",
+      "mcp__github__get_file_contents"
     ],
     "deny": [
       "Bash(gh pr create*)",

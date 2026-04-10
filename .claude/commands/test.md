@@ -80,3 +80,10 @@ describe('FeatureName', () => {
 
 - See `CLAUDE.md` → "Key Gotchas" for common bugs to test against
 - Use `/project:review` after writing tests to verify they follow conventions
+
+## Batch Test Generation
+
+For large-scale test coverage expansion, use the batch pattern:
+- `/ralph-loop "generate tests for untested utils" --max-iterations 10`
+- Priority: match engine > game loop > transfers > player gen > UI utils
+- Follow existing test patterns (see `src/test/match.test.ts`)
