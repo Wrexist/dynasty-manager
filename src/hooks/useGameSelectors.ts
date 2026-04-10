@@ -59,10 +59,11 @@ export function findTournamentMatch(s: { week: number; playerClubId: string; cup
 export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; opponent: Club | undefined; competition?: string } {
   const {
     week, playerClubId, fixtures, clubs, cup, leagueCup,
-    championsCup, shieldCup, domesticSuperCup, continentalSuperCup, virtualClubs,
+    championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs,
   } = useGameStore(useShallow(s => ({
     week: s.week, playerClubId: s.playerClubId, fixtures: s.fixtures, clubs: s.clubs,
     cup: s.cup, leagueCup: s.leagueCup, championsCup: s.championsCup, shieldCup: s.shieldCup,
+    conferenceCup: s.conferenceCup,
     domesticSuperCup: s.domesticSuperCup, continentalSuperCup: s.continentalSuperCup,
     virtualClubs: s.virtualClubs,
   })));
@@ -85,6 +86,7 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
       leagueCup,
       championsCup,
       shieldCup,
+      conferenceCup,
       domesticSuperCup,
       continentalSuperCup,
     });
@@ -116,7 +118,7 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
     }
 
     return { match: undefined, isHome: false, opponent: undefined };
-  }, [fixtures, week, playerClubId, clubs, cup, leagueCup, championsCup, shieldCup, domesticSuperCup, continentalSuperCup, virtualClubs]);
+  }, [fixtures, week, playerClubId, clubs, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs]);
 }
 
 /** Get count of unread messages. */

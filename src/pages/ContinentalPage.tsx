@@ -161,6 +161,7 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
               clubs={clubs}
               currentRound={tournament.currentRound}
               winnerId={tournament.winnerId}
+              competition={competition}
             />
           </motion.div>
         )}

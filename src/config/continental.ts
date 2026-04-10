@@ -25,19 +25,21 @@ export const CHAMPIONS_CUP_SPOTS_BY_RANK: Record<number, number> = {
 
 // Shield Cup: 32 teams total
 // Rank 1-4: 2 spots (positions after CL), Rank 5: 2, Rank 6-8: 1,
-// Rank 9-15: 1 (runner-up or cup winner), Rank 16-22: 1 (cup winner)
-// + 1 reserved for Conference Cup holder
+// Rank 9-15: 1 (runner-up or cup winner), Rank 16-26: 1 (cup winner)
+// 31 league spots + Conference Cup holder = 32
 export const SHIELD_CUP_SPOTS_BY_RANK: Record<number, number> = {
   1: 2, 2: 2, 3: 2, 4: 2,
   5: 2,
   6: 1, 7: 1, 8: 1,
   9: 1, 10: 1, 11: 1, 12: 1, 13: 1, 14: 1, 15: 1,
   16: 1, 17: 1, 18: 1, 19: 1, 20: 1, 21: 1, 22: 1,
+  23: 1, 24: 1, 25: 1, 26: 1,
 };
 
 // Conference Cup: 32 teams total
 // Rank 1-5: 1 spot (next position after Shield), Rank 6-15: 1 spot,
 // Rank 16-30: 1 spot (champion or cup winner)
+// 30 league spots + domestic cup winner + placeholders fill to 32
 export const CONFERENCE_CUP_SPOTS_BY_RANK: Record<number, number> = {
   1: 1, 2: 1, 3: 1, 4: 1, 5: 1,
   6: 1, 7: 1, 8: 1, 9: 1, 10: 1,

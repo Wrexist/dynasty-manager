@@ -1,8 +1,14 @@
-import type { ContinentalKnockoutTie, VirtualClub } from '@/types/game';
+import type { ContinentalKnockoutTie, ContinentalCompetition, VirtualClub } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { Shield, Trophy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getKnockoutRoundName } from '@/utils/continental';
+
+const COMP_COLORS: Record<string, { text: string; bg: string; gradient: string; ring: string; badge: string }> = {
+  champions_cup: { text: 'text-blue-400', bg: 'bg-blue-400/10 border-blue-400/30', gradient: 'bg-gradient-to-br from-blue-400/20 via-blue-500/10 to-transparent border-blue-400/30 shadow-[0_0_24px_rgba(96,165,250,0.15)]', ring: 'border-blue-400/40 ring-1 ring-blue-400/20', badge: 'bg-blue-400/20 text-blue-400' },
+  shield_cup: { text: 'text-orange-400', bg: 'bg-orange-400/10 border-orange-400/30', gradient: 'bg-gradient-to-br from-orange-400/20 via-orange-500/10 to-transparent border-orange-400/30 shadow-[0_0_24px_rgba(251,146,60,0.15)]', ring: 'border-orange-400/40 ring-1 ring-orange-400/20', badge: 'bg-orange-400/20 text-orange-400' },
+  conference_cup: { text: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/30', gradient: 'bg-gradient-to-br from-emerald-400/20 via-emerald-500/10 to-transparent border-emerald-400/30 shadow-[0_0_24px_rgba(52,211,153,0.15)]', ring: 'border-emerald-400/40 ring-1 ring-emerald-400/20', badge: 'bg-emerald-400/20 text-emerald-400' },
+};
 
 interface KnockoutBracketProps {
   ties: ContinentalKnockoutTie[];
@@ -11,6 +17,7 @@ interface KnockoutBracketProps {
   clubs: Record<string, { name: string; shortName: string; color: string }>;
   currentRound: string | null;
   winnerId: string | null;
+  competition?: ContinentalCompetition;
 }
 
 function getClubInfo(clubId: string, clubs: Record<string, { name: string; shortName: string; color: string }>, virtualClubs: Record<string, VirtualClub>) {
@@ -21,11 +28,12 @@ function getClubInfo(clubId: string, clubs: Record<string, { name: string; short
   return { name: 'Unknown', shortName: '???', color: '#888' };
 }
 
-function TieCard({ tie, virtualClubs, playerClubId, clubs }: {
+function TieCard({ tie, virtualClubs, playerClubId, clubs, compRing }: {
   tie: ContinentalKnockoutTie;
   virtualClubs: Record<string, VirtualClub>;
   playerClubId: string;
   clubs: Record<string, { name: string; shortName: string; color: string }>;
+  compRing: string;
 }) {
   const home = getClubInfo(tie.homeClubId, clubs, virtualClubs);
   const away = getClubInfo(tie.awayClubId, clubs, virtualClubs);
@@ -40,7 +48,7 @@ function TieCard({ tie, virtualClubs, playerClubId, clubs }: {
   return (
     <div className={cn(
       'bg-card/60 backdrop-blur-xl border rounded-xl p-2.5 space-y-1.5',
-      isPlayer ? 'border-primary/40 ring-1 ring-primary/20' : 'border-border/50',
+      isPlayer ? compRing : 'border-border/50',
       isDecided && !isPlayer && 'opacity-70',
     )}>
       {/* Home team */}
@@ -102,8 +110,9 @@ function TieCard({ tie, virtualClubs, playerClubId, clubs }: {
   );
 }
 
-export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, currentRound, winnerId }: KnockoutBracketProps) {
+export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, currentRound, winnerId, competition }: KnockoutBracketProps) {
   const rounds: ('R16' | 'QF' | 'SF' | 'F')[] = ['R16', 'QF', 'SF', 'F'];
+  const cc = COMP_COLORS[competition || 'champions_cup'];
 
   return (
     <div className="space-y-4">
@@ -115,15 +124,13 @@ export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, curre
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           className={cn(
             'rounded-xl p-4 text-center border',
-            winnerId === playerClubId
-              ? 'bg-gradient-to-br from-primary/20 via-amber-500/10 to-transparent border-primary/30 shadow-[0_0_24px_rgba(234,179,8,0.15)]'
-              : 'bg-primary/10 border-primary/30'
+            winnerId === playerClubId ? cc.gradient : cc.bg
           )}
         >
           <motion.div animate={winnerId === playerClubId ? { scale: [1, 1.15, 1] } : {}} transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}>
-            <Trophy className="w-7 h-7 text-primary mx-auto mb-1" />
+            <Trophy className={cn('w-7 h-7 mx-auto mb-1', cc.text)} />
           </motion.div>
-          <p className="text-sm text-primary font-bold">
+          <p className={cn('text-sm font-bold', cc.text)}>
             {winnerId === playerClubId
               ? 'You Won!'
               : `Winner: ${getClubInfo(winnerId, clubs, virtualClubs).name}`}
@@ -149,12 +156,12 @@ export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, curre
             <div className="flex items-center gap-2">
               <h3 className={cn(
                 'text-sm font-display font-bold',
-                isCurrent ? 'text-primary' : allDecided ? 'text-muted-foreground' : 'text-foreground'
+                isCurrent ? cc.text : allDecided ? 'text-muted-foreground' : 'text-foreground'
               )}>
                 {getKnockoutRoundName(round)}
               </h3>
               {isCurrent && (
-                <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">Current</span>
+                <span className={cn('text-[10px] px-2 py-0.5 rounded-full font-medium', cc.badge)}>Current</span>
               )}
               <span className="text-[10px] text-muted-foreground">{roundTies.length} {roundTies.length === 1 ? 'tie' : 'ties'}</span>
             </div>
@@ -167,7 +174,7 @@ export function KnockoutBracket({ ties, virtualClubs, playerClubId, clubs, curre
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: roundIdx * 0.1 + tieIdx * 0.05 }}
                 >
-                  <TieCard tie={tie} virtualClubs={virtualClubs} playerClubId={playerClubId} clubs={clubs} />
+                  <TieCard tie={tie} virtualClubs={virtualClubs} playerClubId={playerClubId} clubs={clubs} compRing={cc.ring} />
                 </motion.div>
               ))}
             </div>
