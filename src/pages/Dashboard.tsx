@@ -49,7 +49,7 @@ import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
 import { HELP_TEXTS, MID_SEASON_WEEK, CONFIDENCE_CRITICAL_THRESHOLD, CONFIDENCE_LOW_THRESHOLD, FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD, HOT_STREAK_MIN_WINS } from '@/config/ui';
 import { CONFIDENCE_CHANGE_DISMISS_THRESHOLD } from '@/config/gameBalance';
-import { getManagerTips } from '@/utils/managerTips';
+import { getManagerTips, type TipType } from '@/utils/managerTips';
 import { getActiveRecordChases } from '@/utils/records';
 import { getFlag, setFlag } from '@/store/helpers/persistence';
 import { MidSeasonReport } from '@/components/game/MidSeasonReport';
@@ -62,15 +62,29 @@ import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
 const WELCOME_KEY = 'dynasty-welcome-shown';
 const COLLAPSE_SPRING = { type: 'spring' as const, stiffness: 300, damping: 24 };
 const QUICK_LINKS = [
-  { label: 'Schedule', screen: 'calendar' as const, icon: Calendar },
-  { label: 'League', screen: 'league-table' as const, icon: Trophy },
-  { label: 'Squad', screen: 'squad' as const, icon: Users },
-  { label: 'Tactics', screen: 'tactics' as const, icon: Shield },
-  { label: 'Training', screen: 'training' as const, icon: Dumbbell },
-  { label: 'Club', screen: 'club' as const, icon: Settings },
-  { label: 'Transfers', screen: 'transfers' as const, icon: UserPlus },
-  { label: 'Cup', screen: 'cup' as const, icon: BarChart3 },
+  { label: 'Schedule', screen: 'calendar' as const, icon: Calendar, color: 'text-cyan-400' },
+  { label: 'League', screen: 'league-table' as const, icon: Trophy, color: 'text-amber-400' },
+  { label: 'Squad', screen: 'squad' as const, icon: Users, color: 'text-sky-400' },
+  { label: 'Tactics', screen: 'tactics' as const, icon: Shield, color: 'text-blue-400' },
+  { label: 'Training', screen: 'training' as const, icon: Dumbbell, color: 'text-emerald-400' },
+  { label: 'Club', screen: 'club' as const, icon: Settings, color: 'text-primary' },
+  { label: 'Transfers', screen: 'transfers' as const, icon: UserPlus, color: 'text-amber-400' },
+  { label: 'Cup', screen: 'cup' as const, icon: BarChart3, color: 'text-orange-400' },
 ];
+const TIP_BG: Record<TipType, string> = {
+  warning: 'bg-destructive/10',
+  tactical: 'bg-blue-500/10',
+  transfer: 'bg-amber-500/10',
+  squad: 'bg-emerald-500/10',
+  info: 'bg-muted/20',
+};
+const TIP_ICON: Record<TipType, string> = {
+  warning: 'text-destructive',
+  tactical: 'text-blue-400',
+  transfer: 'text-amber-400',
+  squad: 'text-emerald-400',
+  info: 'text-primary',
+};
 const VISIBLE_ACHIEVEMENT_COUNT = ACHIEVEMENTS.filter(a => !a.hidden).length;
 
 const Dashboard = () => {
@@ -561,6 +575,8 @@ const Dashboard = () => {
   const quickLinkDots: Record<string, string> = {
     ...(lineupIncomplete ? { squad: 'bg-destructive' } : {}),
     ...(transferWindowOpen ? { transfers: 'bg-emerald-500' } : {}),
+    ...(training.tacticalFamiliarity < 40 ? { training: 'bg-amber-500' } : {}),
+    ...(boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD ? { club: 'bg-destructive' } : {}),
   };
 
   return (
@@ -1022,12 +1038,12 @@ const Dashboard = () => {
                 transition={{ delay: i * 0.08 }}
                 className={cn(
                   'flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors',
-                  tip.action ? 'cursor-pointer hover:bg-primary/5' : '',
-                  'bg-muted/20'
+                  tip.action ? 'cursor-pointer hover:bg-white/5' : '',
+                  TIP_BG[tip.type]
                 )}
                 onClick={() => tip.action && setScreen(tip.action)}
               >
-                <DynamicIcon name={tip.icon} className="w-4 h-4 text-primary shrink-0" />
+                <DynamicIcon name={tip.icon} className={cn("w-4 h-4 shrink-0", TIP_ICON[tip.type])} />
                 <span className="text-xs text-foreground flex-1">{tip.text}</span>
                 {tip.action && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
               </motion.div>
@@ -1052,7 +1068,7 @@ const Dashboard = () => {
                 className="relative px-2 py-3 flex flex-col items-center gap-1.5"
                 onClick={() => setScreen(link.screen)}
               >
-                <Icon className="w-5 h-5 text-primary" />
+                <Icon className={cn("w-5 h-5", link.color)} />
                 <span className="text-[10px] font-medium text-foreground whitespace-nowrap">{link.label}</span>
                 {dot && <span className={cn('absolute top-1.5 right-1.5 w-2 h-2 rounded-full', dot)} />}
               </GlassPanel>
@@ -1074,9 +1090,9 @@ const Dashboard = () => {
               <span className="text-[10px] font-medium text-primary/70">Fam {training.tacticalFamiliarity}%</span>
             </div>
             {transferWindowOpen && (
-              <div className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-2.5 py-1 cursor-pointer" onClick={() => setScreen('transfers')}>
-                <ShoppingBag className="w-3 h-3 text-muted-foreground" />
-                <span className="text-[10px] font-medium text-muted-foreground">Window open</span>
+              <div className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-2.5 py-1 cursor-pointer" onClick={() => setScreen('transfers')}>
+                <ShoppingBag className="w-3 h-3 text-emerald-400" />
+                <span className="text-[10px] font-medium text-emerald-400">Window open</span>
               </div>
             )}
             <span className="text-[10px] text-muted-foreground">
@@ -1223,7 +1239,7 @@ const Dashboard = () => {
 
       {/* Monthly Objectives */}
       {!seasonOver && weeklyObjectives.length > 0 && (
-        <GlassPanel className="p-4">
+        <GlassPanel className="p-4 border-amber-500/20">
           <button
             type="button"
             onClick={() => setObjectivesCollapsed(c => !c)}
@@ -1232,7 +1248,7 @@ const Dashboard = () => {
           >
             <div className="flex items-center gap-2">
               <motion.div animate={{ rotate: objectivesCollapsed ? 0 : 90 }} transition={COLLAPSE_SPRING}>
-                <ChevronRight className="w-3 h-3 text-foreground" />
+                <ChevronRight className="w-3 h-3 text-amber-400" />
               </motion.div>
               <p className="text-xs font-bold text-foreground uppercase tracking-wider">Monthly Objectives</p>
               <span className="text-[9px] text-muted-foreground">Week {Math.max(1, Math.min(week - (objectivesStartWeek || 1) + 1, OBJECTIVE_CYCLE_WEEKS))}/{OBJECTIVE_CYCLE_WEEKS}</span>
@@ -1244,7 +1260,7 @@ const Dashboard = () => {
               {allObjectivesDone && <span className="text-[9px] text-emerald-400 font-bold">&#10003; Complete</span>}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] text-primary font-semibold">
+              <span className="text-[10px] text-amber-400 font-semibold">
                 {weeklyObjectives.filter(o => o.completed).length}/{weeklyObjectives.length}
               </span>
               {objectiveStreak > 0 && (
@@ -1400,10 +1416,10 @@ const Dashboard = () => {
           {/* XP Progress Widget */}
           <GlassPanel className="p-4" onClick={() => setScreen('perks')}>
             <div className="flex items-center gap-2 mb-2">
-              <Zap className="w-4 h-4 text-primary" />
+              <Zap className="w-4 h-4 text-amber-400" />
               <span className="text-xs text-muted-foreground">Manager Level</span>
             </div>
-            <p className="text-2xl font-black text-primary tabular-nums">
+            <p className="text-2xl font-black text-amber-400 tabular-nums">
               {managerProgression.level}
             </p>
             <div className="mt-1.5">
@@ -1537,29 +1553,36 @@ const Dashboard = () => {
       )}
 
       {/* Last match result */}
-      {currentMatchResult && (
+      {currentMatchResult && (() => {
+        const isHome = currentMatchResult.homeClubId === playerClubId;
+        const pG = isHome ? currentMatchResult.homeGoals : currentMatchResult.awayGoals;
+        const oG = isHome ? currentMatchResult.awayGoals : currentMatchResult.homeGoals;
+        const resultBorder = pG > oG ? 'border-emerald-500/30' : pG < oG ? 'border-destructive/30' : 'border-amber-500/30';
+        const resultText = pG > oG ? 'text-emerald-400' : pG < oG ? 'text-destructive' : 'text-amber-400';
+        return (
         <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-          <GlassPanel className="p-4 border-primary/30" onClick={() => setScreen('match-review')}>
-            <p className="text-[10px] text-primary uppercase tracking-wider mb-1">Last Result</p>
+          <GlassPanel className={cn("p-4", resultBorder)} onClick={() => setScreen('match-review')}>
+            <p className={cn("text-[10px] uppercase tracking-wider mb-1", resultText)}>Last Result</p>
             <p className="text-lg font-black text-foreground tabular-nums">
               {resolveClub(clubs, virtualClubs, currentMatchResult.homeClubId)?.shortName} {currentMatchResult.homeGoals} - {currentMatchResult.awayGoals} {resolveClub(clubs, virtualClubs, currentMatchResult.awayClubId)?.shortName}
             </p>
           </GlassPanel>
         </motion.div>
-      )}
+        );
+      })()}
 
       {/* Alerts Row */}
       {(unread > 0 || pendingOffers > 0) && (
         <div className="flex gap-3">
           {unread > 0 && (
             <GlassPanel className="flex-1 p-3 flex items-center gap-2" onClick={() => setScreen('inbox')}>
-              <Mail className="w-4 h-4 text-primary" />
+              <Mail className="w-4 h-4 text-sky-400" />
               <span className="text-sm text-foreground font-medium">{unread} unread</span>
             </GlassPanel>
           )}
           {pendingOffers > 0 && (
             <GlassPanel className="flex-1 p-3 flex items-center gap-2" onClick={() => setScreen('transfers')}>
-              <DollarSign className="w-4 h-4 text-primary" />
+              <DollarSign className="w-4 h-4 text-amber-400" />
               <span className="text-sm text-foreground font-medium">{pendingOffers} offer{pendingOffers > 1 ? 's' : ''}</span>
             </GlassPanel>
           )}
@@ -1645,7 +1668,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-2 gap-3">
         <GlassPanel className="p-4" onClick={() => setScreen('league-table')}>
           <div className="flex items-center gap-2 mb-1">
-            <Trophy className="w-4 h-4 text-primary" />
+            <Trophy className="w-4 h-4 text-amber-400" />
             <span className="text-xs text-muted-foreground">League Pos</span>
           </div>
           <p className="text-3xl font-black text-foreground tabular-nums">
@@ -1657,7 +1680,7 @@ const Dashboard = () => {
 
         <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('budget'); setFinanceSheetOpen(true); }}>
           <div className="flex items-center gap-2 mb-1">
-            <DollarSign className="w-4 h-4 text-primary" />
+            <DollarSign className="w-4 h-4 text-emerald-400" />
             <span className="text-xs text-muted-foreground">Budget</span>
             <InfoTip text={HELP_TEXTS.budget} />
           </div>
@@ -1671,7 +1694,7 @@ const Dashboard = () => {
 
         <GlassPanel className="p-4" onClick={() => setScreen('squad')}>
           <div className="flex items-center gap-2 mb-1">
-            <Heart className="w-4 h-4 text-primary" />
+            <Heart className="w-4 h-4 text-red-400" />
             <span className="text-xs text-muted-foreground">Morale</span>
             <InfoTip text={HELP_TEXTS.morale} />
           </div>
@@ -1688,7 +1711,7 @@ const Dashboard = () => {
 
         <GlassPanel className={cn("p-4 cursor-pointer", boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD && "border-destructive/50 animate-pulse")} onClick={() => setScreen('board')}>
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp className="w-4 h-4 text-primary" />
+            <TrendingUp className={cn("w-4 h-4", getConfidenceColor(boardConfidence).textClass)} />
             <span className="text-xs text-muted-foreground">Board</span>
             <InfoTip text={HELP_TEXTS.boardConfidence} />
           </div>
@@ -1724,7 +1747,7 @@ const Dashboard = () => {
       <div className="grid grid-cols-2 gap-3">
         <GlassPanel className="p-4 cursor-pointer" onClick={() => { setFinanceSheetMode('all'); setFinanceSheetOpen(true); }}>
           <div className="flex items-center gap-2 mb-1">
-            <Banknote className="w-4 h-4 text-primary" />
+            <Banknote className="w-4 h-4 text-emerald-400" />
             <span className="text-xs text-muted-foreground">Net Income</span>
           </div>
           <p className={cn(
@@ -1738,7 +1761,7 @@ const Dashboard = () => {
 
         <GlassPanel className="p-4" onClick={() => setScreen('club')}>
           <div className="flex items-center gap-2 mb-1">
-            <Users className="w-4 h-4 text-primary" />
+            <Users className="w-4 h-4 text-sky-400" />
             <span className="text-xs text-muted-foreground">Fan Mood</span>
             <InfoTip text={HELP_TEXTS.fanMood} />
           </div>

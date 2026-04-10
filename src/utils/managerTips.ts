@@ -2,11 +2,14 @@ import type { GameScreen, Player, Club, Match } from '@/types/game';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
 import { LINEUP_SIZE, LOW_FITNESS_THRESHOLD } from '@/config/gameBalance';
 
+export type TipType = 'warning' | 'tactical' | 'transfer' | 'squad' | 'info';
+
 export interface ManagerTip {
   icon: string;
   text: string;
   action?: GameScreen;
   priority: number;
+  type: TipType;
 }
 
 interface TipContext {
@@ -30,12 +33,12 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
 
   // Season 1, week 1: set tactics
   if (season === 1 && week === 1) {
-    tips.push({ icon: 'target', text: 'Set your tactics before your first match.', action: 'tactics', priority: 10 });
+    tips.push({ icon: 'target', text: 'Set your tactics before your first match.', action: 'tactics', priority: 10, type: 'tactical' });
   }
 
   // Lineup too small
   if (club.lineup.filter(id => players[id]).length < LINEUP_SIZE) {
-    tips.push({ icon: 'users', text: 'Your starting lineup is incomplete — set your team.', action: 'tactics', priority: 9 });
+    tips.push({ icon: 'users', text: 'Your starting lineup is incomplete — set your team.', action: 'tactics', priority: 9, type: 'squad' });
   }
 
   // Injured player in lineup
@@ -46,6 +49,7 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
       text: `${injuredStarters[0].lastName} is injured but in your lineup — update your team.`,
       action: 'tactics',
       priority: 8,
+      type: 'warning',
     });
   }
 
@@ -57,6 +61,7 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
       text: `${lowFitness[0].lastName} has low fitness (${lowFitness[0].fitness}%) — consider resting them.`,
       action: 'squad',
       priority: 7,
+      type: 'warning',
     });
   }
 
@@ -74,6 +79,7 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
         text: `Transfer window closes in ${weeksLeft} week${weeksLeft > 1 ? 's' : ''} — make your final moves.`,
         action: 'transfers',
         priority: 6,
+        type: 'transfer',
       });
     }
   }
@@ -85,6 +91,7 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
       text: `Winter transfer window opens in ${WINTER_WINDOW_START - week} week${WINTER_WINDOW_START - week > 1 ? 's' : ''}.`,
       action: 'transfers',
       priority: 3,
+      type: 'transfer',
     });
   }
 
@@ -95,6 +102,7 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
       text: `You have ${incomingOffers} incoming offer${incomingOffers > 1 ? 's' : ''} to respond to.`,
       action: 'transfers',
       priority: 7,
+      type: 'transfer',
     });
   }
 
@@ -104,6 +112,7 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
       icon: 'trending-down',
       text: 'Board confidence is low — prioritize winning matches.',
       priority: 5,
+      type: 'warning',
     });
   }
 
@@ -116,6 +125,7 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
         text: `${expiring.length} contract${expiring.length > 1 ? 's' : ''} expiring at season end — renew or sell.`,
         action: 'squad',
         priority: 4,
+        type: 'warning',
       });
     }
   }
@@ -127,6 +137,7 @@ export function getManagerTips(ctx: TipContext): ManagerTip[] {
       text: 'Tactical familiarity is low — train "Tactical" to improve match performance.',
       action: 'training',
       priority: 3,
+      type: 'tactical',
     });
   }
 
