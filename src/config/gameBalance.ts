@@ -257,6 +257,10 @@ export const BOARD_OBJ_BUDGET_BOOST = 2_000_000;
 export const BOARD_OBJ_ALL_COMPLETE_XP = 50;
 export const BOARD_OBJ_ALL_COMPLETE_CONFIDENCE = 8;
 
+// ── Prestige Perk Costs ──
+export const PRESTIGE_PERK_TIER_6_COST = 1000;
+export const PRESTIGE_PERK_TIER_7_COST = 1500;
+
 // ── Fan Confidence Formula ──
 export const FAN_CONFIDENCE_FAN_WEIGHT = 0.5;
 export const FAN_CONFIDENCE_BOARD_WEIGHT = 0.5;

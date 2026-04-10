@@ -1684,6 +1684,10 @@ function finalizeSeason(
   if (objectiveBudgetBoost > 0 && newClubs[playerClubId]) {
     newClubs[playerClubId] = { ...newClubs[playerClubId], budget: newClubs[playerClubId].budget + objectiveBudgetBoost };
   }
+  // War Chest prestige perk: +15% starting budget each season
+  if (hasPerk(state.managerProgression, 'war_chest') && newClubs[playerClubId]) {
+    newClubs[playerClubId] = { ...newClubs[playerClubId], budget: Math.round(newClubs[playerClubId].budget * 1.15) };
+  }
 
   const playerClubForObjectives = newClubs[playerClubId];
   const objectives = playerClubForObjectives ? generateObjectives(playerClubForObjectives, newPlayerDivision) : [];
@@ -1748,6 +1752,15 @@ function finalizeSeason(
     }
   }
   youthPlayers.forEach(p => { newPlayers[p.id] = p; });
+  // Prodigy Factory prestige perk: 2 extra youth prospects
+  if (hasPerk(state.managerProgression, 'prodigy_factory')) {
+    const { prospects: bonusProspects, players: bonusPlayers } = generateYouthProspects(
+      playerClubId, pcForYouth.youthRating, youthCoachQ, newSeason, 2, youthSquadQuality
+    );
+    newYouthProspects.push(...bonusProspects);
+    youthPlayers.push(...bonusPlayers);
+  }
+
   const newIntakePreview = generateIntakePreview(pcForYouth.youthRating);
 
   newMessages = addMsg(newMessages, {
@@ -2689,8 +2702,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const allClubPlayers = playerClub.playerIds.map(id => newPlayers[id]).filter(Boolean);
       const mentorBonusVal = getMentorBonus(p, allClubPlayers);
       const trainingPerkBoost = hasPerk(state.managerProgression, 'training_ground') ? TRAINING_GROUND_BOOST : 0;
+      const dnaCoachBoost = hasPerk(state.managerProgression, 'dna_coach') && p.age < 24 ? 0.1 : 0;
       const gkBoost = p.position === 'GK' ? gkCoachBonus * GK_COACH_DEV_BONUS_PER_QUALITY : 0;
-      p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + gkBoost);
+      p = applyPlayerDevelopment(p, getDominantTrainingFocus(training.schedule), mentorBonusVal, trainingPerkBoost + dnaCoachBoost + gkBoost);
       if (p.growthDelta && p.growthDelta > 0) {
         improvedPlayers.push({ name: p.lastName, overall: p.overall });
       } else if (p.growthDelta && p.growthDelta < 0) {
@@ -3774,7 +3788,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (newMerch.starSigningBuzz > 0) newMerch.starSigningBuzz -= 1;
     // Apply pricing fan mood impact
     const pricingMoodDelta = MERCH_PRICING_TIERS[newMerch.pricingTier].fanMoodImpact;
-    const merchFanMood = Math.max(0, Math.min(100, state.fanMood + pricingMoodDelta));
+    const cultHeroFloor = hasPerk(state.managerProgression, 'cult_hero') ? 40 : 0;
+    const merchFanMood = Math.max(cultHeroFloor, Math.min(100, state.fanMood + pricingMoodDelta));
 
     // Process sponsorship system (offers, satisfaction, new deals)
     const sponsorUpdates = processSponsorWeek({ ...state, week: newWeek, clubs: newClubs, messages: newMessages, currentMatchResult: thisWeekMatch ? state.currentMatchResult : null });

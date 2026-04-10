@@ -460,7 +460,12 @@ export type PerkId =
   | 'galactico' | 'wonder_coach'
   | 'dynasty_builder' | 'invincible'
   // Talent tree additions
-  | 'fortress_mentality' | 'training_ground' | 'golden_generation';
+  | 'fortress_mentality' | 'training_ground' | 'golden_generation'
+  // Prestige-exclusive perks
+  | 'counter_master' | 'puppet_master'
+  | 'cult_hero' | 'icon_status'
+  | 'war_chest' | 'kingmaker'
+  | 'prodigy_factory' | 'dna_coach';
 
 export type TalentBranch = 'tactician' | 'motivator' | 'dealmaker' | 'developer';
 
@@ -470,10 +475,11 @@ export interface ManagerPerk {
   description: string;
   icon: string;
   cost: number; // XP cost
-  tier: 1 | 2 | 3 | 4 | 5;
+  tier: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   prerequisite?: PerkId;
   branch: TalentBranch | 'capstone';
-  row: number; // 0-4 within branch, 5 for capstone
+  row: number; // 0-4 within branch, 5 for capstone, 5-6 for prestige
+  prestigeRequired?: number; // Minimum prestige level to unlock
 }
 
 export interface ManagerProgression {

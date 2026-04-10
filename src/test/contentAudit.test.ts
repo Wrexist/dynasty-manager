@@ -160,8 +160,8 @@ describe('3F: Achievement Completability', () => {
 });
 
 describe('3G: Manager Perk Progression Timeline', () => {
-  it('has 21 perks across 5 tiers in 4 branches + capstone', () => {
-    expect(MANAGER_PERKS.length).toBe(21);
+  it('has 29 perks across 7 tiers in 4 branches + capstone + prestige', () => {
+    expect(MANAGER_PERKS.length).toBe(29);
 
     const tiers = new Map<number, number>();
     for (const perk of MANAGER_PERKS) {
@@ -173,15 +173,17 @@ describe('3G: Manager Perk Progression Timeline', () => {
     expect(tiers.get(3)).toBe(4);
     expect(tiers.get(4)).toBe(4);
     expect(tiers.get(5)).toBe(5);
-    console.log(`[Content Audit] Perk tree: ${MANAGER_PERKS.length} perks across 5 tiers in 4 branches`);
+    expect(tiers.get(6)).toBe(4); // Prestige tier 6
+    expect(tiers.get(7)).toBe(4); // Prestige tier 7
+    console.log(`[Content Audit] Perk tree: ${MANAGER_PERKS.length} perks across 7 tiers in 4 branches + prestige`);
   });
 
   it('calculates total XP needed for all perks', () => {
     const totalCost = MANAGER_PERKS.reduce((sum, p) => sum + p.cost, 0);
     console.log(`[Content Audit] Total perk XP cost: ${totalCost}`);
 
-    // Tier costs: 4×80 + 4×200 + 4×400 + 4×600 + 4×800 + 1×1200 = 9520
-    expect(totalCost).toBe(9520);
+    // Tier costs: 4×80 + 4×200 + 4×400 + 4×600 + 4×800 + 1×1200 + 4×1000 + 4×1500 = 19520
+    expect(totalCost).toBe(19520);
   });
 
   it('estimates seasons to max out perk tree', () => {

@@ -394,9 +394,10 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     }
 
     const newPlayers = { ...state.players, [playerId]: updatedPlayer };
+    const kingmakerMult = hasPerk(state.managerProgression, 'kingmaker') ? 1.2 : 1;
     const askingPrice = customAskingPrice != null
-      ? Math.max(LISTING_PRICE_FLOOR, Math.round(customAskingPrice))
-      : Math.max(LISTING_PRICE_FLOOR, Math.round(player.value * LIST_PRICE_MULTIPLIER));
+      ? Math.max(LISTING_PRICE_FLOOR, Math.round(customAskingPrice * kingmakerMult))
+      : Math.max(LISTING_PRICE_FLOOR, Math.round(player.value * LIST_PRICE_MULTIPLIER * kingmakerMult));
     const newMarket = [...state.transferMarket, { playerId, askingPrice, sellerClubId: state.playerClubId }];
     let newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'transfer',

@@ -57,6 +57,12 @@ const PerksPage = () => {
           />
         </div>
         <p className="text-[9px] text-muted-foreground mt-1">Earn XP from wins (+{XP_REWARDS.win}), draws (+{XP_REWARDS.draw}), season end (+{XP_REWARDS.seasonEnd}), titles (+{XP_REWARDS.titleWin}), cup wins (+{XP_REWARDS.cupWin})</p>
+        {(managerProgression.prestigeLevel || 0) > 0 && (
+          <div className="flex items-center gap-1.5 mt-2 px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20">
+            <span className="text-[10px] font-bold text-amber-400">Prestige {managerProgression.prestigeLevel}</span>
+            <span className="text-[9px] text-amber-400/60">({managerProgression.prestigeLevel * 50}% XP bonus)</span>
+          </div>
+        )}
       </GlassPanel>
 
       {/* Branch Summary */}
