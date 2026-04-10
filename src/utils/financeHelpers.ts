@@ -56,8 +56,9 @@ export function getFinanceBreakdown(opts: {
   merchandise?: MerchState;
   players?: Record<string, Player>;
   division?: LeagueId;
+  managerSalary?: number;
 }): FinanceBreakdown {
-  const { club, facilities, staffMembers, scoutingAssignmentCount, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, division } = opts;
+  const { club, facilities, staffMembers, scoutingAssignmentCount, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, division, managerSalary } = opts;
 
   const fanFavMult = hasPerk(managerProgression, 'fan_favourite') ? 1.15 : 1;
   const fanMoodMult = FAN_MOOD_BASE + (fanMood / 100) * FAN_MOOD_SCALE;
@@ -92,9 +93,12 @@ export function getFinanceBreakdown(opts: {
   const staffWages = staffMembers.reduce((sum, s) => sum + s.wage, 0);
   const scoutingCosts = scoutingAssignmentCount * SCOUTING_COST_PER_ASSIGNMENT;
 
+  const mgrSalary = managerSalary ?? 0;
+
   const expenses: FinanceLineItem[] = [
     { label: 'Player Wages', amount: club.wageBill },
     { label: 'Staff Wages', amount: staffWages },
+    ...(mgrSalary > 0 ? [{ label: 'Manager Salary', amount: mgrSalary }] : []),
     { label: 'Scouting', amount: scoutingCosts },
     ...(merchOperatingCost > 0 ? [{ label: 'Merch Operations', amount: merchOperatingCost }] : []),
   ];

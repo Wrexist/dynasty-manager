@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
-  const { clubs, playerClubId, facilities, staff, scouting, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, playerDivision } = useGameStore(
+  const { clubs, playerClubId, facilities, staff, scouting, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, playerDivision, careerManager } = useGameStore(
     useShallow(s => ({
       clubs: s.clubs,
       playerClubId: s.playerClubId,
@@ -28,6 +28,7 @@ export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
       merchandise: s.merchandise,
       players: s.players,
       playerDivision: s.playerDivision,
+      careerManager: s.careerManager,
     }))
   );
   const club = clubs[playerClubId];
@@ -45,6 +46,7 @@ export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
     merchandise,
     players,
     division: playerDivision,
+    managerSalary: careerManager?.contract?.salary ?? 0,
   });
 
   const maxIncome = Math.max(...breakdown.income.map(i => i.amount), 1);

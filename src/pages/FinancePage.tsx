@@ -15,11 +15,12 @@ import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
 
 const FinancePage = () => {
-  const { clubs, playerClubId, players, financeHistory } = useGameStore(useShallow(s => ({
+  const { clubs, playerClubId, players, financeHistory, careerManager } = useGameStore(useShallow(s => ({
     clubs: s.clubs,
     playerClubId: s.playerClubId,
     players: s.players,
     financeHistory: s.financeHistory,
+    careerManager: s.careerManager,
   })));
   const club = clubs[playerClubId];
   const [financeSheetOpen, setFinanceSheetOpen] = useState(false);
@@ -58,6 +59,8 @@ const FinancePage = () => {
 
   // Squad cost breakdown
   const totalWages = club.wageBill;
+  const managerSalary = careerManager?.contract?.salary ?? 0;
+  const displayExpenses = totalWages + managerSalary;
 
   return (
     <>
@@ -161,12 +164,18 @@ const FinancePage = () => {
             <ArrowDownRight className="w-3.5 h-3.5 text-destructive" />
             <span className="text-xs text-muted-foreground">Weekly Expenses</span>
           </div>
-          <p className="text-lg font-bold text-destructive tabular-nums">£{(club.wageBill / 1000).toFixed(0)}K</p>
+          <p className="text-lg font-bold text-destructive tabular-nums">£{(displayExpenses / 1000).toFixed(0)}K</p>
           <div className="mt-2 space-y-1">
             <div className="flex justify-between text-[10px]">
               <span className="text-muted-foreground">Player Wages</span>
               <span className="text-foreground">£{(totalWages / 1000).toFixed(0)}K</span>
             </div>
+            {managerSalary > 0 && (
+              <div className="flex justify-between text-[10px]">
+                <span className="text-muted-foreground">Manager Salary</span>
+                <span className="text-foreground">£{(managerSalary / 1000).toFixed(1)}K</span>
+              </div>
+            )}
           </div>
         </GlassPanel>
       </div>
