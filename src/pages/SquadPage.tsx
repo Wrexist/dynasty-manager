@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
 import { cn } from '@/lib/utils';
-import { Position } from '@/types/game';
+import { Position, Player } from '@/types/game';
 import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch, AlertTriangle, FileText, Users, LogOut, Smile, Meh, Frown, Repeat2, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, getFitnessColor } from '@/utils/uiHelpers';
@@ -172,6 +172,47 @@ const SquadPage = () => {
     setConfirmListId(playerId);
   };
 
+  const ContractAlertChip = ({ p, variant }: { p: Player; variant: 'expired' | 'near' }) => {
+    const isExpired = variant === 'expired';
+    const borderColor = isExpired ? 'border-destructive/20' : 'border-amber-400/20';
+    const bgColor = isExpired ? 'bg-destructive/10' : 'bg-amber-400/10';
+    const nameColor = isExpired ? 'text-destructive' : 'text-amber-300';
+    const btnBg = isExpired ? 'bg-destructive/10 hover:bg-destructive/20' : 'bg-amber-400/10 hover:bg-amber-400/20';
+    const btnText = isExpired ? 'text-destructive/80 hover:text-destructive' : 'text-amber-400/80 hover:text-amber-400';
+
+    return (
+      <div className={cn('flex items-center gap-1.5 border rounded-lg px-2 py-1.5', bgColor, borderColor)}>
+        <span className={cn('text-[11px] font-bold tabular-nums leading-none', getRatingColor(p.overall))}>
+          {p.overall}
+        </span>
+        <FlagIcon nationality={p.nationality} size={12} />
+        <span className={cn('text-[8px] font-bold px-1 py-0.5 rounded leading-none', posBadgeColor(p.position))}>
+          {p.position}
+        </span>
+        <button
+          onClick={() => selectPlayer(p.id)}
+          className={cn('text-[10px] font-medium hover:underline truncate max-w-[80px]', nameColor)}
+          title={`${p.firstName} ${p.lastName}`}
+        >
+          {p.lastName}
+        </button>
+        <span className="text-[9px] text-muted-foreground tabular-nums">{p.age}y</span>
+        {p.injured ? (
+          <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while injured">INJ</span>
+        ) : p.onLoan ? (
+          <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while on loan">LOAN</span>
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); hapticLight(); startNegotiation(p.id, true); }}
+            className={cn('text-[8px] font-bold px-1.5 py-0.5 rounded transition-colors', btnText, btnBg)}
+          >
+            Renew
+          </button>
+        )}
+      </div>
+    );
+  };
+
   const handleListComplete = (appeased: boolean) => {
     if (!confirmListId) return;
     const player = players[confirmListId];
@@ -253,30 +294,7 @@ const SquadPage = () => {
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {contractAlerts.expiring.map(p => (
-                        <div
-                          key={p.id}
-                          className="flex items-center gap-1 bg-destructive/10 border border-destructive/20 rounded-lg px-2 py-1"
-                        >
-                          <button
-                            onClick={() => selectPlayer(p.id)}
-                            className="text-[10px] font-medium text-destructive hover:underline truncate max-w-[80px]"
-                            title={`${p.firstName} ${p.lastName}`}
-                          >
-                            {p.lastName}
-                          </button>
-                          {p.injured ? (
-                            <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while injured">INJ</span>
-                          ) : p.onLoan ? (
-                            <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while on loan">LOAN</span>
-                          ) : (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); hapticLight(); startNegotiation(p.id, true); }}
-                              className="text-[8px] font-bold text-destructive/80 hover:text-destructive bg-destructive/10 hover:bg-destructive/20 px-1.5 py-0.5 rounded transition-colors"
-                            >
-                              Renew
-                            </button>
-                          )}
-                        </div>
+                        <ContractAlertChip key={p.id} p={p} variant="expired" />
                       ))}
                     </div>
                   </div>
@@ -291,30 +309,7 @@ const SquadPage = () => {
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {contractAlerts.nearExpiry.map(p => (
-                        <div
-                          key={p.id}
-                          className="flex items-center gap-1 bg-amber-400/10 border border-amber-400/20 rounded-lg px-2 py-1"
-                        >
-                          <button
-                            onClick={() => selectPlayer(p.id)}
-                            className="text-[10px] font-medium text-amber-300 hover:underline truncate max-w-[80px]"
-                            title={`${p.firstName} ${p.lastName}`}
-                          >
-                            {p.lastName}
-                          </button>
-                          {p.injured ? (
-                            <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while injured">INJ</span>
-                          ) : p.onLoan ? (
-                            <span className="text-[8px] font-bold text-muted-foreground/50 px-1" title="Cannot renew while on loan">LOAN</span>
-                          ) : (
-                            <button
-                              onClick={(e) => { e.stopPropagation(); hapticLight(); startNegotiation(p.id, true); }}
-                              className="text-[8px] font-bold text-amber-400/80 hover:text-amber-400 bg-amber-400/10 hover:bg-amber-400/20 px-1.5 py-0.5 rounded transition-colors"
-                            >
-                              Renew
-                            </button>
-                          )}
-                        </div>
+                        <ContractAlertChip key={p.id} p={p} variant="near" />
                       ))}
                     </div>
                   </div>
@@ -524,7 +519,7 @@ const SquadPage = () => {
                 {/* Fitness + Morale + Form Column */}
                 <div className="flex items-center gap-2 shrink-0">
                   {/* Form indicator */}
-                  <span className={cn('text-[9px] font-bold tabular-nums w-6 text-center', form.color)} title={`Form: ${player.form}`}>
+                  <span className={cn('text-[9px] font-bold tabular-nums w-7 text-center', form.color)} title={`Form: ${player.form}`}>
                     {form.label}
                   </span>
 
@@ -543,28 +538,30 @@ const SquadPage = () => {
                   <morale.Icon className={cn('w-3.5 h-3.5 shrink-0', morale.color)} title={`Morale: ${morale.label} (${player.morale}%)`} />
                 </div>
 
-                {/* Contract urgency indicator — independent of status badge */}
-                {contractUrgency && !player.onLoan && !player.injured && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      hapticLight();
-                      startNegotiation(player.id, true);
-                    }}
-                    className={cn(
-                      'shrink-0 p-1 rounded-md transition-colors',
-                      contractUrgency === 'expired'
-                        ? 'text-destructive hover:bg-destructive/10'
-                        : 'text-amber-400 hover:bg-amber-400/10'
-                    )}
-                    title={contractUrgency === 'expired'
-                      ? `Contract expires end of this season (S${player.contractEnd})`
-                      : `Contract expires end of next season (S${player.contractEnd})`}
-                    aria-label={`Negotiate renewal for ${player.firstName} ${player.lastName}`}
-                  >
-                    <FileText className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                {/* Contract urgency indicator — always allocate space for alignment */}
+                <div className="w-6 shrink-0 flex items-center justify-center">
+                  {contractUrgency && !player.onLoan && !player.injured && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        hapticLight();
+                        startNegotiation(player.id, true);
+                      }}
+                      className={cn(
+                        'p-1 rounded-md transition-colors',
+                        contractUrgency === 'expired'
+                          ? 'text-destructive hover:bg-destructive/10'
+                          : 'text-amber-400 hover:bg-amber-400/10'
+                      )}
+                      title={contractUrgency === 'expired'
+                        ? `Contract expires end of this season (S${player.contractEnd})`
+                        : `Contract expires end of next season (S${player.contractEnd})`}
+                      aria-label={`Negotiate renewal for ${player.firstName} ${player.lastName}`}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
 
                 {/* Status Column — single priority badge to prevent overflow */}
                 <div className="flex items-center justify-end shrink-0 w-11">
