@@ -47,7 +47,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   seasonGrowthTracker: {} as Record<string, number>,
   // Transfer page filter state (persisted across navigation)
   transferFilters: {
-    tab: 'market' as 'market' | 'shortlist' | 'incoming' | 'outgoing' | 'loans' | 'freeAgents' | 'news',
+    tab: 'market' as 'market' | 'deals' | 'freeAgents' | 'news',
     posFilter: 0,
     searchQuery: '',
     sortBy: 'overall' as 'overall' | 'price' | 'age' | 'potential',
@@ -55,6 +55,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     divFilter: 'all',
     newsTypeFilter: 'all' as 'all' | 'transfer' | 'loan' | 'free_agent',
     hideUnaffordable: false,
+    showShortlistOnly: false,
   },
 
   // ── Transfer Filter Actions ──

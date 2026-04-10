@@ -4,7 +4,7 @@
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 48;
+const CURRENT_VERSION = 49;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -647,11 +647,30 @@ const migrations: Record<number, MigrationFn> = {
       faSortBy: 'overall', divFilter: 'all', newsTypeFilter: 'all', hideUnaffordable: false,
     },
   }),
+  // v47→48: Consolidate transfer tabs (7→4), add showShortlistOnly
+  47: (data: Record<string, unknown>) => {
+    const filters = (data.transferFilters || {}) as Record<string, unknown>;
+    const oldTab = filters.tab as string;
+    const tabMap: Record<string, string> = {
+      market: 'market', shortlist: 'market',
+      incoming: 'deals', outgoing: 'deals', loans: 'deals',
+      freeAgents: 'freeAgents', news: 'news',
+    };
+    return {
+      ...data,
+      version: 48,
+      transferFilters: {
+        ...filters,
+        tab: tabMap[oldTab] || 'market',
+        showShortlistOnly: oldTab === 'shortlist',
+      },
+    };
+  },
 
-  // v47 → v48: Add Conference Cup (third continental competition)
-  47: (data) => ({
+  // v48 → v49: Add Conference Cup (third continental competition)
+  48: (data) => ({
     ...data,
-    version: 48,
+    version: 49,
     conferenceCup: null,
   }),
 };

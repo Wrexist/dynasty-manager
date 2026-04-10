@@ -12,16 +12,16 @@ import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { TransferListing, IncomingOffer } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
-import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
-import { POSITION_FILTERS, PAGE_HINTS, MARKET_SUB_NAV, SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE } from '@/config/ui';
+import { getRatingColor } from '@/utils/uiHelpers';
+import { POSITION_FILTERS, PAGE_HINTS, MARKET_SUB_NAV, SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE, BUDGET_WARNING_THRESHOLD, HOT_FORM_THRESHOLD, GOOD_FORM_THRESHOLD, OFFER_EXPIRY_WARNING_WEEKS } from '@/config/ui';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, SIGNING_BONUS_WEEKS_PER_YEAR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE, FREE_AGENT_DIV_BONUS } from '@/config/transfers';
-import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
+import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, FREE_AGENT_DEFAULT_CONTRACT_YEARS, FREE_AGENT_MIN_WAGE_RATIO, FREE_AGENT_MAX_WAGE_RATIO, LOAN_BUY_FEE_MULTIPLIER } from '@/config/transfers';
+import { MAX_SQUAD_SIZE, LOAN_MIN_WEEKS_BEFORE_RECALL } from '@/config/gameBalance';
 import { formatMoney } from '@/utils/helpers';
-import { getPerformanceMultiplier } from '@/utils/transferOffers';
-import { FlagIcon } from '@/components/game/FlagIcon';
+import { getPerformanceMultiplier, getMaxFreeAgentOverall, calculateSigningBonus } from '@/utils/transferOffers';
+import { TransferPlayerCard } from '@/components/game/TransferPlayerCard';
 
 const DIVISION_LABELS: Record<string, string> = {
   'div-1': 'Prem',
@@ -35,7 +35,7 @@ const TransferPage = () => {
     transferMarket, players, clubs, playerClubId, shortlist, transferWindowOpen,
     incomingOffers, activeLoans, incomingLoanOffers, outgoingLoanRequests,
     week, season, totalWeeks,
-    freeAgents, scouting, transferNews, playerDivision,
+    freeAgents, scouting, transferNews, playerDivision, transferFilters,
   } = useGameStore(useShallow(s => ({
     transferMarket: s.transferMarket,
     players: s.players,
@@ -70,7 +70,7 @@ const TransferPage = () => {
   const setTransferFilter = useGameStore(s => s.setTransferFilter);
 
   // Persistent filters (survive navigation)
-  const { tab, posFilter, searchQuery, sortBy, faSortBy, divFilter, newsTypeFilter, hideUnaffordable } = transferFilters;
+  const { tab, posFilter, searchQuery, sortBy, faSortBy, divFilter, newsTypeFilter, hideUnaffordable, showShortlistOnly } = transferFilters;
   const setTab = (v: typeof tab) => setTransferFilter({ tab: v });
   const setPosFilter = (v: number) => setTransferFilter({ posFilter: v });
   const setSearchQuery = (v: string) => setTransferFilter({ searchQuery: v });
@@ -79,20 +79,21 @@ const TransferPage = () => {
   const setDivFilter = (v: string) => setTransferFilter({ divFilter: v });
   const setNewsTypeFilter = (v: typeof newsTypeFilter) => setTransferFilter({ newsTypeFilter: v });
   const setHideUnaffordable = (v: boolean) => setTransferFilter({ hideUnaffordable: v });
+  const setShowShortlistOnly = (v: boolean) => setTransferFilter({ showShortlistOnly: v });
 
   // Transient UI state (resets on navigation — modal/dialog state)
   const [signingPlayer, setSigningPlayer] = useState<string | null>(null);
   const [offerWage, setOfferWage] = useState(0);
-  const [offerYears, setOfferYears] = useState(2);
+  const [offerYears, setOfferYears] = useState(FREE_AGENT_DEFAULT_CONTRACT_YEARS);
   const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
   const [confirmAction, setConfirmAction] = useState<{ offerId: string; accept: boolean; playerName: string; fee: number } | null>(null);
   const [negotiatingOffer, setNegotiatingOffer] = useState<IncomingOffer | null>(null);
 
   const club = clubs[playerClubId];
 
-  // Filter listings based on active tab
+  // Filter listings based on shortlist toggle
   const listings = useMemo(() => {
-    let result = tab === 'shortlist'
+    let result = showShortlistOnly
       ? transferMarket.filter(l => shortlist.includes(l.playerId))
       : transferMarket.filter(l => l.sellerClubId !== playerClubId);
 
@@ -123,8 +124,8 @@ const TransferPage = () => {
       });
     }
 
-    // Affordability filter (market only — don't hide shortlisted players)
-    if (hideUnaffordable && tab !== 'shortlist') {
+    // Affordability filter (don't hide shortlisted players)
+    if (hideUnaffordable && !showShortlistOnly) {
       const budget = club?.budget || 0;
       result = result.filter(l => l.askingPrice <= budget);
     }
@@ -143,7 +144,7 @@ const TransferPage = () => {
       }
     });
     return result;
-  }, [tab, transferMarket, shortlist, playerClubId, posFilter, players, searchQuery, sortBy, divFilter, clubs, hideUnaffordable, club?.budget]);
+  }, [showShortlistOnly, transferMarket, shortlist, playerClubId, posFilter, players, searchQuery, sortBy, divFilter, clubs, hideUnaffordable, club?.budget]);
 
   // Outgoing: own players listed for sale
   const outgoingPlayers = useMemo(() => {
@@ -161,8 +162,7 @@ const TransferPage = () => {
       result = result.filter(p => `${p.firstName} ${p.lastName}`.toLowerCase().includes(q));
     }
     // Reputation gate: only show free agents within club's quality range
-    const divBonus = FREE_AGENT_DIV_BONUS[playerDivision] || 0;
-    const maxOvr = FREE_AGENT_REP_BASE + (club?.reputation || 1) * FREE_AGENT_REP_SCALE + divBonus;
+    const maxOvr = getMaxFreeAgentOverall(club?.reputation || 1, playerDivision);
     result = result.filter(p => p.overall <= maxOvr);
     result.sort((a, b) => {
       switch (faSortBy) {
@@ -323,28 +323,34 @@ const TransferPage = () => {
         </GlassPanel>
       )}
 
-      {/* 4 Tabs */}
-      <div role="tablist" aria-label="Transfer sections" className="flex gap-2 overflow-x-auto scrollbar-hide">
+      {/* Transfer Tabs (4 tabs) */}
+      <div role="tablist" aria-label="Transfer sections" className="flex gap-1.5">
         {([
           { id: 'market' as const, icon: ShoppingCart, label: 'Market' },
-          { id: 'shortlist' as const, icon: BookmarkCheck, label: `Shortlist (${shortlist.length})` },
-          { id: 'incoming' as const, icon: ArrowDownLeft, label: `Incoming (${incomingOffers.length})` },
-          { id: 'outgoing' as const, icon: ArrowUpRight, label: `Outgoing (${outgoingPlayers.length})` },
-          { id: 'loans' as const, icon: Repeat2, label: `Loans (${activeLoans.length})` },
-          { id: 'freeAgents' as const, icon: Users, label: `Free (${freeAgents.length})` },
-          { id: 'news' as const, icon: Newspaper, label: `News (${newsTypeFilter !== 'all' ? filteredGroupedNews.filteredNews.length : (transferNews || []).length})` },
-        ] as const).map(({ id, icon: TabIcon, label }) => (
+          { id: 'deals' as const, icon: ArrowDownLeft, label: 'Deals', count: incomingOffers.length + outgoingPlayers.length + activeLoans.length + incomingLoanOffers.length },
+          { id: 'freeAgents' as const, icon: Users, label: 'Free Agents' },
+          { id: 'news' as const, icon: Newspaper, label: 'News' },
+        ] as const).map(({ id, icon: TabIcon, label, count }) => (
           <button
             key={id}
             role="tab"
             aria-selected={tab === id}
             onClick={() => { hapticLight(); setTab(id); if (id !== 'news') setNewsTypeFilter('all'); }}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium shrink-0 transition-colors relative',
+              'flex items-center gap-1 flex-1 justify-center px-2 py-2 rounded-lg text-xs font-medium transition-colors relative',
               tab === id ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
             )}
           >
-            <TabIcon className="w-3.5 h-3.5" /> {label}
+            <TabIcon className="w-3.5 h-3.5" />
+            <span className="truncate">{label}</span>
+            {count != null && count > 0 && (
+              <span className={cn(
+                'ml-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[10px] font-bold px-1',
+                tab === id ? 'bg-primary-foreground/20' : 'bg-primary/20 text-primary'
+              )}>
+                {count}
+              </span>
+            )}
             {tab === id && (
               <motion.div
                 layoutId="transfer-tab-indicator"
@@ -356,120 +362,122 @@ const TransferPage = () => {
         ))}
       </div>
 
-      {/* Search + Position Filter (for market, shortlist, and free agents tabs) */}
-      {(tab === 'market' || tab === 'shortlist' || tab === 'freeAgents') && (
-        <>
-          {/* Search Input */}
-          <label htmlFor="transfer-search" className="sr-only">Search player name</label>
-          <div className="relative">
-            <input
-              id="transfer-search"
-              type="text"
-              inputMode="search"
-              enterKeyHint="search"
-              placeholder="Search player name..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 pr-8 rounded-lg text-sm bg-card/60 backdrop-blur-xl border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-            />
-            {searchQuery && (
+      {/* Compact Filter Toolbar (market & free agents tabs) */}
+      {(tab === 'market' || tab === 'freeAgents') && (
+        <div className="space-y-2">
+          {/* Search + Shortlist toggle (single row) */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <label htmlFor="transfer-search" className="sr-only">Search player name</label>
+              <input
+                id="transfer-search"
+                type="text"
+                inputMode="search"
+                enterKeyHint="search"
+                placeholder="Search player..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-1.5 pr-8 rounded-lg text-xs bg-card/60 backdrop-blur-xl border border-border/50 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {tab === 'market' && shortlist.length > 0 && (
               <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                aria-label="Clear search"
+                aria-label={showShortlistOnly ? 'Show all players' : 'Show shortlist only'}
+                onClick={() => { hapticLight(); setShowShortlistOnly(!showShortlistOnly); }}
+                className={cn(
+                  'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium shrink-0 transition-all',
+                  showShortlistOnly ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                )}
               >
-                <X className="w-4 h-4" />
+                {showShortlistOnly ? <BookmarkCheck className="w-3.5 h-3.5" /> : <Bookmark className="w-3.5 h-3.5" />}
+                {shortlist.length}
               </button>
             )}
           </div>
 
-          {/* Position Filter */}
-          <div className="flex gap-2">
+          {/* Position + Sort + Filters (single compact row) */}
+          <div className="flex items-center gap-1.5">
             {POSITION_FILTERS.map((f, i) => (
               <button
                 key={f.label}
+                aria-label={`Filter by ${f.label === 'All' ? 'all positions' : f.label}`}
                 onClick={() => { hapticLight(); setPosFilter(i); }}
                 className={cn(
-                  'px-2.5 py-1 rounded text-xs font-medium transition-all active:scale-[0.95]',
+                  'px-2 py-0.5 rounded text-[10px] font-medium transition-all',
                   posFilter === i ? 'bg-secondary text-secondary-foreground' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 {f.label}
               </button>
             ))}
-          </div>
-
-          {/* Free Agents Sort */}
-          {tab === 'freeAgents' && (
-            <div className="flex items-center justify-end">
+            <div className="flex-1" />
+            {tab === 'market' && (
               <button
-                onClick={() => {
-                  hapticLight();
-                  const opts: typeof faSortBy[] = ['overall', 'age', 'potential', 'wage'];
-                  const next = opts[(opts.indexOf(faSortBy) + 1) % opts.length];
-                  setFaSortBy(next);
-                }}
-                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground hover:text-foreground shrink-0"
-              >
-                <ArrowUpDown className="w-3 h-3" />
-                {faSortBy === 'overall' ? 'OVR' : faSortBy === 'age' ? 'Age' : faSortBy === 'potential' ? 'POT' : 'Wage'}
-              </button>
-            </div>
-          )}
-
-          {/* Division Filter & Sort (market tab only) */}
-          {tab === 'market' && (
-            <div className="flex items-center gap-2">
-              {/* Division Filter */}
-              <div className="flex gap-1 flex-1 overflow-x-auto scrollbar-hide">
-                {[
-                  { id: 'all', label: 'All Leagues' },
-                  { id: 'div-1', label: DIVISION_LABELS['div-1'] },
-                  { id: 'div-2', label: DIVISION_LABELS['div-2'] },
-                  { id: 'div-3', label: DIVISION_LABELS['div-3'] },
-                  { id: 'div-4', label: DIVISION_LABELS['div-4'] },
-                ].map(d => (
-                  <button
-                    key={d.id}
-                    onClick={() => { hapticLight(); setDivFilter(d.id); }}
-                    className={cn(
-                      'px-2 py-0.5 rounded text-[10px] font-medium shrink-0 transition-all',
-                      divFilter === d.id ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Affordability Filter */}
-              <button
+                aria-label={hideUnaffordable ? 'Show all prices' : 'Hide unaffordable'}
                 onClick={() => { hapticLight(); setHideUnaffordable(!hideUnaffordable); }}
                 className={cn(
-                  'flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium shrink-0 transition-all',
-                  hideUnaffordable ? 'bg-emerald-500/20 text-emerald-400' : 'bg-muted/50 text-muted-foreground hover:text-foreground'
+                  'px-1.5 py-0.5 rounded text-[10px] font-medium shrink-0 transition-all',
+                  hideUnaffordable ? 'bg-emerald-500/20 text-emerald-400' : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                {'\u00A3'}
-                {hideUnaffordable ? 'On' : 'Off'}
+                {'\u00A3'}{hideUnaffordable ? '\u2713' : ''}
               </button>
-
-              {/* Sort Selector */}
-              <button
-                onClick={() => {
-                  hapticLight();
+            )}
+            <button
+              aria-label={`Sort by ${tab === 'freeAgents' ? faSortBy : sortBy}`}
+              onClick={() => {
+                hapticLight();
+                if (tab === 'freeAgents') {
+                  const opts: typeof faSortBy[] = ['overall', 'age', 'potential', 'wage'];
+                  setFaSortBy(opts[(opts.indexOf(faSortBy) + 1) % opts.length]);
+                } else {
                   const opts: typeof sortBy[] = ['overall', 'price', 'age', 'potential'];
-                  const next = opts[(opts.indexOf(sortBy) + 1) % opts.length];
-                  setSortBy(next);
-                }}
-                className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground hover:text-foreground shrink-0"
-              >
-                <ArrowUpDown className="w-3 h-3" />
-                {sortBy === 'overall' ? 'OVR' : sortBy === 'price' ? 'Price' : sortBy === 'age' ? 'Age' : 'POT'}
-              </button>
+                  setSortBy(opts[(opts.indexOf(sortBy) + 1) % opts.length]);
+                }
+              }}
+              className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-muted/50 text-muted-foreground hover:text-foreground shrink-0"
+            >
+              <ArrowUpDown className="w-2.5 h-2.5" />
+              {tab === 'freeAgents'
+                ? (faSortBy === 'overall' ? 'OVR' : faSortBy === 'age' ? 'Age' : faSortBy === 'potential' ? 'POT' : 'Wage')
+                : (sortBy === 'overall' ? 'OVR' : sortBy === 'price' ? 'Price' : sortBy === 'age' ? 'Age' : 'POT')}
+            </button>
+          </div>
+
+          {/* Division filter (market only, inline) */}
+          {tab === 'market' && (
+            <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'div-1', label: DIVISION_LABELS['div-1'] },
+                { id: 'div-2', label: DIVISION_LABELS['div-2'] },
+                { id: 'div-3', label: DIVISION_LABELS['div-3'] },
+                { id: 'div-4', label: DIVISION_LABELS['div-4'] },
+              ].map(d => (
+                <button
+                  key={d.id}
+                  aria-label={`Filter by ${d.label}`}
+                  onClick={() => { hapticLight(); setDivFilter(d.id); }}
+                  className={cn(
+                    'px-2 py-0.5 rounded text-[10px] font-medium shrink-0 transition-all',
+                    divFilter === d.id ? 'bg-primary/20 text-primary' : 'text-muted-foreground/60 hover:text-foreground'
+                  )}
+                >
+                  {d.label}
+                </button>
+              ))}
             </div>
           )}
-        </>
+        </div>
       )}
 
       {/* Market Stats Summary */}
@@ -486,22 +494,22 @@ const TransferPage = () => {
         </GlassPanel>
       )}
 
-      {/* Market / Shortlist Listings */}
-      {(tab === 'market' || tab === 'shortlist') && (
+      {/* Market Listings */}
+      {tab === 'market' && (
         <div className="space-y-2">
           {listings.length === 0 && (() => {
-            const hasFilters = posFilter !== 0 || searchQuery.trim() || divFilter !== 'all' || hideUnaffordable;
+            const hasFilters = posFilter !== 0 || searchQuery.trim() || divFilter !== 'all' || hideUnaffordable || showShortlistOnly;
             return (
               <GlassPanel className="p-8 text-center">
                 <p className="text-sm text-muted-foreground">
                   {hasFilters
-                    ? 'No players match your filters'
-                    : tab === 'shortlist' ? 'No players in your shortlist' : 'No players on the transfer market'}
+                    ? showShortlistOnly ? 'No players in your shortlist' : 'No players match your filters'
+                    : 'No players on the transfer market'}
                 </p>
                 <p className="text-[10px] text-muted-foreground/60 mt-1">
                   {hasFilters
-                    ? 'Try adjusting your search, position, or division filters'
-                    : tab === 'shortlist' ? 'Tap the star icon on a player to add them' : 'Check back during the transfer window'}
+                    ? showShortlistOnly ? 'Tap the bookmark icon on a player to add them' : 'Try adjusting your search, position, or division filters'
+                    : 'Check back during the transfer window'}
                 </p>
               </GlassPanel>
             );
@@ -511,265 +519,180 @@ const TransferPage = () => {
             if (!p) return null;
             const seller = clubs[listing.sellerClubId];
             const inShortlist = shortlist.includes(p.id);
-            const top3 = getTop3Attributes(p.attributes);
 
             return (
-              <motion.div
+              <TransferPlayerCard
                 key={p.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.04, 0.4), duration: 0.2 }}
-              >
-              <GlassPanel className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <span className={cn(
-                      'font-mono font-black text-lg',
-                      getRatingColor(p.overall)
-                    )}>{p.overall}</span>
-                  </div>
-                  <div className="flex-1 min-w-0" role="button" tabIndex={0} aria-label={`View ${p.firstName} ${p.lastName}`} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
-                    <p className="font-bold text-foreground text-sm"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName} {p.lastName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {p.position} {'\u2022'} {p.age}y {'\u2022'} POT {p.potential || p.overall}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {listing.externalPlayer ? (
-                        <>
-                          <span className="text-amber-400">Unattached</span>
-                          {listing.divisionId && (
-                            <span className="ml-1 text-[10px] text-muted-foreground/60">
-                              ({DIVISION_LABELS[listing.divisionId] || 'Found'} tier)
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <>
-                          From: {seller?.shortName || '?'}
-                          {listing.divisionId && (
-                            <span className="ml-1 text-[10px] text-muted-foreground/60">
-                              ({DIVISION_LABELS[listing.divisionId] || 'Found'})
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </p>
-                    {/* Top 3 Attributes */}
-                    <div className="flex gap-2 mt-1.5">
-                      {top3.map(attr => (
-                        <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">
-                          <span className="text-muted-foreground">{attr.label}</span>{' '}
-                          <span className={cn(
-                            'font-bold',
-                            getRatingColor(attr.value)
-                          )}>{attr.value}</span>
+                player={p}
+                onSelect={selectPlayer}
+                showFlag
+                showPotential
+                animationIndex={i}
+                subtitle={
+                  listing.externalPlayer ? (
+                    <>
+                      <span className="text-amber-400">Unattached</span>
+                      {listing.divisionId && (
+                        <span className="ml-1 text-[10px] text-muted-foreground/60">
+                          ({DIVISION_LABELS[listing.divisionId] || 'Found'} tier)
                         </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      From: {seller?.shortName || '?'}
+                      {listing.divisionId && (
+                        <span className="ml-1 text-[10px] text-muted-foreground/60">
+                          ({DIVISION_LABELS[listing.divisionId] || 'Found'})
+                        </span>
+                      )}
+                    </>
+                  )
+                }
+                rightContent={
+                  <>
                     <div className="flex items-center gap-1.5 justify-end">
                       <div className={cn(
                         'w-1.5 h-1.5 rounded-full',
                         listing.askingPrice > (club?.budget || 0) ? 'bg-destructive' :
-                        listing.askingPrice > (club?.budget || 0) * 0.5 ? 'bg-amber-400' : 'bg-emerald-400'
+                        listing.askingPrice > (club?.budget || 0) * BUDGET_WARNING_THRESHOLD ? 'bg-amber-400' : 'bg-emerald-400'
                       )} />
-                      <p className="text-sm font-bold text-primary">{'\u00A3'}{(listing.askingPrice / 1e6).toFixed(1)}M</p>
+                      <p className="text-sm font-bold text-primary">{formatMoney(listing.askingPrice)}</p>
                     </div>
                     <p className="text-[10px] text-muted-foreground">{'\u00A3'}{(p.wage / 1e3).toFixed(0)}K/w</p>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <Button
-                    size="sm" className="flex-1 h-8 text-xs"
-                    disabled={!transferWindowOpen}
-                    onClick={() => handleOffer(listing)}
-                  >
-                    Make Offer
-                  </Button>
-                  <Button
-                    size="sm" variant="ghost" className="h-8 w-8 p-0"
-                    aria-label={inShortlist ? 'Remove from shortlist' : 'Add to shortlist'}
-                    onClick={() => { hapticLight(); if (inShortlist) { removeFromShortlist(p.id); infoToast('Removed from shortlist'); } else { addToShortlist(p.id); successToast('Added to shortlist'); } }}
-                  >
-                    {inShortlist ? <BookmarkCheck className="w-4 h-4 text-primary" /> : <Bookmark className="w-4 h-4" />}
-                  </Button>
-                </div>
-              </GlassPanel>
-              </motion.div>
+                  </>
+                }
+                actions={
+                  <>
+                    <Button
+                      size="sm" className="flex-1 h-8 text-xs"
+                      disabled={!transferWindowOpen}
+                      onClick={() => handleOffer(listing)}
+                    >
+                      Make Offer
+                    </Button>
+                    <Button
+                      size="sm" variant="ghost" className="h-8 w-8 p-0"
+                      aria-label={inShortlist ? 'Remove from shortlist' : 'Add to shortlist'}
+                      onClick={() => { hapticLight(); if (inShortlist) { removeFromShortlist(p.id); infoToast('Removed from shortlist'); } else { addToShortlist(p.id); successToast('Added to shortlist'); } }}
+                    >
+                      {inShortlist ? <BookmarkCheck className="w-4 h-4 text-primary" /> : <Bookmark className="w-4 h-4" />}
+                    </Button>
+                  </>
+                }
+              />
             );
           })}
         </div>
       )}
 
-      {/* Incoming Offers */}
-      {tab === 'incoming' && (
-        <div className="space-y-2">
-          {incomingOffers.map((offer, i) => {
-            const p = players[offer.playerId];
-            if (!p) return null;
-            const buyer = clubs[offer.buyerClubId];
-            const top3 = getTop3Attributes(p.attributes);
+      {/* Deals Tab (Incoming + Outgoing + Loans combined) */}
+      {tab === 'deals' && (
+        <div className="space-y-4">
+          {/* Incoming Transfer Offers */}
+          {incomingOffers.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Incoming Offers</p>
+              {incomingOffers.map((offer, i) => {
+                const p = players[offer.playerId];
+                if (!p) return null;
+                const buyer = clubs[offer.buyerClubId];
+                const perfMult = getPerformanceMultiplier(p);
+                const pctDiff = p.value > 0 ? Math.round(((offer.fee - p.value) / p.value) * 100) : 0;
 
-            return (
-              <motion.div
-                key={offer.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.04, 0.4), duration: 0.2 }}
-              >
-              <GlassPanel className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <span className={cn(
-                      'font-mono font-black text-lg',
-                      getRatingColor(p.overall)
-                    )}>{p.overall}</span>
-                  </div>
-                  <div className="flex-1 min-w-0" role="button" tabIndex={0} aria-label={`View ${p.firstName} ${p.lastName}`} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
-                    <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
-                    <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Bid from: <span className="text-foreground">{buyer?.name || '?'}</span></p>
-                    <div className="flex gap-2 mt-1.5">
-                      {top3.map(attr => (
-                        <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">
-                          <span className="text-muted-foreground">{attr.label}</span>{' '}
-                          <span className={cn(
-                            'font-bold',
-                            getRatingColor(attr.value)
-                          )}>{attr.value}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-primary">{formatMoney(offer.fee)}</p>
-                    <p className="text-[10px] text-muted-foreground">Value: {formatMoney(p.value)}</p>
-                    {(() => {
-                      if (p.value <= 0) return null;
-                      const pctDiff = Math.round(((offer.fee - p.value) / p.value) * 100);
-                      if (pctDiff === 0) return null;
-                      return (
-                        <p className={cn('text-[10px] font-medium', pctDiff > 0 ? 'text-emerald-400' : 'text-red-400')}>
-                          {pctDiff > 0 ? '+' : ''}{pctDiff}% {pctDiff > 0 ? 'above' : 'below'} value
-                        </p>
-                      );
-                    })()}
-                    {(() => {
-                      const perfMult = getPerformanceMultiplier(p);
-                      return (
+                return (
+                  <TransferPlayerCard
+                    key={offer.id}
+                    player={p}
+                    onSelect={selectPlayer}
+                    animationIndex={i}
+                    subtitle={<>Bid from: <span className="text-foreground">{buyer?.name || '?'}</span></>}
+                    rightContent={
+                      <>
+                        <p className="text-sm font-bold text-primary">{formatMoney(offer.fee)}</p>
+                        <p className="text-[10px] text-muted-foreground">Value: {formatMoney(p.value)}</p>
+                        {pctDiff !== 0 && (
+                          <p className={cn('text-[10px] font-medium', pctDiff > 0 ? 'text-emerald-400' : 'text-red-400')}>
+                            {pctDiff > 0 ? '+' : ''}{pctDiff}% {pctDiff > 0 ? 'above' : 'below'} value
+                          </p>
+                        )}
                         <div className="flex items-center justify-end gap-1 mt-0.5">
                           <span className="text-[10px] text-muted-foreground/70">Wk {offer.week}</span>
-                          {perfMult >= 1.15 ? (
+                          {perfMult >= HOT_FORM_THRESHOLD ? (
                             <span className="text-[9px] font-medium text-orange-500 bg-orange-500/10 px-1 rounded">Hot form</span>
-                          ) : perfMult >= 1.05 ? (
+                          ) : perfMult >= GOOD_FORM_THRESHOLD ? (
                             <span className="text-[9px] font-medium text-blue-400 bg-blue-400/10 px-1 rounded">Good form</span>
                           ) : null}
-                          {week - offer.week >= OFFER_EXPIRY_WEEKS - 1 && (
+                          {week - offer.week >= OFFER_EXPIRY_WEEKS - OFFER_EXPIRY_WARNING_WEEKS && (
                             <span className="text-[9px] font-medium text-amber-500 bg-amber-500/10 px-1 rounded">Expiring</span>
                           )}
                         </div>
-                      );
-                    })()}
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <Button
-                    size="sm" className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
-                    onClick={() => handleRespondToOffer(offer.id, true)}
-                  >
-                    Accept
-                  </Button>
-                  <Button
-                    size="sm" className="flex-1 h-8 text-xs bg-amber-600 hover:bg-amber-700"
-                    onClick={() => { hapticMedium(); setNegotiatingOffer(offer); }}
-                  >
-                    Negotiate
-                  </Button>
-                  <Button
-                    size="sm" variant="destructive" className="flex-1 h-8 text-xs"
-                    onClick={() => handleRespondToOffer(offer.id, false)}
-                  >
-                    Reject
-                  </Button>
-                </div>
-              </GlassPanel>
-              </motion.div>
-            );
-          })}
-          {incomingOffers.length === 0 && (
-            <GlassPanel className="p-8 text-center">
-              <ArrowDownLeft className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No incoming offers.</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">List players for sale to attract bids from other clubs.</p>
-            </GlassPanel>
+                      </>
+                    }
+                    actions={
+                      <>
+                        <Button
+                          size="sm" className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => handleRespondToOffer(offer.id, true)}
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          size="sm" className="flex-1 h-8 text-xs bg-amber-600 hover:bg-amber-700"
+                          onClick={() => { hapticMedium(); setNegotiatingOffer(offer); }}
+                        >
+                          Negotiate
+                        </Button>
+                        <Button
+                          size="sm" variant="destructive" className="flex-1 h-8 text-xs"
+                          onClick={() => handleRespondToOffer(offer.id, false)}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    }
+                  />
+                );
+              })}
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Outgoing (Listed for Sale) */}
-      {tab === 'outgoing' && (
-        <div className="space-y-2">
-          {outgoingPlayers.map(p => {
-            const listing = transferMarket.find(l => l.playerId === p.id);
-            const top3 = getTop3Attributes(p.attributes);
-
-            return (
-              <GlassPanel key={p.id} className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <span className={cn(
-                      'font-mono font-black text-lg',
-                      getRatingColor(p.overall)
-                    )}>{p.overall}</span>
-                  </div>
-                  <div className="flex-1 min-w-0" role="button" tabIndex={0} aria-label={`View ${p.firstName} ${p.lastName}`} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
-                    <p className="font-bold text-foreground text-sm"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName} {p.lastName}</p>
-                    <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} {p.nationality}</p>
-                    <div className="flex gap-2 mt-1.5">
-                      {top3.map(attr => (
-                        <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">
-                          <span className="text-muted-foreground">{attr.label}</span>{' '}
-                          <span className={cn(
-                            'font-bold',
-                            getRatingColor(attr.value)
-                          )}>{attr.value}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-primary">{'\u00A3'}{listing ? (listing.askingPrice / 1e6).toFixed(1) : (p.value / 1e6).toFixed(1)}M</p>
-                    <div className="flex items-center gap-1 mt-0.5 justify-end">
-                      <Tag className="w-3 h-3 text-amber-400" />
-                      <span className="text-[10px] text-amber-400">Listed</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-3">
-                  <Button
-                    size="sm" variant="outline" className="flex-1 h-8 text-xs"
-                    onClick={() => handleUnlist(p.id)}
-                  >
-                    Remove from List
-                  </Button>
-                </div>
-              </GlassPanel>
-            );
-          })}
-          {outgoingPlayers.length === 0 && (
-            <GlassPanel className="p-8 text-center">
-              <ArrowUpRight className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">No players listed for sale.</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">Go to Squad to list players on the transfer market.</p>
-            </GlassPanel>
+          {/* Players Listed for Sale */}
+          {outgoingPlayers.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Listed for Sale</p>
+              {outgoingPlayers.map(p => {
+                const listing = transferMarket.find(l => l.playerId === p.id);
+                return (
+                  <TransferPlayerCard
+                    key={p.id}
+                    player={p}
+                    onSelect={selectPlayer}
+                    showFlag
+                    subtitle={<>{p.nationality}</>}
+                    rightContent={
+                      <>
+                        <p className="text-sm font-bold text-primary">{formatMoney(listing ? listing.askingPrice : p.value)}</p>
+                        <div className="flex items-center gap-1 mt-0.5 justify-end">
+                          <Tag className="w-3 h-3 text-amber-400" />
+                          <span className="text-[10px] text-amber-400">Listed</span>
+                        </div>
+                      </>
+                    }
+                    actions={
+                      <Button
+                        size="sm" variant="outline" className="flex-1 h-8 text-xs"
+                        onClick={() => handleUnlist(p.id)}
+                      >
+                        Remove from List
+                      </Button>
+                    }
+                  />
+                );
+              })}
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Loans Tab */}
-      {tab === 'loans' && (
-        <div className="space-y-4">
           {/* Incoming Loan Offers */}
           {incomingLoanOffers.length > 0 && (
             <div className="space-y-2">
@@ -902,7 +825,7 @@ const TransferPage = () => {
                               </div>
                             </div>
                           </div>
-                          {loan.recallClause && elapsed >= 4 && (
+                          {loan.recallClause && elapsed >= LOAN_MIN_WEEKS_BEFORE_RECALL && (
                             <Button
                               size="sm" variant="outline" className="w-full h-8 text-xs mt-3"
                               onClick={() => {
@@ -952,7 +875,7 @@ const TransferPage = () => {
                               size="sm" variant="outline" className="w-full h-8 text-xs mt-3"
                               onClick={() => {
                                 hapticMedium();
-                                const fee = loan.obligatoryBuyFee || Math.round(p.value * 1.2);
+                                const fee = loan.obligatoryBuyFee || Math.round(p.value * LOAN_BUY_FEE_MULTIPLIER);
                                 if (fee > (club?.budget || 0)) {
                                   errorToast(`Insufficient funds — need ${formatMoney(fee)}.`);
                                   return;
@@ -961,7 +884,7 @@ const TransferPage = () => {
                                 if (r.success) { hapticHeavy(); successToast(r.message); } else { errorToast(r.message); }
                               }}
                             >
-                              Buy Permanently — {formatMoney(loan.obligatoryBuyFee || Math.round(p.value * 1.2))}
+                              Buy Permanently — {formatMoney(loan.obligatoryBuyFee || Math.round(p.value * LOAN_BUY_FEE_MULTIPLIER))}
                             </Button>
                           )}
                         </GlassPanel>
@@ -970,11 +893,11 @@ const TransferPage = () => {
                   </div>
                 )}
 
-                {loansOut.length === 0 && loansIn.length === 0 && incomingLoanOffers.length === 0 && outgoingLoanRequests.length === 0 && (
+                {loansOut.length === 0 && loansIn.length === 0 && incomingLoanOffers.length === 0 && outgoingLoanRequests.length === 0 && incomingOffers.length === 0 && outgoingPlayers.length === 0 && (
                   <GlassPanel className="p-8 text-center">
-                    <Repeat2 className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No active loans.</p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">AI clubs may offer loan deals for your fringe players during the transfer window.</p>
+                    <ArrowDownLeft className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">No active deals.</p>
+                    <p className="text-xs text-muted-foreground/70 mt-1">List players for sale or browse the market to get started.</p>
                   </GlassPanel>
                 )}
               </>
@@ -986,49 +909,30 @@ const TransferPage = () => {
       {/* Free Agents */}
       {tab === 'freeAgents' && (
         <div className="space-y-2">
-          {freeAgentPlayers.map((p, i) => {
-            const top3 = getTop3Attributes(p.attributes);
-            return (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.04, 0.4), duration: 0.2 }}
-              >
-              <GlassPanel className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
-                    <span className={cn('font-mono font-black text-lg', getRatingColor(p.overall))}>{p.overall}</span>
-                  </div>
-                  <div className="flex-1 min-w-0" role="button" tabIndex={0} aria-label={`View ${p.firstName} ${p.lastName}`} onClick={() => selectPlayer(p.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(p.id); } }}>
-                    <p className="font-bold text-foreground text-sm"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName} {p.lastName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {p.position} {'\u2022'} {p.age}y {'\u2022'} POT {p.potential || p.overall}
-                    </p>
-                    <div className="flex gap-2 mt-1.5">
-                      {top3.map(attr => (
-                        <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">
-                          <span className="text-muted-foreground">{attr.label}</span>{' '}
-                          <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-emerald-400">FREE</p>
-                    <p className="text-[10px] text-muted-foreground">{'\u00A3'}{(p.wage / 1e3).toFixed(0)}K/w</p>
-                  </div>
-                </div>
+          {freeAgentPlayers.map((p, i) => (
+            <TransferPlayerCard
+              key={p.id}
+              player={p}
+              onSelect={selectPlayer}
+              showFlag
+              showPotential
+              animationIndex={i}
+              rightContent={
+                <>
+                  <p className="text-sm font-bold text-emerald-400">FREE</p>
+                  <p className="text-[10px] text-muted-foreground">{'\u00A3'}{(p.wage / 1e3).toFixed(0)}K/w</p>
+                </>
+              }
+              actions={
                 <Button
-                  size="sm" className="w-full h-8 text-xs mt-3"
-                  onClick={() => { setSigningPlayer(p.id); setOfferWage(p.wage); setOfferYears(2); }}
+                  size="sm" className="w-full h-8 text-xs"
+                  onClick={() => { setSigningPlayer(p.id); setOfferWage(p.wage); setOfferYears(FREE_AGENT_DEFAULT_CONTRACT_YEARS); }}
                 >
                   Sign Player
                 </Button>
-              </GlassPanel>
-              </motion.div>
-            );
-          })}
+              }
+            />
+          ))}
           {freeAgentPlayers.length === 0 && (
             <GlassPanel className="p-8 text-center">
               <Users className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
@@ -1203,7 +1107,7 @@ const TransferPage = () => {
       {signingPlayer && (() => {
         const p = players[signingPlayer];
         if (!p) return null;
-        const signingBonus = Math.round(offerWage * offerYears * SIGNING_BONUS_WEEKS_PER_YEAR);
+        const signingBonus = calculateSigningBonus(offerWage, offerYears);
         const canAfford = (club?.budget || 0) >= signingBonus;
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
@@ -1215,8 +1119,8 @@ const TransferPage = () => {
                 <div className="flex items-center gap-2">
                   <input
                     type="range"
-                    min={Math.round(p.wage * 0.5)}
-                    max={Math.round(p.wage * 2)}
+                    min={Math.round(p.wage * FREE_AGENT_MIN_WAGE_RATIO)}
+                    max={Math.round(p.wage * FREE_AGENT_MAX_WAGE_RATIO)}
                     step={1000}
                     value={offerWage}
                     onChange={e => setOfferWage(Number(e.target.value))}
