@@ -10,7 +10,7 @@ import {
   PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING,
 } from '@/config/managerCareer';
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies } from '@/data/league';
-import { FRIENDLY_BOARD_CONFIDENCE_MULT } from '@/config/gameBalance';
+import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
@@ -255,28 +255,57 @@ function generateObjectives(club: Club, leagueId?: LeagueId): BoardObjective[] {
   const teamCount = league?.teamCount || 20;
   const replacedSlots = league?.replacedSlots || 0;
   const safePos = teamCount - replacedSlots;
+  const half = Math.floor(teamCount / 2);
 
   // League objectives based on reputation
   if (club.reputation >= 5) {
-    objectives.push({ id: '1', description: 'Win the League', priority: 'critical', completed: false });
-    objectives.push({ id: '2', description: 'Finish in Top 3', priority: 'important', completed: false });
+    objectives.push({ id: '1', description: 'Win the League', priority: 'critical', completed: false,
+      checkType: 'league_position', targetMin: 1, targetOverachieve: 1,
+      xpReward: BOARD_OBJ_XP_CRITICAL, xpRewardOverachieve: BOARD_OBJ_XP_CRITICAL });
+    objectives.push({ id: '2', description: 'Finish in Top 3', priority: 'important', completed: false,
+      checkType: 'league_position', targetMin: 3, targetOverachieve: 1,
+      xpReward: BOARD_OBJ_XP_IMPORTANT, xpRewardOverachieve: BOARD_OBJ_XP_IMPORTANT * BOARD_OBJ_XP_OVERACHIEVE_MULT,
+      budgetBoost: BOARD_OBJ_BUDGET_BOOST });
   } else if (club.reputation >= 4) {
-    objectives.push({ id: '1', description: 'Finish in Top 6', priority: 'critical', completed: false });
-    objectives.push({ id: '2', description: 'Reach Top Half', priority: 'important', completed: false });
+    objectives.push({ id: '1', description: 'Finish in Top 6', priority: 'critical', completed: false,
+      checkType: 'league_position', targetMin: 6, targetOverachieve: 3,
+      xpReward: BOARD_OBJ_XP_CRITICAL, xpRewardOverachieve: BOARD_OBJ_XP_CRITICAL * BOARD_OBJ_XP_OVERACHIEVE_MULT,
+      budgetBoost: BOARD_OBJ_BUDGET_BOOST });
+    objectives.push({ id: '2', description: `Reach Top Half`, priority: 'important', completed: false,
+      checkType: 'league_position', targetMin: half, targetOverachieve: 6,
+      xpReward: BOARD_OBJ_XP_IMPORTANT, xpRewardOverachieve: BOARD_OBJ_XP_IMPORTANT * BOARD_OBJ_XP_OVERACHIEVE_MULT });
   } else if (club.reputation >= 3) {
-    objectives.push({ id: '1', description: 'Reach Top Half', priority: 'critical', completed: false });
+    objectives.push({ id: '1', description: 'Reach Top Half', priority: 'critical', completed: false,
+      checkType: 'league_position', targetMin: half, targetOverachieve: Math.max(1, half - 3),
+      xpReward: BOARD_OBJ_XP_CRITICAL, xpRewardOverachieve: BOARD_OBJ_XP_CRITICAL * BOARD_OBJ_XP_OVERACHIEVE_MULT,
+      budgetBoost: BOARD_OBJ_BUDGET_BOOST });
   } else {
-    objectives.push({ id: '1', description: replacedSlots > 0 ? `Avoid Replacement (Top ${safePos})` : 'Finish in Top Half', priority: 'critical', completed: false });
+    const target = replacedSlots > 0 ? safePos : half;
+    const desc = replacedSlots > 0 ? `Avoid Replacement (Top ${safePos})` : 'Finish in Top Half';
+    objectives.push({ id: '1', description: desc, priority: 'critical', completed: false,
+      checkType: 'league_position', targetMin: target, targetOverachieve: Math.max(1, target - 4),
+      xpReward: BOARD_OBJ_XP_CRITICAL, xpRewardOverachieve: BOARD_OBJ_XP_CRITICAL * BOARD_OBJ_XP_OVERACHIEVE_MULT,
+      budgetBoost: BOARD_OBJ_BUDGET_BOOST });
   }
+
   // Cup objectives based on reputation
   if (club.reputation >= 5) {
-    objectives.push({ id: '4', description: 'Win the Cup', priority: 'important', completed: false });
+    objectives.push({ id: '4', description: 'Win the Cup', priority: 'important', completed: false,
+      checkType: 'cup_round', targetMin: 1, xpReward: BOARD_OBJ_XP_IMPORTANT });
   } else if (club.reputation >= 4) {
-    objectives.push({ id: '4', description: 'Reach Cup Semi-Final', priority: 'important', completed: false });
+    objectives.push({ id: '4', description: 'Reach Cup Semi-Final', priority: 'important', completed: false,
+      checkType: 'cup_round', targetMin: 2, targetOverachieve: 1,
+      xpReward: BOARD_OBJ_XP_IMPORTANT, xpRewardOverachieve: BOARD_OBJ_XP_IMPORTANT * BOARD_OBJ_XP_OVERACHIEVE_MULT });
   } else if (club.reputation >= 3) {
-    objectives.push({ id: '4', description: 'Reach Cup Quarter-Final', priority: 'optional', completed: false });
+    objectives.push({ id: '4', description: 'Reach Cup Quarter-Final', priority: 'optional', completed: false,
+      checkType: 'cup_round', targetMin: 3, targetOverachieve: 2,
+      xpReward: BOARD_OBJ_XP_OPTIONAL, xpRewardOverachieve: BOARD_OBJ_XP_OPTIONAL * BOARD_OBJ_XP_OVERACHIEVE_MULT });
   }
-  objectives.push({ id: '3', description: 'Stay within budget', priority: 'optional', completed: false });
+
+  objectives.push({ id: '3', description: 'Stay within budget', priority: 'optional', completed: false,
+    checkType: 'budget', targetMin: 0,
+    xpReward: BOARD_OBJ_XP_OPTIONAL });
+
   return objectives;
 }
 
@@ -1636,10 +1665,31 @@ function finalizeSeason(
   Object.assign(newPlayers, seasonMarket.players);
   transferMarket.push(...seasonMarket.listings);
 
+  // Board objective end-of-season rewards
+  let objectiveXP = 0;
+  let objectiveBudgetBoost = 0;
+  let objectiveConfidenceBonus = 0;
+  for (const obj of state.boardObjectives) {
+    if (obj.completed) {
+      objectiveXP += obj.overachieved ? (obj.xpRewardOverachieve ?? obj.xpReward ?? 0) : (obj.xpReward ?? 0);
+      if (obj.overachieved && obj.budgetBoost) objectiveBudgetBoost += obj.budgetBoost;
+    }
+  }
+  const allObjCompleted = state.boardObjectives.length > 0 && state.boardObjectives.every(o => o.completed);
+  if (allObjCompleted) {
+    objectiveXP += BOARD_OBJ_ALL_COMPLETE_XP;
+    objectiveConfidenceBonus += BOARD_OBJ_ALL_COMPLETE_CONFIDENCE;
+  }
+  // Apply budget boost to the club entering the new season
+  if (objectiveBudgetBoost > 0 && newClubs[playerClubId]) {
+    newClubs[playerClubId] = { ...newClubs[playerClubId], budget: newClubs[playerClubId].budget + objectiveBudgetBoost };
+  }
+
   const playerClubForObjectives = newClubs[playerClubId];
   const objectives = playerClubForObjectives ? generateObjectives(playerClubForObjectives, newPlayerDivision) : [];
   const verdict = history.boardVerdict;
-  const newConfidence = SEASON_END_CONFIDENCE[verdict] || CONFIDENCE_MIN;
+  const baseConfidence = SEASON_END_CONFIDENCE[verdict] || CONFIDENCE_MIN;
+  const newConfidence = Math.min(100, baseConfidence + objectiveConfidenceBonus);
 
   let newMessages = addMsg(inputMessages, {
     week: 1, season: newSeason, type: 'board',
@@ -1832,6 +1882,7 @@ function finalizeSeason(
       else if (state.shieldCup && !state.shieldCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
       if (state.conferenceCup?.winnerId === playerClubId) xp += XP_REWARDS.conferenceCupWin;
       else if (state.conferenceCup && !state.conferenceCup.playerEliminated) xp += XP_REWARDS.continentalGroupAdvance;
+      xp += objectiveXP;
       return xp;
     })()),
     seasonGrowthTracker: {},
@@ -3733,24 +3784,46 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const playerPos = playerTableIdx >= 0 ? playerTableIdx + 1 : 20;
     const updatedObjectives = state.boardObjectives.map(obj => {
       const o = { ...obj };
-      if (obj.description === 'Win the League') o.completed = playerPos === 1;
-      else if (obj.description === 'Finish in Top 3') o.completed = playerPos <= 3;
-      else if (obj.description === 'Finish in Top 6') o.completed = playerPos <= 6;
-      else if (obj.description === 'Reach Top Half' || obj.description === 'Finish in Top Half') o.completed = playerPos <= 10;
-      else if (obj.description.startsWith('Avoid Replacement')) {
-        const posMatch = obj.description.match(/Top (\d+)/);
-        const safePos = posMatch ? parseInt(posMatch[1]) : 17;
-        o.completed = playerPos <= safePos;
-      }
-      else if (obj.description === 'Stay within budget') o.completed = newClubs[playerClubId].budget >= 0;
-      else if (obj.description === 'Win the Cup') o.completed = newCup.winner === playerClubId;
-      else if (obj.description === 'Reach Cup Semi-Final') {
-        const sfOrBetter = ['SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
-        o.completed = !newCup.eliminated && sfOrBetter;
-      }
-      else if (obj.description === 'Reach Cup Quarter-Final') {
-        const qfOrBetter = ['QF', 'SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
-        o.completed = !newCup.eliminated && qfOrBetter;
+
+      // Structured evaluation (new format with checkType)
+      if (obj.checkType === 'league_position') {
+        o.completed = playerPos <= (obj.targetMin ?? 20);
+        o.overachieved = obj.targetOverachieve != null && playerPos <= obj.targetOverachieve;
+        o.progressCurrent = playerPos;
+      } else if (obj.checkType === 'cup_round') {
+        // targetMin: 1=Winner, 2=SF+, 3=QF+
+        const cupStage = obj.targetMin ?? 4;
+        if (cupStage <= 1) o.completed = newCup.winner === playerClubId;
+        else if (cupStage <= 2) { const ok = ['SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null; o.completed = !newCup.eliminated && ok; }
+        else { const ok = ['QF', 'SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null; o.completed = !newCup.eliminated && ok; }
+        // Overachieve check
+        if (obj.targetOverachieve != null) {
+          if (obj.targetOverachieve <= 1) o.overachieved = newCup.winner === playerClubId;
+          else if (obj.targetOverachieve <= 2) { const ok = ['SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null; o.overachieved = !newCup.eliminated && ok; }
+        }
+      } else if (obj.checkType === 'budget') {
+        o.completed = newClubs[playerClubId].budget >= (obj.targetMin ?? 0);
+      } else {
+        // Legacy string-matching fallback (backward compat for old saves)
+        if (obj.description === 'Win the League') o.completed = playerPos === 1;
+        else if (obj.description === 'Finish in Top 3') o.completed = playerPos <= 3;
+        else if (obj.description === 'Finish in Top 6') o.completed = playerPos <= 6;
+        else if (obj.description === 'Reach Top Half' || obj.description === 'Finish in Top Half') o.completed = playerPos <= 10;
+        else if (obj.description.startsWith('Avoid Replacement')) {
+          const posMatch = obj.description.match(/Top (\d+)/);
+          const sp = posMatch ? parseInt(posMatch[1]) : 17;
+          o.completed = playerPos <= sp;
+        }
+        else if (obj.description === 'Stay within budget') o.completed = newClubs[playerClubId].budget >= 0;
+        else if (obj.description === 'Win the Cup') o.completed = newCup.winner === playerClubId;
+        else if (obj.description === 'Reach Cup Semi-Final') {
+          const sfOrBetter = ['SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
+          o.completed = !newCup.eliminated && sfOrBetter;
+        }
+        else if (obj.description === 'Reach Cup Quarter-Final') {
+          const qfOrBetter = ['QF', 'SF', 'F'].includes(newCup.currentRound || '') || newCup.winner != null;
+          o.completed = !newCup.eliminated && qfOrBetter;
+        }
       }
       return o;
     });
@@ -3832,16 +3905,55 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (BOARD_REVIEW_WEEKS.includes(newWeek)) {
       const expectedPos = getExpectedPosition(playerClub.reputation);
       const actualPos = playerTableIdx >= 0 ? playerTableIdx + 1 : 20;
-      const diff = expectedPos - actualPos;
-      if (diff >= 3) {
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: Impressive', body: `The board acknowledges your excellent work. Finishing ${actualPos}${getSuffix(actualPos)} exceeds expectations. Keep it up!` });
-      } else if (diff >= 0) {
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: On Track', body: `The board is satisfied with progress. Current position of ${actualPos}${getSuffix(actualPos)} meets expectations.` });
-      } else if (diff >= -3) {
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: Concerns', body: `The board notes the team is underperforming. A position of ${actualPos}${getSuffix(actualPos)} is below expectations. Improvement is needed.` });
+      const diff = actualPos - expectedPos; // positive = underperforming, negative = overperforming
+      let reviewBody = '';
+
+      if (diff <= -5) {
+        reviewBody = `The board acknowledges your excellent work. Finishing ${actualPos}${getSuffix(actualPos)} exceeds expectations. Keep it up!`;
+      } else if (diff <= 0) {
+        reviewBody = `The board is satisfied with progress. Current position of ${actualPos}${getSuffix(actualPos)} meets expectations.`;
+      } else if (diff <= 3) {
+        reviewBody = `The board notes the team is underperforming. A position of ${actualPos}${getSuffix(actualPos)} is below expectations. Improvement is needed.`;
       } else {
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: 'Board Review: Serious Concerns', body: `The board is deeply unhappy. Current position of ${actualPos}${getSuffix(actualPos)} is well below the expected ${expectedPos}${getSuffix(expectedPos)}. Results must improve immediately.` });
+        reviewBody = `The board is deeply unhappy. Current position of ${actualPos}${getSuffix(actualPos)} is well below the expected ${expectedPos}${getSuffix(expectedPos)}. Results must improve immediately.`;
       }
+
+      // Adjust league position objectives based on performance
+      const lid = state.playerDivision;
+      const lge = LEAGUES.find(l => l.id === lid);
+      const tc = lge?.teamCount || 20;
+      let adjustmentNote = '';
+      for (let i = 0; i < updatedObjectives.length; i++) {
+        const obj = updatedObjectives[i];
+        if (obj.checkType !== 'league_position' || obj.targetMin == null) continue;
+
+        if (diff >= BOARD_REVIEW_RAISE_THRESHOLD && obj.targetMin > 1) {
+          // Underperforming badly — relax targets
+          const relaxed = Math.min(tc, obj.targetMin + BOARD_REVIEW_ADJUST_POSITIONS);
+          updatedObjectives[i] = { ...obj,
+            originalDescription: obj.originalDescription || obj.description,
+            originalTargetMin: obj.originalTargetMin ?? obj.targetMin,
+            targetMin: relaxed,
+            description: relaxed === 1 ? 'Win the League' : `Finish in Top ${relaxed}`,
+            adjusted: true,
+          };
+          adjustmentNote = ' The board has relaxed your league target given the circumstances.';
+        } else if (diff <= BOARD_REVIEW_RELAX_THRESHOLD && obj.targetMin > 1) {
+          // Overperforming — raise expectations
+          const raised = Math.max(1, obj.targetMin - BOARD_REVIEW_ADJUST_POSITIONS);
+          updatedObjectives[i] = { ...obj,
+            originalDescription: obj.originalDescription || obj.description,
+            originalTargetMin: obj.originalTargetMin ?? obj.targetMin,
+            targetMin: raised,
+            description: raised === 1 ? 'Win the League' : `Finish in Top ${raised}`,
+            adjusted: true,
+          };
+          adjustmentNote = ' Impressed by your form, the board has raised expectations.';
+        }
+      }
+
+      const reviewTitle = diff <= -5 ? 'Board Review: Impressive' : diff <= 0 ? 'Board Review: On Track' : diff <= 3 ? 'Board Review: Concerns' : 'Board Review: Serious Concerns';
+      newMessages = addMsg(newMessages, { week: newWeek, season, type: 'board', title: reviewTitle, body: reviewBody + adjustmentNote });
     }
 
     // Evaluate monthly objectives — mark completions every week, cycle every OBJECTIVE_CYCLE_WEEKS weeks

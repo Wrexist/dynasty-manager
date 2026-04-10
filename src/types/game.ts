@@ -392,6 +392,19 @@ export interface BoardObjective {
   description: string;
   priority: 'critical' | 'important' | 'optional';
   completed: boolean;
+  // Tiered objective fields (optional — backward-compatible)
+  checkType?: 'league_position' | 'cup_round' | 'budget';
+  targetMin?: number;
+  targetOverachieve?: number;
+  overachieved?: boolean;
+  xpReward?: number;
+  xpRewardOverachieve?: number;
+  budgetBoost?: number;
+  progressCurrent?: number;
+  // Mid-season adjustment tracking
+  adjusted?: boolean;
+  originalDescription?: string;
+  originalTargetMin?: number;
 }
 
 export interface Message {

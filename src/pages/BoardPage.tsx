@@ -7,7 +7,7 @@ import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { PageHint } from '@/components/game/PageHint';
 import {
   Target, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2, Circle,
-  TrendingUp, TrendingDown, Swords, DollarSign, Flame, Award,
+  TrendingUp, TrendingDown, Swords, DollarSign, Flame, Award, Star, Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -259,9 +259,11 @@ const BoardPage = () => {
             {boardObjectives.map(obj => (
               <div key={obj.id} className={cn(
                 "flex items-start gap-2.5 p-2 rounded-lg transition-colors",
-                obj.completed ? "bg-emerald-500/5" : "bg-transparent",
+                obj.overachieved ? "bg-primary/5" : obj.completed ? "bg-emerald-500/5" : "bg-transparent",
               )}>
-                {obj.completed ? (
+                {obj.overachieved ? (
+                  <Star className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                ) : obj.completed ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                 ) : (
                   <Circle className={cn('w-4 h-4 shrink-0 mt-0.5',
@@ -269,19 +271,39 @@ const BoardPage = () => {
                   )} />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className={cn('text-sm', obj.completed ? 'text-muted-foreground line-through' : 'text-foreground')}>
-                    {obj.description}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-1.5">
+                    <p className={cn('text-sm', obj.completed ? 'text-muted-foreground line-through' : 'text-foreground')}>
+                      {obj.description}
+                    </p>
+                    {obj.adjusted && (
+                      <span className="text-[8px] font-semibold text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">Adjusted</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span className={cn('text-[10px] font-semibold uppercase',
                       obj.priority === 'critical' ? 'text-destructive' : obj.priority === 'important' ? 'text-amber-400' : 'text-muted-foreground'
                     )}>
                       {obj.priority}
                     </span>
-                    {typeof pos === 'number' && !obj.completed && (
-                      <span className="text-[10px] text-muted-foreground">Currently {pos}{getSuffix(pos)}</span>
+                    {obj.progressCurrent != null && obj.checkType === 'league_position' && !obj.completed && (
+                      <span className="text-[10px] text-muted-foreground">Currently {obj.progressCurrent}{getSuffix(obj.progressCurrent)}</span>
+                    )}
+                    {obj.xpReward != null && (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] text-primary/70">
+                        <Zap className="w-2.5 h-2.5" />{obj.completed ? (obj.overachieved ? obj.xpRewardOverachieve : obj.xpReward) : obj.xpReward} XP
+                      </span>
+                    )}
+                    {obj.budgetBoost != null && obj.budgetBoost > 0 && (
+                      <span className="inline-flex items-center gap-0.5 text-[9px] text-emerald-400/70">
+                        <DollarSign className="w-2.5 h-2.5" />+£{(obj.budgetBoost / 1_000_000).toFixed(0)}M
+                      </span>
                     )}
                   </div>
+                  {obj.targetOverachieve != null && obj.targetOverachieve !== obj.targetMin && obj.checkType === 'league_position' && !obj.overachieved && (
+                    <p className="text-[9px] text-primary/50 mt-0.5 flex items-center gap-1">
+                      <Star className="w-2.5 h-2.5" /> Overachieve: Finish in Top {obj.targetOverachieve}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}
