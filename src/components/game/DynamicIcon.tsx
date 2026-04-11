@@ -8,7 +8,7 @@ import {
   CheckCircle2, Pickaxe,
   Sparkles, UserMinus, AlertTriangle, AlertCircle, RotateCcw,
   HeartCrack, Repeat, LayoutGrid, Award,
-  Castle, Gem,
+  Castle, Gem, Scale,
   Users, Heart, ShoppingCart, DollarSign, FileText,
   type LucideIcon,
 } from 'lucide-react';
@@ -70,6 +70,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   award: Award,
   castle: Castle,
   gem: Gem,
+  scale: Scale,
   users: Users,
   heart: Heart,
   'shopping-cart': ShoppingCart,

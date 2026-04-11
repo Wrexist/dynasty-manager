@@ -665,28 +665,36 @@ export function generateCompetitors(
 ): CompetingCandidate[] {
   const count = randInt(MIN_COMPETITORS, MAX_COMPETITORS);
   const competitors: CompetingCandidate[] = [];
+  const usedNames = new Set<string>();
+
+  // Pre-filter club pool once (not per iteration)
+  const clubPool = CLUBS_DATA.filter(c => {
+    const league = LEAGUES.find(l => l.id === c.divisionId);
+    return league && league.qualityTier <= qualityTier + 1;
+  });
 
   for (let i = 0; i < count; i++) {
-    const firstName = AI_MANAGER_FIRST_NAMES[Math.floor(Math.random() * AI_MANAGER_FIRST_NAMES.length)];
-    const lastName = AI_MANAGER_LAST_NAMES[Math.floor(Math.random() * AI_MANAGER_LAST_NAMES.length)];
-    const name = `${firstName} ${lastName}`;
+    // Generate unique name (retry up to 10 times on collision)
+    let name = '';
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const firstName = AI_MANAGER_FIRST_NAMES[Math.floor(Math.random() * AI_MANAGER_FIRST_NAMES.length)];
+      const lastName = AI_MANAGER_LAST_NAMES[Math.floor(Math.random() * AI_MANAGER_LAST_NAMES.length)];
+      name = `${firstName} ${lastName}`;
+      if (!usedNames.has(name)) break;
+    }
+    usedNames.add(name);
 
-    // Competitor reputation varies around the vacancy minimum
-    const repVariance = (Math.random() - 0.3) * COMPETITOR_REP_VARIANCE;
+    // Symmetric variance around vacancy minimum
+    const repVariance = (Math.random() - 0.5) * COMPETITOR_REP_VARIANCE;
     const repScore = Math.max(0, Math.round(vacancyMinRep + repVariance));
     const tier = calculateReputationTier(repScore);
 
-    // Pick a random previous club name
-    const clubPool = CLUBS_DATA.filter(c => {
-      const league = LEAGUES.find(l => l.id === c.divisionId);
-      return league && league.qualityTier <= qualityTier + 1;
-    });
     const prevClub = clubPool.length > 0
       ? clubPool[Math.floor(Math.random() * clubPool.length)].name
       : 'Unattached';
 
-    // Strength normalized: how competitive this candidate is
-    const strength = clamp(repScore / Math.max(1, vacancyMinRep + 200), 0, 1);
+    // Strength: 0-1 scale with good differentiation across the rep range
+    const strength = clamp(repScore / Math.max(100, vacancyMinRep * 1.5 + 50), 0, 1);
 
     competitors.push({ name, reputationTier: tier, reputationScore: repScore, previousClub: prevClub, strength });
   }
@@ -725,11 +733,13 @@ export function selectPitchQuestions(qualityTier: 1 | 2 | 3 | 4): PitchQuestion[
 
   // For each selected context, pick a random question
   const questions: PitchQuestion[] = [];
+  const usedQuestionTexts = new Set<string>();
   let qId = 0;
   for (const ctx of selectedContexts) {
-    const contextQs = PITCH_QUESTIONS.filter((q: PitchQuestionDef) => q.context === ctx);
+    const contextQs = PITCH_QUESTIONS.filter((q: PitchQuestionDef) => q.context === ctx && !usedQuestionTexts.has(q.question));
     if (contextQs.length === 0) continue;
     const picked = contextQs[Math.floor(Math.random() * contextQs.length)];
+    usedQuestionTexts.add(picked.question);
     const options: PitchOption[] = (['ambitious', 'pragmatic', 'developmental', 'defensive'] as const).map(tone => ({
       tone,
       text: picked.options[tone].text,
@@ -742,6 +752,28 @@ export function selectPitchQuestions(qualityTier: 1 | 2 | 3 | 4): PitchQuestion[
       context: picked.context,
       options,
     });
+  }
+
+  // Fallback: if we didn't reach the target count, fill from any unused question
+  if (questions.length < INTERVIEW_PITCH_QUESTIONS) {
+    const remaining = PITCH_QUESTIONS.filter((q: PitchQuestionDef) => !usedQuestionTexts.has(q.question));
+    const shuffled = shuffle([...remaining]);
+    for (const picked of shuffled) {
+      if (questions.length >= INTERVIEW_PITCH_QUESTIONS) break;
+      usedQuestionTexts.add(picked.question);
+      const options: PitchOption[] = (['ambitious', 'pragmatic', 'developmental', 'defensive'] as const).map(tone => ({
+        tone,
+        text: picked.options[tone].text,
+        scoreModifier: picked.options[tone].scoreModifier,
+        bestForTier: picked.options[tone].bestForTier,
+      }));
+      questions.push({
+        id: `pitch-q-${qId++}`,
+        question: picked.question,
+        context: picked.context,
+        options,
+      });
+    }
   }
 
   return questions;
@@ -760,9 +792,9 @@ export function calculateInterviewResult(
   // Final score combines pitch performance and reputation
   const finalScore = PITCH_SCORE_WEIGHT * pitchScore + PITCH_REP_WEIGHT * normalizedRep;
 
-  // Best competitor's effective strength
-  const bestCompetitorStrength = competitors.length > 0
-    ? Math.max(...competitors.map(c => c.strength * 80))
+  // Best competitor's effective score on the same 0-100 scale
+  const bestCompetitorScore = competitors.length > 0
+    ? Math.max(...competitors.map(c => c.strength * 100))
     : 30;
 
   if (finalScore >= INTERVIEW_STRONG_HIRE_THRESHOLD) {
@@ -770,9 +802,9 @@ export function calculateInterviewResult(
   }
 
   if (finalScore >= INTERVIEW_HIRE_THRESHOLD) {
-    // Probabilistic — must beat competitors
-    const margin = finalScore - bestCompetitorStrength;
-    const hireChance = clamp(0.5 + margin * 0.02, 0.3, 0.9);
+    // Probabilistic — margin over competitors determines chance
+    const margin = finalScore - bestCompetitorScore;
+    const hireChance = clamp(0.5 + margin * 0.03, 0.4, 0.9);
     if (Math.random() < hireChance) {
       return { hired: true, message: 'After careful deliberation, the board has chosen you. Congratulations!' };
     }
@@ -864,7 +896,7 @@ export function negotiateContract(
     const compromiseLength = Math.round((offer.contractLength + requestedContractLength) / 2);
     const compromiseBonuses = offer.bonuses.map((b, i) => ({
       ...b,
-      amount: requestedBonuses[i]
+      amount: i < requestedBonuses.length && requestedBonuses[i]
         ? Math.round((b.amount + requestedBonuses[i].amount) / 2)
         : b.amount,
     }));

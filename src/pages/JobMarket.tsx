@@ -228,24 +228,27 @@ function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canA
 
       {/* Competing candidates */}
       {competitors.length > 0 && (
-        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
-          <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
-          {competitors.length <= 2 ? (
-            competitors.map((c, i) => (
-              <span key={i} className="text-[9px] text-muted-foreground/70">
-                {c.name} ({getReputationTierLabel(c.reputationTier)}){i < competitors.length - 1 ? ',' : ''}
-              </span>
-            ))
-          ) : (
-            <>
-              <span className="text-[9px] text-muted-foreground/70">
-                {competitors[0].name} ({getReputationTierLabel(competitors[0].reputationTier)})
+        <div className="bg-muted/10 rounded-lg px-2.5 py-1.5 mb-2">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
+            <span className="text-[9px] text-muted-foreground/50 font-semibold uppercase tracking-wider">Candidates</span>
+            {competitors.length <= 2 ? (
+              competitors.map((c, i) => (
+                <span key={i} className="text-[9px] bg-muted/30 text-muted-foreground/70 px-1.5 py-0.5 rounded-full">
+                  {c.name} ({getReputationTierLabel(c.reputationTier)})
+                </span>
+              ))
+            ) : (
+              <>
+                <span className="text-[9px] bg-muted/30 text-muted-foreground/70 px-1.5 py-0.5 rounded-full">
+                  {competitors[0].name} ({getReputationTierLabel(competitors[0].reputationTier)})
               </span>
               <span className="text-[9px] text-muted-foreground/50">
                 +{competitors.length - 1} others
               </span>
             </>
           )}
+          </div>
         </div>
       )}
 
@@ -293,9 +296,9 @@ function OfferCard({
       if (updated.negotiationStatus === 'accepted') {
         toast.success('Terms Accepted!', { description: `Salary: £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr contract` });
       } else if (updated.negotiationStatus === 'final') {
-        toast('Final Offer', { description: `The board won't negotiate further.` });
+        toast('Final Offer', { description: `The board won't negotiate further. £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr` });
       } else {
-        toast('Counter-Offer', { description: `The board countered with adjusted terms.` });
+        toast('Counter-Offer', { description: `Board countered: £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr contract` });
       }
       // Reset local state to match updated offer
       setCounterSalary(Math.round(updated.salary * 1.15));

@@ -133,53 +133,51 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         interview.competitors,
       );
 
-      if (result.hired) {
+      if (result.hired && vacancy) {
         // Convert vacancy to enriched offer
-        if (vacancy) {
-          const clubData = CLUBS_DATA.find(c => c.id === vacancy.clubId);
-          const offer: JobOffer = {
-            id: `offer-${Date.now()}`,
-            clubId: vacancy.clubId,
-            clubName: vacancy.clubName,
-            divisionId: vacancy.divisionId,
-            salary: vacancy.salary,
-            contractLength: vacancy.contractLength,
-            bonuses: generateDefaultBonuses(qualityTier as 1 | 2 | 3 | 4),
-            boardExpectations: vacancy.boardExpectations,
-            expiresWeek: vacancy.expiresWeek,
-            expiresSeason: vacancy.expiresSeason,
-            leagueName: league?.name || '',
-            country: league?.country || '',
-            clubColor: clubData?.color || '#888888',
-            reputation: clubData?.reputation || 3,
-            budget: clubData?.budget || 0,
-            estimatedSquadValue: estimateSquadValue(clubData?.squadQuality || 50),
-            expectedPosition: calculateExpectedPosition(vacancy.clubId, vacancy.divisionId),
-            facilities: clubData?.facilities || 5,
-            youthRating: clubData?.youthRating || 5,
-            boardPatience: clubData?.boardPatience || 5,
-            stadiumName: clubData?.stadiumName || '',
-            stadiumCapacity: clubData?.stadiumCapacity || 0,
-            fanBase: clubData?.fanBase || 50,
-            initialSalary: vacancy.salary,
-            initialContractLength: vacancy.contractLength,
-            negotiationRound: 0,
-            negotiationStatus: 'pending',
-            boardTolerance: BOARD_TOLERANCE_START,
-          };
-          set({
-            activeInterview: {
-              ...interview,
-              pitchScore: newScore,
-              responses: newResponses,
-              currentQuestionIndex: nextIndex,
-              step: 'result',
-              result: 'hired',
-              resultMessage: result.message,
-            },
-            jobOffers: [...state.jobOffers, offer],
-          });
-        }
+        const clubData = CLUBS_DATA.find(c => c.id === vacancy.clubId);
+        const offer: JobOffer = {
+          id: `offer-${Date.now()}`,
+          clubId: vacancy.clubId,
+          clubName: vacancy.clubName,
+          divisionId: vacancy.divisionId,
+          salary: vacancy.salary,
+          contractLength: vacancy.contractLength,
+          bonuses: generateDefaultBonuses(qualityTier as 1 | 2 | 3 | 4),
+          boardExpectations: vacancy.boardExpectations,
+          expiresWeek: vacancy.expiresWeek,
+          expiresSeason: vacancy.expiresSeason,
+          leagueName: league?.name || '',
+          country: league?.country || '',
+          clubColor: clubData?.color || '#888888',
+          reputation: clubData?.reputation || 3,
+          budget: clubData?.budget || 0,
+          estimatedSquadValue: estimateSquadValue(clubData?.squadQuality || 50),
+          expectedPosition: calculateExpectedPosition(vacancy.clubId, vacancy.divisionId),
+          facilities: clubData?.facilities || 5,
+          youthRating: clubData?.youthRating || 5,
+          boardPatience: clubData?.boardPatience || 5,
+          stadiumName: clubData?.stadiumName || '',
+          stadiumCapacity: clubData?.stadiumCapacity || 0,
+          fanBase: clubData?.fanBase || 50,
+          initialSalary: vacancy.salary,
+          initialContractLength: vacancy.contractLength,
+          negotiationRound: 0,
+          negotiationStatus: 'pending',
+          boardTolerance: BOARD_TOLERANCE_START,
+        };
+        set({
+          activeInterview: {
+            ...interview,
+            pitchScore: newScore,
+            responses: newResponses,
+            currentQuestionIndex: nextIndex,
+            step: 'result',
+            result: 'hired',
+            resultMessage: result.message,
+          },
+          jobOffers: [...state.jobOffers, offer],
+        });
       } else {
         set({
           activeInterview: {
@@ -474,6 +472,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
 
     set({
       careerManager: { ...manager, contract: null, careerHistory: updatedHistory },
+      activeInterview: null,
       currentScreen: 'hall-of-managers',
     });
   },

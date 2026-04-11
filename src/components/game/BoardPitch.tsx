@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
@@ -22,9 +23,50 @@ export function BoardPitch() {
   const completeInterview = useGameStore(s => s.completeInterview);
   const dismissInterview = useGameStore(s => s.dismissInterview);
 
+  // Track score feedback animation
+  const [scoreFlash, setScoreFlash] = useState<{ value: number; key: number } | null>(null);
+  const [prevQuestionIndex, setPrevQuestionIndex] = useState(0);
+
+  const questionIndex = activeInterview?.currentQuestionIndex ?? 0;
+  const prevScore = activeInterview?.pitchScore ?? 50;
+
+  // Detect question advance to show score feedback
+  useEffect(() => {
+    if (activeInterview && questionIndex !== prevQuestionIndex && activeInterview.step === 'pitch') {
+      // A question was just answered — show the score delta
+      const lastResponse = activeInterview.responses[activeInterview.responses.length - 1];
+      if (lastResponse) {
+        const prevQ = activeInterview.pitchQuestions[prevQuestionIndex];
+        if (prevQ) {
+          const option = prevQ.options.find(o => o.tone === lastResponse);
+          if (option) {
+            setScoreFlash({ value: option.scoreModifier, key: Date.now() });
+          }
+        }
+      }
+      setPrevQuestionIndex(questionIndex);
+    }
+  }, [questionIndex, prevQuestionIndex, activeInterview]);
+
+  // Clear flash after animation
+  useEffect(() => {
+    if (scoreFlash) {
+      const timer = setTimeout(() => setScoreFlash(null), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [scoreFlash]);
+
+  // Reset tracking when interview starts/ends
+  useEffect(() => {
+    if (!activeInterview) {
+      setPrevQuestionIndex(0);
+      setScoreFlash(null);
+    }
+  }, [activeInterview]);
+
   if (!activeInterview) return null;
 
-  const { step, pitchQuestions, currentQuestionIndex, competitors, result, resultMessage, clubName } = activeInterview;
+  const { step, pitchQuestions, currentQuestionIndex, competitors, result, resultMessage, clubName, pitchScore } = activeInterview;
   const totalQuestions = pitchQuestions.length;
   const currentQuestion = step === 'pitch' ? pitchQuestions[currentQuestionIndex] : null;
 
@@ -43,13 +85,25 @@ export function BoardPitch() {
         </div>
         {step === 'pitch' && (
           <div className="flex items-center gap-2">
+            {/* Score flash feedback */}
+            {scoreFlash && (
+              <span
+                key={scoreFlash.key}
+                className={cn(
+                  'text-[10px] font-bold animate-bounce',
+                  scoreFlash.value > 0 ? 'text-emerald-400' : scoreFlash.value < 0 ? 'text-red-400' : 'text-muted-foreground'
+                )}
+              >
+                {scoreFlash.value > 0 ? '+' : ''}{scoreFlash.value}
+              </span>
+            )}
             <span className="text-[10px] text-muted-foreground font-semibold">
               {currentQuestionIndex + 1} / {totalQuestions}
             </span>
             <button
               onClick={dismissInterview}
               className="p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
-              title="Withdraw application"
+              aria-label="Withdraw application"
             >
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
@@ -64,10 +118,10 @@ export function BoardPitch() {
             <div
               key={i}
               className={cn(
-                'w-2 h-2 rounded-full transition-colors',
-                i < currentQuestionIndex ? 'bg-primary' :
-                i === currentQuestionIndex ? 'bg-primary animate-pulse' :
-                'bg-muted/50'
+                'h-1 rounded-full transition-all duration-300',
+                i < currentQuestionIndex ? 'bg-primary w-4' :
+                i === currentQuestionIndex ? 'bg-primary w-6 animate-pulse' :
+                'bg-muted/50 w-4'
               )}
             />
           ))}
@@ -75,7 +129,7 @@ export function BoardPitch() {
       )}
 
       {/* Competitors */}
-      {competitors.length > 0 && step === 'pitch' && (
+      {competitors.length > 0 && step === 'pitch' && currentQuestionIndex === 0 && (
         <div className="bg-muted/20 rounded-lg p-2.5">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Users className="w-3 h-3 text-muted-foreground" />
@@ -96,10 +150,10 @@ export function BoardPitch() {
         </div>
       )}
 
-      {/* Pitch Question */}
+      {/* Pitch Question — keyed for CSS transition */}
       {step === 'pitch' && currentQuestion && (
-        <>
-          <div className="bg-muted/30 rounded-lg p-3">
+        <div key={currentQuestion.id} className="animate-in fade-in slide-in-from-right-2 duration-300">
+          <div className="bg-muted/30 rounded-lg p-3 mb-3">
             <div className="flex items-start gap-2">
               <MessageSquare className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
               <p className="text-sm text-foreground italic">"{currentQuestion.question}"</p>
@@ -117,6 +171,7 @@ export function BoardPitch() {
                     'w-full text-left p-3 rounded-lg border transition-all active:scale-[0.98]',
                     style.color
                   )}
+                  aria-label={`${style.label}: ${option.text}`}
                 >
                   <div className="flex items-start gap-2">
                     <DynamicIcon name={style.icon} className="w-4 h-4 shrink-0 mt-0.5" />
@@ -129,12 +184,12 @@ export function BoardPitch() {
               );
             })}
           </div>
-        </>
+        </div>
       )}
 
       {/* Result */}
       {step === 'result' && (
-        <div className="space-y-3">
+        <div className="space-y-3 animate-in fade-in duration-500">
           {result === 'hired' ? (
             <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-4 text-center space-y-2">
               <CheckCircle className="w-8 h-8 text-emerald-400 mx-auto" />
@@ -152,7 +207,7 @@ export function BoardPitch() {
           {/* Competitors summary on rejection */}
           {result === 'rejected' && competitors.length > 0 && (
             <div className="bg-muted/20 rounded-lg p-2.5">
-              <p className="text-[10px] text-muted-foreground mb-1">Other candidates:</p>
+              <p className="text-[10px] text-muted-foreground font-semibold mb-1">Other candidates:</p>
               {competitors.map((c, i) => (
                 <p key={i} className="text-[10px] text-muted-foreground/70">
                   {c.name} — {getReputationTierLabel(c.reputationTier)} (prev. {c.previousClub})

@@ -4583,6 +4583,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
               minReputation: 0, salary: 1500, contractLength: 1,
               boardExpectations: 'Survive and stabilize the club',
               expiresWeek: newWeek + 8, expiresSeason: season, applied: false,
+              competitors: generateCompetitors(0, 4).slice(0, 1),
             }));
           }
         }
