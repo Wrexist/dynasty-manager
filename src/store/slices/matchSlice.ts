@@ -14,6 +14,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   matchSubsUsed: 0,
   matchPlayerRatings: [] as GameState['matchPlayerRatings'],
   halfTimeState: null as GameState['halfTimeState'],
+  currentMatchWeather: null as GameState['currentMatchWeather'],
   matchPhase: 'none' as GameState['matchPhase'],
   matchTeamTalk: 'none' as TeamTalkType,
   preMatchLeaguePosition: 10,
@@ -23,7 +24,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   penaltyShootoutRevealIndex: 0,
   matchShouts: [] as MatchShout[],
 
-  clearMatchResult: () => set({ currentMatchResult: null, halfTimeState: null, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null, penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, matchShouts: [] }),
+  clearMatchResult: () => set({ currentMatchResult: null, halfTimeState: null, currentMatchWeather: null, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null, penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, matchShouts: [] }),
 
   /** Invincible perk: rewind a lost match by restoring pre-match state */
   rewindMatch: () => {

@@ -195,6 +195,23 @@ const DERBY_INTENSE_LINES = [
   'Form goes out the window in matches like these. Pure passion on display.',
 ];
 
+// ── Repetition Prevention ──
+// Tracks which gap-filler templates have been used this match to reduce repetition.
+let usedCommentaryLines: Set<string> = new Set();
+
+/** Reset used lines at the start of each match */
+export function resetCommentaryTracking(): void {
+  usedCommentaryLines = new Set();
+}
+
+/** Pick a line from a pool, preferring unused lines. Falls back to any line if all are used. */
+function pickFreshLine(pool: string[]): string {
+  const fresh = pool.filter(l => !usedCommentaryLines.has(l));
+  const chosen = fresh.length > 0 ? pick(fresh) : pick(pool);
+  usedCommentaryLines.add(chosen);
+  return chosen;
+}
+
 export function generateCommentary(
   minute: number,
   homeShortName: string,
@@ -254,9 +271,9 @@ export function generateCommentary(
     if (derbyIntensity === 3) pools.push(DERBY_INTENSE_LINES);
   }
 
-  // Pick from a random pool, then a random line
+  // Pick from a random pool, then a fresh line (avoiding recent repeats)
   const pool = pick(pools);
-  const line = pick(pool);
+  const line = pickFreshLine(pool);
 
   return line.replace(/\{team\}/g, team).replace(/\{opp\}/g, opp);
 }

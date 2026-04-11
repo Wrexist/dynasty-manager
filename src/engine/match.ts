@@ -71,7 +71,8 @@ import {
   FREE_KICK_SET_PIECE_TAKER_CHANCE,
   WEATHER_SUFFIX_CHANCE, DERBY_SUFFIX_CHANCE,
 } from '@/config/matchEngine';
-import { generateCommentary } from '@/utils/matchCommentary';
+import { generateCommentary, resetCommentaryTracking } from '@/utils/matchCommentary';
+import { getDerbyName } from '@/data/league';
 
 /** State carried between halves so the second half can continue from the first */
 export interface HalfState {
@@ -880,6 +881,10 @@ export function simulateHalf(
     ' The ball bobbling on this uneven surface.',
     ' This pitch is cutting up badly.',
   ];
+  const waterloggedSuffixes = [
+    ' The ball holding up in the standing water.',
+    ' Splashing through puddles on this waterlogged pitch.',
+  ];
 
   // ── Derby Event Suffixes ──
   const derbySuffixes = [
@@ -908,7 +913,7 @@ export function simulateHalf(
   const maybePitchSuffix = (): string => {
     if (!matchWeather) return '';
     if (matchWeather.pitch === 'poor' && Math.random() < WEATHER_SUFFIX_CHANCE) return pick(poorPitchSuffixes);
-    if (matchWeather.pitch === 'waterlogged' && Math.random() < WEATHER_SUFFIX_CHANCE) return pick(poorPitchSuffixes);
+    if (matchWeather.pitch === 'waterlogged' && Math.random() < WEATHER_SUFFIX_CHANCE) return pick(waterloggedSuffixes);
     return '';
   };
 
@@ -930,6 +935,7 @@ export function simulateHalf(
   };
 
   if (startMin === 1) {
+    resetCommentaryTracking();
     events.push({ minute: 0, type: 'kickoff', clubId: homeClub.id, description: 'Kick off!', tacticalInsight: tacticalInsights.length > 0 ? tacticalInsights[0] : undefined });
 
     // Weather kickoff commentary — set the scene for non-clear conditions
@@ -947,12 +953,12 @@ export function simulateHalf(
 
     // Derby kickoff commentary — build the atmosphere for rivalry matches
     if (derbyIntensity && derbyIntensity > 0) {
-      const derbyKickoffDescs = [
-        'A local rivalry adds a bit of extra spice today.',
-        'The atmosphere is building nicely for this rivalry match.',
-        'The atmosphere is absolutely electric! This is what football is all about!',
-      ];
-      const derbyDesc = derbyKickoffDescs[Math.min(derbyIntensity - 1, 2)];
+      const derbyName = getDerbyName(homeClub.id, awayClub.id);
+      const derbyDesc = derbyIntensity >= 3
+        ? (derbyName ? `The atmosphere is absolutely electric for the ${derbyName}!` : 'The atmosphere is absolutely electric! This is what football is all about!')
+        : derbyIntensity === 2
+          ? (derbyName ? `The atmosphere is building nicely for the ${derbyName}.` : 'The atmosphere is building nicely for this rivalry match.')
+          : (derbyName ? `A bit of extra spice today — it's the ${derbyName}.` : 'A local rivalry adds a bit of extra spice today.');
       events.push({ minute: 2, type: 'commentary', clubId: homeClub.id, description: derbyDesc, momentum: 0 });
     }
 
@@ -982,6 +988,19 @@ export function simulateHalf(
   // Emit second-half kickoff with tactical insight if available
   if (prevState && tacticalInsights.length > 0) {
     events.push({ minute: startMin, type: 'kickoff', clubId: homeClub.id, description: 'Second half underway!', tacticalInsight: tacticalInsights[0] });
+  }
+
+  // Second-half weather reminder — brief reinforcement of conditions
+  if (prevState && startMin === 46 && matchWeather && matchWeather.weather !== 'clear') {
+    const weatherReminders: Record<string, string> = {
+      rain: `The rain hasn't let up. Conditions remain difficult for both sides.`,
+      snow: `Still snowing heavily. The pitch is getting worse by the minute.`,
+      wind: `The teams have switched ends — the wind now behind ${awayClub.shortName}.`,
+    };
+    const reminder = weatherReminders[matchWeather.weather];
+    if (reminder) {
+      events.push({ minute: 46, type: 'commentary', clubId: homeClub.id, description: reminder, momentum: prevState.momentum });
+    }
   }
 
   let lastEventMinute = startMin;
@@ -1484,7 +1503,7 @@ export function simulateHalf(
           unavailable.add(fouled.id);
           const injLabel = INJURY_TYPES[details.type].label;
           const sevLabel = details.severity === 'minor' ? 'Minor' : details.severity === 'moderate' ? 'Moderate' : 'Serious';
-          events.push({ minute: min, type: 'injury', playerId: fouled.id, clubId: fouled.clubId, description: `${fouled.lastName} goes down injured after the foul! ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.` });
+          events.push({ minute: min, type: 'injury', playerId: fouled.id, clubId: fouled.clubId, description: withContextSuffix(`${fouled.lastName} goes down injured after the foul! ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`) });
           // Rebalance strength after injury (numerical disadvantage)
           const injRecomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
           homeStr = injRecomp.homeStr; awayStr = injRecomp.awayStr;
@@ -1574,7 +1593,7 @@ export function simulateHalf(
         unavailable.add(candidate.id);
         const injLabel = INJURY_TYPES[details.type].label;
         const sevLabel = details.severity === 'minor' ? 'Minor' : details.severity === 'moderate' ? 'Moderate' : 'Serious';
-        events.push({ minute: min, type: 'injury', playerId: candidate.id, clubId: club.id, description: `${pick(injuryDescs)(candidate.lastName)} ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.` });
+        events.push({ minute: min, type: 'injury', playerId: candidate.id, clubId: club.id, description: withContextSuffix(`${pick(injuryDescs)(candidate.lastName)} ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`) });
         // Rebalance strength after injury (numerical disadvantage)
         const injRecomp2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
         homeStr = injRecomp2.homeStr; awayStr = injRecomp2.awayStr;
