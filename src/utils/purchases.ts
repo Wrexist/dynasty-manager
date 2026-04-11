@@ -19,7 +19,7 @@ import { Capacitor } from '@capacitor/core';
 const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF';
 
 /** Set to true once production RevenueCat keys are configured and native plugins restored. */
-const NATIVE_MONETIZATION_READY = false;
+const NATIVE_MONETIZATION_READY = true;
 
 let initialized = false;
 let listenerRemover: (() => void) | null = null;
