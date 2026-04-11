@@ -5492,7 +5492,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'playSecondHalf' } });
       // Clear half-time state so the match can be cleaned up
-      set({ halfTimeState: null, matchPhase: 'none' as const });
+      set({ halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const });
       return null;
     }
   },
@@ -5741,6 +5741,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         currentContinentalMatchId: null,
         currentContinentalCompetition: null,
         halfTimeState: null,
+        currentMatchWeather: null,
         matchSubsUsed: 0,
       });
       return;
@@ -6153,7 +6154,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       set({
         clubs: newClubs, players: newPlayers,
-        halfTimeState: null, matchPhase: 'none' as const,
+        halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
         currentCupTieId: null, currentLeagueCupTieId: null,
         currentContinentalMatchId: null, currentContinentalCompetition: null,
         matchSubsUsed: 0,
@@ -6161,7 +6162,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     } else {
       // No virtual clubs to clean — just reset match tracking state
       set({
-        halfTimeState: null, matchPhase: 'none' as const,
+        halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
         currentCupTieId: null, currentLeagueCupTieId: null,
         currentContinentalMatchId: null, currentContinentalCompetition: null,
         matchSubsUsed: 0,
@@ -6176,7 +6177,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       gameStarted: false, playerClubId: '', currentScreen: 'dashboard',
       clubs: {}, players: {}, fixtures: [], leagueTable: [],
       messages: [], seasonHistory: [], incomingOffers: [],
-      matchPlayerRatings: [], halfTimeState: null, matchPhase: 'none' as const,
+      matchPlayerRatings: [], halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const,
       currentMatchResult: null, matchSubsUsed: 0, currentCupTieId: null,
       transferMarket: [], shortlist: [], scoutWatchList: [], transferNews: [],
       activeLoans: [], incomingLoanOffers: [], outgoingLoanRequests: [],
