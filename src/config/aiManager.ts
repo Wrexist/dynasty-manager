@@ -54,7 +54,7 @@ const AI_STYLE_TACTICS: Record<AIManagerStyle, TacticalInstructions> = {
 
 // ── AI Manager Name Pools ──
 
-const AI_MANAGER_FIRST_NAMES = [
+export const AI_MANAGER_FIRST_NAMES = [
   'Roberto', 'Antonio', 'Marco', 'Hans', 'Jürgen', 'Patrick', 'Carlos', 'Sven',
   'Miguel', 'André', 'Thomas', 'Frank', 'Pep', 'Diego', 'Arsène', 'Rafa',
   'José', 'Luciano', 'Brendan', 'Graham', 'Steve', 'Mark', 'Paul', 'Nigel',
@@ -62,7 +62,7 @@ const AI_MANAGER_FIRST_NAMES = [
   'Kevin', 'Brian', 'Alan', 'Terry', 'Phil', 'Wayne', 'Lee', 'James',
 ];
 
-const AI_MANAGER_LAST_NAMES = [
+export const AI_MANAGER_LAST_NAMES = [
   'Martínez', 'Conte', 'Allegri', 'Flick', 'Nagelsmann', 'Vieira', 'Queiroz', 'Eriksson',
   'Herrera', 'Villas-Boas', 'Tuchel', 'Lampard', 'Guardiola', 'Simeone', 'Wenger', 'Benítez',
   'Mourinho', 'Spalletti', 'Rodgers', 'Potter', 'Bruce', 'Hughes', 'Lambert', 'Pearson',

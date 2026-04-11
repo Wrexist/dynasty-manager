@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, LeagueId, SeasonTurnover, LeagueTableEntry, JobVacancy, PenaltyKick } from '@/types/game';
-import { calculateReputationTier, generateJobVacancies, generateProactiveOffer, getRetirementAge, calculateLegacyScore, getReputationTierLabel } from '@/utils/managerCareer';
+import { calculateReputationTier, generateJobVacancies, generateProactiveOffer, getRetirementAge, calculateLegacyScore, getReputationTierLabel, generateCompetitors } from '@/utils/managerCareer';
 import {
   GROWTH_TACTICAL_PER_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT,
   GROWTH_DISCIPLINE_PER_CLEAN_MATCH, MOD_DISCIPLINE_CARDS, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH,
@@ -2212,14 +2212,18 @@ function finalizeSeason(
 
         cm.reputationTier = calculateReputationTier(cm.reputationScore);
 
-        // Generate job vacancies
+        // Generate job vacancies with competitors
 
-        const vacancies = generateJobVacancies(cs.clubs, cm.reputationScore, cs.season + 1, 1, cs.playerClubId);
+        const vacancies = generateJobVacancies(cs.clubs, cm.reputationScore, cs.season + 1, 1, cs.playerClubId).map(v => {
+          const vLeague = LEAGUES.find(l => l.id === v.divisionId);
+          return { ...v, competitors: generateCompetitors(v.minReputation, (vLeague?.qualityTier || 4) as 1 | 2 | 3 | 4) };
+        });
 
         set({
           careerManager: cm,
           jobVacancies: vacancies,
           jobOffers: [],
+          activeInterview: null,
           currentScreen: 'job-market',
         });
       } else {
@@ -2255,8 +2259,12 @@ function finalizeSeason(
             );
             cm.contract = null;
             cm.unemployedWeeks = 0;
-            careerUpdate.jobVacancies = generateJobVacancies(cs.clubs, cm.reputationScore, cs.season + 1, 1, cs.playerClubId);
+            careerUpdate.jobVacancies = generateJobVacancies(cs.clubs, cm.reputationScore, cs.season + 1, 1, cs.playerClubId).map(v => {
+              const vLeague = LEAGUES.find(l => l.id === v.divisionId);
+              return { ...v, competitors: generateCompetitors(v.minReputation, (vLeague?.qualityTier || 4) as 1 | 2 | 3 | 4) };
+            });
             careerUpdate.jobOffers = [];
+            careerUpdate.activeInterview = null;
             careerUpdate.currentScreen = 'job-market';
           }
         }
@@ -2607,7 +2615,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           e.endSeason === null ? { ...e, endSeason: state.season, reason: 'retired' as const } : e
         );
         cm.contract = null;
-        set({ week: newWeek, careerManager: cm, currentScreen: 'hall-of-managers' });
+        set({ week: newWeek, careerManager: cm, activeInterview: null, currentScreen: 'hall-of-managers' });
         if (state.settings.autoSave) get().saveGame();
         return;
       }
@@ -2615,12 +2623,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       // Refresh job market on configured weeks
       let vacancies = state.jobVacancies;
       if (JOB_MARKET_REFRESH_WEEKS.includes(newWeek)) {
-        vacancies = generateJobVacancies(state.clubs, cm.reputationScore, state.season, newWeek, state.playerClubId);
+        vacancies = generateJobVacancies(state.clubs, cm.reputationScore, state.season, newWeek, state.playerClubId).map(v => {
+          const vLeague = LEAGUES.find(l => l.id === v.divisionId);
+          return { ...v, competitors: generateCompetitors(v.minReputation, (vLeague?.qualityTier || 4) as 1 | 2 | 3 | 4) };
+        });
       }
       // Expire old vacancies
       vacancies = vacancies.filter(v => v.expiresSeason > state.season || (v.expiresSeason === state.season && v.expiresWeek > newWeek));
 
-      // Desperation vacancies
+      // Desperation vacancies (weak or no competitors)
       if (cm.unemployedWeeks >= 12 && vacancies.length === 0) {
         const desperate = Object.values(state.clubs).filter(c => c.id !== state.playerClubId).slice(0, 2);
         vacancies = desperate.map(club => ({
@@ -2629,6 +2640,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           minReputation: 0, salary: 1500, contractLength: 1,
           boardExpectations: 'Survive and stabilize the club',
           expiresWeek: newWeek + 8, expiresSeason: state.season, applied: false,
+          competitors: generateCompetitors(0, 4).slice(0, 1),
         }));
       }
 
@@ -4541,7 +4553,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         let updatedVacancies: JobVacancy[] | null = null;
 
         if (JOB_MARKET_REFRESH_WEEKS.includes(newWeek)) {
-          updatedVacancies = generateJobVacancies(careerState.clubs, cm.reputationScore, season, newWeek, playerClubId);
+          updatedVacancies = generateJobVacancies(careerState.clubs, cm.reputationScore, season, newWeek, playerClubId).map(v => {
+            const vLeague = LEAGUES.find(l => l.id === v.divisionId);
+            return { ...v, competitors: generateCompetitors(v.minReputation, (vLeague?.qualityTier || 4) as 1 | 2 | 3 | 4) };
+          });
         }
 
         // Expire old vacancies (from refreshed list or current list)

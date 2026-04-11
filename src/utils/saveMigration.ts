@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 54;
+const CURRENT_VERSION = 55;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -731,6 +731,13 @@ const migrations: Record<number, MigrationFn> = {
     });
     return { ...data, boardObjectives: updated, version: 54 };
   },
+
+  // v54 → v55: Add activeInterview for enhanced job market interview system
+  54: (data) => ({
+    ...data,
+    activeInterview: null,
+    version: 55,
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
