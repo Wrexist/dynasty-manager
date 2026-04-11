@@ -58,6 +58,7 @@ import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { FormGuide } from '@/components/game/FormGuide';
 import { getRecentForm } from '@/utils/formGuide';
 import { computeObjectiveProgress } from '@/utils/weeklyObjectives';
+import { getCompetitionInfo } from '@/utils/competitionBadge';
 
 const WELCOME_KEY = 'dynasty-welcome-shown';
 const COLLAPSE_SPRING = { type: 'spring' as const, stiffness: 300, damping: 24 };
@@ -140,7 +141,6 @@ const Dashboard = () => {
   const markCoachTaskComplete = useGameStore(s => s.markCoachTaskComplete);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
-  const isCupMatch = !!competition;
   const hasCupMatchToo = useMemo(() => {
     if (competition) return false;
     return !!findTournamentMatch({
@@ -526,6 +526,10 @@ const Dashboard = () => {
     .slice(0, 3), [fixtures, playerClubId, week]);
 
   const inPlayoffs = (seasonPhase as string) === 'playoffs';
+  const competitionInfo = getCompetitionInfo(competition, {
+    inPlayoffs,
+    leagueName: LEAGUES.find(d => d.id === playerDivision)?.shortName,
+  });
 
   // Season over check — 46-week season, but only when all player matches done and not in playoffs
   const seasonOver = useMemo(() => {
@@ -846,11 +850,17 @@ const Dashboard = () => {
 
       {/* Next Match */}
       {!seasonOver && nextMatch && opponent ? (
-        <GlassPanel className={cn("p-5", isCupMatch && "border-primary/40")} onClick={() => setScreen('match-prep')}>
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">
-            {isCupMatch && <Trophy className="w-3 h-3 inline mr-1 text-primary" />}
-            {competition || (inPlayoffs ? 'Playoff Match' : 'Match Day')} — Week {week}
-          </p>
+        <GlassPanel className={cn("p-5", competitionInfo.borderAccent)} onClick={() => setScreen('match-prep')}>
+          <div className="flex items-center justify-center gap-2 mb-3">
+            <span className={cn(
+              'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+              competitionInfo.bg
+            )}>
+              <Trophy className="w-3 h-3" />
+              <span className={competitionInfo.color}>{competitionInfo.name}</span>
+            </span>
+            <span className="text-[10px] text-muted-foreground">Week {week}</span>
+          </div>
           <div className="flex items-center justify-between">
             <div className="text-center flex-1">
               <div
@@ -1860,7 +1870,7 @@ const Dashboard = () => {
       {/* Next 3 Fixtures */}
       {upcomingFixtures.length > 0 && (
         <GlassPanel className="p-4" onClick={() => setScreen('calendar')}>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Upcoming Fixtures</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Upcoming League Fixtures</p>
           <div className="space-y-2">
             {upcomingFixtures.map((fix) => {
               const fixIsHome = fix.homeClubId === playerClubId;

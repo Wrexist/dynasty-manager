@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type { Club } from '@/types/game';
 import { resolveClub } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft } from 'lucide-react';
+import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, Trophy } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +16,7 @@ import { getConfidenceColor, getMatchRatingColor, areColorsSimilar } from '@/uti
 import { generateMatchInsights } from '@/utils/matchInsights';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getDerbyName, getDerbyIntensity } from '@/data/league';
+import { getCompetitionInfo } from '@/utils/competitionBadge';
 import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
@@ -134,9 +135,20 @@ const MatchReview = () => {
           >
             {won ? 'VICTORY' : lost ? 'DEFEAT' : 'DRAW'}
           </motion.p>
-          {lastMatchCompetition && (
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{lastMatchCompetition}</p>
-          )}
+          {lastMatchCompetition && (() => {
+            const compInfo = getCompetitionInfo(lastMatchCompetition);
+            return (
+              <div className="flex justify-center mb-1">
+                <span className={cn(
+                  'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+                  compInfo.bg
+                )}>
+                  <Trophy className="w-2.5 h-2.5" />
+                  <span className={compInfo.color}>{compInfo.name}</span>
+                </span>
+              </div>
+            );
+          })()}
           {/* Home/Away + Venue */}
           <div className="flex items-center justify-center gap-2 mb-1">
             <span className={cn(
