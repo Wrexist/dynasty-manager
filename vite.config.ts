@@ -82,15 +82,11 @@ export default defineConfig(() => ({
         '@capacitor-community/admob',
       ],
       output: {
-        manualChunks: {
-          'framer-motion': ['framer-motion'],
-          'recharts': ['recharts'],
-          'radix': [
-            '@radix-ui/react-dialog',
-            '@radix-ui/react-toast',
-            '@radix-ui/react-tooltip',
-            '@radix-ui/react-slot',
-          ],
+        manualChunks(id) {
+          if (id.includes('framer-motion')) return 'framer-motion';
+          if (id.includes('recharts')) return 'recharts';
+          if (id.includes('@radix-ui')) return 'radix';
+          if (id.includes('src/data/squads/') || id.includes('src/data/playerTemplates')) return 'squad-data';
         },
       },
     },

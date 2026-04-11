@@ -34,7 +34,7 @@ def split_name(full_name: str) -> tuple[str, str] | None:
 def parse_int(value: str) -> int | None:
     try:
         return int(str(value).strip())
-    except Exception:
+    except ValueError:
         return None
 
 
@@ -99,8 +99,8 @@ def main() -> None:
     lines.append('export const SQUAD_OVERRIDES: Record<string, PlayerTemplate[]> = {')
 
     def esc(s: object) -> str:
-        """Escape single quotes for safe embedding in TS string literals."""
-        return str(s).replace("'", "\\'")
+        """Escape backslashes and single quotes for safe embedding in TS string literals."""
+        return str(s).replace("\\", "\\\\").replace("'", "\\'")
 
     for team_id in sorted(by_team.keys()):
         lines.append(f"  '{esc(team_id)}': [")
