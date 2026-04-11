@@ -228,6 +228,8 @@ const MatchDay = () => {
     setCurrentMin(0);
     setVisibleEvents([]);
     setPaused(false);
+    setSelectedHalftimePreset(null);
+    setShowHalftimeCustomTactics(false);
   };
 
   const resumingRef = useRef(false);
@@ -933,7 +935,7 @@ const MatchDay = () => {
                     <BarChart3 className="w-4 h-4 text-primary" />
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tactics</p>
                   </div>
-                  <p className="text-[10px] text-primary font-medium">{getTacticsSummary(tactics)}</p>
+                  <p className="text-[10px] text-primary font-medium">{clubs[playerClubId]?.formation} · {getTacticsSummary(tactics)}</p>
                 </div>
 
                 {/* Situational headline */}
@@ -1209,9 +1211,27 @@ const MatchDay = () => {
           )}
 
           {/* Tactical changes before extra time */}
-          <GlassPanel className="p-4 space-y-3">
+          <GlassPanel className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tactics</p>
+              </div>
+              <p className="text-[10px] text-primary font-medium">{clubs[playerClubId]?.formation} · {getTacticsSummary(tactics)}</p>
+            </div>
             <FormationPicker />
-            <TacticalPanel variant="full" tactics={tactics} setTactics={setTactics} />
+            <button
+              onClick={() => setShowHalftimeCustomTactics(!showHalftimeCustomTactics)}
+              className="w-full text-[10px] text-muted-foreground/60 hover:text-muted-foreground py-1.5 mt-2 transition-colors flex items-center justify-center gap-1"
+            >
+              {showHalftimeCustomTactics ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              {showHalftimeCustomTactics ? 'Hide custom tactics' : 'Fine-tune tactics...'}
+            </button>
+            {showHalftimeCustomTactics && (
+              <div className="mt-2">
+                <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
+              </div>
+            )}
           </GlassPanel>
 
           {/* Match Speed before extra time */}
@@ -1620,6 +1640,7 @@ const MatchDay = () => {
                         }
                         if (choice.tactics) {
                           setTactics(choice.tactics);
+                          setSelectedHalftimePreset(null);
                           infoToast(`Tactical change: ${choice.label}`);
                         }
                         if (choice.suggestFormation) {
