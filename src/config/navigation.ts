@@ -102,5 +102,4 @@ export const DRAWER_PROGRESSIVE_SCREENS: Partial<Record<GameScreen, number>> = {
   'ballon-dor': 2,
   'hall-of-managers': 2,
   'comparison': 2,
-  'shop': 2,
 };

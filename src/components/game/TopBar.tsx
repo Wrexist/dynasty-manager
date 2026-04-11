@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { Calendar, Settings, ArrowLeft, Star, Mail } from 'lucide-react';
+import { Calendar, Settings, ArrowLeft, Star, Mail, Crown } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/managerCareer';
 import { getSuffix } from '@/utils/helpers';
@@ -125,6 +125,13 @@ export function TopBar() {
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
+          </button>
+          <button
+            onClick={() => { setScreen('shop'); hapticMedium(); }}
+            aria-label="Shop"
+            className="p-3 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+          >
+            <Crown className="w-4 h-4 text-[hsl(var(--gold))] drop-shadow-[0_0_4px_hsl(var(--gold)/0.4)]" />
           </button>
           {/* Career mode: reputation badge or XP Level */}
           {gameMode === 'career' && careerManager ? (
