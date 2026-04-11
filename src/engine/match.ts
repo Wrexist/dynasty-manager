@@ -71,7 +71,7 @@ import {
   FREE_KICK_SET_PIECE_TAKER_CHANCE,
   WEATHER_SUFFIX_CHANCE, DERBY_SUFFIX_CHANCE,
 } from '@/config/matchEngine';
-import { generateCommentary, resetCommentaryTracking } from '@/utils/matchCommentary';
+import { generateCommentary } from '@/utils/matchCommentary';
 import { getDerbyName } from '@/data/league';
 
 /** State carried between halves so the second half can continue from the first */
@@ -108,6 +108,8 @@ export interface HalfState {
   playerFitness: Record<string, number>;
   /** Tactical insights generated during the half */
   tacticalInsights: string[];
+  /** Tracks which gap-filler commentary templates have been used this match (avoids repetition) */
+  usedCommentaryLines: Set<string>;
 }
 
 /** Formation fit bonus: 0.0 to ~0.12 — mismatched players are a real penalty */
@@ -511,6 +513,7 @@ export function simulateHalf(
       awaySubbedIn: prevState?.awaySubbedIn ? [...prevState.awaySubbedIn] : [],
       playerFitness: { ...(prevState?.playerFitness ?? {}) },
       tacticalInsights: [...(prevState?.tacticalInsights ?? [])],
+      usedCommentaryLines: prevState?.usedCommentaryLines ?? new Set(),
     };
   }
 
@@ -546,6 +549,8 @@ export function simulateHalf(
 
   // Generate tactical insights for the player's team
   const tacticalInsights: string[] = prevState?.tacticalInsights ? [...prevState.tacticalInsights] : [];
+  // Match-local commentary freshness tracking (carried between halves, fresh per match)
+  const usedLines: Set<string> = prevState?.usedCommentaryLines ?? new Set();
   if (!prevState && playerClubId) {
     const playerIsHome = playerClubId === homeClub.id;
     const myTactics = playerIsHome ? homeTactics : awayTactics;
@@ -936,35 +941,36 @@ export function simulateHalf(
     return desc;
   };
 
+  // Prepare deferred kickoff commentary (injected inside the minute loop at the correct minutes)
+  let deferredWeatherDesc: string | null = null;
+  let deferredDerbyDesc: string | null = null;
+  let deferredTacticalDesc: string | null = null;
+  let deferredTacticalClubId: string | null = null;
+
   if (startMin === 1) {
-    resetCommentaryTracking();
     events.push({ minute: 0, type: 'kickoff', clubId: homeClub.id, description: 'Kick off!', tacticalInsight: tacticalInsights.length > 0 ? tacticalInsights[0] : undefined });
 
-    // Weather kickoff commentary — set the scene for non-clear conditions
+    // Weather kickoff — deferred to minute 1
     if (matchWeather && matchWeather.weather !== 'clear') {
       const weatherKickoffDescs: Record<string, string> = {
         rain: 'Heavy rain falling as we get underway. Conditions will test both sides today.',
         snow: 'Snow swirling around the stadium. This could be a classic winter battle.',
         wind: 'A blustery day — the wind will be a factor for both sides.',
       };
-      const weatherDesc = weatherKickoffDescs[matchWeather.weather];
-      if (weatherDesc) {
-        events.push({ minute: 1, type: 'commentary', clubId: homeClub.id, description: weatherDesc, momentum: 0 });
-      }
+      deferredWeatherDesc = weatherKickoffDescs[matchWeather.weather] ?? null;
     }
 
-    // Derby kickoff commentary — build the atmosphere for rivalry matches
+    // Derby kickoff — deferred to minute 2
     if (derbyIntensity && derbyIntensity > 0) {
       const derbyName = getDerbyName(homeClub.id, awayClub.id);
-      const derbyDesc = derbyIntensity >= 3
+      deferredDerbyDesc = derbyIntensity >= 3
         ? (derbyName ? `The atmosphere is absolutely electric for the ${derbyName}!` : 'The atmosphere is absolutely electric! This is what football is all about!')
         : derbyIntensity === 2
           ? (derbyName ? `The atmosphere is building nicely for the ${derbyName}.` : 'The atmosphere is building nicely for this rivalry match.')
           : (derbyName ? `A bit of extra spice today — it's the ${derbyName}.` : 'A local rivalry adds a bit of extra spice today.');
-      events.push({ minute: 2, type: 'commentary', clubId: homeClub.id, description: derbyDesc, momentum: 0 });
     }
 
-    // Tactical counter-play commentary — describe active tactical matchups early in the match
+    // Tactical counter-play — deferred to minute 5
     const homeMatchup = getTacticalMatchupBonus(homeTactics, awayTactics);
     const awayMatchup = getTacticalMatchupBonus(awayTactics, homeTactics);
     if (homeMatchup > 0 || awayMatchup > 0) {
@@ -972,18 +978,18 @@ export function simulateHalf(
       const advClub = advantage === 'home' ? homeClub : awayClub;
       const myT = advantage === 'home' ? homeTactics : awayTactics;
       const oppT = advantage === 'home' ? awayTactics : homeTactics;
-      let desc = `${advClub.shortName} seem to have the tactical edge early on.`;
+      deferredTacticalDesc = `${advClub.shortName} seem to have the tactical edge early on.`;
+      deferredTacticalClubId = advClub.id;
       if (myT && oppT) {
         if (myT.pressingIntensity >= PRESSING_THRESHOLD && oppT.tempo === 'slow')
-          desc = `${advClub.shortName}'s high press is disrupting their opponent's slow build-up play.`;
+          deferredTacticalDesc = `${advClub.shortName}'s high press is disrupting their opponent's slow build-up play.`;
         else if (myT.width === 'wide' && oppT.width === 'narrow')
-          desc = `${advClub.shortName}'s wide play is stretching the narrow defensive shape.`;
+          deferredTacticalDesc = `${advClub.shortName}'s wide play is stretching the narrow defensive shape.`;
         else if (myT.defensiveLine === 'deep' && oppT.defensiveLine === 'high')
-          desc = `${advClub.shortName} are sitting deep and exploiting the space behind the high line.`;
+          deferredTacticalDesc = `${advClub.shortName} are sitting deep and exploiting the space behind the high line.`;
         else if (myT.tempo === 'fast' && (oppT.mentality === 'cautious' || oppT.mentality === 'defensive'))
-          desc = `${advClub.shortName}'s fast tempo is overwhelming the cautious approach.`;
+          deferredTacticalDesc = `${advClub.shortName}'s fast tempo is overwhelming the cautious approach.`;
       }
-      events.push({ minute: 5, type: 'commentary', clubId: advClub.id, description: desc });
     }
   }
 
@@ -1032,6 +1038,24 @@ export function simulateHalf(
   for (let min = startMin; min <= endMin + stoppageTime && min < MAX_MATCH_MINUTES; min++) {
     const prevEventCount = events.length;
     if (abandonMatch) break;
+
+    // Inject deferred kickoff commentary at the correct simulation minutes
+    if (min === 1 && deferredWeatherDesc) {
+      events.push({ minute: 1, type: 'commentary', clubId: homeClub.id, description: deferredWeatherDesc, momentum });
+      lastEventMinute = 1;
+      deferredWeatherDesc = null;
+    }
+    if (min === 2 && deferredDerbyDesc) {
+      events.push({ minute: 2, type: 'commentary', clubId: homeClub.id, description: deferredDerbyDesc, momentum });
+      lastEventMinute = 2;
+      deferredDerbyDesc = null;
+    }
+    if (min === 5 && deferredTacticalDesc && deferredTacticalClubId) {
+      events.push({ minute: 5, type: 'commentary', clubId: deferredTacticalClubId, description: deferredTacticalDesc });
+      lastEventMinute = 5;
+      deferredTacticalDesc = null;
+    }
+
     // Calculate stoppage at the nominal end of each half
     if (min === nominalEnd && stoppageTime === 0) {
       stoppageTime = calcStoppageTime(events, startMin, nominalEnd);
@@ -1144,7 +1168,7 @@ export function simulateHalf(
       // Gap-filler: inject commentary if too many silent minutes have passed
       if (min - lastEventMinute >= COMMENTARY_GAP_MAX) {
         const isHome = Math.random() < 0.5;
-        const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity);
+        const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity, usedLines);
         // Possession shifts toward the team with the ball
         momentum = isHome
           ? Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING)
@@ -1623,7 +1647,7 @@ export function simulateHalf(
     }
     // === COMMENTARY FALLBACK (event roll passed but no shot/foul/injury triggered) ===
     else if (Math.random() < COMMENTARY_CHANCE) {
-      const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity);
+      const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity, usedLines);
       // Possession shifts toward the team with the ball
       momentum = isHome
         ? Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING)
@@ -1713,6 +1737,7 @@ export function simulateHalf(
     homeSubbedIn, awaySubbedIn,
     playerFitness: { ...matchFitness },
     tacticalInsights,
+    usedCommentaryLines: usedLines,
   };
 }
 

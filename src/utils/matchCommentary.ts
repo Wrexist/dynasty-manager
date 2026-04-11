@@ -199,20 +199,11 @@ const DERBY_INTENSE_LINES = [
   'Form goes out the window in matches like these. Pure passion on display.',
 ];
 
-// ── Repetition Prevention ──
-// Tracks which gap-filler templates have been used this match to reduce repetition.
-let usedCommentaryLines: Set<string> = new Set();
-
-/** Reset used lines at the start of each match */
-export function resetCommentaryTracking(): void {
-  usedCommentaryLines = new Set();
-}
-
 /** Pick a line from a pool, preferring unused lines. Falls back to any line if all are used. */
-function pickFreshLine(pool: string[]): string {
-  const fresh = pool.filter(l => !usedCommentaryLines.has(l));
+function pickFreshLine(pool: string[], usedLines: Set<string>): string {
+  const fresh = pool.filter(l => !usedLines.has(l));
   const chosen = fresh.length > 0 ? pick(fresh) : pick(pool);
-  usedCommentaryLines.add(chosen);
+  usedLines.add(chosen);
   return chosen;
 }
 
@@ -227,13 +218,28 @@ export function generateCommentary(
   weather?: WeatherCondition,
   pitch?: PitchCondition,
   derbyIntensity?: number,
+  usedLines?: Set<string>,
 ): string {
   const team = isHome ? homeShortName : awayShortName;
   const opp = isHome ? awayShortName : homeShortName;
   const teamGoals = isHome ? homeGoals : awayGoals;
   const oppGoals = isHome ? awayGoals : homeGoals;
+  const used = usedLines ?? new Set();
+  const fmt = (line: string) => line.replace(/\{team\}/g, team).replace(/\{opp\}/g, opp);
 
-  // Weight pools based on game state
+  // Weather short-circuit: configured chance directly selects a weather line
+  if (weather && weather !== 'clear' && Math.random() < WEATHER_COMMENTARY_CHANCE) {
+    const weatherPool = weather === 'rain' ? RAIN_LINES : weather === 'snow' ? SNOW_LINES : WIND_LINES;
+    return fmt(pickFreshLine(weatherPool, used));
+  }
+
+  // Derby short-circuit: configured chance directly selects a derby line
+  if (derbyIntensity && derbyIntensity > 0 && Math.random() < DERBY_COMMENTARY_CHANCE) {
+    const derbyPool = derbyIntensity === 3 && Math.random() < 0.5 ? DERBY_INTENSE_LINES : DERBY_LINES;
+    return fmt(pickFreshLine(derbyPool, used));
+  }
+
+  // Weight general pools based on game state
   const pools: string[][] = [];
 
   // Always include general pools
@@ -258,26 +264,13 @@ export function generateCommentary(
     pools.push(ATMOSPHERE_LINES);
   }
 
-  // Weather-specific pools (when weather is not clear)
-  if (weather && weather !== 'clear' && Math.random() < WEATHER_COMMENTARY_CHANCE) {
-    if (weather === 'rain') pools.push(RAIN_LINES);
-    else if (weather === 'snow') pools.push(SNOW_LINES);
-    else if (weather === 'wind') pools.push(WIND_LINES);
-  }
-
   // Pitch condition pools (always added when poor/waterlogged since they're rare)
   if (pitch === 'poor') pools.push(POOR_PITCH_LINES);
   else if (pitch === 'waterlogged') pools.push(WATERLOGGED_LINES);
 
-  // Derby-specific pools
-  if (derbyIntensity && derbyIntensity > 0 && Math.random() < DERBY_COMMENTARY_CHANCE) {
-    pools.push(DERBY_LINES);
-    if (derbyIntensity === 3) pools.push(DERBY_INTENSE_LINES);
-  }
-
   // Pick from a random pool, then a fresh line (avoiding recent repeats)
   const pool = pick(pools);
-  const line = pickFreshLine(pool);
+  const line = pickFreshLine(pool, used);
 
-  return line.replace(/\{team\}/g, team).replace(/\{opp\}/g, opp);
+  return fmt(line);
 }
