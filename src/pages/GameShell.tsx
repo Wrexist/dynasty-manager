@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { useEffect, useCallback, useRef, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -128,7 +129,7 @@ const GameShell = () => {
         if (ids.length > 0) restoreEntitlements(ids);
         if (info) updateSubscription(extractSubscriptionInfo(info));
       })
-      .catch(err => console.warn('[GameShell] Failed to sync entitlements:', err));
+      .catch(err => Sentry.captureException(err, { tags: { context: 'syncEntitlements' } }));
 
     // Listen for real-time entitlement changes (cross-device, family sharing, subscription renewals)
     startEntitlementListener((ids, customerInfo) => {

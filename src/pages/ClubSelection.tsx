@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { useState, useMemo, memo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -68,11 +69,11 @@ const ClubSelection = () => {
         try {
           useGameStore.getState().saveGame(pendingSlot);
         } catch (saveErr) {
-          console.warn('Save failed during career start:', saveErr);
+          Sentry.captureException(saveErr, { tags: { context: 'careerStartSave' } });
         }
         queueMicrotask(() => navigate('/game'));
       } catch (err) {
-        console.error('Failed to start game:', err);
+        Sentry.captureException(err, { tags: { context: 'startGame' } });
         toast.error('Something went wrong starting your career. Please try again.');
         setLoading(false);
       }

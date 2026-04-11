@@ -16,6 +16,7 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+      - run: npm run version:sync
       - run: npx cap sync ios
 
       - name: Strip alpha channel from app icon
@@ -61,7 +62,7 @@ jobs:
             -archivePath $RUNNER_TEMP/App.xcarchive \
             -destination 'generic/platform=iOS' \
             -configuration Release \
-            DEVELOPMENT_TEAM=S3U8B8HH96 \
+            DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             OTHER_CODE_SIGN_FLAGS="--keychain build.keychain"
@@ -77,7 +78,7 @@ jobs:
             <key>method</key>
             <string>app-store-connect</string>
             <key>teamID</key>
-            <string>S3U8B8HH96</string>
+            <string>${{ secrets.APPLE_TEAM_ID }}</string>
             <key>signingStyle</key>
             <string>manual</string>
             <key>provisioningProfiles</key>
@@ -99,11 +100,21 @@ jobs:
 
       - name: Upload to TestFlight
         env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APP_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY: ${{ secrets.ASC_API_KEY_BASE64 }}
         run: |
-          xcrun altool --upload-app \
-            -f $RUNNER_TEMP/export/*.ipa \
-            -t ios \
-            -u "$APPLE_ID" \
-            -p "$APP_PASSWORD"
+          mkdir -p ~/.appstoreconnect/private_keys
+          echo "$ASC_API_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
+          xcrun notarytool store-credentials "asc-creds" \
+            --key ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
+            --key-id "$ASC_API_KEY_ID" \
+            --issuer "$ASC_ISSUER_ID"
+          xcodebuild -exportArchive \
+            -archivePath $RUNNER_TEMP/App.xcarchive \
+            -exportPath $RUNNER_TEMP/upload \
+            -exportOptionsPlist exportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
+            -authenticationKeyID "$ASC_API_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"

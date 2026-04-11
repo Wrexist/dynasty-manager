@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, LeagueId, SeasonTurnover, LeagueTableEntry, JobVacancy, PenaltyKick } from '@/types/game';
 import { calculateReputationTier, generateJobVacancies, generateProactiveOffer, getRetirementAge, calculateLegacyScore, getReputationTierLabel } from '@/utils/managerCareer';
 import {
@@ -5140,7 +5141,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     return result;
     } catch (err) {
-      console.error('[playCurrentMatch] Match simulation failed:', err);
+      Sentry.captureException(err, { tags: { context: 'playCurrentMatch' } });
       set({ matchPhase: 'none' as const });
       return null;
     }
@@ -5486,7 +5487,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     });
     return result;
     } catch (err) {
-      console.error('[playSecondHalf] Match simulation failed:', err);
+      Sentry.captureException(err, { tags: { context: 'playSecondHalf' } });
       // Clear half-time state so the match can be cleaned up
       set({ halfTimeState: null, matchPhase: 'none' as const });
       return null;
@@ -5724,7 +5725,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     // Finalize with extra events — halfTimeState must exist by this point
     if (!halfTimeState) {
-      console.error('[Penalties] halfTimeState missing — aborting finalization to prevent data corruption');
+      Sentry.captureMessage('[Penalties] halfTimeState missing — aborting finalization', 'error');
       set({
         matchPhase: 'none',
         penaltyShootoutKicks: [],
@@ -5951,7 +5952,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const errTime = Date.now();
       // Avoid log spam during repeated autosave attempts.
       if (errTime - lastSaveErrorLogAt > 10000) {
-        console.error('[Save] Failed to write save data:', err);
+        Sentry.captureException(err, { tags: { context: 'saveGame' } });
         lastSaveErrorLogAt = errTime;
       }
       // Notify user once per week to keep the inbox readable.
@@ -6001,7 +6002,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     try {
       parsed = JSON.parse(raw);
     } catch {
-      console.warn('[Load] Primary save corrupted, trying backup...');
+      Sentry.captureMessage('[Load] Primary save corrupted, trying backup', 'warning');
       raw = readSaveSlotBackup(s);
       if (!raw) return false;
       try {
@@ -6015,7 +6016,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const data = migrateSaveData(parsed) as Record<string, any>;
       if (data.migrationError) {
-        console.error('[LoadGame] Save migration failed — save data may be corrupt');
+        Sentry.captureMessage('[LoadGame] Save migration failed — save data may be corrupt', 'error');
         return false;
       }
       const clubIds = Object.keys(data.clubs);

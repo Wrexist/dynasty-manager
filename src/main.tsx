@@ -39,6 +39,11 @@ requestAnimationFrame(() => {
   });
 });
 
+// Catch unhandled promise rejections (async errors outside React tree)
+window.addEventListener('unhandledrejection', (event) => {
+  Sentry.captureException(event.reason, { tags: { context: 'unhandledRejection' } });
+});
+
 // Auto-save when the browser tab / window is closed
 window.addEventListener('beforeunload', () => {
   const state = useGameStore.getState();

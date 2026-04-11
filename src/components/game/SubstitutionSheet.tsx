@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { useState, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -449,7 +450,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 }
               }
             } catch (err) {
-              console.error('[SubstitutionSheet] optimize lineup failed:', err);
+              Sentry.captureException(err, { tags: { context: 'optimizeLineup' } });
               toast.error('Failed to optimize lineup');
             }
             setAutoFilling(false);
