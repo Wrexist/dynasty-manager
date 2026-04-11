@@ -15,6 +15,7 @@ import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DR
 import type { HalfState } from '@/engine/match';
 import type { ShoutType, KeyMomentChoice } from '@/types/game';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
+import { getCompetitionInfo } from '@/utils/competitionBadge';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
 import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
@@ -179,14 +180,16 @@ const MatchDay = () => {
   const isCupMatch = !!cupTie || !!leagueCupTie || !!continentalMatch || !!superCupMatch || !!currentCupTieId;
 
   // Competition context for display
-  const competitionInfo = liveCompetition === 'Pre-Season Friendly' ? { name: 'Pre-Season Friendly', round: '', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' }
-    : cupTie ? { name: 'Dynasty Cup', round: cupTie.round, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/30' }
-    : leagueCupTie ? { name: 'League Cup', round: leagueCupTie.round, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/30' }
-    : champMatch ? { name: 'Champions Cup', round: champMatch.roundLabel, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/30' }
-    : shieldMatch ? { name: 'Shield Cup', round: shieldMatch.roundLabel, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/30' }
-    : confMatch ? { name: 'Conference Cup', round: confMatch.roundLabel, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' }
-    : superCupMatch ? { name: domesticSuperCup?.week === week ? 'Super Cup' : 'Continental Super Cup', round: 'Final', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/30' }
+  const competitionBadge = liveCompetition === 'Pre-Season Friendly' ? getCompetitionInfo('Pre-Season Friendly')
+    : cupTie ? getCompetitionInfo('Dynasty Cup')
+    : leagueCupTie ? getCompetitionInfo('League Cup')
+    : champMatch ? getCompetitionInfo('Champions Cup')
+    : shieldMatch ? getCompetitionInfo('Shield Cup')
+    : confMatch ? getCompetitionInfo('Conference Cup')
+    : superCupMatch ? getCompetitionInfo(domesticSuperCup?.week === week ? 'Super Cup' : 'Continental Super Cup')
     : null;
+  const competitionRound = cupTie?.round ?? leagueCupTie?.round ?? champMatch?.roundLabel ?? shieldMatch?.roundLabel ?? confMatch?.roundLabel ?? (superCupMatch ? 'Final' : '');
+  const competitionInfo = competitionBadge ? { ...competitionBadge, round: competitionRound } : null;
 
   // Cache match data when kickoff starts — playSecondHalf() marks the fixture
   // as played which makes useCurrentMatch() return undefined mid-animation.

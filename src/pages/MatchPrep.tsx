@@ -4,13 +4,14 @@ import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
-import { Swords, AlertTriangle, Flame, Info, Shield, Zap, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { Swords, AlertTriangle, Flame, Info, Shield, Zap, ArrowUp, ArrowDown, Minus, Trophy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses, getRatingColor } from '@/utils/uiHelpers';
 import { useCurrentMatch, useLeaguePosition } from '@/hooks/useGameSelectors';
 import { useLineupOptimizer } from '@/hooks/useLineupOptimizer';
 import { Button } from '@/components/ui/button';
-import { getDerbyIntensity, getDerbyName } from '@/data/league';
+import { getDerbyIntensity, getDerbyName, LEAGUES } from '@/data/league';
+import { getCompetitionInfo } from '@/utils/competitionBadge';
 import { FORMATION_POSITIONS, FormationType, type Position } from '@/types/game';
 import { useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
@@ -29,7 +30,7 @@ const FORMATION_HINTS: Record<FormationType, string> = {
 };
 
 const MatchPrep = () => {
-  const { week, clubs, players, playerClubId, leagueTable, monetization, rivalries } = useGameStore(useShallow((s) => ({
+  const { week, clubs, players, playerClubId, leagueTable, monetization, rivalries, playerDivision, seasonPhase } = useGameStore(useShallow((s) => ({
     week: s.week,
     clubs: s.clubs,
     players: s.players,
@@ -37,6 +38,8 @@ const MatchPrep = () => {
     leagueTable: s.leagueTable,
     monetization: s.monetization,
     rivalries: s.rivalries,
+    playerDivision: s.playerDivision,
+    seasonPhase: s.seasonPhase,
   })));
   const setScreen = useGameStore((s) => s.setScreen);
   const playCurrentMatch = useGameStore((s) => s.playCurrentMatch);
@@ -44,10 +47,15 @@ const MatchPrep = () => {
 
   const myClub = clubs[playerClubId];
 
-  const { match, isHome, opponent: oppClub } = useCurrentMatch();
+  const { match, isHome, opponent: oppClub, competition } = useCurrentMatch();
   const oppClubId = match ? (isHome ? match.awayClubId : match.homeClubId) : '';
   const oppPos = useLeaguePosition(oppClubId);
   const myPos = useLeaguePosition();
+  const inPlayoffs = (seasonPhase as string) === 'playoffs';
+  const competitionInfo = getCompetitionInfo(competition, {
+    inPlayoffs,
+    leagueName: LEAGUES.find(d => d.id === playerDivision)?.shortName,
+  });
 
   // Resolve opponent club data for the rating memo (avoids depending on entire clubs record)
   const oppClubData = match ? (isHome ? clubs[match.awayClubId] : clubs[match.homeClubId]) : undefined;
@@ -128,7 +136,16 @@ const MatchPrep = () => {
       <PageHint screen="matchPrep" title={PAGE_HINTS.matchPrep.title} body={PAGE_HINTS.matchPrep.body} />
 
       {/* Match Header */}
-      <GlassPanel className="p-4">
+      <GlassPanel className={cn("p-4", competitionInfo.borderAccent)}>
+        <div className="text-center mb-2">
+          <span className={cn(
+            'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+            competitionInfo.bg
+          )}>
+            <Trophy className="w-3 h-3" />
+            <span className={competitionInfo.color}>{competitionInfo.name}</span>
+          </span>
+        </div>
         <div className="flex items-center justify-between">
           <div className="text-center flex-1">
             <div className="w-10 h-10 rounded-full mx-auto mb-1" style={{ backgroundColor: myClub.color }} />
