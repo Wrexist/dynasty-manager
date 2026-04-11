@@ -17,6 +17,7 @@ export const KEY_MOMENT_CHOICES: Record<string, KeyMomentChoice[]> = {
       label: 'Stay Composed',
       description: 'Keep your shape and stick to the plan',
       icon: 'Shield',
+      tactics: { mentality: 'balanced', tempo: 'normal' },
     },
     {
       label: 'Shore Up',
@@ -36,6 +37,7 @@ export const KEY_MOMENT_CHOICES: Record<string, KeyMomentChoice[]> = {
       label: 'Stay Brave',
       description: 'Keep your current setup and play on',
       icon: 'Zap',
+      tactics: { mentality: 'balanced' },
     },
     {
       label: 'Reduce Pressure',
@@ -96,6 +98,7 @@ export const KEY_MOMENT_CHOICES: Record<string, KeyMomentChoice[]> = {
       label: 'Stay Patient',
       description: 'Don\'t overcommit — wait for the right moment',
       icon: 'Shield',
+      tactics: { mentality: 'balanced', tempo: 'normal' },
     },
   ],
   dominant_possession: [
@@ -109,6 +112,7 @@ export const KEY_MOMENT_CHOICES: Record<string, KeyMomentChoice[]> = {
       label: 'Stay Patient',
       description: 'Keep probing — the goal will come',
       icon: 'Shield',
+      tactics: { mentality: 'balanced', tempo: 'normal' },
     },
     {
       label: 'Change Shape',
@@ -129,6 +133,7 @@ export const KEY_MOMENT_CHOICES: Record<string, KeyMomentChoice[]> = {
       label: 'Hold Firm',
       description: 'Trust your defenders — stick with it',
       icon: 'ShieldCheck',
+      tactics: { mentality: 'cautious', defensiveLine: 'normal' },
     },
     {
       label: 'Fight Fire with Fire',

@@ -83,6 +83,18 @@ function getEnrichedDescription(ev: MatchEvent, events: MatchEvent[], homeClubId
   return enrichDescription(ev, { homeGoals: hg, awayGoals: ag, homeClubId, isPlayerHome, minute: ev.minute });
 }
 
+/** Build a short summary of non-default tactical settings, e.g. "Attacking · Fast · Wide" */
+function getTacticsSummary(t: { mentality: string; tempo: string; width: string; defensiveLine: string; pressingIntensity: number }): string {
+  const parts: string[] = [];
+  if (t.mentality !== 'balanced') parts.push(t.mentality === 'all-out-attack' ? 'All-Out' : t.mentality.charAt(0).toUpperCase() + t.mentality.slice(1));
+  if (t.tempo !== 'normal') parts.push(t.tempo === 'fast' ? 'Fast' : 'Slow');
+  if (t.width !== 'normal') parts.push(t.width === 'wide' ? 'Wide' : 'Narrow');
+  if (t.defensiveLine !== 'normal') parts.push(t.defensiveLine === 'high' ? 'High Line' : 'Deep');
+  if (t.pressingIntensity > 62) parts.push('Heavy Press');
+  else if (t.pressingIntensity < 38) parts.push('Low Press');
+  return parts.length ? parts.join(' · ') : 'Balanced';
+}
+
 const MatchDay = () => {
   const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
@@ -134,6 +146,8 @@ const MatchDay = () => {
   const [showStats, setShowStats] = useState(false);
   const [showFitness, setShowFitness] = useState(false);
   const [showCustomTactics, setShowCustomTactics] = useState(false);
+  const [selectedHalftimePreset, setSelectedHalftimePreset] = useState<string | null>(null);
+  const [showHalftimeCustomTactics, setShowHalftimeCustomTactics] = useState(false);
   // Full Time screen removed — PostMatchPopup navigates directly to Match Review
   const dismissedMomentsRef = useRef<Set<string>>(new Set());
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -214,6 +228,8 @@ const MatchDay = () => {
     setCurrentMin(0);
     setVisibleEvents([]);
     setPaused(false);
+    setSelectedHalftimePreset(null);
+    setShowHalftimeCustomTactics(false);
   };
 
   const resumingRef = useRef(false);
@@ -908,19 +924,27 @@ const MatchDay = () => {
             </p>
           </GlassPanel>
 
-          {/* Halftime Tactical Analysis */}
+          {/* Halftime Tactics — compact merged panel */}
           {firstHalfState && match && (() => {
             const analysis = analyzeHalftime(firstHalfState, playerClubId, match.homeClubId);
             return (
               <GlassPanel className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 className="w-4 h-4 text-primary" />
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tactical Analysis</p>
+                {/* Header: label + current tactical summary */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-4 h-4 text-primary" />
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tactics</p>
+                  </div>
+                  <p className="text-[10px] text-primary font-medium">{clubs[playerClubId]?.formation} · {getTacticsSummary(tactics)}</p>
                 </div>
-                <p className="text-xs font-bold text-foreground mb-1">{analysis.headline}</p>
-                <p className="text-[10px] text-muted-foreground mb-3">{analysis.description}</p>
-                <div className="space-y-2">
+
+                {/* Situational headline */}
+                <p className="text-xs font-bold text-foreground mb-2.5">{analysis.headline}</p>
+
+                {/* Quick-apply preset pills */}
+                <div className="flex gap-1.5 mb-3">
                   {analysis.choices.map((choice, idx) => {
+                    const isActive = selectedHalftimePreset === choice.label;
                     const ChoiceIcon = choice.icon === 'Flame' ? Flame : choice.icon === 'Shield' ? Shield : choice.icon === 'ShieldCheck' ? ShieldCheck : choice.icon === 'Zap' ? Zap : choice.icon === 'RefreshCw' ? RefreshCw : choice.icon === 'Layers' ? Layers : Zap;
                     return (
                       <button
@@ -930,26 +954,47 @@ const MatchDay = () => {
                           if (choice.openSubSheet) setSubSheetOpen(true);
                           if (choice.tactics) {
                             setTactics(choice.tactics);
+                            setSelectedHalftimePreset(choice.label);
                             infoToast(`Tactical change: ${choice.label}`);
                           }
                           if (choice.suggestFormation) {
                             setFormation(choice.suggestFormation);
                             infoToast(`Formation changed to ${choice.suggestFormation}`);
                           }
+                          if (!choice.tactics && !choice.suggestFormation) {
+                            setSelectedHalftimePreset(choice.label);
+                          }
                         }}
-                        className="w-full flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 active:scale-[0.98] border border-border/30 transition-all text-left"
+                        className={cn(
+                          "flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-lg text-[10px] font-semibold transition-all active:scale-[0.97]",
+                          isActive
+                            ? 'bg-primary/20 text-primary border border-primary/30'
+                            : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 border border-border/30'
+                        )}
                       >
-                        <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center shrink-0">
-                          <ChoiceIcon className="w-4 h-4 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-foreground">{choice.label}</p>
-                          <p className="text-[10px] text-muted-foreground">{choice.description}</p>
-                        </div>
+                        <ChoiceIcon className="w-3.5 h-3.5 shrink-0" />
+                        <span className="truncate">{choice.label}</span>
                       </button>
                     );
                   })}
                 </div>
+
+                {/* Inline formation picker */}
+                <FormationPicker />
+
+                {/* Expandable custom tactics */}
+                <button
+                  onClick={() => setShowHalftimeCustomTactics(!showHalftimeCustomTactics)}
+                  className="w-full text-[10px] text-muted-foreground/60 hover:text-muted-foreground py-1.5 mt-2 transition-colors flex items-center justify-center gap-1"
+                >
+                  {showHalftimeCustomTactics ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  {showHalftimeCustomTactics ? 'Hide custom tactics' : 'Fine-tune tactics...'}
+                </button>
+                {showHalftimeCustomTactics && (
+                  <div className="mt-2">
+                    <TacticalPanel variant="compact" tactics={tactics} setTactics={(partial) => { setSelectedHalftimePreset(null); setTactics(partial); }} />
+                  </div>
+                )}
               </GlassPanel>
             );
           })()}
@@ -1025,13 +1070,6 @@ const MatchDay = () => {
               </Button>
             </GlassPanel>
           )}
-
-          {/* Tactical changes at half-time */}
-          <GlassPanel className="p-4 space-y-3">
-            {/* Formation Switch at Half-Time */}
-            <FormationPicker />
-            <TacticalPanel variant="full" tactics={tactics} setTactics={setTactics} />
-          </GlassPanel>
 
           {/* First half events recap */}
           {visibleEvents.length > 0 && (
@@ -1173,9 +1211,27 @@ const MatchDay = () => {
           )}
 
           {/* Tactical changes before extra time */}
-          <GlassPanel className="p-4 space-y-3">
+          <GlassPanel className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-4 h-4 text-primary" />
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Tactics</p>
+              </div>
+              <p className="text-[10px] text-primary font-medium">{clubs[playerClubId]?.formation} · {getTacticsSummary(tactics)}</p>
+            </div>
             <FormationPicker />
-            <TacticalPanel variant="full" tactics={tactics} setTactics={setTactics} />
+            <button
+              onClick={() => setShowHalftimeCustomTactics(!showHalftimeCustomTactics)}
+              className="w-full text-[10px] text-muted-foreground/60 hover:text-muted-foreground py-1.5 mt-2 transition-colors flex items-center justify-center gap-1"
+            >
+              {showHalftimeCustomTactics ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              {showHalftimeCustomTactics ? 'Hide custom tactics' : 'Fine-tune tactics...'}
+            </button>
+            {showHalftimeCustomTactics && (
+              <div className="mt-2">
+                <TacticalPanel variant="compact" tactics={tactics} setTactics={setTactics} />
+              </div>
+            )}
           </GlassPanel>
 
           {/* Match Speed before extra time */}
@@ -1584,6 +1640,7 @@ const MatchDay = () => {
                         }
                         if (choice.tactics) {
                           setTactics(choice.tactics);
+                          setSelectedHalftimePreset(null);
                           infoToast(`Tactical change: ${choice.label}`);
                         }
                         if (choice.suggestFormation) {

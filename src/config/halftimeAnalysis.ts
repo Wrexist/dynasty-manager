@@ -37,6 +37,7 @@ const SITUATION_DATA: Record<HalftimeSituation, { headline: string; description:
         label: 'Keep Attacking',
         description: 'Don\'t take your foot off the gas',
         icon: 'Flame',
+        tactics: { mentality: 'attacking', tempo: 'fast' },
       },
       {
         label: 'Rest Key Players',
@@ -91,6 +92,7 @@ const SITUATION_DATA: Record<HalftimeSituation, { headline: string; description:
         label: 'Stay Patient',
         description: 'Keep probing — the goal will come',
         icon: 'Shield',
+        tactics: { mentality: 'balanced', tempo: 'normal' },
       },
     ],
   },
