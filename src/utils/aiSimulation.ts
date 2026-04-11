@@ -36,8 +36,10 @@ import {
   AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER,
   AI_TRANSFER_NEWS_MIN_FEE, AI_LOAN_NEWS_MIN_OVERALL,
   AI_STYLE_PRIORITY_POSITIONS,
+  AI_TRANSFER_PRESEASON_MULTIPLIER,
 } from '@/config/aiSimulation';
 import { TOTAL_WEEKS } from '@/config/gameBalance';
+import { PRE_SEASON_END } from '@/config/transfers';
 
 // ── Types ──
 
@@ -88,6 +90,10 @@ function estimateWeeklyIncome(club: Club, divisionTable: LeagueTableEntry[]): nu
 
 function isDeadlineWeek(week: number): boolean {
   return (AI_TRANSFER_DEADLINE_WEEKS as readonly number[]).includes(week);
+}
+
+function isPreSeasonWeek(week: number): boolean {
+  return week <= PRE_SEASON_END;
 }
 
 // ── Squad Analysis ──
@@ -307,6 +313,7 @@ function processAIListings(
 
       let chance = isWageCrisis ? AI_SELL_LISTING_CHANCE * 3 : AI_SELL_LISTING_CHANCE;
       if (isDeadlineWeek(week)) chance = Math.min(1, chance * AI_TRANSFER_DEADLINE_MULTIPLIER);
+      else if (isPreSeasonWeek(week)) chance = Math.min(1, chance * AI_TRANSFER_PRESEASON_MULTIPLIER);
       if (Math.random() > chance) continue;
 
       const askingPrice = Math.round(p.value * (AI_SELL_LISTING_PRICE_MIN + Math.random() * AI_SELL_LISTING_PRICE_RANGE));
@@ -353,9 +360,10 @@ function processAIBuying(
     const youthFocus = profile?.youthFocus ?? 0.5;
     const style = profile?.style ?? 'balanced';
 
-    // Check transfer activity chance (influenced by aggression + deadline rush)
+    // Check transfer activity chance (influenced by aggression + deadline rush + pre-season)
     let chance = AI_TRANSFER_WEEKLY_CHANCE * (0.5 + aggression);
     if (isDeadlineWeek(week)) chance *= AI_TRANSFER_DEADLINE_MULTIPLIER;
+    else if (isPreSeasonWeek(week)) chance *= AI_TRANSFER_PRESEASON_MULTIPLIER;
     if (Math.random() > chance) continue;
 
     // Check budget constraints
@@ -554,7 +562,8 @@ function processAILoans(
     if (loansDone >= AI_LOAN_MAX_PER_WEEK) break;
 
     const lender = updClubs[lendingClubId];
-    if (Math.random() > AI_LOAN_WEEKLY_CHANCE) continue;
+    const loanChance = isPreSeasonWeek(week) ? AI_LOAN_WEEKLY_CHANCE * AI_TRANSFER_PRESEASON_MULTIPLIER : AI_LOAN_WEEKLY_CHANCE;
+    if (Math.random() > loanChance) continue;
 
     const candidates = identifyLoanCandidates(lender, updPlayers);
     if (candidates.length === 0) continue;
@@ -673,7 +682,10 @@ function processAIFreeAgents(
 
   for (const aiClubId of aiClubIds) {
     if (updFreeAgents.length === 0) break;
-    if (Math.random() > AI_FREE_AGENT_CHANCE) continue;
+    const faChance = isPreSeasonWeek(week)
+      ? AI_FREE_AGENT_CHANCE * AI_TRANSFER_PRESEASON_MULTIPLIER
+      : AI_FREE_AGENT_CHANCE;
+    if (Math.random() > faChance) continue;
 
     const club = updClubs[aiClubId];
     const avgOverall = getSquadAvgOverall(club, updPlayers);

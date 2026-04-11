@@ -17,7 +17,7 @@ import { POSITION_FILTERS, PAGE_HINTS, MARKET_SUB_NAV, SIGNIFICANT_OFFER_OVERALL
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, FREE_AGENT_DEFAULT_CONTRACT_YEARS, FREE_AGENT_MIN_WAGE_RATIO, FREE_AGENT_MAX_WAGE_RATIO, LOAN_BUY_FEE_MULTIPLIER } from '@/config/transfers';
+import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, FREE_AGENT_DEFAULT_CONTRACT_YEARS, FREE_AGENT_MIN_WAGE_RATIO, FREE_AGENT_MAX_WAGE_RATIO, LOAN_BUY_FEE_MULTIPLIER, PRE_SEASON_END } from '@/config/transfers';
 import { MAX_SQUAD_SIZE, LOAN_MIN_WEEKS_BEFORE_RECALL } from '@/config/gameBalance';
 import { formatMoney } from '@/utils/helpers';
 import { getPerformanceMultiplier, getMaxFreeAgentOverall, calculateSigningBonus } from '@/utils/transferOffers';
@@ -257,6 +257,10 @@ const TransferPage = () => {
         {(week === SUMMER_WINDOW_END || week === WINTER_WINDOW_END) ? (
           <span className="flex items-center gap-1 text-xs bg-destructive/15 text-destructive px-2.5 py-1 rounded-md font-bold uppercase tracking-wide animate-pulse">
             <Clock className="w-3 h-3" /> Deadline Day
+          </span>
+        ) : (transferWindowOpen && week <= PRE_SEASON_END) ? (
+          <span className="flex items-center gap-1 text-xs bg-primary/15 text-primary px-2 py-1 rounded-md font-medium">
+            <TrendingUp className="w-3 h-3" /> Pre-Season Market
           </span>
         ) : transferWindowOpen ? (
           <span className="flex items-center gap-1 text-xs bg-emerald-500/15 text-emerald-400 px-2 py-1 rounded-md">

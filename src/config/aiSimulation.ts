@@ -36,6 +36,9 @@ export const AI_TRANSFER_DEADLINE_WEEKS = [7, 8, 23, 24] as const; // Deadline r
 export const AI_TRANSFER_DEADLINE_MULTIPLIER = 2.5;   // 2.5x activity on deadline weeks
 export const AI_TRANSFER_MAX_PER_WEEK = 10;           // Max 10 AI-to-AI transfers per week
 export const AI_LOAN_MAX_PER_WEEK = 4;                // Max 4 AI-to-AI loans per week
+// Pre-season (friendlies, weeks 1-3): AI clubs aggressively reshape squads
+// PRE_SEASON_END is the canonical constant in @/config/transfers — import it there
+export const AI_TRANSFER_PRESEASON_MULTIPLIER = 2.0;  // 2x activity during pre-season
 
 // ── AI Selling Logic ──
 export const AI_SELL_AGE_THRESHOLD = 30;              // Consider selling players 30+

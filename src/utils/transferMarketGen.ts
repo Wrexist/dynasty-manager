@@ -16,6 +16,9 @@ import {
   FREE_AGENT_QUALITY_MIN, FREE_AGENT_QUALITY_MAX,
   MARKET_REPLENISH_BATCH_MIN, MARKET_REPLENISH_BATCH_RANGE,
   FREE_AGENT_SPAWN_MIN, FREE_AGENT_SPAWN_RANGE,
+  PRE_SEASON_EXTRA_MARKET_MIN, PRE_SEASON_EXTRA_MARKET_RANGE,
+  PRE_SEASON_QUALITY_BOOST, PRE_SEASON_DIVISION_WEIGHTS,
+  PRE_SEASON_REPLENISH_BATCH_MIN, PRE_SEASON_REPLENISH_BATCH_RANGE,
 } from '@/config/transfers';
 
 // Position distribution weights (mirrors realistic squad composition)
@@ -54,15 +57,16 @@ function pickWeightedAge(): number {
   return 25;
 }
 
-function pickWeightedDivision(): string {
-  const entries = Object.entries(DIVISION_MARKET_WEIGHTS);
+/** Generic weighted random selection from a Record<string, number> */
+function pickWeightedFromRecord(weights: Record<string, number>, fallback: string): string {
+  const entries = Object.entries(weights);
   const total = entries.reduce((s, [, w]) => s + w, 0);
   let r = Math.random() * total;
-  for (const [div, weight] of entries) {
+  for (const [key, weight] of entries) {
     r -= weight;
-    if (r <= 0) return div;
+    if (r <= 0) return key;
   }
-  return 'div-3';
+  return fallback;
 }
 
 /** Get the age-based price multiplier with interpolation for missing ages */
@@ -71,13 +75,20 @@ function getAgePriceMultiplier(age: number): number {
   return AGE_PRICE_MULTIPLIER[key] ?? 1.0;
 }
 
-/** Generate a single external (unattached) player for the transfer market */
+/**
+ * Generate a single external (unattached) player for the transfer market.
+ * @param qualityBoost — raise the minimum quality floor (pre-season gets better players)
+ */
 function generateMarketPlayer(
   season: number,
   divisionId: string,
+  qualityBoost: number = 0,
 ): { player: Player; listing: TransferListing } {
   const range = DIVISION_QUALITY_RANGES[divisionId] || DIVISION_QUALITY_RANGES['div-3'];
-  const quality = range.min + Math.floor(Math.random() * (range.max - range.min + 1));
+  const effectiveMin = qualityBoost > 0
+    ? Math.min(range.min + qualityBoost, range.max)
+    : range.min;
+  const quality = effectiveMin + Math.floor(Math.random() * (range.max - effectiveMin + 1));
   const position = pickWeightedPosition();
   const age = pickWeightedAge();
 
@@ -150,6 +161,38 @@ function generateFreeAgentPlayer(season: number): Player {
   return player;
 }
 
+// ── Shared batch generation ──
+
+/**
+ * Generate a batch of market players with configurable size, division weights, and quality.
+ * All public market-generation functions delegate to this.
+ */
+function generateMarketBatch(
+  season: number,
+  week: number,
+  batchMin: number,
+  batchRange: number,
+  divisionWeights: Record<string, number>,
+  qualityBoost: number = 0,
+): { players: Record<string, Player>; listings: TransferListing[] } {
+  const count = batchMin + Math.floor(Math.random() * batchRange);
+  const players: Record<string, Player> = {};
+  const listings: TransferListing[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const divisionId = pickWeightedFromRecord(divisionWeights, 'div-3');
+    const { player, listing } = generateMarketPlayer(season, divisionId, qualityBoost);
+    listing.listedWeek = week;
+    listing.listedSeason = season;
+    players[player.id] = player;
+    listings.push(listing);
+  }
+
+  return { players, listings };
+}
+
+// ── Public API ──
+
 /**
  * Generate initial transfer market population at game start.
  * Returns new players to add to the players record and transfer listings.
@@ -158,20 +201,7 @@ export function generateInitialMarket(
   season: number,
   week: number,
 ): { players: Record<string, Player>; listings: TransferListing[] } {
-  const count = INITIAL_MARKET_GEN_MIN + Math.floor(Math.random() * INITIAL_MARKET_GEN_RANGE);
-  const players: Record<string, Player> = {};
-  const listings: TransferListing[] = [];
-
-  for (let i = 0; i < count; i++) {
-    const divisionId = pickWeightedDivision();
-    const { player, listing } = generateMarketPlayer(season, divisionId);
-    listing.listedWeek = week;
-    listing.listedSeason = season;
-    players[player.id] = player;
-    listings.push(listing);
-  }
-
-  return { players, listings };
+  return generateMarketBatch(season, week, INITIAL_MARKET_GEN_MIN, INITIAL_MARKET_GEN_RANGE, DIVISION_MARKET_WEIGHTS);
 }
 
 /**
@@ -201,20 +231,29 @@ export function replenishMarket(
   season: number,
   week: number,
 ): { players: Record<string, Player>; listings: TransferListing[] } {
-  const count = MARKET_REPLENISH_BATCH_MIN + Math.floor(Math.random() * MARKET_REPLENISH_BATCH_RANGE);
-  const players: Record<string, Player> = {};
-  const listings: TransferListing[] = [];
+  return generateMarketBatch(season, week, MARKET_REPLENISH_BATCH_MIN, MARKET_REPLENISH_BATCH_RANGE, DIVISION_MARKET_WEIGHTS);
+}
 
-  for (let i = 0; i < count; i++) {
-    const divisionId = pickWeightedDivision();
-    const { player, listing } = generateMarketPlayer(season, divisionId);
-    listing.listedWeek = week;
-    listing.listedSeason = season;
-    players[player.id] = player;
-    listings.push(listing);
-  }
+/**
+ * Generate extra higher-quality players for the pre-season transfer market.
+ * Called at season start alongside generateInitialMarket to flood the market
+ * with better talent during the friendlies period.
+ */
+export function generatePreSeasonMarket(
+  season: number,
+  week: number,
+): { players: Record<string, Player>; listings: TransferListing[] } {
+  return generateMarketBatch(season, week, PRE_SEASON_EXTRA_MARKET_MIN, PRE_SEASON_EXTRA_MARKET_RANGE, PRE_SEASON_DIVISION_WEIGHTS, PRE_SEASON_QUALITY_BOOST);
+}
 
-  return { players, listings };
+/**
+ * Replenish the transfer market during pre-season with larger batches and higher quality.
+ */
+export function replenishMarketPreSeason(
+  season: number,
+  week: number,
+): { players: Record<string, Player>; listings: TransferListing[] } {
+  return generateMarketBatch(season, week, PRE_SEASON_REPLENISH_BATCH_MIN, PRE_SEASON_REPLENISH_BATCH_RANGE, PRE_SEASON_DIVISION_WEIGHTS, PRE_SEASON_QUALITY_BOOST);
 }
 
 /**

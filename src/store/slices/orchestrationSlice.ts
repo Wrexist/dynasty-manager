@@ -95,9 +95,10 @@ import {
   COMPETING_BID_PREMIUM,
   ASKING_PRICE_BID_ANCHOR,
   INJURY_BID_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD,
+  PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER,
 } from '@/config/transfers';
 import { getPerformanceMultiplier, getContractLengthFactor } from '@/utils/transferOffers';
-import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
+import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, replenishMarketPreSeason, generatePreSeasonMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
 import { PENALTY_CONVERSION_RATE, SHOUT_MODIFIERS, SHOUT_CUMULATIVE_SCALE, GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { calculatePlayerValue } from '@/config/playerGeneration';
 import {
@@ -1680,6 +1681,11 @@ function finalizeSeason(
   Object.assign(newPlayers, seasonMarket.players);
   transferMarket.push(...seasonMarket.listings);
 
+  // Pre-season bonus: flood market with extra higher-quality players during friendlies
+  const preSeasonMarket = generatePreSeasonMarket(newSeason, 1);
+  Object.assign(newPlayers, preSeasonMarket.players);
+  transferMarket.push(...preSeasonMarket.listings);
+
   // Board objective end-of-season rewards
   let objectiveXP = 0;
   let objectiveBudgetBoost = 0;
@@ -1716,6 +1722,12 @@ function finalizeSeason(
     body: verdict === 'sacked'
       ? `Despite last season's poor results, the board has given you one last chance. Don't waste it.`
       : `Welcome to Season ${newSeason}. Your board confidence stands at ${newConfidence}%. Good luck!`,
+  });
+
+  newMessages = addMsg(newMessages, {
+    week: 1, season: newSeason, type: 'transfer',
+    title: 'Pre-Season Market Surge',
+    body: 'The summer window is buzzing! Clubs are reshaping their squads during pre-season. Expect more transfer activity and higher-quality players before league fixtures resume.',
   });
 
   // Continental qualification messages
@@ -2347,6 +2359,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     Object.assign(allPlayers, initialMarket.players);
     transferMarket.push(...initialMarket.listings);
 
+    // Pre-season bonus: flood market with extra higher-quality players during friendlies
+    const preSeasonMarket = generatePreSeasonMarket(1, 1);
+    Object.assign(allPlayers, preSeasonMarket.players);
+    transferMarket.push(...preSeasonMarket.listings);
+
     // Generate initial free agent pool
     const initialFreeAgents = generateInitialFreeAgents(1);
     Object.assign(allPlayers, initialFreeAgents.players);
@@ -2364,6 +2381,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const messages: Message[] = [
       { id: crypto.randomUUID(), week: 1, season: 1, type: 'board', title: 'Welcome, Manager!', body: `The board of ${initClub.name} welcomes you. We expect great things this season. Check your objectives in the Club tab.`, read: false },
       { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Transfer Window Open', body: 'The transfer window is now open. Scout the market and strengthen your squad before it closes in Week 8.', read: false },
+      { id: crypto.randomUUID(), week: 1, season: 1, type: 'transfer', title: 'Pre-Season Market Surge', body: 'Clubs are aggressively reshaping their squads during pre-season. Expect more transfer activity and higher-quality players on the market before league fixtures begin in Week 4.', read: false },
     ];
 
     const pcInit = clubs[clubId];
@@ -3289,12 +3307,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Build all division tables
     const divisionTables = buildAllDivisionTables(updatedDivisionFixtures, state.divisionClubs);
 
+    // Pre-season flag — used by rumor boost, offer multipliers, and market replenishment
+    const isPreSeason = newWeek <= PRE_SEASON_END;
+
     // Transfer rumors — foreshadow potential incoming offers (batched into single message)
     if (transferWindowOpen) {
+      const effectiveRumorChance = isPreSeason ? RUMOR_CHANCE * PRE_SEASON_RUMOR_MULTIPLIER : RUMOR_CHANCE;
       const rumorNames: string[] = [];
       const starPlayers = Object.values(newPlayers).filter(p => p.clubId === playerClubId && !p.listedForSale && p.overall >= 70 && !p.onLoan);
       for (const sp of starPlayers) {
-        if (Math.random() < RUMOR_CHANCE) {
+        if (Math.random() < effectiveRumorChance) {
           const interestedClubs = Object.values(clubs).filter(c => c.id !== playerClubId && c.budget > sp.value * 0.5);
           if (interestedClubs.length > 0) {
             const rumorClub = pick(interestedClubs);
@@ -3382,11 +3404,17 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         return false;
       };
 
+      // Pre-season boost: more offers during friendlies period (weeks 1-3)
+      const preSeasonOfferMult = isPreSeason ? PRE_SEASON_OFFER_MULTIPLIER : 1;
+      const preSeasonUnsolicitedMult = isPreSeason ? PRE_SEASON_UNSOLICITED_MULTIPLIER : 1;
+
       // Listed player offers — anchor bids toward asking price when higher than value
       const listedPlayers = Object.values(newPlayers).filter(p => p.listedForSale && !p.onLoan && p.clubId === playerClubId);
       const currentMarket = state.transferMarket;
       for (const lp of listedPlayers) {
-        const effectiveOfferChance = isDeadlineDay ? AI_OFFER_CHANCE * DEADLINE_DAY_OFFER_MULTIPLIER : AI_OFFER_CHANCE;
+        const effectiveOfferChance = isDeadlineDay
+          ? AI_OFFER_CHANCE * DEADLINE_DAY_OFFER_MULTIPLIER
+          : AI_OFFER_CHANCE * preSeasonOfferMult;
         if (Math.random() < effectiveOfferChance) {
           const listing = currentMarket.find(l => l.playerId === lp.id);
           const askingFloor = listing ? listing.askingPrice * ASKING_PRICE_BID_ANCHOR : 0;
@@ -3401,7 +3429,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         (p.wantsToLeave || p.overall >= 75)
       );
       for (const tp of unsolicitedTargets) {
-        if (Math.random() < UNSOLICITED_OFFER_CHANCE) {
+        if (Math.random() < UNSOLICITED_OFFER_CHANCE * preSeasonUnsolicitedMult) {
           tryGenerateOffer(tp, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE);
         }
       }
@@ -4431,7 +4459,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
 
       if (updatedMarket.length < MARKET_REPLENISH_THRESHOLD) {
-        const fresh = replenishMarket(season, newWeek);
+        // Use larger, higher-quality batches during pre-season (friendlies weeks 1-3)
+        const fresh = newWeek <= PRE_SEASON_END
+          ? replenishMarketPreSeason(season, newWeek)
+          : replenishMarket(season, newWeek);
         Object.assign(updatedPlayers, fresh.players);
         updatedMarket = [...updatedMarket, ...fresh.listings];
       }
