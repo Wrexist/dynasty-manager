@@ -95,7 +95,7 @@ import {
   COMPETING_BID_PREMIUM,
   ASKING_PRICE_BID_ANCHOR,
   INJURY_BID_DISCOUNT, LONG_INJURY_BID_DISCOUNT, LONG_INJURY_WEEKS_THRESHOLD,
-  PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER,
+  PRE_SEASON_END, PRE_SEASON_OFFER_MULTIPLIER, PRE_SEASON_UNSOLICITED_MULTIPLIER, PRE_SEASON_RUMOR_MULTIPLIER,
 } from '@/config/transfers';
 import { getPerformanceMultiplier, getContractLengthFactor } from '@/utils/transferOffers';
 import { generateInitialMarket, generateInitialFreeAgents, replenishMarket, replenishMarketPreSeason, generatePreSeasonMarket, spawnFreeAgents, processListingExpiry } from '@/utils/transferMarketGen';
@@ -1724,6 +1724,12 @@ function finalizeSeason(
       : `Welcome to Season ${newSeason}. Your board confidence stands at ${newConfidence}%. Good luck!`,
   });
 
+  newMessages = addMsg(newMessages, {
+    week: 1, season: newSeason, type: 'transfer',
+    title: 'Pre-Season Market Surge',
+    body: 'The summer window is buzzing! Clubs are reshaping their squads during pre-season. Expect more transfer activity and higher-quality players before league fixtures resume.',
+  });
+
   // Continental qualification messages
   if (champQualified) {
     newMessages = addMsg(newMessages, {
@@ -2375,6 +2381,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const messages: Message[] = [
       { id: crypto.randomUUID(), week: 1, season: 1, type: 'board', title: 'Welcome, Manager!', body: `The board of ${initClub.name} welcomes you. We expect great things this season. Check your objectives in the Club tab.`, read: false },
       { id: crypto.randomUUID(), week: 1, season: 1, type: 'general', title: 'Transfer Window Open', body: 'The transfer window is now open. Scout the market and strengthen your squad before it closes in Week 8.', read: false },
+      { id: crypto.randomUUID(), week: 1, season: 1, type: 'transfer', title: 'Pre-Season Market Surge', body: 'Clubs are aggressively reshaping their squads during pre-season. Expect more transfer activity and higher-quality players on the market before league fixtures begin in Week 4.', read: false },
     ];
 
     const pcInit = clubs[clubId];
@@ -3300,12 +3307,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Build all division tables
     const divisionTables = buildAllDivisionTables(updatedDivisionFixtures, state.divisionClubs);
 
+    // Pre-season flag — used by rumor boost, offer multipliers, and market replenishment
+    const isPreSeason = newWeek <= PRE_SEASON_END;
+
     // Transfer rumors — foreshadow potential incoming offers (batched into single message)
     if (transferWindowOpen) {
+      const effectiveRumorChance = isPreSeason ? RUMOR_CHANCE * PRE_SEASON_RUMOR_MULTIPLIER : RUMOR_CHANCE;
       const rumorNames: string[] = [];
       const starPlayers = Object.values(newPlayers).filter(p => p.clubId === playerClubId && !p.listedForSale && p.overall >= 70 && !p.onLoan);
       for (const sp of starPlayers) {
-        if (Math.random() < RUMOR_CHANCE) {
+        if (Math.random() < effectiveRumorChance) {
           const interestedClubs = Object.values(clubs).filter(c => c.id !== playerClubId && c.budget > sp.value * 0.5);
           if (interestedClubs.length > 0) {
             const rumorClub = pick(interestedClubs);
@@ -3394,7 +3405,6 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       };
 
       // Pre-season boost: more offers during friendlies period (weeks 1-3)
-      const isPreSeason = newWeek <= PRE_SEASON_END;
       const preSeasonOfferMult = isPreSeason ? PRE_SEASON_OFFER_MULTIPLIER : 1;
       const preSeasonUnsolicitedMult = isPreSeason ? PRE_SEASON_UNSOLICITED_MULTIPLIER : 1;
 

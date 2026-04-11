@@ -212,6 +212,8 @@ export const PRE_SEASON_DIVISION_WEIGHTS: Record<string, number> = {
   'div-3': 0.20,  // 20% League One (vs 25% normal)
   'div-4': 0.10,  // 10% League Two (vs 15% normal)
 };
+// Multiplier on transfer rumors during pre-season (more clubs scouting)
+export const PRE_SEASON_RUMOR_MULTIPLIER = 2.0;
 // Multiplier on incoming offer chance during pre-season weeks
 export const PRE_SEASON_OFFER_MULTIPLIER = 1.75;
 // Multiplier on unsolicited bid chance during pre-season

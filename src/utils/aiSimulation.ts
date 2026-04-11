@@ -36,9 +36,10 @@ import {
   AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER,
   AI_TRANSFER_NEWS_MIN_FEE, AI_LOAN_NEWS_MIN_OVERALL,
   AI_STYLE_PRIORITY_POSITIONS,
-  AI_TRANSFER_PRESEASON_END, AI_TRANSFER_PRESEASON_MULTIPLIER,
+  AI_TRANSFER_PRESEASON_MULTIPLIER,
 } from '@/config/aiSimulation';
 import { TOTAL_WEEKS } from '@/config/gameBalance';
+import { PRE_SEASON_END } from '@/config/transfers';
 
 // ── Types ──
 
@@ -92,7 +93,7 @@ function isDeadlineWeek(week: number): boolean {
 }
 
 function isPreSeasonWeek(week: number): boolean {
-  return week <= AI_TRANSFER_PRESEASON_END;
+  return week <= PRE_SEASON_END;
 }
 
 // ── Squad Analysis ──
@@ -681,7 +682,10 @@ function processAIFreeAgents(
 
   for (const aiClubId of aiClubIds) {
     if (updFreeAgents.length === 0) break;
-    if (Math.random() > AI_FREE_AGENT_CHANCE) continue;
+    const faChance = isPreSeasonWeek(week)
+      ? AI_FREE_AGENT_CHANCE * AI_TRANSFER_PRESEASON_MULTIPLIER
+      : AI_FREE_AGENT_CHANCE;
+    if (Math.random() > faChance) continue;
 
     const club = updClubs[aiClubId];
     const avgOverall = getSquadAvgOverall(club, updPlayers);
