@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PurchaseModal } from '@/components/game/PurchaseModal';
-import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Crown, Check, Sparkles, Package, Shield, Timer, CreditCard, ExternalLink, RefreshCw, ChevronDown, ChevronUp, Star, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PRODUCTS, PRO_FEATURE_LABELS, PRO_FEATURES, STARTER_KIT, COSMETIC_ITEMS } from '@/config/monetization';
 import { isPro, hasProduct, isStarterKitAvailable, getStarterKitRemainingMs, getOwnedCosmetics, getActiveCosmetic, isSubscriptionActive } from '@/utils/monetization';
@@ -49,6 +49,9 @@ const BUNDLE_INDIVIDUAL_TOTAL = PRODUCTS['com.dynastymanager.pro'].priceUsd
   + PRODUCTS['com.dynastymanager.pack.stadium'].priceUsd
   + PRODUCTS['com.dynastymanager.pack.legends'].priceUsd;
 const BUNDLE_SAVINGS_PCT = Math.round((1 - PRODUCTS['com.dynastymanager.bundle.all'].priceUsd / BUNDLE_INDIVIDUAL_TOTAL) * 100);
+
+/** Per-day cost for yearly subscription */
+const YEARLY_PER_DAY = (PRODUCTS['com.dynastymanager.pro.yearly'].priceUsd / 365).toFixed(2);
 
 const ShopPage = () => {
   const monetization = useGameStore(s => s.monetization);
@@ -136,9 +139,13 @@ const ShopPage = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
+    <div className="max-w-lg mx-auto px-4 py-4 space-y-5">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-display font-bold text-foreground">Shop</h2>
+        <div className="flex items-center gap-2">
+          <Crown className="w-5 h-5 text-[hsl(var(--gold))]" />
+          <h2 className="text-lg font-display font-bold text-foreground">Shop</h2>
+        </div>
         <button
           onClick={handleRestore}
           disabled={restoring}
@@ -156,12 +163,53 @@ const ShopPage = () => {
         </div>
       )}
 
-      {/* Starter Kit Time-Limited Offer */}
+      {/* ─── Dynasty Edition Hero Banner (Anchoring — best deal first) ─── */}
+      {!hasProduct(monetization, 'com.dynastymanager.bundle.all') && !userIsPro && (
+        <GlassPanel className="p-0 overflow-hidden border-[hsl(var(--gold)/0.3)]">
+          <div className="bg-gradient-to-br from-[hsl(var(--gold)/0.12)] via-transparent to-[hsl(var(--gold)/0.05)] p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Star className="w-4 h-4 text-[hsl(var(--gold))] fill-[hsl(var(--gold))]" />
+              <span className="text-xs font-bold text-[hsl(var(--gold))] uppercase tracking-wider">Best Deal</span>
+              <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
+                Save {BUNDLE_SAVINGS_PCT}%
+              </span>
+            </div>
+            <h3 className="text-base font-display font-bold text-foreground mt-2">
+              {PRODUCTS['com.dynastymanager.bundle.all'].name}
+            </h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Everything in one purchase — Pro features + all 3 cosmetic packs.
+            </p>
+            <div className="flex flex-wrap gap-1.5 mt-2.5">
+              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Dynasty Pro</span>
+              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Manager Pack</span>
+              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Stadium Pack</span>
+              <span className="text-[9px] bg-[hsl(var(--gold)/0.1)] text-[hsl(var(--gold)/0.8)] px-2 py-0.5 rounded-full font-medium">Legends Pack</span>
+            </div>
+            <div className="flex items-baseline gap-2 mt-3 mb-3">
+              <span className="text-lg font-bold text-[hsl(var(--gold))]">
+                {formatPrice(PRODUCTS['com.dynastymanager.bundle.all'].priceUsd)}
+              </span>
+              <span className="text-xs text-muted-foreground/60 line-through">
+                {formatPrice(BUNDLE_INDIVIDUAL_TOTAL)}
+              </span>
+            </div>
+            <button
+              onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
+              className="w-full py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_16px_hsl(var(--gold)/0.25)]"
+            >
+              Get Everything
+            </button>
+          </div>
+        </GlassPanel>
+      )}
+
+      {/* ─── Starter Kit Time-Limited Offer ─── */}
       {starterKitAvailable && (
-        <GlassPanel className="p-4 border-primary/50 bg-primary/5">
+        <GlassPanel className="p-4 border-[hsl(var(--gold)/0.3)] bg-[hsl(var(--gold)/0.04)]">
           <div className="flex items-center gap-2 mb-2">
-            <Timer className="w-4 h-4 text-primary animate-pulse" />
-            <span className="text-sm font-semibold text-primary">Limited Offer</span>
+            <Timer className="w-4 h-4 text-[hsl(var(--gold))] animate-pulse" />
+            <span className="text-sm font-semibold text-[hsl(var(--gold))]">Limited Offer</span>
             <span className="text-[10px] text-muted-foreground ml-auto">
               {formatTimeRemaining(starterKitMs)}
             </span>
@@ -175,153 +223,192 @@ const ShopPage = () => {
           </div>
           <button
             onClick={() => handlePurchase('com.dynastymanager.pack.manager')}
-            className="mt-3 w-full py-2 rounded-lg bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform"
+            className="mt-3 w-full py-2 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform"
           >
-            {formatPrice(STARTER_KIT.priceUsd)}
+            Claim — {formatPrice(STARTER_KIT.priceUsd)}
           </button>
         </GlassPanel>
       )}
 
-      {/* Subscription Plans — show when not Pro or has active subscription */}
+      {/* ─── Dynasty Pro Section ─── */}
       {(!userIsPro || hasActiveSub) && (
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-            Subscription Plans
-          </p>
-          {!userIsPro && (
-            <button
-              onClick={handlePresentPaywall}
-              className="text-[10px] text-primary font-semibold hover:text-primary/80 transition-colors flex items-center gap-1"
-            >
-              <CreditCard className="w-3 h-3" />
-              View Plans
-            </button>
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Zap className="w-4 h-4 text-[hsl(var(--gold))]" />
+            <p className="text-xs font-bold text-foreground uppercase tracking-wider">Go Pro</p>
+            {!userIsPro && (
+              <button
+                onClick={handlePresentPaywall}
+                className="text-[10px] text-[hsl(var(--gold))] font-semibold hover:text-[hsl(var(--gold)/0.8)] transition-colors flex items-center gap-1 ml-auto"
+              >
+                <CreditCard className="w-3 h-3" />
+                View Plans
+              </button>
+            )}
+          </div>
+
+          {/* Active Subscription Banner */}
+          {hasActiveSub && monetization.subscription && (
+            <GlassPanel className="p-4 border-emerald-500/30 mb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Crown className="w-4 h-4 text-emerald-400" />
+                <span className="text-sm font-semibold text-emerald-400">Active Subscription</span>
+                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold ml-auto capitalize">
+                  {monetization.subscription.tier}
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {PRODUCTS[monetization.subscription.productId]?.name || 'Dynasty Pro'}
+              </p>
+              {monetization.subscription.expiresAt && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {monetization.subscription.willRenew ? 'Renews' : 'Expires'}:{' '}
+                  {new Date(monetization.subscription.expiresAt).toLocaleDateString()}
+                </p>
+              )}
+              {monetization.subscription.isInGracePeriod && (
+                <p className="text-[10px] text-amber-400 mt-1">
+                  Payment issue detected. Please update your payment method.
+                </p>
+              )}
+              <button
+                onClick={handleManageSubscription}
+                className="mt-3 w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Manage Subscription
+              </button>
+            </GlassPanel>
           )}
-        </div>
 
-        {/* Active Subscription Banner */}
-        {hasActiveSub && monetization.subscription && (
-          <GlassPanel className="p-4 border-emerald-500/30 mb-3">
-            <div className="flex items-center gap-2 mb-2">
-              <Crown className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm font-semibold text-emerald-400">Active Subscription</span>
-              <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold ml-auto capitalize">
-                {monetization.subscription.tier}
-              </span>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {PRODUCTS[monetization.subscription.productId]?.name || 'Dynasty Pro'}
-            </p>
-            {monetization.subscription.expiresAt && (
-              <p className="text-[10px] text-muted-foreground mt-1">
-                {monetization.subscription.willRenew ? 'Renews' : 'Expires'}:{' '}
-                {new Date(monetization.subscription.expiresAt).toLocaleDateString()}
-              </p>
-            )}
-            {monetization.subscription.isInGracePeriod && (
-              <p className="text-[10px] text-amber-400 mt-1">
-                Payment issue detected. Please update your payment method.
-              </p>
-            )}
-            <button
-              onClick={handleManageSubscription}
-              className="mt-3 w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-xs active:scale-[0.98] transition-all flex items-center justify-center gap-1.5"
-            >
-              <ExternalLink className="w-3 h-3" />
-              Manage Subscription
-            </button>
-          </GlassPanel>
-        )}
+          {/* Subscription Tier Cards */}
+          {!userIsPro && (
+            <div className="space-y-3">
+              {SUBSCRIPTION_PRODUCTS.map(productId => {
+                const product = PRODUCTS[productId];
+                const isYearly = product.subscriptionTier === 'yearly';
+                const isLifetime = product.subscriptionTier === 'lifetime';
+                const isMonthly = product.subscriptionTier === 'monthly';
+                const isFeatured = isYearly;
 
-        {/* Subscription Cards */}
-        {!userIsPro && (
-          <div className="space-y-3">
-            {SUBSCRIPTION_PRODUCTS.map(productId => {
-              const product = PRODUCTS[productId];
-              const isYearly = product.subscriptionTier === 'yearly';
-              return (
-                <GlassPanel
-                  key={productId}
-                  className={cn('p-4', isYearly && 'border-primary/30 bg-primary/5')}
-                >
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
-                    {isYearly && (
-                      <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold">
-                        Best Value
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mb-3">{product.description}</p>
-                  <button
-                    onClick={() => handlePurchase(productId)}
+                return (
+                  <GlassPanel
+                    key={productId}
                     className={cn(
-                      'w-full py-2 rounded-lg font-semibold text-sm active:scale-[0.98] transition-all',
-                      isYearly
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/50 hover:bg-muted text-foreground'
+                      'p-4 relative',
+                      isFeatured && 'border-[hsl(var(--gold)/0.4)] bg-[hsl(var(--gold)/0.04)]',
+                      isLifetime && 'border-border/50',
                     )}
                   >
-                    {formatPrice(product.priceUsd)}{product.billingPeriod && product.billingPeriod !== 'one-time' ? product.billingPeriod : ''}
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
+                      <div className="flex items-center gap-1.5">
+                        {isFeatured && (
+                          <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold">
+                            Most Popular
+                          </span>
+                        )}
+                        {isLifetime && (
+                          <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold">
+                            Best Value
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-1">{product.description}</p>
+                    {/* Per-day cost breakdown for yearly */}
+                    {isFeatured && (
+                      <p className="text-[10px] text-[hsl(var(--gold))] font-medium mb-2">
+                        Just ${YEARLY_PER_DAY}/day — cancel anytime
+                      </p>
+                    )}
+                    {isMonthly && (
+                      <p className="text-[10px] text-muted-foreground/60 mb-2">Cancel anytime</p>
+                    )}
+                    {isLifetime && (
+                      <p className="text-[10px] text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>
+                    )}
+                    <button
+                      onClick={() => handlePurchase(productId)}
+                      className={cn(
+                        'w-full py-2.5 rounded-lg font-bold text-sm active:scale-[0.98] transition-all',
+                        isFeatured
+                          ? 'bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] shadow-[0_0_12px_hsl(var(--gold)/0.2)]'
+                          : 'bg-muted/50 hover:bg-muted text-foreground border border-border/50'
+                      )}
+                    >
+                      {formatPrice(product.priceUsd)}{product.billingPeriod && product.billingPeriod !== 'one-time' ? product.billingPeriod : ''}
+                    </button>
+                  </GlassPanel>
+                );
+              })}
+
+              {/* One-time Pro alternative */}
+              <div className="relative">
+                <div className="absolute inset-x-0 top-0 h-px bg-border/30" />
+                <p className="text-[10px] text-muted-foreground text-center py-2">or buy once</p>
+              </div>
+              <GlassPanel className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-semibold text-foreground">{PRODUCTS['com.dynastymanager.pro'].name}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">All Pro features, one-time purchase</p>
+                  </div>
+                  <button
+                    onClick={() => handlePurchase('com.dynastymanager.pro')}
+                    className="px-4 py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-bold text-sm active:scale-[0.98] transition-all border border-border/50 shrink-0"
+                  >
+                    {formatPrice(PRODUCTS['com.dynastymanager.pro'].priceUsd)}
                   </button>
-                </GlassPanel>
-              );
-            })}
-          </div>
-        )}
-      </div>
+                </div>
+              </GlassPanel>
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Dynasty Pro (one-time) */}
-      <GlassPanel className={cn('p-4', userIsPro ? 'border-emerald-500/30' : 'border-primary/30')}>
+      {/* ─── Pro Features Grid ─── */}
+      <div>
         <div className="flex items-center gap-2 mb-3">
-          <Crown className={cn('w-5 h-5', userIsPro ? 'text-emerald-400' : 'text-primary')} />
-          <h3 className="text-base font-display font-bold text-foreground">
-            {PRODUCTS['com.dynastymanager.pro'].name}
-          </h3>
+          <Crown className={cn('w-4 h-4', userIsPro ? 'text-emerald-400' : 'text-[hsl(var(--gold))]')} />
+          <p className="text-xs font-bold text-foreground uppercase tracking-wider">
+            {userIsPro ? 'Your Pro Features' : 'What You Get'}
+          </p>
           {userIsPro && (
             <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold ml-auto">
-              Owned
+              Unlocked
             </span>
           )}
         </div>
-        <p className="text-xs text-muted-foreground mb-3">
-          {PRODUCTS['com.dynastymanager.pro'].description}
-        </p>
-
-        {/* Feature list */}
-        <div className="space-y-2 mb-4">
+        <div className="grid grid-cols-2 gap-2">
           {PRO_FEATURES.map(feature => {
             const Icon = FEATURE_ICONS[feature];
             return (
-              <div key={feature} className="flex items-center gap-2">
+              <div
+                key={feature}
+                className={cn(
+                  'flex items-center gap-2 p-2.5 rounded-lg',
+                  userIsPro ? 'bg-emerald-500/5 border border-emerald-500/10' : 'bg-muted/20 border border-border/30'
+                )}
+              >
                 {userIsPro ? (
                   <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 ) : (
-                  <Icon className="w-3.5 h-3.5 text-primary shrink-0" />
+                  <Icon className="w-3.5 h-3.5 text-[hsl(var(--gold))] shrink-0" />
                 )}
-                <span className="text-xs text-foreground">{PRO_FEATURE_LABELS[feature]}</span>
+                <span className="text-[11px] text-foreground font-medium leading-tight">{PRO_FEATURE_LABELS[feature]}</span>
               </div>
             );
           })}
         </div>
+      </div>
 
-        {!userIsPro && (
-          <button
-            onClick={() => handlePurchase('com.dynastymanager.pro')}
-            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform"
-          >
-            Upgrade — {formatPrice(PRODUCTS['com.dynastymanager.pro'].priceUsd)}
-          </button>
-        )}
-      </GlassPanel>
-
-      {/* Cosmetic Packs */}
+      {/* ─── Cosmetic Packs ─── */}
       <div>
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">
-          Cosmetic Packs
-        </p>
+        <div className="flex items-center gap-2 mb-3">
+          <Package className="w-4 h-4 text-[hsl(var(--gold))]" />
+          <p className="text-xs font-bold text-foreground uppercase tracking-wider">Customization Packs</p>
+        </div>
         <div className="space-y-3">
           {COSMETIC_PACK_IDS.map(productId => {
             const product = PRODUCTS[productId];
@@ -331,7 +418,12 @@ const ShopPage = () => {
             return (
               <GlassPanel key={productId} className={cn('p-4', owned && 'border-emerald-500/20')}>
                 <div className="flex items-center justify-between mb-1">
-                  <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
+                    <span className="text-[9px] bg-muted/40 text-muted-foreground px-1.5 py-0.5 rounded-full">
+                      {packItems.length} items
+                    </span>
+                  </div>
                   {owned && (
                     <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-semibold">
                       Owned
@@ -358,7 +450,7 @@ const ShopPage = () => {
                 {!owned && (
                   <button
                     onClick={() => handlePurchase(productId)}
-                    className="w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-sm active:scale-[0.98] transition-all"
+                    className="w-full py-2 rounded-lg bg-muted/50 hover:bg-muted text-foreground font-semibold text-sm active:scale-[0.98] transition-all border border-border/50"
                   >
                     {formatPrice(product.priceUsd)}
                   </button>
@@ -369,15 +461,15 @@ const ShopPage = () => {
         </div>
       </div>
 
-      {/* Dynasty Edition Bundle */}
-      {!hasProduct(monetization, 'com.dynastymanager.bundle.all') && (
-        <GlassPanel className="p-4 border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
+      {/* ─── Dynasty Edition (for Pro users who may want cosmetics) ─── */}
+      {!hasProduct(monetization, 'com.dynastymanager.bundle.all') && userIsPro && (
+        <GlassPanel className="p-4 border-[hsl(var(--gold)/0.2)] bg-gradient-to-br from-[hsl(var(--gold)/0.05)] to-transparent">
           <div className="flex items-center gap-2 mb-2">
-            <Package className="w-5 h-5 text-primary" />
+            <Package className="w-5 h-5 text-[hsl(var(--gold))]" />
             <h3 className="text-base font-display font-bold text-foreground">
               {PRODUCTS['com.dynastymanager.bundle.all'].name}
             </h3>
-            <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold ml-auto">
+            <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold ml-auto">
               Save {BUNDLE_SAVINGS_PCT}%
             </span>
           </div>
@@ -389,14 +481,14 @@ const ShopPage = () => {
           </p>
           <button
             onClick={() => handlePurchase('com.dynastymanager.bundle.all')}
-            className="w-full py-2.5 rounded-lg bg-primary text-primary-foreground font-semibold text-sm active:scale-[0.98] transition-transform"
+            className="w-full py-2.5 rounded-lg bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] font-bold text-sm active:scale-[0.98] transition-transform shadow-[0_0_12px_hsl(var(--gold)/0.2)]"
           >
             Get Everything — {formatPrice(PRODUCTS['com.dynastymanager.bundle.all'].priceUsd)}
           </button>
         </GlassPanel>
       )}
 
-      {/* My Cosmetics Selector */}
+      {/* ─── My Cosmetics Selector ─── */}
       {(() => {
         const categories: { key: CosmeticCategory; label: string }[] = [
           { key: 'avatar', label: 'Avatar' },
@@ -413,9 +505,10 @@ const ShopPage = () => {
         if (ownedCategories.length === 0) return null;
         return (
           <div>
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-2">
-              My Cosmetics
-            </p>
+            <div className="flex items-center gap-2 mb-3">
+              <Sparkles className="w-4 h-4 text-[hsl(var(--gold))]" />
+              <p className="text-xs font-bold text-foreground uppercase tracking-wider">My Cosmetics</p>
+            </div>
             <div className="space-y-3">
               {ownedCategories.map(({ key, label }) => {
                 const items = getOwnedCosmetics(monetization, key);
@@ -454,7 +547,7 @@ const ShopPage = () => {
         );
       })()}
 
-      {/* Fine print */}
+      {/* ─── Fine Print ─── */}
       <div className="text-[10px] text-muted-foreground/60 text-center px-4 pb-4 space-y-1">
         <p>
           One-time purchases and subscriptions available. Subscriptions auto-renew until cancelled.
