@@ -39,6 +39,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
       leagueTable: state.preMatchSnapshot.leagueTable,
       currentMatchResult: null,
       halfTimeState: null,
+      currentMatchWeather: null,
       matchPhase: 'none',
       preMatchSnapshot: null,
       invincibleUsedThisSeason: true,
