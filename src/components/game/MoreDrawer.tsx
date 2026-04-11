@@ -19,6 +19,7 @@ interface DrawerItem {
   label: string;
   icon: React.ElementType;
   description: string;
+  gold?: boolean;
 }
 
 interface DrawerSection {
@@ -61,7 +62,7 @@ const drawerSections: DrawerSection[] = [
       { screen: 'perks', label: 'Perks', icon: Star, description: 'Earn XP & unlock bonuses' },
       { screen: 'comparison', label: 'Compare', icon: GitCompare, description: 'Side-by-side player stats' },
       { screen: 'hall-of-managers', label: 'Hall of Fame', icon: Trophy, description: 'Cross-save leaderboard' },
-      { screen: 'shop', label: 'Shop', icon: Crown, description: 'Dynasty Pro & cosmetics' },
+      { screen: 'shop', label: 'Shop', icon: Crown, description: 'Dynasty Pro & cosmetics', gold: true },
       { screen: 'help', label: 'Game Guide', icon: HelpCircle, description: 'How to play & glossary' },
       { screen: 'settings', label: 'Settings', icon: Settings, description: 'Save, load & preferences' },
     ],
@@ -352,7 +353,7 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
   hasPendingLeagueCupMatch: boolean | undefined;
   nationalTeamOffer: { status: string } | null | undefined;
 }) {
-  const { screen, label, icon: Icon, description } = item;
+  const { screen, label, icon: Icon, description, gold } = item;
   return (
     <button
       onClick={() => onNav(screen)}
@@ -360,11 +361,16 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
         "flex items-center gap-3 w-full p-3 rounded-xl active:scale-[0.98] transition-all",
         currentScreen === screen
           ? "bg-primary/10 border border-primary/30"
-          : "hover:bg-muted/50"
+          : gold
+            ? "bg-[hsl(var(--gold)/0.05)] hover:bg-[hsl(var(--gold)/0.1)]"
+            : "hover:bg-muted/50"
       )}
     >
-      <div className="w-10 h-10 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
-        <Icon className="w-5 h-5 text-primary" />
+      <div className={cn(
+        "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
+        gold ? "bg-[hsl(var(--gold)/0.1)]" : "bg-muted/50"
+      )}>
+        <Icon className={cn("w-5 h-5", gold ? "text-[hsl(var(--gold))]" : "text-primary")} />
       </div>
       <div className="flex-1 text-left min-w-0">
         <div className="flex items-center gap-2">
@@ -390,7 +396,7 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
         </div>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+      <ChevronRight className={cn("w-4 h-4 shrink-0", gold ? "text-[hsl(var(--gold)/0.5)]" : "text-muted-foreground")} />
     </button>
   );
 }
