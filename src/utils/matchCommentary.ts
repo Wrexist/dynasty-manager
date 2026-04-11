@@ -137,7 +137,7 @@ const LEADING_LINES = [
   '{team} looking comfortable in possession now.',
   '{team} managing the game well from here.',
   '{opp} need to find a response quickly.',
-  'Time ticking away for {opp} to find an equalizer.',
+  '{opp} searching desperately for a way back into the game.',
 ];
 
 const TRAILING_LINES = [
@@ -172,11 +172,13 @@ const WIND_LINES = [
 const POOR_PITCH_LINES = [
   'The surface is cutting up badly. Neither side can get the ball to run true.',
   'A bobble on this poor pitch almost gifts {opp} a chance.',
+  'The divots on this surface are causing problems for both sides.',
 ];
 
 const WATERLOGGED_LINES = [
   'The ball holds up in standing water near the touchline. Awful conditions.',
   'Players slipping and sliding on the waterlogged pitch. Something has to give.',
+  'There are genuine concerns about whether this pitch is playable.',
 ];
 
 // ── Derby-Specific Pools ──

@@ -880,10 +880,12 @@ export function simulateHalf(
   const poorPitchSuffixes = [
     ' The ball bobbling on this uneven surface.',
     ' This pitch is cutting up badly.',
+    ' The surface not doing anyone any favours.',
   ];
   const waterloggedSuffixes = [
     ' The ball holding up in the standing water.',
     ' Splashing through puddles on this waterlogged pitch.',
+    ' The sodden pitch making it almost impossible to play.',
   ];
 
   // ── Derby Event Suffixes ──
@@ -1444,7 +1446,7 @@ export function simulateHalf(
             momentum = isHome
               ? Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING)
               : Math.min(100, momentum + MOMENTUM_RED_CARD_SWING);
-            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: withContextSuffix(pick(secondYellowDescs)(fouler.lastName)), momentum });
+            events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: pick(secondYellowDescs)(fouler.lastName), momentum });
             // Warn if team is down to 8 players (one more red = abandonment)
             const teamAvail = isHome ? homeAvail().length : awayAvail().length;
             if (teamAvail === MIN_PLAYERS_TO_CONTINUE + 1) {
@@ -1472,7 +1474,7 @@ export function simulateHalf(
           momentum = isHome
             ? Math.max(-100, momentum - MOMENTUM_RED_CARD_SWING)
             : Math.min(100, momentum + MOMENTUM_RED_CARD_SWING);
-          events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: withContextSuffix(pick(straightRedDescs)(fouler.lastName)), momentum });
+          events.push({ minute: min, type: 'red_card', playerId: fouler.id, clubId: club.id, description: pick(straightRedDescs)(fouler.lastName), momentum });
             // Warn if team is down to 8 players
             const teamAvail2 = isHome ? homeAvail().length : awayAvail().length;
             if (teamAvail2 === MIN_PLAYERS_TO_CONTINUE + 1) {
@@ -1503,7 +1505,8 @@ export function simulateHalf(
           unavailable.add(fouled.id);
           const injLabel = INJURY_TYPES[details.type].label;
           const sevLabel = details.severity === 'minor' ? 'Minor' : details.severity === 'moderate' ? 'Moderate' : 'Serious';
-          events.push({ minute: min, type: 'injury', playerId: fouled.id, clubId: fouled.clubId, description: withContextSuffix(`${fouled.lastName} goes down injured after the foul! ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`) });
+          const injDesc = `${fouled.lastName} goes down injured after the foul! ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`;
+          events.push({ minute: min, type: 'injury', playerId: fouled.id, clubId: fouled.clubId, description: injDesc + (maybeWeatherSuffix() || maybePitchSuffix()) });
           // Rebalance strength after injury (numerical disadvantage)
           const injRecomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
           homeStr = injRecomp.homeStr; awayStr = injRecomp.awayStr;
@@ -1593,7 +1596,8 @@ export function simulateHalf(
         unavailable.add(candidate.id);
         const injLabel = INJURY_TYPES[details.type].label;
         const sevLabel = details.severity === 'minor' ? 'Minor' : details.severity === 'moderate' ? 'Moderate' : 'Serious';
-        events.push({ minute: min, type: 'injury', playerId: candidate.id, clubId: club.id, description: withContextSuffix(`${pick(injuryDescs)(candidate.lastName)} ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`) });
+        const nonFoulInjDesc = `${pick(injuryDescs)(candidate.lastName)} ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`;
+        events.push({ minute: min, type: 'injury', playerId: candidate.id, clubId: club.id, description: nonFoulInjDesc + (maybeWeatherSuffix() || maybePitchSuffix()) });
         // Rebalance strength after injury (numerical disadvantage)
         const injRecomp2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
         homeStr = injRecomp2.homeStr; awayStr = injRecomp2.awayStr;

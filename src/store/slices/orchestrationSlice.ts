@@ -5549,6 +5549,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (etState.homeGoals !== etState.awayGoals || isAggregateDecided(state, etState.homeGoals, etState.awayGoals)) {
       // Extra time decided the match (or aggregate decided for 2-leg ties) — finalize
       const { result, playerRatings } = finalizeMatch(etResult, hc, ac, hp, ap, etState);
+      if (etWeather) result.weather = etWeather;
       const processed = processMatchResult(state, etResult, result, playerRatings, () => get().week, etState.matchInjuries);
       const etDrama = detectMatchDrama(result, playerClubId, clubs);
       const press = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
