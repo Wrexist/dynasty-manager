@@ -345,7 +345,7 @@ export const WEATHER_COMMENTARY_CHANCE = 0.35;
 export const DERBY_COMMENTARY_CHANCE = 0.40;
 /** Chance a weather suffix is appended to event descriptions (saves, misses, fouls, goals) */
 export const WEATHER_SUFFIX_CHANCE = 0.25;
-/** Chance a derby suffix is appended to event descriptions (fouls, cards, goals) */
+/** Chance a derby suffix is appended to event descriptions (goals, fouls, yellow cards, saves) */
 export const DERBY_SUFFIX_CHANCE = 0.30;
 
 // ── Touchline Shouts ──

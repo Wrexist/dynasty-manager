@@ -144,6 +144,8 @@ const TRAILING_LINES = [
   '{team} need to push forward if they want to get back into this.',
   'Growing urgency from {team} as the clock ticks on.',
   '{team} looking for a way back into the match.',
+  '{team} throwing bodies forward but {opp} holding firm for now.',
+  'Can {team} find a way through? {opp} defending resolutely.',
 ];
 
 // ── Weather-Specific Pools ──
