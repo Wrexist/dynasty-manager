@@ -31,6 +31,7 @@ jobs:
       - run: npm run lint
       - run: npm run test
       - run: npm run build
+      - run: npm run version:sync
       - run: npx cap sync android
 
       - name: Decode keystore

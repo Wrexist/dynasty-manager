@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { useState, useMemo, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -74,7 +75,7 @@ export function useLineupOptimizer() {
         infoToast('Lineup already optimal');
       }
     } catch (err) {
-      console.error('[useLineupOptimizer] autoFillTeam failed:', err);
+      Sentry.captureException(err, { tags: { context: 'autoFillLineup' } });
       toast.error('Failed to optimize lineup');
     } finally {
       setAutoFilling(false);

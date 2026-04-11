@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { useState, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -145,7 +146,7 @@ const ManagerCreation = () => {
         // before GameShell/Dashboard mount and subscribe (React #185 fix)
         queueMicrotask(() => navigate('/game'));
       } catch (err) {
-        console.error('Failed to start career:', err);
+        Sentry.captureException(err, { tags: { context: 'startCareer' } });
         toast.error('Something went wrong. Please try again.');
         setLoading(false);
       }

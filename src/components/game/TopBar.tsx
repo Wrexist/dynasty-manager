@@ -153,8 +153,8 @@ export function TopBar() {
               <span className="font-bold">Lv.{managerProgression.level}</span>
             </button>
           )}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Calendar className="w-3 h-3" />
+          <div className="flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite" aria-atomic="true">
+            <Calendar className="w-3 h-3" aria-hidden="true" />
             <span>W{week} · S{season}</span>
           </div>
           <button

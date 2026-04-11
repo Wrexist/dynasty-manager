@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,7 +62,7 @@ const ChallengePicker = () => {
         startChallenge(selected.id, clubId);
         queueMicrotask(() => navigate('/game'));
       } catch (err) {
-        console.error('Failed to start challenge:', err);
+        Sentry.captureException(err, { tags: { context: 'startChallenge' } });
         setLoading(false);
       }
     });

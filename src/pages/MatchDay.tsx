@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -255,7 +256,7 @@ const MatchDay = () => {
       setPaused(false);
       resumingRef.current = false;
     } catch (err) {
-      console.error('[resumeSecondHalf] Failed:', err);
+      Sentry.captureException(err, { tags: { context: 'resumeSecondHalf' } });
       resumingRef.current = false;
     }
   };
@@ -700,7 +701,7 @@ const MatchDay = () => {
               </p>
             )}
           </div>
-          <div className="text-center">
+          <div className="text-center" aria-live="polite" aria-atomic="true" role="status">
             <p className="text-4xl font-black text-foreground tabular-nums font-display flex items-center justify-center gap-1">
               <AnimatePresence mode="popLayout">
                 <motion.span

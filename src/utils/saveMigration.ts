@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 /**
  * Save migration system for Dynasty Manager.
  * Each migration transforms save data from one version to the next.
@@ -744,7 +745,7 @@ export function migrateSaveData(data: Record<string, unknown>): Record<string, u
     try {
       migrated = migrate(migrated);
     } catch (err) {
-      console.error(`[SaveMigration] Migration from v${version} to v${version + 1} failed:`, err);
+      Sentry.captureException(err, { tags: { context: 'saveMigration', fromVersion: String(version) } });
       // Stop migration on failure — don't skip broken migrations as that corrupts downstream data
       migrated = { ...migrated, migrationError: true };
       break;
