@@ -531,7 +531,7 @@ const SeasonSummary = () => {
       </motion.div>
 
       {/* Floating action button — fixed above BottomNav */}
-      <div className="fixed bottom-20 left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent">
+      <div className="fixed left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent" style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
         <div className="max-w-lg mx-auto">
           <Button
             className="w-full h-12 text-base font-bold"

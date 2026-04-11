@@ -727,45 +727,69 @@ const ManagerCreation = () => {
       </div>
 
       {/* Floating continue button for nationality step */}
-      {step === 'nationality' && nationality && (
-        <div className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-6">
-          <Button
-            className="w-full h-12 text-base font-bold gap-2"
-            onClick={handleNext}
+      <AnimatePresence>
+        {step === 'nationality' && nationality && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-6"
           >
-            Continue <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
+            <Button
+              className="w-full h-12 text-base font-bold gap-2"
+              onClick={handleNext}
+            >
+              Continue <ArrowRight className="w-4 h-4" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating continue button for traits step */}
-      {step === 'traits' && selectedTraits.length === TRAITS_TO_PICK && (
-        <div className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-6">
-          <Button
-            className="w-full h-12 text-base font-bold gap-2"
-            onClick={handleNext}
+      <AnimatePresence>
+        {step === 'traits' && selectedTraits.length === TRAITS_TO_PICK && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-6"
           >
-            Continue <ArrowRight className="w-4 h-4" />
-          </Button>
-        </div>
-      )}
+            <Button
+              className="w-full h-12 text-base font-bold gap-2"
+              onClick={handleNext}
+            >
+              Continue <ArrowRight className="w-4 h-4" />
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating begin career button for offers step */}
-      {step === 'offers' && selectedOffer && (
-        <div className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-6">
-          <Button
-            className="w-full h-12 text-base font-bold gap-2"
-            disabled={loading}
-            onClick={handleStart}
+      <AnimatePresence>
+        {step === 'offers' && selectedOffer && (
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 20, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="sticky bottom-0 p-4 bg-gradient-to-t from-background via-background to-transparent pt-6"
           >
-            {loading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" /> Starting Career...</>
-            ) : (
-              <><Briefcase className="w-4 h-4" /> Begin Career</>
-            )}
-          </Button>
-        </div>
-      )}
+            <Button
+              className="w-full h-12 text-base font-bold gap-2"
+              disabled={loading}
+              onClick={handleStart}
+            >
+              {loading ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Starting Career...</>
+              ) : (
+                <><Briefcase className="w-4 h-4" /> Begin Career</>
+              )}
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
