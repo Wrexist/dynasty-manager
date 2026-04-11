@@ -820,8 +820,12 @@ const MatchDay = () => {
                 <span className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border', competitionInfo.bg)}>
                   <Trophy className="w-3 h-3" />
                   <span className={competitionInfo.color}>{competitionInfo.name}</span>
-                  <span className="text-muted-foreground/60">—</span>
-                  <span className={competitionInfo.color}>{competitionInfo.round}</span>
+                  {competitionInfo.round && (
+                    <>
+                      <span className="text-muted-foreground/60">—</span>
+                      <span className={competitionInfo.color}>{competitionInfo.round}</span>
+                    </>
+                  )}
                 </span>
               </div>
             )}

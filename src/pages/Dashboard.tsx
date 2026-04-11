@@ -1870,7 +1870,7 @@ const Dashboard = () => {
       {/* Next 3 Fixtures */}
       {upcomingFixtures.length > 0 && (
         <GlassPanel className="p-4" onClick={() => setScreen('calendar')}>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Upcoming Fixtures</p>
+          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Upcoming League Fixtures</p>
           <div className="space-y-2">
             {upcomingFixtures.map((fix) => {
               const fixIsHome = fix.homeClubId === playerClubId;
