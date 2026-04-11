@@ -105,6 +105,9 @@ export const createCareerSlice = (set: Set, get: Get) => ({
     const interview = state.activeInterview;
     if (!interview || interview.step !== 'pitch') return;
 
+    // Guard against double-click: responses length should match current index
+    if (interview.responses.length !== interview.currentQuestionIndex) return;
+
     const question = interview.pitchQuestions[interview.currentQuestionIndex];
     if (!question) return;
 

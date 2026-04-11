@@ -28,11 +28,11 @@ export function BoardPitch() {
   const [prevQuestionIndex, setPrevQuestionIndex] = useState(0);
 
   const questionIndex = activeInterview?.currentQuestionIndex ?? 0;
-  const prevScore = activeInterview?.pitchScore ?? 50;
+  const interviewStep = activeInterview?.step;
 
   // Detect question advance to show score feedback
   useEffect(() => {
-    if (activeInterview && questionIndex !== prevQuestionIndex && activeInterview.step === 'pitch') {
+    if (activeInterview && questionIndex > prevQuestionIndex && activeInterview.step === 'pitch') {
       // A question was just answered — show the score delta
       const lastResponse = activeInterview.responses[activeInterview.responses.length - 1];
       if (lastResponse) {
@@ -55,6 +55,11 @@ export function BoardPitch() {
       return () => clearTimeout(timer);
     }
   }, [scoreFlash]);
+
+  // Clear flash when step transitions (pitch → result)
+  useEffect(() => {
+    setScoreFlash(null);
+  }, [interviewStep]);
 
   // Reset tracking when interview starts/ends
   useEffect(() => {
@@ -129,7 +134,7 @@ export function BoardPitch() {
       )}
 
       {/* Competitors */}
-      {competitors.length > 0 && step === 'pitch' && currentQuestionIndex === 0 && (
+      {competitors.length > 0 && activeInterview.step === 'pitch' && (
         <div className="bg-muted/20 rounded-lg p-2.5">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Users className="w-3 h-3 text-muted-foreground" />

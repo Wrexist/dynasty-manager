@@ -64,6 +64,7 @@ import {
   CONTRACT_LENGTH_ACCEPTANCE_MODIFIER,
   BONUS_NEGOTIATION_MAX_INCREASE,
   BOARD_TOLERANCE_DECAY_PER_ROUND,
+  BOARD_TOLERANCE_START,
 } from '@/config/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { VALUE_EXP_BASE, VALUE_EXP_RATE } from '@/config/playerGeneration';
@@ -411,8 +412,10 @@ export function generateStartingOffers(
 
       // Negotiation defaults
       initialSalary: salary,
+      initialContractLength: 2,
       negotiationRound: 0,
       negotiationStatus: 'pending',
+      boardTolerance: BOARD_TOLERANCE_START,
     };
   });
 }
@@ -523,13 +526,14 @@ export function generateProactiveOffer(
     expiresSeason = season + 1;
   }
 
+  const contractLength = randInt(2, 4);
   return {
     id: `proactive-${cd.id}-${season}-${week}`,
     clubId: cd.id,
     clubName: cd.name,
     divisionId: cd.divisionId || '',
     salary,
-    contractLength: randInt(2, 4),
+    contractLength,
     bonuses: generateDefaultBonuses(qualityTier),
     boardExpectations: generateBoardExpectation(qualityTier, cd.reputation),
     expiresWeek,
@@ -552,8 +556,10 @@ export function generateProactiveOffer(
 
     // Negotiation defaults
     initialSalary: salary,
+    initialContractLength: contractLength,
     negotiationRound: 0,
     negotiationStatus: 'pending',
+    boardTolerance: BOARD_TOLERANCE_START,
   };
 }
 
@@ -839,6 +845,11 @@ export function negotiateContract(
   requestedBonuses: ManagerBonus[],
   managerNegotiationSkill: number = 5,
 ): JobOffer {
+  // Guard: no further negotiation if already finalized
+  if (offer.negotiationStatus === 'final' || offer.negotiationStatus === 'accepted') {
+    return offer;
+  }
+
   const round = (offer.negotiationRound || 0) + 1;
   if (round > ENHANCED_NEGOTIATION_MAX_ROUNDS) {
     return { ...offer, negotiationStatus: 'final' };
@@ -848,10 +859,11 @@ export function negotiateContract(
   const initialLength = offer.initialContractLength || offer.contractLength;
   const tolerance = offer.boardTolerance ?? 80;
 
-  // Salary component (same logic as existing negotiateSalary)
+  // Salary component
   const maxAllowed = initialSalary * (1 + SALARY_COUNTER_MAX_INCREASE);
   const cappedSalary = Math.min(requestedSalary, maxAllowed);
-  const salaryRatio = (cappedSalary - initialSalary) / Math.max(1, initialSalary);
+  // Floor at 0 — asking for less than initial is neutral, not a bonus
+  const salaryRatio = Math.max(0, (cappedSalary - initialSalary) / Math.max(1, initialSalary));
 
   // Contract length component
   const lengthDelta = Math.abs(requestedContractLength - initialLength);

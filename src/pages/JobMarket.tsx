@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -281,6 +281,13 @@ function OfferCard({
   const [counterBonuses, setCounterBonuses] = useState<ManagerBonus[]>(
     offer.bonuses.map(b => ({ ...b }))
   );
+
+  // Re-sync local state when offer changes (after negotiation round)
+  useEffect(() => {
+    setCounterSalary(Math.round(offer.salary * 1.15));
+    setCounterLength(offer.contractLength);
+    setCounterBonuses(offer.bonuses.map(b => ({ ...b })));
+  }, [offer.id, offer.negotiationRound]);
 
   const canNegotiate = offer.negotiationStatus !== 'final' && offer.negotiationStatus !== 'accepted';
   const tolerance = offer.boardTolerance ?? 80;

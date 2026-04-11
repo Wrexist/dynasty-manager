@@ -21,7 +21,7 @@ export const PITCH_QUESTIONS: PitchQuestionDef[] = [
       ambitious: { text: "I want to build a title-winning side within three seasons. We go big or we go home.", scoreModifier: 12, bestForTier: 1 },
       pragmatic: { text: "Steady improvement each year. Consolidate, stabilize, then push on.", scoreModifier: 8, bestForTier: 3 },
       developmental: { text: "Build from within. Invest in youth and create a sustainable model for success.", scoreModifier: 10, bestForTier: 4 },
-      defensive: { text: "Make us hard to beat first. Organization and discipline — results will follow.", scoreModifier: 6 },
+      defensive: { text: "Make us hard to beat first. Organization and discipline — results will follow.", scoreModifier: 8 },
     },
   },
   {
@@ -31,7 +31,7 @@ export const PITCH_QUESTIONS: PitchQuestionDef[] = [
       ambitious: { text: "Competing at the highest level. I don't settle for anything less than the top.", scoreModifier: 11, bestForTier: 1 },
       pragmatic: { text: "Established in this division with a growing reputation and financial stability.", scoreModifier: 9, bestForTier: 2 },
       developmental: { text: "A club known for producing talent — a pipeline that the bigger clubs envy.", scoreModifier: 10, bestForTier: 4 },
-      defensive: { text: "Solid. Secure. A club that never has to worry about going down.", scoreModifier: 5 },
+      defensive: { text: "Solid. Secure. A club that never has to worry about going down.", scoreModifier: 7 },
     },
   },
   {
@@ -93,7 +93,7 @@ export const PITCH_QUESTIONS: PitchQuestionDef[] = [
       ambitious: { text: "Transfers. You need players to win matches — bricks and mortar can wait.", scoreModifier: 9, bestForTier: 1 },
       pragmatic: { text: "A balance of both. Good facilities attract better players long-term.", scoreModifier: 10, bestForTier: 2 },
       developmental: { text: "Facilities first. An upgraded academy will pay dividends for decades.", scoreModifier: 8, bestForTier: 4 },
-      defensive: { text: "Medical and fitness facilities. Keeping players fit is the priority.", scoreModifier: 6 },
+      defensive: { text: "Medical and fitness facilities. Keeping players fit is the priority.", scoreModifier: 8 },
     },
   },
   {
@@ -103,7 +103,7 @@ export const PITCH_QUESTIONS: PitchQuestionDef[] = [
       ambitious: { text: "Get top dollar and reinvest every penny into a replacement or two.", scoreModifier: 10, bestForTier: 1 },
       pragmatic: { text: "It's part of the game. Sell smart, plan ahead, and the squad copes.", scoreModifier: 9, bestForTier: 2 },
       developmental: { text: "Replace from within. If we've done our academy work, the next one is ready.", scoreModifier: 8, bestForTier: 4 },
-      defensive: { text: "I'd fight to keep them. But if forced, I'd protect the defensive core.", scoreModifier: 6, bestForTier: 3 },
+      defensive: { text: "I'd fight to keep them. But if forced, I'd protect the defensive core.", scoreModifier: 8, bestForTier: 3 },
     },
   },
 
@@ -115,7 +115,7 @@ export const PITCH_QUESTIONS: PitchQuestionDef[] = [
       ambitious: { text: "It feeds the first team with talent. Our best youngsters will get chances.", scoreModifier: 9 },
       pragmatic: { text: "Academy players fill the squad depth. Some will break through, some won't.", scoreModifier: 7, bestForTier: 2 },
       developmental: { text: "The academy is the heartbeat of the club. Every player gets a pathway.", scoreModifier: 12, bestForTier: 4 },
-      defensive: { text: "Young players need to earn their place. I won't throw them in unprepared.", scoreModifier: 6 },
+      defensive: { text: "Young players need to earn their place. I won't throw them in unprepared.", scoreModifier: 8 },
     },
   },
   {
@@ -125,7 +125,7 @@ export const PITCH_QUESTIONS: PitchQuestionDef[] = [
       ambitious: { text: "If they're good enough, they're old enough. Age is just a number.", scoreModifier: 10, bestForTier: 1 },
       pragmatic: { text: "Cup games and easier fixtures first. Let them taste it gradually.", scoreModifier: 9, bestForTier: 2 },
       developmental: { text: "Immediately if they've earned it in training. That's how you develop stars.", scoreModifier: 11, bestForTier: 4 },
-      defensive: { text: "They need to prove they can handle the pressure. Protection first.", scoreModifier: 5, bestForTier: 3 },
+      defensive: { text: "They need to prove they can handle the pressure. Protection first.", scoreModifier: 7, bestForTier: 3 },
     },
   },
   {
@@ -145,7 +145,7 @@ export const PITCH_QUESTIONS: PitchQuestionDef[] = [
       ambitious: { text: "Proven players win trophies. Youth development is a bonus, not the strategy.", scoreModifier: 8, bestForTier: 1 },
       pragmatic: { text: "You need both. Smart recruitment plus academy output — that's the sweet spot.", scoreModifier: 10, bestForTier: 2 },
       developmental: { text: "Youth development is everything. The club's identity should be built on homegrown talent.", scoreModifier: 12, bestForTier: 4 },
-      defensive: { text: "Experienced players first. They mentor the youth and stabilize the squad.", scoreModifier: 6, bestForTier: 3 },
+      defensive: { text: "Experienced players first. They mentor the youth and stabilize the squad.", scoreModifier: 8, bestForTier: 3 },
     },
   },
 
@@ -177,7 +177,7 @@ export const PITCH_QUESTIONS: PitchQuestionDef[] = [
       ambitious: { text: "If it funds three or four quality signings? Absolutely. Build a team, not a fantasy.", scoreModifier: 10, bestForTier: 1 },
       pragmatic: { text: "Only if the overall squad becomes stronger. It has to make mathematical sense.", scoreModifier: 9, bestForTier: 2 },
       developmental: { text: "Sell high, buy young. Reinvest the profit into the next generation.", scoreModifier: 8, bestForTier: 4 },
-      defensive: { text: "Very reluctantly. You don't sell your best defender in a relegation fight.", scoreModifier: 6, bestForTier: 3 },
+      defensive: { text: "Very reluctantly. You don't sell your best defender in a relegation fight.", scoreModifier: 8, bestForTier: 3 },
     },
   },
   {
