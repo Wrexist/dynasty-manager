@@ -526,13 +526,21 @@ const SeasonSummary = () => {
           </GlassPanel>
         )}
 
-        <Button
-          className="w-full h-12 text-base font-bold"
-          onClick={() => setScreen(gameMode === 'career' && careerManager && !careerManager.contract ? 'job-market' : 'dashboard')}
-        >
-          {gameMode === 'career' && careerManager && !careerManager.contract ? 'Find a New Club' : `Start Season ${season}`}
-        </Button>
+        {/* Spacer for fixed floating button */}
+        <div className="h-16" />
       </motion.div>
+
+      {/* Floating action button — fixed above BottomNav */}
+      <div className="fixed left-0 right-0 z-30 px-4 pb-2 pt-2 bg-gradient-to-t from-background via-background to-transparent" style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}>
+        <div className="max-w-lg mx-auto">
+          <Button
+            className="w-full h-12 text-base font-bold"
+            onClick={() => setScreen(gameMode === 'career' && careerManager && !careerManager.contract ? 'job-market' : 'dashboard')}
+          >
+            {gameMode === 'career' && careerManager && !careerManager.contract ? 'Find a New Club' : `Start Season ${season}`}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };
