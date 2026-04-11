@@ -30,7 +30,6 @@ import { SQUADS as SWEDEN_SQUADS } from './sweden';
 import { SQUADS as SWITZERLAND_SQUADS } from './switzerland';
 import { SQUADS as TURKEY_SQUADS } from './turkey';
 import { SQUADS as UKRAINE_SQUADS } from './ukraine';
-import { SQUAD_OVERRIDES } from './overrides';
 
 /** All club squad templates, keyed by club ID */
 export const ALL_SQUAD_TEMPLATES: Record<string, PlayerTemplate[]> = {
@@ -65,11 +64,3 @@ export const ALL_SQUAD_TEMPLATES: Record<string, PlayerTemplate[]> = {
   ...TURKEY_SQUADS,
   ...UKRAINE_SQUADS,
 };
-
-/**
- * Merge verified overrides from CSV planning sheet.
- * NOTE: Mutates ALL_SQUAD_TEMPLATES at module init.
- */
-for (const [clubId, additions] of Object.entries(SQUAD_OVERRIDES)) {
-  ALL_SQUAD_TEMPLATES[clubId] = [...(ALL_SQUAD_TEMPLATES[clubId] || []), ...additions];
-}
