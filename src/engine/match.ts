@@ -69,8 +69,10 @@ import {
   FREE_KICK_GOAL_CHANCE, LONG_RANGE_GOAL_CHANCE, COUNTER_ATTACK_GOAL_CHANCE,
   HEADER_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
   FREE_KICK_SET_PIECE_TAKER_CHANCE,
+  WEATHER_SUFFIX_CHANCE, DERBY_SUFFIX_CHANCE,
 } from '@/config/matchEngine';
-import { generateCommentary } from '@/utils/matchCommentary';
+import { generateCommentary, resetCommentaryTracking } from '@/utils/matchCommentary';
+import { getDerbyName } from '@/data/league';
 
 /** State carried between halves so the second half can continue from the first */
 export interface HalfState {
@@ -692,21 +694,29 @@ export function simulateHalf(
     (name: string, club: string) => `GOAL! ${name} equalises for ${club}! We're level again!`,
     (name: string, club: string) => `GOAL! ${name} draws ${club} level! What a moment!`,
     (name: string, club: string) => `GOAL! ${name} levels the score for ${club}! Game on!`,
+    (name: string, club: string) => `GOAL! ${name} restores parity for ${club}! We're all square!`,
+    (name: string, club: string) => `GOAL! ${name} hauls ${club} back into it! That changes everything!`,
   ];
   const goAheadDescs = [
     (name: string, club: string) => `GOAL! ${name} gives ${club} the lead!`,
     (name: string, club: string) => `GOAL! ${name} puts ${club} ahead! The crowd erupts!`,
     (name: string, club: string) => `GOAL! ${name} breaks the deadlock for ${club}!`,
+    (name: string, club: string) => `GOAL! ${name} edges ${club} in front! Crucial strike!`,
+    (name: string, club: string) => `GOAL! ${name} finds the breakthrough for ${club}! They've been knocking on the door!`,
   ];
   const comebackDescs = [
     (name: string, club: string) => `GOAL! ${name} pulls one back for ${club}! Can they complete the comeback?`,
     (name: string, club: string) => `GOAL! ${name} gives ${club} hope! They're back in this!`,
     (name: string, club: string) => `GOAL! ${name} reduces the deficit for ${club}! What a response!`,
+    (name: string, club: string) => `GOAL! ${name} sparks the fightback for ${club}! Don't write them off yet!`,
+    (name: string, club: string) => `GOAL! ${name} drags ${club} back into the contest! Game on!`,
   ];
   const lateDramaDescs = [
     (name: string, club: string) => `GOAL! Late drama! ${name} scores for ${club} in the dying minutes!`,
     (name: string, club: string) => `GOAL! Incredible scenes! ${name} finds the net for ${club} right at the death!`,
     (name: string, club: string) => `GOAL! Last-gasp goal from ${name}! ${club} score when it matters most!`,
+    (name: string, club: string) => `GOAL! Stoppage time heroics from ${name}! ${club} have snatched it late!`,
+    (name: string, club: string) => `GOAL! You couldn't write the script! ${name} scores for ${club} in the final seconds!`,
   ];
 
   const lateDramaAtmosphere = [
@@ -793,21 +803,29 @@ export function simulateHalf(
     (name: string, club: string) => `FREE KICK GOAL! ${name} curls it into the top corner for ${club}! What a strike!`,
     (name: string, club: string) => `FREE KICK GOAL! ${name} bends it over the wall and into the net! ${club} score!`,
     (name: string, _club: string) => `FREE KICK GOAL! A stunning set piece from ${name}! The keeper had no chance!`,
+    (name: string, club: string) => `FREE KICK GOAL! ${name} whips it into the bottom corner! ${club} celebrating a brilliant dead ball!`,
+    (name: string, _club: string) => `FREE KICK GOAL! ${name} steps up and delivers! Inch-perfect placement past the wall!`,
   ];
   const longRangeGoalDescs = [
     (name: string, club: string) => `GOAL! What a hit from ${name}! A thunderbolt from 30 yards for ${club}!`,
     (name: string, club: string) => `GOAL! ${name} tries his luck from distance and it flies in! Spectacular for ${club}!`,
     (name: string, _club: string) => `GOAL! ${name} unleashes a rocket from outside the box! The keeper was rooted!`,
+    (name: string, club: string) => `GOAL! An absolute screamer from ${name}! Top bins from 25 yards! ${club} in dreamland!`,
+    (name: string, _club: string) => `GOAL! ${name} lets fly from range and the ball swerves into the far corner! Unstoppable!`,
   ];
   const counterAttackGoalDescs = [
     (name: string, club: string) => `GOAL! ${name} finishes a devastating counter attack for ${club}!`,
     (name: string, club: string) => `GOAL! Rapid break from ${club} and ${name} slots it home on the counter!`,
     (name: string, _club: string) => `GOAL! Catch them on the break! ${name} races clear and finishes coolly!`,
+    (name: string, club: string) => `GOAL! Textbook counter from ${club}! ${name} completes the move with a calm finish!`,
+    (name: string, _club: string) => `GOAL! Lightning on the break! ${name} was too quick for the backtracking defence!`,
   ];
   const headerGoalDescs = [
     (name: string, club: string) => `GOAL! A towering header from ${name}! ${club} score from open play!`,
     (name: string, _club: string) => `GOAL! ${name} rises above the defence and powers a header into the net!`,
     (name: string, club: string) => `GOAL! ${name} heads home for ${club}! Perfect connection!`,
+    (name: string, _club: string) => `GOAL! ${name} wins the aerial duel and glances a header into the far corner! Wonderful technique!`,
+    (name: string, club: string) => `GOAL! ${name} meets the cross with a thumping header! ${club} on the scoresheet!`,
   ];
   const gkErrorDescs = [
     (name: string, gk: string, club: string) => `GOAL! Goalkeeper error from ${gk}! ${name} pounces on the mistake for ${club}!`,
@@ -844,8 +862,107 @@ export function simulateHalf(
     (name: string, _club: string) => `GOAL! Bullet header from ${name}! Nobody was going to stop that!`,
   ];
 
+  // ── Weather Event Suffixes ──
+  const rainSuffixes = [
+    ' The wet conditions playing their part.',
+    ' Treacherous underfoot in this rain.',
+    ' The ball skidding on the slick surface.',
+  ];
+  const snowSuffixes = [
+    ' The snow making life difficult out there.',
+    ' Tough to keep your footing in these conditions.',
+    ' Visibility poor in this blizzard.',
+  ];
+  const windSuffixes = [
+    ' The wind a factor in that one.',
+    ' A gust of wind taking the ball off course.',
+  ];
+  const poorPitchSuffixes = [
+    ' The ball bobbling on this uneven surface.',
+    ' This pitch is cutting up badly.',
+    ' The surface not doing anyone any favours.',
+  ];
+  const waterloggedSuffixes = [
+    ' The ball holding up in the standing water.',
+    ' Splashing through puddles on this waterlogged pitch.',
+    ' The sodden pitch making it almost impossible to play.',
+  ];
+
+  // ── Derby Event Suffixes ──
+  const derbySuffixes = [
+    ' The derby atmosphere turning up the intensity!',
+    ' Passions running high in this one!',
+    ' The fans are on their feet — this is what it\'s all about!',
+  ];
+  const derbyIntenseSuffixes = [
+    ' Absolute pandemonium! This rivalry never disappoints!',
+    ' The noise in this ground is deafening!',
+    ' You can cut the tension with a knife!',
+  ];
+
+  /** Returns a weather-related suffix or empty string based on current conditions */
+  const maybeWeatherSuffix = (): string => {
+    if (!matchWeather || matchWeather.weather === 'clear') return '';
+    if (Math.random() >= WEATHER_SUFFIX_CHANCE) return '';
+    const w = matchWeather.weather;
+    if (w === 'rain') return pick(rainSuffixes);
+    if (w === 'snow') return pick(snowSuffixes);
+    if (w === 'wind') return pick(windSuffixes);
+    return '';
+  };
+
+  /** Returns a pitch-related suffix or empty string for poor/waterlogged pitches */
+  const maybePitchSuffix = (): string => {
+    if (!matchWeather) return '';
+    if (matchWeather.pitch === 'poor' && Math.random() < WEATHER_SUFFIX_CHANCE) return pick(poorPitchSuffixes);
+    if (matchWeather.pitch === 'waterlogged' && Math.random() < WEATHER_SUFFIX_CHANCE) return pick(waterloggedSuffixes);
+    return '';
+  };
+
+  /** Returns a derby-related suffix or empty string based on rivalry intensity */
+  const maybeDerbySuffix = (): string => {
+    if (!derbyIntensity || derbyIntensity <= 0) return '';
+    if (Math.random() >= DERBY_SUFFIX_CHANCE) return '';
+    if (derbyIntensity === 3 && Math.random() < 0.5) return pick(derbyIntenseSuffixes);
+    return pick(derbySuffixes);
+  };
+
+  /** Append contextual suffixes to an event description (weather OR derby, not both) */
+  const withContextSuffix = (desc: string): string => {
+    const weatherSuffix = maybeWeatherSuffix() || maybePitchSuffix();
+    if (weatherSuffix) return desc + weatherSuffix;
+    const derby = maybeDerbySuffix();
+    if (derby) return desc + derby;
+    return desc;
+  };
+
   if (startMin === 1) {
+    resetCommentaryTracking();
     events.push({ minute: 0, type: 'kickoff', clubId: homeClub.id, description: 'Kick off!', tacticalInsight: tacticalInsights.length > 0 ? tacticalInsights[0] : undefined });
+
+    // Weather kickoff commentary — set the scene for non-clear conditions
+    if (matchWeather && matchWeather.weather !== 'clear') {
+      const weatherKickoffDescs: Record<string, string> = {
+        rain: 'Heavy rain falling as we get underway. Conditions will test both sides today.',
+        snow: 'Snow swirling around the stadium. This could be a classic winter battle.',
+        wind: 'A blustery day — the wind will be a factor for both sides.',
+      };
+      const weatherDesc = weatherKickoffDescs[matchWeather.weather];
+      if (weatherDesc) {
+        events.push({ minute: 1, type: 'commentary', clubId: homeClub.id, description: weatherDesc, momentum: 0 });
+      }
+    }
+
+    // Derby kickoff commentary — build the atmosphere for rivalry matches
+    if (derbyIntensity && derbyIntensity > 0) {
+      const derbyName = getDerbyName(homeClub.id, awayClub.id);
+      const derbyDesc = derbyIntensity >= 3
+        ? (derbyName ? `The atmosphere is absolutely electric for the ${derbyName}!` : 'The atmosphere is absolutely electric! This is what football is all about!')
+        : derbyIntensity === 2
+          ? (derbyName ? `The atmosphere is building nicely for the ${derbyName}.` : 'The atmosphere is building nicely for this rivalry match.')
+          : (derbyName ? `A bit of extra spice today — it's the ${derbyName}.` : 'A local rivalry adds a bit of extra spice today.');
+      events.push({ minute: 2, type: 'commentary', clubId: homeClub.id, description: derbyDesc, momentum: 0 });
+    }
 
     // Tactical counter-play commentary — describe active tactical matchups early in the match
     const homeMatchup = getTacticalMatchupBonus(homeTactics, awayTactics);
@@ -873,6 +990,19 @@ export function simulateHalf(
   // Emit second-half kickoff with tactical insight if available
   if (prevState && tacticalInsights.length > 0) {
     events.push({ minute: startMin, type: 'kickoff', clubId: homeClub.id, description: 'Second half underway!', tacticalInsight: tacticalInsights[0] });
+  }
+
+  // Second-half weather reminder — brief reinforcement of conditions
+  if (prevState && startMin === 46 && matchWeather && matchWeather.weather !== 'clear') {
+    const weatherReminders: Record<string, string> = {
+      rain: `The rain hasn't let up. Conditions remain difficult for both sides.`,
+      snow: `Still snowing heavily. The pitch is getting worse by the minute.`,
+      wind: `The teams have switched ends — the wind now behind ${awayClub.shortName}.`,
+    };
+    const reminder = weatherReminders[matchWeather.weather];
+    if (reminder) {
+      events.push({ minute: 46, type: 'commentary', clubId: homeClub.id, description: reminder, momentum: prevState.momentum });
+    }
   }
 
   let lastEventMinute = startMin;
@@ -1014,7 +1144,7 @@ export function simulateHalf(
       // Gap-filler: inject commentary if too many silent minutes have passed
       if (min - lastEventMinute >= COMMENTARY_GAP_MAX) {
         const isHome = Math.random() < 0.5;
-        const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum);
+        const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity);
         // Possession shifts toward the team with the ball
         momentum = isHome
           ? Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING)
@@ -1170,7 +1300,7 @@ export function simulateHalf(
         events.push({
           minute: min, type: goalType, playerId: actualScorerId,
           assistPlayerId: assist?.id, clubId: club.id,
-          description: goalDescription + (assist ? ` (assist: ${assist.lastName})` : ''),
+          description: withContextSuffix(goalDescription) + (assist ? ` (assist: ${assist.lastName})` : ''),
           momentum, homeXG, awayXG,
         });
 
@@ -1223,10 +1353,10 @@ export function simulateHalf(
         if (Math.random() < GOAL_LINE_CLEARANCE_CHANCE && eligibleDefenders.length > 0) {
           const defender = eligibleDefenders[Math.floor(Math.random() * eligibleDefenders.length)];
           const clearDesc = pick(goalLineClearanceDescs);
-          events.push({ minute: min, type: 'goal_line_clearance', playerId: scorer.id, clubId: club.id, description: clearDesc(scorer.lastName, defender.lastName), momentum });
+          events.push({ minute: min, type: 'goal_line_clearance', playerId: scorer.id, clubId: club.id, description: withContextSuffix(clearDesc(scorer.lastName, defender.lastName)), momentum });
         } else {
           const saveDesc = pick(saveDescs);
-          events.push({ minute: min, type: 'shot_saved', playerId: scorer.id, clubId: club.id, description: gk ? saveDesc(scorer.lastName, gk.lastName) : `${scorer.lastName}'s shot is saved.`, momentum, homeXG, awayXG });
+          events.push({ minute: min, type: 'shot_saved', playerId: scorer.id, clubId: club.id, description: withContextSuffix(gk ? saveDesc(scorer.lastName, gk.lastName) : `${scorer.lastName}'s shot is saved.`), momentum, homeXG, awayXG });
         }
         // Corner chance from saved shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_SAVE_CHANCE + widthCornerBonus) {
@@ -1253,7 +1383,7 @@ export function simulateHalf(
                   ? Math.min(100, momentum + MOMENTUM_GOAL_SWING)
                   : Math.max(-100, momentum - MOMENTUM_GOAL_SWING);
                 const cDesc = pick(cornerGoalDescs);
-                events.push({ minute: min, type: 'goal', playerId: header.id, assistPlayerId: cornerAssist?.id, clubId: club.id, description: cDesc(`${header.firstName} ${header.lastName}`, club.shortName) + (cornerAssist ? ` (assist: ${cornerAssist.lastName})` : ''), momentum });
+                events.push({ minute: min, type: 'goal', playerId: header.id, assistPlayerId: cornerAssist?.id, clubId: club.id, description: withContextSuffix(cDesc(`${header.firstName} ${header.lastName}`, club.shortName)) + (cornerAssist ? ` (assist: ${cornerAssist.lastName})` : ''), momentum });
               }
             }
           }
@@ -1272,7 +1402,7 @@ export function simulateHalf(
         const gkName = oppGK ? oppGK.lastName : 'the keeper';
         events.push({
           minute: min, type: 'goalkeeper_error', playerId: scorer.id, assistPlayerId: gkErrorAssist?.id, clubId: club.id,
-          description: pick(gkErrorDescs)(scorer.lastName, gkName, club.shortName) + (gkErrorAssist ? ` (assist: ${gkErrorAssist.lastName})` : ''),
+          description: withContextSuffix(pick(gkErrorDescs)(scorer.lastName, gkName, club.shortName)) + (gkErrorAssist ? ` (assist: ${gkErrorAssist.lastName})` : ''),
           momentum, homeXG, awayXG,
         });
       } else {
@@ -1283,9 +1413,9 @@ export function simulateHalf(
           ? Math.min(100, momentum + MOMENTUM_SHOT_ATTEMPT_SWING)
           : Math.max(-100, momentum - MOMENTUM_SHOT_ATTEMPT_SWING);
         if (Math.random() < WOODWORK_CHANCE) {
-          events.push({ minute: min, type: 'hit_woodwork', playerId: scorer.id, clubId: club.id, description: pick(woodworkDescs)(scorer.lastName), momentum, homeXG, awayXG });
+          events.push({ minute: min, type: 'hit_woodwork', playerId: scorer.id, clubId: club.id, description: withContextSuffix(pick(woodworkDescs)(scorer.lastName)), momentum, homeXG, awayXG });
         } else {
-          events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: pick(missDescs)(scorer.lastName), momentum, homeXG, awayXG });
+          events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: withContextSuffix(pick(missDescs)(scorer.lastName)), momentum, homeXG, awayXG });
         }
         // Corner chance from missed shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_MISS_CHANCE + widthCornerBonus) {
@@ -1331,7 +1461,7 @@ export function simulateHalf(
             momentum = isHome
               ? Math.max(-100, momentum - MOMENTUM_CARD_SWING)
               : Math.min(100, momentum + MOMENTUM_CARD_SWING);
-            events.push({ minute: min, type: 'yellow_card', playerId: fouler.id, clubId: club.id, description: pick(yellowDescs)(fouler.lastName), momentum });
+            events.push({ minute: min, type: 'yellow_card', playerId: fouler.id, clubId: club.id, description: withContextSuffix(pick(yellowDescs)(fouler.lastName)), momentum });
           }
         }
       } else if (Math.random() < STRAIGHT_RED_CHANCE) {
@@ -1360,7 +1490,7 @@ export function simulateHalf(
         momentum = isHome
           ? Math.max(-100, momentum - MOMENTUM_FOUL_SWING)
           : Math.min(100, momentum + MOMENTUM_FOUL_SWING);
-        events.push({ minute: min, type: 'foul', playerId: fouler.id, clubId: club.id, description: pick(foulDescs)(fouler.lastName), momentum });
+        events.push({ minute: min, type: 'foul', playerId: fouler.id, clubId: club.id, description: withContextSuffix(pick(foulDescs)(fouler.lastName)), momentum });
       }
 
       // Foul can cause injury to fouled player (3% chance)
@@ -1375,7 +1505,8 @@ export function simulateHalf(
           unavailable.add(fouled.id);
           const injLabel = INJURY_TYPES[details.type].label;
           const sevLabel = details.severity === 'minor' ? 'Minor' : details.severity === 'moderate' ? 'Moderate' : 'Serious';
-          events.push({ minute: min, type: 'injury', playerId: fouled.id, clubId: fouled.clubId, description: `${fouled.lastName} goes down injured after the foul! ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.` });
+          const injDesc = `${fouled.lastName} goes down injured after the foul! ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`;
+          events.push({ minute: min, type: 'injury', playerId: fouled.id, clubId: fouled.clubId, description: injDesc + (maybeWeatherSuffix() || maybePitchSuffix()) });
           // Rebalance strength after injury (numerical disadvantage)
           const injRecomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
           homeStr = injRecomp.homeStr; awayStr = injRecomp.awayStr;
@@ -1422,10 +1553,10 @@ export function simulateHalf(
             momentum = isHome
               ? Math.min(100, momentum + MOMENTUM_PENALTY_SWING)
               : Math.max(-100, momentum - MOMENTUM_PENALTY_SWING);
-            events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyGoalDescs)(penaltyTaker.lastName, club.shortName), momentum, homeXG, awayXG });
+            events.push({ minute: min, type: 'penalty_scored', playerId: penaltyTaker.id, clubId: club.id, description: withContextSuffix(pick(penaltyGoalDescs)(penaltyTaker.lastName, club.shortName)), momentum, homeXG, awayXG });
           } else {
             if (isHome) homeShots++; else awayShots++;
-            events.push({ minute: min, type: 'penalty_missed', playerId: penaltyTaker.id, clubId: club.id, description: pick(penaltyMissDescs)(penaltyTaker.lastName), momentum, homeXG, awayXG });
+            events.push({ minute: min, type: 'penalty_missed', playerId: penaltyTaker.id, clubId: club.id, description: withContextSuffix(pick(penaltyMissDescs)(penaltyTaker.lastName)), momentum, homeXG, awayXG });
           }
         }
       }
@@ -1441,7 +1572,7 @@ export function simulateHalf(
         momentum = isHome
           ? Math.min(100, momentum + MOMENTUM_GOAL_SWING)
           : Math.max(-100, momentum - MOMENTUM_GOAL_SWING);
-        events.push({ minute: min, type: 'own_goal', playerId: ownGoalPlayer.id, clubId: club.id, description: pick(ownGoalDescs)(ownGoalPlayer.lastName, oppClubRef.shortName), momentum });
+        events.push({ minute: min, type: 'own_goal', playerId: ownGoalPlayer.id, clubId: club.id, description: withContextSuffix(pick(ownGoalDescs)(ownGoalPlayer.lastName, oppClubRef.shortName)), momentum });
       }
     }
     // === INJURY (non-foul) ===
@@ -1465,7 +1596,8 @@ export function simulateHalf(
         unavailable.add(candidate.id);
         const injLabel = INJURY_TYPES[details.type].label;
         const sevLabel = details.severity === 'minor' ? 'Minor' : details.severity === 'moderate' ? 'Moderate' : 'Serious';
-        events.push({ minute: min, type: 'injury', playerId: candidate.id, clubId: club.id, description: `${pick(injuryDescs)(candidate.lastName)} ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.` });
+        const nonFoulInjDesc = `${pick(injuryDescs)(candidate.lastName)} ${sevLabel} ${injLabel} — ${details.weeksRemaining} week${details.weeksRemaining > 1 ? 's' : ''} out.`;
+        events.push({ minute: min, type: 'injury', playerId: candidate.id, clubId: club.id, description: nonFoulInjDesc + (maybeWeatherSuffix() || maybePitchSuffix()) });
         // Rebalance strength after injury (numerical disadvantage)
         const injRecomp2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
         homeStr = injRecomp2.homeStr; awayStr = injRecomp2.awayStr;
@@ -1491,7 +1623,7 @@ export function simulateHalf(
     }
     // === COMMENTARY FALLBACK (event roll passed but no shot/foul/injury triggered) ===
     else if (Math.random() < COMMENTARY_CHANCE) {
-      const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum);
+      const desc = generateCommentary(min, homeClub.shortName, awayClub.shortName, homeGoals, awayGoals, isHome, momentum, matchWeather?.weather, matchWeather?.pitch, derbyIntensity);
       // Possession shifts toward the team with the ball
       momentum = isHome
         ? Math.min(100, momentum + MOMENTUM_COMMENTARY_SWING)

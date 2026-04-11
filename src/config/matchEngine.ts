@@ -339,6 +339,14 @@ export const FREE_KICK_SET_PIECE_TAKER_CHANCE = 0.7;
 // ── Commentary ──
 /** Minute threshold for "late game" commentary (slightly earlier than drama triggers) */
 export const COMMENTARY_LATE_MINUTE = 80;
+/** Chance gap-filler commentary uses a weather-specific pool (when weather != clear) */
+export const WEATHER_COMMENTARY_CHANCE = 0.35;
+/** Chance gap-filler commentary uses a derby-specific pool (when derbyIntensity > 0) */
+export const DERBY_COMMENTARY_CHANCE = 0.40;
+/** Chance a weather suffix is appended to event descriptions (saves, misses, fouls, goals) */
+export const WEATHER_SUFFIX_CHANCE = 0.25;
+/** Chance a derby suffix is appended to event descriptions (goals, fouls, yellow cards, saves) */
+export const DERBY_SUFFIX_CHANCE = 0.30;
 
 // ── Touchline Shouts ──
 /** Duration (in minutes) a shout effect lasts */

@@ -1,6 +1,9 @@
-import type { MatchEvent } from '@/types/game';
+import type { MatchEvent, WeatherCondition, PitchCondition } from '@/types/game';
 import { pick } from '@/utils/helpers';
-import { COMMENTARY_LATE_MINUTE, GOAL_DISPLAY_TYPES } from '@/config/matchEngine';
+import {
+  COMMENTARY_LATE_MINUTE, GOAL_DISPLAY_TYPES,
+  WEATHER_COMMENTARY_CHANCE, DERBY_COMMENTARY_CHANCE,
+} from '@/config/matchEngine';
 
 interface CommentaryContext {
   homeGoals: number;
@@ -134,14 +137,84 @@ const LEADING_LINES = [
   '{team} looking comfortable in possession now.',
   '{team} managing the game well from here.',
   '{opp} need to find a response quickly.',
-  'Time ticking away for {opp} to find an equalizer.',
+  '{opp} searching desperately for a way back into the game.',
 ];
 
 const TRAILING_LINES = [
   '{team} need to push forward if they want to get back into this.',
   'Growing urgency from {team} as the clock ticks on.',
   '{team} looking for a way back into the match.',
+  '{team} throwing bodies forward but {opp} holding firm for now.',
+  'Can {team} find a way through? {opp} defending resolutely.',
 ];
+
+// ── Weather-Specific Pools ──
+
+const RAIN_LINES = [
+  'The rain is relentless. {team} struggling to keep their passing crisp.',
+  'Conditions are deteriorating — the ball skidding off the wet surface.',
+  'Players soaked through. {team} adapting their game to the conditions.',
+  'The rain making every tackle a gamble on this slippery surface.',
+];
+
+const SNOW_LINES = [
+  'Visibility is a real problem in this snow. {team} resorting to shorter passes.',
+  'The pitch markings are barely visible under the snow.',
+  'Heavy snow making it difficult for {team} to pick out runners.',
+  '{team} battling the elements as much as the opposition in these conditions.',
+];
+
+const WIND_LINES = [
+  'The wind is playing havoc with the long balls. {team} keeping it on the deck.',
+  'A gust catches that cross and carries it away. Nightmare conditions.',
+  '{team} playing into the wind this half — every clearance is a battle.',
+  'The swirling wind making life miserable for both sides out there.',
+];
+
+const POOR_PITCH_LINES = [
+  'The surface is cutting up badly. Neither side can get the ball to run true.',
+  'A bobble on this poor pitch almost gifts {opp} a chance.',
+  'The divots on this surface are causing problems for both sides.',
+];
+
+const WATERLOGGED_LINES = [
+  'The ball holds up in standing water near the touchline. Awful conditions.',
+  'Players slipping and sliding on the waterlogged pitch. Something has to give.',
+  'There are genuine concerns about whether this pitch is playable.',
+];
+
+// ── Derby-Specific Pools ──
+
+const DERBY_LINES = [
+  'The rivalry adds an edge to every challenge. This is no ordinary match.',
+  'Both sets of fans at boiling point. The noise is deafening!',
+  'You can feel the hostility from the stands. Every 50-50 is a war.',
+  'Neither side willing to give an inch in this derby. The tackles are flying in.',
+];
+
+const DERBY_INTENSE_LINES = [
+  'This is one of the fiercest derbies in football. No quarter given or expected.',
+  'The hatred between these two sides is palpable. Every ball is contested.',
+  'Absolute bedlam in the stands! This is what this rivalry is all about!',
+  'Form goes out the window in matches like these. Pure passion on display.',
+];
+
+// ── Repetition Prevention ──
+// Tracks which gap-filler templates have been used this match to reduce repetition.
+let usedCommentaryLines: Set<string> = new Set();
+
+/** Reset used lines at the start of each match */
+export function resetCommentaryTracking(): void {
+  usedCommentaryLines = new Set();
+}
+
+/** Pick a line from a pool, preferring unused lines. Falls back to any line if all are used. */
+function pickFreshLine(pool: string[]): string {
+  const fresh = pool.filter(l => !usedCommentaryLines.has(l));
+  const chosen = fresh.length > 0 ? pick(fresh) : pick(pool);
+  usedCommentaryLines.add(chosen);
+  return chosen;
+}
 
 export function generateCommentary(
   minute: number,
@@ -151,6 +224,9 @@ export function generateCommentary(
   awayGoals: number,
   isHome: boolean,
   momentum: number,
+  weather?: WeatherCondition,
+  pitch?: PitchCondition,
+  derbyIntensity?: number,
 ): string {
   const team = isHome ? homeShortName : awayShortName;
   const opp = isHome ? awayShortName : homeShortName;
@@ -182,9 +258,26 @@ export function generateCommentary(
     pools.push(ATMOSPHERE_LINES);
   }
 
-  // Pick from a random pool, then a random line
+  // Weather-specific pools (when weather is not clear)
+  if (weather && weather !== 'clear' && Math.random() < WEATHER_COMMENTARY_CHANCE) {
+    if (weather === 'rain') pools.push(RAIN_LINES);
+    else if (weather === 'snow') pools.push(SNOW_LINES);
+    else if (weather === 'wind') pools.push(WIND_LINES);
+  }
+
+  // Pitch condition pools (always added when poor/waterlogged since they're rare)
+  if (pitch === 'poor') pools.push(POOR_PITCH_LINES);
+  else if (pitch === 'waterlogged') pools.push(WATERLOGGED_LINES);
+
+  // Derby-specific pools
+  if (derbyIntensity && derbyIntensity > 0 && Math.random() < DERBY_COMMENTARY_CHANCE) {
+    pools.push(DERBY_LINES);
+    if (derbyIntensity === 3) pools.push(DERBY_INTENSE_LINES);
+  }
+
+  // Pick from a random pool, then a fresh line (avoiding recent repeats)
   const pool = pick(pools);
-  const line = pick(pool);
+  const line = pickFreshLine(pool);
 
   return line.replace(/\{team\}/g, team).replace(/\{opp\}/g, opp);
 }
