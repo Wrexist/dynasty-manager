@@ -231,10 +231,11 @@ export const createCareerSlice = (set: Set, get: Get) => ({
     const interview = state.activeInterview;
     if (!interview) return;
 
+    // Mark as applied to prevent retry exploit (rerolling questions/competitors)
     set({
       activeInterview: null,
       jobVacancies: state.jobVacancies.map(v =>
-        v.id === interview.vacancyId ? { ...v, interviewActive: false } : v
+        v.id === interview.vacancyId ? { ...v, applied: true, interviewActive: false } : v
       ),
     });
   },
