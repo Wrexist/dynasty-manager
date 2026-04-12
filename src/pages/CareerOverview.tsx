@@ -128,6 +128,17 @@ const CareerOverview = () => {
         </GlassPanel>
       )}
 
+      {/* Resign Button — placed after contract for easy access */}
+      {careerManager.contract && (
+        <Button
+          variant="outline"
+          className="w-full h-11 gap-2 text-red-400 border-red-400/30 hover:bg-red-400/10"
+          onClick={handleResign}
+        >
+          <LogOut className="w-4 h-4" /> Resign from Club
+        </Button>
+      )}
+
       {/* Manager Attributes */}
       <GlassPanel className="p-4">
         <div className="flex items-center gap-2 mb-3">
@@ -239,17 +250,6 @@ const CareerOverview = () => {
           Retirement age: {retirementAge} — {seasonsLeft > 0 ? `${seasonsLeft} seasons remaining` : 'Retirement imminent'}
         </p>
       </GlassPanel>
-
-      {/* Resign Button */}
-      {careerManager.contract && (
-        <Button
-          variant="outline"
-          className="w-full h-11 gap-2 text-red-400 border-red-400/30 hover:bg-red-400/10"
-          onClick={handleResign}
-        >
-          <LogOut className="w-4 h-4" /> Resign from Club
-        </Button>
-      )}
 
       <ConfirmDialog
         open={showResignConfirm}

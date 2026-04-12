@@ -1,5 +1,5 @@
 import type { GameState } from '../storeTypes';
-import type { CareerManager, JobVacancy, JobOffer, GameMode, ActiveInterview, PitchTone, ManagerBonus } from '@/types/game';
+import type { CareerManager, JobVacancy, JobOffer, GameMode, ActiveInterview, PitchTone, ManagerBonus, LeagueTableEntry } from '@/types/game';
 import { generateJobVacancies, getRetirementAge, generateDefaultBonuses, estimateSquadValue, calculateExpectedPosition, generateCompetitors, selectPitchQuestions, calculateInterviewResult, negotiateContract, generateUnemployedOffer } from '@/utils/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY } from '@/config/gameBalance';
@@ -7,6 +7,26 @@ import { PITCH_SCORE_BASE, BOARD_TOLERANCE_START, UNEMPLOYED_INITIAL_OFFERS } fr
 import { generateAIManagerProfile } from '@/config/aiManager';
 import { generateInitialStaff, generateStaffMarket } from '@/utils/staff';
 import { selectBestLineup } from '@/utils/playerGen';
+
+/** Inject live league position/form data into vacancies from divisionTables. */
+function enrichVacanciesWithLeagueData(
+  vacancies: JobVacancy[],
+  divisionTables: Record<string, LeagueTableEntry[]>,
+): JobVacancy[] {
+  return vacancies.map(v => {
+    const table = divisionTables[v.divisionId];
+    if (!table) return v;
+    const idx = table.findIndex(e => e.clubId === v.clubId);
+    if (idx < 0) return v;
+    return {
+      ...v,
+      currentPosition: idx + 1,
+      currentForm: table[idx].form,
+      currentPoints: table[idx].points,
+      matchesPlayed: table[idx].played,
+    };
+  });
+}
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -292,17 +312,20 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       unemployedWeeks: 0,
     };
 
-    // Generate job vacancies with competitors
-    const vacancies = generateJobVacancies(
-      state.clubs,
-      updatedManager.reputationScore,
-      state.season,
-      state.week,
-      state.playerClubId
-    ).map(v => {
-      const vLeague = LEAGUES.find(l => l.id === v.divisionId);
-      return { ...v, competitors: generateCompetitors(v.minReputation, (vLeague?.qualityTier || 4) as 1 | 2 | 3 | 4) };
-    });
+    // Generate job vacancies with competitors and live league data
+    const vacancies = enrichVacanciesWithLeagueData(
+      generateJobVacancies(
+        state.clubs,
+        updatedManager.reputationScore,
+        state.season,
+        state.week,
+        state.playerClubId
+      ).map(v => {
+        const vLeague = LEAGUES.find(l => l.id === v.divisionId);
+        return { ...v, competitors: generateCompetitors(v.minReputation, (vLeague?.qualityTier || 4) as 1 | 2 | 3 | 4) };
+      }),
+      state.divisionTables,
+    );
 
     // Generate initial proactive offers based on reputation
     const initialOffers: import('@/types/game').JobOffer[] = [];

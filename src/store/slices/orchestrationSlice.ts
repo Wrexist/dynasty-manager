@@ -2675,14 +2675,24 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       // Desperation vacancies (weak or no competitors)
       if (cm.unemployedWeeks >= 12 && vacancies.length === 0) {
         const desperate = Object.values(state.clubs).filter(c => c.id !== state.playerClubId).slice(0, 2);
-        vacancies = desperate.map(club => ({
-          id: `desperation-${club.id}-${state.season}-${newWeek}`,
-          clubId: club.id, clubName: club.name, divisionId: club.divisionId || '',
-          minReputation: 0, salary: 1500, contractLength: 1,
-          boardExpectations: 'Survive and stabilize the club',
-          expiresWeek: newWeek + 8, expiresSeason: state.season, applied: false,
-          competitors: generateCompetitors(0, 4).slice(0, 1),
-        }));
+        vacancies = desperate.map(club => {
+          const league = LEAGUES.find(l => l.id === club.divisionId);
+          const clubData = ALL_CLUBS.find(c => c.id === club.id);
+          return {
+            id: `desperation-${club.id}-${state.season}-${newWeek}`,
+            clubId: club.id, clubName: club.name, divisionId: club.divisionId || '',
+            minReputation: 0, salary: 1500, contractLength: 1,
+            boardExpectations: 'Survive and stabilize the club',
+            expiresWeek: newWeek + 8, expiresSeason: state.season, applied: false,
+            competitors: generateCompetitors(0, 4).slice(0, 1),
+            leagueName: league?.name || '',
+            clubColor: clubData?.color || club.color || '#888888',
+            reputation: club.reputation,
+            budget: club.budget || 0,
+            facilities: club.facilities || 5,
+            expectedPosition: 'Bottom quarter',
+          };
+        });
       }
 
       // Expire old offers
@@ -2713,7 +2723,67 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         });
       }
 
-      set({ week: newWeek, careerManager: cm, jobVacancies: vacancies, jobOffers: offers, messages: msgs, currentScreen: 'job-market' });
+      // Simulate league matches for all loaded divisions during unemployment
+      const simPlayers = { ...state.players };
+      const simClubs = { ...state.clubs };
+      const simDivFixtures: Record<string, Match[]> = { ...state.divisionFixtures };
+      const eloRankings = { ...(state.clubPowerRankings || {}) };
+
+      for (const [leagueId, clubIds] of Object.entries(state.divisionClubs)) {
+        if (!clubIds?.length) continue;
+        const leagueFixtures = [...(state.divisionFixtures[leagueId] || [])];
+        let changed = false;
+        for (let fi = 0; fi < leagueFixtures.length; fi++) {
+          const m = leagueFixtures[fi];
+          if (m.week !== newWeek || m.played) continue;
+          const hc = simClubs[m.homeClubId];
+          const ac = simClubs[m.awayClubId];
+          if (!hc || !ac) continue;
+          const hAvail = hc.playerIds.map(id => simPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > newWeek));
+          const aAvail = ac.playerIds.map(id => simPlayers[id]).filter(Boolean).filter(p => !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > newWeek));
+          const hp = hAvail.slice(0, 11);
+          const ap = aAvail.slice(0, 11);
+          if (hp.length === 0 || ap.length === 0) {
+            leagueFixtures[fi] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : 3, awayGoals: ap.length === 0 ? 0 : 3, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited' }] };
+            changed = true;
+            continue;
+          }
+          const hBenchAI = hAvail.slice(11, 18);
+          const aBenchAI = aAvail.slice(11, 18);
+          const hProfile = hc.aiManagerProfile;
+          const aProfile = ac.aiManagerProfile;
+          const hTacticsAI = hProfile && aProfile ? getAICounterTactics(hProfile, aProfile.defaultTactics, ac.formation || '4-4-2') : undefined;
+          const aTacticsAI = aProfile && hProfile ? getAICounterTactics(aProfile, hProfile.defaultTactics, hc.formation || '4-4-2') : undefined;
+          const { result } = simulateMatch(m, hc, ac, hp, ap, hTacticsAI, aTacticsAI, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, state.season, undefined, hBenchAI, aBenchAI);
+          leagueFixtures[fi] = result;
+          applyAIMatchEvents(result.events, simPlayers, simClubs, newWeek, hp, ap, result.homeGoals, result.awayGoals, eloRankings, m.homeClubId, m.awayClubId);
+          updateEloRatings(eloRankings, m.homeClubId, m.awayClubId, result.homeGoals, result.awayGoals, 'league');
+          changed = true;
+        }
+        if (changed) simDivFixtures[leagueId] = leagueFixtures;
+      }
+
+      // Also update the main fixtures array for the player's division
+      const mainFixtures = simDivFixtures[state.playerDivision] || state.fixtures;
+
+      const simDivTables = buildAllDivisionTables(simDivFixtures, state.divisionClubs);
+
+      // Re-enrich vacancies with updated league data
+      vacancies = vacancies.map(v => {
+        const table = simDivTables[v.divisionId];
+        if (!table) return v;
+        const idx = table.findIndex(e => e.clubId === v.clubId);
+        if (idx < 0) return v;
+        return { ...v, currentPosition: idx + 1, currentForm: table[idx].form, currentPoints: table[idx].points, matchesPlayed: table[idx].played };
+      });
+
+      set({
+        week: newWeek, careerManager: cm, jobVacancies: vacancies, jobOffers: offers,
+        messages: msgs, currentScreen: 'job-market',
+        players: simPlayers, clubs: simClubs,
+        fixtures: mainFixtures, divisionFixtures: simDivFixtures,
+        divisionTables: simDivTables, clubPowerRankings: eloRankings,
+      });
       if (state.settings.autoSave) get().saveGame();
       return;
     }

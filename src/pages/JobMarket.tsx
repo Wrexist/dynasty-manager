@@ -6,16 +6,20 @@ import { Button } from '@/components/ui/button';
 import { ReputationBadge } from '@/components/game/ReputationBadge';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { BoardPitch } from '@/components/game/BoardPitch';
-import { Briefcase, DollarSign, Clock, Check, X, LogOut, ArrowLeft, Building2, TrendingUp, Handshake, Users, Plus, Minus } from 'lucide-react';
+import { FormGuide } from '@/components/game/FormGuide';
+import { Briefcase, DollarSign, Clock, Check, X, LogOut, ArrowLeft, Building2, TrendingUp, Handshake, Users, Plus, Minus, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { getManagerBonusLabel, getReputationTierLabel } from '@/utils/managerCareer';
+import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
-import { CONTRACT_LENGTH_MIN, CONTRACT_LENGTH_MAX, BONUS_NEGOTIATION_MAX_INCREASE } from '@/config/managerCareer';
+import { CONTRACT_LENGTH_MIN, CONTRACT_LENGTH_MAX, BONUS_NEGOTIATION_MAX_INCREASE, INITIAL_VACANCIES_SHOWN } from '@/config/managerCareer';
 import type { JobVacancy, JobOffer, ManagerBonus } from '@/types/game';
 
 const JobMarket = () => {
   const [showRetireConfirm, setShowRetireConfirm] = useState(false);
+  const [showResignConfirm, setShowResignConfirm] = useState(false);
+  const [showAllVacancies, setShowAllVacancies] = useState(false);
   const { careerManager, jobVacancies, jobOffers, season, week, activeInterview } = useGameStore(useShallow(s => ({
     careerManager: s.careerManager,
     jobVacancies: s.jobVacancies,
@@ -29,6 +33,7 @@ const JobMarket = () => {
   const negotiateContractOffer = useGameStore(s => s.negotiateContractOffer);
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const retireManager = useGameStore(s => s.retireManager);
+  const resignFromClub = useGameStore(s => s.resignFromClub);
   const setScreen = useGameStore(s => s.setScreen);
 
   if (!careerManager) return null;
@@ -55,6 +60,9 @@ const JobMarket = () => {
   const availableVacancies = jobVacancies.filter(v =>
     v.expiresSeason > season || (v.expiresSeason === season && v.expiresWeek > week)
   );
+  const displayedVacancies = showAllVacancies
+    ? availableVacancies
+    : availableVacancies.slice(0, INITIAL_VACANCIES_SHOWN);
 
   return (
     <div className="space-y-4 pb-24">
@@ -117,7 +125,7 @@ const JobMarket = () => {
               </GlassPanel>
             ) : (
               <div className="space-y-2">
-                {availableVacancies.map(vacancy => (
+                {displayedVacancies.map(vacancy => (
                   <VacancyCard
                     key={vacancy.id}
                     vacancy={vacancy}
@@ -125,19 +133,46 @@ const JobMarket = () => {
                     onApply={handleApply}
                   />
                 ))}
+                {availableVacancies.length > INITIAL_VACANCIES_SHOWN && !showAllVacancies && (
+                  <Button
+                    variant="ghost"
+                    className="w-full h-9 text-xs text-primary gap-1"
+                    onClick={() => setShowAllVacancies(true)}
+                  >
+                    <ChevronDown className="w-3.5 h-3.5" />
+                    Show {availableVacancies.length - INITIAL_VACANCIES_SHOWN} More Positions
+                  </Button>
+                )}
+                {showAllVacancies && availableVacancies.length > INITIAL_VACANCIES_SHOWN && (
+                  <Button
+                    variant="ghost"
+                    className="w-full h-9 text-xs text-muted-foreground gap-1"
+                    onClick={() => setShowAllVacancies(false)}
+                  >
+                    <ChevronUp className="w-3.5 h-3.5" />
+                    Show Less
+                  </Button>
+                )}
               </div>
             )}
           </div>
 
-          {/* Return to Club button for employed managers */}
+          {/* Return to Club + Resign buttons for employed managers */}
           {careerManager.contract && (
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
               <Button
                 variant="outline"
                 className="w-full h-11 gap-2"
                 onClick={() => setScreen('dashboard')}
               >
                 <ArrowLeft className="w-4 h-4" /> Return to Club
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full h-11 gap-2 text-red-400 border-red-400/30 hover:bg-red-400/10"
+                onClick={() => setShowResignConfirm(true)}
+              >
+                <LogOut className="w-4 h-4" /> Resign from Club
               </Button>
             </div>
           )}
@@ -146,7 +181,6 @@ const JobMarket = () => {
           {!careerManager.contract && (
             <div className="pt-2 space-y-2">
               <Button
-                variant="outline"
                 className="w-full h-11 gap-2"
                 onClick={handleWait}
               >
@@ -169,6 +203,15 @@ const JobMarket = () => {
             description={`Retire from management? Your legacy score is ${careerManager.legacyScore}. This cannot be undone.`}
             confirmLabel="Retire"
             onConfirm={retireManager}
+          />
+
+          <ConfirmDialog
+            open={showResignConfirm}
+            onOpenChange={setShowResignConfirm}
+            title="Resign from Club"
+            description="Are you sure you want to resign? You will enter the job market."
+            confirmLabel="Resign"
+            onConfirm={resignFromClub}
           />
 
           {/* Career Summary */}
@@ -196,13 +239,23 @@ const JobMarket = () => {
 };
 
 function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canApply: boolean; onApply: (id: string) => void }) {
+  const [expanded, setExpanded] = useState(false);
   const competitors = vacancy.competitors || [];
 
   return (
     <GlassPanel className="p-3">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-bold text-foreground">{vacancy.clubName}</h3>
-        <div className="flex gap-1">
+      {/* Header: club name + league + status */}
+      <div className="flex items-center justify-between mb-1.5">
+        <div className="flex items-center gap-2 min-w-0">
+          {vacancy.clubColor && (
+            <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: vacancy.clubColor }} />
+          )}
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-foreground truncate">{vacancy.clubName}</h3>
+            {vacancy.leagueName && <p className="text-[9px] text-muted-foreground">{vacancy.leagueName}</p>}
+          </div>
+        </div>
+        <div className="flex gap-1 shrink-0">
           {vacancy.interviewActive && (
             <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">Interviewing</span>
           )}
@@ -214,6 +267,8 @@ function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canA
           )}
         </div>
       </div>
+
+      {/* Key info: salary, contract */}
       <div className="grid grid-cols-2 gap-1.5 text-[10px] mb-2">
         <div className="flex items-center gap-1 text-muted-foreground">
           <DollarSign className="w-3 h-3" />
@@ -224,30 +279,75 @@ function VacancyCard({ vacancy, canApply, onApply }: { vacancy: JobVacancy; canA
           {vacancy.contractLength}yr contract
         </div>
       </div>
+
+      {/* League standing + form */}
+      {(vacancy.currentPosition != null || vacancy.expectedPosition) && (
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {vacancy.currentPosition != null ? (
+            <span className="text-[9px] bg-muted/20 text-muted-foreground/90 px-1.5 py-0.5 rounded font-semibold">
+              {vacancy.currentPosition}{getSuffix(vacancy.currentPosition)}
+              {vacancy.currentPoints != null && ` · ${vacancy.currentPoints}pts`}
+            </span>
+          ) : vacancy.expectedPosition ? (
+            <span className="text-[9px] bg-muted/20 text-muted-foreground/70 px-1.5 py-0.5 rounded">
+              <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" />
+              {vacancy.expectedPosition}
+            </span>
+          ) : null}
+          {vacancy.currentForm && vacancy.currentForm.length > 0 && (
+            <FormGuide form={vacancy.currentForm} className="scale-[0.65] origin-left -my-1" />
+          )}
+        </div>
+      )}
+
+      {/* Club details row */}
+      {(vacancy.facilities != null || vacancy.budget != null) && (
+        <div className="grid grid-cols-3 gap-1 text-[9px] text-muted-foreground/80 mb-2">
+          {vacancy.expectedPosition && vacancy.currentPosition != null && (
+            <div className="flex items-center gap-0.5">
+              <TrendingUp className="w-2.5 h-2.5" />
+              {vacancy.expectedPosition}
+            </div>
+          )}
+          {vacancy.facilities != null && (
+            <div className="flex items-center gap-0.5">
+              <Building2 className="w-2.5 h-2.5" />
+              Fac. {vacancy.facilities}/10
+            </div>
+          )}
+          {vacancy.budget != null && vacancy.budget > 0 && (
+            <div className="flex items-center gap-0.5">
+              <DollarSign className="w-2.5 h-2.5" />
+              £{(vacancy.budget / 1_000_000).toFixed(1)}M
+            </div>
+          )}
+        </div>
+      )}
+
       <p className="text-[10px] text-primary/70 italic mb-2">"{vacancy.boardExpectations}"</p>
 
-      {/* Competing candidates */}
-      {competitors.length > 0 && (
+      {/* Expandable details */}
+      {(competitors.length > 0) && (
+        <button
+          className="flex items-center gap-1 text-[9px] text-muted-foreground/60 mb-2 hover:text-muted-foreground transition-colors"
+          onClick={() => setExpanded(e => !e)}
+        >
+          {expanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          {expanded ? 'Less Info' : `${competitors.length} Candidate${competitors.length > 1 ? 's' : ''}`}
+        </button>
+      )}
+
+      {/* Competing candidates (expanded) */}
+      {expanded && competitors.length > 0 && (
         <div className="bg-muted/10 rounded-lg px-2.5 py-1.5 mb-2">
           <div className="flex items-center gap-1.5 flex-wrap">
             <Users className="w-3 h-3 text-muted-foreground/60 shrink-0" />
             <span className="text-[9px] text-muted-foreground/50 font-semibold uppercase tracking-wider">Candidates</span>
-            {competitors.length <= 2 ? (
-              competitors.map((c, i) => (
-                <span key={i} className="text-[9px] bg-muted/30 text-muted-foreground/70 px-1.5 py-0.5 rounded-full">
-                  {c.name} ({getReputationTierLabel(c.reputationTier)})
-                </span>
-              ))
-            ) : (
-              <>
-                <span className="text-[9px] bg-muted/30 text-muted-foreground/70 px-1.5 py-0.5 rounded-full">
-                  {competitors[0].name} ({getReputationTierLabel(competitors[0].reputationTier)})
+            {competitors.map((c, i) => (
+              <span key={i} className="text-[9px] bg-muted/30 text-muted-foreground/70 px-1.5 py-0.5 rounded-full">
+                {c.name} ({getReputationTierLabel(c.reputationTier)})
               </span>
-              <span className="text-[9px] text-muted-foreground/50">
-                +{competitors.length - 1} others
-              </span>
-            </>
-          )}
+            ))}
           </div>
         </div>
       )}
@@ -281,6 +381,11 @@ function OfferCard({
   const [counterBonuses, setCounterBonuses] = useState<ManagerBonus[]>(
     offer.bonuses.map(b => ({ ...b }))
   );
+
+  // Live league data for this offer's division
+  const leagueTable = useGameStore(s => s.divisionTables[offer.divisionId]);
+  const tableEntry = leagueTable?.find(e => e.clubId === offer.clubId);
+  const leaguePosition = tableEntry ? leagueTable!.indexOf(tableEntry) + 1 : null;
 
   // Re-sync local state when offer changes (after negotiation round)
   useEffect(() => {
@@ -320,6 +425,7 @@ function OfferCard({
 
   const maxSalary = Math.round((offer.initialSalary || offer.salary) * 1.4);
   const minSalary = offer.salary;
+  const sliderProgress = maxSalary > minSalary ? ((counterSalary - minSalary) / (maxSalary - minSalary)) * 100 : 0;
 
   return (
     <GlassPanel className="p-3 border-primary/30 mb-2">
@@ -345,10 +451,29 @@ function OfferCard({
         </div>
       </div>
 
+      {/* League standing + form */}
+      {(leaguePosition != null || offer.expectedPosition) && (
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {leaguePosition != null && tableEntry ? (
+            <span className="text-[9px] bg-muted/20 text-muted-foreground/90 px-1.5 py-0.5 rounded font-semibold">
+              {leaguePosition}{getSuffix(leaguePosition)} · {tableEntry.points}pts
+            </span>
+          ) : offer.expectedPosition ? (
+            <span className="text-[9px] bg-muted/20 text-muted-foreground/70 px-1.5 py-0.5 rounded">
+              <TrendingUp className="w-2.5 h-2.5 inline mr-0.5" />
+              {offer.expectedPosition}
+            </span>
+          ) : null}
+          {tableEntry && tableEntry.form.length > 0 && (
+            <FormGuide form={tableEntry.form} className="scale-[0.65] origin-left -my-1" />
+          )}
+        </div>
+      )}
+
       {/* Enriched club details */}
       {(offer.expectedPosition || offer.facilities != null || offer.budget != null) && (
         <div className="grid grid-cols-3 gap-1 text-[9px] text-muted-foreground/80 mb-2">
-          {offer.expectedPosition && (
+          {offer.expectedPosition && leaguePosition != null && (
             <div className="flex items-center gap-0.5">
               <TrendingUp className="w-2.5 h-2.5" />
               {offer.expectedPosition}
@@ -399,6 +524,24 @@ function OfferCard({
       {/* Enhanced Negotiation Panel */}
       {negotiating && (
         <div className="bg-muted/20 rounded-lg p-2.5 mb-3 space-y-3">
+          {/* Club context in negotiation */}
+          <div className="grid grid-cols-2 gap-1.5 text-[9px] text-muted-foreground/80">
+            {offer.budget != null && offer.budget > 0 && (
+              <div>Transfer Budget: £{(offer.budget / 1_000_000).toFixed(1)}M</div>
+            )}
+            {offer.expectedPosition && (
+              <div>Expected: {offer.expectedPosition}</div>
+            )}
+            {leaguePosition != null && tableEntry && (
+              <div>Current: {leaguePosition}{getSuffix(leaguePosition)} ({tableEntry.points}pts)</div>
+            )}
+            {tableEntry && tableEntry.form.length > 0 && (
+              <div className="flex items-center gap-1">
+                Form: <FormGuide form={tableEntry.form} className="scale-[0.55] origin-left -my-1" />
+              </div>
+            )}
+          </div>
+
           {/* Salary */}
           <div>
             <p className="text-[10px] font-semibold text-foreground mb-1">Salary</p>
@@ -409,7 +552,8 @@ function OfferCard({
               step={500}
               value={counterSalary}
               onChange={e => setCounterSalary(Number(e.target.value))}
-              className="w-full h-1.5 accent-primary"
+              className="age-slider"
+              style={{ '--slider-progress': `${sliderProgress}%` } as React.CSSProperties}
             />
             <div className="flex items-center justify-between text-[10px]">
               <span className="text-muted-foreground">£{(minSalary / 1000).toFixed(1)}k</span>
