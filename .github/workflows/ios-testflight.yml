@@ -118,13 +118,19 @@ jobs:
           KEY_DIR="$HOME/.appstoreconnect/private_keys"
           KEY_FILE="$KEY_DIR/AuthKey_${ASC_API_KEY_ID}.p8"
           mkdir -p "$KEY_DIR"
-          echo "$ASC_API_KEY" | base64 --decode > "$KEY_FILE"
+          printf '%s' "$ASC_API_KEY" | base64 --decode > "$KEY_FILE"
           chmod 600 "$KEY_FILE"
           if [ ! -s "$KEY_FILE" ]; then
             echo "::error::API key file is empty or was not written"
             exit 1
           fi
-          echo "API key written to $KEY_FILE"
+          # Validate that the decoded file is a proper .p8 PEM key
+          if ! head -1 "$KEY_FILE" | grep -q "BEGIN PRIVATE KEY"; then
+            echo "::error::Decoded API key is not a valid .p8 file (missing PEM header)"
+            echo "::error::Ensure ASC_API_KEY_BASE64 contains: base64 -i AuthKey_XXXX.p8 | pbcopy"
+            exit 1
+          fi
+          echo "API key written to $KEY_FILE ($(wc -c < "$KEY_FILE") bytes)"
 
       - name: Export & Upload to TestFlight
         env:
