@@ -297,7 +297,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Brooklyn', ln: 'Ilunga', pos: 'LB', age: 20, nat: 'England', ovr: 53, pot: 63 },
     { fn: 'Phoenix', ln: 'Scholtz', pos: 'RB', age: 18, nat: 'Northern Ireland', ovr: 53, pot: 63 },
     { fn: 'MJ', ln: 'Williams', pos: 'CDM', age: 28, nat: 'Wales', ovr: 62 },
-    { fn: 'Liam', ln: 'Kelly', pos: 'CM', age: 28, nat: 'Republic of Ireland', ovr: 66 },
+    { fn: 'Liam', ln: 'Kelly', pos: 'CM', age: 28, nat: 'Ireland', ovr: 66 },
     { fn: 'Joe', ln: 'White', pos: 'CM', age: 21, nat: 'England', ovr: 63, pot: 69 },
     { fn: 'Tom', ln: 'Carroll', pos: 'CM', age: 32, nat: 'England', ovr: 62 },
     { fn: 'Connor', ln: 'Evans', pos: 'CM', age: 27, nat: 'Wales', ovr: 62 },
