@@ -104,12 +104,22 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_API_KEY: ${{ secrets.ASC_API_KEY_BASE64 }}
         run: |
+          # Validate required secrets
+          if [ -z "$ASC_API_KEY_ID" ]; then
+            echo "::error::ASC_API_KEY_ID secret is not set"
+            exit 1
+          fi
+          if [ -z "$ASC_ISSUER_ID" ]; then
+            echo "::error::ASC_ISSUER_ID secret is not set"
+            exit 1
+          fi
+          if [ -z "$ASC_API_KEY" ]; then
+            echo "::error::ASC_API_KEY_BASE64 secret is not set"
+            exit 1
+          fi
+
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$ASC_API_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
-          xcrun notarytool store-credentials "asc-creds" \
-            --key ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8 \
-            --key-id "$ASC_API_KEY_ID" \
-            --issuer "$ASC_ISSUER_ID"
           xcodebuild -exportArchive \
             -archivePath $RUNNER_TEMP/App.xcarchive \
             -exportPath $RUNNER_TEMP/upload \
