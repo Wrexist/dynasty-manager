@@ -21,7 +21,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Luca', ln: 'Kronberger', pos: 'LW', age: 22, nat: 'Austria', ovr: 64, pot: 70 },
     { fn: 'Christian', ln: 'Gebauer', pos: 'RW', age: 30, nat: 'Austria', ovr: 67 },
     { fn: 'Sofian', ln: 'Bahloul', pos: 'RW', age: 24, nat: 'France', ovr: 65, pot: 68 },
-    { fn: '', ln: 'Lincoln', pos: 'ST', age: 23, nat: 'Brazil', ovr: 67, pot: 73 },
+    { fn: 'Lincoln', ln: 'Lincoln', pos: 'ST', age: 23, nat: 'Brazil', ovr: 67, pot: 73 },
     { fn: 'Lukas', ln: 'Fridrikas', pos: 'ST', age: 26, nat: 'Austria', ovr: 67, pot: 70 },
     { fn: 'Atdhe', ln: 'Nuhiu', pos: 'ST', age: 35, nat: 'Kosovo', ovr: 66 },
     { fn: 'Dijon', ln: 'Kameri', pos: 'CAM', age: 20, nat: 'Austria', ovr: 67, pot: 77 },

@@ -404,7 +404,6 @@ export function autoSelectNationalSquad(
 
   // Pick best 23, ensuring position coverage
   const squad: Player[] = [];
-  const positionCounts: Record<string, number> = {};
 
   // First pass: fill minimum positions (2 GK, 5 DEF, 4 MID, 2 FWD)
   const minimums: Record<string, { positions: string[]; min: number }> = {
@@ -421,7 +420,6 @@ export function autoSelectNationalSquad(
     const toTake = Math.min(group.min, available.length);
     for (let i = 0; i < toTake; i++) {
       squad.push(available[i]);
-      positionCounts[available[i].position] = (positionCounts[available[i].position] || 0) + 1;
     }
   }
 

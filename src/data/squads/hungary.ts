@@ -107,7 +107,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Mohamed', ln: 'Ali Ben Romdhane', pos: 'CAM', age: 25, nat: 'Tunisia', ovr: 72, pot: 75 },
     { fn: 'Habib', ln: 'Maïga', pos: 'CDM', age: 28, nat: 'Ivory Coast', ovr: 71 },
     { fn: 'Stjepan', ln: 'Lončar', pos: 'CDM', age: 27, nat: 'Bosnia', ovr: 70 },
-    { fn: '', ln: 'Kady', pos: 'CAM', age: 28, nat: 'Brazil', ovr: 68 },
+    { fn: 'Kady', ln: 'Kady', pos: 'CAM', age: 28, nat: 'Brazil', ovr: 68 },
     { fn: 'Edgar', ln: 'Sevikyan', pos: 'CAM', age: 23, nat: 'Armenia', ovr: 68, pot: 74 },
   ],
   'kecskemet': [
@@ -139,7 +139,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
   ],
   'kisvarda': [
     { fn: 'Adrian', ln: 'Šemper', pos: 'GK', age: 26, nat: 'Croatia', ovr: 71, pot: 74 },
-    { fn: '', ln: 'Nicolas', pos: 'GK', age: 36, nat: 'Brazil', ovr: 68 },
+    { fn: 'Nicolas', ln: 'Nicolas', pos: 'GK', age: 36, nat: 'Brazil', ovr: 68 },
     { fn: 'Antonio', ln: 'Caracciolo', pos: 'CB', age: 34, nat: 'Italy', ovr: 68 },
     { fn: 'Adrian', ln: 'Rus', pos: 'CB', age: 28, nat: 'Romania', ovr: 67 },
     { fn: 'Simone', ln: 'Canestrelli', pos: 'CB', age: 24, nat: 'Italy', ovr: 65, pot: 68 },

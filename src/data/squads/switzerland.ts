@@ -291,7 +291,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Facinet', ln: 'Conte', pos: 'ST', age: 19, nat: 'Guinea', ovr: 65, pot: 75 },
   ],
   'yverdon': [
-    { fn: '', ln: 'Jean', pos: 'GK', age: 28, nat: 'Brazil', ovr: 74 },
+    { fn: 'Jean', ln: 'Jean', pos: 'GK', age: 28, nat: 'Brazil', ovr: 74 },
     { fn: 'Alexis', ln: 'Martín Arias', pos: 'GK', age: 32, nat: 'Argentina', ovr: 72 },
     { fn: 'Javier', ln: 'Báez', pos: 'CB', age: 34, nat: 'Paraguay', ovr: 71 },
     { fn: 'Jorge', ln: 'Morel', pos: 'CB', age: 26, nat: 'Paraguay', ovr: 70, pot: 73 },
@@ -310,7 +310,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Juan', ln: 'Iturbe', pos: 'RW', age: 31, nat: 'Paraguay', ovr: 72 },
     { fn: 'Enzo', ln: 'Giménez', pos: 'RW', age: 26, nat: 'Paraguay', ovr: 66, pot: 69 },
     { fn: 'Diego', ln: 'Churín', pos: 'ST', age: 34, nat: 'Argentina', ovr: 69 },
-    { fn: '', ln: 'Chico', pos: 'ST', age: 29, nat: 'Brazil', ovr: 69 },
+    { fn: 'Chico', ln: 'Chico', pos: 'ST', age: 29, nat: 'Brazil', ovr: 69 },
     { fn: 'Fernando', ln: 'Fernández', pos: 'ST', age: 32, nat: 'Paraguay', ovr: 68 },
     { fn: 'Miguel', ln: 'Ángel Martínez', pos: 'GK', age: 25, nat: 'Paraguay', ovr: 66, pot: 69 },
     { fn: 'Wilder', ln: 'Viera', pos: 'CDM', age: 22, nat: 'Paraguay', ovr: 66, pot: 72 },

@@ -399,7 +399,7 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
 
     // Handle player's knockout tie — use squad quality for simulation
     let finalTies = updatedTies;
-    if (playerTie && !playerTie.played) {
+    if (playerTie && !playerTie.played && state.nationalTeam) {
       const isHome = playerTie.homeNation === nationality;
       const natTeam = state.nationalTeam;
       const playerSquadIds = natTeam ? (natTeam.lineup.length >= 7 ? natTeam.lineup : natTeam.squad) : [];
@@ -1414,7 +1414,7 @@ function finalizeSeason(
     }
   }
 
-  // Clean up aged-out national team pool players (35+) and update poolPlayerIds
+  // Clean up aged-out national team pool players (36+) and update poolPlayerIds
   let updatedNTPoolIds = currentNT?.poolPlayerIds || [];
   if (currentNT && updatedNTPoolIds.length > 0) {
     updatedNTPoolIds = updatedNTPoolIds.filter(pid => {
@@ -1787,7 +1787,7 @@ function finalizeSeason(
       ? { ...postState.players, ...topUpPlayers }
       : postState.players;
     const existingPoolIds = postState.nationalTeam?.poolPlayerIds || [];
-    const mergedPoolIds = [...existingPoolIds, ...Object.keys(topUpPlayers)];
+    const mergedPoolIds = [...new Set([...existingPoolIds, ...Object.keys(topUpPlayers)])];
 
     // Auto-select national squad from the full pool
     const squad = autoSelectNationalSquad(postState.managerNationality, tournamentPlayers);

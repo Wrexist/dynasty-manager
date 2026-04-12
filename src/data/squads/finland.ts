@@ -8,7 +8,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Moussa', ln: 'Niakhaté', pos: 'CB', age: 28, nat: 'Senegal', ovr: 76 },
     { fn: 'Duje', ln: 'Ćaleta-Car', pos: 'CB', age: 27, nat: 'Croatia', ovr: 75 },
     { fn: 'Warmed', ln: 'Omari', pos: 'CB', age: 24, nat: 'France', ovr: 75, pot: 78 },
-    { fn: '', ln: 'Adryelson', pos: 'CB', age: 26, nat: 'Brazil', ovr: 74, pot: 77 },
+    { fn: 'Adryelson', ln: 'Adryelson', pos: 'CB', age: 26, nat: 'Brazil', ovr: 74, pot: 77 },
     { fn: 'Dejan', ln: 'Lovren', pos: 'CB', age: 35, nat: 'Croatia', ovr: 74 },
     { fn: 'Nicolás', ln: 'Tagliafico', pos: 'LB', age: 32, nat: 'Argentina', ovr: 78 },
     { fn: 'Abner', ln: 'Vinícius', pos: 'LB', age: 24, nat: 'Brazil', ovr: 73, pot: 76 },
@@ -59,7 +59,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
   'fc-lahti': [
     { fn: 'Édouard', ln: 'Mendy', pos: 'GK', age: 32, nat: 'Senegal', ovr: 80 },
     { fn: 'Abdulrahman', ln: 'Al Sanbi', pos: 'GK', age: 23, nat: 'Saudi Arabia', ovr: 55, pot: 61 },
-    { fn: '', ln: 'Ibañez', pos: 'CB', age: 25, nat: 'Brazil', ovr: 80, pot: 83 },
+    { fn: 'Ibañez', ln: 'Ibañez', pos: 'CB', age: 25, nat: 'Brazil', ovr: 80, pot: 83 },
     { fn: 'Merih', ln: 'Demiral', pos: 'CB', age: 26, nat: 'Turkey', ovr: 76, pot: 79 },
     { fn: 'Rayan', ln: 'Hamed', pos: 'CB', age: 22, nat: 'Saudi Arabia', ovr: 59, pot: 65 },
     { fn: 'Fahad', ln: 'Al Hamad', pos: 'CB', age: 26, nat: 'Saudi Arabia', ovr: 58, pot: 61 },
