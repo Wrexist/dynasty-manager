@@ -118,16 +118,25 @@ jobs:
           KEY_DIR="$HOME/.appstoreconnect/private_keys"
           KEY_FILE="$KEY_DIR/AuthKey_${ASC_API_KEY_ID}.p8"
           mkdir -p "$KEY_DIR"
-          printf '%s' "$ASC_API_KEY" | base64 --decode > "$KEY_FILE"
+
+          # Try base64 decode first, fall back to raw content
+          # (supports both base64-encoded and raw .p8 PEM as secret value)
+          printf '%s' "$ASC_API_KEY" | base64 --decode > "$KEY_FILE" 2>/dev/null || true
+
+          if ! head -1 "$KEY_FILE" 2>/dev/null | grep -q "BEGIN PRIVATE KEY"; then
+            # Base64 decode didn't produce a valid PEM — try raw content
+            printf '%s' "$ASC_API_KEY" > "$KEY_FILE"
+          fi
+
           chmod 600 "$KEY_FILE"
+
           if [ ! -s "$KEY_FILE" ]; then
-            echo "::error::API key file is empty or was not written"
+            echo "::error::API key file is empty — check ASC_API_KEY_BASE64 secret"
             exit 1
           fi
-          # Validate that the decoded file is a proper .p8 PEM key
           if ! head -1 "$KEY_FILE" | grep -q "BEGIN PRIVATE KEY"; then
-            echo "::error::Decoded API key is not a valid .p8 file (missing PEM header)"
-            echo "::error::Ensure ASC_API_KEY_BASE64 contains: base64 -i AuthKey_XXXX.p8 | pbcopy"
+            echo "::error::API key is not a valid .p8 file (missing '-----BEGIN PRIVATE KEY-----' header)"
+            echo "::error::Set ASC_API_KEY_BASE64 to either: the raw .p8 file contents, or: base64 -i AuthKey_XXXX.p8"
             exit 1
           fi
           echo "API key written to $KEY_FILE ($(wc -c < "$KEY_FILE") bytes)"
