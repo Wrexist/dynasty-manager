@@ -11,6 +11,7 @@ import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation'
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 import { useFlash } from '@/hooks/useFlash';
+import { useMatchLocked } from '@/hooks/useGameSelectors';
 import { XP_GLOW_MS } from '@/config/ui';
 
 export function TopBar() {
@@ -27,6 +28,7 @@ export function TopBar() {
     messages: s.messages,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  const matchLocked = useMatchLocked();
   const club = clubs[playerClubId];
   const entry = leagueTable.find(e => e.clubId === playerClubId);
   const pos = entry ? leagueTable.indexOf(entry) + 1 : '-';
@@ -59,7 +61,7 @@ export function TopBar() {
     </header>
   );
 
-  const showBack = DETAIL_SCREENS.includes(currentScreen);
+  const showBack = !matchLocked && DETAIL_SCREENS.includes(currentScreen);
   const backTarget = BACK_TARGET[currentScreen] || previousScreen || 'dashboard';
 
   return (
@@ -113,7 +115,7 @@ export function TopBar() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className={cn("flex items-center gap-3", matchLocked && "pointer-events-none opacity-40")}>
           <button
             onClick={() => { setScreen('inbox'); hapticMedium(); }}
             aria-label={unreadCount > 0 ? `Inbox — ${unreadCount} unread` : 'Inbox'}

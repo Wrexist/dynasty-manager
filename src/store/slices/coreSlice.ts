@@ -44,7 +44,15 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   lastSeasonTurnover: null as GameState['lastSeasonTurnover'],
   derbies: [] as GameState['derbies'],
 
-  setScreen: (screen: GameScreen) => set(s => ({ currentScreen: screen, previousScreen: s.currentScreen })),
+  setScreen: (screen: GameScreen) => {
+    const state = get();
+    const phase = state.matchPhase;
+    // Block navigation during active match phases (first_half, half_time, second_half, extra_time, penalties)
+    if (phase !== 'none' && phase !== 'full_time' && state.currentScreen === 'match') {
+      if (screen !== 'match' && screen !== 'match-review') return;
+    }
+    set(s => ({ currentScreen: screen, previousScreen: s.currentScreen }));
+  },
   selectPlayer: (id: string | null) => set({ selectedPlayerId: id, currentScreen: id ? 'player-detail' : get().currentScreen }),
   selectClub: (id: string | null) => set({ selectedClubId: id, currentScreen: id ? 'team-detail' : get().currentScreen }),
   markMessageRead: (id: string) => set(s => ({ messages: s.messages.map(m => m.id === id ? { ...m, read: true } : m) })),

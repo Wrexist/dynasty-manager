@@ -2,6 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { GameScreen } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
+import { useMatchLocked } from '@/hooks/useGameSelectors';
 
 interface SubNavItem {
   screen: GameScreen;
@@ -15,6 +16,7 @@ interface SubNavProps {
 export function SubNav({ items }: SubNavProps) {
   const currentScreen = useGameStore(s => s.currentScreen);
   const setScreen = useGameStore(s => s.setScreen);
+  const matchLocked = useMatchLocked();
 
   return (
     <div className="relative">
@@ -22,7 +24,7 @@ export function SubNav({ items }: SubNavProps) {
         {items.map(({ screen, label }) => (
           <button
             key={screen}
-            onClick={() => { hapticLight(); setScreen(screen); }}
+            onClick={() => { if (matchLocked) return; hapticLight(); setScreen(screen); }}
             aria-current={currentScreen === screen ? 'page' : undefined}
             className={cn(
               'px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0',

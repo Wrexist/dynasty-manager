@@ -11,6 +11,7 @@ import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { BACK_TARGET, MAIN_TABS, SCREEN_GROUPS } from '@/config/navigation';
+import { useMatchLocked } from '@/hooks/useGameSelectors';
 import { InfoTipProvider } from '@/components/game/InfoTip';
 import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 
@@ -109,6 +110,7 @@ const GameShell = () => {
     currentScreen: s.currentScreen,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  const matchLocked = useMatchLocked();
 
   useEffect(() => {
     if (!gameStarted) navigate('/');
@@ -142,6 +144,7 @@ const GameShell = () => {
   }, []);
 
   const handleSwipeLeft = useCallback(() => {
+    if (matchLocked) return;
     // Check SubNav groups first
     for (const group of SCREEN_GROUPS) {
       const gIdx = group.indexOf(currentScreen);
@@ -155,9 +158,10 @@ const GameShell = () => {
     if (idx >= 0 && idx < MAIN_TABS.length - 1) {
       setScreen(MAIN_TABS[idx + 1]);
     }
-  }, [currentScreen, setScreen]);
+  }, [currentScreen, setScreen, matchLocked]);
 
   const handleSwipeRight = useCallback(() => {
+    if (matchLocked) return;
     // Check SubNav groups first
     for (const group of SCREEN_GROUPS) {
       const gIdx = group.indexOf(currentScreen);
@@ -177,7 +181,7 @@ const GameShell = () => {
       const backTarget = BACK_TARGET[currentScreen] || 'dashboard';
       setScreen(backTarget);
     }
-  }, [currentScreen, setScreen]);
+  }, [currentScreen, setScreen, matchLocked]);
 
   const swipeHandlers = useSwipeGesture({
     onSwipeLeft: handleSwipeLeft,

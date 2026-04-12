@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { MoreDrawer } from './MoreDrawer';
 import { hapticLight } from '@/utils/haptics';
+import { useMatchLocked } from '@/hooks/useGameSelectors';
 
 const SQUAD_SCREENS: GameScreen[] = ['squad', 'staff', 'youth-academy', 'training'];
 const MARKET_SCREENS: GameScreen[] = ['transfers', 'scouting'];
@@ -24,6 +25,7 @@ export function BottomNav() {
     jobOffers: s.jobOffers, gameMode: s.gameMode,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  const matchLocked = useMatchLocked();
   const unreadCount = useMemo(() => messages.filter(m => !m.read).length, [messages]);
   const pendingOffers = incomingOffers.length;
   const hasJobOffers = gameMode === 'career' && jobOffers.length > 0;
@@ -38,12 +40,13 @@ export function BottomNav() {
           return (
             <button
               key={screen}
-              onClick={() => { hapticLight(); setScreen(screen); }}
+              onClick={() => { if (matchLocked) return; hapticLight(); setScreen(screen); }}
               aria-label={label}
               aria-current={active ? 'page' : undefined}
+              aria-disabled={matchLocked || undefined}
               className={cn(
                 'flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors min-w-0 relative min-h-[44px] justify-center',
-                active ? 'text-primary' : 'text-muted-foreground'
+                matchLocked ? 'pointer-events-none opacity-40' : active ? 'text-primary' : 'text-muted-foreground'
               )}
             >
               <div className="relative">
@@ -84,7 +87,7 @@ export function BottomNav() {
             </button>
           );
         })}
-        <MoreDrawer />
+        <MoreDrawer disabled={matchLocked} />
       </div>
     </nav>
   );
