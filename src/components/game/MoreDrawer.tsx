@@ -10,9 +10,10 @@ import {
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PINNED_DRAWER_SCREENS, DRAWER_PROGRESSIVE_SCREENS } from '@/config/navigation';
+import { PINNED_DRAWER_SCREENS, DRAWER_PROGRESSIVE_SCREENS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
 import { NEW_PLAYER_DRAWER_WEEK_THRESHOLD } from '@/config/ui';
 import { getSuffix } from '@/utils/helpers';
+import { useCareerUnemployed } from '@/hooks/useGameSelectors';
 
 interface DrawerItem {
   screen: GameScreen;
@@ -101,6 +102,7 @@ export function MoreDrawer({ disabled }: { disabled?: boolean }) {
     fixtures: s.fixtures, playerClubId: s.playerClubId, leagueTable: s.leagueTable,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  const isUnemployed = useCareerUnemployed();
   const unread = messages.filter(m => !m.read).length;
   const hasPendingCupMatch = cup?.ties?.some(t => !t.played && (t.homeClubId || t.awayClubId));
   const hasPendingLeagueCupMatch = leagueCup?.ties?.some(t => !t.played && (t.homeClubId || t.awayClubId));
@@ -186,7 +188,7 @@ export function MoreDrawer({ disabled }: { disabled?: boolean }) {
         {/* Pinned essentials row */}
         {!isSearching && (
           <div className="grid grid-cols-4 gap-2 mb-3">
-            {PINNED_ITEMS.map(({ screen, label, icon: Icon }) => (
+            {PINNED_ITEMS.filter(i => !isUnemployed || UNEMPLOYED_ALLOWED_SCREENS.has(i.screen)).map(({ screen, label, icon: Icon }) => (
               <button
                 key={screen}
                 onClick={() => handleNav(screen)}
@@ -238,6 +240,8 @@ export function MoreDrawer({ disabled }: { disabled?: boolean }) {
               : section.items;
             // Hide competitions the player isn't participating in
             let visibleItems = baseItems.filter(i => !hiddenScreens.has(i.screen));
+            // Hide club-specific screens when unemployed
+            if (isUnemployed) visibleItems = visibleItems.filter(i => UNEMPLOYED_ALLOWED_SCREENS.has(i.screen));
 
             if (isSearching) {
               // When searching, show ALL items (including progressive ones) that match

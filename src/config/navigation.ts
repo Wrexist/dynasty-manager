@@ -102,3 +102,21 @@ export const DRAWER_PROGRESSIVE_SCREENS: Partial<Record<GameScreen, number>> = {
   'hall-of-managers': 2,
   'comparison': 2,
 };
+
+// Screens accessible when unemployed in career mode (everything else redirects to job-market)
+export const UNEMPLOYED_ALLOWED_SCREENS = new Set<GameScreen>([
+  'job-market', 'career-overview', 'inbox', 'settings', 'manager-profile',
+  'trophy-cabinet', 'hall-of-managers', 'perks', 'prestige', 'help', 'shop',
+  'ballon-dor', 'league-table', 'calendar', 'team-detail', 'season-summary',
+  'player-detail', 'dashboard',
+]);
+
+// BottomNav tabs shown when unemployed in career mode
+export const UNEMPLOYED_TABS: { screen: GameScreen; label: string }[] = [
+  { screen: 'job-market', label: 'Jobs' },
+  { screen: 'career-overview', label: 'Career' },
+  { screen: 'inbox', label: 'Inbox' },
+];
+
+// Main tabs for swipe navigation when unemployed
+export const UNEMPLOYED_MAIN_TABS: GameScreen[] = ['job-market', 'career-overview', 'inbox'];
