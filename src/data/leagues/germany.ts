@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'DE',
   teamCount: 18,
   totalWeeks: 46,
-  replacedSlots: 3,
+  replacedSlots: 0,
   description: 'Germany\'s top division, known for world-class atmospheres, outstanding youth development, and the 50+1 ownership rule.',
   difficulty: 'Hard',
   colorClass: 'text-red-400',

@@ -300,15 +300,9 @@ describe('2D: Season Turnover Integrity', () => {
 
     const zones = determineZones(table, eng);
 
-    // eng: 3 replaced slots
-    expect(zones.safe).toHaveLength(eng.teamCount - eng.replacedSlots);
-    expect(zones.replaced).toHaveLength(eng.replacedSlots);
-    // Bottom 3 should be replaced
-    expect(zones.replaced).toEqual([
-      `club-${eng.teamCount - 2}`,
-      `club-${eng.teamCount - 1}`,
-      `club-${eng.teamCount}`,
-    ]);
+    // Single-league mode: no clubs replaced, all safe
+    expect(zones.safe).toHaveLength(eng.teamCount);
+    expect(zones.replaced).toHaveLength(0);
   });
 
   it('maintains league integrity through season turnover cycle', { timeout: 60_000 }, () => {

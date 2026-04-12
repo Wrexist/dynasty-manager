@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'FI',
   teamCount: 12,
   totalWeeks: 46,
-  replacedSlots: 2,
+  replacedSlots: 0,
   description: 'The Finnish top division played during summer months, with HJK Helsinki as the dominant force and strong youth development across clubs.',
   difficulty: 'Very Hard',
   colorClass: 'text-blue-300',

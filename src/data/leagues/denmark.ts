@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'DK',
   teamCount: 12,
   totalWeeks: 46,
-  replacedSlots: 2,
+  replacedSlots: 0,
   description: 'Denmark\'s top division, known for producing world-class talent and competitive European campaigns.',
   difficulty: 'Medium',
   colorClass: 'text-red-400',

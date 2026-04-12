@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'HU',
   teamCount: 12,
   totalWeeks: 46,
-  replacedSlots: 2,
+  replacedSlots: 0,
   description: 'Hungary\'s premier league, led by Ferencváros with growing investment and modernized stadiums across the country.',
   difficulty: 'Medium',
   colorClass: 'text-emerald-400',

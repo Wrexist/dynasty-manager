@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'IS',
   teamCount: 12,
   totalWeeks: 46,
-  replacedSlots: 2,
+  replacedSlots: 0,
   description: 'The Icelandic top flight played during summer, featuring small but passionate clubs from the land of fire and ice.',
   difficulty: 'Very Hard',
   colorClass: 'text-cyan-400',

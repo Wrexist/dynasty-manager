@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'IE',
   teamCount: 10,
   totalWeeks: 46,
-  replacedSlots: 1,
+  replacedSlots: 0,
   description: 'The top tier of Irish football with Shamrock Rovers as the dominant force, featuring passionate local derbies and growing professionalism.',
   difficulty: 'Very Hard',
   colorClass: 'text-emerald-400',

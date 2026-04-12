@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'NO',
   teamCount: 16,
   totalWeeks: 46,
-  replacedSlots: 2,
+  replacedSlots: 0,
   description: 'Norway\'s premier division, played during the summer months with passionate fan culture and emerging talent.',
   difficulty: 'Medium',
   colorClass: 'text-blue-400',
