@@ -119,14 +119,32 @@ jobs:
           KEY_FILE="$KEY_DIR/AuthKey_${ASC_API_KEY_ID}.p8"
           mkdir -p "$KEY_DIR"
 
-          # Try base64 decode first, fall back to raw content
-          # (supports both base64-encoded and raw .p8 PEM as secret value)
-          printf '%s' "$ASC_API_KEY" | base64 --decode > "$KEY_FILE" 2>/dev/null || true
+          # Debug: show secret shape without revealing content
+          RAW_LEN=${#ASC_API_KEY}
+          RAW_LINES=$(echo "$ASC_API_KEY" | wc -l | tr -d ' ')
+          RAW_FIRST=$(echo "$ASC_API_KEY" | head -1 | cut -c1-5)
+          echo "Secret diagnostics: length=${RAW_LEN}, lines=${RAW_LINES}, starts_with='${RAW_FIRST}'"
 
-          if ! head -1 "$KEY_FILE" 2>/dev/null | grep -q "BEGIN PRIVATE KEY"; then
-            # Base64 decode didn't produce a valid PEM — try raw content
-            printf '%s' "$ASC_API_KEY" > "$KEY_FILE"
+          # Strategy 1: base64 decode
+          printf '%s' "$ASC_API_KEY" | base64 --decode > "$KEY_FILE" 2>/dev/null || true
+          if grep -q "BEGIN PRIVATE KEY" "$KEY_FILE" 2>/dev/null; then
+            echo "Key decoded from base64 successfully"
+          else
+            # Strategy 2: raw content via echo (preserves newlines)
+            echo "$ASC_API_KEY" > "$KEY_FILE"
+            if grep -q "BEGIN PRIVATE KEY" "$KEY_FILE" 2>/dev/null; then
+              echo "Key written from raw content successfully"
+            else
+              # Strategy 3: maybe double-base64-encoded
+              printf '%s' "$ASC_API_KEY" | base64 --decode 2>/dev/null | base64 --decode > "$KEY_FILE" 2>/dev/null || true
+              if grep -q "BEGIN PRIVATE KEY" "$KEY_FILE" 2>/dev/null; then
+                echo "Key decoded from double-base64 successfully"
+              fi
+            fi
           fi
+
+          # Clean up carriage returns and leading/trailing blank lines
+          sed -i '' $'s/\r$//' "$KEY_FILE" 2>/dev/null || sed -i $'s/\r$//' "$KEY_FILE"
 
           chmod 600 "$KEY_FILE"
 
@@ -134,12 +152,15 @@ jobs:
             echo "::error::API key file is empty — check ASC_API_KEY_BASE64 secret"
             exit 1
           fi
-          if ! head -1 "$KEY_FILE" | grep -q "BEGIN PRIVATE KEY"; then
-            echo "::error::API key is not a valid .p8 file (missing '-----BEGIN PRIVATE KEY-----' header)"
-            echo "::error::Set ASC_API_KEY_BASE64 to either: the raw .p8 file contents, or: base64 -i AuthKey_XXXX.p8"
+          if ! grep -q "BEGIN PRIVATE KEY" "$KEY_FILE"; then
+            echo "::error::API key is not a valid .p8 file"
+            echo "::error::File size: $(wc -c < "$KEY_FILE" | tr -d ' ') bytes, lines: $(wc -l < "$KEY_FILE" | tr -d ' ')"
+            echo "::error::First 5 chars: '${RAW_FIRST}'"
+            echo "::error::Expected .p8 content starting with: -----BEGIN PRIVATE KEY-----"
+            echo "::error::Steps: 1) Open your .p8 file in TextEdit/Notepad  2) Verify it starts with -----BEGIN PRIVATE KEY-----  3) Select All > Copy  4) Paste into ASC_API_KEY_BASE64 secret"
             exit 1
           fi
-          echo "API key written to $KEY_FILE ($(wc -c < "$KEY_FILE") bytes)"
+          echo "API key written to $KEY_FILE ($(wc -c < "$KEY_FILE" | tr -d ' ') bytes)"
 
       - name: Export & Upload to TestFlight
         env:
