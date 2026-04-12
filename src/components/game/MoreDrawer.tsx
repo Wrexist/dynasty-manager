@@ -83,7 +83,7 @@ const PINNED_SET = new Set(PINNED_DRAWER_SCREENS);
 // Sections that collapse by default for new players
 const NEW_PLAYER_COLLAPSED_SECTIONS = new Set(['Management', 'Career']);
 
-export function MoreDrawer() {
+export function MoreDrawer({ disabled }: { disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const {
@@ -157,13 +157,15 @@ export function MoreDrawer() {
   const searchLower = search.toLowerCase();
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch(''); }}>
+    <Sheet open={open} onOpenChange={(v) => { if (disabled && v) return; setOpen(v); if (!v) setSearch(''); }}>
       <SheetTrigger asChild>
         <button
+          disabled={disabled}
           className={cn(
             'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-0 relative',
-            open ? 'text-primary' : 'text-muted-foreground'
+            disabled ? 'opacity-40' : open ? 'text-primary' : 'text-muted-foreground'
           )}
+          aria-disabled={disabled || undefined}
         >
           <div className="relative">
             <MoreHorizontal className={cn('w-5 h-5', open && 'drop-shadow-[0_0_6px_hsl(var(--primary))]')} />

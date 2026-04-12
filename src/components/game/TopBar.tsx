@@ -11,6 +11,7 @@ import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation'
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 import { useFlash } from '@/hooks/useFlash';
+import { useMatchLocked } from '@/hooks/useGameSelectors';
 import { XP_GLOW_MS } from '@/config/ui';
 
 export function TopBar() {
@@ -27,6 +28,7 @@ export function TopBar() {
     messages: s.messages,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  const matchLocked = useMatchLocked();
   const club = clubs[playerClubId];
   const entry = leagueTable.find(e => e.clubId === playerClubId);
   const pos = entry ? leagueTable.indexOf(entry) + 1 : '-';
@@ -59,7 +61,7 @@ export function TopBar() {
     </header>
   );
 
-  const showBack = DETAIL_SCREENS.includes(currentScreen);
+  const showBack = !matchLocked && DETAIL_SCREENS.includes(currentScreen);
   const backTarget = BACK_TARGET[currentScreen] || previousScreen || 'dashboard';
 
   return (
@@ -113,8 +115,9 @@ export function TopBar() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className={cn("flex items-center gap-3", matchLocked && "opacity-40")}>
           <button
+            disabled={matchLocked}
             onClick={() => { setScreen('inbox'); hapticMedium(); }}
             aria-label={unreadCount > 0 ? `Inbox — ${unreadCount} unread` : 'Inbox'}
             className="relative p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -127,6 +130,7 @@ export function TopBar() {
             )}
           </button>
           <button
+            disabled={matchLocked}
             onClick={() => { setScreen('shop'); hapticMedium(); }}
             aria-label="Shop"
             className="p-3 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -136,6 +140,7 @@ export function TopBar() {
           {/* Career mode: reputation badge or XP Level */}
           {gameMode === 'career' && careerManager ? (
             <button
+              disabled={matchLocked}
               onClick={() => setScreen('career-overview')}
               className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
               title={`${getReputationTierLabel(reputationTier)} (${Math.round(careerManager.reputationScore)})`}
@@ -145,6 +150,7 @@ export function TopBar() {
             </button>
           ) : (
             <button
+              disabled={matchLocked}
               onClick={() => setScreen('perks')}
               className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
               title={`Level ${managerProgression.level} — ${xpProgress.current}/${xpProgress.needed} XP`}
@@ -153,17 +159,18 @@ export function TopBar() {
               <span className="font-bold">Lv.{managerProgression.level}</span>
             </button>
           )}
-          <div className="flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite" aria-atomic="true">
-            <Calendar className="w-3 h-3" aria-hidden="true" />
-            <span>W{week} · S{season}</span>
-          </div>
           <button
+            disabled={matchLocked}
             onClick={() => { setScreen('settings'); hapticMedium(); }}
             aria-label="Settings"
             className="p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Settings className="w-4 h-4" />
           </button>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite" aria-atomic="true">
+            <Calendar className="w-3 h-3" aria-hidden="true" />
+            <span>W{week} · S{season}</span>
+          </div>
         </div>
       </div>
       {/* XP Progress Bar */}

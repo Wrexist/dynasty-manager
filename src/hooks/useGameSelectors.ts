@@ -131,6 +131,11 @@ export function useCurrentMatch(): { match: Match | undefined; isHome: boolean; 
   }, [friendlies, fixtures, week, playerClubId, clubs, cup, leagueCup, championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup, virtualClubs]);
 }
 
+/** Returns true when navigation should be locked (match screen active and match not reset). */
+export function useMatchLocked(): boolean {
+  return useGameStore(s => s.currentScreen === 'match' && s.matchPhase !== 'none');
+}
+
 /** Get count of unread messages. */
 export function useUnreadCount(): number {
   return useGameStore(s => s.messages.filter(m => !m.read).length);

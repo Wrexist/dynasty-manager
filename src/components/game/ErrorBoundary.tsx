@@ -19,7 +19,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   handleReturnToDashboard = () => {
-    useGameStore.getState().setScreen('dashboard');
+    const state = useGameStore.getState();
+    state.cleanupAbandonedMatch();
+    state.setScreen('dashboard');
     this.setState({ hasError: false, error: null });
   };
 

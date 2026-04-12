@@ -27,7 +27,9 @@ export class PageErrorBoundary extends Component<Props, State> {
   handleRetry = () => {
     if (this.state.retryCount >= 2) {
       // After 2 failed retries, navigate to dashboard to break the crash loop
-      useGameStore.getState().setScreen('dashboard');
+      const state = useGameStore.getState();
+      state.cleanupAbandonedMatch();
+      state.setScreen('dashboard');
     }
     this.setState(prev => ({ hasError: false, error: null, retryCount: prev.retryCount + 1 }));
   };
