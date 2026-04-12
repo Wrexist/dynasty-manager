@@ -5,6 +5,7 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    timeout-minutes: 45
     steps:
       - name: Validate required secrets
         env:
@@ -52,6 +53,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
 
       - run: npm ci
       - run: npm run lint
@@ -80,19 +82,19 @@ jobs:
           CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
           PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
-          echo "$CERTIFICATE" | base64 --decode > cert.p12
+          echo "$CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
           security create-keychain -p "" build.keychain
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
-          security import cert.p12 -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
+          security import "$RUNNER_TEMP/cert.p12" -k build.keychain -P "$PASSWORD" -T /usr/bin/codesign
           security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
 
       - name: Import provisioning profile
         env:
           PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
         run: |
-          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
-          echo "$PROFILE" | base64 --decode > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+          mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+          echo "$PROFILE" | base64 --decode > "$HOME/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
 
       - name: Build archive
         run: |
@@ -100,7 +102,7 @@ jobs:
           xcodebuild archive \
             -project App.xcodeproj \
             -scheme App \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
             -destination 'generic/platform=iOS' \
             -configuration Release \
             DEVELOPMENT_TEAM=${{ secrets.APPLE_TEAM_ID }} \
@@ -154,10 +156,18 @@ jobs:
           </plist>
           PLIST
           xcodebuild -exportArchive \
-            -archivePath $RUNNER_TEMP/App.xcarchive \
-            -exportPath $RUNNER_TEMP/export \
+            -archivePath "$RUNNER_TEMP/App.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
             -exportOptionsPlist exportOptions.plist \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8" \
             -authenticationKeyID "$ASC_API_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+
+      - name: Clean up credentials
+        if: always()
+        run: |
+          security delete-keychain build.keychain 2>/dev/null || true
+          rm -f "$RUNNER_TEMP/cert.p12"
+          rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/profile.mobileprovision"
+          rm -rf "$HOME/.appstoreconnect"
