@@ -73,7 +73,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Moussa', ln: 'Djenepo', pos: 'LW', age: 26, nat: 'Mali', ovr: 71, pot: 74 },
     { fn: 'Erdoğan', ln: 'Yeşilyurt', pos: 'RW', age: 30, nat: 'Turkey', ovr: 66 },
     { fn: 'Braian', ln: 'Samudio', pos: 'LW', age: 28, nat: 'Paraguay', ovr: 70 },
-    { fn: 'Sander', ln: 'van de Streek', pos: 'CAM', age: 31, nat: 'Netherlands', ovr: 69 },
+    { fn: 'Sander', ln: 'van de Streek', pos: 'ST', age: 31, nat: 'Netherlands', ovr: 69 },
     { fn: 'Jakub', ln: 'Kałuziński', pos: 'CDM', age: 21, nat: 'Poland', ovr: 65, pot: 71 },
     { fn: 'Abdullah', ln: 'Yiğiter', pos: 'GK', age: 24, nat: 'Turkey', ovr: 65, pot: 68 },
     { fn: 'Doğukan', ln: 'Özkan', pos: 'GK', age: 24, nat: 'Turkey', ovr: 62, pot: 65 },
