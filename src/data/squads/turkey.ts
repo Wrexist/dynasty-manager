@@ -255,6 +255,11 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Kenan', ln: 'Kodro', pos: 'ST', age: 31, nat: 'Bosnia', ovr: 72 },
     { fn: 'İlker', ln: 'Karakaş', pos: 'ST', age: 25, nat: 'Turkey', ovr: 57, pot: 60 },
     { fn: 'Berke', ln: 'Gürbüz', pos: 'LW', age: 21, nat: 'Turkey', ovr: 58, pot: 64 },
+    { fn: 'Arda', ln: 'Guler', pos: 'CB', age: 24, nat: 'Turkey', ovr: 58 },
+    { fn: 'Enes', ln: 'Unal', pos: 'CB', age: 23, nat: 'Turkey', ovr: 57, pot: 63 },
+    { fn: 'Kerem', ln: 'Guler', pos: 'CB', age: 22, nat: 'Turkey', ovr: 63, pot: 69 },
+    { fn: 'Caglar', ln: 'Tosun', pos: 'CM', age: 24, nat: 'Turkey', ovr: 61 },
+    { fn: 'Arda', ln: 'Soyuncu', pos: 'CM', age: 23, nat: 'Turkey', ovr: 63, pot: 69 },
   ],
   'goztepe': [
     { fn: 'Mateusz', ln: 'Lis', pos: 'GK', age: 27, nat: 'Poland', ovr: 73 },
