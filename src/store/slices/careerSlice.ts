@@ -1,8 +1,9 @@
 import type { GameState } from '../storeTypes';
-import type { CareerManager, JobVacancy, JobOffer, GameMode } from '@/types/game';
-import { generateJobVacancies, getRetirementAge, generateDefaultBonuses, estimateSquadValue, calculateExpectedPosition } from '@/utils/managerCareer';
+import type { CareerManager, JobVacancy, JobOffer, GameMode, ActiveInterview, PitchTone, ManagerBonus } from '@/types/game';
+import { generateJobVacancies, getRetirementAge, generateDefaultBonuses, estimateSquadValue, calculateExpectedPosition, generateCompetitors, selectPitchQuestions, calculateInterviewResult, negotiateContract } from '@/utils/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY } from '@/config/gameBalance';
+import { PITCH_SCORE_BASE, BOARD_TOLERANCE_START } from '@/config/managerCareer';
 import { generateAIManagerProfile } from '@/config/aiManager';
 import { generateInitialStaff, generateStaffMarket } from '@/utils/staff';
 import { selectBestLineup } from '@/utils/playerGen';
@@ -16,6 +17,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
   careerManager: null as CareerManager | null,
   jobVacancies: [] as JobVacancy[],
   jobOffers: [] as JobOffer[],
+  activeInterview: null as ActiveInterview | null,
 
   initCareerGame: (manager: CareerManager, clubId: string) => {
     // Initialize the regular game first (triggers its own set())
@@ -47,6 +49,11 @@ export const createCareerSlice = (set: Set, get: Get) => ({
   },
 
   applyForJob: (vacancyId: string): { success: boolean; message: string } => {
+    // Delegate to startInterview for the full interview flow
+    return get().startInterview(vacancyId);
+  },
+
+  startInterview: (vacancyId: string): { success: boolean; message: string } => {
     const state = get();
     const manager = state.careerManager;
     if (!manager) return { success: false, message: 'Not in career mode.' };
@@ -58,59 +65,191 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       return { success: false, message: 'Your reputation is not high enough for this position.' };
     }
 
-    // Reputation check — higher reputation = better chance
-    const repRatio = Math.min(1, manager.reputationScore / Math.max(1, vacancy.minReputation + 100));
-    const accepted = Math.random() < (0.4 + repRatio * 0.5);
-
-    if (!accepted) {
-      // Mark as applied
-      set({
-        jobVacancies: state.jobVacancies.map(v =>
-          v.id === vacancyId ? { ...v, applied: true } : v
-        ),
-      });
-      return { success: false, message: `${vacancy.clubName} has chosen another candidate.` };
+    if (state.activeInterview) {
+      return { success: false, message: 'You already have an interview in progress.' };
     }
 
-    // Convert vacancy to offer with bonuses and enriched club data
+    // Generate competitors and pitch questions
     const league = LEAGUES.find(l => l.id === vacancy.divisionId);
-    const clubData = CLUBS_DATA.find(c => c.id === vacancy.clubId);
-    const offer: JobOffer = {
-      id: `offer-${Date.now()}`,
+    const qualityTier = (league?.qualityTier || 4) as 1 | 2 | 3 | 4;
+    const competitors = vacancy.competitors || generateCompetitors(vacancy.minReputation, qualityTier);
+    const pitchQuestions = selectPitchQuestions(qualityTier);
+
+    const interview: ActiveInterview = {
+      vacancyId,
       clubId: vacancy.clubId,
       clubName: vacancy.clubName,
       divisionId: vacancy.divisionId,
-      salary: vacancy.salary,
-      contractLength: vacancy.contractLength,
-      bonuses: generateDefaultBonuses(league?.qualityTier || 4),
-      boardExpectations: vacancy.boardExpectations,
-      expiresWeek: vacancy.expiresWeek,
-      expiresSeason: vacancy.expiresSeason,
-      // Enriched club profile
-      leagueName: league?.name || '',
-      country: league?.country || '',
-      clubColor: clubData?.color || '#888888',
-      reputation: clubData?.reputation || 3,
-      budget: clubData?.budget || 0,
-      estimatedSquadValue: estimateSquadValue(clubData?.squadQuality || 50),
-      expectedPosition: calculateExpectedPosition(vacancy.clubId, vacancy.divisionId),
-      facilities: clubData?.facilities || 5,
-      youthRating: clubData?.youthRating || 5,
-      boardPatience: clubData?.boardPatience || 5,
-      stadiumName: clubData?.stadiumName || '',
-      stadiumCapacity: clubData?.stadiumCapacity || 0,
-      fanBase: clubData?.fanBase || 50,
-      initialSalary: vacancy.salary,
-      negotiationRound: 0,
-      negotiationStatus: 'pending',
+      step: 'pitch',
+      pitchQuestions,
+      currentQuestionIndex: 0,
+      pitchScore: PITCH_SCORE_BASE,
+      responses: [],
+      competitors,
+      result: 'pending',
+      resultMessage: '',
     };
 
     set({
-      jobOffers: [...state.jobOffers, offer],
-      jobVacancies: state.jobVacancies.filter(v => v.id !== vacancyId),
+      activeInterview: interview,
+      jobVacancies: state.jobVacancies.map(v =>
+        v.id === vacancyId ? { ...v, interviewActive: true } : v
+      ),
     });
 
-    return { success: true, message: `${vacancy.clubName} wants to hire you!` };
+    return { success: true, message: `Interview started with ${vacancy.clubName}` };
+  },
+
+  submitPitchResponse: (tone: PitchTone) => {
+    const state = get();
+    const interview = state.activeInterview;
+    if (!interview || interview.step !== 'pitch') return;
+
+    // Guard against double-click: responses length should match current index
+    if (interview.responses.length !== interview.currentQuestionIndex) return;
+
+    const question = interview.pitchQuestions[interview.currentQuestionIndex];
+    if (!question) return;
+
+    const option = question.options.find(o => o.tone === tone);
+    if (!option) return;
+
+    // Calculate score modifier with tier bonus
+    const league = LEAGUES.find(l => l.id === interview.divisionId);
+    const qualityTier = league?.qualityTier || 4;
+    let modifier = option.scoreModifier;
+    if (option.bestForTier === qualityTier) modifier += 3;
+
+    const newScore = interview.pitchScore + modifier;
+    const newResponses = [...interview.responses, tone];
+    const nextIndex = interview.currentQuestionIndex + 1;
+
+    // Check if all questions answered
+    if (nextIndex >= interview.pitchQuestions.length) {
+      // Calculate result
+      const manager = state.careerManager;
+      const vacancy = state.jobVacancies.find(v => v.id === interview.vacancyId);
+      const result = calculateInterviewResult(
+        newScore,
+        manager?.reputationScore || 0,
+        vacancy?.minReputation || 0,
+        interview.competitors,
+      );
+
+      if (result.hired && vacancy) {
+        // Convert vacancy to enriched offer
+        const clubData = CLUBS_DATA.find(c => c.id === vacancy.clubId);
+        const offer: JobOffer = {
+          id: `offer-${Date.now()}`,
+          clubId: vacancy.clubId,
+          clubName: vacancy.clubName,
+          divisionId: vacancy.divisionId,
+          salary: vacancy.salary,
+          contractLength: vacancy.contractLength,
+          bonuses: generateDefaultBonuses(qualityTier as 1 | 2 | 3 | 4),
+          boardExpectations: vacancy.boardExpectations,
+          expiresWeek: vacancy.expiresWeek,
+          expiresSeason: vacancy.expiresSeason,
+          leagueName: league?.name || '',
+          country: league?.country || '',
+          clubColor: clubData?.color || '#888888',
+          reputation: clubData?.reputation || 3,
+          budget: clubData?.budget || 0,
+          estimatedSquadValue: estimateSquadValue(clubData?.squadQuality || 50),
+          expectedPosition: calculateExpectedPosition(vacancy.clubId, vacancy.divisionId),
+          facilities: clubData?.facilities || 5,
+          youthRating: clubData?.youthRating || 5,
+          boardPatience: clubData?.boardPatience || 5,
+          stadiumName: clubData?.stadiumName || '',
+          stadiumCapacity: clubData?.stadiumCapacity || 0,
+          fanBase: clubData?.fanBase || 50,
+          initialSalary: vacancy.salary,
+          initialContractLength: vacancy.contractLength,
+          negotiationRound: 0,
+          negotiationStatus: 'pending',
+          boardTolerance: BOARD_TOLERANCE_START,
+        };
+        set({
+          activeInterview: {
+            ...interview,
+            pitchScore: newScore,
+            responses: newResponses,
+            currentQuestionIndex: nextIndex,
+            step: 'result',
+            result: 'hired',
+            resultMessage: result.message,
+          },
+          jobOffers: [...state.jobOffers, offer],
+        });
+      } else {
+        // Rejected, or hired but vacancy was removed (race condition — treat as filled)
+        const message = (result.hired && !vacancy)
+          ? 'The position was filled before the board could finalize your appointment.'
+          : result.message;
+        set({
+          activeInterview: {
+            ...interview,
+            pitchScore: newScore,
+            responses: newResponses,
+            currentQuestionIndex: nextIndex,
+            step: 'result',
+            result: 'rejected',
+            resultMessage: message,
+          },
+        });
+      }
+    } else {
+      // More questions to go
+      set({
+        activeInterview: {
+          ...interview,
+          pitchScore: newScore,
+          responses: newResponses,
+          currentQuestionIndex: nextIndex,
+        },
+      });
+    }
+  },
+
+  completeInterview: () => {
+    const state = get();
+    const interview = state.activeInterview;
+    if (!interview) return;
+
+    // Remove vacancy if hired, mark as applied if rejected
+    const vacancies = interview.result === 'hired'
+      ? state.jobVacancies.filter(v => v.id !== interview.vacancyId)
+      : state.jobVacancies.map(v =>
+        v.id === interview.vacancyId ? { ...v, applied: true, interviewActive: false } : v
+      );
+
+    set({ activeInterview: null, jobVacancies: vacancies });
+  },
+
+  dismissInterview: () => {
+    const state = get();
+    const interview = state.activeInterview;
+    if (!interview) return;
+
+    // Mark as applied to prevent retry exploit (rerolling questions/competitors)
+    set({
+      activeInterview: null,
+      jobVacancies: state.jobVacancies.map(v =>
+        v.id === interview.vacancyId ? { ...v, applied: true, interviewActive: false } : v
+      ),
+    });
+  },
+
+  negotiateContractOffer: (offerId: string, salary: number, contractLength: number, bonuses: ManagerBonus[]) => {
+    const state = get();
+    const manager = state.careerManager;
+    if (!manager) return;
+
+    const offer = state.jobOffers.find(o => o.id === offerId);
+    if (!offer) return;
+
+    const updated = negotiateContract(offer, salary, contractLength, bonuses, manager.attributes.negotiation);
+    set({ jobOffers: state.jobOffers.map(o => o.id === offerId ? updated : o) });
   },
 
   respondToJobOffer: (offerId: string, accept: boolean) => {
@@ -153,19 +292,23 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       unemployedWeeks: 0,
     };
 
-    // Generate job vacancies
+    // Generate job vacancies with competitors
     const vacancies = generateJobVacancies(
       state.clubs,
       updatedManager.reputationScore,
       state.season,
       state.week,
       state.playerClubId
-    );
+    ).map(v => {
+      const vLeague = LEAGUES.find(l => l.id === v.divisionId);
+      return { ...v, competitors: generateCompetitors(v.minReputation, (vLeague?.qualityTier || 4) as 1 | 2 | 3 | 4) };
+    });
 
     set({
       careerManager: updatedManager,
       jobVacancies: vacancies,
       jobOffers: [],
+      activeInterview: null,
       currentScreen: 'job-market',
     });
   },
@@ -251,6 +394,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         },
         jobVacancies: [],
         jobOffers: [],
+        activeInterview: null,
         boardConfidence: STARTING_BOARD_CONFIDENCE,
         currentScreen: 'dashboard',
         transferMarket: [],
@@ -316,6 +460,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
         },
         jobVacancies: [],
         jobOffers: [],
+        activeInterview: null,
         boardConfidence: STARTING_BOARD_CONFIDENCE,
         currentScreen: 'dashboard',
       });
@@ -335,6 +480,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
 
     set({
       careerManager: { ...manager, contract: null, careerHistory: updatedHistory },
+      activeInterview: null,
       currentScreen: 'hall-of-managers',
     });
   },

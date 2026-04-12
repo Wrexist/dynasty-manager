@@ -16,6 +16,9 @@ import type {
   Club,
   Match,
   LeagueTableEntry,
+  CompetingCandidate,
+  PitchQuestion,
+  PitchOption,
 } from '@/types/game';
 import {
   STARTING_ATTRIBUTE_MIN,
@@ -49,10 +52,26 @@ import {
   PROACTIVE_OFFER_FORM_BONUS,
   PROACTIVE_OFFER_POSITION_BONUS,
   PROACTIVE_OFFER_DURATION_WEEKS,
+  MIN_COMPETITORS,
+  MAX_COMPETITORS,
+  COMPETITOR_REP_VARIANCE,
+  INTERVIEW_PITCH_QUESTIONS,
+  PITCH_SCORE_WEIGHT,
+  PITCH_REP_WEIGHT,
+  INTERVIEW_HIRE_THRESHOLD,
+  INTERVIEW_STRONG_HIRE_THRESHOLD,
+  ENHANCED_NEGOTIATION_MAX_ROUNDS,
+  CONTRACT_LENGTH_ACCEPTANCE_MODIFIER,
+  BONUS_NEGOTIATION_MAX_INCREASE,
+  BOARD_TOLERANCE_DECAY_PER_ROUND,
+  BOARD_TOLERANCE_START,
 } from '@/config/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { VALUE_EXP_BASE, VALUE_EXP_RATE } from '@/config/playerGeneration';
 import { shuffle } from '@/utils/helpers';
+import { AI_MANAGER_FIRST_NAMES, AI_MANAGER_LAST_NAMES } from '@/config/aiManager';
+import { PITCH_QUESTIONS } from '@/data/boardPitches';
+import type { PitchQuestionDef } from '@/data/boardPitches';
 
 // ── Helpers ──
 
@@ -393,8 +412,10 @@ export function generateStartingOffers(
 
       // Negotiation defaults
       initialSalary: salary,
+      initialContractLength: 2,
       negotiationRound: 0,
       negotiationStatus: 'pending',
+      boardTolerance: BOARD_TOLERANCE_START,
     };
   });
 }
@@ -505,13 +526,14 @@ export function generateProactiveOffer(
     expiresSeason = season + 1;
   }
 
+  const contractLength = randInt(2, 4);
   return {
     id: `proactive-${cd.id}-${season}-${week}`,
     clubId: cd.id,
     clubName: cd.name,
     divisionId: cd.divisionId || '',
     salary,
-    contractLength: randInt(2, 4),
+    contractLength,
     bonuses: generateDefaultBonuses(qualityTier),
     boardExpectations: generateBoardExpectation(qualityTier, cd.reputation),
     expiresWeek,
@@ -534,8 +556,10 @@ export function generateProactiveOffer(
 
     // Negotiation defaults
     initialSalary: salary,
+    initialContractLength: contractLength,
     negotiationRound: 0,
     negotiationStatus: 'pending',
+    boardTolerance: BOARD_TOLERANCE_START,
   };
 }
 
@@ -636,4 +660,274 @@ export function getRetirementAge(manager: CareerManager): number {
 
 export function isRetired(manager: CareerManager): boolean {
   return manager.age >= getRetirementAge(manager);
+}
+
+// ── Interview System ──
+
+/** Generate 1-3 competing AI candidates for a job vacancy. */
+export function generateCompetitors(
+  vacancyMinRep: number,
+  qualityTier: 1 | 2 | 3 | 4,
+): CompetingCandidate[] {
+  const count = randInt(MIN_COMPETITORS, MAX_COMPETITORS);
+  const competitors: CompetingCandidate[] = [];
+  const usedNames = new Set<string>();
+
+  // Pre-filter club pool once (not per iteration)
+  const clubPool = CLUBS_DATA.filter(c => {
+    const league = LEAGUES.find(l => l.id === c.divisionId);
+    return league && league.qualityTier <= qualityTier + 1;
+  });
+
+  for (let i = 0; i < count; i++) {
+    // Generate unique name (retry up to 10 times on collision)
+    let name = '';
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const firstName = AI_MANAGER_FIRST_NAMES[Math.floor(Math.random() * AI_MANAGER_FIRST_NAMES.length)];
+      const lastName = AI_MANAGER_LAST_NAMES[Math.floor(Math.random() * AI_MANAGER_LAST_NAMES.length)];
+      name = `${firstName} ${lastName}`;
+      if (!usedNames.has(name)) break;
+    }
+    usedNames.add(name);
+
+    // Symmetric variance around vacancy minimum
+    const repVariance = (Math.random() - 0.5) * COMPETITOR_REP_VARIANCE;
+    const repScore = Math.max(0, Math.round(vacancyMinRep + repVariance));
+    const tier = calculateReputationTier(repScore);
+
+    const prevClub = clubPool.length > 0
+      ? clubPool[Math.floor(Math.random() * clubPool.length)].name
+      : 'Unattached';
+
+    // Strength: 0-1 scale with good differentiation across the rep range
+    const strength = clamp(repScore / Math.max(100, vacancyMinRep * 1.5 + 50), 0, 1);
+
+    competitors.push({ name, reputationTier: tier, reputationScore: repScore, previousClub: prevClub, strength });
+  }
+
+  return competitors;
+}
+
+/** Select pitch questions for an interview, from different contexts. */
+export function selectPitchQuestions(qualityTier: 1 | 2 | 3 | 4): PitchQuestion[] {
+  const contexts: Array<'vision' | 'budget' | 'youth' | 'transfers' | 'pressure'> = ['vision', 'budget', 'youth', 'transfers', 'pressure'];
+
+  // Weight contexts by tier relevance
+  const weights: Record<number, Record<string, number>> = {
+    1: { vision: 3, budget: 1, youth: 1, transfers: 3, pressure: 2 },
+    2: { vision: 2, budget: 2, youth: 2, transfers: 2, pressure: 2 },
+    3: { vision: 2, budget: 2, youth: 2, transfers: 1, pressure: 3 },
+    4: { vision: 1, budget: 2, youth: 3, transfers: 1, pressure: 3 },
+  };
+  const tierWeights = weights[qualityTier] || weights[2];
+
+  // Build weighted context pool
+  const pool: string[] = [];
+  for (const ctx of contexts) {
+    const w = tierWeights[ctx] || 1;
+    for (let i = 0; i < w; i++) pool.push(ctx);
+  }
+
+  // Pick INTERVIEW_PITCH_QUESTIONS distinct contexts
+  const selectedContexts: string[] = [];
+  const shuffledPool = shuffle([...pool]);
+  for (const ctx of shuffledPool) {
+    if (!selectedContexts.includes(ctx) && selectedContexts.length < INTERVIEW_PITCH_QUESTIONS) {
+      selectedContexts.push(ctx);
+    }
+  }
+
+  // For each selected context, pick a random question
+  const questions: PitchQuestion[] = [];
+  const usedQuestionTexts = new Set<string>();
+  let qId = 0;
+  for (const ctx of selectedContexts) {
+    const contextQs = PITCH_QUESTIONS.filter((q: PitchQuestionDef) => q.context === ctx && !usedQuestionTexts.has(q.question));
+    if (contextQs.length === 0) continue;
+    const picked = contextQs[Math.floor(Math.random() * contextQs.length)];
+    usedQuestionTexts.add(picked.question);
+    const options: PitchOption[] = (['ambitious', 'pragmatic', 'developmental', 'defensive'] as const).map(tone => ({
+      tone,
+      text: picked.options[tone].text,
+      scoreModifier: picked.options[tone].scoreModifier,
+      bestForTier: picked.options[tone].bestForTier,
+    }));
+    questions.push({
+      id: `pitch-q-${qId++}`,
+      question: picked.question,
+      context: picked.context,
+      options,
+    });
+  }
+
+  // Fallback: if we didn't reach the target count, fill from any unused question
+  if (questions.length < INTERVIEW_PITCH_QUESTIONS) {
+    const remaining = PITCH_QUESTIONS.filter((q: PitchQuestionDef) => !usedQuestionTexts.has(q.question));
+    const shuffled = shuffle([...remaining]);
+    for (const picked of shuffled) {
+      if (questions.length >= INTERVIEW_PITCH_QUESTIONS) break;
+      usedQuestionTexts.add(picked.question);
+      const options: PitchOption[] = (['ambitious', 'pragmatic', 'developmental', 'defensive'] as const).map(tone => ({
+        tone,
+        text: picked.options[tone].text,
+        scoreModifier: picked.options[tone].scoreModifier,
+        bestForTier: picked.options[tone].bestForTier,
+      }));
+      questions.push({
+        id: `pitch-q-${qId++}`,
+        question: picked.question,
+        context: picked.context,
+        options,
+      });
+    }
+  }
+
+  return questions;
+}
+
+/** Calculate final interview result from pitch performance and reputation. */
+export function calculateInterviewResult(
+  pitchScore: number,
+  managerReputation: number,
+  vacancyMinRep: number,
+  competitors: CompetingCandidate[],
+): { hired: boolean; message: string } {
+  // Normalize reputation contribution (0-100 scale)
+  const normalizedRep = Math.min(1, managerReputation / Math.max(1, vacancyMinRep + 100)) * 100;
+
+  // Final score combines pitch performance and reputation
+  const finalScore = PITCH_SCORE_WEIGHT * pitchScore + PITCH_REP_WEIGHT * normalizedRep;
+
+  // Best competitor's effective score on the same 0-100 scale
+  const bestCompetitorScore = competitors.length > 0
+    ? Math.max(...competitors.map(c => c.strength * 100))
+    : 30;
+
+  if (finalScore >= INTERVIEW_STRONG_HIRE_THRESHOLD) {
+    return { hired: true, message: 'The board was deeply impressed by your vision. Welcome aboard!' };
+  }
+
+  if (finalScore >= INTERVIEW_HIRE_THRESHOLD) {
+    // Probabilistic — margin over competitors determines chance
+    const margin = finalScore - bestCompetitorScore;
+    const hireChance = clamp(0.5 + margin * 0.03, 0.4, 0.9);
+    if (Math.random() < hireChance) {
+      return { hired: true, message: 'After careful deliberation, the board has chosen you. Congratulations!' };
+    }
+    const winner = competitors.length > 0
+      ? competitors.reduce((a, b) => a.strength > b.strength ? a : b)
+      : null;
+    return {
+      hired: false,
+      message: winner
+        ? `The board went with ${winner.name} instead. A close decision.`
+        : 'The board decided to look at other candidates.',
+    };
+  }
+
+  // Below threshold — rejected
+  const winner = competitors.length > 0
+    ? competitors.reduce((a, b) => a.strength > b.strength ? a : b)
+    : null;
+  return {
+    hired: false,
+    message: winner
+      ? `${winner.name} made a stronger impression on the board.`
+      : 'The board was not convinced by your pitch.',
+  };
+}
+
+/** Enhanced contract negotiation: salary + contract length + bonuses. */
+export function negotiateContract(
+  offer: JobOffer,
+  requestedSalary: number,
+  requestedContractLength: number,
+  requestedBonuses: ManagerBonus[],
+  managerNegotiationSkill: number = 5,
+): JobOffer {
+  // Guard: no further negotiation if already finalized
+  if (offer.negotiationStatus === 'final' || offer.negotiationStatus === 'accepted') {
+    return offer;
+  }
+
+  const round = (offer.negotiationRound || 0) + 1;
+  if (round > ENHANCED_NEGOTIATION_MAX_ROUNDS) {
+    return { ...offer, negotiationStatus: 'final' };
+  }
+
+  const initialSalary = offer.initialSalary || offer.salary;
+  const initialLength = offer.initialContractLength || offer.contractLength;
+  const tolerance = offer.boardTolerance ?? 80;
+
+  // Salary component
+  const maxAllowed = initialSalary * (1 + SALARY_COUNTER_MAX_INCREASE);
+  const cappedSalary = Math.min(requestedSalary, maxAllowed);
+  // Floor at 0 — asking for less than initial is neutral, not a bonus
+  const salaryRatio = Math.max(0, (cappedSalary - initialSalary) / Math.max(1, initialSalary));
+
+  // Contract length component
+  const lengthDelta = Math.abs(requestedContractLength - initialLength);
+  const lengthPenalty = lengthDelta * CONTRACT_LENGTH_ACCEPTANCE_MODIFIER;
+
+  // Bonus component
+  const initialBonusTotal = offer.bonuses.reduce((sum, b) => sum + b.amount, 0);
+  const requestedBonusTotal = requestedBonuses.reduce((sum, b) => sum + b.amount, 0);
+  const bonusIncrease = initialBonusTotal > 0
+    ? Math.max(0, (requestedBonusTotal - initialBonusTotal) / initialBonusTotal)
+    : 0;
+  const cappedBonusIncrease = Math.min(bonusIncrease, BONUS_NEGOTIATION_MAX_INCREASE);
+
+  // Overall acceptance probability
+  const boardPatience = offer.boardPatience || 5;
+  let acceptChance = BOARD_ACCEPTANCE_BASE
+    + boardPatience * BOARD_PATIENCE_MODIFIER
+    + managerNegotiationSkill * NEGOTIATION_SKILL_MODIFIER
+    - salaryRatio * 2
+    - lengthPenalty
+    - cappedBonusIncrease * 0.3
+    - (round - 1) * NEGOTIATION_PUSHBACK_FACTOR;
+  acceptChance = clamp(acceptChance * (tolerance / 80), 0.1, 0.95);
+
+  const newTolerance = Math.max(0, tolerance - BOARD_TOLERANCE_DECAY_PER_ROUND);
+  const roll = Math.random();
+
+  if (roll < acceptChance) {
+    // Board accepts all terms
+    return {
+      ...offer,
+      salary: Math.round(cappedSalary),
+      contractLength: requestedContractLength,
+      bonuses: requestedBonuses,
+      negotiationRound: round,
+      negotiationStatus: 'accepted',
+      boardTolerance: newTolerance,
+    };
+  } else if (roll < acceptChance + 0.3) {
+    // Board compromises — meet halfway on salary, keep original length/bonuses
+    const compromiseSalary = Math.round((offer.salary + cappedSalary) / 2);
+    const compromiseLength = Math.round((offer.contractLength + requestedContractLength) / 2);
+    const compromiseBonuses = offer.bonuses.map((b, i) => ({
+      ...b,
+      amount: i < requestedBonuses.length && requestedBonuses[i]
+        ? Math.round((b.amount + requestedBonuses[i].amount) / 2)
+        : b.amount,
+    }));
+    return {
+      ...offer,
+      salary: compromiseSalary,
+      contractLength: compromiseLength,
+      bonuses: compromiseBonuses,
+      negotiationRound: round,
+      negotiationStatus: round >= ENHANCED_NEGOTIATION_MAX_ROUNDS ? 'final' : 'pending',
+      boardTolerance: newTolerance,
+    };
+  } else {
+    // Board rejects — keep current terms
+    return {
+      ...offer,
+      negotiationRound: round,
+      negotiationStatus: round >= ENHANCED_NEGOTIATION_MAX_ROUNDS ? 'final' : 'pending',
+      boardTolerance: newTolerance,
+    };
+  }
 }

@@ -81,6 +81,28 @@ export const PROACTIVE_OFFER_POSITION_BONUS = 0.08; // bonus for top-3 finish in
 export const PROACTIVE_OFFER_MAX_PENDING = 2;       // max pending proactive offers at once
 export const PROACTIVE_OFFER_DURATION_WEEKS = 6;    // how long an offer stays open
 
+// ── Interview System ──
+export const INTERVIEW_PITCH_QUESTIONS = 3;
+export const PITCH_SCORE_BASE = 50;
+export const PITCH_REP_WEIGHT = 0.4;
+export const PITCH_SCORE_WEIGHT = 0.6;
+export const INTERVIEW_HIRE_THRESHOLD = 55;
+export const INTERVIEW_STRONG_HIRE_THRESHOLD = 70;
+
+// ── Competing Candidates ──
+export const MIN_COMPETITORS = 1;
+export const MAX_COMPETITORS = 3;
+export const COMPETITOR_REP_VARIANCE = 150;
+
+// ── Enhanced Contract Negotiation ──
+export const ENHANCED_NEGOTIATION_MAX_ROUNDS = 3;
+export const CONTRACT_LENGTH_MIN = 1;
+export const CONTRACT_LENGTH_MAX = 5;
+export const BONUS_NEGOTIATION_MAX_INCREASE = 0.5;
+export const BOARD_TOLERANCE_START = 80;
+export const BOARD_TOLERANCE_DECAY_PER_ROUND = 20;
+export const CONTRACT_LENGTH_ACCEPTANCE_MODIFIER = 0.05;
+
 // ── Retirement ──
 export const DEFAULT_RETIREMENT_AGE = 65;
 export const LEGENDARY_RETIREMENT_EXTENSION = 10;

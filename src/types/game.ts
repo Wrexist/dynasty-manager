@@ -1501,6 +1501,8 @@ export interface JobVacancy {
   expiresWeek: number;
   expiresSeason: number;
   applied: boolean;
+  competitors?: CompetingCandidate[];   // AI rival candidates
+  interviewActive?: boolean;            // true while interview in progress
 }
 
 export interface JobOffer {
@@ -1534,6 +1536,11 @@ export interface JobOffer {
   initialSalary?: number;
   negotiationRound?: number;
   negotiationStatus?: 'pending' | 'accepted' | 'final';
+
+  // Enhanced negotiation
+  initialContractLength?: number;       // original contract length for negotiation
+  bonusPool?: number;                   // total bonus budget available
+  boardTolerance?: number;              // 0-100, decreases with aggressive negotiation
 }
 
 export interface ManagerAward {
@@ -1541,4 +1548,46 @@ export interface ManagerAward {
   season: number;
   week?: number;
   divisionId: string;
+}
+
+// ── Interview System ──
+
+export type InterviewStep = 'pitch' | 'result';
+export type PitchTone = 'ambitious' | 'pragmatic' | 'developmental' | 'defensive';
+
+export interface PitchQuestion {
+  id: string;
+  question: string;
+  context: 'vision' | 'budget' | 'youth' | 'transfers' | 'pressure';
+  options: PitchOption[];
+}
+
+export interface PitchOption {
+  tone: PitchTone;
+  text: string;
+  scoreModifier: number;
+  bestForTier?: number;
+}
+
+export interface CompetingCandidate {
+  name: string;
+  reputationTier: ReputationTier;
+  reputationScore: number;
+  previousClub: string;
+  strength: number;
+}
+
+export interface ActiveInterview {
+  vacancyId: string;
+  clubId: string;
+  clubName: string;
+  divisionId: string;
+  step: InterviewStep;
+  pitchQuestions: PitchQuestion[];
+  currentQuestionIndex: number;
+  pitchScore: number;
+  responses: PitchTone[];
+  competitors: CompetingCandidate[];
+  result: 'pending' | 'hired' | 'rejected';
+  resultMessage: string;
 }
