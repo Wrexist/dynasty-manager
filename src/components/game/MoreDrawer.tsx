@@ -157,12 +157,13 @@ export function MoreDrawer({ disabled }: { disabled?: boolean }) {
   const searchLower = search.toLowerCase();
 
   return (
-    <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) setSearch(''); }}>
+    <Sheet open={open} onOpenChange={(v) => { if (disabled && v) return; setOpen(v); if (!v) setSearch(''); }}>
       <SheetTrigger asChild>
         <button
+          disabled={disabled}
           className={cn(
             'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-0 relative',
-            disabled ? 'pointer-events-none opacity-40' : open ? 'text-primary' : 'text-muted-foreground'
+            disabled ? 'opacity-40' : open ? 'text-primary' : 'text-muted-foreground'
           )}
           aria-disabled={disabled || undefined}
         >

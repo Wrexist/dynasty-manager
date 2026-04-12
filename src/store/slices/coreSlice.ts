@@ -4,6 +4,11 @@ import type { GameState } from '../storeTypes';
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
 
+/** Returns true when navigation away from the match screen should be blocked. */
+const isMatchLocked = (state: GameState, screen: GameScreen) =>
+  state.currentScreen === 'match' && state.matchPhase !== 'none' &&
+  screen !== 'match' && screen !== 'match-review';
+
 export const createCoreSlice = (set: Set, get: Get) => ({
   gameStarted: false,
   playerClubId: '',
@@ -45,15 +50,19 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   derbies: [] as GameState['derbies'],
 
   setScreen: (screen: GameScreen) => {
-    const state = get();
-    // Block navigation while on the match screen with any active match phase
-    if (state.matchPhase !== 'none' && state.currentScreen === 'match') {
-      if (screen !== 'match' && screen !== 'match-review') return;
-    }
+    if (isMatchLocked(get(), screen)) return;
     set(s => ({ currentScreen: screen, previousScreen: s.currentScreen }));
   },
-  selectPlayer: (id: string | null) => set({ selectedPlayerId: id, currentScreen: id ? 'player-detail' : get().currentScreen }),
-  selectClub: (id: string | null) => set({ selectedClubId: id, currentScreen: id ? 'team-detail' : get().currentScreen }),
+  selectPlayer: (id: string | null) => {
+    const next = id ? 'player-detail' as GameScreen : get().currentScreen;
+    if (isMatchLocked(get(), next)) return;
+    set({ selectedPlayerId: id, currentScreen: next });
+  },
+  selectClub: (id: string | null) => {
+    const next = id ? 'team-detail' as GameScreen : get().currentScreen;
+    if (isMatchLocked(get(), next)) return;
+    set({ selectedClubId: id, currentScreen: next });
+  },
   markMessageRead: (id: string) => set(s => ({ messages: s.messages.map(m => m.id === id ? { ...m, read: true } : m) })),
   markAllRead: () => set(s => ({ messages: s.messages.map(m => ({ ...m, read: true })) })),
   updateSettings: (partial: Partial<GameSettings>) => set(s => ({ settings: { ...s.settings, ...partial } })),

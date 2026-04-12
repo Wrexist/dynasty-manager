@@ -20,8 +20,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   handleReturnToDashboard = () => {
     const state = useGameStore.getState();
-    // Clean up match state first so the navigation guard allows leaving
-    if (state.matchPhase !== 'none') state.cleanupAbandonedMatch();
+    state.cleanupAbandonedMatch();
     state.setScreen('dashboard');
     this.setState({ hasError: false, error: null });
   };
