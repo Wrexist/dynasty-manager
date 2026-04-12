@@ -5943,6 +5943,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       careerManager: state.careerManager,
       jobVacancies: state.jobVacancies,
       jobOffers: state.jobOffers,
+      activeInterview: state.activeInterview,
     };
     let json = JSON.stringify(saveData);
 
@@ -6138,6 +6139,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           : null,
         jobVacancies: data.jobVacancies || [],
         jobOffers: data.jobOffers || [],
+        activeInterview: data.activeInterview || null,
         seasonGrowthTracker: data.seasonGrowthTracker || {},
       });
       // Hydrate module-level growth tracker so development functions use persisted data

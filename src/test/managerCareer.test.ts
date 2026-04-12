@@ -12,13 +12,23 @@ import {
   growAttribute,
   getReputationTierLabel,
   generateDefaultBonuses,
+  generateCompetitors,
+  selectPitchQuestions,
+  calculateInterviewResult,
+  negotiateContract,
 } from '@/utils/managerCareer';
 import {
   STAT_MIN, STAT_MAX,
   STARTING_ATTRIBUTE_MIN, STARTING_ATTRIBUTE_MAX,
   DEFAULT_RETIREMENT_AGE,
   LEGENDARY_RETIREMENT_EXTENSION,
+  INTERVIEW_PITCH_QUESTIONS,
+  INTERVIEW_HIRE_THRESHOLD,
+  INTERVIEW_STRONG_HIRE_THRESHOLD,
+  BOARD_TOLERANCE_START,
+  BOARD_TOLERANCE_DECAY_PER_ROUND,
 } from '@/config/managerCareer';
+import type { JobOffer, CompetingCandidate } from '@/types/game';
 
 describe('Manager Career Mode', () => {
   describe('createDefaultManager', () => {
@@ -310,6 +320,184 @@ describe('Manager Career Mode', () => {
     it('should not include promotion bonus for top-tier clubs', () => {
       const bonuses = generateDefaultBonuses(1);
       expect(bonuses.some(b => b.condition === 'promotion')).toBe(false);
+    });
+  });
+
+  // ── Interview System Tests ──
+
+  describe('generateCompetitors', () => {
+    it('should return 1-3 competitors', () => {
+      for (let i = 0; i < 20; i++) {
+        const competitors = generateCompetitors(200, 3);
+        expect(competitors.length).toBeGreaterThanOrEqual(1);
+        expect(competitors.length).toBeLessThanOrEqual(3);
+      }
+    });
+
+    it('should generate competitors with valid fields', () => {
+      const competitors = generateCompetitors(200, 3);
+      for (const c of competitors) {
+        expect(c.name).toBeTruthy();
+        expect(c.name.includes(' ')).toBe(true); // first + last name
+        expect(c.reputationScore).toBeGreaterThanOrEqual(0);
+        expect(c.strength).toBeGreaterThanOrEqual(0);
+        expect(c.strength).toBeLessThanOrEqual(1);
+        expect(['unknown', 'regional', 'national', 'continental', 'world_class', 'legendary']).toContain(c.reputationTier);
+        expect(c.previousClub).toBeTruthy();
+      }
+    });
+
+    it('should generate unique names', () => {
+      // Run many times to check deduplication
+      for (let i = 0; i < 30; i++) {
+        const competitors = generateCompetitors(200, 3);
+        const names = competitors.map(c => c.name);
+        const unique = new Set(names);
+        expect(unique.size).toBe(names.length);
+      }
+    });
+  });
+
+  describe('selectPitchQuestions', () => {
+    it('should return exactly INTERVIEW_PITCH_QUESTIONS questions', () => {
+      for (let tier = 1; tier <= 4; tier++) {
+        const questions = selectPitchQuestions(tier as 1 | 2 | 3 | 4);
+        expect(questions.length).toBe(INTERVIEW_PITCH_QUESTIONS);
+      }
+    });
+
+    it('should return questions from different contexts', () => {
+      const questions = selectPitchQuestions(2);
+      const contexts = questions.map(q => q.context);
+      const unique = new Set(contexts);
+      expect(unique.size).toBe(questions.length); // all different
+    });
+
+    it('should provide 4 options per question', () => {
+      const questions = selectPitchQuestions(3);
+      for (const q of questions) {
+        expect(q.options.length).toBe(4);
+        const tones = q.options.map(o => o.tone);
+        expect(tones).toContain('ambitious');
+        expect(tones).toContain('pragmatic');
+        expect(tones).toContain('developmental');
+        expect(tones).toContain('defensive');
+      }
+    });
+
+    it('should assign unique IDs to each question', () => {
+      const questions = selectPitchQuestions(1);
+      const ids = questions.map(q => q.id);
+      const unique = new Set(ids);
+      expect(unique.size).toBe(ids.length);
+    });
+  });
+
+  describe('calculateInterviewResult', () => {
+    const strongCompetitors: CompetingCandidate[] = [
+      { name: 'Strong Rival', reputationTier: 'continental', reputationScore: 500, previousClub: 'Big FC', strength: 0.9 },
+    ];
+    const weakCompetitors: CompetingCandidate[] = [
+      { name: 'Weak Rival', reputationTier: 'unknown', reputationScore: 20, previousClub: 'Small FC', strength: 0.1 },
+    ];
+
+    it('should always hire with very high pitch score', () => {
+      // pitchScore 83, rep 500, vacancy 200 → finalScore well above 70
+      const result = calculateInterviewResult(83, 500, 200, weakCompetitors);
+      expect(result.hired).toBe(true);
+    });
+
+    it('should reject with very low pitch score and strong competitors', () => {
+      // pitchScore 52, rep 50, vacancy 300 → low final score
+      const result = calculateInterviewResult(52, 50, 300, strongCompetitors);
+      expect(result.hired).toBe(false);
+    });
+
+    it('should include competitor name in rejection message', () => {
+      const result = calculateInterviewResult(52, 50, 300, strongCompetitors);
+      expect(result.message).toContain('Strong Rival');
+    });
+
+    it('should handle empty competitors', () => {
+      const result = calculateInterviewResult(70, 400, 200, []);
+      // With no competitors, should hire easily at high score
+      expect(result.hired).toBe(true);
+    });
+
+    it('should produce probabilistic results in the threshold zone', () => {
+      // Run many times with score in the 55-70 zone to verify probability
+      let hires = 0;
+      const runs = 100;
+      for (let i = 0; i < runs; i++) {
+        const result = calculateInterviewResult(58, 200, 200, weakCompetitors);
+        if (result.hired) hires++;
+      }
+      // Should be probabilistic — not always hired or always rejected
+      expect(hires).toBeGreaterThan(0);
+      expect(hires).toBeLessThan(runs);
+    });
+  });
+
+  describe('negotiateContract', () => {
+    const baseOffer: JobOffer = {
+      id: 'test-offer',
+      clubId: 'club-1',
+      clubName: 'Test FC',
+      divisionId: 'eng-4',
+      salary: 5000,
+      contractLength: 2,
+      bonuses: [
+        { condition: 'promotion', amount: 25000, met: false },
+        { condition: 'avoid_relegation', amount: 10000, met: false },
+      ],
+      boardExpectations: 'Push for promotion',
+      expiresWeek: 10,
+      expiresSeason: 1,
+      initialSalary: 5000,
+      initialContractLength: 2,
+      negotiationRound: 0,
+      negotiationStatus: 'pending',
+      boardTolerance: BOARD_TOLERANCE_START,
+      boardPatience: 5,
+    };
+
+    it('should return unchanged offer if status is already final', () => {
+      const finalOffer = { ...baseOffer, negotiationStatus: 'final' as const };
+      const result = negotiateContract(finalOffer, 7000, 3, finalOffer.bonuses, 10);
+      expect(result).toBe(finalOffer); // Same reference, not modified
+    });
+
+    it('should return unchanged offer if status is already accepted', () => {
+      const acceptedOffer = { ...baseOffer, negotiationStatus: 'accepted' as const };
+      const result = negotiateContract(acceptedOffer, 7000, 3, acceptedOffer.bonuses, 10);
+      expect(result).toBe(acceptedOffer);
+    });
+
+    it('should increment negotiation round', () => {
+      const result = negotiateContract(baseOffer, 5500, 2, baseOffer.bonuses, 10);
+      expect(result.negotiationRound).toBe(1);
+    });
+
+    it('should decay board tolerance each round', () => {
+      const result = negotiateContract(baseOffer, 5500, 2, baseOffer.bonuses, 10);
+      expect(result.boardTolerance).toBe(BOARD_TOLERANCE_START - BOARD_TOLERANCE_DECAY_PER_ROUND);
+    });
+
+    it('should return final status when max rounds exceeded', () => {
+      const maxRoundsOffer = { ...baseOffer, negotiationRound: 3 };
+      const result = negotiateContract(maxRoundsOffer, 7000, 3, maxRoundsOffer.bonuses, 10);
+      expect(result.negotiationStatus).toBe('final');
+    });
+
+    it('should not go below 0 board tolerance', () => {
+      const lowToleranceOffer = { ...baseOffer, boardTolerance: 5 };
+      const result = negotiateContract(lowToleranceOffer, 5500, 2, lowToleranceOffer.bonuses, 10);
+      expect(result.boardTolerance).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should produce a result with valid negotiation status', () => {
+      const result = negotiateContract(baseOffer, 6000, 3, baseOffer.bonuses, 5);
+      expect(['pending', 'accepted', 'final']).toContain(result.negotiationStatus);
     });
   });
 });
