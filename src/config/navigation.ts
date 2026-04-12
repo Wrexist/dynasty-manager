@@ -108,7 +108,7 @@ export const UNEMPLOYED_ALLOWED_SCREENS = new Set<GameScreen>([
   'job-market', 'career-overview', 'inbox', 'settings', 'manager-profile',
   'trophy-cabinet', 'hall-of-managers', 'perks', 'prestige', 'help', 'shop',
   'ballon-dor', 'league-table', 'calendar', 'team-detail', 'season-summary',
-  'player-detail', 'dashboard',
+  'player-detail',
 ]);
 
 // BottomNav tabs shown when unemployed in career mode
@@ -118,5 +118,5 @@ export const UNEMPLOYED_TABS: { screen: GameScreen; label: string }[] = [
   { screen: 'inbox', label: 'Inbox' },
 ];
 
-// Main tabs for swipe navigation when unemployed
-export const UNEMPLOYED_MAIN_TABS: GameScreen[] = ['job-market', 'career-overview', 'inbox'];
+// Main tabs for swipe navigation when unemployed (derived from UNEMPLOYED_TABS to stay in sync)
+export const UNEMPLOYED_MAIN_TABS: GameScreen[] = UNEMPLOYED_TABS.map(t => t.screen);

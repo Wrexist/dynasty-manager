@@ -171,7 +171,7 @@ export function MoreDrawer({ disabled }: { disabled?: boolean }) {
         >
           <div className="relative">
             <MoreHorizontal className={cn('w-5 h-5', open && 'drop-shadow-[0_0_6px_hsl(var(--primary))]')} />
-            {(unread > 0 || hasPendingCupMatch) && (
+            {(unread > 0 || (!isUnemployed && hasPendingCupMatch)) && (
               <div className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-destructive rounded-full flex items-center justify-center">
                 <span className="text-[8px] font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread || '!'}</span>
               </div>

@@ -7,7 +7,7 @@ import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/man
 import { getSuffix } from '@/utils/helpers';
 import { getRecentForm } from '@/utils/formGuide';
 import { LEAGUES } from '@/data/league';
-import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation';
+import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 import { useFlash } from '@/hooks/useFlash';
@@ -63,10 +63,16 @@ export function TopBar() {
     </header>
   );
 
-  const showBack = !matchLocked && DETAIL_SCREENS.includes(currentScreen);
+  // Don't show back arrow on main tabs (including unemployed main tabs like job-market)
+  const isMainTab = isUnemployed
+    ? UNEMPLOYED_MAIN_TABS.includes(currentScreen)
+    : !DETAIL_SCREENS.includes(currentScreen);
+  const showBack = !matchLocked && !isMainTab;
+  const rawBack = BACK_TARGET[currentScreen] || previousScreen || 'dashboard';
+  // When unemployed, redirect any back target that would hit a club screen to job-market
   const backTarget = isUnemployed
-    ? (BACK_TARGET[currentScreen] || 'job-market')
-    : (BACK_TARGET[currentScreen] || previousScreen || 'dashboard');
+    ? (rawBack === 'dashboard' || rawBack === 'squad' ? 'job-market' : rawBack)
+    : rawBack;
 
   return (
     <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top">
