@@ -6100,7 +6100,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           hidePageHints: false, confirmAllOffers: false, reducedMotion: false,
           ...(data.settings || {}),
         },
-        currentScreen: (data.gameMode === 'career' && data.careerManager && !data.careerManager.contract) ? 'job-market' : 'dashboard',
+        currentScreen:
+          (data.gameMode === 'career' && data.careerManager && !data.careerManager.contract)
+            ? (data.careerManager.careerHistory?.some((e: { reason: string }) => e.reason === 'retired') ? 'hall-of-managers' : 'job-market')
+            : 'dashboard',
         previousScreen: null,
         currentMatchResult: null, selectedPlayerId: null,
         transferWindowOpen: data.week <= SUMMER_WINDOW_END || (data.week >= WINTER_WINDOW_START && data.week <= WINTER_WINDOW_END),

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { Calendar, Settings, ArrowLeft, Star, Mail, Crown } from 'lucide-react';
+import { Calendar, Settings, ArrowLeft, Star, Mail, Crown, Briefcase } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/managerCareer';
 import { getSuffix } from '@/utils/helpers';
@@ -13,7 +13,6 @@ import { cn } from '@/lib/utils';
 import { useFlash } from '@/hooks/useFlash';
 import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { XP_GLOW_MS } from '@/config/ui';
-import { Briefcase } from 'lucide-react';
 
 export function TopBar() {
   const {
