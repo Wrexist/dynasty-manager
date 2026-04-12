@@ -182,6 +182,10 @@ export const createCareerSlice = (set: Set, get: Get) => ({
           jobOffers: [...state.jobOffers, offer],
         });
       } else {
+        // Rejected, or hired but vacancy was removed (race condition — treat as filled)
+        const message = (result.hired && !vacancy)
+          ? 'The position was filled before the board could finalize your appointment.'
+          : result.message;
         set({
           activeInterview: {
             ...interview,
@@ -190,7 +194,7 @@ export const createCareerSlice = (set: Set, get: Get) => ({
             currentQuestionIndex: nextIndex,
             step: 'result',
             result: 'rejected',
-            resultMessage: result.message,
+            resultMessage: message,
           },
         });
       }

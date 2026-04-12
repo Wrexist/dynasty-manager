@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { BoardPitch } from '@/components/game/BoardPitch';
 import { Briefcase, DollarSign, Clock, Check, X, LogOut, ArrowLeft, Building2, TrendingUp, Handshake, Users, Plus, Minus } from 'lucide-react';
 import { toast } from 'sonner';
-import { negotiateContract, getManagerBonusLabel, getReputationTierLabel } from '@/utils/managerCareer';
+import { getManagerBonusLabel, getReputationTierLabel } from '@/utils/managerCareer';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS } from '@/config/ui';
 import { CONTRACT_LENGTH_MIN, CONTRACT_LENGTH_MAX, BONUS_NEGOTIATION_MAX_INCREASE } from '@/config/managerCareer';
@@ -307,10 +307,6 @@ function OfferCard({
       } else {
         toast('Counter-Offer', { description: `Board countered: £${(updated.salary / 1000).toFixed(1)}k/wk, ${updated.contractLength}yr contract` });
       }
-      // Reset local state to match updated offer
-      setCounterSalary(Math.round(updated.salary * 1.15));
-      setCounterLength(updated.contractLength);
-      setCounterBonuses(updated.bonuses.map(b => ({ ...b })));
     }
   };
 

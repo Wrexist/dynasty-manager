@@ -71,7 +71,7 @@ export function BoardPitch() {
 
   if (!activeInterview) return null;
 
-  const { step, pitchQuestions, currentQuestionIndex, competitors, result, resultMessage, clubName, pitchScore } = activeInterview;
+  const { step, pitchQuestions, currentQuestionIndex, competitors, result, resultMessage, clubName } = activeInterview;
   const totalQuestions = pitchQuestions.length;
   const currentQuestion = step === 'pitch' ? pitchQuestions[currentQuestionIndex] : null;
 
