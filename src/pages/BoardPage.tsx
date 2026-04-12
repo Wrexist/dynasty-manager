@@ -1,13 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { PageHint } from '@/components/game/PageHint';
+import { ConfirmDialog } from '@/components/game/ConfirmDialog';
+import { Button } from '@/components/ui/button';
 import {
   Target, ShieldAlert, ShieldCheck, AlertTriangle, CheckCircle2, Circle,
-  TrendingUp, TrendingDown, Swords, DollarSign, Flame, Award, Star, Zap,
+  TrendingUp, TrendingDown, Swords, DollarSign, Flame, Award, Star, Zap, LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
@@ -102,12 +104,15 @@ const fadeUp = {
 
 /* ── Page ── */
 const BoardPage = () => {
-  const { boardConfidence, boardObjectives, season, seasonHistory } = useGameStore(useShallow(s => ({
+  const [showResignConfirm, setShowResignConfirm] = useState(false);
+  const { boardConfidence, boardObjectives, season, seasonHistory, gameMode } = useGameStore(useShallow(s => ({
     boardConfidence: s.boardConfidence,
     boardObjectives: s.boardObjectives,
     season: s.season,
     seasonHistory: s.seasonHistory,
+    gameMode: s.gameMode,
   })));
+  const resignFromClub = useGameStore(s => s.resignFromClub);
   const club = usePlayerClub();
   const pos = useLeaguePosition();
 
@@ -392,6 +397,27 @@ const BoardPage = () => {
               ))}
             </div>
           </GlassPanel>
+        </motion.div>
+      )}
+
+      {/* Resign Button (career mode only) */}
+      {gameMode === 'career' && (
+        <motion.div variants={fadeUp}>
+          <Button
+            variant="outline"
+            className="w-full h-11 gap-2 text-red-400 border-red-400/30 hover:bg-red-400/10"
+            onClick={() => setShowResignConfirm(true)}
+          >
+            <LogOut className="w-4 h-4" /> Resign from Club
+          </Button>
+          <ConfirmDialog
+            open={showResignConfirm}
+            onOpenChange={setShowResignConfirm}
+            title="Resign from Club"
+            description="Are you sure you want to resign? You will enter the job market."
+            confirmLabel="Resign"
+            onConfirm={resignFromClub}
+          />
         </motion.div>
       )}
 

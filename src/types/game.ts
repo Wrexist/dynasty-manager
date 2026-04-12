@@ -1503,6 +1503,24 @@ export interface JobVacancy {
   applied: boolean;
   competitors?: CompetingCandidate[];   // AI rival candidates
   interviewActive?: boolean;            // true while interview in progress
+
+  // Enriched club profile (optional for backward compat / desperation vacancies)
+  leagueName?: string;
+  country?: string;
+  clubColor?: string;
+  reputation?: number;
+  budget?: number;
+  estimatedSquadValue?: number;
+  expectedPosition?: string;
+  facilities?: number;
+  youthRating?: number;
+  boardPatience?: number;
+
+  // Live league data (populated from divisionTables when available)
+  currentPosition?: number;
+  currentForm?: ('W' | 'D' | 'L')[];
+  currentPoints?: number;
+  matchesPlayed?: number;
 }
 
 export interface JobOffer {

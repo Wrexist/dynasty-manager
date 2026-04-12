@@ -258,6 +258,9 @@ export function generateJobVacancies(
       expiresSeason = season + 1;
     }
 
+    // Look up full club data for enrichment
+    const clubData = CLUBS_DATA.find(c => c.id === club.id);
+
     return {
       id: `vacancy-${club.id}-${season}-${week}`,
       clubId: club.id,
@@ -270,6 +273,18 @@ export function generateJobVacancies(
       expiresWeek,
       expiresSeason,
       applied: false,
+
+      // Enriched club profile
+      leagueName: league?.name || '',
+      country: league?.country || '',
+      clubColor: clubData?.color || '#888888',
+      reputation: club.reputation,
+      budget: clubData?.budget || club.budget || 0,
+      estimatedSquadValue: estimateSquadValue(clubData?.squadQuality || 50),
+      expectedPosition: calculateExpectedPosition(club.id, club.divisionId || ''),
+      facilities: clubData?.facilities || club.facilities || 5,
+      youthRating: clubData?.youthRating || club.youthRating || 5,
+      boardPatience: clubData?.boardPatience || club.boardPatience || 5,
     };
   });
 }
