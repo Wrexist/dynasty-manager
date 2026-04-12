@@ -10,9 +10,11 @@ const isMatchLocked = (state: GameState, screen: GameScreen) =>
   state.currentScreen === 'match' && state.matchPhase !== 'none' &&
   screen !== 'match' && screen !== 'match-review';
 
-/** Returns the redirected screen when unemployed in career mode, or null if allowed. */
+/** Returns the redirected screen when unemployed (not retired) in career mode, or null if allowed. */
 const getUnemployedRedirect = (state: GameState, screen: GameScreen): GameScreen | null => {
   if (state.gameMode !== 'career' || !state.careerManager || state.careerManager.contract) return null;
+  // Retired managers are not subject to unemployed navigation restrictions
+  if (state.careerManager.careerHistory?.some(e => e.reason === 'retired')) return null;
   if (UNEMPLOYED_ALLOWED_SCREENS.has(screen)) return null;
   return 'job-market';
 };

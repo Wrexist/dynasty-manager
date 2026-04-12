@@ -1,9 +1,9 @@
 import type { GameState } from '../storeTypes';
 import type { CareerManager, JobVacancy, JobOffer, GameMode, ActiveInterview, PitchTone, ManagerBonus } from '@/types/game';
-import { generateJobVacancies, getRetirementAge, generateDefaultBonuses, estimateSquadValue, calculateExpectedPosition, generateCompetitors, selectPitchQuestions, calculateInterviewResult, negotiateContract } from '@/utils/managerCareer';
+import { generateJobVacancies, getRetirementAge, generateDefaultBonuses, estimateSquadValue, calculateExpectedPosition, generateCompetitors, selectPitchQuestions, calculateInterviewResult, negotiateContract, generateUnemployedOffer } from '@/utils/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { STARTING_BOARD_CONFIDENCE, STARTING_TACTICAL_FAMILIARITY } from '@/config/gameBalance';
-import { PITCH_SCORE_BASE, BOARD_TOLERANCE_START } from '@/config/managerCareer';
+import { PITCH_SCORE_BASE, BOARD_TOLERANCE_START, UNEMPLOYED_INITIAL_OFFERS } from '@/config/managerCareer';
 import { generateAIManagerProfile } from '@/config/aiManager';
 import { generateInitialStaff, generateStaffMarket } from '@/utils/staff';
 import { selectBestLineup } from '@/utils/playerGen';
@@ -304,10 +304,20 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       return { ...v, competitors: generateCompetitors(v.minReputation, (vLeague?.qualityTier || 4) as 1 | 2 | 3 | 4) };
     });
 
+    // Generate initial proactive offers based on reputation
+    const initialOffers: import('@/types/game').JobOffer[] = [];
+    for (let i = 0; i < UNEMPLOYED_INITIAL_OFFERS; i++) {
+      const offer = generateUnemployedOffer(
+        updatedManager, state.clubs, state.season, state.week,
+        initialOffers.map(o => o.clubId), state.playerClubId
+      );
+      if (offer) initialOffers.push(offer);
+    }
+
     set({
       careerManager: updatedManager,
       jobVacancies: vacancies,
-      jobOffers: [],
+      jobOffers: initialOffers,
       activeInterview: null,
       currentScreen: 'job-market',
     });
