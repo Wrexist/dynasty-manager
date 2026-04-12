@@ -340,7 +340,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Kevin', ln: 'Kevin', pos: 'LW', age: 21, nat: 'Brazil', ovr: 70, pot: 76 },
     { fn: 'Newerton', ln: 'Newerton', pos: 'LW', age: 19, nat: 'Brazil', ovr: 69, pot: 79 },
     { fn: 'Oleksandr', ln: 'Zubkov', pos: 'RW', age: 28, nat: 'Ukraine', ovr: 76 },
-    { fn: 'Pedrinho', ln: 'Pedrinho', pos: 'RW', age: 26, nat: 'Brazil', ovr: 74, pot: 77 },
+    { fn: 'Eguinaldo', ln: 'Eguinaldo', pos: 'RW', age: 26, nat: 'Brazil', ovr: 74, pot: 77 },
     { fn: 'Danylo', ln: 'Sikan', pos: 'ST', age: 23, nat: 'Ukraine', ovr: 74, pot: 80 },
     { fn: 'Lassina', ln: 'Traoré', pos: 'ST', age: 23, nat: 'Burkina Faso', ovr: 73, pot: 79 },
     { fn: 'Artem', ln: 'Bondarenko', pos: 'CAM', age: 24, nat: 'Ukraine', ovr: 75, pot: 78 },

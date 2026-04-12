@@ -259,7 +259,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Federico', ln: 'Girotti', pos: 'ST', age: 25, nat: 'Argentina', ovr: 70, pot: 73 },
     { fn: 'Ramiro', ln: 'Ruiz Rodríguez', pos: 'ST', age: 24, nat: 'Argentina', ovr: 70, pot: 73 },
     { fn: 'Juan', ln: 'Camilo Portilla', pos: 'CDM', age: 26, nat: 'Colombia', ovr: 72, pot: 75 },
-    { fn: 'Matías', ln: 'Galarza', pos: 'CDM', age: 22, nat: 'Argentina', ovr: 71, pot: 77 },
+    { fn: 'Basil', ln: 'Stillhart', pos: 'CDM', age: 22, nat: 'Argentina', ovr: 71, pot: 77 },
     { fn: 'Bruno', ln: 'Barticciotto', pos: 'ST', age: 23, nat: 'Chile', ovr: 69, pot: 75 },
     { fn: 'Joaquín', ln: 'Blázquez', pos: 'GK', age: 23, nat: 'Argentina', ovr: 66, pot: 72 },
   ],
