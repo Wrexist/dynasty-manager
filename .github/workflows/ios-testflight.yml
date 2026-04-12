@@ -6,6 +6,47 @@ jobs:
   build:
     runs-on: macos-latest
     steps:
+      - name: Validate required secrets
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_PROVISIONING_PROFILE: ${{ secrets.APPLE_PROVISIONING_PROFILE }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
+        run: |
+          missing=0
+          check_secret() {
+            if [ -z "${!1}" ]; then
+              echo "::error::Missing secret: $1 — $2"
+              missing=$((missing + 1))
+            fi
+          }
+
+          echo "Checking required secrets..."
+
+          check_secret "APPLE_CERTIFICATE_BASE64" \
+            "Base64-encoded .p12 distribution certificate"
+          check_secret "APPLE_CERTIFICATE_PASSWORD" \
+            "Password for the .p12 certificate"
+          check_secret "APPLE_PROVISIONING_PROFILE" \
+            "Base64-encoded App Store provisioning profile (.mobileprovision)"
+          check_secret "APPLE_TEAM_ID" \
+            "Apple Developer Team ID (10-character string)"
+          check_secret "ASC_API_KEY_ID" \
+            "App Store Connect API Key ID (create at appstoreconnect.apple.com/access/integrations/api)"
+          check_secret "ASC_ISSUER_ID" \
+            "App Store Connect Issuer ID (found at appstoreconnect.apple.com/access/integrations/api)"
+          check_secret "ASC_API_KEY_BASE64" \
+            "Base64-encoded App Store Connect API private key (.p8 file)"
+
+          if [ "$missing" -gt 0 ]; then
+            echo "::error::$missing required secret(s) missing. Add them at: Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          echo "All required secrets are configured."
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
@@ -104,20 +145,6 @@ jobs:
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_API_KEY: ${{ secrets.ASC_API_KEY_BASE64 }}
         run: |
-          # Validate required secrets
-          if [ -z "$ASC_API_KEY_ID" ]; then
-            echo "::error::ASC_API_KEY_ID secret is not set"
-            exit 1
-          fi
-          if [ -z "$ASC_ISSUER_ID" ]; then
-            echo "::error::ASC_ISSUER_ID secret is not set"
-            exit 1
-          fi
-          if [ -z "$ASC_API_KEY" ]; then
-            echo "::error::ASC_API_KEY_BASE64 secret is not set"
-            exit 1
-          fi
-
           mkdir -p ~/.appstoreconnect/private_keys
           echo "$ASC_API_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8
           xcodebuild -exportArchive \

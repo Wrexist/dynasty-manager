@@ -27,7 +27,7 @@
 ================================================
 
   There are 6 steps left. All are done in your browser or Command Prompt.
-  Estimated time: 30-45 minutes.
+  Estimated time: 30-50 minutes.
 
 
 ------------------------------------------------
@@ -102,17 +102,20 @@
 
 
 ------------------------------------------------
-  STEP 4: Create App-Specific Password
-  (2 minutes)
+  STEP 4: Create App Store Connect API Key
+  (5 minutes)
 ------------------------------------------------
 
-  1. Go to https://appleid.apple.com
+  1. Go to https://appstoreconnect.apple.com/access/integrations/api
   2. Sign in with your Apple ID
-  3. Go to "Sign-In and Security"
-  4. Click "App-Specific Passwords"
-  5. Click "Generate an app-specific password"
-  6. Label it: "GitHub Actions"
-  7. Copy the generated password — SAVE IT, you can't see it again
+  3. Click the "+" button to generate a new API key
+  4. Name it: "GitHub Actions"
+  5. Set Access to: "App Manager" (or "Admin")
+  6. Click "Generate"
+  7. IMPORTANT — note these three values:
+       - Key ID: shown in the table (e.g. ABC1D23EFG)
+       - Issuer ID: shown at the top of the page (UUID format)
+       - Download the .p8 private key file — you can only download it ONCE
 
 
 ------------------------------------------------
@@ -141,7 +144,7 @@
   C. Add secrets to GitHub:
      - Go to your repo on GitHub
      - Click Settings > Secrets and variables > Actions
-     - Click "New repository secret" for each of these 6 secrets:
+     - Click "New repository secret" for each of these 7 secrets:
 
      Secret 1: APPLE_CERTIFICATE_BASE64
        In Command Prompt run:
@@ -161,14 +164,23 @@
        Copy EVERYTHING between the BEGIN and END lines
        Paste as the secret value
 
-     Secret 4: APPLE_ID
-       Your Apple ID email address
-
-     Secret 5: APPLE_APP_SPECIFIC_PASSWORD
-       The password from Step 4
-
-     Secret 6: APPLE_TEAM_ID
+     Secret 4: APPLE_TEAM_ID
        S3U8B8HH96
+
+     Secret 5: ASC_API_KEY_ID
+       The Key ID from Step 4 (e.g. ABC1D23EFG)
+
+     Secret 6: ASC_ISSUER_ID
+       The Issuer ID from Step 4 (UUID format, shown at top of API keys page)
+
+     Secret 7: ASC_API_KEY_BASE64
+       Base64-encode the .p8 file from Step 4.
+       In Command Prompt run:
+         certutil -encode AuthKey_XXXXXXXXXX.p8 key_base64.txt
+       (replace XXXXXXXXXX with your actual Key ID)
+       Open key_base64.txt in Notepad
+       Copy EVERYTHING between the BEGIN and END lines
+       Paste as the secret value
 
 
 ------------------------------------------------
@@ -212,10 +224,20 @@
   Build fails at "Install CocoaPods":
     - This usually fixes itself on retry — click "Re-run failed jobs"
 
+  Build fails at "Validate required secrets":
+    - The workflow checks all 7 secrets upfront before starting the build
+    - The error message lists exactly which secrets are missing
+    - Add them at: Settings > Secrets and variables > Actions in your GitHub repo
+
+  Build fails at "Upload to TestFlight":
+    - Verify ASC_API_KEY_ID matches the Key ID shown in App Store Connect
+    - Verify ASC_ISSUER_ID matches the Issuer ID at the top of the API keys page
+    - Verify ASC_API_KEY_BASE64 is the base64 of the .p8 file (not the raw file contents)
+    - Make sure the API key has "App Manager" or "Admin" access
+
   Build succeeds but nothing in TestFlight:
     - Check your Apple ID email for a message from Apple
     - Sometimes Apple rejects builds silently — check email for details
-    - Verify the App-Specific Password is correct
 
   "Missing Compliance" in TestFlight:
     - This is normal. Click the warning and answer the encryption question.
