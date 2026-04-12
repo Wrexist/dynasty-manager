@@ -115,57 +115,59 @@ export function TopBar() {
             </div>
           )}
         </div>
-        <div className={cn("flex items-center gap-3", matchLocked && "pointer-events-none opacity-40")}>
-          <button
-            onClick={() => { setScreen('inbox'); hapticMedium(); }}
-            aria-label={unreadCount > 0 ? `Inbox — ${unreadCount} unread` : 'Inbox'}
-            className="relative p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-          >
-            <Mail className="w-4 h-4" />
-            {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
+        <div className="flex items-center gap-3">
+          <div className={cn("flex items-center gap-3", matchLocked && "pointer-events-none opacity-40")}>
+            <button
+              onClick={() => { setScreen('inbox'); hapticMedium(); }}
+              aria-label={unreadCount > 0 ? `Inbox — ${unreadCount} unread` : 'Inbox'}
+              className="relative p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            >
+              <Mail className="w-4 h-4" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => { setScreen('shop'); hapticMedium(); }}
+              aria-label="Shop"
+              className="p-3 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            >
+              <Crown className="w-4 h-4 text-[hsl(var(--gold))] drop-shadow-[0_0_4px_hsl(var(--gold)/0.4)]" />
+            </button>
+            {/* Career mode: reputation badge or XP Level */}
+            {gameMode === 'career' && careerManager ? (
+              <button
+                onClick={() => setScreen('career-overview')}
+                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                title={`${getReputationTierLabel(reputationTier)} (${Math.round(careerManager.reputationScore)})`}
+              >
+                <Star className="w-3 h-3 fill-primary" />
+                <span className="font-bold capitalize">{reputationLabel}</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => setScreen('perks')}
+                className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+                title={`Level ${managerProgression.level} — ${xpProgress.current}/${xpProgress.needed} XP`}
+              >
+                <Star className="w-3 h-3 fill-primary" />
+                <span className="font-bold">Lv.{managerProgression.level}</span>
+              </button>
             )}
-          </button>
-          <button
-            onClick={() => { setScreen('shop'); hapticMedium(); }}
-            aria-label="Shop"
-            className="p-3 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-          >
-            <Crown className="w-4 h-4 text-[hsl(var(--gold))] drop-shadow-[0_0_4px_hsl(var(--gold)/0.4)]" />
-          </button>
-          {/* Career mode: reputation badge or XP Level */}
-          {gameMode === 'career' && careerManager ? (
             <button
-              onClick={() => setScreen('career-overview')}
-              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-              title={`${getReputationTierLabel(reputationTier)} (${Math.round(careerManager.reputationScore)})`}
+              onClick={() => { setScreen('settings'); hapticMedium(); }}
+              aria-label="Settings"
+              className="p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             >
-              <Star className="w-3 h-3 fill-primary" />
-              <span className="font-bold capitalize">{reputationLabel}</span>
+              <Settings className="w-4 h-4" />
             </button>
-          ) : (
-            <button
-              onClick={() => setScreen('perks')}
-              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
-              title={`Level ${managerProgression.level} — ${xpProgress.current}/${xpProgress.needed} XP`}
-            >
-              <Star className="w-3 h-3 fill-primary" />
-              <span className="font-bold">Lv.{managerProgression.level}</span>
-            </button>
-          )}
+          </div>
           <div className="flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite" aria-atomic="true">
             <Calendar className="w-3 h-3" aria-hidden="true" />
             <span>W{week} · S{season}</span>
           </div>
-          <button
-            onClick={() => { setScreen('settings'); hapticMedium(); }}
-            aria-label="Settings"
-            className="p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-          >
-            <Settings className="w-4 h-4" />
-          </button>
         </div>
       </div>
       {/* XP Progress Bar */}

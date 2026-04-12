@@ -46,9 +46,8 @@ export const createCoreSlice = (set: Set, get: Get) => ({
 
   setScreen: (screen: GameScreen) => {
     const state = get();
-    const phase = state.matchPhase;
-    // Block navigation during active match phases (first_half, half_time, second_half, extra_time, penalties)
-    if (phase !== 'none' && phase !== 'full_time' && state.currentScreen === 'match') {
+    // Block navigation while on the match screen with any active match phase
+    if (state.matchPhase !== 'none' && state.currentScreen === 'match') {
       if (screen !== 'match' && screen !== 'match-review') return;
     }
     set(s => ({ currentScreen: screen, previousScreen: s.currentScreen }));
