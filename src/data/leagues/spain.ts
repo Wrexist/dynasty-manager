@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'ES',
   teamCount: 20,
   totalWeeks: 46,
-  replacedSlots: 3,
+  replacedSlots: 0,
   description: 'Spain\'s top division, home to some of the most technically gifted players and iconic rivalries in world football.',
   difficulty: 'Very Hard',
   colorClass: 'text-orange-400',

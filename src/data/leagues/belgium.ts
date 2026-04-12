@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'BE',
   teamCount: 16,
   totalWeeks: 46,
-  replacedSlots: 2,
+  replacedSlots: 0,
   description: 'Belgian top division known for competitive football and developing talent for Europe\'s biggest clubs.',
   difficulty: 'Medium',
   colorClass: 'text-yellow-400',

@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'GB',
   teamCount: 12,
   totalWeeks: 46,
-  replacedSlots: 1,
+  replacedSlots: 0,
   description: 'Scotland\'s fierce top flight, home to the legendary Old Firm rivalry and passionate supporters across the nation.',
   difficulty: 'Medium',
   colorClass: 'text-blue-400',

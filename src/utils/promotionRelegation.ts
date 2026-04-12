@@ -288,7 +288,9 @@ export function generateReplacementClub(season: number, leagueId: LeagueId): { c
   const league = LEAGUES.find(l => l.id === leagueId);
 
   const id = `replaced-${leagueId}-${season}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
-  const baseQuality = league?.qualityTier === 1 ? 58 : league?.qualityTier === 2 ? 48 : league?.qualityTier === 3 ? 40 : 33;
+  // Base quality: use league tier as floor, but scale toward league's average wage tier
+  const tierFloor = league?.qualityTier === 1 ? 58 : league?.qualityTier === 2 ? 48 : league?.qualityTier === 3 ? 40 : 33;
+  const baseQuality = tierFloor + Math.floor(Math.random() * 8) - 2;
 
   const clubData: ClubData = {
     id,

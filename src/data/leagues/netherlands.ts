@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'NL',
   teamCount: 18,
   totalWeeks: 46,
-  replacedSlots: 3,
+  replacedSlots: 0,
   description: 'The top tier of Dutch football, known for producing world-class talent and attacking football philosophy.',
   difficulty: 'Medium',
   colorClass: 'text-orange-400',

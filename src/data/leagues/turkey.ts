@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'TR',
   teamCount: 19,
   totalWeeks: 46,
-  replacedSlots: 3,
+  replacedSlots: 0,
   description: 'Turkey\'s passionate top flight with fervent atmospheres and ambitious clubs competing for European places.',
   difficulty: 'Medium',
   colorClass: 'text-red-400',

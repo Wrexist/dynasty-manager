@@ -313,14 +313,15 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         round: 'Group Stage',
       }];
 
-      // Apply fitness cost to called-up players and attribute goals
+      // Apply fitness recovery between matches (+3), then fitness cost for this match
       const newPlayers = { ...state.players };
       const playerGoals = isHome ? homeGoals : awayGoals;
       const updatedCaps = { ...nt.caps };
       const updatedIntlGoals = { ...nt.internationalGoals };
       for (const pid of nt.squad) {
         if (newPlayers[pid]) {
-          newPlayers[pid] = { ...newPlayers[pid], fitness: Math.max(40, newPlayers[pid].fitness - INTERNATIONAL_FITNESS_COST) };
+          const recovered = Math.min(100, newPlayers[pid].fitness + 3);
+          newPlayers[pid] = { ...newPlayers[pid], fitness: Math.max(40, recovered - INTERNATIONAL_FITNESS_COST) };
           newPlayers[pid].internationalCaps = (newPlayers[pid].internationalCaps || 0) + 1;
           updatedCaps[pid] = (updatedCaps[pid] || 0) + 1;
         }
@@ -439,14 +440,15 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
         round: tournament.currentRound,
       }];
 
-      // Apply fitness cost and attribute goals
+      // Apply fitness recovery between matches (+3), then fitness cost
       const newPlayers = { ...state.players };
       const playerGoalsKO = isHome ? hg : ag;
       const updatedCapsKO = { ...nt.caps };
       const updatedIntlGoalsKO = { ...nt.internationalGoals };
       for (const pid of nt.squad) {
         if (newPlayers[pid]) {
-          newPlayers[pid] = { ...newPlayers[pid], fitness: Math.max(40, newPlayers[pid].fitness - INTERNATIONAL_FITNESS_COST) };
+          const recovered = Math.min(100, newPlayers[pid].fitness + 3);
+          newPlayers[pid] = { ...newPlayers[pid], fitness: Math.max(40, recovered - INTERNATIONAL_FITNESS_COST) };
           newPlayers[pid].internationalCaps = (newPlayers[pid].internationalCaps || 0) + 1;
           updatedCapsKO[pid] = (updatedCapsKO[pid] || 0) + 1;
         }
@@ -1416,11 +1418,49 @@ function finalizeSeason(
 
   // Clean up aged-out national team pool players (36+) and update poolPlayerIds
   let updatedNTPoolIds = currentNT?.poolPlayerIds || [];
+  const retiredNTPlayers: string[] = [];
   if (currentNT && updatedNTPoolIds.length > 0) {
     updatedNTPoolIds = updatedNTPoolIds.filter(pid => {
       const p = newPlayers[pid];
-      return p && p.age <= 35;
+      if (p && p.age > 35) {
+        retiredNTPlayers.push(`${p.firstName} ${p.lastName} (${p.age})`);
+        return false;
+      }
+      return p != null;
     });
+    if (retiredNTPlayers.length > 0) {
+      newMessages = addMsg(newMessages, {
+        week: 1, season, type: 'national_team',
+        title: 'International Retirements',
+        body: `${retiredNTPlayers.length} player${retiredNTPlayers.length > 1 ? 's have' : ' has'} retired from international duty: ${retiredNTPlayers.join(', ')}.`,
+      });
+    }
+  }
+
+  // ── Position-based season rewards: budget bonuses scaled by league prize money ──
+  // Higher league position → bigger share of prize pool → more transfer budget next season
+  for (const [leagueId, clubIds] of Object.entries(newDivisionClubs)) {
+    const lg = LEAGUES.find(l => l.id === leagueId);
+    if (!lg || !lg.prizeMoney) continue;
+    const table = buildLeagueTable(state.divisionFixtures[leagueId] || [], clubIds);
+    const totalClubs = table.length;
+    if (totalClubs === 0) continue;
+    for (let i = 0; i < table.length; i++) {
+      const clubId = table[i].clubId;
+      const club = newClubs[clubId];
+      if (!club) continue;
+      // Winner gets ~30% of prize pool, last place gets ~2%
+      const positionRatio = 1 - (i / (totalClubs - 1));
+      const share = 0.02 + positionRatio * 0.28; // 2% to 30%
+      const bonus = Math.round(lg.prizeMoney * share);
+      // Also add a small reputation boost for top half, decline for bottom
+      const repDelta = i < totalClubs / 4 ? 1 : i >= totalClubs * 3 / 4 ? -1 : 0;
+      newClubs[clubId] = {
+        ...club,
+        budget: club.budget + bonus,
+        reputation: Math.max(1, Math.min(5, club.reputation + repDelta)),
+      };
+    }
   }
 
   const leagueClubIds = newDivisionClubs[newPlayerDivision] || [];

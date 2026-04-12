@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'GR',
   teamCount: 14,
   totalWeeks: 46,
-  replacedSlots: 2,
+  replacedSlots: 0,
   description: 'Greece\'s premier division with passionate supporters and historic clubs competing for European spots.',
   difficulty: 'Medium-Low',
   colorClass: 'text-cyan-400',

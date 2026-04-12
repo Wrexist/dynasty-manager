@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'CH',
   teamCount: 12,
   totalWeeks: 46,
-  replacedSlots: 2,
+  replacedSlots: 0,
   description: 'Switzerland\'s top flight, a competitive league bridging Western and Central European football traditions.',
   difficulty: 'Medium',
   colorClass: 'text-red-400',

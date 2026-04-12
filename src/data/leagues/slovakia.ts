@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'SK',
   teamCount: 12,
   totalWeeks: 46,
-  replacedSlots: 2,
+  replacedSlots: 0,
   description: 'The Slovak top division led by Slovan Bratislava, with competitive smaller clubs and a strong focus on youth development.',
   difficulty: 'Hard',
   colorClass: 'text-sky-400',

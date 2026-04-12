@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'FR',
   teamCount: 18,
   totalWeeks: 46,
-  replacedSlots: 3,
+  replacedSlots: 0,
   description: 'France\'s elite division, a hotbed for emerging talent and home to some of the most exciting young players in world football.',
   difficulty: 'Hard',
   colorClass: 'text-blue-400',

@@ -8,7 +8,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   countryCode: 'PL',
   teamCount: 18,
   totalWeeks: 46,
-  replacedSlots: 2,
+  replacedSlots: 0,
   description: 'Poland\'s top division with growing investment, competitive title races, and clubs pushing into European competition.',
   difficulty: 'Medium-Low',
   colorClass: 'text-red-300',

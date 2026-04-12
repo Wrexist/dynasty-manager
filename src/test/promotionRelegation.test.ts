@@ -41,15 +41,14 @@ function makeLeague(overrides: Partial<LeagueInfo> = {}): LeagueInfo {
 
 describe('Season Turnover', () => {
   describe('determineZones', () => {
-    it('should determine zones for eng (20 teams, 3 replaced)', () => {
+    it('should determine zones for eng (20 teams, 0 replaced — single-league mode)', () => {
       const eng = LEAGUES.find(l => l.id === 'eng')!;
       const table = makeTable(eng.teamCount);
       const zones = determineZones(table, eng);
 
-      expect(zones.replaced).toHaveLength(eng.replacedSlots);
-      expect(zones.safe).toHaveLength(eng.teamCount - eng.replacedSlots);
-      // Bottom 3 clubs should be replaced
-      expect(zones.replaced).toEqual([`club-${eng.teamCount - 2}`, `club-${eng.teamCount - 1}`, `club-${eng.teamCount}`]);
+      // Single-league mode: no clubs replaced
+      expect(zones.replaced).toHaveLength(0);
+      expect(zones.safe).toHaveLength(eng.teamCount);
     });
 
     it('should determine zones for a league with 2 replaced slots', () => {
