@@ -136,6 +136,14 @@ export function useMatchLocked(): boolean {
   return useGameStore(s => s.currentScreen === 'match' && s.matchPhase !== 'none');
 }
 
+/** Returns true when the manager is unemployed (not retired) in career mode. */
+export function useCareerUnemployed(): boolean {
+  return useGameStore(s =>
+    s.gameMode === 'career' && !!s.careerManager && !s.careerManager.contract &&
+    !s.careerManager.careerHistory?.some(e => e.reason === 'retired')
+  );
+}
+
 /** Get count of unread messages. */
 export function useUnreadCount(): number {
   return useGameStore(s => s.messages.filter(m => !m.read).length);

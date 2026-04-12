@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { Club, Player, PlayerAttributes, TransferListing, SeasonHistory, IncomingOffer, IncomingLoanOffer, FacilitiesState, BoardObjective, Position, Message, Match, MatchEvent, LeagueId, SeasonTurnover, LeagueTableEntry, JobVacancy, PenaltyKick } from '@/types/game';
-import { calculateReputationTier, generateJobVacancies, generateProactiveOffer, getRetirementAge, calculateLegacyScore, getReputationTierLabel, generateCompetitors } from '@/utils/managerCareer';
+import { calculateReputationTier, generateJobVacancies, generateProactiveOffer, generateUnemployedOffer, getRetirementAge, calculateLegacyScore, getReputationTierLabel, generateCompetitors } from '@/utils/managerCareer';
 import {
   GROWTH_TACTICAL_PER_MATCH, GROWTH_MOTIVATION_PER_MORALE_EVENT, GROWTH_SCOUTING_PER_ASSIGNMENT,
   GROWTH_DISCIPLINE_PER_CLEAN_MATCH, MOD_DISCIPLINE_CARDS, MOD_TACTICAL_FAMILIARITY, MOD_YOUTH_GROWTH,
@@ -9,6 +9,7 @@ import {
   REP_WIN, REP_DRAW, REP_LOSS, REP_TITLE, REP_CUP_WIN, REP_SACKING, REP_MIN, REP_MAX,
   FORCED_RETIREMENT_UNEMPLOYED_WEEKS,
   PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING,
+  UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING,
 } from '@/config/managerCareer';
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies } from '@/data/league';
 import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
@@ -2684,13 +2685,35 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         }));
       }
 
-      const msgs = addMsg(state.messages, {
+      // Expire old offers
+      let offers = state.jobOffers.filter(o =>
+        o.expiresSeason > state.season || (o.expiresSeason === state.season && o.expiresWeek > newWeek)
+      );
+
+      // Periodic proactive offers from clubs (every UNEMPLOYED_OFFER_CHECK_INTERVAL weeks)
+      if (cm.unemployedWeeks > 0 && cm.unemployedWeeks % UNEMPLOYED_OFFER_CHECK_INTERVAL === 0 && offers.length < UNEMPLOYED_OFFER_MAX_PENDING) {
+        const existingClubIds = offers.map(o => o.clubId);
+        const newOffer = generateUnemployedOffer(cm, state.clubs, state.season, newWeek, existingClubIds, state.playerClubId);
+        if (newOffer) offers = [...offers, newOffer];
+      }
+
+      let msgs = addMsg(state.messages, {
         week: newWeek, season: state.season, type: 'general',
         title: 'Between Jobs',
         body: `Week ${cm.unemployedWeeks} without a club. Visit the Job Market to find your next opportunity.`,
       });
 
-      set({ week: newWeek, careerManager: cm, jobVacancies: vacancies, messages: msgs, currentScreen: 'job-market' });
+      // Notify about new offers
+      if (offers.length > state.jobOffers.length) {
+        const newest = offers[offers.length - 1];
+        msgs = addMsg(msgs, {
+          week: newWeek, season: state.season, type: 'contract',
+          title: `Interest from ${newest.clubName}`,
+          body: `${newest.clubName} are impressed by your reputation and want to offer you the manager position. Visit the Job Market to review.`,
+        });
+      }
+
+      set({ week: newWeek, careerManager: cm, jobVacancies: vacancies, jobOffers: offers, messages: msgs, currentScreen: 'job-market' });
       if (state.settings.autoSave) get().saveGame();
       return;
     }
@@ -6100,7 +6123,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           hidePageHints: false, confirmAllOffers: false, reducedMotion: false,
           ...(data.settings || {}),
         },
-        currentScreen: 'dashboard', previousScreen: null,
+        currentScreen:
+          (data.gameMode === 'career' && data.careerManager && !data.careerManager.contract)
+            ? (data.careerManager.careerHistory?.some((e: { reason: string }) => e.reason === 'retired') ? 'hall-of-managers' : 'job-market')
+            : 'dashboard',
+        previousScreen: null,
         currentMatchResult: null, selectedPlayerId: null,
         transferWindowOpen: data.week <= SUMMER_WINDOW_END || (data.week >= WINTER_WINDOW_START && data.week <= WINTER_WINDOW_END),
         matchSubsUsed: 0,

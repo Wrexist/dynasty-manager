@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { Calendar, Settings, ArrowLeft, Star, Mail, Crown } from 'lucide-react';
+import { Calendar, Settings, ArrowLeft, Star, Mail, Crown, Briefcase } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/managerCareer';
 import { getSuffix } from '@/utils/helpers';
 import { getRecentForm } from '@/utils/formGuide';
 import { LEAGUES } from '@/data/league';
-import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES } from '@/config/navigation';
+import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
 import { cn } from '@/lib/utils';
 import { useFlash } from '@/hooks/useFlash';
-import { useMatchLocked } from '@/hooks/useGameSelectors';
+import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { XP_GLOW_MS } from '@/config/ui';
 
 export function TopBar() {
@@ -29,6 +29,7 @@ export function TopBar() {
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
+  const isUnemployed = useCareerUnemployed();
   const club = clubs[playerClubId];
   const entry = leagueTable.find(e => e.clubId === playerClubId);
   const pos = entry ? leagueTable.indexOf(entry) + 1 : '-';
@@ -53,7 +54,7 @@ export function TopBar() {
     prevXpRef.current = xpProgress.percentage;
   }, [xpProgress.percentage]);
 
-  if (!club) return (
+  if (!club && !isUnemployed) return (
     <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top">
       <div className="flex items-center justify-center h-14 px-4 max-w-lg mx-auto">
         <span className="text-xs text-muted-foreground">Loading...</span>
@@ -61,8 +62,16 @@ export function TopBar() {
     </header>
   );
 
-  const showBack = !matchLocked && DETAIL_SCREENS.includes(currentScreen);
-  const backTarget = BACK_TARGET[currentScreen] || previousScreen || 'dashboard';
+  // Don't show back arrow on main tabs (including unemployed main tabs like job-market)
+  const isMainTab = isUnemployed
+    ? UNEMPLOYED_MAIN_TABS.includes(currentScreen)
+    : !DETAIL_SCREENS.includes(currentScreen);
+  const showBack = !matchLocked && !isMainTab;
+  const rawBack = BACK_TARGET[currentScreen] || previousScreen || 'dashboard';
+  // When unemployed, redirect any back target that would hit a club screen to job-market
+  const backTarget = isUnemployed
+    ? (rawBack === 'dashboard' || rawBack === 'squad' ? 'job-market' : rawBack)
+    : rawBack;
 
   return (
     <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top">
@@ -77,14 +86,28 @@ export function TopBar() {
               <ArrowLeft className="w-4 h-4" />
             </button>
           )}
-          {showBack && SCREEN_TITLES[currentScreen] ? (
+          {isUnemployed ? (
+            showBack && SCREEN_TITLES[currentScreen] ? (
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-foreground truncate">{SCREEN_TITLES[currentScreen]}</p>
+                <p className="text-[10px] text-muted-foreground truncate">Between Jobs</p>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-5 h-5 rounded-full shrink-0 bg-amber-500/20 flex items-center justify-center">
+                  <Briefcase className="w-3 h-3 text-amber-400" />
+                </div>
+                <span className="text-xs font-semibold text-amber-400">Between Jobs</span>
+              </div>
+            )
+          ) : showBack && SCREEN_TITLES[currentScreen] ? (
             <div className="min-w-0">
               <p className="text-sm font-bold text-foreground truncate">{SCREEN_TITLES[currentScreen]}</p>
-              <p className={cn('text-[10px] text-muted-foreground truncate', posFlash)}>{club.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
+              <p className={cn('text-[10px] text-muted-foreground truncate', posFlash)}>{club?.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
             </div>
           ) : (
             <div className="flex items-center gap-2 min-w-0">
-              <div className="w-5 h-5 rounded-full shrink-0" style={{ backgroundColor: club.color }} />
+              <div className="w-5 h-5 rounded-full shrink-0" style={{ backgroundColor: club?.color }} />
               {hasPlayedMatches && (
                 <div className="flex items-center gap-0.5">
                   {recentForm.map((r, i) => (

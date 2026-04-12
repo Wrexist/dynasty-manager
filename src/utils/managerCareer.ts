@@ -65,6 +65,8 @@ import {
   BONUS_NEGOTIATION_MAX_INCREASE,
   BOARD_TOLERANCE_DECAY_PER_ROUND,
   BOARD_TOLERANCE_START,
+  UNEMPLOYED_OFFER_BASE_CHANCE,
+  UNEMPLOYED_OFFER_REP_BONUS,
 } from '@/config/managerCareer';
 import { LEAGUES, CLUBS_DATA } from '@/data/league';
 import { VALUE_EXP_BASE, VALUE_EXP_RATE } from '@/config/playerGeneration';
@@ -555,6 +557,96 @@ export function generateProactiveOffer(
     fanBase: cd.fanBase || 50,
 
     // Negotiation defaults
+    initialSalary: salary,
+    initialContractLength: contractLength,
+    negotiationRound: 0,
+    negotiationStatus: 'pending',
+    boardTolerance: BOARD_TOLERANCE_START,
+  };
+}
+
+/**
+ * Generate a proactive job offer for an unemployed manager.
+ * Clubs approach the manager based on reputation — no interview required.
+ */
+export function generateUnemployedOffer(
+  manager: CareerManager,
+  clubs: Record<string, Club>,
+  season: number,
+  week: number,
+  existingOfferClubIds: string[] = [],
+  playerClubId?: string,
+): JobOffer | null {
+  // Probability: base + reputation bonus for high-rep managers
+  let chance = UNEMPLOYED_OFFER_BASE_CHANCE;
+  const repTier = calculateReputationTier(manager.reputationScore);
+  if (repTier === 'continental' || repTier === 'world_class' || repTier === 'legendary') {
+    chance += UNEMPLOYED_OFFER_REP_BONUS;
+  }
+  chance = Math.min(chance, 0.90);
+  if (Math.random() >= chance) return null;
+
+  // Pick candidate clubs based on reputation
+  const candidateClubs = CLUBS_DATA.filter(cd => {
+    if (playerClubId && cd.id === playerClubId) return false;
+    if (existingOfferClubIds.includes(cd.id)) return false;
+    const league = LEAGUES.find(l => l.id === cd.divisionId);
+    if (!league) return false;
+    const minRep = getMinReputationForLeague(league.qualityTier);
+    // Club must be reachable by manager's reputation (more lenient than employed offers)
+    return manager.reputationScore >= minRep * 0.5;
+  });
+
+  if (candidateClubs.length === 0) return null;
+
+  // Weighted selection: prefer clubs that match reputation level
+  const weighted = candidateClubs.map(cd => {
+    const league = LEAGUES.find(l => l.id === cd.divisionId);
+    const tier = league?.qualityTier || 4;
+    return { club: cd, weight: (5 - tier) * 2 + cd.reputation };
+  });
+  weighted.sort((a, b) => b.weight - a.weight);
+
+  const topCandidates = weighted.slice(0, Math.min(10, weighted.length));
+  const picked = topCandidates[Math.floor(Math.random() * topCandidates.length)];
+  const cd = picked.club;
+  const league = LEAGUES.find(l => l.id === cd.divisionId);
+  const qualityTier = (league?.qualityTier || 4) as 1 | 2 | 3 | 4;
+  const salary = generateManagerSalary(qualityTier, cd.reputation);
+
+  let expiresWeek = week + PROACTIVE_OFFER_DURATION_WEEKS;
+  let expiresSeason = season;
+  const totalWeeks = league?.totalWeeks || 46;
+  if (expiresWeek > totalWeeks) {
+    expiresWeek = expiresWeek - totalWeeks;
+    expiresSeason = season + 1;
+  }
+
+  const contractLength = randInt(2, 4);
+  return {
+    id: `unemployed-offer-${cd.id}-${season}-${week}`,
+    clubId: cd.id,
+    clubName: cd.name,
+    divisionId: cd.divisionId || '',
+    salary,
+    contractLength,
+    bonuses: generateDefaultBonuses(qualityTier),
+    boardExpectations: generateBoardExpectation(qualityTier, cd.reputation),
+    expiresWeek,
+    expiresSeason,
+    leagueName: league?.name || '',
+    country: league?.country || '',
+    clubColor: cd.color || '#888888',
+    reputation: cd.reputation,
+    budget: cd.budget || 0,
+    estimatedSquadValue: estimateSquadValue(cd.squadQuality || 50),
+    expectedPosition: calculateExpectedPosition(cd.id, cd.divisionId || ''),
+    facilities: cd.facilities || 5,
+    youthRating: cd.youthRating || 5,
+    boardPatience: cd.boardPatience || 5,
+    stadiumName: cd.stadiumName || '',
+    stadiumCapacity: cd.stadiumCapacity || 0,
+    fanBase: cd.fanBase || 50,
     initialSalary: salary,
     initialContractLength: contractLength,
     negotiationRound: 0,

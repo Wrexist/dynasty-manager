@@ -10,8 +10,8 @@ import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
-import { BACK_TARGET, MAIN_TABS, SCREEN_GROUPS } from '@/config/navigation';
-import { useMatchLocked } from '@/hooks/useGameSelectors';
+import { BACK_TARGET, MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
+import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { InfoTipProvider } from '@/components/game/InfoTip';
 import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
 
@@ -111,6 +111,8 @@ const GameShell = () => {
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
+  const isUnemployed = useCareerUnemployed();
+  const activeTabs = isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
 
   useEffect(() => {
     if (!gameStarted) navigate('/');
@@ -145,43 +147,47 @@ const GameShell = () => {
 
   const handleSwipeLeft = useCallback(() => {
     if (matchLocked) return;
-    // Check SubNav groups first
-    for (const group of SCREEN_GROUPS) {
-      const gIdx = group.indexOf(currentScreen);
-      if (gIdx >= 0 && gIdx < group.length - 1) {
-        setScreen(group[gIdx + 1]);
-        return;
+    // Check SubNav groups first (skip when unemployed — no sub-groups)
+    if (!isUnemployed) {
+      for (const group of SCREEN_GROUPS) {
+        const gIdx = group.indexOf(currentScreen);
+        if (gIdx >= 0 && gIdx < group.length - 1) {
+          setScreen(group[gIdx + 1]);
+          return;
+        }
       }
     }
     // Fall back to main tab swiping
-    const idx = MAIN_TABS.indexOf(currentScreen);
-    if (idx >= 0 && idx < MAIN_TABS.length - 1) {
-      setScreen(MAIN_TABS[idx + 1]);
+    const idx = activeTabs.indexOf(currentScreen);
+    if (idx >= 0 && idx < activeTabs.length - 1) {
+      setScreen(activeTabs[idx + 1]);
     }
-  }, [currentScreen, setScreen, matchLocked]);
+  }, [currentScreen, setScreen, matchLocked, isUnemployed, activeTabs]);
 
   const handleSwipeRight = useCallback(() => {
     if (matchLocked) return;
-    // Check SubNav groups first
-    for (const group of SCREEN_GROUPS) {
-      const gIdx = group.indexOf(currentScreen);
-      if (gIdx > 0) {
-        setScreen(group[gIdx - 1]);
-        return;
+    // Check SubNav groups first (skip when unemployed — no sub-groups)
+    if (!isUnemployed) {
+      for (const group of SCREEN_GROUPS) {
+        const gIdx = group.indexOf(currentScreen);
+        if (gIdx > 0) {
+          setScreen(group[gIdx - 1]);
+          return;
+        }
       }
     }
     // Main tab swiping
-    const idx = MAIN_TABS.indexOf(currentScreen);
+    const idx = activeTabs.indexOf(currentScreen);
     if (idx > 0) {
-      setScreen(MAIN_TABS[idx - 1]);
+      setScreen(activeTabs[idx - 1]);
       return;
     }
     // Swipe-back on detail screens
-    if (!MAIN_TABS.includes(currentScreen)) {
-      const backTarget = BACK_TARGET[currentScreen] || 'dashboard';
+    if (!activeTabs.includes(currentScreen)) {
+      const backTarget = BACK_TARGET[currentScreen] || (isUnemployed ? 'job-market' : 'dashboard');
       setScreen(backTarget);
     }
-  }, [currentScreen, setScreen, matchLocked]);
+  }, [currentScreen, setScreen, matchLocked, isUnemployed, activeTabs]);
 
   const swipeHandlers = useSwipeGesture({
     onSwipeLeft: handleSwipeLeft,
@@ -197,12 +203,12 @@ const GameShell = () => {
   const prevScreenRef = useRef(currentScreen);
   const direction = (() => {
     const prev = prevScreenRef.current;
-    const prevIdx = MAIN_TABS.indexOf(prev);
-    const curIdx = MAIN_TABS.indexOf(currentScreen);
+    const prevIdx = activeTabs.indexOf(prev);
+    const curIdx = activeTabs.indexOf(currentScreen);
     if (prevIdx >= 0 && curIdx >= 0) return curIdx > prevIdx ? 1 : curIdx < prevIdx ? -1 : 0;
     // Detail screens slide in from right, back slides left
-    if (MAIN_TABS.includes(currentScreen) && !MAIN_TABS.includes(prev)) return -1;
-    if (!MAIN_TABS.includes(currentScreen) && MAIN_TABS.includes(prev)) return 1;
+    if (activeTabs.includes(currentScreen) && !activeTabs.includes(prev)) return -1;
+    if (!activeTabs.includes(currentScreen) && activeTabs.includes(prev)) return 1;
     return 0;
   })();
   useEffect(() => { prevScreenRef.current = currentScreen; window.scrollTo(0, 0); }, [currentScreen]);

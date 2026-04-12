@@ -81,6 +81,13 @@ export const PROACTIVE_OFFER_POSITION_BONUS = 0.08; // bonus for top-3 finish in
 export const PROACTIVE_OFFER_MAX_PENDING = 2;       // max pending proactive offers at once
 export const PROACTIVE_OFFER_DURATION_WEEKS = 6;    // how long an offer stays open
 
+// ── Proactive Job Offers (while unemployed) ──
+export const UNEMPLOYED_OFFER_MAX_PENDING = 3;        // max 3 offers at once
+export const UNEMPLOYED_OFFER_CHECK_INTERVAL = 3;     // check every N weeks
+export const UNEMPLOYED_OFFER_BASE_CHANCE = 0.35;     // 35% base probability per check
+export const UNEMPLOYED_OFFER_REP_BONUS = 0.20;       // bonus for high reputation managers
+export const UNEMPLOYED_INITIAL_OFFERS = 1;            // offers generated immediately on resignation
+
 // ── Interview System ──
 export const INTERVIEW_PITCH_QUESTIONS = 3;
 export const PITCH_SCORE_BASE = 50;

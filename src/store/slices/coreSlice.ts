@@ -1,5 +1,6 @@
 import { GameScreen, GameSettings, LeagueId, SeasonPhase, TransferNewsEntry } from '@/types/game';
 import type { GameState } from '../storeTypes';
+import { UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -8,6 +9,15 @@ type Get = () => GameState;
 const isMatchLocked = (state: GameState, screen: GameScreen) =>
   state.currentScreen === 'match' && state.matchPhase !== 'none' &&
   screen !== 'match' && screen !== 'match-review';
+
+/** Returns the redirected screen when unemployed (not retired) in career mode, or null if allowed. */
+const getUnemployedRedirect = (state: GameState, screen: GameScreen): GameScreen | null => {
+  if (state.gameMode !== 'career' || !state.careerManager || state.careerManager.contract) return null;
+  // Retired managers are not subject to unemployed navigation restrictions
+  if (state.careerManager.careerHistory?.some(e => e.reason === 'retired')) return null;
+  if (UNEMPLOYED_ALLOWED_SCREENS.has(screen)) return null;
+  return 'job-market';
+};
 
 export const createCoreSlice = (set: Set, get: Get) => ({
   gameStarted: false,
@@ -51,17 +61,21 @@ export const createCoreSlice = (set: Set, get: Get) => ({
 
   setScreen: (screen: GameScreen) => {
     if (isMatchLocked(get(), screen)) return;
-    set(s => ({ currentScreen: screen, previousScreen: s.currentScreen }));
+    const redirect = getUnemployedRedirect(get(), screen);
+    const target = redirect ?? screen;
+    set(s => ({ currentScreen: target, previousScreen: s.currentScreen }));
   },
   selectPlayer: (id: string | null) => {
     const next = id ? 'player-detail' as GameScreen : get().currentScreen;
     if (isMatchLocked(get(), next)) return;
-    set({ selectedPlayerId: id, currentScreen: next });
+    const redirect = getUnemployedRedirect(get(), next);
+    set({ selectedPlayerId: id, currentScreen: redirect ?? next });
   },
   selectClub: (id: string | null) => {
     const next = id ? 'team-detail' as GameScreen : get().currentScreen;
     if (isMatchLocked(get(), next)) return;
-    set({ selectedClubId: id, currentScreen: next });
+    const redirect = getUnemployedRedirect(get(), next);
+    set({ selectedClubId: id, currentScreen: redirect ?? next });
   },
   markMessageRead: (id: string) => set(s => ({ messages: s.messages.map(m => m.id === id ? { ...m, read: true } : m) })),
   markAllRead: () => set(s => ({ messages: s.messages.map(m => ({ ...m, read: true })) })),
