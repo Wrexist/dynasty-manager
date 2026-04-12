@@ -16,6 +16,7 @@ jobs:
           ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           ASC_API_KEY_BASE64: ${{ secrets.ASC_API_KEY_BASE64 }}
+          VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}
         run: |
           missing=0
           check_secret() {
@@ -41,6 +42,8 @@ jobs:
             "App Store Connect Issuer ID (found at appstoreconnect.apple.com/access/integrations/api)"
           check_secret "ASC_API_KEY_BASE64" \
             "Base64-encoded App Store Connect API private key (.p8 file)"
+          check_secret "VITE_REVENUECAT_API_KEY" \
+            "RevenueCat Apple API key (starts with appl_, found at app.revenuecat.com > Project > API Keys)"
 
           if [ "$missing" -gt 0 ]; then
             echo "::error::$missing required secret(s) missing. Add them at: Settings > Secrets and variables > Actions"
@@ -58,7 +61,10 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run test
-      - run: npm run build
+      - name: Build with production keys
+        env:
+          VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}
+        run: npm run build
       - run: npm run version:sync
       - run: npx cap sync ios
 
