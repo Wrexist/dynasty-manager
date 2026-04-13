@@ -1,6 +1,7 @@
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { getFarewellSummary } from '@/utils/playerNarratives';
+import { LEAGUES } from '@/data/league';
 import { GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_NEGOTIATION_GROWTH, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import {
   ACCEPT_CHANCE_AT_ASKING, ACCEPT_CHANCE_AT_80_PERCENT, ACCEPT_CHANCE_BELOW, ACCEPT_80_PERCENT_THRESHOLD,
@@ -562,7 +563,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const signingBonus = Math.round(wage * years * SIGNING_BONUS_WEEKS_PER_YEAR);
     if (club.budget < signingBonus) return { success: false, message: `Insufficient funds for signing bonus (£${(signingBonus / 1e6).toFixed(1)}M).` };
     if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
-    const divBonus = FREE_AGENT_DIV_BONUS[state.playerDivision] || 0;
+    const playerTier = LEAGUES.find(l => l.id === state.playerDivision)?.tier || 3;
+    const divBonus = FREE_AGENT_DIV_BONUS[playerTier] || 0;
     const maxFreeAgentOvr = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE + divBonus;
     if (player.overall > maxFreeAgentOvr) return { success: false, message: `Player quality (${player.overall}) exceeds your club's reputation limit (${maxFreeAgentOvr}).` };
 

@@ -5,7 +5,7 @@ import { getSuffix } from '@/utils/helpers';
 import { getReputationTierLabel, getManagerBonusLabel } from '@/utils/managerCareer';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
-import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ArrowDown } from 'lucide-react';
+import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ArrowDown, ArrowUp } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { LEAGUES } from '@/data/league';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
@@ -99,14 +99,27 @@ const SeasonSummary = () => {
           <h2 className="text-2xl font-black text-foreground font-display">Season {latest.season} Complete</h2>
         </div>
 
-        {/* Replaced Clubs Banner */}
-        {latest.replaced && (
+        {/* Promoted Banner */}
+        {latest.promoted && (
+          <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }} onAnimationComplete={() => hapticHeavy()}>
+            <GlassPanel className="p-5 text-center border-emerald-500/50 bg-emerald-500/10">
+              <ArrowUp className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
+              <p className="text-2xl font-black text-emerald-400 font-display">PROMOTED!</p>
+              <p className="text-sm text-emerald-400/80 mt-1">
+                Congratulations! You've earned promotion to a higher division.
+              </p>
+            </GlassPanel>
+          </motion.div>
+        )}
+
+        {/* Relegated Banner */}
+        {latest.replaced && !latest.promoted && (
           <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2, duration: 0.6, type: 'spring' }} onAnimationComplete={() => hapticHeavy()}>
             <GlassPanel className="p-5 text-center border-destructive/50 bg-destructive/10">
               <ArrowDown className="w-10 h-10 text-destructive mx-auto mb-2" />
-              <p className="text-2xl font-black text-destructive font-display">REPLACED</p>
+              <p className="text-2xl font-black text-destructive font-display">RELEGATED</p>
               <p className="text-sm text-destructive/80 mt-1">
-                Your club finished in the replacement zone and has been replaced for next season.
+                Your club has been relegated to a lower division.
               </p>
             </GlassPanel>
           </motion.div>

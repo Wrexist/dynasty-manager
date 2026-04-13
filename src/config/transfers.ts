@@ -141,20 +141,20 @@ export const MARKET_REPLENISH_BATCH_MIN = 5;
 export const MARKET_REPLENISH_BATCH_RANGE = 4; // 5-8 players per batch
 
 // ── Division Quality Ranges (overall rating) ──
-// Used when generating market players to match realistic quality per division
-export const DIVISION_QUALITY_RANGES: Record<string, { min: number; max: number; avgPrice: number }> = {
-  'div-1': { min: 65, max: 88, avgPrice: 15_000_000 },
-  'div-2': { min: 50, max: 75, avgPrice: 5_000_000 },
-  'div-3': { min: 40, max: 65, avgPrice: 1_500_000 },
-  'div-4': { min: 30, max: 50, avgPrice: 400_000 },
+// Used when generating market players to match realistic quality per division tier
+export const DIVISION_QUALITY_RANGES: Record<number, { min: number; max: number; avgPrice: number }> = {
+  1: { min: 65, max: 88, avgPrice: 15_000_000 },
+  2: { min: 50, max: 75, avgPrice: 5_000_000 },
+  3: { min: 40, max: 65, avgPrice: 1_500_000 },
+  4: { min: 30, max: 50, avgPrice: 400_000 },
 };
 
 // Division weight for how many players from each tier appear on the market
-export const DIVISION_MARKET_WEIGHTS: Record<string, number> = {
-  'div-1': 0.30,  // 30% of generated players are top flight quality
-  'div-2': 0.30,  // 30% Championship quality
-  'div-3': 0.25,  // 25% League One quality
-  'div-4': 0.15,  // 15% League Two quality
+export const DIVISION_MARKET_WEIGHTS: Record<number, number> = {
+  1: 0.30,  // 30% of generated players are top flight quality
+  2: 0.30,  // 30% Championship quality
+  3: 0.25,  // 25% League One quality
+  4: 0.15,  // 15% League Two quality
 };
 
 // ── Age Distribution for Market Players ──
@@ -192,9 +192,9 @@ export const FREE_AGENT_SPAWN_RANGE = 3; // 1-3 per spawn event
 export const FREE_AGENT_REP_BASE = 35;
 export const FREE_AGENT_REP_SCALE = 7;
 // Division bonus to reputation gate: higher divisions can access better free agents
-// div-1: +6, div-2: +3, div-3: +0, div-4: -3
-export const FREE_AGENT_DIV_BONUS: Record<string, number> = {
-  'div-1': 6, 'div-2': 3, 'div-3': 0, 'div-4': -3,
+// tier 1: +6, tier 2: +3, tier 3: +0, tier 4: -3
+export const FREE_AGENT_DIV_BONUS: Record<number, number> = {
+  1: 6, 2: 3, 3: 0, 4: -3,
 };
 
 // ── Pre-Season Transfer Boost (Friendlies Period, Weeks 1-3) ──
@@ -206,11 +206,11 @@ export const PRE_SEASON_EXTRA_MARKET_RANGE = 10; // 15-24 extra players
 // Quality boost: min quality raised by this amount for pre-season market players
 export const PRE_SEASON_QUALITY_BOOST = 5;
 // Division weight shift: more top-flight talent available in pre-season
-export const PRE_SEASON_DIVISION_WEIGHTS: Record<string, number> = {
-  'div-1': 0.40,  // 40% top flight (vs 30% normal)
-  'div-2': 0.30,  // 30% Championship
-  'div-3': 0.20,  // 20% League One (vs 25% normal)
-  'div-4': 0.10,  // 10% League Two (vs 15% normal)
+export const PRE_SEASON_DIVISION_WEIGHTS: Record<number, number> = {
+  1: 0.40,  // 40% top flight (vs 30% normal)
+  2: 0.30,  // 30% Championship
+  3: 0.20,  // 20% League One (vs 25% normal)
+  4: 0.10,  // 10% League Two (vs 15% normal)
 };
 // Multiplier on transfer rumors during pre-season (more clubs scouting)
 export const PRE_SEASON_RUMOR_MULTIPLIER = 2.0;

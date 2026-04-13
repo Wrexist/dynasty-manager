@@ -46,8 +46,8 @@ const HELP_SECTIONS: HelpSection[] = [
     content: 'The board sets seasonal objectives (critical/important/optional). Confidence changes based on match results, league position, and financial health. If confidence drops below 25, you get a warning. Below 10 = sacked. Win streaks boost confidence.',
   },
   {
-    title: 'Season Turnover',
-    content: 'Each league operates independently — there is no promotion or relegation between leagues. At the end of each season, the bottom clubs in each league are replaced by newly generated clubs, keeping the competition fresh.',
+    title: 'Promotion & Relegation',
+    content: 'Major football nations (England, Germany, Spain, Italy, France) have multi-tier league pyramids with real promotion and relegation. Finish in the top spots to earn promotion to the tier above. Drop to the bottom and face relegation to the tier below. Promotion playoffs add extra drama. Single-tier leagues use a replacement system where bottom clubs are swapped for new challengers.',
   },
   {
     title: 'Cup Competition',

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { MAX_SQUAD_SIZE, MIN_SQUAD_SIZE } from '@/config/gameBalance';
 import { SIGNING_BONUS_WEEKS_PER_YEAR, FREE_AGENT_REP_BASE, FREE_AGENT_REP_SCALE, FREE_AGENT_DIV_BONUS } from '@/config/transfers';
+import { LEAGUES } from '@/data/league';
 
 const CLUB_ID = 'celtic';
 
@@ -41,12 +42,12 @@ describe('freeAgentBalance', () => {
     });
 
     it('division bonus adjusts reputation gate', () => {
-      expect(FREE_AGENT_DIV_BONUS['div-1']).toBe(6);
-      expect(FREE_AGENT_DIV_BONUS['div-4']).toBe(-3);
-      // div-1, rep 5: 35 + 35 + 6 = 76
-      expect(FREE_AGENT_REP_BASE + 5 * FREE_AGENT_REP_SCALE + FREE_AGENT_DIV_BONUS['div-1']).toBe(76);
-      // div-4, rep 1: 35 + 7 - 3 = 39
-      expect(FREE_AGENT_REP_BASE + 1 * FREE_AGENT_REP_SCALE + FREE_AGENT_DIV_BONUS['div-4']).toBe(39);
+      expect(FREE_AGENT_DIV_BONUS[1]).toBe(6);
+      expect(FREE_AGENT_DIV_BONUS[4]).toBe(-3);
+      // tier 1, rep 5: 35 + 35 + 6 = 76
+      expect(FREE_AGENT_REP_BASE + 5 * FREE_AGENT_REP_SCALE + FREE_AGENT_DIV_BONUS[1]).toBe(76);
+      // tier 4, rep 1: 35 + 7 - 3 = 39
+      expect(FREE_AGENT_REP_BASE + 1 * FREE_AGENT_REP_SCALE + FREE_AGENT_DIV_BONUS[4]).toBe(39);
     });
 
     it('signing bonus is meaningful relative to wages', () => {
@@ -76,7 +77,8 @@ describe('freeAgentBalance', () => {
     it('should reject signing free agent above reputation threshold', () => {
       const state = useGameStore.getState();
       const club = state.clubs[state.playerClubId];
-      const divBonus = FREE_AGENT_DIV_BONUS[state.playerDivision] || 0;
+      const playerTier = LEAGUES.find(l => l.id === state.playerDivision)?.tier || 3;
+      const divBonus = FREE_AGENT_DIV_BONUS[playerTier] || 0;
       const maxOvr = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE + divBonus;
 
       const anyAgent = state.freeAgents[0];
@@ -97,7 +99,8 @@ describe('freeAgentBalance', () => {
     it('should allow signing a free agent within all limits', () => {
       const state = useGameStore.getState();
       const club = state.clubs[state.playerClubId];
-      const divBonus = FREE_AGENT_DIV_BONUS[state.playerDivision] || 0;
+      const playerTier = LEAGUES.find(l => l.id === state.playerDivision)?.tier || 3;
+      const divBonus = FREE_AGENT_DIV_BONUS[playerTier] || 0;
       const maxOvr = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE + divBonus;
 
       const validAgent = state.freeAgents

@@ -1370,8 +1370,17 @@ function endSeasonImpl(set: Set, get: Get) {
     newDivisionClubs = { ...state.divisionClubs, [playerDiv]: newLeagueClubs };
   }
 
-  // Check if player's division changed (promoted or relegated)
-  history.replaced = false;
+  // Track promotion/relegation in season history
+  if (hasMultipleTiers && newPlayerDiv !== playerDiv) {
+    const newLeague = LEAGUES.find(l => l.id === newPlayerDiv);
+    const isPromoted = !!(newLeague && newLeague.tier < (league?.tier || 1));
+    const isRelegated = !!(newLeague && newLeague.tier > (league?.tier || 1));
+    history.promoted = isPromoted;
+    history.replaced = isRelegated;
+  } else {
+    history.promoted = false;
+    history.replaced = false;
+  }
 
   let newMessages = [...messages];
 
@@ -1379,9 +1388,8 @@ function endSeasonImpl(set: Set, get: Get) {
   if (hasMultipleTiers) {
     if (newPlayerDiv !== playerDiv) {
       const newLeague = LEAGUES.find(l => l.id === newPlayerDiv);
-      const promoted = newLeague && newLeague.tier < (league?.tier || 1);
-      const title = promoted ? 'Promoted!' : 'Relegated';
-      const body = promoted
+      const title = history.promoted ? 'Promoted!' : 'Relegated';
+      const body = history.promoted
         ? `Congratulations! ${pc.name} has been promoted to ${newLeague?.name || 'the upper division'}!`
         : `${pc.name} has been relegated to ${newLeague?.name || 'the lower division'}.`;
       newMessages = addMsg(newMessages, { week: state.week, season, type: 'board', title, body });
@@ -4101,10 +4109,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const streakIncomeMult = currentWinStreak >= STREAK_INCOME_THRESHOLD ? 1 + STREAK_INCOME_MULTIPLIER : 1;
     const matchdayIncome = Math.round(playerClub.fanBase * MATCHDAY_INCOME_PER_FAN * fanMoodMult * derbyIncomeBonus * streakIncomeMult);
     const commercialIncome = Math.round(COMMERCIAL_INCOME_BASE + playerClub.reputation * COMMERCIAL_INCOME_PER_REP);
-    // League position prize money: higher position = more income
+    // League position prize money: higher position = more income, scaled by tier
     const playerTableIdx = leagueTable.findIndex(e => e.clubId === playerClubId);
     const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;
-    const positionPrize = Math.max(0, (POSITION_PRIZE_MAX_RANK - playerTablePos)) * POSITION_PRIZE_PER_RANK;
+    const playerLeagueInfo = LEAGUES.find(l => l.id === playerDiv);
+    const tierPrizeScale = playerLeagueInfo?.tier === 1 ? 1.0 : playerLeagueInfo?.tier === 2 ? 0.35 : playerLeagueInfo?.tier === 3 ? 0.12 : 0.05;
+    const positionPrize = Math.round(Math.max(0, (POSITION_PRIZE_MAX_RANK - playerTablePos)) * POSITION_PRIZE_PER_RANK * tierPrizeScale);
     // Sponsorship: sum of active sponsor deals
     const sponsorIncome = state.sponsorDeals.reduce((sum, d) => sum + d.weeklyPayment, 0);
     // Merchandise: strategic system with product lines, pricing, campaigns, star players
