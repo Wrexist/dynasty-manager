@@ -206,8 +206,10 @@ const SquadPage = () => {
 
   const handleRenew = (playerId: string) => {
     const result = startNegotiation(playerId, true);
-    if (result && !result.success && result.lockedWeeks) {
-      toast.error(`Negotiations locked for ${result.lockedWeeks} more week${result.lockedWeeks !== 1 ? 's' : ''}`);
+    if (result && !result.success) {
+      toast.error(result.lockedWeeks
+        ? `Negotiations locked for ${result.lockedWeeks} more week${result.lockedWeeks !== 1 ? 's' : ''}`
+        : 'Unable to start negotiations');
     }
   };
 

@@ -236,7 +236,7 @@ export function getClubDisplayName(fullName: string, maxLen = 7): string {
 
   // Check overrides first
   const override = DISPLAY_NAME_OVERRIDES[fullName];
-  if (override) return override.slice(0, maxLen);
+  if (override) return override;
 
   // Strip prefixes and suffixes
   let name = fullName.replace(CLUB_PREFIX_RE, '').replace(CLUB_SUFFIX_RE, '').trim();

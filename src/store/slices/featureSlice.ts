@@ -394,19 +394,21 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   },
 
   recordContractStrike: (playerId: string): number => {
-    const { season, week, contractStrikes } = get();
-    const existing = contractStrikes[playerId] || { strikes: 0 };
-    const newStrikes = existing.strikes + 1;
-    const currentAbsoluteWeek = (season - 1) * TOTAL_WEEKS + week;
-    const cooldownUntil = newStrikes >= CONTRACT_MAX_STRIKES
-      ? currentAbsoluteWeek + CONTRACT_STRIKE_COOLDOWN_WEEKS
-      : undefined;
-    set(s => ({
-      contractStrikes: {
-        ...s.contractStrikes,
-        [playerId]: { strikes: newStrikes, cooldownUntil },
-      },
-    }));
+    let newStrikes = 1;
+    set(s => {
+      const existing = s.contractStrikes[playerId] || { strikes: 0 };
+      newStrikes = existing.strikes + 1;
+      const currentAbsoluteWeek = (s.season - 1) * TOTAL_WEEKS + s.week;
+      const cooldownUntil = newStrikes >= CONTRACT_MAX_STRIKES
+        ? currentAbsoluteWeek + CONTRACT_STRIKE_COOLDOWN_WEEKS
+        : undefined;
+      return {
+        contractStrikes: {
+          ...s.contractStrikes,
+          [playerId]: { strikes: newStrikes, cooldownUntil },
+        },
+      };
+    });
     return newStrikes;
   },
 
@@ -471,17 +473,19 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
         body: `${player.firstName} ${player.lastName} has agreed a ${result.contractYears}-year deal at ${formatWage(result.offeredWage)}. Agent fee: £${(result.agentFee / 1000).toFixed(0)}K.`,
       });
 
-      // Clear strikes on successful deal
-      get().clearContractStrikes(offer.playerId);
+      // Clear strikes on successful deal — atomic with the acceptance update
+      const clearedStrikes = { ...state.contractStrikes };
+      delete clearedStrikes[offer.playerId];
 
       set({
         activeNegotiation: { ...result },
         players: newPlayers,
         clubs: newClubs,
         messages: newMessages,
+        contractStrikes: clearedStrikes,
       });
     } else {
-      // Record strike on rejection (final round exhausted)
+      // Record strike on rejection (final round exhausted), then update negotiation
       if (result.status === 'rejected') {
         get().recordContractStrike(offer.playerId);
       }
