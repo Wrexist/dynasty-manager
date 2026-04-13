@@ -245,13 +245,19 @@ export const createLoanSlice = (set: Set, get: Get) => ({
 
     for (const loan of returning) {
       const player = newPlayers[loan.playerId];
-      if (!player) {
-        // Player entity missing — still clean up club rosters to prevent ghost references
-        const toClub = { ...newClubs[loan.toClubId] };
-        toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
-        toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
-        toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
-        newClubs[toClub.id] = toClub;
+      // Guard: skip if either club or player was removed during promotion/relegation
+      if (!player || !newClubs[loan.fromClubId] || !newClubs[loan.toClubId]) {
+        // Clean up club rosters if possible
+        if (newClubs[loan.toClubId]) {
+          const toClub = { ...newClubs[loan.toClubId] };
+          toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
+          toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
+          toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
+          newClubs[toClub.id] = toClub;
+        }
+        if (player) {
+          newPlayers[loan.playerId] = { ...player, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, clubId: '' };
+        }
         continue;
       }
 

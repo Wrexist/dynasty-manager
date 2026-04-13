@@ -32,7 +32,11 @@ const ALL_NATIONALITIES = [
 ];
 
 function pickNationality(leagueId?: string): string {
-  const pool = (leagueId && NATIONALITY_DISTRIBUTION[leagueId]) || NATIONALITY_DISTRIBUTION['DEFAULT'];
+  // For lower-tier leagues like 'eng-2', fall back to the country's top tier distribution
+  const countryId = leagueId?.replace(/-\d+$/, '');
+  const pool = (leagueId && NATIONALITY_DISTRIBUTION[leagueId])
+    || (countryId && NATIONALITY_DISTRIBUTION[countryId])
+    || NATIONALITY_DISTRIBUTION['DEFAULT'];
   if (pool) {
     const totalWeight = pool.reduce((s, e) => s + e.weight, 0);
     let r = Math.random() * totalWeight;

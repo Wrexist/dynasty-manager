@@ -61,12 +61,14 @@ function computeLeagueScore(
 }
 
 /**
- * Rank all 30 leagues from 1-30 and assign qualification spots per competition.
+ * Rank top-tier leagues and assign qualification spots per competition.
+ * Only tier-1 (top flight) leagues are eligible for continental competitions.
  */
 export function getLeagueRankings(
   coefficients?: Record<string, ContinentalCoefficient>,
 ): RankedLeague[] {
-  const scored = ALL_LEAGUES.map(league => ({
+  const topTierLeagues = ALL_LEAGUES.filter(l => l.tier === 1);
+  const scored = topTierLeagues.map(league => ({
     leagueId: league.id,
     score: computeLeagueScore(league, coefficients),
   }));
@@ -129,8 +131,9 @@ export function getQualificationZones(
   const shieldCup: number[] = [];
   const conferenceCup: number[] = [];
 
-  // Don't let qualification zones extend into the replaced zone
-  const safeMax = teamCount - (league.replacedSlots || 0);
+  // Don't let qualification zones extend into the relegation zone
+  const relSlots = league.relegationSpots || league.replacedSlots || 0;
+  const safeMax = teamCount - relSlots;
   let pos = 1;
 
   // Champions Cup positions (top of table)
@@ -148,10 +151,10 @@ export function getQualificationZones(
     conferenceCup.push(pos++);
   }
 
-  // Replaced zone (bottom of table)
+  // Relegation zone (bottom of table)
   const replaced: number[] = [];
-  if (league.replacedSlots > 0) {
-    for (let i = 0; i < league.replacedSlots; i++) {
+  if (relSlots > 0) {
+    for (let i = 0; i < relSlots; i++) {
       replaced.push(teamCount - i);
     }
     replaced.sort((a, b) => a - b);
