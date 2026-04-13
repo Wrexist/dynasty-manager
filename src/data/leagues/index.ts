@@ -1,10 +1,18 @@
 import type { ClubData, LeagueInfo } from '@/types/game';
 
 import { LEAGUE_INFO as ENG_LEAGUE, CLUBS as ENG_CLUBS } from './england';
+import { LEAGUE_INFO as ENG2_LEAGUE, CLUBS as ENG2_CLUBS } from './england2';
+import { LEAGUE_INFO as ENG3_LEAGUE, CLUBS as ENG3_CLUBS } from './england3';
+import { LEAGUE_INFO as ENG4_LEAGUE, CLUBS as ENG4_CLUBS } from './england4';
 import { LEAGUE_INFO as ESP_LEAGUE, CLUBS as ESP_CLUBS } from './spain';
+import { LEAGUE_INFO as ESP2_LEAGUE, CLUBS as ESP2_CLUBS } from './spain2';
 import { LEAGUE_INFO as ITA_LEAGUE, CLUBS as ITA_CLUBS } from './italy';
+import { LEAGUE_INFO as ITA2_LEAGUE, CLUBS as ITA2_CLUBS } from './italy2';
 import { LEAGUE_INFO as GER_LEAGUE, CLUBS as GER_CLUBS } from './germany';
+import { LEAGUE_INFO as GER2_LEAGUE, CLUBS as GER2_CLUBS } from './germany2';
+import { LEAGUE_INFO as GER3_LEAGUE, CLUBS as GER3_CLUBS } from './germany3';
 import { LEAGUE_INFO as FRA_LEAGUE, CLUBS as FRA_CLUBS } from './france';
+import { LEAGUE_INFO as FRA2_LEAGUE, CLUBS as FRA2_CLUBS } from './france2';
 import { LEAGUE_INFO as NED_LEAGUE, CLUBS as NED_CLUBS } from './netherlands';
 import { LEAGUE_INFO as POR_LEAGUE, CLUBS as POR_CLUBS } from './portugal';
 import { LEAGUE_INFO as BEL_LEAGUE, CLUBS as BEL_CLUBS } from './belgium';
@@ -31,9 +39,13 @@ import { LEAGUE_INFO as IRL_LEAGUE, CLUBS as IRL_CLUBS } from './ireland';
 import { LEAGUE_INFO as ISR_LEAGUE, CLUBS as ISR_CLUBS } from './israel';
 import { LEAGUE_INFO as CYP_LEAGUE, CLUBS as CYP_CLUBS } from './cyprus';
 
-/** All 30 European league definitions */
+/** All league definitions (30 countries, 38 total divisions) */
 export const ALL_LEAGUES: LeagueInfo[] = [
-  ENG_LEAGUE, ESP_LEAGUE, ITA_LEAGUE, GER_LEAGUE, FRA_LEAGUE,
+  ENG_LEAGUE, ENG2_LEAGUE, ENG3_LEAGUE, ENG4_LEAGUE,
+  ESP_LEAGUE, ESP2_LEAGUE,
+  ITA_LEAGUE, ITA2_LEAGUE,
+  GER_LEAGUE, GER2_LEAGUE, GER3_LEAGUE,
+  FRA_LEAGUE, FRA2_LEAGUE,
   NED_LEAGUE, POR_LEAGUE, BEL_LEAGUE, TUR_LEAGUE, CZE_LEAGUE,
   GRE_LEAGUE, POL_LEAGUE, DEN_LEAGUE, NOR_LEAGUE, SUI_LEAGUE,
   AUT_LEAGUE, SCO_LEAGUE, SWE_LEAGUE, CRO_LEAGUE, HUN_LEAGUE,
@@ -41,9 +53,13 @@ export const ALL_LEAGUES: LeagueInfo[] = [
   FIN_LEAGUE, ISL_LEAGUE, IRL_LEAGUE, ISR_LEAGUE, CYP_LEAGUE,
 ];
 
-/** All ~467 clubs across all 30 leagues */
+/** All clubs across all leagues and divisions */
 export const ALL_CLUBS_DATA: ClubData[] = [
-  ...ENG_CLUBS, ...ESP_CLUBS, ...ITA_CLUBS, ...GER_CLUBS, ...FRA_CLUBS,
+  ...ENG_CLUBS, ...ENG2_CLUBS, ...ENG3_CLUBS, ...ENG4_CLUBS,
+  ...ESP_CLUBS, ...ESP2_CLUBS,
+  ...ITA_CLUBS, ...ITA2_CLUBS,
+  ...GER_CLUBS, ...GER2_CLUBS, ...GER3_CLUBS,
+  ...FRA_CLUBS, ...FRA2_CLUBS,
   ...NED_CLUBS, ...POR_CLUBS, ...BEL_CLUBS, ...TUR_CLUBS, ...CZE_CLUBS,
   ...GRE_CLUBS, ...POL_CLUBS, ...DEN_CLUBS, ...NOR_CLUBS, ...SUI_CLUBS,
   ...AUT_CLUBS, ...SCO_CLUBS, ...SWE_CLUBS, ...CRO_CLUBS, ...HUN_CLUBS,

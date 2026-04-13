@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 5_000_000,
   averageWage: 9_000,
   qualityTier: 3,
+  tier: 1,
+  countryId: 'gre',
+  promotionSpots: 0,
+  relegationSpots: 0,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [

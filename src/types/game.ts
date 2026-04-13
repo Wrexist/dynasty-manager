@@ -1,5 +1,5 @@
 // ── League System ──
-// LeagueId is a string identifier for each national league (e.g. 'eng', 'esp', 'ita')
+// LeagueId is a string identifier for each league division (e.g. 'eng', 'eng-2', 'esp', 'esp-2')
 export type LeagueId = string;
 
 export interface LeagueInfo {
@@ -18,6 +18,16 @@ export interface LeagueInfo {
   averageWage: number;
   /** Quality tier for squad generation (1=elite, 2=strong, 3=mid, 4=developing) */
   qualityTier: 1 | 2 | 3 | 4;
+  /** Tier within the country pyramid (1=top flight, 2=second tier, etc.) */
+  tier: number;
+  /** Country grouping key — same for all tiers in a country (e.g. 'eng' for all English leagues) */
+  countryId: string;
+  /** Number of auto-promotion spots from below (0 for top tier) */
+  promotionSpots: number;
+  /** Number of auto-relegation spots to tier below (0 for bottom tier) */
+  relegationSpots: number;
+  /** Number of playoff promotion spots from below */
+  playoffSpots: number;
 }
 
 export interface QualificationZones {
@@ -28,9 +38,23 @@ export interface QualificationZones {
 }
 
 export interface SeasonTurnover {
-  replacedClubs: string[];
-  newClubs: string[];
   leagueId: LeagueId;
+  promotedClubs: string[];    // Clubs promoted TO this league from below
+  relegatedClubs: string[];   // Clubs relegated FROM this league to below
+  playoffWinners: string[];   // Clubs promoted via playoffs
+  /** @deprecated kept for save compat — use promotedClubs/relegatedClubs */
+  replacedClubs?: string[];
+  /** @deprecated kept for save compat */
+  newClubs?: string[];
+}
+
+/** Describes the full league pyramid for a single country */
+export interface CountryLeagueSystem {
+  countryId: string;
+  country: string;
+  countryCode: string;
+  /** League IDs ordered by tier (tier 1 first) */
+  leagueIds: string[];
 }
 
 export interface DerbyRivalry {
