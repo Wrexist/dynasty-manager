@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
+import { toast } from 'sonner';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
@@ -203,7 +204,12 @@ const SquadPage = () => {
     setConfirmListId(playerId);
   };
 
-  const handleRenew = (playerId: string) => startNegotiation(playerId, true);
+  const handleRenew = (playerId: string) => {
+    const result = startNegotiation(playerId, true);
+    if (result && !result.success && result.lockedWeeks) {
+      toast.error(`Negotiations locked for ${result.lockedWeeks} more week${result.lockedWeeks !== 1 ? 's' : ''}`);
+    }
+  };
 
   const handleListComplete = (appeased: boolean) => {
     if (!confirmListId) return;

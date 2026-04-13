@@ -336,7 +336,7 @@ export interface GameState {
   openTransferTalk: (playerId: string) => void;
 
   // Actions — Contract Negotiation
-  startNegotiation: (playerId: string, isRenewal: boolean) => void;
+  startNegotiation: (playerId: string, isRenewal: boolean) => { success: boolean; lockedWeeks?: number } | void;
   submitWageOffer: (wage: number, years?: number) => void;
   cancelNegotiation: () => void;
 

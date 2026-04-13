@@ -219,9 +219,10 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     }
     star.attributes = starAttrs;
     star.overall = calculateOverall(starAttrs, star.position);
-    // Cap star overall so generated players don't start unrealistically high
-    if (star.overall > GENERATED_PLAYER_OVERALL_CAP) {
-      const reductionRatio = GENERATED_PLAYER_OVERALL_CAP / star.overall;
+    // Cap star overall so generated players don't start unrealistically high.
+    // Use a loop to handle rounding drift — scaling can round up and exceed the cap.
+    while (star.overall > GENERATED_PLAYER_OVERALL_CAP) {
+      const reductionRatio = (GENERATED_PLAYER_OVERALL_CAP - 0.5) / star.overall;
       for (const key of Object.keys(starAttrs) as (keyof PlayerAttributes)[]) {
         starAttrs[key] = clamp(Math.round(starAttrs[key] * reductionRatio));
       }
@@ -243,9 +244,9 @@ export function generateSquad(clubId: string, quality: number, season: number, d
       vetAttrs.mental = clamp(vetAttrs.mental + Math.round(VETERAN_MENTAL_BONUS * scale), 1, 99);
       vet.attributes = vetAttrs;
       vet.overall = calculateOverall(vetAttrs, vet.position);
-      // Cap veteran overall
-      if (vet.overall > GENERATED_PLAYER_OVERALL_CAP) {
-        const reductionRatio = GENERATED_PLAYER_OVERALL_CAP / vet.overall;
+      // Cap veteran overall (loop to handle rounding drift)
+      while (vet.overall > GENERATED_PLAYER_OVERALL_CAP) {
+        const reductionRatio = (GENERATED_PLAYER_OVERALL_CAP - 0.5) / vet.overall;
         for (const key of Object.keys(vetAttrs) as (keyof PlayerAttributes)[]) {
           vetAttrs[key] = clamp(Math.round(vetAttrs[key] * reductionRatio));
         }

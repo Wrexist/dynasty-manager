@@ -214,6 +214,17 @@ const DISPLAY_NAME_OVERRIDES: Record<string, string> = {
   'Sturm Graz': 'Sturm',
   'Austria Wien': 'Austria',
   'FC Lausanne-Sport': 'Lausanne',
+  'Sporting CP': 'Sporting',
+  'Sporting Braga': 'Braga',
+  'Vitória SC': 'Vitória',
+  'Stade Brestois 29': 'Brest',
+  'Angers SCO': 'Angers',
+  'Le Havre AC': 'Le Havre',
+  'Ipswich Town': 'Ipswich',
+  'Queens Park Rangers': 'QPR',
+  'Heart of Midlothian': 'Hearts',
+  'Ross County': 'Ross Co.',
+  'Dundee United': 'Dundee U',
 };
 
 /**

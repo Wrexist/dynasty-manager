@@ -394,43 +394,45 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   },
 
   recordContractStrike: (playerId: string): number => {
-    const state = get();
-    const existing = state.contractStrikes[playerId] || { strikes: 0 };
+    const { season, week, contractStrikes } = get();
+    const existing = contractStrikes[playerId] || { strikes: 0 };
     const newStrikes = existing.strikes + 1;
-    const currentAbsoluteWeek = (state.season - 1) * TOTAL_WEEKS + state.week;
+    const currentAbsoluteWeek = (season - 1) * TOTAL_WEEKS + week;
     const cooldownUntil = newStrikes >= CONTRACT_MAX_STRIKES
       ? currentAbsoluteWeek + CONTRACT_STRIKE_COOLDOWN_WEEKS
       : undefined;
-    set({
+    set(s => ({
       contractStrikes: {
-        ...state.contractStrikes,
+        ...s.contractStrikes,
         [playerId]: { strikes: newStrikes, cooldownUntil },
       },
-    });
+    }));
     return newStrikes;
   },
 
   clearContractStrikes: (playerId: string) => {
-    const state = get();
-    const updated = { ...state.contractStrikes };
-    delete updated[playerId];
-    set({ contractStrikes: updated });
+    set(s => {
+      const updated = { ...s.contractStrikes };
+      delete updated[playerId];
+      return { contractStrikes: updated };
+    });
   },
 
   // ── Contract Negotiation Actions ──
-  startNegotiation: (playerId: string, isRenewal: boolean) => {
+  startNegotiation: (playerId: string, isRenewal: boolean): { success: boolean; lockedWeeks?: number } => {
     const state = get();
     const player = state.players[playerId];
-    if (!player) return;
+    if (!player) return { success: false };
     const club = state.clubs[state.playerClubId];
-    if (!club) return;
+    if (!club) return { success: false };
 
     // Check if player is locked from contract negotiations
     const lockStatus = get().isContractLocked(playerId);
-    if (lockStatus.locked) return;
+    if (lockStatus.locked) return { success: false, lockedWeeks: lockStatus.weeksRemaining };
 
     const offer = createContractOffer(player, club.reputation, isRenewal, state.season);
     set({ activeNegotiation: offer });
+    return { success: true };
   },
 
   submitWageOffer: (wage: number, years?: number) => {

@@ -151,9 +151,9 @@ export function createContractOffer(
 export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): ContractOffer {
   if (offer.demandedWage <= 0) return { ...offer, status: 'accepted', round: offer.round + 1 };
 
-  // Fast-path: meeting or exceeding all demands = guaranteed acceptance
+  // Fast-path: meeting or exceeding all demands with reasonable mood = guaranteed acceptance
   const preferredYears = getPreferredYears(offer.playerAge);
-  if (offer.offeredWage >= offer.demandedWage && offer.contractYears >= preferredYears) {
+  if (offer.offeredWage >= offer.demandedWage && offer.contractYears >= preferredYears && offer.playerMood >= CONTRACT_MOOD_FLOOR) {
     return { ...offer, status: 'accepted', round: offer.round + 1 };
   }
 

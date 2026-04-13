@@ -317,7 +317,7 @@ const ShopPage = () => {
                       onClick={() => handlePurchase(productId)}
                       className={cn(
                         'w-full py-2.5 rounded-lg font-bold text-sm active:scale-[0.98] transition-all',
-                        isFeatured
+                        isLifetime
                           ? 'bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] shadow-[0_0_12px_hsl(var(--gold)/0.2)]'
                           : 'bg-muted/50 hover:bg-muted text-foreground border border-border/50'
                       )}

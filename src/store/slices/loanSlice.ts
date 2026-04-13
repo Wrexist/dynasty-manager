@@ -132,6 +132,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Recalled`,
       body: `${player.firstName} ${player.lastName} has been recalled from loan at ${toClub.name}.`,
+      playerId: loan.playerId,
     });
 
     set({
@@ -160,6 +161,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         week: state.week, season: state.season, type: 'transfer',
         title: 'Loan Offer Rejected',
         body: `You rejected ${fromClub.name}'s loan offer for ${player.lastName}.`,
+        playerId: offer.playerId,
       });
       set({ incomingLoanOffers: newOffers, messages: msg });
       return { success: true, message: 'Loan offer rejected.' };
