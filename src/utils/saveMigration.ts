@@ -739,7 +739,7 @@ const migrations: Record<number, MigrationFn> = {
     version: 55,
   }),
 
-  // v55 → v56: Add contractStrikes for contract negotiation strike system
+  // v55 → v56: Add contractStrikes + multi-division league structure
   55: (data) => ({
     ...data,
     contractStrikes: {},
