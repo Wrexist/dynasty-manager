@@ -51,6 +51,7 @@ export interface GameState {
   outgoingLoanRequests: OutgoingLoanRequest[];
   freeAgents: string[];
   negotiationStrikes: Record<string, NegotiationStrike>;
+  contractStrikes: Record<string, NegotiationStrike>;
 
   // Transfer News Feed
   transferNews: TransferNewsEntry[];
@@ -262,6 +263,12 @@ export interface GameState {
   signFreeAgent: (playerId: string, wage: number, years: number) => { success: boolean; message: string };
   releasePlayer: (playerId: string) => { success: boolean; message: string };
 
+  // Actions — Contract Strikes
+  getContractStrikes: (playerId: string) => number;
+  isContractLocked: (playerId: string) => { locked: boolean; weeksRemaining: number };
+  recordContractStrike: (playerId: string) => number;
+  clearContractStrikes: (playerId: string) => void;
+
   // Actions — Loans
   loanOut: (playerId: string, toClubId: string, duration: number, wageSplit: number, recallClause: boolean, obligatoryBuyFee?: number) => { success: boolean; message: string };
   recallLoan: (loanId: string) => { success: boolean; message: string };
@@ -329,7 +336,7 @@ export interface GameState {
   openTransferTalk: (playerId: string) => void;
 
   // Actions — Contract Negotiation
-  startNegotiation: (playerId: string, isRenewal: boolean) => void;
+  startNegotiation: (playerId: string, isRenewal: boolean) => { success: boolean; lockedWeeks?: number } | void;
   submitWageOffer: (wage: number, years?: number) => void;
   cancelNegotiation: () => void;
 

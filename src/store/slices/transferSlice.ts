@@ -89,7 +89,7 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   const newMarket = state.transferMarket.filter(l => l.playerId !== offer.playerId);
   const sellOnNote = sellOnFee > 0 ? ` (£${(sellOnFee / 1e6).toFixed(1)}M sell-on fee paid to ${(player.sellOnClubId && state.clubs[player.sellOnClubId]?.name) || 'former club'})` : '';
   const lineupNote = wasInLineup ? ' Check your lineup — you now have a gap in your starting XI.' : '';
-  const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `${player.lastName} Sold!`, body: `${player.firstName} ${player.lastName} has been sold to ${buyerClub.name} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}${lineupNote}` });
+  const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `${player.lastName} Sold!`, body: `${player.firstName} ${player.lastName} has been sold to ${buyerClub.name} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}${lineupNote}`, playerId: offer.playerId });
 
   updatedClubs[sellerClub.id] = sellerClub;
   updatedClubs[buyer.id] = buyer;
@@ -324,6 +324,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       week: state.week, season: state.season, type: 'transfer',
       title: `${updatedPlayer.lastName} Signed!`,
       body: `${updatedPlayer.firstName} ${updatedPlayer.lastName} has joined ${newClub.name} from ${fromName} for £${(fee / 1e6).toFixed(1)}M.${sellOnNote}`,
+      playerId,
     });
 
     const ms = { ...state.managerStats, totalSpent: state.managerStats.totalSpent + fee };
@@ -446,7 +447,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const newOffers = state.incomingOffers.filter(o => o.id !== offerId);
 
     if (!accept) {
-      const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `Bid Rejected`, body: `You rejected ${buyerClub.name}'s £${(offer.fee / 1e6).toFixed(1)}M bid for ${player.lastName}.` });
+      const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `Bid Rejected`, body: `You rejected ${buyerClub.name}'s £${(offer.fee / 1e6).toFixed(1)}M bid for ${player.lastName}.`, playerId: offer.playerId });
       set({ incomingOffers: newOffers, messages: msg });
       return { success: true, message: 'Offer rejected.' };
     }
@@ -460,7 +461,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     // Validate buyer can afford the transfer
     const buyerData = state.clubs[offer.buyerClubId];
     if (buyerData && buyerData.budget < offer.fee) {
-      const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: 'Bid Withdrawn', body: `${buyerData.name} can no longer afford their £${(offer.fee / 1e6).toFixed(1)}M bid for ${player.lastName}.` });
+      const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: 'Bid Withdrawn', body: `${buyerData.name} can no longer afford their £${(offer.fee / 1e6).toFixed(1)}M bid for ${player.lastName}.`, playerId: offer.playerId });
       set({ incomingOffers: newOffers, messages: msg });
       return { success: false, message: `${buyerData.name} can no longer afford the transfer fee.` };
     }
@@ -574,6 +575,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Signed (Free)`,
       body: `${player.firstName} ${player.lastName} has joined on a free transfer. ${years}-year contract at £${(wage / 1000).toFixed(0)}K/week.`,
+      playerId,
     });
 
     set({

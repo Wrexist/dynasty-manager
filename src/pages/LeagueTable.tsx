@@ -9,6 +9,7 @@ import { LEAGUES } from '@/data/league';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { PageHint } from '@/components/game/PageHint';
 import { getQualificationZones } from '@/utils/leagueRanking';
+import { getClubDisplayName } from '@/utils/uiHelpers';
 
 const TIER_LABELS: Record<number, string> = {
   1: 'Top Leagues',
@@ -418,7 +419,7 @@ const LeagueTable = () => {
                         <div className="flex items-center gap-1.5">
                           <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: club?.color }} />
                           <span className={cn('text-xs font-medium truncate', isPlayer ? 'text-primary font-bold' : 'text-foreground')}>
-                            {club?.shortName || '?'}
+                            {getClubDisplayName(club?.name || '?')}
                           </span>
                         </div>
                       </td>
@@ -526,7 +527,7 @@ const LeagueTable = () => {
                           'text-xs font-medium truncate text-right',
                           match.homeClubId === playerClubId ? 'text-primary font-bold' : 'text-foreground'
                         )}>
-                          {homeClub?.shortName || '?'}
+                          {getClubDisplayName(homeClub?.name || '?')}
                         </span>
                         <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: homeClub?.color }} />
                       </div>
@@ -545,7 +546,7 @@ const LeagueTable = () => {
                           'text-xs font-medium truncate',
                           match.awayClubId === playerClubId ? 'text-primary font-bold' : 'text-foreground'
                         )}>
-                          {awayClub?.shortName || '?'}
+                          {getClubDisplayName(awayClub?.name || '?')}
                         </span>
                       </div>
                     </div>
@@ -576,7 +577,7 @@ const LeagueTable = () => {
                         <p className={cn('text-sm font-medium truncate', p.clubId === playerClubId ? 'text-primary' : 'text-foreground')}>
                           {p.firstName[0]}. {p.lastName}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">{p.position} {'\u2022'} {pClub?.shortName || '?'}</p>
+                        <p className="text-[10px] text-muted-foreground">{p.position} {'\u2022'} {getClubDisplayName(pClub?.name || '?')}</p>
                       </div>
                       <span className={cn('text-sm font-mono font-bold', i === 0 ? 'text-primary' : 'text-foreground')}>{p.goals}</span>
                     </div>
@@ -602,7 +603,7 @@ const LeagueTable = () => {
                         <p className={cn('text-sm font-medium truncate', p.clubId === playerClubId ? 'text-primary' : 'text-foreground')}>
                           {p.firstName[0]}. {p.lastName}
                         </p>
-                        <p className="text-[10px] text-muted-foreground">{p.position} {'\u2022'} {pClub?.shortName || '?'}</p>
+                        <p className="text-[10px] text-muted-foreground">{p.position} {'\u2022'} {getClubDisplayName(pClub?.name || '?')}</p>
                       </div>
                       <span className={cn('text-sm font-mono font-bold', i === 0 ? 'text-primary' : 'text-foreground')}>{p.assists}</span>
                     </div>

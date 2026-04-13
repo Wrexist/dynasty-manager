@@ -9,7 +9,7 @@ import { useScrollLock } from '@/hooks/useScrollLock';
 import { motion } from 'framer-motion';
 import { hapticMedium } from '@/utils/haptics';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS } from '@/config/contracts';
+import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS, CONTRACT_MAX_STRIKES } from '@/config/contracts';
 
 export function ContractNegotiation() {
   const { activeNegotiation, players, clubs, playerClubId } = useGameStore(useShallow(s => ({
@@ -17,6 +17,7 @@ export function ContractNegotiation() {
   })));
   const submitWageOffer = useGameStore(s => s.submitWageOffer);
   const cancelNegotiation = useGameStore(s => s.cancelNegotiation);
+  const getContractStrikes = useGameStore(s => s.getContractStrikes);
   const [customWage, setCustomWage] = useState<number | null>(null);
   const [customYears, setCustomYears] = useState<number | null>(null);
   const submittingRef = useRef(false);
@@ -37,6 +38,7 @@ export function ContractNegotiation() {
   const player = players[activeNegotiation.playerId];
   if (!player) return null;
 
+  const strikes = getContractStrikes(activeNegotiation.playerId);
   const isComplete = activeNegotiation.status === 'accepted' || activeNegotiation.status === 'rejected';
   const currentYears = customYears ?? activeNegotiation.contractYears;
   const gap = (customWage ?? activeNegotiation.offeredWage) / activeNegotiation.demandedWage;
@@ -94,6 +96,11 @@ export function ContractNegotiation() {
                 </span>
                 <span className="text-[10px] text-muted-foreground tabular-nums">{player.age}y</span>
                 <span className="text-[10px] text-muted-foreground">· R{activeNegotiation.round}/3</span>
+                {strikes > 0 && (
+                  <span className={cn('text-[9px] font-bold px-1 py-0.5 rounded leading-none', strikes >= CONTRACT_MAX_STRIKES ? 'bg-red-500/20 text-red-400' : 'bg-amber-500/20 text-amber-400')}>
+                    {strikes}/{CONTRACT_MAX_STRIKES}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -122,6 +129,11 @@ export function ContractNegotiation() {
               <div>
                 <p className="text-sm font-bold text-destructive">Negotiations Collapsed</p>
                 <p className="text-xs text-muted-foreground">{player.lastName} has rejected the offer and walked away.</p>
+                {strikes >= CONTRACT_MAX_STRIKES ? (
+                  <p className="text-[10px] text-red-400 mt-1">Max attempts reached — player locked for cooldown period.</p>
+                ) : strikes > 0 ? (
+                  <p className="text-[10px] text-amber-400 mt-1">Attempt {strikes}/{CONTRACT_MAX_STRIKES} — {CONTRACT_MAX_STRIKES - strikes} more before cooldown.</p>
+                ) : null}
               </div>
             </div>
           )}

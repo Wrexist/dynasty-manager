@@ -29,12 +29,12 @@ const FEATURE_ICONS: Record<ProFeature, React.ElementType> = {
   expanded_press: Package,
   historical_records: Sparkles,
   instant_sim: Timer,
+  optimize_lineup: Zap,
   pro_badge: Crown,
 };
 
 const SUBSCRIPTION_PRODUCTS: ProductId[] = [
   'com.dynastymanager.pro.monthly',
-  'com.dynastymanager.pro.yearly',
   'com.dynastymanager.pro.lifetime',
 ];
 
@@ -50,8 +50,8 @@ const BUNDLE_INDIVIDUAL_TOTAL = PRODUCTS['com.dynastymanager.pro'].priceUsd
   + PRODUCTS['com.dynastymanager.pack.legends'].priceUsd;
 const BUNDLE_SAVINGS_PCT = Math.round((1 - PRODUCTS['com.dynastymanager.bundle.all'].priceUsd / BUNDLE_INDIVIDUAL_TOTAL) * 100);
 
-/** Per-day cost for yearly subscription */
-const YEARLY_PER_DAY = (PRODUCTS['com.dynastymanager.pro.yearly'].priceUsd / 365).toFixed(2);
+/** Per-day cost for monthly subscription */
+const MONTHLY_PER_DAY = (PRODUCTS['com.dynastymanager.pro.monthly'].priceUsd / 30).toFixed(2);
 
 const ShopPage = () => {
   const monetization = useGameStore(s => s.monetization);
@@ -286,44 +286,30 @@ const ShopPage = () => {
             <div className="space-y-3">
               {SUBSCRIPTION_PRODUCTS.map(productId => {
                 const product = PRODUCTS[productId];
-                const isYearly = product.subscriptionTier === 'yearly';
                 const isLifetime = product.subscriptionTier === 'lifetime';
                 const isMonthly = product.subscriptionTier === 'monthly';
-                const isFeatured = isYearly;
 
                 return (
                   <GlassPanel
                     key={productId}
                     className={cn(
                       'p-4 relative',
-                      isFeatured && 'border-[hsl(var(--gold)/0.4)] bg-[hsl(var(--gold)/0.04)]',
-                      isLifetime && 'border-border/50',
+                      isLifetime && 'border-[hsl(var(--gold)/0.4)] bg-[hsl(var(--gold)/0.04)]',
                     )}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <h4 className="text-sm font-semibold text-foreground">{product.name}</h4>
                       <div className="flex items-center gap-1.5">
-                        {isFeatured && (
-                          <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold">
-                            Most Popular
-                          </span>
-                        )}
                         {isLifetime && (
-                          <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold">
+                          <span className="text-[10px] bg-[hsl(var(--gold)/0.15)] text-[hsl(var(--gold))] px-2 py-0.5 rounded-full font-bold">
                             Best Value
                           </span>
                         )}
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground mb-1">{product.description}</p>
-                    {/* Per-day cost breakdown for yearly */}
-                    {isFeatured && (
-                      <p className="text-[10px] text-[hsl(var(--gold))] font-medium mb-2">
-                        Just ${YEARLY_PER_DAY}/day — cancel anytime
-                      </p>
-                    )}
                     {isMonthly && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-2">Cancel anytime</p>
+                      <p className="text-[10px] text-muted-foreground/60 mb-2">Just ${MONTHLY_PER_DAY}/day — cancel anytime</p>
                     )}
                     {isLifetime && (
                       <p className="text-[10px] text-muted-foreground/60 mb-2">One-time purchase, yours forever</p>
@@ -332,7 +318,7 @@ const ShopPage = () => {
                       onClick={() => handlePurchase(productId)}
                       className={cn(
                         'w-full py-2.5 rounded-lg font-bold text-sm active:scale-[0.98] transition-all',
-                        isFeatured
+                        isLifetime
                           ? 'bg-[hsl(var(--gold))] text-[hsl(30,20%,10%)] shadow-[0_0_12px_hsl(var(--gold)/0.2)]'
                           : 'bg-muted/50 hover:bg-muted text-foreground border border-border/50'
                       )}

@@ -76,6 +76,18 @@ export function TopBar() {
 
   return (
     <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top">
+      {/* XP Progress Bar — positioned at top edge to avoid looking like a tab indicator */}
+      <div className="max-w-lg mx-auto px-4 pt-0.5">
+        <div className="h-[3px] bg-muted/30 rounded-full overflow-hidden">
+          <div
+            className={cn(
+              'h-full bg-primary rounded-full transition-all duration-500',
+              xpGlow && 'shadow-[0_0_8px_hsl(var(--primary)/0.5)] transition-shadow duration-700'
+            )}
+            style={{ width: `${xpProgress.percentage}%` }}
+          />
+        </div>
+      </div>
       <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
         <div className="flex items-center gap-1.5 min-w-0">
           {showBack && (
@@ -181,18 +193,6 @@ export function TopBar() {
             <Calendar className="w-3 h-3" aria-hidden="true" />
             <span>W{week} · S{season}</span>
           </div>
-        </div>
-      </div>
-      {/* XP Progress Bar */}
-      <div className="max-w-lg mx-auto px-4 pb-1">
-        <div className="h-1 bg-muted/30 rounded-full overflow-hidden">
-          <div
-            className={cn(
-              'h-full bg-primary rounded-full transition-all duration-500',
-              xpGlow && 'shadow-[0_0_8px_hsl(var(--primary)/0.5)] transition-shadow duration-700'
-            )}
-            style={{ width: `${xpProgress.percentage}%` }}
-          />
         </div>
       </div>
     </header>

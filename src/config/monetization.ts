@@ -42,15 +42,6 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     subscriptionTier: 'monthly',
     billingPeriod: '/month',
   },
-  'com.dynastymanager.pro.yearly': {
-    id: 'com.dynastymanager.pro.yearly',
-    name: 'Dynasty Pro Yearly',
-    description: 'All Pro features, billed yearly. Save 58% vs monthly.',
-    priceUsd: 9.99,
-    type: 'subscription',
-    subscriptionTier: 'yearly',
-    billingPeriod: '/year',
-  },
   'com.dynastymanager.pro.lifetime': {
     id: 'com.dynastymanager.pro.lifetime',
     name: 'Dynasty Pro Lifetime',
@@ -99,7 +90,6 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
 export const PRO_PRODUCT_IDS: ProductId[] = [
   'com.dynastymanager.pro',
   'com.dynastymanager.pro.monthly',
-  'com.dynastymanager.pro.yearly',
   'com.dynastymanager.pro.lifetime',
   'com.dynastymanager.bundle.all',
 ];
@@ -113,6 +103,7 @@ export const PRO_FEATURES: ProFeature[] = [
   'expanded_press',
   'historical_records',
   'instant_sim',
+  'optimize_lineup',
   'pro_badge',
 ];
 
@@ -123,6 +114,7 @@ export const PRO_FEATURE_LABELS: Record<ProFeature, string> = {
   expanded_press: 'Expanded Press Conferences',
   historical_records: 'Historical Record Book',
   instant_sim: 'Instant Match Sim',
+  optimize_lineup: 'Optimize Lineup',
   pro_badge: 'Pro Badge',
 };
 

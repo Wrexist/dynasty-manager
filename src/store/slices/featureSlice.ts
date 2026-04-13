@@ -6,6 +6,7 @@ import { grantXP, hasPerk, dynastyMult } from '@/utils/managerPerks';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
+import { CONTRACT_MAX_STRIKES, CONTRACT_STRIKE_COOLDOWN_WEEKS } from '@/config/contracts';
 import { CHALLENGES } from '@/data/challenges';
 import { createEmptyRecords } from '@/utils/records';
 import { buildTransferTalk } from '@/utils/transferTalk';
@@ -42,6 +43,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
   lastMatchDrama: null as MatchDramaType,
   sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 } as SessionStats,
   weeklyDigest: null as GameState['weeklyDigest'],
+  contractStrikes: {} as Record<string, import('@/types/game').NegotiationStrike>,
   pairFamiliarity: {} as Record<string, number>,
   rivalries: {} as Record<string, import('@/types/game').HeadToHeadRecord>,
   seasonGrowthTracker: {} as Record<string, number>,
@@ -377,16 +379,62 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     set({ pendingStoryline: null });
   },
 
+  // ── Contract Strike Helpers ──
+  getContractStrikes: (playerId: string): number => {
+    return get().contractStrikes[playerId]?.strikes || 0;
+  },
+
+  isContractLocked: (playerId: string): { locked: boolean; weeksRemaining: number } => {
+    const state = get();
+    const strike = state.contractStrikes[playerId];
+    if (!strike?.cooldownUntil) return { locked: false, weeksRemaining: 0 };
+    const currentAbsoluteWeek = (state.season - 1) * TOTAL_WEEKS + state.week;
+    if (currentAbsoluteWeek >= strike.cooldownUntil) return { locked: false, weeksRemaining: 0 };
+    return { locked: true, weeksRemaining: strike.cooldownUntil - currentAbsoluteWeek };
+  },
+
+  recordContractStrike: (playerId: string): number => {
+    let newStrikes = 1;
+    set(s => {
+      const existing = s.contractStrikes[playerId] || { strikes: 0 };
+      newStrikes = existing.strikes + 1;
+      const currentAbsoluteWeek = (s.season - 1) * TOTAL_WEEKS + s.week;
+      const cooldownUntil = newStrikes >= CONTRACT_MAX_STRIKES
+        ? currentAbsoluteWeek + CONTRACT_STRIKE_COOLDOWN_WEEKS
+        : undefined;
+      return {
+        contractStrikes: {
+          ...s.contractStrikes,
+          [playerId]: { strikes: newStrikes, cooldownUntil },
+        },
+      };
+    });
+    return newStrikes;
+  },
+
+  clearContractStrikes: (playerId: string) => {
+    set(s => {
+      const updated = { ...s.contractStrikes };
+      delete updated[playerId];
+      return { contractStrikes: updated };
+    });
+  },
+
   // ── Contract Negotiation Actions ──
-  startNegotiation: (playerId: string, isRenewal: boolean) => {
+  startNegotiation: (playerId: string, isRenewal: boolean): { success: boolean; lockedWeeks?: number } => {
     const state = get();
     const player = state.players[playerId];
-    if (!player) return;
+    if (!player) return { success: false };
     const club = state.clubs[state.playerClubId];
-    if (!club) return;
+    if (!club) return { success: false };
+
+    // Check if player is locked from contract negotiations
+    const lockStatus = get().isContractLocked(playerId);
+    if (lockStatus.locked) return { success: false, lockedWeeks: lockStatus.weeksRemaining };
 
     const offer = createContractOffer(player, club.reputation, isRenewal, state.season);
     set({ activeNegotiation: offer });
+    return { success: true };
   },
 
   submitWageOffer: (wage: number, years?: number) => {
@@ -425,14 +473,38 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
         body: `${player.firstName} ${player.lastName} has agreed a ${result.contractYears}-year deal at ${formatWage(result.offeredWage)}. Agent fee: £${(result.agentFee / 1000).toFixed(0)}K.`,
       });
 
+      // Clear strikes on successful deal — atomic with the acceptance update
+      const clearedStrikes = { ...state.contractStrikes };
+      delete clearedStrikes[offer.playerId];
+
       set({
         activeNegotiation: { ...result },
         players: newPlayers,
         clubs: newClubs,
         messages: newMessages,
+        contractStrikes: clearedStrikes,
       });
     } else {
-      set({ activeNegotiation: result });
+      // Atomic: record strike on rejection + update negotiation in one set()
+      if (result.status === 'rejected') {
+        set(s => {
+          const existing = s.contractStrikes[offer.playerId] || { strikes: 0 };
+          const newStrikes = existing.strikes + 1;
+          const currentAbsoluteWeek = (s.season - 1) * TOTAL_WEEKS + s.week;
+          const cooldownUntil = newStrikes >= CONTRACT_MAX_STRIKES
+            ? currentAbsoluteWeek + CONTRACT_STRIKE_COOLDOWN_WEEKS
+            : undefined;
+          return {
+            activeNegotiation: result,
+            contractStrikes: {
+              ...s.contractStrikes,
+              [offer.playerId]: { strikes: newStrikes, cooldownUntil },
+            },
+          };
+        });
+      } else {
+        set({ activeNegotiation: result });
+      }
     }
   },
 

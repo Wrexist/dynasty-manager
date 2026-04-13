@@ -150,10 +150,16 @@ export function createContractOffer(
  */
 export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): ContractOffer {
   if (offer.demandedWage <= 0) return { ...offer, status: 'accepted', round: offer.round + 1 };
+
+  // Fast-path: meeting or exceeding all demands with reasonable mood = guaranteed acceptance
+  const preferredYears = getPreferredYears(offer.playerAge);
+  if (offer.offeredWage >= offer.demandedWage && offer.contractYears >= preferredYears && offer.playerMood >= CONTRACT_MOOD_FLOOR) {
+    return { ...offer, status: 'accepted', round: offer.round + 1 };
+  }
+
   const gap = offer.offeredWage / offer.demandedWage;
 
   // Years deviation adjusts the effective acceptance gap
-  const preferredYears = getPreferredYears(offer.playerAge);
   const yearsDiff = offer.contractYears - preferredYears;
   const yearsAdjustment = yearsDiff > 0
     ? yearsDiff * CONTRACT_YEARS_ACCEPTANCE_BONUS

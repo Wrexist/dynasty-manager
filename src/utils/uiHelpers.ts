@@ -167,3 +167,92 @@ export function areColorsSimilar(c1: string, c2: string, threshold = 80): boolea
   const [r2, g2, b2] = hexToRgb(c2);
   return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2) < threshold;
 }
+
+// ── Club Display Names ──
+
+const CLUB_PREFIX_RE = /^(?:1\.\s*)?(?:FC|SC|AC|AS|SL|SK|NK|BSC|TSG|VfB|VfL|SV|SSC|US|RC|CF|CD|SD|RCD|CA|AEK|OGC|SM|Bayer|Borussia|Sporting|Stade)\s+/i;
+const CLUB_SUFFIX_RE = /\s+(?:FC|SC|CF|SK|FK|BK|IF|FF|SK|United|City)$/i;
+
+/** Special-case overrides for clubs whose auto-derived name is awkward */
+const DISPLAY_NAME_OVERRIDES: Record<string, string> = {
+  'BSC Young Boys': 'Young B.',
+  'Grasshopper Club Zürich': 'Grasshop',
+  'Bayer 04 Leverkusen': 'Leverku',
+  'Borussia Dortmund': 'Dortmund',
+  'Borussia Mönchengladbach': 'Gladbac',
+  'RB Leipzig': 'Leipzig',
+  'Paris Saint-Germain': 'PSG',
+  'Olympique de Marseille': 'Marseil',
+  'Olympique Lyonnais': 'Lyon',
+  'AS Saint-Étienne': 'St-Étien',
+  'Stade Rennais': 'Rennes',
+  'West Ham United': 'West Ham',
+  'Aston Villa': 'A. Villa',
+  'Manchester United': 'Man Utd',
+  'Manchester City': 'Man City',
+  'Tottenham Hotspur': 'Tottenha',
+  'Crystal Palace': 'C.Palace',
+  'Nottingham Forest': 'Nott For',
+  'Sheffield United': 'Sheff U',
+  'Newcastle United': 'Newcastl',
+  'Wolverhampton Wanderers': 'Wolves',
+  'Brighton & Hove Albion': 'Brighton',
+  'Leicester City': 'Leiceste',
+  'AFC Bournemouth': 'Bournemo',
+  'Real Sociedad': 'R.Socied',
+  'Atlético Madrid': 'Atlético',
+  'Athletic Club': 'Athletic',
+  'Rayo Vallecano': 'Rayo',
+  'Celta de Vigo': 'Celta',
+  'Deportivo Alavés': 'Alavés',
+  'Inter Milan': 'Inter',
+  'AC Milan': 'Milan',
+  'SSC Napoli': 'Napoli',
+  'Hellas Verona': 'Verona',
+  'Red Bull Salzburg': 'Salzburg',
+  'Rapid Wien': 'Rapid',
+  'Sturm Graz': 'Sturm',
+  'Austria Wien': 'Austria',
+  'FC Lausanne-Sport': 'Lausanne',
+  'Sporting CP': 'Sporting',
+  'Sporting Braga': 'Braga',
+  'Vitória SC': 'Vitória',
+  'Stade Brestois 29': 'Brest',
+  'Angers SCO': 'Angers',
+  'Le Havre AC': 'Le Havre',
+  'Ipswich Town': 'Ipswich',
+  'Queens Park Rangers': 'QPR',
+  'Heart of Midlothian': 'Hearts',
+  'Ross County': 'Ross Co.',
+  'Dundee United': 'Dundee U',
+};
+
+/**
+ * Derive a short, recognizable display name (max `maxLen` chars) from a club's
+ * full name. Strips common prefixes/suffixes and picks the most recognizable word.
+ */
+export function getClubDisplayName(fullName: string, maxLen = 7): string {
+  if (!fullName || fullName === '?') return '?';
+
+  // Check overrides first
+  const override = DISPLAY_NAME_OVERRIDES[fullName];
+  if (override) return override;
+
+  // Strip prefixes and suffixes
+  let name = fullName.replace(CLUB_PREFIX_RE, '').replace(CLUB_SUFFIX_RE, '').trim();
+  if (!name) name = fullName; // Fallback if stripping removed everything
+
+  if (name.length <= maxLen) return name;
+
+  // Multi-word: pick the longest word that fits
+  const words = name.split(/[\s-]+/);
+  if (words.length > 1) {
+    const best = words
+      .filter(w => w.length <= maxLen)
+      .sort((a, b) => b.length - a.length)[0];
+    if (best) return best;
+  }
+
+  // Single long word: truncate
+  return name.slice(0, maxLen);
+}
