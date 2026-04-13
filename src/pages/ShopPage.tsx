@@ -29,6 +29,7 @@ const FEATURE_ICONS: Record<ProFeature, React.ElementType> = {
   expanded_press: Package,
   historical_records: Sparkles,
   instant_sim: Timer,
+  optimize_lineup: Zap,
   pro_badge: Crown,
 };
 
