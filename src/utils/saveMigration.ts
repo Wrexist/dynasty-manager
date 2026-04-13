@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 55;
+const CURRENT_VERSION = 56;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -737,6 +737,13 @@ const migrations: Record<number, MigrationFn> = {
     ...data,
     activeInterview: null,
     version: 55,
+  }),
+
+  // v55 → v56: Add contractStrikes for contract negotiation strike system
+  55: (data) => ({
+    ...data,
+    contractStrikes: {},
+    version: 56,
   }),
 };
 

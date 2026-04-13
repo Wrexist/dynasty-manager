@@ -119,6 +119,7 @@ const InboxPage = () => {
   const setScreen = useGameStore((s) => s.setScreen);
   const loadMatchForReview = useGameStore((s) => s.loadMatchForReview);
   const openTransferTalk = useGameStore((s) => s.openTransferTalk);
+  const selectPlayer = useGameStore((s) => s.selectPlayer);
   const [activeFilters, setActiveFilters] = useState<Set<string>>(new Set());
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -439,27 +440,37 @@ const InboxPage = () => {
                           <p className="text-xs text-foreground/80 leading-relaxed">{msg.body}</p>
                           <div className="flex items-center justify-between mt-2">
                             <p className="text-[10px] text-muted-foreground/60">Season {msg.season} · Week {msg.week}</p>
-                            {hasTransferTalk ? (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); openTransferTalk(msg.playerId!); setScreen('dashboard'); }}
-                                className={cn(
-                                  'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:brightness-125',
-                                  colors.iconBg, colors.iconText
-                                )}
-                              >
-                                Talk to Player <MessageCircle className="w-3 h-3" />
-                              </button>
-                            ) : action ? (
-                              <button
-                                onClick={(e) => { e.stopPropagation(); if (action.screen === 'match-review') loadMatchForReview(msg.week); setScreen(action.screen); }}
-                                className={cn(
-                                  'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:brightness-125',
-                                  colors.iconBg, colors.iconText
-                                )}
-                              >
-                                {action.label} <ExternalLink className="w-3 h-3" />
-                              </button>
-                            ) : null}
+                            <div className="flex items-center gap-1.5">
+                              {msg.playerId && players[msg.playerId] && !hasTransferTalk && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); selectPlayer(msg.playerId!); }}
+                                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:brightness-125 bg-primary/10 text-primary"
+                                >
+                                  View Player <ExternalLink className="w-3 h-3" />
+                                </button>
+                              )}
+                              {hasTransferTalk ? (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); openTransferTalk(msg.playerId!); setScreen('dashboard'); }}
+                                  className={cn(
+                                    'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:brightness-125',
+                                    colors.iconBg, colors.iconText
+                                  )}
+                                >
+                                  Talk to Player <MessageCircle className="w-3 h-3" />
+                                </button>
+                              ) : action ? (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); if (action.screen === 'match-review') loadMatchForReview(msg.week); setScreen(action.screen); }}
+                                  className={cn(
+                                    'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all hover:brightness-125',
+                                    colors.iconBg, colors.iconText
+                                  )}
+                                >
+                                  {action.label} <ExternalLink className="w-3 h-3" />
+                                </button>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
                       )}

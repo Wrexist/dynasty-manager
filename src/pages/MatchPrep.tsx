@@ -504,7 +504,11 @@ const MatchPrep = () => {
         <h3 className="text-sm font-semibold text-foreground mb-2">Your Formation: {myClub.formation}</h3>
 
         <div className="mb-3">
-          <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
+          {isPro(monetization) ? (
+            <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
+          ) : (
+            <ProUpsell feature="Optimize Lineup" />
+          )}
         </div>
 
         <LineupEditor />

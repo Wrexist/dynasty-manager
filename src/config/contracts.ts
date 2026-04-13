@@ -47,9 +47,11 @@ export const CONTRACT_WILLINGNESS_MIN = 5;
 export const CONTRACT_WILLINGNESS_MAX = 95;
 
 // ── Contract Years by Age ──
+// Aligned with CONTRACT_PREFERRED_YEARS_BRACKETS so initial offers match player preferences.
 export const CONTRACT_YEARS_BRACKETS = [
-  { maxAge: 27, years: 3 },
-  { maxAge: 30, years: 2 },
+  { maxAge: 24, years: 4 },
+  { maxAge: 28, years: 3 },
+  { maxAge: 32, years: 2 },
 ] as const;
 export const CONTRACT_DEFAULT_YEARS = 1;
 
@@ -98,6 +100,12 @@ export const CONTRACT_MOOD_HIT_LOWBALL = -20;
 export const CONTRACT_MOOD_HIT_MODERATE = -8;
 export const CONTRACT_MOOD_HIT_CLOSE = -3;
 export const CONTRACT_MOOD_FLOOR = 5;
+
+// ── Contract Negotiation Strikes ──
+/** Max failed negotiation attempts before cooldown locks the player */
+export const CONTRACT_MAX_STRIKES = 3;
+/** Weeks the player is locked out after max strikes */
+export const CONTRACT_STRIKE_COOLDOWN_WEEKS = 8;
 
 // ── Contract Expiry Visibility ──
 /** How many seasons ahead to flag a contract as "near expiry" on squad views */

@@ -103,6 +103,12 @@ export const QUALITY_SCALING_FLOOR = 0.4;
 export const SQUAD_QUALITY_MIN_LOW = 25;
 export const VETERAN_MENTAL_BONUS = 10;
 
+// ── Generated Player Caps ──
+// No squad-generated player should start above these values.
+// Players grow toward potential through gameplay.
+export const GENERATED_PLAYER_OVERALL_CAP = 86;
+export const GENERATED_PLAYER_POTENTIAL_CAP = 94;
+
 /** Young player potential boost: +10 + random(0..14) */
 export const YOUNG_POTENTIAL_BOOST_BASE = 10;
 export const YOUNG_POTENTIAL_BOOST_RANGE = 15;

@@ -210,7 +210,11 @@ const TacticsPage = () => {
       </GlassPanel>
 
       {/* Optimize Lineup */}
-      <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
+      {userIsPro ? (
+        <OptimizeLineupButton potentialGain={potentialGain} autoFilling={autoFilling} onOptimize={optimizeLineup} />
+      ) : (
+        <ProUpsell feature="Optimize Lineup" />
+      )}
 
       {/* Team Rating Summary */}
       {teamRating && (

@@ -1239,14 +1239,13 @@ export interface SessionStats {
 export type ProductId =
   | 'com.dynastymanager.pro'
   | 'com.dynastymanager.pro.monthly'
-  | 'com.dynastymanager.pro.yearly'
   | 'com.dynastymanager.pro.lifetime'
   | 'com.dynastymanager.pack.manager'
   | 'com.dynastymanager.pack.stadium'
   | 'com.dynastymanager.pack.legends'
   | 'com.dynastymanager.bundle.all';
 
-export type SubscriptionTier = 'monthly' | 'yearly' | 'lifetime';
+export type SubscriptionTier = 'monthly' | 'lifetime';
 
 export interface SubscriptionInfo {
   tier: SubscriptionTier;
@@ -1266,6 +1265,7 @@ export type ProFeature =
   | 'expanded_press'
   | 'historical_records'
   | 'instant_sim'
+  | 'optimize_lineup'
   | 'pro_badge';
 
 export type CosmeticCategory = 'avatar' | 'title_badge' | 'celebration_text' | 'stadium_theme' | 'pitch_skin' | 'confetti_style' | 'cabinet_style' | 'prestige_badge' | 'hom_frame';

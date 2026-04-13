@@ -13,6 +13,7 @@ import {
   QUALITY_SCALING_REFERENCE, QUALITY_SCALING_FLOOR, SQUAD_QUALITY_MIN_LOW, VETERAN_MENTAL_BONUS,
   YOUNG_POTENTIAL_BOOST_BASE, YOUNG_POTENTIAL_BOOST_RANGE, YOUNG_POTENTIAL_AGE_THRESHOLD,
   STAR_PLAYER_BOOST_MIN, STAR_PLAYER_BOOST_MAX, VETERAN_BOOST_MIN, VETERAN_BOOST_MAX,
+  GENERATED_PLAYER_OVERALL_CAP, GENERATED_PLAYER_POTENTIAL_CAP,
   EFFECTIVE_RATING_OVERALL_WEIGHT, EFFECTIVE_RATING_FORM_WEIGHT, EFFECTIVE_RATING_FITNESS_WEIGHT,
   MAX_SUBS, MIN_TEAM_STRENGTH, TEAM_STRENGTH_BASE, TEAM_STRENGTH_FITNESS_SCALE, TEAM_STRENGTH_MORALE_SCALE,
   NATIONALITY_DISTRIBUTION,
@@ -218,8 +219,17 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     }
     star.attributes = starAttrs;
     star.overall = calculateOverall(starAttrs, star.position);
+    // Cap star overall so generated players don't start unrealistically high
+    if (star.overall > GENERATED_PLAYER_OVERALL_CAP) {
+      const reductionRatio = GENERATED_PLAYER_OVERALL_CAP / star.overall;
+      for (const key of Object.keys(starAttrs) as (keyof PlayerAttributes)[]) {
+        starAttrs[key] = clamp(Math.round(starAttrs[key] * reductionRatio));
+      }
+      star.attributes = starAttrs;
+      star.overall = calculateOverall(starAttrs, star.position);
+    }
     const starPotGap = Math.round((3 + Math.floor(Math.random() * 5)) * scale);
-    star.potential = clamp(Math.max(star.overall + starPotGap, star.potential));
+    star.potential = clamp(Math.max(star.overall + starPotGap, star.potential), 1, GENERATED_PLAYER_POTENTIAL_CAP);
     star.value = calculatePlayerValue(star.overall);
 
     const veterans = fillerPlayers.filter(p => p.age >= 30 && p !== star);
@@ -233,6 +243,15 @@ export function generateSquad(clubId: string, quality: number, season: number, d
       vetAttrs.mental = clamp(vetAttrs.mental + Math.round(VETERAN_MENTAL_BONUS * scale), 1, 99);
       vet.attributes = vetAttrs;
       vet.overall = calculateOverall(vetAttrs, vet.position);
+      // Cap veteran overall
+      if (vet.overall > GENERATED_PLAYER_OVERALL_CAP) {
+        const reductionRatio = GENERATED_PLAYER_OVERALL_CAP / vet.overall;
+        for (const key of Object.keys(vetAttrs) as (keyof PlayerAttributes)[]) {
+          vetAttrs[key] = clamp(Math.round(vetAttrs[key] * reductionRatio));
+        }
+        vet.attributes = vetAttrs;
+        vet.overall = calculateOverall(vetAttrs, vet.position);
+      }
       vet.potential = vet.overall;
       vet.value = calculatePlayerValue(vet.overall);
       if (vet.personality) vet.personality.leadership = Math.max(vet.personality.leadership, 16);

@@ -74,6 +74,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Loaned Out`,
       body: `${player.firstName} ${player.lastName} has joined ${toClub.name} on loan for ${duration} weeks. Wage split: ${wageSplit}%.${recallClause ? ' Recall clause included.' : ''}`,
+      playerId,
     });
 
     // Clean up shortlist, scout watch list, and transfer market for loaned player
@@ -201,6 +202,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       week: state.week, season: state.season, type: 'transfer',
       title: `${player.lastName} Loaned Out`,
       body: `${player.firstName} ${player.lastName} has joined ${fromClub.name} on loan for ${offer.durationWeeks} weeks.`,
+      playerId: offer.playerId,
     });
 
     set({
@@ -521,6 +523,7 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         week: state.week, season: state.season, type: 'transfer',
         title: `${player.lastName} Loan Agreed`,
         body: `${player.firstName} ${player.lastName} has joined on loan from ${ownerClub.name} for ${duration} weeks. Wage split: ${wageSplit}%.${recallClause ? ' Recall clause included.' : ''}`,
+        playerId,
       });
 
       set({

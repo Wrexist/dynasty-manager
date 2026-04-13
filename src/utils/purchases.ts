@@ -141,7 +141,6 @@ function mapEntitlements(customerInfo: any): ProductId[] {
   const validIds: ProductId[] = [
     'com.dynastymanager.pro',
     'com.dynastymanager.pro.monthly',
-    'com.dynastymanager.pro.yearly',
     'com.dynastymanager.pro.lifetime',
     'com.dynastymanager.pack.manager',
     'com.dynastymanager.pack.stadium',
