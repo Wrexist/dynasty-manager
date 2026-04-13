@@ -127,10 +127,10 @@ export function applyPromotionRelegation(
     const upperZones = determineProRelZones(upperTable, upperLeague);
     const lowerZones = determineProRelZones(lowerTable, lowerLeague);
 
-    // Clubs relegated from upper tier
-    const relegatedDown = upperZones.relegated.filter(id => id !== playerClubId || true); // allow player relegation
-    // Clubs promoted from lower tier
-    const promotedUp = lowerZones.promoted.filter(id => id !== playerClubId || true); // allow player promotion
+    // Clubs relegated from upper tier (player's club CAN be relegated)
+    const relegatedDown = upperZones.relegated;
+    // Clubs promoted from lower tier (player's club CAN be promoted)
+    const promotedUp = lowerZones.promoted;
 
     // Run playoffs for lower tier if configured
     const playoffWinners: string[] = [];
@@ -159,7 +159,7 @@ export function applyPromotionRelegation(
       if (clubId === playerClubId) playerNewDivision = upperLeague.id;
     }
 
-    // Record turnovers
+    // Record turnovers — each league tracks clubs entering and leaving
     if (!turnovers[upperLeague.id]) {
       turnovers[upperLeague.id] = { leagueId: upperLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
     }
@@ -167,14 +167,37 @@ export function applyPromotionRelegation(
       turnovers[lowerLeague.id] = { leagueId: lowerLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
     }
 
-    // Upper tier: received promotions, lost relegations
+    // Upper tier turnover: who arrived (promoted from below), who left (relegated)
     turnovers[upperLeague.id].promotedClubs.push(...promotedUp, ...playoffWinners);
     turnovers[upperLeague.id].relegatedClubs.push(...relegatedDown);
 
-    // Lower tier: lost promotions, received relegations
-    turnovers[lowerLeague.id].promotedClubs = [...lowerZones.promoted]; // clubs that left
-    turnovers[lowerLeague.id].relegatedClubs = []; // clubs coming down handled by upper
-    turnovers[lowerLeague.id].playoffWinners = [...playoffWinners];
+    // Lower tier turnover: who left via promotion, playoff winners
+    turnovers[lowerLeague.id].promotedClubs.push(...promotedUp);
+    turnovers[lowerLeague.id].playoffWinners.push(...playoffWinners);
+
+    // Adjust budgets and reputation for moved clubs
+    const upperLeagueInfo = LEAGUES.find(l => l.id === upperLeague.id);
+    const lowerLeagueInfo = LEAGUES.find(l => l.id === lowerLeague.id);
+    for (const clubId of relegatedDown) {
+      if (workingClubs[clubId] && lowerLeagueInfo) {
+        // Relegated: lose ~30% budget, lose 1 reputation
+        workingClubs[clubId] = {
+          ...workingClubs[clubId],
+          budget: Math.round(workingClubs[clubId].budget * 0.7),
+          reputation: Math.max(1, workingClubs[clubId].reputation - 1),
+        };
+      }
+    }
+    for (const clubId of [...promotedUp, ...playoffWinners]) {
+      if (workingClubs[clubId] && upperLeagueInfo) {
+        // Promoted: gain ~40% budget, gain 1 reputation
+        workingClubs[clubId] = {
+          ...workingClubs[clubId],
+          budget: Math.round(workingClubs[clubId].budget * 1.4),
+          reputation: Math.min(5, workingClubs[clubId].reputation + 1),
+        };
+      }
+    }
   }
 
   // Handle bottom-tier replacement (clubs relegated from the bottom tier with no lower tier)
@@ -197,6 +220,15 @@ export function applyPromotionRelegation(
         turnovers[bottomLeague.id] = { leagueId: bottomLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
       }
       turnovers[bottomLeague.id].relegatedClubs.push(...actuallyReplaced);
+    }
+  }
+
+  // Verify league balance — each league should maintain its teamCount
+  for (const tier of tiers) {
+    const expected = tier.teamCount;
+    const actual = workingDivisionClubs[tier.id]?.length || 0;
+    if (actual !== expected && process.env.NODE_ENV !== 'production') {
+      console.warn(`[ProRel] League ${tier.id} has ${actual} teams, expected ${expected}`);
     }
   }
 
@@ -240,16 +272,18 @@ export function applySeasonTurnover(
 
 // ── Generate replacement clubs (bottom-tier fallback) ──
 
+/** Replacement pools — only non-league clubs not in any game division */
 const REPLACEMENT_POOLS: Record<string, { name: string; shortName: string; color: string; secondaryColor: string }[]> = {
   eng: [
-    { name: 'Harrogate Town', shortName: 'HAR', color: '#FFD700', secondaryColor: '#000000' },
     { name: 'Oldham Athletic', shortName: 'OLD', color: '#003DA5', secondaryColor: '#FFFFFF' },
     { name: 'Scunthorpe Utd', shortName: 'SCU', color: '#8B0000', secondaryColor: '#FFFFFF' },
+    { name: 'Southend United', shortName: 'SOU', color: '#003DA5', secondaryColor: '#FFD700' },
+    { name: 'Macclesfield Town', shortName: 'MAC', color: '#003DA5', secondaryColor: '#FFFFFF' },
   ],
   ger: [
     { name: 'Rot-Weiss Essen', shortName: 'RWE', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'Alemannia Aachen', shortName: 'AAC', color: '#FFD700', secondaryColor: '#000000' },
     { name: 'Wehen Wiesbaden', shortName: 'WEH', color: '#E30613', secondaryColor: '#FFFFFF' },
+    { name: 'VfB Lübeck', shortName: 'LUB', color: '#008C45', secondaryColor: '#FFFFFF' },
   ],
   esp: [
     { name: 'Ponferradina', shortName: 'PON', color: '#003DA5', secondaryColor: '#FFFFFF' },
@@ -259,12 +293,12 @@ const REPLACEMENT_POOLS: Record<string, { name: string; shortName: string; color
   ita: [
     { name: 'Ternana', shortName: 'TER', color: '#E30613', secondaryColor: '#008C45' },
     { name: 'Ascoli', shortName: 'ASC', color: '#000000', secondaryColor: '#FFFFFF' },
-    { name: 'Perugia', shortName: 'PER', color: '#E30613', secondaryColor: '#FFFFFF' },
+    { name: 'Avellino', shortName: 'AVE', color: '#008C45', secondaryColor: '#FFFFFF' },
   ],
   fra: [
     { name: 'Châteauroux', shortName: 'CHA', color: '#003DA5', secondaryColor: '#E30613' },
-    { name: 'Laval', shortName: 'LAV', color: '#F5821F', secondaryColor: '#000000' },
     { name: 'Niort', shortName: 'NIO', color: '#008C45', secondaryColor: '#FFFFFF' },
+    { name: 'Sochaux', shortName: 'SOC', color: '#FFD700', secondaryColor: '#003DA5' },
   ],
 };
 

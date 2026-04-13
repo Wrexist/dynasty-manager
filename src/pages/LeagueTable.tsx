@@ -97,9 +97,11 @@ const LeagueTable = () => {
   // Qualification zones for current league (Champions Cup, Shield Cup, Conference Cup, Replaced)
   const qualZones = useMemo(() => getQualificationZones(selectedDiv), [selectedDiv]);
 
-  type ZoneType = 'champions_cup' | 'shield_cup' | 'conference_cup' | 'replaced' | null;
+  type ZoneType = 'champions_cup' | 'shield_cup' | 'conference_cup' | 'promotion' | 'playoff' | 'replaced' | null;
 
   const getZone = (pos: number): ZoneType => {
+    if (qualZones.promotion?.includes(pos)) return 'promotion';
+    if (qualZones.playoff?.includes(pos)) return 'playoff';
     if (qualZones.championsCup.includes(pos)) return 'champions_cup';
     if (qualZones.shieldCup.includes(pos)) return 'shield_cup';
     if (qualZones.conferenceCup.includes(pos)) return 'conference_cup';
@@ -109,6 +111,8 @@ const LeagueTable = () => {
 
   const zoneBgClass = (zone: ZoneType) => {
     switch (zone) {
+      case 'promotion': return 'bg-emerald-500/10 border-l-2 border-l-emerald-400';
+      case 'playoff': return 'bg-amber-500/10 border-l-2 border-l-amber-400';
       case 'champions_cup': return 'bg-blue-500/10 border-l-2 border-l-blue-400';
       case 'shield_cup': return 'bg-orange-500/10 border-l-2 border-l-orange-400';
       case 'conference_cup': return 'bg-emerald-500/10 border-l-2 border-l-emerald-400';
@@ -462,6 +466,18 @@ const LeagueTable = () => {
 
           {/* Zone Legend */}
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 border-t border-border/20">
+            {qualZones.promotion?.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-emerald-400/50" />
+                <span className="text-[10px] text-muted-foreground">Promotion</span>
+              </div>
+            )}
+            {qualZones.playoff?.length > 0 && (
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 rounded-sm bg-amber-400/50" />
+                <span className="text-[10px] text-muted-foreground">Playoffs</span>
+              </div>
+            )}
             {qualZones.championsCup.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-blue-400/50" />
@@ -480,10 +496,10 @@ const LeagueTable = () => {
                 <span className="text-[10px] text-muted-foreground">Conference Cup</span>
               </div>
             )}
-            {currentLeague && currentLeague.replacedSlots > 0 && (
+            {qualZones.replaced.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-destructive/50" />
-                <span className="text-[10px] text-muted-foreground">Replaced</span>
+                <span className="text-[10px] text-muted-foreground">Relegation</span>
               </div>
             )}
             {isPlayerLeague && (

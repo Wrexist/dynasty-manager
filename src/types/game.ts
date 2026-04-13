@@ -34,7 +34,9 @@ export interface QualificationZones {
   championsCup: number[];  // league positions that qualify for Champions Cup
   shieldCup: number[];     // league positions that qualify for Shield Cup
   conferenceCup: number[]; // league positions that qualify for Conference Cup
-  replaced: number[];      // league positions that get replaced
+  replaced: number[];      // league positions that get relegated/replaced
+  promotion: number[];     // league positions that qualify for auto-promotion (lower tiers)
+  playoff: number[];       // league positions that enter promotion playoffs (lower tiers)
 }
 
 export interface SeasonTurnover {

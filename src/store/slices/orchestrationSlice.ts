@@ -1696,10 +1696,13 @@ function finalizeSeason(
   const newLeagueCup = generateLeagueCupDraw(leagueClubIds);
   const newFriendlies = generateFriendlies(state.playerClubId, leagueClubIds);
 
-  // Generate continental tournaments based on previous season's league table
-  const prevLeagueTable = state.leagueTable;
+  // Generate continental tournaments based on the top-tier league table
+  // If the player was promoted/relegated, use the top tier's table (continental qualifies top-tier only)
+  const topTierLeagueId = getLeaguesByCountry(leagueInfo?.countryId || newPlayerDivision)
+    .find(l => l.tier === 1)?.id || newPlayerDivision;
+  const prevLeagueTable = newDivisionTables[topTierLeagueId] || state.leagueTable;
   const playerClubMap: Record<string, { name: string; shortName: string; color: string; reputation: number }> = {};
-  for (const [id, club] of Object.entries(state.clubs)) {
+  for (const [id, club] of Object.entries(newClubs)) {
     playerClubMap[id] = { name: club.name, shortName: club.shortName, color: club.color, reputation: club.reputation };
   }
 

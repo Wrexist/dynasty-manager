@@ -366,8 +366,8 @@ function computePotential(age, ovr) {
 // ── Generate short name from team name ──
 function toShortName(name) {
   if (name.length <= 3) return name.toUpperCase();
-  // Common abbreviations
   const abbrevs = {
+    // England
     'AFC Bournemouth': 'BOU', 'Brighton': 'BHA', 'Crystal Palace': 'CRY',
     'Nottingham Forest': 'NFO', 'Wolverhampton Wanderers': 'WOL',
     'West Ham United': 'WHU', 'Tottenham Hotspur': 'TOT',
@@ -375,9 +375,75 @@ function toShortName(name) {
     'Newcastle United': 'NEW', 'Leicester City': 'LEI',
     'Sheffield United': 'SHU', 'Sheffield Wednesday': 'SHW',
     'West Bromwich': 'WBA', 'Plymouth Argyle': 'PLY',
+    'Blackburn Rovers': 'BLK', 'Bristol City': 'BRC', 'Cardiff City': 'CAR',
+    'Coventry City': 'COV', 'Derby County': 'DER', 'Hull City': 'HUL',
+    'Leeds United': 'LEE', 'Luton Town': 'LUT', 'Middlesbrough': 'MID',
+    'Millwall': 'MIL', 'Norwich City': 'NOR', 'Oxford United': 'OXF',
+    'Portsmouth': 'POM', 'Preston': 'PRE', 'Stoke City': 'STK',
+    'Sunderland': 'SUN', 'Swansea City': 'SWA', 'Watford': 'WAT',
+    'Burnley': 'BUR', 'Barnsley': 'BAR', 'Birmingham City': 'BIR',
+    'Blackpool': 'BPL', 'Bolton': 'BOL', 'Bristol Rovers': 'BRR',
+    'Burton Albion': 'BUA', 'Cambridge United': 'CAM',
+    'Charlton Athletic': 'CHA', 'Cheltenham Town': 'CHE',
+    'Crawley Town': 'CRA', 'Exeter City': 'EXE',
+    'Huddersfield Town': 'HUD', 'Leyton Orient': 'LEO',
+    'Lincoln City': 'LIN', 'Mansfield Town': 'MAN',
+    'Northampton Town': 'NOR', 'Peterborough United': 'PET',
+    'Reading': 'REA', 'Rotherham United': 'ROT',
+    'Shrewsbury Town': 'SHR', 'Stevenage': 'STE', 'Stockport County': 'STO',
+    'Wigan Athletic': 'WIG', 'Wrexham': 'WRX', 'Wycombe Wanderers': 'WYC',
+    'AFC Wimbledon': 'WIM', 'Accrington': 'ACC', 'Barrow': 'BAW',
+    'Bradford City': 'BRA', 'Bromley FC': 'BRM', 'Carlisle United': 'CLU',
+    'Chesterfield': 'CHF', 'Colchester': 'COL', 'Crewe Alexandra': 'CRW',
+    'Doncaster Rovers': 'DON', 'Fleetwood Town': 'FLE',
+    'Gillingham': 'GIL', 'Grimsby Town': 'GRI',
+    'Harrogate Town': 'HAR', 'MK Dons': 'MKD', 'Morecambe': 'MOR',
+    'Newport County': 'NEW', 'Notts County': 'NOT',
+    'Port Vale': 'PTV', 'Salford City': 'SAL', 'Swindon Town': 'SWI',
+    'Tranmere Rovers': 'TRA', 'Walsall': 'WAL',
+    // Germany
+    '1. FC Köln': 'KOL', '1. FC Nürnberg': 'NUR', 'Schalke 04': 'S04',
+    'Hamburger SV': 'HSV', 'Hannover 96': 'H96', 'Düsseldorf': 'DUS',
+    'Kaiserslautern': 'KAI', 'Hertha BSC': 'BSC', 'Braunschweig': 'BSW',
+    'SV Elversberg': 'ELV', 'Karlsruher SC': 'KSC', 'SC Paderborn': 'PAD',
+    'SpVgg Greuther Fürth': 'FUR', 'SV Darmstadt 98': 'DAR',
+    '1. FC Magdeburg': 'MAG', 'SSV Ulm 1846': 'ULM',
+    'Jahn Regensburg': 'REG', 'Preußen Münster': 'MUN',
+    '1860 München': 'M60', 'Arminia Bielefeld': 'BIE',
+    'Dynamo Dresden': 'DRE', 'Waldhof Mannheim': 'WAL',
+    'FC Ingolstadt': 'ING', 'Viktoria Köln': 'VIK', 'Hansa Rostock': 'ROS',
+    'SC Verl': 'VER', 'SV Sandhausen': 'SAN', 'FC Erzgebirge Aue': 'AUE',
+    'B. Dortmund II': 'BD2', 'Aleman. Aachen': 'AAC',
+    'Energie Cottbus': 'COT', 'SpVgg Unterhaching': 'UNT',
+    // Spain
+    'Albacete BP': 'ALB', 'Burgos CF': 'BUR', 'CD Castellón': 'CAS',
+    'CD Eldense': 'ELD', 'CD Mirandés': 'MIR', 'Córdoba CF': 'COR',
+    'Cartagena CF': 'CRT', 'Deportivo de La Coruña': 'DEP',
+    'Elche CF': 'ELC', 'FC Andorra': 'AND', 'Granada CF': 'GRA',
+    'Huesca': 'HUE', 'Levante UD': 'LEV', 'Málaga CF': 'MAL',
+    'Racing de Ferrol': 'FER', 'Racing de Santander': 'SAN',
+    'Real Oviedo': 'OVI', 'Real Zaragoza': 'ZAR',
+    'SD Eibar': 'EIB', 'Sporting Gijón': 'GIJ', 'Tenerife': 'TEN',
+    // Italy
+    'Bari': 'BAR', 'Brescia': 'BRE', 'Carrarese Calcio': 'CAR',
+    'Catanzaro': 'CTZ', 'Cesena': 'CES', 'Cittadella': 'CTD',
+    'Cosenza': 'COS', 'Cremonese': 'CRM', 'Frosinone': 'FRO',
+    'Juve Stabia': 'JST', 'Mantova': 'MNT', 'Modena': 'MOD',
+    'Palermo': 'PAL', 'Pisa': 'PIS', 'Reggiana': 'REG',
+    'SALERNITANA': 'SAL', 'Sampdoria': 'SAM', 'Sassuolo': 'SAS',
+    'Spezia': 'SPE', 'Spal': 'SPL',
+    // France
+    'AC Ajaccio': 'ACA', 'Amiens SC': 'AMI', 'Clermont Foot 63': 'CLE',
+    'ESTAC Troyes': 'TRO', 'En Avant Guingamp': 'GUI',
+    'FC Martigues': 'MAR', 'FC Metz': 'MET', 'Grenoble Foot 38': 'GRE',
+    'Laval': 'LAV', 'Paris FC': 'PFC', 'Red Star FC': 'RST',
+    'SC Bastia': 'BAS', 'SM Caen': 'CAE', 'Rodez AF': 'ROD',
+    'Pau FC': 'PAU', 'US Dunkerque': 'DUN', 'Lorient': 'LOR',
+    'FC Annecy': 'ANN',
   };
   if (abbrevs[name]) return abbrevs[name];
-  return name.replace(/[^A-Z]/g, '').slice(0, 3) || name.slice(0, 3).toUpperCase();
+  // Fallback: first 3 characters of the name
+  return name.replace(/^(FC |SC |AC |1\. |SV |SpVgg )/i, '').slice(0, 3).toUpperCase();
 }
 
 // ── Build player template from CSV row ──
