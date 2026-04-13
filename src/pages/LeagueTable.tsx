@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ChevronDown, Search, X, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { LEAGUES } from '@/data/league';
+import { LEAGUES, getLeaguesByCountry, getCountryLeagueSystems } from '@/data/league';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { PageHint } from '@/components/game/PageHint';
 import { getQualificationZones } from '@/utils/leagueRanking';
@@ -20,11 +20,15 @@ const TIER_LABELS: Record<number, string> = {
 
 const TIER_ORDER = [1, 2, 3, 4];
 
+// Group leagues by quality tier, but include all divisions (not just tier 1)
 const leaguesByTier = TIER_ORDER.map(tier => ({
   tier,
   label: TIER_LABELS[tier],
-  leagues: LEAGUES.filter(l => l.qualityTier === tier).sort((a, b) => a.name.localeCompare(b.name)),
+  leagues: LEAGUES.filter(l => l.qualityTier === tier && l.tier === 1).sort((a, b) => a.name.localeCompare(b.name)),
 })).filter(g => g.leagues.length > 0);
+
+// Pre-compute country systems for the league picker
+const countrySystems = getCountryLeagueSystems();
 
 const LeagueTable = () => {
   const { divisionTables, divisionFixtures, divisionClubs, clubs, players, playerClubId, playerDivision, week, totalWeeks } = useGameStore(useShallow((s) => ({
@@ -204,33 +208,45 @@ const LeagueTable = () => {
                   <div key={group.tier}>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 px-1">{group.label}</p>
                     <div className="space-y-0.5">
-                      {group.leagues.map(league => {
-                        const isActive = league.id === selectedDiv;
-                        const isPlayerHome = league.id === playerDivision;
-                        return (
-                          <button
-                            key={league.id}
-                            onClick={() => handleLeagueSelect(league.id)}
-                            className={cn(
-                              'w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-left transition-colors',
-                              isActive ? 'bg-primary/15 border border-primary/30' : 'hover:bg-muted/40 active:bg-muted/60'
-                            )}
-                          >
-                            <FlagIcon nationality={league.country} size={20} className="rounded-[1px]" />
-                            <span className={cn(
-                              'text-xs font-medium flex-1 truncate',
-                              isActive ? 'text-primary' : 'text-foreground'
-                            )}>
-                              {league.name}
-                            </span>
-                            {isPlayerHome && (
-                              <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-bold shrink-0">
-                                YOU
-                              </span>
-                            )}
-                            <span className="text-[10px] text-muted-foreground shrink-0">{league.teamCount}</span>
-                          </button>
+                      {group.leagues.map(topLeague => {
+                        // Get all tiers for this country
+                        const countryTiers = getLeaguesByCountry(topLeague.countryId);
+                        const matchesSearch = searchQuery === '' || countryTiers.some(l =>
+                          l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          l.country.toLowerCase().includes(searchQuery.toLowerCase())
                         );
+                        if (!matchesSearch) return null;
+                        return countryTiers.map(league => {
+                          const isActive = league.id === selectedDiv;
+                          const isPlayerHome = league.id === playerDivision;
+                          const isLowerTier = league.tier > 1;
+                          return (
+                            <button
+                              key={league.id}
+                              onClick={() => handleLeagueSelect(league.id)}
+                              className={cn(
+                                'w-full flex items-center gap-2.5 py-2 rounded-lg text-left transition-colors',
+                                isLowerTier ? 'pl-8 pr-2.5' : 'px-2.5',
+                                isActive ? 'bg-primary/15 border border-primary/30' : 'hover:bg-muted/40 active:bg-muted/60'
+                              )}
+                            >
+                              {!isLowerTier && <FlagIcon nationality={league.country} size={20} className="rounded-[1px]" />}
+                              {isLowerTier && <span className="text-[10px] text-muted-foreground w-5 text-center shrink-0">T{league.tier}</span>}
+                              <span className={cn(
+                                'text-xs font-medium flex-1 truncate',
+                                isActive ? 'text-primary' : isLowerTier ? 'text-muted-foreground' : 'text-foreground'
+                              )}>
+                                {league.name}
+                              </span>
+                              {isPlayerHome && (
+                                <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-bold shrink-0">
+                                  YOU
+                                </span>
+                              )}
+                              <span className="text-[10px] text-muted-foreground shrink-0">{league.teamCount}</span>
+                            </button>
+                          );
+                        });
                       })}
                     </div>
                   </div>

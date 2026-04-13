@@ -286,6 +286,12 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         });
       } else {
         // Return player to parent club
+        if (!newClubs[loan.fromClubId] || !newClubs[loan.toClubId]) {
+          // Club was removed during promotion/relegation — release player as free agent
+          const freeP = { ...player, onLoan: false, loanFromClubId: undefined, loanToClubId: undefined, clubId: '' };
+          newPlayers[loan.playerId] = freeP;
+          continue;
+        }
         const fromClub = { ...newClubs[loan.fromClubId] };
         const toClub = { ...newClubs[loan.toClubId] };
 

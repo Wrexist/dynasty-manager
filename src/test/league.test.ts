@@ -91,8 +91,8 @@ describe('league', () => {
   });
 
   describe('LEAGUES', () => {
-    it('has 30 leagues', () => {
-      expect(LEAGUES.length).toBe(30);
+    it('has 38 leagues (30 countries + 8 lower divisions)', () => {
+      expect(LEAGUES.length).toBe(38);
     });
 
     it('all league ids are unique', () => {
@@ -109,6 +109,11 @@ describe('league', () => {
         expect(league.replacedSlots).toBeGreaterThanOrEqual(0);
         expect(league.replacedSlots).toBeLessThan(league.teamCount);
         expect([1, 2, 3, 4]).toContain(league.qualityTier);
+        expect(league.tier).toBeGreaterThanOrEqual(1);
+        expect(league.countryId).toBeTruthy();
+        expect(league.promotionSpots).toBeGreaterThanOrEqual(0);
+        expect(league.relegationSpots).toBeGreaterThanOrEqual(0);
+        expect(league.playoffSpots).toBeGreaterThanOrEqual(0);
       }
     });
   });

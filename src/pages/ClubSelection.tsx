@@ -3,7 +3,7 @@ import { useState, useMemo, memo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
-import { CLUBS_DATA, LEAGUES } from '@/data/league';
+import { CLUBS_DATA, LEAGUES, getLeaguesByCountry } from '@/data/league';
 import { CLUBS_BY_LEAGUE, LEAGUE_REGIONS } from '@/data/leagues';
 import { NATIONS, NATION_STARS } from '@/data/nations';
 import { FlagIcon } from '@/components/game/FlagIcon';
@@ -349,9 +349,13 @@ const ClubSelection = () => {
                         {region.label}
                       </h3>
                       <div className="space-y-2">
-                        {regionLeagues.map((league, i) => league && (
-                          <LeagueCard key={league.id} league={league} index={i} onSelect={handleLeagueSelect} />
-                        ))}
+                        {regionLeagues.flatMap((league, i) => {
+                          if (!league) return [];
+                          const countryTiers = getLeaguesByCountry(league.countryId);
+                          return countryTiers.map((tier) => (
+                            <LeagueCard key={tier.id} league={tier} index={i} onSelect={handleLeagueSelect} isLowerTier={tier.tier > 1} />
+                          ));
+                        })}
                       </div>
                     </div>
                   );
@@ -603,7 +607,7 @@ function DifficultyPips({ difficulty }: { difficulty: string }) {
 }
 
 // ── League Card Component (memoized) ──
-const LeagueCard = memo(function LeagueCard({ league, index, onSelect }: { league: typeof LEAGUES[number]; index: number; onSelect: (id: LeagueId) => void }) {
+const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTier }: { league: typeof LEAGUES[number]; index: number; onSelect: (id: LeagueId) => void; isLowerTier?: boolean }) {
   const difficulty = DIFFICULTY_CONFIG[league.difficulty];
   const bars = DIFFICULTY_BARS[league.difficulty] || 1;
   const clubCount = LEAGUE_CLUB_COUNTS[league.id] || league.teamCount;
@@ -621,11 +625,16 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect }: { leagu
           'relative overflow-hidden rounded-xl border border-border/30 cursor-pointer w-full text-left',
           'active:scale-[0.98] transition-all duration-200',
           'bg-card/40 backdrop-blur-xl',
-          'hover:border-border/60 p-3'
+          'hover:border-border/60 p-3',
+          isLowerTier && 'ml-6 opacity-80'
         )}
       >
         <div className="flex items-center gap-3">
-          <FlagIcon nationality={league.country} size={28} className="rounded-sm" />
+          {isLowerTier ? (
+            <span className="text-[10px] text-muted-foreground bg-muted/30 rounded px-1.5 py-0.5 w-7 text-center shrink-0">T{league.tier}</span>
+          ) : (
+            <FlagIcon nationality={league.country} size={28} className="rounded-sm" />
+          )}
           <div className="flex-1 min-w-0">
             <h2 className="font-display font-bold text-sm text-foreground truncate">
               {league.name}
