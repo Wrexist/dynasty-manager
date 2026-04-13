@@ -6,6 +6,7 @@ import { getXPProgress } from '@/utils/managerPerks';
 import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/managerCareer';
 import { getSuffix } from '@/utils/helpers';
 import { getRecentForm } from '@/utils/formGuide';
+import { FormGuide } from '@/components/game/FormGuide';
 import { LEAGUES } from '@/data/league';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
@@ -39,7 +40,7 @@ export function TopBar() {
   const reputationLabel = getReputationTierShortLabel(reputationTier);
   const unreadCount = useMemo(() => messages.filter(m => !m.read).length, [messages]);
   const league = LEAGUES.find(l => l.id === playerDivision);
-  const recentForm = useMemo(() => getRecentForm(playerClubId, fixtures), [playerClubId, fixtures]);
+  const recentForm = useMemo(() => getRecentForm(playerClubId, fixtures, 3), [playerClubId, fixtures]);
   const hasPlayedMatches = recentForm.length > 0;
 
   // XP bar glow on gain
@@ -76,12 +77,12 @@ export function TopBar() {
   return (
     <header role="banner" className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-xl border-b border-border/30 safe-area-top">
       <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex items-center gap-1.5 min-w-0">
           {showBack && (
             <button
               onClick={() => setScreen(backTarget)}
               aria-label="Go back"
-              className="p-3 -ml-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="p-2 -ml-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -93,7 +94,7 @@ export function TopBar() {
                 <p className="text-[10px] text-muted-foreground truncate">Between Jobs</p>
               </div>
             ) : (
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-1.5 min-w-0">
                 <div className="w-5 h-5 rounded-full shrink-0 bg-amber-500/20 flex items-center justify-center">
                   <Briefcase className="w-3 h-3 text-amber-400" />
                 </div>
@@ -106,23 +107,9 @@ export function TopBar() {
               <p className={cn('text-[10px] text-muted-foreground truncate', posFlash)}>{club?.shortName} {pos !== '-' ? `· ${pos}${getSuffix(Number(pos))}` : ''}</p>
             </div>
           ) : (
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
               <div className="w-5 h-5 rounded-full shrink-0" style={{ backgroundColor: club?.color }} />
-              {hasPlayedMatches && (
-                <div className="flex items-center gap-0.5">
-                  {recentForm.map((r, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        'w-4 h-4 rounded-full flex items-center justify-center text-[8px] font-bold text-white',
-                        r === 'W' ? 'bg-emerald-500' : r === 'D' ? 'bg-amber-500' : 'bg-destructive'
-                      )}
-                    >
-                      {r}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {hasPlayedMatches && <FormGuide form={recentForm} size="sm" />}
               {hasPlayedMatches && pos !== '-' && league && (
                 <span className={cn(
                   'text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0',
@@ -138,16 +125,16 @@ export function TopBar() {
             </div>
           )}
         </div>
-        <div className={cn("flex items-center gap-3", matchLocked && "opacity-40")}>
+        <div className={cn("flex items-center gap-2", matchLocked && "opacity-40")}>
           <button
             disabled={matchLocked}
             onClick={() => { setScreen('inbox'); hapticMedium(); }}
             aria-label={unreadCount > 0 ? `Inbox — ${unreadCount} unread` : 'Inbox'}
-            className="relative p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="relative p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
           >
             <Mail className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
+              <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 px-1 flex items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
@@ -156,7 +143,7 @@ export function TopBar() {
             disabled={matchLocked}
             onClick={() => { setScreen('shop'); hapticMedium(); }}
             aria-label="Shop"
-            className="p-3 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2 rounded-lg hover:bg-muted/50 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
           >
             <Crown className="w-4 h-4 text-[hsl(var(--gold))] drop-shadow-[0_0_4px_hsl(var(--gold)/0.4)]" />
           </button>
@@ -186,7 +173,7 @@ export function TopBar() {
             disabled={matchLocked}
             onClick={() => { setScreen('settings'); hapticMedium(); }}
             aria-label="Settings"
-            className="p-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+            className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
           >
             <Settings className="w-4 h-4" />
           </button>
