@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle, Globe, AlertTriangle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle, Globe, AlertTriangle, Check, Circle, Loader2, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message, GameScreen } from '@/types/game';
 import { TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
@@ -123,6 +123,7 @@ const InboxPage = () => {
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [expandedStoryline, setExpandedStoryline] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -328,36 +329,206 @@ const InboxPage = () => {
         )}
       </div>
 
-      {/* Active Storyline Chains */}
+      {/* Active Storyline Chains — Collapsible Accordion */}
       {activeStorylineChains.length > 0 && (
-        <GlassPanel className="p-4">
-          <div className="flex items-center gap-2 mb-2">
+        <GlassPanel className="overflow-hidden">
+          <div className="flex items-center gap-2 px-4 pt-4 pb-2">
             <BookOpen className="w-4 h-4 text-primary" />
             <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Active Storylines</p>
+            <span className="ml-auto text-[10px] text-muted-foreground/60">{activeStorylineChains.length} active</span>
           </div>
-          <div className="space-y-2">
+          <div className="px-2 pb-2">
             {activeStorylineChains.map(chain => {
               const chainDef = STORYLINE_CHAINS.find(c => c.id === chain.chainId);
               const totalSteps = chainDef?.steps.length || 0;
               const targetPlayer = chain.targetPlayerId ? players[chain.targetPlayerId] : null;
               const playerDeparted = chain.targetPlayerId && !targetPlayer;
+              const playerLabel = targetPlayer
+                ? `${targetPlayer.firstName} ${targetPlayer.lastName}`
+                : 'your star player';
+              // Auto-expand when there's only one storyline, otherwise use toggle state
+              const isExpanded = activeStorylineChains.length === 1
+                ? expandedStoryline !== chain.chainId  // default open, toggle to close
+                : expandedStoryline === chain.chainId;
+              // Progress: use choices.length (actual completions) not currentStep
+              const progressPct = totalSteps > 0 ? (chain.choices.length / totalSteps) * 100 : 0;
+
+              // Build a step-indexed choice map that handles skipped steps.
+              // choices[] is sequential (order of response), so we need to map
+              // each choice to its actual step by walking through steps in order.
+              const stepChoiceMap: Record<number, number> = {};
+              let choiceIdx = 0;
+              if (chainDef) {
+                for (let si = 0; si <= chain.currentStep && si < chainDef.steps.length; si++) {
+                  // A step was responded to if it wasn't skipped (requiredPrevChoice mismatch)
+                  // Skipped steps have no entry — choiceIdx stays where it was
+                  if (choiceIdx < chain.choices.length) {
+                    const step = chainDef.steps[si];
+                    const wasSkipped = si > 0
+                      && step.requiredPrevChoice !== undefined
+                      && stepChoiceMap[si - 1] === undefined  // prev was skipped
+                      ? true
+                      : si > 0
+                        && step.requiredPrevChoice !== undefined
+                        && chain.choices.length > 0
+                        && (() => {
+                            // Find the choice for the preceding step
+                            const prevStepChoice = stepChoiceMap[si - 1];
+                            return prevStepChoice !== undefined && prevStepChoice !== step.requiredPrevChoice;
+                          })()
+                        ? true
+                        : false;
+
+                    if (!wasSkipped) {
+                      stepChoiceMap[si] = chain.choices[choiceIdx];
+                      choiceIdx++;
+                    }
+                  }
+                }
+              }
+
               return (
-                <div key={chain.chainId} className="flex items-center justify-between bg-muted/30 rounded-lg px-3 py-2">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold text-foreground truncate">{chainDef?.name || chain.chainId}</p>
-                    {targetPlayer && (
-                      <p className="text-[10px] text-amber-400 truncate">Featuring: {targetPlayer.firstName} {targetPlayer.lastName}</p>
+                <div key={chain.chainId} className="mb-1 last:mb-0">
+                  {/* Collapsed header — always visible */}
+                  <button
+                    onClick={() => setExpandedStoryline(prev =>
+                      prev === chain.chainId ? null : chain.chainId
                     )}
-                    {playerDeparted && (
-                      <p className="text-[10px] text-muted-foreground/60 truncate">Player departed</p>
+                    className={cn(
+                      'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
+                      isExpanded ? 'bg-primary/10' : 'bg-muted/30 hover:bg-muted/50'
                     )}
-                    <p className="text-[10px] text-muted-foreground">Step {chain.currentStep + 1} of {totalSteps}</p>
-                  </div>
-                  <div className="flex gap-0.5 ml-2">
-                    {Array.from({ length: totalSteps }, (_, i) => (
-                      <div key={i} className={cn('w-2 h-2 rounded-full', i <= chain.currentStep ? 'bg-primary' : 'bg-muted')} />
-                    ))}
-                  </div>
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-semibold text-foreground truncate">{chainDef?.name || chain.chainId}</p>
+                        {targetPlayer && (
+                          <span className="text-[10px] text-amber-400 truncate shrink-0">
+                            {playerLabel}
+                          </span>
+                        )}
+                        {playerDeparted && (
+                          <span className="text-[10px] text-muted-foreground/60 shrink-0">Departed</span>
+                        )}
+                      </div>
+                      {/* Slim progress bar */}
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <div className="flex-1 h-1 rounded-full bg-muted/60 overflow-hidden">
+                          <motion.div
+                            className="h-full rounded-full bg-primary"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${progressPct}%` }}
+                            transition={{ duration: 0.5, ease: 'easeOut' }}
+                          />
+                        </div>
+                        <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
+                          {chain.choices.length}/{totalSteps}
+                        </span>
+                      </div>
+                    </div>
+                    <ChevronDown className={cn(
+                      'w-3.5 h-3.5 text-muted-foreground shrink-0 transition-transform duration-300',
+                      isExpanded && 'rotate-180'
+                    )} />
+                  </button>
+
+                  {/* Expanded step timeline */}
+                  <AnimatePresence initial={false}>
+                    {isExpanded && chainDef && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+                        className="overflow-hidden"
+                      >
+                        <div className="pl-4 pr-3 pt-2 pb-3">
+                          {chainDef.steps.map((step, i) => {
+                            // Determine step state using choice map, not just currentStep
+                            const hasChoice = stepChoiceMap[i] !== undefined;
+                            const isActive = i === chain.currentStep;
+                            const isCompleted = hasChoice;
+                            // "Responded but waiting for next advanceWeek to trigger next step"
+                            const isAwaitingAdvance = isActive && hasChoice;
+                            // "Current step, user hasn't responded yet"
+                            const isPending = isActive && !hasChoice;
+                            // Step was skipped due to requiredPrevChoice mismatch
+                            const isSkipped = i < chain.currentStep && !hasChoice;
+                            const isUpcoming = i > chain.currentStep;
+                            const isLast = i === chainDef.steps.length - 1;
+
+                            return (
+                              <motion.div
+                                key={i}
+                                className="flex gap-3"
+                                initial={{ opacity: 0, x: -6 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.06, duration: 0.25 }}
+                              >
+                                {/* Vertical timeline rail */}
+                                <div className="flex flex-col items-center">
+                                  <div className={cn(
+                                    'w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors',
+                                    isCompleted && 'bg-primary border-primary',
+                                    isPending && 'bg-primary/20 border-primary',
+                                    isSkipped && 'bg-muted/40 border-muted-foreground/30',
+                                    isUpcoming && 'bg-muted/40 border-muted-foreground/20'
+                                  )}>
+                                    {isCompleted && <Check className="w-3 h-3 text-primary-foreground" />}
+                                    {isPending && <Loader2 className="w-2.5 h-2.5 text-primary animate-spin" />}
+                                    {isSkipped && <span className="text-[8px] text-muted-foreground/40">—</span>}
+                                    {isUpcoming && <Circle className="w-2 h-2 text-muted-foreground/30" />}
+                                  </div>
+                                  {!isLast && (
+                                    <div className={cn(
+                                      'w-0.5 flex-1 min-h-[16px] rounded-full',
+                                      (isCompleted || isAwaitingAdvance) ? 'bg-primary/50' : 'bg-muted-foreground/15'
+                                    )} />
+                                  )}
+                                </div>
+                                {/* Step content */}
+                                <div className={cn('pb-3 flex-1 min-w-0', isLast && 'pb-0')}>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={cn(
+                                      'text-[9px] tabular-nums font-medium leading-none mt-px',
+                                      isCompleted ? 'text-primary/60' : isPending ? 'text-primary' : 'text-muted-foreground/30'
+                                    )}>
+                                      {i + 1}
+                                    </span>
+                                    <p className={cn(
+                                      'text-xs font-semibold leading-5',
+                                      isCompleted && 'text-foreground/60',
+                                      isPending && 'text-foreground',
+                                      isSkipped && 'text-muted-foreground/40 line-through',
+                                      isUpcoming && 'text-muted-foreground/50'
+                                    )}>
+                                      {step.title}
+                                    </p>
+                                    {isAwaitingAdvance && (
+                                      <Clock className="w-3 h-3 text-primary/50 shrink-0" />
+                                    )}
+                                  </div>
+                                  {isPending && (
+                                    <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
+                                      {step.body.replace(/\{playerName\}/g, playerLabel)}
+                                    </p>
+                                  )}
+                                  {isCompleted && step.options[stepChoiceMap[i]] && (
+                                    <p className="text-[10px] text-primary/70 mt-0.5 truncate">
+                                      Chose: {step.options[stepChoiceMap[i]].label}
+                                    </p>
+                                  )}
+                                  {isSkipped && (
+                                    <p className="text-[10px] text-muted-foreground/40 mt-0.5">Skipped</p>
+                                  )}
+                                </div>
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               );
             })}
