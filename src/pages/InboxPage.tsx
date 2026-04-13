@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle, Globe, AlertTriangle, Check, Circle, Loader2 } from 'lucide-react';
+import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, TrendingUp, Megaphone, FileText, ChevronDown, ChevronUp, BookOpen, Handshake, Filter, BellDot, ExternalLink, MessageCircle, Globe, AlertTriangle, Check, Circle, Loader2, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message, GameScreen } from '@/types/game';
@@ -343,13 +343,57 @@ const InboxPage = () => {
               const totalSteps = chainDef?.steps.length || 0;
               const targetPlayer = chain.targetPlayerId ? players[chain.targetPlayerId] : null;
               const playerDeparted = chain.targetPlayerId && !targetPlayer;
-              const isExpanded = expandedStoryline === chain.chainId;
-              const progressPct = totalSteps > 0 ? ((chain.currentStep + 1) / totalSteps) * 100 : 0;
+              const playerLabel = targetPlayer
+                ? `${targetPlayer.firstName} ${targetPlayer.lastName}`
+                : 'your star player';
+              // Auto-expand when there's only one storyline, otherwise use toggle state
+              const isExpanded = activeStorylineChains.length === 1
+                ? expandedStoryline !== chain.chainId  // default open, toggle to close
+                : expandedStoryline === chain.chainId;
+              // Progress: use choices.length (actual completions) not currentStep
+              const progressPct = totalSteps > 0 ? (chain.choices.length / totalSteps) * 100 : 0;
+
+              // Build a step-indexed choice map that handles skipped steps.
+              // choices[] is sequential (order of response), so we need to map
+              // each choice to its actual step by walking through steps in order.
+              const stepChoiceMap: Record<number, number> = {};
+              let choiceIdx = 0;
+              if (chainDef) {
+                for (let si = 0; si <= chain.currentStep && si < chainDef.steps.length; si++) {
+                  // A step was responded to if it wasn't skipped (requiredPrevChoice mismatch)
+                  // Skipped steps have no entry — choiceIdx stays where it was
+                  if (choiceIdx < chain.choices.length) {
+                    const step = chainDef.steps[si];
+                    const wasSkipped = si > 0
+                      && step.requiredPrevChoice !== undefined
+                      && stepChoiceMap[si - 1] === undefined  // prev was skipped
+                      ? true
+                      : si > 0
+                        && step.requiredPrevChoice !== undefined
+                        && chain.choices.length > 0
+                        && (() => {
+                            // Find the choice for the preceding step
+                            const prevStepChoice = stepChoiceMap[si - 1];
+                            return prevStepChoice !== undefined && prevStepChoice !== step.requiredPrevChoice;
+                          })()
+                        ? true
+                        : false;
+
+                    if (!wasSkipped) {
+                      stepChoiceMap[si] = chain.choices[choiceIdx];
+                      choiceIdx++;
+                    }
+                  }
+                }
+              }
+
               return (
                 <div key={chain.chainId} className="mb-1 last:mb-0">
                   {/* Collapsed header — always visible */}
                   <button
-                    onClick={() => setExpandedStoryline(prev => prev === chain.chainId ? null : chain.chainId)}
+                    onClick={() => setExpandedStoryline(prev =>
+                      prev === chain.chainId ? null : chain.chainId
+                    )}
                     className={cn(
                       'w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
                       isExpanded ? 'bg-primary/10' : 'bg-muted/30 hover:bg-muted/50'
@@ -360,7 +404,7 @@ const InboxPage = () => {
                         <p className="text-xs font-semibold text-foreground truncate">{chainDef?.name || chain.chainId}</p>
                         {targetPlayer && (
                           <span className="text-[10px] text-amber-400 truncate shrink-0">
-                            {targetPlayer.firstName} {targetPlayer.lastName}
+                            {playerLabel}
                           </span>
                         )}
                         {playerDeparted && (
@@ -378,7 +422,7 @@ const InboxPage = () => {
                           />
                         </div>
                         <span className="text-[10px] text-muted-foreground tabular-nums shrink-0">
-                          {chain.currentStep + 1}/{totalSteps}
+                          {chain.choices.length}/{totalSteps}
                         </span>
                       </div>
                     </div>
@@ -400,55 +444,85 @@ const InboxPage = () => {
                       >
                         <div className="pl-4 pr-3 pt-2 pb-3">
                           {chainDef.steps.map((step, i) => {
-                            const isCompleted = i < chain.currentStep;
-                            const isCurrent = i === chain.currentStep;
+                            // Determine step state using choice map, not just currentStep
+                            const hasChoice = stepChoiceMap[i] !== undefined;
+                            const isActive = i === chain.currentStep;
+                            const isCompleted = hasChoice;
+                            // "Responded but waiting for next advanceWeek to trigger next step"
+                            const isAwaitingAdvance = isActive && hasChoice;
+                            // "Current step, user hasn't responded yet"
+                            const isPending = isActive && !hasChoice;
+                            // Step was skipped due to requiredPrevChoice mismatch
+                            const isSkipped = i < chain.currentStep && !hasChoice;
                             const isUpcoming = i > chain.currentStep;
                             const isLast = i === chainDef.steps.length - 1;
+
                             return (
-                              <div key={i} className="flex gap-3">
+                              <motion.div
+                                key={i}
+                                className="flex gap-3"
+                                initial={{ opacity: 0, x: -6 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: i * 0.06, duration: 0.25 }}
+                              >
                                 {/* Vertical timeline rail */}
                                 <div className="flex flex-col items-center">
                                   <div className={cn(
                                     'w-5 h-5 rounded-full flex items-center justify-center shrink-0 border-2 transition-colors',
                                     isCompleted && 'bg-primary border-primary',
-                                    isCurrent && 'bg-primary/20 border-primary',
+                                    isPending && 'bg-primary/20 border-primary',
+                                    isSkipped && 'bg-muted/40 border-muted-foreground/30',
                                     isUpcoming && 'bg-muted/40 border-muted-foreground/20'
                                   )}>
                                     {isCompleted && <Check className="w-3 h-3 text-primary-foreground" />}
-                                    {isCurrent && <Loader2 className="w-2.5 h-2.5 text-primary animate-spin" />}
+                                    {isPending && <Loader2 className="w-2.5 h-2.5 text-primary animate-spin" />}
+                                    {isSkipped && <span className="text-[8px] text-muted-foreground/40">—</span>}
                                     {isUpcoming && <Circle className="w-2 h-2 text-muted-foreground/30" />}
                                   </div>
                                   {!isLast && (
                                     <div className={cn(
                                       'w-0.5 flex-1 min-h-[16px] rounded-full',
-                                      isCompleted ? 'bg-primary/50' : 'bg-muted-foreground/15'
+                                      (isCompleted || isAwaitingAdvance) ? 'bg-primary/50' : 'bg-muted-foreground/15'
                                     )} />
                                   )}
                                 </div>
                                 {/* Step content */}
                                 <div className={cn('pb-3 flex-1 min-w-0', isLast && 'pb-0')}>
-                                  <p className={cn(
-                                    'text-xs font-semibold leading-5',
-                                    isCompleted && 'text-foreground/60',
-                                    isCurrent && 'text-foreground',
-                                    isUpcoming && 'text-muted-foreground/50'
-                                  )}>
-                                    {step.title}
-                                  </p>
-                                  {isCurrent && (
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={cn(
+                                      'text-[9px] tabular-nums font-medium leading-none mt-px',
+                                      isCompleted ? 'text-primary/60' : isPending ? 'text-primary' : 'text-muted-foreground/30'
+                                    )}>
+                                      {i + 1}
+                                    </span>
+                                    <p className={cn(
+                                      'text-xs font-semibold leading-5',
+                                      isCompleted && 'text-foreground/60',
+                                      isPending && 'text-foreground',
+                                      isSkipped && 'text-muted-foreground/40 line-through',
+                                      isUpcoming && 'text-muted-foreground/50'
+                                    )}>
+                                      {step.title}
+                                    </p>
+                                    {isAwaitingAdvance && (
+                                      <Clock className="w-3 h-3 text-primary/50 shrink-0" />
+                                    )}
+                                  </div>
+                                  {isPending && (
                                     <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">
-                                      {step.body.replace(/\{playerName\}/g,
-                                        targetPlayer ? `${targetPlayer.firstName} ${targetPlayer.lastName}` : 'the player'
-                                      )}
+                                      {step.body.replace(/\{playerName\}/g, playerLabel)}
                                     </p>
                                   )}
-                                  {isCompleted && chain.choices[i] !== undefined && step.options[chain.choices[i]] && (
+                                  {isCompleted && step.options[stepChoiceMap[i]] && (
                                     <p className="text-[10px] text-primary/70 mt-0.5 truncate">
-                                      Chose: {step.options[chain.choices[i]].label}
+                                      Chose: {step.options[stepChoiceMap[i]].label}
                                     </p>
+                                  )}
+                                  {isSkipped && (
+                                    <p className="text-[10px] text-muted-foreground/40 mt-0.5">Skipped</p>
                                   )}
                                 </div>
-                              </div>
+                              </motion.div>
                             );
                           })}
                         </div>
