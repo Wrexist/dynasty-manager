@@ -6,6 +6,7 @@ import { getXPProgress } from '@/utils/managerPerks';
 import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/managerCareer';
 import { getSuffix } from '@/utils/helpers';
 import { getRecentForm } from '@/utils/formGuide';
+import { FormGuide } from '@/components/game/FormGuide';
 import { LEAGUES } from '@/data/league';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
@@ -81,7 +82,7 @@ export function TopBar() {
             <button
               onClick={() => setScreen(backTarget)}
               aria-label="Go back"
-              className="p-3 -ml-3 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="p-2 -ml-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -108,21 +109,7 @@ export function TopBar() {
           ) : (
             <div className="flex items-center gap-1.5 min-w-0">
               <div className="w-5 h-5 rounded-full shrink-0" style={{ backgroundColor: club?.color }} />
-              {hasPlayedMatches && (
-                <div className="flex items-center gap-0.5">
-                  {recentForm.map((r, i) => (
-                    <span
-                      key={i}
-                      className={cn(
-                        'w-3.5 h-3.5 rounded-full flex items-center justify-center text-[8px] font-bold text-white',
-                        r === 'W' ? 'bg-emerald-500' : r === 'D' ? 'bg-amber-500' : 'bg-destructive'
-                      )}
-                    >
-                      {r}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {hasPlayedMatches && <FormGuide form={recentForm} size="sm" />}
               {hasPlayedMatches && pos !== '-' && league && (
                 <span className={cn(
                   'text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0',
