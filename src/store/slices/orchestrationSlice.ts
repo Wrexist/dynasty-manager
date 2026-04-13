@@ -1672,6 +1672,11 @@ function finalizeSeason(
     }
   }
 
+  // Consistency: ensure all divisionClubs entries reference valid clubs
+  for (const [leagueId, clubIds] of Object.entries(newDivisionClubs)) {
+    newDivisionClubs[leagueId] = clubIds.filter(id => newClubs[id]);
+  }
+
   const leagueClubIds = newDivisionClubs[newPlayerDivision] || [];
   const leagueInfo = LEAGUES.find(l => l.id === newPlayerDivision);
   const leagueTotalWeeks = leagueInfo?.totalWeeks || TOTAL_WEEKS;
