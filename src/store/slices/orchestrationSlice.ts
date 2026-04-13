@@ -1902,6 +1902,7 @@ function finalizeSeason(
     sponsorOffers: [],
     sponsorSlotCooldowns: {},
     negotiationStrikes: {},
+    contractStrikes: {},
     merchandise: {
       ...state.merchandise,
       lastSeasonRevenue: state.merchandise.currentSeasonRevenue,
@@ -2529,6 +2530,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sponsorOffers: [],
       sponsorSlotCooldowns: {},
       negotiationStrikes: {},
+      contractStrikes: {},
       merchandise: getDefaultMerchState(),
       fanMood: 50,
       pendingPressConference: null,
@@ -6345,7 +6347,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       sessionStats: { startWeek: 1, startSeason: 1, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 },
       weeklyDigest: null, careerTimeline: [],
       gameMode: 'sandbox', careerManager: null, jobVacancies: [], jobOffers: [],
-      sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {}, negotiationStrikes: {},
+      sponsorDeals: [], sponsorOffers: [], sponsorSlotCooldowns: {}, negotiationStrikes: {}, contractStrikes: {},
       merchandise: getDefaultMerchState(),
       continentalCoefficients: {},
       monetization: {

@@ -485,11 +485,26 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
         contractStrikes: clearedStrikes,
       });
     } else {
-      // Record strike on rejection (final round exhausted), then update negotiation
+      // Atomic: record strike on rejection + update negotiation in one set()
       if (result.status === 'rejected') {
-        get().recordContractStrike(offer.playerId);
+        set(s => {
+          const existing = s.contractStrikes[offer.playerId] || { strikes: 0 };
+          const newStrikes = existing.strikes + 1;
+          const currentAbsoluteWeek = (s.season - 1) * TOTAL_WEEKS + s.week;
+          const cooldownUntil = newStrikes >= CONTRACT_MAX_STRIKES
+            ? currentAbsoluteWeek + CONTRACT_STRIKE_COOLDOWN_WEEKS
+            : undefined;
+          return {
+            activeNegotiation: result,
+            contractStrikes: {
+              ...s.contractStrikes,
+              [offer.playerId]: { strikes: newStrikes, cooldownUntil },
+            },
+          };
+        });
+      } else {
+        set({ activeNegotiation: result });
       }
-      set({ activeNegotiation: result });
     }
   },
 
