@@ -73,6 +73,7 @@ export default defineConfig(() => ({
   },
   build: {
     target: 'es2020',
+    sourcemap: true,
     rollupOptions: {
       // AdMob plugin excluded from build until production ad IDs are configured.
       // Dynamic imports in ads.ts are guarded and never reached.

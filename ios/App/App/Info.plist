@@ -47,6 +47,8 @@
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>We use this to personalise ads and measure their effectiveness. You can opt out at any time in device Settings.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoadsInWebContent</key>
