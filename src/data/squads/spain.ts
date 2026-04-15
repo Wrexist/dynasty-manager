@@ -2,7 +2,7 @@ import type { PlayerTemplate } from '@/data/playerTemplates';
 
 // esp — Auto-generated from FC25 data
 export const SQUADS: Record<string, PlayerTemplate[]> = {
-  'athletic-club': [
+  'athletic-bilbao': [
     { fn: 'Unai', ln: 'Simón', pos: 'GK', age: 27, nat: 'Spain', ovr: 86, pot: 88 },
     { fn: 'Agirrezabala', ln: 'Agirrezabala', pos: 'GK', age: 23, nat: 'Spain', ovr: 77, pot: 85 },
     { fn: 'Álex', ln: 'Padilla', pos: 'GK', age: 21, nat: 'Mexico', ovr: 63, pot: 72 },
@@ -30,7 +30,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Egiluz', ln: 'Egiluz', pos: 'CB', age: 22, nat: 'Spain', ovr: 64, pot: 68 },
     { fn: 'Jauregizar', ln: 'Jauregizar', pos: 'CM', age: 20, nat: 'Spain', ovr: 64, pot: 77 },
   ],
-  'atletico-de-madrid': [
+  'atletico-madrid': [
     { fn: 'Jan', ln: 'Oblak', pos: 'GK', age: 31, nat: 'Slovenia', ovr: 88, pot: 86 },
     { fn: 'Juan', ln: 'Musso', pos: 'GK', age: 30, nat: 'Argentina', ovr: 79, pot: 79 },
     { fn: 'Antonio', ln: 'Gomis', pos: 'GK', age: 21, nat: 'Spain', ovr: 68, pot: 73 },
@@ -59,7 +59,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Ilias', ln: 'Kostis', pos: 'CB', age: 21, nat: 'Greece', ovr: 67, pot: 76 },
     { fn: 'Javi', ln: 'Serrano', pos: 'CDM', age: 21, nat: 'Spain', ovr: 63, pot: 71 },
   ],
-  'ca-osasuna': [
+  'osasuna': [
     { fn: 'Sergio', ln: 'Herrera', pos: 'GK', age: 31, nat: 'Spain', ovr: 78, pot: 76 },
     { fn: 'Aitor', ln: 'Aitor', pos: 'GK', age: 33, nat: 'Spain', ovr: 77, pot: 75 },
     { fn: 'Dimitrios', ln: 'Stamatakis', pos: 'GK', age: 21, nat: 'Greece', ovr: 60, pot: 63 },
@@ -88,7 +88,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Iker', ln: 'Muñoz', pos: 'CM', age: 21, nat: 'Spain', ovr: 63, pot: 69 },
     { fn: 'Noel', ln: 'Noel', pos: 'ST', age: 21, nat: 'Spain', ovr: 62, pot: 68 },
   ],
-  'cd-leganes': [
+  'leganes': [
     { fn: 'Marko', ln: 'Dmitrović', pos: 'GK', age: 32, nat: 'Serbia', ovr: 78, pot: 76 },
     { fn: 'Juan', ln: 'Soriano', pos: 'GK', age: 27, nat: 'Spain', ovr: 74, pot: 78 },
     { fn: 'Sébastien', ln: 'Haller', pos: 'ST', age: 30, nat: 'Côte d\'Ivoire', ovr: 79, pot: 79 },
@@ -111,7 +111,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Altimira', ln: 'Altimira', pos: 'RB', age: 23, nat: 'Spain', ovr: 66, pot: 72 },
     { fn: 'Naim', ln: 'García', pos: 'RM', age: 22, nat: 'Spain', ovr: 64, pot: 74 },
   ],
-  'd-alaves': [
+  'deportivo-alaves': [
     { fn: 'Sivera', ln: 'Sivera', pos: 'GK', age: 28, nat: 'Spain', ovr: 74, pot: 74 },
     { fn: 'Owono', ln: 'Owono', pos: 'GK', age: 23, nat: 'Equatorial Guinea', ovr: 66, pot: 72 },
     { fn: 'Joan', ln: 'Jordán', pos: 'CM', age: 30, nat: 'Spain', ovr: 78, pot: 78 },
@@ -138,7 +138,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Eneko', ln: 'Ortiz', pos: 'LB', age: 21, nat: 'Spain', ovr: 63, pot: 66 },
     { fn: 'Tomás', ln: 'Mendes', pos: 'CM', age: 19, nat: 'Spain', ovr: 60, pot: 75 },
   ],
-  'fc-barcelona': [
+  'barcelona': [
     { fn: 'Marc-André', ln: 'ter Stegen', pos: 'GK', age: 32, nat: 'Germany', ovr: 89, pot: 87 },
     { fn: 'Iñaki', ln: 'Peña', pos: 'GK', age: 25, nat: 'Spain', ovr: 73, pot: 74 },
     { fn: 'Astralaga', ln: 'Astralaga', pos: 'GK', age: 20, nat: 'Spain', ovr: 62, pot: 74 },
@@ -165,7 +165,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Héctor', ln: 'Fort', pos: 'RB', age: 18, nat: 'Spain', ovr: 65, pot: 80 },
     { fn: 'Pau', ln: 'Víctor', pos: 'ST', age: 22, nat: 'Spain', ovr: 62, pot: 71 },
   ],
-  'getafe-cf': [
+  'getafe': [
     { fn: 'David', ln: 'Soria', pos: 'GK', age: 31, nat: 'Spain', ovr: 81, pot: 79 },
     { fn: 'Borja', ln: 'Mayoral', pos: 'ST', age: 27, nat: 'Spain', ovr: 79, pot: 83 },
     { fn: 'Mauro', ln: 'Arambarri', pos: 'CDM', age: 28, nat: 'Uruguay', ovr: 78, pot: 78 },
@@ -190,7 +190,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Nabil', ln: 'Aberdin', pos: 'CB', age: 22, nat: 'France', ovr: 57, pot: 60 },
     { fn: 'Alberto', ln: 'Risco', pos: 'CAM', age: 19, nat: 'Spain', ovr: 55, pot: 67 },
   ],
-  'girona-fc': [
+  'girona': [
     { fn: 'Paulo', ln: 'Gazzaniga', pos: 'GK', age: 32, nat: 'Argentina', ovr: 82, pot: 80 },
     { fn: 'Pau', ln: 'López', pos: 'GK', age: 29, nat: 'Spain', ovr: 79, pot: 79 },
     { fn: 'Juan', ln: 'Carlos', pos: 'GK', age: 36, nat: 'Spain', ovr: 73, pot: 71 },
@@ -218,7 +218,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Ricard', ln: 'Artero', pos: 'CAM', age: 21, nat: 'Spain', ovr: 64, pot: 72 },
     { fn: 'Iker', ln: 'Almena', pos: 'RM', age: 20, nat: 'Spain', ovr: 62, pot: 70 },
   ],
-  'r-valladolid-cf': [
+  'real-valladolid': [
     { fn: 'André', ln: 'Ferreira', pos: 'GK', age: 28, nat: 'Portugal', ovr: 70, pot: 70 },
     { fn: 'Aceves', ln: 'Aceves', pos: 'GK', age: 21, nat: 'Spain', ovr: 69, pot: 74 },
     { fn: 'Karl', ln: 'Hein', pos: 'GK', age: 22, nat: 'Estonia', ovr: 64, pot: 72 },
@@ -247,7 +247,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Chuki', ln: 'Chuki', pos: 'CAM', age: 20, nat: 'Spain', ovr: 64, pot: 81 },
     { fn: 'Eugene', ln: 'Frimpong', pos: 'CM', age: 21, nat: 'Ghana', ovr: 61, pot: 66 },
   ],
-  'rc-celta': [
+  'celta-vigo': [
     { fn: 'Guaita', ln: 'Guaita', pos: 'GK', age: 37, nat: 'Spain', ovr: 78, pot: 76 },
     { fn: 'Iván', ln: 'Villar', pos: 'GK', age: 27, nat: 'Spain', ovr: 74, pot: 76 },
     { fn: 'Marc', ln: 'Vidal', pos: 'GK', age: 24, nat: 'Spain', ovr: 61, pot: 62 },
@@ -275,7 +275,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Hugo', ln: 'Sotelo', pos: 'CM', age: 20, nat: 'Spain', ovr: 63, pot: 80 },
     { fn: 'Javi', ln: 'Rodríguez', pos: 'RB', age: 21, nat: 'Spain', ovr: 57, pot: 65 },
   ],
-  'rcd-espanyol': [
+  'espanyol': [
     { fn: 'Joan', ln: 'García', pos: 'GK', age: 23, nat: 'Spain', ovr: 76, pot: 79 },
     { fn: 'Pacheco', ln: 'Pacheco', pos: 'GK', age: 32, nat: 'Spain', ovr: 73, pot: 71 },
     { fn: 'Fortuño', ln: 'Fortuño', pos: 'GK', age: 22, nat: 'Spain', ovr: 65, pot: 69 },
@@ -307,7 +307,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Marc', ln: 'Jurado', pos: 'RB', age: 20, nat: 'Spain', ovr: 62, pot: 72 },
     { fn: 'Català', ln: 'Català', pos: 'CB', age: 20, nat: 'Spain', ovr: 61, pot: 78 },
   ],
-  'rcd-mallorca': [
+  'mallorca': [
     { fn: 'Leo', ln: 'Román', pos: 'GK', age: 24, nat: 'Spain', ovr: 73, pot: 74 },
     { fn: 'Dominik', ln: 'Greif', pos: 'GK', age: 27, nat: 'Slovakia', ovr: 70, pot: 72 },
     { fn: 'Iván', ln: 'Cuéllar', pos: 'GK', age: 40, nat: 'Spain', ovr: 67, pot: 65 },
@@ -449,7 +449,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Magunazelaia', ln: 'Magunazelaia', pos: 'CAM', age: 23, nat: 'Spain', ovr: 63, pot: 68 },
     { fn: 'Jon', ln: 'Martín', pos: 'CB', age: 18, nat: 'Spain', ovr: 58, pot: 68 },
   ],
-  'sevilla-fc': [
+  'sevilla': [
     { fn: 'Ørjan', ln: 'Nyland', pos: 'GK', age: 34, nat: 'Norway', ovr: 76, pot: 74 },
     { fn: 'Alberto', ln: 'Flores', pos: 'GK', age: 20, nat: 'Spain', ovr: 65, pot: 81 },
     { fn: 'Suso', ln: 'Suso', pos: 'RM', age: 30, nat: 'Spain', ovr: 80, pot: 80 },
@@ -480,7 +480,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Stanis', ln: 'Idumbo', pos: 'CAM', age: 19, nat: 'Belgium', ovr: 60, pot: 75 },
     { fn: 'Ibrahima', ln: 'Sow', pos: 'ST', age: 17, nat: 'Senegal', ovr: 60, pot: 68 },
   ],
-  'ud-las-palmas': [
+  'las-palmas': [
     { fn: 'Álvaro', ln: 'Valles', pos: 'GK', age: 27, nat: 'Spain', ovr: 81, pot: 84 },
     { fn: 'Jasper', ln: 'Cillessen', pos: 'GK', age: 35, nat: 'Holland', ovr: 77, pot: 75 },
     { fn: 'Dinko', ln: 'Horkaš', pos: 'GK', age: 25, nat: 'Croatia', ovr: 64, pot: 67 },
@@ -511,7 +511,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Iván', ln: 'Gil', pos: 'CM', age: 24, nat: 'Spain', ovr: 68, pot: 69 },
     { fn: 'Cédric', ln: 'Cédric', pos: 'ST', age: 22, nat: 'Cameroon', ovr: 66, pot: 69 },
   ],
-  'valencia-cf': [
+  'valencia': [
     { fn: 'Giorgi', ln: 'Mamardashvili', pos: 'GK', age: 23, nat: 'Georgia', ovr: 85, pot: 89 },
     { fn: 'Stole', ln: 'Dimitrievski', pos: 'GK', age: 30, nat: 'North Macedonia', ovr: 79, pot: 79 },
     { fn: 'Jaume', ln: 'Jaume', pos: 'GK', age: 33, nat: 'Spain', ovr: 72, pot: 70 },
@@ -544,7 +544,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Domi', ln: 'Domi', pos: 'ST', age: 20, nat: 'Spain', ovr: 60, pot: 71 },
     { fn: 'Ali', ln: 'Fadal', pos: 'CM', age: 20, nat: 'Ghana', ovr: 59, pot: 67 },
   ],
-  'villarreal-cf': [
+  'villarreal': [
     { fn: 'Luiz', ln: 'Júnior', pos: 'GK', age: 23, nat: 'Brazil', ovr: 76, pot: 82 },
     { fn: 'Diego', ln: 'Conde', pos: 'GK', age: 25, nat: 'Spain', ovr: 73, pot: 77 },
     { fn: 'Iker', ln: 'Álvarez', pos: 'GK', age: 23, nat: 'Andorra', ovr: 67, pot: 72 },

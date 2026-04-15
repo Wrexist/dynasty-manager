@@ -58,7 +58,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Adam', ln: 'Montgomery', pos: 'LB', age: 22, nat: 'Scotland', ovr: 63, pot: 67 },
     { fn: 'Dane', ln: 'Murray', pos: 'CB', age: 21, nat: 'Scotland', ovr: 59, pot: 67 },
   ],
-  'dundee-fc': [
+  'dundee': [
     { fn: 'Trevor', ln: 'Carson', pos: 'GK', age: 36, nat: 'Northern Ireland', ovr: 65, pot: 63 },
     { fn: 'Jon', ln: 'McCracken', pos: 'GK', age: 24, nat: 'Scotland', ovr: 63, pot: 67 },
     { fn: 'Adam', ln: 'Legzdins', pos: 'GK', age: 37, nat: 'England', ovr: 62, pot: 60 },

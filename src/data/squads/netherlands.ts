@@ -2,7 +2,7 @@ import type { PlayerTemplate } from '@/data/playerTemplates';
 
 // ned — Auto-generated from FC25 data
 export const SQUADS: Record<string, PlayerTemplate[]> = {
-  'az': [
+  'az-alkmaar': [
     { fn: 'Jeroen', ln: 'Zoet', pos: 'GK', age: 33, nat: 'Holland', ovr: 71, pot: 69 },
     { fn: 'Rome-Jayden', ln: 'Owusu-Oduro', pos: 'GK', age: 20, nat: 'Holland', ovr: 69, pot: 78 },
     { fn: 'Hobie', ln: 'Verhulst', pos: 'GK', age: 31, nat: 'Holland', ovr: 67, pot: 65 },
@@ -65,7 +65,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Jaydon', ln: 'Banel', pos: 'LW', age: 19, nat: 'Holland', ovr: 64, pot: 75 },
     { fn: 'Julian', ln: 'Rijkhoff', pos: 'ST', age: 19, nat: 'Holland', ovr: 64, pot: 73 },
   ],
-  'almere-city-fc': [
+  'almere-city': [
     { fn: 'Nordin', ln: 'Bakker', pos: 'GK', age: 26, nat: 'Holland', ovr: 68, pot: 69 },
     { fn: 'Jonas', ln: 'Wendlinger', pos: 'GK', age: 24, nat: 'Austria', ovr: 62, pot: 65 },
     { fn: 'Stijn', ln: 'Keller', pos: 'GK', age: 24, nat: 'Switzerland', ovr: 58, pot: 59 },
@@ -345,7 +345,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Damian', ln: 'van der Haar', pos: 'CB', age: 20, nat: 'Holland', ovr: 59, pot: 73 },
     { fn: 'Mohamed', ln: 'Oukhattou', pos: 'CAM', age: 19, nat: 'Holland', ovr: 56, pot: 64 },
   ],
-  'psv': [
+  'psv-eindhoven': [
     { fn: 'Walter', ln: 'Benítez', pos: 'GK', age: 31, nat: 'Argentina', ovr: 80, pot: 78 },
     { fn: 'Joël', ln: 'Drommel', pos: 'GK', age: 27, nat: 'Holland', ovr: 73, pot: 77 },
     { fn: 'Niek', ln: 'Schiks', pos: 'GK', age: 20, nat: 'Holland', ovr: 63, pot: 71 },
@@ -446,7 +446,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Valentino', ln: 'Vermeulen', pos: 'RB', age: 23, nat: 'Holland', ovr: 62, pot: 72 },
     { fn: 'Khaled', ln: 'Razak', pos: 'RW', age: 18, nat: 'Holland', ovr: 57, pot: 70 },
   ],
-  'sc-heerenveen': [
+  'heerenveen': [
     { fn: 'Andries', ln: 'Noppert', pos: 'GK', age: 30, nat: 'Holland', ovr: 73, pot: 73 },
     { fn: 'Mickey', ln: 'van der Hart', pos: 'GK', age: 30, nat: 'Holland', ovr: 67, pot: 67 },
     { fn: 'Jan', ln: 'Bekkema', pos: 'GK', age: 28, nat: 'Holland', ovr: 61, pot: 61 },

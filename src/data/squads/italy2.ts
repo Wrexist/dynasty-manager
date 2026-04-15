@@ -219,6 +219,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Alex', ln: 'Redolfi', pos: 'CB', age: 30, nat: 'Italy', ovr: 67, pot: 67 },
     { fn: 'Matteo', ln: 'Solini', pos: 'CB', age: 31, nat: 'Italy', ovr: 66, pot: 64 },
     { fn: 'Simone', ln: 'Trimboli', pos: 'CDM', age: 22, nat: 'Italy', ovr: 65, pot: 73 },
+    { fn: 'Marco', ln: 'Bianchi', pos: 'CM', age: 24, nat: 'Italy', ovr: 55, pot: 58 },
   ],
   'modena': [
     { fn: 'Riccardo', ln: 'Gagno', pos: 'GK', age: 27, nat: 'Italy', ovr: 68, pot: 69 },
@@ -330,6 +331,9 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Nicola', ln: 'Mosti', pos: 'CAM', age: 26, nat: 'Italy', ovr: 64, pot: 65 },
     { fn: 'Kevin', ln: 'Piscopo', pos: 'CAM', age: 26, nat: 'Italy', ovr: 61, pot: 63 },
     { fn: 'Marco', ln: 'Meli', pos: 'CAM', age: 24, nat: 'Italy', ovr: 60, pot: 64 },
+    { fn: 'Luca', ln: 'Esposito', pos: 'RB', age: 23, nat: 'Italy', ovr: 56, pot: 60 },
+    { fn: 'Antonio', ln: 'Romano', pos: 'CM', age: 25, nat: 'Italy', ovr: 57, pot: 58 },
+    { fn: 'Giuseppe', ln: 'Moretti', pos: 'RW', age: 22, nat: 'Italy', ovr: 55, pot: 62 },
   ],
   'salernitana': [
     { fn: 'Luigi', ln: 'Sepe', pos: 'GK', age: 33, nat: 'Italy', ovr: 73, pot: 71 },

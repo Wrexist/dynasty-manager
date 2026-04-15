@@ -2,7 +2,7 @@ import type { PlayerTemplate } from '@/data/playerTemplates';
 
 // ger — Auto-generated from FC25 data
 export const SQUADS: Record<string, PlayerTemplate[]> = {
-  '1-fsv-mainz-05': [
+  'mainz-05': [
     { fn: 'Robin', ln: 'Zentner', pos: 'GK', age: 29, nat: 'Germany', ovr: 75, pot: 75 },
     { fn: 'Daniel', ln: 'Batz', pos: 'GK', age: 33, nat: 'Germany', ovr: 71, pot: 69 },
     { fn: 'Lasse', ln: 'Rieß', pos: 'GK', age: 23, nat: 'Germany', ovr: 63, pot: 67 },
@@ -53,7 +53,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Kjell', ln: 'Wätjen', pos: 'CM', age: 18, nat: 'Germany', ovr: 65, pot: 81 },
     { fn: 'Cole', ln: 'Campbell', pos: 'RM', age: 18, nat: 'United States', ovr: 64, pot: 77 },
   ],
-  'fc-augsburg': [
+  'augsburg': [
     { fn: 'Finn', ln: 'Dahmen', pos: 'GK', age: 26, nat: 'Germany', ovr: 74, pot: 75 },
     { fn: 'Nediljko', ln: 'Labrović', pos: 'GK', age: 24, nat: 'Croatia', ovr: 73, pot: 74 },
     { fn: 'Daniel', ln: 'Klein', pos: 'GK', age: 23, nat: 'Germany', ovr: 61, pot: 67 },
@@ -81,7 +81,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Noahkai', ln: 'Banks', pos: 'CB', age: 17, nat: 'United States', ovr: 61, pot: 75 },
     { fn: 'Henri', ln: 'Koudossou', pos: 'RM', age: 25, nat: 'Germany', ovr: 60, pot: 62 },
   ],
-  'fc-bayern-munchen': [
+  'bayern-munich': [
     { fn: 'Manuel', ln: 'Neuer', pos: 'GK', age: 38, nat: 'Germany', ovr: 86, pot: 84 },
     { fn: 'Sven', ln: 'Ulreich', pos: 'GK', age: 36, nat: 'Germany', ovr: 74, pot: 72 },
     { fn: 'Daniel', ln: 'Peretz', pos: 'GK', age: 24, nat: 'Israel', ovr: 72, pot: 75 },
@@ -110,7 +110,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Arijon', ln: 'Ibrahimović', pos: 'LW', age: 18, nat: 'Germany', ovr: 62, pot: 74 },
     { fn: 'Tarek', ln: 'Buchmann', pos: 'CB', age: 19, nat: 'Germany', ovr: 60, pot: 69 },
   ],
-  'fc-st-pauli': [
+  'st-pauli': [
     { fn: 'Nikola', ln: 'Vasilj', pos: 'GK', age: 28, nat: 'Bosnia and Herzegovina', ovr: 70, pot: 70 },
     { fn: 'Sascha', ln: 'Burchert', pos: 'GK', age: 34, nat: 'Germany', ovr: 67, pot: 65 },
     { fn: 'Ben', ln: 'Voll', pos: 'GK', age: 23, nat: 'Germany', ovr: 66, pot: 71 },
@@ -140,7 +140,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Fin', ln: 'Stevens', pos: 'RB', age: 21, nat: 'Wales', ovr: 63, pot: 72 },
     { fn: 'Luca', ln: 'Günther', pos: 'RB', age: 22, nat: 'Germany', ovr: 59, pot: 62 },
   ],
-  'frankfurt': [
+  'eintracht-frankfurt': [
     { fn: 'Kevin', ln: 'Trapp', pos: 'GK', age: 34, nat: 'Germany', ovr: 82, pot: 80 },
     { fn: 'Jens', ln: 'Grahl', pos: 'GK', age: 35, nat: 'Germany', ovr: 66, pot: 64 },
     { fn: 'Kauã', ln: 'Santos', pos: 'GK', age: 21, nat: 'Brazil', ovr: 61, pot: 67 },
@@ -169,7 +169,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Oscar', ln: 'Højlund', pos: 'CM', age: 19, nat: 'Denmark', ovr: 64, pot: 72 },
     { fn: 'Nnamdi', ln: 'Collins', pos: 'CB', age: 20, nat: 'Germany', ovr: 63, pot: 72 },
   ],
-  'heidenheim': [
+  'fc-heidenheim': [
     { fn: 'Kevin', ln: 'Müller', pos: 'GK', age: 33, nat: 'Germany', ovr: 75, pot: 73 },
     { fn: 'Vitus', ln: 'Eicher', pos: 'GK', age: 33, nat: 'Germany', ovr: 66, pot: 64 },
     { fn: 'Frank', ln: 'Feller', pos: 'GK', age: 20, nat: 'Germany', ovr: 59, pot: 72 },
@@ -228,7 +228,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Andu', ln: 'Kelati', pos: 'LW', age: 22, nat: 'Germany', ovr: 61, pot: 69 },
     { fn: 'Aurel', ln: 'Wagbe', pos: 'LM', age: 20, nat: 'Germany', ovr: 59, pot: 73 },
   ],
-  'leverkusen': [
+  'bayer-leverkusen': [
     { fn: 'Lukáš', ln: 'Hrádecký', pos: 'GK', age: 34, nat: 'Finland', ovr: 84, pot: 82 },
     { fn: 'Matěj', ln: 'Kovář', pos: 'GK', age: 24, nat: 'Czech Republic', ovr: 76, pot: 77 },
     { fn: 'Niklas', ln: 'Lomb', pos: 'GK', age: 31, nat: 'Germany', ovr: 66, pot: 64 },
@@ -254,7 +254,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Sadik', ln: 'Fofana', pos: 'CB', age: 21, nat: 'Germany', ovr: 65, pot: 73 },
     { fn: 'Ayman', ln: 'Aourir', pos: 'CAM', age: 19, nat: 'Morocco', ovr: 61, pot: 71 },
   ],
-  'mgladbach': [
+  'borussia-monchengladbach': [
     { fn: 'Jonas', ln: 'Omlin', pos: 'GK', age: 30, nat: 'Switzerland', ovr: 79, pot: 79 },
     { fn: 'Moritz', ln: 'Nicolas', pos: 'GK', age: 26, nat: 'Germany', ovr: 73, pot: 75 },
     { fn: 'Jan', ln: 'Olschowsky', pos: 'GK', age: 22, nat: 'Germany', ovr: 69, pot: 79 },
@@ -307,7 +307,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Assan', ln: 'Ouédraogo', pos: 'CAM', age: 18, nat: 'Germany', ovr: 69, pot: 86 },
     { fn: 'El', ln: 'Chadaille Bitshiabu', pos: 'CB', age: 19, nat: 'France', ovr: 68, pot: 79 },
   ],
-  'sc-freiburg': [
+  'freiburg': [
     { fn: 'Noah', ln: 'Atubolu', pos: 'GK', age: 22, nat: 'Germany', ovr: 73, pot: 76 },
     { fn: 'Florian', ln: 'Müller', pos: 'GK', age: 26, nat: 'Germany', ovr: 72, pot: 75 },
     { fn: 'Jannik', ln: 'Huth', pos: 'GK', age: 30, nat: 'Germany', ovr: 69, pot: 69 },
@@ -338,7 +338,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Berkay', ln: 'Yilmaz', pos: 'LB', age: 19, nat: 'Turkey', ovr: 60, pot: 69 },
     { fn: 'Johan', ln: 'Manzambi', pos: 'CM', age: 18, nat: 'Switzerland', ovr: 58, pot: 70 },
   ],
-  'sv-werder-bremen': [
+  'werder-bremen': [
     { fn: 'Michael', ln: 'Zetterer', pos: 'GK', age: 29, nat: 'Germany', ovr: 76, pot: 76 },
     { fn: 'Markus', ln: 'Kolke', pos: 'GK', age: 34, nat: 'Germany', ovr: 71, pot: 69 },
     { fn: 'Mio', ln: 'Backhaus', pos: 'GK', age: 20, nat: 'Germany', ovr: 65, pot: 73 },
@@ -367,7 +367,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Isak', ln: 'Hansen-Aarøen', pos: 'CAM', age: 20, nat: 'Norway', ovr: 62, pot: 70 },
     { fn: 'Leon', ln: 'Opitz', pos: 'LM', age: 19, nat: 'Germany', ovr: 60, pot: 72 },
   ],
-  'tsg-hoffenheim': [
+  'hoffenheim': [
     { fn: 'Oliver', ln: 'Baumann', pos: 'GK', age: 34, nat: 'Germany', ovr: 82, pot: 80 },
     { fn: 'Luca', ln: 'Philipp', pos: 'GK', age: 23, nat: 'Germany', ovr: 65, pot: 71 },
     { fn: 'Lúkas', ln: 'Petersson', pos: 'GK', age: 20, nat: 'Iceland', ovr: 58, pot: 73 },
@@ -426,7 +426,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Ivan', ln: 'Prtajin', pos: 'ST', age: 28, nat: 'Croatia', ovr: 70, pot: 70 },
     { fn: 'Aljoscha', ln: 'Kemlein', pos: 'CM', age: 20, nat: 'Germany', ovr: 68, pot: 79 },
   ],
-  'vfb-stuttgart': [
+  'stuttgart': [
     { fn: 'Alexander', ln: 'Nübel', pos: 'GK', age: 27, nat: 'Germany', ovr: 80, pot: 83 },
     { fn: 'Fabian', ln: 'Bredlow', pos: 'GK', age: 29, nat: 'Germany', ovr: 71, pot: 71 },
     { fn: 'Stefan', ln: 'Drljača', pos: 'GK', age: 25, nat: 'Germany', ovr: 66, pot: 67 },
@@ -458,7 +458,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Thomas', ln: 'Kastanaras', pos: 'ST', age: 21, nat: 'Germany', ovr: 63, pot: 70 },
     { fn: 'Luca', ln: 'Raimund', pos: 'CAM', age: 19, nat: 'Germany', ovr: 62, pot: 75 },
   ],
-  'vfl-bochum-1848': [
+  'bochum': [
     { fn: 'Manuel', ln: 'Riemann', pos: 'GK', age: 36, nat: 'Germany', ovr: 76, pot: 74 },
     { fn: 'Patrick', ln: 'Drewes', pos: 'GK', age: 31, nat: 'Germany', ovr: 73, pot: 71 },
     { fn: 'Timo', ln: 'Horn', pos: 'GK', age: 31, nat: 'Germany', ovr: 72, pot: 70 },
@@ -490,7 +490,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Mohammed', ln: 'Tolba', pos: 'RB', age: 20, nat: 'Germany', ovr: 61, pot: 69 },
     { fn: 'Mats', ln: 'Pannewig', pos: 'CM', age: 20, nat: 'Germany', ovr: 60, pot: 71 },
   ],
-  'vfl-wolfsburg': [
+  'wolfsburg': [
     { fn: 'Kamil', ln: 'Grabara', pos: 'GK', age: 25, nat: 'Poland', ovr: 75, pot: 78 },
     { fn: 'Marius', ln: 'Müller', pos: 'GK', age: 31, nat: 'Germany', ovr: 74, pot: 72 },
     { fn: 'Pavao', ln: 'Pervan', pos: 'GK', age: 36, nat: 'Austria', ovr: 73, pot: 71 },

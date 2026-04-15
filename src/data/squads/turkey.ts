@@ -59,7 +59,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Emrecan', ln: 'Uzunhan', pos: 'CB', age: 23, nat: 'Turkey', ovr: 62, pot: 68 },
     { fn: 'Emre', ln: 'Uzun', pos: 'CM', age: 19, nat: 'Turkey', ovr: 55, pot: 64 },
   ],
-  'baakehir': [
+  'istanbul-basaksehir': [
     { fn: 'Volkan', ln: 'Babacan', pos: 'GK', age: 36, nat: 'Turkey', ovr: 70, pot: 68 },
     { fn: 'Muhammed', ln: 'Şengezer', pos: 'GK', age: 27, nat: 'Turkey', ovr: 67, pot: 71 },
     { fn: 'Deniz', ln: 'Dilmen', pos: 'GK', age: 19, nat: 'Turkey', ovr: 64, pot: 78 },
@@ -86,7 +86,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Ömer', ln: 'Beyaz', pos: 'CAM', age: 21, nat: 'Turkey', ovr: 65, pot: 74 },
     { fn: 'Eren', ln: 'Karaağaç', pos: 'LB', age: 20, nat: 'Turkey', ovr: 57, pot: 66 },
   ],
-  'beikta': [
+  'besiktas': [
     { fn: 'Mert', ln: 'Günok', pos: 'GK', age: 35, nat: 'Turkey', ovr: 77, pot: 75 },
     { fn: 'Ersin', ln: 'Destanoğlu', pos: 'GK', age: 23, nat: 'Turkey', ovr: 73, pot: 76 },
     { fn: 'Rafa', ln: 'Rafa', pos: 'CAM', age: 31, nat: 'Portugal', ovr: 83, pot: 81 },
@@ -126,6 +126,8 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'George', ln: 'Pușcaș', pos: 'ST', age: 28, nat: 'Romania', ovr: 67, pot: 67 },
     { fn: 'Haqi', ln: 'Osman', pos: 'LM', age: 22, nat: 'Ghana', ovr: 58, pot: 66 },
     { fn: 'Cenk', ln: 'Şen', pos: 'LB', age: 23, nat: 'Turkey', ovr: 51, pot: 56 },
+    { fn: 'Emre', ln: 'Yılmaz', pos: 'RB', age: 25, nat: 'Turkey', ovr: 56, pot: 58 },
+    { fn: 'Burak', ln: 'Kaya', pos: 'CM', age: 24, nat: 'Turkey', ovr: 57, pot: 60 },
   ],
   'eyupspor': [
     { fn: 'Berke', ln: 'Özer', pos: 'GK', age: 24, nat: 'Turkey', ovr: 68, pot: 70 },
@@ -200,7 +202,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Yusuf', ln: 'Demir', pos: 'RM', age: 21, nat: 'Austria', ovr: 67, pot: 71 },
     { fn: 'Halil', ln: 'İbrahim Dervişoğlu', pos: 'ST', age: 24, nat: 'Turkey', ovr: 67, pot: 69 },
   ],
-  'gaziantep': [
+  'gaziantep-fk': [
     { fn: 'Sokratis', ln: 'Dioudis', pos: 'GK', age: 31, nat: 'Greece', ovr: 70, pot: 68 },
     { fn: 'Mustafa', ln: 'Burak Bozan', pos: 'GK', age: 24, nat: 'Turkey', ovr: 61, pot: 64 },
     { fn: 'Alexandru', ln: 'Maxim', pos: 'CAM', age: 34, nat: 'Romania', ovr: 75, pot: 73 },
@@ -261,7 +263,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Cengiz', ln: 'Demir', pos: 'CB', age: 23, nat: 'Turkey', ovr: 61, pot: 66 },
     { fn: 'Oğuzhan', ln: 'Matur', pos: 'LB', age: 25, nat: 'Turkey', ovr: 56, pot: 58 },
   ],
-  'kasmpaa': [
+  'kasimpasa': [
     { fn: 'Andreas', ln: 'Gianniotis', pos: 'GK', age: 31, nat: 'Greece', ovr: 74, pot: 72 },
     { fn: 'Ali', ln: 'Emre Yanar', pos: 'GK', age: 26, nat: 'Turkey', ovr: 60, pot: 62 },
     { fn: 'Haris', ln: 'Hajradinović', pos: 'CM', age: 30, nat: 'Bosnia and Herzegovina', ovr: 74, pot: 74 },

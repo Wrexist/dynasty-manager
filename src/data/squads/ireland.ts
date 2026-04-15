@@ -203,7 +203,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Stefan', ln: 'Radosavljevic', pos: 'LM', age: 24, nat: 'Faroe Islands', ovr: 57, pot: 60 },
     { fn: 'Owen', ln: 'Elding', pos: 'ST', age: 18, nat: 'Republic of Ireland', ovr: 54, pot: 66 },
   ],
-  'st-pats': [
+  'st-patricks-athletic': [
     { fn: 'Joseph', ln: 'Anang', pos: 'GK', age: 24, nat: 'England', ovr: 64, pot: 66 },
     { fn: 'Danny', ln: 'Rogers', pos: 'GK', age: 30, nat: 'Republic of Ireland', ovr: 59, pot: 59 },
     { fn: 'Matt', ln: 'Boylan', pos: 'GK', age: 20, nat: 'Republic of Ireland', ovr: 53, pot: 65 },

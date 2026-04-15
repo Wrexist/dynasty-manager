@@ -26,7 +26,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Samuel', ln: 'Dahl', pos: 'LB', age: 21, nat: 'Sweden', ovr: 69, pot: 79 },
     { fn: 'Niccolò', ln: 'Pisilli', pos: 'CM', age: 19, nat: 'Italy', ovr: 65, pot: 82 },
   ],
-  'bergamo-calcio': [
+  'atalanta': [
     { fn: 'Marco', ln: 'Carnesecchi', pos: 'GK', age: 24, nat: 'Italy', ovr: 82, pot: 84 },
     { fn: 'Rui', ln: 'Patrício', pos: 'GK', age: 36, nat: 'Portugal', ovr: 76, pot: 74 },
     { fn: 'Francesco', ln: 'Rossi', pos: 'GK', age: 33, nat: 'Italy', ovr: 61, pot: 59 },
@@ -290,7 +290,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Kenan', ln: 'Yıldız', pos: 'LW', age: 19, nat: 'Turkey', ovr: 70, pot: 81 },
     { fn: 'Facundo', ln: 'González', pos: 'CB', age: 21, nat: 'Uruguay', ovr: 65, pot: 70 },
   ],
-  'latium': [
+  'lazio': [
     { fn: 'Ivan', ln: 'Provedel', pos: 'GK', age: 30, nat: 'Italy', ovr: 83, pot: 83 },
     { fn: 'Christos', ln: 'Mandas', pos: 'GK', age: 22, nat: 'Greece', ovr: 72, pot: 75 },
     { fn: 'Alessio', ln: 'Furlanetto', pos: 'GK', age: 22, nat: 'Italy', ovr: 61, pot: 71 },
@@ -351,7 +351,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Rares', ln: 'Burnete', pos: 'ST', age: 20, nat: 'Romania', ovr: 61, pot: 74 },
     { fn: 'Medon', ln: 'Berisha', pos: 'CM', age: 20, nat: 'Albania', ovr: 60, pot: 68 },
   ],
-  'lombardia-fc': [
+  'inter-milan': [
     { fn: 'Yann', ln: 'Sommer', pos: 'GK', age: 35, nat: 'Switzerland', ovr: 87, pot: 85 },
     { fn: 'Josep', ln: 'Martínez', pos: 'GK', age: 26, nat: 'Spain', ovr: 75, pot: 79 },
     { fn: 'Ionuț', ln: 'Andrei Radu', pos: 'GK', age: 27, nat: 'Romania', ovr: 72, pot: 76 },
@@ -380,7 +380,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Eddie', ln: 'Salcedo', pos: 'ST', age: 22, nat: 'Italy', ovr: 68, pot: 78 },
     { fn: 'Tomás', ln: 'Palacios', pos: 'CB', age: 21, nat: 'Argentina', ovr: 64, pot: 67 },
   ],
-  'milano-fc': [
+  'ac-milan': [
     { fn: 'Mike', ln: 'Maignan', pos: 'GK', age: 29, nat: 'France', ovr: 87, pot: 87 },
     { fn: 'Marco', ln: 'Sportiello', pos: 'GK', age: 32, nat: 'Italy', ovr: 77, pot: 75 },
     { fn: 'Theo', ln: 'Hernández', pos: 'LB', age: 26, nat: 'France', ovr: 87, pot: 90 },
@@ -463,7 +463,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Drissa', ln: 'Camara', pos: 'RM', age: 22, nat: 'Côte d\'Ivoire', ovr: 64, pot: 69 },
     { fn: 'Antoine', ln: 'Hainaut', pos: 'RB', age: 22, nat: 'France', ovr: 63, pot: 67 },
   ],
-  'ssc-napoli': [
+  'napoli': [
     { fn: 'Alex', ln: 'Meret', pos: 'GK', age: 27, nat: 'Italy', ovr: 81, pot: 85 },
     { fn: 'Elia', ln: 'Caprile', pos: 'GK', age: 23, nat: 'Italy', ovr: 74, pot: 81 },
     { fn: 'Nikita', ln: 'Contini', pos: 'GK', age: 28, nat: 'Ukraine', ovr: 67, pot: 67 },

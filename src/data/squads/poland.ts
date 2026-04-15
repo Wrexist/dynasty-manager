@@ -29,7 +29,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Oskar', ln: 'Lachowicz', pos: 'CAM', age: 19, nat: 'Poland', ovr: 58, pot: 66 },
     { fn: 'Kacper', ln: 'Śmiglewski', pos: 'ST', age: 19, nat: 'Poland', ovr: 58, pot: 69 },
   ],
-  'gks-katowice': [
+  'warta-poznan': [
     { fn: 'Rafał', ln: 'Strączek', pos: 'GK', age: 25, nat: 'Poland', ovr: 65, pot: 66 },
     { fn: 'Dawid', ln: 'Kudła', pos: 'GK', age: 32, nat: 'Poland', ovr: 62, pot: 60 },
     { fn: 'Patryk', ln: 'Szczuka', pos: 'GK', age: 22, nat: 'Poland', ovr: 53, pot: 56 },
@@ -83,7 +83,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Nikodem', ln: 'Zielonka', pos: 'LW', age: 20, nat: 'Poland', ovr: 59, pot: 74 },
     { fn: 'Norbert', ln: 'Barczak', pos: 'RB', age: 19, nat: 'Poland', ovr: 55, pot: 66 },
   ],
-  'jagiellonia': [
+  'jagiellonia-bialystok': [
     { fn: 'Max', ln: 'Stryjek', pos: 'GK', age: 28, nat: 'Poland', ovr: 67, pot: 67 },
     { fn: 'Sławomir', ln: 'Abramowicz', pos: 'GK', age: 20, nat: 'Poland', ovr: 58, pot: 66 },
     { fn: 'Jesús', ln: 'Imaz', pos: 'CAM', age: 33, nat: 'Spain', ovr: 72, pot: 70 },
@@ -138,7 +138,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Daniel', ln: 'Bąk', pos: 'ST', age: 18, nat: 'Poland', ovr: 55, pot: 70 },
     { fn: 'Adam', ln: 'Chojecki', pos: 'CDM', age: 19, nat: 'Poland', ovr: 55, pot: 63 },
   ],
-  'lech-pozna': [
+  'lech-poznan': [
     { fn: 'Bartosz', ln: 'Mrozek', pos: 'GK', age: 24, nat: 'Poland', ovr: 68, pot: 70 },
     { fn: 'Filip', ln: 'Bednarek', pos: 'GK', age: 31, nat: 'Poland', ovr: 65, pot: 63 },
     { fn: 'Mateusz', ln: 'Mędrala', pos: 'GK', age: 18, nat: 'Poland', ovr: 56, pot: 64 },
@@ -164,7 +164,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Michał', ln: 'Gurgul', pos: 'CB', age: 18, nat: 'Poland', ovr: 60, pot: 75 },
     { fn: 'Bryan', ln: 'Fiabema', pos: 'ST', age: 21, nat: 'Norway', ovr: 59, pot: 63 },
   ],
-  'lechia-gdask': [
+  'lechia-gdansk': [
     { fn: 'Bogdan', ln: 'Sarnavskyi', pos: 'GK', age: 29, nat: 'Ukraine', ovr: 66, pot: 66 },
     { fn: 'Szymon', ln: 'Weirauch', pos: 'GK', age: 20, nat: 'Poland', ovr: 58, pot: 72 },
     { fn: 'Conrado', ln: 'Conrado', pos: 'LM', age: 27, nat: 'Brazil', ovr: 66, pot: 67 },
@@ -188,7 +188,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Dominik', ln: 'Piła', pos: 'RB', age: 23, nat: 'Poland', ovr: 59, pot: 66 },
     { fn: 'Adam', ln: 'Kardaś', pos: 'CDM', age: 18, nat: 'Poland', ovr: 53, pot: 62 },
   ],
-  'legia-warszawa': [
+  'legia-warsaw': [
     { fn: 'Gabriel', ln: 'Kobylak', pos: 'GK', age: 22, nat: 'Poland', ovr: 64, pot: 73 },
     { fn: 'Kacper', ln: 'Tobiasz', pos: 'GK', age: 21, nat: 'Poland', ovr: 64, pot: 67 },
     { fn: 'Marcel', ln: 'Mendes-Dudziński', pos: 'GK', age: 19, nat: 'Poland', ovr: 62, pot: 72 },
@@ -269,7 +269,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Piotr', ln: 'Urbanski', pos: 'CAM', age: 19, nat: 'Poland', ovr: 53, pot: 64 },
     { fn: 'Oskar', ln: 'Leśniak', pos: 'LM', age: 19, nat: 'Poland', ovr: 51, pot: 62 },
   ],
-  'pogo-szczecin': [
+  'pogon-szczecin': [
     { fn: 'Valentin', ln: 'Cojocaru', pos: 'GK', age: 28, nat: 'Romania', ovr: 69, pot: 69 },
     { fn: 'Krzysztof', ln: 'Kamiński', pos: 'GK', age: 33, nat: 'Poland', ovr: 64, pot: 62 },
     { fn: 'Kamil', ln: 'Grosicki', pos: 'LM', age: 36, nat: 'Poland', ovr: 74, pot: 72 },
@@ -294,7 +294,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Jakub', ln: 'Lis', pos: 'CDM', age: 22, nat: 'Poland', ovr: 58, pot: 62 },
     { fn: 'Olaf', ln: 'Korczakowski', pos: 'LM', age: 20, nat: 'Poland', ovr: 55, pot: 72 },
   ],
-  'puszcza': [
+  'puszcza-niepolomice': [
     { fn: 'Kevin', ln: 'Komar', pos: 'GK', age: 21, nat: 'Poland', ovr: 62, pot: 68 },
     { fn: 'Michał', ln: 'Perchel', pos: 'GK', age: 17, nat: 'Poland', ovr: 60, pot: 75 },
     { fn: 'Dawid', ln: 'Abramowicz', pos: 'LB', age: 33, nat: 'Poland', ovr: 66, pot: 64 },
@@ -345,7 +345,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Guilherme', ln: 'Zimovski', pos: 'RW', age: 19, nat: 'Brazil', ovr: 58, pot: 67 },
     { fn: 'Jakub', ln: 'Snopczyński', pos: 'CAM', age: 19, nat: 'Poland', ovr: 55, pot: 69 },
   ],
-  'rakow': [
+  'rakow-czestochowa': [
     { fn: 'Kristoffer', ln: 'Klaesson', pos: 'GK', age: 23, nat: 'Norway', ovr: 63, pot: 71 },
     { fn: 'Kacper', ln: 'Trelowski', pos: 'GK', age: 21, nat: 'Poland', ovr: 62, pot: 72 },
     { fn: 'Dušan', ln: 'Kuciak', pos: 'GK', age: 39, nat: 'Slovakia', ovr: 61, pot: 59 },
@@ -401,7 +401,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Fryderyk', ln: 'Gerbowski', pos: 'CM', age: 21, nat: 'Poland', ovr: 60, pot: 66 },
     { fn: 'Kamil', ln: 'Pajnowski', pos: 'CB', age: 26, nat: 'Poland', ovr: 60, pot: 63 },
   ],
-  'widzew-od': [
+  'wisla-krakow': [
     { fn: 'Rafał', ln: 'Gikiewicz', pos: 'GK', age: 36, nat: 'Poland', ovr: 72, pot: 70 },
     { fn: 'Jan', ln: 'Krzywański', pos: 'GK', age: 21, nat: 'Poland', ovr: 54, pot: 60 },
     { fn: 'Samuel', ln: 'Kozlovský', pos: 'LB', age: 24, nat: 'Slovakia', ovr: 67, pot: 68 },
@@ -428,7 +428,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Marcel', ln: 'Krajewski', pos: 'RM', age: 19, nat: 'Poland', ovr: 57, pot: 68 },
     { fn: 'Pawel', ln: 'Kwiatkowski', pos: 'CB', age: 17, nat: 'Poland', ovr: 56, pot: 71 },
   ],
-  'zagbie-lubin': [
+  'zaglebie-lubin': [
     { fn: 'Dominik', ln: 'Hładun', pos: 'GK', age: 28, nat: 'Poland', ovr: 66, pot: 66 },
     { fn: 'Jasmin', ln: 'Burić', pos: 'GK', age: 37, nat: 'Bosnia and Herzegovina', ovr: 63, pot: 61 },
     { fn: 'Michał', ln: 'Matys', pos: 'GK', age: 18, nat: 'Poland', ovr: 56, pot: 67 },
@@ -452,7 +452,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Patryk', ln: 'Kusztal', pos: 'LM', age: 21, nat: 'Poland', ovr: 53, pot: 59 },
     { fn: 'Igor', ln: 'Orlikowski', pos: 'CB', age: 18, nat: 'Poland', ovr: 53, pot: 67 },
   ],
-  'lsk-wrocaw': [
+  'slask-wroclaw': [
     { fn: 'Rafał', ln: 'Leszczyński', pos: 'GK', age: 32, nat: 'Poland', ovr: 67, pot: 65 },
     { fn: 'Tomasz', ln: 'Loska', pos: 'GK', age: 28, nat: 'Poland', ovr: 63, pot: 63 },
     { fn: 'Tudor', ln: 'Băluță', pos: 'CDM', age: 25, nat: 'Romania', ovr: 69, pot: 71 },

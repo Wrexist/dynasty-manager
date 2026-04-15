@@ -2,7 +2,7 @@ import type { PlayerTemplate } from '@/data/playerTemplates';
 
 // por — Auto-generated from FC25 data
 export const SQUADS: Record<string, PlayerTemplate[]> = {
-  'avs-futebol-sad': [
+  'avs': [
     { fn: 'Pedro', ln: 'Trigueira', pos: 'GK', age: 36, nat: 'Portugal', ovr: 67, pot: 65 },
     { fn: 'Simão', ln: 'Bertelli', pos: 'GK', age: 31, nat: 'Brazil', ovr: 66, pot: 64 },
     { fn: 'Lucas', ln: 'Piazón', pos: 'CAM', age: 30, nat: 'Brazil', ovr: 71, pot: 71 },
@@ -54,7 +54,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Vitinho', ln: 'Vitinho', pos: 'CM', age: 24, nat: 'Brazil', ovr: 64, pot: 66 },
     { fn: 'Miguel', ln: 'Puche', pos: 'ST', age: 23, nat: 'Spain', ovr: 63, pot: 70 },
   ],
-  'boavista-fc': [
+  'boavista': [
     { fn: 'João', ln: 'Gonçalves', pos: 'GK', age: 23, nat: 'Portugal', ovr: 72, pot: 81 },
     { fn: 'Tomé', ln: 'Sousa', pos: 'GK', age: 17, nat: 'Portugal', ovr: 62, pot: 78 },
     { fn: 'Luís', ln: 'Henrique', pos: 'GK', age: 19, nat: 'Brazil', ovr: 60, pot: 69 },
@@ -77,7 +77,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Gonçalo', ln: 'Almeida', pos: 'RB', age: 21, nat: 'Portugal', ovr: 59, pot: 64 },
     { fn: 'Marco', ln: 'Ribeiro', pos: 'CM', age: 19, nat: 'Portugal', ovr: 59, pot: 68 },
   ],
-  'casa-pia-ac': [
+  'casa-pia': [
     { fn: 'Ricardo', ln: 'Batista', pos: 'GK', age: 37, nat: 'Portugal', ovr: 75, pot: 73 },
     { fn: 'Patrick', ln: 'Gilmar Sequeira', pos: 'GK', age: 25, nat: 'Costa Rica', ovr: 67, pot: 69 },
     { fn: 'Daniel', ln: 'Azevedo', pos: 'GK', age: 26, nat: 'Portugal', ovr: 60, pot: 64 },
@@ -102,7 +102,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Rafael', ln: 'Brito', pos: 'CM', age: 22, nat: 'Portugal', ovr: 64, pot: 67 },
     { fn: 'Kiki', ln: 'Silva', pos: 'RW', age: 26, nat: 'Portugal', ovr: 63, pot: 66 },
   ],
-  'estoril-praia': [
+  'estoril': [
     { fn: 'Joel', ln: 'Robles', pos: 'GK', age: 34, nat: 'Spain', ovr: 75, pot: 73 },
     { fn: 'Diogo', ln: 'Dias', pos: 'GK', age: 21, nat: 'Portugal', ovr: 59, pot: 62 },
     { fn: 'Eliaquim', ln: 'Mangala', pos: 'CB', age: 33, nat: 'France', ovr: 71, pot: 69 },
@@ -142,7 +142,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Manuel', ln: 'Keliano', pos: 'CDM', age: 21, nat: 'Angola', ovr: 65, pot: 75 },
     { fn: 'Tashan', ln: 'Oakley-Boothe', pos: 'CM', age: 24, nat: 'England', ovr: 61, pot: 64 },
   ],
-  'fc-famalico': [
+  'famalicao': [
     { fn: 'Ivan', ln: 'Zlobin', pos: 'GK', age: 27, nat: 'Russia', ovr: 67, pot: 69 },
     { fn: 'Hugo', ln: 'Cunha', pos: 'GK', age: 23, nat: 'Portugal', ovr: 63, pot: 66 },
     { fn: 'Zaydou', ln: 'Youssouf', pos: 'CM', age: 25, nat: 'France', ovr: 76, pot: 78 },
@@ -166,7 +166,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Otso', ln: 'Liimatta', pos: 'CAM', age: 20, nat: 'Finland', ovr: 65, pot: 74 },
     { fn: 'Afonso', ln: 'Rodrigues', pos: 'LM', age: 22, nat: 'Portugal', ovr: 65, pot: 69 },
   ],
-  'fc-porto': [
+  'porto': [
     { fn: 'Diogo', ln: 'Costa', pos: 'GK', age: 24, nat: 'Portugal', ovr: 84, pot: 85 },
     { fn: 'Cláudio', ln: 'Ramos', pos: 'GK', age: 32, nat: 'Portugal', ovr: 73, pot: 71 },
     { fn: 'Samuel', ln: 'Portugal', pos: 'GK', age: 30, nat: 'Brazil', ovr: 72, pot: 72 },
@@ -239,7 +239,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Collado', ln: 'Collado', pos: 'ST', age: 23, nat: 'Spain', ovr: 65, pot: 68 },
     { fn: 'Santi', ln: 'García', pos: 'CAM', age: 23, nat: 'Spain', ovr: 61, pot: 68 },
   ],
-  'moreirense-fc': [
+  'moreirense': [
     { fn: 'Kewin', ln: 'Kewin', pos: 'GK', age: 29, nat: 'Brazil', ovr: 72, pot: 72 },
     { fn: 'Caio', ln: 'Secco', pos: 'GK', age: 33, nat: 'Brazil', ovr: 67, pot: 65 },
     { fn: 'Maracás', ln: 'Maracás', pos: 'CB', age: 30, nat: 'Brazil', ovr: 74, pot: 74 },
@@ -276,7 +276,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Arvin', ln: 'Appiah', pos: 'LM', age: 23, nat: 'England', ovr: 64, pot: 73 },
     { fn: 'Djibril', ln: 'Soumaré', pos: 'CDM', age: 21, nat: 'Senegal', ovr: 63, pot: 73 },
   ],
-  'rio-ave-fc': [
+  'rio-ave': [
     { fn: 'Jhonatan', ln: 'Jhonatan', pos: 'GK', age: 33, nat: 'Brazil', ovr: 75, pot: 73 },
     { fn: 'Cezary', ln: 'Miszta', pos: 'GK', age: 22, nat: 'Poland', ovr: 66, pot: 72 },
     { fn: 'Aderllan', ln: 'Santos', pos: 'CB', age: 35, nat: 'Brazil', ovr: 75, pot: 73 },
@@ -300,7 +300,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Tobías', ln: 'Medina', pos: 'CM', age: 20, nat: 'Argentina', ovr: 65, pot: 80 },
     { fn: 'João', ln: 'Tomé', pos: 'RB', age: 21, nat: 'Portugal', ovr: 64, pot: 67 },
   ],
-  'sc-braga': [
+  'braga': [
     { fn: 'Matheus', ln: 'Matheus', pos: 'GK', age: 32, nat: 'Brazil', ovr: 79, pot: 77 },
     { fn: 'Tiago', ln: 'Sá', pos: 'GK', age: 29, nat: 'Portugal', ovr: 69, pot: 69 },
     { fn: 'Lukas', ln: 'Hornicek', pos: 'GK', age: 22, nat: 'Czech Republic', ovr: 66, pot: 69 },
@@ -331,7 +331,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Nuno', ln: 'Matos', pos: 'CB', age: 19, nat: 'Portugal', ovr: 62, pot: 70 },
     { fn: 'Rodrigo', ln: 'Macedo', pos: 'ST', age: 21, nat: 'Portugal', ovr: 62, pot: 70 },
   ],
-  'sl-benfica': [
+  'benfica': [
     { fn: 'Anatoliy', ln: 'Trubin', pos: 'GK', age: 23, nat: 'Ukraine', ovr: 78, pot: 85 },
     { fn: 'Samuel', ln: 'Soares', pos: 'GK', age: 22, nat: 'Portugal', ovr: 68, pot: 75 },
     { fn: 'André', ln: 'Gomes', pos: 'GK', age: 19, nat: 'Portugal', ovr: 65, pot: 73 },
@@ -406,7 +406,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Diogo', ln: 'Travassos', pos: 'RB', age: 20, nat: 'Portugal', ovr: 67, pot: 77 },
     { fn: 'Geovany', ln: 'Quenda', pos: 'RW', age: 17, nat: 'Portugal', ovr: 67, pot: 76 },
   ],
-  'vitoria-sc': [
+  'vitoria-guimaraes': [
     { fn: 'Bruno', ln: 'Varela', pos: 'GK', age: 29, nat: 'Cape Verde Islands', ovr: 75, pot: 75 },
     { fn: 'Charles', ln: 'Charles', pos: 'GK', age: 30, nat: 'Brazil', ovr: 69, pot: 69 },
     { fn: 'João', ln: 'Oliveira', pos: 'GK', age: 21, nat: 'Portugal', ovr: 62, pot: 70 },

@@ -2,7 +2,7 @@ import type { PlayerTemplate } from '@/data/playerTemplates';
 
 // hun — Auto-generated from FC25 data
 export const SQUADS: Record<string, PlayerTemplate[]> = {
-  'ferencvarosi-tc': [
+  'ferencvaros': [
     { fn: 'Dénes', ln: 'Dibusz', pos: 'GK', age: 33, nat: 'Hungary', ovr: 78, pot: 76 },
     { fn: 'Ádám', ln: 'Varga', pos: 'GK', age: 25, nat: 'Hungary', ovr: 66, pot: 70 },
     { fn: 'Gergő', ln: 'Szécsi', pos: 'GK', age: 35, nat: 'Hungary', ovr: 60, pot: 58 },
