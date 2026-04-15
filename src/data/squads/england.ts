@@ -282,7 +282,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Adrion', ln: 'Pajaziti', pos: 'CDM', age: 21, nat: 'Albania', ovr: 63, pot: 68 },
     { fn: 'Luc', ln: 'De Fougerolles', pos: 'CB', age: 18, nat: 'Canada', ovr: 58, pot: 74 },
   ],
-  'ipswich': [
+  'ipswich-town': [
     { fn: 'Arijanet', ln: 'Murić', pos: 'GK', age: 25, nat: 'Kosovo', ovr: 75, pot: 76 },
     { fn: 'Christian', ln: 'Walton', pos: 'GK', age: 28, nat: 'England', ovr: 68, pot: 68 },
     { fn: 'Cieran', ln: 'Slicker', pos: 'GK', age: 21, nat: 'Scotland', ovr: 59, pot: 66 },
@@ -380,7 +380,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'James', ln: 'Norris', pos: 'LB', age: 21, nat: 'England', ovr: 59, pot: 62 },
     { fn: 'Calum', ln: 'Scanlon', pos: 'LB', age: 19, nat: 'England', ovr: 59, pot: 72 },
   ],
-  'man-utd': [
+  'manchester-united': [
     { fn: 'André', ln: 'Onana', pos: 'GK', age: 28, nat: 'Cameroon', ovr: 83, pot: 83 },
     { fn: 'Altay', ln: 'Bayındır', pos: 'GK', age: 26, nat: 'Turkey', ovr: 76, pot: 79 },
     { fn: 'Dermot', ln: 'Mee', pos: 'GK', age: 21, nat: 'Northern Ireland', ovr: 56, pot: 60 },
@@ -444,7 +444,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Filip', ln: 'Stevanović', pos: 'LW', age: 21, nat: 'Serbia', ovr: 64, pot: 70 },
     { fn: 'Jacob', ln: 'Wright', pos: 'CDM', age: 18, nat: 'England', ovr: 62, pot: 76 },
   ],
-  'newcastle-utd': [
+  'newcastle-united': [
     { fn: 'Nick', ln: 'Pope', pos: 'GK', age: 32, nat: 'England', ovr: 83, pot: 81 },
     { fn: 'Martin', ln: 'Dúbravka', pos: 'GK', age: 35, nat: 'Slovakia', ovr: 76, pot: 74 },
     { fn: 'Odysseas', ln: 'Vlachodimos', pos: 'GK', age: 30, nat: 'Greece', ovr: 74, pot: 74 },
@@ -478,7 +478,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Alex', ln: 'Murphy', pos: 'CB', age: 20, nat: 'Republic of Ireland', ovr: 64, pot: 76 },
     { fn: 'Ben', ln: 'Parkinson', pos: 'RW', age: 19, nat: 'England', ovr: 57, pot: 71 },
   ],
-  'nottm-forest': [
+  'nottingham-forest': [
     { fn: 'Matz', ln: 'Sels', pos: 'GK', age: 32, nat: 'Belgium', ovr: 77, pot: 75 },
     { fn: 'Carlos', ln: 'Miguel', pos: 'GK', age: 25, nat: 'Brazil', ovr: 73, pot: 75 },
     { fn: 'Morgan', ln: 'Gibbs-White', pos: 'CAM', age: 24, nat: 'England', ovr: 79, pot: 81 },
@@ -545,7 +545,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Tyler', ln: 'Dibling', pos: 'RW', age: 18, nat: 'England', ovr: 59, pot: 75 },
     { fn: 'Jayden', ln: 'Meghoma', pos: 'LB', age: 18, nat: 'England', ovr: 57, pot: 67 },
   ],
-  'spurs': [
+  'tottenham-hotspur': [
     { fn: 'Guglielmo', ln: 'Vicario', pos: 'GK', age: 27, nat: 'Italy', ovr: 84, pot: 86 },
     { fn: 'Fraser', ln: 'Forster', pos: 'GK', age: 36, nat: 'England', ovr: 73, pot: 71 },
     { fn: 'Brandon', ln: 'Austin', pos: 'GK', age: 25, nat: 'England', ovr: 64, pot: 66 },
@@ -577,7 +577,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Tyrese', ln: 'Hall', pos: 'CDM', age: 19, nat: 'England', ovr: 62, pot: 78 },
     { fn: 'Tyrell', ln: 'Ashcroft', pos: 'RB', age: 20, nat: 'England', ovr: 58, pot: 73 },
   ],
-  'west-ham': [
+  'west-ham-united': [
     { fn: 'Alphonse', ln: 'Areola', pos: 'GK', age: 31, nat: 'France', ovr: 81, pot: 79 },
     { fn: 'Łukasz', ln: 'Fabiański', pos: 'GK', age: 39, nat: 'Poland', ovr: 77, pot: 75 },
     { fn: 'Wes', ln: 'Foderingham', pos: 'GK', age: 33, nat: 'England', ovr: 73, pot: 71 },
@@ -606,7 +606,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Gideon', ln: 'Kodua', pos: 'RM', age: 19, nat: 'England', ovr: 58, pot: 66 },
     { fn: 'Lewis', ln: 'Orford', pos: 'CDM', age: 18, nat: 'England', ovr: 58, pot: 73 },
   ],
-  'wolves': [
+  'wolverhampton-wanderers': [
     { fn: 'José', ln: 'Sá', pos: 'GK', age: 31, nat: 'Portugal', ovr: 79, pot: 77 },
     { fn: 'Sam', ln: 'Johnstone', pos: 'GK', age: 31, nat: 'England', ovr: 78, pot: 76 },
     { fn: 'Daniel', ln: 'Bentley', pos: 'GK', age: 31, nat: 'England', ovr: 72, pot: 70 },

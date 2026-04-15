@@ -342,8 +342,9 @@ function toClubId(teamName) {
 // ── Map FC25 position to game position ──
 function mapPosition(pos) {
   const valid = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST'];
+  const aliases = { LWB: 'LB', RWB: 'RB', CF: 'ST', LF: 'LW', RF: 'RW' };
   if (valid.includes(pos)) return pos;
-  return 'CM'; // fallback
+  return aliases[pos] || 'CM'; // fallback
 }
 
 // ── Compute mental from sub-attributes ──
@@ -537,7 +538,7 @@ for (const [leagueId, teams] of Object.entries(teamsByLeague)) {
 
     output += `  '${esc(clubId)}': [\n`;
     for (const t of templates) {
-      output += `    { fn: '${esc(t.fn)}', ln: '${esc(t.ln)}', pos: '${t.pos}', age: ${t.age}, nat: '${esc(t.nat)}', ovr: ${t.ovr}, pot: ${t.pot} },\n`;
+      output += `    { fn: '${esc(t.fn)}', ln: '${esc(t.ln)}', pos: '${t.pos}', age: ${t.age}, nat: '${esc(t.nat)}', ovr: ${t.ovr}, pot: ${t.pot}, pace: ${t.pace}, shooting: ${t.shooting}, passing: ${t.passing}, defending: ${t.defending}, physical: ${t.physical}, mental: ${t.mental} },\n`;
     }
     output += `  ],\n`;
   }
