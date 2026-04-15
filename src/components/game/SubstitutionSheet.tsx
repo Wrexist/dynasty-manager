@@ -95,16 +95,29 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     }
   }, [open, preSelectedOutId]);
 
+  const lineup = useMemo(() => playerClub?.lineup || [], [playerClub?.lineup]);
+  const slots = useMemo(() => playerClub ? FORMATION_POSITIONS[playerClub.formation] || [] : [], [playerClub]);
+
+  // Find the formation slot position of the selected out player
+  const selectedSlotPos = useMemo(() => {
+    if (!selectedOutId) return null;
+    const idx = lineup.indexOf(selectedOutId);
+    if (idx < 0 || !slots[idx]) return null;
+    return slots[idx].pos as Position | undefined;
+  }, [selectedOutId, lineup, slots]);
+
   // Sort bench by position compatibility, then overall, then fitness
   const sortedSubs = useMemo(() => {
     if (!playerClub) return [];
     const subs = playerClub.subs;
-    const selectedOutPlayer = selectedOutId ? players[selectedOutId] : null;
-    if (!selectedOutPlayer) return subs;
-    const outPos = selectedOutPlayer.position as Position;
+    if (!selectedOutId) return subs;
+    // Use the formation slot position (not the player's natural position)
+    // so the sort is consistent with the compatibility rings
+    const slotPos = selectedSlotPos || (players[selectedOutId]?.position as Position);
+    if (!slotPos) return subs;
     const posScore = (player: { position: Position; alternatePositions?: Position[] }): number => {
-      if (player.position === outPos) return 2;
-      if (canPlayPosition(player, outPos)) return 1;
+      if (player.position === slotPos) return 2;
+      if (canPlayPosition(player, slotPos)) return 1;
       return 0;
     };
     return [...subs].sort((a, b) => {
@@ -116,18 +129,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
       if (pb.overall !== pa.overall) return pb.overall - pa.overall;
       return pb.fitness - pa.fitness;
     });
-  }, [playerClub, selectedOutId, players]);
-
-  const lineup = useMemo(() => playerClub?.lineup || [], [playerClub?.lineup]);
-  const slots = useMemo(() => playerClub ? FORMATION_POSITIONS[playerClub.formation] || [] : [], [playerClub]);
-
-  // Find the formation slot position of the selected out player
-  const selectedSlotPos = useMemo(() => {
-    if (!selectedOutId) return null;
-    const idx = lineup.indexOf(selectedOutId);
-    if (idx < 0 || !slots[idx]) return null;
-    return slots[idx].pos as Position | undefined;
-  }, [selectedOutId, lineup, slots]);
+  }, [playerClub, selectedOutId, selectedSlotPos, players]);
 
   // Smart Sub recommendation — delegated to utility
   const smartSub = useMemo(() => {
@@ -690,19 +692,21 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 })}
               </div>
 
-              {/* Position fit warning */}
-              {selectedOutPlayer.position !== selectedInPlayer.position && (
+              {/* Position fit warning — check against the formation slot, not the player's natural position */}
+              {(() => {
+                const slotPos = selectedSlotPos || selectedOutPlayer.position as Position;
+                return selectedInPlayer.position !== slotPos ? (
                 <p className={cn(
                   'text-[10px] text-center px-2',
-                  canPlayPosition(selectedInPlayer, selectedOutPlayer.position as Position)
+                  canPlayPosition(selectedInPlayer, slotPos)
                     ? 'text-amber-400' : 'text-destructive'
                 )}>
-                  {canPlayPosition(selectedInPlayer, selectedOutPlayer.position as Position)
-                    ? `${selectedInPlayer.position} is a compatible position for ${selectedOutPlayer.position}`
-                    : `${selectedInPlayer.position} is not a natural fit for ${selectedOutPlayer.position}`
+                  {canPlayPosition(selectedInPlayer, slotPos)
+                    ? `${selectedInPlayer.position} is a compatible position for ${slotPos}`
+                    : `${selectedInPlayer.position} is not a natural fit for ${slotPos}`
                   }
                 </p>
-              )}
+              ) : null; })()}
 
               {/* Action buttons */}
               <div className="flex gap-2">

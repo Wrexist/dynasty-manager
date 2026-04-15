@@ -203,6 +203,7 @@ const PlayerDetail = () => {
             <p className="text-sm text-muted-foreground">
               {player.position} · {player.age} · <FlagIcon nationality={player.nationality} size={16} /> {player.nationality}
               {player.potential > player.overall && <span className="text-primary"> · Pot {player.potential}</span>}
+              {(player.skillMoves ?? 0) >= 3 && <span className="text-amber-400"> · {'★'.repeat(player.skillMoves!)} Skills</span>}
             </p>
             <div className="flex items-center gap-1.5 mt-1">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: club?.color || '#888' }} />

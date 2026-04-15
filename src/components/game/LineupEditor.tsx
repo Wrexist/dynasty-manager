@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { FORMATION_POSITIONS, canPlayPosition, type Position, type Player } from '@/types/game';
+import { FORMATION_POSITIONS, canPlayPosition, type Position } from '@/types/game';
 import { MAX_SUBS } from '@/config/playerGeneration';
 import { PITCH_COLORS } from '@/config/ui';
 import { cn } from '@/lib/utils';
