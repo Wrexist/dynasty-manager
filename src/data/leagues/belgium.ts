@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Belgium',
   countryCode: 'BE',
   teamCount: 16,
-  totalWeeks: 46,
+  totalWeeks: 30,
   replacedSlots: 0,
   description: 'Belgian top division known for competitive football and developing talent for Europe\'s biggest clubs.',
   difficulty: 'Medium',
@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 14_000_000,
   averageWage: 18_000,
   qualityTier: 2,
+  tier: 1,
+  countryId: 'bel',
+  promotionSpots: 0,
+  relegationSpots: 0,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [

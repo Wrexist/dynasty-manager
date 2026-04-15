@@ -22,6 +22,7 @@ interface PreviewContext {
   scouting: ScoutingState;
   week: number;
   season: number;
+  totalWeeks?: number;
   // Optional extended context for richer fallbacks
   boardObjectives?: BoardObjective[];
   divisionTables?: Record<LeagueId, LeagueTableEntry[]>;
@@ -161,7 +162,7 @@ export function getFallbackPreview(ctx: PreviewContext): PreviewItem[] {
   }
 
   // Weeks remaining in season
-  const weeksLeft = 46 - ctx.week;
+  const weeksLeft = (ctx.totalWeeks || 46) - ctx.week;
   if (weeksLeft > 0 && weeksLeft <= 10) {
     items.push({ icon: 'calendar', text: `${weeksLeft} weeks left this season — every match counts now.`, type: 'neutral' });
   }

@@ -4,6 +4,7 @@
  */
 
 import { Player, Position } from '@/types/game';
+import { LEAGUES } from '@/data/league';
 import {
   PERFORMANCE_GOAL_PREMIUM, PERFORMANCE_ASSIST_PREMIUM, PERFORMANCE_FORM_PREMIUM,
   PERFORMANCE_APPEARANCE_THRESHOLD, PERFORMANCE_MAX_MULTIPLIER,
@@ -52,7 +53,8 @@ export function getPerformanceMultiplier(player: Player): number {
  * Max free agent overall a club can sign, based on reputation and division.
  */
 export function getMaxFreeAgentOverall(reputation: number, divisionId: string): number {
-  const divBonus = FREE_AGENT_DIV_BONUS[divisionId] || 0;
+  const tier = LEAGUES.find(l => l.id === divisionId)?.tier || 3;
+  const divBonus = FREE_AGENT_DIV_BONUS[tier] || 0;
   return FREE_AGENT_REP_BASE + reputation * FREE_AGENT_REP_SCALE + divBonus;
 }
 

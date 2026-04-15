@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Germany',
   countryCode: 'DE',
   teamCount: 18,
-  totalWeeks: 46,
+  totalWeeks: 34,
   replacedSlots: 0,
   description: 'Germany\'s top division, known for world-class atmospheres, outstanding youth development, and the 50+1 ownership rule.',
   difficulty: 'Hard',
@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 100000000,
   averageWage: 75000,
   qualityTier: 1,
+  tier: 1,
+  countryId: 'ger',
+  promotionSpots: 0,
+  relegationSpots: 3,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [

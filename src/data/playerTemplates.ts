@@ -8,6 +8,16 @@ export interface PlayerTemplate {
   nat: string;
   ovr: number;
   pot?: number;
+  // FC25 attribute overrides — when present, used instead of random generation
+  pace?: number;
+  shooting?: number;
+  passing?: number;
+  defending?: number;
+  physical?: number;
+  mental?: number;
+  // FC25 metadata
+  altPos?: Position[];   // alternate positions the player can fill naturally
+  skillMoves?: number;   // 1-5 star skill moves rating
 }
 
 import { ALL_SQUAD_TEMPLATES } from '@/data/squads';

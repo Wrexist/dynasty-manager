@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Scotland',
   countryCode: 'GB',
   teamCount: 12,
-  totalWeeks: 46,
+  totalWeeks: 22,
   replacedSlots: 0,
   description: 'Scotland\'s fierce top flight, home to the legendary Old Firm rivalry and passionate supporters across the nation.',
   difficulty: 'Medium',
@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 2000000,
   averageWage: 20000,
   qualityTier: 3,
+  tier: 1,
+  countryId: 'sco',
+  promotionSpots: 0,
+  relegationSpots: 0,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [

@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Croatia',
   countryCode: 'HR',
   teamCount: 10,
-  totalWeeks: 46,
+  totalWeeks: 18,
   replacedSlots: 0,
   description: 'Croatia\'s top division, a prolific talent factory dominated by Dinamo Zagreb but rich in competitive spirit.',
   difficulty: 'Hard',
@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 500000,
   averageWage: 8000,
   qualityTier: 3,
+  tier: 1,
+  countryId: 'cro',
+  promotionSpots: 0,
+  relegationSpots: 0,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [

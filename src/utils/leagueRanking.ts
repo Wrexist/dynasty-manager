@@ -61,12 +61,14 @@ function computeLeagueScore(
 }
 
 /**
- * Rank all 30 leagues from 1-30 and assign qualification spots per competition.
+ * Rank top-tier leagues and assign qualification spots per competition.
+ * Only tier-1 (top flight) leagues are eligible for continental competitions.
  */
 export function getLeagueRankings(
   coefficients?: Record<string, ContinentalCoefficient>,
 ): RankedLeague[] {
-  const scored = ALL_LEAGUES.map(league => ({
+  const topTierLeagues = ALL_LEAGUES.filter(l => l.tier === 1);
+  const scored = topTierLeagues.map(league => ({
     leagueId: league.id,
     score: computeLeagueScore(league, coefficients),
   }));
@@ -115,47 +117,47 @@ export function getQualificationZones(
   const entry = allRankings.find(r => r.leagueId === leagueId);
   const league = ALL_LEAGUES.find(l => l.id === leagueId);
 
-  if (!entry || !league) {
-    return { championsCup: [], shieldCup: [], conferenceCup: [], replaced: [] };
+  if (!league) {
+    return { championsCup: [], shieldCup: [], conferenceCup: [], replaced: [], promotion: [], playoff: [] };
   }
 
   const teamCount = league.teamCount;
-  const clSpots = entry.championsCupSpots;
-  const slSpots = entry.shieldCupSpots;
-  const ccSpots = entry.conferenceCupSpots;
+  const relSlots = league.relegationSpots || league.replacedSlots || 0;
 
-  // Positions are 1-indexed
+  // Promotion zones (for non-top-tier leagues)
+  const promotion: number[] = [];
+  const playoff: number[] = [];
+  if (league.promotionSpots > 0) {
+    for (let i = 1; i <= league.promotionSpots; i++) promotion.push(i);
+  }
+  if (league.playoffSpots > 0) {
+    const startPos = league.promotionSpots + 1;
+    for (let i = 0; i < league.playoffSpots; i++) playoff.push(startPos + i);
+  }
+
+  // Continental qualification zones (top tier only)
   const championsCup: number[] = [];
   const shieldCup: number[] = [];
   const conferenceCup: number[] = [];
 
-  // Don't let qualification zones extend into the replaced zone
-  const safeMax = teamCount - (league.replacedSlots || 0);
-  let pos = 1;
+  if (entry) {
+    const clSpots = entry.championsCupSpots;
+    const slSpots = entry.shieldCupSpots;
+    const ccSpots = entry.conferenceCupSpots;
+    const safeMax = teamCount - relSlots;
+    let pos = 1;
 
-  // Champions Cup positions (top of table)
-  for (let i = 0; i < clSpots && pos <= safeMax; i++) {
-    championsCup.push(pos++);
+    for (let i = 0; i < clSpots && pos <= safeMax; i++) championsCup.push(pos++);
+    for (let i = 0; i < slSpots && pos <= safeMax; i++) shieldCup.push(pos++);
+    for (let i = 0; i < ccSpots && pos <= safeMax; i++) conferenceCup.push(pos++);
   }
 
-  // Shield Cup positions (next after CL)
-  for (let i = 0; i < slSpots && pos <= safeMax; i++) {
-    shieldCup.push(pos++);
-  }
-
-  // Conference Cup positions (next after Shield)
-  for (let i = 0; i < ccSpots && pos <= safeMax; i++) {
-    conferenceCup.push(pos++);
-  }
-
-  // Replaced zone (bottom of table)
+  // Relegation zone (bottom of table)
   const replaced: number[] = [];
-  if (league.replacedSlots > 0) {
-    for (let i = 0; i < league.replacedSlots; i++) {
-      replaced.push(teamCount - i);
-    }
+  if (relSlots > 0) {
+    for (let i = 0; i < relSlots; i++) replaced.push(teamCount - i);
     replaced.sort((a, b) => a - b);
   }
 
-  return { championsCup, shieldCup, conferenceCup, replaced };
+  return { championsCup, shieldCup, conferenceCup, replaced, promotion, playoff };
 }

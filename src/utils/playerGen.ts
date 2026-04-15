@@ -1,4 +1,4 @@
-import { Player, Position, PlayerAttributes, FormationType, FORMATION_POSITIONS, POSITION_COMPATIBILITY } from '@/types/game';
+import { Player, Position, PlayerAttributes, FormationType, FORMATION_POSITIONS, canPlayPosition } from '@/types/game';
 import { generatePersonality } from '@/utils/personality';
 import { pick, clamp } from '@/utils/helpers';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
@@ -32,7 +32,11 @@ const ALL_NATIONALITIES = [
 ];
 
 function pickNationality(leagueId?: string): string {
-  const pool = (leagueId && NATIONALITY_DISTRIBUTION[leagueId]) || NATIONALITY_DISTRIBUTION['DEFAULT'];
+  // For lower-tier leagues like 'eng-2', fall back to the country's top tier distribution
+  const countryId = leagueId?.replace(/-\d+$/, '');
+  const pool = (leagueId && NATIONALITY_DISTRIBUTION[leagueId])
+    || (countryId && NATIONALITY_DISTRIBUTION[countryId])
+    || NATIONALITY_DISTRIBUTION['DEFAULT'];
   if (pool) {
     const totalWeight = pool.reduce((s, e) => s + e.weight, 0);
     let r = Math.random() * totalWeight;
@@ -127,8 +131,19 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
     redCards: 0,
     personality: generatePersonality(),
     appearance: generatePlayerAppearance(nationality, position),
+    skillMoves: pickWeightedSkillMoves(),
     joinedSeason: season,
   };
+}
+
+/** Weighted random skill moves: 1★ 15%, 2★ 40%, 3★ 30%, 4★ 12%, 5★ 3% */
+function pickWeightedSkillMoves(): number {
+  const r = Math.random();
+  if (r < 0.15) return 1;
+  if (r < 0.55) return 2;
+  if (r < 0.85) return 3;
+  if (r < 0.97) return 4;
+  return 5;
 }
 
 const SQUAD_TEMPLATE = CONFIG_SQUAD_TEMPLATE;
@@ -171,6 +186,21 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     } else if (t.age <= YOUNG_POTENTIAL_AGE_THRESHOLD) {
       player.potential = clamp(player.overall + YOUNG_POTENTIAL_BOOST_BASE + Math.floor(Math.random() * YOUNG_POTENTIAL_BOOST_RANGE));
     }
+    // Override attributes from FC25 data when available
+    if (t.pace !== undefined) {
+      player.attributes = {
+        pace: clamp(t.pace),
+        shooting: clamp(t.shooting ?? player.attributes.shooting),
+        passing: clamp(t.passing ?? player.attributes.passing),
+        defending: clamp(t.defending ?? player.attributes.defending),
+        physical: clamp(t.physical ?? player.attributes.physical),
+        mental: clamp(t.mental ?? player.attributes.mental),
+      };
+      player.overall = calculateOverall(player.attributes, player.position);
+    }
+    // Set alternate positions and skill moves from FC25 data
+    if (t.altPos?.length) player.alternatePositions = t.altPos;
+    if (t.skillMoves) player.skillMoves = t.skillMoves;
     player.value = calculatePlayerValue(player.overall);
     player.wage = calculatePlayerWage(player.overall);
     templatePlayers.push(player);
@@ -272,9 +302,8 @@ export function selectBestLineup(players: Player[], formation: FormationType, cu
   const effectiveRating = (p: Player) => p.overall * EFFECTIVE_RATING_OVERALL_WEIGHT + (p.form / 100) * EFFECTIVE_RATING_FORM_WEIGHT + (p.fitness / 100) * EFFECTIVE_RATING_FITNESS_WEIGHT;
 
   for (const slot of slots) {
-    const compat = POSITION_COMPATIBILITY[slot.pos] || [slot.pos];
     const best = players
-      .filter(p => !used.has(p.id) && compat.includes(p.position) && isAvailable(p))
+      .filter(p => !used.has(p.id) && canPlayPosition(p, slot.pos) && isAvailable(p))
       .sort((a, b) => effectiveRating(b) - effectiveRating(a))[0];
     if (best) {
       selected.push(best);

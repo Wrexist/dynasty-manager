@@ -1,37 +1,260 @@
 /**
- * Season Turnover system for Dynasty Manager.
- * Handles end-of-season club replacement (abstract relegation).
- * Bottom N clubs in each league are replaced by procedurally-generated "promoted" clubs.
+ * Promotion & Relegation system for Dynasty Manager.
+ * Handles real movement of clubs between tiers within a country's league pyramid.
+ * Bottom-tier fallback: clubs without a lower tier are replaced procedurally.
  */
 
 import { LeagueId, LeagueInfo, LeagueTableEntry, SeasonTurnover, Club } from '@/types/game';
-import { LEAGUES } from '@/data/league';
+import { LEAGUES, getLeaguesByCountry, getLeagueBelow, getLeagueAbove } from '@/data/league';
 import type { ClubData } from '@/types/game';
 
-// ── Determine replaced clubs from final table ──
+// ── Determine promotion/relegation zones from final table ──
 
-interface LeagueZones {
-  safe: string[];
-  replaced: string[];
+export interface ProRelZones {
+  promoted: string[];          // Auto-promoted clubs (top N)
+  playoffCandidates: string[]; // Clubs entering promotion playoffs
+  safe: string[];              // Mid-table clubs staying in this tier
+  relegated: string[];         // Auto-relegated clubs (bottom N)
 }
-
-export function determineZones(table: LeagueTableEntry[], league: LeagueInfo): LeagueZones {
-  const ids = table.map(e => e.clubId);
-  const n = ids.length;
-  const { replacedSlots } = league;
-
-  const safe = ids.slice(0, n - replacedSlots);
-  const replaced = ids.slice(n - replacedSlots);
-
-  return { safe, replaced };
-}
-
-// ── Apply season turnover ──
 
 /**
- * Build the SeasonTurnover record from final table.
- * Bottom N clubs are marked for replacement.
+ * Determine promotion and relegation zones from final standings.
  */
+export function determineProRelZones(table: LeagueTableEntry[], league: LeagueInfo): ProRelZones {
+  const ids = table.map(e => e.clubId);
+  const n = ids.length;
+  const { promotionSpots, playoffSpots, relegationSpots } = league;
+
+  const promoted = ids.slice(0, promotionSpots);
+  const playoffCandidates = ids.slice(promotionSpots, promotionSpots + playoffSpots);
+  const relegated = relegationSpots > 0 ? ids.slice(n - relegationSpots) : [];
+  const safeStart = promotionSpots + playoffSpots;
+  const safeEnd = relegationSpots > 0 ? n - relegationSpots : n;
+  const safe = ids.slice(safeStart, safeEnd);
+
+  return { promoted, playoffCandidates, safe, relegated };
+}
+
+/** @deprecated Backward-compatible wrapper — use determineProRelZones instead */
+export function determineZones(table: LeagueTableEntry[], league: LeagueInfo) {
+  const zones = determineProRelZones(table, league);
+  return {
+    safe: [...zones.promoted, ...zones.playoffCandidates, ...zones.safe],
+    replaced: zones.relegated,
+  };
+}
+
+// ── Run a simple playoff tournament (best 2 of the playoff candidates) ──
+
+/**
+ * Simulate a promotion playoff among candidates.
+ * Returns the winning club ID (promoted via playoffs).
+ */
+export function simulatePlayoff(candidates: string[]): string | null {
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+
+  // Simple bracket: 3rd vs 6th, 4th vs 5th, then winners play final
+  // Higher-placed team wins 60% of the time
+  const matchup = (a: string, b: string) => Math.random() < 0.6 ? a : b;
+
+  if (candidates.length === 2) {
+    return matchup(candidates[0], candidates[1]);
+  }
+  if (candidates.length === 4) {
+    // Semi-finals: 3rd vs 6th, 4th vs 5th
+    const sf1 = matchup(candidates[0], candidates[3]);
+    const sf2 = matchup(candidates[1], candidates[2]);
+    return matchup(sf1, sf2);
+  }
+
+  // General case: bracket tournament
+  let remaining = [...candidates];
+  while (remaining.length > 1) {
+    const next = [];
+    for (let i = 0; i < remaining.length - 1; i += 2) {
+      next.push(matchup(remaining[i], remaining[i + 1]));
+    }
+    if (remaining.length % 2 === 1) {
+      next.push(remaining[remaining.length - 1]);
+    }
+    remaining = next;
+  }
+  return remaining[0];
+}
+
+// ── Apply promotion/relegation across a country's league pyramid ──
+
+/**
+ * Apply promotion and relegation for ALL tiers in a country.
+ * Returns updated division club assignments and turnovers per league.
+ */
+export function applyPromotionRelegation(
+  countryId: string,
+  divisionClubs: Record<string, string[]>,
+  divisionTables: Record<string, LeagueTableEntry[]>,
+  clubs: Record<string, Club>,
+  playerClubId: string,
+): {
+  turnovers: Record<string, SeasonTurnover>;
+  updatedDivisionClubs: Record<string, string[]>;
+  updatedClubs: Record<string, Club>;
+  playerNewDivision: string | null; // non-null if player's division changed
+} {
+  const tiers = getLeaguesByCountry(countryId);
+  if (tiers.length === 0) {
+    return { turnovers: {}, updatedDivisionClubs: divisionClubs, updatedClubs: clubs, playerNewDivision: null };
+  }
+
+  const workingClubs = { ...clubs };
+  const workingDivisionClubs: Record<string, string[]> = {};
+  for (const tier of tiers) {
+    workingDivisionClubs[tier.id] = [...(divisionClubs[tier.id] || [])];
+  }
+
+  const turnovers: Record<string, SeasonTurnover> = {};
+  let playerNewDivision: string | null = null;
+
+  // Process each adjacent tier pair (top-down)
+  for (let i = 0; i < tiers.length - 1; i++) {
+    const upperLeague = tiers[i];
+    const lowerLeague = tiers[i + 1];
+    const upperTable = divisionTables[upperLeague.id] || [];
+    const lowerTable = divisionTables[lowerLeague.id] || [];
+
+    if (upperTable.length === 0 || lowerTable.length === 0) continue;
+
+    const upperZones = determineProRelZones(upperTable, upperLeague);
+    const lowerZones = determineProRelZones(lowerTable, lowerLeague);
+
+    // Clubs relegated from upper tier (player's club CAN be relegated)
+    const relegatedDown = upperZones.relegated;
+    // Clubs promoted from lower tier (player's club CAN be promoted)
+    const promotedUp = lowerZones.promoted;
+
+    // Run playoffs for lower tier if configured
+    const playoffWinners: string[] = [];
+    if (lowerLeague.playoffSpots > 0 && lowerZones.playoffCandidates.length > 0) {
+      const winner = simulatePlayoff(lowerZones.playoffCandidates);
+      if (winner) playoffWinners.push(winner);
+    }
+
+    // Move relegated clubs down
+    for (const clubId of relegatedDown) {
+      workingDivisionClubs[upperLeague.id] = workingDivisionClubs[upperLeague.id].filter(id => id !== clubId);
+      workingDivisionClubs[lowerLeague.id].push(clubId);
+      if (workingClubs[clubId]) {
+        workingClubs[clubId] = { ...workingClubs[clubId], divisionId: lowerLeague.id };
+      }
+      if (clubId === playerClubId) playerNewDivision = lowerLeague.id;
+    }
+
+    // Cap total promotions to the number of relegation slots in the upper tier
+    // to prevent league size drift from config mismatches
+    const allPromoted = [...promotedUp, ...playoffWinners];
+    const maxPromotions = relegatedDown.length;
+    const cappedPromoted = allPromoted.slice(0, maxPromotions);
+
+    // Move promoted clubs up
+    for (const clubId of cappedPromoted) {
+      workingDivisionClubs[lowerLeague.id] = workingDivisionClubs[lowerLeague.id].filter(id => id !== clubId);
+      workingDivisionClubs[upperLeague.id].push(clubId);
+      if (workingClubs[clubId]) {
+        workingClubs[clubId] = { ...workingClubs[clubId], divisionId: upperLeague.id };
+      }
+      if (clubId === playerClubId) playerNewDivision = upperLeague.id;
+    }
+
+    // Record turnovers — each league tracks clubs entering and leaving
+    if (!turnovers[upperLeague.id]) {
+      turnovers[upperLeague.id] = { leagueId: upperLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
+    }
+    if (!turnovers[lowerLeague.id]) {
+      turnovers[lowerLeague.id] = { leagueId: lowerLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
+    }
+
+    // Upper tier turnover: who arrived (promoted from below), who left (relegated)
+    turnovers[upperLeague.id].promotedClubs.push(...cappedPromoted);
+    turnovers[upperLeague.id].relegatedClubs.push(...relegatedDown);
+
+    // Lower tier turnover: who left via promotion, playoff winners
+    const cappedAutoPromoted = cappedPromoted.filter(id => promotedUp.includes(id));
+    const cappedPlayoffWinners = cappedPromoted.filter(id => playoffWinners.includes(id));
+    turnovers[lowerLeague.id].promotedClubs.push(...cappedAutoPromoted);
+    turnovers[lowerLeague.id].playoffWinners.push(...cappedPlayoffWinners);
+
+    // Adjust budgets and reputation for moved clubs
+    const upperLeagueInfo = LEAGUES.find(l => l.id === upperLeague.id);
+    const lowerLeagueInfo = LEAGUES.find(l => l.id === lowerLeague.id);
+    for (const clubId of relegatedDown) {
+      if (workingClubs[clubId] && lowerLeagueInfo) {
+        // Relegated: lose ~30% budget, lose 1 reputation
+        workingClubs[clubId] = {
+          ...workingClubs[clubId],
+          budget: Math.round(workingClubs[clubId].budget * 0.7),
+          reputation: Math.max(1, workingClubs[clubId].reputation - 1),
+        };
+      }
+    }
+    for (const clubId of cappedPromoted) {
+      if (workingClubs[clubId] && upperLeagueInfo) {
+        // Promoted: gain ~40% budget, gain 1 reputation
+        workingClubs[clubId] = {
+          ...workingClubs[clubId],
+          budget: Math.round(workingClubs[clubId].budget * 1.4),
+          reputation: Math.min(5, workingClubs[clubId].reputation + 1),
+        };
+      }
+    }
+  }
+
+  // Handle bottom-tier replacement (clubs relegated from the bottom tier with no lower tier)
+  const bottomLeague = tiers[tiers.length - 1];
+  if (bottomLeague.replacedSlots > 0) {
+    const bottomTable = divisionTables[bottomLeague.id] || [];
+    if (bottomTable.length > 0) {
+      const bottomIds = bottomTable.map(e => e.clubId);
+      // Only replace clubs that are still in the bottom tier after promotion movements
+      const stillInBottomTier = new Set(workingDivisionClubs[bottomLeague.id]);
+      const replacedIds = bottomIds
+        .filter(id => stillInBottomTier.has(id))
+        .slice(-bottomLeague.replacedSlots);
+
+      // Don't replace the player's club
+      const actuallyReplaced = replacedIds.filter(id => id !== playerClubId);
+
+      for (const cid of actuallyReplaced) {
+        workingDivisionClubs[bottomLeague.id] = workingDivisionClubs[bottomLeague.id].filter(id => id !== cid);
+        delete workingClubs[cid];
+      }
+
+      if (!turnovers[bottomLeague.id]) {
+        turnovers[bottomLeague.id] = { leagueId: bottomLeague.id, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
+      }
+      turnovers[bottomLeague.id].relegatedClubs.push(...actuallyReplaced);
+    }
+  }
+
+  // Verify league balance — each league should maintain its teamCount
+  // Bottom tier with replacedSlots will be short by that many clubs until
+  // orchestrationSlice generates replacement clubs after this function returns.
+  const bottomTierId = tiers[tiers.length - 1]?.id;
+  for (const tier of tiers) {
+    const isBottom = tier.id === bottomTierId;
+    const expectedAfterReplacements = tier.teamCount;
+    const pendingReplacements = isBottom ? (tier.replacedSlots || 0) : 0;
+    const expectedNow = expectedAfterReplacements - pendingReplacements;
+    const actual = workingDivisionClubs[tier.id]?.length || 0;
+    if (actual !== expectedNow && process.env.NODE_ENV !== 'production') {
+      console.warn(`[ProRel] League ${tier.id} has ${actual} teams, expected ${expectedNow}`);
+    }
+  }
+
+  return { turnovers, updatedDivisionClubs: workingDivisionClubs, updatedClubs: workingClubs, playerNewDivision };
+}
+
+// ── Legacy: apply season turnover for a single league (backward compat) ──
+
 export function applySeasonTurnover(
   leagueId: LeagueId,
   leagueClubs: string[],
@@ -41,254 +264,82 @@ export function applySeasonTurnover(
   const league = LEAGUES.find(l => l.id === leagueId);
   if (!league) {
     return {
-      turnover: { replacedClubs: [], newClubs: [], leagueId },
+      turnover: { leagueId, promotedClubs: [], relegatedClubs: [], playoffWinners: [] },
       updatedClubs: clubs,
       updatedLeagueClubs: leagueClubs,
     };
   }
 
-  const zones = determineZones(leagueTable, league);
+  const zones = determineProRelZones(leagueTable, league);
   const turnover: SeasonTurnover = {
-    replacedClubs: zones.replaced,
-    newClubs: [],
     leagueId,
+    promotedClubs: [],
+    relegatedClubs: zones.relegated,
+    playoffWinners: [],
   };
 
   const newClubs = { ...clubs };
-  const updatedLeagueClubs = leagueClubs.filter(id => !zones.replaced.includes(id));
+  const updatedLeagueClubs = leagueClubs.filter(id => !zones.relegated.includes(id));
 
-  // Remove replaced clubs
-  for (const cid of zones.replaced) {
+  for (const cid of zones.relegated) {
     delete newClubs[cid];
   }
 
   return { turnover, updatedClubs: newClubs, updatedLeagueClubs };
 }
 
-// ── Generate replacement clubs ──
+// ── Generate replacement clubs (bottom-tier fallback) ──
 
-/** Replacement club name pools keyed by league country code */
+/** Replacement pools — only non-league clubs not in any game division */
 const REPLACEMENT_POOLS: Record<string, { name: string; shortName: string; color: string; secondaryColor: string }[]> = {
   eng: [
-    { name: 'Burnley', shortName: 'BUR', color: '#6C1D45', secondaryColor: '#99D6EA' },
-    { name: 'Sheffield United', shortName: 'SHU', color: '#EE2737', secondaryColor: '#000000' },
-    { name: 'Luton Town', shortName: 'LUT', color: '#F78F1E', secondaryColor: '#002D62' },
-    { name: 'Sunderland', shortName: 'SUN', color: '#EB172B', secondaryColor: '#FFFFFF' },
-    { name: 'Leeds United', shortName: 'LEE', color: '#FFFFFF', secondaryColor: '#1D428A' },
-    { name: 'Norwich City', shortName: 'NOR', color: '#00A650', secondaryColor: '#FFF200' },
-    { name: 'Middlesbrough', shortName: 'MID', color: '#E11B22', secondaryColor: '#FFFFFF' },
-    { name: 'Coventry City', shortName: 'COV', color: '#5BB8F5', secondaryColor: '#FFFFFF' },
-  ],
-  esp: [
-    { name: 'Eibar', shortName: 'EIB', color: '#2B388F', secondaryColor: '#E4002B' },
-    { name: 'Huesca', shortName: 'HUE', color: '#2D2E83', secondaryColor: '#E40613' },
-    { name: 'Sporting Gijón', shortName: 'SPG', color: '#E4002B', secondaryColor: '#FFFFFF' },
-    { name: 'Racing Santander', shortName: 'RAC', color: '#009A44', secondaryColor: '#FFFFFF' },
-  ],
-  ita: [
-    { name: 'Sassuolo', shortName: 'SAS', color: '#00A651', secondaryColor: '#000000' },
-    { name: 'Salernitana', shortName: 'SAL', color: '#8B0000', secondaryColor: '#FFFFFF' },
-    { name: 'Frosinone', shortName: 'FRO', color: '#FFD700', secondaryColor: '#003DA5' },
-    { name: 'Cremonese', shortName: 'CRE', color: '#E30613', secondaryColor: '#808080' },
+    { name: 'Oldham Athletic', shortName: 'OLD', color: '#003DA5', secondaryColor: '#FFFFFF' },
+    { name: 'Scunthorpe Utd', shortName: 'SCU', color: '#8B0000', secondaryColor: '#FFFFFF' },
+    { name: 'Southend United', shortName: 'SOU', color: '#003DA5', secondaryColor: '#FFD700' },
+    { name: 'Macclesfield Town', shortName: 'MAC', color: '#003DA5', secondaryColor: '#FFFFFF' },
   ],
   ger: [
-    { name: 'Schalke 04', shortName: 'S04', color: '#004D9D', secondaryColor: '#FFFFFF' },
-    { name: 'Hamburger SV', shortName: 'HSV', color: '#0A3D8F', secondaryColor: '#FFFFFF' },
-    { name: 'Hannover 96', shortName: 'H96', color: '#009639', secondaryColor: '#FFFFFF' },
-    { name: 'Fortuna Düsseldorf', shortName: 'DUS', color: '#E4002B', secondaryColor: '#FFFFFF' },
+    { name: 'Rot-Weiss Essen', shortName: 'RWE', color: '#E30613', secondaryColor: '#FFFFFF' },
+    { name: 'Wehen Wiesbaden', shortName: 'WEH', color: '#E30613', secondaryColor: '#FFFFFF' },
+    { name: 'VfB Lübeck', shortName: 'LUB', color: '#008C45', secondaryColor: '#FFFFFF' },
+  ],
+  esp: [
+    { name: 'Ponferradina', shortName: 'PON', color: '#003DA5', secondaryColor: '#FFFFFF' },
+    { name: 'Numancia', shortName: 'NUM', color: '#E30613', secondaryColor: '#FFFFFF' },
+    { name: 'Lugo', shortName: 'LUG', color: '#003DA5', secondaryColor: '#FFFFFF' },
+  ],
+  ita: [
+    { name: 'Ternana', shortName: 'TER', color: '#E30613', secondaryColor: '#008C45' },
+    { name: 'Ascoli', shortName: 'ASC', color: '#000000', secondaryColor: '#FFFFFF' },
+    { name: 'Avellino', shortName: 'AVE', color: '#008C45', secondaryColor: '#FFFFFF' },
   ],
   fra: [
-    { name: 'Bordeaux', shortName: 'BOR', color: '#0E2A47', secondaryColor: '#FFFFFF' },
-    { name: 'Metz', shortName: 'MET', color: '#8B0000', secondaryColor: '#FFFFFF' },
-    { name: 'Caen', shortName: 'CAE', color: '#0047AB', secondaryColor: '#E30613' },
-    { name: 'Lorient', shortName: 'LOR', color: '#F5821F', secondaryColor: '#000000' },
-  ],
-  ned: [
-    { name: 'SC Cambuur', shortName: 'CAM', color: '#FFD700', secondaryColor: '#003DA5' },
-    { name: 'Excelsior', shortName: 'EXC', color: '#E30613', secondaryColor: '#000000' },
-    { name: 'FC Emmen', shortName: 'EMM', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'De Graafschap', shortName: 'GRA', color: '#0047AB', secondaryColor: '#FFFFFF' },
-    { name: 'Roda JC', shortName: 'ROD', color: '#FFD700', secondaryColor: '#000000' },
-  ],
-  por: [
-    { name: 'Chaves', shortName: 'CHV', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'Tondela', shortName: 'TON', color: '#008C45', secondaryColor: '#FFD700' },
-    { name: 'Desportivo de Aves', shortName: 'AVE', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'Nacional', shortName: 'NAC', color: '#000000', secondaryColor: '#FFFFFF' },
-    { name: 'Portimonense', shortName: 'POR', color: '#000000', secondaryColor: '#FFD700' },
-  ],
-  bel: [
-    { name: 'Beerschot', shortName: 'BEE', color: '#4B0082', secondaryColor: '#FFFFFF' },
-    { name: 'Lommel SK', shortName: 'LOM', color: '#008C45', secondaryColor: '#FFFFFF' },
-    { name: 'RWDM', shortName: 'RWD', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'Waasland-Beveren', shortName: 'WBE', color: '#FFD700', secondaryColor: '#003DA5' },
-    { name: 'Dender', shortName: 'DEN', color: '#E30613', secondaryColor: '#000000' },
-  ],
-  tur: [
-    { name: 'Pendikspor', shortName: 'PEN', color: '#8B0000', secondaryColor: '#FFD700' },
-    { name: 'İstanbulspor', shortName: 'IST', color: '#FFD700', secondaryColor: '#000000' },
-    { name: 'Giresunspor', shortName: 'GIR', color: '#008C45', secondaryColor: '#FFFFFF' },
-    { name: 'Ankaragücü', shortName: 'ANK', color: '#003DA5', secondaryColor: '#FFD700' },
-    { name: 'Eyüpspor', shortName: 'EYU', color: '#E30613', secondaryColor: '#FFFFFF' },
-  ],
-  cze: [
-    { name: 'Dukla Praha', shortName: 'DUK', color: '#8B0000', secondaryColor: '#FFD700' },
-    { name: 'Zbrojovka Brno', shortName: 'ZBR', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'Vlašim', shortName: 'VLA', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Žižkov', shortName: 'ZIZ', color: '#E30613', secondaryColor: '#000000' },
-  ],
-  gre: [
-    { name: 'Ionikos', shortName: 'ION', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Levadiakos', shortName: 'LEV', color: '#008C45', secondaryColor: '#FFFFFF' },
-    { name: 'Apollon Smyrnis', shortName: 'APO', color: '#87CEEB', secondaryColor: '#FFFFFF' },
-    { name: 'Giannina', shortName: 'GIA', color: '#003DA5', secondaryColor: '#000000' },
-    { name: 'Kallithea', shortName: 'KAL', color: '#4B0082', secondaryColor: '#FFFFFF' },
-  ],
-  pol: [
-    { name: 'Wisła Kraków', shortName: 'WIS', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'ŁKS Łódź', shortName: 'LKS', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'Arka Gdynia', shortName: 'ARK', color: '#FFD700', secondaryColor: '#003DA5' },
-    { name: 'Miedź Legnica', shortName: 'MIE', color: '#B87333', secondaryColor: '#008C45' },
-    { name: 'Sandecja Nowy Sącz', shortName: 'SAN', color: '#003DA5', secondaryColor: '#FFFFFF' },
-  ],
-  den: [
-    { name: 'Lyngby', shortName: 'LYN', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Hobro IK', shortName: 'HOB', color: '#E30613', secondaryColor: '#003DA5' },
-    { name: 'Esbjerg fB', shortName: 'ESB', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Hvidovre IF', shortName: 'HVI', color: '#003DA5', secondaryColor: '#E30613' },
-  ],
-  nor: [
-    { name: 'Stabæk', shortName: 'STB', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Start', shortName: 'STA', color: '#FFD700', secondaryColor: '#000000' },
-    { name: 'Sogndal', shortName: 'SOG', color: '#000000', secondaryColor: '#FFFFFF' },
-    { name: 'Mjøndalen', shortName: 'MJO', color: '#8B4513', secondaryColor: '#FFFFFF' },
-    { name: 'Ranheim', shortName: 'RAN', color: '#008C45', secondaryColor: '#FFFFFF' },
-  ],
-  che: [
-    { name: 'Grasshoppers', shortName: 'GCZ', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'FC Schaffhausen', shortName: 'SHA', color: '#000000', secondaryColor: '#FFD700' },
-    { name: 'FC Aarau', shortName: 'AAR', color: '#000000', secondaryColor: '#FFFFFF' },
-    { name: 'FC Thun', shortName: 'THU', color: '#E30613', secondaryColor: '#003DA5' },
-    { name: 'Vaduz', shortName: 'VAD', color: '#003DA5', secondaryColor: '#E30613' },
-  ],
-  aut: [
-    { name: 'Ried', shortName: 'RIE', color: '#000000', secondaryColor: '#008C45' },
-    { name: 'SKN St. Pölten', shortName: 'STP', color: '#003DA5', secondaryColor: '#FFD700' },
-    { name: 'Admira Wacker', shortName: 'ADM', color: '#000000', secondaryColor: '#E30613' },
-    { name: 'Wacker Innsbruck', shortName: 'WAC', color: '#008C45', secondaryColor: '#000000' },
-  ],
-  sco: [
-    { name: 'Partick Thistle', shortName: 'PAR', color: '#FFD700', secondaryColor: '#E30613' },
-    { name: 'Raith Rovers', shortName: 'RAI', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Inverness CT', shortName: 'INV', color: '#003DA5', secondaryColor: '#E30613' },
-    { name: "Queen's Park", shortName: 'QPK', color: '#000000', secondaryColor: '#FFD700' },
-    { name: 'Airdrieonians', shortName: 'AIR', color: '#FFFFFF', secondaryColor: '#E30613' },
-  ],
-  swe: [
-    { name: 'Helsingborg', shortName: 'HEL', color: '#E30613', secondaryColor: '#003DA5' },
-    { name: 'Örebro SK', shortName: 'ORE', color: '#000000', secondaryColor: '#FFFFFF' },
-    { name: 'Östersund', shortName: 'OST', color: '#E30613', secondaryColor: '#000000' },
-    { name: 'Falkenberg', shortName: 'FAL', color: '#FFD700', secondaryColor: '#003DA5' },
-    { name: 'AFC Eskilstuna', shortName: 'ESK', color: '#000000', secondaryColor: '#FFD700' },
-  ],
-  cro: [
-    { name: 'Slaven Belupo', shortName: 'SBE', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Inter Zaprešić', shortName: 'INZ', color: '#FFD700', secondaryColor: '#000000' },
-    { name: 'Gorica', shortName: 'GOR', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'Cibalia', shortName: 'CIB', color: '#003DA5', secondaryColor: '#E30613' },
-  ],
-  hun: [
-    { name: 'Vasas', shortName: 'VAS', color: '#E30613', secondaryColor: '#003DA5' },
-    { name: 'Honvéd', shortName: 'HON', color: '#E30613', secondaryColor: '#000000' },
-    { name: 'Diósgyőr', shortName: 'DIO', color: '#E30613', secondaryColor: '#FFD700' },
-    { name: 'Gyirmót', shortName: 'GYI', color: '#008C45', secondaryColor: '#FFFFFF' },
-  ],
-  srb: [
-    { name: 'Voždovac', shortName: 'VOZ', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'Kolubara', shortName: 'KOL', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Radnik Surdulica', shortName: 'RAD', color: '#E30613', secondaryColor: '#000000' },
-    { name: 'Spartak Subotica', shortName: 'SPS', color: '#003DA5', secondaryColor: '#E30613' },
-    { name: 'Železničar Pančevo', shortName: 'ZEL', color: '#003DA5', secondaryColor: '#FFFFFF' },
-  ],
-  rou: [
-    { name: 'Dinamo București', shortName: 'DIN', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'Rapid București', shortName: 'RAP', color: '#4B0082', secondaryColor: '#FFFFFF' },
-    { name: 'Petrolul Ploiești', shortName: 'PET', color: '#FFD700', secondaryColor: '#003DA5' },
-    { name: 'Argeș Pitești', shortName: 'ARG', color: '#4B0082', secondaryColor: '#FFFFFF' },
-    { name: 'UTA Arad', shortName: 'UTA', color: '#E30613', secondaryColor: '#FFFFFF' },
-  ],
-  ukr: [
-    { name: 'Metallist Kharkiv', shortName: 'MTL', color: '#FFD700', secondaryColor: '#003DA5' },
-    { name: 'Karpaty Lviv', shortName: 'KAR', color: '#008C45', secondaryColor: '#FFFFFF' },
-    { name: 'Chornomorets Odesa', shortName: 'CHO', color: '#003DA5', secondaryColor: '#000000' },
-    { name: 'Metalist 1925', shortName: 'M25', color: '#FFD700', secondaryColor: '#003DA5' },
-  ],
-  bgr: [
-    { name: 'Botev Plovdiv', shortName: 'BOT', color: '#FFD700', secondaryColor: '#000000' },
-    { name: 'Beroe', shortName: 'BER', color: '#008C45', secondaryColor: '#FFFFFF' },
-    { name: 'Lokomotiv Plovdiv', shortName: 'LPL', color: '#000000', secondaryColor: '#E30613' },
-    { name: 'Pirin Blagoevgrad', shortName: 'PIR', color: '#008C45', secondaryColor: '#FFFFFF' },
-  ],
-  svk: [
-    { name: 'Trenčín', shortName: 'TRE', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'Senica', shortName: 'SEN', color: '#003DA5', secondaryColor: '#FFD700' },
-    { name: 'Pohronie', shortName: 'POH', color: '#008C45', secondaryColor: '#FFFFFF' },
-    { name: 'Skalica', shortName: 'SKA', color: '#E30613', secondaryColor: '#000000' },
-  ],
-  fin: [
-    { name: 'HIFK', shortName: 'HIK', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'AC Oulu', shortName: 'ACO', color: '#000000', secondaryColor: '#FFD700' },
-    { name: 'FC Haka', shortName: 'HAK', color: '#FFFFFF', secondaryColor: '#000000' },
-    { name: 'MP Mikkeli', shortName: 'MPM', color: '#003DA5', secondaryColor: '#FFFFFF' },
-  ],
-  isl: [
-    { name: 'ÍBV Vestmannaeyjar', shortName: 'IBV', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Grindavík', shortName: 'GRN', color: '#000000', secondaryColor: '#FFD700' },
-    { name: 'Keflavík', shortName: 'KEF', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Throttur', shortName: 'THR', color: '#003DA5', secondaryColor: '#E30613' },
-  ],
-  irl: [
-    { name: 'Finn Harps', shortName: 'FIN', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Longford Town', shortName: 'LON', color: '#E30613', secondaryColor: '#000000' },
-    { name: 'Wexford', shortName: 'WEX', color: '#4B0082', secondaryColor: '#FFFFFF' },
-    { name: 'Bray Wanderers', shortName: 'BRA', color: '#008C45', secondaryColor: '#FFFFFF' },
-    { name: 'Cobh Ramblers', shortName: 'COB', color: '#E30613', secondaryColor: '#008C45' },
-  ],
-  isr: [
-    { name: 'Hapoel Tel Aviv', shortName: 'HTA', color: '#E30613', secondaryColor: '#FFFFFF' },
-    { name: 'Bnei Sakhnin', shortName: 'BNS', color: '#008C45', secondaryColor: '#FFFFFF' },
-    { name: 'Hapoel Haifa', shortName: 'HHA', color: '#E30613', secondaryColor: '#000000' },
-    { name: 'Ironi Kiryat Shmona', shortName: 'IKS', color: '#003DA5', secondaryColor: '#FFD700' },
-  ],
-  cyp: [
-    { name: 'Ethnikos Achna', shortName: 'ETH', color: '#003DA5', secondaryColor: '#FFFFFF' },
-    { name: 'Doxa Katokopias', shortName: 'DOX', color: '#008C45', secondaryColor: '#FFFFFF' },
-    { name: 'Ermis Aradippou', shortName: 'ERM', color: '#FFD700', secondaryColor: '#003DA5' },
-    { name: 'Karmiotissa', shortName: 'KAR', color: '#E30613', secondaryColor: '#FFFFFF' },
+    { name: 'Châteauroux', shortName: 'CHA', color: '#003DA5', secondaryColor: '#E30613' },
+    { name: 'Niort', shortName: 'NIO', color: '#008C45', secondaryColor: '#FFFFFF' },
+    { name: 'Sochaux', shortName: 'SOC', color: '#FFD700', secondaryColor: '#003DA5' },
   ],
 };
 
-/** Default replacement names for leagues without a specific pool */
 const DEFAULT_REPLACEMENTS = [
   { name: 'Promoted FC A', shortName: 'PFA', color: '#4A90D9', secondaryColor: '#FFFFFF' },
   { name: 'Promoted FC B', shortName: 'PFB', color: '#D94A4A', secondaryColor: '#FFFFFF' },
   { name: 'Promoted FC C', shortName: 'PFC', color: '#4AD94A', secondaryColor: '#FFFFFF' },
-  { name: 'Promoted FC D', shortName: 'PFD', color: '#D9D94A', secondaryColor: '#FFFFFF' },
 ];
 
 const replacementCounters: Record<string, number> = {};
 
 export function generateReplacementClub(season: number, leagueId: LeagueId): { clubData: ClubData; clubId: string } {
-  const pool = REPLACEMENT_POOLS[leagueId] || DEFAULT_REPLACEMENTS;
+  // For bottom-tier leagues, use the countryId to find the pool
+  const league = LEAGUES.find(l => l.id === leagueId);
+  const poolKey = league?.countryId || leagueId;
+  const pool = REPLACEMENT_POOLS[poolKey] || DEFAULT_REPLACEMENTS;
   if (!replacementCounters[leagueId]) replacementCounters[leagueId] = 0;
   const idx = replacementCounters[leagueId] % pool.length;
   replacementCounters[leagueId]++;
 
   const template = pool[idx];
-  const league = LEAGUES.find(l => l.id === leagueId);
 
   const id = `replaced-${leagueId}-${season}-${idx}-${Math.random().toString(36).slice(2, 6)}`;
-  // Base quality: use league tier as floor, but scale toward league's average wage tier
   const tierFloor = league?.qualityTier === 1 ? 58 : league?.qualityTier === 2 ? 48 : league?.qualityTier === 3 ? 40 : 33;
   const baseQuality = tierFloor + Math.floor(Math.random() * 8) - 2;
 

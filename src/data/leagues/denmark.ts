@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Denmark',
   countryCode: 'DK',
   teamCount: 12,
-  totalWeeks: 46,
+  totalWeeks: 22,
   replacedSlots: 0,
   description: 'Denmark\'s top division, known for producing world-class talent and competitive European campaigns.',
   difficulty: 'Medium',
@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 1200000,
   averageWage: 15000,
   qualityTier: 3,
+  tier: 1,
+  countryId: 'den',
+  promotionSpots: 0,
+  relegationSpots: 0,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [

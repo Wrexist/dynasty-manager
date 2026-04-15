@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TrainingGroundView } from '@/components/game/TrainingGroundView';
 import { DrillCard } from '@/components/game/DrillCard';
 import { DevelopmentHeatmap } from '@/components/game/DevelopmentHeatmap';
+import { LEAGUES } from '@/data/league';
 
 const SQUAD_SUB_NAV = [
   { screen: 'squad' as const, label: 'Squad' },
@@ -126,8 +127,9 @@ const TrainingPage = () => {
     if (squadPlayers.length === 0) return [];
     const attrs = ['pace', 'shooting', 'passing', 'defending', 'physical', 'mental'] as const;
     const divId = club?.divisionId || '';
-    const benchmarks: Record<string, number> = { 'div-1': 72, 'div-2': 64, 'div-3': 57, 'div-4': 50 };
-    const benchmark = benchmarks[divId] || 60;
+    const leagueInfo = LEAGUES.find(l => l.id === divId);
+    const tierBenchmarks: Record<number, number> = { 1: 72, 2: 64, 3: 57, 4: 50 };
+    const benchmark = tierBenchmarks[leagueInfo?.tier || 3] || 60;
     return attrs.map(attr => ({
       attr: ATTR_LABELS[attr],
       value: Math.round(squadPlayers.reduce((s, p) => s + (p.attributes[attr] || 0), 0) / squadPlayers.length),

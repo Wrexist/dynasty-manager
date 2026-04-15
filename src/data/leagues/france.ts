@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'France',
   countryCode: 'FR',
   teamCount: 18,
-  totalWeeks: 46,
+  totalWeeks: 34,
   replacedSlots: 0,
   description: 'France\'s elite division, a hotbed for emerging talent and home to some of the most exciting young players in world football.',
   difficulty: 'Hard',
@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 90000000,
   averageWage: 65000,
   qualityTier: 1,
+  tier: 1,
+  countryId: 'fra',
+  promotionSpots: 0,
+  relegationSpots: 3,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [

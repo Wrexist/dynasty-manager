@@ -14,7 +14,7 @@ interface Props {
 }
 
 export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
-  const { clubs, playerClubId, facilities, staff, scouting, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, playerDivision, careerManager } = useGameStore(
+  const { clubs, playerClubId, facilities, staff, scouting, fanMood, leagueTable, managerProgression, sponsorDeals, merchandise, players, playerDivision, careerManager, totalWeeks } = useGameStore(
     useShallow(s => ({
       clubs: s.clubs,
       playerClubId: s.playerClubId,
@@ -29,6 +29,7 @@ export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
       players: s.players,
       playerDivision: s.playerDivision,
       careerManager: s.careerManager,
+      totalWeeks: s.totalWeeks,
     }))
   );
   const club = clubs[playerClubId];
@@ -155,7 +156,7 @@ export function FinanceBreakdownSheet({ open, onOpenChange, mode }: Props) {
           </div>
           {mode === 'budget' && (
             <p className="text-[10px] text-muted-foreground mt-1">
-              At this rate, budget changes by £{(Math.abs(breakdown.net) * 46 / 1e6).toFixed(1)}M over a full season
+              At this rate, budget changes by £{(Math.abs(breakdown.net) * totalWeeks / 1e6).toFixed(1)}M over a full season
             </p>
           )}
         </div>

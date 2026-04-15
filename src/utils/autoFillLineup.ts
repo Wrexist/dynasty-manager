@@ -1,5 +1,5 @@
 import type { Player, FormationType, Position, PlayerAttributes, TacticalInstructions, AIManagerStyle } from '@/types/game';
-import { FORMATION_POSITIONS, POSITION_COMPATIBILITY } from '@/types/game';
+import { FORMATION_POSITIONS, canPlayPosition } from '@/types/game';
 import { POSITION_WEIGHTS } from '@/config/playerGeneration';
 import { MAX_SUBS } from '@/config/playerGeneration';
 import { LOW_FITNESS_THRESHOLD } from '@/config/gameBalance';
@@ -109,10 +109,9 @@ function positionalOverall(attrs: PlayerAttributes, targetPosition: Position): n
  * Determine position fit bonus/penalty for a player in a target slot.
  * Natural position: +8, Compatible: +4, Incompatible: -30
  */
-function positionFitScore(playerPosition: Position, slotPosition: Position): number {
-  if (playerPosition === slotPosition) return NATURAL_POSITION_BONUS;
-  const compat = POSITION_COMPATIBILITY[playerPosition];
-  if (compat && compat.includes(slotPosition)) return COMPATIBLE_POSITION_BONUS;
+function positionFitScore(player: { position: Position; alternatePositions?: Position[] }, slotPosition: Position): number {
+  if (player.position === slotPosition) return NATURAL_POSITION_BONUS;
+  if (canPlayPosition(player, slotPosition)) return COMPATIBLE_POSITION_BONUS;
   return INCOMPATIBLE_POSITION_PENALTY;
 }
 
@@ -133,7 +132,7 @@ function scorePlayerForSlot(player: Player, slotPosition: Position, context?: Au
     (player.form / 100) * FORM_WEIGHT +
     (player.fitness / 100) * fitnessWeight +
     (player.morale / 100) * MORALE_WEIGHT +
-    positionFitScore(player.position, slotPosition);
+    positionFitScore(player, slotPosition);
 
   // Extra penalty for low fitness — match engine applies -0.15 shot penalty below 50
   if (player.fitness < LOW_FITNESS_THRESHOLD) {
@@ -628,17 +627,15 @@ export function autoFillBestTeam(
   const hasGKInLineup = finalLineup.some(p => p.position === 'GK');
 
   // ── Helper: check if a player can cover a specific formation slot position ──
-  const canCoverPosition = (playerPos: Position, targetPos: Position): boolean => {
-    if (playerPos === targetPos) return true;
-    const compat = POSITION_COMPATIBILITY[playerPos];
-    return compat ? compat.includes(targetPos) : false;
+  const canCoverPosition = (player: { position: Position; alternatePositions?: Position[] }, targetPos: Position): boolean => {
+    return canPlayPosition(player, targetPos);
   };
 
   // ── Helper: count how many unique formation positions this player can fill ──
-  const countFormationCoverage = (playerPos: Position): number => {
+  const countFormationCoverage = (player: { position: Position; alternatePositions?: Position[] }): number => {
     let count = 0;
     for (const pos of uniqueFormationPositions) {
-      if (canCoverPosition(playerPos, pos)) count++;
+      if (canCoverPosition(player, pos)) count++;
     }
     return count;
   };
@@ -647,7 +644,7 @@ export function autoFillBestTeam(
   const getBestFreshnessDiff = (player: Player): number => {
     let bestDiff = 0;
     for (const { player: starter, slotPos } of starterInSlot) {
-      if (canCoverPosition(player.position, slotPos)) {
+      if (canCoverPosition(player, slotPos)) {
         const diff = player.fitness - starter.fitness;
         if (diff > bestDiff) bestDiff = diff;
       }
@@ -681,7 +678,7 @@ export function autoFillBestTeam(
     const baseRating = p.overall * 0.7 + (p.form / 100) * 15 + (p.fitness / 100) * 10 + (p.morale / 100) * 5;
 
     // Positional versatility: how many formation slots can this player cover?
-    const formationCoverage = countFormationCoverage(p.position);
+    const formationCoverage = countFormationCoverage(p);
     const versatilityScore = formationCoverage * BENCH_VERSATILITY_BONUS_PER_SLOT;
 
     // Freshness differential
@@ -692,11 +689,11 @@ export function autoFillBestTeam(
     const formBonus = p.form >= BENCH_HIGH_FORM_THRESHOLD ? BENCH_HIGH_FORM_BONUS : 0;
 
     // Yellow card insurance
-    const coversYellowRisk = yellowCardRiskSlots.some(pos => canCoverPosition(p.position, pos));
+    const coversYellowRisk = yellowCardRiskSlots.some(pos => canCoverPosition(p, pos));
     const yellowCoverScore = coversYellowRisk ? BENCH_YELLOW_CARD_COVER_BONUS : 0;
 
     // Reinjury risk coverage
-    const coversReinjury = reinjuryRiskSlots.some(pos => canCoverPosition(p.position, pos));
+    const coversReinjury = reinjuryRiskSlots.some(pos => canCoverPosition(p, pos));
     const reinjuryCoverScore = coversReinjury ? BENCH_REINJURY_COVER_BONUS : 0;
 
     // Tactical role bonus
@@ -708,7 +705,7 @@ export function autoFillBestTeam(
     const attributeImpact = getAttributeImpact(p);
 
     // Sub-need coverage
-    const coversSubNeed = [...subNeedPositions].some(pos => canCoverPosition(p.position, pos));
+    const coversSubNeed = [...subNeedPositions].some(pos => canCoverPosition(p, pos));
 
     // Formation gap
     const coversFormationGap = !lineupDeployedPositions.has(p.position) && formationPositions.has(p.position);
@@ -752,7 +749,7 @@ export function autoFillBestTeam(
           const defPositions = new Set(defSlots.map(s => s.pos));
           const starterPositions = new Set(finalLineup.map(pl => pl.position));
           for (const defPos of defPositions) {
-            if (!starterPositions.has(defPos) && canCoverPosition(p.position, defPos)) {
+            if (!starterPositions.has(defPos) && canCoverPosition(p, defPos)) {
               contextBenchBonus += BENCH_DEFENSIVE_FORMATION_COVER_BONUS;
               break; // One bonus per player, not per slot
             }

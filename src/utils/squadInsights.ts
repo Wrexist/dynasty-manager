@@ -1,5 +1,5 @@
 import type { Player, FormationType, FormationSlot, ChemistryLink, Position } from '@/types/game';
-import { POSITION_COMPATIBILITY } from '@/types/game';
+import { canPlayPosition } from '@/types/game';
 import { CHEMISTRY_GOOD_THRESHOLD } from '@/config/chemistry';
 
 export interface SquadInsight {
@@ -59,9 +59,7 @@ export function getSquadInsights(
   const mismatched = slots.reduce((count, slot, i) => {
     const p = lineupPlayers[i];
     if (!p) return count;
-    if (p.position === slot.pos) return count;
-    const compat = POSITION_COMPATIBILITY[slot.pos as Position] || [];
-    if (compat.includes(p.position as Position)) return count;
+    if (canPlayPosition(p, slot.pos as Position)) return count;
     return count + 1;
   }, 0);
   if (mismatched > 0) {

@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Czechia',
   countryCode: 'CZ',
   teamCount: 16,
-  totalWeeks: 46,
+  totalWeeks: 30,
   replacedSlots: 0,
   description: 'The top tier of Czech football featuring historic clubs and a pathway to European competition.',
   difficulty: 'Medium-Low',
@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 6_000_000,
   averageWage: 10_000,
   qualityTier: 3,
+  tier: 1,
+  countryId: 'cze',
+  promotionSpots: 0,
+  relegationSpots: 0,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [

@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
-import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/types/game';
+import { FORMATION_POSITIONS, canPlayPosition, type Position } from '@/types/game';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,10 +58,9 @@ function getFormLabel(form: number): { text: string; className: string } {
   return { text: 'Poor', className: 'text-destructive' };
 }
 
-function getCompatibility(playerPos: Position, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
-  if (playerPos === slotPos) return 'natural';
-  const compat = POSITION_COMPATIBILITY[slotPos] || [];
-  if (compat.includes(playerPos)) return 'compatible';
+function getCompatibility(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
+  if (player.position === slotPos) return 'natural';
+  if (canPlayPosition(player, slotPos)) return 'compatible';
   return 'wrong';
 }
 
@@ -96,30 +95,6 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     }
   }, [open, preSelectedOutId]);
 
-  // Sort bench by position compatibility, then overall, then fitness
-  const sortedSubs = useMemo(() => {
-    if (!playerClub) return [];
-    const subs = playerClub.subs;
-    const selectedOutPlayer = selectedOutId ? players[selectedOutId] : null;
-    if (!selectedOutPlayer) return subs;
-    const outPos = selectedOutPlayer.position as Position;
-    const posScore = (playerPos: Position): number => {
-      if (playerPos === outPos) return 2;
-      const compat = POSITION_COMPATIBILITY[outPos] || [];
-      if (compat.includes(playerPos)) return 1;
-      return 0;
-    };
-    return [...subs].sort((a, b) => {
-      const pa = players[a];
-      const pb = players[b];
-      if (!pa || !pb) return 0;
-      const psDiff = posScore(pb.position as Position) - posScore(pa.position as Position);
-      if (psDiff !== 0) return psDiff;
-      if (pb.overall !== pa.overall) return pb.overall - pa.overall;
-      return pb.fitness - pa.fitness;
-    });
-  }, [playerClub, selectedOutId, players]);
-
   const lineup = useMemo(() => playerClub?.lineup || [], [playerClub?.lineup]);
   const slots = useMemo(() => playerClub ? FORMATION_POSITIONS[playerClub.formation] || [] : [], [playerClub]);
 
@@ -130,6 +105,31 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     if (idx < 0 || !slots[idx]) return null;
     return slots[idx].pos as Position | undefined;
   }, [selectedOutId, lineup, slots]);
+
+  // Sort bench by position compatibility, then overall, then fitness
+  const sortedSubs = useMemo(() => {
+    if (!playerClub) return [];
+    const subs = playerClub.subs;
+    if (!selectedOutId) return subs;
+    // Use the formation slot position (not the player's natural position)
+    // so the sort is consistent with the compatibility rings
+    const slotPos = selectedSlotPos || (players[selectedOutId]?.position as Position);
+    if (!slotPos) return subs;
+    const posScore = (player: { position: Position; alternatePositions?: Position[] }): number => {
+      if (player.position === slotPos) return 2;
+      if (canPlayPosition(player, slotPos)) return 1;
+      return 0;
+    };
+    return [...subs].sort((a, b) => {
+      const pa = players[a];
+      const pb = players[b];
+      if (!pa || !pb) return 0;
+      const psDiff = posScore(pb) - posScore(pa);
+      if (psDiff !== 0) return psDiff;
+      if (pb.overall !== pa.overall) return pb.overall - pa.overall;
+      return pb.fitness - pa.fitness;
+    });
+  }, [playerClub, selectedOutId, selectedSlotPos, players]);
 
   // Smart Sub recommendation — delegated to utility
   const smartSub = useMemo(() => {
@@ -491,7 +491,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
             const isUnavailable = p.injured || (p.suspendedUntilWeek && p.suspendedUntilWeek > week);
             if (isUnavailable) return null;
             const benchCompat = selectedSlotPos
-              ? getCompatibility(p.position as Position, selectedSlotPos)
+              ? getCompatibility(p, selectedSlotPos)
               : null;
             const formInfo = getFormLabel(p.form);
             const benchCardStatus = playerCardStatus?.get(id);
@@ -692,19 +692,21 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 })}
               </div>
 
-              {/* Position fit warning */}
-              {selectedOutPlayer.position !== selectedInPlayer.position && (
+              {/* Position fit warning — check against the formation slot, not the player's natural position */}
+              {(() => {
+                const slotPos = selectedSlotPos || selectedOutPlayer.position as Position;
+                return selectedInPlayer.position !== slotPos ? (
                 <p className={cn(
                   'text-[10px] text-center px-2',
-                  POSITION_COMPATIBILITY[selectedOutPlayer.position as Position]?.includes(selectedInPlayer.position as Position)
+                  canPlayPosition(selectedInPlayer, slotPos)
                     ? 'text-amber-400' : 'text-destructive'
                 )}>
-                  {POSITION_COMPATIBILITY[selectedOutPlayer.position as Position]?.includes(selectedInPlayer.position as Position)
-                    ? `${selectedInPlayer.position} is a compatible position for ${selectedOutPlayer.position}`
-                    : `${selectedInPlayer.position} is not a natural fit for ${selectedOutPlayer.position}`
+                  {canPlayPosition(selectedInPlayer, slotPos)
+                    ? `${selectedInPlayer.position} is a compatible position for ${slotPos}`
+                    : `${selectedInPlayer.position} is not a natural fit for ${slotPos}`
                   }
                 </p>
-              )}
+              ) : null; })()}
 
               {/* Action buttons */}
               <div className="flex gap-2">

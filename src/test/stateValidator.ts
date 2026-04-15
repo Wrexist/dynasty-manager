@@ -21,8 +21,8 @@ export function validateGameState(state: GameState): ValidationError[] {
   if (state.season < 1) {
     errors.push({ field: 'season', message: `season is ${state.season}, expected >= 1`, severity: 'critical' });
   }
-  if (state.week < 1 || state.week > 46) {
-    errors.push({ field: 'week', message: `week is ${state.week}, expected 1-46`, severity: 'critical' });
+  if (state.week < 1 || state.week > (state.totalWeeks || 46)) {
+    errors.push({ field: 'week', message: `week is ${state.week}, expected 1-${state.totalWeeks || 46}`, severity: 'critical' });
   }
 
   // ── League club counts ──

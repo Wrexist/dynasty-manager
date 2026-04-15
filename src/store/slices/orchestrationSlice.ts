@@ -11,7 +11,7 @@ import {
   PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING,
   UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING,
 } from '@/config/managerCareer';
-import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies } from '@/data/league';
+import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies, getLeaguesByCountry, getRelatedLeagueIds } from '@/data/league';
 import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch, generateMatchWeather } from '@/engine/match';
@@ -108,7 +108,7 @@ import {
   STORYLINE_CHAIN_TRIGGER_CHANCE, STORYLINE_CHAIN_MIN_WEEK,
 } from '@/config/playoffs';
 import { applyPlayerDevelopment, resetSeasonGrowth, hydrateSeasonGrowth, seasonGrowthTracker } from '@/store/helpers/development';
-import { applySeasonTurnover, generateReplacementClub } from '@/utils/promotionRelegation';
+import { applySeasonTurnover, applyPromotionRelegation, generateReplacementClub } from '@/utils/promotionRelegation';
 import { generateStorylines } from '@/utils/storylines';
 import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
 import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
@@ -1248,79 +1248,165 @@ function endSeasonImpl(set: Set, get: Get) {
     cupsWonThisSeason,
   );
 
-  // Apply season turnover: replace bottom N clubs in the player's league
-  // (but never replace the player's own club)
-  const finalTable = buildLeagueTable(state.divisionFixtures[playerDiv] || [], state.divisionClubs[playerDiv] || []);
-  const { turnover, updatedClubs: turnoverClubs, updatedLeagueClubs } = applySeasonTurnover(
-    playerDiv,
-    state.divisionClubs[playerDiv] || [],
-    finalTable,
-    clubs,
-  );
+  // Apply promotion/relegation across all tiers in the player's country
+  const countryId = league?.countryId || playerDiv;
+  const countryLeagues = getLeaguesByCountry(countryId);
+  const hasMultipleTiers = countryLeagues.length > 1;
 
-  // Protect the player's club from being replaced
-  if (turnover.replacedClubs.includes(playerClubId)) {
-    turnover.replacedClubs = turnover.replacedClubs.filter(id => id !== playerClubId);
-  }
-
-  // Remove replaced clubs' players and generate replacement clubs
-  const workingClubs = { ...turnoverClubs };
-  // Re-add the player's club if it was removed by turnover
-  if (!workingClubs[playerClubId] && clubs[playerClubId]) {
-    workingClubs[playerClubId] = clubs[playerClubId];
-  }
-  const workingPlayers = { ...players, ...ballonDOrPlayers };
-  // Clean up players from replaced clubs (prefer working copy for freshest playerIds)
-  for (const replacedId of turnover.replacedClubs) {
-    const rClub = workingClubs[replacedId] || clubs[replacedId];
-    if (rClub) {
-      rClub.playerIds.forEach(pid => { delete workingPlayers[pid]; });
+  // Build final tables for all loaded divisions in this country
+  const finalDivisionTables: Record<string, LeagueTableEntry[]> = {};
+  for (const cl of countryLeagues) {
+    if (state.divisionClubs[cl.id]?.length) {
+      finalDivisionTables[cl.id] = buildLeagueTable(
+        state.divisionFixtures[cl.id] || [],
+        state.divisionClubs[cl.id] || []
+      );
     }
   }
-  // Generate replacement clubs with squads
-  const qualityTier = league?.qualityTier || 2;
-  const newLeagueClubs = [...updatedLeagueClubs];
-  // Ensure the player's club is in the league even if turnover removed it
-  if (!newLeagueClubs.includes(playerClubId)) {
-    newLeagueClubs.push(playerClubId);
-  }
-  for (let i = 0; i < turnover.replacedClubs.length; i++) {
-    const { clubData, clubId } = generateReplacementClub(season, playerDiv);
-    const newClub: Club = {
-      id: clubId, name: clubData.name, shortName: clubData.shortName,
-      color: clubData.color, secondaryColor: clubData.secondaryColor,
-      budget: clubData.budget, wageBill: 0, reputation: clubData.reputation,
-      facilities: clubData.facilities, youthRating: clubData.youthRating,
-      fanBase: clubData.fanBase, boardPatience: clubData.boardPatience,
-      playerIds: [], formation: '4-4-2', lineup: [], subs: [],
-      divisionId: playerDiv,
-    };
-    const squad = generateSquad(clubId, clubData.squadQuality, season, qualityTier);
-    let totalWages = 0;
-    squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
-    newClub.wageBill = totalWages;
-    const { lineup, subs } = selectBestLineup(squad, '4-4-2');
-    newClub.lineup = lineup.map(p => p.id);
-    newClub.subs = subs.map(p => p.id);
-    newClub.aiManagerProfile = generateAIManagerProfile(clubId, clubData.reputation);
-    workingClubs[clubId] = newClub;
-    newLeagueClubs.push(clubId);
-    turnover.newClubs.push(clubId);
+
+  let workingClubs = { ...clubs };
+  const workingPlayers = { ...players, ...ballonDOrPlayers };
+  let newDivisionClubs = { ...state.divisionClubs };
+  let newPlayerDiv = playerDiv;
+  const turnover: SeasonTurnover = { leagueId: playerDiv, promotedClubs: [], relegatedClubs: [], playoffWinners: [] };
+
+  if (hasMultipleTiers) {
+    // Real promotion/relegation between tiers
+    const proRelResult = applyPromotionRelegation(
+      countryId, state.divisionClubs, finalDivisionTables, clubs, playerClubId,
+    );
+    workingClubs = proRelResult.updatedClubs;
+    newDivisionClubs = { ...state.divisionClubs, ...proRelResult.updatedDivisionClubs };
+    if (proRelResult.playerNewDivision) {
+      newPlayerDiv = proRelResult.playerNewDivision;
+    }
+
+    // Merge turnovers for the player's current division
+    const playerTurnover = proRelResult.turnovers[playerDiv];
+    if (playerTurnover) {
+      turnover.promotedClubs = playerTurnover.promotedClubs;
+      turnover.relegatedClubs = playerTurnover.relegatedClubs;
+      turnover.playoffWinners = playerTurnover.playoffWinners;
+    }
+
+    // Generate replacement clubs for bottom-tier relegated clubs
+    for (const cl of countryLeagues) {
+      const clTurnover = proRelResult.turnovers[cl.id];
+      if (!clTurnover) continue;
+      // Bottom tier: relegated clubs need procedural replacements
+      const isBottomTier = !countryLeagues.some(l => l.tier === cl.tier + 1);
+      if (isBottomTier && clTurnover.relegatedClubs.length > 0) {
+        for (const replacedId of clTurnover.relegatedClubs) {
+          const rClub = workingClubs[replacedId] || clubs[replacedId];
+          if (rClub) {
+            rClub.playerIds.forEach(pid => { delete workingPlayers[pid]; });
+          }
+          delete workingClubs[replacedId];
+
+          const { clubData, clubId } = generateReplacementClub(season, cl.id);
+          const newClub: Club = {
+            id: clubId, name: clubData.name, shortName: clubData.shortName,
+            color: clubData.color, secondaryColor: clubData.secondaryColor,
+            budget: clubData.budget, wageBill: 0, reputation: clubData.reputation,
+            facilities: clubData.facilities, youthRating: clubData.youthRating,
+            fanBase: clubData.fanBase, boardPatience: clubData.boardPatience,
+            playerIds: [], formation: '4-4-2', lineup: [], subs: [],
+            divisionId: cl.id,
+          };
+          const qualityTier = cl.qualityTier || 4;
+          const squad = generateSquad(clubId, clubData.squadQuality, season, qualityTier);
+          let totalWages = 0;
+          squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
+          newClub.wageBill = totalWages;
+          const { lineup: newLineup, subs: newSubs } = selectBestLineup(squad, '4-4-2');
+          newClub.lineup = newLineup.map(p => p.id);
+          newClub.subs = newSubs.map(p => p.id);
+          newClub.aiManagerProfile = generateAIManagerProfile(clubId, clubData.reputation);
+          workingClubs[clubId] = newClub;
+          newDivisionClubs[cl.id] = newDivisionClubs[cl.id].filter(id => id !== replacedId);
+          newDivisionClubs[cl.id].push(clubId);
+        }
+      }
+    }
+  } else {
+    // Single-tier fallback: use old replacement system
+    const finalTable = buildLeagueTable(state.divisionFixtures[playerDiv] || [], state.divisionClubs[playerDiv] || []);
+    const singleResult = applySeasonTurnover(playerDiv, state.divisionClubs[playerDiv] || [], finalTable, clubs);
+    workingClubs = { ...singleResult.updatedClubs };
+    if (!workingClubs[playerClubId] && clubs[playerClubId]) {
+      workingClubs[playerClubId] = clubs[playerClubId];
+    }
+    turnover.relegatedClubs = singleResult.turnover.relegatedClubs;
+    // Clean up players from replaced clubs
+    for (const replacedId of turnover.relegatedClubs) {
+      const rClub = workingClubs[replacedId] || clubs[replacedId];
+      if (rClub) rClub.playerIds.forEach(pid => { delete workingPlayers[pid]; });
+    }
+    const qualityTier = league?.qualityTier || 2;
+    const newLeagueClubs = [...singleResult.updatedLeagueClubs];
+    if (!newLeagueClubs.includes(playerClubId)) newLeagueClubs.push(playerClubId);
+    for (let i = 0; i < turnover.relegatedClubs.length; i++) {
+      const { clubData, clubId } = generateReplacementClub(season, playerDiv);
+      const newClub: Club = {
+        id: clubId, name: clubData.name, shortName: clubData.shortName,
+        color: clubData.color, secondaryColor: clubData.secondaryColor,
+        budget: clubData.budget, wageBill: 0, reputation: clubData.reputation,
+        facilities: clubData.facilities, youthRating: clubData.youthRating,
+        fanBase: clubData.fanBase, boardPatience: clubData.boardPatience,
+        playerIds: [], formation: '4-4-2', lineup: [], subs: [],
+        divisionId: playerDiv,
+      };
+      const squad = generateSquad(clubId, clubData.squadQuality, season, qualityTier);
+      let totalWages = 0;
+      squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
+      newClub.wageBill = totalWages;
+      const { lineup: rl, subs: rs } = selectBestLineup(squad, '4-4-2');
+      newClub.lineup = rl.map(p => p.id);
+      newClub.subs = rs.map(p => p.id);
+      newClub.aiManagerProfile = generateAIManagerProfile(clubId, clubData.reputation);
+      workingClubs[clubId] = newClub;
+      newLeagueClubs.push(clubId);
+    }
+    newDivisionClubs = { ...state.divisionClubs, [playerDiv]: newLeagueClubs };
   }
 
-  // Check if player's club was replaced (bottom of table)
-  const wasReplaced = turnover.replacedClubs.includes(playerClubId);
-  history.replaced = wasReplaced;
+  // Track promotion/relegation in season history
+  if (hasMultipleTiers && newPlayerDiv !== playerDiv) {
+    const newLeague = LEAGUES.find(l => l.id === newPlayerDiv);
+    const isPromoted = !!(newLeague && newLeague.tier < (league?.tier || 1));
+    const isRelegated = !!(newLeague && newLeague.tier > (league?.tier || 1));
+    history.promoted = isPromoted;
+    history.replaced = isRelegated;
+  } else {
+    history.promoted = false;
+    history.replaced = false;
+  }
 
   let newMessages = [...messages];
-  const newDivisionClubs = { ...state.divisionClubs, [playerDiv]: newLeagueClubs };
 
-  if (turnover.replacedClubs.length > 0) {
-    const replacedNames = turnover.replacedClubs.map(id => clubs[id]?.name || id).join(', ');
-    const newNames = turnover.newClubs.map(id => workingClubs[id]?.name || id).join(', ');
-    if (replacedNames && newNames) {
-      newMessages = addMsg(newMessages, { week: state.week, season, type: 'general', title: 'League Turnover', body: `${replacedNames} departed the league. Newcomers: ${newNames}.` });
+  // Generate promotion/relegation messages
+  if (hasMultipleTiers) {
+    if (newPlayerDiv !== playerDiv) {
+      const newLeague = LEAGUES.find(l => l.id === newPlayerDiv);
+      const title = history.promoted ? 'Promoted!' : 'Relegated';
+      const body = history.promoted
+        ? `Congratulations! ${pc.name} has been promoted to ${newLeague?.name || 'the upper division'}!`
+        : `${pc.name} has been relegated to ${newLeague?.name || 'the lower division'}.`;
+      newMessages = addMsg(newMessages, { week: state.week, season, type: 'board', title, body });
     }
+    // Report other league movements
+    const playerDivTurnover = turnover;
+    if (playerDivTurnover.promotedClubs.length > 0) {
+      const promoNames = playerDivTurnover.promotedClubs.map(id => clubs[id]?.name || id).join(', ');
+      newMessages = addMsg(newMessages, { week: state.week, season, type: 'general', title: 'Promotions', body: `Promoted to the league: ${promoNames}.` });
+    }
+    if (playerDivTurnover.relegatedClubs.length > 0) {
+      const relNames = playerDivTurnover.relegatedClubs.map(id => clubs[id]?.name || id).join(', ');
+      newMessages = addMsg(newMessages, { week: state.week, season, type: 'general', title: 'Relegations', body: `Relegated from the league: ${relNames}.` });
+    }
+  } else if (turnover.relegatedClubs.length > 0) {
+    const replacedNames = turnover.relegatedClubs.map(id => clubs[id]?.name || id).join(', ');
+    newMessages = addMsg(newMessages, { week: state.week, season, type: 'general', title: 'League Turnover', body: `${replacedNames} departed the league.` });
   }
 
   // Announce Ballon d'Or winner via inbox message
@@ -1337,7 +1423,7 @@ function endSeasonImpl(set: Set, get: Get) {
     });
   }
 
-  finalizeSeason(set, get, history, updatedRecords, workingClubs, workingPlayers, turnover, newDivisionClubs, playerDiv, newMessages);
+  finalizeSeason(set, get, history, updatedRecords, workingClubs, workingPlayers, turnover, newDivisionClubs, newPlayerDiv, newMessages);
 }
 
 /** Standard season-end processing: aging, contracts, squad regen, fixtures, etc. */
@@ -1547,6 +1633,8 @@ function finalizeSeason(
     }
   }
 
+  let newMessages = [...inputMessages];
+
   // Clean up aged-out national team pool players (36+) and update poolPlayerIds
   let updatedNTPoolIds = currentNT?.poolPlayerIds || [];
   const retiredNTPlayers: string[] = [];
@@ -1594,6 +1682,11 @@ function finalizeSeason(
     }
   }
 
+  // Consistency: ensure all divisionClubs entries reference valid clubs
+  for (const [leagueId, clubIds] of Object.entries(newDivisionClubs)) {
+    newDivisionClubs[leagueId] = clubIds.filter(id => newClubs[id]);
+  }
+
   const leagueClubIds = newDivisionClubs[newPlayerDivision] || [];
   const leagueInfo = LEAGUES.find(l => l.id === newPlayerDivision);
   const leagueTotalWeeks = leagueInfo?.totalWeeks || TOTAL_WEEKS;
@@ -1613,10 +1706,13 @@ function finalizeSeason(
   const newLeagueCup = generateLeagueCupDraw(leagueClubIds);
   const newFriendlies = generateFriendlies(state.playerClubId, leagueClubIds);
 
-  // Generate continental tournaments based on previous season's league table
-  const prevLeagueTable = state.leagueTable;
+  // Generate continental tournaments based on the top-tier league table
+  // If the player was promoted/relegated, use the top tier's table (continental qualifies top-tier only)
+  const topTierLeagueId = getLeaguesByCountry(leagueInfo?.countryId || newPlayerDivision)
+    .find(l => l.tier === 1)?.id || newPlayerDivision;
+  const prevLeagueTable = newDivisionTables[topTierLeagueId] || state.leagueTable;
   const playerClubMap: Record<string, { name: string; shortName: string; color: string; reputation: number }> = {};
-  for (const [id, club] of Object.entries(state.clubs)) {
+  for (const [id, club] of Object.entries(newClubs)) {
     playerClubMap[id] = { name: club.name, shortName: club.shortName, color: club.color, reputation: club.reputation };
   }
 
@@ -1758,7 +1854,7 @@ function finalizeSeason(
   const baseConfidence = SEASON_END_CONFIDENCE[verdict] || CONFIDENCE_MIN;
   const newConfidence = Math.min(100, baseConfidence + objectiveConfidenceBonus);
 
-  let newMessages = addMsg(inputMessages, {
+  newMessages = addMsg(newMessages, {
     week: 1, season: newSeason, type: 'board',
     title: `Season ${newSeason} Begins`,
     body: verdict === 'sacked'
@@ -1886,8 +1982,9 @@ function finalizeSeason(
     newClubs[club.id] = cleanClub;
   }
 
+  const newLeagueTotalWeeks = LEAGUES.find(l => l.id === newPlayerDivision)?.totalWeeks || TOTAL_WEEKS;
   set({
-    season: newSeason, week: 1, totalWeeks: TOTAL_WEEKS, transferWindowOpen: true,
+    season: newSeason, week: 1, totalWeeks: newLeagueTotalWeeks, transferWindowOpen: true,
     seasonPhase: 'regular',
     clubs: newClubs, players: newPlayers, fixtures: newFixtures, leagueTable: newLeagueTable,
     divisionFixtures: newDivisionFixtures, divisionTables: newDivisionTables,
@@ -2348,8 +2445,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const playerDivision = selectedClubData?.divisionId || 'eng';
     const league = LEAGUES.find(l => l.id === playerDivision);
 
-    // Only load clubs for the player's league
-    const leagueClubData = ALL_CLUBS.filter(cd => cd.divisionId === playerDivision);
+    // Load clubs for ALL tiers in the player's country (for promotion/relegation)
+    const countryId = league?.countryId || playerDivision;
+    const countryLeagues = getLeaguesByCountry(countryId);
+    const countryLeagueIds = countryLeagues.map(l => l.id);
+    const leagueClubData = ALL_CLUBS.filter(cd => countryLeagueIds.includes(cd.divisionId));
 
     leagueClubData.forEach(cd => {
       const club: Club = {
@@ -2364,7 +2464,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         stadiumCapacity: cd.stadiumCapacity,
       };
 
-      const squad = generateSquad(club.id, cd.squadQuality, 1, playerDivision);
+      const squad = generateSquad(club.id, cd.squadQuality, 1, cd.divisionId);
       let totalWages = 0;
       squad.forEach(p => {
         allPlayers[p.id] = p;
@@ -2383,12 +2483,17 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       clubs[club.id] = club;
     });
 
-    // Build league structures (single league only)
-    const leagueClubIds = leagueClubData.map(cd => cd.id);
-    const leagueTotalWeeks = league?.totalWeeks || TOTAL_WEEKS;
-    const divisionClubs: Record<string, string[]> = { [playerDivision]: leagueClubIds };
-    const divisionFixtures: Record<string, Match[]> = { [playerDivision]: generateDivisionFixtures(leagueClubIds, leagueTotalWeeks) };
-    const divisionTables: Record<string, LeagueTableEntry[]> = { [playerDivision]: buildLeagueTable(divisionFixtures[playerDivision], leagueClubIds) };
+    // Build league structures for ALL tiers in the country
+    const divisionClubs: Record<string, string[]> = {};
+    const divisionFixtures: Record<string, Match[]> = {};
+    const divisionTables: Record<string, LeagueTableEntry[]> = {};
+    for (const cl of countryLeagues) {
+      const clubIds = leagueClubData.filter(cd => cd.divisionId === cl.id).map(cd => cd.id);
+      divisionClubs[cl.id] = clubIds;
+      divisionFixtures[cl.id] = generateDivisionFixtures(clubIds, cl.totalWeeks || TOTAL_WEEKS);
+      divisionTables[cl.id] = buildLeagueTable(divisionFixtures[cl.id], clubIds);
+    }
+    const leagueClubIds = divisionClubs[playerDivision] || [];
     const fixtures = divisionFixtures[playerDivision];
     const leagueTable = divisionTables[playerDivision];
 
@@ -2452,7 +2557,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const friendlies = generateFriendlies(clubId, leagueClubIds);
 
     set({
-      gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: TOTAL_WEEKS,
+      gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: league?.totalWeeks || TOTAL_WEEKS,
       gameMode: get().gameMode || 'sandbox',
       transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable, friendlies,
       divisionFixtures, divisionTables, divisionClubs, playerDivision,
@@ -4007,10 +4112,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const streakIncomeMult = currentWinStreak >= STREAK_INCOME_THRESHOLD ? 1 + STREAK_INCOME_MULTIPLIER : 1;
     const matchdayIncome = Math.round(playerClub.fanBase * MATCHDAY_INCOME_PER_FAN * fanMoodMult * derbyIncomeBonus * streakIncomeMult);
     const commercialIncome = Math.round(COMMERCIAL_INCOME_BASE + playerClub.reputation * COMMERCIAL_INCOME_PER_REP);
-    // League position prize money: higher position = more income
+    // League position prize money: higher position = more income, scaled by tier
     const playerTableIdx = leagueTable.findIndex(e => e.clubId === playerClubId);
     const playerTablePos = playerTableIdx >= 0 ? playerTableIdx + 1 : leagueTable.length;
-    const positionPrize = Math.max(0, (POSITION_PRIZE_MAX_RANK - playerTablePos)) * POSITION_PRIZE_PER_RANK;
+    const playerLeagueInfo = LEAGUES.find(l => l.id === playerDiv);
+    const tierPrizeScale = playerLeagueInfo?.tier === 1 ? 1.0 : playerLeagueInfo?.tier === 2 ? 0.35 : playerLeagueInfo?.tier === 3 ? 0.12 : 0.05;
+    const positionPrize = Math.round(Math.max(0, (POSITION_PRIZE_MAX_RANK - playerTablePos)) * POSITION_PRIZE_PER_RANK * tierPrizeScale);
     // Sponsorship: sum of active sponsor deals
     const sponsorIncome = state.sponsorDeals.reduce((sum, d) => sum + d.weeklyPayment, 0);
     // Merchandise: strategic system with product lines, pricing, campaigns, star players

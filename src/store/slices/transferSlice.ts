@@ -1,6 +1,7 @@
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { getFarewellSummary } from '@/utils/playerNarratives';
+import { LEAGUES } from '@/data/league';
 import { GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_NEGOTIATION_GROWTH, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
 import {
   ACCEPT_CHANCE_AT_ASKING, ACCEPT_CHANCE_AT_80_PERCENT, ACCEPT_CHANCE_BELOW, ACCEPT_80_PERCENT_THRESHOLD,
@@ -151,7 +152,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const entry = state.negotiationStrikes[playerId];
     if (!entry?.cooldownUntil) return { locked: false, weeksRemaining: 0 };
-    const absoluteWeek = state.season * TOTAL_WEEKS + state.week;
+    const absoluteWeek = state.season * (state.totalWeeks || TOTAL_WEEKS) + state.week;
     if (entry.cooldownUntil <= absoluteWeek) return { locked: false, weeksRemaining: 0 };
     return { locked: true, weeksRemaining: entry.cooldownUntil - absoluteWeek };
   },
@@ -160,7 +161,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const current = state.negotiationStrikes[playerId] || { strikes: 0 };
     const newStrikes = Math.min(current.strikes + 1, NEGOTIATION_MAX_STRIKES);
-    const absoluteWeek = state.season * TOTAL_WEEKS + state.week;
+    const absoluteWeek = state.season * (state.totalWeeks || TOTAL_WEEKS) + state.week;
     const updated: NegotiationStrike = {
       strikes: newStrikes,
       ...(newStrikes >= NEGOTIATION_MAX_STRIKES ? { cooldownUntil: absoluteWeek + NEGOTIATION_COOLDOWN_WEEKS } : {}),
@@ -178,7 +179,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
   clearExpiredCooldowns: () => {
     const state = get();
-    const absoluteWeek = state.season * TOTAL_WEEKS + state.week;
+    const absoluteWeek = state.season * (state.totalWeeks || TOTAL_WEEKS) + state.week;
     const strikes = { ...state.negotiationStrikes };
     let changed = false;
     for (const key of Object.keys(strikes)) {
@@ -562,7 +563,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const signingBonus = Math.round(wage * years * SIGNING_BONUS_WEEKS_PER_YEAR);
     if (club.budget < signingBonus) return { success: false, message: `Insufficient funds for signing bonus (£${(signingBonus / 1e6).toFixed(1)}M).` };
     if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
-    const divBonus = FREE_AGENT_DIV_BONUS[state.playerDivision] || 0;
+    const playerTier = LEAGUES.find(l => l.id === state.playerDivision)?.tier || 3;
+    const divBonus = FREE_AGENT_DIV_BONUS[playerTier] || 0;
     const maxFreeAgentOvr = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE + divBonus;
     if (player.overall > maxFreeAgentOvr) return { success: false, message: `Player quality (${player.overall}) exceeds your club's reputation limit (${maxFreeAgentOvr}).` };
 
@@ -599,7 +601,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
     // Severance: remaining contract weeks × wage
     const remainingSeasons = Math.max(0, player.contractEnd - state.season);
-    const remainingWeeks = remainingSeasons * TOTAL_WEEKS + Math.max(0, TOTAL_WEEKS - state.week);
+    const remainingWeeks = remainingSeasons * (state.totalWeeks || TOTAL_WEEKS) + Math.max(0, (state.totalWeeks || TOTAL_WEEKS) - state.week);
     const severance = Math.round(player.wage * remainingWeeks);
     if (club.budget < severance) return { success: false, message: `Insufficient funds for severance pay (£${(severance / 1e6).toFixed(1)}M).` };
 

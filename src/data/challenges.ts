@@ -1,4 +1,5 @@
 import type { ChallengeScenario } from '@/types/game';
+import { LEAGUES } from '@/data/league';
 
 export const CHALLENGES: ChallengeScenario[] = [
   {
@@ -155,7 +156,7 @@ export function checkChallengeComplete(
     case 'double-winner':
       return leaguePosition === 1 && cupWinner;
     case 'promotion-express':
-      return extraData?.divisionId === 'div-1';
+      return LEAGUES.find(l => l.id === extraData?.divisionId)?.tier === 1;
     default:
       return false;
   }

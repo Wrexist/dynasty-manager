@@ -1,4 +1,4 @@
-import { ClubData, Match, LeagueTableEntry, LeagueId, LeagueInfo, DerbyRivalry } from '@/types/game';
+import { ClubData, Match, LeagueTableEntry, LeagueId, LeagueInfo, DerbyRivalry, CountryLeagueSystem } from '@/types/game';
 import { shuffle } from '@/utils/helpers';
 
 // ── Import all leagues ──
@@ -10,6 +10,57 @@ export const LEAGUES: LeagueInfo[] = ALL_LEAGUES;
 export const CLUBS_DATA: ClubData[] = ALL_CLUBS_DATA;
 /** Alias for new code */
 export const ALL_CLUBS = ALL_CLUBS_DATA;
+
+// ── Country-aware league helpers ──
+
+/** Get all leagues/divisions for a given country, sorted by tier */
+export function getLeaguesByCountry(countryId: string): LeagueInfo[] {
+  return LEAGUES.filter(l => l.countryId === countryId).sort((a, b) => a.tier - b.tier);
+}
+
+/** Get the league one tier above (null if already top tier) */
+export function getLeagueAbove(leagueId: string): LeagueInfo | null {
+  const league = LEAGUES.find(l => l.id === leagueId);
+  if (!league || league.tier <= 1) return null;
+  return LEAGUES.find(l => l.countryId === league.countryId && l.tier === league.tier - 1) || null;
+}
+
+/** Get the league one tier below (null if already bottom tier) */
+export function getLeagueBelow(leagueId: string): LeagueInfo | null {
+  const league = LEAGUES.find(l => l.id === leagueId);
+  if (!league) return null;
+  return LEAGUES.find(l => l.countryId === league.countryId && l.tier === league.tier + 1) || null;
+}
+
+/** Build all country league system descriptors */
+export function getCountryLeagueSystems(): CountryLeagueSystem[] {
+  const byCountry: Record<string, LeagueInfo[]> = {};
+  for (const league of LEAGUES) {
+    if (!byCountry[league.countryId]) byCountry[league.countryId] = [];
+    byCountry[league.countryId].push(league);
+  }
+  return Object.entries(byCountry).map(([countryId, leagues]) => {
+    leagues.sort((a, b) => a.tier - b.tier);
+    return {
+      countryId,
+      country: leagues[0].country,
+      countryCode: leagues[0].countryCode,
+      leagueIds: leagues.map(l => l.id),
+    };
+  });
+}
+
+/** Check if a country has multiple tiers */
+export function hasMultipleTiers(countryId: string): boolean {
+  return getLeaguesByCountry(countryId).length > 1;
+}
+
+/** Get all related league IDs for a given league (all tiers in same country) */
+export function getRelatedLeagueIds(leagueId: string): string[] {
+  const league = LEAGUES.find(l => l.id === leagueId);
+  if (!league) return [leagueId];
+  return getLeaguesByCountry(league.countryId).map(l => l.id);
+}
 
 // ── Real Derby Rivalries ──
 export const DERBIES: DerbyRivalry[] = [

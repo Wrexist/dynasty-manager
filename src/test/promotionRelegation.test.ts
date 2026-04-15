@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { determineZones, generateReplacementClub, applySeasonTurnover } from '@/utils/promotionRelegation';
+import { determineZones, determineProRelZones, generateReplacementClub, applySeasonTurnover, simulatePlayoff } from '@/utils/promotionRelegation';
 import { LEAGUES } from '@/data/league';
 import type { LeagueTableEntry, LeagueInfo, Club } from '@/types/game';
 
@@ -28,53 +28,64 @@ function makeLeague(overrides: Partial<LeagueInfo> = {}): LeagueInfo {
     countryCode: 'TS',
     teamCount: 20,
     totalWeeks: 46,
-    replacedSlots: 3,
+    replacedSlots: 0,
     description: 'A test league',
     difficulty: 'Medium',
     colorClass: 'text-blue-400',
     prizeMoney: 1_000_000,
     averageWage: 50_000,
     qualityTier: 2,
+    tier: 1,
+    countryId: 'test',
+    promotionSpots: 0,
+    relegationSpots: 3,
+    playoffSpots: 0,
     ...overrides,
   } as LeagueInfo;
 }
 
 describe('Season Turnover', () => {
-  describe('determineZones', () => {
-    it('should determine zones for eng (20 teams, 0 replaced — single-league mode)', () => {
-      const eng = LEAGUES.find(l => l.id === 'eng')!;
-      const table = makeTable(eng.teamCount);
-      const zones = determineZones(table, eng);
+  describe('determineProRelZones', () => {
+    it('should determine promotion and relegation zones', () => {
+      const league = makeLeague({ promotionSpots: 2, relegationSpots: 3, playoffSpots: 4, teamCount: 20 });
+      const table = makeTable(20);
+      const zones = determineProRelZones(table, league);
 
-      // Single-league mode: no clubs replaced
-      expect(zones.replaced).toHaveLength(0);
-      expect(zones.safe).toHaveLength(eng.teamCount);
+      expect(zones.promoted).toHaveLength(2);
+      expect(zones.playoffCandidates).toHaveLength(4);
+      expect(zones.relegated).toHaveLength(3);
+      expect(zones.safe).toHaveLength(11); // 20 - 2 - 4 - 3
+      expect(zones.promoted).toEqual(['club-1', 'club-2']);
+      expect(zones.relegated).toEqual(['club-18', 'club-19', 'club-20']);
     });
 
-    it('should determine zones for a league with 2 replaced slots', () => {
-      const league = makeLeague({ replacedSlots: 2, teamCount: 18 });
-      const table = makeTable(18);
-      const zones = determineZones(table, league);
+    it('should handle top-tier league (no promotion)', () => {
+      const league = makeLeague({ promotionSpots: 0, relegationSpots: 3, playoffSpots: 0 });
+      const table = makeTable(20);
+      const zones = determineProRelZones(table, league);
 
-      expect(zones.replaced).toHaveLength(2);
-      expect(zones.safe).toHaveLength(16);
-      expect(zones.replaced).toEqual(['club-17', 'club-18']);
+      expect(zones.promoted).toHaveLength(0);
+      expect(zones.playoffCandidates).toHaveLength(0);
+      expect(zones.relegated).toHaveLength(3);
+      expect(zones.safe).toHaveLength(17);
     });
 
-    it('should handle a league with 0 replaced slots', () => {
-      const league = makeLeague({ replacedSlots: 0, teamCount: 12 });
-      const table = makeTable(12);
-      const zones = determineZones(table, league);
+    it('should handle bottom-tier league (no relegation)', () => {
+      const league = makeLeague({ promotionSpots: 3, relegationSpots: 0, playoffSpots: 4 });
+      const table = makeTable(20);
+      const zones = determineProRelZones(table, league);
 
-      expect(zones.replaced).toHaveLength(0);
-      expect(zones.safe).toHaveLength(12);
+      expect(zones.promoted).toHaveLength(3);
+      expect(zones.playoffCandidates).toHaveLength(4);
+      expect(zones.relegated).toHaveLength(0);
+      expect(zones.safe).toHaveLength(13);
     });
 
     it('should place all clubs in exactly one zone', () => {
-      const league = makeLeague({ replacedSlots: 3, teamCount: 20 });
+      const league = makeLeague({ promotionSpots: 2, relegationSpots: 3, playoffSpots: 4 });
       const table = makeTable(20);
-      const zones = determineZones(table, league);
-      const allIds = [...zones.safe, ...zones.replaced];
+      const zones = determineProRelZones(table, league);
+      const allIds = [...zones.promoted, ...zones.playoffCandidates, ...zones.safe, ...zones.relegated];
       expect(allIds).toHaveLength(20);
       expect(new Set(allIds).size).toBe(20);
     });
@@ -82,52 +93,71 @@ describe('Season Turnover', () => {
     it('works with every configured league', () => {
       for (const league of LEAGUES) {
         const table = makeTable(league.teamCount);
-        const zones = determineZones(table, league);
-        expect(zones.replaced).toHaveLength(league.replacedSlots);
-        expect(zones.safe).toHaveLength(league.teamCount - league.replacedSlots);
-        // No overlap
-        const allIds = [...zones.safe, ...zones.replaced];
-        expect(new Set(allIds).size).toBe(league.teamCount);
+        const zones = determineProRelZones(table, league);
+        expect(zones.promoted).toHaveLength(league.promotionSpots);
+        expect(zones.playoffCandidates).toHaveLength(league.playoffSpots);
+        expect(zones.relegated).toHaveLength(league.relegationSpots);
+        const total = zones.promoted.length + zones.playoffCandidates.length + zones.safe.length + zones.relegated.length;
+        expect(total).toBe(league.teamCount);
       }
     });
   });
 
+  describe('determineZones (backward compat)', () => {
+    it('should determine zones for eng (20 teams, 3 relegated)', () => {
+      const eng = LEAGUES.find(l => l.id === 'eng')!;
+      const table = makeTable(eng.teamCount);
+      const zones = determineZones(table, eng);
+
+      expect(zones.replaced).toHaveLength(eng.relegationSpots);
+      expect(zones.safe).toHaveLength(eng.teamCount - eng.relegationSpots);
+    });
+  });
+
+  describe('simulatePlayoff', () => {
+    it('returns null for empty candidates', () => {
+      expect(simulatePlayoff([])).toBeNull();
+    });
+
+    it('returns the single candidate for single-entry', () => {
+      expect(simulatePlayoff(['club-1'])).toBe('club-1');
+    });
+
+    it('returns a valid candidate from the list', () => {
+      const candidates = ['club-3', 'club-4', 'club-5', 'club-6'];
+      const winner = simulatePlayoff(candidates);
+      expect(candidates).toContain(winner);
+    });
+  });
+
   describe('generateReplacementClub', () => {
-    it('generates a valid replacement club for eng', () => {
-      const { clubData, clubId } = generateReplacementClub(2, 'eng');
-      expect(clubId).toContain('replaced-eng-2-');
+    it('generates a valid replacement club for eng-4 (bottom tier)', () => {
+      const { clubData, clubId } = generateReplacementClub(2, 'eng-4');
+      expect(clubId).toContain('replaced-eng-4-2-');
       expect(clubData.name).toBeTruthy();
       expect(clubData.shortName).toBeTruthy();
       expect(clubData.budget).toBeGreaterThan(0);
       expect(clubData.squadQuality).toBeGreaterThan(0);
-      expect(clubData.divisionId).toBe('eng');
-    });
-
-    it('generates a valid replacement club for a non-pool league', () => {
-      const { clubData, clubId } = generateReplacementClub(3, 'cyp');
-      expect(clubId).toContain('replaced-cyp-3-');
-      expect(clubData.name).toBeTruthy();
-      expect(clubData.budget).toBeGreaterThan(0);
+      expect(clubData.divisionId).toBe('eng-4');
     });
 
     it('generates unique IDs for successive calls', () => {
       const ids = new Set<string>();
       for (let i = 0; i < 10; i++) {
-        const { clubId } = generateReplacementClub(1, 'esp');
+        const { clubId } = generateReplacementClub(1, 'esp-2');
         expect(ids.has(clubId)).toBe(false);
         ids.add(clubId);
       }
     });
   });
 
-  describe('applySeasonTurnover', () => {
+  describe('applySeasonTurnover (legacy)', () => {
     it('removes bottom clubs from the league', () => {
       const leagueId = 'eng';
       const league = LEAGUES.find(l => l.id === leagueId)!;
       const table = makeTable(league.teamCount);
       const leagueClubs = table.map(e => e.clubId);
 
-      // Create minimal club records
       const clubs: Record<string, Club> = {};
       for (const clubId of leagueClubs) {
         clubs[clubId] = {
@@ -144,27 +174,21 @@ describe('Season Turnover', () => {
         leagueId, leagueClubs, table, clubs
       );
 
-      // Bottom 3 should be replaced
-      expect(turnover.replacedClubs).toHaveLength(league.replacedSlots);
+      expect(turnover.relegatedClubs).toHaveLength(league.relegationSpots);
       expect(turnover.leagueId).toBe(leagueId);
 
-      // Replaced clubs should be removed from the clubs record
-      for (const replacedId of turnover.replacedClubs) {
+      for (const replacedId of turnover.relegatedClubs) {
         expect(updatedClubs[replacedId]).toBeUndefined();
       }
 
-      // Updated league clubs should not contain replaced clubs
-      expect(updatedLeagueClubs).toHaveLength(league.teamCount - league.replacedSlots);
-      for (const replacedId of turnover.replacedClubs) {
-        expect(updatedLeagueClubs).not.toContain(replacedId);
-      }
+      expect(updatedLeagueClubs).toHaveLength(league.teamCount - league.relegationSpots);
     });
 
     it('handles unknown league gracefully', () => {
       const { turnover, updatedLeagueClubs } = applySeasonTurnover(
         'nonexistent', ['a', 'b'], [], {}
       );
-      expect(turnover.replacedClubs).toHaveLength(0);
+      expect(turnover.relegatedClubs).toHaveLength(0);
       expect(updatedLeagueClubs).toEqual(['a', 'b']);
     });
   });

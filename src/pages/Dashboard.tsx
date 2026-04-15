@@ -304,11 +304,11 @@ const Dashboard = () => {
   // Week preview teasers (with fallback so there's always something forward-looking)
   const weekPreviews = useMemo(() => {
     if (!club) return [];
-    const ctx = { playerClubId, players, clubs, fixtures, facilities: facilities, scouting: scouting, week, season, boardObjectives, divisionTables: divisionTables, playerDivision: playerDivision };
+    const ctx = { playerClubId, players, clubs, fixtures, facilities: facilities, scouting: scouting, week, season, totalWeeks, boardObjectives, divisionTables: divisionTables, playerDivision: playerDivision };
     const items = getWeekPreview(ctx);
     if (items.length > 0) return items;
     return getFallbackPreview(ctx);
-  }, [playerClubId, players, clubs, fixtures, facilities, scouting, week, season, club, boardObjectives, divisionTables, playerDivision]);
+  }, [playerClubId, players, clubs, fixtures, facilities, scouting, week, season, totalWeeks, club, boardObjectives, divisionTables, playerDivision]);
 
   // XP progress to next level
   const xpProgress = useMemo(() => getXPProgress(managerProgression), [managerProgression]);
@@ -531,7 +531,7 @@ const Dashboard = () => {
     leagueName: LEAGUES.find(d => d.id === playerDivision)?.shortName,
   });
 
-  // Season over check — 46-week season, but only when all player matches done and not in playoffs
+  // Season over check — uses totalWeeks from league config, but only when all player matches done and not in playoffs
   const seasonOver = useMemo(() => {
     const allMatchesPlayed = fixtures
       .filter(m => m.homeClubId === playerClubId || m.awayClubId === playerClubId)

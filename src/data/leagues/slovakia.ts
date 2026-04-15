@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Slovakia',
   countryCode: 'SK',
   teamCount: 12,
-  totalWeeks: 46,
+  totalWeeks: 22,
   replacedSlots: 0,
   description: 'The Slovak top division led by Slovan Bratislava, with competitive smaller clubs and a strong focus on youth development.',
   difficulty: 'Hard',
@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 150000,
   averageWage: 3000,
   qualityTier: 4,
+  tier: 1,
+  countryId: 'svk',
+  promotionSpots: 0,
+  relegationSpots: 0,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [

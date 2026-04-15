@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
-import { POSITION_COMPATIBILITY, Position, TrainingModule } from '@/types/game';
+import { POSITION_COMPATIBILITY, type Position, type TrainingModule } from '@/types/game';
 import { ArrowLeft, Heart, Zap, TrendingUp, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2, Trophy, Medal } from 'lucide-react';
 import { TransferApproach } from '@/components/game/TransferApproach';
 import { LoanNegotiation } from '@/components/game/LoanNegotiation';
@@ -47,7 +47,7 @@ const ATTR_LABELS: Record<string, string> = {
 const PlayerDetail = () => {
   const {
     selectedPlayerId, players, clubs, playerClubId, previousScreen,
-    incomingOffers, season, week, facilities,
+    incomingOffers, season, week, totalWeeks, facilities,
     training, transferWindowOpen, staff,
     fixtures, managerProgression,
   } = useGameStore(useShallow(s => ({
@@ -59,6 +59,7 @@ const PlayerDetail = () => {
     incomingOffers: s.incomingOffers,
     season: s.season,
     week: s.week,
+    totalWeeks: s.totalWeeks,
     facilities: s.facilities,
     training: s.training,
     transferWindowOpen: s.transferWindowOpen,
@@ -150,7 +151,8 @@ const PlayerDetail = () => {
 
   // Role suitability: find all positions where this player appears as compatible
   const naturalPosition = player.position;
-  const compatiblePositions = POSITION_COMPATIBILITY[naturalPosition] || [naturalPosition];
+  const staticCompat = POSITION_COMPATIBILITY[naturalPosition] || [naturalPosition];
+  const compatiblePositions = [...new Set([...staticCompat, ...(player.alternatePositions || [])])];
 
   // Morale factors
   const moraleFactors: { label: string; impact: 'positive' | 'neutral' | 'negative' }[] = [];
@@ -201,6 +203,7 @@ const PlayerDetail = () => {
             <p className="text-sm text-muted-foreground">
               {player.position} · {player.age} · <FlagIcon nationality={player.nationality} size={16} /> {player.nationality}
               {player.potential > player.overall && <span className="text-primary"> · Pot {player.potential}</span>}
+              {(player.skillMoves ?? 0) >= 3 && <span className="text-amber-400"> · {'★'.repeat(player.skillMoves!)} Skills</span>}
             </p>
             <div className="flex items-center gap-1.5 mt-1">
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: club?.color || '#888' }} />
@@ -1001,7 +1004,7 @@ const PlayerDetail = () => {
               <div>
                 <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
                   <span>Recovery Progress</span>
-                  <span>Est. return: Week {Math.min(week + player.injuryWeeks, 46)}</span>
+                  <span>Est. return: Week {Math.min(week + player.injuryWeeks, totalWeeks)}</span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-muted/40 overflow-hidden">
                   <div

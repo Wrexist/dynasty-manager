@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Italy',
   countryCode: 'IT',
   teamCount: 20,
-  totalWeeks: 46,
+  totalWeeks: 38,
   replacedSlots: 0,
   description: 'Italy\'s premier division, renowned for tactical sophistication, defensive mastery, and passionate fan culture.',
   difficulty: 'Very Hard',
@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 120000000,
   averageWage: 85000,
   qualityTier: 1,
+  tier: 1,
+  countryId: 'ita',
+  promotionSpots: 0,
+  relegationSpots: 3,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [

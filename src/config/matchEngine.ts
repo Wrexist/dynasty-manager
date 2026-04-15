@@ -5,13 +5,13 @@
 
 // ── Goal Event Types (single source of truth) ──
 /** All event types that count as goals for scoring/stats purposes */
-export const GOAL_EVENT_TYPES = ['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'goalkeeper_error'] as const;
+export const GOAL_EVENT_TYPES = ['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'solo_goal', 'goalkeeper_error'] as const;
 /** Goal types + own_goal + var_check for display purposes (match feed, highlights) */
 export const GOAL_DISPLAY_TYPES = [...GOAL_EVENT_TYPES, 'own_goal', 'var_check', 'var_disallowed'] as const;
 /** Goal event types that count as actual scored goals (for counting goals from events) */
 export const GOAL_SCORING_TYPES = [...GOAL_EVENT_TYPES, 'own_goal'] as const;
 /** Goal event types that also count as a shot on target (excludes goalkeeper_error and own_goal) */
-export const GOAL_SHOT_TYPES = ['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal'] as const;
+export const GOAL_SHOT_TYPES = ['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'solo_goal'] as const;
 
 // ── Formation Fit ──
 /** Maximum bonus from perfect formation fit — mispositioned players are punished */
@@ -386,6 +386,7 @@ export const FREE_KICK_GOAL_CHANCE = 0.08;
 export const LONG_RANGE_GOAL_CHANCE = 0.10;
 export const COUNTER_ATTACK_GOAL_CHANCE = 0.12;
 export const HEADER_GOAL_CHANCE = 0.06;
+export const SOLO_GOAL_CHANCE = 0.06;
 export const GK_ERROR_BASE_CHANCE = 0.03;
 export const GK_ERROR_MAX_CHANCE = 0.08;
 export const VAR_CHECK_CHANCE = 0.12;

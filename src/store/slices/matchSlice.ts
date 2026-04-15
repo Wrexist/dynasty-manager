@@ -80,7 +80,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     if (lcTie) { set({ currentMatchResult: buildMatch(lcTie.homeClubId, lcTie.awayClubId, lcTie.homeGoals, lcTie.awayGoals, lcTie.penaltyShootout) }); return; }
 
     // 4. Continental tournaments (group + knockout)
-    for (const tourney of [state.championsCup, state.shieldCup]) {
+    for (const tourney of [state.championsCup, state.shieldCup, state.conferenceCup]) {
       if (!tourney) continue;
       for (const group of tourney.groups || []) {
         for (const m of group.matches || []) {

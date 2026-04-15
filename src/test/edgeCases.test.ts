@@ -300,9 +300,9 @@ describe('2D: Season Turnover Integrity', () => {
 
     const zones = determineZones(table, eng);
 
-    // Single-league mode: no clubs replaced, all safe
-    expect(zones.safe).toHaveLength(eng.teamCount);
-    expect(zones.replaced).toHaveLength(0);
+    // With multi-tier system: relegated clubs go to lower tiers
+    expect(zones.safe).toHaveLength(eng.teamCount - eng.relegationSpots);
+    expect(zones.replaced).toHaveLength(eng.relegationSpots);
   });
 
   it('maintains league integrity through season turnover cycle', { timeout: 60_000 }, () => {

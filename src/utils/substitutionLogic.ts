@@ -1,4 +1,4 @@
-import { POSITION_COMPATIBILITY, type Position, type Player } from '@/types/game';
+import { canPlayPosition, type Position, type Player } from '@/types/game';
 import { SMART_SUB_MIN_MINUTE, SMART_SUB_LOSING_MINUTE, SMART_SUB_WINNING_LATE_MINUTE } from '@/config/matchEngine';
 
 interface SmartSubParams {
@@ -22,9 +22,9 @@ interface SmartSubResult {
 const ATTACKING_POSITIONS: Position[] = ['ST', 'LW', 'RW', 'CAM'];
 const DEFENSIVE_POSITIONS: Position[] = ['CB', 'CDM', 'LB', 'RB'];
 
-function posCompat(playerPos: Position, slotPos: Position): number {
-  if (playerPos === slotPos) return 1.0;
-  if ((POSITION_COMPATIBILITY[slotPos] || []).includes(playerPos)) return 0.8;
+function posCompat(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): number {
+  if (player.position === slotPos) return 1.0;
+  if (canPlayPosition(player, slotPos)) return 0.8;
   return 0.4;
 }
 
@@ -70,7 +70,7 @@ export function computeSmartSub(params: SmartSubParams): SmartSubResult | null {
       const inP = players[inId];
       if (!inP) continue;
 
-      const compat = posCompat(inP.position as Position, slotPos);
+      const compat = posCompat(inP, slotPos);
       const effIn = effectiveStrength(inP, compat);
       const effOut = effectiveStrength(outP, 1.0); // current starter plays at natural compat in their slot
 

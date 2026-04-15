@@ -1,5 +1,5 @@
 // ── League System ──
-// LeagueId is a string identifier for each national league (e.g. 'eng', 'esp', 'ita')
+// LeagueId is a string identifier for each league division (e.g. 'eng', 'eng-2', 'esp', 'esp-2')
 export type LeagueId = string;
 
 export interface LeagueInfo {
@@ -18,19 +18,45 @@ export interface LeagueInfo {
   averageWage: number;
   /** Quality tier for squad generation (1=elite, 2=strong, 3=mid, 4=developing) */
   qualityTier: 1 | 2 | 3 | 4;
+  /** Tier within the country pyramid (1=top flight, 2=second tier, etc.) */
+  tier: number;
+  /** Country grouping key — same for all tiers in a country (e.g. 'eng' for all English leagues) */
+  countryId: string;
+  /** Number of auto-promotion spots from below (0 for top tier) */
+  promotionSpots: number;
+  /** Number of auto-relegation spots to tier below (0 for bottom tier) */
+  relegationSpots: number;
+  /** Number of playoff promotion spots from below */
+  playoffSpots: number;
 }
 
 export interface QualificationZones {
   championsCup: number[];  // league positions that qualify for Champions Cup
   shieldCup: number[];     // league positions that qualify for Shield Cup
   conferenceCup: number[]; // league positions that qualify for Conference Cup
-  replaced: number[];      // league positions that get replaced
+  replaced: number[];      // league positions that get relegated/replaced
+  promotion: number[];     // league positions that qualify for auto-promotion (lower tiers)
+  playoff: number[];       // league positions that enter promotion playoffs (lower tiers)
 }
 
 export interface SeasonTurnover {
-  replacedClubs: string[];
-  newClubs: string[];
   leagueId: LeagueId;
+  promotedClubs: string[];    // Clubs promoted TO this league from below
+  relegatedClubs: string[];   // Clubs relegated FROM this league to below
+  playoffWinners: string[];   // Clubs promoted via playoffs
+  /** @deprecated kept for save compat — use promotedClubs/relegatedClubs */
+  replacedClubs?: string[];
+  /** @deprecated kept for save compat */
+  newClubs?: string[];
+}
+
+/** Describes the full league pyramid for a single country */
+export interface CountryLeagueSystem {
+  countryId: string;
+  country: string;
+  countryCode: string;
+  /** League IDs ordered by tier (tier 1 first) */
+  leagueIds: string[];
 }
 
 export interface DerbyRivalry {
@@ -138,6 +164,8 @@ export interface Player {
   lowMoraleWeeks?: number; // consecutive weeks with morale below threshold
   transferCooldownUntilWeek?: number; // after being convinced to stay, immune until this week
   lastTransferTalkWeek?: number; // week of last transfer talk interaction (prevents spam)
+  alternatePositions?: Position[];  // positions this player can fill naturally (from FC25 data)
+  skillMoves?: number;              // 1-5 star skill moves rating
   internationalCaps?: number;
   internationalGoals?: number;
   appearance?: PlayerAppearance;
@@ -207,7 +235,7 @@ export interface ClubData {
 
 export interface MatchEvent {
   minute: number;
-  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout' | 'commentary' | 'ai_tactical_change' | 'free_kick_goal' | 'long_range_goal' | 'counter_attack_goal' | 'header_goal' | 'goalkeeper_error' | 'var_check' | 'var_disallowed';
+  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout' | 'commentary' | 'ai_tactical_change' | 'free_kick_goal' | 'long_range_goal' | 'counter_attack_goal' | 'header_goal' | 'solo_goal' | 'goalkeeper_error' | 'var_check' | 'var_disallowed';
   playerId?: string;
   assistPlayerId?: string;
   clubId: string;
@@ -329,7 +357,7 @@ export interface IncomingOffer {
 // ── Negotiation Strikes ──
 export interface NegotiationStrike {
   strikes: number;         // 0-3
-  cooldownUntil?: number;  // absolute week (season * 46 + week) when cooldown expires
+  cooldownUntil?: number;  // absolute week (season * totalWeeks + week) when cooldown expires
 }
 
 // ── Loans ──
@@ -654,6 +682,19 @@ export const POSITION_COMPATIBILITY: Record<Position, Position[]> = {
   'RW': ['RW', 'RM', 'ST'],
   'ST': ['ST', 'CAM', 'LW', 'RW'],
 };
+
+/**
+ * Check if a player can fill a given slot position.
+ * Uses both the static POSITION_COMPATIBILITY table and the player's
+ * FC25-sourced alternatePositions for per-player flexibility.
+ */
+export function canPlayPosition(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): boolean {
+  if (player.position === slotPos) return true;
+  const staticCompat = POSITION_COMPATIBILITY[player.position] || [];
+  if (staticCompat.includes(slotPos)) return true;
+  if (player.alternatePositions?.includes(slotPos)) return true;
+  return false;
+}
 
 // ── Settings ──
 export interface GameSettings {

@@ -3,7 +3,7 @@ import { ELO_K_FACTORS, ELO_INITIAL_TIER_BONUS, ELO_REPUTATION_MULTIPLIER } from
 
 /**
  * Initialize power rankings for all clubs based on reputation and division tier.
- * Range: ~120 (div-4 rep-1) to ~1600 (div-1 rep-10).
+ * Range: ~120 (tier-4 rep-1) to ~1600 (tier-1 rep-10).
  */
 export function initializeClubPowerRankings(
   clubs: Record<string, Club>,

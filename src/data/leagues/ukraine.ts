@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Ukraine',
   countryCode: 'UA',
   teamCount: 16,
-  totalWeeks: 46,
+  totalWeeks: 30,
   replacedSlots: 0,
   description: 'The top tier of Ukrainian football, historically dominated by Shakhtar and Dynamo Kyiv, producing world-class talent despite challenging circumstances.',
   difficulty: 'Hard',
@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 300000,
   averageWage: 6000,
   qualityTier: 3,
+  tier: 1,
+  countryId: 'ukr',
+  promotionSpots: 0,
+  relegationSpots: 0,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [

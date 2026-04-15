@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Turkey',
   countryCode: 'TR',
   teamCount: 19,
-  totalWeeks: 46,
+  totalWeeks: 36,
   replacedSlots: 0,
   description: 'Turkey\'s passionate top flight with fervent atmospheres and ambitious clubs competing for European places.',
   difficulty: 'Medium',
@@ -15,6 +15,11 @@ export const LEAGUE_INFO: LeagueInfo = {
   prizeMoney: 15_000_000,
   averageWage: 20_000,
   qualityTier: 2,
+  tier: 1,
+  countryId: 'tur',
+  promotionSpots: 0,
+  relegationSpots: 0,
+  playoffSpots: 0,
 };
 
 export const CLUBS: ClubData[] = [
