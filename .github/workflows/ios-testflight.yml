@@ -190,6 +190,8 @@ jobs:
               <key>com.dynastymanager</key>
               <string>Dynasty Manager App Store</string>
             </dict>
+            <key>destination</key>
+            <string>upload</string>
             <key>uploadBitcode</key>
             <false/>
             <key>uploadSymbols</key>
@@ -205,33 +207,7 @@ jobs:
             -authenticationKeyPath "$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_API_KEY_ID}.p8" \
             -authenticationKeyID "$ASC_API_KEY_ID" \
             -authenticationKeyIssuerID "$ASC_ISSUER_ID"
-
-      - name: Verify export and upload to TestFlight
-        env:
-          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
-          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-        run: |
-          IPA=$(find "$RUNNER_TEMP/export" -name "*.ipa" -print -quit)
-          if [ -z "$IPA" ]; then
-            echo "::error::No .ipa file found in export directory"
-            ls -la "$RUNNER_TEMP/export/" || true
-            exit 1
-          fi
-          echo "Found IPA: $IPA ($(du -h "$IPA" | cut -f1))"
-
-          # Explicitly upload to App Store Connect via xcrun altool
-          if ! xcrun altool --upload-app \
-            -f "$IPA" \
-            --type ios \
-            --apiKey "$ASC_API_KEY_ID" \
-            --apiIssuer "$ASC_ISSUER_ID"; then
-            echo "::error::altool upload failed. Export diagnostics:"
-            ls -la "$RUNNER_TEMP/export/" || true
-            cat "$RUNNER_TEMP/export/DistributionSummary.plist" 2>/dev/null || true
-            cat "$RUNNER_TEMP/export/ExportOptions.plist" 2>/dev/null || true
-            exit 1
-          fi
-          echo "Upload complete — build should appear in TestFlight within 5-30 minutes"
+          echo "Export + upload complete — build should appear in TestFlight within 5-30 minutes"
 
       - name: Clean up credentials
         if: always()
