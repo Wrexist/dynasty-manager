@@ -1633,6 +1633,8 @@ function finalizeSeason(
     }
   }
 
+  let newMessages = [...inputMessages];
+
   // Clean up aged-out national team pool players (36+) and update poolPlayerIds
   let updatedNTPoolIds = currentNT?.poolPlayerIds || [];
   const retiredNTPlayers: string[] = [];
@@ -1852,7 +1854,7 @@ function finalizeSeason(
   const baseConfidence = SEASON_END_CONFIDENCE[verdict] || CONFIDENCE_MIN;
   const newConfidence = Math.min(100, baseConfidence + objectiveConfidenceBonus);
 
-  let newMessages = addMsg(inputMessages, {
+  newMessages = addMsg(newMessages, {
     week: 1, season: newSeason, type: 'board',
     title: `Season ${newSeason} Begins`,
     body: verdict === 'sacked'

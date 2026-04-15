@@ -203,7 +203,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
 
   /** Replace an injured player in the national team tournament squad */
   replaceInjuredInternationalPlayer: (outId: string, inId: string) => {
-    const state = get();
+    const state = _get();
     if (!state.nationalTeam) return;
     const nt = { ...state.nationalTeam };
     // Swap in squad
@@ -216,6 +216,6 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
     if (state.nationalTeam.lineup.includes(outId) && !nt.lineup.includes(inId)) {
       nt.subs = [...nt.subs.filter(id => id !== inId), inId];
     }
-    set({ nationalTeam: nt });
+    _set({ nationalTeam: nt });
   },
 });

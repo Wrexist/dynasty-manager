@@ -27,6 +27,9 @@ const FORMATION_HINTS: Record<FormationType, string> = {
   '4-1-4-1': 'Defensive stability with one anchor. Counter-attack ready.',
   '3-4-3': 'Ultra-attacking with 3 forwards. Risky at the back.',
   '5-3-2': 'Deep defensive block. Hard to break down but limited width.',
+  '4-5-1': 'Ultra-defensive packed midfield. Great for frustrating opponents.',
+  '4-1-2-1-2': 'The diamond. Central overload with no natural width.',
+  '3-4-1-2': 'Two strikers with a creative #10. Wing-backs provide width.',
 };
 
 const MatchPrep = () => {

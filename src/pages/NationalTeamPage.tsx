@@ -17,7 +17,7 @@ import { hapticLight } from '@/utils/haptics';
 import { successToast } from '@/utils/gameToast';
 
 const NationalTeamPage = () => {
-  const { nationalTeam, managerNationality, players, clubs, setScreen, updateNationalSquad, setNationalFormation } = useGameStore(useShallow(s => ({
+  const { nationalTeam, managerNationality, players, clubs, setScreen, updateNationalSquad, setNationalFormation, internationalTournament, replaceInjuredInternationalPlayer } = useGameStore(useShallow(s => ({
     nationalTeam: s.nationalTeam,
     managerNationality: s.managerNationality,
     players: s.players,
