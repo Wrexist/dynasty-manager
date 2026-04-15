@@ -164,6 +164,8 @@ export interface Player {
   lowMoraleWeeks?: number; // consecutive weeks with morale below threshold
   transferCooldownUntilWeek?: number; // after being convinced to stay, immune until this week
   lastTransferTalkWeek?: number; // week of last transfer talk interaction (prevents spam)
+  alternatePositions?: Position[];  // positions this player can fill naturally (from FC25 data)
+  skillMoves?: number;              // 1-5 star skill moves rating
   internationalCaps?: number;
   internationalGoals?: number;
   appearance?: PlayerAppearance;
@@ -233,7 +235,7 @@ export interface ClubData {
 
 export interface MatchEvent {
   minute: number;
-  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout' | 'commentary' | 'ai_tactical_change' | 'free_kick_goal' | 'long_range_goal' | 'counter_attack_goal' | 'header_goal' | 'goalkeeper_error' | 'var_check' | 'var_disallowed';
+  type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout' | 'commentary' | 'ai_tactical_change' | 'free_kick_goal' | 'long_range_goal' | 'counter_attack_goal' | 'header_goal' | 'solo_goal' | 'goalkeeper_error' | 'var_check' | 'var_disallowed';
   playerId?: string;
   assistPlayerId?: string;
   clubId: string;
@@ -680,6 +682,19 @@ export const POSITION_COMPATIBILITY: Record<Position, Position[]> = {
   'RW': ['RW', 'RM', 'ST'],
   'ST': ['ST', 'CAM', 'LW', 'RW'],
 };
+
+/**
+ * Check if a player can fill a given slot position.
+ * Uses both the static POSITION_COMPATIBILITY table and the player's
+ * FC25-sourced alternatePositions for per-player flexibility.
+ */
+export function canPlayPosition(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): boolean {
+  if (player.position === slotPos) return true;
+  const staticCompat = POSITION_COMPATIBILITY[player.position] || [];
+  if (staticCompat.includes(slotPos)) return true;
+  if (player.alternatePositions?.includes(slotPos)) return true;
+  return false;
+}
 
 // ── Settings ──
 export interface GameSettings {

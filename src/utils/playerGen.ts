@@ -175,6 +175,21 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     } else if (t.age <= YOUNG_POTENTIAL_AGE_THRESHOLD) {
       player.potential = clamp(player.overall + YOUNG_POTENTIAL_BOOST_BASE + Math.floor(Math.random() * YOUNG_POTENTIAL_BOOST_RANGE));
     }
+    // Override attributes from FC25 data when available
+    if (t.pace !== undefined) {
+      player.attributes = {
+        pace: clamp(t.pace),
+        shooting: clamp(t.shooting ?? player.attributes.shooting),
+        passing: clamp(t.passing ?? player.attributes.passing),
+        defending: clamp(t.defending ?? player.attributes.defending),
+        physical: clamp(t.physical ?? player.attributes.physical),
+        mental: clamp(t.mental ?? player.attributes.mental),
+      };
+      player.overall = calculateOverall(player.attributes, player.position);
+    }
+    // Set alternate positions and skill moves from FC25 data
+    if (t.altPos?.length) player.alternatePositions = t.altPos;
+    if (t.skillMoves) player.skillMoves = t.skillMoves;
     player.value = calculatePlayerValue(player.overall);
     player.wage = calculatePlayerWage(player.overall);
     templatePlayers.push(player);

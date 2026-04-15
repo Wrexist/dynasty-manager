@@ -478,7 +478,17 @@ function buildTemplate(row) {
     defending: parseInt(row['DEF']) || 50,
     physical: parseInt(row['PHY']) || 50,
     mental: computeMental(row),
+    skillMoves: parseInt(row['Skill moves']) || 2,
+    altPos: parseAltPositions(row['Alternative positions'] || '', pos),
   };
+}
+
+/** Parse FC25 alternate positions into valid game positions */
+function parseAltPositions(altPosStr, primaryPos) {
+  if (!altPosStr || altPosStr.trim() === '') return [];
+  return altPosStr.split(/[,\s]+/)
+    .map(p => mapPosition(p.trim()))
+    .filter(p => p !== primaryPos && p !== '');
 }
 
 // ── Escape string for TS output ──
@@ -538,7 +548,9 @@ for (const [leagueId, teams] of Object.entries(teamsByLeague)) {
 
     output += `  '${esc(clubId)}': [\n`;
     for (const t of templates) {
-      output += `    { fn: '${esc(t.fn)}', ln: '${esc(t.ln)}', pos: '${t.pos}', age: ${t.age}, nat: '${esc(t.nat)}', ovr: ${t.ovr}, pot: ${t.pot}, pace: ${t.pace}, shooting: ${t.shooting}, passing: ${t.passing}, defending: ${t.defending}, physical: ${t.physical}, mental: ${t.mental} },\n`;
+      const altPosStr = t.altPos.length > 0 ? `, altPos: [${t.altPos.map(p => `'${p}'`).join(', ')}]` : '';
+      const skillStr = t.skillMoves !== 2 ? `, skillMoves: ${t.skillMoves}` : '';
+      output += `    { fn: '${esc(t.fn)}', ln: '${esc(t.ln)}', pos: '${t.pos}', age: ${t.age}, nat: '${esc(t.nat)}', ovr: ${t.ovr}, pot: ${t.pot}, pace: ${t.pace}, shooting: ${t.shooting}, passing: ${t.passing}, defending: ${t.defending}, physical: ${t.physical}, mental: ${t.mental}${altPosStr}${skillStr} },\n`;
     }
     output += `  ],\n`;
   }
