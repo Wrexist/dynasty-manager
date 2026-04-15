@@ -60,6 +60,7 @@ export const MOD_MEDIA_PRESS = 0.04;                // +4% press effects per poi
 export const MAX_VACANCIES = 5;
 export const VACANCY_DURATION_WEEKS = 8;
 export const INITIAL_VACANCIES_SHOWN = 3;
+// Values beyond the league's totalWeeks are harmlessly skipped at runtime
 export const JOB_MARKET_REFRESH_WEEKS = [1, 24, 46];
 export const STARTING_JOB_OFFERS = 3;
 

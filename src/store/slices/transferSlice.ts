@@ -152,7 +152,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const entry = state.negotiationStrikes[playerId];
     if (!entry?.cooldownUntil) return { locked: false, weeksRemaining: 0 };
-    const absoluteWeek = state.season * TOTAL_WEEKS + state.week;
+    const absoluteWeek = state.season * (state.totalWeeks || TOTAL_WEEKS) + state.week;
     if (entry.cooldownUntil <= absoluteWeek) return { locked: false, weeksRemaining: 0 };
     return { locked: true, weeksRemaining: entry.cooldownUntil - absoluteWeek };
   },
@@ -161,7 +161,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const state = get();
     const current = state.negotiationStrikes[playerId] || { strikes: 0 };
     const newStrikes = Math.min(current.strikes + 1, NEGOTIATION_MAX_STRIKES);
-    const absoluteWeek = state.season * TOTAL_WEEKS + state.week;
+    const absoluteWeek = state.season * (state.totalWeeks || TOTAL_WEEKS) + state.week;
     const updated: NegotiationStrike = {
       strikes: newStrikes,
       ...(newStrikes >= NEGOTIATION_MAX_STRIKES ? { cooldownUntil: absoluteWeek + NEGOTIATION_COOLDOWN_WEEKS } : {}),
@@ -179,7 +179,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
   clearExpiredCooldowns: () => {
     const state = get();
-    const absoluteWeek = state.season * TOTAL_WEEKS + state.week;
+    const absoluteWeek = state.season * (state.totalWeeks || TOTAL_WEEKS) + state.week;
     const strikes = { ...state.negotiationStrikes };
     let changed = false;
     for (const key of Object.keys(strikes)) {
@@ -601,7 +601,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
 
     // Severance: remaining contract weeks × wage
     const remainingSeasons = Math.max(0, player.contractEnd - state.season);
-    const remainingWeeks = remainingSeasons * TOTAL_WEEKS + Math.max(0, TOTAL_WEEKS - state.week);
+    const remainingWeeks = remainingSeasons * (state.totalWeeks || TOTAL_WEEKS) + Math.max(0, (state.totalWeeks || TOTAL_WEEKS) - state.week);
     const severance = Math.round(player.wage * remainingWeeks);
     if (club.budget < severance) return { success: false, message: `Insufficient funds for severance pay (£${(severance / 1e6).toFixed(1)}M).` };
 

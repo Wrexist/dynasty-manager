@@ -47,7 +47,7 @@ const ATTR_LABELS: Record<string, string> = {
 const PlayerDetail = () => {
   const {
     selectedPlayerId, players, clubs, playerClubId, previousScreen,
-    incomingOffers, season, week, facilities,
+    incomingOffers, season, week, totalWeeks, facilities,
     training, transferWindowOpen, staff,
     fixtures, managerProgression,
   } = useGameStore(useShallow(s => ({
@@ -59,6 +59,7 @@ const PlayerDetail = () => {
     incomingOffers: s.incomingOffers,
     season: s.season,
     week: s.week,
+    totalWeeks: s.totalWeeks,
     facilities: s.facilities,
     training: s.training,
     transferWindowOpen: s.transferWindowOpen,
@@ -1001,7 +1002,7 @@ const PlayerDetail = () => {
               <div>
                 <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
                   <span>Recovery Progress</span>
-                  <span>Est. return: Week {Math.min(week + player.injuryWeeks, 46)}</span>
+                  <span>Est. return: Week {Math.min(week + player.injuryWeeks, totalWeeks)}</span>
                 </div>
                 <div className="w-full h-2 rounded-full bg-muted/40 overflow-hidden">
                   <div

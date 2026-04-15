@@ -22,12 +22,13 @@ import { MAX_SQUAD_SIZE, LOAN_MIN_WEEKS_BEFORE_RECALL } from '@/config/gameBalan
 import { formatMoney } from '@/utils/helpers';
 import { getPerformanceMultiplier, getMaxFreeAgentOverall, calculateSigningBonus } from '@/utils/transferOffers';
 import { TransferPlayerCard } from '@/components/game/TransferPlayerCard';
+import { LEAGUES } from '@/data/league';
 
-const DIVISION_LABELS: Record<string, string> = {
-  'div-1': 'Prem',
-  'div-2': 'Champ',
-  'div-3': '1st Div',
-  'div-4': 'Found',
+const TIER_LABELS: Record<number, string> = {
+  1: 'Top Flight',
+  2: '2nd Tier',
+  3: '3rd Tier',
+  4: '4th Tier',
 };
 
 const TransferPage = () => {
@@ -104,13 +105,14 @@ const TransferPage = () => {
       });
     }
 
-    // Division filter
+    // Division filter (tier-based)
     if (divFilter !== 'all') {
+      const filterTier = Number(divFilter);
       result = result.filter(l => {
-        if (l.divisionId) return l.divisionId === divFilter;
-        const sellerClub = clubs[l.sellerClubId];
-        if (!sellerClub) return false; // External player without divisionId — hide when filtering
-        return sellerClub.divisionId === divFilter;
+        const divId = l.divisionId || clubs[l.sellerClubId]?.divisionId;
+        if (!divId) return false; // External player without divisionId — hide when filtering
+        const listingTier = LEAGUES.find(lg => lg.id === divId)?.tier;
+        return listingTier === filterTier;
       });
     }
 
@@ -466,10 +468,10 @@ const TransferPage = () => {
             <div className="flex gap-1 overflow-x-auto scrollbar-hide">
               {[
                 { id: 'all', label: 'All' },
-                { id: 'div-1', label: DIVISION_LABELS['div-1'] },
-                { id: 'div-2', label: DIVISION_LABELS['div-2'] },
-                { id: 'div-3', label: DIVISION_LABELS['div-3'] },
-                { id: 'div-4', label: DIVISION_LABELS['div-4'] },
+                { id: '1', label: 'Top Flight' },
+                { id: '2', label: '2nd Tier' },
+                { id: '3', label: '3rd Tier' },
+                { id: '4', label: '4th Tier' },
               ].map(d => (
                 <button
                   key={d.id}
@@ -537,25 +539,28 @@ const TransferPage = () => {
                 showPotential
                 animationIndex={i}
                 subtitle={
-                  listing.externalPlayer ? (
-                    <>
-                      <span className="text-amber-400">Unattached</span>
-                      {listing.divisionId && (
-                        <span className="ml-1 text-[10px] text-muted-foreground/60">
-                          ({DIVISION_LABELS[listing.divisionId] || 'Found'} tier)
-                        </span>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      From: {seller?.shortName || '?'}
-                      {listing.divisionId && (
-                        <span className="ml-1 text-[10px] text-muted-foreground/60">
-                          ({DIVISION_LABELS[listing.divisionId] || 'Found'})
-                        </span>
-                      )}
-                    </>
-                  )
+                  (() => {
+                    const leagueInfo = listing.divisionId ? LEAGUES.find(l => l.id === listing.divisionId) : undefined;
+                    return listing.externalPlayer ? (
+                      <>
+                        <span className="text-amber-400">Unattached</span>
+                        {listing.divisionId && (
+                          <span className="ml-1 text-[10px] text-muted-foreground/60">
+                            ({leagueInfo?.shortName || 'External'} tier)
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        From: {seller?.shortName || '?'}
+                        {listing.divisionId && (
+                          <span className="ml-1 text-[10px] text-muted-foreground/60">
+                            ({leagueInfo?.shortName || 'External'})
+                          </span>
+                        )}
+                      </>
+                    );
+                  })()
                 }
                 rightContent={
                   <>

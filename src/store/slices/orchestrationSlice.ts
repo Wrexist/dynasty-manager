@@ -1982,8 +1982,9 @@ function finalizeSeason(
     newClubs[club.id] = cleanClub;
   }
 
+  const newLeagueTotalWeeks = LEAGUES.find(l => l.id === newPlayerDivision)?.totalWeeks || TOTAL_WEEKS;
   set({
-    season: newSeason, week: 1, totalWeeks: TOTAL_WEEKS, transferWindowOpen: true,
+    season: newSeason, week: 1, totalWeeks: newLeagueTotalWeeks, transferWindowOpen: true,
     seasonPhase: 'regular',
     clubs: newClubs, players: newPlayers, fixtures: newFixtures, leagueTable: newLeagueTable,
     divisionFixtures: newDivisionFixtures, divisionTables: newDivisionTables,
@@ -2556,7 +2557,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const friendlies = generateFriendlies(clubId, leagueClubIds);
 
     set({
-      gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: TOTAL_WEEKS,
+      gameStarted: true, playerClubId: clubId, season: 1, week: 1, totalWeeks: league?.totalWeeks || TOTAL_WEEKS,
       gameMode: get().gameMode || 'sandbox',
       transferWindowOpen: true, clubs, players: allPlayers, fixtures, leagueTable, friendlies,
       divisionFixtures, divisionTables, divisionClubs, playerDivision,

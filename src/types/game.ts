@@ -355,7 +355,7 @@ export interface IncomingOffer {
 // ── Negotiation Strikes ──
 export interface NegotiationStrike {
   strikes: number;         // 0-3
-  cooldownUntil?: number;  // absolute week (season * 46 + week) when cooldown expires
+  cooldownUntil?: number;  // absolute week (season * totalWeeks + week) when cooldown expires
 }
 
 // ── Loans ──

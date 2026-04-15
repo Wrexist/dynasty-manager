@@ -14,6 +14,7 @@ export function SessionRecap() {
   const pos = useLeaguePosition();
   const week = useGameStore(s => s.week);
   const season = useGameStore(s => s.season);
+  const totalWeeks = useGameStore(s => s.totalWeeks);
   const boardConfidence = useGameStore(s => s.boardConfidence);
   const players = useGameStore(s => s.players);
 
@@ -44,7 +45,7 @@ export function SessionRecap() {
 
   const posChange = snapshot.leaguePosition - pos; // positive = improved
   const confChange = boardConfidence - snapshot.boardConfidence;
-  const weeksElapsed = (season - snapshot.season) * 46 + (week - snapshot.week);
+  const weeksElapsed = (season - snapshot.season) * totalWeeks + (week - snapshot.week);
   const budgetChange = club.budget - snapshot.budget;
 
   const changes: { icon: typeof TrendingUp; text: string; color: string }[] = [];
