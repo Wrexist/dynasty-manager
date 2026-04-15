@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
-import { POSITION_COMPATIBILITY, Position, TrainingModule } from '@/types/game';
+import { POSITION_COMPATIBILITY, type Position, type TrainingModule } from '@/types/game';
 import { ArrowLeft, Heart, Zap, TrendingUp, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2, Trophy, Medal } from 'lucide-react';
 import { TransferApproach } from '@/components/game/TransferApproach';
 import { LoanNegotiation } from '@/components/game/LoanNegotiation';
@@ -151,7 +151,8 @@ const PlayerDetail = () => {
 
   // Role suitability: find all positions where this player appears as compatible
   const naturalPosition = player.position;
-  const compatiblePositions = POSITION_COMPATIBILITY[naturalPosition] || [naturalPosition];
+  const staticCompat = POSITION_COMPATIBILITY[naturalPosition] || [naturalPosition];
+  const compatiblePositions = [...new Set([...staticCompat, ...(player.alternatePositions || [])])];
 
   // Morale factors
   const moraleFactors: { label: string; impact: 'positive' | 'neutral' | 'negative' }[] = [];

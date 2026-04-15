@@ -1,4 +1,4 @@
-import { Match, MatchEvent, MatchStats, Player, Club, TacticalInstructions, PlayerMatchRating, FORMATION_POSITIONS, POSITION_COMPATIBILITY, FormationType, MatchWeather, WeatherCondition, PitchCondition } from '@/types/game';
+import { Match, MatchEvent, MatchStats, Player, Club, TacticalInstructions, PlayerMatchRating, FORMATION_POSITIONS, canPlayPosition, FormationType, MatchWeather, WeatherCondition, PitchCondition } from '@/types/game';
 import { getAIReactiveTactics, AI_REACTIVITY_MINUTES } from '@/config/aiManager';
 import {
   INJURY_TYPES, FOUL_INJURY_TYPE_WEIGHTS, NON_FOUL_INJURY_TYPE_WEIGHTS,
@@ -67,7 +67,7 @@ import {
   WEATHER_WEIGHTS, PITCH_WEIGHTS, WEATHER_PASSING_MOD, WEATHER_PACE_MOD, WEATHER_FOUL_MOD,
   PITCH_SHOT_MOD, WEATHER_GK_ERROR_MOD,
   FREE_KICK_GOAL_CHANCE, LONG_RANGE_GOAL_CHANCE, COUNTER_ATTACK_GOAL_CHANCE,
-  HEADER_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
+  HEADER_GOAL_CHANCE, SOLO_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
   FREE_KICK_SET_PIECE_TAKER_CHANCE,
   WEATHER_SUFFIX_CHANCE, DERBY_SUFFIX_CHANCE,
 } from '@/config/matchEngine';
@@ -120,8 +120,7 @@ function getFormationFitBonus(players: Player[], formation: FormationType): numb
   const outfieldSlots = slots.filter(s => s.pos !== 'GK');
   const outfieldPlayers = players.filter(p => p.position !== 'GK');
   for (const slot of outfieldSlots) {
-    const compatible = POSITION_COMPATIBILITY[slot.pos] || [slot.pos];
-    if (outfieldPlayers.some(p => compatible.includes(p.position))) fitCount++;
+    if (outfieldPlayers.some(p => canPlayPosition(p, slot.pos))) fitCount++;
   }
   const fitRatio = Math.min(1, outfieldSlots.length > 0 ? fitCount / outfieldSlots.length : 1);
   return fitRatio * FORMATION_FIT_MAX_BONUS;
@@ -379,7 +378,7 @@ function tryAISub(
     const scored = availBench.map(p => {
       let compat = 0.4; // default: wrong position
       if (p.position === outPlayer.position) compat = 1.0;
-      else if ((POSITION_COMPATIBILITY[outPlayer.position] || []).includes(p.position)) compat = 0.8;
+      else if (canPlayPosition(p, outPlayer.position)) compat = 0.8;
       return { player: p, score: p.overall * compat };
     }).sort((a, b) => b.score - a.score);
     return scored.length > 0 ? { inPlayer: scored[0].player, outPlayer } : null;
@@ -402,7 +401,7 @@ function tryAISub(
       for (const bench of availBench) {
         let compat = 0.4;
         if (bench.position === starter.position) compat = 1.0;
-        else if ((POSITION_COMPATIBILITY[starter.position] || []).includes(bench.position)) compat = 0.8;
+        else if (canPlayPosition(bench, starter.position)) compat = 0.8;
 
         // Score: improvement potential + fitness gain + tactical context
         const fitnessGain = (bench.fitness - starterFit) / 100;
@@ -1300,7 +1299,7 @@ export function simulateHalf(
         } else if (scorer.attributes.physical >= 70 && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE) {
           goalType = 'header_goal';
           goalDescription = pick(headerGoalDescs)(scorerName, clubName);
-        } else if ((scorer.skillMoves ?? 2) >= 4 && scorer.attributes.pace >= 70 && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE + 0.06) {
+        } else if ((scorer.skillMoves ?? 2) >= 4 && scorer.attributes.pace >= 70 && flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE + SOLO_GOAL_CHANCE) {
           goalType = 'solo_goal';
           goalDescription = pick(soloGoalDescs)(scorerName, clubName);
         } else if (flavorRoll < COUNTER_ATTACK_GOAL_CHANCE + LONG_RANGE_GOAL_CHANCE + HEADER_GOAL_CHANCE + FREE_KICK_GOAL_CHANCE) {

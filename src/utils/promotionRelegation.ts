@@ -214,7 +214,11 @@ export function applyPromotionRelegation(
     const bottomTable = divisionTables[bottomLeague.id] || [];
     if (bottomTable.length > 0) {
       const bottomIds = bottomTable.map(e => e.clubId);
-      const replacedIds = bottomIds.slice(bottomIds.length - bottomLeague.replacedSlots);
+      // Only replace clubs that are still in the bottom tier after promotion movements
+      const stillInBottomTier = new Set(workingDivisionClubs[bottomLeague.id]);
+      const replacedIds = bottomIds
+        .filter(id => stillInBottomTier.has(id))
+        .slice(-bottomLeague.replacedSlots);
 
       // Don't replace the player's club
       const actuallyReplaced = replacedIds.filter(id => id !== playerClubId);

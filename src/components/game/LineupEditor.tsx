@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/types/game';
+import { FORMATION_POSITIONS, canPlayPosition, type Position, type Player } from '@/types/game';
 import { MAX_SUBS } from '@/config/playerGeneration';
 import { PITCH_COLORS } from '@/config/ui';
 import { cn } from '@/lib/utils';
@@ -22,10 +22,9 @@ const VP_Y = 46;
 const VP_H = 59;
 const VP_W = 68;
 
-function getCompatibility(playerPos: Position, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
-  if (playerPos === slotPos) return 'natural';
-  const compat = POSITION_COMPATIBILITY[slotPos] || [];
-  if (compat.includes(playerPos)) return 'compatible';
+function getCompatibility(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
+  if (player.position === slotPos) return 'natural';
+  if (canPlayPosition(player, slotPos)) return 'compatible';
   return 'wrong';
 }
 
@@ -296,7 +295,7 @@ export function LineupEditor() {
           const top = ((cySvg - VP_Y) / VP_H) * 100;
 
           const isSelected = selectedId === playerId;
-          const compat = selectedPlayer ? getCompatibility(selectedPlayer.position as Position, slot.pos as Position) : null;
+          const compat = selectedPlayer ? getCompatibility(selectedPlayer, slot.pos as Position) : null;
 
           // Fade non-selected, non-chemistry-linked players when someone is selected
           const isFaded = selectedId && !isSelected && playerId && !selectedChemPartners.has(playerId);
@@ -439,7 +438,7 @@ export function LineupEditor() {
             if (!p) return null;
             const isSelected = selectedId === id;
             const benchCompat = selectedSlotPos
-              ? getCompatibility(p.position as Position, selectedSlotPos)
+              ? getCompatibility(p, selectedSlotPos)
               : null;
             return (
               <PlayerCard

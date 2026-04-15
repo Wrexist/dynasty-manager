@@ -1,4 +1,4 @@
-import { Player, Position, PlayerAttributes, FormationType, FORMATION_POSITIONS, POSITION_COMPATIBILITY } from '@/types/game';
+import { Player, Position, PlayerAttributes, FormationType, FORMATION_POSITIONS, canPlayPosition } from '@/types/game';
 import { generatePersonality } from '@/utils/personality';
 import { pick, clamp } from '@/utils/helpers';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
@@ -131,8 +131,19 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
     redCards: 0,
     personality: generatePersonality(),
     appearance: generatePlayerAppearance(nationality, position),
+    skillMoves: pickWeightedSkillMoves(),
     joinedSeason: season,
   };
+}
+
+/** Weighted random skill moves: 1★ 15%, 2★ 40%, 3★ 30%, 4★ 12%, 5★ 3% */
+function pickWeightedSkillMoves(): number {
+  const r = Math.random();
+  if (r < 0.15) return 1;
+  if (r < 0.55) return 2;
+  if (r < 0.85) return 3;
+  if (r < 0.97) return 4;
+  return 5;
 }
 
 const SQUAD_TEMPLATE = CONFIG_SQUAD_TEMPLATE;
@@ -291,9 +302,8 @@ export function selectBestLineup(players: Player[], formation: FormationType, cu
   const effectiveRating = (p: Player) => p.overall * EFFECTIVE_RATING_OVERALL_WEIGHT + (p.form / 100) * EFFECTIVE_RATING_FORM_WEIGHT + (p.fitness / 100) * EFFECTIVE_RATING_FITNESS_WEIGHT;
 
   for (const slot of slots) {
-    const compat = POSITION_COMPATIBILITY[slot.pos] || [slot.pos];
     const best = players
-      .filter(p => !used.has(p.id) && compat.includes(p.position) && isAvailable(p))
+      .filter(p => !used.has(p.id) && canPlayPosition(p, slot.pos) && isAvailable(p))
       .sort((a, b) => effectiveRating(b) - effectiveRating(a))[0];
     if (best) {
       selected.push(best);

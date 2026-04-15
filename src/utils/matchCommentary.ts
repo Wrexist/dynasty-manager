@@ -42,6 +42,7 @@ export function getCommentaryStyle(event: MatchEvent): { textClass: string; pref
     case 'long_range_goal':
     case 'counter_attack_goal':
     case 'header_goal':
+    case 'solo_goal':
       return { textClass: 'text-foreground font-bold', prefix: '' };
     case 'goalkeeper_error':
       return { textClass: 'text-foreground font-bold', prefix: '' };

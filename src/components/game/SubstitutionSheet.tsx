@@ -7,7 +7,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getRatingBadgeClasses } from '@/utils/uiHelpers';
-import { FORMATION_POSITIONS, POSITION_COMPATIBILITY, type Position } from '@/types/game';
+import { FORMATION_POSITIONS, canPlayPosition, type Position } from '@/types/game';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,10 +58,9 @@ function getFormLabel(form: number): { text: string; className: string } {
   return { text: 'Poor', className: 'text-destructive' };
 }
 
-function getCompatibility(playerPos: Position, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
-  if (playerPos === slotPos) return 'natural';
-  const compat = POSITION_COMPATIBILITY[slotPos] || [];
-  if (compat.includes(playerPos)) return 'compatible';
+function getCompatibility(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
+  if (player.position === slotPos) return 'natural';
+  if (canPlayPosition(player, slotPos)) return 'compatible';
   return 'wrong';
 }
 
@@ -103,17 +102,16 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
     const selectedOutPlayer = selectedOutId ? players[selectedOutId] : null;
     if (!selectedOutPlayer) return subs;
     const outPos = selectedOutPlayer.position as Position;
-    const posScore = (playerPos: Position): number => {
-      if (playerPos === outPos) return 2;
-      const compat = POSITION_COMPATIBILITY[outPos] || [];
-      if (compat.includes(playerPos)) return 1;
+    const posScore = (player: { position: Position; alternatePositions?: Position[] }): number => {
+      if (player.position === outPos) return 2;
+      if (canPlayPosition(player, outPos)) return 1;
       return 0;
     };
     return [...subs].sort((a, b) => {
       const pa = players[a];
       const pb = players[b];
       if (!pa || !pb) return 0;
-      const psDiff = posScore(pb.position as Position) - posScore(pa.position as Position);
+      const psDiff = posScore(pb) - posScore(pa);
       if (psDiff !== 0) return psDiff;
       if (pb.overall !== pa.overall) return pb.overall - pa.overall;
       return pb.fitness - pa.fitness;
@@ -491,7 +489,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
             const isUnavailable = p.injured || (p.suspendedUntilWeek && p.suspendedUntilWeek > week);
             if (isUnavailable) return null;
             const benchCompat = selectedSlotPos
-              ? getCompatibility(p.position as Position, selectedSlotPos)
+              ? getCompatibility(p, selectedSlotPos)
               : null;
             const formInfo = getFormLabel(p.form);
             const benchCardStatus = playerCardStatus?.get(id);
@@ -696,10 +694,10 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
               {selectedOutPlayer.position !== selectedInPlayer.position && (
                 <p className={cn(
                   'text-[10px] text-center px-2',
-                  POSITION_COMPATIBILITY[selectedOutPlayer.position as Position]?.includes(selectedInPlayer.position as Position)
+                  canPlayPosition(selectedInPlayer, selectedOutPlayer.position as Position)
                     ? 'text-amber-400' : 'text-destructive'
                 )}>
-                  {POSITION_COMPATIBILITY[selectedOutPlayer.position as Position]?.includes(selectedInPlayer.position as Position)
+                  {canPlayPosition(selectedInPlayer, selectedOutPlayer.position as Position)
                     ? `${selectedInPlayer.position} is a compatible position for ${selectedOutPlayer.position}`
                     : `${selectedInPlayer.position} is not a natural fit for ${selectedOutPlayer.position}`
                   }
