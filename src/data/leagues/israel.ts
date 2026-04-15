@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Israel',
   countryCode: 'IL',
   teamCount: 14,
-  totalWeeks: 46,
+  totalWeeks: 26,
   replacedSlots: 0,
   description: 'Competitive Israeli top flight featuring historic Maccabi and Hapoel clubs, with passionate fanbases and emerging talent.',
   difficulty: 'Hard',

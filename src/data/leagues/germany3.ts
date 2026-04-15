@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Germany',
   countryCode: 'DE',
   teamCount: 20,
-  totalWeeks: 46,
+  totalWeeks: 38,
   replacedSlots: 3,
   description: 'Germany\'s third tier, a breeding ground for future Bundesliga stars.',
   difficulty: 'Medium',

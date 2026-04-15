@@ -2,7 +2,7 @@ import type { PlayerTemplate } from '@/data/playerTemplates';
 
 // cyp — Auto-generated from FC25 data
 export const SQUADS: Record<string, PlayerTemplate[]> = {
-  'apoel-fc': [
+  'apoel': [
     { fn: 'Vid', ln: 'Belec', pos: 'GK', age: 34, nat: 'Slovenia', ovr: 73, pot: 71 },
     { fn: 'Andreas', ln: 'Christodoulou', pos: 'GK', age: 27, nat: 'Cyprus', ovr: 66, pot: 70 },
     { fn: 'Gabriel', ln: 'Pereira', pos: 'GK', age: 22, nat: 'Brazil', ovr: 65, pot: 73 },

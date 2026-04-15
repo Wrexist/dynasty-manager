@@ -2,7 +2,7 @@ import type { PlayerTemplate } from '@/data/playerTemplates';
 
 // fra — Auto-generated from FC25 data
 export const SQUADS: Record<string, PlayerTemplate[]> = {
-  'aj-auxerre': [
+  'auxerre': [
     { fn: 'Donovan', ln: 'Léon', pos: 'GK', age: 31, nat: 'France', ovr: 70, pot: 68 },
     { fn: 'Théo', ln: 'De Percin', pos: 'GK', age: 23, nat: 'France', ovr: 61, pot: 67 },
     { fn: 'Raphaël', ln: 'Adicéam', pos: 'GK', age: 34, nat: 'France', ovr: 59, pot: 57 },
@@ -31,7 +31,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Eros', ln: 'Maddy', pos: 'RM', age: 23, nat: 'Holland', ovr: 62, pot: 65 },
     { fn: 'Kévin', ln: 'Danois', pos: 'CM', age: 20, nat: 'France', ovr: 61, pot: 69 },
   ],
-  'as-monaco': [
+  'monaco': [
     { fn: 'Radosław', ln: 'Majecki', pos: 'GK', age: 24, nat: 'Poland', ovr: 77, pot: 78 },
     { fn: 'Philipp', ln: 'Köhn', pos: 'GK', age: 26, nat: 'Switzerland', ovr: 75, pot: 79 },
     { fn: 'Yann', ln: 'Lienard', pos: 'GK', age: 21, nat: 'France', ovr: 62, pot: 68 },
@@ -57,7 +57,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Kassoum', ln: 'Ouattara', pos: 'LB', age: 19, nat: 'France', ovr: 69, pot: 79 },
     { fn: 'Edan', ln: 'Diop', pos: 'RM', age: 20, nat: 'France', ovr: 66, pot: 74 },
   ],
-  'as-saint-etienne': [
+  'saint-etienne': [
     { fn: 'Gautier', ln: 'Larsonneur', pos: 'GK', age: 27, nat: 'France', ovr: 74, pot: 75 },
     { fn: 'Brice', ln: 'Maubleu', pos: 'GK', age: 34, nat: 'France', ovr: 70, pot: 68 },
     { fn: 'Boubacar', ln: 'Fall', pos: 'GK', age: 23, nat: 'Senegal', ovr: 63, pot: 70 },
@@ -85,7 +85,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Louis', ln: 'Mouton', pos: 'CM', age: 22, nat: 'France', ovr: 63, pot: 68 },
     { fn: 'Antoine', ln: 'Gauthier', pos: 'CM', age: 20, nat: 'France', ovr: 58, pot: 75 },
   ],
-  'angers-sco': [
+  'angers': [
     { fn: 'Yahia', ln: 'Fofana', pos: 'GK', age: 24, nat: 'Côte d\'Ivoire', ovr: 72, pot: 74 },
     { fn: 'Melvin', ln: 'Zinga', pos: 'GK', age: 22, nat: 'France', ovr: 62, pot: 67 },
     { fn: 'Himad', ln: 'Abdelli', pos: 'CAM', age: 24, nat: 'Algeria', ovr: 73, pot: 77 },
@@ -116,7 +116,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Sidiki', ln: 'Chérif', pos: 'LM', age: 17, nat: 'France', ovr: 58, pot: 74 },
     { fn: 'Marius', ln: 'Courcoul', pos: 'CB', age: 17, nat: 'France', ovr: 58, pot: 67 },
   ],
-  'fc-nantes': [
+  'nantes': [
     { fn: 'Alban', ln: 'Lafont', pos: 'GK', age: 25, nat: 'France', ovr: 76, pot: 80 },
     { fn: 'Hugo', ln: 'Barbet', pos: 'GK', age: 22, nat: 'France', ovr: 61, pot: 66 },
     { fn: 'Pedro', ln: 'Chirivella', pos: 'CDM', age: 27, nat: 'Spain', ovr: 76, pot: 77 },
@@ -139,7 +139,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Nathan', ln: 'Zézé', pos: 'CB', age: 19, nat: 'France', ovr: 68, pot: 79 },
     { fn: 'Bastien', ln: 'Meupiyou', pos: 'CB', age: 18, nat: 'France', ovr: 61, pot: 69 },
   ],
-  'havre-ac': [
+  'le-havre': [
     { fn: 'Arthur', ln: 'Desmas', pos: 'GK', age: 30, nat: 'France', ovr: 75, pot: 75 },
     { fn: 'Mathieu', ln: 'Gorgelin', pos: 'GK', age: 34, nat: 'France', ovr: 68, pot: 66 },
     { fn: 'Paul', ln: 'Argney', pos: 'GK', age: 18, nat: 'France', ovr: 58, pot: 74 },
@@ -168,7 +168,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Ismaïl', ln: 'Bouneb', pos: 'CAM', age: 18, nat: 'France', ovr: 62, pot: 73 },
     { fn: 'Mathéo', ln: 'Bodmer', pos: 'CDM', age: 20, nat: 'France', ovr: 59, pot: 72 },
   ],
-  'losc-lille': [
+  'lille': [
     { fn: 'Lucas', ln: 'Chevalier', pos: 'GK', age: 22, nat: 'France', ovr: 80, pot: 89 },
     { fn: 'Vito', ln: 'Mannone', pos: 'GK', age: 36, nat: 'Italy', ovr: 72, pot: 70 },
     { fn: 'Jonathan', ln: 'David', pos: 'ST', age: 24, nat: 'Canada', ovr: 81, pot: 85 },
@@ -221,7 +221,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Gabriel', ln: 'Barès', pos: 'CM', age: 24, nat: 'Switzerland', ovr: 64, pot: 68 },
     { fn: 'Othmane', ln: 'Maamma', pos: 'RM', age: 18, nat: 'Morocco', ovr: 60, pot: 68 },
   ],
-  'ogc-nice': [
+  'nice': [
     { fn: 'Marcin', ln: 'Bułka', pos: 'GK', age: 24, nat: 'Poland', ovr: 79, pot: 83 },
     { fn: 'Maxime', ln: 'Dupé', pos: 'GK', age: 31, nat: 'France', ovr: 74, pot: 72 },
     { fn: 'Teddy', ln: 'Boulhendi', pos: 'GK', age: 23, nat: 'Algeria', ovr: 63, pot: 71 },
@@ -249,7 +249,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Moïse', ln: 'Bombito', pos: 'CB', age: 24, nat: 'Canada', ovr: 67, pot: 68 },
     { fn: 'Amidou', ln: 'Doumbouya', pos: 'CB', age: 17, nat: 'France', ovr: 58, pot: 69 },
   ],
-  'ol': [
+  'lyon': [
     { fn: 'Anthony', ln: 'Lopes', pos: 'GK', age: 33, nat: 'Portugal', ovr: 79, pot: 77 },
     { fn: 'Lucas', ln: 'Perri', pos: 'GK', age: 26, nat: 'Brazil', ovr: 78, pot: 82 },
     { fn: 'Justin', ln: 'Bengui', pos: 'GK', age: 19, nat: 'France', ovr: 59, pot: 68 },
@@ -280,7 +280,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Irvyn', ln: 'Lomami', pos: 'RB', age: 20, nat: 'France', ovr: 63, pot: 80 },
     { fn: 'Florent', ln: 'Sanchez', pos: 'CM', age: 21, nat: 'France', ovr: 63, pot: 71 },
   ],
-  'om': [
+  'marseille': [
     { fn: 'Gerónimo', ln: 'Rulli', pos: 'GK', age: 32, nat: 'Argentina', ovr: 79, pot: 77 },
     { fn: 'Rubén', ln: 'Blanco', pos: 'GK', age: 29, nat: 'Spain', ovr: 74, pot: 74 },
     { fn: 'Jeffrey', ln: 'de Lange', pos: 'GK', age: 26, nat: 'Holland', ovr: 73, pot: 75 },
@@ -311,7 +311,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'François', ln: 'Mughe', pos: 'RM', age: 20, nat: 'Cameroon', ovr: 63, pot: 75 },
     { fn: 'Bilal', ln: 'Nadir', pos: 'CM', age: 20, nat: 'Morocco', ovr: 63, pot: 75 },
   ],
-  'paris-sg': [
+  'paris-saint-germain': [
     { fn: 'Gianluigi', ln: 'Donnarumma', pos: 'GK', age: 25, nat: 'Italy', ovr: 89, pot: 93 },
     { fn: 'Matvey', ln: 'Safonov', pos: 'GK', age: 25, nat: 'Russia', ovr: 77, pot: 79 },
     { fn: 'Arnau', ln: 'Tenas', pos: 'GK', age: 23, nat: 'Spain', ovr: 74, pot: 78 },
@@ -340,7 +340,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Senny', ln: 'Mayulu', pos: 'CAM', age: 18, nat: 'France', ovr: 65, pot: 73 },
     { fn: 'Yoram', ln: 'Zague', pos: 'RB', age: 18, nat: 'France', ovr: 64, pot: 76 },
   ],
-  'rc-lens': [
+  'lens': [
     { fn: 'Brice', ln: 'Samba', pos: 'GK', age: 30, nat: 'France', ovr: 82, pot: 82 },
     { fn: 'Hervé', ln: 'Koffi', pos: 'GK', age: 27, nat: 'Burkina Faso', ovr: 73, pot: 76 },
     { fn: 'Kevin', ln: 'Danso', pos: 'CB', age: 25, nat: 'Austria', ovr: 80, pot: 83 },
@@ -367,7 +367,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Rémy', ln: 'Labeau Lascary', pos: 'RM', age: 21, nat: 'France', ovr: 65, pot: 70 },
     { fn: 'Tom', ln: 'Pouilly', pos: 'RB', age: 21, nat: 'France', ovr: 58, pot: 66 },
   ],
-  'stade-brestois-29': [
+  'brest': [
     { fn: 'Marco', ln: 'Bizot', pos: 'GK', age: 33, nat: 'Holland', ovr: 79, pot: 77 },
     { fn: 'Grégoire', ln: 'Coudert', pos: 'GK', age: 25, nat: 'France', ovr: 66, pot: 67 },
     { fn: 'Romain', ln: 'Del Castillo', pos: 'RW', age: 28, nat: 'France', ovr: 79, pot: 79 },
@@ -394,7 +394,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Axel', ln: 'Camblan', pos: 'LW', age: 21, nat: 'France', ovr: 62, pot: 65 },
     { fn: 'Luck', ln: 'Zogbé', pos: 'RB', age: 19, nat: 'Côte d\'Ivoire', ovr: 60, pot: 69 },
   ],
-  'stade-rennais-fc': [
+  'rennes': [
     { fn: 'Steve', ln: 'Mandanda', pos: 'GK', age: 39, nat: 'France', ovr: 78, pot: 76 },
     { fn: 'Gauthier', ln: 'Gallon', pos: 'GK', age: 31, nat: 'France', ovr: 73, pot: 71 },
     { fn: 'Doğan', ln: 'Alemdar', pos: 'GK', age: 21, nat: 'Turkey', ovr: 70, pot: 79 },
@@ -423,7 +423,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Henrik', ln: 'Meister', pos: 'ST', age: 20, nat: 'Denmark', ovr: 60, pot: 73 },
     { fn: 'Alan', ln: 'Do Marcolino', pos: 'ST', age: 22, nat: 'Gabon', ovr: 59, pot: 65 },
   ],
-  'stade-de-reims': [
+  'reims': [
     { fn: 'Yehvann', ln: 'Diouf', pos: 'GK', age: 24, nat: 'France', ovr: 77, pot: 80 },
     { fn: 'Alexandre', ln: 'Olliero', pos: 'GK', age: 28, nat: 'France', ovr: 68, pot: 68 },
     { fn: 'Ludovic', ln: 'Butelle', pos: 'GK', age: 41, nat: 'France', ovr: 66, pot: 64 },
@@ -480,7 +480,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Yoni', ln: 'Gomis', pos: 'CB', age: 18, nat: 'France', ovr: 63, pot: 73 },
     { fn: 'Tidiane', ln: 'Diallo', pos: 'LM', age: 18, nat: 'France', ovr: 60, pot: 75 },
   ],
-  'toulouse-fc': [
+  'toulouse': [
     { fn: 'Guillaume', ln: 'Restes', pos: 'GK', age: 19, nat: 'France', ovr: 78, pot: 86 },
     { fn: 'Álex', ln: 'Domínguez', pos: 'GK', age: 26, nat: 'Spain', ovr: 70, pot: 73 },
     { fn: 'Justin', ln: 'Lacombe', pos: 'GK', age: 21, nat: 'France', ovr: 63, pot: 70 },

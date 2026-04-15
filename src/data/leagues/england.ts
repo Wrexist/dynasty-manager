@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'England',
   countryCode: 'GB',
   teamCount: 20,
-  totalWeeks: 46,
+  totalWeeks: 38,
   replacedSlots: 0,
   description: 'The most watched and commercially powerful football league in the world, featuring intense competition from top to bottom.',
   difficulty: 'Very Hard',

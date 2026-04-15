@@ -168,6 +168,9 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Leandro', ln: 'Morante', pos: 'CB', age: 27, nat: 'France', ovr: 63, pot: 64 },
     { fn: 'Romain', ln: 'Montiel', pos: 'ST', age: 29, nat: 'France', ovr: 60, pot: 60 },
     { fn: 'Nathanaël', ln: 'Saintini', pos: 'CB', age: 24, nat: 'France', ovr: 59, pot: 60 },
+    { fn: 'Julien', ln: 'Music', pos: 'RB', age: 25, nat: 'France', ovr: 58, pot: 59 },
+    { fn: 'Bryan', ln: 'Music', pos: 'CM', age: 26, nat: 'France', ovr: 59, pot: 60 },
+    { fn: 'Gaëtan', ln: 'Laura', pos: 'RW', age: 23, nat: 'France', ovr: 57, pot: 62 },
   ],
   'fc-metz': [
     { fn: 'Alexandre', ln: 'Oukidja', pos: 'GK', age: 36, nat: 'Algeria', ovr: 73, pot: 71 },

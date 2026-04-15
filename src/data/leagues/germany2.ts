@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Germany',
   countryCode: 'DE',
   teamCount: 18,
-  totalWeeks: 46,
+  totalWeeks: 34,
   replacedSlots: 0,
   description: 'Germany\'s second division, known for large attendances and competitive promotion races.',
   difficulty: 'Hard',
@@ -18,7 +18,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   tier: 2,
   countryId: 'ger',
   promotionSpots: 2,
-  relegationSpots: 2,
+  relegationSpots: 3,
   playoffSpots: 1,
 };
 

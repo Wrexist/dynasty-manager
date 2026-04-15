@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'France',
   countryCode: 'FR',
   teamCount: 18,
-  totalWeeks: 46,
+  totalWeeks: 34,
   replacedSlots: 3,
   description: 'France\'s second division, known for developing young talent and tight promotion battles.',
   difficulty: 'Hard',

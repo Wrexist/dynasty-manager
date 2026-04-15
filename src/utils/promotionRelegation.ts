@@ -149,8 +149,14 @@ export function applyPromotionRelegation(
       if (clubId === playerClubId) playerNewDivision = lowerLeague.id;
     }
 
+    // Cap total promotions to the number of relegation slots in the upper tier
+    // to prevent league size drift from config mismatches
+    const allPromoted = [...promotedUp, ...playoffWinners];
+    const maxPromotions = relegatedDown.length;
+    const cappedPromoted = allPromoted.slice(0, maxPromotions);
+
     // Move promoted clubs up
-    for (const clubId of [...promotedUp, ...playoffWinners]) {
+    for (const clubId of cappedPromoted) {
       workingDivisionClubs[lowerLeague.id] = workingDivisionClubs[lowerLeague.id].filter(id => id !== clubId);
       workingDivisionClubs[upperLeague.id].push(clubId);
       if (workingClubs[clubId]) {
@@ -168,12 +174,14 @@ export function applyPromotionRelegation(
     }
 
     // Upper tier turnover: who arrived (promoted from below), who left (relegated)
-    turnovers[upperLeague.id].promotedClubs.push(...promotedUp, ...playoffWinners);
+    turnovers[upperLeague.id].promotedClubs.push(...cappedPromoted);
     turnovers[upperLeague.id].relegatedClubs.push(...relegatedDown);
 
     // Lower tier turnover: who left via promotion, playoff winners
-    turnovers[lowerLeague.id].promotedClubs.push(...promotedUp);
-    turnovers[lowerLeague.id].playoffWinners.push(...playoffWinners);
+    const cappedAutoPromoted = cappedPromoted.filter(id => promotedUp.includes(id));
+    const cappedPlayoffWinners = cappedPromoted.filter(id => playoffWinners.includes(id));
+    turnovers[lowerLeague.id].promotedClubs.push(...cappedAutoPromoted);
+    turnovers[lowerLeague.id].playoffWinners.push(...cappedPlayoffWinners);
 
     // Adjust budgets and reputation for moved clubs
     const upperLeagueInfo = LEAGUES.find(l => l.id === upperLeague.id);
@@ -224,11 +232,17 @@ export function applyPromotionRelegation(
   }
 
   // Verify league balance — each league should maintain its teamCount
+  // Bottom tier with replacedSlots will be short by that many clubs until
+  // orchestrationSlice generates replacement clubs after this function returns.
+  const bottomTierId = tiers[tiers.length - 1]?.id;
   for (const tier of tiers) {
-    const expected = tier.teamCount;
+    const isBottom = tier.id === bottomTierId;
+    const expectedAfterReplacements = tier.teamCount;
+    const pendingReplacements = isBottom ? (tier.replacedSlots || 0) : 0;
+    const expectedNow = expectedAfterReplacements - pendingReplacements;
     const actual = workingDivisionClubs[tier.id]?.length || 0;
-    if (actual !== expected && process.env.NODE_ENV !== 'production') {
-      console.warn(`[ProRel] League ${tier.id} has ${actual} teams, expected ${expected}`);
+    if (actual !== expectedNow && process.env.NODE_ENV !== 'production') {
+      console.warn(`[ProRel] League ${tier.id} has ${actual} teams, expected ${expectedNow}`);
     }
   }
 

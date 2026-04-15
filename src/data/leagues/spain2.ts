@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Spain',
   countryCode: 'ES',
   teamCount: 22,
-  totalWeeks: 46,
+  totalWeeks: 42,
   replacedSlots: 3,
   description: 'Spain\'s second division, gateway to La Liga with dramatic promotion playoffs.',
   difficulty: 'Hard',

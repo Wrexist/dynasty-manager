@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Cyprus',
   countryCode: 'CY',
   teamCount: 14,
-  totalWeeks: 46,
+  totalWeeks: 26,
   replacedSlots: 0,
   description: 'The top tier of Cypriot football dominated by Nicosia and Limassol clubs, with APOEL and Omonia providing one of Europe\'s fiercest derbies.',
   difficulty: 'Hard',

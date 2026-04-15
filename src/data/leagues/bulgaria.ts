@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Bulgaria',
   countryCode: 'BG',
   teamCount: 16,
-  totalWeeks: 46,
+  totalWeeks: 30,
   replacedSlots: 0,
   description: 'Bulgarian top flight dominated by Ludogorets in recent years, with historic Sofia clubs CSKA and Levski providing passionate rivalry.',
   difficulty: 'Hard',

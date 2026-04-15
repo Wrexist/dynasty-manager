@@ -33,7 +33,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Stavros', ln: 'Pilios', pos: 'LB', age: 23, nat: 'Greece', ovr: 69, pot: 77 },
     { fn: 'Zine', ln: 'Zine', pos: 'ST', age: 22, nat: 'Angola', ovr: 65, pot: 69 },
   ],
-  'olympiacos-fc': [
+  'olympiacos': [
     { fn: 'Alexandros', ln: 'Paschalakis', pos: 'GK', age: 35, nat: 'Greece', ovr: 75, pot: 73 },
     { fn: 'Konstantinos', ln: 'Tzolakis', pos: 'GK', age: 21, nat: 'Greece', ovr: 73, pot: 76 },
     { fn: 'Alexandros', ln: 'Anagnostopoulos', pos: 'GK', age: 30, nat: 'Greece', ovr: 68, pot: 68 },
@@ -60,7 +60,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Charalampos', ln: 'Kostoulas', pos: 'ST', age: 17, nat: 'Greece', ovr: 64, pot: 73 },
     { fn: 'Christos', ln: 'Mouzakitis', pos: 'CM', age: 17, nat: 'Greece', ovr: 63, pot: 75 },
   ],
-  'paok-fc': [
+  'paok': [
     { fn: 'Dominik', ln: 'Kotarski', pos: 'GK', age: 24, nat: 'Croatia', ovr: 76, pot: 80 },
     { fn: 'Antonis', ln: 'Tsiftsis', pos: 'GK', age: 25, nat: 'Greece', ovr: 64, pot: 67 },
     { fn: 'Andrija', ln: 'Živković', pos: 'RW', age: 28, nat: 'Serbia', ovr: 78, pot: 78 },

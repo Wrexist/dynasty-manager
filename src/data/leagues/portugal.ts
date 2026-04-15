@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Portugal',
   countryCode: 'PT',
   teamCount: 18,
-  totalWeeks: 46,
+  totalWeeks: 34,
   replacedSlots: 0,
   description: 'Portuguese top flight renowned for developing talent and producing Champions League contenders.',
   difficulty: 'Medium',

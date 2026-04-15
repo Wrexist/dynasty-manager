@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Serbia',
   countryCode: 'RS',
   teamCount: 16,
-  totalWeeks: 46,
+  totalWeeks: 30,
   replacedSlots: 0,
   description: 'The top tier of Serbian football, dominated by Belgrade giants Red Star and Partizan with fierce derbies and passionate fans.',
   difficulty: 'Hard',

@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Italy',
   countryCode: 'IT',
   teamCount: 20,
-  totalWeeks: 46,
+  totalWeeks: 38,
   replacedSlots: 3,
   description: 'Italy\'s second tier, the stepping stone to Serie A with fierce competition.',
   difficulty: 'Hard',

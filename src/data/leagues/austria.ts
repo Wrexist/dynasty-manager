@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Austria',
   countryCode: 'AT',
   teamCount: 12,
-  totalWeeks: 46,
+  totalWeeks: 22,
   replacedSlots: 0,
   description: 'Austria\'s top division, dominated by Salzburg but featuring passionate clubs with rich traditions across the Alps.',
   difficulty: 'Medium',

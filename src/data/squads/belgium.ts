@@ -57,7 +57,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Chemsdine', ln: 'Talbi', pos: 'RM', age: 19, nat: 'Belgium', ovr: 63, pot: 72 },
     { fn: 'Joaquin', ln: 'Seys', pos: 'LB', age: 19, nat: 'Belgium', ovr: 62, pot: 71 },
   ],
-  'fcv-dender-eh': [
+  'dender': [
     { fn: 'Guillaume', ln: 'Dietsch', pos: 'GK', age: 23, nat: 'France', ovr: 67, pot: 71 },
     { fn: 'Michael', ln: 'Verrips', pos: 'GK', age: 27, nat: 'Holland', ovr: 66, pot: 69 },
     { fn: 'Julien', ln: 'Devriendt', pos: 'GK', age: 25, nat: 'Belgium', ovr: 53, pot: 56 },
@@ -86,7 +86,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Abdoulaye', ln: 'Yahaya', pos: 'RW', age: 22, nat: 'Cameroon', ovr: 57, pot: 63 },
     { fn: 'Antoine', ln: 'De Bodt', pos: 'CM', age: 24, nat: 'Belgium', ovr: 55, pot: 57 },
   ],
-  'k-beerschot-va': [
+  'beerschot': [
     { fn: 'Nick', ln: 'Shinton', pos: 'GK', age: 23, nat: 'Belgium', ovr: 64, pot: 74 },
     { fn: 'Ryan', ln: 'Sanusi', pos: 'CDM', age: 32, nat: 'Belgium', ovr: 69, pot: 67 },
     { fn: 'Faisal', ln: 'Al Ghamdi', pos: 'CM', age: 23, nat: 'Saudi Arabia', ovr: 67, pot: 74 },
@@ -107,7 +107,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Ayouba', ln: 'Kosiah', pos: 'ST', age: 23, nat: 'Holland', ovr: 58, pot: 61 },
     { fn: 'Félix', ln: 'Nzouango', pos: 'CB', age: 21, nat: 'France', ovr: 56, pot: 59 },
   ],
-  'kaa-gent': [
+  'gent': [
     { fn: 'Davy', ln: 'Roef', pos: 'GK', age: 30, nat: 'Belgium', ovr: 72, pot: 72 },
     { fn: 'Daniel', ln: 'Schmidt', pos: 'GK', age: 32, nat: 'Japan', ovr: 70, pot: 68 },
     { fn: 'Louis', ln: 'Fortin', pos: 'GK', age: 22, nat: 'Belgium', ovr: 61, pot: 67 },
@@ -132,7 +132,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Momodou', ln: 'Lamin Sonko', pos: 'LW', age: 19, nat: 'Sweden', ovr: 63, pot: 76 },
     { fn: 'Tibe', ln: 'De Vlieger', pos: 'CAM', age: 18, nat: 'Belgium', ovr: 62, pot: 78 },
   ],
-  'krc-genk': [
+  'genk': [
     { fn: 'Hendrik', ln: 'Van Crombrugge', pos: 'GK', age: 31, nat: 'Belgium', ovr: 72, pot: 70 },
     { fn: 'Mike', ln: 'Penders', pos: 'GK', age: 19, nat: 'Belgium', ovr: 65, pot: 79 },
     { fn: 'Bryan', ln: 'Heynen', pos: 'CM', age: 27, nat: 'Belgium', ovr: 77, pot: 79 },
@@ -157,7 +157,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Ibrahima', ln: 'Sory Bangoura', pos: 'CDM', age: 20, nat: 'Guinea', ovr: 59, pot: 74 },
     { fn: 'Adrián', ln: 'Palacios', pos: 'CB', age: 20, nat: 'Venezuela', ovr: 55, pot: 66 },
   ],
-  'kv-kortrijk': [
+  'kortrijk': [
     { fn: 'Patrik', ln: 'Gunnarsson', pos: 'GK', age: 23, nat: 'Iceland', ovr: 69, pot: 77 },
     { fn: 'Tom', ln: 'Vandenberghe', pos: 'GK', age: 32, nat: 'Belgium', ovr: 68, pot: 66 },
     { fn: 'Lucas', ln: 'Pirard', pos: 'GK', age: 29, nat: 'Belgium', ovr: 67, pot: 67 },
@@ -186,7 +186,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Nathan', ln: 'Huygevelde', pos: 'CM', age: 20, nat: 'Belgium', ovr: 60, pot: 74 },
     { fn: 'Djiby', ln: 'Seck', pos: 'LM', age: 20, nat: 'Senegal', ovr: 60, pot: 73 },
   ],
-  'kv-mechelen': [
+  'mechelen': [
     { fn: 'Ortwin', ln: 'De Wolf', pos: 'GK', age: 27, nat: 'Belgium', ovr: 66, pot: 70 },
     { fn: 'Yannick', ln: 'Thoelen', pos: 'GK', age: 34, nat: 'Belgium', ovr: 65, pot: 63 },
     { fn: 'Oskar', ln: 'Annell', pos: 'GK', age: 19, nat: 'Belgium', ovr: 55, pot: 71 },
@@ -215,7 +215,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Isaac', ln: 'Asante', pos: 'CAM', age: 22, nat: 'Ghana', ovr: 57, pot: 67 },
     { fn: 'Elton', ln: 'Yeboah', pos: 'CM', age: 19, nat: 'Belgium', ovr: 57, pot: 67 },
   ],
-  'kvc-westerlo': [
+  'westerlo': [
     { fn: 'Sinan', ln: 'Bolat', pos: 'GK', age: 36, nat: 'Turkey', ovr: 71, pot: 69 },
     { fn: 'Nick', ln: 'Gillekens', pos: 'GK', age: 29, nat: 'Belgium', ovr: 66, pot: 66 },
     { fn: 'Koen', ln: 'Van Langendonck', pos: 'GK', age: 35, nat: 'Belgium', ovr: 64, pot: 62 },
@@ -268,7 +268,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Manuel', ln: 'Osifo', pos: 'CDM', age: 21, nat: 'Belgium', ovr: 58, pot: 62 },
     { fn: 'Christ', ln: 'Souanga', pos: 'LB', age: 17, nat: 'Belgium', ovr: 54, pot: 69 },
   ],
-  'r-union-st-g': [
+  'union-sg': [
     { fn: 'Anthony', ln: 'Moris', pos: 'GK', age: 34, nat: 'Luxembourg', ovr: 73, pot: 71 },
     { fn: 'Vic', ln: 'Chambaere', pos: 'GK', age: 21, nat: 'Belgium', ovr: 61, pot: 70 },
     { fn: 'Joachim', ln: 'Imbrechts', pos: 'GK', age: 22, nat: 'Sweden', ovr: 60, pot: 64 },
@@ -296,7 +296,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Arnaud', ln: 'Dony', pos: 'LB', age: 20, nat: 'Belgium', ovr: 59, pot: 70 },
     { fn: 'Kamiel', ln: 'Van de Perre', pos: 'CM', age: 20, nat: 'Belgium', ovr: 53, pot: 63 },
   ],
-  'rsc-anderlecht': [
+  'anderlecht': [
     { fn: 'Mads', ln: 'Kikkenborg', pos: 'GK', age: 24, nat: 'Denmark', ovr: 67, pot: 71 },
     { fn: 'Colin', ln: 'Coosemans', pos: 'GK', age: 32, nat: 'Belgium', ovr: 66, pot: 64 },
     { fn: 'Timon', ln: 'Vanhoutte', pos: 'GK', age: 20, nat: 'Belgium', ovr: 58, pot: 70 },
@@ -323,7 +323,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Nilson', ln: 'Angulo', pos: 'LW', age: 21, nat: 'Ecuador', ovr: 67, pot: 76 },
     { fn: 'Jan-Carlo', ln: 'Simić', pos: 'CB', age: 19, nat: 'Serbia', ovr: 63, pot: 78 },
   ],
-  'royal-antwerp-fc': [
+  'antwerp': [
     { fn: 'Jean', ln: 'Butez', pos: 'GK', age: 29, nat: 'France', ovr: 77, pot: 77 },
     { fn: 'Senne', ln: 'Lammens', pos: 'GK', age: 22, nat: 'Belgium', ovr: 67, pot: 72 },
     { fn: 'Toby', ln: 'Alderweireld', pos: 'CB', age: 35, nat: 'Belgium', ovr: 80, pot: 78 },
@@ -343,7 +343,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Rosen', ln: 'Bozhinov', pos: 'CB', age: 19, nat: 'Bulgaria', ovr: 61, pot: 77 },
     { fn: 'Laurit', ln: 'Krasniqi', pos: 'LB', age: 23, nat: 'Kosovo', ovr: 61, pot: 66 },
   ],
-  'stvv': [
+  'sint-truiden': [
     { fn: 'Leo', ln: 'Kokubo', pos: 'GK', age: 23, nat: 'Japan', ovr: 64, pot: 74 },
     { fn: 'Jo', ln: 'Coppens', pos: 'GK', age: 33, nat: 'Belgium', ovr: 63, pot: 61 },
     { fn: 'Matt', ln: 'Lendfers', pos: 'GK', age: 18, nat: 'Belgium', ovr: 55, pot: 66 },
@@ -370,7 +370,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Adam', ln: 'Nhaili', pos: 'CAM', age: 19, nat: 'Belgium', ovr: 55, pot: 69 },
     { fn: 'Hugo', ln: 'Lambotte', pos: 'CB', age: 18, nat: 'Belgium', ovr: 54, pot: 65 },
   ],
-  'sp-charleroi': [
+  'charleroi': [
     { fn: 'Théo', ln: 'Defourny', pos: 'GK', age: 32, nat: 'Belgium', ovr: 68, pot: 66 },
     { fn: 'Mohamed', ln: 'Koné', pos: 'GK', age: 22, nat: 'Côte d\'Ivoire', ovr: 66, pot: 74 },
     { fn: 'Martin', ln: 'Delavallée', pos: 'GK', age: 20, nat: 'Belgium', ovr: 59, pot: 75 },

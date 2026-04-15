@@ -1,4 +1,6 @@
 import * as Sentry from '@sentry/react';
+import { LEAGUES, getLeaguesByCountry, generateDivisionFixtures, ALL_CLUBS } from '@/data/league';
+import { generateSquad, selectBestLineup } from '@/utils/playerGen';
 /**
  * Save migration system for Dynasty Manager.
  * Each migration transforms save data from one version to the next.
@@ -739,12 +741,69 @@ const migrations: Record<number, MigrationFn> = {
     version: 55,
   }),
 
-  // v55 → v56: Add contractStrikes + multi-division league structure
-  55: (data) => ({
-    ...data,
-    contractStrikes: {},
-    version: 56,
-  }),
+  // v55 → v56: Multi-division league structure + contractStrikes
+  55: (data) => {
+    const playerDiv = data.playerDivision as string;
+    const league = LEAGUES.find((l: { id: string }) => l.id === playerDiv);
+    const countryId = league?.countryId || playerDiv;
+    const countryLeagues = getLeaguesByCountry(countryId);
+
+    const divisionClubs = { ...(data.divisionClubs as Record<string, string[]> || {}) };
+    const divisionFixtures = { ...(data.divisionFixtures as Record<string, unknown[]> || {}) };
+    const clubs = { ...(data.clubs as Record<string, unknown> || {}) };
+    const players = { ...(data.players as Record<string, unknown> || {}) };
+    const season = (data.season as number) || 1;
+
+    for (const cl of countryLeagues) {
+      if (divisionClubs[cl.id]?.length) continue;
+
+      const leagueClubData = ALL_CLUBS.filter((cd: { divisionId: string }) => cd.divisionId === cl.id);
+      const clubIds: string[] = [];
+
+      for (const cd of leagueClubData) {
+        const club = {
+          id: cd.id, name: cd.name, shortName: cd.shortName,
+          color: cd.color, secondaryColor: cd.secondaryColor,
+          budget: cd.budget, wageBill: 0, reputation: cd.reputation,
+          facilities: cd.facilities, youthRating: cd.youthRating,
+          fanBase: cd.fanBase, boardPatience: cd.boardPatience,
+          playerIds: [] as string[], formation: '4-3-3', lineup: [] as string[], subs: [] as string[],
+          divisionId: cd.divisionId,
+          stadiumName: cd.stadiumName,
+          stadiumCapacity: cd.stadiumCapacity,
+        };
+
+        const squad = generateSquad(club.id, cd.squadQuality, season, cd.divisionId);
+        let totalWages = 0;
+        for (const p of squad) {
+          players[p.id] = p;
+          club.playerIds.push(p.id);
+          totalWages += p.wage;
+        }
+        club.wageBill = totalWages;
+
+        const { lineup, subs } = selectBestLineup(squad, '4-3-3');
+        club.lineup = lineup.map((p: { id: string }) => p.id);
+        club.subs = subs.map((p: { id: string }) => p.id);
+
+        clubs[club.id] = club;
+        clubIds.push(club.id);
+      }
+
+      divisionClubs[cl.id] = clubIds;
+      divisionFixtures[cl.id] = generateDivisionFixtures(clubIds, cl.totalWeeks || 46);
+    }
+
+    return {
+      ...data,
+      contractStrikes: {},
+      divisionClubs,
+      divisionFixtures,
+      clubs,
+      players,
+      version: 56,
+    };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

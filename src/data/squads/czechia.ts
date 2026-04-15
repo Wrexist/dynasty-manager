@@ -2,7 +2,7 @@ import type { PlayerTemplate } from '@/data/playerTemplates';
 
 // cze — Auto-generated from FC25 data
 export const SQUADS: Record<string, PlayerTemplate[]> = {
-  'slavia-praha': [
+  'slavia-prague': [
     { fn: 'Jindřich', ln: 'Staněk', pos: 'GK', age: 28, nat: 'Czech Republic', ovr: 76, pot: 76 },
     { fn: 'Aleš', ln: 'Mandous', pos: 'GK', age: 32, nat: 'Czech Republic', ovr: 73, pot: 71 },
     { fn: 'Antonín', ln: 'Kinský', pos: 'GK', age: 21, nat: 'Czech Republic', ovr: 72, pot: 79 },
@@ -33,7 +33,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'Štěpán', ln: 'Chaloupek', pos: 'CB', age: 21, nat: 'Czech Republic', ovr: 70, pot: 80 },
     { fn: 'Alexandr', ln: 'Bužek', pos: 'CDM', age: 20, nat: 'Czech Republic', ovr: 66, pot: 74 },
   ],
-  'sparta-praha': [
+  'sparta-prague': [
     { fn: 'Peter', ln: 'Vindahl Jensen', pos: 'GK', age: 26, nat: 'Denmark', ovr: 76, pot: 77 },
     { fn: 'Vojtěch', ln: 'Vorel', pos: 'GK', age: 28, nat: 'Czech Republic', ovr: 69, pot: 69 },
     { fn: 'Jakub', ln: 'Surovčík', pos: 'GK', age: 22, nat: 'Slovakia', ovr: 63, pot: 66 },
@@ -61,7 +61,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
     { fn: 'David', ln: 'Pavelka', pos: 'CM', age: 33, nat: 'Czech Republic', ovr: 66, pot: 64 },
     { fn: 'Mathias', ln: 'Ross', pos: 'CB', age: 23, nat: 'Denmark', ovr: 66, pot: 76 },
   ],
-  'viktoria-plze': [
+  'viktoria-plzen': [
     { fn: 'Martin', ln: 'Jedlička', pos: 'GK', age: 26, nat: 'Czech Republic', ovr: 74, pot: 75 },
     { fn: 'Marián', ln: 'Tvrdoň', pos: 'GK', age: 30, nat: 'Slovakia', ovr: 68, pot: 68 },
     { fn: 'Pavel', ln: 'Šulc', pos: 'CAM', age: 23, nat: 'Czech Republic', ovr: 75, pot: 79 },

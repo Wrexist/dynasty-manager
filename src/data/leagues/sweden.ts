@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Sweden',
   countryCode: 'SE',
   teamCount: 16,
-  totalWeeks: 46,
+  totalWeeks: 30,
   replacedSlots: 0,
   description: 'Sweden\'s top division, a summer league known for developing talent and its passionate supporter culture.',
   difficulty: 'Medium',

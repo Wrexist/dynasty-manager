@@ -7,7 +7,7 @@ export const LEAGUE_INFO: LeagueInfo = {
   country: 'Romania',
   countryCode: 'RO',
   teamCount: 16,
-  totalWeeks: 46,
+  totalWeeks: 30,
   replacedSlots: 0,
   description: 'Romanian top flight football featuring historic clubs from Bucharest and beyond, with passionate fanbases and growing investment.',
   difficulty: 'Hard',

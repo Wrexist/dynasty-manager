@@ -93,7 +93,7 @@ const NEW_LEAGUE_INFO = {
   },
   'ger-2': {
     name: '2. Bundesliga', shortName: '2.BL', country: 'Germany', countryCode: 'DE',
-    teamCount: 18, totalWeeks: 46, replacedSlots: 0,
+    teamCount: 18, totalWeeks: 34, replacedSlots: 0,
     description: 'Germany\'s second division, known for large attendances and competitive promotion races.',
     difficulty: 'Hard', colorClass: 'text-orange-400', prizeMoney: 5000000,
     averageWage: 25000, qualityTier: 2, tier: 2, countryId: 'ger',
@@ -101,7 +101,7 @@ const NEW_LEAGUE_INFO = {
   },
   'ger-3': {
     name: '3. Liga', shortName: '3.L', country: 'Germany', countryCode: 'DE',
-    teamCount: 20, totalWeeks: 46, replacedSlots: 3,
+    teamCount: 20, totalWeeks: 38, replacedSlots: 3,
     description: 'Germany\'s third tier, a breeding ground for future Bundesliga stars.',
     difficulty: 'Medium', colorClass: 'text-green-400', prizeMoney: 2000000,
     averageWage: 10000, qualityTier: 3, tier: 3, countryId: 'ger',
@@ -109,7 +109,7 @@ const NEW_LEAGUE_INFO = {
   },
   'esp-2': {
     name: 'La Liga 2', shortName: 'LL2', country: 'Spain', countryCode: 'ES',
-    teamCount: 22, totalWeeks: 46, replacedSlots: 3,
+    teamCount: 22, totalWeeks: 42, replacedSlots: 3,
     description: 'Spain\'s second division, gateway to La Liga with dramatic promotion playoffs.',
     difficulty: 'Hard', colorClass: 'text-orange-400', prizeMoney: 4000000,
     averageWage: 20000, qualityTier: 2, tier: 2, countryId: 'esp',
@@ -117,7 +117,7 @@ const NEW_LEAGUE_INFO = {
   },
   'ita-2': {
     name: 'Serie B', shortName: 'SB', country: 'Italy', countryCode: 'IT',
-    teamCount: 20, totalWeeks: 46, replacedSlots: 3,
+    teamCount: 20, totalWeeks: 38, replacedSlots: 3,
     description: 'Italy\'s second tier, the stepping stone to Serie A with fierce competition.',
     difficulty: 'Hard', colorClass: 'text-orange-400', prizeMoney: 3500000,
     averageWage: 18000, qualityTier: 2, tier: 2, countryId: 'ita',
@@ -125,7 +125,7 @@ const NEW_LEAGUE_INFO = {
   },
   'fra-2': {
     name: 'Ligue 2', shortName: 'L2', country: 'France', countryCode: 'FR',
-    teamCount: 18, totalWeeks: 46, replacedSlots: 3,
+    teamCount: 18, totalWeeks: 34, replacedSlots: 3,
     description: 'France\'s second division, known for developing young talent and tight promotion battles.',
     difficulty: 'Hard', colorClass: 'text-orange-400', prizeMoney: 3000000,
     averageWage: 15000, qualityTier: 2, tier: 2, countryId: 'fra',
