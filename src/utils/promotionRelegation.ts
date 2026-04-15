@@ -196,7 +196,7 @@ export function applyPromotionRelegation(
         };
       }
     }
-    for (const clubId of [...promotedUp, ...playoffWinners]) {
+    for (const clubId of cappedPromoted) {
       if (workingClubs[clubId] && upperLeagueInfo) {
         // Promoted: gain ~40% budget, gain 1 reputation
         workingClubs[clubId] = {
