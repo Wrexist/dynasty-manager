@@ -1,4 +1,5 @@
-import { createContext, useContext, useCallback, useEffect, useId, useRef, useState } from 'react';
+import { createContext, useContext, useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -22,7 +23,6 @@ export function InfoTipProvider({ children }: { children: React.ReactNode }) {
   const open = useCallback((id: string) => setActiveId(prev => (prev === id ? null : id)), []);
   const close = useCallback(() => setActiveId(null), []);
 
-  // Close on Escape key
   useEffect(() => {
     if (!activeId) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close(); };
@@ -30,20 +30,29 @@ export function InfoTipProvider({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener('keydown', onKey);
   }, [activeId, close]);
 
-  // Close when tapping outside any InfoTip
   useEffect(() => {
     if (!activeId) return;
     const onPointer = (e: PointerEvent) => {
       const target = e.target as HTMLElement;
-      if (!target.closest('[data-infotip]')) close();
+      if (!target.closest('[data-infotip]') && !target.closest('[data-infotip-popover]')) close();
     };
-    // Use a timeout so the current click event doesn't immediately close the tooltip
     const timer = setTimeout(() => {
       document.addEventListener('pointerdown', onPointer, true);
     }, 0);
     return () => {
       clearTimeout(timer);
       document.removeEventListener('pointerdown', onPointer, true);
+    };
+  }, [activeId, close]);
+
+  useEffect(() => {
+    if (!activeId) return;
+    const onScrollOrResize = () => close();
+    window.addEventListener('scroll', onScrollOrResize, true);
+    window.addEventListener('resize', onScrollOrResize);
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onScrollOrResize);
     };
   }, [activeId, close]);
 
@@ -60,11 +69,16 @@ interface InfoTipProps {
   className?: string;
 }
 
+const TOOLTIP_WIDTH = 256;
+const VIEWPORT_MARGIN = 12;
+const TOOLTIP_OFFSET = 8;
+
 export function InfoTip({ text, className }: InfoTipProps) {
   const id = useId();
   const ctx = useContext(InfoTipContext);
   const isOpen = ctx.activeId === id;
-  const ref = useRef<HTMLSpanElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const [coords, setCoords] = useState<{ top: number; left: number; placement: 'top' | 'bottom' } | null>(null);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -72,32 +86,62 @@ export function InfoTip({ text, className }: InfoTipProps) {
     ctx.open(id);
   }, [ctx, id]);
 
+  useLayoutEffect(() => {
+    if (!isOpen || !buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    const maxWidth = Math.min(TOOLTIP_WIDTH, vw - VIEWPORT_MARGIN * 2);
+    let left = rect.left + rect.width / 2 - maxWidth / 2;
+    left = Math.max(VIEWPORT_MARGIN, Math.min(left, vw - maxWidth - VIEWPORT_MARGIN));
+
+    const spaceBelow = vh - rect.bottom;
+    const placement: 'top' | 'bottom' = spaceBelow < 120 && rect.top > 120 ? 'top' : 'bottom';
+    const top = placement === 'bottom' ? rect.bottom + TOOLTIP_OFFSET : rect.top - TOOLTIP_OFFSET;
+
+    setCoords({ top, left, placement });
+  }, [isOpen]);
+
   return (
-    <span ref={ref} className={cn('inline-flex flex-col', className)} data-infotip>
+    <span className={cn('inline-flex items-center', className)} data-infotip>
       <button
+        ref={buttonRef}
         type="button"
         onClick={handleClick}
-        className="inline-flex items-center justify-center w-6 h-6 -m-1 rounded-full bg-primary/10 hover:bg-primary/20 transition-colors shrink-0"
+        className="inline-flex items-center justify-center w-6 h-6 -m-1 rounded-full bg-primary/10 hover:bg-primary/20 active:bg-primary/30 transition-colors shrink-0"
         aria-label="More info"
         aria-expanded={isOpen}
       >
         <Info className="w-3.5 h-3.5 text-primary/70" />
       </button>
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.15 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-primary/5 border border-primary/10 rounded-lg px-3 py-2 mt-1.5">
-              <p className="text-[11px] text-primary/80 leading-relaxed">{text}</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {typeof document !== 'undefined' && createPortal(
+        <AnimatePresence>
+          {isOpen && coords && (
+            <motion.div
+              data-infotip-popover
+              initial={{ opacity: 0, y: coords.placement === 'bottom' ? -4 : 4, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: coords.placement === 'bottom' ? -4 : 4, scale: 0.98 }}
+              transition={{ duration: 0.14, ease: 'easeOut' }}
+              style={{
+                position: 'fixed',
+                top: coords.placement === 'bottom' ? coords.top : undefined,
+                bottom: coords.placement === 'top' ? window.innerHeight - coords.top : undefined,
+                left: coords.left,
+                width: Math.min(TOOLTIP_WIDTH, window.innerWidth - VIEWPORT_MARGIN * 2),
+                zIndex: 60,
+              }}
+              className="pointer-events-auto"
+            >
+              <div className="bg-popover/95 backdrop-blur-xl border border-border/80 rounded-xl px-3 py-2.5 shadow-[0_8px_24px_-6px_rgba(0,0,0,0.6)]">
+                <p className="text-[11px] text-foreground/90 leading-relaxed">{text}</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body,
+      )}
     </span>
   );
 }

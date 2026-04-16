@@ -524,7 +524,7 @@ const PlayerDetail = () => {
             <span className="text-[10px] text-muted-foreground">
               Gap: {player.potential - player.overall > 0 ? `+${player.potential - player.overall}` : '0'}
             </span>
-            <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">Potential <InfoTip text={HELP_TEXTS.potential} className="[&>:last-child]:absolute [&>:last-child]:left-0 [&>:last-child]:right-0 [&>:last-child]:top-full" /></span>
+            <span className="text-[10px] text-muted-foreground flex items-center gap-1">Potential <InfoTip text={HELP_TEXTS.potential} /></span>
           </div>
           {/* Growth trajectory context */}
           {isGrowing && player.potential - player.overall > 0 && (
