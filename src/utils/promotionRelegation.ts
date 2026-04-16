@@ -5,7 +5,7 @@
  */
 
 import { LeagueId, LeagueInfo, LeagueTableEntry, SeasonTurnover, Club } from '@/types/game';
-import { LEAGUES, getLeaguesByCountry, getLeagueBelow, getLeagueAbove } from '@/data/league';
+import { LEAGUES, getLeaguesByCountry } from '@/data/league';
 import type { ClubData } from '@/types/game';
 
 // ── Determine promotion/relegation zones from final table ──

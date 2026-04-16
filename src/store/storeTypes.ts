@@ -293,7 +293,7 @@ export interface GameState {
   rewindMatch: () => void;
   loadMatchForReview: (week: number) => void;
   cleanupAbandonedMatch: () => void;
-  makeMatchSub: (outId: string, inId: string) => void;
+  makeMatchSub: (outId: string, inId: string, minute?: number) => void;
   setTeamTalk: (talk: TeamTalkType) => void;
   useShout: (type: ShoutType, minute: number) => boolean;
   getActiveShout: (minute: number) => MatchShout | null;

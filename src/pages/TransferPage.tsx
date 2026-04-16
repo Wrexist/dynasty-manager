@@ -24,13 +24,6 @@ import { getPerformanceMultiplier, getMaxFreeAgentOverall, calculateSigningBonus
 import { TransferPlayerCard } from '@/components/game/TransferPlayerCard';
 import { LEAGUES } from '@/data/league';
 
-const TIER_LABELS: Record<number, string> = {
-  1: 'Top Flight',
-  2: '2nd Tier',
-  3: '3rd Tier',
-  4: '4th Tier',
-};
-
 const TransferPage = () => {
   const {
     transferMarket, players, clubs, playerClubId, shortlist, transferWindowOpen,

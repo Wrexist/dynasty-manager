@@ -1,7 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { simulateMatch } from '@/engine/match';
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
 import type { Club, Match } from '@/types/game';
+
+// Deterministic PRNG so statistical balance assertions don't flake.
+function mulberry32(seed: number): () => number {
+  let t = seed >>> 0;
+  return () => {
+    t = (t + 0x6D2B79F5) >>> 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
 function makeClub(id: string, rep: number): Club {
   return {
@@ -25,6 +36,10 @@ function setupClub(id: string, quality: number, rep: number) {
 }
 
 describe('Match Balance', () => {
+  const originalRandom = Math.random;
+  beforeEach(() => { Math.random = mulberry32(0xDEAD_BEEF); });
+  afterEach(() => { Math.random = originalRandom; });
+
   it('average goals per match is within expected range (1.0-3.5)', () => {
     const SAMPLE_SIZE = 200;
     let totalGoals = 0;
@@ -47,7 +62,6 @@ describe('Match Balance', () => {
   it('elite vs weak team produces expected scoreline distribution', () => {
     const SAMPLE_SIZE = 100;
     let eliteWins = 0;
-    let draws = 0;
 
     const { club: elite, lineup: elitePlayers } = setupClub('elite', 85, 90);
     const { club: weak, lineup: weakPlayers } = setupClub('weak', 55, 40);
@@ -56,7 +70,6 @@ describe('Match Balance', () => {
       const match: Match = { id: `mismatch-${i}`, week: 1, homeClubId: 'elite', awayClubId: 'weak', played: false, homeGoals: 0, awayGoals: 0, events: [] };
       const { result } = simulateMatch(match, elite, weak, elitePlayers, weakPlayers);
       if (result.homeGoals > result.awayGoals) eliteWins++;
-      else if (result.homeGoals === result.awayGoals) draws++;
     }
 
     // Elite team should win majority of matches against weak team

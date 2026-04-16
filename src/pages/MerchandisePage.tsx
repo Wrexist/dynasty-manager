@@ -10,7 +10,6 @@ import {
 import {
   MERCH_PRODUCT_LINES, MERCH_PRICING_TIERS, MERCH_CAMPAIGNS,
 } from '@/config/merchandise';
-import { LEAGUES } from '@/data/league';
 import { PageHint } from '@/components/game/PageHint';
 import {
   isProductLineUnlocked, getStarPlayerMerch, canLaunchCampaign,
