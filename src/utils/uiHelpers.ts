@@ -38,6 +38,23 @@ export function getRatingColor(value: number): string {
   return 'text-muted-foreground';
 }
 
+/** Gold/silver/bronze halo (shadow + ring) for a player overall rating. Empty for <60. */
+export function getTierGlowClass(overall: number): string {
+  if (overall >= 80) return 'shadow-[0_0_24px_rgba(251,191,36,0.35)] ring-1 ring-amber-400/30';
+  if (overall >= 70) return 'shadow-[0_0_20px_rgba(203,213,225,0.25)] ring-1 ring-slate-300/20';
+  if (overall >= 60) return 'shadow-[0_0_18px_rgba(180,83,9,0.25)] ring-1 ring-amber-700/20';
+  return '';
+}
+
+/** Deterministic 1–99 jersey number derived from a player id (stable across renders). */
+export function getStableJerseyNumber(playerId: string): number {
+  let hash = 0;
+  for (let i = 0; i < playerId.length; i++) {
+    hash = (hash * 31 + playerId.charCodeAt(i)) | 0;
+  }
+  return (Math.abs(hash) % 99) + 1;
+}
+
 /** Get background color class for a stat bar percentage */
 export function getStatBarColor(pct: number): string {
   for (const t of STAT_BAR_THRESHOLDS) {
