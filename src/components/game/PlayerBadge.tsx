@@ -20,6 +20,14 @@ interface PlayerBadgeProps {
   className?: string;
 }
 
+/** Tier glow class — gold/silver/bronze halo based on overall rating. */
+export function getTierGlowClass(overall: number): string {
+  if (overall >= 80) return 'shadow-[0_0_24px_rgba(251,191,36,0.35)] ring-1 ring-amber-400/30';
+  if (overall >= 70) return 'shadow-[0_0_20px_rgba(203,213,225,0.25)] ring-1 ring-slate-300/20';
+  if (overall >= 60) return 'shadow-[0_0_18px_rgba(180,83,9,0.25)] ring-1 ring-amber-700/20';
+  return '';
+}
+
 const SIZE_CLASSES = {
   sm: 'w-[40px] h-[48px]',
   md: 'w-[52px] h-[66px]',
@@ -56,8 +64,9 @@ export const PlayerBadge = memo(function PlayerBadge({
         className={cn(
           SIZE_CLASSES[size],
           'rounded-xl flex flex-col items-center justify-between py-1.5',
-          'bg-card/60 backdrop-blur-xl border border-border/50',
+          'bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl border border-border/50',
           'border-l-[3px]',
+          getTierGlowClass(overall),
         )}
         style={{ borderLeftColor: clubColor }}
       >

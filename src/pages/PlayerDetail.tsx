@@ -17,7 +17,7 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { getPersonalityLabel, getTrainingMultiplier } from '@/utils/personality';
 import { PlayerRadarChart } from '@/components/game/PlayerRadarChart';
-import { PlayerBadge } from '@/components/game/PlayerBadge';
+import { PlayerHeroCard } from '@/components/game/PlayerHeroCard';
 import { ATTR_RATING_HIGH, ATTR_RATING_MID, ATTR_RATING_LOW, HELP_TEXTS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { InfoTip } from '@/components/game/InfoTip';
@@ -188,30 +188,7 @@ const PlayerDetail = () => {
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25 }}>
-      <GlassPanel className="p-5">
-        <div className="flex items-center gap-4">
-          <PlayerBadge
-            clubColor={club?.color || '#888'}
-            overall={player.overall}
-            position={player.position}
-            jerseyNumber={undefined}
-            size="lg"
-            growthDelta={player.growthDelta}
-          />
-          <div className="flex-1">
-            <p className="text-xl font-black text-foreground">{player.firstName} {player.lastName}</p>
-            <p className="text-sm text-muted-foreground">
-              {player.position} · {player.age} · <FlagIcon nationality={player.nationality} size={16} /> {player.nationality}
-              {player.potential > player.overall && <span className="text-primary"> · Pot {player.potential}</span>}
-              {(player.skillMoves ?? 0) >= 3 && <span className="text-amber-400"> · {'★'.repeat(player.skillMoves!)} Skills</span>}
-            </p>
-            <div className="flex items-center gap-1.5 mt-1">
-              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: club?.color || '#888' }} />
-              <span className="text-xs text-muted-foreground">{club?.name || 'Unknown'}</span>
-            </div>
-          </div>
-        </div>
-      </GlassPanel>
+        <PlayerHeroCard player={player} club={club} />
       </motion.div>
 
       {/* Narrative Tags */}
