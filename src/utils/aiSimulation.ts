@@ -62,6 +62,31 @@ interface AIWeeklyResult {
 
 // ── Helpers ──
 
+/**
+ * Strip a player id from every club's playerIds/lineup/subs, optionally
+ * skipping one club (the declared source of a transfer). Protects against
+ * stale ownership when a listing or free-agent record is out of sync with
+ * the actual `playerIds` arrays. Returns a new clubs map.
+ */
+function detachPlayerFromAllClubs(
+  clubs: Record<string, Club>,
+  playerId: string,
+  exceptClubId?: string,
+): Record<string, Club> {
+  const out = { ...clubs };
+  for (const [cid, c] of Object.entries(out)) {
+    if (cid === exceptClubId) continue;
+    if (!c.playerIds.includes(playerId)) continue;
+    out[cid] = {
+      ...c,
+      playerIds: c.playerIds.filter(id => id !== playerId),
+      lineup: c.lineup.filter(id => id !== playerId),
+      subs: c.subs.filter(id => id !== playerId),
+    };
+  }
+  return out;
+}
+
 function getSquadAvgOverall(club: Club, players: Record<string, Player>): number {
   const squad = club.playerIds.map(id => players[id]).filter(Boolean);
   if (squad.length === 0) return 50;
@@ -342,7 +367,7 @@ function processAIBuying(
   messages: Message[];
   transferNews: TransferNewsEntry[];
 } {
-  const updClubs = { ...clubs };
+  let updClubs = { ...clubs };
   const updPlayers = { ...players };
   let updMarket = [...transferMarket];
   let updMessages = messages;
@@ -482,15 +507,17 @@ function processAIBuying(
     // Execute transfer
     if (!isExternalPlayer) {
       const updSeller = { ...seller };
-      updSeller.playerIds = updSeller.playerIds.filter(id => id !== target!.id);
-      updSeller.lineup = updSeller.lineup.filter(id => id !== target!.id);
-      updSeller.subs = updSeller.subs.filter(id => id !== target!.id);
       updSeller.budget += finalFee;
       updSeller.wageBill -= target.wage;
       updClubs[sellerClubId] = updSeller;
     }
 
-    const updBuyer = { ...finalBuyer };
+    // Defensively detach the target from every club (except the buyer) so
+    // a stale listing or mis-declared seller cannot leave the player in two
+    // clubs' playerIds arrays.
+    updClubs = detachPlayerFromAllClubs(updClubs, target.id, finalBuyerClubId);
+
+    const updBuyer = { ...updClubs[finalBuyerClubId] };
     updBuyer.playerIds = [...updBuyer.playerIds, target.id];
     updBuyer.budget -= finalFee;
     updBuyer.wageBill += target.wage;
@@ -549,7 +576,7 @@ function processAILoans(
   messages: Message[];
   transferNews: TransferNewsEntry[];
 } {
-  const updClubs = { ...clubs };
+  let updClubs = { ...clubs };
   const updPlayers = { ...players };
   const updLoans = [...activeLoans];
   let updMessages = messages;
@@ -616,16 +643,17 @@ function processAILoans(
 
     // Update clubs
     const updLender = { ...updClubs[lendingClubId] };
-    updLender.playerIds = updLender.playerIds.filter(id => id !== candidateId);
-    updLender.lineup = updLender.lineup.filter(id => id !== candidateId);
-    updLender.subs = updLender.subs.filter(id => id !== candidateId);
     updLender.wageBill -= Math.round(candidate.wage * wageSplit / 100);
+    updClubs[lendingClubId] = updLender;
+
+    // Defensively strip candidate from every club (including lender) before
+    // adding to the borrower — protects against stale references in other
+    // clubs' rosters and keeps the loan transition single-owner.
+    updClubs = detachPlayerFromAllClubs(updClubs, candidateId, borrowerClubId);
 
     const updBorrower = { ...updClubs[borrowerClubId] };
     updBorrower.playerIds = [...updBorrower.playerIds, candidateId];
     updBorrower.wageBill += Math.round(candidate.wage * wageSplit / 100);
-
-    updClubs[lendingClubId] = updLender;
     updClubs[borrowerClubId] = updBorrower;
     updLoans.push(loan);
 
@@ -673,7 +701,7 @@ function processAIFreeAgents(
   freeAgents: string[];
   transferNews: TransferNewsEntry[];
 } {
-  const updClubs = { ...clubs };
+  let updClubs = { ...clubs };
   const updPlayers = { ...players };
   let updFreeAgents = [...freeAgents];
   const updNews = [...transferNews];
@@ -721,7 +749,13 @@ function processAIFreeAgents(
       listedForSale: false,
     };
 
-    const updClub = { ...club };
+    // Defensively strip candidate from any stale club roster before adding
+    // to the signing club. Free agents *should* have clubId === '' but a
+    // desync (loan mid-return, finalizeSeason edge case) would otherwise
+    // leave the player in two clubs' playerIds.
+    updClubs = detachPlayerFromAllClubs(updClubs, candidate.id, aiClubId);
+
+    const updClub = { ...updClubs[aiClubId] };
     updClub.playerIds = [...updClub.playerIds, candidate.id];
     updClub.wageBill += candidate.wage;
     updClubs[aiClubId] = updClub;
