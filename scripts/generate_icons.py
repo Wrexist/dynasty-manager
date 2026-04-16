@@ -41,12 +41,14 @@ SIZES = {
     ],
 
     # PWA / web
+    # NOTE: public/logo.png is intentionally excluded — it is a separate
+    # transparent-background brand mark used inside the app (TitleScreen,
+    # Settings, LoadingFallback), not an app icon.
     "web": [
         (PROJECT_ROOT / "public/icon.png",         512),
         (PROJECT_ROOT / "public/icon-384.png",     384),
         (PROJECT_ROOT / "public/icon-192.png",     192),
         (PROJECT_ROOT / "public/icon-maskable.png", 512),
-        (PROJECT_ROOT / "public/logo.png",         512),
         (PROJECT_ROOT / "public/favicon.ico",       32),  # handled specially
     ],
 }

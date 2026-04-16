@@ -5,7 +5,7 @@ import { useGameStore } from '@/store/gameStore';
 import { getSlotSummaries } from '@/store/slices/orchestrationSlice';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Play, Settings, RotateCcw, Trash2, Save, Info, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink } from 'lucide-react';
+import { Play, Settings, RotateCcw, Trash2, Save, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { signalReady } from '@/main';
@@ -422,7 +422,11 @@ const TitleScreen = () => {
                 {/* About */}
                 <div className="bg-card/60 rounded-xl p-4 space-y-3">
                   <div className="flex items-center gap-3">
-                    <Info className="w-4 h-4 text-primary shrink-0" />
+                    <img
+                      src="/logo.png"
+                      alt="Dynasty Manager"
+                      className="w-10 h-10 shrink-0 drop-shadow-[0_0_10px_hsl(var(--primary)/0.3)]"
+                    />
                     <div>
                       <p className="text-sm font-semibold text-foreground">Dynasty Manager</p>
                       <p className="text-xs text-muted-foreground">v0.2 Alpha — Football Edition</p>
