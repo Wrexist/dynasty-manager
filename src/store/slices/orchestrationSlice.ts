@@ -1370,6 +1370,14 @@ function endSeasonImpl(set: Set, get: Get) {
     newDivisionClubs = { ...state.divisionClubs, [playerDiv]: newLeagueClubs };
   }
 
+  // Validate post-promotion state: player club must exist in its new division
+  if (hasMultipleTiers && !newDivisionClubs[newPlayerDiv]?.includes(playerClubId)) {
+    // Safety: force player club into their division if promo/relegation logic failed
+    Sentry.captureMessage(`Post-promotion validation: ${playerClubId} not found in ${newPlayerDiv}, adding manually`);
+    if (!newDivisionClubs[newPlayerDiv]) newDivisionClubs[newPlayerDiv] = [];
+    newDivisionClubs[newPlayerDiv].push(playerClubId);
+  }
+
   // Track promotion/relegation in season history
   if (hasMultipleTiers && newPlayerDiv !== playerDiv) {
     const newLeague = LEAGUES.find(l => l.id === newPlayerDiv);
@@ -2750,13 +2758,6 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       cm.unemployedWeeks = (cm.unemployedWeeks || 0) + 1;
       const newWeek = state.week + 1;
 
-      // Season end check — advance the world even while unemployed
-      if (newWeek > TOTAL_WEEKS) {
-        set({ careerManager: cm });
-        endSeasonImpl(set, get);
-        return;
-      }
-
       // Forced retirement after extended unemployment
       if (cm.unemployedWeeks >= FORCED_RETIREMENT_UNEMPLOYED_WEEKS) {
         cm.careerHistory = cm.careerHistory.map(e =>
@@ -2891,6 +2892,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         fixtures: mainFixtures, divisionFixtures: simDivFixtures,
         divisionTables: simDivTables, clubPowerRankings: eloRankings,
       });
+
+      // Season end check — after merging simulated state so AI results persist
+      if (newWeek > TOTAL_WEEKS) {
+        endSeasonImpl(set, get);
+        return;
+      }
+
       if (state.settings.autoSave) get().saveGame();
       return;
     }
@@ -5400,7 +5408,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     return result;
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'playCurrentMatch' } });
-      set({ matchPhase: 'none' as const });
+      try {
+        get().cleanupAbandonedMatch();
+        set({
+          messages: addMsg(get().messages, {
+            week: get().week, season: get().season, type: 'general',
+            title: 'Match Error',
+            body: 'An error occurred during the match simulation. The match has been abandoned.',
+          }),
+        });
+      } catch (cleanupErr) {
+        Sentry.captureException(cleanupErr, { tags: { context: 'matchCleanup' } });
+      }
       return null;
     }
   },
@@ -5749,8 +5768,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     return result;
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'playSecondHalf' } });
-      // Clear half-time state so the match can be cleaned up
-      set({ halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const });
+      try {
+        get().cleanupAbandonedMatch();
+        set({
+          messages: addMsg(get().messages, {
+            week: get().week, season: get().season, type: 'general',
+            title: 'Match Error',
+            body: 'An error occurred during the second half. The match has been abandoned.',
+          }),
+        });
+      } catch (cleanupErr) {
+        Sentry.captureException(cleanupErr, { tags: { context: 'secondHalfCleanup' } });
+      }
       return null;
     }
   },
