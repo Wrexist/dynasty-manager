@@ -18,7 +18,12 @@ const ManagerCreation = lazy(() => import("./pages/ManagerCreation"));
 
 // Loading fallback
 const LoadingFallback = () => (
-  <div className="min-h-screen bg-background flex items-center justify-center">
+  <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-4">
+    <img
+      src="/logo.png"
+      alt="Dynasty Manager"
+      className="w-20 h-20 drop-shadow-[0_0_16px_hsl(var(--primary)/0.35)] animate-pulse"
+    />
     <div className="text-muted-foreground text-sm">Loading...</div>
   </div>
 );

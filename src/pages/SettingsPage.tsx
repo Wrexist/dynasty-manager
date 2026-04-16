@@ -504,7 +504,12 @@ const SettingsPage = () => {
       </GlassPanel>
 
       {/* ─── About ─── */}
-      <div className="text-center py-2">
+      <div className="flex flex-col items-center gap-1.5 py-2">
+        <img
+          src="/logo.png"
+          alt="Dynasty Manager"
+          className="w-12 h-12 drop-shadow-[0_0_10px_hsl(var(--primary)/0.3)]"
+        />
         <p className="text-xs text-muted-foreground font-semibold">Dynasty Manager</p>
         <p className="text-[10px] text-muted-foreground">{APP_VERSION}</p>
       </div>
