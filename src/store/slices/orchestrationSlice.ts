@@ -5408,16 +5408,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     return result;
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'playCurrentMatch' } });
-      // Clean up ephemeral clubs/players and reset match state to prevent corruption
-      get().cleanupAbandonedMatch();
-      const msgs = get().messages;
-      set({
-        messages: addMsg(msgs, {
-          week: get().week, season: get().season, type: 'general',
-          title: 'Match Error',
-          body: 'An error occurred during the match simulation. The match has been abandoned.',
-        }),
-      });
+      try {
+        get().cleanupAbandonedMatch();
+        set({
+          messages: addMsg(get().messages, {
+            week: get().week, season: get().season, type: 'general',
+            title: 'Match Error',
+            body: 'An error occurred during the match simulation. The match has been abandoned.',
+          }),
+        });
+      } catch (cleanupErr) {
+        Sentry.captureException(cleanupErr, { tags: { context: 'matchCleanup' } });
+      }
       return null;
     }
   },
@@ -5766,8 +5768,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     return result;
     } catch (err) {
       Sentry.captureException(err, { tags: { context: 'playSecondHalf' } });
-      // Clear half-time state so the match can be cleaned up
-      set({ halfTimeState: null, currentMatchWeather: null, matchPhase: 'none' as const });
+      try {
+        get().cleanupAbandonedMatch();
+        set({
+          messages: addMsg(get().messages, {
+            week: get().week, season: get().season, type: 'general',
+            title: 'Match Error',
+            body: 'An error occurred during the second half. The match has been abandoned.',
+          }),
+        });
+      } catch (cleanupErr) {
+        Sentry.captureException(cleanupErr, { tags: { context: 'secondHalfCleanup' } });
+      }
       return null;
     }
   },
