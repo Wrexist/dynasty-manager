@@ -1490,7 +1490,7 @@ function finalizeSeason(
       careerAssists: (p.careerAssists || 0) + p.assists,
       careerAppearances: (p.careerAppearances || 0) + p.appearances,
       goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0,
-      seasonRatingTotal: 0, seasonRatedMatches: 0,
+      seasonRatingTotal: 0, seasonRatedMatches: 0, matchHistory: [],
       suspendedUntilWeek: undefined, growthDelta: 0, lastAttributeChanges: undefined, lastTrainingGains: undefined, onLoan: false,
       loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined, lastTransferTalkWeek: undefined,
       listedForSale: false,

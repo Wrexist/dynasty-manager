@@ -176,7 +176,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
 
   const handleConfirm = () => {
     if (!selectedOutId || !selectedInId) return;
-    makeMatchSub(selectedOutId, selectedInId);
+    makeMatchSub(selectedOutId, selectedInId, matchMinute);
     hapticMedium();
     setSelectedOutId(null);
     setSelectedInId(null);
@@ -387,7 +387,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 // Revert to old lineup, then apply limited swaps
                 updateLineup(oldLineupIds, oldSubs);
                 for (const swap of appliedSwaps) {
-                  makeMatchSub(swap.outId, swap.inId);
+                  makeMatchSub(swap.outId, swap.inId, matchMinute);
                 }
 
                 // Optimize positions of remaining starters
@@ -409,7 +409,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 // All swaps fit within sub limit — revert autoFill, then apply via makeMatchSub
                 updateLineup(oldLineupIds, oldSubs);
                 for (let i = 0; i < benchToStarter.length; i++) {
-                  makeMatchSub(starterToBench[i], benchToStarter[i]);
+                  makeMatchSub(starterToBench[i], benchToStarter[i], matchMinute);
                 }
 
                 // Optimize positions of the resulting lineup

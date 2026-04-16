@@ -73,7 +73,9 @@ export async function purchaseProduct(productId: ProductId): Promise<ProductId[]
       throw new Error(`Product ${productId} not found in offerings`);
     }
 
-    const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
+    // pkg is narrowed from the loose offerings shape above; the runtime object
+    // satisfies PurchasesPackage but structural typing misses the extra fields.
+    const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg as Parameters<typeof Purchases.purchasePackage>[0]['aPackage'] });
     return mapEntitlements(customerInfo);
   } catch (err: unknown) {
     const error = err as { code?: string; userCancelled?: boolean };

@@ -131,7 +131,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
 
   setTeamTalk: (talk: TeamTalkType) => set({ matchTeamTalk: talk }),
 
-  makeMatchSub: (outId: string, inId: string) => {
+  makeMatchSub: (outId: string, inId: string, minute?: number) => {
     const state = get();
     if (state.matchSubsUsed >= MAX_SUBSTITUTIONS) return;
     const club = { ...state.clubs[state.playerClubId] };
@@ -145,7 +145,7 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     club.subs = [...club.subs.filter(id => id !== inId), outId];
     const outPlayer = state.players[outId];
     const subEvent = {
-      minute: 45,
+      minute: minute ?? 45,
       type: 'substitution' as const,
       playerId: inId,
       assistPlayerId: outId,
