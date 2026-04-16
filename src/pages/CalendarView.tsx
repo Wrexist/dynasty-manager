@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
+import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
 import { PageHint } from '@/components/game/PageHint';
 import { TOTAL_WEEKS, BOARD_REVIEW_WEEKS } from '@/config/gameBalance';
 import type { CupRound, Match, CupTie, ContinentalTournamentState, SuperCupMatch } from '@/types/game';
@@ -291,9 +292,9 @@ const CalendarView = () => {
     addPhase('early', 'Early Season', 1, SUMMER_WINDOW_END);
     addPhase('autumn', 'Autumn', SUMMER_WINDOW_END + 1, WINTER_WINDOW_START - 1);
     addPhase('winter', 'Winter', WINTER_WINDOW_START, WINTER_WINDOW_END);
-    addPhase('spring', 'Spring', WINTER_WINDOW_END + 1, 38);
-    if (weekCount > 38) {
-      addPhase('runin', 'Season Run-In', 39, weekCount);
+    addPhase('spring', 'Spring', WINTER_WINDOW_END + 1, SPRING_PHASE_END_WEEK);
+    if (weekCount > SPRING_PHASE_END_WEEK) {
+      addPhase('runin', 'Season Run-In', SPRING_PHASE_END_WEEK + 1, weekCount);
     }
     // International break
     if (internationalTournament) {

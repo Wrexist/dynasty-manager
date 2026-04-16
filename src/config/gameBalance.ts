@@ -7,6 +7,8 @@ import type { PlayerAttributes, Position } from '@/types/game';
 
 // ── Season Structure ──
 export const TOTAL_WEEKS = 46;
+/** Week boundary between Spring phase and Run-In phase */
+export const SPRING_PHASE_END_WEEK = 38;
 export const STARTING_BOARD_CONFIDENCE = 50;
 export const FRIENDLY_BOARD_CONFIDENCE_MULT = 0.25;
 export const LINEUP_SIZE = 11;
