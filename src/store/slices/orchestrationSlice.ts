@@ -11,7 +11,7 @@ import {
   PROACTIVE_OFFER_CHECK_INTERVAL, PROACTIVE_OFFER_MAX_PENDING,
   UNEMPLOYED_OFFER_CHECK_INTERVAL, UNEMPLOYED_OFFER_MAX_PENDING,
 } from '@/config/managerCareer';
-import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies, getLeaguesByCountry, getRelatedLeagueIds } from '@/data/league';
+import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies, getLeaguesByCountry } from '@/data/league';
 import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { simulateMatch, simulateHalf, finalizeMatch, generateMatchWeather } from '@/engine/match';
@@ -1049,7 +1049,6 @@ function processTournamentResultWithWinner(
     const compKey = state.currentContinentalCompetition === 'champions_cup' ? 'championsCup' : state.currentContinentalCompetition === 'shield_cup' ? 'shieldCup' : 'conferenceCup';
     const isChampions = state.currentContinentalCompetition === 'champions_cup';
     const isShield = state.currentContinentalCompetition === 'shield_cup';
-    const prizeGroup = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_group : isShield ? CONTINENTAL_PRIZE_MONEY.shield_group : CONTINENTAL_PRIZE_MONEY.conference_group;
     const prizeR16 = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_r16 : isShield ? CONTINENTAL_PRIZE_MONEY.shield_r16 : CONTINENTAL_PRIZE_MONEY.conference_r16;
     const prizeQF = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_qf : isShield ? CONTINENTAL_PRIZE_MONEY.shield_qf : CONTINENTAL_PRIZE_MONEY.conference_qf;
     const prizeSF = isChampions ? CONTINENTAL_PRIZE_MONEY.champions_sf : isShield ? CONTINENTAL_PRIZE_MONEY.shield_sf : CONTINENTAL_PRIZE_MONEY.conference_sf;

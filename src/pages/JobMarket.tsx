@@ -387,11 +387,14 @@ function OfferCard({
   const tableEntry = leagueTable?.find(e => e.clubId === offer.clubId);
   const leaguePosition = tableEntry ? leagueTable!.indexOf(tableEntry) + 1 : null;
 
-  // Re-sync local state when offer changes (after negotiation round)
+  // Re-sync local state only when the offer identity or negotiation round changes;
+  // intentionally excluding salary/length/bonuses so the user's in-flight counter
+  // isn't clobbered by every parent re-render.
   useEffect(() => {
     setCounterSalary(Math.round(offer.salary * 1.15));
     setCounterLength(offer.contractLength);
     setCounterBonuses(offer.bonuses.map(b => ({ ...b })));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [offer.id, offer.negotiationRound]);
 
   const canNegotiate = offer.negotiationStatus !== 'final' && offer.negotiationStatus !== 'accepted';

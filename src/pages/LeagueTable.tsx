@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ChevronDown, Search, X, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { LEAGUES, getLeaguesByCountry, getCountryLeagueSystems } from '@/data/league';
+import { LEAGUES, getLeaguesByCountry } from '@/data/league';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { PageHint } from '@/components/game/PageHint';
 import { getQualificationZones } from '@/utils/leagueRanking';
@@ -27,8 +27,6 @@ const leaguesByTier = TIER_ORDER.map(tier => ({
   leagues: LEAGUES.filter(l => l.qualityTier === tier && l.tier === 1).sort((a, b) => a.name.localeCompare(b.name)),
 })).filter(g => g.leagues.length > 0);
 
-// Pre-compute country systems for the league picker
-const countrySystems = getCountryLeagueSystems();
 
 const LeagueTable = () => {
   const { divisionTables, divisionFixtures, divisionClubs, clubs, players, playerClubId, playerDivision, week, totalWeeks } = useGameStore(useShallow((s) => ({
