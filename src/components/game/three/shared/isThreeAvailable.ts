@@ -1,4 +1,6 @@
-// Module-level singleton — only queries WebGL once per page load
+// Module-level singleton — only queries WebGL once per page load.
+// Not a React hook (no hooks called internally), so callers can invoke it
+// unconditionally without the `use*` convention linter tripping.
 let _cached: boolean | null = null;
 
 function detectWebGL(): boolean {
@@ -19,9 +21,15 @@ function detectWebGL(): boolean {
   }
 }
 
-export function useThreeAvailable(): boolean {
+/** Returns true if the current browser has a usable WebGL context. Cached per page load. */
+export function isThreeAvailable(): boolean {
   if (_cached === null) {
     _cached = detectWebGL();
   }
   return _cached;
+}
+
+/** Test-only: reset the cache between test runs. Not exported from barrel. */
+export function __resetThreeAvailableCache(): void {
+  _cached = null;
 }

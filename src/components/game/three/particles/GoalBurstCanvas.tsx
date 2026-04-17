@@ -9,6 +9,7 @@ interface GoalBurstCanvasProps {
   lightness?: number;
   count?: number;
   speed?: number;
+  reducedMotion?: boolean;
 }
 
 interface Particle {
@@ -98,11 +99,15 @@ function BurstParticles({ hueBase, hueRange = 20, saturation = 96, lightness = 5
 }
 
 export function GoalBurstCanvas({
-  hueBase = 43, hueRange = 20, saturation = 96, lightness = 50, count = 150, speed = 1,
+  hueBase = 43, hueRange = 20, saturation = 96, lightness = 50, count = 150, speed = 1, reducedMotion = false,
 }: GoalBurstCanvasProps) {
   const [mounted, setMounted] = useState(true);
 
-  if (!mounted) return null;
+  // Reduced-motion: skip the GPU burst entirely — the modal's 2D UI still reads.
+  if (!mounted || reducedMotion) return null;
+
+  // Halve particle count for motion-sensitive-but-not-disabled users is not used
+  // here; callers decide by passing the full count. reducedMotion short-circuits.
 
   return (
     <Canvas

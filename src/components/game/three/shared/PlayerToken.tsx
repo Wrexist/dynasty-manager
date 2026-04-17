@@ -11,9 +11,10 @@ interface PlayerTokenProps {
   highlighted?: boolean;
   dimmed?: boolean;
   flashing?: 'goal' | 'yellow' | 'red' | 'injury' | null;
+  reducedMotion?: boolean;
 }
 
-export function PlayerToken({ position, color, label, isHome, highlighted, dimmed, flashing }: PlayerTokenProps) {
+export function PlayerToken({ position, color, label, isHome, highlighted, dimmed, flashing, reducedMotion }: PlayerTokenProps) {
   const meshRef = useRef<THREE.Mesh>(null!);
   const flashTimer = useRef(0);
   const prevFlashing = useRef<string | null | undefined>(null);
@@ -43,18 +44,28 @@ export function PlayerToken({ position, color, label, isHome, highlighted, dimme
     }
 
     if (flashing) {
-      flashTimer.current += delta * 6;
-      const pulse = Math.abs(Math.sin(flashTimer.current));
-      mat.color.lerpColors(baseColor, flashColor, pulse);
+      if (reducedMotion) {
+        mat.color.copy(flashColor);
+      } else {
+        flashTimer.current += delta * 6;
+        const pulse = Math.abs(Math.sin(flashTimer.current));
+        mat.color.lerpColors(baseColor, flashColor, pulse);
+      }
     } else {
       mat.color.copy(baseColor);
     }
 
-    // Scale for highlighted/dimmed
-    const targetScale = highlighted ? 1 + Math.sin(flashTimer.current * 3) * 0.08 : dimmed ? 0.75 : 1.0;
-    meshRef.current.scale.setScalar(
-      meshRef.current.scale.x + (targetScale - meshRef.current.scale.x) * 0.15,
-    );
+    // Scale for highlighted/dimmed — reduced-motion mode pins to the static target
+    const targetScale = highlighted
+      ? (reducedMotion ? 1.08 : 1 + Math.sin(flashTimer.current * 3) * 0.08)
+      : dimmed ? 0.75 : 1.0;
+    if (reducedMotion) {
+      meshRef.current.scale.setScalar(targetScale);
+    } else {
+      meshRef.current.scale.setScalar(
+        meshRef.current.scale.x + (targetScale - meshRef.current.scale.x) * 0.15,
+      );
+    }
   });
 
   return (

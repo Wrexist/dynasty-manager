@@ -33,13 +33,14 @@ interface FormationCanvasProps {
   week?: number;
   showOverall?: boolean;
   cameraPreset?: 'half' | 'full';
+  reducedMotion?: boolean;
 }
 
 function TokensLayer({
   formation, lineup, players, clubColor,
-  selectedId, onTokenTap, onSlotTap, showOverall, chemLinks,
+  selectedId, onTokenTap, onSlotTap, showOverall, chemLinks, reducedMotion,
 }: Omit<FormationCanvasProps, 'chemLineData' | 'cameraPreset'>) {
-  const { posRefs, slots } = useFormationTransition(formation, true);
+  const { slots, registerSlotRef } = useFormationTransition(formation, true, !!reducedMotion);
 
   // Compute selected player's chem partners to dim unrelated players
   const selectedChemPartners = useMemo(() => {
@@ -57,8 +58,6 @@ function TokensLayer({
       {slots.map((slot, i) => {
         const pid = lineup[i];
         const player = pid ? players[pid] : null;
-        const pos = posRefs.current[i];
-        if (!pos) return null;
 
         const isSelected = selectedId === pid;
         const isFaded = !!selectedId && !isSelected && !!pid && !selectedChemPartners.has(pid);
@@ -69,7 +68,7 @@ function TokensLayer({
           : slot.pos;
 
         return (
-          <group key={`slot-${i}`} position={[pos.x, pos.y, pos.z]}>
+          <group key={`slot-${i}`} ref={registerSlotRef(i)}>
             {player ? (
               <>
                 <PlayerToken
@@ -80,6 +79,7 @@ function TokensLayer({
                   highlighted={isSelected}
                   dimmed={isFaded}
                   flashing={null}
+                  reducedMotion={reducedMotion}
                 />
                 <Html center>
                   <div
@@ -113,7 +113,7 @@ function TokensLayer({
 export default function FormationCanvas({
   formation, lineup, players, clubColor,
   chemLineData, chemLinks, selectedId, onTokenTap, onSlotTap,
-  week, showOverall, cameraPreset = 'half',
+  week, showOverall, cameraPreset = 'half', reducedMotion = false,
 }: FormationCanvasProps) {
   const camPos: [number, number, number] = cameraPreset === 'half' ? [0, 42, 32] : [0, 58, 52];
   const lookAt: [number, number, number] = cameraPreset === 'half' ? [0, 0, 18] : [0, 0, 0];
@@ -149,6 +149,7 @@ export default function FormationCanvas({
           showOverall={showOverall}
           week={week}
           chemLinks={chemLinks}
+          reducedMotion={reducedMotion}
         />
       </Suspense>
     </Canvas>

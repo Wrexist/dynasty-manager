@@ -15,9 +15,10 @@ interface GoalEventEffectProps {
   isHome: boolean;
   color: string;
   trigger: number;
+  reducedMotion?: boolean;
 }
 
-export function GoalEventEffect({ isHome, color, trigger }: GoalEventEffectProps) {
+export function GoalEventEffect({ isHome, color, trigger, reducedMotion }: GoalEventEffectProps) {
   const pointsRef = useRef<THREE.Points>(null!);
   const particles = useRef<GoalBurstParticle[]>([]);
   const activeRef = useRef(false);
@@ -32,6 +33,9 @@ export function GoalEventEffect({ isHome, color, trigger }: GoalEventEffectProps
 
   useEffect(() => {
     if (trigger === 0) return;
+    // Reduced-motion: suppress the GPU burst entirely — the 2D post-match
+    // celebration UI + haptic + audio still convey the goal event.
+    if (reducedMotion) return;
     particles.current = Array.from({ length: 80 }, () => {
       const angle = Math.random() * Math.PI * 2;
       const speed = 5 + Math.random() * 18;
@@ -49,7 +53,7 @@ export function GoalEventEffect({ isHome, color, trigger }: GoalEventEffectProps
       };
     });
     activeRef.current = true;
-  }, [trigger, goalZ, baseColor]);
+  }, [trigger, goalZ, baseColor, reducedMotion]);
 
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();

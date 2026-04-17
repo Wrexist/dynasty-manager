@@ -12,6 +12,7 @@ const GoalBurstCanvas = lazy(() =>
   import('@/components/game/three/particles/GoalBurstCanvas').then(m => ({ default: m.GoalBurstCanvas }))
 );
 import { ThreeErrorBoundary } from '@/components/game/three/shared/ThreeErrorBoundary';
+import { isThreeAvailable } from '@/components/game/three/shared/isThreeAvailable';
 
 interface CelebrationModalProps {
   open: boolean;
@@ -40,8 +41,10 @@ const CONFETTI_STYLES: Record<string, ConfettiConfig> = {
   'confetti-snow': { count: 25, hueBase: 210, hueRange: 30, saturation: 30, lightness: 85, sizeMin: 3, sizeRange: 5, speed: 0.6 },
 };
 
-// GPU particles via Three.js — replaces Framer Motion confetti
-function ParticleCanvas({ config }: { config: ConfettiConfig }) {
+// GPU particles via Three.js — replaces Framer Motion confetti.
+// Skipped on WebGL-less devices and when user has reduced-motion enabled.
+function ParticleCanvas({ config, reducedMotion }: { config: ConfettiConfig; reducedMotion: boolean }) {
+  if (!isThreeAvailable() || reducedMotion) return null;
   return (
     <ThreeErrorBoundary>
     <Suspense fallback={null}>
@@ -52,6 +55,7 @@ function ParticleCanvas({ config }: { config: ConfettiConfig }) {
         lightness={config.lightness}
         count={config.count * 5}
         speed={config.speed}
+        reducedMotion={reducedMotion}
       />
     </Suspense>
     </ThreeErrorBoundary>
@@ -60,6 +64,7 @@ function ParticleCanvas({ config }: { config: ConfettiConfig }) {
 
 export function CelebrationModal({ open, onClose, title, description, icon, stats }: CelebrationModalProps) {
   const monetization = useGameStore(s => s.monetization);
+  const reducedMotion = useGameStore(s => s.settings.reducedMotion);
   const celebTextId = getActiveCosmetic(monetization, 'celebration_text');
   const celebItem = celebTextId ? COSMETIC_ITEMS.find(c => c.id === celebTextId) : null;
   const displayTitle = celebItem ? celebItem.name : title;
@@ -90,7 +95,7 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
           >
             {/* GPU Particles */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
-              <ParticleCanvas config={confettiConfig} />
+              <ParticleCanvas config={confettiConfig} reducedMotion={reducedMotion} />
             </div>
 
             {/* Close button */}
