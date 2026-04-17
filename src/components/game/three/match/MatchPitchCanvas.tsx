@@ -48,8 +48,9 @@ function AnimatedToken({
     targetPos.current.copy(basePos);
   }, [basePos.x, basePos.z]);
 
-  useFrame(() => {
-    currentPos.current.lerp(targetPos.current, 0.07);
+  useFrame((_, delta) => {
+    const alpha = 1 - Math.pow(0.93, delta * 60);
+    currentPos.current.lerp(targetPos.current, alpha);
   });
 
   return (
@@ -71,6 +72,29 @@ function TokenLayer({
 }: Omit<MatchPitchCanvasProps, 'weather' | 'momentum' | 'isMobile' | 'homeClubId'>) {
   const homeSlots = useMemo(() => FORMATION_POSITIONS[homeFormation] || [], [homeFormation]);
   const awaySlots = useMemo(() => FORMATION_POSITIONS[awayFormation] || [], [awayFormation]);
+
+  // Pre-compute world positions once per formation/lineup change — avoids per-render Vector3 allocation
+  const homeBasePosMap = useMemo(() => {
+    const map = new Map<string, THREE.Vector3>();
+    homeSlots.forEach((slot, i) => {
+      const pid = homeLineup[i];
+      if (!pid) return;
+      const [x, yy, z] = slotToWorld(slot.x, slot.y);
+      map.set(pid, new THREE.Vector3(x, yy, z));
+    });
+    return map;
+  }, [homeSlots, homeLineup]);
+
+  const awayBasePosMap = useMemo(() => {
+    const map = new Map<string, THREE.Vector3>();
+    awaySlots.forEach((slot, i) => {
+      const pid = awayLineup[i];
+      if (!pid) return;
+      const [x, yy, z] = slotToWorld(100 - slot.x, 100 - slot.y);
+      map.set(pid, new THREE.Vector3(x, yy, z));
+    });
+    return map;
+  }, [awaySlots, awayLineup]);
 
   // Flash states: map playerId → flash type + expiry
   const flashState = useRef<Map<string, { type: 'goal' | 'yellow' | 'red' | 'injury'; until: number }>>(new Map());
@@ -103,8 +127,8 @@ function TokenLayer({
       {homeSlots.map((slot, i) => {
         const pid = homeLineup[i];
         if (!pid || sentOff.has(pid)) return null;
-        const [x, yy, z] = slotToWorld(slot.x, slot.y);
-        const basePos = new THREE.Vector3(x, yy, z);
+        const basePos = homeBasePosMap.get(pid);
+        if (!basePos) return null;
         const flash = flashState.current.get(pid);
         return (
           <AnimatedToken
@@ -122,8 +146,8 @@ function TokenLayer({
       {awaySlots.map((slot, i) => {
         const pid = awayLineup[i];
         if (!pid || sentOff.has(pid)) return null;
-        const [x, yy, z] = slotToWorld(100 - slot.x, 100 - slot.y);
-        const basePos = new THREE.Vector3(x, yy, z);
+        const basePos = awayBasePosMap.get(pid);
+        if (!basePos) return null;
         const flash = flashState.current.get(pid);
         return (
           <AnimatedToken
@@ -183,10 +207,11 @@ function MomentumBar({ momentum, homeColor, awayColor }: { momentum: number; hom
     targetHomePct.current = Math.max(0.02, Math.min(0.98, (momentum + 100) / 200));
   }, [momentum]);
 
-  useFrame(() => {
+  useFrame((_, delta) => {
     if (!homeRef.current || !awayRef.current) return;
     const hw = homeRef.current.scale.x;
-    const newHw = hw + (targetHomePct.current - hw) * 0.04;
+    const alpha = 1 - Math.pow(0.96, delta * 60);
+    const newHw = hw + (targetHomePct.current - hw) * alpha;
     homeRef.current.scale.x = newHw;
     homeRef.current.position.x = -34 + (newHw * 68) / 2;
     awayRef.current.scale.x = 1 - newHw;

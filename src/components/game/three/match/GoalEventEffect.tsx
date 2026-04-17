@@ -1,7 +1,7 @@
-import { useRef, useMemo, useEffect, useState } from 'react';
+import { useRef, useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { PITCH_H, PITCH_W } from '../shared/PitchGeometry';
+import { PITCH_H } from '../shared/PitchGeometry';
 
 interface GoalBurstParticle {
   position: THREE.Vector3;
@@ -12,15 +12,15 @@ interface GoalBurstParticle {
 }
 
 interface GoalEventEffectProps {
-  isHome: boolean; // home team scored → burst at top goal, away → bottom
+  isHome: boolean;
   color: string;
-  trigger: number; // increment to re-trigger
+  trigger: number;
 }
 
 export function GoalEventEffect({ isHome, color, trigger }: GoalEventEffectProps) {
   const pointsRef = useRef<THREE.Points>(null!);
   const particles = useRef<GoalBurstParticle[]>([]);
-  const [active, setActive] = useState(false);
+  const activeRef = useRef(false);
 
   const goalZ = isHome ? -(PITCH_H / 2) - 2 : PITCH_H / 2 + 2;
 
@@ -30,20 +30,14 @@ export function GoalEventEffect({ isHome, color, trigger }: GoalEventEffectProps
     return c;
   }, [color]);
 
-  // Spawn particles on trigger
   useEffect(() => {
     if (trigger === 0) return;
-    const count = 80;
-    particles.current = Array.from({ length: count }, () => {
+    particles.current = Array.from({ length: 80 }, () => {
       const angle = Math.random() * Math.PI * 2;
       const speed = 5 + Math.random() * 18;
       const elevation = Math.random() * Math.PI * 0.6;
       return {
-        position: new THREE.Vector3(
-          (Math.random() - 0.5) * 4,
-          0.5,
-          goalZ,
-        ),
+        position: new THREE.Vector3((Math.random() - 0.5) * 4, 0.5, goalZ),
         velocity: new THREE.Vector3(
           Math.cos(angle) * Math.cos(elevation) * speed,
           Math.sin(elevation) * speed * 0.8 + 4,
@@ -54,20 +48,20 @@ export function GoalEventEffect({ isHome, color, trigger }: GoalEventEffectProps
         color: baseColor.clone().lerp(new THREE.Color(0xffffff), Math.random() * 0.3),
       };
     });
-    setActive(true);
+    activeRef.current = true;
   }, [trigger, goalZ, baseColor]);
 
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
-    const pos = new Float32Array(80 * 3);
-    const col = new Float32Array(80 * 3);
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(80 * 3), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(80 * 3), 3));
     return geo;
   }, []);
 
+  useEffect(() => () => { geometry.dispose(); }, [geometry]);
+
   useFrame((_, delta) => {
-    if (!active || !pointsRef.current) return;
+    if (!activeRef.current || !pointsRef.current) return;
     const posArr = geometry.attributes.position.array as Float32Array;
     const colArr = geometry.attributes.color.array as Float32Array;
 
@@ -92,11 +86,10 @@ export function GoalEventEffect({ isHome, color, trigger }: GoalEventEffectProps
 
     geometry.attributes.position.needsUpdate = true;
     geometry.attributes.color.needsUpdate = true;
-    if (!anyAlive) setActive(false);
+    if (!anyAlive) activeRef.current = false;
   });
 
-  if (!active) return null;
-
+  // Always mounted in GoalLayer — particles sink to y=-999 when inactive
   return (
     <points ref={pointsRef} geometry={geometry}>
       <pointsMaterial

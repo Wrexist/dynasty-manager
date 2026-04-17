@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { PITCH_W, PITCH_H } from '../shared/PitchGeometry';
@@ -55,6 +55,8 @@ function ActiveWeather({ weather, mobile }: { weather: Exclude<WeatherLayerProps
     sizeAttenuation: true,
     depthWrite: false,
   }), [weather]);
+
+  useEffect(() => () => { geometry.dispose(); material.dispose(); }, [geometry, material]);
 
   useFrame((_, delta) => {
     for (let i = 0; i < count; i++) {

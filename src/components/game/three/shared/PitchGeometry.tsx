@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import * as THREE from 'three';
 
 export const PITCH_W = 68;
@@ -32,44 +32,39 @@ function PitchSurface() {
     return { geometry: geo, material: mat };
   }, []);
 
+  useEffect(() => () => { geometry.dispose(); material.dispose(); }, [geometry, material]);
+
   return <mesh geometry={geometry} material={material} />;
 }
 
 function PitchMarkings() {
-  const group = useMemo(() => {
+  const { group, geos, mat } = useMemo(() => {
     const g = new THREE.Group();
-    const mat = new THREE.LineBasicMaterial({ color: 0x4a9060, transparent: true, opacity: 0.85 });
+    const m = new THREE.LineBasicMaterial({ color: 0x4a9060, transparent: true, opacity: 0.85 });
+    const allGeos: THREE.BufferGeometry[] = [];
 
     const hw = PITCH_W / 2;
     const hh = PITCH_H / 2;
     const y = 0.06;
 
     const segs: Array<[number, number, number, number]> = [
-      // Outline
       [-hw, -hh, -hw, hh], [-hw, hh, hw, hh], [hw, hh, hw, -hh], [hw, -hh, -hw, -hh],
-      // Halfway line
       [-hw, 0, hw, 0],
-      // Top penalty area
       [-20.16, hh, -20.16, hh - 16.5], [-20.16, hh - 16.5, 20.16, hh - 16.5], [20.16, hh - 16.5, 20.16, hh],
-      // Bottom penalty area
       [-20.16, -hh, -20.16, -hh + 16.5], [-20.16, -hh + 16.5, 20.16, -hh + 16.5], [20.16, -hh + 16.5, 20.16, -hh],
-      // Top 6-yard box
       [-9.16, hh, -9.16, hh - 5.5], [-9.16, hh - 5.5, 9.16, hh - 5.5], [9.16, hh - 5.5, 9.16, hh],
-      // Bottom 6-yard box
       [-9.16, -hh, -9.16, -hh + 5.5], [-9.16, -hh + 5.5, 9.16, -hh + 5.5], [9.16, -hh + 5.5, 9.16, -hh],
-      // Top goal
       [-3.66, hh, -3.66, hh + 2.4], [-3.66, hh + 2.4, 3.66, hh + 2.4], [3.66, hh + 2.4, 3.66, hh],
-      // Bottom goal
       [-3.66, -hh, -3.66, -hh - 2.4], [-3.66, -hh - 2.4, 3.66, -hh - 2.4], [3.66, -hh - 2.4, 3.66, -hh],
     ];
 
     segs.forEach(([x1, z1, x2, z2]) => {
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.Float32BufferAttribute([x1, y, z1, x2, y, z2], 3));
-      g.add(new THREE.LineSegments(geo, mat));
+      allGeos.push(geo);
+      g.add(new THREE.LineSegments(geo, m));
     });
 
-    // Center circle
     const circlePoints: number[] = [];
     for (let i = 0; i <= 64; i++) {
       const angle = (i / 64) * Math.PI * 2;
@@ -77,9 +72,9 @@ function PitchMarkings() {
     }
     const circleGeo = new THREE.BufferGeometry();
     circleGeo.setAttribute('position', new THREE.Float32BufferAttribute(circlePoints, 3));
-    g.add(new THREE.Line(circleGeo, mat));
+    allGeos.push(circleGeo);
+    g.add(new THREE.Line(circleGeo, m));
 
-    // Penalty arcs (top and bottom)
     for (const side of [-1, 1]) {
       const arcPoints: number[] = [];
       const centerZ = side * (PITCH_H / 2 - 11);
@@ -87,18 +82,20 @@ function PitchMarkings() {
         const angle = Math.PI * 0.18 + (i / 32) * Math.PI * 0.64;
         const px = Math.cos(angle) * 9.15;
         const pz = centerZ - side * Math.sin(angle) * 9.15;
-        // Only draw the part outside the penalty box
         if (Math.abs(pz) < PITCH_H / 2 - 16.5) arcPoints.push(px, 0.06, pz);
       }
       if (arcPoints.length >= 6) {
         const arcGeo = new THREE.BufferGeometry();
         arcGeo.setAttribute('position', new THREE.Float32BufferAttribute(arcPoints, 3));
-        g.add(new THREE.Line(arcGeo, mat));
+        allGeos.push(arcGeo);
+        g.add(new THREE.Line(arcGeo, m));
       }
     }
 
-    return g;
+    return { group: g, geos: allGeos, mat: m };
   }, []);
+
+  useEffect(() => () => { geos.forEach(g => g.dispose()); mat.dispose(); }, [geos, mat]);
 
   return (
     <>

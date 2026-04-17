@@ -13,6 +13,10 @@ export class ThreeErrorBoundary extends Component<Props, State> {
     return { errored: true };
   }
 
+  componentDidCatch(error: Error) {
+    if (process.env.NODE_ENV !== 'production') console.error('[Three.js]', error);
+  }
+
   render() {
     if (this.state.errored) {
       return this.props.fallback ?? null;

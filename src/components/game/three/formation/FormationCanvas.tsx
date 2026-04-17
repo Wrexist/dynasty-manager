@@ -1,6 +1,6 @@
 import { Suspense, useMemo } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { PitchGeometry, slotToWorld } from '../shared/PitchGeometry';
+import { PitchGeometry } from '../shared/PitchGeometry';
 import { PlayerToken } from '../shared/PlayerToken';
 import { FormationChemLines } from './FormationChemLines';
 import { useFormationTransition } from './useFormationTransition';
@@ -37,7 +37,7 @@ interface FormationCanvasProps {
 
 function TokensLayer({
   formation, lineup, players, clubColor,
-  selectedId, onTokenTap, onSlotTap, showOverall, week, chemLinks,
+  selectedId, onTokenTap, onSlotTap, showOverall, chemLinks,
 }: Omit<FormationCanvasProps, 'chemLineData' | 'cameraPreset'>) {
   const { posRefs, slots } = useFormationTransition(formation, true);
 
@@ -63,7 +63,9 @@ function TokensLayer({
         const isSelected = selectedId === pid;
         const isFaded = !!selectedId && !isSelected && !!pid && !selectedChemPartners.has(pid);
         const label = player
-          ? (showOverall ? `${player.overall}` : player.position)
+          ? (showOverall
+              ? `${player.overall}`
+              : player.lastName.slice(0, 7))
           : slot.pos;
 
         return (

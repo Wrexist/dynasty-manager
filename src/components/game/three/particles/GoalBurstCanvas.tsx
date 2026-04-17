@@ -1,5 +1,5 @@
 import { useRef, useMemo, useEffect, useState } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface GoalBurstCanvasProps {
@@ -52,6 +52,8 @@ function BurstParticles({ hueBase, hueRange = 20, saturation = 96, lightness = 5
     geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
     return geo;
   }, [count]);
+
+  useEffect(() => () => { geometry.dispose(); }, [geometry]);
 
   useFrame((_, delta) => {
     if (doneRef.current || !pointsRef.current) return;
@@ -106,7 +108,7 @@ export function GoalBurstCanvas({
     <Canvas
       camera={{ position: [0, 0, 10], fov: 55 }}
       gl={{ antialias: false, alpha: true, powerPreference: 'default', preserveDrawingBuffer: false }}
-      dpr={[1, 1]}
+      dpr={[1, Math.min(1.5, window.devicePixelRatio)]}
       style={{ width: '100%', height: '100%', display: 'block', background: 'transparent' }}
     >
       <BurstParticles

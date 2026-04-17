@@ -39,12 +39,11 @@ export function useFormationTransition(formation: FormationType, isHome = true) 
     targetRefs.current = newTargets;
   }, [formation, isHome, slots]);
 
-  // Lerp toward targets every frame
-  useFrame(() => {
+  // Lerp toward targets every frame — delta-based for frame-rate independence
+  useFrame((_, delta) => {
+    const alpha = 1 - Math.pow(0.92, delta * 60);
     posRefs.current.forEach((pos, i) => {
-      if (targetRefs.current[i]) {
-        pos.lerp(targetRefs.current[i], 0.08);
-      }
+      if (targetRefs.current[i]) pos.lerp(targetRefs.current[i], alpha);
     });
   });
 

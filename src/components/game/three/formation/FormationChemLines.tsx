@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { Line } from '@react-three/drei';
-import * as THREE from 'three';
 import { slotToWorld } from '../shared/PitchGeometry';
 import { type FormationType, FORMATION_POSITIONS } from '@/types/game';
 
@@ -19,7 +18,7 @@ interface FormationChemLinesProps {
 }
 
 export function FormationChemLines({ formation, chemLineData, lineup, selectedId }: FormationChemLinesProps) {
-  const slots = FORMATION_POSITIONS[formation] || [];
+  const slots = useMemo(() => FORMATION_POSITIONS[formation] || [], [formation]);
 
   return (
     <>
