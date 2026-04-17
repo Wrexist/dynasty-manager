@@ -29,7 +29,7 @@ export const MIDFIELDER_SELECTION_CHANCE = 0.8;
 
 // ── Assist Selection ──
 /** Probability of awarding an assist on a goal */
-export const ASSIST_CHANCE = 0.65;
+export const ASSIST_CHANCE = 0.78;
 export const ASSIST_PASSING_WEIGHT = 0.7;
 export const ASSIST_MENTAL_WEIGHT = 0.3;
 
@@ -175,6 +175,7 @@ export const STOPPAGE_TIME_BASE = 1;
 export const STOPPAGE_TIME_MAX_EXTRA = 3;
 export const STOPPAGE_TIME_INJURY_ADD = 0.5;
 export const STOPPAGE_TIME_CARD_ADD = 0.3;
+export const STOPPAGE_TIME_GOAL_ADD = 0.4;
 
 // ── Corner Goal ──
 export const CORNER_GOAL_CHANCE = 0.06;
@@ -231,9 +232,13 @@ export const DERBY_CARD_MOD_SCALE = 0.05;
 
 // ── Corner Header Goal ──
 /** Minimum probability a header from a corner results in a goal */
-export const CORNER_HEADER_MIN_CHANCE = 0.25;
+export const CORNER_HEADER_MIN_CHANCE = 0.08;
 /** Physical attribute scaling for corner header goal chance */
 export const CORNER_HEADER_PHYSICAL_SCALE = 0.5;
+/** Position-based weight multipliers for aerial contest at corners */
+export const CORNER_HEADER_CB_MULT = 1.5;
+export const CORNER_HEADER_ST_MULT = 1.4;
+export const CORNER_HEADER_MID_MULT = 0.65;
 
 // ── Team Viability ──
 /** Minimum available players for a team to continue (FIFA Law 3: match abandoned below 7) */
