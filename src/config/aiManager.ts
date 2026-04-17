@@ -173,12 +173,12 @@ export function getAIReactiveTactics(
     tactics.mentality = 'all-out-attack';
     tactics.tempo = 'fast';
     tactics.defensiveLine = 'high';
-    tactics.pressingIntensity = Math.min(100, tactics.pressingIntensity + 25);
+    tactics.pressingIntensity = Math.min(80, tactics.pressingIntensity + 25);
   } else if (goalDiff === -1) {
     // Losing by 1: push forward
     const shifted = AI_LOSING_MENTALITY_SHIFT[tactics.mentality];
     if (shifted) tactics.mentality = shifted as typeof tactics.mentality;
-    tactics.pressingIntensity = Math.min(100, tactics.pressingIntensity + 15);
+    tactics.pressingIntensity = Math.min(75, tactics.pressingIntensity + 15);
     if (minute >= AI_REACTIVITY_MINUTES[1]) {
       // Late in the game, more desperate
       tactics.mentality = 'all-out-attack';
@@ -230,12 +230,12 @@ export function getAICounterTactics(
   // Counter wide play → narrow + compact
   if (opponentTactics.width === 'wide' && Math.random() < strength) {
     tactics.width = 'narrow';
-    tactics.pressingIntensity = Math.min(100, tactics.pressingIntensity + 10);
+    tactics.pressingIntensity = Math.min(75, tactics.pressingIntensity + 10);
   }
 
   // Counter slow tempo → high pressing to suffocate
   if (opponentTactics.tempo === 'slow' && Math.random() < strength) {
-    tactics.pressingIntensity = Math.min(100, tactics.pressingIntensity + 20);
+    tactics.pressingIntensity = Math.min(80, tactics.pressingIntensity + 20);
   }
 
   // Counter attacking/all-out → absorb and counter

@@ -13,6 +13,7 @@ import { pick } from '@/utils/helpers';
 import { getChemistryBonus } from '@/utils/chemistry';
 import { getCardRiskMultiplier } from '@/utils/personality';
 import {
+  GOAL_SCORING_TYPES,
   FORMATION_FIT_MAX_BONUS,
   ATTACKER_POSITIONS, MIDFIELDER_POSITIONS,
   ATTACKER_SHOOTING_WEIGHT, ATTACKER_FITNESS_WEIGHT,
@@ -38,7 +39,7 @@ import {
   RATING_DEFENDER_SCALE, RATING_DEFENDER_OFFSET, RATING_MIDFIELDER_SCALE, RATING_MIDFIELDER_OFFSET,
   RATING_EXHAUSTION_THRESHOLD, RATING_EXHAUSTION_PENALTY, RATING_VARIANCE, RATING_MIN, RATING_MAX,
   FORMATION_ATTACK_BONUS, FORMATION_DEFENSE_BONUS,
-  STOPPAGE_TIME_BASE, STOPPAGE_TIME_MAX_EXTRA, STOPPAGE_TIME_INJURY_ADD, STOPPAGE_TIME_CARD_ADD,
+  STOPPAGE_TIME_BASE, STOPPAGE_TIME_MAX_EXTRA, STOPPAGE_TIME_INJURY_ADD, STOPPAGE_TIME_CARD_ADD, STOPPAGE_TIME_GOAL_ADD,
   CORNER_GOAL_CHANCE, CORNER_GOAL_PHYSICAL_WEIGHT, CORNER_GOAL_DEFENDING_WEIGHT,
   FITNESS_DEGRADE_PER_MINUTE, FITNESS_DEGRADE_VARIANCE, LOW_FITNESS_SHOT_PENALTY, MATCH_LOW_FITNESS_THRESHOLD, LOW_FITNESS_INJURY_BONUS,
   PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD,
@@ -47,7 +48,7 @@ import {
   FORMATION_MATCHUP,
   DEFENSE_MODIFIER_SCALE,
   DERBY_EVENT_MOD_SCALE, DERBY_FOUL_MOD_SCALE, DERBY_CARD_MOD_SCALE,
-  CORNER_HEADER_MIN_CHANCE, CORNER_HEADER_PHYSICAL_SCALE,
+  CORNER_HEADER_MIN_CHANCE, CORNER_HEADER_PHYSICAL_SCALE, CORNER_HEADER_CB_MULT, CORNER_HEADER_ST_MULT, CORNER_HEADER_MID_MULT,
   OWN_GOAL_CHANCE, PENALTY_FROM_FOUL_CHANCE, PENALTY_CONVERSION_RATE,
   WOODWORK_CHANCE, GOAL_LINE_CLEARANCE_CHANCE,
   MORALE_PERFORMANCE_WEIGHT, MORALE_BASELINE,
@@ -222,7 +223,8 @@ function calcStoppageTime(events: MatchEvent[], halfStart: number, halfEnd: numb
   const halfEvents = events.filter(e => e.minute >= halfStart && e.minute <= halfEnd);
   const injuries = halfEvents.filter(e => e.type === 'injury').length;
   const cards = halfEvents.filter(e => e.type === 'yellow_card' || e.type === 'red_card').length;
-  const extra = STOPPAGE_TIME_BASE + Math.random() * STOPPAGE_TIME_MAX_EXTRA + injuries * STOPPAGE_TIME_INJURY_ADD + cards * STOPPAGE_TIME_CARD_ADD;
+  const goals = halfEvents.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type)).length;
+  const extra = STOPPAGE_TIME_BASE + Math.random() * STOPPAGE_TIME_MAX_EXTRA + injuries * STOPPAGE_TIME_INJURY_ADD + cards * STOPPAGE_TIME_CARD_ADD + goals * STOPPAGE_TIME_GOAL_ADD;
   return Math.round(Math.min(extra, 7));
 }
 
@@ -1412,7 +1414,8 @@ export function simulateHalf(
           if (Math.random() < CORNER_GOAL_CHANCE + setPieceBonus + perkSetPieceBonus) {
             const headerCandidates = eligibleSquad.filter(p => p.position !== 'GK');
             if (headerCandidates.length > 0) {
-              const headerWeights = headerCandidates.map(p => p.attributes.physical * CORNER_GOAL_PHYSICAL_WEIGHT + p.attributes.defending * CORNER_GOAL_DEFENDING_WEIGHT);
+              const getHeaderPosMult = (pos: string) => pos === 'CB' ? CORNER_HEADER_CB_MULT : pos === 'ST' ? CORNER_HEADER_ST_MULT : ['CM','CDM','CAM','LW','RW','LM','RM'].includes(pos) ? CORNER_HEADER_MID_MULT : 1.0;
+              const headerWeights = headerCandidates.map(p => (p.attributes.physical * CORNER_GOAL_PHYSICAL_WEIGHT + p.attributes.defending * CORNER_GOAL_DEFENDING_WEIGHT) * getHeaderPosMult(p.position));
               const tw = headerWeights.reduce((a, b) => a + b, 0);
               let rr = Math.random() * tw;
               let header = headerCandidates[0];
@@ -1480,7 +1483,7 @@ export function simulateHalf(
       const isPlayerTeamFouling = (isHome && homeClub.id === playerClubId) || (!isHome && awayClub.id === playerClubId);
       const disciplinarianMod = (disciplinarianActive && isPlayerTeamFouling) ? (1 - DISCIPLINARIAN_CARD_REDUCTION) : 1;
       const careerMod = (careerDisciplineMod && isPlayerTeamFouling) ? (1 - careerDisciplineMod) : 1;
-      const cardChance = (CARD_BASE_CHANCE + atkMods.foulMod + derbyCardMod) * getCardRiskMultiplier(fouler.personality) * disciplinarianMod * careerMod;
+      const cardChance = (CARD_BASE_CHANCE + derbyCardMod) * getCardRiskMultiplier(fouler.personality) * disciplinarianMod * careerMod;
       if (Math.random() < cardChance) {
         const pe = playerEvents[fouler.id];
         if (pe) {

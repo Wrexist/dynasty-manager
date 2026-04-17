@@ -29,7 +29,7 @@ export const MIDFIELDER_SELECTION_CHANCE = 0.8;
 
 // ── Assist Selection ──
 /** Probability of awarding an assist on a goal */
-export const ASSIST_CHANCE = 0.65;
+export const ASSIST_CHANCE = 0.78;
 export const ASSIST_PASSING_WEIGHT = 0.7;
 export const ASSIST_MENTAL_WEIGHT = 0.3;
 
@@ -125,7 +125,7 @@ export const FITNESS_FACTOR_BASE = 0.7;
 export const FITNESS_FACTOR_SCALE = 0.3;
 
 // ── Goal Chance Formula ──
-export const GOAL_CHANCE_ATTACK_MULT = 0.28;
+export const GOAL_CHANCE_ATTACK_MULT = 0.30;
 export const GOAL_CHANCE_DEFENSE_MULT = 0.20;
 export const GOAL_CHANCE_ATTACK_MOD_SCALE = 0.35;
 export const GOAL_CHANCE_COUNTER_VULN_SCALE = 0.18;
@@ -136,7 +136,7 @@ export const CORNER_FROM_SAVE_CHANCE = 0.35;
 export const CORNER_FROM_MISS_CHANCE = 0.22;
 
 // ── Cards / Fouls ──
-export const CARD_BASE_CHANCE = 0.14;
+export const CARD_BASE_CHANCE = 0.11;
 export const STRAIGHT_RED_CHANCE = 0.008;
 /** Strength penalty per player below full squad size (11). 10v11 = 0.88x strength */
 export const RED_CARD_STRENGTH_PENALTY_PER_PLAYER = 0.12;
@@ -175,9 +175,10 @@ export const STOPPAGE_TIME_BASE = 1;
 export const STOPPAGE_TIME_MAX_EXTRA = 3;
 export const STOPPAGE_TIME_INJURY_ADD = 0.5;
 export const STOPPAGE_TIME_CARD_ADD = 0.3;
+export const STOPPAGE_TIME_GOAL_ADD = 0.4;
 
 // ── Corner Goal ──
-export const CORNER_GOAL_CHANCE = 0.06;
+export const CORNER_GOAL_CHANCE = 0.12;
 export const CORNER_GOAL_PHYSICAL_WEIGHT = 0.6;
 export const CORNER_GOAL_DEFENDING_WEIGHT = 0.4;
 
@@ -231,9 +232,13 @@ export const DERBY_CARD_MOD_SCALE = 0.05;
 
 // ── Corner Header Goal ──
 /** Minimum probability a header from a corner results in a goal */
-export const CORNER_HEADER_MIN_CHANCE = 0.25;
+export const CORNER_HEADER_MIN_CHANCE = 0.08;
 /** Physical attribute scaling for corner header goal chance */
 export const CORNER_HEADER_PHYSICAL_SCALE = 0.5;
+/** Position-based weight multipliers for aerial contest at corners */
+export const CORNER_HEADER_CB_MULT = 1.5;
+export const CORNER_HEADER_ST_MULT = 1.4;
+export const CORNER_HEADER_MID_MULT = 0.65;
 
 // ── Team Viability ──
 /** Minimum available players for a team to continue (FIFA Law 3: match abandoned below 7) */

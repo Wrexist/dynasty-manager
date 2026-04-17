@@ -102,6 +102,55 @@ const PlayerDetail = () => {
   // Narrative tags (must be before early return to satisfy hook rules)
   const narratives = useMemo(() => player ? getPlayerNarratives(player, season, player.joinedSeason, player.isFromYouthAcademy) : [], [player, season]);
 
+  // Happiness recovery tips (must be before early return to satisfy hook rules)
+  const happinessTips = useMemo(() => {
+    if (!player || player.clubId !== playerClubId || (!player.wantsToLeave && player.morale >= 50)) return null;
+    const playerClub = clubs[playerClubId];
+    const isInLineup = playerClub?.lineup?.includes(player.id);
+    const isInSubs = playerClub?.subs?.includes(player.id);
+    const isSuspended = player.suspendedUntilWeek && player.suspendedUntilWeek > week;
+    const playingTimePct = player.appearances / Math.max(1, week) * 100;
+    const tips: { text: string; actionable: boolean; done: boolean; warning?: boolean }[] = [];
+    const lowWeeks = player.lowMoraleWeeks || 0;
+    if (lowWeeks >= UNHAPPY_CONTAGION_WEEKS) {
+      tips.push({ text: 'Spreading unhappiness to teammates — 2 random players lose 3 morale per week', actionable: false, done: false, warning: true });
+    } else if (lowWeeks >= UNHAPPY_CONTAGION_WEEKS - 2 && lowWeeks > 0) {
+      tips.push({ text: `${UNHAPPY_CONTAGION_WEEKS - lowWeeks} more week${UNHAPPY_CONTAGION_WEEKS - lowWeeks === 1 ? '' : 's'} until unhappiness spreads to teammates`, actionable: true, done: false, warning: true });
+    }
+    if (player.injured) {
+      tips.push({ text: 'Wait for injury recovery before giving playing time', actionable: false, done: false });
+    } else if (isSuspended) {
+      tips.push({ text: 'Player is suspended — playing time will resume after suspension ends', actionable: false, done: false });
+    } else if (!isInLineup) {
+      tips.push({ text: isInSubs ? 'Promote to starting XI — regular starts boost morale significantly' : 'Select in squad — excluded players lose 3 morale per week', actionable: true, done: false });
+    } else if (playingTimePct > 50) {
+      tips.push({ text: 'Getting regular playing time', actionable: false, done: true });
+    }
+    if (player.form < 40) tips.push({ text: 'Poor form is hurting morale — play in winnable matches to rebuild confidence', actionable: true, done: false });
+    tips.push({ text: 'Win matches — each win gives +8 morale to all squad members', actionable: true, done: false });
+    tips.push({ text: `Build a win streak — ${STREAK_MORALE_THRESHOLD}+ consecutive wins gives +2 morale per week`, actionable: true, done: currentWinStreak >= STREAK_MORALE_THRESHOLD });
+    const squadPlayers = playerClub?.playerIds?.map(id => players[id]).filter(Boolean) || [];
+    const totalLeadership = squadPlayers.reduce((sum, p) => sum + getLeadershipBonus(p.personality), 0);
+    if (totalLeadership >= 0.15) {
+      tips.push({ text: 'Strong squad leaders — +1 morale per week for everyone', actionable: false, done: true });
+    } else {
+      tips.push({ text: 'Sign or develop high-leadership players to boost squad morale weekly', actionable: true, done: false });
+    }
+    if (getContractUrgency(player.contractEnd, season) !== null) {
+      tips.push({ text: getContractUrgency(player.contractEnd, season) === 'expired' ? 'Offer a contract renewal — expiring contracts cause morale drops' : 'Contract expiring next season — negotiate a renewal soon', actionable: true, done: false });
+    }
+    if (hasPerk(managerProgression, 'motivator')) {
+      tips.push({ text: 'Motivator perk active — +5 morale boost before each match', actionable: false, done: true });
+    } else {
+      tips.push({ text: 'Unlock the Motivator perk for +5 pre-match morale boost', actionable: true, done: false });
+    }
+    if (hasPerk(managerProgression, 'iron_will')) tips.push({ text: 'Iron Will perk active — no morale penalty from defeats', actionable: false, done: true });
+    if (hasPerk(managerProgression, 'fortress_mentality')) tips.push({ text: 'Fortress Mentality active — home wins give +3 extra morale', actionable: false, done: true });
+    if (player.wantsToLeave && !player.listedForSale) tips.push({ text: 'List for sale — rarely, players respect being allowed to leave and withdraw their request', actionable: true, done: false });
+    tips.push({ text: player.wantsToLeave ? 'Raise morale to 50+ to withdraw the transfer request' : 'Keep morale above 30 to prevent a transfer request', actionable: false, done: false });
+    return tips;
+  }, [player, playerClubId, clubs, players, week, season, currentWinStreak, managerProgression]);
+
   if (!player) {
     return (
       <div className="max-w-lg mx-auto px-4 py-8 text-center space-y-3">
@@ -279,141 +328,24 @@ const PlayerDetail = () => {
       )}
 
       {/* Happiness Recovery Guide */}
-      {isOwnPlayer && (player.wantsToLeave || player.morale < 50) && (() => {
-        const playerClub = clubs[playerClubId];
-        const isInLineup = playerClub?.lineup?.includes(player.id);
-        const isInSubs = playerClub?.subs?.includes(player.id);
-        const isSuspended = player.suspendedUntilWeek && player.suspendedUntilWeek > week;
-        const playingTimePct = player.appearances / Math.max(1, week) * 100;
-
-        const tips: { text: string; actionable: boolean; done: boolean; warning?: boolean }[] = [];
-
-        // Contagion warning (show first — most urgent)
-        const lowWeeks = player.lowMoraleWeeks || 0;
-        if (lowWeeks >= UNHAPPY_CONTAGION_WEEKS) {
-          tips.push({
-            text: 'Spreading unhappiness to teammates — 2 random players lose 3 morale per week',
-            actionable: false,
-            done: false,
-            warning: true,
-          });
-        } else if (lowWeeks >= UNHAPPY_CONTAGION_WEEKS - 2 && lowWeeks > 0) {
-          tips.push({
-            text: `${UNHAPPY_CONTAGION_WEEKS - lowWeeks} more week${UNHAPPY_CONTAGION_WEEKS - lowWeeks === 1 ? '' : 's'} until unhappiness spreads to teammates`,
-            actionable: true,
-            done: false,
-            warning: true,
-          });
-        }
-
-        // Playing time (skip if injured or suspended)
-        if (player.injured) {
-          tips.push({ text: 'Wait for injury recovery before giving playing time', actionable: false, done: false });
-        } else if (isSuspended) {
-          tips.push({ text: 'Player is suspended — playing time will resume after suspension ends', actionable: false, done: false });
-        } else if (!isInLineup) {
-          tips.push({
-            text: isInSubs
-              ? 'Promote to starting XI — regular starts boost morale significantly'
-              : 'Select in squad — excluded players lose 3 morale per week',
-            actionable: true,
-            done: false,
-          });
-        } else if (playingTimePct > 50) {
-          tips.push({ text: 'Getting regular playing time', actionable: false, done: true });
-        }
-
-        // Poor form
-        if (player.form < 40) {
-          tips.push({ text: 'Poor form is hurting morale — play in winnable matches to rebuild confidence', actionable: true, done: false });
-        }
-
-        // Winning matches
-        tips.push({
-          text: 'Win matches — each win gives +8 morale to all squad members',
-          actionable: true,
-          done: false,
-        });
-
-        // Win streak
-        tips.push({
-          text: `Build a win streak — ${STREAK_MORALE_THRESHOLD}+ consecutive wins gives +2 morale per week`,
-          actionable: true,
-          done: currentWinStreak >= STREAK_MORALE_THRESHOLD,
-        });
-
-        // Leadership
-        const squadPlayers = playerClub?.playerIds?.map(id => players[id]).filter(Boolean) || [];
-        const totalLeadership = squadPlayers.reduce((sum, p) => sum + getLeadershipBonus(p.personality), 0);
-        if (totalLeadership >= 0.15) {
-          tips.push({ text: 'Strong squad leaders — +1 morale per week for everyone', actionable: false, done: true });
-        } else {
-          tips.push({ text: 'Sign or develop high-leadership players to boost squad morale weekly', actionable: true, done: false });
-        }
-
-        // Contract
-        if (getContractUrgency(player.contractEnd, season) !== null) {
-          tips.push({
-            text: getContractUrgency(player.contractEnd, season) === 'expired'
-              ? 'Offer a contract renewal — expiring contracts cause morale drops'
-              : 'Contract expiring next season — negotiate a renewal soon',
-            actionable: true,
-            done: false,
-          });
-        }
-
-        // Manager perk tips
-        if (hasPerk(managerProgression, 'motivator')) {
-          tips.push({ text: 'Motivator perk active — +5 morale boost before each match', actionable: false, done: true });
-        } else {
-          tips.push({ text: 'Unlock the Motivator perk for +5 pre-match morale boost', actionable: true, done: false });
-        }
-
-        if (hasPerk(managerProgression, 'iron_will')) {
-          tips.push({ text: 'Iron Will perk active — no morale penalty from defeats', actionable: false, done: true });
-        }
-
-        if (hasPerk(managerProgression, 'fortress_mentality')) {
-          tips.push({ text: 'Fortress Mentality active — home wins give +3 extra morale', actionable: false, done: true });
-        }
-
-        // Listing for sale (appease mechanic hint)
-        if (player.wantsToLeave && !player.listedForSale) {
-          tips.push({
-            text: 'List for sale — rarely, players respect being allowed to leave and withdraw their request',
-            actionable: true,
-            done: false,
-          });
-        }
-
-        // Recovery target
-        tips.push({
-          text: player.wantsToLeave
-            ? 'Raise morale to 50+ to withdraw the transfer request'
-            : 'Keep morale above 30 to prevent a transfer request',
-          actionable: false,
-          done: false,
-        });
-
-        return (
-          <GlassPanel className="p-4">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">How to Improve Happiness</p>
-            <div className="space-y-2">
-              {tips.map((tip, i) => (
-                <div key={i} className="flex items-start gap-2 text-xs">
-                  <span className={cn(
-                    'w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
-                    tip.warning ? 'bg-destructive' : tip.done ? 'bg-emerald-400' : tip.actionable ? 'bg-primary' : 'bg-muted-foreground'
-                  )} />
-                  <span className={cn(
-                    tip.warning ? 'text-destructive font-semibold' : tip.done ? 'text-emerald-400' : 'text-muted-foreground'
-                  )}>{tip.text}</span>
-                </div>
-              ))}
-            </div>
-          </GlassPanel>
-        );
-      })()}
+      {happinessTips && (
+        <GlassPanel className="p-4">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2">How to Improve Happiness</p>
+          <div className="space-y-2">
+            {happinessTips.map((tip, i) => (
+              <div key={i} className="flex items-start gap-2 text-xs">
+                <span className={cn(
+                  'w-1.5 h-1.5 rounded-full mt-1.5 shrink-0',
+                  tip.warning ? 'bg-destructive' : tip.done ? 'bg-emerald-400' : tip.actionable ? 'bg-primary' : 'bg-muted-foreground'
+                )} />
+                <span className={cn(
+                  tip.warning ? 'text-destructive font-semibold' : tip.done ? 'text-emerald-400' : 'text-muted-foreground'
+                )}>{tip.text}</span>
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Key Stats */}
       <div className="grid grid-cols-3 gap-3">
@@ -867,24 +799,24 @@ const PlayerDetail = () => {
               <p className="text-[10px] text-muted-foreground">Assists</p>
             </div>
           </div>
-          {player.careerAppearances > player.appearances && (
+          {(player.careerAppearances || 0) > 0 && (
             <div className="mt-2 pt-2 border-t border-border/30">
               <div className="grid grid-cols-3 gap-3 text-center">
                 <div>
                   <p className="text-xs font-bold text-muted-foreground tabular-nums">
-                    {(player.careerGoals / player.careerAppearances).toFixed(2)}
+                    {(player.careerGoals / (player.careerAppearances || 1)).toFixed(2)}
                   </p>
                   <p className="text-[9px] text-muted-foreground">Career G/App</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold text-muted-foreground tabular-nums">
-                    {(player.careerAssists / player.careerAppearances).toFixed(2)}
+                    {(player.careerAssists / (player.careerAppearances || 1)).toFixed(2)}
                   </p>
                   <p className="text-[9px] text-muted-foreground">Career A/App</p>
                 </div>
                 <div>
                   <p className="text-xs font-bold text-muted-foreground tabular-nums">
-                    {((player.careerGoals + player.careerAssists) / player.careerAppearances).toFixed(2)}
+                    {((player.careerGoals + player.careerAssists) / (player.careerAppearances || 1)).toFixed(2)}
                   </p>
                   <p className="text-[9px] text-muted-foreground">Career G+A/App</p>
                 </div>

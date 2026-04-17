@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import type { Club, Player } from '@/types/game';
@@ -73,6 +73,11 @@ const MatchReview = () => {
   const userIsPro = isPro(monetization);
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [highlightFilter, setHighlightFilter] = useState<'all' | 'us' | 'goals'>('all');
+
+  const matchInsights = useMemo(
+    () => currentMatchResult ? generateMatchInsights(currentMatchResult, playerClubId) : [],
+    [currentMatchResult, playerClubId]
+  );
 
   if (!currentMatchResult) {
     return (
@@ -446,28 +451,24 @@ const MatchReview = () => {
       {match.stats && !userIsPro && (
         <ProUpsell feature="Advanced Match Insights" />
       )}
-      {match.stats && userIsPro && (() => {
-        const insights = generateMatchInsights(match, playerClubId);
-        if (insights.length === 0) return null;
-        return (
-          <GlassPanel className="p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Match Insights</h3>
-            <div className="space-y-2">
-              {insights.map((insight, i) => (
-                <div key={`${insight.type}-${i}`} className={cn(
-                  'flex items-start gap-2 text-xs rounded-lg px-3 py-2 border',
-                  insight.type === 'positive' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' :
-                  insight.type === 'negative' ? 'bg-destructive/10 border-destructive/20 text-red-300' :
-                  'bg-muted/30 border-border/30 text-muted-foreground'
-                )}>
-                  <DynamicIcon name={insight.icon} className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                  <span>{insight.text}</span>
-                </div>
-              ))}
-            </div>
-          </GlassPanel>
-        );
-      })()}
+      {match.stats && userIsPro && matchInsights.length > 0 && (
+        <GlassPanel className="p-4">
+          <h3 className="text-sm font-semibold text-foreground mb-3">Match Insights</h3>
+          <div className="space-y-2">
+            {matchInsights.map((insight, i) => (
+              <div key={`${insight.type}-${i}`} className={cn(
+                'flex items-start gap-2 text-xs rounded-lg px-3 py-2 border',
+                insight.type === 'positive' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' :
+                insight.type === 'negative' ? 'bg-destructive/10 border-destructive/20 text-red-300' :
+                'bg-muted/30 border-border/30 text-muted-foreground'
+              )}>
+                <DynamicIcon name={insight.icon} className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{insight.text}</span>
+              </div>
+            ))}
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Player Ratings */}
       {matchPlayerRatings.length > 0 && (() => {
@@ -541,9 +542,16 @@ const MatchReview = () => {
               const banWeeks = (e.type === 'red_card' && p?.suspendedUntilWeek)
                 ? p.suspendedUntilWeek - week
                 : null;
+              const isSecondYellow = e.type === 'red_card' && (e.description?.includes('Second yellow') || e.description?.includes('second booking'));
               return (
                 <div key={`card-${i}`} className="flex items-center gap-2 text-xs">
-                  {e.type === 'yellow_card' ? <YellowCardIcon size={10} /> : <RedCardIcon size={10} />}
+                  {e.type === 'yellow_card' ? (
+                    <YellowCardIcon size={10} />
+                  ) : isSecondYellow ? (
+                    <span className="flex items-center gap-0.5"><YellowCardIcon size={10} /><RedCardIcon size={10} /></span>
+                  ) : (
+                    <RedCardIcon size={10} />
+                  )}
                   {p && <FlagIcon nationality={p.nationality} size={11} className="shrink-0" />}
                   <span className="text-foreground">
                     {p?.lastName || 'Unknown'}
