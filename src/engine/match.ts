@@ -1584,7 +1584,10 @@ export function simulateHalf(
 
       // Penalty: defending team fouls attacker in the box
       if (Math.random() < PENALTY_FROM_FOUL_CHANCE) {
-        const atkEligible = squad.filter(p => !unavailable.has(p.id));
+        const atkEligibleAll = squad.filter(p => !unavailable.has(p.id));
+        const atkEligible = atkEligibleAll.filter(p => p.position !== 'GK').length > 0
+          ? atkEligibleAll.filter(p => p.position !== 'GK')
+          : atkEligibleAll;
         if (atkEligible.length > 0) {
           // Prefer designated penalty taker if on the pitch
           const designatedTaker = club.penaltyTakerId ? atkEligible.find(p => p.id === club.penaltyTakerId) : null;
