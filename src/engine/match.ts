@@ -15,8 +15,7 @@ import { getCardRiskMultiplier } from '@/utils/personality';
 import {
   FORMATION_FIT_MAX_BONUS,
   ATTACKER_POSITIONS, MIDFIELDER_POSITIONS,
-  ATTACKER_SHOOTING_WEIGHT, ATTACKER_FITNESS_WEIGHT,
-  ATTACKER_SELECTION_CHANCE, MIDFIELDER_SELECTION_CHANCE,
+  SCORER_POSITION_WEIGHTS, SCORER_SHOOTING_INFLUENCE, SCORER_FITNESS_INFLUENCE,
   ASSIST_CHANCE, ASSIST_PASSING_WEIGHT, ASSIST_MENTAL_WEIGHT,
   MENTALITY_ATTACK_MOD, MENTALITY_DEFENSE_MOD,
   TEMPO_SHOT_MOD, DEFENSIVE_LINE_COUNTER_VULN, WIDTH_POSSESSION_MOD,
@@ -127,28 +126,22 @@ function getFormationFitBonus(players: Player[], formation: FormationType): numb
   return fitRatio * FORMATION_FIT_MAX_BONUS;
 }
 
-/** Pick an attacker weighted by shooting quality and fitness */
+/** Pick a goal scorer weighted by position role and shooting skill.
+ *  Forwards >> midfielders >> defenders, but high shooting overrides position. */
 function pickAttacker(players: Player[]): Player {
-  const attackers = players.filter(p => (ATTACKER_POSITIONS as readonly string[]).includes(p.position));
-  const midfielders = players.filter(p => (MIDFIELDER_POSITIONS as readonly string[]).includes(p.position));
-
-  // Weight selection by shooting + fitness
-  const weightedPick = (candidates: Player[]): Player => {
-    if (candidates.length === 0) return pick(players);
-    const weights = candidates.map(p => (p.attributes.shooting * ATTACKER_SHOOTING_WEIGHT + p.fitness * ATTACKER_FITNESS_WEIGHT) / 100);
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-    if (totalWeight <= 0) return candidates[Math.floor(Math.random() * candidates.length)];
-    let r = Math.random() * totalWeight;
-    for (let i = 0; i < candidates.length; i++) {
-      r -= weights[i];
-      if (r <= 0) return candidates[i];
-    }
-    return candidates[candidates.length - 1];
-  };
-
-  if (attackers.length > 0 && Math.random() < ATTACKER_SELECTION_CHANCE) return weightedPick(attackers);
-  if (midfielders.length > 0 && Math.random() < MIDFIELDER_SELECTION_CHANCE) return weightedPick(midfielders);
-  return weightedPick(players);
+  if (players.length === 1) return players[0];
+  const weights = players.map(p => {
+    const posWeight = SCORER_POSITION_WEIGHTS[p.position] ?? 1.0;
+    return posWeight + (p.attributes.shooting / 100) * SCORER_SHOOTING_INFLUENCE + (p.fitness / 100) * SCORER_FITNESS_INFLUENCE;
+  });
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  if (totalWeight <= 0) return players[Math.floor(Math.random() * players.length)];
+  let r = Math.random() * totalWeight;
+  for (let i = 0; i < players.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return players[i];
+  }
+  return players[players.length - 1];
 }
 
 /** Pick the best penalty taker weighted by shooting + mental */

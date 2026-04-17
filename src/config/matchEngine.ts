@@ -20,12 +20,25 @@ export const FORMATION_FIT_MAX_BONUS = 0.25;
 // ── Attacker Selection ──
 export const ATTACKER_POSITIONS = ['ST', 'LW', 'RW', 'CAM'] as const;
 export const MIDFIELDER_POSITIONS = ['CM', 'LM', 'RM', 'CDM'] as const;
-export const ATTACKER_SHOOTING_WEIGHT = 0.6;
-export const ATTACKER_FITNESS_WEIGHT = 0.4;
-/** Probability of picking from attackers when available */
-export const ATTACKER_SELECTION_CHANCE = 0.7;
-/** Probability of picking from midfielders if no attacker selected */
-export const MIDFIELDER_SELECTION_CHANCE = 0.8;
+/** Per-position base weight for goal scoring selection — forwards >> mids >> defenders, GK never */
+export const SCORER_POSITION_WEIGHTS: Record<string, number> = {
+  ST: 4.0,
+  LW: 3.5,
+  RW: 3.5,
+  CAM: 3.0,
+  CM: 1.5,
+  LM: 1.5,
+  RM: 1.5,
+  CDM: 0.7,
+  LB: 0.2,
+  RB: 0.2,
+  CB: 0.15,
+  GK: 0.0,
+};
+/** How much a player's shooting attribute (0–100) scales their goal weight on top of position */
+export const SCORER_SHOOTING_INFLUENCE = 1.5;
+/** Fitness bonus on top of position weight */
+export const SCORER_FITNESS_INFLUENCE = 0.3;
 
 // ── Assist Selection ──
 /** Probability of awarding an assist on a goal */
