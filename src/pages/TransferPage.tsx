@@ -23,6 +23,8 @@ import { formatMoney } from '@/utils/helpers';
 import { getPerformanceMultiplier, getMaxFreeAgentOverall, calculateSigningBonus } from '@/utils/transferOffers';
 import { TransferPlayerCard } from '@/components/game/TransferPlayerCard';
 import { LEAGUES } from '@/data/league';
+import { EmptyState } from '@/components/game/EmptyState';
+import { playSfxTransferAccepted } from '@/utils/audio';
 
 const TransferPage = () => {
   const {
@@ -503,18 +505,12 @@ const TransferPage = () => {
           {listings.length === 0 && (() => {
             const hasFilters = posFilter !== 0 || searchQuery.trim() || divFilter !== 'all' || hideUnaffordable || showShortlistOnly;
             return (
-              <GlassPanel className="p-8 text-center">
-                <p className="text-sm text-muted-foreground">
-                  {hasFilters
-                    ? showShortlistOnly ? 'No players in your shortlist' : 'No players match your filters'
-                    : 'No players on the transfer market'}
-                </p>
-                <p className="text-[10px] text-muted-foreground/60 mt-1">
-                  {hasFilters
-                    ? showShortlistOnly ? 'Tap the bookmark icon on a player to add them' : 'Try adjusting your search, position, or division filters'
-                    : 'Check back during the transfer window'}
-                </p>
-              </GlassPanel>
+              <EmptyState
+                icon={ShoppingCart}
+                title={hasFilters ? (showShortlistOnly ? 'No shortlisted players' : 'No players match your filters') : 'No players on the market'}
+                body={hasFilters ? (showShortlistOnly ? 'Tap the bookmark icon on any player to add them to your shortlist.' : 'Try adjusting your search, position, or division filters.') : 'Clubs list players during the transfer window. Check back once the window opens.'}
+                compact
+              />
             );
           })()}
           {listings.map((listing, i) => {
@@ -887,7 +883,7 @@ const TransferPage = () => {
                                   return;
                                 }
                                 const r = buyLoanedPlayer(loan.id);
-                                if (r.success) { hapticHeavy(); successToast(r.message); } else { errorToast(r.message); }
+                                if (r.success) { hapticHeavy(); playSfxTransferAccepted(); successToast(r.message); } else { errorToast(r.message); }
                               }}
                             >
                               Buy Permanently — {formatMoney(loan.obligatoryBuyFee || Math.round(p.value * LOAN_BUY_FEE_MULTIPLIER))}
@@ -900,11 +896,12 @@ const TransferPage = () => {
                 )}
 
                 {loansOut.length === 0 && loansIn.length === 0 && incomingLoanOffers.length === 0 && outgoingLoanRequests.length === 0 && incomingOffers.length === 0 && outgoingPlayers.length === 0 && (
-                  <GlassPanel className="p-8 text-center">
-                    <ArrowDownLeft className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">No active deals.</p>
-                    <p className="text-xs text-muted-foreground/70 mt-1">List players for sale or browse the market to get started.</p>
-                  </GlassPanel>
+                  <EmptyState
+                    icon={ArrowDownLeft}
+                    title="No active deals"
+                    body="List a player for sale in your squad, or make an offer on the transfer market to start a deal."
+                    compact
+                  />
                 )}
               </>
             );
@@ -940,11 +937,12 @@ const TransferPage = () => {
             />
           ))}
           {freeAgentPlayers.length === 0 && (
-            <GlassPanel className="p-8 text-center">
-              <Users className="w-8 h-8 text-muted-foreground/50 mx-auto mb-2" />
-              <p className="text-sm text-muted-foreground">{freeAgents.length === 0 ? 'No free agents available.' : 'No free agents match your filters.'}</p>
-              <p className="text-xs text-muted-foreground/70 mt-1">{freeAgents.length === 0 ? 'Players become free agents when their contracts expire at season end.' : 'Try adjusting your position or search filters.'}</p>
-            </GlassPanel>
+            <EmptyState
+              icon={Users}
+              title={freeAgents.length === 0 ? 'No free agents available' : 'No free agents match your filters'}
+              body={freeAgents.length === 0 ? 'Players become free agents when their contracts expire at season end.' : 'Try adjusting your position or search filters.'}
+              compact
+            />
           )}
         </div>
       )}
@@ -1176,7 +1174,7 @@ const TransferPage = () => {
                   disabled={!canAfford || (club?.playerIds.length || 0) >= MAX_SQUAD_SIZE}
                   onClick={() => {
                     const result = signFreeAgent(signingPlayer, offerWage, offerYears);
-                    if (result.success) { hapticHeavy(); successToast(result.message); } else { errorToast(result.message); }
+                    if (result.success) { hapticHeavy(); playSfxTransferAccepted(); successToast(result.message); } else { errorToast(result.message); }
                     setSigningPlayer(null);
                   }}
                 >

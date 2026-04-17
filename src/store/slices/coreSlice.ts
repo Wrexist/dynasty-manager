@@ -34,7 +34,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   boardObjectives: [] as GameState['boardObjectives'],
   boardConfidence: 50,
   seasonHistory: [] as GameState['seasonHistory'],
-  settings: { matchSpeed: 600, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, hidePageHints: false, confirmAllOffers: false, reducedMotion: false, show3DPitch: false, show3DFormation: false } as GameSettings,
+  settings: { matchSpeed: 600, showOverallOnPitch: true, autoSave: true, hapticsEnabled: true, hidePageHints: false, confirmAllOffers: false, reducedMotion: false, show3DPitch: false, show3DFormation: false, tutorialSeen: false, soundEnabled: true, volume: 0.5 } as GameSettings,
   activeSlot: 1,
   transferNews: [] as TransferNewsEntry[],
 

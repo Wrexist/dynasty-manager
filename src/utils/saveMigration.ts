@@ -10,7 +10,7 @@ import type { Player, YouthProspect } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 59;
+const CURRENT_VERSION = 60;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -852,6 +852,21 @@ const migrations: Record<number, MigrationFn> = {
       });
     }
     return { ...data, version: 59 };
+  },
+
+  // v59 → v60: Add tutorialSeen, soundEnabled, volume to settings.
+  59: (data) => {
+    const settings = (data.settings || {}) as Record<string, unknown>;
+    return {
+      ...data,
+      version: 60,
+      settings: {
+        ...settings,
+        tutorialSeen: settings.tutorialSeen ?? true, // existing players skip tutorial
+        soundEnabled: settings.soundEnabled ?? true,
+        volume: settings.volume ?? 0.5,
+      },
+    };
   },
 };
 

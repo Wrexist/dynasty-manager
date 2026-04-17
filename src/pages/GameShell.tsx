@@ -56,6 +56,7 @@ const InternationalTournament = lazy(() => import('./InternationalTournament'));
 const JobMarket = lazy(() => import('./JobMarket'));
 const CareerOverview = lazy(() => import('./CareerOverview'));
 const BallonDor = lazy(() => import('./BallonDor'));
+const SaveManagementPage = lazy(() => import('./SaveManagementPage').then(m => ({ default: m.SaveManagementPage })));
 
 const screens: Record<string, React.ComponentType> = {
   dashboard: Dashboard,
@@ -100,6 +101,7 @@ const screens: Record<string, React.ComponentType> = {
   'job-market': JobMarket,
   'career-overview': CareerOverview,
   'ballon-dor': BallonDor,
+  'save-management': SaveManagementPage,
 };
 
 

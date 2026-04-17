@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Layers } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Layers, Volume2 } from 'lucide-react';
+import { playSfxSave } from '@/utils/audio';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -102,6 +103,7 @@ const SettingsPage = () => {
 
   const handleSave = () => {
     saveGame();
+    playSfxSave();
     setSaved(true);
     clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => setSaved(false), SAVE_CONFIRMATION_MS);
@@ -251,6 +253,34 @@ const SettingsPage = () => {
             value={settings.hapticsEnabled !== false}
             onChange={() => updateSettings({ hapticsEnabled: !settings.hapticsEnabled })}
           />
+
+          <div className="border-t border-border/20" />
+
+          <ToggleRow
+            icon={Volume2}
+            label="Sound effects"
+            description="Audio feedback for goals, saves, and transfers"
+            value={settings.soundEnabled !== false}
+            onChange={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
+          />
+
+          {settings.soundEnabled !== false && (
+            <div className="flex items-center gap-3 px-1">
+              <Volume2 className="w-4 h-4 text-muted-foreground shrink-0" />
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={settings.volume ?? 0.5}
+                onChange={e => updateSettings({ volume: parseFloat(e.target.value) })}
+                className="flex-1 h-1.5 accent-primary"
+              />
+              <span className="text-xs text-muted-foreground w-8 text-right shrink-0">
+                {Math.round((settings.volume ?? 0.5) * 100)}%
+              </span>
+            </div>
+          )}
         </div>
       </GlassPanel>
 
@@ -276,6 +306,14 @@ const SettingsPage = () => {
             >
               <Save className="w-4 h-4" />
               {saved ? 'Game Saved!' : 'Save Game'}
+            </Button>
+            <Button
+              variant="secondary"
+              className="w-full justify-start gap-3 h-11"
+              onClick={() => setScreen('save-management')}
+            >
+              <Layers className="w-4 h-4" />
+              Manage Save Slots
             </Button>
             <Button
               variant="secondary"
@@ -352,7 +390,8 @@ const SettingsPage = () => {
             onClick={() => {
               removeFlag('dynasty-welcome-shown');
               clearFlagsByPrefix('dynasty-hint-');
-              infoToast('Tutorial Reset', 'The welcome tutorial and page hints will show again.');
+              updateSettings({ tutorialSeen: false });
+              infoToast('Tutorial Reset', 'Return to the Dashboard to start the guide.');
             }}
           >
             <HelpCircle className="w-4 h-4" />

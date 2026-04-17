@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, Crown, type LucideIcon } from 'lucide-react';
 import { hapticHeavy, hapticMedium, hapticLight } from '@/utils/haptics';
+import { playSfxGoal, playSfxWhistle } from '@/utils/audio';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
 import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DRAIN_MULT } from '@/config/teamTalk';
 import type { HalfState } from '@/engine/match';
@@ -453,6 +454,7 @@ const MatchDay = () => {
   useEffect(() => {
     if (currentGoalCount > prevGoalCountRef.current) {
       hapticHeavy();
+      playSfxGoal();
       setGoalFlash(true);
       clearTimeout(goalFlashTimerRef.current);
       goalFlashTimerRef.current = setTimeout(() => setGoalFlash(false), GOAL_FLASH_MS);
@@ -461,7 +463,7 @@ const MatchDay = () => {
   }, [currentGoalCount]);
 
   useEffect(() => {
-    if (phase === 'post') hapticMedium();
+    if (phase === 'post') { hapticMedium(); playSfxWhistle(); }
   }, [phase]);
 
   // When penalty shootout finalization completes (matchPhase becomes 'full_time'),

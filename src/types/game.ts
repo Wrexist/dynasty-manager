@@ -104,7 +104,7 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor' | 'save-management';
 
 export interface PlayerAttributes {
   pace: number;
@@ -745,6 +745,9 @@ export interface GameSettings {
   reducedMotion: boolean;
   show3DPitch: boolean;
   show3DFormation: boolean;
+  tutorialSeen: boolean;
+  soundEnabled: boolean;
+  volume: number; // 0-1
 }
 
 // ── Team Talk ──

@@ -45,6 +45,8 @@ import { getWeekPreview, getFallbackPreview } from '@/utils/weekPreview';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { InfoTip } from '@/components/game/InfoTip';
 import { WeeklyDigest } from '@/components/game/WeeklyDigest';
+import { NextActionCard } from '@/components/game/NextActionCard';
+import { playSfxAchievement, playSfxWarning } from '@/utils/audio';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { useFlash } from '@/hooks/useFlash';
@@ -105,7 +107,7 @@ const Dashboard = () => {
     pendingPressConference, pendingStoryline, pendingTransferTalk,
     activeChallenge, youthAcademy, fanMood, sessionStats,
     pendingAchievementIds,
-    activeStorylineChains, unlockedAchievements,
+    activeStorylineChains, unlockedAchievements, settings,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
@@ -131,6 +133,7 @@ const Dashboard = () => {
     pendingAchievementIds: s.pendingAchievementIds,
     activeStorylineChains: s.activeStorylineChains,
     unlockedAchievements: s.unlockedAchievements,
+    settings: s.settings,
   })));
   // Actions — stable references, individual selectors
   const setScreen = useGameStore(s => s.setScreen);
@@ -140,6 +143,7 @@ const Dashboard = () => {
   const endSeason = useGameStore(s => s.endSeason);
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const markCoachTaskComplete = useGameStore(s => s.markCoachTaskComplete);
+  const updateSettings = useGameStore(s => s.updateSettings);
   const club = usePlayerClub();
   const { match: nextMatch, isHome, opponent, competition } = useCurrentMatch();
   const hasCupMatchToo = useMemo(() => {
@@ -152,14 +156,16 @@ const Dashboard = () => {
   const unread = useUnreadCount();
   const budgetFlash = useFlash(club?.budget || 0);
 
+  // Show tutorial on first ever play (week 1, season 1) or if manually triggered from settings
   const [showWelcome, setShowWelcome] = useState(() => {
-    if (season === 1 && week === 1 && !getFlag(WELCOME_KEY)) return true;
+    if (season === 1 && week === 1 && !settings.tutorialSeen) return true;
     return false;
   });
 
   const dismissWelcome = () => {
     setShowWelcome(false);
-    setFlag(WELCOME_KEY);
+    updateSettings({ tutorialSeen: true });
+    setFlag(WELCOME_KEY); // keep legacy flag for backward compat
   };
 
   const [isAdvancing, setIsAdvancing] = useState(false);
@@ -176,6 +182,10 @@ const Dashboard = () => {
   useEffect(() => {
     if (Math.abs(prevConfRef.current - boardConfidence) >= CONFIDENCE_CHANGE_DISMISS_THRESHOLD) {
       setBoardWarningDismissed(false);
+      if (boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD) {
+        playSfxWarning();
+        hapticMedium();
+      }
       prevConfRef.current = boardConfidence;
     }
   }, [boardConfidence]);
@@ -205,6 +215,7 @@ const Dashboard = () => {
       setPendingAchievementQueue(achievements);
       setCurrentAchievement(achievements[0]);
       hapticHeavy();
+      playSfxAchievement();
     }
     // Clear pending from store immediately so remounting the Dashboard
     // (e.g. navigating away and back) won't re-trigger the same popup.
@@ -601,6 +612,35 @@ const Dashboard = () => {
 
       {/* Weekly Digest (post-advanceWeek summary) */}
       <WeeklyDigest />
+
+      {/* Critical Next Action — shown only when player needs to do something important */}
+      {seasonOver ? (
+        <NextActionCard
+          icon={Trophy}
+          label="Season Complete"
+          title="Start the next season"
+          description="All matches are finished. Tap here to see the season summary and advance."
+          onClick={endSeason}
+        />
+      ) : lineupIncomplete && !nextMatch ? (
+        <NextActionCard
+          icon={Users}
+          label="Action Required"
+          title="Your lineup isn't set"
+          description="You need 11 players in your starting lineup before your first match."
+          onClick={() => setScreen('squad')}
+          urgent
+        />
+      ) : nextMatch && lineupIncomplete ? (
+        <NextActionCard
+          icon={Users}
+          label="Match Day — Action Required"
+          title="Lineup incomplete"
+          description={`You play ${opponent?.shortName || 'next'} but have fewer than 11 starters. Fix your lineup now.`}
+          onClick={() => setScreen('squad')}
+          urgent
+        />
+      ) : null}
 
       {/* Club Identity Hero */}
       {!seasonOver && !inPlayoffs && (

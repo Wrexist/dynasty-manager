@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getPotentialInfo, getTop3Attributes, posBadgeColor } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { EmptyState } from '@/components/game/EmptyState';
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
 import { PAGE_HINTS } from '@/config/ui';
@@ -40,6 +41,7 @@ const YouthAcademy = () => {
   const promoteYouth = useGameStore(s => s.promoteYouth);
   const releaseYouth = useGameStore(s => s.releaseYouth);
   const selectPlayer = useGameStore(s => s.selectPlayer);
+  const setScreen = useGameStore(s => s.setScreen);
   const [confirmReleaseId, setConfirmReleaseId] = useState<string | null>(null);
   const youthPreviewEnhanced = youthAcademy.youthPreviewEnhanced;
   const club = clubs[playerClubId];
@@ -261,11 +263,15 @@ const YouthAcademy = () => {
             })}
           </div>
         ) : (
-          <GlassPanel className="p-8 text-center space-y-2">
-            <GraduationCap className="w-12 h-12 text-muted-foreground/40 mx-auto" />
-            <p className="text-sm font-semibold text-muted-foreground">No youth prospects yet</p>
-            <p className="text-xs text-muted-foreground/60">New intake arrives at the end of each season. Upgrade your facilities for better prospects.</p>
-          </GlassPanel>
+          <EmptyState
+            icon={GraduationCap}
+            title="No youth prospects yet"
+            body="A new intake arrives at the start of each season. Upgrade your facilities and hire a youth coach to improve quality."
+            actions={[
+              { label: 'Upgrade Facilities', onClick: () => setScreen('facilities'), primary: true },
+              { label: 'Hire Youth Coach', onClick: () => setScreen('staff') },
+            ]}
+          />
         )}
 
         {/* Ad Reward: Youth Preview */}

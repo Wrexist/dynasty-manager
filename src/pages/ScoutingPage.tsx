@@ -11,6 +11,7 @@ import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS, MARKET_SUB_NAV } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
+import { EmptyState } from '@/components/game/EmptyState';
 import { formatMoney } from '@/utils/helpers';
 import { SCOUTING_COST_PER_ASSIGNMENT } from '@/config/gameBalance';
 import { infoToast } from '@/utils/gameToast';
@@ -39,6 +40,7 @@ const ScoutingPage = () => {
   const addToWatchList = useGameStore((s) => s.addToWatchList);
   const removeFromWatchList = useGameStore((s) => s.removeFromWatchList);
   const dismissScoutReport = useGameStore((s) => s.dismissScoutReport);
+  const setScreen = useGameStore((s) => s.setScreen);
   const [activeTab, setActiveTab] = useState<typeof SCOUTING_TABS[number]>('Overview');
   const [negotiatingListing, setNegotiatingListing] = useState<TransferListing | null>(null);
 
@@ -248,20 +250,20 @@ const ScoutingPage = () => {
         )}
 
         {scouting.assignments.length === 0 && scouting.reports.length === 0 && (
-          <GlassPanel className="p-6 text-center">
-            <Search className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-            {scouting.maxAssignments === 0 ? (
-              <>
-                <p className="text-sm text-muted-foreground">No scout on staff</p>
-                <p className="text-xs text-muted-foreground mt-1">Hire a scout from the Staff tab to discover new talent</p>
-              </>
-            ) : (
-              <>
-                <p className="text-sm text-muted-foreground">No scouting activity</p>
-                <p className="text-xs text-muted-foreground mt-1">Choose a region above to send your scouts and discover talent for your squad</p>
-              </>
-            )}
-          </GlassPanel>
+          scouting.maxAssignments === 0 ? (
+            <EmptyState
+              icon={Search}
+              title="No scout on staff"
+              body="Hire a scout to find hidden talent around the world."
+              actions={[{ label: 'Hire a Scout', onClick: () => setScreen('staff'), primary: true }]}
+            />
+          ) : (
+            <EmptyState
+              icon={Search}
+              title="No scouting activity"
+              body="Choose a region above to send your scouts and discover talent for your squad."
+            />
+          )
         )}
         </>)}
 
@@ -330,11 +332,12 @@ const ScoutingPage = () => {
                 );
               })
             ) : (
-              <GlassPanel className="p-6 text-center">
-                <Star className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No players on watch list</p>
-                <p className="text-xs text-muted-foreground mt-1">Add players from scout reports to keep track of them</p>
-              </GlassPanel>
+              <EmptyState
+                icon={Star}
+                title="Watch list is empty"
+                body="Find players via scout reports and tap the star icon to add them here."
+                actions={[{ label: 'View Scout Reports', onClick: () => setActiveTab('Overview'), primary: true }]}
+              />
             )}
           </div>
         )}
