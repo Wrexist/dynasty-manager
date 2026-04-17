@@ -304,10 +304,11 @@ const MatchReview = () => {
                       ? stripVarPrefix(ev.description)
                       : ev.description;
                     const isOurs = ev.clubId === playerClubId;
+                    const isHomeTeamEvent = ev.clubId === match.homeClubId;
 
                     const content = (
-                      <div className={cn('flex flex-col gap-1 min-w-0', isOurs ? 'items-end text-right' : 'items-start text-left')}>
-                        <div className={cn('flex items-center gap-2', isOurs && 'flex-row-reverse')}>
+                      <div className={cn('flex flex-col gap-1 min-w-0', isHomeTeamEvent ? 'items-end text-right' : 'items-start text-left')}>
+                        <div className={cn('flex items-center gap-2', isHomeTeamEvent && 'flex-row-reverse')}>
                           <span className="text-[10px] font-mono text-primary tabular-nums">{ev.minute}'</span>
                           <span className={cn('text-[10px] font-bold uppercase tracking-wider', toneClass.text)}>{label}</span>
                           {evClub && (
@@ -315,7 +316,7 @@ const MatchReview = () => {
                           )}
                         </div>
                         {evPlayer ? (
-                          <div className={cn('flex items-center gap-1.5 flex-wrap', isOurs ? 'justify-end' : 'justify-start')}>
+                          <div className={cn('flex items-center gap-1.5 flex-wrap', isHomeTeamEvent ? 'justify-end' : 'justify-start')}>
                             {renderPlayerPill(evPlayer, 'scorer')}
                             {ev.type === 'goalkeeper_error' && gkPlayer && renderPlayerPill(gkPlayer, 'gk')}
                             {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && assistPlayer && (
@@ -340,16 +341,16 @@ const MatchReview = () => {
                     return (
                       <motion.div
                         key={`${ev.type}-${ev.minute}-${i}`}
-                        initial={{ opacity: 0, x: isOurs ? 10 : -10 }}
+                        initial={{ opacity: 0, x: isHomeTeamEvent ? 10 : -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: Math.min(i * 0.08, 0.6), duration: 0.3 }}
                         className="relative grid grid-cols-[1fr_12px_1fr] gap-2 items-start"
                       >
-                        <div className="min-w-0">{isOurs && content}</div>
+                        <div className="min-w-0">{isHomeTeamEvent && content}</div>
                         <div className="flex justify-center pt-1">
                           <div className={cn('w-2.5 h-2.5 rounded-full border-2 border-background', toneClass.dot)} />
                         </div>
-                        <div className="min-w-0">{!isOurs && content}</div>
+                        <div className="min-w-0">{!isHomeTeamEvent && content}</div>
                       </motion.div>
                     );
                   })}
