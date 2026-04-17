@@ -59,39 +59,42 @@ export const PlayerAvatar = memo(function PlayerAvatar({
   const gradientId = `jb-bg-${uid}`;
   const shineId = `jb-sh-${uid}`;
 
-  // Football shirt path with proper sleeves
-  // Starts at left neck, goes right along neckline, right shoulder out to sleeve,
-  // sleeve hem, armpit, right side body, hem, left side body, left armpit,
-  // left sleeve hem, left shoulder back to neck
+  // Football shirt path — rounded shoulders and fuller short sleeves via bezier curves.
+  // Traversed clockwise from left neck: neckline, right shoulder cap, right sleeve,
+  // armpit, right torso, rounded hem, left torso, left sleeve (mirror), close.
   const shirtPath = [
-    'M8.5 1',              // left side of neck
-    'Q12 2.5 15.5 1',     // curved neckline to right side
-    'L19 0',               // right shoulder
-    'L23 5.5',             // right sleeve outer edge
-    'L21.5 7',             // right sleeve cuff
-    'L19 5',               // right armpit
-    'L20 26',              // right body
-    'Q20 28 18 28',        // right hem curve
-    'L6 28',               // bottom hem
-    'Q4 28 4 26',          // left hem curve
-    'L5 5',                // left body
-    'L2.5 7',              // left armpit
-    'L1 5.5',              // left sleeve cuff
-    'L5 0',                // left shoulder
+    'M8 1.5',              // left side of neck
+    'Q12 3.5 16 1.5',      // curved crew-neck
+    'Q18 1 19 1.2',        // right shoulder ridge
+    'Q22 1.6 23 4.5',      // rounded shoulder out to sleeve
+    'Q23.6 6.8 22 8',      // outer sleeve bulge
+    'Q20.4 8 19.5 7',      // sleeve cuff underside
+    'Q19 6 19 5.5',        // armpit curve
+    'L20.5 26',            // right body side
+    'Q20.5 28 18.5 28',    // rounded right hip
+    'L5.5 28',             // bottom hem
+    'Q3.5 28 3.5 26',      // rounded left hip
+    'L5 5.5',              // left body side
+    'Q5 6 4.5 7',          // left armpit
+    'Q3.6 8 2 8',          // left sleeve cuff underside
+    'Q0.4 6.8 1 4.5',      // outer sleeve bulge (left)
+    'Q2 1.6 5 1.2',        // rounded shoulder in (left)
+    'Q6 1 8 1.5',          // left shoulder ridge to neck
     'Z'
   ].join(' ');
 
-  // Shine overlay path (left side of shirt for lighting effect)
+  // Shine overlay path — follows the left half of the new silhouette.
   const shinePath = [
-    'M8.5 1',
-    'L5 0',
-    'L1 5.5',
-    'L2.5 7',
-    'L5 5',
-    'L4 26',
-    'Q4 28 6 28',
+    'M8 1.5',
+    'Q6 1 5 1.2',
+    'Q2 1.6 1 4.5',
+    'Q0.4 6.8 2 8',
+    'Q3.6 8 4.5 7',
+    'Q5 6 5 5.5',
+    'L3.5 26',
+    'Q3.5 28 5.5 28',
     'L12 28',
-    'L12 1',
+    'L12 1.5',
     'Z'
   ].join(' ');
 
@@ -128,7 +131,7 @@ export const PlayerAvatar = memo(function PlayerAvatar({
       {isMedium && (
         <>
           <path
-            d="M8.5 1 Q12 3.5 15.5 1"
+            d="M8 1.5 Q12 4 16 1.5"
             fill="none"
             stroke={colorDarker}
             strokeWidth="0.7"
@@ -136,7 +139,7 @@ export const PlayerAvatar = memo(function PlayerAvatar({
           />
           {/* Collar fill */}
           <path
-            d="M8.5 1 Q12 3.2 15.5 1"
+            d="M8 1.5 Q12 3.7 16 1.5"
             fill={colorDarker}
             opacity="0.4"
           />
@@ -146,16 +149,16 @@ export const PlayerAvatar = memo(function PlayerAvatar({
       {/* Sleeve cuff lines (medium+) */}
       {isMedium && (
         <>
-          <line x1="22.8" y1="5.8" x2="21.2" y2="7.2" stroke={colorDarker} strokeWidth="0.5" strokeLinecap="round" />
-          <line x1="1.2" y1="5.8" x2="2.8" y2="7.2" stroke={colorDarker} strokeWidth="0.5" strokeLinecap="round" />
+          <line x1="22" y1="7.5" x2="20" y2="8" stroke={colorDarker} strokeWidth="0.5" strokeLinecap="round" />
+          <line x1="2" y1="7.5" x2="4" y2="8" stroke={colorDarker} strokeWidth="0.5" strokeLinecap="round" />
         </>
       )}
 
       {/* Side seam lines (large only) */}
       {isLarge && (
         <>
-          <line x1="5.2" y1="6" x2="4.3" y2="26" stroke={colorDarker} strokeWidth="0.3" opacity="0.3" />
-          <line x1="18.8" y1="6" x2="19.7" y2="26" stroke={colorDarker} strokeWidth="0.3" opacity="0.3" />
+          <line x1="5" y1="6.5" x2="3.8" y2="26" stroke={colorDarker} strokeWidth="0.3" opacity="0.3" />
+          <line x1="19" y1="6.5" x2="20.2" y2="26" stroke={colorDarker} strokeWidth="0.3" opacity="0.3" />
         </>
       )}
 
