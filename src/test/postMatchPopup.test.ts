@@ -43,7 +43,7 @@ describe('clearMatchResult', () => {
     useGameStore.setState({
       lastMatchCompetition: 'Dynasty Cup — QF',
       lastMatchXPGain: 42,
-      matchPlayerRatings: [{ playerId: 'p1', rating: 8.2 }],
+      matchPlayerRatings: [{ playerId: 'p1', rating: 8.2, goals: 0, assists: 0, yellowCards: 0, redCards: 0 }],
       preMatchLeaguePosition: 5,
     });
 
