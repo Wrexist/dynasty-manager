@@ -125,7 +125,7 @@ export const FITNESS_FACTOR_BASE = 0.7;
 export const FITNESS_FACTOR_SCALE = 0.3;
 
 // ── Goal Chance Formula ──
-export const GOAL_CHANCE_ATTACK_MULT = 0.28;
+export const GOAL_CHANCE_ATTACK_MULT = 0.30;
 export const GOAL_CHANCE_DEFENSE_MULT = 0.20;
 export const GOAL_CHANCE_ATTACK_MOD_SCALE = 0.35;
 export const GOAL_CHANCE_COUNTER_VULN_SCALE = 0.18;
@@ -178,7 +178,7 @@ export const STOPPAGE_TIME_CARD_ADD = 0.3;
 export const STOPPAGE_TIME_GOAL_ADD = 0.4;
 
 // ── Corner Goal ──
-export const CORNER_GOAL_CHANCE = 0.06;
+export const CORNER_GOAL_CHANCE = 0.12;
 export const CORNER_GOAL_PHYSICAL_WEIGHT = 0.6;
 export const CORNER_GOAL_DEFENDING_WEIGHT = 0.4;
 
