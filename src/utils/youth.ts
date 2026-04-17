@@ -1,4 +1,4 @@
-import { YouthProspect, Position } from '@/types/game';
+import { YouthProspect, Position, YouthTier, Player } from '@/types/game';
 import { generatePlayer } from './playerGen';
 import { pick } from './helpers';
 import {
@@ -10,6 +10,7 @@ import {
   YOUTH_READY_OVERALL_THRESHOLD, YOUTH_DEV_SCORE_BASE, YOUTH_DEV_SCORE_RANGE,
   INTAKE_PREVIEW_MIN, INTAKE_PREVIEW_RANGE,
   INTAKE_PREVIEW_POTENTIAL_BASE, INTAKE_PREVIEW_POTENTIAL_RANGE,
+  YOUTH_TIER_DEV_MULT, YOUTH_TIER_AGE_PROMOTION, YOUTH_TIER_OVR_PROMOTION,
 } from '@/config/youth';
 
 const YOUTH_POSITIONS: Position[] = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST'];
@@ -45,6 +46,7 @@ export function generateYouthProspects(
       playerId: player.id,
       readyToPromote: player.overall >= YOUTH_READY_OVERALL_THRESHOLD,
       developmentScore: Math.floor(Math.random() * YOUTH_DEV_SCORE_RANGE) + YOUTH_DEV_SCORE_BASE,
+      tier: 'u18',
     };
 
     prospects.push(prospect);
@@ -64,4 +66,41 @@ export function generateIntakePreview(youthRating: number): { position: Position
     });
   }
   return previews;
+}
+
+/** Development multiplier for a prospect's weekly training gains, keyed by tier. */
+export function getYouthTierDevMultiplier(tier: YouthTier | undefined): number {
+  return YOUTH_TIER_DEV_MULT[tier ?? 'u18'];
+}
+
+/**
+ * Promote a prospect to the next tier if age or rating thresholds are met.
+ * Called at season-end for every prospect still in the academy.
+ * Returns the updated prospect (same reference if no promotion happened).
+ */
+export function promoteYouthTier(prospect: YouthProspect, player: Player | undefined): YouthProspect {
+  if (!player) return prospect;
+  const currentTier: YouthTier = prospect.tier ?? 'u18';
+  let nextTier: YouthTier = currentTier;
+
+  if (currentTier === 'u18') {
+    if (player.age >= YOUTH_TIER_AGE_PROMOTION.u18_to_u21 || player.overall >= YOUTH_TIER_OVR_PROMOTION.u18_to_u21) {
+      nextTier = 'u21';
+    }
+  } else if (currentTier === 'u21') {
+    if (player.age >= YOUTH_TIER_AGE_PROMOTION.u21_to_bteam || player.overall >= YOUTH_TIER_OVR_PROMOTION.u21_to_bteam) {
+      nextTier = 'bteam';
+    }
+  }
+
+  if (nextTier === currentTier) return prospect;
+  return { ...prospect, tier: nextTier };
+}
+
+/** Default tier for a prospect that doesn't yet have one (save-migration helper). */
+export function inferYouthTier(player: Player | undefined): YouthTier {
+  if (!player) return 'u18';
+  if (player.age >= YOUTH_TIER_AGE_PROMOTION.u21_to_bteam || player.overall >= YOUTH_TIER_OVR_PROMOTION.u21_to_bteam) return 'bteam';
+  if (player.age >= YOUTH_TIER_AGE_PROMOTION.u18_to_u21 || player.overall >= YOUTH_TIER_OVR_PROMOTION.u18_to_u21) return 'u21';
+  return 'u18';
 }

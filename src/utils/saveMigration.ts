@@ -2,14 +2,15 @@ import * as Sentry from '@sentry/react';
 import { LEAGUES, getLeaguesByCountry, generateDivisionFixtures, ALL_CLUBS } from '@/data/league';
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
 import { inferDefaultRole } from '@/utils/playerRoles';
-import type { Player } from '@/types/game';
+import { inferYouthTier } from '@/utils/youth';
+import type { Player, YouthProspect } from '@/types/game';
 /**
  * Save migration system for Dynasty Manager.
  * Each migration transforms save data from one version to the next.
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 58;
+const CURRENT_VERSION = 59;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -837,6 +838,20 @@ const migrations: Record<number, MigrationFn> = {
       }
     }
     return { ...data, version: 58 };
+  },
+
+  // v58 → v59: Tag every existing youth prospect with a development tier
+  // (u18 / u21 / bteam) inferred from the player's age and overall rating.
+  58: (data) => {
+    const academy = data.youthAcademy as { prospects?: YouthProspect[] } | undefined;
+    const players = data.players as Record<string, Player> | undefined;
+    if (academy?.prospects && players) {
+      academy.prospects = academy.prospects.map(p => {
+        if (p.tier) return p;
+        return { ...p, tier: inferYouthTier(players[p.playerId]) };
+      });
+    }
+    return { ...data, version: 59 };
   },
 };
 

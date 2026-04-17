@@ -883,10 +883,14 @@ export interface ScoutingState {
 }
 
 // ── Youth Academy ──
+export type YouthTier = 'u18' | 'u21' | 'bteam';
+
 export interface YouthProspect {
   playerId: string;
   readyToPromote: boolean;
   developmentScore: number;
+  /** Development tier — prospects progress U18 → U21 → B-Team → senior squad */
+  tier?: YouthTier;
 }
 
 export interface YouthAcademyState {

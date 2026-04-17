@@ -21,7 +21,7 @@ import { applyWeeklyTraining, getInjuryRisk, updateTacticalFamiliarity, getDomin
 import { INDIVIDUAL_INJURY_RISK_MODIFIER } from '@/config/training';
 import { completeAssignment } from '@/utils/scouting';
 import { MAX_SCOUT_REPORTS } from '@/config/scouting';
-import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
+import { generateYouthProspects, generateIntakePreview, getYouthTierDevMultiplier, promoteYouthTier } from '@/utils/youth';
 import { generateSeasonalRegens, mergeRegensIntoFreeAgentPool } from '@/utils/regenPool';
 import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle, formatMoney } from '@/utils/helpers';
@@ -4107,7 +4107,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           const baseDevGain = 1 + youthCoachQuality * 0.3 + newFacilities.youthLevel * 0.2;
           const careerYouthMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.youthDevelopment * MOD_YOUTH_GROWTH : 0;
           const ydm = dynastyMult(state.managerProgression);
-          const devGain = hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST * ydm + careerYouthMod) : baseDevGain * (1 + careerYouthMod);
+          const perkDevGain = hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST * ydm + careerYouthMod) : baseDevGain * (1 + careerYouthMod);
+          // Tier modifier: U21 prospects develop fastest, B-team players plateau slightly
+          const tierMult = getYouthTierDevMultiplier(prospect.tier);
+          const devGain = perkDevGain * tierMult;
           prospect.developmentScore = Math.min(100, prospect.developmentScore + devGain);
         }
         // Bust risk: low-potential prospects can lose potential permanently (1% per week)
@@ -4123,7 +4126,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           });
         }
         prospect.readyToPromote = yp.overall >= 55 || prospect.developmentScore >= 80;
-        newYouthAcademy.prospects[i] = prospect;
+        // Tier promotion: prospects advance through U18 → U21 → B-Team as they
+        // age up or hit rating milestones. Happens inline during the weekly tick
+        // since season-end replaces the whole prospect list with a fresh intake.
+        newYouthAcademy.prospects[i] = promoteYouthTier(prospect, newPlayers[prospect.playerId]);
       }
     }
 
