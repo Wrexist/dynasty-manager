@@ -1,5 +1,5 @@
 import type { Match, PlayerMatchRating, CareerMilestone, InjuryDetails, PlayerMatchRecord } from '@/types/game';
-import { buildLeagueTable } from '@/data/league';
+import { buildLeagueTable, getDerbyIntensity } from '@/data/league';
 import { addMsg } from '@/utils/helpers';
 import { GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { getPlayerNarratives, getNarrativeBonus } from '@/utils/playerNarratives';
@@ -120,6 +120,13 @@ export function processMatchResult(
       let moraleDelta = won ? MORALE_WIN_CHANGE : lost ? MORALE_LOSS_CHANGE + narrativeMoraleLossReduction : 0;
       // Add team morale boost from narrative-tagged players (capped at +5)
       if (won) moraleDelta += Math.min(5, narrativeTeamMoraleBoost);
+      // Derby amplifier: intensity-scaled morale swing for rivalry matches.
+      // A thumping derby win or loss hits 2-4 points harder than a regular match.
+      const derbyIntensity = getDerbyIntensity(match.homeClubId, match.awayClubId);
+      if (derbyIntensity > 0) {
+        if (won) moraleDelta += derbyIntensity;
+        else if (lost) moraleDelta -= derbyIntensity;
+      }
       // Iron Will perk: no morale penalty from defeats
       if (lost && hasPerk(state.managerProgression, 'iron_will')) moraleDelta = 0;
       // Fortress Mentality perk: home wins give extra morale
@@ -149,6 +156,12 @@ export function processMatchResult(
   // Incremental confidence: modify existing value based on result, position, budget, streaks
   let confChange = won ? CONFIDENCE_WIN_CHANGE : lost ? CONFIDENCE_LOSS_CHANGE : CONFIDENCE_DRAW_CHANGE;
   confChange += (expectedPos - pos) > 0 ? CONFIDENCE_POSITION_BONUS : (expectedPos - pos) < CONFIDENCE_POSITION_PENALTY_THRESHOLD ? CONFIDENCE_POSITION_PENALTY : 0;
+  // Derby amplifier: intensity-scaled board confidence swing.
+  const derbyInt = getDerbyIntensity(match.homeClubId, match.awayClubId);
+  if (derbyInt > 0) {
+    if (won) confChange += derbyInt * 2;
+    else if (lost) confChange -= derbyInt * 2;
+  }
   if (clubs[playerClubId].budget < CONFIDENCE_BUDGET_THRESHOLD) confChange += CONFIDENCE_BUDGET_PENALTY;
   const recentForm = (playerEntry?.form || []).slice(-3);
   if (recentForm.length >= CONFIDENCE_STREAK_LENGTH && recentForm.every(r => r === 'W')) confChange += CONFIDENCE_WIN_STREAK_BONUS;
