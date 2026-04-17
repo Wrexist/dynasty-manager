@@ -68,7 +68,7 @@ import {
   PITCH_SHOT_MOD, WEATHER_GK_ERROR_MOD,
   FREE_KICK_GOAL_CHANCE, LONG_RANGE_GOAL_CHANCE, COUNTER_ATTACK_GOAL_CHANCE,
   HEADER_GOAL_CHANCE, SOLO_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, GK_ERROR_QUALITY_REDUCTION,
-  GK_SAVE_BASE, GK_SAVE_RANGE, VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
+  VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
   FREE_KICK_SET_PIECE_TAKER_CHANCE,
   WEATHER_SUFFIX_CHANCE, DERBY_SUFFIX_CHANCE,
 } from '@/config/matchEngine';
@@ -1447,7 +1447,8 @@ export function simulateHalf(
           : Math.max(-100, momentum - MOMENTUM_GOAL_SWING);
         const gkName = oppGK ? oppGK.lastName : 'the keeper';
         events.push({
-          minute: min, type: 'goalkeeper_error', playerId: scorer.id, assistPlayerId: gkErrorAssist?.id, clubId: club.id,
+          minute: min, type: 'goalkeeper_error', playerId: scorer.id, assistPlayerId: gkErrorAssist?.id,
+          goalkeeperId: oppGK?.id, clubId: club.id,
           description: withContextSuffix(pick(gkErrorDescs)(scorer.lastName, gkName, club.shortName)) + (gkErrorAssist ? ` (assist: ${gkErrorAssist.lastName})` : ''),
           momentum, homeXG, awayXG,
         });

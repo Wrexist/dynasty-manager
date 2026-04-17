@@ -238,6 +238,8 @@ export interface MatchEvent {
   type: 'goal' | 'own_goal' | 'penalty_scored' | 'penalty_missed' | 'shot_saved' | 'shot_missed' | 'hit_woodwork' | 'goal_line_clearance' | 'foul' | 'yellow_card' | 'red_card' | 'injury' | 'substitution' | 'half_time' | 'full_time' | 'kickoff' | 'extra_time_goal' | 'penalty_shootout' | 'commentary' | 'ai_tactical_change' | 'free_kick_goal' | 'long_range_goal' | 'counter_attack_goal' | 'header_goal' | 'solo_goal' | 'goalkeeper_error' | 'var_check' | 'var_disallowed';
   playerId?: string;
   assistPlayerId?: string;
+  /** Secondary player involved in the event (currently: the keeper who fumbled on `goalkeeper_error`). */
+  goalkeeperId?: string;
   clubId: string;
   description: string;
   momentum?: number;

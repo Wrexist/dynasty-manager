@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import type { Club } from '@/types/game';
+import type { Club, Player } from '@/types/game';
 import { resolveClub } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, Trophy } from 'lucide-react';
@@ -71,6 +71,7 @@ const MatchReview = () => {
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const userIsPro = isPro(monetization);
   const [isAdvancing, setIsAdvancing] = useState(false);
+  const [highlightFilter, setHighlightFilter] = useState<'all' | 'us' | 'goals'>('all');
 
   if (!currentMatchResult) {
     return (
@@ -227,80 +228,134 @@ const MatchReview = () => {
         </Button>
       </div>
 
-      {/* Key Highlights — animated timeline of the biggest moments */}
+      {/* Key Highlights — animated two-lane timeline of the biggest moments */}
       {(() => {
-        const highlights = match.events.filter(e => (HIGHLIGHT_TYPES as readonly string[]).includes(e.type));
-        if (highlights.length === 0) return null;
+        const allHighlights = match.events.filter(e => (HIGHLIGHT_TYPES as readonly string[]).includes(e.type));
+        if (allHighlights.length === 0) return null;
+        const highlights = allHighlights.filter(e => {
+          if (highlightFilter === 'us') return e.clubId === playerClubId;
+          if (highlightFilter === 'goals') return (GOAL_EVENT_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error';
+          return true;
+        });
+
+        const renderPlayerPill = (p: Player, variant: 'scorer' | 'gk') => (
+          <button
+            type="button"
+            onClick={() => selectPlayer(p.id)}
+            className={cn(
+              'inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-md border bg-background/40 hover:bg-background/70 transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50',
+              variant === 'gk' && 'opacity-85'
+            )}
+            style={{ borderColor: variant === 'gk' ? '#f87171' : getRatingHex(p.overall) }}
+            aria-label={`View ${p.firstName} ${p.lastName}`}
+          >
+            {variant === 'gk' && <span className="text-[9px] font-bold text-red-400 uppercase">GK</span>}
+            <FlagIcon nationality={p.nationality} size={12} />
+            <span className="text-[11px] font-semibold text-foreground leading-none">
+              {p.firstName} {p.lastName}
+            </span>
+            <span
+              className="text-[10px] font-bold tabular-nums leading-none"
+              style={{ color: variant === 'gk' ? '#f87171' : getRatingHex(p.overall) }}
+            >
+              {p.overall}
+            </span>
+          </button>
+        );
+
         return (
           <GlassPanel className="p-4">
-            <h3 className="text-sm font-semibold text-foreground mb-3">Key Highlights</h3>
-            <div className="relative pl-4 border-l border-border/50 space-y-3">
-              {highlights.map((ev, i) => {
-                const evPlayer = ev.playerId ? players[ev.playerId] : null;
-                const assistPlayer = ev.assistPlayerId ? players[ev.assistPlayerId] : null;
-                const evClub = clubs[ev.clubId] || (virtualClubs?.[ev.clubId] ? { color: virtualClubs[ev.clubId].color } as Partial<Club> : null);
-                const tone = HIGHLIGHT_TONE[ev.type] ?? 'neutral';
-                const toneClass = HIGHLIGHT_TONE_CLASS[tone];
-                const label = HIGHLIGHT_LABEL[ev.type] ?? ev.type.toUpperCase();
-                const descriptionText = (ev.type === 'var_check' || ev.type === 'var_disallowed')
-                  ? stripVarPrefix(ev.description)
-                  : ev.description;
-                return (
-                  <motion.div
-                    key={`${ev.type}-${ev.minute}-${i}`}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.15, duration: 0.3 }}
-                    className="relative"
+            <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+              <h3 className="text-sm font-semibold text-foreground">Key Highlights</h3>
+              <div className="flex items-center gap-1 p-0.5 rounded-full bg-muted/30 border border-border/40">
+                {(['all', 'us', 'goals'] as const).map(f => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setHighlightFilter(f)}
+                    className={cn(
+                      'px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-colors',
+                      highlightFilter === f
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
                   >
-                    <div className={cn('absolute -left-[21px] w-2.5 h-2.5 rounded-full border-2 border-background', toneClass.dot)} />
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-primary tabular-nums w-5">{ev.minute}'</span>
-                      <span className={cn('text-[10px] font-bold uppercase tracking-wider', toneClass.text)}>{label}</span>
-                      {evClub && (
-                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: evClub.color }} />
-                      )}
-                    </div>
-                    {evPlayer ? (
-                      <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                        <button
-                          type="button"
-                          onClick={() => selectPlayer(evPlayer.id)}
-                          className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-md border bg-background/40 hover:bg-background/70 transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50"
-                          style={{ borderColor: getRatingHex(evPlayer.overall) }}
-                          aria-label={`View ${evPlayer.firstName} ${evPlayer.lastName}`}
-                        >
-                          <FlagIcon nationality={evPlayer.nationality} size={12} />
-                          <span className="text-[11px] font-semibold text-foreground leading-none">
-                            {evPlayer.firstName} {evPlayer.lastName}
-                          </span>
-                          <span
-                            className="text-[10px] font-bold tabular-nums leading-none"
-                            style={{ color: getRatingHex(evPlayer.overall) }}
-                          >
-                            {evPlayer.overall}
-                          </span>
-                        </button>
-                        {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && assistPlayer && (
-                          <button
-                            type="button"
-                            onClick={() => selectPlayer(assistPlayer.id)}
-                            className="inline-flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary transition-colors focus:outline-none"
-                            aria-label={`View ${assistPlayer.firstName} ${assistPlayer.lastName}`}
-                          >
-                            <span>ast.</span>
-                            <FlagIcon nationality={assistPlayer.nationality} size={10} />
-                            <span>{assistPlayer.lastName}</span>
-                          </button>
-                        )}
-                      </div>
-                    ) : descriptionText ? (
-                      <p className="text-xs text-muted-foreground mt-0.5">{descriptionText}</p>
-                    ) : null}
-                  </motion.div>
-                );
-              })}
+                    {f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'}
+                  </button>
+                ))}
+              </div>
             </div>
+            {highlights.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-3">No events match this filter.</p>
+            ) : (
+              <div className="relative">
+                {/* Center timeline */}
+                <div className="absolute top-2 bottom-2 left-1/2 w-px bg-border/50 -translate-x-1/2" aria-hidden />
+                <div className="space-y-3">
+                  {highlights.map((ev, i) => {
+                    const evPlayer = ev.playerId ? players[ev.playerId] : null;
+                    const assistPlayer = ev.assistPlayerId ? players[ev.assistPlayerId] : null;
+                    const gkPlayer = ev.goalkeeperId ? players[ev.goalkeeperId] : null;
+                    const evClub = clubs[ev.clubId] || (virtualClubs?.[ev.clubId] ? { color: virtualClubs[ev.clubId].color } as Partial<Club> : null);
+                    const tone = HIGHLIGHT_TONE[ev.type] ?? 'neutral';
+                    const toneClass = HIGHLIGHT_TONE_CLASS[tone];
+                    const label = HIGHLIGHT_LABEL[ev.type] ?? ev.type.toUpperCase();
+                    const descriptionText = (ev.type === 'var_check' || ev.type === 'var_disallowed')
+                      ? stripVarPrefix(ev.description)
+                      : ev.description;
+                    const isOurs = ev.clubId === playerClubId;
+
+                    const content = (
+                      <div className={cn('flex flex-col gap-1 min-w-0', isOurs ? 'items-end text-right' : 'items-start text-left')}>
+                        <div className={cn('flex items-center gap-2', isOurs && 'flex-row-reverse')}>
+                          <span className="text-[10px] font-mono text-primary tabular-nums">{ev.minute}'</span>
+                          <span className={cn('text-[10px] font-bold uppercase tracking-wider', toneClass.text)}>{label}</span>
+                          {evClub && (
+                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: evClub.color }} />
+                          )}
+                        </div>
+                        {evPlayer ? (
+                          <div className={cn('flex items-center gap-1.5 flex-wrap', isOurs ? 'justify-end' : 'justify-start')}>
+                            {renderPlayerPill(evPlayer, 'scorer')}
+                            {ev.type === 'goalkeeper_error' && gkPlayer && renderPlayerPill(gkPlayer, 'gk')}
+                            {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && assistPlayer && (
+                              <button
+                                type="button"
+                                onClick={() => selectPlayer(assistPlayer.id)}
+                                className="inline-flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary transition-colors focus:outline-none"
+                                aria-label={`View ${assistPlayer.firstName} ${assistPlayer.lastName}`}
+                              >
+                                <span>ast.</span>
+                                <FlagIcon nationality={assistPlayer.nationality} size={10} />
+                                <span>{assistPlayer.lastName}</span>
+                              </button>
+                            )}
+                          </div>
+                        ) : descriptionText ? (
+                          <p className="text-xs text-muted-foreground">{descriptionText}</p>
+                        ) : null}
+                      </div>
+                    );
+
+                    return (
+                      <motion.div
+                        key={`${ev.type}-${ev.minute}-${i}`}
+                        initial={{ opacity: 0, x: isOurs ? 10 : -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: Math.min(i * 0.08, 0.6), duration: 0.3 }}
+                        className="relative grid grid-cols-[1fr_12px_1fr] gap-2 items-start"
+                      >
+                        <div className="min-w-0">{isOurs && content}</div>
+                        <div className="flex justify-center pt-1">
+                          <div className={cn('w-2.5 h-2.5 rounded-full border-2 border-background', toneClass.dot)} />
+                        </div>
+                        <div className="min-w-0">{!isOurs && content}</div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </GlassPanel>
         );
       })()}
