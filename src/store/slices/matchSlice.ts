@@ -24,7 +24,23 @@ export const createMatchSlice = (set: Set, get: Get) => ({
   penaltyShootoutRevealIndex: 0,
   matchShouts: [] as MatchShout[],
 
-  clearMatchResult: () => set({ currentMatchResult: null, halfTimeState: null, currentMatchWeather: null, matchPhase: 'none', matchTeamTalk: 'none', currentCupTieId: null, penaltyShootoutKicks: [], penaltyShootoutRevealIndex: 0, matchShouts: [] }),
+  clearMatchResult: () => set({
+    currentMatchResult: null,
+    halfTimeState: null,
+    currentMatchWeather: null,
+    matchPhase: 'none',
+    matchTeamTalk: 'none',
+    currentCupTieId: null,
+    penaltyShootoutKicks: [],
+    penaltyShootoutRevealIndex: 0,
+    matchShouts: [],
+    // Clear ancillary post-match UI state so the next popup/review can't
+    // render leftover data before the new match writes its own values.
+    lastMatchCompetition: null,
+    lastMatchXPGain: 0,
+    matchPlayerRatings: [],
+    preMatchLeaguePosition: 10,
+  }),
 
   /** Invincible perk: rewind a lost match by restoring pre-match state */
   rewindMatch: () => {
@@ -56,13 +72,19 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     const friendlyMatch = state.friendlies?.find(
       m => m.week === week && m.played && (m.homeClubId === pid || m.awayClubId === pid)
     );
-    if (friendlyMatch) { set({ currentMatchResult: friendlyMatch }); return; }
+    if (friendlyMatch) {
+      set({ currentMatchResult: friendlyMatch, lastMatchCompetition: 'Pre-Season Friendly' });
+      return;
+    }
 
     // 1. League fixtures (full Match objects with events)
     const leagueMatch = state.fixtures.find(
       m => m.week === week && m.played && (m.homeClubId === pid || m.awayClubId === pid)
     );
-    if (leagueMatch) { set({ currentMatchResult: leagueMatch }); return; }
+    if (leagueMatch) {
+      set({ currentMatchResult: leagueMatch, lastMatchCompetition: null });
+      return;
+    }
 
     // Helper to build a basic Match from cup/tournament tie data
     const buildMatch = (homeClubId: string, awayClubId: string, homeGoals: number, awayGoals: number, penaltyShootout?: { home: number; away: number }): Match => ({
@@ -73,19 +95,39 @@ export const createMatchSlice = (set: Set, get: Get) => ({
 
     // 2. Dynasty Cup
     const cupTie = state.cup?.ties?.find(t => t.week === week && t.played && (t.homeClubId === pid || t.awayClubId === pid));
-    if (cupTie) { set({ currentMatchResult: buildMatch(cupTie.homeClubId, cupTie.awayClubId, cupTie.homeGoals, cupTie.awayGoals, cupTie.penaltyShootout) }); return; }
+    if (cupTie) {
+      set({
+        currentMatchResult: buildMatch(cupTie.homeClubId, cupTie.awayClubId, cupTie.homeGoals, cupTie.awayGoals, cupTie.penaltyShootout),
+        lastMatchCompetition: `Dynasty Cup — ${cupTie.round}`,
+      });
+      return;
+    }
 
     // 3. League Cup
     const lcTie = state.leagueCup?.ties?.find(t => t.week === week && t.played && (t.homeClubId === pid || t.awayClubId === pid));
-    if (lcTie) { set({ currentMatchResult: buildMatch(lcTie.homeClubId, lcTie.awayClubId, lcTie.homeGoals, lcTie.awayGoals, lcTie.penaltyShootout) }); return; }
+    if (lcTie) {
+      set({
+        currentMatchResult: buildMatch(lcTie.homeClubId, lcTie.awayClubId, lcTie.homeGoals, lcTie.awayGoals, lcTie.penaltyShootout),
+        lastMatchCompetition: `League Cup — ${lcTie.round}`,
+      });
+      return;
+    }
 
     // 4. Continental tournaments (group + knockout)
-    for (const tourney of [state.championsCup, state.shieldCup, state.conferenceCup]) {
+    const continentalSources: Array<[typeof state.championsCup, string]> = [
+      [state.championsCup, 'Champions Cup'],
+      [state.shieldCup, 'Shield Cup'],
+      [state.conferenceCup, 'Conference Cup'],
+    ];
+    for (const [tourney, compName] of continentalSources) {
       if (!tourney) continue;
       for (const group of tourney.groups || []) {
         for (const m of group.matches || []) {
           if (m.week === week && m.played && (m.homeClubId === pid || m.awayClubId === pid)) {
-            set({ currentMatchResult: buildMatch(m.homeClubId, m.awayClubId, m.homeGoals, m.awayGoals) });
+            set({
+              currentMatchResult: buildMatch(m.homeClubId, m.awayClubId, m.homeGoals, m.awayGoals),
+              lastMatchCompetition: compName,
+            });
             return;
           }
         }
@@ -93,20 +135,33 @@ export const createMatchSlice = (set: Set, get: Get) => ({
       for (const tie of tourney.knockoutTies || []) {
         if (tie.homeClubId !== pid && tie.awayClubId !== pid) continue;
         if (tie.leg1Played && tie.week1 === week) {
-          set({ currentMatchResult: buildMatch(tie.homeClubId, tie.awayClubId, tie.leg1HomeGoals, tie.leg1AwayGoals) });
+          set({
+            currentMatchResult: buildMatch(tie.homeClubId, tie.awayClubId, tie.leg1HomeGoals, tie.leg1AwayGoals),
+            lastMatchCompetition: `${compName} — ${tie.round}`,
+          });
           return;
         }
         if (tie.leg2Played && tie.week2 === week) {
-          set({ currentMatchResult: buildMatch(tie.awayClubId, tie.homeClubId, tie.leg2HomeGoals, tie.leg2AwayGoals, tie.penaltyShootout) });
+          set({
+            currentMatchResult: buildMatch(tie.awayClubId, tie.homeClubId, tie.leg2HomeGoals, tie.leg2AwayGoals, tie.penaltyShootout),
+            lastMatchCompetition: `${compName} — ${tie.round}`,
+          });
           return;
         }
       }
     }
 
     // 5. Super cups
-    for (const sc of [state.domesticSuperCup, state.continentalSuperCup]) {
+    const superCupSources: Array<[typeof state.domesticSuperCup, string]> = [
+      [state.domesticSuperCup, 'Super Cup'],
+      [state.continentalSuperCup, 'Continental Super Cup'],
+    ];
+    for (const [sc, compName] of superCupSources) {
       if (sc && sc.played && sc.week === week && (sc.homeClubId === pid || sc.awayClubId === pid)) {
-        set({ currentMatchResult: buildMatch(sc.homeClubId, sc.awayClubId, sc.homeGoals, sc.awayGoals, sc.penaltyShootout) });
+        set({
+          currentMatchResult: buildMatch(sc.homeClubId, sc.awayClubId, sc.homeGoals, sc.awayGoals, sc.penaltyShootout),
+          lastMatchCompetition: compName,
+        });
         return;
       }
     }

@@ -3,11 +3,12 @@ import { useShallow } from 'zustand/react/shallow';
 import { resolveClub } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
-import { Trophy, TrendingUp, TrendingDown, Minus, Zap, Shield, Star } from 'lucide-react';
+import { Trophy, TrendingUp, TrendingDown, Minus, Zap, Shield, Star, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { xpForLevel, hasPerk } from '@/utils/managerPerks';
 import { getSuffix } from '@/utils/helpers';
+import { getMatchRatingColor } from '@/utils/uiHelpers';
 import { RotateCcw } from 'lucide-react';
 import { useScrollLock } from '@/hooks/useScrollLock';
 
@@ -16,7 +17,7 @@ interface PostMatchPopupProps {
 }
 
 export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
-  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players, virtualClubs, invincibleUsedThisSeason, preMatchSnapshot } = useGameStore(
+  const { currentMatchResult, clubs, playerClubId, preMatchLeaguePosition, lastMatchXPGain, leagueTable, managerProgression, matchPlayerRatings, players, virtualClubs, invincibleUsedThisSeason, preMatchSnapshot, lastMatchCompetition } = useGameStore(
     useShallow(s => ({
       currentMatchResult: s.currentMatchResult,
       clubs: s.clubs,
@@ -30,6 +31,7 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
       virtualClubs: s.virtualClubs,
       invincibleUsedThisSeason: s.invincibleUsedThisSeason,
       preMatchSnapshot: s.preMatchSnapshot,
+      lastMatchCompetition: s.lastMatchCompetition,
     }))
   );
   const rewindMatch = useGameStore(s => s.rewindMatch);
@@ -49,13 +51,20 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
   const awayClub = resolveClub(clubs, virtualClubs, currentMatchResult.awayClubId);
   if (!homeClub || !awayClub) return null;
 
-  // Current league position
+  // League position only applies to league matches (non-league = friendlies, cups, super cups)
+  const isLeagueMatch = !lastMatchCompetition;
   const currentEntry = leagueTable.find(e => e.clubId === playerClubId);
   const currentPosition = currentEntry ? leagueTable.indexOf(currentEntry) + 1 : preMatchLeaguePosition;
   const positionChange = preMatchLeaguePosition - currentPosition; // positive = moved up
 
   // Clean sheet
   const cleanSheet = goalsAgainst === 0;
+
+  // Team average match rating (shown in place of league position for non-league games)
+  const clubRatingsAll = matchPlayerRatings.filter(r => players[r.playerId]?.clubId === playerClubId);
+  const teamAvgRating = clubRatingsAll.length
+    ? clubRatingsAll.reduce((sum, r) => sum + r.rating, 0) / clubRatingsAll.length
+    : 0;
 
   // MOTM: highest rated player from player's club
   const clubRatings = matchPlayerRatings
@@ -128,23 +137,38 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
               <p className="text-[9px] text-muted-foreground">XP Gained</p>
             </div>
 
-            {/* League Position */}
-            <div className="text-center">
-              <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center mx-auto mb-1">
-                {positionChange > 0 ? <TrendingUp className="w-4 h-4 text-emerald-400" /> :
-                 positionChange < 0 ? <TrendingDown className="w-4 h-4 text-destructive" /> :
-                 <Minus className="w-4 h-4 text-muted-foreground" />}
+            {/* League Position (league only) or Team Rating (friendlies/cups) */}
+            {isLeagueMatch ? (
+              <div className="text-center">
+                <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center mx-auto mb-1">
+                  {positionChange > 0 ? <TrendingUp className="w-4 h-4 text-emerald-400" /> :
+                   positionChange < 0 ? <TrendingDown className="w-4 h-4 text-destructive" /> :
+                   <Minus className="w-4 h-4 text-muted-foreground" />}
+                </div>
+                <p className={cn(
+                  'text-sm font-bold tabular-nums',
+                  positionChange > 0 ? 'text-emerald-400' : positionChange < 0 ? 'text-destructive' : 'text-foreground'
+                )}>
+                  {currentPosition}{getSuffix(currentPosition)}
+                </p>
+                <p className="text-[9px] text-muted-foreground">
+                  {positionChange > 0 ? `Up ${positionChange}` : positionChange < 0 ? `Down ${Math.abs(positionChange)}` : 'No change'}
+                </p>
               </div>
-              <p className={cn(
-                'text-sm font-bold tabular-nums',
-                positionChange > 0 ? 'text-emerald-400' : positionChange < 0 ? 'text-destructive' : 'text-foreground'
-              )}>
-                {currentPosition}{getSuffix(currentPosition)}
-              </p>
-              <p className="text-[9px] text-muted-foreground">
-                {positionChange > 0 ? `Up ${positionChange}` : positionChange < 0 ? `Down ${Math.abs(positionChange)}` : 'No change'}
-              </p>
-            </div>
+            ) : (
+              <div className="text-center">
+                <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center mx-auto mb-1">
+                  <Activity className="w-4 h-4 text-primary" />
+                </div>
+                <p className={cn(
+                  'text-sm font-bold tabular-nums',
+                  teamAvgRating > 0 ? getMatchRatingColor(teamAvgRating) : 'text-muted-foreground'
+                )}>
+                  {teamAvgRating > 0 ? teamAvgRating.toFixed(1) : '—'}
+                </p>
+                <p className="text-[9px] text-muted-foreground">Team Rating</p>
+              </div>
+            )}
 
             {/* Clean Sheet or Goals */}
             <div className="text-center">
