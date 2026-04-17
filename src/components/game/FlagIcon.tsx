@@ -24,12 +24,12 @@ export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconPr
     // No ISO code found — fall back to emoji
     if (fill) {
       return (
-        <div className={cn('w-full h-full flex items-center justify-center text-4xl', className)}>
+        <div title={nationality} className={cn('w-full h-full flex items-center justify-center text-4xl', className)}>
           {getFlag(nationality)}
         </div>
       );
     }
-    return <span className={className}>{getFlag(nationality)}</span>;
+    return <span title={nationality} className={className}>{getFlag(nationality)}</span>;
   }
 
   if (fill) {
@@ -37,6 +37,7 @@ export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconPr
       <img
         src={url}
         alt={`Flag of ${nationality}`}
+        title={nationality}
         loading="lazy"
         decoding="async"
         className={cn('w-full h-full object-cover', className)}
@@ -44,6 +45,7 @@ export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconPr
           const div = document.createElement('div');
           div.textContent = getFlag(nationality);
           div.className = 'w-full h-full flex items-center justify-center text-4xl';
+          div.title = nationality;
           (e.target as HTMLElement).replaceWith(div);
         }}
       />
@@ -55,6 +57,7 @@ export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconPr
     <img
       src={url}
       alt={nationality}
+      title={nationality}
       width={size}
       height={height}
       loading="lazy"
@@ -66,6 +69,7 @@ export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconPr
         const span = document.createElement('span');
         span.textContent = getFlag(nationality);
         span.className = className || '';
+        span.title = nationality;
         (e.target as HTMLElement).replaceWith(span);
       }}
     />

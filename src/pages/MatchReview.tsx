@@ -10,6 +10,38 @@ import { cn } from '@/lib/utils';
 
 import { isPro } from '@/utils/monetization';
 import { GOAL_SCORING_TYPES, GOAL_EVENT_TYPES } from '@/config/matchEngine';
+import type { MatchEvent } from '@/types/game';
+
+// ── Key Highlights display maps (kept near the component to stay readable) ──
+const HIGHLIGHT_TYPES: readonly MatchEvent['type'][] = [
+  'goal', 'own_goal', 'penalty_scored', 'penalty_missed', 'red_card', 'injury',
+  'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal',
+  'solo_goal', 'goalkeeper_error', 'var_check', 'var_disallowed', 'hit_woodwork',
+];
+type HighlightTone = 'goal' | 'card' | 'var' | 'disallowed' | 'neutral';
+const HIGHLIGHT_TONE: Partial<Record<MatchEvent['type'], HighlightTone>> = {
+  goal: 'goal', penalty_scored: 'goal', free_kick_goal: 'goal', long_range_goal: 'goal',
+  counter_attack_goal: 'goal', header_goal: 'goal', solo_goal: 'goal', goalkeeper_error: 'goal',
+  red_card: 'card',
+  var_check: 'var',
+  var_disallowed: 'disallowed',
+};
+const HIGHLIGHT_TONE_CLASS: Record<HighlightTone, { dot: string; text: string }> = {
+  goal:       { dot: 'bg-emerald-400', text: 'text-emerald-400' },
+  card:       { dot: 'bg-red-500',     text: 'text-red-400' },
+  var:        { dot: 'bg-blue-400',    text: 'text-blue-400' },
+  disallowed: { dot: 'bg-red-500',     text: 'text-red-400' },
+  neutral:    { dot: 'bg-amber-400',   text: 'text-amber-400' },
+};
+const HIGHLIGHT_LABEL: Partial<Record<MatchEvent['type'], string>> = {
+  goal: 'GOAL', free_kick_goal: 'FREE KICK', long_range_goal: 'LONG RANGE',
+  counter_attack_goal: 'COUNTER', header_goal: 'HEADER', solo_goal: 'SOLO GOAL',
+  goalkeeper_error: 'GK ERROR', var_check: 'VAR', var_disallowed: 'DISALLOWED',
+  penalty_scored: 'PENALTY', own_goal: 'OWN GOAL', penalty_missed: 'PEN MISSED',
+  red_card: 'RED CARD', injury: 'INJURY', hit_woodwork: 'WOODWORK',
+};
+/** Strip the "VAR CHECK — " prefix so it isn't shown next to the VAR label pill. */
+const stripVarPrefix = (text: string): string => text.replace(/^VAR CHECK\s*—\s*/, '');
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor, areColorsSimilar, getRatingHex } from '@/utils/uiHelpers';
@@ -36,6 +68,7 @@ const MatchReview = () => {
   })));
   const advanceWeek = useGameStore(s => s.advanceWeek);
   const setScreen = useGameStore(s => s.setScreen);
+  const selectPlayer = useGameStore(s => s.selectPlayer);
   const userIsPro = isPro(monetization);
   const [isAdvancing, setIsAdvancing] = useState(false);
 
@@ -196,7 +229,7 @@ const MatchReview = () => {
 
       {/* Key Highlights — animated timeline of the biggest moments */}
       {(() => {
-        const highlights = match.events.filter(e => ['goal', 'own_goal', 'penalty_scored', 'penalty_missed', 'red_card', 'injury', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'solo_goal', 'goalkeeper_error', 'var_check'].includes(e.type));
+        const highlights = match.events.filter(e => (HIGHLIGHT_TYPES as readonly string[]).includes(e.type));
         if (highlights.length === 0) return null;
         return (
           <GlassPanel className="p-4">
@@ -204,7 +237,14 @@ const MatchReview = () => {
             <div className="relative pl-4 border-l border-border/50 space-y-3">
               {highlights.map((ev, i) => {
                 const evPlayer = ev.playerId ? players[ev.playerId] : null;
+                const assistPlayer = ev.assistPlayerId ? players[ev.assistPlayerId] : null;
                 const evClub = clubs[ev.clubId] || (virtualClubs?.[ev.clubId] ? { color: virtualClubs[ev.clubId].color } as Partial<Club> : null);
+                const tone = HIGHLIGHT_TONE[ev.type] ?? 'neutral';
+                const toneClass = HIGHLIGHT_TONE_CLASS[tone];
+                const label = HIGHLIGHT_LABEL[ev.type] ?? ev.type.toUpperCase();
+                const descriptionText = (ev.type === 'var_check' || ev.type === 'var_disallowed')
+                  ? stripVarPrefix(ev.description)
+                  : ev.description;
                 return (
                   <motion.div
                     key={`${ev.type}-${ev.minute}-${i}`}
@@ -213,33 +253,22 @@ const MatchReview = () => {
                     transition={{ delay: i * 0.15, duration: 0.3 }}
                     className="relative"
                   >
-                    <div className={cn(
-                      'absolute -left-[21px] w-2.5 h-2.5 rounded-full border-2 border-background',
-                      (['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'solo_goal', 'goalkeeper_error'].includes(ev.type)) ? 'bg-emerald-400'
-                        : ev.type === 'red_card' ? 'bg-red-500'
-                        : ev.type === 'var_check' ? 'bg-blue-400'
-                        : 'bg-amber-400'
-                    )} />
+                    <div className={cn('absolute -left-[21px] w-2.5 h-2.5 rounded-full border-2 border-background', toneClass.dot)} />
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-mono text-primary tabular-nums w-5">{ev.minute}'</span>
-                      <span className={cn(
-                        'text-[10px] font-bold uppercase tracking-wider',
-                        (['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'solo_goal', 'goalkeeper_error'].includes(ev.type)) ? 'text-emerald-400'
-                          : ev.type === 'red_card' ? 'text-red-400'
-                          : ev.type === 'var_check' ? 'text-blue-400'
-                          : 'text-amber-400'
-                      )}>
-                        {ev.type === 'goal' ? 'GOAL' : ev.type === 'free_kick_goal' ? 'FREE KICK' : ev.type === 'long_range_goal' ? 'LONG RANGE' : ev.type === 'counter_attack_goal' ? 'COUNTER' : ev.type === 'header_goal' ? 'HEADER' : ev.type === 'solo_goal' ? 'SOLO GOAL' : ev.type === 'goalkeeper_error' ? 'GK ERROR' : ev.type === 'var_check' ? 'VAR CHECK' : ev.type === 'penalty_scored' ? 'PENALTY' : ev.type === 'own_goal' ? 'OWN GOAL' : ev.type === 'penalty_missed' ? 'PEN MISSED' : ev.type === 'red_card' ? 'RED CARD' : 'INJURY'}
-                      </span>
+                      <span className={cn('text-[10px] font-bold uppercase tracking-wider', toneClass.text)}>{label}</span>
                       {evClub && (
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: evClub.color }} />
                       )}
                     </div>
                     {evPlayer ? (
                       <div className="mt-1 flex items-center gap-1.5 flex-wrap">
-                        <span
-                          className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-md border bg-background/40"
+                        <button
+                          type="button"
+                          onClick={() => selectPlayer(evPlayer.id)}
+                          className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-md border bg-background/40 hover:bg-background/70 transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50"
                           style={{ borderColor: getRatingHex(evPlayer.overall) }}
+                          aria-label={`View ${evPlayer.firstName} ${evPlayer.lastName}`}
                         >
                           <FlagIcon nationality={evPlayer.nationality} size={12} />
                           <span className="text-[11px] font-semibold text-foreground leading-none">
@@ -251,18 +280,23 @@ const MatchReview = () => {
                           >
                             {evPlayer.overall}
                           </span>
-                        </span>
-                        {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && ev.assistPlayerId && players[ev.assistPlayerId] && (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-primary/70">
+                        </button>
+                        {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && assistPlayer && (
+                          <button
+                            type="button"
+                            onClick={() => selectPlayer(assistPlayer.id)}
+                            className="inline-flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary transition-colors focus:outline-none"
+                            aria-label={`View ${assistPlayer.firstName} ${assistPlayer.lastName}`}
+                          >
                             <span>ast.</span>
-                            <FlagIcon nationality={players[ev.assistPlayerId].nationality} size={10} />
-                            <span>{players[ev.assistPlayerId].lastName}</span>
-                          </span>
+                            <FlagIcon nationality={assistPlayer.nationality} size={10} />
+                            <span>{assistPlayer.lastName}</span>
+                          </button>
                         )}
                       </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground mt-0.5">{ev.description}</p>
-                    )}
+                    ) : descriptionText ? (
+                      <p className="text-xs text-muted-foreground mt-0.5">{descriptionText}</p>
+                    ) : null}
                   </motion.div>
                 );
               })}
@@ -500,7 +534,7 @@ const MatchReview = () => {
           <GlassPanel className="p-3 border-primary/30 bg-primary/5">
             <div className="flex items-center gap-3">
               <div
-                className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center ring-2"
+                className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center"
                 style={{ boxShadow: `inset 0 0 0 2px ${getRatingHex(bestPlayer.overall)}` }}
               >
                 <span className="text-sm font-black text-primary">{best.rating.toFixed(1)}</span>

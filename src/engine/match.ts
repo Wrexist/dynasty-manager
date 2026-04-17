@@ -614,6 +614,15 @@ export function simulateHalf(
   const awayDefQuality = getDefenseQuality(awayPlayers);
   const homeGKSave = getGKSaveChance(homePlayers);
   const awayGKSave = getGKSaveChance(awayPlayers);
+  // Pre-compute per-keeper error chance (scaled by GK quality + weather).
+  // Constant for the match, so we lift it out of the per-minute loop.
+  const computeGKErrorChance = (gkSave: number): number => {
+    const norm = Math.max(0, Math.min(1, (gkSave - GK_SAVE_BASE) / GK_SAVE_RANGE));
+    const qualityMod = 1 - norm * GK_ERROR_QUALITY_REDUCTION;
+    return Math.min(GK_ERROR_BASE_CHANCE * qualityMod + weatherGKErrorMod, GK_ERROR_MAX_CHANCE);
+  };
+  const homeGKErrorChance = computeGKErrorChance(homeGKSave);
+  const awayGKErrorChance = computeGKErrorChance(awayGKSave);
 
   // Carry forward state from previous half or start fresh
   const events: MatchEvent[] = prevState ? [...prevState.events] : [];
@@ -1205,6 +1214,7 @@ export function simulateHalf(
     const atkMods = isHome ? homeMods : awayMods;
     const oppDefense = isHome ? awayDefQuality : homeDefQuality;
     const oppGKSave = isHome ? awayGKSave : homeGKSave;
+    const oppGKErrorChance = isHome ? awayGKErrorChance : homeGKErrorChance;
     const roll = Math.random();
 
     // Tactics shift event type thresholds:
@@ -1423,14 +1433,9 @@ export function simulateHalf(
             }
           }
         }
-      } else if (Math.random() < (() => {
-        // GK error chance is scaled down by the keeper's quality: an elite
-        // shot-stopper commits far fewer clangers than an average/poor one.
-        const gkQualityNorm = Math.max(0, Math.min(1, (oppGKSave - GK_SAVE_BASE) / GK_SAVE_RANGE));
-        const qualityMod = 1 - gkQualityNorm * GK_ERROR_QUALITY_REDUCTION;
-        return Math.min(GK_ERROR_BASE_CHANCE * qualityMod + weatherGKErrorMod, GK_ERROR_MAX_CHANCE);
-      })()) {
-        // Goalkeeper error — fumble leads to a goal (not a shot — GK dropped it)
+      } else if (Math.random() < oppGKErrorChance) {
+        // Goalkeeper error — fumble leads to a goal (not a shot — GK dropped it).
+        // Chance scaled by GK quality + weather, pre-computed once per match.
         if (isHome) homeGoals++; else awayGoals++;
         const gkErrorAssist = pickAssist(squad, scorer.id);
         if (playerEvents[scorer.id]) playerEvents[scorer.id].goals++;
