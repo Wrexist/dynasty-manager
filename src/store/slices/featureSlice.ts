@@ -13,6 +13,7 @@ import { buildTransferTalk } from '@/utils/transferTalk';
 import { getFarewellSummary } from '@/utils/playerNarratives';
 import { getStarPlayerMerch } from '@/utils/merchandise';
 import { STAR_PLAYER_SALE_DIP_WEEKS } from '@/config/merchandise';
+import { placePlayerInClub } from '../helpers/rosterOps';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -247,9 +248,9 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
 
         if (buyerClub) {
           const buyer = { ...buyerClub };
-          buyer.playerIds = [...buyer.playerIds, targetPlayerId];
           buyer.wageBill += player.wage;
           newClubs[buyer.id] = buyer;
+          Object.assign(newClubs, placePlayerInClub(newClubs, buyer.id, targetPlayerId));
           newPlayers[targetPlayerId] = { ...player, clubId: buyer.id, listedForSale: false };
 
           newMessages = addMsg(newMessages, {
@@ -341,9 +342,9 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
             club.wageBill = Math.max(0, club.wageBill - loanWageShare);
 
             const dest = { ...destClub };
-            dest.playerIds = [...dest.playerIds, targetPlayerId];
             dest.wageBill += loanWageShare;
             newClubs[dest.id] = dest;
+            Object.assign(newClubs, placePlayerInClub(newClubs, dest.id, targetPlayerId));
 
             newMessages = addMsg(newMessages, {
               week: state.week, season: state.season, type: 'transfer',
