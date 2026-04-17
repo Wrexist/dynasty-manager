@@ -7,6 +7,7 @@ import { STARTING_TACTICAL_FAMILIARITY, FACILITY_COST_PER_LEVEL, FACILITY_BASE_U
 import { MAX_TACTICAL_PRESETS } from '@/config/monetization';
 import { STAFF_HIRING_FEE_WEEKS } from '@/config/staff';
 import { STAND_INFO } from '@/utils/facilities';
+import { placePlayerInClub } from '../helpers/rosterOps';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -199,8 +200,8 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const club = { ...state.clubs[state.playerClubId] };
     if (club.playerIds.length >= MAX_SQUAD_SIZE) return { success: false, message: `Squad is full (${MAX_SQUAD_SIZE} players). Release or sell a player first.` };
     const updatedPlayer = { ...player, isFromYouthAcademy: true, joinedSeason: player.joinedSeason ?? state.season };
-    club.playerIds = [...club.playerIds, playerId];
     club.wageBill += updatedPlayer.wage;
+    const promotedClubs = placePlayerInClub({ ...state.clubs, [club.id]: club }, club.id, playerId);
     const newProspects = state.youthAcademy.prospects.filter(p => p.playerId !== playerId);
     const newMessages = addMsg(state.messages, {
       week: state.week, season: state.season, type: 'development',
@@ -213,7 +214,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     set({
       players: { ...state.players, [playerId]: updatedPlayer },
       youthAcademy: { ...state.youthAcademy, prospects: newProspects },
-      clubs: { ...state.clubs, [club.id]: club },
+      clubs: promotedClubs,
       messages: newMessages,
       careerTimeline: youthMilestone ? [...state.careerTimeline, youthMilestone] : state.careerTimeline,
     });

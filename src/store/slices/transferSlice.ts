@@ -26,6 +26,7 @@ import { hasPerk, dynastyMult } from '@/utils/managerPerks';
 import { STAR_SIGNING_BUZZ_WEEKS, STAR_PLAYER_SALE_DIP_WEEKS, CAMPAIGN_STAR_SIGNING_MIN_VALUE } from '@/config/merchandise';
 import { getStarPlayerMerch } from '@/utils/merchandise';
 import { CHALLENGES } from '@/data/challenges';
+import { detachPlayerFromAllClubs } from '../helpers/rosterOps';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -64,7 +65,7 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
   sellerClub.subs = sellerClub.subs.filter(id => id !== offer.playerId);
   // Sell-on clause: pay percentage to previous club if applicable
   let sellOnFee = 0;
-  const updatedClubs = { ...state.clubs };
+  let updatedClubs = { ...state.clubs };
   if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== state.playerClubId && updatedClubs[player.sellOnClubId]) {
     sellOnFee = Math.round(fee * (player.sellOnPercentage / 100));
     if (player.sellOnClubId === offer.buyerClubId) {
@@ -94,6 +95,13 @@ const executeSale = (state: GameState, offer: { id: string; playerId: string; bu
 
   updatedClubs[sellerClub.id] = sellerClub;
   updatedClubs[buyer.id] = buyer;
+  // Invariant: strip player id from every other roster, then re-add to buyer.
+  // Protects against stale ownership anywhere else in the map.
+  updatedClubs = detachPlayerFromAllClubs(updatedClubs, offer.playerId);
+  updatedClubs[buyer.id] = {
+    ...updatedClubs[buyer.id],
+    playerIds: [...updatedClubs[buyer.id].playerIds, offer.playerId],
+  };
   const ms = { ...state.managerStats, totalEarned: state.managerStats.totalEarned + netFee };
 
   // Check for farewell
@@ -284,7 +292,7 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     }
 
     // Honor existing sell-on clause: pay percentage to the previous club
-    const updatedClubs = { ...state.clubs };
+    let updatedClubs = { ...state.clubs };
     let sellOnFee = 0;
     let sellOnClubName = '';
     if (player.sellOnPercentage && player.sellOnClubId && player.sellOnClubId !== listing.sellerClubId && updatedClubs[player.sellOnClubId]) {
@@ -338,6 +346,15 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       updatedClubs[oldClub.id] = oldClub;
     }
     updatedClubs[newClub.id] = newClub;
+    // Invariant: strip player id from every other roster, then re-add to
+    // the destination. Protects against stale ownership (external listings,
+    // mis-declared sellers) that would otherwise leave the player on two
+    // clubs' rosters.
+    updatedClubs = detachPlayerFromAllClubs(updatedClubs, playerId);
+    updatedClubs[newClub.id] = {
+      ...updatedClubs[newClub.id],
+      playerIds: [...updatedClubs[newClub.id].playerIds, playerId],
+    };
     // Trigger star signing buzz for big signings
     const merchUpdate: Partial<GameState> = {};
     if (player.value >= CAMPAIGN_STAR_SIGNING_MIN_VALUE) {
@@ -569,7 +586,6 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     if (player.overall > maxFreeAgentOvr) return { success: false, message: `Player quality (${player.overall}) exceeds your club's reputation limit (${maxFreeAgentOvr}).` };
 
     club.budget -= signingBonus;
-    club.playerIds = [...club.playerIds, playerId];
     club.wageBill += wage;
 
     const updatedPlayer = { ...player, clubId: state.playerClubId, wage, contractEnd: state.season + years, joinedSeason: state.season, listedForSale: false, sellOnPercentage: undefined, sellOnClubId: undefined };
@@ -580,9 +596,21 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       playerId,
     });
 
+    // Invariant: strip player from every other roster (stale free-agent
+    // records can leave the player still listed in an AI club), then add
+    // to the signing club.
+    let updatedClubs = detachPlayerFromAllClubs({ ...state.clubs, [club.id]: club }, playerId);
+    updatedClubs = {
+      ...updatedClubs,
+      [club.id]: {
+        ...updatedClubs[club.id],
+        playerIds: [...updatedClubs[club.id].playerIds, playerId],
+      },
+    };
+
     set({
       players: { ...state.players, [playerId]: updatedPlayer },
-      clubs: { ...state.clubs, [club.id]: club },
+      clubs: updatedClubs,
       freeAgents: state.freeAgents.filter(id => id !== playerId),
       shortlist: state.shortlist.filter(id => id !== playerId),
       scoutWatchList: state.scoutWatchList.filter(id => id !== playerId),

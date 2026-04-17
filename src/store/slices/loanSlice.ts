@@ -7,6 +7,7 @@ import {
   LOAN_REQUEST_WAGE_BONUS, LOAN_REQUEST_AGE_BONUS,
   LOAN_REQUEST_COUNTER_CHANCE, LOAN_TERMINATION_MORALE_PENALTY,
 } from '@/config/transfers';
+import { placePlayerInClub } from '../helpers/rosterOps';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -82,9 +83,14 @@ export const createLoanSlice = (set: Set, get: Get) => ({
     const cleanedWatchList = state.scoutWatchList.filter(id => id !== playerId);
     const cleanedMarket = state.transferMarket.filter(l => l.playerId !== playerId);
 
+    const loanOutClubs = placePlayerInClub(
+      { ...state.clubs, [updatedFrom.id]: updatedFrom, [updatedTo.id]: updatedTo },
+      updatedTo.id,
+      playerId,
+    );
     set({
       players: { ...state.players, [playerId]: updatedPlayer },
-      clubs: { ...state.clubs, [updatedFrom.id]: updatedFrom, [updatedTo.id]: updatedTo },
+      clubs: loanOutClubs,
       activeLoans: [...state.activeLoans, loan],
       messages: newMessages,
       shortlist: cleanedShortlist, scoutWatchList: cleanedWatchList, transferMarket: cleanedMarket,
@@ -135,9 +141,14 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       playerId: loan.playerId,
     });
 
+    const recallClubs = placePlayerInClub(
+      { ...state.clubs, [fromClub.id]: fromClub, [toClub.id]: toClub },
+      fromClub.id,
+      loan.playerId,
+    );
     set({
       players: { ...state.players, [loan.playerId]: updatedPlayer },
-      clubs: { ...state.clubs, [fromClub.id]: fromClub, [toClub.id]: toClub },
+      clubs: recallClubs,
       activeLoans: state.activeLoans.filter(l => l.id !== loanId),
       messages: newMessages,
     });
@@ -207,9 +218,14 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       playerId: offer.playerId,
     });
 
+    const respondClubs = placePlayerInClub(
+      { ...state.clubs, [sellerClub.id]: sellerClub, [buyerClub.id]: buyerClub },
+      buyerClub.id,
+      offer.playerId,
+    );
     set({
       players: { ...state.players, [offer.playerId]: updatedPlayer },
-      clubs: { ...state.clubs, [sellerClub.id]: sellerClub, [buyerClub.id]: buyerClub },
+      clubs: respondClubs,
       activeLoans: [...state.activeLoans, loan],
       incomingLoanOffers: newOffers.filter(o => o.playerId !== offer.playerId),
       transferMarket: state.transferMarket.filter(l => l.playerId !== offer.playerId),
@@ -284,6 +300,8 @@ export const createLoanSlice = (set: Set, get: Get) => ({
 
         newClubs[fromClub.id] = fromClub;
         newClubs[toClub.id] = toClub;
+        // Invariant: player is only in toClub's roster
+        Object.assign(newClubs, placePlayerInClub(newClubs, toClub.id, loan.playerId));
 
         newMessages = addMsg(newMessages, {
           week: state.week, season: state.season, type: 'transfer',
@@ -304,15 +322,13 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         // Notify if obligatory buy failed due to insufficient funds
         const buyFailed = loan.obligatoryBuyFee && toClub.budget < loan.obligatoryBuyFee;
 
-        toClub.playerIds = toClub.playerIds.filter(id => id !== loan.playerId);
-        toClub.lineup = toClub.lineup.filter(id => id !== loan.playerId);
-        toClub.subs = toClub.subs.filter(id => id !== loan.playerId);
         toClub.wageBill = Math.max(0, toClub.wageBill - Math.round(player.wage * loan.wageSplit / 100));
-
-        if (!fromClub.playerIds.includes(loan.playerId)) {
-          fromClub.playerIds = [...fromClub.playerIds, loan.playerId];
-        }
         fromClub.wageBill += Math.round(player.wage * loan.wageSplit / 100);
+
+        newClubs[toClub.id] = toClub;
+        newClubs[fromClub.id] = fromClub;
+        // Invariant: player is only in fromClub's roster
+        Object.assign(newClubs, placePlayerInClub(newClubs, fromClub.id, loan.playerId));
 
         newPlayers[loan.playerId] = {
           ...player,
@@ -321,9 +337,6 @@ export const createLoanSlice = (set: Set, get: Get) => ({
           loanToClubId: undefined,
           clubId: loan.fromClubId,
         };
-
-        newClubs[fromClub.id] = fromClub;
-        newClubs[toClub.id] = toClub;
 
         const returnBody = buyFailed
           ? `${player.firstName} ${player.lastName} has returned from loan at ${toClub.name}. The obligatory buy clause (£${(loan.obligatoryBuyFee! / 1e6).toFixed(1)}M) could not be activated — ${toClub.name} lacked sufficient funds.`
@@ -374,9 +387,14 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       body: `${player.firstName} ${player.lastName}'s loan has been converted to a permanent deal for £${(fee / 1e6).toFixed(1)}M.`,
     });
 
+    const buyLoanedClubs = placePlayerInClub(
+      { ...state.clubs, [buyerClub.id]: buyerClub, [sellerClub.id]: sellerClub },
+      buyerClub.id,
+      loan.playerId,
+    );
     set({
       players: { ...state.players, [loan.playerId]: updatedPlayer },
-      clubs: { ...state.clubs, [buyerClub.id]: buyerClub, [sellerClub.id]: sellerClub },
+      clubs: buyLoanedClubs,
       activeLoans: state.activeLoans.filter(l => l.id !== loanId),
       messages: newMessages,
       shortlist: state.shortlist.filter(id => id !== loan.playerId),
@@ -430,9 +448,14 @@ export const createLoanSlice = (set: Set, get: Get) => ({
       body: `${player.firstName} ${player.lastName}'s loan at ${toClub.name} has been terminated early by mutual consent.`,
     });
 
+    const terminateClubs = placePlayerInClub(
+      { ...state.clubs, [fromClub.id]: fromClub, [toClub.id]: toClub },
+      fromClub.id,
+      loan.playerId,
+    );
     set({
       players: { ...state.players, [loan.playerId]: updatedPlayer },
-      clubs: { ...state.clubs, [fromClub.id]: fromClub, [toClub.id]: toClub },
+      clubs: terminateClubs,
       activeLoans: state.activeLoans.filter(l => l.id !== loanId),
       messages: newMessages,
     });
@@ -540,9 +563,14 @@ export const createLoanSlice = (set: Set, get: Get) => ({
         playerId,
       });
 
+      const incomingLoanClubs = placePlayerInClub(
+        { ...state.clubs, [updatedOwner.id]: updatedOwner, [updatedUser.id]: updatedUser },
+        updatedUser.id,
+        playerId,
+      );
       set({
         players: { ...state.players, [playerId]: updatedPlayer },
-        clubs: { ...state.clubs, [updatedOwner.id]: updatedOwner, [updatedUser.id]: updatedUser },
+        clubs: incomingLoanClubs,
         activeLoans: [...state.activeLoans, loan],
         messages: newMessages,
       });
