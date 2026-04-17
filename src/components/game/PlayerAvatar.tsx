@@ -82,7 +82,6 @@ export const PlayerAvatar = memo(function PlayerAvatar({
 
   const gradientId = `jb-bg-${uid}`;
   const shineId = `jb-sh-${uid}`;
-  const shadowId = `jb-ds-${uid}`;
 
   const ariaLabelParts = [
     num ? `Jersey ${num}` : 'Jersey',
@@ -152,12 +151,6 @@ export const PlayerAvatar = memo(function PlayerAvatar({
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </linearGradient>
         )}
-        {isLarge && (
-          <radialGradient id={shadowId} cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0%" stopColor="rgba(0,0,0,0.25)" />
-            <stop offset="100%" stopColor="rgba(0,0,0,0)" />
-          </radialGradient>
-        )}
       </defs>
 
       {/* Shirt body */}
@@ -169,18 +162,25 @@ export const PlayerAvatar = memo(function PlayerAvatar({
         strokeLinejoin="round"
       />
 
-      {/* Cuff trim bands (medium+) — colored stripe using secondary/trim */}
+      {/* Cuff trim bands (medium+) — thick stroke along the cuff underside
+          so the trim is guaranteed to sit on the sleeve, not outside it. */}
       {isMedium && (
         <>
           <path
-            d="M21.9 7.6 Q20.6 8 19.8 7.1 L19.9 6.3 Q20.9 7.0 22.2 6.8 Z"
-            fill={trim}
-            opacity="0.85"
+            d="M19.5 7 Q20.2 8 21.6 8"
+            stroke={trim}
+            strokeWidth={isLarge ? 1.1 : 0.9}
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.9"
           />
           <path
-            d="M2.1 7.6 Q3.4 8 4.2 7.1 L4.1 6.3 Q3.1 7.0 1.8 6.8 Z"
-            fill={trim}
-            opacity="0.85"
+            d="M4.5 7 Q3.8 8 2.4 8"
+            stroke={trim}
+            strokeWidth={isLarge ? 1.1 : 0.9}
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.9"
           />
         </>
       )}
