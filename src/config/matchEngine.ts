@@ -39,8 +39,8 @@ export const SCORER_POSITION_WEIGHTS: Record<string, number> = {
 export const SCORER_SHOOTING_INFLUENCE = 1.5;
 /** Fitness bonus on top of position weight */
 export const SCORER_FITNESS_INFLUENCE = 0.3;
-/** Form bonus — form is 0-100, 50 is neutral. Shifts weight by ±0.2 at the extremes. */
-export const SCORER_FORM_INFLUENCE = 0.4;
+/** Form bonus — form is 0-100, 50 is neutral. At extremes (form=0/100) shifts weight by ±0.75. */
+export const SCORER_FORM_INFLUENCE = 1.5;
 
 // ── Assist Selection ──
 /** Probability of awarding an assist on a goal */
