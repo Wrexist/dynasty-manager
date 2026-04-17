@@ -24,6 +24,9 @@ import {
   CONTRACT_PREFERRED_YEARS_BRACKETS, CONTRACT_PREFERRED_YEARS_DEFAULT,
   CONTRACT_YEARS_ACCEPTANCE_BONUS, CONTRACT_YEARS_ACCEPTANCE_PENALTY,
   CONTRACT_YEARS_MOOD_PENALTY, CONTRACT_YEARS_MOOD_BONUS,
+  RELEASE_CLAUSE_MIN_MULTIPLIER, RELEASE_CLAUSE_FAIR_MULTIPLIER, RELEASE_CLAUSE_MODERATE_MULTIPLIER,
+  RELEASE_CLAUSE_FAIR_GAP_BONUS, RELEASE_CLAUSE_MODERATE_GAP_BONUS,
+  RELEASE_CLAUSE_FAIR_MOOD_BONUS, RELEASE_CLAUSE_MODERATE_MOOD_BONUS,
 } from '@/config/contracts';
 
 export type ContractUrgency = 'expired' | 'near' | null;
@@ -139,7 +142,34 @@ export function createContractOffer(
     round: 1,
     status: 'in_progress',
     playerMood: willingness,
+    playerValue: player.value,
   };
+}
+
+/** Release clause appeal tier based on clause/value ratio — relevant to player acceptance. */
+export type ReleaseClauseTier = 'none' | 'fair' | 'moderate' | 'high';
+
+export function getReleaseClauseTier(clause: number | undefined, value: number | undefined): ReleaseClauseTier {
+  if (!clause || clause <= 0 || !value || value <= 0) return 'none';
+  const ratio = clause / value;
+  if (ratio < RELEASE_CLAUSE_MIN_MULTIPLIER) return 'none'; // too low to qualify as a protection
+  if (ratio <= RELEASE_CLAUSE_FAIR_MULTIPLIER) return 'fair';
+  if (ratio <= RELEASE_CLAUSE_MODERATE_MULTIPLIER) return 'moderate';
+  return 'high';
+}
+
+function getReleaseClauseGapBonus(clause: number | undefined, value: number | undefined): number {
+  const tier = getReleaseClauseTier(clause, value);
+  if (tier === 'fair') return RELEASE_CLAUSE_FAIR_GAP_BONUS;
+  if (tier === 'moderate') return RELEASE_CLAUSE_MODERATE_GAP_BONUS;
+  return 0;
+}
+
+function getReleaseClauseMoodBonus(clause: number | undefined, value: number | undefined): number {
+  const tier = getReleaseClauseTier(clause, value);
+  if (tier === 'fair') return RELEASE_CLAUSE_FAIR_MOOD_BONUS;
+  if (tier === 'moderate') return RELEASE_CLAUSE_MODERATE_MOOD_BONUS;
+  return 0;
 }
 
 /**
@@ -164,7 +194,8 @@ export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): Contr
   const yearsAdjustment = yearsDiff > 0
     ? yearsDiff * CONTRACT_YEARS_ACCEPTANCE_BONUS
     : yearsDiff * CONTRACT_YEARS_ACCEPTANCE_PENALTY;
-  const adjustedGap = gap + yearsAdjustment + iconStatusBonus;
+  const clauseBonus = getReleaseClauseGapBonus(offer.releaseClause, offer.playerValue);
+  const adjustedGap = gap + yearsAdjustment + iconStatusBonus + clauseBonus;
 
   // Player accepts if offer meets or exceeds demand (adjusted for years), or close enough + willing
   if (
@@ -193,7 +224,9 @@ export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): Contr
   const yearsMoodChange = yearsDiff > 0
     ? yearsDiff * CONTRACT_YEARS_MOOD_BONUS
     : yearsDiff * CONTRACT_YEARS_MOOD_PENALTY;
-  const moodChange = wageMoodChange + yearsMoodChange;
+  // A fair clause softens the player's reaction to a weaker wage offer (they feel respected)
+  const clauseMoodChange = getReleaseClauseMoodBonus(offer.releaseClause, offer.playerValue);
+  const moodChange = wageMoodChange + yearsMoodChange + clauseMoodChange;
 
   return {
     ...offer,
@@ -225,9 +258,12 @@ export function getAcceptanceHint(
   playerAge: number,
   offeredYears: number,
   playerMood: number,
+  releaseClause?: number,
+  playerValue?: number,
 ): { text: string; colorClass: string } {
   const yearsAdj = getYearsAdjustment(playerAge, offeredYears);
-  const adjustedGap = wageGap + yearsAdj;
+  const clauseBonus = getReleaseClauseGapBonus(releaseClause, playerValue);
+  const adjustedGap = wageGap + yearsAdj + clauseBonus;
 
   if (
     adjustedGap >= CONTRACT_GAP_ACCEPT ||

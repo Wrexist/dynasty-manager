@@ -337,7 +337,7 @@ export interface GameState {
 
   // Actions — Contract Negotiation
   startNegotiation: (playerId: string, isRenewal: boolean) => { success: boolean; lockedWeeks?: number } | void;
-  submitWageOffer: (wage: number, years?: number) => void;
+  submitWageOffer: (wage: number, years?: number, releaseClause?: number) => void;
   cancelNegotiation: () => void;
 
   // Actions — Challenge Mode

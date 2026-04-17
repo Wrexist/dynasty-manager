@@ -2,14 +2,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
-import { X, ArrowRight, Check, AlertTriangle, Minus, Plus, Calendar } from 'lucide-react';
-import { formatWage, getPreferredYears, getYearsAdjustment, getAcceptanceHint } from '@/utils/contracts';
+import { X, ArrowRight, Check, AlertTriangle, Minus, Plus, Calendar, ShieldCheck } from 'lucide-react';
+import { formatWage, getPreferredYears, getYearsAdjustment, getAcceptanceHint, getReleaseClauseTier } from '@/utils/contracts';
 import { getMoodColor, getMoodLabel, getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { motion } from 'framer-motion';
-import { hapticMedium } from '@/utils/haptics';
+import { hapticMedium, hapticHeavy } from '@/utils/haptics';
+import { playSfxTransferAccepted } from '@/utils/audio';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS, CONTRACT_MAX_STRIKES } from '@/config/contracts';
+import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS, CONTRACT_MAX_STRIKES, RELEASE_CLAUSE_FAIR_MULTIPLIER, RELEASE_CLAUSE_MODERATE_MULTIPLIER } from '@/config/contracts';
 
 export function ContractNegotiation() {
   const { activeNegotiation, players, clubs, playerClubId } = useGameStore(useShallow(s => ({
@@ -20,6 +21,8 @@ export function ContractNegotiation() {
   const getContractStrikes = useGameStore(s => s.getContractStrikes);
   const [customWage, setCustomWage] = useState<number | null>(null);
   const [customYears, setCustomYears] = useState<number | null>(null);
+  const [customClause, setCustomClause] = useState<number | null>(null);
+  const [clauseEnabled, setClauseEnabled] = useState<boolean | null>(null);
   const submittingRef = useRef(false);
 
   useScrollLock(!!activeNegotiation);
@@ -32,6 +35,14 @@ export function ContractNegotiation() {
   useEffect(() => {
     submittingRef.current = false;
   }, [activeNegotiation?.round, activeNegotiation?.status]);
+
+  // Celebrate a successful signing with sound + stronger haptic
+  useEffect(() => {
+    if (activeNegotiation?.status === 'accepted') {
+      playSfxTransferAccepted();
+      hapticHeavy();
+    }
+  }, [activeNegotiation?.status]);
 
   if (!activeNegotiation) return null;
 
@@ -46,14 +57,27 @@ export function ContractNegotiation() {
   const yearsDiff = currentYears - preferredYears;
   const yearsAdj = getYearsAdjustment(activeNegotiation.playerAge, currentYears);
   const yearsAdjPct = Math.round(yearsAdj * 100);
-  const acceptanceHint = getAcceptanceHint(gap, activeNegotiation.playerAge, currentYears, activeNegotiation.playerMood);
+
+  // Release clause state — derive effective values from user overrides + current offer
+  const playerValue = activeNegotiation.playerValue ?? player.value;
+  const fairClause = Math.max(1, Math.round(playerValue * RELEASE_CLAUSE_FAIR_MULTIPLIER));
+  const clauseOn = clauseEnabled ?? (activeNegotiation.releaseClause ? true : false);
+  const effectiveClauseAmount = clauseOn ? (customClause ?? activeNegotiation.releaseClause ?? fairClause) : 0;
+  const clauseTier = getReleaseClauseTier(effectiveClauseAmount || undefined, playerValue);
+  const acceptanceHint = getAcceptanceHint(gap, activeNegotiation.playerAge, currentYears, activeNegotiation.playerMood, effectiveClauseAmount || undefined, playerValue);
 
   const handleSubmit = () => {
     if (submittingRef.current) return;
     submittingRef.current = true;
-    submitWageOffer(customWage ?? activeNegotiation.offeredWage, customYears ?? activeNegotiation.contractYears);
+    submitWageOffer(
+      customWage ?? activeNegotiation.offeredWage,
+      customYears ?? activeNegotiation.contractYears,
+      clauseOn ? effectiveClauseAmount : 0,
+    );
     setCustomWage(null);
     setCustomYears(null);
+    setCustomClause(null);
+    setClauseEnabled(null);
   };
 
   const moodColor = getMoodColor(activeNegotiation.playerMood);
@@ -118,7 +142,10 @@ export function ContractNegotiation() {
               <Check className="w-5 h-5 text-emerald-400" />
               <div>
                 <p className="text-sm font-bold text-emerald-400">Deal Agreed!</p>
-                <p className="text-xs text-muted-foreground">{player.lastName} signs at {formatWage(activeNegotiation.offeredWage)} for {activeNegotiation.contractYears} year(s)</p>
+                <p className="text-xs text-muted-foreground">
+                  {player.lastName} signs at {formatWage(activeNegotiation.offeredWage)} for {activeNegotiation.contractYears} year(s)
+                  {activeNegotiation.releaseClause && activeNegotiation.releaseClause > 0 ? ` · Release clause £${(activeNegotiation.releaseClause / 1e6).toFixed(1)}M` : ''}
+                </p>
               </div>
             </div>
           )}
@@ -310,6 +337,70 @@ export function ContractNegotiation() {
                 <p className={cn('text-[10px] text-right', acceptanceHint.colorClass)}>
                   {acceptanceHint.text}
                 </p>
+              </div>
+
+              {/* Release Clause — optional protection for the player */}
+              <div className={cn(
+                'rounded-xl p-3 space-y-2 border',
+                clauseOn
+                  ? clauseTier === 'fair' ? 'bg-emerald-500/5 border-emerald-500/25'
+                    : clauseTier === 'moderate' ? 'bg-amber-500/5 border-amber-500/20'
+                    : clauseTier === 'high' ? 'bg-muted/20 border-border/40'
+                    : 'bg-destructive/5 border-destructive/20'
+                  : 'bg-muted/20 border-border/40',
+              )}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Release Clause</span>
+                  </div>
+                  <button
+                    onClick={() => setClauseEnabled(!clauseOn)}
+                    className={cn(
+                      'text-[10px] px-2 py-0.5 rounded-md font-semibold border transition-colors',
+                      clauseOn ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-muted/50 border-border/40 text-muted-foreground',
+                    )}
+                  >
+                    {clauseOn ? 'Included' : 'Not offered'}
+                  </button>
+                </div>
+
+                {clauseOn && (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="range"
+                        min={Math.max(1_000_000, Math.round(playerValue))}
+                        max={Math.max(2_000_000, Math.round(playerValue * (RELEASE_CLAUSE_MODERATE_MULTIPLIER + 1)))}
+                        step={Math.max(100_000, Math.round(playerValue * 0.05))}
+                        value={effectiveClauseAmount}
+                        onChange={(e) => setCustomClause(Number(e.target.value))}
+                        style={{ touchAction: 'auto' }}
+                        className="w-full h-1.5 rounded-full accent-primary cursor-pointer"
+                      />
+                      <span className="text-xs font-semibold text-foreground tabular-nums min-w-[56px] text-right">
+                        £{(effectiveClauseAmount / 1e6).toFixed(1)}M
+                      </span>
+                    </div>
+                    <p className={cn(
+                      'text-[10px]',
+                      clauseTier === 'fair' ? 'text-emerald-400/80' :
+                      clauseTier === 'moderate' ? 'text-amber-400/80' :
+                      clauseTier === 'high' ? 'text-muted-foreground' :
+                      'text-destructive/80',
+                    )}>
+                      {clauseTier === 'fair' && 'Fair clause — appeals to the player (acceptance boost)'}
+                      {clauseTier === 'moderate' && 'Moderate clause — small acceptance boost'}
+                      {clauseTier === 'high' && 'High clause — unlikely to trigger, little appeal to player'}
+                      {clauseTier === 'none' && `Clause below £${(playerValue / 1e6).toFixed(1)}M value — not a real protection`}
+                    </p>
+                  </>
+                )}
+                {!clauseOn && (
+                  <p className="text-[10px] text-muted-foreground">
+                    Adding a release clause gives the player a guaranteed exit price — they'll be more willing to sign.
+                  </p>
+                )}
               </div>
 
               {/* Budget Impact */}

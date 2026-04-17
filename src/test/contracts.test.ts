@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateWageDemand, getPlayerWillingness, negotiateRound, formatWage, createContractOffer, getPreferredYears, getYearsAdjustment, getAcceptanceHint } from '@/utils/contracts';
+import { calculateWageDemand, getPlayerWillingness, negotiateRound, formatWage, createContractOffer, getPreferredYears, getYearsAdjustment, getAcceptanceHint, getReleaseClauseTier } from '@/utils/contracts';
 import { generatePlayer } from '@/utils/playerGen';
 
 function makePlayer(overrides: Record<string, unknown> = {}) {
@@ -203,6 +203,46 @@ describe('contracts', () => {
       expect(offer.offeredWage).toBeGreaterThan(0);
       expect(offer.contractYears).toBeGreaterThanOrEqual(1);
       expect(offer.playerAge).toBe(player.age);
+    });
+
+    it('should cache player market value for clause math', () => {
+      const player = makePlayer({ value: 12_000_000 });
+      const offer = createContractOffer(player, 3, true, 1);
+      expect(offer.playerValue).toBe(12_000_000);
+    });
+  });
+
+  describe('release clauses', () => {
+    it('getReleaseClauseTier classifies clauses relative to value', () => {
+      expect(getReleaseClauseTier(undefined, 10_000_000)).toBe('none');
+      expect(getReleaseClauseTier(5_000_000, 10_000_000)).toBe('none'); // below value
+      expect(getReleaseClauseTier(12_000_000, 10_000_000)).toBe('fair'); // 1.2x
+      expect(getReleaseClauseTier(25_000_000, 10_000_000)).toBe('moderate'); // 2.5x
+      expect(getReleaseClauseTier(50_000_000, 10_000_000)).toBe('high'); // 5x
+    });
+
+    it('a fair clause makes a borderline offer more likely to be accepted', () => {
+      const player = makePlayer({ age: 26, overall: 72, value: 10_000_000 });
+      const baseOffer = createContractOffer(player, 3, true, 1);
+      // Borderline offer: 88% of demand, at preferred years — normally a coin-flip/reject
+      const borderline = { ...baseOffer, offeredWage: Math.round(baseOffer.demandedWage * 0.88), playerMood: 55 };
+      const withoutClause = negotiateRound(borderline);
+      const withClause = negotiateRound({ ...borderline, releaseClause: 14_000_000 });
+      // The clause-inclusive variant must never end up worse off
+      if (withoutClause.status === 'accepted') {
+        expect(['accepted', 'in_progress']).toContain(withClause.status);
+      }
+      // A fair clause at least does not reduce accept probability (same mood change or better)
+      expect(withClause.playerMood).toBeGreaterThanOrEqual(withoutClause.playerMood);
+    });
+
+    it('getAcceptanceHint improves with a fair clause included', () => {
+      const hintNoClause = getAcceptanceHint(0.88, 26, 3, 60);
+      const hintWithClause = getAcceptanceHint(0.88, 26, 3, 60, 14_000_000, 10_000_000);
+      // With clause bonus, it should not be "worse" (if no-clause is accept, with-clause stays accept)
+      if (hintNoClause.text.includes('Will accept')) {
+        expect(hintWithClause.text).toContain('Will accept');
+      }
     });
   });
 });

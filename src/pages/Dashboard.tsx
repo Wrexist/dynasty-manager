@@ -640,7 +640,29 @@ const Dashboard = () => {
           onClick={() => setScreen('squad')}
           urgent
         />
-      ) : null}
+      ) : (() => {
+        const urgentExpiring = expiringPlayers.filter(p => p.overall >= 70);
+        const isLateSeason = week >= 30;
+        if (urgentExpiring.length > 0 && isLateSeason) {
+          const star = [...urgentExpiring].sort((a, b) => b.overall - a.overall)[0];
+          const extra = urgentExpiring.length - 1;
+          return (
+            <NextActionCard
+              icon={AlertTriangle}
+              label="Contract Urgent"
+              title={`${star.lastName}'s contract expiring`}
+              description={
+                extra > 0
+                  ? `${star.firstName} ${star.lastName} and ${extra} other key player${extra === 1 ? '' : 's'} will leave on a free if not renewed this season.`
+                  : `${star.firstName} ${star.lastName} will leave on a free unless you negotiate a renewal.`
+              }
+              onClick={() => setScreen('squad')}
+              urgent
+            />
+          );
+        }
+        return null;
+      })()}
 
       {/* Club Identity Hero */}
       {!seasonOver && !inPlayoffs && (

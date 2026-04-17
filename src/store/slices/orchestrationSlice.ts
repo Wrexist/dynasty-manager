@@ -106,13 +106,12 @@ import { PENALTY_CONVERSION_RATE, SHOUT_MODIFIERS, SHOUT_CUMULATIVE_SCALE, GOAL_
 import { calculatePlayerValue } from '@/config/playerGeneration';
 import {
   VERDICT_EXCELLENT_OFFSET, VERDICT_ACCEPTABLE_OFFSET, BOARD_SACKING_THRESHOLD,
-  STORYLINE_CHAIN_TRIGGER_CHANCE, STORYLINE_CHAIN_MIN_WEEK,
 } from '@/config/playoffs';
 import { applyPlayerDevelopment, resetSeasonGrowth, hydrateSeasonGrowth, seasonGrowthTracker } from '@/store/helpers/development';
 import { applySeasonTurnover, applyPromotionRelegation, generateReplacementClub } from '@/utils/promotionRelegation';
 import { generateStorylines } from '@/utils/storylines';
-import { STORYLINE_CHAINS, shouldTriggerChain } from '@/data/storylineChains';
-import type { ActiveStorylineChain, StorylineEvent } from '@/types/game';
+import { processStorylineChains } from '@/store/helpers/storylineChains';
+import type { StorylineEvent } from '@/types/game';
 import { getTournamentForSeason, generateTournament, processGroupWeek, generateKnockoutBracket, processKnockoutRound, autoSelectNationalSquad, generateNationalTeamPool } from '@/utils/international';
 import { NATIONAL_CALLUP_MORALE_BOOST, INTERNATIONAL_FITNESS_COST, NT_JOB_REHIRE_REPUTATION, NT_JOB_OFFER_DURATION_WEEKS, REP_INTL_TOURNAMENT_WIN, REP_INTL_FINAL, REP_INTL_SEMI, REP_INTL_KNOCKOUT, REP_INTL_GROUP_EXIT, NT_SACK_GROUP_EXIT_THRESHOLD } from '@/config/gameBalance';
 import { generateRandomEvents } from '@/utils/randomEvents';
@@ -3767,134 +3766,24 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pendingStorylineEvent = storylineResult.event;
     }
 
-    // ── Multi-week Storyline Chains ──
-    // Helper: interpolate {playerName} in storyline text using chain's target player
-    const interpolatePlayerName = (text: string, chain: ActiveStorylineChain) => {
-      if (!chain.targetPlayerId) return text;
-      const p = newPlayers[chain.targetPlayerId];
-      const name = p ? `${p.firstName} ${p.lastName}` : 'your star player';
-      return text.replace(/\{playerName\}/g, name);
-    };
-    const interpolateEvent = (event: StorylineEvent, chain: ActiveStorylineChain): StorylineEvent => ({
-      ...event,
-      body: interpolatePlayerName(event.body, chain),
-      options: event.options.map(opt => ({
-        ...opt,
-        text: interpolatePlayerName(opt.text, chain),
-        effects: chain.targetPlayerId ? { ...opt.effects, targetPlayerId: chain.targetPlayerId } : opt.effects,
-      })),
+    // ── Multi-week Storyline Chains (extracted to helpers/storylineChains) ──
+    const chainResult = processStorylineChains({
+      week: newWeek,
+      season,
+      players: newPlayers,
+      playerClubId,
+      boardConfidence,
+      recentResults,
+      activeChains: state.activeStorylineChains || [],
+      completedChainIds: state.completedStorylineChainIds || [],
+      messages: newMessages,
+      pendingStorylineEvent,
+      clubs,
     });
-
-    const newCompletedChainIds = [...(state.completedStorylineChainIds || [])];
-    const updatedChains: ActiveStorylineChain[] = (state.activeStorylineChains || []).reduce<ActiveStorylineChain[]>((kept, chain) => {
-      const chainDef = STORYLINE_CHAINS.find(c => c.id === chain.chainId);
-      if (!chainDef) return kept; // Remove chains with no definition
-
-      const nextStepIdx = chain.currentStep + 1;
-      if (nextStepIdx >= chainDef.steps.length) {
-        // Chain complete — add completion summary and track as completed
-        newCompletedChainIds.push(chain.chainId);
-        const targetPlayer = chain.targetPlayerId ? newPlayers[chain.targetPlayerId] : null;
-        const playerLabel = targetPlayer ? `${targetPlayer.firstName} ${targetPlayer.lastName}` : 'Your star player';
-        const lastChoice = chain.choices[chain.choices.length - 1];
-        const lastStep = chainDef.steps[chainDef.steps.length - 1];
-        const chosenOption = lastStep?.options[lastChoice];
-        const outcomeText = chosenOption ? `You chose: "${chosenOption.label}".` : '';
-        newMessages = addMsg(newMessages, {
-          week: newWeek, season, type: 'general',
-          title: `${chainDef.name} — Resolved`,
-          body: `The ${playerLabel} saga is over. ${outcomeText}`,
-        });
-        return kept; // Remove completed chain
-      }
-
-      const nextStep = chainDef.steps[nextStepIdx];
-      const dueWeek = chain.startWeek + nextStep.weekOffset;
-
-      if (newWeek >= dueWeek) {
-        // Check if this step requires a specific previous choice
-        if (nextStep.requiredPrevChoice !== undefined) {
-          const prevChoice = chain.choices[chain.choices.length - 1];
-          if (prevChoice !== nextStep.requiredPrevChoice) {
-            // Skip this step — try the next one or end the chain
-            kept.push({ ...chain, currentStep: nextStepIdx });
-            return kept;
-          }
-        }
-
-        // Trigger this chain step as a storyline event (only if no other event is pending)
-        if (!pendingStorylineEvent) {
-          const rawEvent: StorylineEvent = {
-            id: `chain-${chain.chainId}-step-${nextStepIdx}`,
-            title: nextStep.title,
-            body: nextStep.body,
-            icon: nextStep.icon,
-            options: nextStep.options,
-          };
-          pendingStorylineEvent = interpolateEvent(rawEvent, chain);
-          kept.push({ ...chain, currentStep: nextStepIdx });
-        } else {
-          kept.push(chain);
-        }
-      } else {
-        kept.push(chain);
-      }
-      return kept;
-    }, []);
-
-    // Try to start a new chain (max 1 active, 15% chance per week)
-    if (updatedChains.length === 0 && Math.random() < STORYLINE_CHAIN_TRIGGER_CHANCE && newWeek >= STORYLINE_CHAIN_MIN_WEEK) {
-      const playerClub = clubs[playerClubId];
-      const squadPlayers = Object.values(newPlayers).filter(p => p.clubId === playerClubId);
-      const clubsList = Object.values(clubs);
-      const avgBudget = clubsList.length > 0 ? clubsList.reduce((s, c) => s + c.budget, 0) / clubsList.length : 0;
-      const completedChainIds = new Set<string>(newCompletedChainIds);
-      for (const chainDef of STORYLINE_CHAINS) {
-        if (completedChainIds.has(chainDef.id)) continue;
-        const triggered = shouldTriggerChain(chainDef.id, {
-          week: newWeek,
-          recentWins: recentResults.won,
-          recentLosses: recentResults.lost,
-          boardConfidence,
-          hasStarPlayer: squadPlayers.some(p => p.overall >= 75),
-          hasYouthProspect: squadPlayers.some(p => p.age <= 21 && p.potential >= 75),
-          budget: playerClub?.budget || 0,
-          averageBudget: avgBudget,
-        });
-        if (triggered) {
-          // Identify the target player for player-specific chains
-          let targetPlayerId: string | undefined;
-          if (chainDef.id === 'star-player-transfer-saga') {
-            const starPlayer = squadPlayers
-              .filter(p => p.overall >= 75 && !p.injured && !p.onLoan && !p.wantsToLeave && !p.listedForSale)
-              .sort((a, b) => b.overall - a.overall)[0];
-            if (starPlayer) targetPlayerId = starPlayer.id;
-          }
-
-          const newChain: ActiveStorylineChain = {
-            chainId: chainDef.id,
-            startWeek: newWeek,
-            currentStep: 0,
-            choices: [],
-            targetPlayerId,
-          };
-
-          const firstStep = chainDef.steps[0];
-          if (!pendingStorylineEvent) {
-            const rawEvent: StorylineEvent = {
-              id: `chain-${chainDef.id}-step-0`,
-              title: firstStep.title,
-              body: firstStep.body,
-              icon: firstStep.icon,
-              options: firstStep.options,
-            };
-            pendingStorylineEvent = interpolateEvent(rawEvent, newChain);
-          }
-          updatedChains.push(newChain);
-          break;
-        }
-      }
-    }
+    const updatedChains = chainResult.updatedChains;
+    const newCompletedChainIds = chainResult.completedChainIds;
+    newMessages = chainResult.messages;
+    pendingStorylineEvent = chainResult.pendingStorylineEvent;
 
     // Contract expiry warnings — escalating urgency + morale impact for unhappy players
     if ((CONTRACT_WARNING_WEEKS as readonly number[]).includes(newWeek)) {

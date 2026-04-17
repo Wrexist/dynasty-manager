@@ -110,3 +110,17 @@ export const CONTRACT_STRIKE_COOLDOWN_WEEKS = 8;
 // ── Contract Expiry Visibility ──
 /** How many seasons ahead to flag a contract as "near expiry" on squad views */
 export const CONTRACT_NEAR_EXPIRY_SEASONS = 1;
+
+// ── Release Clauses ──
+/** Minimum release clause as a multiplier of player market value. Below this = not a real protection. */
+export const RELEASE_CLAUSE_MIN_MULTIPLIER = 1.0;
+/** "Fair" release clause cap — below or equal yields the biggest appeal to the player. */
+export const RELEASE_CLAUSE_FAIR_MULTIPLIER = 1.5;
+/** Moderate appeal: clause up to this multiplier still grants a mood bonus. */
+export const RELEASE_CLAUSE_MODERATE_MULTIPLIER = 3.0;
+/** Effective gap bonus added to negotiation when a fair clause is offered. */
+export const RELEASE_CLAUSE_FAIR_GAP_BONUS = 0.08;
+export const RELEASE_CLAUSE_MODERATE_GAP_BONUS = 0.04;
+/** Player mood lift on initial offer when a fair clause is included. */
+export const RELEASE_CLAUSE_FAIR_MOOD_BONUS = 10;
+export const RELEASE_CLAUSE_MODERATE_MOOD_BONUS = 5;

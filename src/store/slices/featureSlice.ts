@@ -438,13 +438,17 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     return { success: true };
   },
 
-  submitWageOffer: (wage: number, years?: number) => {
+  submitWageOffer: (wage: number, years?: number, releaseClause?: number) => {
     const state = get();
     const offer = state.activeNegotiation;
     if (!offer || offer.status !== 'in_progress') return;
 
     const updated = { ...offer, offeredWage: wage };
     if (years !== undefined) updated.contractYears = years;
+    // 0 or undefined clears the clause; positive values set it
+    if (releaseClause !== undefined) {
+      updated.releaseClause = releaseClause > 0 ? releaseClause : undefined;
+    }
     const iconBonus = hasPerk(state.managerProgression, 'icon_status') ? 0.2 : 0;
     const result = negotiateRound(updated, iconBonus);
 
@@ -459,6 +463,8 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
         wage: result.offeredWage,
         contractEnd: state.season + result.contractYears,
         morale: Math.min(100, player.morale + 10),
+        // Persist clause on acceptance; undefined removes any prior clause
+        releaseClause: result.releaseClause && result.releaseClause > 0 ? result.releaseClause : undefined,
       };
 
       // Deduct agent fee from budget
@@ -468,10 +474,13 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
       club.wageBill = Math.max(0, club.wageBill - player.wage + result.offeredWage);
       newClubs[state.playerClubId] = club;
 
+      const clauseSuffix = result.releaseClause && result.releaseClause > 0
+        ? ` Release clause: £${(result.releaseClause / 1e6).toFixed(1)}M.`
+        : '';
       const newMessages = addMsg(state.messages, {
         week: state.week, season: state.season, type: 'contract',
         title: `${player.lastName} Signs!`,
-        body: `${player.firstName} ${player.lastName} has agreed a ${result.contractYears}-year deal at ${formatWage(result.offeredWage)}. Agent fee: £${(result.agentFee / 1000).toFixed(0)}K.`,
+        body: `${player.firstName} ${player.lastName} has agreed a ${result.contractYears}-year deal at ${formatWage(result.offeredWage)}. Agent fee: £${(result.agentFee / 1000).toFixed(0)}K.${clauseSuffix}`,
       });
 
       // Clear strikes on successful deal — atomic with the acceptance update

@@ -1194,6 +1194,10 @@ export interface ContractOffer {
   round: number;       // negotiation round (1-3)
   status: NegotiationStatus;
   playerMood: number;  // 0-100, willingness to accept
+  /** Optional release clause offered. When set, acceptance is boosted proportionally to value. */
+  releaseClause?: number;
+  /** Cached player market value at offer time (used to scale release-clause mood bonus). */
+  playerValue?: number;
 }
 
 // ── Challenge Mode ──
