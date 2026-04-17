@@ -12,7 +12,8 @@ import { isPro } from '@/utils/monetization';
 import { GOAL_SCORING_TYPES, GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
-import { getConfidenceColor, getMatchRatingColor, areColorsSimilar } from '@/utils/uiHelpers';
+import { getConfidenceColor, getMatchRatingColor, areColorsSimilar, getRatingHex } from '@/utils/uiHelpers';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { generateMatchInsights } from '@/utils/matchInsights';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getDerbyName, getDerbyIntensity } from '@/data/league';
@@ -234,12 +235,34 @@ const MatchReview = () => {
                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: evClub.color }} />
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {evPlayer ? `${evPlayer.firstName} ${evPlayer.lastName}` : ev.description}
-                      {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && ev.assistPlayerId && players[ev.assistPlayerId] && (
-                        <span className="text-primary/60"> (ast. {players[ev.assistPlayerId].lastName})</span>
-                      )}
-                    </p>
+                    {evPlayer ? (
+                      <div className="mt-1 flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className="inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-md border bg-background/40"
+                          style={{ borderColor: getRatingHex(evPlayer.overall) }}
+                        >
+                          <FlagIcon nationality={evPlayer.nationality} size={12} />
+                          <span className="text-[11px] font-semibold text-foreground leading-none">
+                            {evPlayer.firstName} {evPlayer.lastName}
+                          </span>
+                          <span
+                            className="text-[10px] font-bold tabular-nums leading-none"
+                            style={{ color: getRatingHex(evPlayer.overall) }}
+                          >
+                            {evPlayer.overall}
+                          </span>
+                        </span>
+                        {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && ev.assistPlayerId && players[ev.assistPlayerId] && (
+                          <span className="inline-flex items-center gap-1 text-[10px] text-primary/70">
+                            <span>ast.</span>
+                            <FlagIcon nationality={players[ev.assistPlayerId].nationality} size={10} />
+                            <span>{players[ev.assistPlayerId].lastName}</span>
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground mt-0.5">{ev.description}</p>
+                    )}
                   </motion.div>
                 );
               })}
@@ -259,7 +282,10 @@ const MatchReview = () => {
               return (
                 <div key={`goal-${g.minute}-${g.playerId || i}`} className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground tabular-nums w-6 shrink-0">{g.minute}'</span>
-                  <span className="text-xs text-foreground">
+                  {scorer ? (
+                    <FlagIcon nationality={scorer.nationality} size={12} className="shrink-0" />
+                  ) : null}
+                  <span className="text-xs text-foreground truncate">
                     {scorer ? `${scorer.firstName} ${scorer.lastName}` : 'Unknown'}
                     {g.type === 'penalty_scored' && <span className="text-muted-foreground"> (pen)</span>}
                     {g.type === 'own_goal' && <span className="text-amber-400"> (OG)</span>}
@@ -271,6 +297,14 @@ const MatchReview = () => {
                     {g.type === 'goalkeeper_error' && <span className="text-muted-foreground"> (GKE)</span>}
                     {(GOAL_EVENT_TYPES as readonly string[]).includes(g.type) && g.type !== 'penalty_scored' && assister && <span className="text-muted-foreground"> (ast. {assister.lastName})</span>}
                   </span>
+                  {scorer && (
+                    <span
+                      className="text-[10px] font-bold tabular-nums shrink-0"
+                      style={{ color: getRatingHex(scorer.overall) }}
+                    >
+                      {scorer.overall}
+                    </span>
+                  )}
                   <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clubs[g.clubId]?.color || virtualClubs?.[g.clubId]?.color }} />
                 </div>
               );
@@ -354,14 +388,25 @@ const MatchReview = () => {
                 if (!player) return null;
                 const isMotm = r.playerId === motmId;
                 return (
-                  <div key={r.playerId} className={cn('flex items-center gap-2', isMotm && 'bg-primary/10 rounded-lg px-2 py-1 -mx-2')}>
+                  <div
+                    key={r.playerId}
+                    className={cn('flex items-center gap-2 border-l-2 pl-2', isMotm && 'bg-primary/10 rounded-lg py-1')}
+                    style={{ borderLeftColor: getRatingHex(player.overall) }}
+                  >
                     <span className={cn(
                       'w-6 text-center text-xs font-bold',
                       getMatchRatingColor(r.rating)
                     )}>
                       {r.rating.toFixed(1)}
                     </span>
+                    <FlagIcon nationality={player.nationality} size={12} className="shrink-0" />
                     <span className="text-xs text-foreground flex-1 truncate">{player.lastName}</span>
+                    <span
+                      className="text-[10px] font-bold tabular-nums shrink-0"
+                      style={{ color: getRatingHex(player.overall) }}
+                    >
+                      {player.overall}
+                    </span>
                     {isMotm && <Star className="w-3.5 h-3.5 text-primary shrink-0" />}
                     {r.goals > 0 && <span className="text-[10px] text-emerald-400">{r.goals}G</span>}
                     {r.assists > 0 && <span className="text-[10px] text-primary">{r.assists}A</span>}
@@ -383,8 +428,9 @@ const MatchReview = () => {
               return (
                 <div key={`inj-${i}`} className="flex items-center gap-2 text-xs">
                   <HeartPulse className="w-3.5 h-3.5 text-destructive shrink-0" />
+                  {p && <FlagIcon nationality={p.nationality} size={11} className="shrink-0" />}
                   <span className="text-foreground">{p?.lastName || 'Unknown'} — Injured</span>
-                  <span className="text-muted-foreground">{e.minute}'</span>
+                  <span className="text-muted-foreground ml-auto tabular-nums">{e.minute}'</span>
                 </div>
               );
             })}
@@ -393,8 +439,9 @@ const MatchReview = () => {
               return (
                 <div key={`card-${i}`} className="flex items-center gap-2 text-xs">
                   {e.type === 'yellow_card' ? <YellowCardIcon size={10} /> : <RedCardIcon size={10} />}
+                  {p && <FlagIcon nationality={p.nationality} size={11} className="shrink-0" />}
                   <span className="text-foreground">{p?.lastName || 'Unknown'}</span>
-                  <span className="text-muted-foreground">{e.minute}'</span>
+                  <span className="text-muted-foreground ml-auto tabular-nums">{e.minute}'</span>
                 </div>
               );
             })}
@@ -452,12 +499,24 @@ const MatchReview = () => {
         return (
           <GlassPanel className="p-3 border-primary/30 bg-primary/5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center">
+              <div
+                className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center ring-2"
+                style={{ boxShadow: `inset 0 0 0 2px ${getRatingHex(bestPlayer.overall)}` }}
+              >
                 <span className="text-sm font-black text-primary">{best.rating.toFixed(1)}</span>
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Man of the Match</p>
-                <p className="text-sm font-bold text-foreground">{bestPlayer.firstName} {bestPlayer.lastName}</p>
+                <div className="flex items-center gap-1.5">
+                  <FlagIcon nationality={bestPlayer.nationality} size={14} className="shrink-0" />
+                  <p className="text-sm font-bold text-foreground truncate">{bestPlayer.firstName} {bestPlayer.lastName}</p>
+                  <span
+                    className="text-[10px] font-bold tabular-nums shrink-0"
+                    style={{ color: getRatingHex(bestPlayer.overall) }}
+                  >
+                    {bestPlayer.overall}
+                  </span>
+                </div>
                 <p className="text-[10px] text-muted-foreground">
                   {best.goals > 0 ? `${best.goals}G ` : ''}{best.assists > 0 ? `${best.assists}A ` : ''}{bestPlayer.position}
                 </p>

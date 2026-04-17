@@ -379,7 +379,7 @@ export const WEATHER_PASSING_MOD: Record<string, number> = { clear: 0, rain: -0.
 export const WEATHER_PACE_MOD: Record<string, number> = { clear: 0, rain: -0.04, snow: -0.10, wind: -0.02 };
 export const WEATHER_FOUL_MOD: Record<string, number> = { clear: 0, rain: 0.04, snow: 0.06, wind: 0.02 };
 export const PITCH_SHOT_MOD: Record<string, number> = { excellent: 0.02, good: 0, poor: -0.04, waterlogged: -0.08 };
-export const WEATHER_GK_ERROR_MOD: Record<string, number> = { clear: 0, rain: 0.015, snow: 0.02, wind: 0.005 };
+export const WEATHER_GK_ERROR_MOD: Record<string, number> = { clear: 0, rain: 0.004, snow: 0.006, wind: 0.002 };
 
 // ── New Event Type Chances ──
 export const FREE_KICK_GOAL_CHANCE = 0.08;
@@ -387,8 +387,13 @@ export const LONG_RANGE_GOAL_CHANCE = 0.10;
 export const COUNTER_ATTACK_GOAL_CHANCE = 0.12;
 export const HEADER_GOAL_CHANCE = 0.06;
 export const SOLO_GOAL_CHANCE = 0.06;
-export const GK_ERROR_BASE_CHANCE = 0.03;
-export const GK_ERROR_MAX_CHANCE = 0.08;
+// Realistic GK errors that lead to a goal are rare (~1 per 4-6 matches across both sides).
+// Base chance is evaluated ONCE per non-saved shot attempt; the effective rate is scaled
+// down by the opposing GK's quality, so elite keepers make clangers roughly half as often.
+export const GK_ERROR_BASE_CHANCE = 0.015;
+export const GK_ERROR_MAX_CHANCE = 0.04;
+/** Fraction of base chance removed for an elite GK (norm 1.0). Poor GKs pay full base. */
+export const GK_ERROR_QUALITY_REDUCTION = 0.55;
 export const VAR_CHECK_CHANCE = 0.12;
 /** Chance that a VAR review actually disallows the goal (offside, handball, foul in buildup) */
 export const VAR_DISALLOW_CHANCE = 0.08;
