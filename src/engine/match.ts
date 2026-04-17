@@ -16,8 +16,7 @@ import {
   GOAL_SCORING_TYPES,
   FORMATION_FIT_MAX_BONUS,
   ATTACKER_POSITIONS, MIDFIELDER_POSITIONS,
-  ATTACKER_SHOOTING_WEIGHT, ATTACKER_FITNESS_WEIGHT,
-  ATTACKER_SELECTION_CHANCE, MIDFIELDER_SELECTION_CHANCE,
+  SCORER_POSITION_WEIGHTS, SCORER_SHOOTING_INFLUENCE, SCORER_FITNESS_INFLUENCE, SCORER_FORM_INFLUENCE,
   ASSIST_CHANCE, ASSIST_PASSING_WEIGHT, ASSIST_MENTAL_WEIGHT,
   MENTALITY_ATTACK_MOD, MENTALITY_DEFENSE_MOD,
   TEMPO_SHOT_MOD, DEFENSIVE_LINE_COUNTER_VULN, WIDTH_POSSESSION_MOD,
@@ -128,28 +127,30 @@ function getFormationFitBonus(players: Player[], formation: FormationType): numb
   return fitRatio * FORMATION_FIT_MAX_BONUS;
 }
 
-/** Pick an attacker weighted by shooting quality and fitness */
+/** Pick a goal scorer weighted by position role, shooting skill, fitness, and current form.
+ *  Forwards >> midfielders >> defenders. GKs are excluded from open-play scoring unless
+ *  they are the only players left (extreme red-card edge case). */
 function pickAttacker(players: Player[]): Player {
-  const attackers = players.filter(p => (ATTACKER_POSITIONS as readonly string[]).includes(p.position));
-  const midfielders = players.filter(p => (MIDFIELDER_POSITIONS as readonly string[]).includes(p.position));
+  // Exclude GKs — they don't score in open play
+  const pool = players.filter(p => p.position !== 'GK');
+  const candidates = pool.length > 0 ? pool : players;
+  if (candidates.length === 1) return candidates[0];
 
-  // Weight selection by shooting + fitness
-  const weightedPick = (candidates: Player[]): Player => {
-    if (candidates.length === 0) return pick(players);
-    const weights = candidates.map(p => (p.attributes.shooting * ATTACKER_SHOOTING_WEIGHT + p.fitness * ATTACKER_FITNESS_WEIGHT) / 100);
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-    if (totalWeight <= 0) return candidates[Math.floor(Math.random() * candidates.length)];
-    let r = Math.random() * totalWeight;
-    for (let i = 0; i < candidates.length; i++) {
-      r -= weights[i];
-      if (r <= 0) return candidates[i];
-    }
-    return candidates[candidates.length - 1];
-  };
-
-  if (attackers.length > 0 && Math.random() < ATTACKER_SELECTION_CHANCE) return weightedPick(attackers);
-  if (midfielders.length > 0 && Math.random() < MIDFIELDER_SELECTION_CHANCE) return weightedPick(midfielders);
-  return weightedPick(players);
+  const weights = candidates.map(p => {
+    const posWeight = SCORER_POSITION_WEIGHTS[p.position] ?? 0.3;
+    const shootingBonus = (p.attributes.shooting / 100) * SCORER_SHOOTING_INFLUENCE;
+    const fitnessBonus = (p.fitness / 100) * SCORER_FITNESS_INFLUENCE;
+    const formBonus = ((p.form - 50) / 100) * SCORER_FORM_INFLUENCE;
+    return Math.max(0.01, posWeight + shootingBonus + fitnessBonus + formBonus);
+  });
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  if (totalWeight <= 0) return candidates[Math.floor(Math.random() * candidates.length)];
+  let r = Math.random() * totalWeight;
+  for (let i = 0; i < candidates.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return candidates[i];
+  }
+  return candidates[candidates.length - 1];
 }
 
 /** Pick the best penalty taker weighted by shooting + mental */
@@ -1586,7 +1587,10 @@ export function simulateHalf(
 
       // Penalty: defending team fouls attacker in the box
       if (Math.random() < PENALTY_FROM_FOUL_CHANCE) {
-        const atkEligible = squad.filter(p => !unavailable.has(p.id));
+        const atkEligibleAll = squad.filter(p => !unavailable.has(p.id));
+        const atkEligible = atkEligibleAll.filter(p => p.position !== 'GK').length > 0
+          ? atkEligibleAll.filter(p => p.position !== 'GK')
+          : atkEligibleAll;
         if (atkEligible.length > 0) {
           // Prefer designated penalty taker if on the pitch
           const designatedTaker = club.penaltyTakerId ? atkEligible.find(p => p.id === club.penaltyTakerId) : null;
