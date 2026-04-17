@@ -9,7 +9,7 @@ import type { Player } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 57;
+const CURRENT_VERSION = 58;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -821,6 +821,22 @@ const migrations: Record<number, MigrationFn> = {
       }
     }
     return { ...data, version: 57 };
+  },
+
+  // v57 → v58: Default set-piece routines for every club.
+  // Clubs now choose a corner routine (near-post / far-post / short / driven-low)
+  // and free-kick routine (curled / driven / short-pass / dummy-run).
+  57: (data) => {
+    const clubs = data.clubs as Record<string, Record<string, unknown>> | undefined;
+    if (clubs) {
+      for (const cid of Object.keys(clubs)) {
+        const c = clubs[cid];
+        if (c && c.setPieceRoutines === undefined) {
+          c.setPieceRoutines = { corner: 'far-post-delivery', freeKick: 'curled-direct' };
+        }
+      }
+    }
+    return { ...data, version: 58 };
   },
 };
 

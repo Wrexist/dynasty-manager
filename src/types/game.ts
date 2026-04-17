@@ -125,6 +125,15 @@ export interface PlayerPersonality {
 
 export type PersonalityLabel = 'Model Professional' | 'Born Leader' | 'Club Legend' | 'Maverick' | 'Loyal Servant' | 'Steady Hand' | 'Hot Head' | 'Enigma' | 'Ambitious' | 'Laid Back' | 'Determined';
 
+// ── Set Piece Routines ──
+export type CornerRoutine = 'near-post-flick' | 'far-post-delivery' | 'short-corner' | 'driven-low';
+export type FreeKickRoutine = 'curled-direct' | 'driven-power' | 'short-pass' | 'dummy-run';
+
+export interface SetPieceRoutines {
+  corner: CornerRoutine;
+  freeKick: FreeKickRoutine;
+}
+
 // ── Injury System ──
 export type InjuryType = 'knock' | 'muscle_strain' | 'hamstring' | 'ligament' | 'fracture' | 'concussion' | 'acl';
 export type InjurySeverity = 'minor' | 'moderate' | 'severe';
@@ -235,6 +244,8 @@ export interface Club {
   setPieceTakerId?: string;
   /** Player ID assigned as penalty taker */
   penaltyTakerId?: string;
+  /** Set piece routines that flavour corner and free-kick outcomes */
+  setPieceRoutines?: SetPieceRoutines;
   stadiumName?: string;
   stadiumCapacity?: number;
 }

@@ -13,6 +13,7 @@ import { pick } from '@/utils/helpers';
 import { getChemistryBonus } from '@/utils/chemistry';
 import { getCardRiskMultiplier } from '@/utils/personality';
 import { getRoleWeights } from '@/utils/playerRoles';
+import { getCornerRoutine, getFreeKickRoutine, applyCornerHeaderBias } from '@/utils/setPieces';
 import {
   FORMATION_FIT_MAX_BONUS,
   ATTACKER_POSITIONS, MIDFIELDER_POSITIONS,
@@ -1332,8 +1333,10 @@ export function simulateHalf(
               fkScorer = designatedTaker;
             }
           }
-          const freeKickThreshold = (club.setPieceTakerId && fkScorer.id === club.setPieceTakerId) ? 60 : 70;
-          if (fkScorer.attributes.shooting >= freeKickThreshold) {
+          const fkRoutine = getFreeKickRoutine(club);
+          const baseThreshold = (club.setPieceTakerId && fkScorer.id === club.setPieceTakerId) ? 60 : 70;
+          const freeKickThreshold = baseThreshold + fkRoutine.thresholdShift;
+          if (fkScorer.attributes.shooting >= freeKickThreshold && Math.random() < fkRoutine.goalChanceMult) {
             goalType = 'free_kick_goal';
             const fkScorerName = `${fkScorer.firstName} ${fkScorer.lastName}`;
             goalDescription = pick(freeKickGoalDescs)(fkScorerName, clubName);
@@ -1416,18 +1419,25 @@ export function simulateHalf(
         // Corner chance from saved shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_SAVE_CHANCE + widthCornerBonus) {
           if (isHome) homeCorners++; else awayCorners++;
-          // Corner goal attempt — designated set-piece taker improves delivery
+          // Corner goal attempt — designated set-piece taker improves delivery,
+          // routine choice flavours the outcome (near-post / far-post / short / driven-low).
+          const cornerRoutine = getCornerRoutine(club);
           const setPieceBonus = (club.setPieceTakerId && eligibleSquad.some(p => p.id === club.setPieceTakerId)) ? SET_PIECE_TAKER_CORNER_BONUS : 0;
           const perkSetPieceBonus = (isHome && setPieceCoachBonus) ? setPieceCoachBonus : 0;
-          if (Math.random() < CORNER_GOAL_CHANCE + setPieceBonus + perkSetPieceBonus) {
+          const cornerGoalThreshold = (CORNER_GOAL_CHANCE + setPieceBonus + perkSetPieceBonus) * cornerRoutine.goalChanceMult;
+          if (Math.random() < cornerGoalThreshold) {
             const headerCandidates = eligibleSquad.filter(p => p.position !== 'GK');
             if (headerCandidates.length > 0) {
-              const headerWeights = headerCandidates.map(p => p.attributes.physical * CORNER_GOAL_PHYSICAL_WEIGHT + p.attributes.defending * CORNER_GOAL_DEFENDING_WEIGHT);
+              const headerWeights = headerCandidates.map(p => {
+                const base = p.attributes.physical * CORNER_GOAL_PHYSICAL_WEIGHT + p.attributes.defending * CORNER_GOAL_DEFENDING_WEIGHT;
+                return applyCornerHeaderBias(base, p.attributes.physical, p.attributes.shooting, cornerRoutine.physicalBias);
+              });
               const tw = headerWeights.reduce((a, b) => a + b, 0);
               let rr = Math.random() * tw;
               let header = headerCandidates[0];
               for (let i = 0; i < headerCandidates.length; i++) { rr -= headerWeights[i]; if (rr <= 0) { header = headerCandidates[i]; break; } }
-              if (Math.random() < Math.max(CORNER_HEADER_MIN_CHANCE, (header.attributes.physical / 100) * CORNER_HEADER_PHYSICAL_SCALE)) {
+              const conversionChance = Math.max(CORNER_HEADER_MIN_CHANCE, (header.attributes.physical / 100) * CORNER_HEADER_PHYSICAL_SCALE) + cornerRoutine.headerConversionBonus;
+              if (Math.random() < conversionChance) {
                 if (isHome) homeGoals++; else awayGoals++;
                 if (isHome) { homeShots++; homeSoT++; } else { awayShots++; awaySoT++; }
                 if (playerEvents[header.id]) playerEvents[header.id].goals++;
