@@ -67,7 +67,8 @@ import {
   WEATHER_WEIGHTS, PITCH_WEIGHTS, WEATHER_PASSING_MOD, WEATHER_PACE_MOD, WEATHER_FOUL_MOD,
   PITCH_SHOT_MOD, WEATHER_GK_ERROR_MOD,
   FREE_KICK_GOAL_CHANCE, LONG_RANGE_GOAL_CHANCE, COUNTER_ATTACK_GOAL_CHANCE,
-  HEADER_GOAL_CHANCE, SOLO_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
+  HEADER_GOAL_CHANCE, SOLO_GOAL_CHANCE, GK_ERROR_BASE_CHANCE, GK_ERROR_MAX_CHANCE, GK_ERROR_QUALITY_REDUCTION,
+  VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
   FREE_KICK_SET_PIECE_TAKER_CHANCE,
   WEATHER_SUFFIX_CHANCE, DERBY_SUFFIX_CHANCE,
 } from '@/config/matchEngine';
@@ -613,6 +614,15 @@ export function simulateHalf(
   const awayDefQuality = getDefenseQuality(awayPlayers);
   const homeGKSave = getGKSaveChance(homePlayers);
   const awayGKSave = getGKSaveChance(awayPlayers);
+  // Pre-compute per-keeper error chance (scaled by GK quality + weather).
+  // Constant for the match, so we lift it out of the per-minute loop.
+  const computeGKErrorChance = (gkSave: number): number => {
+    const norm = Math.max(0, Math.min(1, (gkSave - GK_SAVE_BASE) / GK_SAVE_RANGE));
+    const qualityMod = 1 - norm * GK_ERROR_QUALITY_REDUCTION;
+    return Math.min(GK_ERROR_BASE_CHANCE * qualityMod + weatherGKErrorMod, GK_ERROR_MAX_CHANCE);
+  };
+  const homeGKErrorChance = computeGKErrorChance(homeGKSave);
+  const awayGKErrorChance = computeGKErrorChance(awayGKSave);
 
   // Carry forward state from previous half or start fresh
   const events: MatchEvent[] = prevState ? [...prevState.events] : [];
@@ -1204,6 +1214,7 @@ export function simulateHalf(
     const atkMods = isHome ? homeMods : awayMods;
     const oppDefense = isHome ? awayDefQuality : homeDefQuality;
     const oppGKSave = isHome ? awayGKSave : homeGKSave;
+    const oppGKErrorChance = isHome ? awayGKErrorChance : homeGKErrorChance;
     const roll = Math.random();
 
     // Tactics shift event type thresholds:
@@ -1422,8 +1433,9 @@ export function simulateHalf(
             }
           }
         }
-      } else if (Math.random() < Math.min(GK_ERROR_BASE_CHANCE + weatherGKErrorMod, GK_ERROR_MAX_CHANCE)) {
-        // Goalkeeper error — fumble leads to a goal (not a shot — GK dropped it)
+      } else if (Math.random() < oppGKErrorChance) {
+        // Goalkeeper error — fumble leads to a goal (not a shot — GK dropped it).
+        // Chance scaled by GK quality + weather, pre-computed once per match.
         if (isHome) homeGoals++; else awayGoals++;
         const gkErrorAssist = pickAssist(squad, scorer.id);
         if (playerEvents[scorer.id]) playerEvents[scorer.id].goals++;
@@ -1435,7 +1447,8 @@ export function simulateHalf(
           : Math.max(-100, momentum - MOMENTUM_GOAL_SWING);
         const gkName = oppGK ? oppGK.lastName : 'the keeper';
         events.push({
-          minute: min, type: 'goalkeeper_error', playerId: scorer.id, assistPlayerId: gkErrorAssist?.id, clubId: club.id,
+          minute: min, type: 'goalkeeper_error', playerId: scorer.id, assistPlayerId: gkErrorAssist?.id,
+          goalkeeperId: oppGK?.id, clubId: club.id,
           description: withContextSuffix(pick(gkErrorDescs)(scorer.lastName, gkName, club.shortName)) + (gkErrorAssist ? ` (assist: ${gkErrorAssist.lastName})` : ''),
           momentum, homeXG, awayXG,
         });

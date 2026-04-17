@@ -38,6 +38,15 @@ export function getRatingColor(value: number): string {
   return 'text-muted-foreground';
 }
 
+/** Get a hex color matching the player-rating tier (for inline style borders/strokes). */
+export function getRatingHex(value: number | undefined): string {
+  if (value == null) return '#6b7280';
+  if (value >= 80) return '#34d399';
+  if (value >= 70) return '#38bdf8';
+  if (value >= 60) return '#fbbf24';
+  return '#6b7280';
+}
+
 /** Gold/silver/bronze halo (shadow + ring) for a player overall rating. Empty for <60. */
 export function getTierGlowClass(overall: number): string {
   if (overall >= 80) return 'shadow-[0_0_24px_rgba(251,191,36,0.35)] ring-1 ring-amber-400/30';
