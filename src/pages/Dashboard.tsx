@@ -352,7 +352,7 @@ const Dashboard = () => {
     return [...nearby].sort((a, b) => a - b).slice(0, 5).map(i => ({
       clubId: leagueTable[i].clubId,
       shortName: clubs[leagueTable[i].clubId]?.shortName || '?',
-      color: clubs[leagueTable[i].clubId]?.color,
+      color: clubs[leagueTable[i].clubId]?.color ?? '#6b7280',
       points: leagueTable[i].points,
       position: i + 1,
       isPlayer: leagueTable[i].clubId === playerClubId,

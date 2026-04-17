@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 
 import { isPro } from '@/utils/monetization';
 import { GOAL_SCORING_TYPES, GOAL_EVENT_TYPES } from '@/config/matchEngine';
+import { INJURY_TYPES } from '@/config/gameBalance';
 import type { MatchEvent } from '@/types/game';
 
 // ── Key Highlights display maps (kept near the component to stay readable) ──
@@ -110,7 +111,7 @@ const MatchReview = () => {
   const xpDoubleClaimContext = `match_w${week}_${match.homeClubId}_${match.awayClubId}_${match.homeGoals}-${match.awayGoals}_${lastMatchCompetition || 'league'}`;
 
   // Goals
-  const goals = match.events.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type));
+  const goals = match.events.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type)).sort((a, b) => a.minute - b.minute);
   const injuries = match.events.filter(e => e.type === 'injury');
   const cards = match.events.filter(e => e.type === 'yellow_card' || e.type === 'red_card');
 
@@ -296,7 +297,7 @@ const MatchReview = () => {
                     const evPlayer = ev.playerId ? players[ev.playerId] : null;
                     const assistPlayer = ev.assistPlayerId ? players[ev.assistPlayerId] : null;
                     const gkPlayer = ev.goalkeeperId ? players[ev.goalkeeperId] : null;
-                    const evClub = clubs[ev.clubId] || (virtualClubs?.[ev.clubId] ? { color: virtualClubs[ev.clubId].color } as Partial<Club> : null);
+                    const evClub = clubs[ev.clubId] ?? (virtualClubs?.[ev.clubId] ? { color: virtualClubs[ev.clubId].color } as Partial<Club> : null);
                     const tone = HIGHLIGHT_TONE[ev.type] ?? 'neutral';
                     const toneClass = HIGHLIGHT_TONE_CLASS[tone];
                     const label = HIGHLIGHT_LABEL[ev.type] ?? ev.type.toUpperCase();
@@ -395,7 +396,7 @@ const MatchReview = () => {
                       {scorer.overall}
                     </span>
                   )}
-                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clubs[g.clubId]?.color || virtualClubs?.[g.clubId]?.color }} />
+                  <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: clubs[g.clubId]?.color || virtualClubs?.[g.clubId]?.color || '#6b7280' }} />
                 </div>
               );
             })}
@@ -406,7 +407,12 @@ const MatchReview = () => {
       {/* Match Stats */}
       {match.stats && (
         <GlassPanel className="p-4">
-          <h3 className="text-sm font-semibold text-foreground mb-3">Match Stats</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-2">Match Stats</h3>
+          <div className="flex items-center justify-between text-[10px] font-bold mb-3">
+            <span style={{ color: homeBarColor }}>{homeClub.shortName}</span>
+            <span className="text-muted-foreground/40 uppercase tracking-widest text-[8px]">vs</span>
+            <span style={{ color: awayBarColor }}>{awayClub.shortName}</span>
+          </div>
           <div className="space-y-2.5">
             {[
               { label: 'Possession', home: `${match.stats.homePossession}%`, away: `${match.stats.awayPossession}%`, homeVal: match.stats.homePossession, awayVal: match.stats.awayPossession },
@@ -515,22 +521,34 @@ const MatchReview = () => {
           <div className="space-y-1.5">
             {injuries.map((e, i) => {
               const p = e.playerId ? players[e.playerId] : null;
+              const injDetails = p?.injuryDetails;
+              const injLabel = injDetails ? (INJURY_TYPES[injDetails.type]?.label ?? 'Injured') : 'Injured';
+              const injWeeks = p?.injuryWeeks;
               return (
                 <div key={`inj-${i}`} className="flex items-center gap-2 text-xs">
                   <HeartPulse className="w-3.5 h-3.5 text-destructive shrink-0" />
                   {p && <FlagIcon nationality={p.nationality} size={11} className="shrink-0" />}
-                  <span className="text-foreground">{p?.lastName || 'Unknown'} — Injured</span>
+                  <span className="text-foreground">
+                    {p?.lastName || 'Unknown'} — {injLabel}
+                    {injWeeks ? <span className="text-muted-foreground"> ({injWeeks} wk{injWeeks !== 1 ? 's' : ''})</span> : null}
+                  </span>
                   <span className="text-muted-foreground ml-auto tabular-nums">{e.minute}'</span>
                 </div>
               );
             })}
             {cards.map((e, i) => {
               const p = e.playerId ? players[e.playerId] : null;
+              const banWeeks = (e.type === 'red_card' && p?.suspendedUntilWeek)
+                ? p.suspendedUntilWeek - week
+                : null;
               return (
                 <div key={`card-${i}`} className="flex items-center gap-2 text-xs">
                   {e.type === 'yellow_card' ? <YellowCardIcon size={10} /> : <RedCardIcon size={10} />}
                   {p && <FlagIcon nationality={p.nationality} size={11} className="shrink-0" />}
-                  <span className="text-foreground">{p?.lastName || 'Unknown'}</span>
+                  <span className="text-foreground">
+                    {p?.lastName || 'Unknown'}
+                    {banWeeks != null && banWeeks > 0 && <span className="text-muted-foreground"> — {banWeeks} match ban</span>}
+                  </span>
                   <span className="text-muted-foreground ml-auto tabular-nums">{e.minute}'</span>
                 </div>
               );
