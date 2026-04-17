@@ -73,6 +73,7 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
         <div className="shrink-0">
           <PlayerAvatar
             jerseyColor={clubColor}
+            secondaryColor={club?.secondaryColor}
             jerseyNumber={jerseyNumber}
             overall={player.overall}
             position={player.position}

@@ -1,17 +1,17 @@
 /**
  * Jersey Badge — professional football shirt representation.
  *
- * Renders a stylized football shirt SVG with proper sleeves, collar,
- * club color, and rating-tier border. Scales from tiny pitch markers
- * (6 SVG units) to medium detail views (52px).
+ * Renders a stylized football shirt SVG with rounded sleeves, crew collar,
+ * club primary/secondary trim, rating-tier border, and per-size detail
+ * tiers. Scales cleanly from 6 SVG units (pitch markers) to 80px hero card.
  */
 
 import { memo, useId } from 'react';
 import { darken, lighten } from '@/utils/colorUtils';
 
 interface PlayerAvatarProps {
-  playerId?: string;
   jerseyColor: string;
+  secondaryColor?: string;
   jerseyNumber?: number;
   size?: number;
   isAway?: boolean;
@@ -28,8 +28,19 @@ function getRatingHex(ovr: number | undefined): string {
   return '#6b7280';                   // muted
 }
 
+/** Perceived luminance (0–1) from a hex color via the Rec. 601 formula. */
+function luminance(hex: string): number {
+  const num = parseInt(hex.replace('#', ''), 16);
+  if (Number.isNaN(num)) return 0.5;
+  const r = (num >> 16) & 0xff;
+  const g = (num >> 8) & 0xff;
+  const b = num & 0xff;
+  return (r * 0.299 + g * 0.587 + b * 0.114) / 255;
+}
+
 export const PlayerAvatar = memo(function PlayerAvatar({
   jerseyColor,
+  secondaryColor,
   jerseyNumber,
   size = 6,
   isAway = false,
@@ -38,70 +49,97 @@ export const PlayerAvatar = memo(function PlayerAvatar({
 }: PlayerAvatarProps) {
   const uid = useId().replace(/:/g, '');
   const ratingColor = getRatingHex(overall);
-  const opacity = isAway ? 0.75 : 1;
 
-  // Determine detail level based on size
+  // Detail tiers keyed to rendered size
   const isLarge = size >= 40;
   const isMedium = size >= 20;
 
-  // Football shirt in a 24x28 viewBox
-  const vw = 24;
-  const vh = 28;
+  // ── Kit colors ──
+  // Away kit swaps primary/secondary when a secondary is provided, so the
+  // away shirt reads as a distinct style rather than just a dimmed version.
+  const fallbackSecondary = darken(jerseyColor, 0.55);
+  const safeSecondary = secondaryColor ?? fallbackSecondary;
+  const primary = isAway && secondaryColor ? safeSecondary : jerseyColor;
+  const trim = isAway && secondaryColor ? jerseyColor : safeSecondary;
 
-  const colorLight = lighten(jerseyColor, 0.15);
-  const colorDark = darken(jerseyColor, 0.25);
-  const colorDarker = darken(jerseyColor, 0.4);
+  const colorLight = lighten(primary, 0.15);
+  const colorDark = darken(primary, 0.25);
+  const colorDarker = darken(primary, 0.4);
+
+  // Dark text on light kits keeps the jersey number readable.
+  const bodyMidLuma = luminance(primary);
+  const numberFill = bodyMidLuma > 0.62 ? '#111827' : '#ffffff';
+  const numberStroke = bodyMidLuma > 0.62 ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.28)';
 
   // Number to display
-  const num = jerseyNumber != null ? jerseyNumber : '';
-  const numFontSize = String(num).length >= 2 ? 9 : 10.5;
+  const num = jerseyNumber != null ? String(jerseyNumber) : '';
+  const numFontSize = num.length >= 2 ? 9 : 10.5;
+
+  // Position pill: width scales with label so "CAM"/"CDM" fit comfortably.
+  const posText = position ?? '';
+  const pillWidth = Math.max(12, posText.length * 2.4 + 5);
+  const pillX = 12 - pillWidth / 2;
 
   const gradientId = `jb-bg-${uid}`;
   const shineId = `jb-sh-${uid}`;
 
-  // Football shirt path with proper sleeves
-  // Starts at left neck, goes right along neckline, right shoulder out to sleeve,
-  // sleeve hem, armpit, right side body, hem, left side body, left armpit,
-  // left sleeve hem, left shoulder back to neck
+  const ariaLabelParts = [
+    num ? `Jersey ${num}` : 'Jersey',
+    position,
+    isAway ? 'away kit' : null,
+  ].filter(Boolean);
+  const ariaLabel = ariaLabelParts.join(', ');
+
+  // ── Shirt silhouette ──
+  // Sleeves stay strictly inside the 24×28 viewBox so the rating-tier stroke
+  // does not clip at the outer edges.
   const shirtPath = [
-    'M8.5 1',              // left side of neck
-    'Q12 2.5 15.5 1',     // curved neckline to right side
-    'L19 0',               // right shoulder
-    'L23 5.5',             // right sleeve outer edge
-    'L21.5 7',             // right sleeve cuff
-    'L19 5',               // right armpit
-    'L20 26',              // right body
-    'Q20 28 18 28',        // right hem curve
-    'L6 28',               // bottom hem
-    'Q4 28 4 26',          // left hem curve
-    'L5 5',                // left body
-    'L2.5 7',              // left armpit
-    'L1 5.5',              // left sleeve cuff
-    'L5 0',                // left shoulder
-    'Z'
+    'M8 1.5',
+    'Q12 3.5 16 1.5',
+    'Q18 1 19 1.2',
+    'Q21.6 1.6 22.6 4.6',
+    'Q23.1 6.7 21.6 8',
+    'Q20.2 8 19.5 7',
+    'Q19 6 19 5.5',
+    'L20.5 26',
+    'Q20.5 28 18.5 28',
+    'L5.5 28',
+    'Q3.5 28 3.5 26',
+    'L5 5.5',
+    'Q5 6 4.5 7',
+    'Q3.8 8 2.4 8',
+    'Q0.9 6.7 1.4 4.6',
+    'Q2.4 1.6 5 1.2',
+    'Q6 1 8 1.5',
+    'Z',
   ].join(' ');
 
-  // Shine overlay path (left side of shirt for lighting effect)
+  // Shine overlay — mirrors the left half of the new silhouette.
   const shinePath = [
-    'M8.5 1',
-    'L5 0',
-    'L1 5.5',
-    'L2.5 7',
-    'L5 5',
-    'L4 26',
-    'Q4 28 6 28',
+    'M8 1.5',
+    'Q6 1 5 1.2',
+    'Q2.4 1.6 1.4 4.6',
+    'Q0.9 6.7 2.4 8',
+    'Q3.8 8 4.5 7',
+    'Q5 6 5 5.5',
+    'L3.5 26',
+    'Q3.5 28 5.5 28',
     'L12 28',
-    'L12 1',
-    'Z'
+    'L12 1.5',
+    'Z',
   ].join(' ');
 
   return (
     <svg
       width={size}
       height={size}
-      viewBox={`0 0 ${vw} ${vh}`}
-      opacity={opacity}
+      viewBox="0 0 24 28"
+      role="img"
+      aria-label={ariaLabel || undefined}
+      style={isLarge ? { filter: `drop-shadow(0 1.5px 3px rgba(0,0,0,0.45))`, opacity: isAway ? 0.9 : 1 } : { opacity: isAway ? 0.85 : 1 }}
     >
+      {ariaLabel && <title>{ariaLabel}</title>}
+
       <defs>
         <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={colorLight} />
@@ -109,104 +147,131 @@ export const PlayerAvatar = memo(function PlayerAvatar({
         </linearGradient>
         {isLarge && (
           <linearGradient id={shineId} x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="white" stopOpacity="0.12" />
+            <stop offset="0%" stopColor="white" stopOpacity="0.14" />
             <stop offset="100%" stopColor="white" stopOpacity="0" />
           </linearGradient>
         )}
       </defs>
 
-      {/* Football shirt body with sleeves */}
+      {/* Shirt body */}
       <path
         d={shirtPath}
         fill={`url(#${gradientId})`}
         stroke={ratingColor}
-        strokeWidth={isLarge ? 1.0 : isMedium ? 0.8 : 0.6}
+        strokeWidth={isLarge ? 0.9 : isMedium ? 0.7 : 0.5}
         strokeLinejoin="round"
       />
 
-      {/* Collar detail (medium+) — crew neck arc */}
+      {/* Cuff trim bands (medium+) — thick stroke along the cuff underside
+          so the trim is guaranteed to sit on the sleeve, not outside it. */}
       {isMedium && (
         <>
           <path
-            d="M8.5 1 Q12 3.5 15.5 1"
-            fill="none"
-            stroke={colorDarker}
-            strokeWidth="0.7"
+            d="M19.5 7 Q20.2 8 21.6 8"
+            stroke={trim}
+            strokeWidth={isLarge ? 1.1 : 0.9}
             strokeLinecap="round"
+            fill="none"
+            opacity="0.9"
           />
-          {/* Collar fill */}
           <path
-            d="M8.5 1 Q12 3.2 15.5 1"
-            fill={colorDarker}
-            opacity="0.4"
+            d="M4.5 7 Q3.8 8 2.4 8"
+            stroke={trim}
+            strokeWidth={isLarge ? 1.1 : 0.9}
+            strokeLinecap="round"
+            fill="none"
+            opacity="0.9"
           />
         </>
       )}
 
-      {/* Sleeve cuff lines (medium+) */}
+      {/* Collar — crew neck arc with subtle seam underneath */}
       {isMedium && (
         <>
-          <line x1="22.8" y1="5.8" x2="21.2" y2="7.2" stroke={colorDarker} strokeWidth="0.5" strokeLinecap="round" />
-          <line x1="1.2" y1="5.8" x2="2.8" y2="7.2" stroke={colorDarker} strokeWidth="0.5" strokeLinecap="round" />
+          <path
+            d="M8 1.5 Q12 3.9 16 1.5"
+            fill={trim}
+            opacity="0.85"
+          />
+          <path
+            d="M8 1.5 Q12 3.9 16 1.5"
+            fill="none"
+            stroke={colorDarker}
+            strokeWidth="0.45"
+            strokeLinecap="round"
+          />
+          {isLarge && (
+            <path
+              d="M8.6 2.6 Q12 4.3 15.4 2.6"
+              fill="none"
+              stroke={colorDarker}
+              strokeWidth="0.25"
+              opacity="0.4"
+            />
+          )}
         </>
       )}
 
       {/* Side seam lines (large only) */}
       {isLarge && (
         <>
-          <line x1="5.2" y1="6" x2="4.3" y2="26" stroke={colorDarker} strokeWidth="0.3" opacity="0.3" />
-          <line x1="18.8" y1="6" x2="19.7" y2="26" stroke={colorDarker} strokeWidth="0.3" opacity="0.3" />
+          <line x1="5" y1="6.5" x2="3.8" y2="26" stroke={colorDarker} strokeWidth="0.25" opacity="0.35" />
+          <line x1="19" y1="6.5" x2="20.2" y2="26" stroke={colorDarker} strokeWidth="0.25" opacity="0.35" />
         </>
       )}
 
-      {/* Jersey number */}
-      <text
-        x={vw / 2}
-        y={vh / 2 + 2}
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fill="white"
-        fontSize={numFontSize}
-        fontWeight="bold"
-        fontFamily="monospace"
-        stroke="rgba(0,0,0,0.2)"
-        strokeWidth="0.3"
-      >
-        {num}
-      </text>
-
-      {/* Position pill at top (medium+ sizes) */}
-      {isMedium && position && (
-        <g>
-          <rect
-            x={vw / 2 - 6}
-            y={-1}
-            width={12}
-            height={5}
-            rx={2.5}
-            fill="rgba(0,0,0,0.6)"
-          />
-          <text
-            x={vw / 2}
-            y={2}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fill="white"
-            fontSize="3.2"
-            fontWeight="bold"
-            fontFamily="sans-serif"
-          >
-            {position}
-          </text>
-        </g>
-      )}
-
-      {/* Subtle shine overlay (large sizes) */}
+      {/* Shine overlay (large sizes) — painted under the number so text stays crisp */}
       {isLarge && (
         <path
           d={shinePath}
           fill={`url(#${shineId})`}
         />
+      )}
+
+      {/* Jersey number */}
+      {num && (
+        <text
+          x={12}
+          y={16}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fill={numberFill}
+          fontSize={numFontSize}
+          fontWeight="bold"
+          fontFamily="'Oswald', ui-sans-serif, system-ui, sans-serif"
+          stroke={numberStroke}
+          strokeWidth="0.3"
+          paintOrder="stroke"
+        >
+          {num}
+        </text>
+      )}
+
+      {/* Position pill — kept inside the viewBox so it is not clipped */}
+      {isMedium && posText && (
+        <g>
+          <rect
+            x={pillX}
+            y={0}
+            width={pillWidth}
+            height={4.4}
+            rx={2.2}
+            fill="rgba(0,0,0,0.72)"
+          />
+          <text
+            x={12}
+            y={2.3}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="white"
+            fontSize="3"
+            fontWeight="bold"
+            fontFamily="'Oswald', ui-sans-serif, system-ui, sans-serif"
+            letterSpacing="0.2"
+          >
+            {posText}
+          </text>
+        </g>
       )}
     </svg>
   );
