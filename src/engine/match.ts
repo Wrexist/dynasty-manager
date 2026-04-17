@@ -1480,7 +1480,7 @@ export function simulateHalf(
       const isPlayerTeamFouling = (isHome && homeClub.id === playerClubId) || (!isHome && awayClub.id === playerClubId);
       const disciplinarianMod = (disciplinarianActive && isPlayerTeamFouling) ? (1 - DISCIPLINARIAN_CARD_REDUCTION) : 1;
       const careerMod = (careerDisciplineMod && isPlayerTeamFouling) ? (1 - careerDisciplineMod) : 1;
-      const cardChance = (CARD_BASE_CHANCE + atkMods.foulMod + derbyCardMod) * getCardRiskMultiplier(fouler.personality) * disciplinarianMod * careerMod;
+      const cardChance = (CARD_BASE_CHANCE + derbyCardMod) * getCardRiskMultiplier(fouler.personality) * disciplinarianMod * careerMod;
       if (Math.random() < cardChance) {
         const pe = playerEvents[fouler.id];
         if (pe) {

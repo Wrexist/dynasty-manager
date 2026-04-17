@@ -136,7 +136,7 @@ export const CORNER_FROM_SAVE_CHANCE = 0.35;
 export const CORNER_FROM_MISS_CHANCE = 0.22;
 
 // ── Cards / Fouls ──
-export const CARD_BASE_CHANCE = 0.14;
+export const CARD_BASE_CHANCE = 0.11;
 export const STRAIGHT_RED_CHANCE = 0.008;
 /** Strength penalty per player below full squad size (11). 10v11 = 0.88x strength */
 export const RED_CARD_STRENGTH_PENALTY_PER_PLAYER = 0.12;
