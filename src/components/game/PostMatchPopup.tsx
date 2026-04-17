@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { xpForLevel, hasPerk } from '@/utils/managerPerks';
 import { getSuffix } from '@/utils/helpers';
+import { getMatchRatingColor } from '@/utils/uiHelpers';
 import { RotateCcw } from 'lucide-react';
 import { useScrollLock } from '@/hooks/useScrollLock';
 
@@ -159,7 +160,10 @@ export function PostMatchPopup({ onContinue }: PostMatchPopupProps) {
                 <div className="w-8 h-8 rounded-lg bg-muted/30 flex items-center justify-center mx-auto mb-1">
                   <Activity className="w-4 h-4 text-primary" />
                 </div>
-                <p className="text-sm font-bold text-foreground tabular-nums">
+                <p className={cn(
+                  'text-sm font-bold tabular-nums',
+                  teamAvgRating > 0 ? getMatchRatingColor(teamAvgRating) : 'text-muted-foreground'
+                )}>
                   {teamAvgRating > 0 ? teamAvgRating.toFixed(1) : '—'}
                 </p>
                 <p className="text-[9px] text-muted-foreground">Team Rating</p>

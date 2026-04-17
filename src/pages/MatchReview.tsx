@@ -489,8 +489,8 @@ const MatchReview = () => {
         </div>
       </GlassPanel>
 
-      {/* League Position Movement */}
-      {(() => {
+      {/* League Position Movement — league matches only */}
+      {!lastMatchCompetition && (() => {
         const table = divisionTables[playerDivision] || [];
         const newPos = table.findIndex(e => e.clubId === playerClubId) + 1;
         const { preMatchLeaguePosition } = useGameStore.getState();
