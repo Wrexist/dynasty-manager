@@ -86,6 +86,7 @@ export default defineConfig(() => ({
           if (id.includes('recharts')) return 'recharts';
           if (id.includes('@radix-ui')) return 'radix';
           if (id.includes('src/data/squads/') || id.includes('src/data/playerTemplates')) return 'squad-data';
+          if (id.includes('three') || id.includes('@react-three')) return 'three-bundle';
         },
       },
     },

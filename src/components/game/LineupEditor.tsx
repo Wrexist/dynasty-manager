@@ -1,6 +1,8 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, lazy, Suspense } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
+
+const FormationCanvas = lazy(() => import('@/components/game/three/formation/FormationCanvas'));
 import { FORMATION_POSITIONS, canPlayPosition, type Position } from '@/types/game';
 import { MAX_SUBS } from '@/config/playerGeneration';
 import { PITCH_COLORS } from '@/config/ui';
@@ -29,15 +31,17 @@ function getCompatibility(player: { position: Position; alternatePositions?: Pos
 }
 
 export function LineupEditor() {
-  const { playerClubId, clubs, players, week, season, pairFamiliarity } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, week, season, pairFamiliarity, settings } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     clubs: s.clubs,
     players: s.players,
     week: s.week,
     season: s.season,
     pairFamiliarity: s.pairFamiliarity,
+    settings: s.settings,
   })));
   const updateLineup = useGameStore(s => s.updateLineup);
+  const updateSettings = useGameStore(s => s.updateSettings);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const club = clubs[playerClubId];
@@ -244,8 +248,41 @@ export function LineupEditor() {
 
   return (
     <div>
+      {/* View toggle */}
+      <div className="flex justify-end mb-1 px-1">
+        <button
+          onClick={() => updateSettings({ show3DFormation: !settings.show3DFormation })}
+          className={cn(
+            'flex items-center gap-1 px-2 py-1 rounded-lg text-[9px] font-semibold border transition-all',
+            settings.show3DFormation
+              ? 'bg-primary/15 text-primary border-primary/30'
+              : 'bg-muted/20 text-muted-foreground border-border/30 hover:bg-muted/30',
+          )}
+        >
+          3D {settings.show3DFormation ? '▲' : '▼'}
+        </button>
+      </div>
+
       {/* Half Pitch (bottom half only) */}
-      <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: 'min(24rem, 100%)' }}>
+      <div className="relative w-full mx-auto" style={{ aspectRatio: settings.show3DFormation ? '16/9' : `${VP_W}/${VP_H}`, maxWidth: 'min(24rem, 100%)' }}>
+      {settings.show3DFormation ? (
+        <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center bg-muted/10 rounded-xl"><span className="text-[10px] text-muted-foreground">Loading 3D...</span></div>}>
+          <FormationCanvas
+            formation={formation}
+            lineup={lineup}
+            players={players}
+            clubColor={club.color}
+            chemLineData={chemLineData}
+            selectedId={selectedId}
+            onTokenTap={handleTap}
+            onSlotTap={(i) => handleTap(`slot-${i}`)}
+            showOverall={settings.showOverallOnPitch}
+            week={week}
+            cameraPreset="half"
+          />
+        </Suspense>
+      ) : (
+      <>
         <svg viewBox={`0 ${VP_Y} ${VP_W} ${VP_H}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
           {/* Pitch background & markings */}
           <rect x="0" y="0" width="68" height="105" rx="1.5" fill={PITCH_COLORS.FILL} />
@@ -332,6 +369,8 @@ export function LineupEditor() {
             </div>
           );
         })}
+      </>
+      )}
       </div>
 
       {/* Selected Player Detail Panel */}

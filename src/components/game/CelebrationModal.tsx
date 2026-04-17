@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
@@ -6,6 +7,10 @@ import { useScrollLock } from '@/hooks/useScrollLock';
 import { useGameStore } from '@/store/gameStore';
 import { getActiveCosmetic } from '@/utils/monetization';
 import { COSMETIC_ITEMS } from '@/config/monetization';
+
+const GoalBurstCanvas = lazy(() =>
+  import('@/components/game/three/particles/GoalBurstCanvas').then(m => ({ default: m.GoalBurstCanvas }))
+);
 
 interface CelebrationModalProps {
   open: boolean;
@@ -34,32 +39,19 @@ const CONFETTI_STYLES: Record<string, ConfettiConfig> = {
   'confetti-snow': { count: 25, hueBase: 210, hueRange: 30, saturation: 30, lightness: 85, sizeMin: 3, sizeRange: 5, speed: 0.6 },
 };
 
-function Particle({ config }: { config: ConfettiConfig }) {
-  const x = Math.random() * 100;
-  const delay = Math.random() * 0.5;
-  const duration = (1.5 + Math.random() * 1.5) / config.speed;
-  const size = config.sizeMin + Math.random() * config.sizeRange;
-  const hue = config.hueBase + Math.random() * config.hueRange - config.hueRange / 2;
-
+// GPU particles via Three.js — replaces Framer Motion confetti
+function ParticleCanvas({ config }: { config: ConfettiConfig }) {
   return (
-    <motion.div
-      className="absolute rounded-full pointer-events-none"
-      style={{
-        width: size,
-        height: size,
-        left: `${x}%`,
-        top: '50%',
-        backgroundColor: `hsl(${hue}, ${config.saturation}%, ${config.lightness + Math.random() * 20}%)`,
-      }}
-      initial={{ opacity: 1, y: 0, scale: 1 }}
-      animate={{
-        opacity: [1, 1, 0],
-        y: [0, -120 - Math.random() * 180],
-        x: [0, (Math.random() - 0.5) * 100],
-        scale: [1, 0.5],
-      }}
-      transition={{ duration, delay, ease: 'easeOut' }}
-    />
+    <Suspense fallback={null}>
+      <GoalBurstCanvas
+        hueBase={config.hueBase}
+        hueRange={config.hueRange}
+        saturation={config.saturation}
+        lightness={config.lightness}
+        count={config.count * 5}
+        speed={config.speed}
+      />
+    </Suspense>
   );
 }
 
@@ -93,11 +85,9 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
             exit={{ scale: 0.9, opacity: 0, y: 10 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           >
-            {/* Particles */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {Array.from({ length: confettiConfig.count }).map((_, i) => (
-                <Particle key={i} config={confettiConfig} />
-              ))}
+            {/* GPU Particles */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 0 }}>
+              <ParticleCanvas config={confettiConfig} />
             </div>
 
             {/* Close button */}

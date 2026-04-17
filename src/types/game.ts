@@ -707,6 +707,8 @@ export interface GameSettings {
   hidePageHints: boolean;
   confirmAllOffers: boolean;
   reducedMotion: boolean;
+  show3DPitch: boolean;
+  show3DFormation: boolean;
 }
 
 // ── Team Talk ──

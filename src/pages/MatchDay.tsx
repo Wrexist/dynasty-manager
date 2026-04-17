@@ -1,5 +1,7 @@
 import * as Sentry from '@sentry/react';
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
+
+const MatchPitchCanvas = lazy(() => import('@/components/game/three/match/MatchPitchCanvas'));
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -132,6 +134,7 @@ const MatchDay = () => {
   const players = useGameStore(s => s.players);
   const settings = useGameStore(s => s.settings);
   const updateSettings = useGameStore(s => s.updateSettings);
+  const currentMatchWeather = useGameStore(s => s.currentMatchWeather);
 
   const [phase, setPhase] = useState<'pre' | 'first_half' | 'half_time' | 'second_half' | 'extra_time_break' | 'extra_time' | 'penalties' | 'post'>('pre');
   const [firstHalfState, setFirstHalfState] = useState<HalfState | null>(null);
@@ -1581,6 +1584,43 @@ const MatchDay = () => {
                   <FastForward className="w-3 h-3" /> {MATCH_SPEEDS.find(s => s.value === speed)?.shortLabel ?? '1x'}
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* 3D Pitch Toggle + Canvas */}
+          {homeClub && awayClub && (
+            <div>
+              <button
+                onClick={() => updateSettings({ show3DPitch: !settings.show3DPitch })}
+                className={cn(
+                  'w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-[10px] font-semibold transition-all border',
+                  settings.show3DPitch
+                    ? 'bg-primary/15 text-primary border-primary/30'
+                    : 'bg-muted/20 text-muted-foreground border-border/30 hover:bg-muted/30',
+                )}
+              >
+                <Layers className="w-3 h-3" />
+                {settings.show3DPitch ? '3D Pitch ▲' : '3D Pitch ▼'}
+              </button>
+              {settings.show3DPitch && (
+                <div className="mt-1 rounded-xl overflow-hidden border border-border/40" style={{ height: 200 }}>
+                  <Suspense fallback={<div className="h-full flex items-center justify-center bg-muted/10"><span className="text-[10px] text-muted-foreground">Loading 3D pitch...</span></div>}>
+                    <MatchPitchCanvas
+                      homeFormation={homeClub.formation}
+                      awayFormation={awayClub.formation}
+                      homeLineup={homeClub.lineup || []}
+                      awayLineup={awayClub.lineup || []}
+                      homeColor={homeClub.color}
+                      awayColor={awayBarColor || awayClub.color}
+                      visibleEvents={visibleEvents}
+                      currentMin={currentMin}
+                      weather={currentMatchWeather?.weather || 'clear'}
+                      momentum={currentMomentum}
+                      isMobile={window.innerWidth < 430}
+                    />
+                  </Suspense>
+                </div>
+              )}
             </div>
           )}
 
