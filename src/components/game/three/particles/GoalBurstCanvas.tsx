@@ -1,5 +1,5 @@
 import { useRef, useMemo, useEffect, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 interface GoalBurstCanvasProps {
@@ -12,89 +12,85 @@ interface GoalBurstCanvasProps {
 }
 
 interface Particle {
-  position: THREE.Vector3;
-  velocity: THREE.Vector3;
+  px: number; py: number; pz: number;
+  vx: number; vy: number; vz: number;
   life: number;
   maxLife: number;
-  color: THREE.Color;
+  r: number; g: number; b: number;
 }
 
-function BurstParticles({ hueBase, hueRange = 20, saturation = 96, lightness = 50, count = 150, speed = 1 }: GoalBurstCanvasProps) {
+function BurstParticles({ hueBase, hueRange = 20, saturation = 96, lightness = 50, count = 150, speed = 1, onDone }: GoalBurstCanvasProps & { onDone: () => void }) {
   const pointsRef = useRef<THREE.Points>(null!);
-  const particles = useRef<Particle[]>([]);
-  const started = useRef(false);
+  const doneRef = useRef(false);
+
+  const particles = useMemo<Particle[]>(() => {
+    return Array.from({ length: count }, () => {
+      const angle = Math.random() * Math.PI * 2;
+      const elev = (Math.random() - 0.25) * Math.PI;
+      const spd = (3 + Math.random() * 7) * speed;
+      const hue = ((hueBase + (Math.random() - 0.5) * hueRange) % 360) / 360;
+      const sat = saturation / 100;
+      const lit = (lightness + Math.random() * 20) / 100;
+      const c = new THREE.Color().setHSL(hue, sat, lit);
+      return {
+        px: (Math.random() - 0.5) * 0.4,
+        py: (Math.random() - 0.5) * 0.4,
+        pz: 0,
+        vx: Math.cos(angle) * Math.cos(elev) * spd,
+        vy: Math.sin(elev) * spd * 0.9 + 2.5,
+        vz: Math.sin(angle) * Math.cos(elev) * spd,
+        life: 1,
+        maxLife: (1.4 + Math.random() * 1.4) / speed,
+        r: c.r, g: c.g, b: c.b,
+      };
+    });
+  }, [count, hueBase, hueRange, saturation, lightness, speed]);
 
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
-    const pos = new Float32Array(count * 3);
-    const col = new Float32Array(count * 3);
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
+    geo.setAttribute('color', new THREE.BufferAttribute(new Float32Array(count * 3), 3));
     return geo;
   }, [count]);
 
-  useEffect(() => {
-    particles.current = Array.from({ length: count }, () => {
-      const angle = Math.random() * Math.PI * 2;
-      const elevation = (Math.random() - 0.3) * Math.PI;
-      const spd = (3 + Math.random() * 6) * speed;
-      const hue = (hueBase + (Math.random() - 0.5) * hueRange) / 360;
-      const sat = saturation / 100;
-      const lit = (lightness + Math.random() * 20) / 100;
-      const color = new THREE.Color();
-      color.setHSL(hue, sat, lit);
-      return {
-        position: new THREE.Vector3(
-          (Math.random() - 0.5) * 0.5,
-          (Math.random() - 0.5) * 0.5,
-          0,
-        ),
-        velocity: new THREE.Vector3(
-          Math.cos(angle) * Math.cos(elevation) * spd,
-          Math.sin(elevation) * spd * 0.8 + 2,
-          Math.sin(angle) * Math.cos(elevation) * spd,
-        ),
-        life: 1,
-        maxLife: (1.5 + Math.random() * 1.5) / speed,
-        color,
-      };
-    });
-    started.current = true;
-  }, []);
-
   useFrame((_, delta) => {
-    if (!started.current || !pointsRef.current) return;
+    if (doneRef.current || !pointsRef.current) return;
     const posArr = geometry.attributes.position.array as Float32Array;
     const colArr = geometry.attributes.color.array as Float32Array;
-
-    particles.current.forEach((p, i) => {
+    let anyAlive = false;
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      if (p.life <= 0) {
+        posArr[i * 3 + 1] = -999;
+        continue;
+      }
       p.life -= delta / p.maxLife;
-      if (p.life < 0) p.life = 0;
-      p.velocity.y -= delta * 8;
-      p.position.addScaledVector(p.velocity, delta);
-      posArr[i * 3] = p.position.x;
-      posArr[i * 3 + 1] = p.position.y;
-      posArr[i * 3 + 2] = p.position.z;
+      p.vx *= 0.99;
+      p.vy -= delta * 9;
+      p.vz *= 0.99;
+      p.px += p.vx * delta;
+      p.py += p.vy * delta;
+      p.pz += p.vz * delta;
+      posArr[i * 3] = p.px;
+      posArr[i * 3 + 1] = p.py;
+      posArr[i * 3 + 2] = p.pz;
       const alpha = Math.max(0, p.life);
-      colArr[i * 3] = p.color.r * alpha;
-      colArr[i * 3 + 1] = p.color.g * alpha;
-      colArr[i * 3 + 2] = p.color.b * alpha;
-    });
-
+      colArr[i * 3] = p.r * alpha;
+      colArr[i * 3 + 1] = p.g * alpha;
+      colArr[i * 3 + 2] = p.b * alpha;
+      if (p.life > 0) anyAlive = true;
+    }
     geometry.attributes.position.needsUpdate = true;
     geometry.attributes.color.needsUpdate = true;
+    if (!anyAlive && !doneRef.current) {
+      doneRef.current = true;
+      onDone();
+    }
   });
 
   return (
     <points ref={pointsRef} geometry={geometry}>
-      <pointsMaterial
-        size={0.18}
-        vertexColors
-        transparent
-        opacity={1}
-        sizeAttenuation
-        depthWrite={false}
-      />
+      <pointsMaterial size={0.2} vertexColors transparent opacity={1} sizeAttenuation depthWrite={false} />
     </points>
   );
 }
@@ -102,11 +98,15 @@ function BurstParticles({ hueBase, hueRange = 20, saturation = 96, lightness = 5
 export function GoalBurstCanvas({
   hueBase = 43, hueRange = 20, saturation = 96, lightness = 50, count = 150, speed = 1,
 }: GoalBurstCanvasProps) {
+  const [mounted, setMounted] = useState(true);
+
+  if (!mounted) return null;
+
   return (
     <Canvas
-      camera={{ position: [0, 0, 8], fov: 60 }}
-      gl={{ antialias: false, alpha: true, powerPreference: 'high-performance', preserveDrawingBuffer: false }}
-      dpr={[1, 1.5]}
+      camera={{ position: [0, 0, 10], fov: 55 }}
+      gl={{ antialias: false, alpha: true, powerPreference: 'default', preserveDrawingBuffer: false }}
+      dpr={[1, 1]}
       style={{ width: '100%', height: '100%', display: 'block', background: 'transparent' }}
     >
       <BurstParticles
@@ -116,6 +116,7 @@ export function GoalBurstCanvas({
         lightness={lightness}
         count={count}
         speed={speed}
+        onDone={() => setMounted(false)}
       />
     </Canvas>
   );

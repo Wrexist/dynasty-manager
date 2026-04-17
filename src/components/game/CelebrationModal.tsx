@@ -11,6 +11,7 @@ import { COSMETIC_ITEMS } from '@/config/monetization';
 const GoalBurstCanvas = lazy(() =>
   import('@/components/game/three/particles/GoalBurstCanvas').then(m => ({ default: m.GoalBurstCanvas }))
 );
+import { ThreeErrorBoundary } from '@/components/game/three/shared/ThreeErrorBoundary';
 
 interface CelebrationModalProps {
   open: boolean;
@@ -42,6 +43,7 @@ const CONFETTI_STYLES: Record<string, ConfettiConfig> = {
 // GPU particles via Three.js — replaces Framer Motion confetti
 function ParticleCanvas({ config }: { config: ConfettiConfig }) {
   return (
+    <ThreeErrorBoundary>
     <Suspense fallback={null}>
       <GoalBurstCanvas
         hueBase={config.hueBase}
@@ -52,6 +54,7 @@ function ParticleCanvas({ config }: { config: ConfettiConfig }) {
         speed={config.speed}
       />
     </Suspense>
+    </ThreeErrorBoundary>
   );
 }
 

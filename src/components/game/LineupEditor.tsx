@@ -3,6 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 
 const FormationCanvas = lazy(() => import('@/components/game/three/formation/FormationCanvas'));
+import { ThreeErrorBoundary } from '@/components/game/three/shared/ThreeErrorBoundary';
 import { FORMATION_POSITIONS, canPlayPosition, type Position } from '@/types/game';
 import { MAX_SUBS } from '@/config/playerGeneration';
 import { PITCH_COLORS } from '@/config/ui';
@@ -266,6 +267,7 @@ export function LineupEditor() {
       {/* Half Pitch (bottom half only) */}
       <div className="relative w-full mx-auto" style={{ aspectRatio: settings.show3DFormation ? '16/9' : `${VP_W}/${VP_H}`, maxWidth: 'min(24rem, 100%)' }}>
       {settings.show3DFormation ? (
+        <ThreeErrorBoundary fallback={<div className="absolute inset-0 flex items-center justify-center bg-muted/10 rounded-xl"><span className="text-[10px] text-muted-foreground">3D unavailable</span></div>}>
         <Suspense fallback={<div className="absolute inset-0 flex items-center justify-center bg-muted/10 rounded-xl"><span className="text-[10px] text-muted-foreground">Loading 3D...</span></div>}>
           <FormationCanvas
             formation={formation}
@@ -273,6 +275,7 @@ export function LineupEditor() {
             players={players}
             clubColor={club.color}
             chemLineData={chemLineData}
+            chemLinks={chemLinks}
             selectedId={selectedId}
             onTokenTap={handleTap}
             onSlotTap={(i) => handleTap(`slot-${i}`)}
@@ -281,6 +284,7 @@ export function LineupEditor() {
             cameraPreset="half"
           />
         </Suspense>
+        </ThreeErrorBoundary>
       ) : (
       <>
         <svg viewBox={`0 ${VP_Y} ${VP_W} ${VP_H}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">

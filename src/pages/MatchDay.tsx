@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 
 const MatchPitchCanvas = lazy(() => import('@/components/game/three/match/MatchPitchCanvas'));
+import { ThreeErrorBoundary } from '@/components/game/three/shared/ThreeErrorBoundary';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -1604,6 +1605,7 @@ const MatchDay = () => {
               </button>
               {settings.show3DPitch && (
                 <div className="mt-1 rounded-xl overflow-hidden border border-border/40" style={{ height: 200 }}>
+                  <ThreeErrorBoundary fallback={<div className="h-full flex items-center justify-center bg-muted/10 rounded-xl"><span className="text-[10px] text-muted-foreground">3D not available</span></div>}>
                   <Suspense fallback={<div className="h-full flex items-center justify-center bg-muted/10"><span className="text-[10px] text-muted-foreground">Loading 3D pitch...</span></div>}>
                     <MatchPitchCanvas
                       homeFormation={homeClub.formation}
@@ -1611,7 +1613,8 @@ const MatchDay = () => {
                       homeLineup={homeClub.lineup || []}
                       awayLineup={awayClub.lineup || []}
                       homeColor={homeClub.color}
-                      awayColor={awayBarColor || awayClub.color}
+                      awayColor={awayBarColor || awayClub.color || '#ffffff'}
+                      homeClubId={homeClub.id}
                       visibleEvents={visibleEvents}
                       currentMin={currentMin}
                       weather={currentMatchWeather?.weather || 'clear'}
@@ -1619,6 +1622,7 @@ const MatchDay = () => {
                       isMobile={window.innerWidth < 430}
                     />
                   </Suspense>
+                  </ThreeErrorBoundary>
                 </div>
               )}
             </div>

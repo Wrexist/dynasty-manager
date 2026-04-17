@@ -1,12 +1,11 @@
 import { Suspense, useRef, useMemo, useState, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { PitchGeometry, slotToWorld } from '../shared/PitchGeometry';
+import { PitchGeometry, PITCH_H, slotToWorld } from '../shared/PitchGeometry';
 import { PlayerToken } from '../shared/PlayerToken';
 import { GoalEventEffect } from './GoalEventEffect';
 import { WeatherLayer } from './WeatherLayer';
-import type { MatchEvent, FormationType } from '@/types/game';
-import { FORMATION_POSITIONS } from '@/types/game';
+import { FORMATION_POSITIONS, type FormationType, type MatchEvent } from '@/types/game';
 
 interface MatchPitchCanvasProps {
   homeFormation: FormationType;
@@ -15,10 +14,11 @@ interface MatchPitchCanvasProps {
   awayLineup: string[];
   homeColor: string;
   awayColor: string;
+  homeClubId: string;
   visibleEvents: MatchEvent[];
   currentMin: number;
   weather?: 'clear' | 'rain' | 'snow' | 'wind';
-  momentum: number; // -100 to +100, positive = home
+  momentum: number;
   isMobile?: boolean;
 }
 
@@ -28,56 +28,73 @@ const GOAL_EVENT_TYPES = new Set([
   'free_kick_goal', 'extra_time_goal', 'goalkeeper_error',
 ]);
 
+// Animated player dot — lerps smoothly toward its target position
+function AnimatedToken({
+  basePos, color, label, isHome, flashType, dimmed, highlighted,
+}: {
+  basePos: THREE.Vector3;
+  color: string;
+  label: string;
+  isHome: boolean;
+  flashType: 'goal' | 'yellow' | 'red' | 'injury' | null;
+  dimmed: boolean;
+  highlighted: boolean;
+}) {
+  const currentPos = useRef(basePos.clone());
+  const targetPos = useRef(basePos.clone());
+
+  // Keep target in sync whenever basePos prop changes
+  useEffect(() => {
+    targetPos.current.copy(basePos);
+  }, [basePos.x, basePos.z]);
+
+  useFrame(() => {
+    currentPos.current.lerp(targetPos.current, 0.07);
+  });
+
+  return (
+    <PlayerToken
+      position={[currentPos.current.x, currentPos.current.y, currentPos.current.z]}
+      color={color}
+      label={label}
+      isHome={isHome}
+      highlighted={highlighted}
+      dimmed={dimmed}
+      flashing={flashType}
+    />
+  );
+}
+
 function TokenLayer({
   homeFormation, awayFormation, homeLineup, awayLineup,
   homeColor, awayColor, visibleEvents, currentMin,
-}: Omit<MatchPitchCanvasProps, 'weather' | 'momentum' | 'isMobile'>) {
-  // Build base positions
+}: Omit<MatchPitchCanvasProps, 'weather' | 'momentum' | 'isMobile' | 'homeClubId'>) {
   const homeSlots = useMemo(() => FORMATION_POSITIONS[homeFormation] || [], [homeFormation]);
   const awaySlots = useMemo(() => FORMATION_POSITIONS[awayFormation] || [], [awayFormation]);
 
-  // Animated positions per player
-  const posRefs = useRef<Map<string, THREE.Vector3>>(new Map());
-
-  // Seed initial positions
-  useMemo(() => {
-    homeSlots.forEach((slot, i) => {
-      const pid = homeLineup[i];
-      if (!pid) return;
-      const [x, , z] = slotToWorld(slot.x, slot.y);
-      posRefs.current.set(pid, new THREE.Vector3(x, 0.15, z));
-    });
-    awaySlots.forEach((slot, i) => {
-      const pid = awayLineup[i];
-      if (!pid) return;
-      const [x, , z] = slotToWorld(100 - slot.x, 100 - slot.y);
-      posRefs.current.set(pid, new THREE.Vector3(x, 0.15, z));
-    });
-  }, [homeSlots, awaySlots, homeLineup, awayLineup]);
-
-  // Flash state
+  // Flash states: map playerId → flash type + expiry
   const flashState = useRef<Map<string, { type: 'goal' | 'yellow' | 'red' | 'injury'; until: number }>>(new Map());
-  const processedEvents = useRef(0);
+  const processedCount = useRef(0);
 
   useEffect(() => {
-    for (let i = processedEvents.current; i < visibleEvents.length; i++) {
+    for (let i = processedCount.current; i < visibleEvents.length; i++) {
       const ev = visibleEvents[i];
-      processedEvents.current = i + 1;
+      processedCount.current = i + 1;
       if (!ev.playerId) continue;
       if (GOAL_EVENT_TYPES.has(ev.type)) {
         flashState.current.set(ev.playerId, { type: 'goal', until: currentMin + 3 });
       } else if (ev.type === 'yellow_card') {
         flashState.current.set(ev.playerId, { type: 'yellow', until: currentMin + 2 });
       } else if (ev.type === 'red_card') {
-        flashState.current.set(ev.playerId, { type: 'red', until: currentMin + 99 });
+        flashState.current.set(ev.playerId, { type: 'red', until: currentMin + 999 });
       } else if (ev.type === 'injury') {
         flashState.current.set(ev.playerId, { type: 'injury', until: currentMin + 2 });
       }
     }
   }, [visibleEvents.length, currentMin]);
 
-  const sentOff = useMemo(() =>
-    new Set(visibleEvents.filter(e => e.type === 'red_card' && e.playerId).map(e => e.playerId!)),
+  const sentOff = useMemo(
+    () => new Set(visibleEvents.filter(e => e.type === 'red_card' && e.playerId).map(e => e.playerId!)),
     [visibleEvents],
   );
 
@@ -86,32 +103,38 @@ function TokenLayer({
       {homeSlots.map((slot, i) => {
         const pid = homeLineup[i];
         if (!pid || sentOff.has(pid)) return null;
-        const [x, y, z] = slotToWorld(slot.x, slot.y);
+        const [x, yy, z] = slotToWorld(slot.x, slot.y);
+        const basePos = new THREE.Vector3(x, yy, z);
         const flash = flashState.current.get(pid);
         return (
-          <PlayerToken
+          <AnimatedToken
             key={`home-${pid}`}
-            position={[x, y, z]}
+            basePos={basePos}
             color={homeColor}
+            label={slot.pos}
             isHome={true}
-            label={String(i + 1)}
-            flashing={flash && flash.until > currentMin ? flash.type : null}
+            flashType={flash && flash.until > currentMin ? flash.type : null}
+            dimmed={false}
+            highlighted={flash?.type === 'goal' && flash.until > currentMin}
           />
         );
       })}
       {awaySlots.map((slot, i) => {
         const pid = awayLineup[i];
         if (!pid || sentOff.has(pid)) return null;
-        const [x, y, z] = slotToWorld(100 - slot.x, 100 - slot.y);
+        const [x, yy, z] = slotToWorld(100 - slot.x, 100 - slot.y);
+        const basePos = new THREE.Vector3(x, yy, z);
         const flash = flashState.current.get(pid);
         return (
-          <PlayerToken
+          <AnimatedToken
             key={`away-${pid}`}
-            position={[x, y, z]}
+            basePos={basePos}
             color={awayColor}
+            label={slot.pos}
             isHome={false}
-            label={String(i + 1)}
-            flashing={flash && flash.until > currentMin ? flash.type : null}
+            flashType={flash && flash.until > currentMin ? flash.type : null}
+            dimmed={false}
+            highlighted={flash?.type === 'goal' && flash.until > currentMin}
           />
         );
       })}
@@ -119,13 +142,9 @@ function TokenLayer({
   );
 }
 
-function GoalLayer({ visibleEvents, homeColor, awayColor }: {
-  visibleEvents: MatchEvent[];
-  homeColor: string;
-  awayColor: string;
-}) {
-  const homeGoalTrigger = useRef(0);
-  const awayGoalTrigger = useRef(0);
+function GoalLayer({
+  visibleEvents, homeColor, awayColor, homeClubId,
+}: { visibleEvents: MatchEvent[]; homeColor: string; awayColor: string; homeClubId: string }) {
   const [homeTrigger, setHomeTrigger] = useState(0);
   const [awayTrigger, setAwayTrigger] = useState(0);
   const processedGoals = useRef(0);
@@ -134,46 +153,64 @@ function GoalLayer({ visibleEvents, homeColor, awayColor }: {
     for (let i = processedGoals.current; i < visibleEvents.length; i++) {
       const ev = visibleEvents[i];
       processedGoals.current = i + 1;
-      if (GOAL_EVENT_TYPES.has(ev.type)) {
-        // own_goal scores for opponent
-        const isHomeGoal = ev.type === 'own_goal'
-          ? false  // simplified: own goal always counts as away
-          : homeGoalTrigger.current >= 0; // we'd need clubId to be precise
-        // Use clubId to determine which team scored
+      if (!GOAL_EVENT_TYPES.has(ev.type)) continue;
+      // own_goal scores for the OTHER team
+      const scoringTeamIsHome = ev.type === 'own_goal'
+        ? ev.clubId !== homeClubId
+        : ev.clubId === homeClubId;
+      if (scoringTeamIsHome) {
         setHomeTrigger(t => t + 1);
+      } else {
+        setAwayTrigger(t => t + 1);
       }
     }
-  }, [visibleEvents.length]);
+  }, [visibleEvents.length, homeClubId]);
 
   return (
     <>
       <GoalEventEffect isHome={true} color={homeColor} trigger={homeTrigger} />
+      <GoalEventEffect isHome={false} color={awayColor} trigger={awayTrigger} />
     </>
   );
 }
 
 function MomentumBar({ momentum, homeColor, awayColor }: { momentum: number; homeColor: string; awayColor: string }) {
-  const barRef = useRef<THREE.Mesh>(null!);
-  const homePct = (momentum + 100) / 200; // 0 to 1
+  const homeRef = useRef<THREE.Mesh>(null!);
+  const awayRef = useRef<THREE.Mesh>(null!);
+  const targetHomePct = useRef(0.5);
+
+  useEffect(() => {
+    targetHomePct.current = Math.max(0.02, Math.min(0.98, (momentum + 100) / 200));
+  }, [momentum]);
 
   useFrame(() => {
-    if (!barRef.current) return;
-    // Animate scale toward target
-    const target = Math.max(0.02, homePct);
-    barRef.current.scale.x += (target - barRef.current.scale.x) * 0.05;
+    if (!homeRef.current || !awayRef.current) return;
+    const hw = homeRef.current.scale.x;
+    const newHw = hw + (targetHomePct.current - hw) * 0.04;
+    homeRef.current.scale.x = newHw;
+    homeRef.current.position.x = -34 + (newHw * 68) / 2;
+    awayRef.current.scale.x = 1 - newHw;
+    awayRef.current.position.x = -34 + newHw * 68 + ((1 - newHw) * 68) / 2;
   });
 
+  const barZ = -(PITCH_H / 2) - 4;
+
   return (
-    <group position={[0, 0.3, -55]}>
-      {/* Background bar */}
+    <group position={[0, 0.4, barZ]}>
+      {/* Background */}
       <mesh>
-        <boxGeometry args={[68, 0.6, 1]} />
-        <meshBasicMaterial color={awayColor} transparent opacity={0.4} />
+        <boxGeometry args={[68, 0.7, 1.2]} />
+        <meshBasicMaterial color={0x111111} transparent opacity={0.5} />
       </mesh>
-      {/* Home portion */}
-      <mesh ref={barRef} position={[-34 + 34 * homePct, 0, 0.05]} scale={[homePct * 68, 1, 1]}>
-        <boxGeometry args={[1, 0.62, 1.1]} />
-        <meshBasicMaterial color={homeColor} transparent opacity={0.7} />
+      {/* Home portion — starts at left edge x=-34 */}
+      <mesh ref={homeRef} position={[-34 + 34 * 0.5, 0, 0.1]} scale={[0.5, 1, 1]}>
+        <boxGeometry args={[68, 0.72, 1.3]} />
+        <meshBasicMaterial color={homeColor} transparent opacity={0.8} />
+      </mesh>
+      {/* Away portion */}
+      <mesh ref={awayRef} position={[0 + 34 * 0.5, 0, 0.1]} scale={[0.5, 1, 1]}>
+        <boxGeometry args={[68, 0.72, 1.3]} />
+        <meshBasicMaterial color={awayColor} transparent opacity={0.8} />
       </mesh>
     </group>
   );
@@ -181,20 +218,20 @@ function MomentumBar({ momentum, homeColor, awayColor }: { momentum: number; hom
 
 export default function MatchPitchCanvas({
   homeFormation, awayFormation, homeLineup, awayLineup,
-  homeColor, awayColor, visibleEvents, currentMin,
+  homeColor, awayColor, homeClubId, visibleEvents, currentMin,
   weather = 'clear', momentum, isMobile,
 }: MatchPitchCanvasProps) {
-  const cameraY = isMobile ? 70 : 55;
-  const cameraZ = isMobile ? 38 : 48;
+  const camY = isMobile ? 72 : 58;
+  const camZ = isMobile ? 40 : 50;
 
   return (
     <Canvas
-      camera={{ position: [0, cameraY, cameraZ], fov: 40, near: 0.1, far: 500 }}
+      camera={{ position: [0, camY, camZ], fov: 38, near: 0.1, far: 600 }}
       gl={{ antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: false }}
-      dpr={[1, 1.5]}
+      dpr={[1, Math.min(1.5, window.devicePixelRatio)]}
       style={{ width: '100%', height: '100%', display: 'block' }}
     >
-      <ambientLight intensity={0.9} />
+      <ambientLight intensity={0.95} />
       <Suspense fallback={null}>
         <PitchGeometry />
         <TokenLayer
@@ -206,6 +243,12 @@ export default function MatchPitchCanvas({
           awayColor={awayColor}
           visibleEvents={visibleEvents}
           currentMin={currentMin}
+        />
+        <GoalLayer
+          visibleEvents={visibleEvents}
+          homeColor={homeColor}
+          awayColor={awayColor}
+          homeClubId={homeClubId}
         />
         <MomentumBar momentum={momentum} homeColor={homeColor} awayColor={awayColor} />
         {weather !== 'clear' && <WeatherLayer weather={weather} mobile={isMobile} />}

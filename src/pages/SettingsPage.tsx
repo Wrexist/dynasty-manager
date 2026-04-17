@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -220,6 +220,26 @@ const SettingsPage = () => {
             description="Minimize animations throughout the app"
             value={settings.reducedMotion}
             onChange={() => updateSettings({ reducedMotion: !settings.reducedMotion })}
+          />
+
+          <div className="border-t border-border/20" />
+
+          <ToggleRow
+            icon={Layers}
+            label="3D match pitch"
+            description="WebGL 3D view during live matches (shows player positions)"
+            value={settings.show3DPitch}
+            onChange={() => updateSettings({ show3DPitch: !settings.show3DPitch })}
+          />
+
+          <div className="border-t border-border/20" />
+
+          <ToggleRow
+            icon={Layers}
+            label="3D formation view"
+            description="WebGL 3D pitch in the lineup editor"
+            value={settings.show3DFormation}
+            onChange={() => updateSettings({ show3DFormation: !settings.show3DFormation })}
           />
 
           <div className="border-t border-border/20" />

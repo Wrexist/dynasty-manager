@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { PITCH_W, PITCH_H } from '../shared/PitchGeometry';
@@ -8,78 +8,75 @@ interface WeatherLayerProps {
   mobile?: boolean;
 }
 
-const SPREAD_X = PITCH_W * 0.6;
-const SPREAD_Z = PITCH_H * 0.6;
-const SPAWN_HEIGHT = 40;
+const SPREAD_X = PITCH_W * 0.7;
+const SPREAD_Z = PITCH_H * 0.7;
+const SPAWN_HEIGHT = 45;
 
-export function WeatherLayer({ weather, mobile }: WeatherLayerProps) {
-  if (weather === 'clear') return null;
-
+function ActiveWeather({ weather, mobile }: { weather: Exclude<WeatherLayerProps['weather'], 'clear'>; mobile?: boolean }) {
   const count = mobile
-    ? (weather === 'rain' ? 600 : 400)
-    : (weather === 'rain' ? 1400 : 900);
+    ? (weather === 'rain' ? 700 : 450)
+    : (weather === 'rain' ? 1600 : 1000);
 
-  const positions = useRef<Float32Array>(new Float32Array(count * 3));
-  const velocities = useRef<Float32Array>(new Float32Array(count * 3));
-  const pointsRef = useRef<THREE.Points>(null!);
-
-  // Initialize
-  useMemo(() => {
+  const { positions, velocities } = useMemo(() => {
+    const pos = new Float32Array(count * 3);
+    const vel = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      positions.current[i * 3] = (Math.random() - 0.5) * SPREAD_X * 2;
-      positions.current[i * 3 + 1] = Math.random() * SPAWN_HEIGHT;
-      positions.current[i * 3 + 2] = (Math.random() - 0.5) * SPREAD_Z * 2;
+      pos[i * 3] = (Math.random() - 0.5) * SPREAD_X * 2;
+      pos[i * 3 + 1] = Math.random() * SPAWN_HEIGHT;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * SPREAD_Z * 2;
       if (weather === 'rain') {
-        velocities.current[i * 3] = (Math.random() - 0.5) * 2;
-        velocities.current[i * 3 + 1] = -(12 + Math.random() * 8);
-        velocities.current[i * 3 + 2] = 0;
+        vel[i * 3] = (Math.random() - 0.5) * 2.5;
+        vel[i * 3 + 1] = -(14 + Math.random() * 8);
+        vel[i * 3 + 2] = 0;
       } else if (weather === 'snow') {
-        velocities.current[i * 3] = (Math.random() - 0.5) * 1.5;
-        velocities.current[i * 3 + 1] = -(1.5 + Math.random() * 2);
-        velocities.current[i * 3 + 2] = (Math.random() - 0.5) * 1.5;
+        vel[i * 3] = (Math.random() - 0.5) * 1.8;
+        vel[i * 3 + 1] = -(1.2 + Math.random() * 1.8);
+        vel[i * 3 + 2] = (Math.random() - 0.5) * 1.5;
       } else {
-        // wind
-        velocities.current[i * 3] = 8 + Math.random() * 6;
-        velocities.current[i * 3 + 1] = -(2 + Math.random() * 3);
-        velocities.current[i * 3 + 2] = (Math.random() - 0.5) * 2;
+        vel[i * 3] = 10 + Math.random() * 8;
+        vel[i * 3 + 1] = -(2 + Math.random() * 3);
+        vel[i * 3 + 2] = (Math.random() - 0.5) * 2;
       }
     }
+    return { positions: pos, velocities: vel };
   }, [count, weather]);
 
   const geometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(positions.current, 3));
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     return geo;
   }, [positions]);
 
+  const material = useMemo(() => new THREE.PointsMaterial({
+    color: weather === 'snow' ? 0xddeeff : weather === 'rain' ? 0x7799bb : 0xaabbcc,
+    size: weather === 'snow' ? 0.55 : 0.22,
+    transparent: true,
+    opacity: weather === 'snow' ? 0.75 : 0.45,
+    sizeAttenuation: true,
+    depthWrite: false,
+  }), [weather]);
+
   useFrame((_, delta) => {
-    const pos = positions.current;
-    const vel = velocities.current;
     for (let i = 0; i < count; i++) {
-      pos[i * 3] += vel[i * 3] * delta;
-      pos[i * 3 + 1] += vel[i * 3 + 1] * delta;
-      pos[i * 3 + 2] += vel[i * 3 + 2] * delta;
-      // Wrap
-      if (pos[i * 3 + 1] < 0) {
-        pos[i * 3] = (Math.random() - 0.5) * SPREAD_X * 2;
-        pos[i * 3 + 1] = SPAWN_HEIGHT;
-        pos[i * 3 + 2] = (Math.random() - 0.5) * SPREAD_Z * 2;
+      positions[i * 3] += velocities[i * 3] * delta;
+      positions[i * 3 + 1] += velocities[i * 3 + 1] * delta;
+      positions[i * 3 + 2] += velocities[i * 3 + 2] * delta;
+      if (positions[i * 3 + 1] < 0) {
+        positions[i * 3] = (Math.random() - 0.5) * SPREAD_X * 2;
+        positions[i * 3 + 1] = SPAWN_HEIGHT;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * SPREAD_Z * 2;
       }
-      if (Math.abs(pos[i * 3]) > SPREAD_X) {
-        pos[i * 3] = -Math.sign(pos[i * 3]) * SPREAD_X;
+      if (Math.abs(positions[i * 3]) > SPREAD_X) {
+        positions[i * 3] = -Math.sign(positions[i * 3]) * SPREAD_X * 0.9;
       }
     }
     geometry.attributes.position.needsUpdate = true;
   });
 
-  const material = useMemo(() => new THREE.PointsMaterial({
-    color: weather === 'snow' ? 0xddeeff : weather === 'rain' ? 0x88aabb : 0xaaccdd,
-    size: weather === 'snow' ? 0.5 : 0.2,
-    transparent: true,
-    opacity: weather === 'snow' ? 0.7 : 0.4,
-    sizeAttenuation: true,
-    depthWrite: false,
-  }), [weather]);
+  return <points geometry={geometry} material={material} />;
+}
 
-  return <points ref={pointsRef} geometry={geometry} material={material} />;
+export function WeatherLayer({ weather, mobile }: WeatherLayerProps) {
+  if (weather === 'clear') return null;
+  return <ActiveWeather weather={weather} mobile={mobile} />;
 }

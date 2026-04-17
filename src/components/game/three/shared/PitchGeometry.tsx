@@ -1,11 +1,9 @@
 import { useMemo } from 'react';
 import * as THREE from 'three';
 
-// Real pitch dimensions in world units (meters)
 export const PITCH_W = 68;
 export const PITCH_H = 105;
 
-// Convert formation slot coords (0-100) to world space
 export function slotToWorld(x: number, y: number): [number, number, number] {
   const wx = (x / 100 - 0.5) * PITCH_W;
   const wz = -(y / 100 - 0.5) * PITCH_H;
@@ -13,24 +11,26 @@ export function slotToWorld(x: number, y: number): [number, number, number] {
 }
 
 function PitchSurface() {
-  const geometry = useMemo(() => {
+  const { geometry, material } = useMemo(() => {
     const geo = new THREE.PlaneGeometry(PITCH_W, PITCH_H, 1, 10);
-    geo.rotateX(-Math.PI / 2);
+    // Read Y BEFORE rotation — after rotateX(-PI/2), Y becomes the world Z axis
     const colors: number[] = [];
     const pos = geo.attributes.position;
     const stripeWidth = PITCH_H / 10;
     for (let i = 0; i < pos.count; i++) {
-      const z = pos.getZ(i);
-      const stripeIdx = Math.floor((z + PITCH_H / 2) / stripeWidth);
+      const y = pos.getY(i); // world Z after rotation
+      const stripeIdx = Math.floor((y + PITCH_H / 2) / stripeWidth);
       const isLight = stripeIdx % 2 === 0;
-      const v = isLight ? 0.13 : 0.10;
-      colors.push(v * 0.4, v, v * 0.4);
+      const r = isLight ? 0.055 : 0.04;
+      const g = isLight ? 0.16 : 0.12;
+      const b = isLight ? 0.055 : 0.04;
+      colors.push(r, g, b);
     }
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-    return geo;
+    geo.rotateX(-Math.PI / 2);
+    const mat = new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.FrontSide });
+    return { geometry: geo, material: mat };
   }, []);
-
-  const material = useMemo(() => new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.FrontSide }), []);
 
   return <mesh geometry={geometry} material={material} />;
 }
@@ -38,20 +38,28 @@ function PitchSurface() {
 function PitchMarkings() {
   const group = useMemo(() => {
     const g = new THREE.Group();
-    const mat = new THREE.LineBasicMaterial({ color: 0x3d7a50, transparent: true, opacity: 0.8 });
+    const mat = new THREE.LineBasicMaterial({ color: 0x4a9060, transparent: true, opacity: 0.85 });
 
     const hw = PITCH_W / 2;
     const hh = PITCH_H / 2;
     const y = 0.06;
 
     const segs: Array<[number, number, number, number]> = [
+      // Outline
       [-hw, -hh, -hw, hh], [-hw, hh, hw, hh], [hw, hh, hw, -hh], [hw, -hh, -hw, -hh],
+      // Halfway line
       [-hw, 0, hw, 0],
+      // Top penalty area
       [-20.16, hh, -20.16, hh - 16.5], [-20.16, hh - 16.5, 20.16, hh - 16.5], [20.16, hh - 16.5, 20.16, hh],
+      // Bottom penalty area
       [-20.16, -hh, -20.16, -hh + 16.5], [-20.16, -hh + 16.5, 20.16, -hh + 16.5], [20.16, -hh + 16.5, 20.16, -hh],
+      // Top 6-yard box
       [-9.16, hh, -9.16, hh - 5.5], [-9.16, hh - 5.5, 9.16, hh - 5.5], [9.16, hh - 5.5, 9.16, hh],
+      // Bottom 6-yard box
       [-9.16, -hh, -9.16, -hh + 5.5], [-9.16, -hh + 5.5, 9.16, -hh + 5.5], [9.16, -hh + 5.5, 9.16, -hh],
+      // Top goal
       [-3.66, hh, -3.66, hh + 2.4], [-3.66, hh + 2.4, 3.66, hh + 2.4], [3.66, hh + 2.4, 3.66, hh],
+      // Bottom goal
       [-3.66, -hh, -3.66, -hh - 2.4], [-3.66, -hh - 2.4, 3.66, -hh - 2.4], [3.66, -hh - 2.4, 3.66, -hh],
     ];
 
@@ -63,13 +71,31 @@ function PitchMarkings() {
 
     // Center circle
     const circlePoints: number[] = [];
-    for (let i = 0; i <= 48; i++) {
-      const angle = (i / 48) * Math.PI * 2;
+    for (let i = 0; i <= 64; i++) {
+      const angle = (i / 64) * Math.PI * 2;
       circlePoints.push(Math.cos(angle) * 9.15, 0.06, Math.sin(angle) * 9.15);
     }
     const circleGeo = new THREE.BufferGeometry();
     circleGeo.setAttribute('position', new THREE.Float32BufferAttribute(circlePoints, 3));
     g.add(new THREE.Line(circleGeo, mat));
+
+    // Penalty arcs (top and bottom)
+    for (const side of [-1, 1]) {
+      const arcPoints: number[] = [];
+      const centerZ = side * (PITCH_H / 2 - 11);
+      for (let i = 0; i <= 32; i++) {
+        const angle = Math.PI * 0.18 + (i / 32) * Math.PI * 0.64;
+        const px = Math.cos(angle) * 9.15;
+        const pz = centerZ - side * Math.sin(angle) * 9.15;
+        // Only draw the part outside the penalty box
+        if (Math.abs(pz) < PITCH_H / 2 - 16.5) arcPoints.push(px, 0.06, pz);
+      }
+      if (arcPoints.length >= 6) {
+        const arcGeo = new THREE.BufferGeometry();
+        arcGeo.setAttribute('position', new THREE.Float32BufferAttribute(arcPoints, 3));
+        g.add(new THREE.Line(arcGeo, mat));
+      }
+    }
 
     return g;
   }, []);
@@ -77,11 +103,17 @@ function PitchMarkings() {
   return (
     <>
       <primitive object={group} />
-      {/* Center spot */}
       <mesh position={[0, 0.07, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.3, 8]} />
-        <meshBasicMaterial color={0x3d7a50} />
+        <circleGeometry args={[0.3, 12]} />
+        <meshBasicMaterial color={0x4a9060} />
       </mesh>
+      {/* Penalty spots */}
+      {[-1, 1].map(side => (
+        <mesh key={side} position={[0, 0.07, side * (PITCH_H / 2 - 11)]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.25, 8]} />
+          <meshBasicMaterial color={0x4a9060} />
+        </mesh>
+      ))}
     </>
   );
 }
