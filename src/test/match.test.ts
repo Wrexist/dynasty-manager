@@ -303,6 +303,78 @@ describe('Match Engine — Injury Events', () => {
   });
 });
 
+const GOAL_TYPES = new Set(['goal', 'penalty_scored', 'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal', 'solo_goal', 'goalkeeper_error']);
+
+describe('Match Engine — Scorer Distribution', () => {
+  it('forwards score more than midfielders, who score more than defenders; GKs never score', () => {
+    const { club: homeClub, players: homePlayers } = makeLineup('sd-home', '4-3-3', 70);
+    const { club: awayClub, players: awayPlayers } = makeLineup('sd-away', '4-3-3', 70);
+
+    const positionGoals: Record<string, number> = {};
+    homePlayers.forEach(p => { positionGoals[p.id] = 0; });
+
+    const N = 200;
+    for (let i = 0; i < N; i++) {
+      const match = makeMatch(`sd-${i}`);
+      const { result } = simulateMatch(match, homeClub, awayClub, homePlayers, awayPlayers);
+      result.events.forEach(e => {
+        if (GOAL_TYPES.has(e.type) && e.clubId === homeClub.id && e.playerId && positionGoals[e.playerId] !== undefined) {
+          positionGoals[e.playerId]++;
+        }
+      });
+    }
+
+    const playerById = Object.fromEntries(homePlayers.map(p => [p.id, p]));
+    let fwdGoals = 0, midGoals = 0, defGoals = 0, gkGoals = 0;
+    Object.entries(positionGoals).forEach(([id, g]) => {
+      const pos = playerById[id]?.position;
+      if (['ST', 'LW', 'RW', 'CAM'].includes(pos)) fwdGoals += g;
+      else if (['CM', 'LM', 'RM', 'CDM'].includes(pos)) midGoals += g;
+      else if (['CB', 'LB', 'RB'].includes(pos)) defGoals += g;
+      else if (pos === 'GK') gkGoals += g;
+    });
+
+    expect(fwdGoals).toBeGreaterThan(midGoals);
+    expect(midGoals).toBeGreaterThan(defGoals);
+    expect(gkGoals).toBe(0);
+  });
+
+  it('high-form players score more than low-form teammates of the same position', () => {
+    // Two identical CMs — one hot (form 90), one cold (form 10)
+    const hotCM = makePlayer('hot-cm', 'form-home', 'CM', 70);
+    hotCM.form = 90;
+    const coldCM = makePlayer('cold-cm', 'form-home', 'CM', 70);
+    coldCM.form = 10;
+
+    const { club: homeClub, players: basePlayers } = makeLineup('form-home', '4-3-3', 70);
+    // Replace the first CM with our pair (positions433 has CM at index 5, 6, 7)
+    const players = basePlayers.map((p, i) => {
+      if (i === 5) return hotCM;
+      if (i === 6) return coldCM;
+      return p;
+    });
+    homeClub.playerIds = players.map(p => p.id);
+    homeClub.lineup = players.map(p => p.id);
+
+    const { club: awayClub, players: awayPlayers } = makeLineup('form-away', '4-3-3', 70);
+
+    let hotGoals = 0, coldGoals = 0;
+    const N = 300;
+    for (let i = 0; i < N; i++) {
+      const match = makeMatch(`form-${i}`);
+      const { result } = simulateMatch(match, homeClub, awayClub, players, awayPlayers);
+      result.events.forEach(e => {
+        if (!GOAL_TYPES.has(e.type) || e.clubId !== homeClub.id) return;
+        if (e.playerId === 'hot-cm') hotGoals++;
+        if (e.playerId === 'cold-cm') coldGoals++;
+      });
+    }
+
+    // Hot-form player should score meaningfully more — allow a loose margin to avoid flakes
+    expect(hotGoals).toBeGreaterThan(coldGoals * 1.2);
+  });
+});
+
 describe('Match Engine — Card Events', () => {
   it('generates yellow cards over many matches', () => {
     const { club: homeClub, players: homePlayers } = makeLineup('home', '4-3-3', 70);

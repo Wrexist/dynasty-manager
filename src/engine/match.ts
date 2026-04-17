@@ -15,7 +15,7 @@ import { getCardRiskMultiplier } from '@/utils/personality';
 import {
   FORMATION_FIT_MAX_BONUS,
   ATTACKER_POSITIONS, MIDFIELDER_POSITIONS,
-  SCORER_POSITION_WEIGHTS, SCORER_SHOOTING_INFLUENCE, SCORER_FITNESS_INFLUENCE,
+  SCORER_POSITION_WEIGHTS, SCORER_SHOOTING_INFLUENCE, SCORER_FITNESS_INFLUENCE, SCORER_FORM_INFLUENCE,
   ASSIST_CHANCE, ASSIST_PASSING_WEIGHT, ASSIST_MENTAL_WEIGHT,
   MENTALITY_ATTACK_MOD, MENTALITY_DEFENSE_MOD,
   TEMPO_SHOT_MOD, DEFENSIVE_LINE_COUNTER_VULN, WIDTH_POSSESSION_MOD,
@@ -126,22 +126,30 @@ function getFormationFitBonus(players: Player[], formation: FormationType): numb
   return fitRatio * FORMATION_FIT_MAX_BONUS;
 }
 
-/** Pick a goal scorer weighted by position role and shooting skill.
- *  Forwards >> midfielders >> defenders, but high shooting overrides position. */
+/** Pick a goal scorer weighted by position role, shooting skill, fitness, and current form.
+ *  Forwards >> midfielders >> defenders. GKs are excluded from open-play scoring unless
+ *  they are the only players left (extreme red-card edge case). */
 function pickAttacker(players: Player[]): Player {
-  if (players.length === 1) return players[0];
-  const weights = players.map(p => {
-    const posWeight = SCORER_POSITION_WEIGHTS[p.position] ?? 1.0;
-    return posWeight + (p.attributes.shooting / 100) * SCORER_SHOOTING_INFLUENCE + (p.fitness / 100) * SCORER_FITNESS_INFLUENCE;
+  // Exclude GKs — they don't score in open play
+  const pool = players.filter(p => p.position !== 'GK');
+  const candidates = pool.length > 0 ? pool : players;
+  if (candidates.length === 1) return candidates[0];
+
+  const weights = candidates.map(p => {
+    const posWeight = SCORER_POSITION_WEIGHTS[p.position] ?? 0.3;
+    const shootingBonus = (p.attributes.shooting / 100) * SCORER_SHOOTING_INFLUENCE;
+    const fitnessBonus = (p.fitness / 100) * SCORER_FITNESS_INFLUENCE;
+    const formBonus = ((p.form - 50) / 100) * SCORER_FORM_INFLUENCE;
+    return Math.max(0.01, posWeight + shootingBonus + fitnessBonus + formBonus);
   });
   const totalWeight = weights.reduce((a, b) => a + b, 0);
-  if (totalWeight <= 0) return players[Math.floor(Math.random() * players.length)];
+  if (totalWeight <= 0) return candidates[Math.floor(Math.random() * candidates.length)];
   let r = Math.random() * totalWeight;
-  for (let i = 0; i < players.length; i++) {
+  for (let i = 0; i < candidates.length; i++) {
     r -= weights[i];
-    if (r <= 0) return players[i];
+    if (r <= 0) return candidates[i];
   }
-  return players[players.length - 1];
+  return candidates[candidates.length - 1];
 }
 
 /** Pick the best penalty taker weighted by shooting + mental */
