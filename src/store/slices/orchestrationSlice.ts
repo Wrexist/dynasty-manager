@@ -22,6 +22,7 @@ import { INDIVIDUAL_INJURY_RISK_MODIFIER } from '@/config/training';
 import { completeAssignment } from '@/utils/scouting';
 import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
+import { generateSeasonalRegens, mergeRegensIntoFreeAgentPool } from '@/utils/regenPool';
 import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle, formatMoney } from '@/utils/helpers';
 import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot, trimFixturesForSave, trimFixtureArrayForSave } from '@/store/helpers/persistence';
@@ -1623,6 +1624,25 @@ function finalizeSeason(
       newClubs[club.id] = { ...newClubs[club.id], wageBill: recalcWages };
     }
   }
+
+  // Inject a fresh cohort of 16-19yr old newgens into the free-agent pool.
+  // Without this, leagues slowly deplete their youth pipeline as each season
+  // ages existing players and no new prospects are ever introduced.
+  const divisionIds = LEAGUES.map(l => l.id);
+  const regenCount = 20 + Math.floor(Math.random() * 11); // 20-30 newgens per season
+  const { players: regenPlayers } = generateSeasonalRegens(newSeason, divisionIds, regenCount);
+  for (const regen of regenPlayers) {
+    newPlayers[regen.id] = regen;
+  }
+  const { freeAgentIds: mergedFreeAgentIds, evictedIds: evictedFreeAgents } = mergeRegensIntoFreeAgentPool(
+    regenPlayers, freeAgentIds, newPlayers, FREE_AGENT_POOL_MAX,
+  );
+  // Remove any evicted free agents from newPlayers so the orphan prune below keeps state clean
+  for (const evictedId of evictedFreeAgents) {
+    delete newPlayers[evictedId];
+  }
+  freeAgentIds.length = 0;
+  freeAgentIds.push(...mergedFreeAgentIds);
 
   // Prune orphaned players: remove players not in any club, not free agents,
   // and not in the national team pool
