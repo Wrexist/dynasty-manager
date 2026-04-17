@@ -1,5 +1,6 @@
 import { Player, Position } from '@/types/game';
 import { generatePlayer } from './playerGen';
+import { inferDefaultRole } from './playerRoles';
 import { pick, clamp } from './helpers';
 
 // Positions that newgens can emerge as — evenly weighted across the pitch
@@ -73,6 +74,9 @@ export function generateSeasonalRegens(
     player.careerGoals = 0;
     player.careerAssists = 0;
     player.careerAppearances = 0;
+
+    // Re-infer role since age/attribute nudges may have shifted the best fit
+    player.role = inferDefaultRole(player);
 
     players.push(player);
     playerIds.push(player.id);

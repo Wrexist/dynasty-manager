@@ -76,6 +76,30 @@ export interface HeadToHeadRecord {
 
 export type Position = 'GK' | 'CB' | 'LB' | 'RB' | 'CDM' | 'CM' | 'CAM' | 'LM' | 'RM' | 'LW' | 'RW' | 'ST';
 
+/**
+ * Specialist role archetypes layered on top of `Position`.
+ * Roles influence match-engine weighting for attack, assist and foul selection
+ * without changing the positional structure of the formation.
+ */
+export type PlayerRole =
+  // Forwards
+  | 'poacher'             // ST — pure finisher, very high shot weight
+  | 'target-man'          // ST — physical, hold-up play, aerial threat
+  | 'complete-forward'    // ST — balanced modern striker
+  | 'trequartista'        // CAM — creative free role, high assist weight
+  // Wings
+  | 'inverted-winger'     // LW/RW — cuts inside, shoots + assists
+  // Midfielders
+  | 'mezzala'             // CM — box-to-box creator
+  | 'ball-winning-mid'    // CM/CDM — tackling, pressing, high foul weight
+  | 'deep-lying-playmaker'// CDM/CM — metronome, low foul, very high assist
+  // Defenders
+  | 'wing-back'           // LB/RB — overlapping, supplies crosses (assist weight)
+  | 'ball-playing-def'    // CB — passing out of the back (low foul, some assist)
+  | 'sweeper'             // CB — last-line covering defender (low foul, solid)
+  // Keeper
+  | 'sweeper-keeper';     // GK — plays high off the line (for GKs with mental+pace)
+
 export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' | '3-4-3' | '5-3-2' | '4-5-1' | '4-1-2-1-2' | '3-4-1-2';
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
@@ -165,6 +189,7 @@ export interface Player {
   transferCooldownUntilWeek?: number; // after being convinced to stay, immune until this week
   lastTransferTalkWeek?: number; // week of last transfer talk interaction (prevents spam)
   alternatePositions?: Position[];  // positions this player can fill naturally (from FC25 data)
+  role?: PlayerRole;                // specialist archetype layered on top of position
   skillMoves?: number;              // 1-5 star skill moves rating
   internationalCaps?: number;
   internationalGoals?: number;

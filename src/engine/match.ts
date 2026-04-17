@@ -12,6 +12,7 @@ import { getTeamStrength } from '@/utils/playerGen';
 import { pick } from '@/utils/helpers';
 import { getChemistryBonus } from '@/utils/chemistry';
 import { getCardRiskMultiplier } from '@/utils/personality';
+import { getRoleWeights } from '@/utils/playerRoles';
 import {
   FORMATION_FIT_MAX_BONUS,
   ATTACKER_POSITIONS, MIDFIELDER_POSITIONS,
@@ -132,10 +133,13 @@ function pickAttacker(players: Player[]): Player {
   const attackers = players.filter(p => (ATTACKER_POSITIONS as readonly string[]).includes(p.position));
   const midfielders = players.filter(p => (MIDFIELDER_POSITIONS as readonly string[]).includes(p.position));
 
-  // Weight selection by shooting + fitness
+  // Weight selection by shooting + fitness, modulated by specialist role
   const weightedPick = (candidates: Player[]): Player => {
     if (candidates.length === 0) return pick(players);
-    const weights = candidates.map(p => (p.attributes.shooting * ATTACKER_SHOOTING_WEIGHT + p.fitness * ATTACKER_FITNESS_WEIGHT) / 100);
+    const weights = candidates.map(p => {
+      const base = (p.attributes.shooting * ATTACKER_SHOOTING_WEIGHT + p.fitness * ATTACKER_FITNESS_WEIGHT) / 100;
+      return base * getRoleWeights(p).attackWeight;
+    });
     const totalWeight = weights.reduce((a, b) => a + b, 0);
     if (totalWeight <= 0) return candidates[Math.floor(Math.random() * candidates.length)];
     let r = Math.random() * totalWeight;
@@ -165,12 +169,15 @@ function pickPenaltyTaker(players: Player[]): Player {
   return players[players.length - 1];
 }
 
-/** Pick an assist provider weighted by passing quality */
+/** Pick an assist provider weighted by passing quality and role */
 function pickAssist(players: Player[], scorerId: string): Player | undefined {
   const others = players.filter(p => p.id !== scorerId);
   if (others.length === 0) return undefined;
   if (Math.random() < ASSIST_CHANCE) {
-    const weights = others.map(p => (p.attributes.passing * ASSIST_PASSING_WEIGHT + p.attributes.mental * ASSIST_MENTAL_WEIGHT) / 100);
+    const weights = others.map(p => {
+      const base = (p.attributes.passing * ASSIST_PASSING_WEIGHT + p.attributes.mental * ASSIST_MENTAL_WEIGHT) / 100;
+      return base * getRoleWeights(p).assistWeight;
+    });
     const totalWeight = weights.reduce((a, b) => a + b, 0);
     if (totalWeight <= 0) return others[Math.floor(Math.random() * others.length)];
     let r = Math.random() * totalWeight;
@@ -183,13 +190,16 @@ function pickAssist(players: Player[], scorerId: string): Player | undefined {
   return undefined;
 }
 
-/** Pick a fouler weighted by position — defenders/CDMs 3x more likely than attackers */
+/** Pick a fouler weighted by position and specialist role. */
 function pickFouler(players: Player[]): Player | null {
   if (players.length === 0) return null;
   const weights = players.map(p => {
-    if ((DEFENDER_POSITIONS as readonly string[]).includes(p.position)) return FOULER_DEFENDER_WEIGHT;
-    if ((MIDFIELDER_POSITIONS as readonly string[]).includes(p.position)) return FOULER_MIDFIELDER_WEIGHT;
-    return FOULER_ATTACKER_WEIGHT;
+    const positionWeight = (DEFENDER_POSITIONS as readonly string[]).includes(p.position)
+      ? FOULER_DEFENDER_WEIGHT
+      : (MIDFIELDER_POSITIONS as readonly string[]).includes(p.position)
+        ? FOULER_MIDFIELDER_WEIGHT
+        : FOULER_ATTACKER_WEIGHT;
+    return positionWeight * getRoleWeights(p).foulWeight;
   });
   const totalWeight = weights.reduce((a, b) => a + b, 0);
   let r = Math.random() * totalWeight;

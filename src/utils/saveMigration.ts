@@ -1,13 +1,15 @@
 import * as Sentry from '@sentry/react';
 import { LEAGUES, getLeaguesByCountry, generateDivisionFixtures, ALL_CLUBS } from '@/data/league';
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
+import { inferDefaultRole } from '@/utils/playerRoles';
+import type { Player } from '@/types/game';
 /**
  * Save migration system for Dynasty Manager.
  * Each migration transforms save data from one version to the next.
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 56;
+const CURRENT_VERSION = 57;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -803,6 +805,22 @@ const migrations: Record<number, MigrationFn> = {
       players,
       version: 56,
     };
+  },
+
+  // v56 → v57: Infer specialist `role` for every existing player.
+  // Roles are layered on top of Position to flavour match-engine selection
+  // (attack, assist, foul weights). Existing saves get their best-fit role.
+  56: (data) => {
+    const players = data.players as Record<string, Record<string, unknown>> | undefined;
+    if (players) {
+      for (const pid of Object.keys(players)) {
+        const p = players[pid];
+        if (p && p.role === undefined) {
+          p.role = inferDefaultRole(p as unknown as Player);
+        }
+      }
+    }
+    return { ...data, version: 57 };
   },
 };
 

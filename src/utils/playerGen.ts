@@ -2,6 +2,7 @@ import { Player, Position, PlayerAttributes, FormationType, FORMATION_POSITIONS,
 import { generatePersonality } from '@/utils/personality';
 import { pick, clamp } from '@/utils/helpers';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
+import { inferDefaultRole } from '@/utils/playerRoles';
 import {
   PLAYER_MIN_AGE, PLAYER_AGE_RANGE, YOUNG_AGE_THRESHOLD, YOUNG_POTENTIAL_GAP, OLD_POTENTIAL_GAP,
   PROFILE_ATTRIBUTE_VARIANCE, POSITION_WEIGHTS as CONFIG_POSITION_WEIGHTS, DEFAULT_POSITION_WEIGHTS,
@@ -102,7 +103,7 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
   const leagueKey = typeof divisionTier === 'string' ? divisionTier : undefined;
   const nationality = pickNationality(leagueKey);
   const { firstName, lastName } = pickNameForNationality(nationality);
-  return {
+  const player: Player = {
     id: crypto.randomUUID(),
     firstName,
     lastName,
@@ -134,6 +135,8 @@ export function generatePlayer(position: Position, quality: number, clubId: stri
     skillMoves: pickWeightedSkillMoves(),
     joinedSeason: season,
   };
+  player.role = inferDefaultRole(player);
+  return player;
 }
 
 /** Weighted random skill moves: 1★ 15%, 2★ 40%, 3★ 30%, 4★ 12%, 5★ 3% */
@@ -203,6 +206,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     if (t.skillMoves) player.skillMoves = t.skillMoves;
     player.value = calculatePlayerValue(player.overall);
     player.wage = calculatePlayerWage(player.overall);
+    player.role = inferDefaultRole(player);
     templatePlayers.push(player);
   }
 
