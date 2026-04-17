@@ -13,12 +13,12 @@ import { pick } from '@/utils/helpers';
 import { getChemistryBonus } from '@/utils/chemistry';
 import { getCardRiskMultiplier } from '@/utils/personality';
 import { getRoleWeights } from '@/utils/playerRoles';
-import { getCornerRoutine, getFreeKickRoutine, applyCornerHeaderBias } from '@/utils/setPieces';
+import { getCornerRoutine, applyCornerHeaderBias } from '@/utils/setPieces';
 import {
+  GOAL_SCORING_TYPES,
   FORMATION_FIT_MAX_BONUS,
   ATTACKER_POSITIONS, MIDFIELDER_POSITIONS,
-  ATTACKER_SHOOTING_WEIGHT, ATTACKER_FITNESS_WEIGHT,
-  ATTACKER_SELECTION_CHANCE, MIDFIELDER_SELECTION_CHANCE,
+  SCORER_POSITION_WEIGHTS, SCORER_SHOOTING_INFLUENCE, SCORER_FITNESS_INFLUENCE, SCORER_FORM_INFLUENCE,
   ASSIST_CHANCE, ASSIST_PASSING_WEIGHT, ASSIST_MENTAL_WEIGHT,
   MENTALITY_ATTACK_MOD, MENTALITY_DEFENSE_MOD,
   TEMPO_SHOT_MOD, DEFENSIVE_LINE_COUNTER_VULN, WIDTH_POSSESSION_MOD,
@@ -40,7 +40,7 @@ import {
   RATING_DEFENDER_SCALE, RATING_DEFENDER_OFFSET, RATING_MIDFIELDER_SCALE, RATING_MIDFIELDER_OFFSET,
   RATING_EXHAUSTION_THRESHOLD, RATING_EXHAUSTION_PENALTY, RATING_VARIANCE, RATING_MIN, RATING_MAX,
   FORMATION_ATTACK_BONUS, FORMATION_DEFENSE_BONUS,
-  STOPPAGE_TIME_BASE, STOPPAGE_TIME_MAX_EXTRA, STOPPAGE_TIME_INJURY_ADD, STOPPAGE_TIME_CARD_ADD,
+  STOPPAGE_TIME_BASE, STOPPAGE_TIME_MAX_EXTRA, STOPPAGE_TIME_INJURY_ADD, STOPPAGE_TIME_CARD_ADD, STOPPAGE_TIME_GOAL_ADD,
   CORNER_GOAL_CHANCE, CORNER_GOAL_PHYSICAL_WEIGHT, CORNER_GOAL_DEFENDING_WEIGHT,
   FITNESS_DEGRADE_PER_MINUTE, FITNESS_DEGRADE_VARIANCE, LOW_FITNESS_SHOT_PENALTY, MATCH_LOW_FITNESS_THRESHOLD, LOW_FITNESS_INJURY_BONUS,
   PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD,
@@ -49,7 +49,7 @@ import {
   FORMATION_MATCHUP,
   DEFENSE_MODIFIER_SCALE,
   DERBY_EVENT_MOD_SCALE, DERBY_FOUL_MOD_SCALE, DERBY_CARD_MOD_SCALE,
-  CORNER_HEADER_MIN_CHANCE, CORNER_HEADER_PHYSICAL_SCALE,
+  CORNER_HEADER_MIN_CHANCE, CORNER_HEADER_PHYSICAL_SCALE, CORNER_HEADER_CB_MULT, CORNER_HEADER_ST_MULT, CORNER_HEADER_MID_MULT,
   OWN_GOAL_CHANCE, PENALTY_FROM_FOUL_CHANCE, PENALTY_CONVERSION_RATE,
   WOODWORK_CHANCE, GOAL_LINE_CLEARANCE_CHANCE,
   MORALE_PERFORMANCE_WEIGHT, MORALE_BASELINE,
@@ -129,31 +129,34 @@ function getFormationFitBonus(players: Player[], formation: FormationType): numb
   return fitRatio * FORMATION_FIT_MAX_BONUS;
 }
 
-/** Pick an attacker weighted by shooting quality and fitness */
+/** Pick a goal scorer weighted by position role, shooting skill, fitness, and current form.
+ *  Forwards >> midfielders >> defenders. GKs are excluded from open-play scoring unless
+ *  they are the only players left (extreme red-card edge case). */
 function pickAttacker(players: Player[]): Player {
-  const attackers = players.filter(p => (ATTACKER_POSITIONS as readonly string[]).includes(p.position));
-  const midfielders = players.filter(p => (MIDFIELDER_POSITIONS as readonly string[]).includes(p.position));
+  // Exclude GKs — they don't score in open play
+  const pool = players.filter(p => p.position !== 'GK');
+  const candidates = pool.length > 0 ? pool : players;
+  if (candidates.length === 1) return candidates[0];
 
-  // Weight selection by shooting + fitness, modulated by specialist role
-  const weightedPick = (candidates: Player[]): Player => {
-    if (candidates.length === 0) return pick(players);
-    const weights = candidates.map(p => {
-      const base = (p.attributes.shooting * ATTACKER_SHOOTING_WEIGHT + p.fitness * ATTACKER_FITNESS_WEIGHT) / 100;
-      return base * getRoleWeights(p).attackWeight;
-    });
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-    if (totalWeight <= 0) return candidates[Math.floor(Math.random() * candidates.length)];
-    let r = Math.random() * totalWeight;
-    for (let i = 0; i < candidates.length; i++) {
-      r -= weights[i];
-      if (r <= 0) return candidates[i];
-    }
-    return candidates[candidates.length - 1];
-  };
-
-  if (attackers.length > 0 && Math.random() < ATTACKER_SELECTION_CHANCE) return weightedPick(attackers);
-  if (midfielders.length > 0 && Math.random() < MIDFIELDER_SELECTION_CHANCE) return weightedPick(midfielders);
-  return weightedPick(players);
+  const weights = candidates.map(p => {
+    const posWeight = SCORER_POSITION_WEIGHTS[p.position] ?? 0.3;
+    const shootingBonus = (p.attributes.shooting / 100) * SCORER_SHOOTING_INFLUENCE;
+    const fitnessBonus = (p.fitness / 100) * SCORER_FITNESS_INFLUENCE;
+    const formBonus = ((p.form - 50) / 100) * SCORER_FORM_INFLUENCE;
+    // Specialist-role modulation: poachers/target-men get a nudge, ball-winners
+    // get a dampen. Defaults to 1.0 for roleless players so main's balancing
+    // pass remains the baseline.
+    const roleMod = getRoleWeights(p).attackWeight;
+    return Math.max(0.01, (posWeight + shootingBonus + fitnessBonus + formBonus) * roleMod);
+  });
+  const totalWeight = weights.reduce((a, b) => a + b, 0);
+  if (totalWeight <= 0) return candidates[Math.floor(Math.random() * candidates.length)];
+  let r = Math.random() * totalWeight;
+  for (let i = 0; i < candidates.length; i++) {
+    r -= weights[i];
+    if (r <= 0) return candidates[i];
+  }
+  return candidates[candidates.length - 1];
 }
 
 /** Pick the best penalty taker weighted by shooting + mental */
@@ -170,15 +173,12 @@ function pickPenaltyTaker(players: Player[]): Player {
   return players[players.length - 1];
 }
 
-/** Pick an assist provider weighted by passing quality and role */
+/** Pick an assist provider weighted by passing quality */
 function pickAssist(players: Player[], scorerId: string): Player | undefined {
   const others = players.filter(p => p.id !== scorerId);
   if (others.length === 0) return undefined;
   if (Math.random() < ASSIST_CHANCE) {
-    const weights = others.map(p => {
-      const base = (p.attributes.passing * ASSIST_PASSING_WEIGHT + p.attributes.mental * ASSIST_MENTAL_WEIGHT) / 100;
-      return base * getRoleWeights(p).assistWeight;
-    });
+    const weights = others.map(p => (p.attributes.passing * ASSIST_PASSING_WEIGHT + p.attributes.mental * ASSIST_MENTAL_WEIGHT) / 100);
     const totalWeight = weights.reduce((a, b) => a + b, 0);
     if (totalWeight <= 0) return others[Math.floor(Math.random() * others.length)];
     let r = Math.random() * totalWeight;
@@ -191,16 +191,13 @@ function pickAssist(players: Player[], scorerId: string): Player | undefined {
   return undefined;
 }
 
-/** Pick a fouler weighted by position and specialist role. */
+/** Pick a fouler weighted by position — defenders/CDMs 3x more likely than attackers */
 function pickFouler(players: Player[]): Player | null {
   if (players.length === 0) return null;
   const weights = players.map(p => {
-    const positionWeight = (DEFENDER_POSITIONS as readonly string[]).includes(p.position)
-      ? FOULER_DEFENDER_WEIGHT
-      : (MIDFIELDER_POSITIONS as readonly string[]).includes(p.position)
-        ? FOULER_MIDFIELDER_WEIGHT
-        : FOULER_ATTACKER_WEIGHT;
-    return positionWeight * getRoleWeights(p).foulWeight;
+    if ((DEFENDER_POSITIONS as readonly string[]).includes(p.position)) return FOULER_DEFENDER_WEIGHT;
+    if ((MIDFIELDER_POSITIONS as readonly string[]).includes(p.position)) return FOULER_MIDFIELDER_WEIGHT;
+    return FOULER_ATTACKER_WEIGHT;
   });
   const totalWeight = weights.reduce((a, b) => a + b, 0);
   let r = Math.random() * totalWeight;
@@ -233,7 +230,8 @@ function calcStoppageTime(events: MatchEvent[], halfStart: number, halfEnd: numb
   const halfEvents = events.filter(e => e.minute >= halfStart && e.minute <= halfEnd);
   const injuries = halfEvents.filter(e => e.type === 'injury').length;
   const cards = halfEvents.filter(e => e.type === 'yellow_card' || e.type === 'red_card').length;
-  const extra = STOPPAGE_TIME_BASE + Math.random() * STOPPAGE_TIME_MAX_EXTRA + injuries * STOPPAGE_TIME_INJURY_ADD + cards * STOPPAGE_TIME_CARD_ADD;
+  const goals = halfEvents.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type)).length;
+  const extra = STOPPAGE_TIME_BASE + Math.random() * STOPPAGE_TIME_MAX_EXTRA + injuries * STOPPAGE_TIME_INJURY_ADD + cards * STOPPAGE_TIME_CARD_ADD + goals * STOPPAGE_TIME_GOAL_ADD;
   return Math.round(Math.min(extra, 7));
 }
 
@@ -1333,10 +1331,8 @@ export function simulateHalf(
               fkScorer = designatedTaker;
             }
           }
-          const fkRoutine = getFreeKickRoutine(club);
-          const baseThreshold = (club.setPieceTakerId && fkScorer.id === club.setPieceTakerId) ? 60 : 70;
-          const freeKickThreshold = baseThreshold + fkRoutine.thresholdShift;
-          if (fkScorer.attributes.shooting >= freeKickThreshold && Math.random() < fkRoutine.goalChanceMult) {
+          const freeKickThreshold = (club.setPieceTakerId && fkScorer.id === club.setPieceTakerId) ? 60 : 70;
+          if (fkScorer.attributes.shooting >= freeKickThreshold) {
             goalType = 'free_kick_goal';
             const fkScorerName = `${fkScorer.firstName} ${fkScorer.lastName}`;
             goalDescription = pick(freeKickGoalDescs)(fkScorerName, clubName);
@@ -1428,9 +1424,14 @@ export function simulateHalf(
           if (Math.random() < cornerGoalThreshold) {
             const headerCandidates = eligibleSquad.filter(p => p.position !== 'GK');
             if (headerCandidates.length > 0) {
+              // Combine main's position-based header bias (CB/ST specialists)
+              // with the routine's physical-vs-shooting bias (near-post flick
+              // favours physical, short corner favours shooting).
+              const getHeaderPosMult = (pos: string) => pos === 'CB' ? CORNER_HEADER_CB_MULT : pos === 'ST' ? CORNER_HEADER_ST_MULT : ['CM','CDM','CAM','LW','RW','LM','RM'].includes(pos) ? CORNER_HEADER_MID_MULT : 1.0;
               const headerWeights = headerCandidates.map(p => {
                 const base = p.attributes.physical * CORNER_GOAL_PHYSICAL_WEIGHT + p.attributes.defending * CORNER_GOAL_DEFENDING_WEIGHT;
-                return applyCornerHeaderBias(base, p.attributes.physical, p.attributes.shooting, cornerRoutine.physicalBias);
+                const routineBiased = applyCornerHeaderBias(base, p.attributes.physical, p.attributes.shooting, cornerRoutine.physicalBias);
+                return routineBiased * getHeaderPosMult(p.position);
               });
               const tw = headerWeights.reduce((a, b) => a + b, 0);
               let rr = Math.random() * tw;
@@ -1500,7 +1501,7 @@ export function simulateHalf(
       const isPlayerTeamFouling = (isHome && homeClub.id === playerClubId) || (!isHome && awayClub.id === playerClubId);
       const disciplinarianMod = (disciplinarianActive && isPlayerTeamFouling) ? (1 - DISCIPLINARIAN_CARD_REDUCTION) : 1;
       const careerMod = (careerDisciplineMod && isPlayerTeamFouling) ? (1 - careerDisciplineMod) : 1;
-      const cardChance = (CARD_BASE_CHANCE + atkMods.foulMod + derbyCardMod) * getCardRiskMultiplier(fouler.personality) * disciplinarianMod * careerMod;
+      const cardChance = (CARD_BASE_CHANCE + derbyCardMod) * getCardRiskMultiplier(fouler.personality) * disciplinarianMod * careerMod;
       if (Math.random() < cardChance) {
         const pe = playerEvents[fouler.id];
         if (pe) {
@@ -1603,7 +1604,10 @@ export function simulateHalf(
 
       // Penalty: defending team fouls attacker in the box
       if (Math.random() < PENALTY_FROM_FOUL_CHANCE) {
-        const atkEligible = squad.filter(p => !unavailable.has(p.id));
+        const atkEligibleAll = squad.filter(p => !unavailable.has(p.id));
+        const atkEligible = atkEligibleAll.filter(p => p.position !== 'GK').length > 0
+          ? atkEligibleAll.filter(p => p.position !== 'GK')
+          : atkEligibleAll;
         if (atkEligible.length > 0) {
           // Prefer designated penalty taker if on the pitch
           const designatedTaker = club.penaltyTakerId ? atkEligible.find(p => p.id === club.penaltyTakerId) : null;

@@ -20,16 +20,31 @@ export const FORMATION_FIT_MAX_BONUS = 0.25;
 // ── Attacker Selection ──
 export const ATTACKER_POSITIONS = ['ST', 'LW', 'RW', 'CAM'] as const;
 export const MIDFIELDER_POSITIONS = ['CM', 'LM', 'RM', 'CDM'] as const;
-export const ATTACKER_SHOOTING_WEIGHT = 0.6;
-export const ATTACKER_FITNESS_WEIGHT = 0.4;
-/** Probability of picking from attackers when available */
-export const ATTACKER_SELECTION_CHANCE = 0.7;
-/** Probability of picking from midfielders if no attacker selected */
-export const MIDFIELDER_SELECTION_CHANCE = 0.8;
+/** Per-position base weight for goal scoring selection — forwards >> mids >> defenders.
+ *  GK is excluded from open-play scoring entirely (filtered before weighting). */
+export const SCORER_POSITION_WEIGHTS: Record<string, number> = {
+  ST: 4.0,
+  LW: 3.5,
+  RW: 3.5,
+  CAM: 3.0,
+  CM: 1.5,
+  LM: 1.5,
+  RM: 1.5,
+  CDM: 0.7,
+  LB: 0.2,
+  RB: 0.2,
+  CB: 0.15,
+};
+/** How much a player's shooting attribute (0–100) scales their goal weight on top of position */
+export const SCORER_SHOOTING_INFLUENCE = 1.5;
+/** Fitness bonus on top of position weight */
+export const SCORER_FITNESS_INFLUENCE = 0.3;
+/** Form bonus — form is 0-100, 50 is neutral. At extremes (form=0/100) shifts weight by ±0.75. */
+export const SCORER_FORM_INFLUENCE = 1.5;
 
 // ── Assist Selection ──
 /** Probability of awarding an assist on a goal */
-export const ASSIST_CHANCE = 0.65;
+export const ASSIST_CHANCE = 0.78;
 export const ASSIST_PASSING_WEIGHT = 0.7;
 export const ASSIST_MENTAL_WEIGHT = 0.3;
 
@@ -125,7 +140,7 @@ export const FITNESS_FACTOR_BASE = 0.7;
 export const FITNESS_FACTOR_SCALE = 0.3;
 
 // ── Goal Chance Formula ──
-export const GOAL_CHANCE_ATTACK_MULT = 0.28;
+export const GOAL_CHANCE_ATTACK_MULT = 0.30;
 export const GOAL_CHANCE_DEFENSE_MULT = 0.20;
 export const GOAL_CHANCE_ATTACK_MOD_SCALE = 0.35;
 export const GOAL_CHANCE_COUNTER_VULN_SCALE = 0.18;
@@ -136,7 +151,7 @@ export const CORNER_FROM_SAVE_CHANCE = 0.35;
 export const CORNER_FROM_MISS_CHANCE = 0.22;
 
 // ── Cards / Fouls ──
-export const CARD_BASE_CHANCE = 0.14;
+export const CARD_BASE_CHANCE = 0.11;
 export const STRAIGHT_RED_CHANCE = 0.008;
 /** Strength penalty per player below full squad size (11). 10v11 = 0.88x strength */
 export const RED_CARD_STRENGTH_PENALTY_PER_PLAYER = 0.12;
@@ -175,9 +190,10 @@ export const STOPPAGE_TIME_BASE = 1;
 export const STOPPAGE_TIME_MAX_EXTRA = 3;
 export const STOPPAGE_TIME_INJURY_ADD = 0.5;
 export const STOPPAGE_TIME_CARD_ADD = 0.3;
+export const STOPPAGE_TIME_GOAL_ADD = 0.4;
 
 // ── Corner Goal ──
-export const CORNER_GOAL_CHANCE = 0.06;
+export const CORNER_GOAL_CHANCE = 0.12;
 export const CORNER_GOAL_PHYSICAL_WEIGHT = 0.6;
 export const CORNER_GOAL_DEFENDING_WEIGHT = 0.4;
 
@@ -231,9 +247,13 @@ export const DERBY_CARD_MOD_SCALE = 0.05;
 
 // ── Corner Header Goal ──
 /** Minimum probability a header from a corner results in a goal */
-export const CORNER_HEADER_MIN_CHANCE = 0.25;
+export const CORNER_HEADER_MIN_CHANCE = 0.08;
 /** Physical attribute scaling for corner header goal chance */
 export const CORNER_HEADER_PHYSICAL_SCALE = 0.5;
+/** Position-based weight multipliers for aerial contest at corners */
+export const CORNER_HEADER_CB_MULT = 1.5;
+export const CORNER_HEADER_ST_MULT = 1.4;
+export const CORNER_HEADER_MID_MULT = 0.65;
 
 // ── Team Viability ──
 /** Minimum available players for a team to continue (FIFA Law 3: match abandoned below 7) */
