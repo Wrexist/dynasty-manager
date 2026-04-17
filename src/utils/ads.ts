@@ -10,12 +10,25 @@
 
 import { Capacitor } from '@capacitor/core';
 
-// Ad unit IDs — set via environment variables for production, falls back to Google's test IDs
-const REWARDED_AD_UNIT_IOS = import.meta.env.VITE_ADMOB_REWARDED_IOS || 'ca-app-pub-3940256099942544/1712485313';
-const REWARDED_AD_UNIT_ANDROID = import.meta.env.VITE_ADMOB_REWARDED_ANDROID || 'ca-app-pub-3940256099942544/5224354917';
+// Ad unit IDs — set via environment variables for production. In dev we fall back to Google's
+// public test unit IDs so the integration can be exercised without risking a policy strike.
+const PROD_IOS_AD_UNIT = import.meta.env.VITE_ADMOB_REWARDED_IOS;
+const PROD_ANDROID_AD_UNIT = import.meta.env.VITE_ADMOB_REWARDED_ANDROID;
+const REWARDED_AD_UNIT_IOS = PROD_IOS_AD_UNIT || 'ca-app-pub-3940256099942544/1712485313';
+const REWARDED_AD_UNIT_ANDROID = PROD_ANDROID_AD_UNIT || 'ca-app-pub-3940256099942544/5224354917';
 
-/** Set to true once production AdMob IDs are configured and native plugin restored. */
-const NATIVE_ADS_READY = false;
+/**
+ * Ads run when we're on a native platform AND either in dev (test IDs OK) or in
+ * production with real ad-unit IDs set. Shipping a production build that uses
+ * Google's test unit IDs is a hard policy violation, so we gate it at init.
+ */
+const HAS_PROD_AD_IDS = !!PROD_IOS_AD_UNIT && !!PROD_ANDROID_AD_UNIT;
+const NATIVE_ADS_READY = import.meta.env.DEV || HAS_PROD_AD_IDS;
+
+if (!import.meta.env.DEV && !HAS_PROD_AD_IDS && typeof window !== 'undefined') {
+  // Loud, one-shot warning in prod bundles missing ad IDs — helps TestFlight QA catch it early
+  console.warn('[Ads] VITE_ADMOB_REWARDED_IOS / VITE_ADMOB_REWARDED_ANDROID not set — rewarded ads disabled in this build.');
+}
 
 let adInitialized = false;
 

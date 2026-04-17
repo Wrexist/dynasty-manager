@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { getFlagUrl, getFlag } from '@/utils/nationality';
 import { cn } from '@/lib/utils';
 
@@ -14,8 +15,11 @@ interface FlagIconProps {
  * Renders a real flag image from flagcdn.com.
  * Falls back to emoji flag if the image fails to load.
  * Aspect ratio is 3:2 (standard flag proportions) unless `fill` is set.
+ *
+ * Memoized — rendered once per player in every squad/league/transfer list, all
+ * props are primitives, so identity comparison is trivially correct.
  */
-export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconProps) {
+export const FlagIcon = memo(function FlagIcon({ nationality, size = 20, fill, className }: FlagIconProps) {
   // Request 2x resolution for retina displays
   const cdnWidth = fill ? 160 : size <= 20 ? 40 : size <= 40 ? 80 : 160;
   const url = getFlagUrl(nationality, cdnWidth);
@@ -74,4 +78,4 @@ export function FlagIcon({ nationality, size = 20, fill, className }: FlagIconPr
       }}
     />
   );
-}
+});

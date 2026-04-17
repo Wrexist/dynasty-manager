@@ -14,12 +14,21 @@ import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { PRODUCTS } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
 
-// RevenueCat API key — set via environment variable for production
-// Production: use 'appl_xxx' for iOS, 'goog_xxx' for Android
-const REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY || 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF';
+// RevenueCat API key — set via environment variable for production.
+// Production: use 'appl_xxx' for iOS, 'goog_xxx' for Android.
+const PROD_REVENUECAT_API_KEY = import.meta.env.VITE_REVENUECAT_API_KEY;
+const REVENUECAT_API_KEY = PROD_REVENUECAT_API_KEY || 'test_CBbgpDnLxWJvQXQQLWVvIEXjoYF';
 
-/** Set to true once production RevenueCat keys are configured and native plugins restored. */
-const NATIVE_MONETIZATION_READY = true;
+/**
+ * Monetization runs in dev (test key OK) and in production iff a real API key
+ * is set. Shipping a production bundle that still uses the RevenueCat test key
+ * silently grants nothing on real purchases, so we degrade to mock mode instead.
+ */
+const NATIVE_MONETIZATION_READY = import.meta.env.DEV || !!PROD_REVENUECAT_API_KEY;
+
+if (!import.meta.env.DEV && !PROD_REVENUECAT_API_KEY && typeof window !== 'undefined') {
+  console.warn('[Purchases] VITE_REVENUECAT_API_KEY not set — IAP disabled in this build, purchases will run in mock mode.');
+}
 
 let initialized = false;
 let listenerRemover: (() => void) | null = null;

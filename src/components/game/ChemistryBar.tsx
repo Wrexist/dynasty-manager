@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { Users } from 'lucide-react';
 import { CHEMISTRY_BONUS_MAX, CHEMISTRY_EXCELLENT_THRESHOLD, CHEMISTRY_GOOD_THRESHOLD, CHEMISTRY_AVERAGE_THRESHOLD } from '@/config/chemistry';
@@ -8,7 +9,7 @@ interface ChemistryBarProps {
   labelColor: string;
 }
 
-export function ChemistryBar({ bonus, label, labelColor }: ChemistryBarProps) {
+export const ChemistryBar = memo(function ChemistryBar({ bonus, label, labelColor }: ChemistryBarProps) {
   const pct = Math.max(0, Math.min(100, (bonus / CHEMISTRY_BONUS_MAX) * 100));
 
   return (
@@ -33,4 +34,4 @@ export function ChemistryBar({ bonus, label, labelColor }: ChemistryBarProps) {
       </span>
     </div>
   );
-}
+});
