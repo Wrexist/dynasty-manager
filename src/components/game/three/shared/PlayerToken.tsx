@@ -43,11 +43,17 @@ export function PlayerToken({ position, color, label, isHome, highlighted, dimme
       prevFlashing.current = flashing;
     }
 
+    // Tick the timer whenever we're doing any pulsing animation — previously it
+    // only ticked inside `if (flashing)`, so the highlight-pulse (selected
+    // player, no flash) stayed stuck at sin(0)=0 and never pulsed visibly.
+    if ((flashing || highlighted) && !reducedMotion) {
+      flashTimer.current += delta * 6;
+    }
+
     if (flashing) {
       if (reducedMotion) {
         mat.color.copy(flashColor);
       } else {
-        flashTimer.current += delta * 6;
         const pulse = Math.abs(Math.sin(flashTimer.current));
         mat.color.lerpColors(baseColor, flashColor, pulse);
       }
@@ -55,16 +61,18 @@ export function PlayerToken({ position, color, label, isHome, highlighted, dimme
       mat.color.copy(baseColor);
     }
 
-    // Scale for highlighted/dimmed — reduced-motion mode pins to the static target
+    // Scale for highlighted/dimmed — reduced-motion mode pins to the static target.
+    // Frame-rate corrected damping: the old `* 0.15` per frame was ~2x faster
+    // at 60fps than at 30fps, visibly jerky on sub-60fps devices.
     const targetScale = highlighted
       ? (reducedMotion ? 1.08 : 1 + Math.sin(flashTimer.current * 3) * 0.08)
       : dimmed ? 0.75 : 1.0;
     if (reducedMotion) {
       meshRef.current.scale.setScalar(targetScale);
     } else {
-      meshRef.current.scale.setScalar(
-        meshRef.current.scale.x + (targetScale - meshRef.current.scale.x) * 0.15,
-      );
+      const alpha = 1 - Math.pow(0.85, delta * 60);
+      const current = meshRef.current.scale.x;
+      meshRef.current.scale.setScalar(current + (targetScale - current) * alpha);
     }
   });
 

@@ -58,6 +58,28 @@ describe('isThreeAvailable', () => {
     }
   });
 
+  it('releases the probe WebGL context via WEBGL_lose_context', () => {
+    const loseContext = vi.fn();
+    const original = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = ((type: string) => {
+      if (type === 'webgl2' || type === 'webgl') {
+        return {
+          getExtension: (name: string) => name === 'WEBGL_lose_context' ? { loseContext } : null,
+          getParameter: () => '',
+        } as unknown as WebGLRenderingContext;
+      }
+      return null;
+    }) as typeof HTMLCanvasElement.prototype.getContext;
+    try {
+      isThreeAvailable();
+      // The probe must free its context immediately so it doesn't sit against
+      // iOS's ~16-WebGL-context budget until GC.
+      expect(loseContext).toHaveBeenCalledTimes(1);
+    } finally {
+      HTMLCanvasElement.prototype.getContext = original;
+    }
+  });
+
   it('caches its result — subsequent calls reuse the first detection', () => {
     const spy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext');
     spy.mockImplementation(() => null);

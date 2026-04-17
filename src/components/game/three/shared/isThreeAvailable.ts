@@ -5,19 +5,31 @@ let _cached: boolean | null = null;
 
 function detectWebGL(): boolean {
   if (typeof document === 'undefined') return false;
+  let gl: WebGLRenderingContext | null = null;
   try {
     const canvas = document.createElement('canvas');
-    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    gl = (canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl')) as WebGLRenderingContext | null;
     if (!gl) return false;
     // Check it's not a blacklisted renderer
-    const debugInfo = (gl as WebGLRenderingContext).getExtension('WEBGL_debug_renderer_info');
+    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
     if (debugInfo) {
-      const renderer = (gl as WebGLRenderingContext).getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) as string;
+      const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) as string;
       if (renderer && /SwiftShader|llvmpipe|Software/i.test(renderer)) return false;
     }
     return true;
   } catch {
     return false;
+  } finally {
+    // Release the probe's WebGL context immediately. iOS caps simultaneous WebGL
+    // contexts at ~16 and the browser won't reclaim the probe context until the
+    // canvas is GC'd, which can be minutes. Explicit release is safe even if
+    // the context is already dead.
+    try {
+      const lose = gl?.getExtension('WEBGL_lose_context');
+      lose?.loseContext();
+    } catch {
+      /* no-op */
+    }
   }
 }
 

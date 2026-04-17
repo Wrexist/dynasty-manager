@@ -1,4 +1,4 @@
-import { Suspense, useRef, useMemo, useState, useEffect } from 'react';
+import { Suspense, useRef, useMemo, useState, useEffect, useLayoutEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { PitchGeometry, PITCH_H, slotToWorld } from '../shared/PitchGeometry';
@@ -48,13 +48,14 @@ function AnimatedToken({
   const currentPos = useRef(basePos.clone());
   const targetPos = useRef(basePos.clone());
 
-  // Keep target in sync whenever basePos reference changes (formation/lineup swap)
-  useEffect(() => {
+  // Seed the group's position synchronously on mount (and whenever basePos
+  // changes) so the token doesn't flash at origin for one frame before useFrame
+  // takes over. useLayoutEffect fires after commit but before paint, and the
+  // ref is populated at that point.
+  useLayoutEffect(() => {
     targetPos.current.copy(basePos);
-    if (reducedMotion) {
-      currentPos.current.copy(basePos);
-      if (groupRef.current) groupRef.current.position.copy(basePos);
-    }
+    if (reducedMotion) currentPos.current.copy(basePos);
+    if (groupRef.current) groupRef.current.position.copy(currentPos.current);
   }, [basePos, reducedMotion]);
 
   useFrame((_, delta) => {
