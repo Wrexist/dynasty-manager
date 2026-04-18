@@ -87,6 +87,18 @@ export default defineConfig(() => ({
           if (id.includes('@radix-ui')) return 'radix';
           if (id.includes('src/data/squads/') || id.includes('src/data/playerTemplates')) return 'squad-data';
           if (id.includes('three') || id.includes('@react-three')) return 'three-bundle';
+          // Narrative / content-data chunk: press conference questions,
+          // storyline chain definitions, board pitches, name pool, nations.
+          // All text-heavy data modules that rarely change; splitting them
+          // out shrinks `index-*.js` (main chunk) and lets the browser cache
+          // narrative content independently of code updates.
+          if (
+            id.includes('src/data/pressConferences')
+            || id.includes('src/data/storylineChains')
+            || id.includes('src/data/boardPitches')
+            || id.includes('src/config/namePool')
+            || id.includes('src/data/nations')
+          ) return 'content-data';
         },
       },
     },

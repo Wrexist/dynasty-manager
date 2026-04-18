@@ -168,20 +168,29 @@ export function ContractNegotiation() {
             </div>
           )}
 
-          {activeNegotiation.status === 'rejected' && (
-            <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-destructive" />
-              <div>
-                <p className="text-sm font-bold text-destructive">Negotiations Collapsed</p>
-                <p className="text-xs text-muted-foreground">{player.lastName} has rejected the offer and walked away.</p>
-                {strikes >= CONTRACT_MAX_STRIKES ? (
-                  <p className="text-[10px] text-red-400 mt-1">Max attempts reached — player locked for cooldown period.</p>
-                ) : strikes > 0 ? (
-                  <p className="text-[10px] text-amber-400 mt-1">Attempt {strikes}/{CONTRACT_MAX_STRIKES} — {CONTRACT_MAX_STRIKES - strikes} more before cooldown.</p>
-                ) : null}
+          {activeNegotiation.status === 'rejected' && (() => {
+            const clauseRefusal = clauseIsMandatory && clauseBelowMin;
+            return (
+              <div className="bg-destructive/10 border border-destructive/30 rounded-xl p-3 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-destructive" />
+                <div>
+                  <p className="text-sm font-bold text-destructive">Negotiations Collapsed</p>
+                  <p className="text-xs text-muted-foreground">
+                    {clauseRefusal
+                      ? `${player.lastName} walked away — they asked for a release clause and didn't get one.`
+                      : `${player.lastName} has rejected the offer and walked away.`}
+                  </p>
+                  {clauseRefusal ? (
+                    <p className="text-[10px] text-amber-400 mt-1">Player locked for ~4 weeks. Offer a clause of at least £{((minClauseRequired || 0) / 1e6).toFixed(1)}M next time.</p>
+                  ) : strikes >= CONTRACT_MAX_STRIKES ? (
+                    <p className="text-[10px] text-red-400 mt-1">Max attempts reached — player locked for cooldown period.</p>
+                  ) : strikes > 0 ? (
+                    <p className="text-[10px] text-amber-400 mt-1">Attempt {strikes}/{CONTRACT_MAX_STRIKES} — {CONTRACT_MAX_STRIKES - strikes} more before cooldown.</p>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {!isComplete && (
             <>

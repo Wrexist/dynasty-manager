@@ -6,7 +6,7 @@ import { grantXP, hasPerk, dynastyMult } from '@/utils/managerPerks';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
-import { CONTRACT_MAX_STRIKES, CONTRACT_STRIKE_COOLDOWN_WEEKS } from '@/config/contracts';
+import { CONTRACT_MAX_STRIKES, CONTRACT_STRIKE_COOLDOWN_WEEKS, CONTRACT_CLAUSE_REFUSAL_COOLDOWN_WEEKS } from '@/config/contracts';
 import { CHALLENGES } from '@/data/challenges';
 import { createEmptyRecords } from '@/utils/records';
 import { buildTransferTalk } from '@/utils/transferTalk';
@@ -518,15 +518,23 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
         managerStats: newManagerStats,
       });
     } else {
-      // Atomic: record strike on rejection + update negotiation in one set()
+      // Atomic: record strike on rejection + update negotiation in one set().
+      // Clause-refusal rejections fire a dedicated (shorter) cooldown on the
+      // first strike — the player is walking specifically because the clause
+      // they demanded wasn't honoured, so no reason to stack more strikes.
       if (result.status === 'rejected') {
+        const clauseRefused = !!(offer.minClauseRequired
+          && offer.minClauseRequired > 0
+          && (!result.releaseClause || result.releaseClause < offer.minClauseRequired));
         set(s => {
           const existing = s.contractStrikes[offer.playerId] || { strikes: 0 };
           const newStrikes = existing.strikes + 1;
           const currentAbsoluteWeek = (s.season - 1) * TOTAL_WEEKS + s.week;
-          const cooldownUntil = newStrikes >= CONTRACT_MAX_STRIKES
-            ? currentAbsoluteWeek + CONTRACT_STRIKE_COOLDOWN_WEEKS
-            : undefined;
+          const cooldownUntil = clauseRefused
+            ? currentAbsoluteWeek + CONTRACT_CLAUSE_REFUSAL_COOLDOWN_WEEKS
+            : newStrikes >= CONTRACT_MAX_STRIKES
+              ? currentAbsoluteWeek + CONTRACT_STRIKE_COOLDOWN_WEEKS
+              : undefined;
           return {
             activeNegotiation: result,
             contractStrikes: {

@@ -106,6 +106,11 @@ export const CONTRACT_MOOD_FLOOR = 5;
 export const CONTRACT_MAX_STRIKES = 3;
 /** Weeks the player is locked out after max strikes */
 export const CONTRACT_STRIKE_COOLDOWN_WEEKS = 8;
+/** Separate, shorter cooldown fired when the rejection was specifically about
+ *  a demanded release clause the manager refused / under-offered. Applies on
+ *  the very first clause-refusal — the player walks away with a clear "I told
+ *  you what I needed" rather than slow-burn wage frustration. */
+export const CONTRACT_CLAUSE_REFUSAL_COOLDOWN_WEEKS = 4;
 
 // ── Contract Expiry Visibility ──
 /** How many seasons ahead to flag a contract as "near expiry" on squad views */
