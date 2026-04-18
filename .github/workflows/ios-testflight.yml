@@ -42,8 +42,10 @@ jobs:
             "App Store Connect Issuer ID (found at appstoreconnect.apple.com/access/integrations/api)"
           check_secret "ASC_API_KEY_BASE64" \
             "Base64-encoded App Store Connect API private key (.p8 file)"
-          check_secret "VITE_REVENUECAT_API_KEY" \
-            "RevenueCat Apple API key (starts with appl_, found at app.revenuecat.com > Project > API Keys)"
+          # VITE_REVENUECAT_API_KEY is optional — code falls back to a test key when absent
+          if [ -z "$VITE_REVENUECAT_API_KEY" ]; then
+            echo "::warning::VITE_REVENUECAT_API_KEY not set — build will use the embedded test key. Add your production key at: Settings > Secrets and variables > Actions (RevenueCat > Project > API Keys, starts with appl_)"
+          fi
 
           if [ "$missing" -gt 0 ]; then
             echo "::error::$missing required secret(s) missing. Add them at: Settings > Secrets and variables > Actions"
