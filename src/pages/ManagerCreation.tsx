@@ -172,6 +172,9 @@ const ManagerCreation = () => {
       if (!groups[conf]) groups[conf] = [];
       groups[conf].push(nation);
     }
+    for (const conf in groups) {
+      groups[conf].sort((a, b) => a.baseRanking - b.baseRanking);
+    }
     return groups;
   }, [filteredNations]);
 
@@ -282,6 +285,21 @@ const ManagerCreation = () => {
                     </button>
                   )}
                 </div>
+
+                {/* Empty state when search finds nothing */}
+                {nationSearch && filteredNations.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                    <Globe className="w-8 h-8 text-muted-foreground/40" />
+                    <p className="text-sm text-muted-foreground">No nations found for "<span className="text-foreground">{nationSearch}</span>"</p>
+                    <button
+                      type="button"
+                      onClick={() => setNationSearch('')}
+                      className="text-xs text-primary hover:text-primary/80 transition-colors"
+                    >
+                      Clear search
+                    </button>
+                  </div>
+                )}
 
                 {/* Nation list by confederation */}
                 {Object.entries(nationsByConfederation).map(([conf, nations]) => (
