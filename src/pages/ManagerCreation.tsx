@@ -338,7 +338,7 @@ const ManagerCreation = () => {
                             >
                               {/* Top row: Flag + Name + Badges */}
                               <div className="flex items-center gap-3">
-                                <FlagIcon nationality={nation.name} size={32} className="rounded-sm shadow-sm" />
+                                <FlagIcon nationality={nation.name} size={32} className="rounded-none shadow-sm" />
                                 <div className="flex-1 min-w-0">
                                   <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
                                   <div className="flex items-center gap-2 mt-0.5">
