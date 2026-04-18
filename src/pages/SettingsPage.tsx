@@ -53,7 +53,7 @@ const SettingsPage = () => {
   const settings = useGameStore(s => s.settings);
   const monetization = useGameStore(s => s.monetization);
   const updateSettings = useGameStore(s => s.updateSettings);
-  const saveGame = useGameStore(s => s.saveGame);
+  const flushSave = useGameStore(s => s.flushSave);
   const loadGame = useGameStore(s => s.loadGame);
   const resetGame = useGameStore(s => s.resetGame);
   const setScreen = useGameStore(s => s.setScreen);
@@ -101,7 +101,7 @@ const SettingsPage = () => {
   };
 
   const handleSave = () => {
-    saveGame();
+    flushSave();
     setSaved(true);
     clearTimeout(savedTimerRef.current);
     savedTimerRef.current = setTimeout(() => setSaved(false), SAVE_CONFIRMATION_MS);
@@ -119,7 +119,7 @@ const SettingsPage = () => {
   };
 
   const handleReturnToMenu = () => {
-    saveGame();
+    flushSave();
     navigate('/');
   };
 

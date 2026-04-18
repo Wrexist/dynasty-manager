@@ -233,6 +233,7 @@ export interface GameState {
   endSeason: () => void;
   saveGame: (slot?: number) => void;
   flushSave: () => void;
+  flushPendingOnly: () => void;
   loadGame: (slot?: number) => boolean;
   resetGame: (slot?: number) => void;
   markMessageRead: (id: string) => void;

@@ -24,6 +24,7 @@ import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle, formatMoney } from '@/utils/helpers';
+import { fnv1a } from '@/utils/hashString';
 import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot, trimFixturesForSave, trimFixtureArrayForSave } from '@/store/helpers/persistence';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
@@ -138,16 +139,38 @@ type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)
 type Get = () => GameState;
 let lastSaveErrorLogAt = 0;
 let lastSaveAt = 0;
+let lastSavedHash: number | null = null; // FNV-1a of the last successfully written payload
 const SAVE_DEBOUNCE_MS = 2000; // Minimum 2s between auto-saves
+const AGGRESSIVE_TRIM_THRESHOLD = 3_000_000; // >3MB → strip ALL match events
 
 // ── Async save scheduler ──
 // Auto-saves run inside requestIdleCallback so JSON.stringify of the full game
 // state (100KB+) doesn't block the main thread during match/week transitions.
-// On tab close or app pause, flushSave() forces any pending work synchronously.
+// On tab close or app pause, flushPendingOnly() completes any scheduled work.
 type IdleHandle = number;
 let pendingIdleHandle: IdleHandle | null = null;
 let pendingSlot: number | undefined;
 let runSchedulerWork: (() => void) | null = null;
+
+/** Reset the change-detection hash. Call on loadGame / resetGame so the next
+ *  save isn't short-circuited against a stale hash from a prior session. */
+export function resetSaveHash(): void {
+  lastSavedHash = null;
+}
+
+/** Test-only: zero every piece of module-level save scheduler state so each
+ *  test file starts from a clean slate. Never call from production code. */
+export function __resetAutosaveSchedulerForTests(): void {
+  if (pendingIdleHandle !== null) {
+    cancelIdle(pendingIdleHandle);
+    pendingIdleHandle = null;
+  }
+  runSchedulerWork = null;
+  pendingSlot = undefined;
+  lastSaveAt = 0;
+  lastSaveErrorLogAt = 0;
+  lastSavedHash = null;
+}
 
 function cancelIdle(handle: IdleHandle): void {
   if (typeof window === 'undefined') { clearTimeout(handle); return; }
@@ -163,25 +186,68 @@ function requestIdle(cb: () => void): IdleHandle {
   return setTimeout(cb, 0) as unknown as IdleHandle;
 }
 
+/** Count bytes of match events across trimmed fixtures. Used as a cheap
+ *  pre-flight check to decide whether we need the aggressive-trim path
+ *  before the first JSON.stringify — avoids a double serialization on
+ *  very large saves. */
+function countFixtureEventBytes(
+  divFixtures: Record<string, unknown[]> | undefined,
+  flatFixtures: unknown[] | undefined,
+): number {
+  let total = 0;
+  const accumulate = (fx: unknown[]) => {
+    for (const f of fx) {
+      const m = f as { events?: unknown[] };
+      if (m.events && m.events.length > 0) total += m.events.length;
+    }
+  };
+  if (divFixtures) for (const fx of Object.values(divFixtures)) accumulate(fx);
+  if (flatFixtures) accumulate(flatFixtures);
+  return total;
+}
+
+const stripAllEvents = (fixtures: unknown[]): unknown[] =>
+  fixtures.map((f: unknown) => {
+    const m = f as { played?: boolean; events?: unknown[]; stats?: unknown };
+    if (!m.played || !m.events) return m;
+    const { events: _e, stats: _s, ...rest } = m as Record<string, unknown>;
+    return rest;
+  });
+
 /** Serialize state and write to the active save slot. Runs inside the idle
  *  callback for auto-saves, or synchronously for manual saves and flushes.
- *  Updates saveStatus / lastSavedAt so the UI can reflect the result. */
+ *  Updates saveStatus / lastSavedAt so the UI can reflect the result.
+ *  Short-circuits via FNV-1a hash when the serialized payload is unchanged. */
 function performSave(set: Set, get: Get, slot: number | undefined): void {
   const state = get();
   const s = slot ?? state.activeSlot;
 
-  const trimmedDivFixtures = state.divisionFixtures
+  let divFixturesForSave: Record<string, unknown[]> | undefined = state.divisionFixtures
     ? trimFixturesForSave(state.divisionFixtures, state.playerClubId)
     : state.divisionFixtures;
-  const trimmedFixtures = state.fixtures
+  let flatFixturesForSave: unknown[] | undefined = state.fixtures
     ? trimFixtureArrayForSave(state.fixtures, state.playerClubId)
     : state.fixtures;
+
+  // Pre-flight: if we're carrying an unusually large number of event records,
+  // apply aggressive event-stripping BEFORE the first stringify so we only
+  // serialize once on large saves. Threshold ~ 30k events ≈ 3MB of JSON.
+  if (countFixtureEventBytes(divFixturesForSave, flatFixturesForSave) > 30_000) {
+    if (divFixturesForSave) {
+      const aggressiveTrim: Record<string, unknown[]> = {};
+      for (const [div, fx] of Object.entries(divFixturesForSave)) {
+        aggressiveTrim[div] = stripAllEvents(fx);
+      }
+      divFixturesForSave = aggressiveTrim;
+    }
+    if (flatFixturesForSave) flatFixturesForSave = stripAllEvents(flatFixturesForSave);
+  }
 
   const saveData = {
     version: CURRENT_VERSION,
     activeSlot: s,
     playerClubId: state.playerClubId, season: state.season, week: state.week,
-    clubs: state.clubs, players: state.players, fixtures: trimmedFixtures,
+    clubs: state.clubs, players: state.players, fixtures: flatFixturesForSave,
     transferMarket: state.transferMarket, shortlist: state.shortlist, scoutWatchList: state.scoutWatchList,
     boardObjectives: state.boardObjectives, boardConfidence: state.boardConfidence,
     trainingFocus: state.trainingFocus, totalWeeks: state.totalWeeks,
@@ -198,7 +264,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     invincibleUsedThisSeason: state.invincibleUsedThisSeason,
     fanMood: state.fanMood,
     activeChallenge: state.activeChallenge,
-    divisionFixtures: trimmedDivFixtures,
+    divisionFixtures: divFixturesForSave,
     divisionTables: state.divisionTables,
     divisionClubs: state.divisionClubs,
     playerDivision: state.playerDivision,
@@ -264,15 +330,10 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
   };
   let json = JSON.stringify(saveData);
 
-  // If the save is very large (>3MB), aggressively strip ALL match events
-  if (json.length > 3_000_000) {
-    const stripAllEvents = (fixtures: unknown[]): unknown[] =>
-      fixtures.map((f: unknown) => {
-        const m = f as { played?: boolean; events?: unknown[]; stats?: unknown };
-        if (!m.played || !m.events) return m;
-        const { events: _e, stats: _s, ...rest } = m as Record<string, unknown>;
-        return rest;
-      });
+  // Fallback safety net: if our pre-flight underestimated and we still exceed
+  // the quota threshold, apply aggressive trim and re-stringify. Rare because
+  // the pre-flight above usually catches it.
+  if (json.length > AGGRESSIVE_TRIM_THRESHOLD) {
     if (saveData.divisionFixtures) {
       const aggressiveTrim: Record<string, unknown[]> = {};
       for (const [div, fx] of Object.entries(saveData.divisionFixtures as Record<string, unknown[]>)) {
@@ -286,9 +347,19 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     json = JSON.stringify(saveData);
   }
 
+  // Change detection: if the payload is byte-identical to our last successful
+  // write, skip the localStorage roundtrip. We still refresh lastSavedAt so
+  // the indicator doesn't drift into a stale "5m ago" while the game is idle.
+  const payloadHash = fnv1a(json);
+  if (payloadHash === lastSavedHash) {
+    set({ saveStatus: 'saved', lastSavedAt: Date.now(), saveFailureMessage: null });
+    return;
+  }
+
   let saveFailed = false;
   try {
     writeSaveSlot(s, json);
+    lastSavedHash = payloadHash;
   } catch (err) {
     saveFailed = true;
     const errTime = Date.now();
@@ -296,19 +367,23 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
       Sentry.captureException(err, { tags: { context: 'saveGame' } });
       lastSaveErrorLogAt = errTime;
     }
-    const hasSaveWarningThisWeek = state.messages.some(
-      m => m.title === 'Save Failed' && m.week === state.week && m.season === state.season,
-    );
-    if (!hasSaveWarningThisWeek) {
-      const msgs = addMsg(state.messages, {
-        type: 'warning',
-        title: 'Save Failed',
-        body: 'Your game could not be saved — storage may be full. Try freeing up space on your device.',
-        week: state.week,
-        season: state.season,
-      });
-      set({ messages: msgs });
-    }
+    // Use functional set() so we read the freshest messages — the idle
+    // callback may have been scheduled seconds ago and state has moved on.
+    set(s0 => {
+      const hasSaveWarningThisWeek = s0.messages.some(
+        m => m.title === 'Save Failed' && m.week === s0.week && m.season === s0.season,
+      );
+      if (hasSaveWarningThisWeek) return {};
+      return {
+        messages: addMsg(s0.messages, {
+          type: 'warning',
+          title: 'Save Failed',
+          body: 'Your game could not be saved — storage may be full. Try freeing up space on your device.',
+          week: s0.week,
+          season: s0.season,
+        }),
+      };
+    });
   }
 
   if (saveFailed) {
@@ -6316,6 +6391,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (slot === undefined && now - lastSaveAt < SAVE_DEBOUNCE_MS) return;
     lastSaveAt = now;
 
+    // Flash "saving" for the UI indicator — applies to both sync manual saves
+    // and async auto-saves so the user always gets feedback.
+    set({ saveStatus: 'saving' });
+
     // Manual saves (explicit slot) run synchronously so the user sees the
     // result immediately. Auto-saves defer to an idle callback.
     if (slot !== undefined) {
@@ -6323,11 +6402,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       return;
     }
 
-    // Signal "saving" state for the UI indicator, then coalesce rapid
-    // auto-saves into a single idle-scheduled write.
-    set({ saveStatus: 'saving' });
     pendingSlot = slot;
-    if (pendingIdleHandle !== null) return; // already scheduled
+    if (pendingIdleHandle !== null) return; // already scheduled — coalesce
     runSchedulerWork = () => {
       pendingIdleHandle = null;
       runSchedulerWork = null;
@@ -6337,7 +6413,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   },
 
   flushSave: () => {
-    // If a save is already scheduled, cancel the idle callback and run it now.
+    // User-initiated flush (e.g. Settings "Save Now"). Always writes.
     if (pendingIdleHandle !== null && runSchedulerWork) {
       cancelIdle(pendingIdleHandle);
       pendingIdleHandle = null;
@@ -6346,9 +6422,21 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       work();
       return;
     }
-    // Nothing pending — force a synchronous save (bypasses debounce).
     lastSaveAt = Date.now();
+    set({ saveStatus: 'saving' });
     performSave(set, get, undefined);
+  },
+
+  flushPendingOnly: () => {
+    // Lifecycle-triggered flush (beforeunload / pagehide / visibilitychange /
+    // Capacitor pause). Only completes work that was already scheduled — never
+    // creates a new save, so we respect the autoSave setting automatically.
+    if (pendingIdleHandle === null || !runSchedulerWork) return;
+    cancelIdle(pendingIdleHandle);
+    pendingIdleHandle = null;
+    const work = runSchedulerWork;
+    runSchedulerWork = null;
+    work();
   },
 
   loadGame: (slot?: number) => {
@@ -6484,7 +6572,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         jobOffers: data.jobOffers || [],
         activeInterview: data.activeInterview || null,
         seasonGrowthTracker: data.seasonGrowthTracker || {},
+        // Loaded data IS the current on-disk state → reflect that in the
+        // indicator so it doesn't sit blank until the first autosave fires.
+        saveStatus: 'saved' as const,
+        lastSavedAt: Date.now(),
+        saveFailureMessage: null,
       });
+      // Reset change-detection hash — any prior session's hash is meaningless
+      // now that we've replaced state wholesale.
+      resetSaveHash();
       // Hydrate module-level growth tracker so development functions use persisted data
       hydrateSeasonGrowth(data.seasonGrowthTracker || {});
       return true;
@@ -6534,7 +6630,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   resetGame: (slot?: number) => {
     const s = slot ?? get().activeSlot;
     removeSaveSlot(s);
+    resetSaveHash();
     set({
+      saveStatus: 'idle' as const, lastSavedAt: null, saveFailureMessage: null,
       gameStarted: false, playerClubId: '', currentScreen: 'dashboard',
       clubs: {}, players: {}, fixtures: [], leagueTable: [],
       messages: [], seasonHistory: [], incomingOffers: [],

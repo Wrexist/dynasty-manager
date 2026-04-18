@@ -3,6 +3,10 @@ import { Cloud, CloudOff, Loader2, Check } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
+import { hapticMedium } from '@/utils/haptics';
+
+const JUST_SAVED_MS = 1500;
+const REFRESH_INTERVAL_MS = 15_000;
 
 /** Format "42s ago" / "3m ago" / "just now" from a timestamp. */
 function formatRelative(ts: number, now: number): string {
@@ -13,9 +17,9 @@ function formatRelative(ts: number, now: number): string {
   return `${Math.floor(diff / 3_600_000)}h ago`;
 }
 
-/** Compact autosave indicator — shows a spinner while saving, a check when
- *  recently saved, and a warning on failure. Placed in TopBar so the user
- *  always has visibility into save health. */
+/** Compact autosave indicator — spinner while saving, a green check when
+ *  freshly saved, muted "Xm ago" afterwards, destructive state on failure.
+ *  Tappable to force a manual save. */
 export function SaveStatusIndicator() {
   const { saveStatus, lastSavedAt, saveFailureMessage, autoSaveEnabled } = useGameStore(
     useShallow(s => ({
@@ -26,63 +30,67 @@ export function SaveStatusIndicator() {
     })),
   );
 
+  // Only tick the clock while we're showing a timestamp. No interval for
+  // idle/saving/failed, and cleanup is automatic when deps change.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
-    if (!lastSavedAt) return;
-    const id = setInterval(() => setNow(Date.now()), 15_000);
+    if (saveStatus !== 'saved' || !lastSavedAt) return;
+    const id = setInterval(() => setNow(Date.now()), REFRESH_INTERVAL_MS);
     return () => clearInterval(id);
-  }, [lastSavedAt]);
+  }, [saveStatus, lastSavedAt]);
+
+  const handleTap = () => {
+    hapticMedium();
+    useGameStore.getState().flushSave();
+  };
 
   if (!autoSaveEnabled && saveStatus === 'idle') return null;
 
+  let content: { icon: React.ReactNode; text: string; className: string; label: string } | null = null;
+
   if (saveStatus === 'saving') {
-    return (
-      <span
-        className="flex items-center gap-1 text-[10px] text-muted-foreground"
-        aria-live="polite"
-        title="Saving your game…"
-      >
-        <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
-        <span className="hidden sm:inline">Saving…</span>
-      </span>
-    );
+    content = {
+      icon: <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />,
+      text: 'Saving…',
+      className: 'text-muted-foreground',
+      label: 'Saving your game',
+    };
+  } else if (saveStatus === 'failed') {
+    content = {
+      icon: <CloudOff className="w-3 h-3" aria-hidden="true" />,
+      text: 'Save failed',
+      className: 'text-destructive',
+      label: saveFailureMessage || 'Save failed — tap to retry',
+    };
+  } else if (saveStatus === 'saved' && lastSavedAt) {
+    const justSaved = now - lastSavedAt < JUST_SAVED_MS;
+    const relative = formatRelative(lastSavedAt, now);
+    content = {
+      icon: justSaved
+        ? <Check className="w-3 h-3" aria-hidden="true" />
+        : <Cloud className="w-3 h-3" aria-hidden="true" />,
+      text: justSaved ? 'Saved' : relative,
+      className: justSaved ? 'text-emerald-400' : 'text-muted-foreground',
+      label: `Saved ${relative} — tap to save now`,
+    };
   }
 
-  if (saveStatus === 'failed') {
-    return (
-      <span
-        className="flex items-center gap-1 text-[10px] text-destructive"
-        aria-live="polite"
-        title={saveFailureMessage || 'Save failed'}
-      >
-        <CloudOff className="w-3 h-3" aria-hidden="true" />
-        <span className="hidden sm:inline">Save failed</span>
-      </span>
-    );
-  }
+  if (!content) return null;
 
-  if (saveStatus === 'saved' && lastSavedAt) {
-    const justSaved = now - lastSavedAt < 3000;
-    return (
-      <span
-        className={cn(
-          'flex items-center gap-1 text-[10px] transition-colors',
-          justSaved ? 'text-emerald-400' : 'text-muted-foreground',
-        )}
-        aria-live="polite"
-        title={`Saved ${formatRelative(lastSavedAt, now)}`}
-      >
-        {justSaved ? (
-          <Check className="w-3 h-3" aria-hidden="true" />
-        ) : (
-          <Cloud className="w-3 h-3" aria-hidden="true" />
-        )}
-        <span className="hidden sm:inline">
-          {justSaved ? 'Saved' : formatRelative(lastSavedAt, now)}
-        </span>
-      </span>
-    );
-  }
-
-  return null;
+  return (
+    <button
+      type="button"
+      onClick={handleTap}
+      aria-label={content.label}
+      aria-live="polite"
+      title={content.label}
+      className={cn(
+        'flex items-center gap-1 text-[10px] transition-colors duration-500 px-1 -mx-1 rounded hover:bg-muted/40',
+        content.className,
+      )}
+    >
+      {content.icon}
+      <span className="hidden sm:inline">{content.text}</span>
+    </button>
+  );
 }
