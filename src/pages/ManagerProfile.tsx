@@ -62,8 +62,10 @@ const ManagerProfile = () => {
   })));
 
   // In career mode, show the career overview page instead
-  if (gameMode === 'career' && careerManager) {
-    return <Suspense fallback={null}><CareerOverviewLazy /></Suspense>;
+  if (gameMode === 'career') {
+    return careerManager
+      ? <Suspense fallback={null}><CareerOverviewLazy /></Suspense>
+      : null;
   }
   const club = clubs[playerClubId];
   const avatarId = getActiveCosmetic(monetization, 'avatar');
@@ -103,7 +105,7 @@ const ManagerProfile = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <div className="text-center">
             <p className="text-xl font-black text-primary tabular-nums">{winRate}%</p>
             <p className="text-[10px] text-muted-foreground">Win Rate</p>
@@ -115,10 +117,6 @@ const ManagerProfile = () => {
           <div className="text-center">
             <p className="text-xl font-black text-foreground tabular-nums">{topFinishes}</p>
             <p className="text-[10px] text-muted-foreground">Top 3</p>
-          </div>
-          <div className="text-center">
-            <p className="text-xl font-black text-primary tabular-nums">£{((careerManager.personalWealth || 0) / 1e6).toFixed(1)}M</p>
-            <p className="text-[10px] text-muted-foreground">Wealth</p>
           </div>
         </div>
       </GlassPanel>
