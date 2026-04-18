@@ -234,6 +234,70 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     },
   },
 
+  // ── Non-match passive objectives ──
+  {
+    id: 'top-half-table',
+    title: 'Top Half',
+    description: 'Be in the top half of the league table',
+    icon: 'trending-up',
+    xpReward: 10,
+    rarity: 'common',
+    check: (ctx) => {
+      const pos = ctx.leagueTable.findIndex(e => e.clubId === ctx.playerClubId) + 1;
+      return pos > 0 && pos <= Math.ceil(ctx.leagueTable.length / 2);
+    },
+    progress: (ctx) => {
+      const pos = ctx.leagueTable.findIndex(e => e.clubId === ctx.playerClubId) + 1;
+      const half = Math.ceil(ctx.leagueTable.length / 2);
+      return { current: Math.max(0, half - pos + 1), target: 1 };
+    },
+  },
+  {
+    id: 'youth-in-squad',
+    title: 'Academy Focus',
+    description: 'Have 4 or more players aged 21 or under in your squad',
+    icon: 'users',
+    xpReward: 10,
+    rarity: 'common',
+    check: (ctx) => {
+      return ctx.playerIds.filter(id => ctx.players[id]?.age <= 21).length >= 4;
+    },
+    progress: (ctx) => {
+      const count = ctx.playerIds.filter(id => ctx.players[id]?.age <= 21).length;
+      return { current: Math.min(count, 4), target: 4 };
+    },
+  },
+  {
+    id: 'veteran-presence',
+    title: 'Experience Counts',
+    description: 'Have 3 or more players aged 29 or over in your squad',
+    icon: 'crown',
+    xpReward: 8,
+    rarity: 'common',
+    check: (ctx) => {
+      return ctx.playerIds.filter(id => ctx.players[id]?.age >= 29).length >= 3;
+    },
+    progress: (ctx) => {
+      const count = ctx.playerIds.filter(id => ctx.players[id]?.age >= 29).length;
+      return { current: Math.min(count, 3), target: 3 };
+    },
+  },
+  {
+    id: 'deep-bench',
+    title: 'No Weaknesses',
+    description: 'Have 18 or more fit players available',
+    icon: 'shield-check',
+    xpReward: 10,
+    rarity: 'common',
+    check: (ctx) => {
+      return ctx.playerIds.filter(id => !ctx.players[id]?.injured).length >= 18;
+    },
+    progress: (ctx) => {
+      const count = ctx.playerIds.filter(id => !ctx.players[id]?.injured).length;
+      return { current: Math.min(count, 18), target: 18 };
+    },
+  },
+
   // ── Rare objectives (harder, 2x XP) ──
   {
     id: 'comeback-win',

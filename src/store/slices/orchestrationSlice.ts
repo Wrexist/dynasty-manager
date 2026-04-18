@@ -83,6 +83,7 @@ import {
   MEDICAL_REINJURY_REDUCTION_PER_LEVEL,
   MAX_FINANCE_HISTORY, MAX_CAREER_TIMELINE,
   OBJECTIVE_CYCLE_WEEKS,
+  RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER,
   FORM_WIN_CHANGE, FORM_LOSS_CHANGE, FORM_DRAW_CHANGE,
 } from '@/config/gameBalance';
 import {
@@ -4419,16 +4420,23 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         updatedProgression = grantXP(updatedProgression, bonusXP);
       }
       const completedCount = evalObjectives.filter(o => o.completed).length;
-      let objMsg = objAllCompleted
-        ? `PERFECT MONTH — all objectives complete!`
-        : `${completedCount}/${evalObjectives.length} objectives completed this month.`;
-      if (bonusXP > 0) objMsg += ` +${bonusXP} bonus XP earned!`;
-      if (newStreak >= 3) objMsg += ` Streak x${newStreak} — bonus multiplier active!`;
-      newMessages = addMsg(newMessages, {
-        week: newWeek, season, type: 'general',
-        title: `Monthly Objectives: ${completedCount}/${evalObjectives.length} Complete`,
-        body: objMsg,
-      });
+      // Only send an inbox message when there's something notable — bonus XP earned, streak info, or streak broken
+      const streakBroken = currentStreak >= 2 && newStreak === 0;
+      if (bonusXP > 0 || streakBroken) {
+        let objMsg: string;
+        if (objAllCompleted) {
+          objMsg = `PERFECT MONTH — all ${evalObjectives.length} objectives complete! +${bonusXP} bonus XP earned.`;
+          if (newStreak >= 3) objMsg += ` Streak x${newStreak} — bonus multiplier active next month!`;
+        } else {
+          objMsg = `${completedCount}/${evalObjectives.length} objectives completed. XP was awarded as each completed.`;
+          if (streakBroken) objMsg += ` Your ${currentStreak}-month streak has ended — complete all objectives next month to start a new one.`;
+        }
+        newMessages = addMsg(newMessages, {
+          week: newWeek, season, type: 'general',
+          title: `Monthly Objectives: ${completedCount}/${evalObjectives.length} Complete`,
+          body: objMsg,
+        });
+      }
       finalStreak = newStreak;
       const nextWeekHasMatch = updatedFixtures.some(m => !m.played && m.week === newWeek && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
       newObjectives = generateMonthlyObjectives(nextWeekHasMatch);
@@ -4537,11 +4545,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           .map(ep => `${ep.firstName} ${ep.lastName}`)
       : [];
 
-    const digestObjectiveProgress = evalObjectives.map(obj => ({
-      title: obj.title,
-      completed: obj.completed,
-      xpEarned: obj.completed ? obj.xpReward : 0,
-    }));
+    const digestObjectiveProgress = evalObjectives.map(obj => {
+      const rarityMult = obj.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
+        : obj.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
+      return {
+        title: obj.title,
+        completed: obj.completed,
+        xpEarned: obj.completed ? obj.xpReward * rarityMult : 0,
+      };
+    });
 
     set({
       week: newWeek, fixtures: updatedFixtures, players: newPlayers,
