@@ -998,22 +998,39 @@ const PlayerDetail = () => {
           <div className="space-y-3">
             {playerOffers.map(offer => {
               const buyer = clubs[offer.buyerClubId];
+              const clauseMet = !!player.releaseClause && offer.fee >= player.releaseClause;
               return (
-                <div key={offer.id} className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full shrink-0" style={{ backgroundColor: buyer?.color }} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-foreground">{buyer?.name || '?'}</p>
-                    <p className="text-xs text-primary font-bold tabular-nums">
-                      £{(offer.fee / 1e6).toFixed(1)}M
-                    </p>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <Button size="sm" className="h-10 text-xs px-3" onClick={() => handleOffer(offer.id, true)}>
-                      Accept
-                    </Button>
-                    <Button size="sm" variant="ghost" className="h-10 text-xs px-3" onClick={() => handleOffer(offer.id, false)}>
-                      Reject
-                    </Button>
+                <div key={offer.id} className="space-y-1.5">
+                  {clauseMet && (
+                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-amber-400">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400" />
+                      Release clause met (£{((player.releaseClause || 0) / 1e6).toFixed(1)}M) — must accept
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full shrink-0" style={{ backgroundColor: buyer?.color }} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-foreground">{buyer?.name || '?'}</p>
+                      <p className="text-xs text-primary font-bold tabular-nums">
+                        £{(offer.fee / 1e6).toFixed(1)}M
+                      </p>
+                    </div>
+                    <div className="flex gap-1.5">
+                      {clauseMet ? (
+                        <Button size="sm" className="h-10 text-xs px-3 bg-amber-500 hover:bg-amber-500/90 text-background" onClick={() => handleOffer(offer.id, true)}>
+                          Clause Met — Accept
+                        </Button>
+                      ) : (
+                        <>
+                          <Button size="sm" className="h-10 text-xs px-3" onClick={() => handleOffer(offer.id, true)}>
+                            Accept
+                          </Button>
+                          <Button size="sm" variant="ghost" className="h-10 text-xs px-3" onClick={() => handleOffer(offer.id, false)}>
+                            Reject
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

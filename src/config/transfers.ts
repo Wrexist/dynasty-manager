@@ -92,6 +92,18 @@ export const DEADLINE_BARGAIN_DISCOUNT = 0.20;
 /** Chance of a competing bid on the same player during deadline frenzy */
 export const DEADLINE_MULTI_BID_CHANCE = 0.4;
 
+// ── Release Clause Targeting (AI) ──
+/** Baseline probability an AI club bids exactly the clause fee when it can afford it. */
+export const AI_CLAUSE_BID_BASELINE_CHANCE = 0.20;
+/** Probability for elite buyers (reputation ≥ 80) — marquee clubs pull the trigger more often. */
+export const AI_CLAUSE_BID_TOP_REP_CHANCE = 0.35;
+/** Reputation threshold above which the top-rep chance applies. */
+export const AI_CLAUSE_BID_TOP_REP_THRESHOLD = 80;
+/** Cap: buyer won't blow more than this fraction of their budget on a clause-trigger bid. */
+export const AI_CLAUSE_BID_BUDGET_RATIO = 0.7;
+/** Tiny premium so the bid reliably clears the clause even after rounding. */
+export const AI_CLAUSE_BID_PREMIUM = 0.01;
+
 // ── Sell-On Clauses ──
 export const SELL_ON_HIGH_FEE_THRESHOLD = 10_000_000;
 export const SELL_ON_LOW_FEE_THRESHOLD = 5_000_000;

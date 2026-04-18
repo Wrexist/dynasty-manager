@@ -92,6 +92,7 @@ import {
   URGENCY_NONE, URGENCY_ONE, URGENCY_TWO_PLUS,
   OFFER_FEE_BASE, OFFER_FEE_RANDOM_RANGE, OFFER_MAX_BUDGET_RATIO,
   RUMOR_CHANCE, DEADLINE_DAY_OFFER_MULTIPLIER, DEADLINE_DAY_BID_PREMIUM, DEADLINE_PANIC_OFFER_COUNT, DEADLINE_PANIC_BID_PREMIUM, DEADLINE_BARGAIN_DISCOUNT, DEADLINE_MULTI_BID_CHANCE,
+  AI_CLAUSE_BID_BASELINE_CHANCE, AI_CLAUSE_BID_TOP_REP_CHANCE, AI_CLAUSE_BID_TOP_REP_THRESHOLD, AI_CLAUSE_BID_BUDGET_RATIO, AI_CLAUSE_BID_PREMIUM,
   MARKET_REPLENISH_THRESHOLD, LISTING_EXPIRY_WEEKS, CLUB_LISTING_EXPIRY_WEEKS, LISTING_RELIST_CHANCE, LISTING_RELIST_DISCOUNT,
   FREE_AGENT_SPAWN_CHANCE, OFFER_EXPIRY_WEEKS,
   UNSOLICITED_OFFER_CHANCE, UNSOLICITED_FEE_BASE, UNSOLICITED_FEE_RANGE,
@@ -3653,6 +3654,29 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           ? (tp.injuryWeeks >= LONG_INJURY_WEEKS_THRESHOLD ? LONG_INJURY_BID_DISCOUNT : INJURY_BID_DISCOUNT)
           : 1;
         for (const buyer of candidates) {
+          // Release clause path: if the target has a clause the buyer can
+          // comfortably afford, there's a meaningful chance they skip the
+          // normal negotiation dance and trigger the clause directly. Chance
+          // scales with the buyer's reputation — marquee clubs are far more
+          // likely to pull the trigger on a guaranteed acquisition.
+          const clause = tp.releaseClause;
+          if (clause && clause > 0 && buyer.budget >= clause && clause <= buyer.budget * AI_CLAUSE_BID_BUDGET_RATIO) {
+            const clauseRoll = buyer.reputation >= AI_CLAUSE_BID_TOP_REP_THRESHOLD
+              ? AI_CLAUSE_BID_TOP_REP_CHANCE
+              : AI_CLAUSE_BID_BASELINE_CHANCE;
+            if (Math.random() < clauseRoll) {
+              const clauseFee = Math.round(clause * (1 + AI_CLAUSE_BID_PREMIUM));
+              const offer: IncomingOffer = { id: crypto.randomUUID(), playerId: tp.id, buyerClubId: buyer.id, fee: clauseFee, week: newWeek };
+              newOffers.push(offer);
+              newMessages = addMsg(newMessages, {
+                week: newWeek, season, type: 'transfer',
+                title: `Clause Bid: ${tp.lastName}`,
+                body: `${buyer.name} have activated ${tp.firstName} ${tp.lastName}'s release clause with a ${formatMoney(clauseFee)} bid. The transfer is guaranteed unless the bid falls through.`,
+              });
+              return true;
+            }
+          }
+
           const buyerSquad = buyer.playerIds.map(id => newPlayers[id]?.position).filter(Boolean);
           const posCount = buyerSquad.filter(pos => pos === tp.position).length;
           const urgencyMult = posCount === 0 ? URGENCY_NONE : posCount === 1 ? URGENCY_ONE : URGENCY_TWO_PLUS;
@@ -3823,12 +3847,23 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const bidderId = aiClubIds[Math.floor(Math.random() * aiClubIds.length)];
         const bidder = clubs[bidderId];
         if (!bidder) continue;
-        const panicFee = Math.round(target.value * (1 + DEADLINE_PANIC_BID_PREMIUM));
-        if (panicFee > bidder.budget * 0.6) continue; // Don't bid more than 60% of budget
+        // Deadline-day clause trigger: if the target has a clause and the
+        // bidder can afford it, always bid the clause fee — panic trumps
+        // hesitation, and the guaranteed acquisition is gold on deadline day.
+        const clause = target.releaseClause;
+        const clauseTrigger = clause && clause > 0 && bidder.budget >= clause && clause <= bidder.budget * AI_CLAUSE_BID_BUDGET_RATIO;
+        const panicFee = clauseTrigger
+          ? Math.round(clause * (1 + AI_CLAUSE_BID_PREMIUM))
+          : Math.round(target.value * (1 + DEADLINE_PANIC_BID_PREMIUM));
+        if (!clauseTrigger && panicFee > bidder.budget * 0.6) continue; // Don't bid more than 60% of budget (clause path has its own cap)
         const existingOffer = newOffers.find(o => o.playerId === target.id && o.buyerClubId === bidderId);
         if (existingOffer) continue;
         newOffers.push({ id: crypto.randomUUID(), playerId: target.id, buyerClubId: bidderId, fee: panicFee, week: newWeek });
-        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: `URGENT: Bid for ${target.lastName}`, body: `${bidder.name} have made a last-minute bid of £${(panicFee / 1e6).toFixed(1)}M for ${target.firstName} ${target.lastName}! Respond before the window closes.` });
+        const msgTitle = clauseTrigger ? `DEADLINE CLAUSE: ${target.lastName}` : `URGENT: Bid for ${target.lastName}`;
+        const msgBody = clauseTrigger
+          ? `${bidder.name} have activated ${target.firstName} ${target.lastName}'s £${((clause || 0) / 1e6).toFixed(1)}M release clause on deadline day — this transfer is guaranteed!`
+          : `${bidder.name} have made a last-minute bid of £${(panicFee / 1e6).toFixed(1)}M for ${target.firstName} ${target.lastName}! Respond before the window closes.`;
+        newMessages = addMsg(newMessages, { week: newWeek, season, type: 'transfer', title: msgTitle, body: msgBody });
         // Multi-bid: chance of a second club bidding for the same player
         if (Math.random() < DEADLINE_MULTI_BID_CHANCE) {
           const secondBidderId = aiClubIds.filter(id => id !== bidderId)[Math.floor(Math.random() * (aiClubIds.length - 1))];

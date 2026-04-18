@@ -10,7 +10,7 @@ import type { Player, YouthProspect } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 60;
+const CURRENT_VERSION = 61;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -868,6 +868,14 @@ const migrations: Record<number, MigrationFn> = {
       },
     };
   },
+
+  // v60 → v61: Release clauses landed.
+  //   - Player gains optional `releaseClause?: number`
+  //   - ContractOffer gains optional `releaseClause?: number` + cached `playerValue?: number`
+  // All fields are additive and optional — old saves load with `undefined`
+  // (meaning "no clause") and continue to work. This is a pure version marker
+  // so future migrations can tell whether a save predates the clause feature.
+  60: (data) => ({ ...data, version: 61 }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

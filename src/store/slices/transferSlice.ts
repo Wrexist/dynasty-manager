@@ -461,10 +461,16 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const buyerClub = state.clubs[offer.buyerClubId];
     if (!player || !buyerClub) return { success: false, message: 'Invalid offer.' };
 
+    // Release clause: if the bid meets or exceeds the clause, the transfer is
+    // contractually guaranteed — the manager cannot refuse. We force-execute
+    // regardless of `accept`, and emit a dedicated inbox notification so the
+    // user understands why the usual Accept/Reject choice was bypassed.
+    const clauseTriggered = !!player.releaseClause && offer.fee >= player.releaseClause;
+
     // When rejecting, only remove this offer; when accepting, remove ALL offers for same player
     const newOffers = state.incomingOffers.filter(o => o.id !== offerId);
 
-    if (!accept) {
+    if (!accept && !clauseTriggered) {
       const msg = addMsg(state.messages, { week: state.week, season: state.season, type: 'transfer', title: `Bid Rejected`, body: `You rejected ${buyerClub.name}'s £${(offer.fee / 1e6).toFixed(1)}M bid for ${player.lastName}.`, playerId: offer.playerId });
       set({ incomingOffers: newOffers, messages: msg });
       return { success: true, message: 'Offer rejected.' };
@@ -484,7 +490,21 @@ export const createTransferSlice = (set: Set, get: Get) => ({
       return { success: false, message: `${buyerData.name} can no longer afford the transfer fee.` };
     }
 
-    return executeSale(state, offer, offer.fee, set);
+    const saleResult = executeSale(state, offer, offer.fee, set);
+    if (clauseTriggered && saleResult.success) {
+      // Announce the clause trigger on top of the standard sale message so the
+      // user reads it as a consequential, semi-forced event.
+      const post = get();
+      const clauseMsg = addMsg(post.messages, {
+        week: post.week, season: post.season, type: 'transfer',
+        title: `Release Clause Triggered — ${player.lastName}`,
+        body: `${buyerClub.name} met ${player.firstName} ${player.lastName}'s £${((player.releaseClause || offer.fee) / 1e6).toFixed(1)}M release clause. The transfer is contractually guaranteed.`,
+        playerId: offer.playerId,
+      });
+      set({ messages: clauseMsg });
+      return { success: true, message: `Release clause triggered — ${player.firstName} ${player.lastName} joins ${buyerClub.name} for £${(offer.fee / 1e6).toFixed(1)}M.` };
+    }
+    return saleResult;
   },
 
   negotiateIncomingOffer: (offerId: string, counterFee: number) => {

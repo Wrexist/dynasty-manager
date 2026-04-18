@@ -2,8 +2,23 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 60', () => {
-    expect(CURRENT_VERSION).toBe(60);
+  it('should have current version set to 61', () => {
+    expect(CURRENT_VERSION).toBe(61);
+  });
+
+  it('v60 → v61 is a no-op version bump (release clauses are additive)', () => {
+    const v60Data: Record<string, unknown> = {
+      version: 60,
+      playerClubId: 'test-club',
+      players: { 'p1': { id: 'p1', firstName: 'Test', lastName: 'Player' } },
+      settings: { tutorialSeen: true, soundEnabled: true, volume: 0.5 },
+    };
+    const result = migrateSaveData(v60Data);
+    expect(result.version).toBe(CURRENT_VERSION);
+    // Data preserved exactly — the migration is purely a version marker
+    expect(result.playerClubId).toBe('test-club');
+    expect(result.players).toEqual(v60Data.players);
+    expect(result.settings).toEqual(v60Data.settings);
   });
 
   it('should migrate v1 data to current version', () => {
