@@ -140,6 +140,201 @@ let lastSaveErrorLogAt = 0;
 let lastSaveAt = 0;
 const SAVE_DEBOUNCE_MS = 2000; // Minimum 2s between auto-saves
 
+// ── Async save scheduler ──
+// Auto-saves run inside requestIdleCallback so JSON.stringify of the full game
+// state (100KB+) doesn't block the main thread during match/week transitions.
+// On tab close or app pause, flushSave() forces any pending work synchronously.
+type IdleHandle = number;
+let pendingIdleHandle: IdleHandle | null = null;
+let pendingSlot: number | undefined;
+let runSchedulerWork: (() => void) | null = null;
+
+function cancelIdle(handle: IdleHandle): void {
+  if (typeof window === 'undefined') { clearTimeout(handle); return; }
+  const w = window as Window & { cancelIdleCallback?: (h: IdleHandle) => void };
+  if (typeof w.cancelIdleCallback === 'function') w.cancelIdleCallback(handle);
+  else clearTimeout(handle);
+}
+
+function requestIdle(cb: () => void): IdleHandle {
+  if (typeof window === 'undefined') return setTimeout(cb, 0) as unknown as IdleHandle;
+  const w = window as Window & { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => IdleHandle };
+  if (typeof w.requestIdleCallback === 'function') return w.requestIdleCallback(cb, { timeout: 2000 });
+  return setTimeout(cb, 0) as unknown as IdleHandle;
+}
+
+/** Serialize state and write to the active save slot. Runs inside the idle
+ *  callback for auto-saves, or synchronously for manual saves and flushes.
+ *  Updates saveStatus / lastSavedAt so the UI can reflect the result. */
+function performSave(set: Set, get: Get, slot: number | undefined): void {
+  const state = get();
+  const s = slot ?? state.activeSlot;
+
+  const trimmedDivFixtures = state.divisionFixtures
+    ? trimFixturesForSave(state.divisionFixtures, state.playerClubId)
+    : state.divisionFixtures;
+  const trimmedFixtures = state.fixtures
+    ? trimFixtureArrayForSave(state.fixtures, state.playerClubId)
+    : state.fixtures;
+
+  const saveData = {
+    version: CURRENT_VERSION,
+    activeSlot: s,
+    playerClubId: state.playerClubId, season: state.season, week: state.week,
+    clubs: state.clubs, players: state.players, fixtures: trimmedFixtures,
+    transferMarket: state.transferMarket, shortlist: state.shortlist, scoutWatchList: state.scoutWatchList,
+    boardObjectives: state.boardObjectives, boardConfidence: state.boardConfidence,
+    trainingFocus: state.trainingFocus, totalWeeks: state.totalWeeks,
+    messages: state.messages, seasonHistory: state.seasonHistory,
+    incomingOffers: state.incomingOffers,
+    settings: state.settings, tactics: state.tactics, training: state.training,
+    staff: state.staff, scouting: state.scouting, youthAcademy: state.youthAcademy,
+    facilities: state.facilities, financeHistory: state.financeHistory,
+    unlockedAchievements: state.unlockedAchievements, managerStats: state.managerStats,
+    activeLoans: state.activeLoans, incomingLoanOffers: state.incomingLoanOffers, outgoingLoanRequests: state.outgoingLoanRequests,
+    cup: state.cup,
+    friendlies: state.friendlies,
+    galacticoUsedThisSeason: state.galacticoUsedThisSeason,
+    invincibleUsedThisSeason: state.invincibleUsedThisSeason,
+    fanMood: state.fanMood,
+    activeChallenge: state.activeChallenge,
+    divisionFixtures: trimmedDivFixtures,
+    divisionTables: state.divisionTables,
+    divisionClubs: state.divisionClubs,
+    playerDivision: state.playerDivision,
+    derbies: state.derbies,
+    seasonPhase: state.seasonPhase,
+    lastSeasonTurnover: state.lastSeasonTurnover,
+    clubRecords: state.clubRecords,
+    careerTimeline: state.careerTimeline,
+    managerProgression: state.managerProgression,
+    weeklyObjectives: state.weeklyObjectives,
+    objectiveStreak: state.objectiveStreak,
+    objectivesStartWeek: state.objectivesStartWeek,
+    completedCoachTaskIds: state.completedCoachTaskIds,
+    weekCliffhangers: state.weekCliffhangers,
+    lastMatchDrama: state.lastMatchDrama,
+    sessionStats: state.sessionStats,
+    pendingStoryline: state.pendingStoryline,
+    activeStorylineChains: state.activeStorylineChains,
+    completedStorylineChainIds: state.completedStorylineChainIds,
+    preMatchLeaguePosition: state.preMatchLeaguePosition,
+    lastMatchXPGain: state.lastMatchXPGain,
+    weeklyDigest: state.weeklyDigest,
+    sponsorDeals: state.sponsorDeals,
+    sponsorOffers: state.sponsorOffers,
+    sponsorSlotCooldowns: state.sponsorSlotCooldowns,
+    negotiationStrikes: state.negotiationStrikes,
+    merchandise: state.merchandise,
+    pairFamiliarity: state.pairFamiliarity,
+    rivalries: state.rivalries,
+    lastMatchCompetition: state.lastMatchCompetition,
+    seasonGrowthTracker: state.seasonGrowthTracker,
+    transferNews: state.transferNews || [],
+    halfTimeState: state.halfTimeState,
+    matchPhase: state.matchPhase,
+    currentCupTieId: state.currentCupTieId,
+    pendingFarewell: state.pendingFarewell,
+    freeAgents: state.freeAgents,
+    monetization: state.monetization,
+    nationalTeam: state.nationalTeam,
+    internationalTournament: state.internationalTournament,
+    managerNationality: state.managerNationality,
+    nationalTeamOffer: state.nationalTeamOffer,
+    showNationalTeamOffer: state.showNationalTeamOffer,
+    // Cups & Continental
+    leagueCup: state.leagueCup,
+    championsCup: state.championsCup,
+    shieldCup: state.shieldCup,
+    conferenceCup: state.conferenceCup,
+    virtualClubs: state.virtualClubs,
+    continentalQualification: state.continentalQualification,
+    domesticSuperCup: state.domesticSuperCup,
+    continentalSuperCup: state.continentalSuperCup,
+    currentLeagueCupTieId: state.currentLeagueCupTieId,
+    currentContinentalMatchId: state.currentContinentalMatchId,
+    currentContinentalCompetition: state.currentContinentalCompetition,
+    continentalCoefficients: state.continentalCoefficients || {},
+    // Career Mode
+    gameMode: state.gameMode,
+    careerManager: state.careerManager,
+    jobVacancies: state.jobVacancies,
+    jobOffers: state.jobOffers,
+    activeInterview: state.activeInterview,
+  };
+  let json = JSON.stringify(saveData);
+
+  // If the save is very large (>3MB), aggressively strip ALL match events
+  if (json.length > 3_000_000) {
+    const stripAllEvents = (fixtures: unknown[]): unknown[] =>
+      fixtures.map((f: unknown) => {
+        const m = f as { played?: boolean; events?: unknown[]; stats?: unknown };
+        if (!m.played || !m.events) return m;
+        const { events: _e, stats: _s, ...rest } = m as Record<string, unknown>;
+        return rest;
+      });
+    if (saveData.divisionFixtures) {
+      const aggressiveTrim: Record<string, unknown[]> = {};
+      for (const [div, fx] of Object.entries(saveData.divisionFixtures as Record<string, unknown[]>)) {
+        aggressiveTrim[div] = stripAllEvents(fx);
+      }
+      saveData.divisionFixtures = aggressiveTrim;
+    }
+    if (saveData.fixtures) {
+      saveData.fixtures = stripAllEvents(saveData.fixtures as unknown[]);
+    }
+    json = JSON.stringify(saveData);
+  }
+
+  let saveFailed = false;
+  try {
+    writeSaveSlot(s, json);
+  } catch (err) {
+    saveFailed = true;
+    const errTime = Date.now();
+    if (errTime - lastSaveErrorLogAt > 10000) {
+      Sentry.captureException(err, { tags: { context: 'saveGame' } });
+      lastSaveErrorLogAt = errTime;
+    }
+    const hasSaveWarningThisWeek = state.messages.some(
+      m => m.title === 'Save Failed' && m.week === state.week && m.season === state.season,
+    );
+    if (!hasSaveWarningThisWeek) {
+      const msgs = addMsg(state.messages, {
+        type: 'warning',
+        title: 'Save Failed',
+        body: 'Your game could not be saved — storage may be full. Try freeing up space on your device.',
+        week: state.week,
+        season: state.season,
+      });
+      set({ messages: msgs });
+    }
+  }
+
+  if (saveFailed) {
+    set({ saveStatus: 'failed', saveFailureMessage: 'Storage may be full' });
+  } else {
+    set({ saveStatus: 'saved', lastSavedAt: Date.now(), saveFailureMessage: null });
+  }
+
+  // Save session snapshot for "Welcome back" recap
+  const myEntry = state.leagueTable.find(e => e.clubId === state.playerClubId);
+  const myPos = myEntry ? state.leagueTable.indexOf(myEntry) + 1 : 0;
+  const playerClub = state.clubs[state.playerClubId];
+  const injuredCount = playerClub
+    ? playerClub.playerIds.filter(id => state.players[id]?.injured).length
+    : 0;
+  saveSessionSnapshot({
+    week: state.week,
+    season: state.season,
+    leaguePosition: myPos,
+    boardConfidence: state.boardConfidence,
+    budget: playerClub?.budget || 0,
+    injuredCount,
+    timestamp: Date.now(),
+  });
+}
+
 // migrateLegacySave and getSlotSummaries extracted to @/store/helpers/persistence
 export { getSlotSummaries } from '@/store/helpers/persistence';
 
@@ -6121,167 +6316,39 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (slot === undefined && now - lastSaveAt < SAVE_DEBOUNCE_MS) return;
     lastSaveAt = now;
 
-    const state = get();
-    const s = slot ?? state.activeSlot;
+    // Manual saves (explicit slot) run synchronously so the user sees the
+    // result immediately. Auto-saves defer to an idle callback.
+    if (slot !== undefined) {
+      performSave(set, get, slot);
+      return;
+    }
 
-    // Trim match events/stats from AI-vs-AI fixtures to reduce save size
-    const trimmedDivFixtures = state.divisionFixtures
-      ? trimFixturesForSave(state.divisionFixtures, state.playerClubId)
-      : state.divisionFixtures;
-    const trimmedFixtures = state.fixtures
-      ? trimFixtureArrayForSave(state.fixtures, state.playerClubId)
-      : state.fixtures;
-
-    const saveData = {
-      version: CURRENT_VERSION,
-      activeSlot: s,
-      playerClubId: state.playerClubId, season: state.season, week: state.week,
-      clubs: state.clubs, players: state.players, fixtures: trimmedFixtures,
-      transferMarket: state.transferMarket, shortlist: state.shortlist, scoutWatchList: state.scoutWatchList,
-      boardObjectives: state.boardObjectives, boardConfidence: state.boardConfidence,
-      trainingFocus: state.trainingFocus, totalWeeks: state.totalWeeks,
-      messages: state.messages, seasonHistory: state.seasonHistory,
-      incomingOffers: state.incomingOffers,
-      settings: state.settings, tactics: state.tactics, training: state.training,
-      staff: state.staff, scouting: state.scouting, youthAcademy: state.youthAcademy,
-      facilities: state.facilities, financeHistory: state.financeHistory,
-      unlockedAchievements: state.unlockedAchievements, managerStats: state.managerStats,
-      activeLoans: state.activeLoans, incomingLoanOffers: state.incomingLoanOffers, outgoingLoanRequests: state.outgoingLoanRequests,
-      cup: state.cup,
-      friendlies: state.friendlies,
-      galacticoUsedThisSeason: state.galacticoUsedThisSeason,
-      invincibleUsedThisSeason: state.invincibleUsedThisSeason,
-      fanMood: state.fanMood,
-      activeChallenge: state.activeChallenge,
-      divisionFixtures: trimmedDivFixtures,
-      divisionTables: state.divisionTables,
-      divisionClubs: state.divisionClubs,
-      playerDivision: state.playerDivision,
-      derbies: state.derbies,
-      seasonPhase: state.seasonPhase,
-      lastSeasonTurnover: state.lastSeasonTurnover,
-      clubRecords: state.clubRecords,
-      careerTimeline: state.careerTimeline,
-      managerProgression: state.managerProgression,
-      weeklyObjectives: state.weeklyObjectives,
-      objectiveStreak: state.objectiveStreak,
-      objectivesStartWeek: state.objectivesStartWeek,
-      completedCoachTaskIds: state.completedCoachTaskIds,
-      weekCliffhangers: state.weekCliffhangers,
-      lastMatchDrama: state.lastMatchDrama,
-      sessionStats: state.sessionStats,
-      pendingStoryline: state.pendingStoryline,
-      activeStorylineChains: state.activeStorylineChains,
-      completedStorylineChainIds: state.completedStorylineChainIds,
-      preMatchLeaguePosition: state.preMatchLeaguePosition,
-      lastMatchXPGain: state.lastMatchXPGain,
-      weeklyDigest: state.weeklyDigest,
-      sponsorDeals: state.sponsorDeals,
-      sponsorOffers: state.sponsorOffers,
-      sponsorSlotCooldowns: state.sponsorSlotCooldowns,
-      negotiationStrikes: state.negotiationStrikes,
-      merchandise: state.merchandise,
-      pairFamiliarity: state.pairFamiliarity,
-      rivalries: state.rivalries,
-      lastMatchCompetition: state.lastMatchCompetition,
-      seasonGrowthTracker: state.seasonGrowthTracker,
-      transferNews: state.transferNews || [],
-      halfTimeState: state.halfTimeState,
-      matchPhase: state.matchPhase,
-      currentCupTieId: state.currentCupTieId,
-      pendingFarewell: state.pendingFarewell,
-      freeAgents: state.freeAgents,
-      monetization: state.monetization,
-      nationalTeam: state.nationalTeam,
-      internationalTournament: state.internationalTournament,
-      managerNationality: state.managerNationality,
-      nationalTeamOffer: state.nationalTeamOffer,
-      showNationalTeamOffer: state.showNationalTeamOffer,
-      // Cups & Continental
-      leagueCup: state.leagueCup,
-      championsCup: state.championsCup,
-      shieldCup: state.shieldCup,
-      conferenceCup: state.conferenceCup,
-      virtualClubs: state.virtualClubs,
-      continentalQualification: state.continentalQualification,
-      domesticSuperCup: state.domesticSuperCup,
-      continentalSuperCup: state.continentalSuperCup,
-      currentLeagueCupTieId: state.currentLeagueCupTieId,
-      currentContinentalMatchId: state.currentContinentalMatchId,
-      currentContinentalCompetition: state.currentContinentalCompetition,
-      continentalCoefficients: state.continentalCoefficients || {},
-      // Career Mode
-      gameMode: state.gameMode,
-      careerManager: state.careerManager,
-      jobVacancies: state.jobVacancies,
-      jobOffers: state.jobOffers,
-      activeInterview: state.activeInterview,
+    // Signal "saving" state for the UI indicator, then coalesce rapid
+    // auto-saves into a single idle-scheduled write.
+    set({ saveStatus: 'saving' });
+    pendingSlot = slot;
+    if (pendingIdleHandle !== null) return; // already scheduled
+    runSchedulerWork = () => {
+      pendingIdleHandle = null;
+      runSchedulerWork = null;
+      performSave(set, get, pendingSlot);
     };
-    let json = JSON.stringify(saveData);
+    pendingIdleHandle = requestIdle(runSchedulerWork);
+  },
 
-    // If the save is very large (>3MB), aggressively strip ALL match events
-    if (json.length > 3_000_000) {
-      const stripAllEvents = (fixtures: unknown[]): unknown[] =>
-        fixtures.map((f: unknown) => {
-          const m = f as { played?: boolean; events?: unknown[]; stats?: unknown };
-          if (!m.played || !m.events) return m;
-          const { events: _e, stats: _s, ...rest } = m as Record<string, unknown>;
-          return rest;
-        });
-      if (saveData.divisionFixtures) {
-        const aggressiveTrim: Record<string, unknown[]> = {};
-        for (const [div, fx] of Object.entries(saveData.divisionFixtures as Record<string, unknown[]>)) {
-          aggressiveTrim[div] = stripAllEvents(fx);
-        }
-        saveData.divisionFixtures = aggressiveTrim;
-      }
-      if (saveData.fixtures) {
-        saveData.fixtures = stripAllEvents(saveData.fixtures as unknown[]);
-      }
-      json = JSON.stringify(saveData);
+  flushSave: () => {
+    // If a save is already scheduled, cancel the idle callback and run it now.
+    if (pendingIdleHandle !== null && runSchedulerWork) {
+      cancelIdle(pendingIdleHandle);
+      pendingIdleHandle = null;
+      const work = runSchedulerWork;
+      runSchedulerWork = null;
+      work();
+      return;
     }
-
-    try {
-      writeSaveSlot(s, json);
-    } catch (err) {
-      const errTime = Date.now();
-      // Avoid log spam during repeated autosave attempts.
-      if (errTime - lastSaveErrorLogAt > 10000) {
-        Sentry.captureException(err, { tags: { context: 'saveGame' } });
-        lastSaveErrorLogAt = errTime;
-      }
-      // Notify user once per week to keep the inbox readable.
-      const hasSaveWarningThisWeek = state.messages.some(
-        m => m.title === 'Save Failed' && m.week === state.week && m.season === state.season,
-      );
-      if (!hasSaveWarningThisWeek) {
-        const msgs = addMsg(state.messages, {
-          type: 'warning',
-          title: 'Save Failed',
-          body: 'Your game could not be saved — storage may be full. Try freeing up space on your device.',
-          week: state.week,
-          season: state.season,
-        });
-        set({ messages: msgs });
-      }
-    }
-
-    // Save session snapshot for "Welcome back" recap
-    const myEntry = state.leagueTable.find(e => e.clubId === state.playerClubId);
-    const myPos = myEntry ? state.leagueTable.indexOf(myEntry) + 1 : 0;
-    const playerClub = state.clubs[state.playerClubId];
-    const injuredCount = playerClub
-      ? playerClub.playerIds.filter(id => state.players[id]?.injured).length
-      : 0;
-    saveSessionSnapshot({
-      week: state.week,
-      season: state.season,
-      leaguePosition: myPos,
-      boardConfidence: state.boardConfidence,
-      budget: playerClub?.budget || 0,
-      injuredCount,
-      timestamp: Date.now(),
-    });
+    // Nothing pending — force a synchronous save (bypasses debounce).
+    lastSaveAt = Date.now();
+    performSave(set, get, undefined);
   },
 
   loadGame: (slot?: number) => {

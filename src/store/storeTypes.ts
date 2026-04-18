@@ -21,6 +21,11 @@ export interface GameState {
   settings: GameSettings;
   activeSlot: number;
 
+  // Autosave status (UI-only — not persisted)
+  saveStatus: 'idle' | 'saving' | 'saved' | 'failed';
+  lastSavedAt: number | null;
+  saveFailureMessage: string | null;
+
   // Club & Squad
   clubs: Record<string, Club>;
   players: Record<string, Player>;
@@ -227,6 +232,7 @@ export interface GameState {
   advanceToNextMatch: () => void;
   endSeason: () => void;
   saveGame: (slot?: number) => void;
+  flushSave: () => void;
   loadGame: (slot?: number) => boolean;
   resetGame: (slot?: number) => void;
   markMessageRead: (id: string) => void;

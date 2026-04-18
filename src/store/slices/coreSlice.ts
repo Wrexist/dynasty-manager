@@ -38,6 +38,11 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   activeSlot: 1,
   transferNews: [] as TransferNewsEntry[],
 
+  // Autosave status (transient — not persisted to disk)
+  saveStatus: 'idle' as GameState['saveStatus'],
+  lastSavedAt: null as number | null,
+  saveFailureMessage: null as string | null,
+
   // Season tracking (enriches SeasonHistory at endSeason)
   lastMatchCompetition: null as string | null,
   seasonStartAvgOVR: 0,

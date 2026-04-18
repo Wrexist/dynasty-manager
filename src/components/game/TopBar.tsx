@@ -7,6 +7,7 @@ import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/man
 import { getSuffix } from '@/utils/helpers';
 import { getRecentForm } from '@/utils/formGuide';
 import { FormGuide } from '@/components/game/FormGuide';
+import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
 import { LEAGUES } from '@/data/league';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
@@ -193,6 +194,7 @@ export function TopBar() {
             <Calendar className="w-3 h-3" aria-hidden="true" />
             <span>W{week} · S{season}</span>
           </div>
+          <SaveStatusIndicator />
         </div>
       </div>
     </header>

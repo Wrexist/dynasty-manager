@@ -44,11 +44,13 @@ window.addEventListener('unhandledrejection', (event) => {
   Sentry.captureException(event.reason, { tags: { context: 'unhandledRejection' } });
 });
 
-// Auto-save when the browser tab / window is closed
+// Auto-save when the browser tab / window is closed.
+// Uses flushSave() to force any pending async save to run synchronously before
+// the page unloads — requestIdleCallback work would otherwise be dropped.
 window.addEventListener('beforeunload', () => {
   const state = useGameStore.getState();
   if (state.gameStarted) {
-    state.saveGame();
+    state.flushSave();
   }
 });
 
@@ -87,7 +89,7 @@ async function initNative() {
       CapApp.addListener('pause', () => {
         const state = useGameStore.getState();
         if (state.gameStarted) {
-          state.saveGame();
+          state.flushSave();
         }
       });
     } catch (err) {
