@@ -59,6 +59,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     newsTypeFilter: 'all' as 'all' | 'transfer' | 'loan' | 'free_agent',
     hideUnaffordable: false,
     showShortlistOnly: false,
+    clauseReady: false,
   },
 
   // ── Transfer Filter Actions ──

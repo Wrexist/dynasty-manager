@@ -5,6 +5,7 @@ import { PitchGeometry, PITCH_H, slotToWorld } from '../shared/PitchGeometry';
 import { PlayerToken } from '../shared/PlayerToken';
 import { GoalEventEffect } from './GoalEventEffect';
 import { WeatherLayer } from './WeatherLayer';
+import { useVisibilityFrameloop } from '../shared/useVisibilityFrameloop';
 import { FORMATION_POSITIONS, type FormationType, type MatchEvent } from '@/types/game';
 
 interface MatchPitchCanvasProps {
@@ -280,9 +281,11 @@ export default function MatchPitchCanvas({
 }: MatchPitchCanvasProps) {
   const camY = isMobile ? 72 : 58;
   const camZ = isMobile ? 40 : 50;
+  const frameloop = useVisibilityFrameloop();
 
   return (
     <Canvas
+      frameloop={frameloop}
       camera={{ position: [0, camY, camZ], fov: 38, near: 0.1, far: 600 }}
       gl={{ antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: false }}
       dpr={[1, Math.min(1.5, window.devicePixelRatio)]}

@@ -98,6 +98,9 @@ export interface GameState {
     newsTypeFilter: 'all' | 'transfer' | 'loan' | 'free_agent';
     hideUnaffordable: boolean;
     showShortlistOnly: boolean;
+    /** When true, only show listings whose player has a release clause that
+     *  fits the user's budget — guaranteed-acquisition scouting. */
+    clauseReady: boolean;
   };
   setTransferFilter: (updates: Partial<GameState['transferFilters']>) => void;
 

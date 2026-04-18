@@ -21,6 +21,7 @@ import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DR
 import type { HalfState } from '@/engine/match';
 import type { ShoutType, KeyMomentChoice } from '@/types/game';
 import { useCurrentMatch } from '@/hooks/useGameSelectors';
+import { useIsMobile } from '@/hooks/useIsMobile';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
@@ -103,6 +104,7 @@ function getTacticsSummary(t: { mentality: string; tempo: string; width: string;
 }
 
 const MatchDay = () => {
+  const isMobile = useIsMobile(430);
   const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     week: s.week,
@@ -1626,7 +1628,7 @@ const MatchDay = () => {
                           currentMin={currentMin}
                           weather={currentMatchWeather?.weather || 'clear'}
                           momentum={currentMomentum}
-                          isMobile={window.innerWidth < 430}
+                          isMobile={isMobile}
                           reducedMotion={settings.reducedMotion}
                         />
                       </Suspense>

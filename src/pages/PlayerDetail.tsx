@@ -24,7 +24,8 @@ import { InfoTip } from '@/components/game/InfoTip';
 import { MODULE_ATTR_MAP, STREAK_MULTIPLIERS, INDIVIDUAL_TRAINING_BONUS } from '@/config/training';
 import { getTrainingEffectivenessPreview, getStreakTier } from '@/utils/training';
 import { getTrainingStaffBonus } from '@/utils/staff';
-import { hapticLight } from '@/utils/haptics';
+import { hapticLight, hapticHeavy } from '@/utils/haptics';
+import { playSfxWarning } from '@/utils/audio';
 import { getContractUrgency } from '@/utils/contracts';
 import { hasPerk } from '@/utils/managerPerks';
 import { getWinStreak } from '@/utils/celebrations';
@@ -184,10 +185,22 @@ const PlayerDetail = () => {
   };
 
   const handleOffer = (offerId: string, accept: boolean) => {
+    // Detect clause trigger *before* the call so we can sfx/haptic even when
+    // the user hit "Clause Met — Accept" (which passes accept=true, same as a
+    // normal accept). Matches the logic in respondToOffer.
+    const offer = incomingOffers.find(o => o.id === offerId);
+    const triggeredClause = !!(offer && player?.releaseClause && offer.fee >= player.releaseClause);
+
     const result = respondToOffer(offerId, accept);
     if (result.success) {
+      if (triggeredClause) {
+        // Consequential, semi-forced event — heavier feedback so the user
+        // feels the weight of a guaranteed sale they couldn't refuse.
+        hapticHeavy();
+        playSfxWarning();
+      }
       successToast(result.message);
-      if (accept) { selectPlayer(null); setScreen('squad'); }
+      if (accept || triggeredClause) { selectPlayer(null); setScreen('squad'); }
     } else {
       errorToast(result.message);
     }

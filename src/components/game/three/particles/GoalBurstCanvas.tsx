@@ -1,6 +1,7 @@
 import { useRef, useMemo, useEffect, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { useVisibilityFrameloop } from '../shared/useVisibilityFrameloop';
 
 interface GoalBurstCanvasProps {
   hueBase: number;
@@ -102,6 +103,7 @@ export function GoalBurstCanvas({
   hueBase = 43, hueRange = 20, saturation = 96, lightness = 50, count = 150, speed = 1, reducedMotion = false,
 }: GoalBurstCanvasProps) {
   const [mounted, setMounted] = useState(true);
+  const frameloop = useVisibilityFrameloop();
 
   // Reduced-motion: skip the GPU burst entirely — the modal's 2D UI still reads.
   if (!mounted || reducedMotion) return null;
@@ -111,6 +113,7 @@ export function GoalBurstCanvas({
 
   return (
     <Canvas
+      frameloop={frameloop}
       camera={{ position: [0, 0, 10], fov: 55 }}
       gl={{ antialias: false, alpha: true, powerPreference: 'default', preserveDrawingBuffer: false }}
       dpr={[1, Math.min(1.5, window.devicePixelRatio)]}

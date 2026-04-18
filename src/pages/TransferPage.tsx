@@ -24,7 +24,7 @@ import { getPerformanceMultiplier, getMaxFreeAgentOverall, calculateSigningBonus
 import { TransferPlayerCard } from '@/components/game/TransferPlayerCard';
 import { LEAGUES } from '@/data/league';
 import { EmptyState } from '@/components/game/EmptyState';
-import { playSfxTransferAccepted } from '@/utils/audio';
+import { playSfxTransferAccepted, playSfxWarning } from '@/utils/audio';
 
 const TransferPage = () => {
   const {
@@ -66,7 +66,7 @@ const TransferPage = () => {
   const setTransferFilter = useGameStore(s => s.setTransferFilter);
 
   // Persistent filters (survive navigation)
-  const { tab, posFilter, searchQuery, sortBy, faSortBy, divFilter, newsTypeFilter, hideUnaffordable, showShortlistOnly } = transferFilters;
+  const { tab, posFilter, searchQuery, sortBy, faSortBy, divFilter, newsTypeFilter, hideUnaffordable, showShortlistOnly, clauseReady } = transferFilters;
   const setTab = (v: typeof tab) => setTransferFilter({ tab: v, searchQuery: '' });
   const setPosFilter = (v: number) => setTransferFilter({ posFilter: v });
   const setSearchQuery = (v: string) => setTransferFilter({ searchQuery: v });
@@ -76,6 +76,7 @@ const TransferPage = () => {
   const setNewsTypeFilter = (v: typeof newsTypeFilter) => setTransferFilter({ newsTypeFilter: v });
   const setHideUnaffordable = (v: boolean) => setTransferFilter({ hideUnaffordable: v });
   const setShowShortlistOnly = (v: boolean) => setTransferFilter({ showShortlistOnly: v });
+  const setClauseReady = (v: boolean) => setTransferFilter({ clauseReady: v });
 
   // Transient UI state (resets on navigation — modal/dialog state)
   const [signingPlayer, setSigningPlayer] = useState<string | null>(null);
@@ -127,6 +128,18 @@ const TransferPage = () => {
       result = result.filter(l => l.askingPrice <= budget);
     }
 
+    // Clause-ready filter — only show listings whose player has a release clause
+    // the user's current budget can comfortably cover. Powers the "guaranteed
+    // acquisition" scouting flow: flip the chip, see exactly who you can
+    // sign-trigger today.
+    if (clauseReady) {
+      const budget = club?.budget || 0;
+      result = result.filter(l => {
+        const p = players[l.playerId];
+        return !!p && !!p.releaseClause && p.releaseClause > 0 && p.releaseClause <= budget;
+      });
+    }
+
     // Sort by selected criteria
     result.sort((a, b) => {
       const pa = players[a.playerId];
@@ -141,7 +154,7 @@ const TransferPage = () => {
       }
     });
     return result;
-  }, [showShortlistOnly, transferMarket, shortlist, playerClubId, posFilter, players, searchQuery, sortBy, divFilter, clubs, hideUnaffordable, club?.budget]);
+  }, [showShortlistOnly, transferMarket, shortlist, playerClubId, posFilter, players, searchQuery, sortBy, divFilter, clubs, hideUnaffordable, clauseReady, club?.budget]);
 
   // Outgoing: own players listed for sale
   const outgoingPlayers = useMemo(() => {
@@ -227,9 +240,23 @@ const TransferPage = () => {
   };
 
   const executeOfferResponse = (offerId: string, accept: boolean) => {
+    // Detect clause trigger before the call — respondToOffer will auto-execute
+    // when the offer meets the clause, so we need to know in advance to fire
+    // the heavier haptic/audio feedback even if `accept` was false.
+    const offer = incomingOffers.find(o => o.id === offerId);
+    const p = offer ? players[offer.playerId] : null;
+    const triggeredClause = !!(offer && p?.releaseClause && offer.fee >= p.releaseClause);
+
     const result = respondToOffer(offerId, accept);
     if (result.success) {
-      if (accept) { hapticMedium(); } else { hapticLight(); }
+      if (triggeredClause) {
+        hapticHeavy();
+        playSfxWarning();
+      } else if (accept) {
+        hapticMedium();
+      } else {
+        hapticLight();
+      }
       successToast(result.message);
     } else {
       errorToast(result.message);
@@ -437,6 +464,19 @@ const TransferPage = () => {
                 {'\u00A3'}{hideUnaffordable ? '\u2713' : ''}
               </button>
             )}
+            {tab === 'market' && (
+              <button
+                aria-label={clauseReady ? 'Show all listings' : 'Show only clause-ready players'}
+                title="Only show players whose release clause fits your budget"
+                onClick={() => { hapticLight(); setClauseReady(!clauseReady); }}
+                className={cn(
+                  'px-1.5 py-0.5 rounded text-[10px] font-semibold shrink-0 transition-all',
+                  clauseReady ? 'bg-amber-500/20 text-amber-400' : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                🔒{clauseReady ? '\u2713' : ''}
+              </button>
+            )}
             <button
               aria-label={`Sort by ${tab === 'freeAgents' ? faSortBy : sortBy}`}
               onClick={() => {
@@ -503,7 +543,7 @@ const TransferPage = () => {
       {tab === 'market' && (
         <div className="space-y-2">
           {listings.length === 0 && (() => {
-            const hasFilters = posFilter !== 0 || searchQuery.trim() || divFilter !== 'all' || hideUnaffordable || showShortlistOnly;
+            const hasFilters = posFilter !== 0 || searchQuery.trim() || divFilter !== 'all' || hideUnaffordable || showShortlistOnly || clauseReady;
             return (
               <EmptyState
                 icon={ShoppingCart}

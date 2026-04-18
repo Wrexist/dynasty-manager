@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Layers, Volume2 } from 'lucide-react';
-import { playSfxSave } from '@/utils/audio';
+import { playSfxSave, setAudioSettings } from '@/utils/audio';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -261,7 +261,13 @@ const SettingsPage = () => {
             label="Sound effects"
             description="Audio feedback for goals, saves, and transfers"
             value={settings.soundEnabled !== false}
-            onChange={() => updateSettings({ soundEnabled: !settings.soundEnabled })}
+            onChange={() => {
+              const next = !settings.soundEnabled;
+              updateSettings({ soundEnabled: next });
+              // Push into the audio module's cache so the change takes effect
+              // immediately, without waiting for the next localStorage round-trip.
+              setAudioSettings(next, settings.volume ?? 0.5);
+            }}
           />
 
           {settings.soundEnabled !== false && (
@@ -273,7 +279,11 @@ const SettingsPage = () => {
                 max="1"
                 step="0.05"
                 value={settings.volume ?? 0.5}
-                onChange={e => updateSettings({ volume: parseFloat(e.target.value) })}
+                onChange={e => {
+                  const v = parseFloat(e.target.value);
+                  updateSettings({ volume: v });
+                  setAudioSettings(settings.soundEnabled !== false, v);
+                }}
                 className="flex-1 h-1.5 accent-primary"
               />
               <span className="text-xs text-muted-foreground w-8 text-right shrink-0">

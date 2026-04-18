@@ -23,29 +23,43 @@ function getCtx(): AudioContext | null {
   return ctx;
 }
 
-function isEnabled(): boolean {
+// Cached audio settings — populated lazily from localStorage on first call
+// then kept in sync via `setAudioSettings` (called from the Settings UI when
+// the user toggles sound or adjusts volume). Previously each sfx call parsed
+// the entire save JSON twice, which added 3–15 ms per sfx on a moderately
+// sized save. This module-level cache is effectively free per call.
+type AudioCache = { enabled: boolean; volume: number; loaded: boolean };
+const audioCache: AudioCache = { enabled: true, volume: 0.5, loaded: false };
+
+function loadFromLocalStorage(): void {
+  if (typeof localStorage === 'undefined') { audioCache.loaded = true; return; }
   try {
-    // Read from Zustand store without importing it (avoids circular deps)
     const raw = localStorage.getItem('dynasty-save-1') || localStorage.getItem('dynasty-save');
-    if (!raw) return true; // default on for new players
-    const data = JSON.parse(raw);
-    if (data?.settings?.soundEnabled === false) return false;
-    return true;
-  } catch {
-    return true;
-  }
+    if (raw) {
+      const data = JSON.parse(raw);
+      if (data?.settings?.soundEnabled === false) audioCache.enabled = false;
+      const v = data?.settings?.volume;
+      if (typeof v === 'number') audioCache.volume = Math.max(0, Math.min(1, v));
+    }
+  } catch { /* defaults already seeded */ }
+  audioCache.loaded = true;
+}
+
+/** Push updated audio settings from the Settings UI into the audio cache. */
+export function setAudioSettings(enabled: boolean, volume: number): void {
+  audioCache.enabled = enabled;
+  audioCache.volume = Math.max(0, Math.min(1, volume));
+  audioCache.loaded = true;
+}
+
+function isEnabled(): boolean {
+  if (!audioCache.loaded) loadFromLocalStorage();
+  return audioCache.enabled;
 }
 
 function getVolume(): number {
-  try {
-    const raw = localStorage.getItem('dynasty-save-1') || localStorage.getItem('dynasty-save');
-    if (!raw) return 0.5;
-    const data = JSON.parse(raw);
-    const v = data?.settings?.volume;
-    return typeof v === 'number' ? Math.max(0, Math.min(1, v)) : 0.5;
-  } catch {
-    return 0.5;
-  }
+  if (!audioCache.loaded) loadFromLocalStorage();
+  return audioCache.volume;
 }
 
 /** Create an envelope gain node for sound shaping */

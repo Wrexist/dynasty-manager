@@ -4,6 +4,7 @@ import { PitchGeometry } from '../shared/PitchGeometry';
 import { PlayerToken } from '../shared/PlayerToken';
 import { FormationChemLines } from './FormationChemLines';
 import { useFormationTransition } from './useFormationTransition';
+import { useVisibilityFrameloop } from '../shared/useVisibilityFrameloop';
 import { Html } from '@react-three/drei';
 import { type FormationType } from '@/types/game';
 import type { Player } from '@/types/game';
@@ -117,9 +118,11 @@ export default function FormationCanvas({
 }: FormationCanvasProps) {
   const camPos: [number, number, number] = cameraPreset === 'half' ? [0, 42, 32] : [0, 58, 52];
   const lookAt: [number, number, number] = cameraPreset === 'half' ? [0, 0, 18] : [0, 0, 0];
+  const frameloop = useVisibilityFrameloop();
 
   return (
     <Canvas
+      frameloop={frameloop}
       camera={{ position: camPos, fov: 42, near: 0.1, far: 400 }}
       gl={{ antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: false }}
       dpr={[1, Math.min(1.5, window.devicePixelRatio)]}

@@ -51,7 +51,7 @@ describe('getNextActions', () => {
   it('match-day lineup beats no-match lineup', () => {
     const ctx = baseCtx({
       lineupIncomplete: true,
-      nextMatch: { id: 'm', homeClubId: 'home', awayClubId: 'away', week: 20, season: 1, homeGoals: 0, awayGoals: 0, played: false, events: [], homeStats: {} as Match['homeStats'], awayStats: {} as Match['awayStats'] } as unknown as Match,
+      nextMatch: { id: 'm', homeClubId: 'home', awayClubId: 'away', week: 20, homeGoals: 0, awayGoals: 0, played: false, events: [] } as Match,
       opponent: { shortName: 'FC' } as Club,
     });
     const actions = getNextActions(ctx);
