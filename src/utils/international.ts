@@ -135,9 +135,9 @@ function simulateInternationalMatch(
   const home = getNation(homeNation);
   const away = getNation(awayNation);
 
-  // Strength based on inverse ranking (rank 1 = strongest)
-  const homeStrength = home ? (52 - home.baseRanking) / 51 : 0.5;
-  const awayStrength = away ? (52 - away.baseRanking) / 51 : 0.5;
+  // Strength based on inverse ranking (rank 1 = strongest). Max rank is 65.
+  const homeStrength = home ? Math.max(0, (66 - home.baseRanking) / 65) : 0.5;
+  const awayStrength = away ? Math.max(0, (66 - away.baseRanking) / 65) : 0.5;
 
   // Home advantage
   const homeAdv = 0.08;

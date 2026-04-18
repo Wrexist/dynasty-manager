@@ -172,6 +172,9 @@ const ManagerCreation = () => {
       if (!groups[conf]) groups[conf] = [];
       groups[conf].push(nation);
     }
+    for (const conf in groups) {
+      groups[conf].sort((a, b) => a.baseRanking - b.baseRanking);
+    }
     return groups;
   }, [filteredNations]);
 
@@ -283,6 +286,21 @@ const ManagerCreation = () => {
                   )}
                 </div>
 
+                {/* Empty state when search finds nothing */}
+                {nationSearch && filteredNations.length === 0 && (
+                  <div role="status" aria-live="polite" className="flex flex-col items-center justify-center px-4 py-12 gap-3 text-center">
+                    <Globe className="w-8 h-8 text-muted-foreground/40" />
+                    <p className="text-sm text-muted-foreground max-w-full break-words">No nations found for "<span className="text-foreground">{nationSearch}</span>"</p>
+                    <button
+                      type="button"
+                      onClick={() => setNationSearch('')}
+                      className="text-xs text-primary hover:text-primary/80 transition-colors"
+                    >
+                      Clear search
+                    </button>
+                  </div>
+                )}
+
                 {/* Nation list by confederation */}
                 {Object.entries(nationsByConfederation).map(([conf, nations]) => (
                   <div key={conf}>
@@ -320,7 +338,7 @@ const ManagerCreation = () => {
                             >
                               {/* Top row: Flag + Name + Badges */}
                               <div className="flex items-center gap-3">
-                                <FlagIcon nationality={nation.name} size={32} className="rounded-sm shadow-sm" />
+                                <FlagIcon nationality={nation.name} size={32} className="rounded-none shadow-sm" />
                                 <div className="flex-1 min-w-0">
                                   <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
                                   <div className="flex items-center gap-2 mt-0.5">
