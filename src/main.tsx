@@ -44,12 +44,23 @@ window.addEventListener('unhandledrejection', (event) => {
   Sentry.captureException(event.reason, { tags: { context: 'unhandledRejection' } });
 });
 
-// Auto-save when the browser tab / window is closed
-window.addEventListener('beforeunload', () => {
+// Save any pending state before the page goes away. We use flushForLifecycle()
+// which (1) runs any already-scheduled idle save, (2) creates a sync save when
+// autoSave is enabled — so memory-only mutations like updateSettings survive
+// a tab close — and (3) is a no-op when the user has autoSave disabled.
+//
+// pagehide/visibilitychange are the reliable signals on mobile Safari and
+// Chrome. beforeunload is kept for desktop browsers that don't always fire
+// pagehide (e.g. Firefox on some flows).
+function flushOnLifecycle() {
   const state = useGameStore.getState();
-  if (state.gameStarted) {
-    state.saveGame();
-  }
+  if (state.gameStarted) state.flushForLifecycle();
+}
+
+window.addEventListener('pagehide', flushOnLifecycle);
+window.addEventListener('beforeunload', flushOnLifecycle);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushOnLifecycle();
 });
 
 // Initialize Capacitor plugins when running as native app
@@ -87,7 +98,7 @@ async function initNative() {
       CapApp.addListener('pause', () => {
         const state = useGameStore.getState();
         if (state.gameStarted) {
-          state.saveGame();
+          state.flushForLifecycle();
         }
       });
     } catch (err) {
