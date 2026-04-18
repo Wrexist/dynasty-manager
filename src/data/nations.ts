@@ -6,72 +6,72 @@
 export interface NationData {
   name: string;
   confederation: 'UEFA' | 'CONMEBOL' | 'CAF' | 'AFC' | 'CONCACAF';
-  baseRanking: number; // 1-51 (lower = better)
+  baseRanking: number; // Real FIFA ranking (lower = better)
   color: string;
   secondaryColor: string;
 }
 
 export const NATIONS: NationData[] = [
-  // UEFA (Europe) — 24 nations
+  // UEFA (Europe) — 24 nations, sorted by baseRanking ascending
   { name: 'France', confederation: 'UEFA', baseRanking: 1, color: '#002395', secondaryColor: '#FFFFFF' },
-  { name: 'Spain', confederation: 'UEFA', baseRanking: 4, color: '#AA151B', secondaryColor: '#F1BF00' },
-  { name: 'England', confederation: 'UEFA', baseRanking: 5, color: '#FFFFFF', secondaryColor: '#CF081F' },
-  { name: 'Germany', confederation: 'UEFA', baseRanking: 6, color: '#000000', secondaryColor: '#FFFFFF' },
-  { name: 'Italy', confederation: 'UEFA', baseRanking: 7, color: '#009246', secondaryColor: '#FFFFFF' },
-  { name: 'Portugal', confederation: 'UEFA', baseRanking: 8, color: '#006600', secondaryColor: '#FF0000' },
-  { name: 'Netherlands', confederation: 'UEFA', baseRanking: 9, color: '#FF6600', secondaryColor: '#FFFFFF' },
-  { name: 'Belgium', confederation: 'UEFA', baseRanking: 10, color: '#ED2939', secondaryColor: '#FAE042' },
+  { name: 'Spain', confederation: 'UEFA', baseRanking: 2, color: '#AA151B', secondaryColor: '#F1BF00' },
+  { name: 'England', confederation: 'UEFA', baseRanking: 4, color: '#FFFFFF', secondaryColor: '#CF081F' },
+  { name: 'Portugal', confederation: 'UEFA', baseRanking: 5, color: '#006600', secondaryColor: '#FF0000' },
+  { name: 'Netherlands', confederation: 'UEFA', baseRanking: 7, color: '#FF6600', secondaryColor: '#FFFFFF' },
+  { name: 'Belgium', confederation: 'UEFA', baseRanking: 9, color: '#ED2939', secondaryColor: '#FAE042' },
+  { name: 'Germany', confederation: 'UEFA', baseRanking: 10, color: '#000000', secondaryColor: '#FFFFFF' },
   { name: 'Croatia', confederation: 'UEFA', baseRanking: 11, color: '#FF0000', secondaryColor: '#FFFFFF' },
-  { name: 'Denmark', confederation: 'UEFA', baseRanking: 16, color: '#C8102E', secondaryColor: '#FFFFFF' },
+  { name: 'Italy', confederation: 'UEFA', baseRanking: 12, color: '#009246', secondaryColor: '#FFFFFF' },
   { name: 'Switzerland', confederation: 'UEFA', baseRanking: 19, color: '#FF0000', secondaryColor: '#FFFFFF' },
-  { name: 'Poland', confederation: 'UEFA', baseRanking: 23, color: '#FFFFFF', secondaryColor: '#DC143C' },
-  { name: 'Turkey', confederation: 'UEFA', baseRanking: 25, color: '#E30A17', secondaryColor: '#FFFFFF' },
-  { name: 'Serbia', confederation: 'UEFA', baseRanking: 27, color: '#C6363C', secondaryColor: '#0C4076' },
-  { name: 'Czech Republic', confederation: 'UEFA', baseRanking: 29, color: '#11457E', secondaryColor: '#D7141A' },
-  { name: 'Austria', confederation: 'UEFA', baseRanking: 30, color: '#ED2939', secondaryColor: '#FFFFFF' },
-  { name: 'Ukraine', confederation: 'UEFA', baseRanking: 31, color: '#005BBB', secondaryColor: '#FFD500' },
-  { name: 'Scotland', confederation: 'UEFA', baseRanking: 33, color: '#003078', secondaryColor: '#FFFFFF' },
-  { name: 'Sweden', confederation: 'UEFA', baseRanking: 21, color: '#006AA7', secondaryColor: '#FECC02' },
-  { name: 'Wales', confederation: 'UEFA', baseRanking: 35, color: '#C8102E', secondaryColor: '#00A651' },
-  { name: 'Norway', confederation: 'UEFA', baseRanking: 36, color: '#BA0C2F', secondaryColor: '#00205B' },
-  { name: 'Hungary', confederation: 'UEFA', baseRanking: 38, color: '#436F4D', secondaryColor: '#CE2939' },
-  { name: 'Ireland', confederation: 'UEFA', baseRanking: 41, color: '#169B62', secondaryColor: '#FFFFFF' },
-  { name: 'Greece', confederation: 'UEFA', baseRanking: 43, color: '#0D5EAF', secondaryColor: '#FFFFFF' },
+  { name: 'Denmark', confederation: 'UEFA', baseRanking: 20, color: '#C8102E', secondaryColor: '#FFFFFF' },
+  { name: 'Turkey', confederation: 'UEFA', baseRanking: 22, color: '#E30A17', secondaryColor: '#FFFFFF' },
+  { name: 'Austria', confederation: 'UEFA', baseRanking: 24, color: '#ED2939', secondaryColor: '#FFFFFF' },
+  { name: 'Norway', confederation: 'UEFA', baseRanking: 31, color: '#BA0C2F', secondaryColor: '#00205B' },
+  { name: 'Ukraine', confederation: 'UEFA', baseRanking: 32, color: '#005BBB', secondaryColor: '#FFD500' },
+  { name: 'Poland', confederation: 'UEFA', baseRanking: 35, color: '#FFFFFF', secondaryColor: '#DC143C' },
+  { name: 'Wales', confederation: 'UEFA', baseRanking: 37, color: '#C8102E', secondaryColor: '#00A651' },
+  { name: 'Sweden', confederation: 'UEFA', baseRanking: 38, color: '#006AA7', secondaryColor: '#FECC02' },
+  { name: 'Serbia', confederation: 'UEFA', baseRanking: 39, color: '#C6363C', secondaryColor: '#0C4076' },
+  { name: 'Czech Republic', confederation: 'UEFA', baseRanking: 41, color: '#11457E', secondaryColor: '#D7141A' },
+  { name: 'Hungary', confederation: 'UEFA', baseRanking: 42, color: '#436F4D', secondaryColor: '#CE2939' },
+  { name: 'Scotland', confederation: 'UEFA', baseRanking: 43, color: '#003078', secondaryColor: '#FFFFFF' },
+  { name: 'Greece', confederation: 'UEFA', baseRanking: 47, color: '#0D5EAF', secondaryColor: '#FFFFFF' },
+  { name: 'Ireland', confederation: 'UEFA', baseRanking: 55, color: '#169B62', secondaryColor: '#FFFFFF' },
 
-  // CONMEBOL (South America) — 8 nations
-  { name: 'Brazil', confederation: 'CONMEBOL', baseRanking: 2, color: '#009C3B', secondaryColor: '#FFDF00' },
+  // CONMEBOL (South America) — 8 nations, sorted by baseRanking ascending
   { name: 'Argentina', confederation: 'CONMEBOL', baseRanking: 3, color: '#75AADB', secondaryColor: '#FFFFFF' },
-  { name: 'Uruguay', confederation: 'CONMEBOL', baseRanking: 14, color: '#5CBFEB', secondaryColor: '#FFFFFF' },
-  { name: 'Colombia', confederation: 'CONMEBOL', baseRanking: 15, color: '#FCD116', secondaryColor: '#003893' },
-  { name: 'Ecuador', confederation: 'CONMEBOL', baseRanking: 39, color: '#FFD100', secondaryColor: '#034EA2' },
-  { name: 'Chile', confederation: 'CONMEBOL', baseRanking: 37, color: '#D52B1E', secondaryColor: '#FFFFFF' },
-  { name: 'Peru', confederation: 'CONMEBOL', baseRanking: 40, color: '#D91023', secondaryColor: '#FFFFFF' },
-  { name: 'Paraguay', confederation: 'CONMEBOL', baseRanking: 45, color: '#D52B1E', secondaryColor: '#0038A8' },
+  { name: 'Brazil', confederation: 'CONMEBOL', baseRanking: 6, color: '#009C3B', secondaryColor: '#FFDF00' },
+  { name: 'Colombia', confederation: 'CONMEBOL', baseRanking: 13, color: '#FCD116', secondaryColor: '#003893' },
+  { name: 'Uruguay', confederation: 'CONMEBOL', baseRanking: 17, color: '#5CBFEB', secondaryColor: '#FFFFFF' },
+  { name: 'Ecuador', confederation: 'CONMEBOL', baseRanking: 23, color: '#FFD100', secondaryColor: '#034EA2' },
+  { name: 'Paraguay', confederation: 'CONMEBOL', baseRanking: 40, color: '#D52B1E', secondaryColor: '#0038A8' },
+  { name: 'Chile', confederation: 'CONMEBOL', baseRanking: 49, color: '#D52B1E', secondaryColor: '#FFFFFF' },
+  { name: 'Peru', confederation: 'CONMEBOL', baseRanking: 64, color: '#D91023', secondaryColor: '#FFFFFF' },
 
-  // CAF (Africa) — 10 nations
-  { name: 'Morocco', confederation: 'CAF', baseRanking: 12, color: '#C1272D', secondaryColor: '#006233' },
-  { name: 'Senegal', confederation: 'CAF', baseRanking: 20, color: '#00853F', secondaryColor: '#FDEF42' },
-  { name: 'Nigeria', confederation: 'CAF', baseRanking: 22, color: '#008751', secondaryColor: '#FFFFFF' },
-  { name: 'Cameroon', confederation: 'CAF', baseRanking: 28, color: '#007A5E', secondaryColor: '#CE1126' },
-  { name: 'Ghana', confederation: 'CAF', baseRanking: 32, color: '#006B3F', secondaryColor: '#FCD116' },
-  { name: 'Egypt', confederation: 'CAF', baseRanking: 34, color: '#CE1126', secondaryColor: '#FFFFFF' },
-  { name: 'Ivory Coast', confederation: 'CAF', baseRanking: 42, color: '#FF8200', secondaryColor: '#009A44' },
-  { name: 'Algeria', confederation: 'CAF', baseRanking: 44, color: '#006233', secondaryColor: '#FFFFFF' },
-  { name: 'Mali', confederation: 'CAF', baseRanking: 47, color: '#14B53A', secondaryColor: '#FCD116' },
-  { name: 'Gabon', confederation: 'CAF', baseRanking: 51, color: '#009E49', secondaryColor: '#3A75C4' },
+  // CAF (Africa) — 10 nations, sorted by baseRanking ascending
+  { name: 'Morocco', confederation: 'CAF', baseRanking: 8, color: '#C1272D', secondaryColor: '#006233' },
+  { name: 'Senegal', confederation: 'CAF', baseRanking: 14, color: '#00853F', secondaryColor: '#FDEF42' },
+  { name: 'Nigeria', confederation: 'CAF', baseRanking: 26, color: '#008751', secondaryColor: '#FFFFFF' },
+  { name: 'Algeria', confederation: 'CAF', baseRanking: 28, color: '#006233', secondaryColor: '#FFFFFF' },
+  { name: 'Egypt', confederation: 'CAF', baseRanking: 29, color: '#CE1126', secondaryColor: '#FFFFFF' },
+  { name: 'Ivory Coast', confederation: 'CAF', baseRanking: 34, color: '#FF8200', secondaryColor: '#009A44' },
+  { name: 'Cameroon', confederation: 'CAF', baseRanking: 45, color: '#007A5E', secondaryColor: '#CE1126' },
+  { name: 'Ghana', confederation: 'CAF', baseRanking: 53, color: '#006B3F', secondaryColor: '#FCD116' },
+  { name: 'Mali', confederation: 'CAF', baseRanking: 62, color: '#14B53A', secondaryColor: '#FCD116' },
+  { name: 'Gabon', confederation: 'CAF', baseRanking: 65, color: '#009E49', secondaryColor: '#3A75C4' },
 
-  // AFC (Asia) — 4 nations
-  { name: 'Japan', confederation: 'AFC', baseRanking: 17, color: '#000080', secondaryColor: '#FFFFFF' },
-  { name: 'South Korea', confederation: 'AFC', baseRanking: 24, color: '#CD2E3A', secondaryColor: '#003478' },
-  { name: 'Australia', confederation: 'AFC', baseRanking: 26, color: '#FFCD00', secondaryColor: '#00843D' },
-  { name: 'Saudi Arabia', confederation: 'AFC', baseRanking: 46, color: '#006C35', secondaryColor: '#FFFFFF' },
+  // AFC (Asia) — 4 nations, sorted by baseRanking ascending
+  { name: 'Japan', confederation: 'AFC', baseRanking: 18, color: '#000080', secondaryColor: '#FFFFFF' },
+  { name: 'South Korea', confederation: 'AFC', baseRanking: 25, color: '#CD2E3A', secondaryColor: '#003478' },
+  { name: 'Australia', confederation: 'AFC', baseRanking: 27, color: '#FFCD00', secondaryColor: '#00843D' },
+  { name: 'Saudi Arabia', confederation: 'AFC', baseRanking: 57, color: '#006C35', secondaryColor: '#FFFFFF' },
 
-  // CONCACAF (North/Central America + Caribbean) — 5 nations
-  { name: 'USA', confederation: 'CONCACAF', baseRanking: 13, color: '#002868', secondaryColor: '#BF0A30' },
-  { name: 'Mexico', confederation: 'CONCACAF', baseRanking: 18, color: '#006847', secondaryColor: '#FFFFFF' },
-  { name: 'Canada', confederation: 'CONCACAF', baseRanking: 49, color: '#FF0000', secondaryColor: '#FFFFFF' },
-  { name: 'Jamaica', confederation: 'CONCACAF', baseRanking: 48, color: '#009B3A', secondaryColor: '#FED100' },
-  { name: 'Costa Rica', confederation: 'CONCACAF', baseRanking: 50, color: '#002B7F', secondaryColor: '#CE1126' },
+  // CONCACAF (North/Central America + Caribbean) — 5 nations, sorted by baseRanking ascending
+  { name: 'Mexico', confederation: 'CONCACAF', baseRanking: 15, color: '#006847', secondaryColor: '#FFFFFF' },
+  { name: 'USA', confederation: 'CONCACAF', baseRanking: 16, color: '#002868', secondaryColor: '#BF0A30' },
+  { name: 'Canada', confederation: 'CONCACAF', baseRanking: 30, color: '#FF0000', secondaryColor: '#FFFFFF' },
+  { name: 'Costa Rica', confederation: 'CONCACAF', baseRanking: 51, color: '#002B7F', secondaryColor: '#CE1126' },
+  { name: 'Jamaica', confederation: 'CONCACAF', baseRanking: 60, color: '#009B3A', secondaryColor: '#FED100' },
 ];
 
 /** Notable star players per nation for display in selection screen */

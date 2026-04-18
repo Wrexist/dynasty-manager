@@ -288,9 +288,9 @@ const ManagerCreation = () => {
 
                 {/* Empty state when search finds nothing */}
                 {nationSearch && filteredNations.length === 0 && (
-                  <div className="flex flex-col items-center justify-center py-12 gap-3">
+                  <div role="status" aria-live="polite" className="flex flex-col items-center justify-center px-4 py-12 gap-3 text-center">
                     <Globe className="w-8 h-8 text-muted-foreground/40" />
-                    <p className="text-sm text-muted-foreground">No nations found for "<span className="text-foreground">{nationSearch}</span>"</p>
+                    <p className="text-sm text-muted-foreground max-w-full break-words">No nations found for "<span className="text-foreground">{nationSearch}</span>"</p>
                     <button
                       type="button"
                       onClick={() => setNationSearch('')}
