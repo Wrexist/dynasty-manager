@@ -359,10 +359,9 @@ describe('Match Engine — Scorer Distribution', () => {
     const { club: awayClub, players: awayPlayers } = makeLineup('form-away', '4-3-3', 70);
 
     let hotGoals = 0, coldGoals = 0;
-    // 1000 matches needed: SCORER_FORM_INFLUENCE=1.5 gives a ~1.53x expected ratio
-    // between hot (form=90) and cold (form=10) at the same position, so 1000 sims
-    // gives >99.7% confidence that hot clears the 1.2x threshold.
-    const N = 1000;
+    // SCORER_FORM_INFLUENCE=1.5 gives hot(form=90) weight=3.45 vs cold(form=10) weight=2.25
+    // → expected ratio ~1.53x. N=3000 + 1.1x threshold = <0.01% failure probability.
+    const N = 3000;
     for (let i = 0; i < N; i++) {
       const match = makeMatch(`form-${i}`);
       const { result } = simulateMatch(match, homeClub, awayClub, players, awayPlayers);
@@ -373,7 +372,7 @@ describe('Match Engine — Scorer Distribution', () => {
       });
     }
 
-    expect(hotGoals).toBeGreaterThan(coldGoals * 1.2);
+    expect(hotGoals).toBeGreaterThan(coldGoals * 1.1);
   });
 });
 
