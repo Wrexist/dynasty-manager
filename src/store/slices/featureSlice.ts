@@ -475,18 +475,39 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
       club.wageBill = Math.max(0, club.wageBill - player.wage + result.offeredWage);
       newClubs[state.playerClubId] = club;
 
-      const clauseSuffix = result.releaseClause && result.releaseClause > 0
-        ? ` Release clause: £${(result.releaseClause / 1e6).toFixed(1)}M.`
-        : '';
+      // Structured sign-off: one-liner lead + bulleted terms. Renders cleanly
+      // in the inbox list view AND feels like a proper contract summary when
+      // the user opens the message.
+      const terms: string[] = [
+        `• Wage: ${formatWage(result.offeredWage)}`,
+        `• Length: ${result.contractYears} year${result.contractYears === 1 ? '' : 's'}`,
+      ];
+      if (result.releaseClause && result.releaseClause > 0) {
+        terms.push(`• Release clause: £${(result.releaseClause / 1e6).toFixed(1)}M`);
+      }
+      if (result.loyaltyBonus > 0) {
+        terms.push(`• Loyalty bonus: £${(result.loyaltyBonus / 1000).toFixed(0)}K`);
+      }
+      terms.push(`• Agent fee: £${(result.agentFee / 1000).toFixed(0)}K`);
+
+      const lead = offer.type === 'renewal'
+        ? `${player.firstName} ${player.lastName} has extended their stay.`
+        : `${player.firstName} ${player.lastName} is officially a ${state.clubs[state.playerClubId]?.shortName || 'our'} player.`;
+
       const newMessages = addMsg(state.messages, {
         week: state.week, season: state.season, type: 'contract',
-        title: `${player.lastName} Signs!`,
-        body: `${player.firstName} ${player.lastName} has agreed a ${result.contractYears}-year deal at ${formatWage(result.offeredWage)}. Agent fee: £${(result.agentFee / 1000).toFixed(0)}K.${clauseSuffix}`,
+        title: offer.type === 'renewal' ? `${player.lastName} Extended` : `${player.lastName} Signs!`,
+        body: `${lead}\n\n${terms.join('\n')}`,
       });
 
       // Clear strikes on successful deal — atomic with the acceptance update
       const clearedStrikes = { ...state.contractStrikes };
       delete clearedStrikes[offer.playerId];
+
+      // D7: track signings-with-clause on the manager profile.
+      const newManagerStats = result.releaseClause && result.releaseClause > 0
+        ? { ...state.managerStats, clausesSet: (state.managerStats.clausesSet || 0) + 1 }
+        : state.managerStats;
 
       set({
         activeNegotiation: { ...result },
@@ -494,6 +515,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
         clubs: newClubs,
         messages: newMessages,
         contractStrikes: clearedStrikes,
+        managerStats: newManagerStats,
       });
     } else {
       // Atomic: record strike on rejection + update negotiation in one set()

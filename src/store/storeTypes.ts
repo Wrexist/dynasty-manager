@@ -81,7 +81,19 @@ export interface GameState {
   facilities: FacilitiesState;
   financeHistory: FinanceRecord[];
   unlockedAchievements: string[];
-  managerStats: { totalWins: number; totalDraws: number; totalLosses: number; totalSpent: number; totalEarned: number };
+  managerStats: {
+    totalWins: number;
+    totalDraws: number;
+    totalLosses: number;
+    totalSpent: number;
+    totalEarned: number;
+    /** Signings where the manager negotiated a release clause into the deal. */
+    clausesSet?: number;
+    /** Rival clauses triggered BY the manager to sign protected players. */
+    clausesTriggeredFor?: number;
+    /** Clauses triggered AGAINST the manager (protected players sold to rivals). */
+    clausesTriggeredAgainst?: number;
+  };
   clubRecords: ClubRecords;
   careerTimeline: CareerMilestone[];
   managerProgression: ManagerProgression;

@@ -245,4 +245,54 @@ describe('contracts', () => {
       }
     });
   });
+
+  describe('elite clause pressure', () => {
+    it('elite player (OVR 85+) gets a minClauseRequired on the initial offer', () => {
+      const player = makePlayer({ overall: 87, value: 20_000_000 });
+      const offer = createContractOffer(player, 5, false, 1);
+      expect(offer.minClauseRequired).toBeGreaterThan(0);
+      // Elite multiplier is 2x value
+      expect(offer.minClauseRequired).toBeGreaterThanOrEqual(20_000_000 * 2);
+    });
+
+    it('ambitious personality triggers a clause demand at 1.5x value', () => {
+      const player = makePlayer({ overall: 72, value: 5_000_000, personality: { professionalism: 10, ambition: 18, temperament: 10, loyalty: 10, leadership: 10 } });
+      const offer = createContractOffer(player, 3, true, 1);
+      expect(offer.minClauseRequired).toBeGreaterThanOrEqual(5_000_000 * 1.5 - 1);
+    });
+
+    it('no clause demand for roleless 72-OVR player without ambition', () => {
+      const player = makePlayer({ overall: 72, value: 5_000_000 });
+      const offer = createContractOffer(player, 3, true, 1);
+      expect(offer.minClauseRequired).toBeUndefined();
+    });
+
+    it('negotiateRound tanks mood (does not accept) when demanded clause is absent — even if wage is generous', () => {
+      const player = makePlayer({ overall: 88, value: 30_000_000 });
+      const offer = createContractOffer(player, 5, false, 1);
+      // Wage-over-demand + preferred-years offer that would normally auto-accept
+      const lavish = { ...offer, offeredWage: offer.demandedWage * 1.2, playerMood: 80 /* no releaseClause */ };
+      const round1 = negotiateRound(lavish);
+      // First round — kept open so the user can raise; mood hit
+      expect(round1.status).toBe('in_progress');
+      expect(round1.playerMood).toBeLessThan(lavish.playerMood);
+
+      // Final-round variant should hard-reject
+      const lastRound = negotiateRound({ ...lavish, round: 3 });
+      expect(lastRound.status).toBe('rejected');
+    });
+
+    it('negotiateRound accepts once the demanded clause is met', () => {
+      const player = makePlayer({ overall: 88, value: 30_000_000 });
+      const offer = createContractOffer(player, 5, false, 1);
+      const lavishWithClause = {
+        ...offer,
+        offeredWage: offer.demandedWage,
+        releaseClause: (offer.minClauseRequired || 0) + 100,
+        playerMood: 80,
+      };
+      const result = negotiateRound(lavishWithClause);
+      expect(result.status).toBe('accepted');
+    });
+  });
 });

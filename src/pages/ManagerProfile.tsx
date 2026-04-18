@@ -2,7 +2,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Trophy, Star, TrendingUp, Shield, ScrollText, Clock, BarChart3, Crown, User, Shirt, Glasses, UserCircle, Briefcase, Sparkles, Globe, Eye, Flame, GraduationCap, Compass, Award } from 'lucide-react';
+import { Trophy, Star, TrendingUp, Shield, ShieldCheck, ScrollText, Clock, BarChart3, Crown, User, Shirt, Glasses, UserCircle, Briefcase, Sparkles, Globe, Eye, Flame, GraduationCap, Compass, Award } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { ACHIEVEMENTS } from '@/utils/achievements';
@@ -144,6 +144,30 @@ const ManagerProfile = () => {
           </div>
         </div>
       </GlassPanel>
+
+      {/* Clause Profile — only shown once the manager has actually engaged with the mechanic */}
+      {((managerStats.clausesSet || 0) + (managerStats.clausesTriggeredFor || 0) + (managerStats.clausesTriggeredAgainst || 0)) > 0 && (
+        <GlassPanel className="p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldCheck className="w-4 h-4 text-amber-400" />
+            <h3 className="text-sm font-semibold text-foreground">Clause Profile</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-3 text-center">
+            <div>
+              <p className="text-lg font-bold text-foreground tabular-nums">{managerStats.clausesSet || 0}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">Clauses<br />Negotiated</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-emerald-400 tabular-nums">{managerStats.clausesTriggeredFor || 0}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">Triggered<br />By You</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-destructive tabular-nums">{managerStats.clausesTriggeredAgainst || 0}</p>
+              <p className="text-[10px] text-muted-foreground leading-tight">Triggered<br />Against You</p>
+            </div>
+          </div>
+        </GlassPanel>
+      )}
 
       {/* Season History */}
       {seasonHistory.length > 0 && (

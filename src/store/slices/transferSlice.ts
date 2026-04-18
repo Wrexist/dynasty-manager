@@ -234,6 +234,12 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const player = state.players[playerId];
     if (player?.releaseClause && fee >= player.releaseClause) {
       const result = get().executeTransfer(playerId, fee);
+      if (result.success) {
+        // D7: track clause triggers the manager successfully pulled off.
+        set(s => ({
+          managerStats: { ...s.managerStats, clausesTriggeredFor: (s.managerStats.clausesTriggeredFor || 0) + 1 },
+        }));
+      }
       return { outcome: result.success ? 'accepted' : 'rejected', message: result.success ? `Release clause triggered — ${player.firstName} ${player.lastName} joins for £${(fee / 1e6).toFixed(1)}M!` : result.message };
     }
 
@@ -493,7 +499,8 @@ export const createTransferSlice = (set: Set, get: Get) => ({
     const saleResult = executeSale(state, offer, offer.fee, set);
     if (clauseTriggered && saleResult.success) {
       // Announce the clause trigger on top of the standard sale message so the
-      // user reads it as a consequential, semi-forced event.
+      // user reads it as a consequential, semi-forced event, and bump the
+      // career "clauses-against" counter (D7).
       const post = get();
       const clauseMsg = addMsg(post.messages, {
         week: post.week, season: post.season, type: 'transfer',
@@ -501,7 +508,10 @@ export const createTransferSlice = (set: Set, get: Get) => ({
         body: `${buyerClub.name} met ${player.firstName} ${player.lastName}'s £${((player.releaseClause || offer.fee) / 1e6).toFixed(1)}M release clause. The transfer is contractually guaranteed.`,
         playerId: offer.playerId,
       });
-      set({ messages: clauseMsg });
+      set({
+        messages: clauseMsg,
+        managerStats: { ...post.managerStats, clausesTriggeredAgainst: (post.managerStats.clausesTriggeredAgainst || 0) + 1 },
+      });
       return { success: true, message: `Release clause triggered — ${player.firstName} ${player.lastName} joins ${buyerClub.name} for £${(offer.fee / 1e6).toFixed(1)}M.` };
     }
     return saleResult;

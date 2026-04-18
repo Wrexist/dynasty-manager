@@ -62,17 +62,26 @@ export function ContractNegotiation() {
   // Default clause scales with player quality: stars demand a harder-to-trigger
   // multiplier so they can't be plucked cheaply; role players get a slim default.
   const playerValue = activeNegotiation.playerValue ?? player.value;
+  const minClauseRequired = activeNegotiation.minClauseRequired;
+  const clauseIsMandatory = !!(minClauseRequired && minClauseRequired > 0);
   const defaultClauseMultiplier = player.overall >= 85
     ? 3.0
     : player.overall >= 75
       ? 2.0
       : RELEASE_CLAUSE_FAIR_MULTIPLIER;
-  const suggestedClause = Math.max(1, Math.round(playerValue * defaultClauseMultiplier));
-  const clauseOn = clauseEnabled ?? (activeNegotiation.releaseClause ? true : false);
+  const suggestedClause = Math.max(
+    minClauseRequired ?? 1,
+    Math.round(playerValue * defaultClauseMultiplier),
+  );
+  // If the player demands a clause, the toggle is force-on (user can't turn it
+  // off). Otherwise it respects the manager's choice.
+  const clauseOn = clauseIsMandatory ? true : (clauseEnabled ?? (activeNegotiation.releaseClause ? true : false));
   const effectiveClauseAmount = clauseOn ? (customClause ?? activeNegotiation.releaseClause ?? suggestedClause) : 0;
   const clauseTier = getReleaseClauseTier(effectiveClauseAmount || undefined, playerValue);
   // Lowball guard: a clause below ~1.2× value is trivially triggerable.
   const clauseLowball = clauseOn && effectiveClauseAmount > 0 && effectiveClauseAmount < playerValue * 1.2;
+  // Demanded clause unmet — show a hard warning and disable submit (we'll wire it).
+  const clauseBelowMin = clauseIsMandatory && effectiveClauseAmount < (minClauseRequired || 0);
   const acceptanceHint = getAcceptanceHint(gap, activeNegotiation.playerAge, currentYears, activeNegotiation.playerMood, effectiveClauseAmount || undefined, playerValue);
 
   const handleSubmit = () => {
@@ -351,38 +360,51 @@ export function ContractNegotiation() {
               {/* Release Clause — optional protection for the player */}
               <div className={cn(
                 'rounded-xl p-3 space-y-2 border',
-                clauseOn
-                  ? clauseTier === 'fair' ? 'bg-emerald-500/5 border-emerald-500/25'
-                    : clauseTier === 'moderate' ? 'bg-amber-500/5 border-amber-500/20'
-                    : clauseTier === 'high' ? 'bg-muted/20 border-border/40'
-                    : 'bg-destructive/5 border-destructive/20'
-                  : 'bg-muted/20 border-border/40',
+                clauseBelowMin
+                  ? 'bg-destructive/10 border-destructive/40'
+                  : clauseOn
+                    ? clauseTier === 'fair' ? 'bg-emerald-500/5 border-emerald-500/25'
+                      : clauseTier === 'moderate' ? 'bg-amber-500/5 border-amber-500/20'
+                      : clauseTier === 'high' ? 'bg-muted/20 border-border/40'
+                      : 'bg-destructive/5 border-destructive/20'
+                    : 'bg-muted/20 border-border/40',
               )}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">Release Clause</span>
+                    <span className="text-xs text-muted-foreground">
+                      Release Clause
+                      {clauseIsMandatory && <span className="ml-1 text-amber-400 font-semibold">· required</span>}
+                    </span>
                   </div>
                   <button
-                    onClick={() => setClauseEnabled(!clauseOn)}
+                    onClick={() => !clauseIsMandatory && setClauseEnabled(!clauseOn)}
+                    disabled={clauseIsMandatory}
                     className={cn(
                       'text-[10px] px-2 py-0.5 rounded-md font-semibold border transition-colors',
                       clauseOn ? 'bg-primary/20 border-primary/40 text-primary' : 'bg-muted/50 border-border/40 text-muted-foreground',
+                      clauseIsMandatory && 'cursor-not-allowed opacity-80',
                     )}
                   >
                     {clauseOn ? 'Included' : 'Not offered'}
                   </button>
                 </div>
 
+                {clauseIsMandatory && (
+                  <p className="text-[10px] text-amber-400">
+                    This player demands a release clause of at least <span className="font-semibold">£{((minClauseRequired || 0) / 1e6).toFixed(1)}M</span> as a condition of signing.
+                  </p>
+                )}
+
                 {clauseOn && (
                   <>
                     <div className="flex items-center gap-2">
                       <input
                         type="range"
-                        min={Math.max(1_000_000, Math.round(playerValue))}
+                        min={Math.max(1_000_000, minClauseRequired ?? Math.round(playerValue))}
                         max={Math.max(2_000_000, Math.round(playerValue * (RELEASE_CLAUSE_MODERATE_MULTIPLIER + 1)))}
                         step={Math.max(100_000, Math.round(playerValue * 0.05))}
-                        value={effectiveClauseAmount}
+                        value={Math.max(minClauseRequired ?? 0, effectiveClauseAmount)}
                         onChange={(e) => setCustomClause(Number(e.target.value))}
                         style={{ touchAction: 'auto' }}
                         className="w-full h-1.5 rounded-full accent-primary cursor-pointer"
@@ -448,12 +470,18 @@ export function ContractNegotiation() {
                 );
               })()}
 
-              {/* Submit */}
+              {/* Submit — disabled when a demanded clause minimum isn't met */}
               <button
                 onClick={handleSubmit}
-                className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-2.5 rounded-xl font-semibold text-sm hover:bg-primary/90 active:scale-[0.98] transition-all"
+                disabled={clauseBelowMin}
+                className={cn(
+                  'w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-semibold text-sm transition-all',
+                  clauseBelowMin
+                    ? 'bg-muted/40 text-muted-foreground cursor-not-allowed'
+                    : 'bg-primary text-primary-foreground hover:bg-primary/90 active:scale-[0.98]',
+                )}
               >
-                Submit Offer <ArrowRight className="w-4 h-4" />
+                {clauseBelowMin ? `Clause below £${((minClauseRequired || 0) / 1e6).toFixed(1)}M demand` : <>Submit Offer <ArrowRight className="w-4 h-4" /></>}
               </button>
             </>
           )}

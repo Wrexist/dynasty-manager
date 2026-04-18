@@ -129,6 +129,18 @@ export function createContractOffer(
   const yearsBracket = CONTRACT_YEARS_BRACKETS.find(b => player.age < b.maxAge);
   const contractYears = yearsBracket ? yearsBracket.years : CONTRACT_DEFAULT_YEARS;
 
+  // Elite / ambitious players insist on a release clause as a condition of
+  // signing — it's their exit valve if the club underperforms. Threshold is
+  // OVR ≥ 85 OR personality.ambition ≥ 15. The required minimum scales with
+  // market value (2× for stars, 1.5× for high-ambition role players) so
+  // premier talent can't be pinned behind an unrealistic clause.
+  const ambitionHigh = (player.personality?.ambition ?? 0) >= 15;
+  const isElite = player.overall >= 85;
+  const demandsClause = isElite || ambitionHigh;
+  const minClauseRequired = demandsClause
+    ? Math.round(player.value * (isElite ? 2.0 : 1.5))
+    : undefined;
+
   return {
     id: crypto.randomUUID(),
     playerId: player.id,
@@ -143,6 +155,7 @@ export function createContractOffer(
     status: 'in_progress',
     playerMood: willingness,
     playerValue: player.value,
+    minClauseRequired,
   };
 }
 
@@ -180,6 +193,34 @@ function getReleaseClauseMoodBonus(clause: number | undefined, value: number | u
  */
 export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): ContractOffer {
   if (offer.demandedWage <= 0) return { ...offer, status: 'accepted', round: offer.round + 1 };
+
+  // Clause-required hard gate: elites / ambitious players who demanded a clause
+  // will walk if it's missing or below their minimum. Take a big mood hit (so
+  // the player visibly sours over rounds) and reject outright when rounds are
+  // exhausted. This runs before the wage fast-path — no amount of money buys
+  // them without the clause they asked for.
+  if (offer.minClauseRequired && offer.minClauseRequired > 0) {
+    const clause = offer.releaseClause ?? 0;
+    if (clause < offer.minClauseRequired) {
+      // If it's the final round, this is a hard rejection — player won't sign.
+      if (offer.round >= CONTRACT_MAX_ROUNDS) {
+        return {
+          ...offer,
+          status: 'rejected',
+          round: offer.round + 1,
+          playerMood: Math.max(CONTRACT_MOOD_FLOOR, offer.playerMood - 15),
+        };
+      }
+      // Otherwise: keep the negotiation open so the user can add/raise the
+      // clause, but tank mood so they feel the pushback.
+      return {
+        ...offer,
+        playerMood: Math.max(CONTRACT_MOOD_FLOOR, offer.playerMood - 15),
+        round: offer.round + 1,
+        status: 'in_progress',
+      };
+    }
+  }
 
   // Fast-path: meeting or exceeding all demands with reasonable mood = guaranteed acceptance
   const preferredYears = getPreferredYears(offer.playerAge);

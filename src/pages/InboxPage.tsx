@@ -608,7 +608,7 @@ const InboxPage = () => {
                       </div>
                       {expanded && (
                         <div className="mt-2 ml-11">
-                          <p className="text-xs text-foreground/80 leading-relaxed">{msg.body}</p>
+                          <p className="text-xs text-foreground/80 leading-relaxed whitespace-pre-line">{msg.body}</p>
                           <div className="flex items-center justify-between mt-2">
                             <p className="text-[10px] text-muted-foreground/60">Season {msg.season} · Week {msg.week}</p>
                             <div className="flex items-center gap-1.5">

@@ -1198,6 +1198,11 @@ export interface ContractOffer {
   releaseClause?: number;
   /** Cached player market value at offer time (used to scale release-clause mood bonus). */
   playerValue?: number;
+  /** Minimum release clause the player INSISTS on. Elites (OVR ≥ 85) and
+   *  ambitious personalities demand one as a condition of signing. When set,
+   *  the negotiation UI forces the clause toggle on and pins the slider
+   *  minimum, and the backend rejects offers that don't clear this threshold. */
+  minClauseRequired?: number;
 }
 
 // ── Challenge Mode ──
