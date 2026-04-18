@@ -13,7 +13,7 @@ import { GlassPanel } from './GlassPanel';
 import { PlayerAvatar } from './PlayerAvatar';
 import { FlagIcon } from './FlagIcon';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getTierGlowClass, getStableJerseyNumber } from '@/utils/uiHelpers';
+import { getRatingColor, getPlayerTier, getTierBorderStyle, getStableJerseyNumber } from '@/utils/uiHelpers';
 import { lighten, darken } from '@/utils/colorUtils';
 
 interface PlayerHeroCardProps {
@@ -44,21 +44,28 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
   const growth = player.growthDelta;
   const jerseyNumber = useMemo(() => getStableJerseyNumber(player.id), [player.id]);
   const backdropColor = useMemo(() => getBackdropColor(clubColor), [clubColor]);
+  const tier = getPlayerTier(player.overall);
 
   const ariaLabel = [
     `${player.firstName} ${player.lastName}`,
     player.position,
     `overall ${player.overall}`,
+    `tier ${tier.label}`,
     showPotential ? `potential ${player.potential}` : null,
     `age ${player.age}`,
     club?.name,
   ].filter(Boolean).join(', ');
 
   return (
-    <GlassPanel
-      className={cn('relative overflow-hidden p-5', getTierGlowClass(player.overall))}
-      aria-label={ariaLabel}
+    <div
+      className="rounded-2xl p-[2px]"
+      style={getTierBorderStyle(tier)}
+      data-tier={tier.key}
     >
+      <GlassPanel
+        className="relative overflow-hidden p-5 rounded-[14px]"
+        aria-label={ariaLabel}
+      >
       {/* Club-color radial gradient backdrop */}
       <div
         aria-hidden
@@ -91,6 +98,15 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
               )}
             >
               {player.overall}
+            </span>
+            <span
+              className={cn(
+                'px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide shrink-0',
+                tier.badgeClass,
+              )}
+              aria-label={`tier ${tier.label}`}
+            >
+              {tier.label}
             </span>
             {growth != null && growth > 0 && (
               <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0" aria-label={`growing +${growth}`} />
@@ -134,6 +150,7 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
           </div>
         </div>
       </div>
-    </GlassPanel>
+      </GlassPanel>
+    </div>
   );
 });
