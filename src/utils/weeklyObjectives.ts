@@ -127,12 +127,15 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
     xpReward: 10,
     rarity: 'common',
     check: (ctx) => {
+      const match = getThisWeekMatch(ctx);
+      if (!match) return false;
       return ctx.lineup.some(id => {
         const p = ctx.players[id];
         return p && p.age <= 21;
       });
     },
     progress: (ctx) => {
+      if (!getThisWeekMatch(ctx)) return { current: 0, target: 1 };
       const youthInLineup = ctx.lineup.filter(id => {
         const p = ctx.players[id];
         return p && p.age <= 21;
@@ -228,6 +231,70 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
       if (players.length === 0) return { current: 0, target: 70 };
       const avg = Math.round(players.reduce((s, p) => s + p.morale, 0) / players.length);
       return { current: avg, target: 70 };
+    },
+  },
+
+  // ── Non-match passive objectives ──
+  {
+    id: 'top-half-table',
+    title: 'Top Half',
+    description: 'Be in the top half of the league table',
+    icon: 'trending-up',
+    xpReward: 10,
+    rarity: 'common',
+    check: (ctx) => {
+      const pos = ctx.leagueTable.findIndex(e => e.clubId === ctx.playerClubId) + 1;
+      return pos > 0 && pos <= Math.ceil(ctx.leagueTable.length / 2);
+    },
+    progress: (ctx) => {
+      const pos = ctx.leagueTable.findIndex(e => e.clubId === ctx.playerClubId) + 1;
+      const half = Math.ceil(ctx.leagueTable.length / 2);
+      return { current: Math.max(0, half - pos + 1), target: 1 };
+    },
+  },
+  {
+    id: 'youth-in-squad',
+    title: 'Academy Focus',
+    description: 'Have 4 or more players aged 21 or under in your squad',
+    icon: 'users',
+    xpReward: 10,
+    rarity: 'common',
+    check: (ctx) => {
+      return ctx.playerIds.filter(id => ctx.players[id]?.age <= 21).length >= 4;
+    },
+    progress: (ctx) => {
+      const count = ctx.playerIds.filter(id => ctx.players[id]?.age <= 21).length;
+      return { current: Math.min(count, 4), target: 4 };
+    },
+  },
+  {
+    id: 'veteran-presence',
+    title: 'Experience Counts',
+    description: 'Have 3 or more players aged 29 or over in your squad',
+    icon: 'crown',
+    xpReward: 8,
+    rarity: 'common',
+    check: (ctx) => {
+      return ctx.playerIds.filter(id => ctx.players[id]?.age >= 29).length >= 3;
+    },
+    progress: (ctx) => {
+      const count = ctx.playerIds.filter(id => ctx.players[id]?.age >= 29).length;
+      return { current: Math.min(count, 3), target: 3 };
+    },
+  },
+  {
+    id: 'deep-bench',
+    title: 'No Weaknesses',
+    description: 'Have 18 or more fit players available',
+    icon: 'shield-check',
+    xpReward: 10,
+    rarity: 'common',
+    check: (ctx) => {
+      return ctx.playerIds.filter(id => !ctx.players[id]?.injured).length >= 18;
+    },
+    progress: (ctx) => {
+      const count = ctx.playerIds.filter(id => !ctx.players[id]?.injured).length;
+      return { current: Math.min(count, 18), target: 18 };
     },
   },
 
@@ -348,7 +415,7 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
 const MATCH_OBJECTIVE_IDS = [
   'win-match', 'clean-sheet', 'score-2-plus', 'win-by-2', 'score-3-plus',
   'no-cards', 'dont-lose', 'comeback-win', 'late-drama', 'away-clean-sheet',
-  'youth-scorer', 'high-possession', 'win-by-5',
+  'youth-scorer', 'high-possession', 'win-by-5', 'youth-start',
 ];
 
 function getThisWeekMatch(ctx: ObjectiveContext): Match | undefined {
@@ -403,8 +470,8 @@ export function generateMonthlyObjectives(hasMatch: boolean): ObjectiveInstance[
   }));
 }
 
-/** Check which objectives are completed and return updated list + total XP earned.
- *  streakCount is the current consecutive-month-all-completed streak. */
+/** Check which objectives are completed and return updated list + base XP for newly-completed ones.
+ *  All-complete bonus and streak multiplier are handled separately at month-end via calculateCompletedXP. */
 export function evaluateObjectives(
   objectives: ObjectiveInstance[],
   ctx: ObjectiveContext,
@@ -426,17 +493,7 @@ export function evaluateObjectives(
   });
 
   const allCompleted = updated.every(o => o.completed);
-
-  // Bonus for completing all objectives
-  if (allCompleted && updated.length > 0) {
-    xpEarned += ALL_OBJECTIVES_BONUS_XP;
-  }
-
-  // Streak multiplier
   const newStreak = allCompleted ? streakCount + 1 : 0;
-  if (newStreak >= OBJECTIVE_STREAK_THRESHOLD) {
-    xpEarned = Math.round(xpEarned * OBJECTIVE_STREAK_MULTIPLIER);
-  }
 
   return { updated, xpEarned, allCompleted, newStreak };
 }
@@ -455,25 +512,31 @@ export function computeObjectiveProgress(
   });
 }
 
-/** Calculate total XP from all completed objectives in a batch.
- *  Used at month boundary to correctly award XP for objectives completed
- *  across multiple weeks (evaluateObjectives only counts newly-completed ones). */
+/** Calculate month-end BONUS XP only — base objective XP was already awarded immediately on completion.
+ *  Returns the all-complete bonus and the streak multiplier extra (to avoid double-counting base). */
 export function calculateCompletedXP(
   objectives: ObjectiveInstance[],
   streakCount: number = 0,
 ): { xpEarned: number; allCompleted: boolean; newStreak: number } {
-  let xpEarned = 0;
+  const allCompleted = objectives.length > 0 && objectives.every(o => o.completed);
+  const newStreak = allCompleted ? streakCount + 1 : 0;
+
+  if (!allCompleted) return { xpEarned: 0, allCompleted, newStreak };
+
+  // Recompute base XP (already awarded weekly) to calculate the streak extra correctly
+  let baseXP = 0;
   for (const inst of objectives) {
     if (!inst.completed) continue;
     const rarityMult = inst.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
       : inst.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
-    xpEarned += inst.xpReward * rarityMult;
+    baseXP += inst.xpReward * rarityMult;
   }
-  const allCompleted = objectives.length > 0 && objectives.every(o => o.completed);
-  if (allCompleted) xpEarned += ALL_OBJECTIVES_BONUS_XP;
-  const newStreak = allCompleted ? streakCount + 1 : 0;
+
   if (newStreak >= OBJECTIVE_STREAK_THRESHOLD) {
-    xpEarned = Math.round(xpEarned * OBJECTIVE_STREAK_MULTIPLIER);
+    // Total correct = (baseXP + bonus) * multiplier; base already paid → owe the remainder
+    const total = Math.round((baseXP + ALL_OBJECTIVES_BONUS_XP) * OBJECTIVE_STREAK_MULTIPLIER);
+    return { xpEarned: total - baseXP, allCompleted, newStreak };
   }
-  return { xpEarned, allCompleted, newStreak };
+
+  return { xpEarned: ALL_OBJECTIVES_BONUS_XP, allCompleted, newStreak };
 }

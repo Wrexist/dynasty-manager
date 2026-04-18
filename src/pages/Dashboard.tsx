@@ -21,7 +21,7 @@ import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { getContractUrgency } from '@/utils/contracts';
 import { checkCelebrations, getWinStreak, getUnbeatenRun, getCleanSheetStreak, getDramaCelebration } from '@/utils/celebrations';
-import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
+import { STREAK_MORALE_THRESHOLD, OBJECTIVE_STREAK_THRESHOLD, OBJECTIVE_CYCLE_WEEKS, OBJECTIVE_STREAK_MULTIPLIER, RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER, COACH_ALL_TASKS_BONUS_XP, ACHIEVEMENT_XP_BRONZE, ACHIEVEMENT_XP_SILVER, ACHIEVEMENT_XP_GOLD } from '@/config/gameBalance';
 import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils/managerPerks';
 import { getReputationTierLabel } from '@/utils/managerCareer';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
@@ -483,6 +483,12 @@ const Dashboard = () => {
     }
   }, [coachTasks]);
 
+  const effectiveObjXp = (obj: { xpReward: number; rarity?: string }) => {
+    const mult = obj.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
+      : obj.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
+    return obj.xpReward * mult;
+  };
+
   const prevCompletedObjRef = useRef<Set<string> | null>(null);
   const [justCompletedObj, setJustCompletedObj] = useState<Set<string>>(new Set());
 
@@ -500,6 +506,15 @@ const Dashboard = () => {
     if (newlyDone.size > 0) {
       hapticLight();
       setJustCompletedObj(newlyDone);
+      const allNowDone = weeklyObjectives.every(o => o.completed);
+      if (allNowDone) {
+        celebrationToast('Perfect Month!', 'All objectives complete — bonus XP incoming!');
+      } else {
+        const newlyDoneObjs = weeklyObjectives.filter(o => newlyDone.has(o.objectiveId));
+        for (const obj of newlyDoneObjs) {
+          celebrationToast(`Objective Complete`, `${obj.title} — +${effectiveObjXp(obj)} XP`);
+        }
+      }
       const id = setTimeout(() => setJustCompletedObj(new Set()), 1000);
       return () => clearTimeout(id);
     }
@@ -1270,7 +1285,7 @@ const Dashboard = () => {
               <span className="text-[9px] text-muted-foreground">Week {Math.max(1, Math.min(week - (objectivesStartWeek || 1) + 1, OBJECTIVE_CYCLE_WEEKS))}/{OBJECTIVE_CYCLE_WEEKS}</span>
               {objectiveStreak >= OBJECTIVE_STREAK_THRESHOLD && (
                 <span className="text-[9px] font-bold text-amber-400 bg-amber-500/15 px-1.5 py-0.5 rounded-full">
-                  2x XP
+                  {OBJECTIVE_STREAK_MULTIPLIER}x Bonus
                 </span>
               )}
               {allObjectivesDone && <span className="text-[9px] text-emerald-400 font-bold">&#10003; Complete</span>}
@@ -1332,9 +1347,9 @@ const Dashboard = () => {
                         )}
                       </div>
                       <span className={cn('text-[10px] font-bold shrink-0', obj.completed ? 'text-emerald-400' : 'text-sky-400')}>
-                        {obj.completed ? '✓' : `+${obj.xpReward} XP`}
+                        {obj.completed ? '✓' : `+${effectiveObjXp(obj)} XP`}
                       </span>
-                      <FloatingXP amount={obj.xpReward} show={justCompletedObj.has(obj.objectiveId)} />
+                      <FloatingXP amount={effectiveObjXp(obj)} show={justCompletedObj.has(obj.objectiveId)} />
                     </div>
                   ))}
                 </div>

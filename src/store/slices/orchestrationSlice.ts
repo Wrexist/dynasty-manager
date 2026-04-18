@@ -84,6 +84,7 @@ import {
   MEDICAL_REINJURY_REDUCTION_PER_LEVEL,
   MAX_FINANCE_HISTORY, MAX_CAREER_TIMELINE,
   OBJECTIVE_CYCLE_WEEKS,
+  RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER,
   FORM_WIN_CHANGE, FORM_LOSS_CHANGE, FORM_DRAW_CHANGE,
 } from '@/config/gameBalance';
 import {
@@ -4685,27 +4686,41 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const objStartWeek = state.objectivesStartWeek || 1;
     const monthComplete = (newWeek - objStartWeek) >= OBJECTIVE_CYCLE_WEEKS;
 
-    // Always evaluate to mark newly-completed objectives (ignore xpEarned — it only counts new completions)
-    const { updated: evalObjectives } = evaluateObjectives(state.weeklyObjectives, objCtx, currentStreak);
+    // Evaluate objectives — base XP for newly-completed ones is awarded immediately
+    const { updated: evalObjectives, xpEarned: weeklyObjXP } = evaluateObjectives(state.weeklyObjectives, objCtx, currentStreak);
 
     let updatedProgression = state.managerProgression;
     if (achievementXPTotal > 0) {
       updatedProgression = grantXP(updatedProgression, achievementXPTotal);
     }
+    if (weeklyObjXP > 0) {
+      updatedProgression = grantXP(updatedProgression, weeklyObjXP);
+    }
 
     let newObjectives = evalObjectives;
     let newObjectivesStartWeek = objStartWeek;
     let finalStreak = currentStreak;
+    let monthBonusXP = 0;
 
     if (monthComplete) {
-      // Month is over — calculate XP from ALL completed objectives in this batch
-      const { xpEarned: monthXP, allCompleted: objAllCompleted, newStreak } = calculateCompletedXP(evalObjectives, currentStreak);
-      if (monthXP > 0) {
-        updatedProgression = grantXP(updatedProgression, monthXP);
-        const completedCount = evalObjectives.filter(o => o.completed).length;
-        let objMsg = `You earned ${monthXP} XP from this month's objectives!`;
-        if (objAllCompleted) objMsg += ' PERFECT MONTH — all objectives complete!';
-        if (newStreak >= 3) objMsg += ` Streak x${newStreak} — bonus multiplier active!`;
+      // Month is over — award bonus XP (all-complete + streak extra; base was already paid weekly)
+      const { xpEarned: bonusXP, allCompleted: objAllCompleted, newStreak } = calculateCompletedXP(evalObjectives, currentStreak);
+      monthBonusXP = bonusXP;
+      if (bonusXP > 0) {
+        updatedProgression = grantXP(updatedProgression, bonusXP);
+      }
+      const completedCount = evalObjectives.filter(o => o.completed).length;
+      // Only send an inbox message when there's something notable — bonus XP earned, streak info, or streak broken
+      const streakBroken = currentStreak >= 2 && newStreak === 0;
+      if (bonusXP > 0 || streakBroken) {
+        let objMsg: string;
+        if (objAllCompleted) {
+          objMsg = `PERFECT MONTH — all ${evalObjectives.length} objectives complete! +${bonusXP} bonus XP earned.`;
+          if (newStreak >= 3) objMsg += ` Streak x${newStreak} — bonus multiplier active next month!`;
+        } else {
+          objMsg = `${completedCount}/${evalObjectives.length} objectives completed. XP was awarded as each completed.`;
+          if (streakBroken) objMsg += ` Your ${currentStreak}-month streak has ended — complete all objectives next month to start a new one.`;
+        }
         newMessages = addMsg(newMessages, {
           week: newWeek, season, type: 'general',
           title: `Monthly Objectives: ${completedCount}/${evalObjectives.length} Complete`,
@@ -4730,11 +4745,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Update session stats
     const prevSession = state.sessionStats || { startWeek: week, startSeason: season, weeksPlayed: 0, xpEarned: 0, matchesWon: 0, matchesLost: 0, objectivesCompleted: 0 };
     const newlyCompleted = evalObjectives.filter(o => o.completed).length - state.weeklyObjectives.filter(o => o.completed).length;
-    const monthXPForSession = monthComplete ? calculateCompletedXP(evalObjectives, currentStreak).xpEarned : 0;
     const sessionStats = {
       ...prevSession,
       weeksPlayed: prevSession.weeksPlayed + 1,
-      xpEarned: prevSession.xpEarned + monthXPForSession,
+      xpEarned: prevSession.xpEarned + weeklyObjXP + monthBonusXP,
       objectivesCompleted: prevSession.objectivesCompleted + Math.max(0, newlyCompleted),
     };
 
@@ -4821,11 +4835,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           .map(ep => `${ep.firstName} ${ep.lastName}`)
       : [];
 
-    const digestObjectiveProgress = evalObjectives.map(obj => ({
-      title: obj.title,
-      completed: obj.completed,
-      xpEarned: obj.completed ? obj.xpReward : 0,
-    }));
+    const digestObjectiveProgress = evalObjectives.map(obj => {
+      const rarityMult = obj.rarity === 'legendary' ? LEGENDARY_OBJECTIVE_XP_MULTIPLIER
+        : obj.rarity === 'rare' ? RARE_OBJECTIVE_XP_MULTIPLIER : 1;
+      return {
+        title: obj.title,
+        completed: obj.completed,
+        xpEarned: obj.completed ? obj.xpReward * rarityMult : 0,
+      };
+    });
 
     set({
       week: newWeek, fixtures: updatedFixtures, players: newPlayers,
