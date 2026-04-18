@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { PlayerHeroCard } from '@/components/game/PlayerHeroCard';
-import { getStableJerseyNumber, getTierGlowClass } from '@/utils/uiHelpers';
+import { getStableJerseyNumber, getPlayerTier } from '@/utils/uiHelpers';
 import type { Player, Club } from '@/types/game';
 
 function makePlayer(overrides: Partial<Player> = {}): Player {
@@ -95,20 +95,49 @@ describe('getStableJerseyNumber', () => {
   });
 });
 
-describe('getTierGlowClass', () => {
-  it('returns gold glow at 80+', () => {
-    expect(getTierGlowClass(85)).toMatch(/amber-400/);
+describe('getPlayerTier', () => {
+  it('returns Legendary at 90+', () => {
+    expect(getPlayerTier(93).key).toBe('legendary');
+    expect(getPlayerTier(93).label).toBe('Legendary');
   });
 
-  it('returns silver glow at 70-79', () => {
-    expect(getTierGlowClass(75)).toMatch(/slate-300/);
+  it('returns Gold at 80-89', () => {
+    expect(getPlayerTier(86).key).toBe('gold');
+    expect(getPlayerTier(86).label).toBe('Gold');
   });
 
-  it('returns bronze glow at 60-69', () => {
-    expect(getTierGlowClass(65)).toMatch(/amber-700/);
+  it('returns Silver at 70-79', () => {
+    expect(getPlayerTier(75).key).toBe('silver');
+    expect(getPlayerTier(75).label).toBe('Silver');
   });
 
-  it('returns empty string below 60', () => {
-    expect(getTierGlowClass(45)).toBe('');
+  it('returns Bronze at 60-69', () => {
+    expect(getPlayerTier(65).key).toBe('bronze');
+    expect(getPlayerTier(65).label).toBe('Bronze');
+  });
+
+  it('returns Common below 60', () => {
+    expect(getPlayerTier(45).key).toBe('common');
+    expect(getPlayerTier(45).label).toBe('Common');
+  });
+});
+
+describe('PlayerHeroCard tier border + badge', () => {
+  it('renders the tier label badge for a Gold player', () => {
+    render(<PlayerHeroCard player={makePlayer({ overall: 86, potential: 90 })} club={makeClub()} />);
+    expect(screen.getByLabelText('tier Gold')).toBeInTheDocument();
+  });
+
+  it('renders Bronze label and data-tier attribute for a 65 OVR player', () => {
+    const { container } = render(
+      <PlayerHeroCard player={makePlayer({ overall: 65, potential: 70 })} club={makeClub()} />,
+    );
+    expect(screen.getByLabelText('tier Bronze')).toBeInTheDocument();
+    expect(container.querySelector('[data-tier="bronze"]')).not.toBeNull();
+  });
+
+  it('renders Legendary label for a 92 OVR player', () => {
+    render(<PlayerHeroCard player={makePlayer({ overall: 92, potential: 92 })} club={makeClub()} />);
+    expect(screen.getByLabelText('tier Legendary')).toBeInTheDocument();
   });
 });

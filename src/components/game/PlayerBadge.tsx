@@ -8,7 +8,7 @@
 import { memo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getTierGlowClass } from '@/utils/uiHelpers';
+import { getRatingColor, getPlayerTier, getTierBorderStyle } from '@/utils/uiHelpers';
 
 interface PlayerBadgeProps {
   clubColor: string;
@@ -52,16 +52,21 @@ export const PlayerBadge = memo(function PlayerBadge({
 }: PlayerBadgeProps) {
   const showJersey = size !== 'sm' && jerseyNumber != null && jerseyNumber > 0;
   const showGrowth = size === 'lg' && growthDelta != null && growthDelta !== 0;
+  const tier = getPlayerTier(overall);
+  const wrapperStyle = noGlow ? undefined : getTierBorderStyle(tier);
 
   return (
-    <div className={cn('relative shrink-0', className)}>
+    <div className={cn('relative shrink-0', className)} data-tier={tier.key}>
+      <div
+        className={cn('rounded-xl', noGlow ? '' : 'p-[1.5px]')}
+        style={wrapperStyle}
+      >
       <div
         className={cn(
           SIZE_CLASSES[size],
-          'rounded-xl flex flex-col items-center justify-between py-1.5',
+          'rounded-[10px] flex flex-col items-center justify-between py-1.5',
           'bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl border border-border/50',
           'border-l-[3px]',
-          !noGlow && getTierGlowClass(overall),
         )}
         style={{ borderLeftColor: clubColor }}
       >
@@ -88,6 +93,7 @@ export const PlayerBadge = memo(function PlayerBadge({
             #{jerseyNumber}
           </span>
         )}
+      </div>
       </div>
 
       {/* Growth indicator (lg only) */}

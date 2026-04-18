@@ -15,6 +15,8 @@ import {
   MATCH_RATING_THRESHOLDS,
   MOOD_COLOR_THRESHOLDS,
   POTENTIAL_COLOR_THRESHOLDS,
+  PLAYER_TIER_THRESHOLDS,
+  type PlayerTier,
 } from '@/config/ui';
 
 /** Get top 3 highest attributes from a player's attribute set */
@@ -47,11 +49,26 @@ export function getRatingHex(value: number | undefined): string {
   return '#6b7280';
 }
 
-/** Gold/silver/bronze halo (shadow + ring) for a player overall rating. Empty for <60. */
-export function getTierGlowClass(overall: number): string {
-  if (overall >= 80) return 'shadow-[0_0_24px_rgba(251,191,36,0.35)] ring-1 ring-amber-400/30';
-  if (overall >= 70) return 'shadow-[0_0_20px_rgba(203,213,225,0.25)] ring-1 ring-slate-300/20';
-  if (overall >= 60) return 'shadow-[0_0_18px_rgba(180,83,9,0.25)] ring-1 ring-amber-700/20';
+/** Resolve the player tier (Legendary/Gold/Silver/Bronze/Common) for an overall rating. */
+export function getPlayerTier(overall: number): PlayerTier {
+  for (const t of PLAYER_TIER_THRESHOLDS) {
+    if (overall >= t.min) return t;
+  }
+  return PLAYER_TIER_THRESHOLDS[PLAYER_TIER_THRESHOLDS.length - 1];
+}
+
+/** Inline-style gradient stroke for a tier border wrapper (clean, non-blurred). */
+export function getTierBorderStyle(tier: PlayerTier): { background: string } {
+  return {
+    background: `linear-gradient(135deg, ${tier.gradientFrom}, ${tier.gradientVia} 50%, ${tier.gradientTo})`,
+  };
+}
+
+/**
+ * @deprecated Use getPlayerTier + the gradient-border wrapper pattern instead.
+ * Retained as a no-op so older callers don't crash; returns empty class string.
+ */
+export function getTierGlowClass(_overall: number): string {
   return '';
 }
 

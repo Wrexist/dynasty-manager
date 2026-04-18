@@ -13,6 +13,44 @@ export const RATING_COLOR_THRESHOLDS = [
   { min: 0,  textClass: 'text-muted-foreground', bgClass: 'bg-destructive' },
 ] as const;
 
+// ── Player Tier Thresholds (Legendary / Gold / Silver / Bronze / Common) ──
+// Single source of truth for tier identity. Used to render crisp gradient
+// borders and on-card text labels. Tune `min` to shift band boundaries.
+export const PLAYER_TIER_THRESHOLDS = [
+  {
+    min: 90, key: 'legendary', label: 'Legendary',
+    gradientFrom: '#fde68a', gradientVia: '#facc15', gradientTo: '#b45309',
+    textClass: 'text-amber-300',
+    badgeClass: 'bg-amber-400/20 text-amber-300 border border-amber-300/40',
+  },
+  {
+    min: 80, key: 'gold', label: 'Gold',
+    gradientFrom: '#fcd34d', gradientVia: '#f59e0b', gradientTo: '#92400e',
+    textClass: 'text-amber-400',
+    badgeClass: 'bg-amber-500/15 text-amber-400 border border-amber-400/40',
+  },
+  {
+    min: 70, key: 'silver', label: 'Silver',
+    gradientFrom: '#e2e8f0', gradientVia: '#cbd5e1', gradientTo: '#64748b',
+    textClass: 'text-slate-200',
+    badgeClass: 'bg-slate-300/15 text-slate-200 border border-slate-300/40',
+  },
+  {
+    min: 60, key: 'bronze', label: 'Bronze',
+    gradientFrom: '#fed7aa', gradientVia: '#c2410c', gradientTo: '#7c2d12',
+    textClass: 'text-orange-400',
+    badgeClass: 'bg-orange-600/15 text-orange-400 border border-orange-500/40',
+  },
+  {
+    min: 0, key: 'common', label: 'Common',
+    gradientFrom: '#475569', gradientVia: '#334155', gradientTo: '#1e293b',
+    textClass: 'text-muted-foreground',
+    badgeClass: 'bg-muted/30 text-muted-foreground border border-border',
+  },
+] as const;
+
+export type PlayerTier = typeof PLAYER_TIER_THRESHOLDS[number];
+
 // ── Stat Bar Color Thresholds (percentage-based) ──
 export const STAT_BAR_THRESHOLDS = [
   { min: 80, bgClass: 'bg-emerald-500' },
