@@ -84,5 +84,14 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   },
   markMessageRead: (id: string) => set(s => ({ messages: s.messages.map(m => m.id === id ? { ...m, read: true } : m) })),
   markAllRead: () => set(s => ({ messages: s.messages.map(m => ({ ...m, read: true })) })),
-  updateSettings: (partial: Partial<GameSettings>) => set(s => ({ settings: { ...s.settings, ...partial } })),
+  updateSettings: (partial: Partial<GameSettings>) => {
+    set(s => ({ settings: { ...s.settings, ...partial } }));
+    // Persist preference changes. Without this, toggling autoSave off and
+    // closing the tab silently drops the change — flushForLifecycle would
+    // short-circuit on the new autoSave=false value. saveGame() is debounced
+    // so rapid toggles coalesce into one write. The scheduled idle save still
+    // fires through flushForLifecycle/flushPendingOnly on tab close regardless
+    // of the new preference value.
+    if (get().gameStarted) get().saveGame();
+  },
 });

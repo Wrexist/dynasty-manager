@@ -56,11 +56,12 @@ export function SaveStatusIndicator() {
       label: 'Saving your game',
     };
   } else if (saveStatus === 'failed') {
+    const reason = saveFailureMessage ? ` — ${saveFailureMessage}` : '';
     content = {
       icon: <CloudOff className="w-3 h-3" aria-hidden="true" />,
       text: 'Save failed',
       className: 'text-destructive',
-      label: saveFailureMessage || 'Save failed — tap to retry',
+      label: `Save failed${reason}. Tap to retry.`,
     };
   } else if (saveStatus === 'saved' && lastSavedAt) {
     const justSaved = now - lastSavedAt < JUST_SAVED_MS;

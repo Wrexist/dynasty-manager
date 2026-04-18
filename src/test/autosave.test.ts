@@ -160,7 +160,11 @@ describe('autosave: flushForLifecycle', () => {
   });
 
   it('is a no-op when autoSave is disabled and nothing is pending', () => {
+    // updateSettings schedules a save to persist the preference itself — run
+    // it to drain the queue so the assertion below actually covers the
+    // "nothing pending + autoSave off" path we care about.
     useGameStore.getState().updateSettings({ autoSave: false });
+    vi.runAllTimers();
     const setItem = vi.spyOn(Storage.prototype, 'setItem');
     useGameStore.getState().flushForLifecycle();
     const writes = setItem.mock.calls.filter(([k]) => String(k).startsWith('dynasty-save-'));
@@ -231,5 +235,33 @@ describe('autosave: change detection', () => {
     const secondTs = useGameStore.getState().lastSavedAt;
     expect(secondTs).not.toBe(firstTs);
     expect(useGameStore.getState().saveStatus).toBe('saved');
+  });
+
+  it('writes again when state actually changes between saves', () => {
+    useGameStore.getState().saveGame(1);
+    // Mutate a cheap, serialized field so the hash changes.
+    useGameStore.setState(s => ({ season: s.season + 1 }));
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    useGameStore.getState().saveGame(1);
+    const primary = setItem.mock.calls.filter(([k]) => k === 'dynasty-save-1');
+    expect(primary.length).toBeGreaterThan(0);
+  });
+});
+
+describe('autosave: rapid lifecycle hooks', () => {
+  beforeEach(() => initFresh());
+  afterEach(() => vi.useRealTimers());
+
+  it('coalesces back-to-back flushForLifecycle calls into a single primary write', () => {
+    // pagehide + visibilitychange can both fire on the same tick when a mobile
+    // tab is closed; the hash short-circuit must keep us honest.
+    useGameStore.getState().saveGame();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    useGameStore.getState().flushForLifecycle();
+    useGameStore.getState().flushForLifecycle();
+    const primary = setItem.mock.calls.filter(
+      ([k]) => String(k).startsWith('dynasty-save-') && !String(k).endsWith('-backup'),
+    );
+    expect(primary.length).toBe(1);
   });
 });

@@ -142,6 +142,9 @@ let lastSaveAt = 0;
 let lastSavedHash: number | null = null; // FNV-1a of the last successfully written payload
 const SAVE_DEBOUNCE_MS = 2000; // Minimum 2s between auto-saves
 const AGGRESSIVE_TRIM_THRESHOLD = 3_000_000; // >3MB → strip ALL match events
+// Pre-flight threshold: roughly 30k event records translates to ~3MB of JSON,
+// so we strip aggressively before the first stringify instead of after.
+const AGGRESSIVE_TRIM_EVENT_COUNT = 30_000;
 
 // ── Async save scheduler ──
 // Auto-saves run inside requestIdleCallback so JSON.stringify of the full game
@@ -228,6 +231,15 @@ const stripAllEvents = (fixtures: unknown[]): unknown[] =>
  *  Short-circuits via FNV-1a hash when the serialized payload is unchanged. */
 function performSave(set: Set, get: Get, slot: number | undefined): void {
   const state = get();
+
+  // Seatbelt: if we're somehow invoked without an active game (e.g. after a
+  // reset cleared state but cancelPendingSave failed, or a future caller
+  // forgets to guard), bail out instead of writing an empty-state "ghost save".
+  if (!state.gameStarted || !state.playerClubId) {
+    set({ saveStatus: 'idle' });
+    return;
+  }
+
   const s = slot ?? state.activeSlot;
 
   let divFixturesForSave: Record<string, unknown[]> | undefined = state.divisionFixtures
@@ -239,8 +251,8 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
 
   // Pre-flight: if we're carrying an unusually large number of event records,
   // apply aggressive event-stripping BEFORE the first stringify so we only
-  // serialize once on large saves. Threshold ~ 30k events ≈ 3MB of JSON.
-  if (countFixtureEventBytes(divFixturesForSave, flatFixturesForSave) > 30_000) {
+  // serialize once on large saves.
+  if (countFixtureEventBytes(divFixturesForSave, flatFixturesForSave) > AGGRESSIVE_TRIM_EVENT_COUNT) {
     if (divFixturesForSave) {
       const aggressiveTrim: Record<string, unknown[]> = {};
       for (const [div, fx] of Object.entries(divFixturesForSave)) {
