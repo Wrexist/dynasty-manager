@@ -148,6 +148,63 @@ describe('autosave: flushPendingOnly', () => {
   });
 });
 
+describe('autosave: flushForLifecycle', () => {
+  beforeEach(() => initFresh());
+  afterEach(() => vi.useRealTimers());
+
+  it('creates a sync save when nothing is pending but autoSave is on', () => {
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    useGameStore.getState().flushForLifecycle();
+    const writes = setItem.mock.calls.filter(([k]) => String(k).startsWith('dynasty-save-') && !String(k).endsWith('-backup'));
+    expect(writes.length).toBeGreaterThan(0);
+  });
+
+  it('is a no-op when autoSave is disabled and nothing is pending', () => {
+    useGameStore.getState().updateSettings({ autoSave: false });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    useGameStore.getState().flushForLifecycle();
+    const writes = setItem.mock.calls.filter(([k]) => String(k).startsWith('dynasty-save-'));
+    expect(writes.length).toBe(0);
+  });
+
+  it('still flushes pending work even when autoSave is disabled', () => {
+    // Schedule a save WHILE autoSave is true
+    useGameStore.getState().saveGame();
+    // Then the user flips autoSave off — pending save should still write.
+    useGameStore.getState().updateSettings({ autoSave: false });
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    useGameStore.getState().flushForLifecycle();
+    const writes = setItem.mock.calls.filter(([k]) => String(k).startsWith('dynasty-save-') && !String(k).endsWith('-backup'));
+    expect(writes.length).toBeGreaterThan(0);
+  });
+});
+
+describe('autosave: reset / load cancel pending work', () => {
+  beforeEach(() => initFresh());
+  afterEach(() => vi.useRealTimers());
+
+  it('resetGame() cancels a queued idle save so it cannot overwrite the wiped slot', () => {
+    useGameStore.getState().saveGame();
+    useGameStore.getState().resetGame(1);
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    vi.runAllTimers();
+    const writes = setItem.mock.calls.filter(([k]) => k === 'dynasty-save-1');
+    expect(writes.length).toBe(0);
+  });
+
+  it('loadGame() cancels a queued idle save so it cannot clobber loaded state', () => {
+    // Seed a save to load back
+    useGameStore.getState().saveGame(1);
+    // Queue an autosave then load — the queued callback must not fire.
+    useGameStore.getState().saveGame();
+    useGameStore.getState().loadGame(1);
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    vi.runAllTimers();
+    const writes = setItem.mock.calls.filter(([k]) => String(k).startsWith('dynasty-save-') && !String(k).endsWith('-backup'));
+    expect(writes.length).toBe(0);
+  });
+});
+
 describe('autosave: change detection', () => {
   beforeEach(() => initFresh());
   afterEach(() => vi.useRealTimers());

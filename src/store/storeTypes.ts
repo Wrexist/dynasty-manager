@@ -234,6 +234,7 @@ export interface GameState {
   saveGame: (slot?: number) => void;
   flushSave: () => void;
   flushPendingOnly: () => void;
+  flushForLifecycle: () => void;
   loadGame: (slot?: number) => boolean;
   resetGame: (slot?: number) => void;
   markMessageRead: (id: string) => void;

@@ -158,15 +158,23 @@ export function resetSaveHash(): void {
   lastSavedHash = null;
 }
 
-/** Test-only: zero every piece of module-level save scheduler state so each
- *  test file starts from a clean slate. Never call from production code. */
-export function __resetAutosaveSchedulerForTests(): void {
+/** Cancel any scheduled but not-yet-fired autosave. Call before destructive
+ *  state transitions (resetGame, loadGame, switching slots) so the pending
+ *  callback doesn't fire against the new state and clobber a freshly loaded
+ *  slot or resurrect a slot that was just wiped. */
+function cancelPendingSave(): void {
   if (pendingIdleHandle !== null) {
     cancelIdle(pendingIdleHandle);
     pendingIdleHandle = null;
   }
   runSchedulerWork = null;
   pendingSlot = undefined;
+}
+
+/** Test-only: zero every piece of module-level save scheduler state so each
+ *  test file starts from a clean slate. Never call from production code. */
+export function __resetAutosaveSchedulerForTests(): void {
+  cancelPendingSave();
   lastSaveAt = 0;
   lastSaveErrorLogAt = 0;
   lastSavedHash = null;
@@ -6428,9 +6436,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
   },
 
   flushPendingOnly: () => {
-    // Lifecycle-triggered flush (beforeunload / pagehide / visibilitychange /
-    // Capacitor pause). Only completes work that was already scheduled — never
-    // creates a new save, so we respect the autoSave setting automatically.
+    // Completes already-scheduled work without creating a new save. Used by
+    // tests; production lifecycle hooks should call flushForLifecycle().
     if (pendingIdleHandle === null || !runSchedulerWork) return;
     cancelIdle(pendingIdleHandle);
     pendingIdleHandle = null;
@@ -6439,7 +6446,33 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     work();
   },
 
+  flushForLifecycle: () => {
+    // Lifecycle-triggered flush (beforeunload / pagehide / visibilitychange /
+    // Capacitor pause). Two-step behaviour:
+    //   1) If an autosave is already queued, run it now.
+    //   2) Otherwise, if settings.autoSave is enabled, perform a sync save —
+    //      this captures memory-only mutations like updateSettings that don't
+    //      enqueue their own save.
+    //   3) If autoSave is off, do nothing (respect the user preference).
+    if (pendingIdleHandle !== null && runSchedulerWork) {
+      cancelIdle(pendingIdleHandle);
+      pendingIdleHandle = null;
+      const work = runSchedulerWork;
+      runSchedulerWork = null;
+      work();
+      return;
+    }
+    if (!get().settings.autoSave) return;
+    lastSaveAt = Date.now();
+    set({ saveStatus: 'saving' });
+    performSave(set, get, undefined);
+  },
+
   loadGame: (slot?: number) => {
+    // Drop any queued autosave for the outgoing state — otherwise it would
+    // fire after we've swapped in the loaded data and write it back, which
+    // is a wasted write at best and slot-crossover at worst.
+    cancelPendingSave();
     resetSeasonGrowth();
     clearLeagueTableCache();
     migrateLegacySave();
@@ -6629,6 +6662,9 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
   resetGame: (slot?: number) => {
     const s = slot ?? get().activeSlot;
+    // Kill any pending idle save before wiping the slot — otherwise it fires
+    // after reset and resurrects the slot we just deleted.
+    cancelPendingSave();
     removeSaveSlot(s);
     resetSaveHash();
     set({

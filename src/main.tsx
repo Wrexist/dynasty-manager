@@ -44,17 +44,17 @@ window.addEventListener('unhandledrejection', (event) => {
   Sentry.captureException(event.reason, { tags: { context: 'unhandledRejection' } });
 });
 
-// Flush any pending async save before the page goes away. We use
-// flushPendingOnly() instead of flushSave() so the user's autoSave preference
-// is respected — lifecycle hooks never create a new save, they only complete
-// work that was already scheduled.
+// Save any pending state before the page goes away. We use flushForLifecycle()
+// which (1) runs any already-scheduled idle save, (2) creates a sync save when
+// autoSave is enabled — so memory-only mutations like updateSettings survive
+// a tab close — and (3) is a no-op when the user has autoSave disabled.
 //
 // pagehide/visibilitychange are the reliable signals on mobile Safari and
 // Chrome. beforeunload is kept for desktop browsers that don't always fire
 // pagehide (e.g. Firefox on some flows).
 function flushOnLifecycle() {
   const state = useGameStore.getState();
-  if (state.gameStarted) state.flushPendingOnly();
+  if (state.gameStarted) state.flushForLifecycle();
 }
 
 window.addEventListener('pagehide', flushOnLifecycle);
@@ -98,7 +98,7 @@ async function initNative() {
       CapApp.addListener('pause', () => {
         const state = useGameStore.getState();
         if (state.gameStarted) {
-          state.flushPendingOnly();
+          state.flushForLifecycle();
         }
       });
     } catch (err) {
