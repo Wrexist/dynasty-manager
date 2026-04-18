@@ -46,6 +46,7 @@ import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { InfoTip } from '@/components/game/InfoTip';
 import { WeeklyDigest } from '@/components/game/WeeklyDigest';
 import { NextActionCard } from '@/components/game/NextActionCard';
+import { getNextActions, type NextAction } from '@/utils/nextAction';
 import { playSfxAchievement, playSfxWarning } from '@/utils/audio';
 import { FinanceBreakdownSheet, FinanceSheetMode } from '@/components/game/FinanceBreakdownSheet';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
@@ -613,55 +614,38 @@ const Dashboard = () => {
       {/* Weekly Digest (post-advanceWeek summary) */}
       <WeeklyDigest />
 
-      {/* Critical Next Action — shown only when player needs to do something important */}
-      {seasonOver ? (
-        <NextActionCard
-          icon={Trophy}
-          label="Season Complete"
-          title="Start the next season"
-          description="All matches are finished. Tap here to see the season summary and advance."
-          onClick={endSeason}
-        />
-      ) : lineupIncomplete && !nextMatch ? (
-        <NextActionCard
-          icon={Users}
-          label="Action Required"
-          title="Your lineup isn't set"
-          description="You need 11 players in your starting lineup before your first match."
-          onClick={() => setScreen('squad')}
-          urgent
-        />
-      ) : nextMatch && lineupIncomplete ? (
-        <NextActionCard
-          icon={Users}
-          label="Match Day — Action Required"
-          title="Lineup incomplete"
-          description={`You play ${opponent?.shortName || 'next'} but have fewer than 11 starters. Fix your lineup now.`}
-          onClick={() => setScreen('squad')}
-          urgent
-        />
-      ) : (() => {
-        const urgentExpiring = expiringPlayers.filter(p => p.overall >= 70);
-        const isLateSeason = week >= 30;
-        if (urgentExpiring.length > 0 && isLateSeason) {
-          const star = [...urgentExpiring].sort((a, b) => b.overall - a.overall)[0];
-          const extra = urgentExpiring.length - 1;
-          return (
-            <NextActionCard
-              icon={AlertTriangle}
-              label="Contract Urgent"
-              title={`${star.lastName}'s contract expiring`}
-              description={
-                extra > 0
-                  ? `${star.firstName} ${star.lastName} and ${extra} other key player${extra === 1 ? '' : 's'} will leave on a free if not renewed this season.`
-                  : `${star.firstName} ${star.lastName} will leave on a free unless you negotiate a renewal.`
-              }
-              onClick={() => setScreen('squad')}
-              urgent
-            />
-          );
-        }
-        return null;
+      {/* Critical Next Actions — prioritized list, up to 2 shown */}
+      {(() => {
+        const nextActions = getNextActions({
+          seasonOver,
+          lineupIncomplete,
+          nextMatch,
+          opponent: opponent || null,
+          expiringPlayers,
+          week,
+          lateSeasonWeekThreshold: 30,
+          icons: { Trophy, Users, AlertTriangle },
+        }).slice(0, 2);
+        if (nextActions.length === 0) return null;
+        const handleAction = (a: NextAction) => {
+          if (a.target === 'season-summary') return endSeason();
+          if (a.target === 'squad') return setScreen('squad');
+        };
+        return (
+          <div className="space-y-2">
+            {nextActions.map(a => (
+              <NextActionCard
+                key={a.key}
+                icon={a.icon}
+                label={a.label}
+                title={a.title}
+                description={a.description}
+                onClick={() => handleAction(a)}
+                urgent={a.urgent}
+              />
+            ))}
+          </div>
+        );
       })()}
 
       {/* Club Identity Hero */}

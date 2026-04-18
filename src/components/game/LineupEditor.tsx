@@ -361,6 +361,7 @@ export function LineupEditor() {
                   chemistryLinkCount={playerChemCounts.get(player.id) || 0}
                   compatRing={!isSelected ? compat : null}
                   week={week}
+                  showClauseBadge
                   onClick={() => handleTap(playerId)}
                 />
               ) : (
@@ -499,6 +500,7 @@ export function LineupEditor() {
                 compatRing={!isSelected ? benchCompat : null}
                 isBestSub={id === bestSubId}
                 week={week}
+                showClauseBadge
                 onClick={() => handleTap(id)}
               />
             );

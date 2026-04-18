@@ -10,25 +10,31 @@ import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { LoanNegotiation } from '@/components/game/LoanNegotiation';
 import { UNLISTED_PLAYER_PREMIUM } from '@/config/transfers';
 import { formatMoney } from '@/utils/helpers';
-import { X, Banknote, Repeat2 } from 'lucide-react';
+import { X, Banknote, Repeat2, ShieldCheck } from 'lucide-react';
 
 interface Props {
   playerId: string;
   onClose: () => void;
 }
 
-type ApproachMode = 'choose' | 'transfer' | 'loan';
+type ApproachMode = 'choose' | 'transfer' | 'clause-transfer' | 'loan';
 
 export function TransferApproach({ playerId, onClose }: Props) {
   const players = useGameStore(s => s.players);
   const clubs = useGameStore(s => s.clubs);
   const transferMarket = useGameStore(s => s.transferMarket);
+  const playerClubId = useGameStore(s => s.playerClubId);
 
   const player = players[playerId];
   const club = player ? clubs[player.clubId] : null;
+  const myClub = clubs[playerClubId];
 
   // Check if the player is already listed on the transfer market
   const existingListing = transferMarket.find(l => l.playerId === playerId);
+
+  // Clause meta — surfaces a quick-trigger CTA when the clause is affordable.
+  const clause = player?.releaseClause && player.releaseClause > 0 ? player.releaseClause : null;
+  const clauseAffordable = !!(clause && myClub && myClub.budget >= clause);
 
   const [mode, setMode] = useState<ApproachMode>(existingListing ? 'transfer' : 'choose');
 
@@ -51,6 +57,18 @@ export function TransferApproach({ playerId, onClose }: Props) {
       sellerClubId: player.clubId,
     };
     return <TransferNegotiation listing={syntheticListing} onClose={onClose} />;
+  }
+
+  // Clause-trigger path: synthesize a listing whose asking price IS the clause
+  // so the negotiation slider opens pre-set at the clause fee. Submitting the
+  // offer at that level hits the auto-accept branch in transferSlice.
+  if (mode === 'clause-transfer' && clause) {
+    const clauseListing = {
+      playerId: player.id,
+      askingPrice: clause,
+      sellerClubId: player.clubId,
+    };
+    return <TransferNegotiation listing={clauseListing} onClose={onClose} />;
   }
 
   if (mode === 'loan') {
@@ -129,6 +147,33 @@ export function TransferApproach({ playerId, onClose }: Props) {
 
             {/* Approach Options */}
             <div className="space-y-2">
+              {clause && (
+                <button
+                  type="button"
+                  disabled={!clauseAffordable}
+                  onClick={() => setMode('clause-transfer')}
+                  className={cn(
+                    'w-full flex items-center gap-3 p-4 border rounded-xl transition-all',
+                    clauseAffordable
+                      ? 'bg-amber-500/10 border-amber-500/40 hover:bg-amber-500/15 active:scale-[0.98]'
+                      : 'bg-muted/20 border-border/40 opacity-60 cursor-not-allowed',
+                  )}
+                >
+                  <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                    <ShieldCheck className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <div className="text-left flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground">
+                      Trigger Release Clause · {formatMoney(clause)}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {clauseAffordable
+                        ? 'Guaranteed acceptance — the seller has no say'
+                        : `Your budget (${formatMoney(myClub?.budget || 0)}) is short of the clause`}
+                    </p>
+                  </div>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setMode('transfer')}

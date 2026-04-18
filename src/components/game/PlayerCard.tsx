@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getFitnessHexColor } from '@/utils/uiHelpers';
-import { Link, TrendingUp } from 'lucide-react';
+import { Link, TrendingUp, ShieldCheck } from 'lucide-react';
 import type { Player } from '@/types/game';
 
 interface PlayerCardProps {
@@ -13,6 +13,8 @@ interface PlayerCardProps {
   compatRing?: 'natural' | 'compatible' | 'wrong' | null;
   isBestSub?: boolean;
   week?: number;
+  /** Show a tiny shield badge when the player has a release clause. */
+  showClauseBadge?: boolean;
   onClick: () => void;
 }
 
@@ -43,11 +45,13 @@ export const PlayerCard = memo(function PlayerCard({
   compatRing,
   isBestSub,
   week,
+  showClauseBadge,
   onClick,
 }: PlayerCardProps) {
   const isWarning = player.fitness < 50 || (chemistryLinkCount === 0 && variant === 'starter');
   const fitnessColor = getFitnessHexColor(player.fitness);
   const statusLabel = getStatusLabel(player, week);
+  const hasClause = !!(showClauseBadge && player.releaseClause && player.releaseClause > 0);
 
   if (variant === 'bench') {
     return (
@@ -74,6 +78,12 @@ export const PlayerCard = memo(function PlayerCard({
         <div className="flex items-center gap-1 mt-0.5">
           <span className="text-[6px] text-gray-400 font-medium">{player.position}</span>
           {isBestSub && <TrendingUp className="w-2 h-2 text-primary" />}
+          {hasClause && (
+            <ShieldCheck
+              className="w-2 h-2 text-amber-400"
+              aria-label={`Release clause £${((player.releaseClause || 0) / 1e6).toFixed(1)}M`}
+            />
+          )}
           {statusLabel && (
             <span className="text-[5px] font-bold text-red-400">{statusLabel}</span>
           )}
@@ -134,7 +144,7 @@ export const PlayerCard = memo(function PlayerCard({
         </span>
       </div>
 
-      {/* Position + Chemistry */}
+      {/* Position + Chemistry + Clause */}
       <div className="flex items-center gap-0.5 mt-px">
         <span className="text-[6px] text-gray-400 font-medium leading-tight">{position}</span>
         {chemistryLinkCount > 0 && (
@@ -142,6 +152,12 @@ export const PlayerCard = memo(function PlayerCard({
             <Link className="w-1.5 h-1.5" />
             {chemistryLinkCount}
           </span>
+        )}
+        {hasClause && (
+          <ShieldCheck
+            className="w-1.5 h-1.5 text-amber-400 shrink-0"
+            aria-label={`Release clause £${((player.releaseClause || 0) / 1e6).toFixed(1)}M`}
+          />
         )}
       </div>
     </div>

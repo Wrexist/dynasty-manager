@@ -46,8 +46,11 @@ export function PlayerToken({ position, color, label, isHome, highlighted, dimme
     // Tick the timer whenever we're doing any pulsing animation — previously it
     // only ticked inside `if (flashing)`, so the highlight-pulse (selected
     // player, no flash) stayed stuck at sin(0)=0 and never pulsed visibly.
+    // Wrap at 2π so the number stays bounded even if a player is highlighted
+    // for a long time; the sin/cos curves are 2π-periodic so wrapping is
+    // visually identical and protects against fp drift on very long sessions.
     if ((flashing || highlighted) && !reducedMotion) {
-      flashTimer.current += delta * 6;
+      flashTimer.current = (flashTimer.current + delta * 6) % (Math.PI * 2);
     }
 
     if (flashing) {

@@ -58,12 +58,21 @@ export function ContractNegotiation() {
   const yearsAdj = getYearsAdjustment(activeNegotiation.playerAge, currentYears);
   const yearsAdjPct = Math.round(yearsAdj * 100);
 
-  // Release clause state — derive effective values from user overrides + current offer
+  // Release clause state — derive effective values from user overrides + current offer.
+  // Default clause scales with player quality: stars demand a harder-to-trigger
+  // multiplier so they can't be plucked cheaply; role players get a slim default.
   const playerValue = activeNegotiation.playerValue ?? player.value;
-  const fairClause = Math.max(1, Math.round(playerValue * RELEASE_CLAUSE_FAIR_MULTIPLIER));
+  const defaultClauseMultiplier = player.overall >= 85
+    ? 3.0
+    : player.overall >= 75
+      ? 2.0
+      : RELEASE_CLAUSE_FAIR_MULTIPLIER;
+  const suggestedClause = Math.max(1, Math.round(playerValue * defaultClauseMultiplier));
   const clauseOn = clauseEnabled ?? (activeNegotiation.releaseClause ? true : false);
-  const effectiveClauseAmount = clauseOn ? (customClause ?? activeNegotiation.releaseClause ?? fairClause) : 0;
+  const effectiveClauseAmount = clauseOn ? (customClause ?? activeNegotiation.releaseClause ?? suggestedClause) : 0;
   const clauseTier = getReleaseClauseTier(effectiveClauseAmount || undefined, playerValue);
+  // Lowball guard: a clause below ~1.2× value is trivially triggerable.
+  const clauseLowball = clauseOn && effectiveClauseAmount > 0 && effectiveClauseAmount < playerValue * 1.2;
   const acceptanceHint = getAcceptanceHint(gap, activeNegotiation.playerAge, currentYears, activeNegotiation.playerMood, effectiveClauseAmount || undefined, playerValue);
 
   const handleSubmit = () => {
@@ -394,6 +403,12 @@ export function ContractNegotiation() {
                       {clauseTier === 'high' && 'High clause — unlikely to trigger, little appeal to player'}
                       {clauseTier === 'none' && `Clause below £${(playerValue / 1e6).toFixed(1)}M value — not a real protection`}
                     </p>
+                    {clauseLowball && clauseTier !== 'none' && (
+                      <p className="text-[10px] text-destructive/80 flex items-start gap-1">
+                        <span>⚠</span>
+                        <span>Rivals will trigger this easily — consider raising above £{(playerValue * 1.5 / 1e6).toFixed(1)}M.</span>
+                      </p>
+                    )}
                   </>
                 )}
                 {!clauseOn && (
