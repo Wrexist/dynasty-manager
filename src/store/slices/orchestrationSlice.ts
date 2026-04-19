@@ -5993,6 +5993,33 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       return result;
     }
 
+    // Friendly match — no league table / fixtures update, no rank change
+    if (friendlyMatch) {
+      const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
+      const confDelta = (processed.confidence - (state.boardConfidence || 50)) * FRIENDLY_BOARD_CONFIDENCE_MULT;
+      const friendlyConfidence = Math.max(0, Math.min(100, (state.boardConfidence || 50) + confDelta));
+      const pressContext = processed.won ? 'post_win' : processed.lost ? 'post_loss' : 'post_draw';
+      const drama = detectMatchDrama(result, playerClubId, clubs);
+
+      set({
+        friendlies: state.friendlies.map(f => f.id === match.id ? result : f),
+        currentMatchResult: result,
+        players: processed.newPlayers,
+        boardConfidence: friendlyConfidence,
+        messages: processed.newMessages,
+        matchSubsUsed: 0, matchPlayerRatings: processed.playerRatings, managerStats: processed.managerStats,
+        halfTimeState: null, matchPhase: 'full_time',
+        lastMatchCompetition: 'Pre-Season Friendly',
+        pendingPressConference: generatePressConference(pressContext, isPro(get().monetization)),
+        careerTimeline: [...state.careerTimeline, ...processed.newMilestones],
+        managerProgression: processed.managerProgression,
+        lastMatchXPGain: Math.round((processed.xpGain || 0) * 0.5),
+        lastMatchDrama: drama,
+        pairFamiliarity: processed.pairFamiliarity,
+      });
+      return result;
+    }
+
     // Cup/tournament match decided in 90 mins — process result
     if (state.currentCupTieId) {
       const processed = processMatchResult(state, match, result, playerRatings, () => get().week, fullState.matchInjuries);
