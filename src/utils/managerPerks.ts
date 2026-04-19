@@ -129,6 +129,10 @@ export const XP_REWARDS = {
   conferenceCupWin: 200,
   leagueCupWin: 150,
   continentalGroupAdvance: 100,
+  /** Pack pull granted XP: 84-89 OVR walkout-tier pull. */
+  packRarePull: 25,
+  /** Pack pull granted XP: 90+ OVR legendary-tier pull. */
+  packLegendaryPull: 75,
 } as const;
 
 /** Check if a perk can be unlocked */

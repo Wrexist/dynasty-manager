@@ -80,7 +80,7 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor';
 
 export interface PlayerAttributes {
   pace: number;
@@ -1651,4 +1651,71 @@ export interface ActiveInterview {
   competitors: CompetingCandidate[];
   result: 'pending' | 'hired' | 'rejected';
   resultMessage: string;
+}
+
+// ── Player Packs ──
+export type PackTierKey = 'bronze' | 'silver' | 'gold' | 'premium' | 'rare' | 'icon';
+
+export interface PackRarityWeights {
+  common: number;     // < 60
+  bronze: number;     // 60-69
+  silver: number;     // 70-79
+  gold: number;       // 80-89
+  legendary: number;  // 90+
+}
+
+export interface PackTierDefinition {
+  key: PackTierKey;
+  label: string;
+  tagline: string;
+  price: number;
+  cards: number;
+  /** Guaranteed-rare floor applied to one card in the pack. */
+  guaranteedMinOvr: number;
+  /** OVR band used when generating common cards in this pack. */
+  ovrMin: number;
+  ovrMax: number;
+  rarity: PackRarityWeights;
+  /** Visual gradient endpoints for the pack tile (hex, design-system anchor). */
+  gradientFrom: string;
+  gradientTo: string;
+  /** Glow/accent color used during the charge-up beat. */
+  accent: string;
+  /** Optional pack-cover artwork. When set, renders inside the pack tile
+   *  and the cinematic pack body in place of the centered-letter
+   *  placeholder. Public asset path (e.g. `/packs/bronze.png`). The img
+   *  fails silently to the placeholder if the asset isn't deployed yet. */
+  artSrc?: string;
+}
+
+export interface OpenedPackRecord {
+  id: string;
+  tier: PackTierKey;
+  season: number;
+  week: number;
+  timestamp: number;
+  /** Snapshot of player IDs in reveal order. Players live in the main `players` map. */
+  playerIds: string[];
+  /** Cached top OVR so the shop can badge the record without touching `players`. */
+  topOvr: number;
+}
+
+/** Where a pulled player landed after auto-place: XI, bench, or squad-only. */
+export type PackPlayerPlacement = 'starter' | 'bench' | 'squad';
+
+export interface OpenPackResult {
+  success: boolean;
+  message: string;
+  players?: Player[];
+  record?: OpenedPackRecord;
+  pityTriggered?: boolean;
+  /** Per-player placement map keyed by player id. */
+  placement?: Record<string, PackPlayerPlacement>;
+  /** Number of starter-slot changes the auto-place applied. */
+  lineupChanges?: number;
+}
+
+export interface ReleasePackedPlayerResult {
+  success: boolean;
+  message: string;
 }

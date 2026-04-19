@@ -8,7 +8,8 @@
 import { memo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getPlayerTier, getTierBorderStyle } from '@/utils/uiHelpers';
+import { getPlayerTier } from '@/utils/uiHelpers';
+import { TierBorderFrame } from './TierBorderFrame';
 
 interface PlayerBadgeProps {
   clubColor: string;
@@ -53,48 +54,52 @@ export const PlayerBadge = memo(function PlayerBadge({
   const showJersey = size !== 'sm' && jerseyNumber != null && jerseyNumber > 0;
   const showGrowth = size === 'lg' && growthDelta != null && growthDelta !== 0;
   const tier = getPlayerTier(overall);
-  const wrapperStyle = noGlow ? undefined : getTierBorderStyle(tier);
 
   return (
-    <div className={cn('relative shrink-0', className)} data-tier={tier.key}>
-      <div
-        className={cn('rounded-xl', noGlow ? '' : 'p-[1.5px]')}
-        style={wrapperStyle}
+    <div className={cn('relative shrink-0', className)}>
+      <TierBorderFrame
+        tier={tier}
+        overall={overall}
+        glow={!noGlow}
+        outerRadiusClass="rounded-xl"
+        innerRadiusClass="rounded-[10px]"
+        paddingClass="p-[2px]"
+        announceTier
       >
-      <div
-        className={cn(
-          SIZE_CLASSES[size],
-          'rounded-[10px] flex flex-col items-center justify-between py-1.5',
-          'bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl border border-border/50',
-          'border-l-[3px]',
-        )}
-        style={{ borderLeftColor: clubColor }}
-      >
-        {/* Position pill */}
-        <span className={cn(
-          POS_SIZE[size],
-          'font-bold bg-white/10 text-white/80 rounded-full leading-tight tracking-wide',
-        )}>
-          {position}
-        </span>
-
-        {/* Overall rating */}
-        <span className={cn(
-          RATING_SIZE[size],
-          'font-black font-display tabular-nums leading-none',
-          getRatingColor(overall),
-        )}>
-          {overall}
-        </span>
-
-        {/* Jersey number */}
-        {showJersey && (
-          <span className="text-[9px] font-medium text-muted-foreground tabular-nums leading-tight">
-            #{jerseyNumber}
+        <div
+          className={cn(
+            SIZE_CLASSES[size],
+            'flex flex-col items-center justify-between py-1.5',
+            'bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl border border-border/50',
+            'border-l-[3px] rounded-[10px]',
+          )}
+          style={{ borderLeftColor: clubColor }}
+        >
+          {/* Position pill */}
+          <span className={cn(
+            POS_SIZE[size],
+            'font-bold bg-white/10 text-white/80 rounded-full leading-tight tracking-wide',
+          )}>
+            {position}
           </span>
-        )}
-      </div>
-      </div>
+
+          {/* Overall rating */}
+          <span className={cn(
+            RATING_SIZE[size],
+            'font-black font-display tabular-nums leading-none',
+            tier.textClass,
+          )}>
+            {overall}
+          </span>
+
+          {/* Jersey number */}
+          {showJersey && (
+            <span className="text-[9px] font-medium text-muted-foreground tabular-nums leading-tight">
+              #{jerseyNumber}
+            </span>
+          )}
+        </div>
+      </TierBorderFrame>
 
       {/* Growth indicator (lg only) */}
       {showGrowth && growthDelta > 0 && (

@@ -72,7 +72,7 @@ import {
   getExpectedPosition,
   STREAK_MORALE_THRESHOLD, STREAK_MORALE_BONUS, STREAK_INCOME_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_FORM_THRESHOLD, STREAK_FORM_BONUS,
   BOARD_REVIEW_WEEKS,
-  MORALE_BENCH_WEEKLY_LOSS, MORALE_BENCH_MIN,
+  MORALE_BENCH_WEEKLY_LOSS, MORALE_BENCH_MIN, BENCH_REST_BONUS,
   CUP_EXTRA_TIME_GOAL_CHANCE, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS,
   CONGESTED_FIXTURE_INJURY_MULTIPLIER,
   MOTIVATOR_MORALE_BOOST, YOUTH_DEVELOPER_BOOST,
@@ -348,6 +348,12 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     jobVacancies: state.jobVacancies,
     jobOffers: state.jobOffers,
     activeInterview: state.activeInterview,
+    // Pack Opening — persist opened-packs log, pity counter, and weekly
+    // throttle so progress survives save/load.
+    openedPacks: state.openedPacks || [],
+    packPityCounter: state.packPityCounter || 0,
+    lastPackWeek: state.lastPackWeek || 0,
+    lastPackSeason: state.lastPackSeason || 0,
   };
   let json = JSON.stringify(saveData);
 
@@ -2929,6 +2935,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       activeStorylineChains: [],
       completedStorylineChainIds: [],
       pendingFarewell: [],
+      openedPacks: [],
+      packPityCounter: 0,
+      lastPackWeek: 0,
+      lastPackSeason: 0,
       sponsorDeals: generateStarterDeals(pcInit.reputation, 1),
       sponsorOffers: [],
       sponsorSlotCooldowns: {},
@@ -3310,9 +3320,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       p.lastAttributeChanges = Object.keys(attrChanges).length > 0 ? attrChanges : undefined;
 
-      // Benched players gradually lose morale
+      // Benched players gradually lose morale but gain extra fitness rest
       if (!playerClub.lineup.includes(pid) && !playerClub.subs.includes(pid) && !p.injured) {
         p.morale = Math.max(MORALE_BENCH_MIN, p.morale - MORALE_BENCH_WEEKLY_LOSS);
+        p.fitness = Math.min(100, p.fitness + BENCH_REST_BONUS);
       }
 
       // Track consecutive low morale weeks and escalate unhappiness
@@ -6736,6 +6747,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       cup: { ties: [], currentRound: null, eliminated: false, winner: null },
       pendingPressConference: null, activeNegotiation: null,
       pendingFarewell: [], pendingStoryline: null,
+      openedPacks: [], packPityCounter: 0, lastPackWeek: 0, lastPackSeason: 0,
       activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
       objectiveStreak: 0, objectivesStartWeek: 1, completedCoachTaskIds: [],
       weekCliffhangers: [], rivalries: {}, lastMatchDrama: null, lastMatchCompetition: null,

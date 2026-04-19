@@ -208,6 +208,23 @@ export const ACHIEVEMENTS: Achievement[] = [
       const pos = s.leagueTable.findIndex(e => e.clubId === s.playerClubId) + 1;
       return pos === 1 && s.cup?.winner === s.playerClubId;
     } },
+
+  // ── Player Packs ──
+  { id: 'pack-first-open', title: 'Pack Hunter', description: 'Open your first player pack', icon: 'package', tier: 'bronze',
+    check: (s) => (s.openedPacks?.length || 0) >= 1 },
+  { id: 'pack-rare-pull', title: 'Rare Find', description: 'Pull a player rated 84 or higher from a pack', icon: 'star', tier: 'silver',
+    check: (s) => {
+      for (const rec of (s.openedPacks || [])) if ((rec.topOvr || 0) >= 84) return true;
+      return false;
+    } },
+  { id: 'pack-legendary-pull', title: 'Legendary Pull', description: 'Pull a player rated 90 or higher from a pack', icon: 'crown', tier: 'gold',
+    check: (s) => {
+      for (const rec of (s.openedPacks || [])) if ((rec.topOvr || 0) >= 90) return true;
+      return false;
+    } },
+  { id: 'pack-collector', title: 'Pack Collector', description: 'Open 25 player packs', icon: 'package', tier: 'silver',
+    check: (s) => (s.openedPacks?.length || 0) >= 25,
+    progress: (s) => ({ current: Math.min(s.openedPacks?.length || 0, 25), target: 25 }) },
 ];
 
 export function checkAchievements(state: GameState, unlockedIds: string[]): string[] {

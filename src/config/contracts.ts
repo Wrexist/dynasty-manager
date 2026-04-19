@@ -63,11 +63,16 @@ export const CONTRACT_LOYALTY_BONUS_RATE = 0.05;
 export const CONTRACT_MAX_ROUNDS = 3;
 
 // ── Acceptance Thresholds (offer/demand ratio) ──
+// Tiered so that the closer the offer is to the player's demand, the lower the
+// mood required to accept. A player who asks for £43K will accept £42K (97%) even
+// when "Cautious", but will only accept a big cut (85%) if they're very positive.
 export const CONTRACT_GAP_ACCEPT = 1.0;
+export const CONTRACT_GAP_VERY_CLOSE_ACCEPT = 0.95;
 export const CONTRACT_GAP_MOOD_ACCEPT = 0.92;
 export const CONTRACT_GAP_HIGH_MOOD_ACCEPT = 0.85;
-export const CONTRACT_MOOD_ACCEPT_THRESHOLD = 60;
-export const CONTRACT_HIGH_MOOD_THRESHOLD = 80;
+export const CONTRACT_VERY_CLOSE_MOOD_THRESHOLD = 35; // minimum "Cautious"
+export const CONTRACT_MOOD_ACCEPT_THRESHOLD = 50;     // mid "Cautious" (was 60)
+export const CONTRACT_HIGH_MOOD_THRESHOLD = 75;       // solid "Positive" (was 80)
 
 // ── Compromise ──
 export const CONTRACT_COMPROMISE_BASE = 0.03;
@@ -92,6 +97,15 @@ export const CONTRACT_YEARS_ACCEPTANCE_PENALTY = 0.12;  // -12% per year under p
 // Years deviation also affects player mood during negotiation
 export const CONTRACT_YEARS_MOOD_PENALTY = 8;   // -8 mood per year under preferred
 export const CONTRACT_YEARS_MOOD_BONUS = 3;     // +3 mood per year over preferred
+
+// Veteran multiplier: players over this age don't love long contracts as much —
+// extra years above their preferred length still count slightly, but not at full strength.
+// This stops the exploit of handing a 33-year-old a 5-year deal to farm the +25% bonus.
+export const CONTRACT_VETERAN_AGE = 30;
+export const CONTRACT_VETERAN_YEARS_BONUS_MULT = 0.4;  // 40% of the normal bonus
+
+// Perk bonus: "icon_status" perk nudges the effective gap upward during negotiation.
+export const CONTRACT_ICON_STATUS_BONUS = 0.2;
 
 // ── Mood Penalties (from lowballing) ──
 export const CONTRACT_LOWBALL_GAP = 0.7;

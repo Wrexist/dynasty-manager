@@ -4,6 +4,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { infoToast, successToast } from '@/utils/gameToast';
 import { toast } from 'sonner';
+import { positionalOverall } from '@/utils/autoFillLineup';
 
 /**
  * Shared hook for the "Optimize Lineup" button used by MatchPrep and TacticsPage.
@@ -27,16 +28,22 @@ export function useLineupOptimizer() {
 
   const potentialGain = useMemo(() => {
     if (!club) return 0;
+    // Use positional-OVR consistently for both the current XI and the
+    // hypothetical bestXI so the diff is self-coherent. Mixing raw
+    // overall (previous behavior) with positional-OVR sort produced
+    // "+N OVR" chips that didn't match what Optimize actually did.
+    const effective = (p: { attributes: typeof lineupPlayers[number]['attributes']; position: typeof lineupPlayers[number]['position'] }) =>
+      positionalOverall(p.attributes, p.position);
     const lineupAvg = lineupPlayers.length > 0
-      ? lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length
+      ? lineupPlayers.reduce((s, p) => s + effective(p), 0) / lineupPlayers.length
       : 0;
     const allAvailable = club.playerIds.map(id => players[id]).filter(p =>
-      p && !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
+      p && !p.injured && !p.onLoan && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
     );
-    allAvailable.sort((a, b) => b.overall - a.overall);
+    allAvailable.sort((a, b) => effective(b) - effective(a));
     const bestXI = allAvailable.slice(0, 11);
     if (bestXI.length === 0) return 0;
-    const bestAvg = bestXI.reduce((s, p) => s + p.overall, 0) / bestXI.length;
+    const bestAvg = bestXI.reduce((s, p) => s + effective(p), 0) / bestXI.length;
     return Math.max(0, Math.round(bestAvg - lineupAvg));
   }, [club, players, week, lineupPlayers]);
 

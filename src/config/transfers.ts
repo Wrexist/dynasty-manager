@@ -136,9 +136,10 @@ export const LOAN_REQUEST_MAX_DURATION = 46;
 // ── Transfer Market Population ──
 // Minimum market size before replenishment kicks in
 export const MARKET_REPLENISH_THRESHOLD = 60;
-// How many external (generated) players to add per replenishment cycle
-export const MARKET_REPLENISH_BATCH_MIN = 5;
-export const MARKET_REPLENISH_BATCH_RANGE = 4; // 5-8 players per batch
+// How many external (generated) players to add per replenishment cycle.
+// Kept small so the market is dominated by real players listed by AI clubs.
+export const MARKET_REPLENISH_BATCH_MIN = 1;
+export const MARKET_REPLENISH_BATCH_RANGE = 2; // 1-2 players per batch
 
 // ── Division Quality Ranges (overall rating) ──
 // Used when generating market players to match realistic quality per division tier
@@ -175,16 +176,17 @@ export const AGE_PRICE_MULTIPLIER: Record<string, number> = {
 };
 
 // ── Free Agent Generation ──
-// Number of free agents to generate at game start
-export const INITIAL_FREE_AGENTS_MIN = 25;
-export const INITIAL_FREE_AGENTS_RANGE = 16; // 25-40
+// Number of free agents to generate at game start.
+// Kept lean so AI-club listings (real players) dominate the market.
+export const INITIAL_FREE_AGENTS_MIN = 6;
+export const INITIAL_FREE_AGENTS_RANGE = 4; // 6-9
 // Quality range for generated free agents (slightly lower than market)
 export const FREE_AGENT_QUALITY_MIN = 35;
 export const FREE_AGENT_QUALITY_MAX = 72;
 // Weekly chance to spawn new free agents (keeps pool refreshed)
 export const FREE_AGENT_SPAWN_CHANCE = 0.25;
-export const FREE_AGENT_SPAWN_MIN = 1;
-export const FREE_AGENT_SPAWN_RANGE = 3; // 1-3 per spawn event
+export const FREE_AGENT_SPAWN_MIN = 0;
+export const FREE_AGENT_SPAWN_RANGE = 2; // 0-1 per spawn event
 
 // ── Reputation-Gated Free Agent Quality ──
 // Max OVR a club can sign as free agent = FREE_AGENT_REP_BASE + club.reputation * FREE_AGENT_REP_SCALE
@@ -200,9 +202,10 @@ export const FREE_AGENT_DIV_BONUS: Record<number, number> = {
 // ── Pre-Season Transfer Boost (Friendlies Period, Weeks 1-3) ──
 // Pre-season is the busiest transfer window: more players listed, better quality available
 export const PRE_SEASON_END = 3;
-// Extra market players generated at season start on top of normal initial market
-export const PRE_SEASON_EXTRA_MARKET_MIN = 15;
-export const PRE_SEASON_EXTRA_MARKET_RANGE = 10; // 15-24 extra players
+// Extra market players generated at season start on top of normal initial market.
+// Kept modest — most pre-season market supply should come from real AI-club listings.
+export const PRE_SEASON_EXTRA_MARKET_MIN = 3;
+export const PRE_SEASON_EXTRA_MARKET_RANGE = 3; // 3-5 extra players
 // Quality boost: min quality raised by this amount for pre-season market players
 export const PRE_SEASON_QUALITY_BOOST = 5;
 // Division weight shift: more top-flight talent available in pre-season
@@ -218,14 +221,16 @@ export const PRE_SEASON_RUMOR_MULTIPLIER = 2.0;
 export const PRE_SEASON_OFFER_MULTIPLIER = 1.75;
 // Multiplier on unsolicited bid chance during pre-season
 export const PRE_SEASON_UNSOLICITED_MULTIPLIER = 2.5;
-// Larger replenishment batches during pre-season weeks
-export const PRE_SEASON_REPLENISH_BATCH_MIN = 8;
-export const PRE_SEASON_REPLENISH_BATCH_RANGE = 6; // 8-13 per batch
+// Larger replenishment batches during pre-season weeks (still modest —
+// real AI-club listings are the primary market supply).
+export const PRE_SEASON_REPLENISH_BATCH_MIN = 2;
+export const PRE_SEASON_REPLENISH_BATCH_RANGE = 3; // 2-4 per batch
 
 // ── Initial Market Population ──
-// Number of generated players to seed market with at season start
-export const INITIAL_MARKET_GEN_MIN = 12;
-export const INITIAL_MARKET_GEN_RANGE = 9; // 12-20 players
+// Number of generated (unattached) players to seed market with at season start.
+// Kept small so ≥80% of listings come from real AI-club players rather than fake externals.
+export const INITIAL_MARKET_GEN_MIN = 2;
+export const INITIAL_MARKET_GEN_RANGE = 3; // 2-4 players
 
 // ── Negotiation UI Slider Bounds ──
 export const NEGOTIATION_SLIDER_MIN_RATIO = 0.5;    // Min offer = 50% of asking price

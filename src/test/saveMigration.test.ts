@@ -2,14 +2,44 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 56', () => {
-    expect(CURRENT_VERSION).toBe(56);
+  it('should have current version set to 58', () => {
+    expect(CURRENT_VERSION).toBe(58);
   });
 
   it('should migrate v1 data to current version', () => {
     const v1Data: Record<string, unknown> = { version: 1, name: 'test' };
     const result = migrateSaveData(v1Data);
     expect(result.version).toBe(CURRENT_VERSION);
+  });
+
+  it('v56 → v57 defaults the four pack fields', () => {
+    // Direct migration test: a v56 save with no pack fields should pick up
+    // empty defaults so the slice's `(state.field || ...)` guards still
+    // work and the cooldown / pity counter start from zero.
+    const v56Data: Record<string, unknown> = { version: 56 };
+    const result = migrateSaveData(v56Data) as Record<string, unknown>;
+    // Migration may chain past v57 if newer migrations exist later; what we
+    // care about is the v57-introduced fields landed correctly.
+    expect(result.openedPacks).toEqual([]);
+    expect(result.packPityCounter).toBe(0);
+    expect(result.lastPackWeek).toBe(0);
+    expect(result.lastPackSeason).toBe(0);
+  });
+
+  it('v56 → v57 preserves existing pack fields when present', () => {
+    const v56Data: Record<string, unknown> = {
+      version: 56,
+      openedPacks: [{ id: 'x', tier: 'bronze', season: 2, week: 5, timestamp: 0, playerIds: ['p1'], topOvr: 65 }],
+      packPityCounter: 4,
+      lastPackWeek: 5,
+      lastPackSeason: 2,
+    };
+    const result = migrateSaveData(v56Data) as Record<string, unknown>;
+    expect(Array.isArray(result.openedPacks)).toBe(true);
+    expect((result.openedPacks as unknown[]).length).toBe(1);
+    expect(result.packPityCounter).toBe(4);
+    expect(result.lastPackWeek).toBe(5);
+    expect(result.lastPackSeason).toBe(2);
   });
 
   it('should perform clean break at v22→v23 (European leagues expansion)', () => {

@@ -29,6 +29,7 @@ const SeasonSummary = lazy(() => import('./SeasonSummary'));
 const CalendarView = lazy(() => import('./CalendarView'));
 const TrainingPage = lazy(() => import('./TrainingPage'));
 const ScoutingPage = lazy(() => import('./ScoutingPage'));
+const PacksPage = lazy(() => import('./PacksPage'));
 const StaffPage = lazy(() => import('./StaffPage'));
 const YouthAcademy = lazy(() => import('./YouthAcademy'));
 const FacilitiesPage = lazy(() => import('./FacilitiesPage'));
@@ -71,6 +72,7 @@ const screens: Record<string, React.ComponentType> = {
   calendar: CalendarView,
   training: TrainingPage,
   scouting: ScoutingPage,
+  packs: PacksPage,
   staff: StaffPage,
   'youth-academy': YouthAcademy,
   facilities: FacilitiesPage,

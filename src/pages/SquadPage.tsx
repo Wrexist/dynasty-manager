@@ -5,11 +5,12 @@ import { toast } from 'sonner';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
+import { TierBorderFrame } from '@/components/game/TierBorderFrame';
 import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
 import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch, AlertTriangle, FileText, Users, LogOut, Smile, Meh, Frown, Repeat2, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getRatingColor, getFitnessColor, posBadgeColor } from '@/utils/uiHelpers';
+import { getRatingColor, getFitnessColor, posBadgeColor, getPlayerTier } from '@/utils/uiHelpers';
 import type { ElementType } from 'react';
 import { successToast } from '@/utils/gameToast';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
@@ -475,14 +476,20 @@ const SquadPage = () => {
                 )}
               >
                 {/* Overall Rating Badge */}
-                <div className={cn(
-                  'w-10 h-10 rounded-lg flex items-center justify-center shrink-0',
-                  'bg-gradient-to-b from-white/[0.06] to-transparent border border-white/[0.06]',
-                )}>
-                  <span className={cn('font-display font-bold text-lg tabular-nums leading-none', getRatingColor(player.overall))}>
-                    {player.overall}
-                  </span>
-                </div>
+                <TierBorderFrame
+                  overall={player.overall}
+                  glow
+                  outerRadiusClass="rounded-lg"
+                  innerRadiusClass="rounded-[6.5px]"
+                  className="shrink-0"
+                  announceTier
+                >
+                  <div className="w-10 h-10 rounded-[6.5px] flex items-center justify-center bg-gradient-to-b from-white/[0.06] to-transparent">
+                    <span className={cn('font-display font-bold text-lg tabular-nums leading-none', getPlayerTier(player.overall).textClass)}>
+                      {player.overall}
+                    </span>
+                  </div>
+                </TierBorderFrame>
 
                 {/* Player Info */}
                 <div className="flex-1 min-w-0">

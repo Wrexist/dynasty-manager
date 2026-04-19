@@ -6,8 +6,9 @@ import { X, ArrowRight, Check, AlertTriangle, Minus, Plus, Calendar } from 'luci
 import { formatWage, getPreferredYears, getYearsAdjustment, getAcceptanceHint } from '@/utils/contracts';
 import { getMoodColor, getMoodLabel, getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useFlash } from '@/hooks/useFlash';
 import { motion } from 'framer-motion';
-import { hapticMedium } from '@/utils/haptics';
+import { hapticMedium, hapticHeavy, hapticLight } from '@/utils/haptics';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { CONTRACT_MIN_YEARS, CONTRACT_MAX_YEARS, CONTRACT_MAX_STRIKES } from '@/config/contracts';
 
@@ -33,6 +34,16 @@ export function ContractNegotiation() {
     submittingRef.current = false;
   }, [activeNegotiation?.round, activeNegotiation?.status]);
 
+  // Celebratory / warning haptic when the negotiation resolves
+  useEffect(() => {
+    if (activeNegotiation?.status === 'accepted') hapticHeavy();
+    else if (activeNegotiation?.status === 'rejected') hapticLight();
+  }, [activeNegotiation?.status]);
+
+  // Flash Demand / Mood when they change between rounds so the player notices
+  const demandFlash = useFlash(activeNegotiation?.demandedWage ?? 0);
+  const moodFlash = useFlash(activeNegotiation?.playerMood ?? 0);
+
   if (!activeNegotiation) return null;
 
   const player = players[activeNegotiation.playerId];
@@ -41,12 +52,19 @@ export function ContractNegotiation() {
   const strikes = getContractStrikes(activeNegotiation.playerId);
   const isComplete = activeNegotiation.status === 'accepted' || activeNegotiation.status === 'rejected';
   const currentYears = customYears ?? activeNegotiation.contractYears;
-  const gap = (customWage ?? activeNegotiation.offeredWage) / activeNegotiation.demandedWage;
+  const currentWage = customWage ?? activeNegotiation.offeredWage;
+  const gap = currentWage / activeNegotiation.demandedWage;
   const preferredYears = getPreferredYears(activeNegotiation.playerAge);
   const yearsDiff = currentYears - preferredYears;
   const yearsAdj = getYearsAdjustment(activeNegotiation.playerAge, currentYears);
   const yearsAdjPct = Math.round(yearsAdj * 100);
-  const acceptanceHint = getAcceptanceHint(gap, activeNegotiation.playerAge, currentYears, activeNegotiation.playerMood);
+  const acceptanceHint = getAcceptanceHint(
+    gap,
+    activeNegotiation.playerAge,
+    currentYears,
+    activeNegotiation.playerMood,
+    currentWage,
+  );
 
   const handleSubmit = () => {
     if (submittingRef.current) return;
@@ -152,7 +170,7 @@ export function ContractNegotiation() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-muted/30 rounded-lg p-3 text-center">
                   <p className="text-[10px] text-muted-foreground mb-1">Player Demands</p>
-                  <p className="text-lg font-bold text-foreground">{formatWage(activeNegotiation.demandedWage)}</p>
+                  <p className={cn('text-lg font-bold text-foreground rounded px-1 transition-colors', demandFlash)}>{formatWage(activeNegotiation.demandedWage)}</p>
                   <p className="text-[10px] text-muted-foreground mt-1">for {preferredYears} yr{preferredYears !== 1 ? 's' : ''}</p>
                 </div>
                 <div className="bg-primary/10 rounded-lg p-3 text-center">
@@ -167,7 +185,7 @@ export function ContractNegotiation() {
               {/* Player mood */}
               <div className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Player Mood</span>
-                <span className={cn('font-semibold', moodColor)}>
+                <span className={cn('font-semibold rounded px-1 transition-colors', moodColor, moodFlash)}>
                   {getMoodLabel(activeNegotiation.playerMood)}
                   ({activeNegotiation.playerMood}%)
                 </span>
@@ -263,10 +281,14 @@ export function ContractNegotiation() {
               <div className="space-y-2">
                 <label className="text-xs text-muted-foreground">Adjust wage offer</label>
                 {(() => {
-                  const sliderMin = Math.round(activeNegotiation.demandedWage * 0.5);
-                  const sliderMax = Math.round(activeNegotiation.demandedWage * 1.5);
+                  const rawRange = activeNegotiation.demandedWage; // half of min→max window
+                  const dynamicStep = Math.max(100, Math.min(1000, Math.round(rawRange / 15)));
+                  // Anchor min/max to exact multiples of the step so demandedWage is always a
+                  // legal stop — otherwise the slider can only offer £42K or £44K when the
+                  // demand is £43K and the user can't hit 100%.
+                  const sliderMin = Math.floor((activeNegotiation.demandedWage * 0.5) / dynamicStep) * dynamicStep;
+                  const sliderMax = Math.ceil((activeNegotiation.demandedWage * 1.5) / dynamicStep) * dynamicStep;
                   const sliderRange = sliderMax - sliderMin;
-                  const dynamicStep = Math.max(100, Math.min(1000, Math.round(sliderRange / 30)));
                   const pct80 = ((activeNegotiation.demandedWage * 0.8 - sliderMin) / sliderRange) * 100;
                   const pctDemand = ((activeNegotiation.demandedWage - sliderMin) / sliderRange) * 100;
                   return (

@@ -55,6 +55,35 @@
     --sidebar-accent-foreground: 220 15% 85%;
     --sidebar-border: 222 15% 18%;
     --sidebar-ring: 43 96% 46%;
+
+    /* ── Player Pack Tiers ──
+       HSL tuples so they compose via `hsl(var(--pack-<tier>-<slot>))`
+       and can carry alpha with `hsl(var(...) / 0.2)` or color-mix().
+       Kept in the dark-theme :root so future themes can override without
+       touching pack config. */
+    --pack-bronze-from: 15 75% 28%;
+    --pack-bronze-to: 32 97% 83%;
+    --pack-bronze-accent: 25 95% 61%;
+
+    --pack-silver-from: 215 19% 34%;
+    --pack-silver-to: 214 32% 91%;
+    --pack-silver-accent: 213 27% 84%;
+
+    --pack-gold-from: 23 83% 31%;
+    --pack-gold-to: 46 96% 65%;
+    --pack-gold-accent: 38 92% 50%;
+
+    --pack-premium-from: 24 78% 26%;
+    --pack-premium-to: 48 96% 76%;
+    --pack-premium-accent: 43 96% 56%;
+
+    --pack-rare-from: 262 67% 35%;
+    --pack-rare-to: 330 86% 70%;
+    --pack-rare-accent: 271 95% 75%;
+
+    --pack-icon-from: 242 47% 34%;
+    --pack-icon-to: 48 96% 76%;
+    --pack-icon-accent: 51 98% 64%;
   }
 }
 
@@ -140,6 +169,20 @@
   @keyframes flashGlow {
     0% { text-shadow: 0 0 8px hsl(var(--gold) / 0.8); color: hsl(var(--gold)); }
     100% { text-shadow: none; }
+  }
+
+  /* Holographic rotating rainbow ring used behind the walkout hero card.
+     Kept as a CSS utility (not inline style) so the sweep is GPU-only. */
+  @keyframes holoSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .holo-ring {
+    background: conic-gradient(from 0deg,
+      hsl(0 90% 60%), hsl(40 95% 60%), hsl(140 85% 55%),
+      hsl(200 90% 60%), hsl(280 90% 65%), hsl(330 95% 65%), hsl(0 90% 60%));
+    filter: blur(6px);
+    animation: holoSpin 6s linear infinite;
   }
 }
 

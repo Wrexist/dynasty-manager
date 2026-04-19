@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import type { Club, Player } from '@/types/game';
 import { resolveClub } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, Trophy } from 'lucide-react';
+import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, Trophy, ArrowUp, ArrowDown } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
 
@@ -17,15 +17,17 @@ import type { MatchEvent } from '@/types/game';
 const HIGHLIGHT_TYPES: readonly MatchEvent['type'][] = [
   'goal', 'own_goal', 'penalty_scored', 'penalty_missed', 'red_card', 'injury',
   'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal',
-  'solo_goal', 'goalkeeper_error', 'var_check', 'var_disallowed', 'hit_woodwork',
+  'solo_goal', 'goalkeeper_error', 'var_check', 'var_disallowed', 'substitution',
 ];
-type HighlightTone = 'goal' | 'card' | 'var' | 'disallowed' | 'neutral';
+type HighlightTone = 'goal' | 'card' | 'var' | 'disallowed' | 'neutral' | 'own-goal' | 'sub';
 const HIGHLIGHT_TONE: Partial<Record<MatchEvent['type'], HighlightTone>> = {
   goal: 'goal', penalty_scored: 'goal', free_kick_goal: 'goal', long_range_goal: 'goal',
   counter_attack_goal: 'goal', header_goal: 'goal', solo_goal: 'goal', goalkeeper_error: 'goal',
   red_card: 'card',
   var_check: 'var',
   var_disallowed: 'disallowed',
+  own_goal: 'own-goal',
+  substitution: 'sub',
 };
 const HIGHLIGHT_TONE_CLASS: Record<HighlightTone, { dot: string; text: string }> = {
   goal:       { dot: 'bg-emerald-400', text: 'text-emerald-400' },
@@ -33,13 +35,15 @@ const HIGHLIGHT_TONE_CLASS: Record<HighlightTone, { dot: string; text: string }>
   var:        { dot: 'bg-blue-400',    text: 'text-blue-400' },
   disallowed: { dot: 'bg-red-500',     text: 'text-red-400' },
   neutral:    { dot: 'bg-amber-400',   text: 'text-amber-400' },
+  'own-goal': { dot: 'bg-amber-500',   text: 'text-amber-400' },
+  sub:        { dot: 'bg-indigo-400',  text: 'text-indigo-400' },
 };
 const HIGHLIGHT_LABEL: Partial<Record<MatchEvent['type'], string>> = {
   goal: 'GOAL', free_kick_goal: 'FREE KICK', long_range_goal: 'LONG RANGE',
   counter_attack_goal: 'COUNTER', header_goal: 'HEADER', solo_goal: 'SOLO GOAL',
   goalkeeper_error: 'GK ERROR', var_check: 'VAR', var_disallowed: 'DISALLOWED',
   penalty_scored: 'PENALTY', own_goal: 'OWN GOAL', penalty_missed: 'PEN MISSED',
-  red_card: 'RED CARD', injury: 'INJURY', hit_woodwork: 'WOODWORK',
+  red_card: 'RED CARD', injury: 'INJURY', substitution: 'SUB',
 };
 /** Strip the "VAR CHECK — " prefix so it isn't shown next to the VAR label pill. */
 const stripVarPrefix = (text: string): string => text.replace(/^VAR CHECK\s*—\s*/, '');
@@ -55,7 +59,7 @@ import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
 import { findTournamentMatch } from '@/hooks/useGameSelectors';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 const MatchReview = () => {
   const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs } = useGameStore(useShallow(s => ({
@@ -74,10 +78,31 @@ const MatchReview = () => {
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [highlightFilter, setHighlightFilter] = useState<'all' | 'us' | 'goals'>('all');
 
+  const reducedMotion = useReducedMotion();
+
   const matchInsights = useMemo(
     () => currentMatchResult ? generateMatchInsights(currentMatchResult, playerClubId) : [],
     [currentMatchResult, playerClubId]
   );
+
+  const matchEvents = currentMatchResult?.events;
+  const allHighlights = useMemo(
+    () => (matchEvents ?? []).filter(e => (HIGHLIGHT_TYPES as readonly string[]).includes(e.type)),
+    [matchEvents]
+  );
+  const highlights = useMemo(
+    () => allHighlights.filter(e => {
+      if (highlightFilter === 'us') return e.clubId === playerClubId;
+      if (highlightFilter === 'goals') return (GOAL_SCORING_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error';
+      return true;
+    }),
+    [allHighlights, highlightFilter, playerClubId]
+  );
+  const highlightCounts = useMemo(() => ({
+    all: allHighlights.length,
+    us: allHighlights.filter(e => e.clubId === playerClubId).length,
+    goals: allHighlights.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error').length,
+  }), [allHighlights, playerClubId]);
 
   if (!currentMatchResult) {
     return (
@@ -236,38 +261,40 @@ const MatchReview = () => {
 
       {/* Key Highlights — animated two-lane timeline of the biggest moments */}
       {(() => {
-        const allHighlights = match.events.filter(e => (HIGHLIGHT_TYPES as readonly string[]).includes(e.type));
         if (allHighlights.length === 0) return null;
-        const highlights = allHighlights.filter(e => {
-          if (highlightFilter === 'us') return e.clubId === playerClubId;
-          if (highlightFilter === 'goals') return (GOAL_EVENT_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error';
-          return true;
-        });
 
-        const renderPlayerPill = (p: Player, variant: 'scorer' | 'gk') => (
-          <button
-            type="button"
-            onClick={() => selectPlayer(p.id)}
-            className={cn(
-              'inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-md border bg-background/40 hover:bg-background/70 transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50',
-              variant === 'gk' && 'opacity-85'
-            )}
-            style={{ borderColor: variant === 'gk' ? '#f87171' : getRatingHex(p.overall) }}
-            aria-label={`View ${p.firstName} ${p.lastName}`}
-          >
-            {variant === 'gk' && <span className="text-[9px] font-bold text-red-400 uppercase">GK</span>}
-            <FlagIcon nationality={p.nationality} size={12} />
-            <span className="text-[11px] font-semibold text-foreground leading-none">
-              {p.firstName} {p.lastName}
-            </span>
-            <span
-              className="text-[10px] font-bold tabular-nums leading-none"
-              style={{ color: variant === 'gk' ? '#f87171' : getRatingHex(p.overall) }}
+        const renderPlayerPill = (p: Player, variant: 'scorer' | 'gk' | 'own-goal') => {
+          const accentColor = variant === 'gk'
+            ? '#f87171'
+            : variant === 'own-goal'
+              ? '#f59e0b'
+              : getRatingHex(p.overall);
+          return (
+            <button
+              type="button"
+              onClick={() => selectPlayer(p.id)}
+              className={cn(
+                'inline-flex items-center gap-1.5 px-1.5 py-0.5 rounded-md border bg-background/40 hover:bg-background/70 transition-colors focus:outline-none focus:ring-1 focus:ring-primary/50',
+                variant === 'gk' && 'opacity-85',
+                variant === 'own-goal' && 'border-dashed'
+              )}
+              style={{ borderColor: accentColor }}
+              aria-label={`View ${p.firstName} ${p.lastName}`}
             >
-              {p.overall}
-            </span>
-          </button>
-        );
+              {variant === 'gk' && <span className="text-[9px] font-bold text-red-400 uppercase">GK</span>}
+              <FlagIcon nationality={p.nationality} size={12} />
+              <span className="text-[11px] font-semibold text-foreground leading-none">
+                {p.firstName} {p.lastName}
+              </span>
+              <span
+                className="text-[10px] font-bold tabular-nums leading-none"
+                style={{ color: accentColor }}
+              >
+                {p.overall}
+              </span>
+            </button>
+          );
+        };
 
         return (
           <GlassPanel className="p-4">
@@ -280,13 +307,20 @@ const MatchReview = () => {
                     type="button"
                     onClick={() => setHighlightFilter(f)}
                     className={cn(
-                      'px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-colors',
+                      'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-colors',
                       highlightFilter === f
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:text-foreground'
                     )}
+                    aria-label={`${f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'} — ${highlightCounts[f]} event${highlightCounts[f] === 1 ? '' : 's'}`}
                   >
-                    {f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'}
+                    <span>{f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'}</span>
+                    <span className={cn(
+                      'text-[9px] font-bold tabular-nums',
+                      highlightFilter === f ? 'opacity-80' : 'opacity-50'
+                    )}>
+                      {highlightCounts[f]}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -311,6 +345,100 @@ const MatchReview = () => {
                       : ev.description;
                     const isOurs = ev.clubId === playerClubId;
                     const isHomeTeamEvent = ev.clubId === match.homeClubId;
+                    const isSubstitution = ev.type === 'substitution';
+                    const isOwnGoal = ev.type === 'own_goal';
+                    // Primary signal: sibling injury event at the same minute for the outgoing
+                    // player (engine always emits these together for forced subs). Fallback to
+                    // a string probe so the UI stays correct even if the engine re-orders events.
+                    const forcedSub = isSubstitution && !!ev.assistPlayerId && (
+                      match.events.some(other =>
+                        other.type === 'injury'
+                        && other.playerId === ev.assistPlayerId
+                        && other.minute === ev.minute
+                      )
+                      || (typeof ev.description === 'string' && ev.description.toLowerCase().includes('injured'))
+                    );
+                    const benefitingClubShort = isOwnGoal
+                      ? (clubs[ev.clubId]?.shortName ?? virtualClubs?.[ev.clubId]?.shortName ?? null)
+                      : null;
+
+                    let inner: ReactNode = null;
+                    if (isSubstitution) {
+                      if (evPlayer && assistPlayer) {
+                        const subAriaLabel = `Substitution at ${ev.minute}': ${evPlayer.firstName} ${evPlayer.lastName} on for ${forcedSub ? 'injured ' : ''}${assistPlayer.firstName} ${assistPlayer.lastName}`;
+                        inner = (
+                          <motion.div
+                            role="group"
+                            aria-label={subAriaLabel}
+                            className={cn('flex flex-col gap-1', isHomeTeamEvent ? 'items-end' : 'items-start')}
+                            initial={reducedMotion ? false : 'hidden'}
+                            animate="show"
+                            variants={{
+                              hidden: {},
+                              show: { transition: { staggerChildren: reducedMotion ? 0 : 0.08, delayChildren: reducedMotion ? 0 : 0.05 } },
+                            }}
+                          >
+                            <motion.div
+                              className={cn('flex items-center gap-1.5', isHomeTeamEvent && 'flex-row-reverse')}
+                              variants={{
+                                hidden: { opacity: 0, y: reducedMotion ? 0 : -4 },
+                                show: { opacity: 1, y: 0, transition: { duration: reducedMotion ? 0 : 0.3, ease: 'easeOut' } },
+                              }}
+                            >
+                              <ArrowUp className="w-3 h-3 text-emerald-400 shrink-0" aria-hidden />
+                              {renderPlayerPill(evPlayer, 'scorer')}
+                            </motion.div>
+                            <motion.div
+                              className={cn('flex items-center gap-1.5 opacity-75', isHomeTeamEvent && 'flex-row-reverse')}
+                              variants={{
+                                hidden: { opacity: 0, y: reducedMotion ? 0 : 4 },
+                                show: { opacity: 0.75, y: 0, transition: { duration: reducedMotion ? 0 : 0.3, ease: 'easeOut' } },
+                              }}
+                            >
+                              <ArrowDown className="w-3 h-3 text-red-400 shrink-0" aria-hidden />
+                              {forcedSub && <HeartPulse className="w-3 h-3 text-destructive shrink-0" aria-label="injured" />}
+                              {renderPlayerPill(assistPlayer, 'scorer')}
+                            </motion.div>
+                          </motion.div>
+                        );
+                      } else if (descriptionText) {
+                        inner = <p className="text-xs text-muted-foreground">{descriptionText}</p>;
+                      }
+                    } else if (evPlayer) {
+                      inner = (
+                        <div
+                          className={cn('flex items-center gap-1.5 flex-wrap', isHomeTeamEvent ? 'justify-end' : 'justify-start')}
+                          {...(isOwnGoal ? { role: 'group', 'aria-label': `Own goal by ${evPlayer.firstName} ${evPlayer.lastName}${benefitingClubShort ? ` — benefits ${benefitingClubShort}` : ''}` } : {})}
+                        >
+                          {renderPlayerPill(evPlayer, isOwnGoal ? 'own-goal' : 'scorer')}
+                          {isOwnGoal && (
+                            <>
+                              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider" aria-hidden>(OG)</span>
+                              {benefitingClubShort && (
+                                <span className="text-[10px] text-muted-foreground/80 font-medium tabular-nums" aria-hidden>
+                                  → {benefitingClubShort}
+                                </span>
+                              )}
+                            </>
+                          )}
+                          {ev.type === 'goalkeeper_error' && gkPlayer && renderPlayerPill(gkPlayer, 'gk')}
+                          {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && assistPlayer && (
+                            <button
+                              type="button"
+                              onClick={() => selectPlayer(assistPlayer.id)}
+                              className="inline-flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary transition-colors focus:outline-none"
+                              aria-label={`View ${assistPlayer.firstName} ${assistPlayer.lastName}`}
+                            >
+                              <span>assist</span>
+                              <FlagIcon nationality={assistPlayer.nationality} size={10} />
+                              <span>{assistPlayer.lastName}</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    } else if (descriptionText) {
+                      inner = <p className="text-xs text-muted-foreground">{descriptionText}</p>;
+                    }
 
                     const content = (
                       <div className={cn('flex flex-col gap-1 min-w-0', isHomeTeamEvent ? 'items-end text-right' : 'items-start text-left')}>
@@ -321,40 +449,25 @@ const MatchReview = () => {
                             <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: evClub.color }} />
                           )}
                         </div>
-                        {evPlayer ? (
-                          <div className={cn('flex items-center gap-1.5 flex-wrap', isHomeTeamEvent ? 'justify-end' : 'justify-start')}>
-                            {renderPlayerPill(evPlayer, 'scorer')}
-                            {ev.type === 'goalkeeper_error' && gkPlayer && renderPlayerPill(gkPlayer, 'gk')}
-                            {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && assistPlayer && (
-                              <button
-                                type="button"
-                                onClick={() => selectPlayer(assistPlayer.id)}
-                                className="inline-flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary transition-colors focus:outline-none"
-                                aria-label={`View ${assistPlayer.firstName} ${assistPlayer.lastName}`}
-                              >
-                                <span>ast.</span>
-                                <FlagIcon nationality={assistPlayer.nationality} size={10} />
-                                <span>{assistPlayer.lastName}</span>
-                              </button>
-                            )}
-                          </div>
-                        ) : descriptionText ? (
-                          <p className="text-xs text-muted-foreground">{descriptionText}</p>
-                        ) : null}
+                        {inner}
                       </div>
                     );
 
                     return (
                       <motion.div
-                        key={`${ev.type}-${ev.minute}-${i}`}
-                        initial={{ opacity: 0, x: isHomeTeamEvent ? 10 : -10 }}
+                        key={`${ev.minute}-${ev.type}-${ev.playerId ?? 'none'}-${ev.assistPlayerId ?? 'x'}`}
+                        initial={reducedMotion ? false : { opacity: 0, x: isHomeTeamEvent ? 10 : -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: Math.min(i * 0.08, 0.6), duration: 0.3 }}
+                        transition={{ delay: reducedMotion ? 0 : Math.min(i * 0.08, 0.6), duration: reducedMotion ? 0 : 0.3 }}
                         className="relative grid grid-cols-[1fr_12px_1fr] gap-2 items-start"
                       >
                         <div className="min-w-0">{isHomeTeamEvent && content}</div>
                         <div className="flex justify-center pt-1">
-                          <div className={cn('w-2.5 h-2.5 rounded-full border-2 border-background', toneClass.dot)} />
+                          <div className={cn(
+                            'w-2.5 h-2.5 rounded-full border-2 border-background',
+                            toneClass.dot,
+                            isOurs && 'ring-1 ring-primary/50 ring-offset-1 ring-offset-background'
+                          )} />
                         </div>
                         <div className="min-w-0">{!isHomeTeamEvent && content}</div>
                       </motion.div>
@@ -391,7 +504,7 @@ const MatchReview = () => {
                     {g.type === 'header_goal' && <span className="text-muted-foreground"> (hdr)</span>}
                     {g.type === 'solo_goal' && <span className="text-muted-foreground"> (solo)</span>}
                     {g.type === 'goalkeeper_error' && <span className="text-muted-foreground"> (GKE)</span>}
-                    {(GOAL_EVENT_TYPES as readonly string[]).includes(g.type) && g.type !== 'penalty_scored' && assister && <span className="text-muted-foreground"> (ast. {assister.lastName})</span>}
+                    {(GOAL_EVENT_TYPES as readonly string[]).includes(g.type) && g.type !== 'penalty_scored' && assister && <span className="text-muted-foreground"> (assist: {assister.lastName})</span>}
                   </span>
                   {scorer && (
                     <span
