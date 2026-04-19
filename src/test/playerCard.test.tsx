@@ -110,7 +110,7 @@ describe('TierBorderFrame', () => {
       </TierBorderFrame>,
     );
     const wrapper = container.querySelector('[data-tier="legendary"]') as HTMLElement;
-    expect(wrapper.style.boxShadow).toContain('0 0 10px');
+    expect(wrapper.style.boxShadow).toContain('0 0 7px');
   });
 
   it('falls back to Common when overall is missing', () => {
@@ -164,5 +164,92 @@ describe('PlayerCard tier border integration', () => {
       />,
     );
     expect(container.querySelector('.border-red-500\\/40')).toBeNull();
+  });
+});
+
+describe('PlayerCard layout invariants', () => {
+  it('starter and bench both use the same fixed width tokens', () => {
+    const { container: starter } = render(
+      <PlayerCard
+        player={makePlayer()}
+        position="CM"
+        variant="starter"
+        isSelected={false}
+        chemistryLinkCount={0}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    const { container: bench } = render(
+      <PlayerCard
+        player={makePlayer()}
+        position="CM"
+        variant="bench"
+        isSelected={false}
+        chemistryLinkCount={0}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    expect(starter.firstElementChild?.className).toContain('w-[52px]');
+    expect(starter.firstElementChild?.className).toContain('sm:w-[58px]');
+    expect(bench.firstElementChild?.className).toContain('w-[52px]');
+    expect(bench.firstElementChild?.className).toContain('sm:w-[58px]');
+  });
+
+  it('clamps chemistry-link count above 9 to "9+"', () => {
+    const { getByText, queryByText } = render(
+      <PlayerCard
+        player={makePlayer()}
+        position="CM"
+        variant="starter"
+        isSelected={false}
+        chemistryLinkCount={12}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    expect(getByText('9+')).toBeDefined();
+    expect(queryByText('12')).toBeNull();
+  });
+
+  it('renders a hot-form trend icon when form >= 70', () => {
+    const { container } = render(
+      <PlayerCard
+        player={makePlayer({ form: 85 })}
+        position="CM"
+        variant="starter"
+        isSelected={false}
+        chemistryLinkCount={0}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    expect(container.querySelector('[aria-label="Hot form"]')).not.toBeNull();
+  });
+
+  it('renders a poor-form trend icon when form < 35', () => {
+    const { container } = render(
+      <PlayerCard
+        player={makePlayer({ form: 20 })}
+        position="CM"
+        variant="starter"
+        isSelected={false}
+        chemistryLinkCount={0}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    expect(container.querySelector('[aria-label="Poor form"]')).not.toBeNull();
+  });
+
+  it('omits the chemistry link cluster when chemistryLinkCount is 0', () => {
+    const { container } = render(
+      <PlayerCard
+        player={makePlayer()}
+        position="CM"
+        variant="starter"
+        isSelected={false}
+        chemistryLinkCount={0}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    // Lucide Link icon gets a `lucide-link` class; should not render when count is 0
+    expect(container.querySelector('.lucide-link')).toBeNull();
   });
 });

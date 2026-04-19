@@ -74,10 +74,10 @@ export function getTierBorderStyle(tier: PlayerTier): { background: string } {
  */
 export function getTierGlowStyle(tier: PlayerTier): { boxShadow: string } | undefined {
   if (tier.key === 'legendary') {
-    return { boxShadow: `0 0 10px ${tier.gradientVia}66, 0 0 2px ${tier.gradientVia}` };
+    return { boxShadow: `0 0 7px ${tier.gradientVia}66, 0 0 2px ${tier.gradientVia}` };
   }
   if (tier.key === 'gold') {
-    return { boxShadow: `0 0 8px ${tier.gradientVia}4D` };
+    return { boxShadow: `0 0 6px ${tier.gradientVia}4D` };
   }
   return undefined;
 }
