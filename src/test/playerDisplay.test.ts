@@ -49,24 +49,24 @@ describe('playerDisplay', () => {
   });
 
   describe('getCardNameFontSizeClass', () => {
-    it('uses 9px for names up to 4 chars', () => {
-      expect(getCardNameFontSizeClass('Dias')).toBe('text-[9px]');
-      expect(getCardNameFontSizeClass('Kane')).toBe('text-[9px]');
+    it('uses 8px for names up to 4 chars', () => {
+      expect(getCardNameFontSizeClass('Dias')).toBe('text-[8px]');
+      expect(getCardNameFontSizeClass('Kane')).toBe('text-[8px]');
     });
 
-    it('uses 8px for 5-6 char names', () => {
-      expect(getCardNameFontSizeClass('Silva')).toBe('text-[8px]');
-      expect(getCardNameFontSizeClass('Bruyne')).toBe('text-[8px]');
+    it('uses 7px for 5-6 char names', () => {
+      expect(getCardNameFontSizeClass('Silva')).toBe('text-[7px]');
+      expect(getCardNameFontSizeClass('Bruyne')).toBe('text-[7px]');
     });
 
-    it('uses 7px for 7-8 char names', () => {
-      expect(getCardNameFontSizeClass('Haaland')).toBe('text-[7px]');
-      expect(getCardNameFontSizeClass('Alvarez8')).toBe('text-[7px]');
+    it('uses 6.5px for 7-8 char names', () => {
+      expect(getCardNameFontSizeClass('Haaland')).toBe('text-[6.5px]');
+      expect(getCardNameFontSizeClass('Alvarez8')).toBe('text-[6.5px]');
     });
 
-    it('uses 6.5px for 9-10 char names', () => {
-      expect(getCardNameFontSizeClass('Oyarzabal')).toBe('text-[6.5px]');
-      expect(getCardNameFontSizeClass('Guardiola0')).toBe('text-[6.5px]');
+    it('uses 6px for 9-10 char names', () => {
+      expect(getCardNameFontSizeClass('Oyarzabal')).toBe('text-[6px]');
+      expect(getCardNameFontSizeClass('Guardiola0')).toBe('text-[6px]');
     });
 
     it('uses 5.5px for very long names', () => {

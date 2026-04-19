@@ -72,9 +72,9 @@ export const PlayerCard = memo(function PlayerCard({
       <div
         onClick={onClick}
         className={cn(
-          'shrink-0 cursor-pointer rounded-lg w-[52px] sm:w-[58px] relative',
+          'shrink-0 cursor-pointer rounded-lg w-[44px] sm:w-[50px] relative',
           'transition-all duration-150',
-          isSelected && 'ring-2 ring-primary scale-110',
+          isSelected && 'ring-2 ring-primary scale-110 z-20',
           !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
           !isSelected && isBestSub && 'shadow-[0_0_8px_hsl(var(--primary)/0.35)]',
           player.injured && 'opacity-40',
@@ -88,11 +88,11 @@ export const PlayerCard = memo(function PlayerCard({
         <TierBorderFrame
           overall={player.overall}
           glow
-          innerClassName="flex flex-col bg-black/70 backdrop-blur-sm px-1.5 py-1"
+          innerClassName="flex flex-col bg-black/70 backdrop-blur-sm px-1 py-px"
         >
           {/* Row A: rating (left) + position (right) */}
           <div className="flex items-start justify-between w-full leading-none">
-            <span className={cn('text-sm font-bold font-display tabular-nums', tier.textClass)}>
+            <span className={cn('text-[10px] font-bold font-display tabular-nums leading-none', tier.textClass)}>
               {player.overall}
             </span>
             <span className="text-[6px] text-gray-400 font-medium uppercase tracking-wide mt-0.5">
@@ -100,17 +100,9 @@ export const PlayerCard = memo(function PlayerCard({
             </span>
           </div>
 
-          {/* Row B: fitness bar */}
-          <div className="w-full h-[2px] rounded-full bg-white/10 my-1">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
-            />
-          </div>
-
-          {/* Row C: morale + form trend + name + best-sub arrow */}
-          <div className="flex items-center gap-0.5 w-full min-w-0 leading-tight">
-            <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', getMoraleDotClass(player.morale))} />
+          {/* Row B: morale + form trend + name + best-sub arrow */}
+          <div className="flex items-center gap-0.5 w-full min-w-0 leading-none">
+            <span className={cn('w-1 h-1 rounded-full shrink-0', getMoraleDotClass(player.morale))} />
             {formTrend === 'hot' && <TrendingUp className="w-1.5 h-1.5 text-emerald-400 shrink-0" aria-label="Hot form" />}
             {formTrend === 'cold' && <TrendingDown className="w-1.5 h-1.5 text-red-400 shrink-0" aria-label="Poor form" />}
             <span
@@ -125,6 +117,14 @@ export const PlayerCard = memo(function PlayerCard({
             </span>
             {isBestSub && <TrendingUp className="w-1.5 h-1.5 text-primary shrink-0" aria-label="Suggested sub" />}
           </div>
+
+          {/* Row C: fitness bar (below name) */}
+          <div className="w-full h-[2px] rounded-full bg-white/10">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
+            />
+          </div>
         </TierBorderFrame>
       </div>
     );
@@ -135,9 +135,9 @@ export const PlayerCard = memo(function PlayerCard({
     <div
       onClick={onClick}
       className={cn(
-        'cursor-pointer rounded-lg w-[52px] sm:w-[58px] shrink-0 relative',
+        'cursor-pointer rounded-lg w-[44px] sm:w-[50px] shrink-0 relative',
         'transition-all duration-150',
-        isSelected && 'ring-2 ring-primary scale-110 shadow-[0_0_12px_hsl(var(--primary)/0.3)]',
+        isSelected && 'ring-2 ring-primary scale-110 shadow-[0_0_12px_hsl(var(--primary)/0.3)] z-20',
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
         player.injured && 'opacity-60',
       )}
@@ -152,11 +152,11 @@ export const PlayerCard = memo(function PlayerCard({
       <TierBorderFrame
         overall={player.overall}
         glow
-        innerClassName="flex flex-col bg-black/80 backdrop-blur-sm px-1.5 py-1"
+        innerClassName="flex flex-col bg-black/80 backdrop-blur-sm px-1 py-px"
       >
         {/* Row A: rating (left) + position (right) */}
         <div className="flex items-start justify-between w-full leading-none">
-          <span className={cn('text-sm font-bold font-display tabular-nums', tier.textClass)}>
+          <span className={cn('text-[10px] font-bold font-display tabular-nums leading-none', tier.textClass)}>
             {player.overall}
           </span>
           <span className="text-[6px] text-gray-400 font-medium uppercase tracking-wide mt-0.5">
@@ -164,17 +164,9 @@ export const PlayerCard = memo(function PlayerCard({
           </span>
         </div>
 
-        {/* Row B: fitness bar */}
-        <div className="w-full h-[2px] rounded-full bg-white/10 my-1">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
-          />
-        </div>
-
-        {/* Row C: morale dot + form trend + name + chemistry link */}
-        <div className="flex items-center gap-0.5 w-full min-w-0 leading-tight">
-          <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', getMoraleDotClass(player.morale))} />
+        {/* Row B: morale dot + form trend + name + chemistry link */}
+        <div className="flex items-center gap-0.5 w-full min-w-0 leading-none py-[1px]">
+          <span className={cn('w-1 h-1 rounded-full shrink-0', getMoraleDotClass(player.morale))} />
           {formTrend === 'hot' && <TrendingUp className="w-1.5 h-1.5 text-emerald-400 shrink-0" aria-label="Hot form" />}
           {formTrend === 'cold' && <TrendingDown className="w-1.5 h-1.5 text-red-400 shrink-0" aria-label="Poor form" />}
           <span
@@ -193,6 +185,14 @@ export const PlayerCard = memo(function PlayerCard({
               {chemDisplay}
             </span>
           )}
+        </div>
+
+        {/* Row C: fitness bar (below name) */}
+        <div className="w-full h-[2px] rounded-full bg-white/10">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
+          />
         </div>
       </TierBorderFrame>
     </div>
