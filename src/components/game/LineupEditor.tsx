@@ -320,13 +320,13 @@ export function LineupEditor() {
               ) : (
                 <div
                   className={cn(
-                    'w-10 h-10 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center',
+                    'w-[52px] h-9 sm:w-[58px] sm:h-10 rounded-lg border border-dashed border-white/20 bg-white/5 flex items-center justify-center',
                     selectedId ? 'cursor-pointer' : '',
                     compat ? (compat === 'natural' ? 'ring-2 ring-emerald-400' : compat === 'compatible' ? 'ring-2 ring-amber-400' : 'ring-2 ring-red-500') : ''
                   )}
                   onClick={() => handleTap(`slot-${i}`)}
                 >
-                  <span className="text-[8px] text-white/40">{slot.pos}</span>
+                  <span className="text-[9px] font-semibold uppercase tracking-wide text-white/50">{slot.pos}</span>
                 </div>
               )}
             </div>
