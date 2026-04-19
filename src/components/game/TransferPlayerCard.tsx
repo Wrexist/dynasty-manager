@@ -5,6 +5,7 @@ import { Player } from '@/types/game';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { TierBorderFrame } from '@/components/game/TierBorderFrame';
 
 interface TransferPlayerCardProps {
   player: Player;
@@ -32,11 +33,19 @@ export function TransferPlayerCard({
   const card = (
     <GlassPanel className="p-4">
       <div className="flex items-start gap-3">
-        <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
-          <span className={cn('font-mono font-black text-lg', getRatingColor(player.overall))}>
-            {player.overall}
-          </span>
-        </div>
+        <TierBorderFrame
+          overall={player.overall}
+          glow
+          outerRadiusClass="rounded-full"
+          innerRadiusClass="rounded-full"
+          className="shrink-0"
+        >
+          <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center">
+            <span className={cn('font-mono font-black text-lg', getRatingColor(player.overall))}>
+              {player.overall}
+            </span>
+          </div>
+        </TierBorderFrame>
         <div className="flex-1 min-w-0">
           <button
             type="button"

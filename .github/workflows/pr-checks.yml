@@ -53,11 +53,7 @@ jobs:
           echo ""
           echo "Total JS: ${JS_MB} MB"
 
-          # Budget: fail if total JS exceeds 5.5 MB. Raised from 5 MB to make
-          # room for the Player Packs feature (new page, cinematic overlay,
-          # walkout sequence). Local builds sit comfortably at ~4.6 MB; CI's
-          # fresh-install build runs a little larger, so the extra 0.5 MB of
-          # headroom protects us from minor version drift of transitive deps.
+          # Budget: fail if total JS exceeds 5.5 MB
           if [ "$JS_TOTAL" -gt 5767168 ]; then
             echo "::error::JS bundle size (${JS_MB} MB) exceeds budget (5.50 MB)"
             exit 1

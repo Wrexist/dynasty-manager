@@ -37,14 +37,45 @@ for (const league of LEAGUES) {
   LEAGUE_CLUB_COUNTS[league.id] = CLUBS_BY_LEAGUE[league.id]?.length || league.teamCount;
 }
 
+// Unique country count across all leagues (top-tier leagues represent nations)
+const LEAGUE_COUNTRY_COUNT = new Set(LEAGUES.map(l => l.countryId)).size;
+
+// Session-scoped draft so a refresh during onboarding doesn't wipe progress.
+// Cleared once the career is successfully started (see handleStart).
+const ONBOARDING_DRAFT_KEY = 'dynasty-onboarding-draft';
+type OnboardingStep = 'nationality' | 'league' | 'club';
+type OnboardingDraft = { step: OnboardingStep; nation: string | null; league: LeagueId | null };
+
+function readOnboardingDraft(): OnboardingDraft {
+  const empty: OnboardingDraft = { step: 'nationality', nation: null, league: null };
+  if (typeof window === 'undefined') return empty;
+  try {
+    const raw = sessionStorage.getItem(ONBOARDING_DRAFT_KEY);
+    if (!raw) return empty;
+    const parsed = JSON.parse(raw) as Partial<OnboardingDraft>;
+    // Validate against current data — stale league/nation refs fall back to step 1
+    const validNation = parsed.nation && NATIONS.some(n => n.name === parsed.nation) ? parsed.nation : null;
+    const validLeague = parsed.league && LEAGUES.some(l => l.id === parsed.league) ? (parsed.league as LeagueId) : null;
+    let step: OnboardingStep = 'nationality';
+    if (parsed.step === 'club' && validNation && validLeague) step = 'club';
+    else if (parsed.step === 'league' && validNation) step = 'league';
+    return { step, nation: validNation, league: validLeague };
+  } catch {
+    return empty;
+  }
+}
+
 const ClubSelection = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const initGame = useGameStore(s => s.initGame);
   const initNationalTeam = useGameStore(s => s.initNationalTeam);
-  const [step, setStep] = useState<'nationality' | 'league' | 'club'>('nationality');
-  const [selectedNationality, setSelectedNationality] = useState<string | null>(null);
-  const [selectedLeague, setSelectedLeague] = useState<LeagueId | null>(null);
+
+  // Hydrate once from sessionStorage draft (if user refreshed mid-onboarding)
+  const initialDraft = useMemo(readOnboardingDraft, []);
+  const [step, setStep] = useState<OnboardingStep>(initialDraft.step);
+  const [selectedNationality, setSelectedNationality] = useState<string | null>(initialDraft.nation);
+  const [selectedLeague, setSelectedLeague] = useState<LeagueId | null>(initialDraft.league);
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [nationSearch, setNationSearch] = useState('');
@@ -56,6 +87,17 @@ const ClubSelection = () => {
   useEffect(() => {
     headingRef.current?.focus();
   }, [step]);
+
+  // Persist the in-flight draft so refresh/tab-switch doesn't lose progress
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const draft: OnboardingDraft = { step, nation: selectedNationality, league: selectedLeague };
+      sessionStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      // sessionStorage disabled / quota — non-fatal
+    }
+  }, [step, selectedNationality, selectedLeague]);
 
   const handleStart = () => {
     if (!selected || !selectedNationality || !selectedLeague || loading) return;
@@ -71,6 +113,7 @@ const ClubSelection = () => {
         } catch (saveErr) {
           Sentry.captureException(saveErr, { tags: { context: 'careerStartSave' } });
         }
+        try { sessionStorage.removeItem(ONBOARDING_DRAFT_KEY); } catch { /* noop */ }
         queueMicrotask(() => navigate('/game'));
       } catch (err) {
         Sentry.captureException(err, { tags: { context: 'startGame' } });
@@ -104,6 +147,8 @@ const ClubSelection = () => {
       setStep('nationality');
       setSelectedLeague(null);
     } else {
+      // Exiting onboarding — discard the draft so the next visit starts fresh
+      try { sessionStorage.removeItem(ONBOARDING_DRAFT_KEY); } catch { /* noop */ }
       navigate('/');
     }
   };
@@ -185,7 +230,7 @@ const ClubSelection = () => {
                     <h1 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-foreground font-display outline-none">Choose League</h1>
                     <p className="text-[10px] text-muted-foreground truncate">
                       {selectedNationality && <><span className="text-foreground/70"><FlagIcon nationality={selectedNationality} size={16} /> {selectedNationality}</span> · </>}
-                      30 leagues across Europe
+                      {LEAGUE_COUNTRY_COUNT} countries · {LEAGUES.length} divisions
                     </p>
                   </>
                 ) : (
@@ -203,19 +248,22 @@ const ClubSelection = () => {
             </AnimatePresence>
           </div>
 
-          {/* Step progress indicator */}
-          <div className="flex items-center gap-2 mt-2.5">
+          {/* Step progress indicator — single progressbar so screen readers announce one state */}
+          <div
+            role="progressbar"
+            aria-valuenow={stepIndex + 1}
+            aria-valuemin={1}
+            aria-valuemax={STEPS.length}
+            aria-valuetext={`Step ${stepIndex + 1} of ${STEPS.length}: ${STEPS[stepIndex].label}`}
+            className="flex items-center gap-2 mt-2.5"
+          >
             {STEPS.map((s, i) => (
-              <div key={s.key} className="flex items-center gap-1.5 flex-1">
+              <div key={s.key} aria-hidden="true" className="flex items-center gap-1.5 flex-1">
                 <div
                   className={cn(
                     'h-1 rounded-full flex-1 transition-all duration-300',
                     i <= stepIndex ? 'bg-primary' : 'bg-muted/30'
                   )}
-                  role="progressbar"
-                  aria-valuenow={stepIndex + 1}
-                  aria-valuemin={1}
-                  aria-valuemax={3}
                 />
                 <span className={cn(
                   'text-[9px] font-semibold transition-colors',
@@ -617,7 +665,15 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, type: 'spring', stiffness: 300, damping: 30 }}
+      className={cn('relative', isLowerTier && 'pl-5')}
     >
+      {/* Tier connector line (visual hierarchy for sub-leagues) */}
+      {isLowerTier && (
+        <span
+          aria-hidden="true"
+          className="absolute left-2 top-0 bottom-0 w-px bg-border/40"
+        />
+      )}
       <button
         type="button"
         onClick={() => onSelect(league.id)}
@@ -626,12 +682,12 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
           'active:scale-[0.98] transition-all duration-200',
           'bg-card/40 backdrop-blur-xl',
           'hover:border-border/60 p-3',
-          isLowerTier && 'ml-6 opacity-80'
+          isLowerTier && 'bg-card/30 opacity-90'
         )}
       >
         <div className="flex items-center gap-3">
           {isLowerTier ? (
-            <span className="text-[10px] text-muted-foreground bg-muted/30 rounded px-1.5 py-0.5 w-7 text-center shrink-0">T{league.tier}</span>
+            <span className="text-[10px] font-semibold text-muted-foreground bg-muted/30 rounded px-1.5 py-0.5 min-w-[28px] text-center shrink-0 tabular-nums">T{league.tier}</span>
           ) : (
             <FlagIcon nationality={league.country} size={28} className="rounded-sm" />
           )}

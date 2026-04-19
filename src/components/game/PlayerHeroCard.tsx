@@ -12,8 +12,9 @@ import type { Player, Club } from '@/types/game';
 import { GlassPanel } from './GlassPanel';
 import { PlayerAvatar } from './PlayerAvatar';
 import { FlagIcon } from './FlagIcon';
+import { TierBorderFrame } from './TierBorderFrame';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getPlayerTier, getTierBorderStyle, getStableJerseyNumber } from '@/utils/uiHelpers';
+import { getRatingColor, getPlayerTier, getStableJerseyNumber } from '@/utils/uiHelpers';
 import { lighten, darken } from '@/utils/colorUtils';
 
 interface PlayerHeroCardProps {
@@ -57,10 +58,12 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
   ].filter(Boolean).join(', ');
 
   return (
-    <div
-      className="rounded-2xl p-[2px]"
-      style={getTierBorderStyle(tier)}
-      data-tier={tier.key}
+    <TierBorderFrame
+      tier={tier}
+      glow
+      outerRadiusClass="rounded-2xl"
+      innerRadiusClass="rounded-[14px]"
+      paddingClass="p-[2px]"
     >
       <GlassPanel
         className="relative overflow-hidden p-5 rounded-[14px]"
@@ -151,6 +154,6 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
         </div>
       </div>
       </GlassPanel>
-    </div>
+    </TierBorderFrame>
   );
 });

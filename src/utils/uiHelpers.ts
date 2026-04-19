@@ -50,7 +50,10 @@ export function getRatingHex(value: number | undefined): string {
 }
 
 /** Resolve the player tier (Legendary/Gold/Silver/Bronze/Common) for an overall rating. */
-export function getPlayerTier(overall: number): PlayerTier {
+export function getPlayerTier(overall: number | null | undefined): PlayerTier {
+  if (overall == null || !Number.isFinite(overall) || overall < 0) {
+    return PLAYER_TIER_THRESHOLDS[PLAYER_TIER_THRESHOLDS.length - 1];
+  }
   for (const t of PLAYER_TIER_THRESHOLDS) {
     if (overall >= t.min) return t;
   }
@@ -62,6 +65,21 @@ export function getTierBorderStyle(tier: PlayerTier): { background: string } {
   return {
     background: `linear-gradient(135deg, ${tier.gradientFrom}, ${tier.gradientVia} 50%, ${tier.gradientTo})`,
   };
+}
+
+/**
+ * Subtle outer glow for premium tiers (Gold, Legendary). Returns a boxShadow
+ * style fragment, or `undefined` for lower tiers. Keeps the halo tight so
+ * it reads as polish, not neon.
+ */
+export function getTierGlowStyle(tier: PlayerTier): { boxShadow: string } | undefined {
+  if (tier.key === 'legendary') {
+    return { boxShadow: `0 0 10px ${tier.gradientVia}66, 0 0 2px ${tier.gradientVia}` };
+  }
+  if (tier.key === 'gold') {
+    return { boxShadow: `0 0 8px ${tier.gradientVia}4D` };
+  }
+  return undefined;
 }
 
 /**
