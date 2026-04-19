@@ -23,6 +23,16 @@ interface TierBorderFrameProps {
   style?: CSSProperties;
   /** Whether to expose `data-tier` for tests/styling. Defaults to true. */
   withDataTier?: boolean;
+  /**
+   * Auto-emit an `aria-label` like "Legendary tier, rated 94" derived from the
+   * tier label + numeric overall. Only applied when `overall` is a finite
+   * number and no explicit `ariaLabel` is provided. Use this on compact badges
+   * (PlayerBadge, squad-list rating cell) where the tier identity is otherwise
+   * conveyed only by color.
+   */
+  announceTier?: boolean;
+  /** Explicit aria-label override. Wins over `announceTier`. */
+  ariaLabel?: string;
   children: ReactNode;
 }
 
@@ -43,6 +53,8 @@ export const TierBorderFrame = memo(function TierBorderFrame({
   innerClassName,
   style,
   withDataTier = true,
+  announceTier = false,
+  ariaLabel,
   children,
 }: TierBorderFrameProps) {
   const tier = useMemo(
@@ -55,11 +67,17 @@ export const TierBorderFrame = memo(function TierBorderFrame({
     return { ...base, ...glowStyle, ...style };
   }, [tier, glow, style]);
 
+  const resolvedAriaLabel = ariaLabel
+    ?? (announceTier && typeof overall === 'number' && Number.isFinite(overall)
+      ? `${tier.label} tier, rated ${overall}`
+      : undefined);
+
   return (
     <div
       className={cn(outerRadiusClass, paddingClass, className)}
       style={wrapperStyle}
       data-tier={withDataTier ? tier.key : undefined}
+      aria-label={resolvedAriaLabel}
     >
       <div className={cn(innerRadiusClass, innerClassName)}>{children}</div>
     </div>

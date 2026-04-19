@@ -59,10 +59,12 @@ export const PlayerBadge = memo(function PlayerBadge({
     <div className={cn('relative shrink-0', className)}>
       <TierBorderFrame
         tier={tier}
+        overall={overall}
         glow={!noGlow}
         outerRadiusClass="rounded-xl"
         innerRadiusClass="rounded-[10px]"
         paddingClass="p-[2px]"
+        announceTier
       >
         <div
           className={cn(
