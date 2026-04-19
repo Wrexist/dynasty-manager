@@ -37,6 +37,9 @@ for (const league of LEAGUES) {
   LEAGUE_CLUB_COUNTS[league.id] = CLUBS_BY_LEAGUE[league.id]?.length || league.teamCount;
 }
 
+// Unique country count across all leagues (top-tier leagues represent nations)
+const LEAGUE_COUNTRY_COUNT = new Set(LEAGUES.map(l => l.countryId)).size;
+
 const ClubSelection = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -185,7 +188,7 @@ const ClubSelection = () => {
                     <h1 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-foreground font-display outline-none">Choose League</h1>
                     <p className="text-[10px] text-muted-foreground truncate">
                       {selectedNationality && <><span className="text-foreground/70"><FlagIcon nationality={selectedNationality} size={16} /> {selectedNationality}</span> · </>}
-                      30 leagues across Europe
+                      {LEAGUE_COUNTRY_COUNT} countries · {LEAGUES.length} divisions
                     </p>
                   </>
                 ) : (
@@ -617,7 +620,15 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, type: 'spring', stiffness: 300, damping: 30 }}
+      className={cn('relative', isLowerTier && 'pl-5')}
     >
+      {/* Tier connector line (visual hierarchy for sub-leagues) */}
+      {isLowerTier && (
+        <span
+          aria-hidden="true"
+          className="absolute left-2 top-0 bottom-0 w-px bg-border/40"
+        />
+      )}
       <button
         type="button"
         onClick={() => onSelect(league.id)}
@@ -626,12 +637,12 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
           'active:scale-[0.98] transition-all duration-200',
           'bg-card/40 backdrop-blur-xl',
           'hover:border-border/60 p-3',
-          isLowerTier && 'ml-6 opacity-80'
+          isLowerTier && 'bg-card/30 opacity-90'
         )}
       >
         <div className="flex items-center gap-3">
           {isLowerTier ? (
-            <span className="text-[10px] text-muted-foreground bg-muted/30 rounded px-1.5 py-0.5 w-7 text-center shrink-0">T{league.tier}</span>
+            <span className="text-[10px] font-semibold text-muted-foreground bg-muted/30 rounded px-1.5 py-0.5 min-w-[28px] text-center shrink-0 tabular-nums">T{league.tier}</span>
           ) : (
             <FlagIcon nationality={league.country} size={28} className="rounded-sm" />
           )}
