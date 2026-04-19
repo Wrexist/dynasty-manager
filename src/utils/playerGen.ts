@@ -19,7 +19,7 @@ import {
   NATIONALITY_DISTRIBUTION,
 } from '@/config/playerGeneration';
 import { NATIONALITY_NAME_POOLS, FALLBACK_FIRST_NAMES, FALLBACK_LAST_NAMES } from '@/config/namePool';
-import { CLUB_TEMPLATES } from '@/data/playerTemplates';
+import { CLUB_TEMPLATES, type PlayerTemplate } from '@/data/playerTemplates';
 
 const ALL_NATIONALITIES = [
   'England', 'Spain', 'France', 'Germany', 'Italy', 'Brazil', 'Argentina', 'Portugal',
@@ -167,44 +167,47 @@ function buildAgeTargets(count: number): { min: number; max: number }[] {
   return ageTargets;
 }
 
+/**
+ * Build a Player from a PlayerTemplate (real-world roster data).
+ * Seeds a procedurally-generated player then overrides identity and
+ * FC25-derived attributes from the template.
+ */
+export function buildPlayerFromTemplate(t: PlayerTemplate, clubId: string, season: number): Player {
+  const player = generatePlayer(t.pos, t.ovr, clubId, season);
+  player.firstName = t.fn;
+  player.lastName = t.ln;
+  player.age = t.age;
+  player.nationality = t.nat;
+  if (t.pot !== undefined) {
+    player.potential = t.pot;
+  } else if (t.age >= 30) {
+    player.potential = player.overall;
+  } else if (t.age <= YOUNG_POTENTIAL_AGE_THRESHOLD) {
+    player.potential = clamp(player.overall + YOUNG_POTENTIAL_BOOST_BASE + Math.floor(Math.random() * YOUNG_POTENTIAL_BOOST_RANGE));
+  }
+  if (t.pace !== undefined) {
+    player.attributes = {
+      pace: clamp(t.pace),
+      shooting: clamp(t.shooting ?? player.attributes.shooting),
+      passing: clamp(t.passing ?? player.attributes.passing),
+      defending: clamp(t.defending ?? player.attributes.defending),
+      physical: clamp(t.physical ?? player.attributes.physical),
+      mental: clamp(t.mental ?? player.attributes.mental),
+    };
+    player.overall = calculateOverall(player.attributes, player.position);
+  }
+  if (t.altPos?.length) player.alternatePositions = t.altPos;
+  if (t.skillMoves) player.skillMoves = t.skillMoves;
+  player.appearance = generatePlayerAppearance(player.nationality, player.position);
+  player.value = calculatePlayerValue(player.overall);
+  player.wage = calculatePlayerWage(player.overall);
+  return player;
+}
+
 export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number | string): Player[] {
   const scale = qualityScale(quality);
   const templates = CLUB_TEMPLATES[clubId] || [];
-  const templatePlayers: Player[] = [];
-
-  // ── Step 1: Generate template players with recognizable names ──
-  for (const t of templates) {
-    const player = generatePlayer(t.pos, t.ovr, clubId, season);
-    player.firstName = t.fn;
-    player.lastName = t.ln;
-    player.age = t.age;
-    player.nationality = t.nat;
-    if (t.pot !== undefined) {
-      player.potential = t.pot;
-    } else if (t.age >= 30) {
-      player.potential = player.overall;
-    } else if (t.age <= YOUNG_POTENTIAL_AGE_THRESHOLD) {
-      player.potential = clamp(player.overall + YOUNG_POTENTIAL_BOOST_BASE + Math.floor(Math.random() * YOUNG_POTENTIAL_BOOST_RANGE));
-    }
-    // Override attributes from FC25 data when available
-    if (t.pace !== undefined) {
-      player.attributes = {
-        pace: clamp(t.pace),
-        shooting: clamp(t.shooting ?? player.attributes.shooting),
-        passing: clamp(t.passing ?? player.attributes.passing),
-        defending: clamp(t.defending ?? player.attributes.defending),
-        physical: clamp(t.physical ?? player.attributes.physical),
-        mental: clamp(t.mental ?? player.attributes.mental),
-      };
-      player.overall = calculateOverall(player.attributes, player.position);
-    }
-    // Set alternate positions and skill moves from FC25 data
-    if (t.altPos?.length) player.alternatePositions = t.altPos;
-    if (t.skillMoves) player.skillMoves = t.skillMoves;
-    player.value = calculatePlayerValue(player.overall);
-    player.wage = calculatePlayerWage(player.overall);
-    templatePlayers.push(player);
-  }
+  const templatePlayers: Player[] = templates.map(t => buildPlayerFromTemplate(t, clubId, season));
 
   // ── Step 2: Determine remaining positions to fill ──
   const positionsFilled: Record<string, number> = {};
