@@ -111,7 +111,7 @@ export const PlayerCard = memo(function PlayerCard({
     <div
       onClick={onClick}
       className={cn(
-        'cursor-pointer rounded-lg min-w-[40px] relative',
+        'cursor-pointer rounded-lg w-[58px] shrink-0 relative',
         'transition-all duration-150',
         isSelected && 'ring-2 ring-primary scale-110 shadow-[0_0_12px_hsl(var(--primary)/0.3)]',
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
@@ -128,41 +128,41 @@ export const PlayerCard = memo(function PlayerCard({
       <TierBorderFrame
         overall={player.overall}
         glow
-        innerClassName="flex flex-col items-center bg-black/80 backdrop-blur-sm px-2 py-1.5"
+        innerClassName="flex flex-col bg-black/80 backdrop-blur-sm px-1.5 py-1"
       >
-        {/* Rating - largest element */}
-        <span className={cn('text-sm font-bold font-display tabular-nums leading-none', tier.textClass)}>
-          {player.overall}
-        </span>
+        {/* Row A: rating (left) + position (right) */}
+        <div className="flex items-baseline justify-between w-full leading-none">
+          <span className={cn('text-sm font-bold font-display tabular-nums', tier.textClass)}>
+            {player.overall}
+          </span>
+          <span className="text-[6px] text-gray-400 font-medium uppercase tracking-wide">
+            {position}
+          </span>
+        </div>
 
-        {/* Fitness bar */}
-        <div className="w-full h-[2px] rounded-full bg-white/10 my-0.5">
+        {/* Row B: fitness bar */}
+        <div className="w-full h-[2px] rounded-full bg-white/10 my-1">
           <div
             className="h-full rounded-full transition-all"
             style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
           />
         </div>
 
-        {/* Name + morale dot */}
-        <div className="flex items-center gap-0.5 max-w-full">
+        {/* Row C: morale dot + name + chemistry link */}
+        <div className="flex items-center gap-0.5 w-full min-w-0 leading-tight">
           <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', getMoraleDotClass(player.morale))} />
           <span
             className={cn(
               nameFontSizeClass,
-              'font-bold text-white/90 uppercase tracking-wide leading-tight truncate whitespace-nowrap min-w-0',
+              'font-bold text-white/90 uppercase tracking-wide truncate whitespace-nowrap min-w-0 flex-1',
             )}
             title={fullName}
             aria-label={fullName}
           >
             {displayName}
           </span>
-        </div>
-
-        {/* Position + Chemistry */}
-        <div className="flex items-center gap-0.5 mt-px">
-          <span className="text-[6px] text-gray-400 font-medium leading-tight">{position}</span>
           {chemistryLinkCount > 0 && (
-            <span className="flex items-center gap-px text-[6px] text-primary font-semibold leading-tight">
+            <span className="flex items-center gap-px text-[6px] text-primary font-semibold shrink-0 tabular-nums">
               <Link className="w-1.5 h-1.5" />
               {chemistryLinkCount}
             </span>
