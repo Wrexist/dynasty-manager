@@ -247,8 +247,8 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 )}
                 {/* Card badge — top left */}
                 {cardStatus && (
-                  <div className="absolute -top-1.5 -left-1.5 z-10">
-                    {cardStatus === 'red' ? <RedCardIcon size={7} /> : <YellowCardIcon size={7} />}
+                  <div className="absolute -top-2 -left-2 z-20">
+                    {cardStatus === 'red' ? <RedCardIcon size={12} /> : <YellowCardIcon size={12} />}
                   </div>
                 )}
                 {/* Subbed on indicator — small arrow top-right (only if not injured) */}
@@ -504,8 +504,8 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 )}
               >
                 {benchCardStatus && (
-                  <div className="absolute -top-1 -left-0.5 z-10">
-                    {benchCardStatus === 'red' ? <RedCardIcon size={6} /> : <YellowCardIcon size={6} />}
+                  <div className="absolute -top-1.5 -left-1.5 z-20">
+                    {benchCardStatus === 'red' ? <RedCardIcon size={10} /> : <YellowCardIcon size={10} />}
                   </div>
                 )}
                 <PlayerCard
