@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Trophy, Award, Star, Medal, Lock } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
+import { CupIcon } from '@/components/game/CupIcon';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { ACHIEVEMENTS, getTierColor } from '@/utils/achievements';
@@ -174,7 +175,7 @@ const TrophyCabinet = () => {
           <div className="grid grid-cols-4 gap-2">
             {seasonHistory.filter(h => h.leagueCupResult === 'Winner').map((h, i) => (
               <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-2 text-center">
-                <Award className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
+                <CupIcon cupId="league-cup" className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
                 <p className="text-[10px] font-bold text-cyan-400">S{h.season}</p>
               </motion.div>
             ))}
@@ -193,7 +194,7 @@ const TrophyCabinet = () => {
           <div className="grid grid-cols-4 gap-2">
             {seasonHistory.filter(h => h.championsCupResult === 'Winner').map((h, i) => (
               <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-2 text-center">
-                <Trophy className="w-5 h-5 text-blue-400 mx-auto mb-1" />
+                <CupIcon cupId="champions-cup" className="w-5 h-5 text-blue-400 mx-auto mb-1" />
                 <p className="text-[10px] font-bold text-blue-400">S{h.season}</p>
               </motion.div>
             ))}
@@ -212,7 +213,7 @@ const TrophyCabinet = () => {
           <div className="grid grid-cols-4 gap-2">
             {seasonHistory.filter(h => h.shieldCupResult === 'Winner').map((h, i) => (
               <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-2 text-center">
-                <Award className="w-5 h-5 text-orange-400 mx-auto mb-1" />
+                <CupIcon cupId="shield-cup" className="w-5 h-5 text-orange-400 mx-auto mb-1" />
                 <p className="text-[10px] font-bold text-orange-400">S{h.season}</p>
               </motion.div>
             ))}
@@ -231,7 +232,7 @@ const TrophyCabinet = () => {
           <div className="grid grid-cols-4 gap-2">
             {seasonHistory.filter(h => h.conferenceCupResult === 'Winner').map((h, i) => (
               <motion.div key={i} initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: i * 0.05 }} className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-2 text-center">
-                <Award className="w-5 h-5 text-emerald-400 mx-auto mb-1" />
+                <CupIcon cupId="conference-cup" className="w-5 h-5 text-emerald-400 mx-auto mb-1" />
                 <p className="text-[10px] font-bold text-emerald-400">S{h.season}</p>
               </motion.div>
             ))}

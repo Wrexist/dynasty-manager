@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { getRatingColor, getPotentialInfo, getTop3Attributes, posBadgeColor } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { EmptyState } from '@/components/game/EmptyState';
+import { EMPTY_STATES } from '@/assets/manifest';
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
 import { PAGE_HINTS } from '@/config/ui';
@@ -265,6 +266,7 @@ const YouthAcademy = () => {
         ) : (
           <EmptyState
             icon={GraduationCap}
+            illustration={EMPTY_STATES.youth}
             title="No youth prospects yet"
             body="A new intake arrives at the start of each season. Upgrade your facilities and hire a youth coach to improve quality."
             actions={[

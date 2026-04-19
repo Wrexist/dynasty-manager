@@ -12,6 +12,7 @@ import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS, MARKET_SUB_NAV } from '@/con
 import { PageHint } from '@/components/game/PageHint';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { EmptyState } from '@/components/game/EmptyState';
+import { EMPTY_STATES } from '@/assets/manifest';
 import { formatMoney } from '@/utils/helpers';
 import { SCOUTING_COST_PER_ASSIGNMENT } from '@/config/gameBalance';
 import { infoToast } from '@/utils/gameToast';
@@ -253,6 +254,7 @@ const ScoutingPage = () => {
           scouting.maxAssignments === 0 ? (
             <EmptyState
               icon={Search}
+              illustration={EMPTY_STATES.scouting}
               title="No scout on staff"
               body="Hire a scout to find hidden talent around the world."
               actions={[{ label: 'Hire a Scout', onClick: () => setScreen('staff'), primary: true }]}
@@ -260,6 +262,7 @@ const ScoutingPage = () => {
           ) : (
             <EmptyState
               icon={Search}
+              illustration={EMPTY_STATES.scouting}
               title="No scouting activity"
               body="Choose a region above to send your scouts and discover talent for your squad."
             />

@@ -262,7 +262,13 @@ describe('contracts', () => {
     });
 
     it('no clause demand for roleless 72-OVR player without ambition', () => {
-      const player = makePlayer({ overall: 72, value: 5_000_000 });
+      // Explicitly pin personality so the randomly-assigned ambition from
+      // generatePlayer() can't trip the `personality.ambition >= 15` demand.
+      const player = makePlayer({
+        overall: 72,
+        value: 5_000_000,
+        personality: { professionalism: 10, ambition: 8, temperament: 10, loyalty: 10, leadership: 10 },
+      });
       const offer = createContractOffer(player, 3, true, 1);
       expect(offer.minClauseRequired).toBeUndefined();
     });

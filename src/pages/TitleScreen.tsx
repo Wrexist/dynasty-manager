@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Play, Settings, RotateCcw, Trash2, Save, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
+import { HERO } from '@/assets/manifest';
 import { signalReady } from '@/main';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { removeFlag, clearFlagsByPrefix } from '@/store/helpers/persistence';
@@ -121,6 +122,23 @@ const TitleScreen = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 overflow-hidden relative safe-area-top safe-area-bottom">
+      {/* Hero backdrop — renders only once the designed WebP lands at
+          src/assets/hero/title-bg.webp. Until then, the solid `bg-background`
+          keeps rendering behind the floating circles (no visual regression). */}
+      {HERO.url && (
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <img
+            src={HERO.url}
+            alt={HERO.alt}
+            loading="eager"
+            decoding="async"
+            fetchPriority="high"
+            className="w-full h-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-background/60" />
+        </div>
+      )}
+
       {/* Floating background circles — pure CSS animation for GPU efficiency */}
       {floatingCircles.map((circle) => (
         <div

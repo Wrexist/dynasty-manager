@@ -24,6 +24,7 @@ import { getPerformanceMultiplier, getMaxFreeAgentOverall, calculateSigningBonus
 import { TransferPlayerCard } from '@/components/game/TransferPlayerCard';
 import { LEAGUES } from '@/data/league';
 import { EmptyState } from '@/components/game/EmptyState';
+import { EMPTY_STATES } from '@/assets/manifest';
 import { playSfxTransferAccepted, playSfxWarning } from '@/utils/audio';
 
 const TransferPage = () => {
@@ -547,6 +548,7 @@ const TransferPage = () => {
             return (
               <EmptyState
                 icon={ShoppingCart}
+                illustration={EMPTY_STATES.transfers}
                 title={hasFilters ? (showShortlistOnly ? 'No shortlisted players' : 'No players match your filters') : 'No players on the market'}
                 body={hasFilters ? (showShortlistOnly ? 'Tap the bookmark icon on any player to add them to your shortlist.' : 'Try adjusting your search, position, or division filters.') : 'Clubs list players during the transfer window. Check back once the window opens.'}
                 compact

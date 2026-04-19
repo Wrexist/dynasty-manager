@@ -2,8 +2,9 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Trophy, Star, TrendingUp, Shield, ShieldCheck, ScrollText, Clock, BarChart3, Crown, User, Shirt, Glasses, UserCircle, Briefcase, Sparkles, Globe, Eye, Flame, GraduationCap, Compass, Award } from 'lucide-react';
+import { Trophy, Star, TrendingUp, ShieldCheck, ScrollText, Clock, BarChart3, Crown } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
+import { CosmeticAvatar } from '@/components/game/CosmeticAvatar';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import { cn } from '@/lib/utils';
@@ -13,20 +14,9 @@ import { PageHint } from '@/components/game/PageHint';
 import { isPro, getActiveCosmetic } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
 
-const AVATAR_ICONS: Record<string, React.ElementType> = {
-  'avatar-classic': User,
-  'avatar-tracksuit': Shirt,
-  'avatar-tactical': Glasses,
-  'avatar-veteran': UserCircle,
-  'avatar-modern': Briefcase,
-  'avatar-youth': Sparkles,
-  'avatar-continental': Globe,
-  'avatar-stoic': Eye,
-  'avatar-fiery': Flame,
-  'avatar-professor': GraduationCap,
-  'avatar-pioneer': Compass,
-  'avatar-legend': Award,
-};
+// Per-cosmetic avatar icons now live in `src/assets/manifest.ts::AVATARS`.
+// The `<CosmeticAvatar>` component looks up the entry + renders either a PNG
+// (when the designed portrait is present) or the Lucide silhouette fallback.
 
 const RecordRow = ({ label, record }: { label: string; record: RecordEntry | null }) => {
   if (!record) return null;
@@ -67,7 +57,6 @@ const ManagerProfile = () => {
   }
   const club = clubs[playerClubId];
   const avatarId = getActiveCosmetic(monetization, 'avatar');
-  const AvatarIcon = (avatarId && AVATAR_ICONS[avatarId]) || Shield;
   const userIsPro = isPro(monetization);
 
   const totalMatches = managerStats.totalWins + managerStats.totalDraws + managerStats.totalLosses;
@@ -88,8 +77,8 @@ const ManagerProfile = () => {
       {/* Overview */}
       <GlassPanel className="p-4">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-            <AvatarIcon className="w-6 h-6 text-primary" />
+          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+            <CosmeticAvatar avatarId={avatarId} className="w-12 h-12 text-primary" />
           </div>
           <div>
             <div className="flex items-center gap-1.5">

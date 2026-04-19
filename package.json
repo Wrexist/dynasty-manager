@@ -20,7 +20,8 @@
     "ship": "bash scripts/ship.sh",
     "branch": "bash scripts/new-branch.sh",
     "prepare": "husky",
-    "version:sync": "node scripts/sync-version.mjs"
+    "version:sync": "node scripts/sync-version.mjs",
+    "assets:generate": "npx @capacitor/assets generate --iconBackgroundColor '#0f1524' --iconBackgroundColorDark '#0f1524' --splashBackgroundColor '#0f1524' --splashBackgroundColorDark '#0f1524'"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
