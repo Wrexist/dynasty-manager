@@ -9,7 +9,7 @@ import {
   Settings, MoreHorizontal, ChevronRight, ChevronDown, GitCompare, User, Star, Award, ShoppingBag, Crown, HelpCircle, Globe, Briefcase, Search
 } from 'lucide-react';
 import { hapticLight } from '@/utils/haptics';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { PINNED_DRAWER_SCREENS, DRAWER_PROGRESSIVE_SCREENS, UNEMPLOYED_ALLOWED_SCREENS } from '@/config/navigation';
 import { NEW_PLAYER_DRAWER_WEEK_THRESHOLD } from '@/config/ui';
 import { getSuffix } from '@/utils/helpers';
@@ -87,6 +87,7 @@ const NEW_PLAYER_COLLAPSED_SECTIONS = new Set(['Management', 'Career']);
 export function MoreDrawer({ disabled }: { disabled?: boolean }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const reduceMotion = useReducedMotion();
   const {
     messages, currentScreen, cup, leagueCup, gameMode, nationalTeamOffer,
     championsCup, shieldCup, conferenceCup, domesticSuperCup, continentalSuperCup,
@@ -164,20 +165,34 @@ export function MoreDrawer({ disabled }: { disabled?: boolean }) {
         <button
           disabled={disabled}
           className={cn(
-            'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-0 relative',
-            disabled ? 'opacity-40' : open ? 'text-primary' : 'text-muted-foreground'
+            'relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-full transition-colors min-h-[44px]',
+            disabled ? 'pointer-events-none opacity-40' : open ? 'text-primary-foreground' : 'text-foreground/70',
           )}
           aria-disabled={disabled || undefined}
         >
-          <div className="relative">
-            <MoreHorizontal className={cn('w-5 h-5', open && 'drop-shadow-[0_0_6px_hsl(var(--primary))]')} />
-            {(unread > 0 || (!isUnemployed && hasPendingCupMatch)) && (
-              <div className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-destructive rounded-full flex items-center justify-center">
-                <span className="text-[8px] font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread || '!'}</span>
-              </div>
-            )}
-          </div>
-          <span className="text-[10px] font-medium">More</span>
+          {open && (
+            <motion.span
+              layoutId="bottom-tab-pill"
+              initial={false}
+              transition={
+                reduceMotion
+                  ? { duration: 0 }
+                  : { type: 'spring', stiffness: 500, damping: 38, mass: 0.8 }
+              }
+              className="absolute inset-0 rounded-full bg-primary/90 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.2),0_4px_16px_hsl(var(--primary)/0.35)]"
+            />
+          )}
+          <span className="relative inline-flex flex-col items-center gap-0.5">
+            <span className="relative">
+              <MoreHorizontal className="w-5 h-5" />
+              {(unread > 0 || (!isUnemployed && hasPendingCupMatch)) && (
+                <div className="absolute -top-1 -right-1.5 w-3.5 h-3.5 bg-destructive rounded-full flex items-center justify-center">
+                  <span className="text-[8px] font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread || '!'}</span>
+                </div>
+              )}
+            </span>
+            <span className="text-[10px] font-medium">More</span>
+          </span>
         </button>
       </SheetTrigger>
       <SheetContent side="bottom" className="bg-card/95 backdrop-blur-xl border-border/50 rounded-t-2xl max-w-lg mx-auto pb-8 max-h-[70vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
