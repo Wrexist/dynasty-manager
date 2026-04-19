@@ -10,7 +10,7 @@ import { hapticLight } from '@/utils/haptics';
 import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
 
 const SQUAD_SCREENS: GameScreen[] = ['squad', 'staff', 'youth-academy', 'training'];
-const MARKET_SCREENS: GameScreen[] = ['transfers', 'scouting'];
+const MARKET_SCREENS: GameScreen[] = ['transfers', 'scouting', 'packs'];
 
 const tabs: { screen: GameScreen; label: string; icon: React.ElementType; group?: GameScreen[] }[] = [
   { screen: 'dashboard', label: 'Home', icon: LayoutDashboard },

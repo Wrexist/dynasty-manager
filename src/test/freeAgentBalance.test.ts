@@ -28,8 +28,8 @@ function padSquadToMax(state: ReturnType<typeof useGameStore.getState>) {
 
 describe('freeAgentBalance', () => {
   describe('config constants', () => {
-    it('MAX_SQUAD_SIZE is 32', () => {
-      expect(MAX_SQUAD_SIZE).toBe(32);
+    it('MAX_SQUAD_SIZE is 40', () => {
+      expect(MAX_SQUAD_SIZE).toBe(40);
     });
 
     it('SIGNING_BONUS_WEEKS_PER_YEAR is 12', () => {
