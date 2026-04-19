@@ -1,39 +1,12 @@
-import type { Position } from '@/types/game';
+import type { PackRarityWeights, PackTierDefinition, PackTierKey, Position } from '@/types/game';
 
 /**
  * Pack Opening — tuning constants, tier definitions, and animation timing.
  * Keep all pack-economy and pack-animation numbers here so they can be
  * balanced independently of feature code.
+ *
+ * Types live in `src/types/game.ts` per the single-source-of-truth rule.
  */
-
-export type PackTierKey = 'bronze' | 'silver' | 'gold' | 'premium' | 'rare' | 'icon';
-
-export interface PackRarityWeights {
-  common: number;   // < 60
-  bronze: number;   // 60-69
-  silver: number;   // 70-79
-  gold: number;     // 80-89
-  legendary: number; // 90+
-}
-
-export interface PackTierDefinition {
-  key: PackTierKey;
-  label: string;
-  tagline: string;
-  price: number;
-  cards: number;
-  /** Guaranteed-rare floor applied to one card in the pack. */
-  guaranteedMinOvr: number;
-  /** OVR band used when generating common cards in this pack. */
-  ovrMin: number;
-  ovrMax: number;
-  rarity: PackRarityWeights;
-  /** Visual gradient endpoints for the pack tile (hex). */
-  gradientFrom: string;
-  gradientTo: string;
-  /** Glow/accent color used during the charge-up beat. */
-  accent: string;
-}
 
 export const PACK_TIERS: PackTierDefinition[] = [
   {
@@ -143,6 +116,27 @@ export const RECENT_PULLS_LIMIT = 5;
 /** Positions considered when rolling players for a pack. Keeps rolls fair
  *  across the pitch rather than favouring any one slot. */
 export const PACK_POSITION_POOL: Position[] = ['GK', 'CB', 'LB', 'RB', 'CDM', 'CM', 'CAM', 'LM', 'RM', 'LW', 'RW', 'ST'];
+
+/** OVR bands for each rarity rung — used by pack generation to pick a
+ *  target band after a rarity roll. Kept alongside the rest of the pack
+ *  tuning so all balance numbers live together. */
+export const PACK_RARITY_BANDS: Record<keyof PackRarityWeights, [number, number]> = {
+  common: [45, 59],
+  bronze: [60, 69],
+  silver: [70, 79],
+  gold: [80, 89],
+  legendary: [90, 94],
+};
+
+/** Rotation of tiers surfaced in the Featured slot. Icon is excluded so it
+ *  stays special and doesn't show up every month. Cycles deterministically
+ *  by (season, week) so the same week shows the same featured pack. */
+export const FEATURED_PACK_ROTATION: PackTierKey[] = ['premium', 'rare', 'gold', 'silver', 'premium', 'rare'];
+
+export function getFeaturedPackTier(season: number, week: number): PackTierKey {
+  const idx = Math.abs(season * 100 + week) % FEATURED_PACK_ROTATION.length;
+  return FEATURED_PACK_ROTATION[idx];
+}
 
 /** All animation timings in ms. Tune here, not in components. */
 export const PACK_ANIM = {

@@ -39,8 +39,21 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
   const [walkoutQueue, setWalkoutQueue] = useState<Player[]>([]);
   const [currentWalkout, setCurrentWalkout] = useState<Player | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Linger timer between walkouts. Held in a ref so rapid double-complete
+  // (child finish + Escape) can't slice the queue twice, and so it gets
+  // cleared on unmount.
+  const walkoutLingerTimerRef = useRef<number | null>(null);
+  const walkoutAdvancingRef = useRef(false);
 
   useScrollLock(true);
+
+  // Unmount cleanup for the linger timer.
+  useEffect(() => () => {
+    if (walkoutLingerTimerRef.current !== null) {
+      window.clearTimeout(walkoutLingerTimerRef.current);
+      walkoutLingerTimerRef.current = null;
+    }
+  }, []);
 
   const topOvr = useMemo(() => players.reduce((m, p) => Math.max(m, p.overall), 0), [players]);
   const topTier = useMemo(() => tierForOvr(topOvr), [topOvr]);
@@ -113,10 +126,22 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
   }, [phase, currentWalkout, walkoutQueue.length]);
 
   const onWalkoutComplete = useCallback(() => {
+    // Guard: both the child walkout AND the Escape handler can call this.
+    // Without this flag, two rapid calls would slice the queue twice and
+    // skip a walkout entirely.
+    if (walkoutAdvancingRef.current) return;
+    walkoutAdvancingRef.current = true;
+
     setCurrentWalkout(null);
     setWalkoutQueue(prev => {
       const next = prev.slice(1);
-      window.setTimeout(() => {
+      // Clear any stale scheduled advance before booking the new one.
+      if (walkoutLingerTimerRef.current !== null) {
+        window.clearTimeout(walkoutLingerTimerRef.current);
+      }
+      walkoutLingerTimerRef.current = window.setTimeout(() => {
+        walkoutLingerTimerRef.current = null;
+        walkoutAdvancingRef.current = false;
         if (next.length > 0) setCurrentWalkout(next[0]);
         else setPhase('summary');
       }, PACK_ANIM.walkout.lingerMs);

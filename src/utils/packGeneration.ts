@@ -1,23 +1,13 @@
-import type { Player, Position } from '@/types/game';
-import { generatePlayer } from '@/utils/playerGen';
+import type { Player, PlayerAttributes, Position, PackTierKey, PackRarityWeights } from '@/types/game';
+import { generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { pick, clamp } from '@/utils/helpers';
 import { calculatePlayerValue, calculatePlayerWage } from '@/config/playerGeneration';
 import {
   PACK_TIER_MAP,
   PACK_POSITION_POOL,
   PACK_PITY_THRESHOLD,
-  type PackTierKey,
-  type PackRarityWeights,
+  PACK_RARITY_BANDS,
 } from '@/config/packs';
-
-/** Map a rarity roll to an OVR target inside the pack's band. */
-const RARITY_BANDS: Record<keyof PackRarityWeights, [number, number]> = {
-  common: [45, 59],
-  bronze: [60, 69],
-  silver: [70, 79],
-  gold: [80, 89],
-  legendary: [90, 94],
-};
 
 function pickRarity(weights: PackRarityWeights): keyof PackRarityWeights {
   const total = weights.common + weights.bronze + weights.silver + weights.gold + weights.legendary;
@@ -29,11 +19,36 @@ function pickRarity(weights: PackRarityWeights): keyof PackRarityWeights {
   return 'common';
 }
 
+/** Max reroll attempts for the pack-player fit loop. Wider than the old
+ *  value (6) so the proportional-scale fallback only fires in truly
+ *  adversarial cases. */
+const MAX_FIT_REROLLS = 20;
+
+/** Scale every attribute by the given ratio so the derived overall lands
+ *  on target. Mirrors the pattern playerGen.ts uses to cap star/veteran
+ *  overalls after a boost. Mutates `attrs` in place and returns it. */
+function scaleAttributes(attrs: PlayerAttributes, ratio: number): PlayerAttributes {
+  for (const key of Object.keys(attrs) as (keyof PlayerAttributes)[]) {
+    attrs[key] = clamp(Math.floor(attrs[key] * ratio));
+  }
+  return attrs;
+}
+
 /** Generate a single player inside the pack's OVR band at a given rarity rung.
  *  When `respectTierCeiling` is true (default), the player's OVR is capped by
  *  `tier.ovrMax` — a bronze pack never hands out a gold card even if the
  *  rarity bucket rolls "silver". When false (pity-triggered guaranteed slot),
- *  we allow the roll to push above the tier ceiling. */
+ *  we allow the roll to push above the tier ceiling.
+ *
+ *  Flow:
+ *    1. Roll a player at a target quality inside [lo, hi].
+ *    2. Reroll up to MAX_FIT_REROLLS times if the derived overall falls
+ *       outside the window.
+ *    3. If still out of range, proportionally scale attributes until the
+ *       derived overall fits — this keeps attributes consistent with the
+ *       card's displayed overall (the match engine reads attributes, not
+ *       overall, so leaving them desynced would inflate performance).
+ *    4. Recompute wage and value against the final overall. */
 function rollPackPlayer(
   position: Position,
   tierKey: PackTierKey,
@@ -48,18 +63,38 @@ function rollPackPlayer(
   let hi = Math.max(lo, Math.min(Math.max(maxOvr, minOvr), ceiling));
   if (hi < lo) { const tmp = lo; lo = hi; hi = tmp; }
   const target = lo + Math.floor(Math.random() * (hi - lo + 1));
+
   let player = generatePlayer(position, target, '', season);
-  for (let i = 0; i < 6 && (player.overall < lo || player.overall > hi); i++) {
+  let derived = calculateOverall(player.attributes, player.position);
+  for (let i = 0; i < MAX_FIT_REROLLS && (derived < lo || derived > hi); i++) {
     player = generatePlayer(position, target, '', season);
+    derived = calculateOverall(player.attributes, player.position);
   }
-  player.overall = clamp(player.overall, lo, hi);
-  // Recompute wage + value against the clamped overall so a Bronze pack
-  // can't hand out Gold-rated wages if the underlying roll briefly
-  // overshot the tier ceiling.
+
+  // Rare fallback: proportionally scale attributes so derived overall fits.
+  // Loop bounded because integer rounding can cause small oscillations; we
+  // give up after a few iterations and accept the last shape.
+  if (derived > hi) {
+    const attrs = { ...player.attributes };
+    for (let i = 0; i < 6 && derived > hi; i++) {
+      scaleAttributes(attrs, (hi - 0.5) / derived);
+      derived = calculateOverall(attrs, player.position);
+    }
+    player.attributes = attrs;
+  } else if (derived < lo) {
+    const attrs = { ...player.attributes };
+    for (let i = 0; i < 6 && derived < lo; i++) {
+      scaleAttributes(attrs, (lo + 0.5) / derived);
+      derived = calculateOverall(attrs, player.position);
+    }
+    player.attributes = attrs;
+  }
+  player.overall = clamp(derived, lo, hi);
+
+  // Wage/value derive from the final overall.
   player.wage = calculatePlayerWage(player.overall);
   player.value = calculatePlayerValue(player.overall);
-  // Potential must track the new overall; don't let a stale pre-clamp
-  // potential above the ceiling slip through. Preserves the upside gap.
+  // Potential floors at overall — never below.
   if (player.potential < player.overall) player.potential = player.overall;
   return player;
 }
@@ -97,7 +132,7 @@ export function generatePackContents(
   // ── Remaining cards: weighted rarity roll ──
   for (let i = 1; i < tier.cards; i++) {
     const rarity = pickRarity(tier.rarity);
-    const [rMin, rMax] = RARITY_BANDS[rarity];
+    const [rMin, rMax] = PACK_RARITY_BANDS[rarity];
     const position = pick(PACK_POSITION_POOL);
     players.push(rollPackPlayer(position, tierKey, season, rMin, rMax));
   }

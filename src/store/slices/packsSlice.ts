@@ -1,8 +1,8 @@
-import type { Player } from '@/types/game';
+import type { OpenedPackRecord, OpenPackResult, PackTierKey, Player, ReleasePackedPlayerResult } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
-import { PACK_TIER_MAP, type PackTierKey, RECENT_PULLS_LIMIT } from '@/config/packs';
+import { PACK_TIER_MAP, RECENT_PULLS_LIMIT } from '@/config/packs';
 import { generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { CHALLENGES } from '@/data/challenges';
 
@@ -23,30 +23,8 @@ function challengeBlockReason(state: GameState): string | null {
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
 
-export interface OpenedPackRecord {
-  id: string;
-  tier: PackTierKey;
-  season: number;
-  week: number;
-  timestamp: number;
-  /** Snapshot of player IDs in reveal order. Players live in the main `players` map. */
-  playerIds: string[];
-  /** Cached top OVR so the shop can badge the record without touching `players`. */
-  topOvr: number;
-}
-
-export interface OpenPackResult {
-  success: boolean;
-  message: string;
-  players?: Player[];
-  record?: OpenedPackRecord;
-  pityTriggered?: boolean;
-}
-
-export interface ReleasePackedPlayerResult {
-  success: boolean;
-  message: string;
-}
+// OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult all live in
+// `@/types/game` (single source of truth for domain types).
 
 export const createPacksSlice = (set: Set, get: Get) => ({
   openedPacks: [] as OpenedPackRecord[],
@@ -176,11 +154,17 @@ export const createPacksSlice = (set: Set, get: Get) => ({
   /** Lightweight escape hatch for the pack summary — releases a player that
    *  was just revealed with only 1 week's wage severance (vs. full-contract
    *  severance in `releasePlayer`). Only works on the most recent open's
-   *  roster so it can't be abused to dump expensive veterans cheaply. */
+   *  roster AND only during the same in-game season/week the pack was
+   *  opened, so it can't be abused to dump veterans cheaply after the fact. */
   releasePackedPlayer: (playerId: string): ReleasePackedPlayerResult => {
     const state = get();
     const last = (state.openedPacks || [])[0];
-    if (!last || !last.playerIds.includes(playerId)) {
+    if (
+      !last
+      || last.season !== state.season
+      || last.week !== state.week
+      || !last.playerIds.includes(playerId)
+    ) {
       return { success: false, message: 'Can only quick-release players from the pack you just opened.' };
     }
     const player = state.players[playerId];
@@ -238,6 +222,9 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       freeAgents: [...state.freeAgents, playerId],
       openedPacks: newOpenedPacks,
       messages: newMessages,
+      // Severance counts as a season-level expense so the Finance summary
+      // reflects the true cost of pack churn.
+      seasonTotalExpenses: (state.seasonTotalExpenses || 0) + severance,
     });
 
     return { success: true, message: `${player.firstName} ${player.lastName} released.` };

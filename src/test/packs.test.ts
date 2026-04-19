@@ -3,6 +3,16 @@ import { useGameStore } from '@/store/gameStore';
 import { generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { PACK_TIER_MAP, PACK_PITY_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
+import { calculatePlayerValue, calculatePlayerWage } from '@/config/playerGeneration';
+
+/** Worst-case calculator output over N samples. Used to assert that wage/
+ *  value fall within the range for a given OVR despite the calculators'
+ *  internal random factor (±10% wage, ±15% value). */
+function upperBoundFromSamples(calc: (ovr: number) => number, ovr: number, samples = 200): number {
+  let max = 0;
+  for (let i = 0; i < samples; i++) max = Math.max(max, calc(ovr));
+  return max;
+}
 
 const CLUB_ID = 'celtic';
 
@@ -166,10 +176,12 @@ describe('Pack opening — openPack action', () => {
     expect(topOvr).toBeGreaterThanOrEqual(WALKOUT_OVR_THRESHOLD);
   });
 
-  it('wage/value stay consistent with clamped OVR', () => {
-    // Open a bunch of bronze packs and verify no player has wage/value above
-    // what their clamped OVR would justify. Protects against the pre-clamp
-    // wage/value leakage bug.
+  it('wage and value fall in-range for the clamped OVR (no pre-clamp leakage)', () => {
+    // The calculators include a random factor, so exact equality can't be
+    // asserted. Instead verify wage/value are at or below the worst-case
+    // calculator output for the player's CLAMPED overall — a regression of
+    // the pre-clamp leakage bug would ship wages from a higher OVR and
+    // blow through this bound.
     const state = useGameStore.getState();
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
@@ -177,10 +189,13 @@ describe('Pack opening — openPack action', () => {
     const result = useGameStore.getState().openPack('bronze');
     expect(result.success).toBe(true);
     for (const p of result.players!) {
-      // Bronze pack ceiling is 68 OVR. Wages at 68 should not exceed a
-      // generous bound; this is a smoke check, not a precise ceiling.
       expect(p.overall).toBeLessThanOrEqual(PACK_TIER_MAP.bronze.ovrMax);
-      // potential should never fall below overall
+      // +1 tolerance for rounding; bound is still tight enough to catch a
+      // wage that leaked from a 75+ OVR pre-clamp roll.
+      const maxWage = upperBoundFromSamples(calculatePlayerWage, p.overall) + 1;
+      const maxValue = upperBoundFromSamples(calculatePlayerValue, p.overall) + 1;
+      expect(p.wage).toBeLessThanOrEqual(maxWage);
+      expect(p.value).toBeLessThanOrEqual(maxValue);
       expect(p.potential).toBeGreaterThanOrEqual(p.overall);
     }
   });
@@ -213,6 +228,22 @@ describe('Pack opening — releasePackedPlayer action', () => {
     const state = useGameStore.getState();
     const existingPlayerId = state.clubs[state.playerClubId].playerIds[0];
     const result = useGameStore.getState().releasePackedPlayer(existingPlayerId);
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/just opened/i);
+  });
+
+  it('rejects quick-release after the week advances', () => {
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
+    });
+    const open = useGameStore.getState().openPack('bronze');
+    expect(open.success).toBe(true);
+    const target = open.players![0];
+    // Simulate a week advance without going through advanceWeek — same
+    // effect: the pack record is now stale relative to (season, week).
+    useGameStore.setState({ week: state.week + 1 });
+    const result = useGameStore.getState().releasePackedPlayer(target.id);
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/just opened/i);
   });

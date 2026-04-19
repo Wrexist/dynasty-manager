@@ -1652,3 +1652,58 @@ export interface ActiveInterview {
   result: 'pending' | 'hired' | 'rejected';
   resultMessage: string;
 }
+
+// ── Player Packs ──
+export type PackTierKey = 'bronze' | 'silver' | 'gold' | 'premium' | 'rare' | 'icon';
+
+export interface PackRarityWeights {
+  common: number;     // < 60
+  bronze: number;     // 60-69
+  silver: number;     // 70-79
+  gold: number;       // 80-89
+  legendary: number;  // 90+
+}
+
+export interface PackTierDefinition {
+  key: PackTierKey;
+  label: string;
+  tagline: string;
+  price: number;
+  cards: number;
+  /** Guaranteed-rare floor applied to one card in the pack. */
+  guaranteedMinOvr: number;
+  /** OVR band used when generating common cards in this pack. */
+  ovrMin: number;
+  ovrMax: number;
+  rarity: PackRarityWeights;
+  /** Visual gradient endpoints for the pack tile (hex, design-system anchor). */
+  gradientFrom: string;
+  gradientTo: string;
+  /** Glow/accent color used during the charge-up beat. */
+  accent: string;
+}
+
+export interface OpenedPackRecord {
+  id: string;
+  tier: PackTierKey;
+  season: number;
+  week: number;
+  timestamp: number;
+  /** Snapshot of player IDs in reveal order. Players live in the main `players` map. */
+  playerIds: string[];
+  /** Cached top OVR so the shop can badge the record without touching `players`. */
+  topOvr: number;
+}
+
+export interface OpenPackResult {
+  success: boolean;
+  message: string;
+  players?: Player[];
+  record?: OpenedPackRecord;
+  pityTriggered?: boolean;
+}
+
+export interface ReleasePackedPlayerResult {
+  success: boolean;
+  message: string;
+}

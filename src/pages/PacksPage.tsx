@@ -9,23 +9,14 @@ import { PageHint } from '@/components/game/PageHint';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { MARKET_SUB_NAV, PAGE_HINTS, PLAYER_TIER_THRESHOLDS } from '@/config/ui';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
-import { PACK_TIERS, PACK_TIER_MAP, PACK_PITY_THRESHOLD, RECENT_PULLS_LIMIT, type PackTierKey } from '@/config/packs';
+import { PACK_TIERS, PACK_TIER_MAP, PACK_PITY_THRESHOLD, RECENT_PULLS_LIMIT, getFeaturedPackTier } from '@/config/packs';
+import type { PackTierKey } from '@/types/game';
 import { PackShopCard } from '@/components/game/pack/PackShopCard';
 import { PackOpeningOverlay } from '@/components/game/pack/PackOpeningOverlay';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { errorToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
-
-/** Rotation of tiers surfaced in the Featured slot. Excludes Icon so it stays
- *  special and doesn't show up every month. Cycles deterministically by
- *  (season, week) so the same week shows the same featured pack. */
-const FEATURED_ROTATION: PackTierKey[] = ['premium', 'rare', 'gold', 'silver', 'premium', 'rare'];
-
-function pickFeaturedTier(season: number, week: number): PackTierKey {
-  const idx = Math.abs((season * 100 + week)) % FEATURED_ROTATION.length;
-  return FEATURED_ROTATION[idx];
-}
 
 function tierBadgeClass(ovr: number): string {
   for (const t of PLAYER_TIER_THRESHOLDS) if (ovr >= t.min) return t.badgeClass;
@@ -61,12 +52,15 @@ const PacksPage = () => {
 
   const budget = club?.budget ?? 0;
   const squadSize = club?.playerIds.length ?? 0;
-  const weekCooldownActive = openedPacks.length > 0 && lastPackSeason === season && lastPackWeek === week;
+  // Drive cooldown state purely from the tracked (season, week) pair so the
+  // UI stays correct even if openedPacks history gets pruned or migrated.
+  const weekCooldownActive = lastPackSeason > 0 && lastPackWeek > 0
+    && lastPackSeason === season && lastPackWeek === week;
 
   const pityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
   const pityProgressPct = Math.min(100, (packPityCounter / PACK_PITY_THRESHOLD) * 100);
 
-  const featuredKey = useMemo(() => pickFeaturedTier(season, week), [season, week]);
+  const featuredKey = useMemo(() => getFeaturedPackTier(season, week), [season, week]);
   const featured = PACK_TIER_MAP[featuredKey];
   const nonFeatured = useMemo(() => PACK_TIERS.filter(t => t.key !== featuredKey), [featuredKey]);
 
