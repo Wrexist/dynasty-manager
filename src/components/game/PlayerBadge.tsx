@@ -8,7 +8,7 @@
 import { memo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getPlayerTier } from '@/utils/uiHelpers';
+import { getPlayerTier } from '@/utils/uiHelpers';
 import { TierBorderFrame } from './TierBorderFrame';
 
 interface PlayerBadgeProps {
@@ -59,9 +59,12 @@ export const PlayerBadge = memo(function PlayerBadge({
     <div className={cn('relative shrink-0', className)}>
       <TierBorderFrame
         tier={tier}
+        overall={overall}
         glow={!noGlow}
         outerRadiusClass="rounded-xl"
         innerRadiusClass="rounded-[10px]"
+        paddingClass="p-[2px]"
+        announceTier
       >
         <div
           className={cn(
@@ -84,7 +87,7 @@ export const PlayerBadge = memo(function PlayerBadge({
           <span className={cn(
             RATING_SIZE[size],
             'font-black font-display tabular-nums leading-none',
-            getRatingColor(overall),
+            tier.textClass,
           )}>
             {overall}
           </span>
