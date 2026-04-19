@@ -213,9 +213,15 @@ function escapeRe(s) {
 
 // ── Detail-page parsers ──
 function getName(html) {
-  let m = html.match(/<h1[^>]*>([^<]+)<\/h1>/);
-  if (m) return stripTags(m[1]);
+  // Prefer the OG title meta tag — it's specifically the player name on
+  // SoFIFA detail pages and isn't affected by banner/nav <h1> drift.
+  let m = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i);
+  if (m) return stripTags(m[1].split(/[|–-]/)[0]); // strip trailing " | SoFIFA" etc.
+  // Fallback: page <title>, taking the part before the first separator.
   m = html.match(/<title>([^|<]+?)\s+(?:FC|FIFA)\s/i);
+  if (m) return stripTags(m[1]);
+  // Last-resort fallback: first <h1>.
+  m = html.match(/<h1[^>]*>([^<]+)<\/h1>/);
   return m ? stripTags(m[1]) : '';
 }
 
@@ -235,23 +241,34 @@ function getCategoryRating(html, category) {
   return m2 ? parseInt(m2[1], 10) : '';
 }
 
+// Pre-compile attribute regexes once at module load (~30 patterns × 3 each)
+// instead of compiling them per-player (~13k regexes for a 150-icon scrape).
+const ATTR_PATTERNS = (() => {
+  const map = new Map();
+  for (const [columnName, aliases] of Object.entries(ATTR_LABELS)) {
+    const patterns = [];
+    for (const label of aliases) {
+      // Outfield "Positioning" must not match "GK Positioning".
+      const labelRe = label === 'Positioning' ? `(?<!GK\\s)${escapeRe(label)}` : escapeRe(label);
+      patterns.push(
+        // Pattern A: <span class="bp3-tag …">VAL</span> Label
+        new RegExp(`<span[^>]*class=["'][^"']*?(?:bp3-tag|p p-)[^"']*["'][^>]*>(\\d{1,3})</span>[^<]*${labelRe}\\b`, 'i'),
+        // Pattern B: <em>VAL</em>Label
+        new RegExp(`<em[^>]*>(\\d{1,3})</em>[^<]*${labelRe}\\b`, 'i'),
+        // Pattern C: VAL within ~30 chars before Label (loose, no tag boundaries crossed)
+        new RegExp(`(\\d{1,3})[^\\d<>]{0,30}${labelRe}\\b`, 'i'),
+      );
+    }
+    map.set(columnName, patterns);
+  }
+  return map;
+})();
+
 function getAttribute(html, columnName) {
-  const aliases = ATTR_LABELS[columnName] || [columnName];
-  // Outfield "Positioning" must not match "GK Positioning" anywhere.
-  // Prefix the match boundary with (?<!GK\s) for the bare "Positioning" alias.
-  for (const label of aliases) {
-    const labelRe = label === 'Positioning' ? `(?<!GK\\s)${escapeRe(label)}` : escapeRe(label);
-    // Pattern A: <span class="bp3-tag …">VAL</span> Label
-    const reA = new RegExp(`<span[^>]*class=["'][^"']*?(?:bp3-tag|p p-)[^"']*["'][^>]*>(\\d{1,3})</span>[^<]*${labelRe}\\b`, 'i');
-    let m = html.match(reA);
-    if (m) return parseInt(m[1], 10);
-    // Pattern B: <em>VAL</em>Label
-    const reB = new RegExp(`<em[^>]*>(\\d{1,3})</em>[^<]*${labelRe}\\b`, 'i');
-    m = html.match(reB);
-    if (m) return parseInt(m[1], 10);
-    // Pattern C: VAL within ~30 chars before Label (loose)
-    const reC = new RegExp(`(\\d{1,3})[^\\d<>]{0,30}${labelRe}\\b`, 'i');
-    m = html.match(reC);
+  const patterns = ATTR_PATTERNS.get(columnName);
+  if (!patterns) return '';
+  for (const re of patterns) {
+    const m = html.match(re);
     if (m) return parseInt(m[1], 10);
   }
   return '';
