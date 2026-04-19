@@ -23,6 +23,29 @@ describe('playerDisplay', () => {
       expect(getPlayerDisplayName({ firstName: 'Ronaldinho', lastName: '' })).toBe('Ronaldinho');
       expect(getPlayerDisplayName({ firstName: 'Pelé', lastName: '   ' })).toBe('Pelé');
     });
+
+    it('filters suffix-only lastNames and falls back to firstName', () => {
+      // Matches the real data pattern for Vini Jr. (fn: 'Vini', ln: 'Jr.')
+      expect(getPlayerDisplayName({ firstName: 'Vini', lastName: 'Jr.' })).toBe('Vini');
+      expect(getPlayerDisplayName({ firstName: 'Vini', lastName: 'Jr' })).toBe('Vini');
+      expect(getPlayerDisplayName({ firstName: 'Rafael', lastName: 'II' })).toBe('Rafael');
+      expect(getPlayerDisplayName({ firstName: 'Henry', lastName: 'III' })).toBe('Henry');
+    });
+
+    it('strips suffix tokens from compound surnames', () => {
+      expect(getPlayerDisplayName({ firstName: 'John', lastName: 'Smith Jr.' })).toBe('Smith');
+      expect(getPlayerDisplayName({ firstName: 'Rafael', lastName: 'dos Santos Jr.' })).toBe('Santos');
+    });
+
+    it('preserves unicode and accent marks', () => {
+      expect(getPlayerDisplayName({ firstName: 'José', lastName: 'Martínez' })).toBe('Martínez');
+      expect(getPlayerDisplayName({ firstName: 'Zoë', lastName: 'Søren' })).toBe('Søren');
+    });
+
+    it('returns last word of particle-prefixed surnames', () => {
+      expect(getPlayerDisplayName({ firstName: 'Virgil', lastName: 'van der Berg' })).toBe('Berg');
+      expect(getPlayerDisplayName({ firstName: 'Rogério', lastName: 'dos Santos' })).toBe('Santos');
+    });
   });
 
   describe('getCardNameFontSizeClass', () => {

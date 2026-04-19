@@ -480,10 +480,10 @@ const SquadPage = () => {
                   overall={player.overall}
                   glow
                   outerRadiusClass="rounded-lg"
-                  innerRadiusClass="rounded-[6px]"
+                  innerRadiusClass="rounded-[6.5px]"
                   className="shrink-0"
                 >
-                  <div className="w-10 h-10 rounded-[6px] flex items-center justify-center bg-gradient-to-b from-white/[0.06] to-transparent">
+                  <div className="w-10 h-10 rounded-[6.5px] flex items-center justify-center bg-gradient-to-b from-white/[0.06] to-transparent">
                     <span className={cn('font-display font-bold text-lg tabular-nums leading-none', getRatingColor(player.overall))}>
                       {player.overall}
                     </span>

@@ -127,6 +127,8 @@ const YouthAcademy = () => {
               if (!player) return null;
               const potentialInfo = getPotentialInfo(player.potential);
               const top3 = getTop3Attributes(player.attributes);
+              const cardDisplayName = getPlayerDisplayName(player);
+              const cardFullName = `${player.firstName} ${player.lastName}`;
               return (
                 <motion.div
                   key={prospect.playerId}
@@ -152,7 +154,7 @@ const YouthAcademy = () => {
                           glow
                           className="shrink-0"
                         >
-                          <div className="flex flex-col items-center rounded-[6px] bg-black/70 backdrop-blur-sm px-2 py-1.5 min-w-[40px]">
+                          <div className="flex flex-col items-center rounded-[6.5px] bg-black/70 backdrop-blur-sm px-2 py-1.5 min-w-[40px]">
                             <span className={cn('text-sm font-bold font-display tabular-nums leading-none', getRatingColor(player.overall))}>
                               {player.overall}
                             </span>
@@ -162,20 +164,16 @@ const YouthAcademy = () => {
                                 style={{ width: `${player.fitness}%`, backgroundColor: getFitnessHexColor(player.fitness) }}
                               />
                             </div>
-                            {(() => {
-                              const youthDisplayName = getPlayerDisplayName(player);
-                              return (
-                                <span
-                                  className={cn(
-                                    getCardNameFontSizeClass(youthDisplayName),
-                                    'font-bold text-white/90 uppercase tracking-wide leading-tight truncate max-w-full',
-                                  )}
-                                  title={`${player.firstName} ${player.lastName}`}
-                                >
-                                  {youthDisplayName}
-                                </span>
-                              );
-                            })()}
+                            <span
+                              className={cn(
+                                getCardNameFontSizeClass(cardDisplayName),
+                                'font-bold text-white/90 uppercase tracking-wide leading-tight truncate whitespace-nowrap max-w-full',
+                              )}
+                              title={cardFullName}
+                              aria-label={cardFullName}
+                            >
+                              {cardDisplayName}
+                            </span>
                             <span className="text-[6px] text-gray-400 font-medium leading-tight mt-px">{player.position}</span>
                           </div>
                         </TierBorderFrame>

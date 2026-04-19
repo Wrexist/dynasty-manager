@@ -75,9 +75,10 @@ export const PlayerCard = memo(function PlayerCard({
             <span
               className={cn(
                 nameFontSizeClass,
-                'font-bold text-white/90 uppercase tracking-wide leading-tight truncate min-w-0',
+                'font-bold text-white/90 uppercase tracking-wide leading-tight truncate whitespace-nowrap min-w-0',
               )}
               title={fullName}
+              aria-label={fullName}
             >
               {displayName}
             </span>
@@ -147,9 +148,10 @@ export const PlayerCard = memo(function PlayerCard({
           <span
             className={cn(
               nameFontSizeClass,
-              'font-bold text-white/90 uppercase tracking-wide leading-tight truncate min-w-0',
+              'font-bold text-white/90 uppercase tracking-wide leading-tight truncate whitespace-nowrap min-w-0',
             )}
             title={fullName}
+            aria-label={fullName}
           >
             {displayName}
           </span>

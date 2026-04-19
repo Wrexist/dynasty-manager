@@ -57,10 +57,14 @@ export const TierBorderFrame = memo(function TierBorderFrame({
 
   return (
     <div
-      className={cn(outerRadiusClass, paddingClass, 'overflow-hidden', className)}
+      className={cn(outerRadiusClass, paddingClass, className)}
       style={wrapperStyle}
       data-tier={withDataTier ? tier.key : undefined}
     >
+      {/* overflow-hidden on the inner rect clips any subpixel sliver of the
+          tier gradient that would otherwise bleed through at the corners.
+          Kept off the outer wrapper so the Gold/Legendary box-shadow glow
+          (set via wrapperStyle) renders freely outside the card. */}
       <div className={cn(innerRadiusClass, 'overflow-hidden', innerClassName)}>{children}</div>
     </div>
   );
