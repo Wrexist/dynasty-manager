@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { PackPlayerPlacement, PackTierKey, Player } from '@/types/game';
 import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { useScrollLock } from '@/hooks/useScrollLock';
@@ -37,6 +37,7 @@ type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' 
  */
 export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDismiss, placement }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
+  const prefersReducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('portal');
   const [revealedSet, setRevealedSet] = useState<Set<string>>(new Set());
   const [walkoutQueue, setWalkoutQueue] = useState<Player[]>([]);
@@ -247,7 +248,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
-      style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(16px)' }}
+      style={{ background: 'rgba(4,6,10,0.96)', willChange: 'opacity' }}
     >
       {/* Vignette pulse on portal open */}
       <AnimatePresence>
@@ -283,16 +284,20 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
           <motion.div
             key="pack"
             className="relative flex flex-col items-center justify-center pointer-events-none"
-            style={{ width: 220, height: 300 }}
+            style={{
+              width: 220,
+              height: 300,
+              ...(phase === 'charge' ? { willChange: 'transform' } : null),
+            }}
             initial={{ opacity: 0, scale: 0.2, rotateY: 40, y: 120 }}
             animate={phase === 'charge' ? {
               opacity: 1, scale: 1, rotateY: 0, y: 0,
-              x: [0, -4, 4, -6, 6, -8, 8, -10, 10, -8, 8, -6, 6, -4, 4, 0],
+              x: prefersReducedMotion ? 0 : [0, -4, 4, -6, 6, -8, 8, -10, 10, -8, 8, -6, 6, -4, 4, 0],
             } : {
               opacity: 1, scale: 1, rotateY: 0, y: 0,
             }}
             exit={{ opacity: 0, scale: 1.3 }}
-            transition={phase === 'charge'
+            transition={phase === 'charge' && !prefersReducedMotion
               ? { x: { duration: 0.35, repeat: Infinity, ease: 'linear' } }
               : { type: 'spring', stiffness: 240, damping: 18 }
             }
@@ -349,7 +354,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
               </AnimatePresence>
 
               {/* Continuous shimmer sweep on arrival */}
-              {phase === 'arrival' && (
+              {phase === 'arrival' && !prefersReducedMotion && (
                 <motion.div
                   className="absolute inset-0 pointer-events-none"
                   style={{ background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%)' }}
@@ -363,10 +368,12 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
         )}
       </AnimatePresence>
 
-      {/* Ambient floating motes — during arrival/charge */}
-      {(phase === 'arrival' || phase === 'charge') && (
+      {/* Ambient floating motes — during arrival/charge. Skipped under
+          reduced-motion; count trimmed from 20 → 8 and blur filter dropped
+          so each particle stays on the compositor fast path. */}
+      {(phase === 'arrival' || phase === 'charge') && !prefersReducedMotion && (
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {Array.from({ length: 20 }).map((_, i) => {
+          {Array.from({ length: 8 }).map((_, i) => {
             const x = 30 + Math.random() * 40;
             const rise = 180 + Math.random() * 260;
             const duration = 2.5 + Math.random() * 2;
@@ -379,7 +386,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
                 style={{
                   width: size, height: size, left: `${x}%`, bottom: '20%',
                   background: tierDef.accent,
-                  filter: 'blur(0.5px)',
+                  transform: 'translateZ(0)',
                   willChange: 'transform, opacity',
                 }}
                 initial={{ opacity: 0, y: 0 }}
@@ -404,7 +411,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
                 boxShadow: `0 0 80px ${tierDef.accent}`,
               }}
               initial={{ width: 0, height: 0, opacity: 1 }}
-              animate={{ width: '160vmax', height: '160vmax', opacity: 0 }}
+              animate={{ width: '120vmax', height: '120vmax', opacity: 0 }}
               transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             />
             <motion.div
@@ -414,7 +421,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
               animate={{ opacity: [0, 0.25, 0] }}
               transition={{ duration: 0.18 }}
             />
-            <PackConfetti count={confettiCount} hueBase={topOvr >= 90 ? 48 : topOvr >= 84 ? 35 : 43} hueRange={28} />
+            <PackConfetti count={prefersReducedMotion ? 0 : confettiCount} hueBase={topOvr >= 90 ? 48 : topOvr >= 84 ? 35 : 43} hueRange={28} />
           </>
         )}
       </AnimatePresence>
@@ -444,7 +451,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
                 revealed={revealedSet.has(p.id) || phase === 'summary'}
                 onReveal={phase === 'reveal' ? () => revealOne(p.id) : undefined}
                 onDismiss={phase === 'summary' && onDismiss ? () => onDismiss(p.id) : undefined}
-                entranceDelay={i * (PACK_ANIM.revealStaggerMs / 1000)}
+                entranceDelay={prefersReducedMotion ? 0 : i * (PACK_ANIM.revealStaggerMs / 1000)}
                 placement={placement?.[p.id]}
               />
             ))}

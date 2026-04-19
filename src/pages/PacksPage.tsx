@@ -65,6 +65,10 @@ const PacksPage = () => {
   const nonFeatured = useMemo(() => PACK_TIERS.filter(t => t.key !== featuredKey), [featuredKey]);
 
   const handleOpen = (tierKey: PackTierKey) => {
+    // Guard against rapid double-taps while an overlay is already up or
+    // a pack was just opened this frame. openPack() is synchronous so
+    // this is enough — no timers needed.
+    if (opening || replay) return;
     if (weekCooldownActive) {
       errorToast('Only one pack per week', 'Advance a week to open another.');
       return;

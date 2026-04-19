@@ -183,6 +183,13 @@
       hsl(200 90% 60%), hsl(280 90% 65%), hsl(330 95% 65%), hsl(0 90% 60%));
     filter: blur(6px);
     animation: holoSpin 6s linear infinite;
+    will-change: transform;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .holo-ring {
+      animation: none;
+      will-change: auto;
+    }
   }
 }
 
