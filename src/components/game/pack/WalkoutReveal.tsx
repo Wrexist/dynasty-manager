@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
+import { motion, useMotionValue, useTransform, animate, useReducedMotion } from 'framer-motion';
 import type { Player } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { PACK_ANIM, LEGENDARY_OVR_THRESHOLD } from '@/config/packs';
@@ -22,6 +22,7 @@ interface WalkoutRevealProps {
 export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
   const tier = tierForOvr(player.overall);
   const isLegendary = player.overall >= LEGENDARY_OVR_THRESHOLD;
+  const prefersReducedMotion = useReducedMotion();
 
   const [phase, setPhase] = useState<'enter' | 'name' | 'ovr' | 'hold' | 'done'>('enter');
 
@@ -29,7 +30,12 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
   const ovrDisplay = useTransform(ovrMV, (v) => Math.round(v).toString());
 
   const name = `${player.firstName} ${player.lastName}`.toUpperCase();
-  const typed = useTypewriter(name, PACK_ANIM.walkout.typewriterPerCharMs, phase === 'name' || phase === 'ovr' || phase === 'hold');
+  const typed = useTypewriter(
+    name,
+    PACK_ANIM.walkout.typewriterPerCharMs,
+    phase === 'name' || phase === 'ovr' || phase === 'hold',
+    !!prefersReducedMotion,
+  );
 
   // Beat orchestration — simpler than the old 6-phase machine.
   //   enter → card scales in (500ms settle)
@@ -85,20 +91,22 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
         }}
       />
 
-      {/* Legendary rotating laurel rays */}
-      {isLegendary && (
+      {/* Legendary rotating laurel rays — skipped under reduced-motion.
+          Blur filter dropped (the conic-gradient alpha stops already feather
+          the rays) and size/rotation tempo eased for a cheaper composite. */}
+      {isLegendary && !prefersReducedMotion && (
         <motion.div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          style={{ willChange: 'transform' }}
           animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 22, ease: 'linear' }}
+          transition={{ repeat: Infinity, duration: 28, ease: 'linear' }}
         >
           <div
-            className="w-[160vw] h-[160vw] max-w-none"
+            className="w-[140vw] h-[140vw] max-w-none"
             style={{
               background:
                 'conic-gradient(from 0deg, rgba(253,224,71,0.0) 0deg, rgba(253,224,71,0.18) 8deg, rgba(253,224,71,0.0) 18deg, rgba(253,224,71,0.0) 45deg, rgba(253,224,71,0.14) 52deg, rgba(253,224,71,0.0) 62deg, rgba(253,224,71,0.0) 90deg, rgba(253,224,71,0.18) 98deg, rgba(253,224,71,0.0) 108deg, rgba(253,224,71,0.0) 135deg, rgba(253,224,71,0.14) 142deg, rgba(253,224,71,0.0) 152deg, rgba(253,224,71,0.0) 180deg, rgba(253,224,71,0.18) 188deg, rgba(253,224,71,0.0) 198deg, rgba(253,224,71,0.0) 225deg, rgba(253,224,71,0.14) 232deg, rgba(253,224,71,0.0) 242deg, rgba(253,224,71,0.0) 270deg, rgba(253,224,71,0.18) 278deg, rgba(253,224,71,0.0) 288deg, rgba(253,224,71,0.0) 315deg, rgba(253,224,71,0.14) 322deg, rgba(253,224,71,0.0) 332deg, rgba(253,224,71,0.0) 360deg)',
               borderRadius: '50%',
-              filter: 'blur(4px)',
             }}
           />
         </motion.div>
@@ -141,35 +149,38 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
         />
       ))}
 
-      {/* Legendary breathing outer aura — kept from prior impl for 90+ polish */}
-      {isLegendary && (
+      {/* Legendary breathing outer aura — skipped under reduced-motion.
+          Blur filter removed (softer radial alpha stops carry the feathering)
+          and tempo slowed to reduce per-frame composite work. */}
+      {isLegendary && !prefersReducedMotion && (
         <motion.div
           className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
           style={{
             width: '76vw',
             maxWidth: 480,
             height: 480,
-            background: `radial-gradient(ellipse at center, ${tier.gradientTo}44 0%, ${tier.gradientVia}22 40%, transparent 70%)`,
-            filter: 'blur(10px)',
+            background: `radial-gradient(ellipse at center, ${tier.gradientTo}33 0%, ${tier.gradientVia}1a 45%, transparent 72%)`,
+            willChange: 'transform, opacity',
           }}
           initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: [0.6, 1, 0.6], scale: [0.95, 1.06, 0.95] }}
-          transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{ opacity: [0.55, 0.9, 0.55], scale: [0.96, 1.05, 0.96] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
         />
       )}
 
-      {/* Hero card — the real FUT-style face with a rotating holo border */}
+      {/* Hero card — the real FUT-style face with a rotating holo border.
+          The hold-phase bob is skipped under reduced-motion. */}
       <motion.div
         className="relative"
-        style={{ width: 'min(78vw, 240px)' }}
+        style={{ width: 'min(78vw, 240px)', willChange: 'transform, opacity' }}
         initial={{ opacity: 0, scale: 0.4, y: 30 }}
         animate={{
           opacity: 1,
           scale: 1,
-          y: phase === 'hold' ? [0, -4, 0] : 0,
+          y: phase === 'hold' && !prefersReducedMotion ? [0, -4, 0] : 0,
         }}
         transition={
-          phase === 'hold'
+          phase === 'hold' && !prefersReducedMotion
             ? { y: { duration: 3.2, repeat: Infinity, ease: 'easeInOut' } }
             : { type: 'spring', stiffness: 220, damping: 20 }
         }
@@ -180,7 +191,8 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
             className="absolute -inset-[3px] rounded-[18px] holo-ring pointer-events-none"
             aria-hidden
           />
-          {/* Tier-tinted inner glow that pulses subtly */}
+          {/* Tier-tinted inner glow that pulses subtly. Static under
+              reduced-motion (no infinite opacity loop). */}
           <motion.div
             className="absolute -inset-[1px] rounded-[16px] pointer-events-none"
             style={{
@@ -188,8 +200,8 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
               filter: 'blur(8px)',
               opacity: 0.55,
             }}
-            animate={{ opacity: [0.45, 0.7, 0.45] }}
-            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            animate={prefersReducedMotion ? undefined : { opacity: [0.45, 0.7, 0.45] }}
+            transition={prefersReducedMotion ? undefined : { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
           />
 
           {/* Card face */}
@@ -338,11 +350,15 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
         </div>
       )}
 
-      {/* Confetti retrigger when OVR locks in */}
-      {ovrLocked && (
+      {/* Confetti retrigger when OVR locks in — only for legendary pulls,
+          and skipped entirely under reduced-motion. The explosion beat
+          already fired the main burst; this is a small legendary-only
+          accent (was 60–80 particles, now ~16) on top of the shockwave
+          rings that already carry the impact. */}
+      {ovrLocked && isLegendary && !prefersReducedMotion && (
         <PackConfetti
-          count={isLegendary ? PACK_ANIM.confetti.icon : PACK_ANIM.confetti.legendary}
-          hueBase={isLegendary ? 48 : 38}
+          count={16}
+          hueBase={48}
           hueRange={24}
         />
       )}

@@ -185,7 +185,7 @@ export const PACK_ANIM = {
   chargeBaseMs: 1200,
   chargePerTierBonusMs: 250,
   explodeMs: 400,
-  revealStaggerMs: 140,
+  revealStaggerMs: 110,
   flipMs: 520,
   walkout: {
     slitMs: 700,
@@ -196,10 +196,10 @@ export const PACK_ANIM = {
     lingerMs: 400,
   },
   confetti: {
-    silver: 20,
-    gold: 40,
-    legendary: 60,
-    icon: 80,
+    silver: 12,
+    gold: 24,
+    legendary: 36,
+    icon: 48,
   },
   spring: { stiffness: 260, damping: 22 },
 } as const;

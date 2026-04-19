@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 interface PackConfettiProps {
   count: number;
@@ -28,9 +28,13 @@ export const PackConfetti = memo(function PackConfetti({
   saturation = 92,
   lightness = 55,
 }: PackConfettiProps) {
+  const prefersReducedMotion = useReducedMotion();
+  if (prefersReducedMotion || count <= 0) return null;
+  // Hard ceiling so a future config bump can't silently regress perf.
+  const safeCount = Math.min(count, 60);
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: count }).map((_, i) => {
+      {Array.from({ length: safeCount }).map((_, i) => {
         const x = Math.random() * 100;
         const delay = Math.random() * 0.35;
         const duration = 1.5 + Math.random() * 1.4;
@@ -51,13 +55,12 @@ export const PackConfetti = memo(function PackConfetti({
               backgroundColor: `hsl(${hue}, ${saturation}%, ${lightness + Math.random() * 18}%)`,
               willChange: 'transform, opacity',
             }}
-            initial={{ opacity: 0, y: 0, x: 0, rotate: 0, scale: 0.7 }}
+            initial={{ opacity: 0, y: 0, x: 0, rotate: 0 }}
             animate={{
               opacity: [0, 1, 1, 0],
               y: [0, -rise],
               x: [0, drift],
               rotate: [0, rot],
-              scale: [0.7, 1, 0.8],
             }}
             transition={{ duration, delay, ease: 'easeOut', times: [0, 0.15, 0.7, 1] }}
           />

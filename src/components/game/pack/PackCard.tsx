@@ -1,5 +1,5 @@
 import { memo, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { PackPlayerPlacement, Player } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
@@ -34,6 +34,7 @@ const PLACEMENT_STYLES: Record<PackPlayerPlacement, { label: string; className: 
  */
 export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0, onDismiss, placement }: PackCardProps) {
   const tier = tierForOvr(player.overall);
+  const prefersReducedMotion = useReducedMotion();
   const [hovered, setHovered] = useState(false);
   const placementStyle = placement ? PLACEMENT_STYLES[placement] : null;
 
@@ -64,12 +65,12 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
       style={{ perspective: 1100 }}
       initial={{ opacity: 0, y: 120, scale: 0.8 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ delay: entranceDelay, type: 'spring', stiffness: 240, damping: 22 }}
+      transition={{ delay: entranceDelay, type: 'spring', stiffness: 180, damping: 24 }}
       aria-label={revealed ? `${player.firstName} ${player.lastName}, ${player.overall} overall` : 'Tap to reveal'}
     >
       <motion.div
         className="relative w-full h-full rounded-2xl"
-        style={{ transformStyle: 'preserve-3d' }}
+        style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
         animate={{ rotateY: revealed ? 180 : 0, scale: hovered && !revealed ? 1.03 : 1 }}
         transition={{ duration: PACK_ANIM.flipMs / 1000, type: 'spring', stiffness: 180, damping: 18 }}
       >
@@ -86,14 +87,18 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
             </div>
             <span className="text-[10px] uppercase tracking-widest text-white/80 font-semibold">Tap to reveal</span>
           </div>
-          {/* Diagonal shimmer */}
-          <motion.div
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%)' }}
-            initial={{ x: '-100%' }}
-            animate={{ x: '120%' }}
-            transition={{ repeat: Infinity, repeatDelay: 2.4, duration: 1.4, ease: 'easeInOut' }}
-          />
+          {/* Diagonal shimmer — only runs while face-down and when motion
+              isn't reduced. repeatDelay widened so idle-time GPU cost is
+              halved compared to the original 2.4s cadence. */}
+          {!revealed && !prefersReducedMotion && (
+            <motion.div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%)' }}
+              initial={{ x: '-100%' }}
+              animate={{ x: '120%' }}
+              transition={{ repeat: Infinity, repeatDelay: 4, duration: 1.4, ease: 'easeInOut' }}
+            />
+          )}
         </div>
 
         {/* Face */}
