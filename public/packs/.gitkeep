@@ -1,0 +1,7 @@
+# Drop pack-cover artwork here. Filenames must match the PackTierKey:
+#   bronze.png   silver.png   gold.png   premium.png   rare.png   icon.png
+#
+# Recommended: 1024 × 1536 PNG (2:3 portrait), centered focal motif so
+# both 3:4 shop tiles and 16:9 featured hero crops look right.
+#
+# See ../../docs/pack-art-prompts.md for the AI-art prompt sheet.

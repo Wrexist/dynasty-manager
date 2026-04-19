@@ -5,6 +5,7 @@ import type { PackTierDefinition } from '@/config/packs';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
+import { PackArt } from './PackArt';
 
 interface PackShopCardProps {
   tier: PackTierDefinition;
@@ -81,18 +82,26 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
           </h3>
         </div>
 
-        {/* Art slot — placeholder */}
-        <div className="flex-1 flex items-center justify-center my-2">
-          <div
-            className={cn(
-              'rounded-full bg-black/30 border border-white/20 flex items-center justify-center',
-              featured ? 'w-16 h-16' : 'w-12 h-12',
+        {/* Art slot — AI-generated cover when present, otherwise placeholder.
+            Image fills the available space and is anchored to the centre so
+            the central focal motif is visible at both 3:4 and 16:9 framings. */}
+        <div className="flex-1 flex items-center justify-center my-2 overflow-hidden">
+          <PackArt
+            src={tier.artSrc}
+            className={cn('w-full h-full object-cover object-center', featured ? 'opacity-95' : 'opacity-90')}
+            fallback={(
+              <div
+                className={cn(
+                  'rounded-full bg-black/30 border border-white/20 flex items-center justify-center',
+                  featured ? 'w-16 h-16' : 'w-12 h-12',
+                )}
+              >
+                <span className={cn('font-display font-black text-white/70', featured ? 'text-2xl' : 'text-lg')}>
+                  {tier.label[0]}
+                </span>
+              </div>
             )}
-          >
-            <span className={cn('font-display font-black text-white/70', featured ? 'text-2xl' : 'text-lg')}>
-              {tier.label[0]}
-            </span>
-          </div>
+          />
         </div>
 
         <div className="mt-auto space-y-1.5">
