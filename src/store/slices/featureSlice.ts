@@ -6,7 +6,7 @@ import { grantXP, hasPerk, dynastyMult } from '@/utils/managerPerks';
 import type { GameState } from '../storeTypes';
 import { addMsg, clamp } from '@/utils/helpers';
 import { createContractOffer, negotiateRound, formatWage } from '@/utils/contracts';
-import { CONTRACT_MAX_STRIKES, CONTRACT_STRIKE_COOLDOWN_WEEKS } from '@/config/contracts';
+import { CONTRACT_MAX_STRIKES, CONTRACT_STRIKE_COOLDOWN_WEEKS, CONTRACT_ICON_STATUS_BONUS } from '@/config/contracts';
 import { CHALLENGES } from '@/data/challenges';
 import { createEmptyRecords } from '@/utils/records';
 import { buildTransferTalk } from '@/utils/transferTalk';
@@ -445,7 +445,7 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
 
     const updated = { ...offer, offeredWage: wage };
     if (years !== undefined) updated.contractYears = years;
-    const iconBonus = hasPerk(state.managerProgression, 'icon_status') ? 0.2 : 0;
+    const iconBonus = hasPerk(state.managerProgression, 'icon_status') ? CONTRACT_ICON_STATUS_BONUS : 0;
     const result = negotiateRound(updated, iconBonus);
 
     if (result.status === 'accepted') {

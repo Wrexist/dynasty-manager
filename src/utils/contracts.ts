@@ -24,6 +24,7 @@ import {
   CONTRACT_PREFERRED_YEARS_BRACKETS, CONTRACT_PREFERRED_YEARS_DEFAULT,
   CONTRACT_YEARS_ACCEPTANCE_BONUS, CONTRACT_YEARS_ACCEPTANCE_PENALTY,
   CONTRACT_YEARS_MOOD_PENALTY, CONTRACT_YEARS_MOOD_BONUS,
+  CONTRACT_VETERAN_AGE, CONTRACT_VETERAN_YEARS_BONUS_MULT,
 } from '@/config/contracts';
 
 export type ContractUrgency = 'expired' | 'near' | null;
@@ -159,10 +160,13 @@ export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): Contr
 
   const gap = offer.offeredWage / offer.demandedWage;
 
-  // Years deviation adjusts the effective acceptance gap
+  // Years deviation adjusts the effective acceptance gap.
+  // Veterans (age > CONTRACT_VETERAN_AGE) don't value extra years as much — the bonus is muted
+  // so handing a 33-year-old a 5-year deal no longer farms a +25% advantage.
   const yearsDiff = offer.contractYears - preferredYears;
+  const isVeteran = offer.playerAge > CONTRACT_VETERAN_AGE;
   const yearsAdjustment = yearsDiff > 0
-    ? yearsDiff * CONTRACT_YEARS_ACCEPTANCE_BONUS
+    ? yearsDiff * CONTRACT_YEARS_ACCEPTANCE_BONUS * (isVeteran ? CONTRACT_VETERAN_YEARS_BONUS_MULT : 1)
     : yearsDiff * CONTRACT_YEARS_ACCEPTANCE_PENALTY;
   const adjustedGap = gap + yearsAdjustment + iconStatusBonus;
 
@@ -191,9 +195,10 @@ export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): Contr
   const wageMoodChange = gap < CONTRACT_LOWBALL_GAP ? CONTRACT_MOOD_HIT_LOWBALL
     : gap < CONTRACT_MODERATE_GAP ? CONTRACT_MOOD_HIT_MODERATE : CONTRACT_MOOD_HIT_CLOSE;
 
-  // Years deviation also affects mood — offering fewer years than preferred frustrates players
+  // Years deviation also affects mood — offering fewer years than preferred frustrates players.
+  // Veterans get a muted bonus for extra years (they're less thrilled about long commitments).
   const yearsMoodChange = yearsDiff > 0
-    ? yearsDiff * CONTRACT_YEARS_MOOD_BONUS
+    ? yearsDiff * CONTRACT_YEARS_MOOD_BONUS * (isVeteran ? CONTRACT_VETERAN_YEARS_BONUS_MULT : 1)
     : yearsDiff * CONTRACT_YEARS_MOOD_PENALTY;
   const moodChange = wageMoodChange + yearsMoodChange;
 
@@ -213,45 +218,72 @@ export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): Contr
 export function getYearsAdjustment(age: number, offeredYears: number): number {
   const preferred = getPreferredYears(age);
   const diff = offeredYears - preferred;
-  if (diff > 0) return diff * CONTRACT_YEARS_ACCEPTANCE_BONUS;
+  if (diff > 0) {
+    const mult = age > CONTRACT_VETERAN_AGE ? CONTRACT_VETERAN_YEARS_BONUS_MULT : 1;
+    return diff * CONTRACT_YEARS_ACCEPTANCE_BONUS * mult;
+  }
   if (diff < 0) return diff * CONTRACT_YEARS_ACCEPTANCE_PENALTY;
   return 0;
 }
 
 /**
  * Get an acceptance hint that accounts for BOTH wage gap AND years deviation.
- * This is what the UI should display — not just the raw wage gap.
+ * Each branch cites the real acceptance thresholds so what the UI says matches
+ * what `negotiateRound` will actually do. When mood is the blocker, the hint
+ * names the mood floor that would flip the decision.
  */
 export function getAcceptanceHint(
   wageGap: number,
   playerAge: number,
   offeredYears: number,
   playerMood: number,
+  offeredWage?: number,
 ): { text: string; colorClass: string } {
   const yearsAdj = getYearsAdjustment(playerAge, offeredYears);
   const adjustedGap = wageGap + yearsAdj;
 
+  const wagePreview = offeredWage != null ? formatWage(offeredWage) : null;
+  const yearsLabel = `${offeredYears} yr${offeredYears === 1 ? '' : 's'}`;
+  const acceptText = wagePreview
+    ? `Will sign ${wagePreview} for ${yearsLabel}`
+    : 'Will accept this deal';
+
+  // Accepted now
   if (
     adjustedGap >= CONTRACT_GAP_ACCEPT ||
     (adjustedGap >= CONTRACT_GAP_VERY_CLOSE_ACCEPT && playerMood >= CONTRACT_VERY_CLOSE_MOOD_THRESHOLD) ||
     (adjustedGap >= CONTRACT_GAP_MOOD_ACCEPT && playerMood >= CONTRACT_MOOD_ACCEPT_THRESHOLD) ||
     (adjustedGap >= CONTRACT_GAP_HIGH_MOOD_ACCEPT && playerMood >= CONTRACT_HIGH_MOOD_THRESHOLD)
   ) {
-    return { text: 'Will accept this deal', colorClass: 'text-emerald-400/70' };
+    return { text: acceptText, colorClass: 'text-emerald-400' };
   }
+
+  // Mood-blocked branches: offer is in an acceptance band but mood falls short.
+  // Surface the exact mood floor that would tip it over.
   if (adjustedGap >= CONTRACT_GAP_VERY_CLOSE_ACCEPT) {
-    return { text: 'Very close — needs slightly better mood', colorClass: 'text-emerald-400/70' };
+    return {
+      text: `Very close — needs mood ${CONTRACT_VERY_CLOSE_MOOD_THRESHOLD}+`,
+      colorClass: 'text-amber-400/80',
+    };
   }
-  if (adjustedGap >= 0.9) {
-    return { text: 'Close — may accept with better mood', colorClass: 'text-emerald-400/70' };
+  if (adjustedGap >= CONTRACT_GAP_MOOD_ACCEPT) {
+    return {
+      text: `Close — needs mood ${CONTRACT_MOOD_ACCEPT_THRESHOLD}+`,
+      colorClass: 'text-amber-400/80',
+    };
   }
-  if (adjustedGap >= 0.8) {
-    return { text: 'Below expectations — mood will dip', colorClass: 'text-amber-400/70' };
+  if (adjustedGap >= CONTRACT_GAP_HIGH_MOOD_ACCEPT) {
+    return {
+      text: `Below expectations — needs mood ${CONTRACT_HIGH_MOOD_THRESHOLD}+`,
+      colorClass: 'text-amber-400/80',
+    };
   }
-  if (adjustedGap >= 0.7) {
-    return { text: 'Poor offer — mood will drop', colorClass: 'text-amber-400/70' };
+
+  // Gap-blocked: no reasonable mood rescues the offer.
+  if (adjustedGap >= 0.75) {
+    return { text: 'Poor offer — mood will drop', colorClass: 'text-red-400/80' };
   }
-  return { text: 'Insulting offer — mood will tank', colorClass: 'text-red-400/70' };
+  return { text: 'Insulting offer — mood will tank', colorClass: 'text-red-400' };
 }
 
 /**

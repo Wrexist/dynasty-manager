@@ -125,6 +125,27 @@ describe('contracts', () => {
       expect(result.status).not.toBe('accepted');
     });
 
+    it('should reject exactly at 0.95 gap when mood is just below the very-close threshold', () => {
+      // gap = 0.95, mood = 34 (one below CONTRACT_VERY_CLOSE_MOOD_THRESHOLD = 35)
+      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 47500, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, playerAge: 26, round: 1, status: 'in_progress' as const, playerMood: 34 };
+      const result = negotiateRound(offer);
+      expect(result.status).not.toBe('accepted');
+    });
+
+    it('should accept exactly at 0.95 gap when mood hits the very-close threshold', () => {
+      // gap = 0.95, mood = 35 (exactly at threshold)
+      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 47500, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, playerAge: 26, round: 1, status: 'in_progress' as const, playerMood: 35 };
+      const result = negotiateRound(offer);
+      expect(result.status).toBe('accepted');
+    });
+
+    it('should accept a 94% offer via the 0.92 tier when mood is high', () => {
+      // gap = 0.94 (below very-close 0.95 tier), mood 80 — still passes via the 0.92 + mood 50 tier
+      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 47000, demandedWage: 50000, agentFee: 5000, loyaltyBonus: 0, contractYears: 3, playerAge: 26, round: 1, status: 'in_progress' as const, playerMood: 80 };
+      const result = negotiateRound(offer);
+      expect(result.status).toBe('accepted');
+    });
+
     it('should penalize acceptance when offering fewer years than preferred', () => {
       // Player aged 20 prefers 4 years. Offering 1 gives a -36% penalty (3 × 12%).
       // An offer at 95% of demand would normally be accepted (mood 70, gap 0.95 >= 0.92, mood >= 60).
@@ -184,6 +205,14 @@ describe('contracts', () => {
       const adj = getYearsAdjustment(20, 1);
       expect(adj).toBeCloseTo(-0.36);
     });
+
+    it('should mute the years bonus for veterans (age > 30)', () => {
+      // Age 33 prefers 1 year. Offering 5 = +4 years. Normally +20%, vets get 40% of that = +8%.
+      const vet = getYearsAdjustment(33, 5);
+      const prime = getYearsAdjustment(26, 5);   // 3 → 5 = +2 × 5% = +10% (prime, full rate)
+      expect(vet).toBeCloseTo(0.08);
+      expect(vet).toBeLessThan(prime);
+    });
   });
 
   describe('getAcceptanceHint', () => {
@@ -202,6 +231,24 @@ describe('contracts', () => {
       // Wage at 90% but 2 years over preferred = +10% bonus, adjustedGap = 1.0
       const hint = getAcceptanceHint(0.90, 26, 5, 70);
       expect(hint.text).toContain('Will accept');
+    });
+
+    it('should preview the exact wage and years when offeredWage is provided and accepted', () => {
+      const hint = getAcceptanceHint(1.0, 26, 3, 70, 42000);
+      expect(hint.text).toContain('42K');
+      expect(hint.text).toContain('3 yrs');
+    });
+
+    it('should surface the exact mood threshold needed when mood is the blocker', () => {
+      // 0.95 gap but mood 20 — needs mood 35+ (CONTRACT_VERY_CLOSE_MOOD_THRESHOLD)
+      const hint = getAcceptanceHint(0.95, 26, 3, 20);
+      expect(hint.text).toContain('35');
+    });
+
+    it('should use singular year label when offering 1 year', () => {
+      const hint = getAcceptanceHint(1.0, 34, 1, 70, 50000);
+      expect(hint.text).toContain('1 yr');
+      expect(hint.text).not.toContain('1 yrs');
     });
   });
 

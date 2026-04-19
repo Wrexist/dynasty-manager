@@ -98,6 +98,15 @@ export const CONTRACT_YEARS_ACCEPTANCE_PENALTY = 0.12;  // -12% per year under p
 export const CONTRACT_YEARS_MOOD_PENALTY = 8;   // -8 mood per year under preferred
 export const CONTRACT_YEARS_MOOD_BONUS = 3;     // +3 mood per year over preferred
 
+// Veteran multiplier: players over this age don't love long contracts as much —
+// extra years above their preferred length still count slightly, but not at full strength.
+// This stops the exploit of handing a 33-year-old a 5-year deal to farm the +25% bonus.
+export const CONTRACT_VETERAN_AGE = 30;
+export const CONTRACT_VETERAN_YEARS_BONUS_MULT = 0.4;  // 40% of the normal bonus
+
+// Perk bonus: "icon_status" perk nudges the effective gap upward during negotiation.
+export const CONTRACT_ICON_STATUS_BONUS = 0.2;
+
 // ── Mood Penalties (from lowballing) ──
 export const CONTRACT_LOWBALL_GAP = 0.7;
 export const CONTRACT_MODERATE_GAP = 0.85;
