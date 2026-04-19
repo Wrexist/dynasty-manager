@@ -10,6 +10,7 @@ import { formatWage } from '@/utils/contracts';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { INCOMING_NEGOTIATE_MAX_MULTIPLIER, NEGOTIATION_MAX_STRIKES } from '@/config/transfers';
 import { StrikeIndicator } from '@/components/game/StrikeIndicator';
+import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
 import {
   X, Banknote, Users, Shield, ArrowRight, RotateCcw, Handshake, XCircle, Lock,
 } from 'lucide-react';
@@ -215,11 +216,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                      <span className={cn('font-mono font-black text-2xl', getRatingColor(player.overall))}>
-                        {player.overall}
-                      </span>
-                    </div>
+                    <PlayerRatingBadge overall={player.overall} size="xl" />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
                       <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}</p>
@@ -455,11 +452,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                   transition={{ delay: 0.2 }}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border-2 border-emerald-500/40 flex items-center justify-center shrink-0">
-                      <span className={cn('font-mono font-black text-xl', getRatingColor(player.overall))}>
-                        {player.overall}
-                      </span>
-                    </div>
+                    <PlayerRatingBadge overall={player.overall} size="lg" />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display">
                         {player.firstName} {player.lastName}
