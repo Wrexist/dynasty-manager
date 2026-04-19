@@ -1681,6 +1681,11 @@ export interface PackTierDefinition {
   gradientTo: string;
   /** Glow/accent color used during the charge-up beat. */
   accent: string;
+  /** Optional pack-cover artwork. When set, renders inside the pack tile
+   *  and the cinematic pack body in place of the centered-letter
+   *  placeholder. Public asset path (e.g. `/packs/bronze.png`). The img
+   *  fails silently to the placeholder if the asset isn't deployed yet. */
+  artSrc?: string;
 }
 
 export interface OpenedPackRecord {

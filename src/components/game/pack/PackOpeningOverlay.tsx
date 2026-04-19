@@ -5,6 +5,7 @@ import type { PackTierKey, Player } from '@/types/game';
 import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
+import { PackArt } from './PackArt';
 import { PackCard } from './PackCard';
 import { PackConfetti } from './PackConfetti';
 import { WalkoutReveal } from './WalkoutReveal';
@@ -308,12 +309,22 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
               className="relative w-full h-full rounded-2xl overflow-hidden border border-white/15 shadow-[0_30px_60px_rgba(0,0,0,0.6)]"
               style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
             >
+              {/* AI cover art (when present) — sits beneath the gloss/border
+                  overlays so the gradient frame still reads as the "pack". */}
+              {tierDef.artSrc && (
+                <PackArt
+                  src={tierDef.artSrc}
+                  loading="eager"
+                  className="absolute inset-0 w-full h-full object-cover object-center"
+                  fallback={null}
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/40" />
               <div className="absolute inset-3 rounded-xl border border-white/25" />
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white px-4 text-center">
-                <span className="text-[10px] uppercase tracking-[0.35em] font-semibold opacity-80">Dynasty Pack</span>
-                <span className="text-3xl font-display font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]">{tierDef.label}</span>
-                <span className="text-[11px] opacity-80">{tierDef.cards} Players</span>
+                <span className="text-[10px] uppercase tracking-[0.35em] font-semibold opacity-80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">Dynasty Pack</span>
+                <span className="text-3xl font-display font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">{tierDef.label}</span>
+                <span className="text-[11px] opacity-80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">{tierDef.cards} Players</span>
               </div>
 
               {/* Glow leaks during charge — color tells the rarity story */}
