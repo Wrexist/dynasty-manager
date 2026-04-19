@@ -170,6 +170,20 @@
     0% { text-shadow: 0 0 8px hsl(var(--gold) / 0.8); color: hsl(var(--gold)); }
     100% { text-shadow: none; }
   }
+
+  /* Holographic rotating rainbow ring used behind the walkout hero card.
+     Kept as a CSS utility (not inline style) so the sweep is GPU-only. */
+  @keyframes holoSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .holo-ring {
+    background: conic-gradient(from 0deg,
+      hsl(0 90% 60%), hsl(40 95% 60%), hsl(140 85% 55%),
+      hsl(200 90% 60%), hsl(280 90% 65%), hsl(330 95% 65%), hsl(0 90% 60%));
+    filter: blur(6px);
+    animation: holoSpin 6s linear infinite;
+  }
 }
 
 /* Match event fade-in animation */
