@@ -19,15 +19,15 @@ export const RATING_COLOR_THRESHOLDS = [
 export const PLAYER_TIER_THRESHOLDS = [
   {
     min: 90, key: 'legendary', label: 'Legendary',
-    gradientFrom: '#fde68a', gradientVia: '#facc15', gradientTo: '#b45309',
-    textClass: 'text-amber-300',
-    badgeClass: 'bg-amber-400/20 text-amber-300 border border-amber-300/40',
+    gradientFrom: '#fbbf24', gradientVia: '#ef4444', gradientTo: '#7f1d1d',
+    textClass: 'text-rose-200',
+    badgeClass: 'bg-rose-400/20 text-rose-200 border border-rose-300/40',
   },
   {
     min: 80, key: 'gold', label: 'Gold',
     gradientFrom: '#fcd34d', gradientVia: '#f59e0b', gradientTo: '#92400e',
-    textClass: 'text-amber-400',
-    badgeClass: 'bg-amber-500/15 text-amber-400 border border-amber-400/40',
+    textClass: 'text-amber-200',
+    badgeClass: 'bg-amber-500/15 text-amber-200 border border-amber-300/40',
   },
   {
     min: 70, key: 'silver', label: 'Silver',
@@ -191,7 +191,7 @@ export const HELP_TEXTS = {
   transferWindow: 'You can only buy/sell players during transfer windows: Weeks 1-8 (summer) and Weeks 20-24 (winter).',
   chemistry: 'Chemistry reflects how well players work together. Players from the same nationality, with compatible positions, or who have played together longer build stronger links.',
   form: 'A player\'s recent match performance. Good form boosts morale and match ratings. Poor form can lower confidence.',
-  playerRating: 'Player ratings range from 1-99. 80+ is world-class (green), 70+ is good (gold), 60+ is average (amber), below 60 is weak (grey).',
+  playerRating: 'Player ratings run 1–99. Tiers: Legendary 90+ (red-gold), Gold 80–89 (amber), Silver 70–79, Bronze 60–69, Common below 60. Inline rating text uses green for world-class, sky for solid, amber for average, grey for weak.',
   potential: 'A player\'s maximum possible rating. Young players (<24) grow toward their potential through training and match time. Veterans (31+) gradually decline.',
   personality: 'Personality traits affect how a player behaves. Professionalism boosts training, ambition drives growth, temperament affects cards, loyalty reduces transfer demands, and leadership inspires teammates.',
   mentality: 'Team mentality affects how aggressively your team plays. Attacking pushes players forward for more goals but leaves gaps at the back. Defensive sits deep and absorbs pressure.',

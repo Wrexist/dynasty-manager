@@ -70,7 +70,7 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
           style={{ backfaceVisibility: 'hidden', background: tierGradient(tier) }}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/40" />
-          <div className="absolute inset-2 rounded-xl border border-white/20" />
+          <div className="absolute inset-[6px] rounded-[10px] border border-white/15 pointer-events-none" />
           <div className="relative h-full flex flex-col items-center justify-center gap-2 text-center px-3">
             <div className="w-10 h-10 rounded-full bg-black/30 backdrop-blur flex items-center justify-center">
               <span className="text-white text-lg font-display font-black">?</span>

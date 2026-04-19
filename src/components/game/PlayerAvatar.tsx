@@ -8,6 +8,7 @@
 
 import { memo, useId } from 'react';
 import { darken, lighten } from '@/utils/colorUtils';
+import { getRatingHex } from '@/utils/uiHelpers';
 
 interface PlayerAvatarProps {
   jerseyColor: string;
@@ -17,15 +18,6 @@ interface PlayerAvatarProps {
   isAway?: boolean;
   overall?: number;
   position?: string;
-}
-
-/** Rating tier hex colors matching the design system */
-function getRatingHex(ovr: number | undefined): string {
-  if (ovr == null) return '#6b7280'; // muted gray
-  if (ovr >= 80) return '#34d399';   // emerald
-  if (ovr >= 70) return '#38bdf8';   // sky/good
-  if (ovr >= 60) return '#fbbf24';   // amber
-  return '#6b7280';                   // muted
 }
 
 /** Perceived luminance (0–1) from a hex color via the Rec. 601 formula. */

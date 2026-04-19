@@ -14,7 +14,7 @@ import { PlayerAvatar } from './PlayerAvatar';
 import { FlagIcon } from './FlagIcon';
 import { TierBorderFrame } from './TierBorderFrame';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getPlayerTier, getStableJerseyNumber } from '@/utils/uiHelpers';
+import { getPlayerTier, getStableJerseyNumber } from '@/utils/uiHelpers';
 import { lighten, darken } from '@/utils/colorUtils';
 
 interface PlayerHeroCardProps {
@@ -97,7 +97,7 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
             <span
               className={cn(
                 'text-3xl font-black font-display tabular-nums leading-none',
-                getRatingColor(player.overall),
+                tier.textClass,
               )}
             >
               {player.overall}

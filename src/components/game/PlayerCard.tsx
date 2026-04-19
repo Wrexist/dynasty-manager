@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getFitnessHexColor } from '@/utils/uiHelpers';
+import { getPlayerTier, getFitnessHexColor } from '@/utils/uiHelpers';
 import { getPlayerDisplayName, getCardNameFontSizeClass } from '@/utils/playerDisplay';
 import { Link, TrendingUp } from 'lucide-react';
 import type { Player } from '@/types/game';
@@ -49,6 +49,7 @@ export const PlayerCard = memo(function PlayerCard({
 }: PlayerCardProps) {
   const fitnessColor = getFitnessHexColor(player.fitness);
   const statusLabel = getStatusLabel(player, week);
+  const tier = getPlayerTier(player.overall);
   const displayName = getPlayerDisplayName(player);
   const nameFontSizeClass = getCardNameFontSizeClass(displayName);
   const fullName = `${player.firstName} ${player.lastName}`;
@@ -82,7 +83,7 @@ export const PlayerCard = memo(function PlayerCard({
             >
               {displayName}
             </span>
-            <span className={cn('text-[10px] font-bold font-display tabular-nums shrink-0', getRatingColor(player.overall))}>
+            <span className={cn('text-[10px] font-bold font-display tabular-nums shrink-0', tier.textClass)}>
               {player.overall}
             </span>
           </div>
@@ -130,7 +131,7 @@ export const PlayerCard = memo(function PlayerCard({
         innerClassName="flex flex-col items-center bg-black/80 backdrop-blur-sm px-2 py-1.5"
       >
         {/* Rating - largest element */}
-        <span className={cn('text-sm font-bold font-display tabular-nums leading-none', getRatingColor(player.overall))}>
+        <span className={cn('text-sm font-bold font-display tabular-nums leading-none', tier.textClass)}>
           {player.overall}
         </span>
 
