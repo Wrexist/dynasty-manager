@@ -200,6 +200,50 @@ describe('Pack opening — openPack action', () => {
       expect(p.potential).toBeGreaterThanOrEqual(p.overall);
     }
   });
+
+  it('auto-places pack players into lineup or subs after opening', () => {
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    useGameStore.setState({
+      clubs: {
+        ...state.clubs,
+        [state.playerClubId]: { ...club, budget: 200_000_000 },
+      },
+    });
+
+    const result = useGameStore.getState().openPack('icon');
+    expect(result.success).toBe(true);
+
+    const after = useGameStore.getState();
+    const clubAfter = after.clubs[state.playerClubId];
+    const squadIds = new Set([...clubAfter.lineup, ...clubAfter.subs]);
+
+    for (const p of result.players!) {
+      expect(squadIds.has(p.id)).toBe(true);
+    }
+    expect(clubAfter.lineup.length).toBeLessThanOrEqual(11);
+  });
+
+  it('preserves existing lineup when formation is missing', () => {
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    const preLineup = [...club.lineup];
+    useGameStore.setState({
+      clubs: {
+        ...state.clubs,
+        [state.playerClubId]: {
+          ...club,
+          budget: 50_000_000,
+          formation: undefined as unknown as typeof club.formation,
+        },
+      },
+    });
+
+    const result = useGameStore.getState().openPack('bronze');
+    expect(result.success).toBe(true);
+    const after = useGameStore.getState().clubs[state.playerClubId];
+    expect(after.lineup).toEqual(preLineup);
+  });
 });
 
 describe('Pack opening — releasePackedPlayer action', () => {

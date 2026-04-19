@@ -9,6 +9,7 @@ import { grantXP, XP_REWARDS } from '@/utils/managerPerks';
 import { LEGENDARY_OVR_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { STAT_MAX as CAREER_STAT_MAX, GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_STAT_GROWTH } from '@/config/managerCareer';
 import { playPackSfx } from '@/utils/packAudio';
+import { autoFillBestTeam } from '@/utils/autoFillLineup';
 
 /** Match transferSlice's challenge gate. Packs count as signings — respect
  *  noTransfers and youthOnly scenario flags. Returns a blocking message or
@@ -201,9 +202,43 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // Audio cue (no-op until assets are wired).
     playPackSfx(topPlayer.overall >= WALKOUT_OVR_THRESHOLD ? 'rare-pull' : 'standard-pull');
 
+    // ── Auto-place pack players into lineup/subs ──
+    // Pack players are already in playerIds above, but club.lineup / subs
+    // still point at the pre-pack 11/7. Run the same optimizer the
+    // Optimize Lineup button uses so new pulls appear in the XI or on
+    // the bench immediately — what users expect after a pack reveal.
+    // Pass undefined for match context: packs open any time in the week,
+    // often outside match days; neutral scoring is the right default.
+    let clubsWithLineup = clubsWithAi;
+    const playerClub = clubsWithAi[state.playerClubId];
+    if (playerClub && playerClub.formation) {
+      const squad = playerClub.playerIds
+        .map(id => playersWithAi[id])
+        .filter(Boolean);
+      if (squad.length > 0) {
+        const result = autoFillBestTeam(
+          squad,
+          playerClub.formation,
+          state.week,
+          state.season,
+          undefined,
+        );
+        if (result.lineup.length > 0) {
+          clubsWithLineup = {
+            ...clubsWithAi,
+            [state.playerClubId]: {
+              ...playerClub,
+              lineup: result.lineup.map(p => p.id),
+              subs: result.subs.map(p => p.id),
+            },
+          };
+        }
+      }
+    }
+
     set({
       players: playersWithAi,
-      clubs: clubsWithAi,
+      clubs: clubsWithLineup,
       openedPacks: newOpenedPacks,
       packPityCounter: newPity,
       lastPackWeek: state.week,

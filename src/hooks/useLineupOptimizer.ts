@@ -32,7 +32,7 @@ export function useLineupOptimizer() {
       ? lineupPlayers.reduce((s, p) => s + p.overall, 0) / lineupPlayers.length
       : 0;
     const allAvailable = club.playerIds.map(id => players[id]).filter(p =>
-      p && !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
+      p && !p.injured && !p.onLoan && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
     );
     // Sort by position-weighted OVR for a more accurate estimate than raw overall
     allAvailable.sort((a, b) =>
