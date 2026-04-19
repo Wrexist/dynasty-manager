@@ -9,6 +9,7 @@ import {
   CONTRACT_BASE_YEARS, CONTRACT_RANDOM_YEARS,
   FITNESS_BASE, FITNESS_RANGE, MORALE_BASE, MORALE_RANGE, FORM_BASE, FORM_RANGE,
   SQUAD_TEMPLATE as CONFIG_SQUAD_TEMPLATE, AGE_BUCKETS as CONFIG_AGE_BUCKETS, PEAK_AGE_BUCKET,
+  INITIAL_FILLER_MAX,
   SQUAD_QUALITY_VARIANCE, SQUAD_QUALITY_MIN, SQUAD_QUALITY_MAX,
   QUALITY_SCALING_REFERENCE, QUALITY_SCALING_FLOOR, SQUAD_QUALITY_MIN_LOW, VETERAN_MENTAL_BONUS,
   YOUNG_POTENTIAL_BOOST_BASE, YOUNG_POTENTIAL_BOOST_RANGE, YOUNG_POTENTIAL_AGE_THRESHOLD,
@@ -215,7 +216,7 @@ export function buildPlayerFromTemplate(
   return player;
 }
 
-export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number | string): Player[] {
+export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number | string, isInitialSeason: boolean = false): Player[] {
   const scale = qualityScale(quality);
   const templates = CLUB_TEMPLATES[clubId] || [];
   const templatePlayers: Player[] = templates.map(t => buildPlayerFromTemplate(t, clubId, season));
@@ -235,9 +236,16 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     }
   }
 
+  // At game start, keep squads lean — only cover critical gaps (GK first, by
+  // SQUAD_TEMPLATE order) and let the world grow via weekly signings, youth
+  // intake, and free agents. Age-bucket over-fill is skipped in this mode.
+  const fillerPositions = isInitialSeason
+    ? remainingPositions.slice(0, INITIAL_FILLER_MAX)
+    : remainingPositions;
+
   // ── Step 3: Generate random filler players for remaining slots ──
-  const ageTargets = buildAgeTargets(remainingPositions.length);
-  const fillerPlayers = remainingPositions.map((pos, idx) => {
+  const ageTargets = buildAgeTargets(fillerPositions.length);
+  const fillerPlayers = fillerPositions.map((pos, idx) => {
     const scaledVariance = Math.round(SQUAD_QUALITY_VARIANCE * scale);
     const effectiveMin = Math.round(SQUAD_QUALITY_MIN_LOW + (SQUAD_QUALITY_MIN - SQUAD_QUALITY_MIN_LOW) * scale);
     const q = clamp(quality + variance(scaledVariance), effectiveMin, SQUAD_QUALITY_MAX);

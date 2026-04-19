@@ -84,6 +84,12 @@ export const AGE_BUCKETS: { min: number; max: number; count: number }[] = [
   { min: 30, max: 34, count: 6 },
 ];
 
+// At game start, clubs are seeded with their real-world template rosters.
+// Any positions still missing from SQUAD_TEMPLATE are filled with at most this
+// many procedurally generated players so squads stay lean and the world grows
+// organically through weekly mechanics (signings, youth intake, free agents).
+export const INITIAL_FILLER_MAX = 3;
+
 // ── Star/Veteran Generation ──
 export const STAR_PLAYER_BOOST_MIN = 8;
 export const STAR_PLAYER_BOOST_MAX = 12;

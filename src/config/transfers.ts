@@ -177,9 +177,10 @@ export const AGE_PRICE_MULTIPLIER: Record<string, number> = {
 
 // ── Free Agent Generation ──
 // Number of free agents to generate at game start.
-// Kept lean so AI-club listings (real players) dominate the market.
-export const INITIAL_FREE_AGENTS_MIN = 6;
-export const INITIAL_FREE_AGENTS_RANGE = 4; // 6-9
+// Kept minimal so the game world feels new and grows organically via weekly
+// free-agent spawning and AI-club listings rather than arriving pre-populated.
+export const INITIAL_FREE_AGENTS_MIN = 2;
+export const INITIAL_FREE_AGENTS_RANGE = 2; // 2-3
 // Quality range for generated free agents (slightly lower than market)
 export const FREE_AGENT_QUALITY_MIN = 35;
 export const FREE_AGENT_QUALITY_MAX = 72;
