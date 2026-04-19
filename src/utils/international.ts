@@ -29,6 +29,45 @@ import { generatePlayer, pickNameForNationality, buildPlayerFromTemplate } from 
 import { generatePlayerAppearance } from '@/config/playerAppearance';
 import { NATIONAL_PLAYER_POOL } from '@/data/nationalPlayerPool';
 
+/**
+ * Nationality aliases — maps the game's canonical nation names (src/data/nations.ts)
+ * to equivalent labels used by FC25 data (club squads + NATIONAL_PLAYER_POOL).
+ * Required because the CSV uses e.g. "Côte d'Ivoire"/"Holland"/"Korea Republic"
+ * while the game's NATIONS list uses "Ivory Coast"/"Netherlands"/"South Korea".
+ */
+const NATIONALITY_ALIASES: Record<string, string[]> = {
+  'Ivory Coast': ["Côte d'Ivoire"],
+  'Netherlands': ['Holland'],
+  'South Korea': ['Korea Republic'],
+  'North Korea': ['Korea DPR'],
+  'USA': ['United States'],
+  'Ireland': ['Republic of Ireland'],
+  'UAE': ['United Arab Emirates'],
+  'China': ['China PR'],
+  'Cape Verde': ['Cape Verde Islands'],
+  'DR Congo': ['Congo DR'],
+};
+
+/** Return the canonical nationality plus any FC25-side aliases. */
+export function resolveNationalityAliases(nationality: string): string[] {
+  const aliases = NATIONALITY_ALIASES[nationality] ?? [];
+  return [nationality, ...aliases];
+}
+
+/** Combined pool of real FC25 templates for a nationality, merged across all aliases. */
+function getRealPoolForNationality(nationality: string) {
+  const names = resolveNationalityAliases(nationality);
+  const merged = names.flatMap(n => NATIONAL_PLAYER_POOL[n] ?? []);
+  // Dedup by fn+ln+pos (some names appear in multiple alias entries)
+  const seen = new Set<string>();
+  return merged.filter(t => {
+    const key = `${t.fn}|${t.ln}|${t.pos}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 let fixtureCounter = 0;
 function nextFixtureId(): string {
   return `intl-${++fixtureCounter}-${Date.now().toString(36)}`;
@@ -399,8 +438,9 @@ export function autoSelectNationalSquad(
   nationality: string,
   allPlayers: Record<string, Player>,
 ): string[] {
+  const nats = new Set(resolveNationalityAliases(nationality));
   const eligible = Object.values(allPlayers)
-    .filter(p => p.nationality === nationality && !p.injured && p.age >= 17)
+    .filter(p => nats.has(p.nationality) && !p.injured && p.age >= 17)
     .sort((a, b) => b.overall - a.overall);
 
   // Pick best 23, ensuring position coverage
@@ -469,19 +509,20 @@ export function generateNationalTeamPool(
   existingPlayers: Record<string, Player>,
   season: number,
 ): Record<string, Player> {
+  const nats = new Set(resolveNationalityAliases(nationality));
   const existing = Object.values(existingPlayers)
-    .filter(p => p.nationality === nationality && !p.injured && p.age >= 17);
+    .filter(p => nats.has(p.nationality) && !p.injured && p.age >= 17);
 
   const needed = NT_CANDIDATE_POOL_TARGET - existing.length;
   if (needed <= 0) return {};
 
   const newPlayers: Record<string, Player> = {};
 
-  // ── Step 1: Top up from real FC25 pool ──
+  // ── Step 1: Top up from real FC25 pool (across all nationality aliases) ──
   const existingNameKeys = new Set(
     existing.map(p => `${p.firstName.toLowerCase()}|${p.lastName.toLowerCase()}`)
   );
-  const realPool = NATIONAL_PLAYER_POOL[nationality] ?? [];
+  const realPool = getRealPoolForNationality(nationality);
   let realAdded = 0;
   for (const t of realPool) {
     if (realAdded >= needed) break;
@@ -489,6 +530,8 @@ export function generateNationalTeamPool(
     if (existingNameKeys.has(key)) continue; // already in-game via club squad
     existingNameKeys.add(key);
     const player = buildPlayerFromTemplate(t, '', season);
+    // Normalize the alias to the canonical game nationality so UI/filters align
+    player.nationality = nationality;
     newPlayers[player.id] = player;
     realAdded++;
   }
