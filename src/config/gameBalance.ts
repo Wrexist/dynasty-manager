@@ -176,7 +176,7 @@ export const TARGET_TEMPLATE: Record<string, number> = {
   'GK': 2, 'CB': 5, 'LB': 2, 'RB': 2, 'CDM': 1, 'CM': 5, 'CAM': 1, 'LW': 2, 'RW': 2, 'ST': 3,
 };
 export const MIN_SQUAD_SIZE = 22;
-export const MAX_SQUAD_SIZE = 32;
+export const MAX_SQUAD_SIZE = 40;
 export const REPLACEMENT_QUALITY_REP_MULTIPLIER = 10;
 export const REPLACEMENT_QUALITY_BASE = 20;
 export const REPLACEMENT_QUALITY_VARIANCE = 15;

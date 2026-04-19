@@ -7,7 +7,7 @@ import { generateSquad, selectBestLineup } from '@/utils/playerGen';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 56;
+const CURRENT_VERSION = 57;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -804,6 +804,16 @@ const migrations: Record<number, MigrationFn> = {
       version: 56,
     };
   },
+
+  // v56 → v57: Pack opening feature — openedPacks log, pity counter, last-opened week tracking
+  56: (data) => ({
+    ...data,
+    version: 57,
+    openedPacks: data.openedPacks || [],
+    packPityCounter: data.packPityCounter ?? 0,
+    lastPackWeek: data.lastPackWeek ?? 0,
+    lastPackSeason: data.lastPackSeason ?? 0,
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

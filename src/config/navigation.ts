@@ -75,6 +75,7 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
   'transfers': 'Transfer Market',
   'training': 'Training',
   'scouting': 'Scouting',
+  'packs': 'Player Packs',
   'staff': 'Staff',
   'youth-academy': 'Youth Academy',
   'shop': 'Shop',
@@ -92,7 +93,7 @@ export const MAIN_TABS: GameScreen[] = ['dashboard', 'squad', 'tactics', 'transf
 // SubNav group mappings for swipe navigation within grouped screens
 export const SCREEN_GROUPS: GameScreen[][] = [
   ['squad', 'training', 'staff', 'youth-academy'],
-  ['transfers', 'scouting'],
+  ['transfers', 'scouting', 'packs'],
 ];
 
 // Pinned screens shown as quick-access icons at the top of the More drawer

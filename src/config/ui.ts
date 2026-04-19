@@ -248,6 +248,10 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
     title: 'Scouting Guide',
     body: 'Assign scouts to regions to discover hidden talent. Better scouts find higher-potential players. Check the watch list for discoveries.',
   },
+  packs: {
+    title: 'Packs Guide',
+    body: 'Spend from your budget to open packs and reveal random players — they go straight into your squad. Higher-tier packs guarantee higher overall ratings. The pity meter leans you toward a guaranteed top pull after dry runs.',
+  },
   staff: {
     title: 'Staff Guide',
     body: 'Hire coaching staff to boost training quality and match preparation. Each role provides specific bonuses to your squad.',
@@ -343,6 +347,7 @@ export const XP_GLOW_MS = 1500;
 export const MARKET_SUB_NAV: { screen: GameScreen; label: string }[] = [
   { screen: 'transfers', label: 'Transfers' },
   { screen: 'scouting', label: 'Scouting' },
+  { screen: 'packs', label: 'Packs' },
 ];
 
 // ── Team Talk Options (match day half-time) ──

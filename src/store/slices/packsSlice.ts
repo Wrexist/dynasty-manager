@@ -1,0 +1,153 @@
+import type { Player } from '@/types/game';
+import type { GameState } from '../storeTypes';
+import { addMsg } from '@/utils/helpers';
+import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
+import { PACK_TIER_MAP, type PackTierKey, RECENT_PULLS_LIMIT } from '@/config/packs';
+import { generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
+
+type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
+type Get = () => GameState;
+
+export interface OpenedPackRecord {
+  id: string;
+  tier: PackTierKey;
+  season: number;
+  week: number;
+  timestamp: number;
+  /** Snapshot of player IDs in reveal order. Players live in the main `players` map. */
+  playerIds: string[];
+  /** Cached top OVR so the shop can badge the record without touching `players`. */
+  topOvr: number;
+}
+
+export interface OpenPackResult {
+  success: boolean;
+  message: string;
+  players?: Player[];
+  record?: OpenedPackRecord;
+  pityTriggered?: boolean;
+}
+
+export const createPacksSlice = (set: Set, get: Get) => ({
+  openedPacks: [] as OpenedPackRecord[],
+  packPityCounter: 0,
+  lastPackWeek: 0,
+  lastPackSeason: 0,
+
+  openPack: (tierKey: PackTierKey): OpenPackResult => {
+    const state = get();
+    const tier = PACK_TIER_MAP[tierKey];
+    if (!tier) return { success: false, message: 'Unknown pack tier.' };
+
+    const club = state.clubs[state.playerClubId];
+    if (!club) return { success: false, message: 'No active club.' };
+
+    if (club.budget < tier.price) {
+      return { success: false, message: 'Insufficient funds for this pack.' };
+    }
+
+    const slotsAvailable = MAX_SQUAD_SIZE - club.playerIds.length;
+    if (slotsAvailable < tier.cards) {
+      return {
+        success: false,
+        message: `Not enough squad space — this pack delivers ${tier.cards} player(s). Release players first.`,
+      };
+    }
+
+    // Once-per-week throttle, keyed by (season, week) so advancing a week
+    // re-enables opening. Skips the first-ever open (both fields start at 0).
+    if (
+      (state.lastPackSeason || 0) === state.season
+      && (state.lastPackWeek || 0) === state.week
+      && ((state.openedPacks || []).length > 0)
+    ) {
+      return { success: false, message: 'Only one pack per week — advance a week to open another.' };
+    }
+
+    const pityTriggered = shouldPityTrigger(state.packPityCounter || 0);
+    const players = generatePackContents(tierKey, state.season, { pityTriggered });
+
+    // Claim players onto the club roster. Generators created them with
+    // clubId = ''; we finalize ownership here.
+    const newPlayers = { ...state.players };
+    const finalizedPlayers: Player[] = players.map(p => {
+      const owned: Player = { ...p, clubId: state.playerClubId, joinedSeason: state.season };
+      newPlayers[owned.id] = owned;
+      return owned;
+    });
+
+    const updatedClub = {
+      ...club,
+      budget: Math.max(0, club.budget - tier.price),
+      playerIds: [...club.playerIds, ...finalizedPlayers.map(p => p.id)],
+      wageBill: club.wageBill + finalizedPlayers.reduce((s, p) => s + p.wage, 0),
+    };
+
+    const record: OpenedPackRecord = {
+      id: crypto.randomUUID(),
+      tier: tierKey,
+      season: state.season,
+      week: state.week,
+      timestamp: Date.now(),
+      playerIds: finalizedPlayers.map(p => p.id),
+      topOvr: finalizedPlayers.reduce((m, p) => Math.max(m, p.overall), 0),
+    };
+
+    const newPity = updatedPityCounter(state.packPityCounter || 0, finalizedPlayers);
+    const topPlayer = finalizedPlayers.reduce((best, p) => p.overall > best.overall ? p : best, finalizedPlayers[0]);
+
+    const newMessages = addMsg(state.messages, {
+      week: state.week,
+      season: state.season,
+      type: 'transfer',
+      title: `${tier.label} Opened`,
+      body: `${tier.label} cost £${(tier.price / 1e6).toFixed(1)}M. Top pull: ${topPlayer.firstName} ${topPlayer.lastName} (${topPlayer.overall} OVR, ${topPlayer.position}). ${tier.cards} player(s) added to your squad.`,
+    });
+
+    // Log to finance ledger as an expense on the current week. If a record
+    // for this week already exists, update it; otherwise append.
+    const history = [...state.financeHistory];
+    const currentIdx = history.findIndex(r => r.season === state.season && r.week === state.week);
+    if (currentIdx >= 0) {
+      const rec = history[currentIdx];
+      history[currentIdx] = {
+        ...rec,
+        expenses: rec.expenses + tier.price,
+        balance: rec.balance - tier.price,
+      };
+    } else {
+      history.push({
+        season: state.season,
+        week: state.week,
+        income: 0,
+        expenses: tier.price,
+        transfers: 0,
+        balance: -tier.price,
+      });
+    }
+
+    const newOpenedPacks = [record, ...(state.openedPacks || [])].slice(0, 200);
+
+    set({
+      players: newPlayers,
+      clubs: { ...state.clubs, [club.id]: updatedClub },
+      financeHistory: history,
+      openedPacks: newOpenedPacks,
+      packPityCounter: newPity,
+      lastPackWeek: state.week,
+      lastPackSeason: state.season,
+      messages: newMessages,
+      seasonTotalExpenses: (state.seasonTotalExpenses || 0) + tier.price,
+    });
+
+    return {
+      success: true,
+      message: `${tier.label} opened — ${tier.cards} player(s) signed.`,
+      players: finalizedPlayers,
+      record,
+      pityTriggered,
+    };
+  },
+});
+
+export { RECENT_PULLS_LIMIT };
