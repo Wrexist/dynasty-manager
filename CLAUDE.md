@@ -186,6 +186,14 @@ npm run branch -- feature-name     # Create branch from latest origin/main
 npm run cap:sync     # Build + sync to native projects
 npm run cap:ios      # Open Xcode project
 npm run cap:android  # Open Android Studio project
+
+# Data scraping (planned for future pack-opening system)
+npm run scrape:icons                 # full SoFIFA Icons scrape (~3 min, ~150 rows)
+npm run scrape:icons -- --limit 5    # smoke test (5 icons)
+npm run scrape:icons -- --resume     # continue from cache
+npm run scrape:icons -- --retry-failed --debug
+# Outputs: fc25_icons.csv (58-col schema) + fc25_icons_meta.json (image URLs)
+# Runs locally only — Claude Code sandbox blocks sofifa.com
 ```
 
 ## Git Workflow for Claude Sessions

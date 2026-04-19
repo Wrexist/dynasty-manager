@@ -19,6 +19,7 @@
     "cap:android": "npx cap open android",
     "ship": "bash scripts/ship.sh",
     "branch": "bash scripts/new-branch.sh",
+    "scrape:icons": "node scripts/scrapeSoFIFAIcons.mjs",
     "prepare": "husky",
     "version:sync": "node scripts/sync-version.mjs"
   },

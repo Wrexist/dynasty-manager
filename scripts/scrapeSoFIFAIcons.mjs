@@ -1,35 +1,75 @@
 #!/usr/bin/env node
 /**
- * SoFIFA Icons Scraper → fc25_icons.csv
+ * SoFIFA Icons Scraper → fc25_icons.csv (+ fc25_icons_meta.json)
  *
- * Fetches every Icon player from sofifa.com and writes a CSV that matches
- * the 58-column schema of fc25_players.csv. Output is intended to feed a
- * future pack-opening system; this script does NOT integrate icons into
- * the live game.
+ * Fetches every Icon player from sofifa.com and writes:
+ *   - fc25_icons.csv         58-col schema matching fc25_players.csv
+ *   - fc25_icons_meta.json   sidecar: id → { name, ovr, imageUrl, sofifaUrl }
+ *                             (intended for the pack-opening card UI)
  *
  * Usage:
- *   node scripts/scrapeSoFIFAIcons.mjs              # full scrape
- *   node scripts/scrapeSoFIFAIcons.mjs --limit 10   # first 10 icons only
- *   node scripts/scrapeSoFIFAIcons.mjs --resume     # continue from cache
+ *   node scripts/scrapeSoFIFAIcons.mjs                  # full scrape
+ *   node scripts/scrapeSoFIFAIcons.mjs --limit 10       # smoke test
+ *   node scripts/scrapeSoFIFAIcons.mjs --resume         # continue from cache
+ *   node scripts/scrapeSoFIFAIcons.mjs --retry-failed   # re-run errored rows
+ *   node scripts/scrapeSoFIFAIcons.mjs --output my.csv  # custom output path
+ *   node scripts/scrapeSoFIFAIcons.mjs --debug          # dump first parse-fail HTML
+ *   node scripts/scrapeSoFIFAIcons.mjs --help
  *
  * Zero npm dependencies. Requires Node 18+ for native fetch.
+ *
+ * Sandbox note: the Claude Code sandbox blocks sofifa.com outbound
+ * (x-deny-reason: host_not_allowed). Run this on a normal machine.
  */
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { writeFileSync, readFileSync, existsSync, mkdirSync, renameSync } from 'node:fs';
+import { join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
-const OUTPUT_CSV = join(ROOT, 'fc25_icons.csv');
+const DEFAULT_OUTPUT_CSV = join(ROOT, 'fc25_icons.csv');
+const META_JSON = join(ROOT, 'fc25_icons_meta.json');
 const CACHE_FILE = join(__dirname, '.icons-cache.json');
+const DEBUG_HTML = join(__dirname, '.icons-debug.html');
 
 // ── CLI args ──
 const args = process.argv.slice(2);
-const LIMIT = (() => {
-  const i = args.indexOf('--limit');
-  return i >= 0 ? parseInt(args[i + 1], 10) : Infinity;
+function flag(name) { return args.includes(name); }
+function arg(name) {
+  const i = args.indexOf(name);
+  return i >= 0 && i + 1 < args.length ? args[i + 1] : undefined;
+}
+
+if (flag('--help') || flag('-h')) {
+  console.log(`SoFIFA Icons Scraper
+
+Usage: node scripts/scrapeSoFIFAIcons.mjs [options]
+
+Options:
+  --limit N         Scrape only the first N icons (smoke testing)
+  --resume          Continue from scripts/.icons-cache.json
+  --retry-failed    Re-attempt only icons that previously errored
+  --output PATH     Write CSV to PATH instead of fc25_icons.csv
+  --debug           On first parse failure, save raw HTML to .icons-debug.html
+  --delay MS        Override per-request delay (default 1000ms)
+  -h, --help        Show this message
+
+Outputs:
+  fc25_icons.csv          58-column schema matching fc25_players.csv
+  fc25_icons_meta.json    Image URLs + stable IDs for the pack-opening UI`);
+  process.exit(0);
+}
+
+const LIMIT = arg('--limit') ? parseInt(arg('--limit'), 10) : Infinity;
+const RESUME = flag('--resume') || flag('--retry-failed');
+const RETRY_FAILED = flag('--retry-failed');
+const DEBUG = flag('--debug');
+const DELAY_MS = arg('--delay') ? parseInt(arg('--delay'), 10) : 1000;
+const OUTPUT_CSV = (() => {
+  const p = arg('--output');
+  if (!p) return DEFAULT_OUTPUT_CSV;
+  return isAbsolute(p) ? p : join(process.cwd(), p);
 })();
-const RESUME = args.includes('--resume');
 
 // ── HTTP config ──
 const BASE = 'https://sofifa.com';
@@ -51,7 +91,6 @@ const HEADERS = {
   'Upgrade-Insecure-Requests': '1',
 };
 
-const SLEEP_MS = 1000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ── CSV header (must match fc25_players.csv exactly) ──
@@ -67,10 +106,11 @@ const CSV_COLUMNS = [
   'GK Positioning', 'GK Reflexes',
 ];
 
-// ── Attribute label aliases (SoFIFA uses these label strings on detail pages) ──
+// ── Attribute label aliases (SoFIFA detail-page text) ──
 const ATTR_LABELS = {
   'Acceleration': ['Acceleration'],
   'Sprint Speed': ['Sprint Speed'],
+  // "Positioning" must NOT match "GK Positioning" — handled below in getAttribute.
   'Positioning': ['Att. Position', 'Attacking Position', 'Positioning'],
   'Finishing': ['Finishing'],
   'Shot Power': ['Shot Power'],
@@ -105,11 +145,28 @@ const ATTR_LABELS = {
   'GK Reflexes': ['GK Reflexes', 'Reflexes'],
 };
 
-// ── HTTP with retry ──
+// ── HTTP with retry + better block detection ──
 async function get(url, attempt = 1) {
-  const res = await fetch(url, { headers: HEADERS, redirect: 'follow' });
+  let res;
+  try {
+    res = await fetch(url, { headers: HEADERS, redirect: 'follow' });
+  } catch (err) {
+    if (attempt <= 3) {
+      const wait = Math.pow(2, attempt) * 1000;
+      console.warn(`  ! network error on ${url}: ${err.message} — backoff ${wait}ms (attempt ${attempt}/3)`);
+      await sleep(wait);
+      return get(url, attempt + 1);
+    }
+    throw err;
+  }
   if (res.status === 403) {
-    throw new Error(`403 Forbidden from ${url} — SoFIFA is blocking the request. Try updating User-Agent or running from a different IP.`);
+    const reason = res.headers.get('x-deny-reason') || res.headers.get('cf-mitigated') || 'unknown';
+    throw new Error(
+      `403 Forbidden from ${url} (reason: ${reason}). ` +
+      (reason === 'host_not_allowed'
+        ? 'Sandbox blocks sofifa.com — run this script on a normal machine.'
+        : 'SoFIFA / Cloudflare is blocking. Try a different network or update User-Agent.')
+    );
   }
   if ((res.status === 429 || res.status >= 500) && attempt <= 3) {
     const wait = Math.pow(2, attempt) * 1000;
@@ -121,9 +178,8 @@ async function get(url, attempt = 1) {
   return res.text();
 }
 
-// ── List-page parser: extract player URL paths ──
+// ── List-page parser ──
 function parseListPage(html) {
-  // Player anchors look like: href="/player/<id>/<slug>/<version>/"
   const re = /href="(\/player\/(\d+)\/([a-z0-9-]+)\/(\d+)\/)"/g;
   const seen = new Map();
   let m;
@@ -134,13 +190,29 @@ function parseListPage(html) {
   return [...seen.values()];
 }
 
-// ── Detail-page parsers ──
-function stripTags(s) {
-  return s.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
+// ── HTML helpers ──
+function decodeEntities(s) {
+  return s
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#(\d+);/g, (_, d) => String.fromCodePoint(parseInt(d, 10)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)));
 }
 
+function stripTags(s) {
+  return decodeEntities(s.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
+}
+
+function escapeRe(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// ── Detail-page parsers ──
 function getName(html) {
-  // <h1>Pelé</h1>  or  <title>Pelé FC 25 - rating ... - SoFIFA</title>
   let m = html.match(/<h1[^>]*>([^<]+)<\/h1>/);
   if (m) return stripTags(m[1]);
   m = html.match(/<title>([^|<]+?)\s+(?:FC|FIFA)\s/i);
@@ -148,21 +220,16 @@ function getName(html) {
 }
 
 function getOVR(html) {
-  // Looks for <em title="Overall Rating"...>VALUE</em> or similar
   let m = html.match(/<em[^>]*title=["']Overall(?: Rating)?["'][^>]*>(?:<[^>]+>)*?(\d{2,3})/i);
   if (m) return parseInt(m[1], 10);
-  // Fallback: first <em> after "Overall"
   m = html.match(/Overall[^<]*<\/?[^>]*>\s*(\d{2,3})/i);
   return m ? parseInt(m[1], 10) : '';
 }
 
 function getCategoryRating(html, category) {
-  // Categories: PAC/SHO/PAS/DRI/DEF/PHY shown as e.g. <em>97</em>...PAC
-  // Robust pattern: look for "<em ...>NUM</em>...<span>CATEGORY</span>" within ~200 chars
   const re = new RegExp(`(\\d{2,3})[^\\d<]{0,40}<[^>]*>\\s*${category}\\b`, 'i');
   const m = html.match(re);
   if (m) return parseInt(m[1], 10);
-  // Inverse pattern (category first, value after)
   const re2 = new RegExp(`>${category}<[^<]*<[^>]*>\\s*(\\d{2,3})`, 'i');
   const m2 = html.match(re2);
   return m2 ? parseInt(m2[1], 10) : '';
@@ -170,66 +237,52 @@ function getCategoryRating(html, category) {
 
 function getAttribute(html, columnName) {
   const aliases = ATTR_LABELS[columnName] || [columnName];
+  // Outfield "Positioning" must not match "GK Positioning" anywhere.
+  // Prefix the match boundary with (?<!GK\s) for the bare "Positioning" alias.
   for (const label of aliases) {
-    // Pattern A: <span class="bp3-tag ...">VALUE</span> Label
-    const reA = new RegExp(`<span[^>]*class=["'][^"']*?(?:bp3-tag|p p-)[^"']*["'][^>]*>(\\d{1,3})<\\/span>[^<]*${escapeRe(label)}\\b`, 'i');
+    const labelRe = label === 'Positioning' ? `(?<!GK\\s)${escapeRe(label)}` : escapeRe(label);
+    // Pattern A: <span class="bp3-tag …">VAL</span> Label
+    const reA = new RegExp(`<span[^>]*class=["'][^"']*?(?:bp3-tag|p p-)[^"']*["'][^>]*>(\\d{1,3})</span>[^<]*${labelRe}\\b`, 'i');
     let m = html.match(reA);
     if (m) return parseInt(m[1], 10);
-    // Pattern B: <em>VALUE</em>Label
-    const reB = new RegExp(`<em[^>]*>(\\d{1,3})<\\/em>[^<]*${escapeRe(label)}\\b`, 'i');
+    // Pattern B: <em>VAL</em>Label
+    const reB = new RegExp(`<em[^>]*>(\\d{1,3})</em>[^<]*${labelRe}\\b`, 'i');
     m = html.match(reB);
     if (m) return parseInt(m[1], 10);
-    // Pattern C: VALUE followed by label within ~30 chars (loose)
-    const reC = new RegExp(`(\\d{1,3})[^\\d<>]{0,30}${escapeRe(label)}\\b`, 'i');
+    // Pattern C: VAL within ~30 chars before Label (loose)
+    const reC = new RegExp(`(\\d{1,3})[^\\d<>]{0,30}${labelRe}\\b`, 'i');
     m = html.match(reC);
     if (m) return parseInt(m[1], 10);
   }
   return '';
 }
 
-function escapeRe(s) {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function getProfileField(html, label) {
-  // Profile rows: <label>Foot</label> <span>Right</span> or "Foot Right"
-  const re = new RegExp(`${escapeRe(label)}\\s*<\\/label>\\s*<[^>]*>\\s*([^<]+?)\\s*<`, 'i');
-  let m = html.match(re);
-  if (m) return stripTags(m[1]);
-  const re2 = new RegExp(`>${escapeRe(label)}<\\/[^>]+>\\s*<[^>]+>\\s*([^<]+)`, 'i');
-  m = html.match(re2);
-  return m ? stripTags(m[1]) : '';
-}
-
 function getPositions(html) {
-  // Primary position: <span class="pos pos25">ST</span> in header
-  const all = [...html.matchAll(/<span[^>]*class=["'](?:pos|bp3-tag[^"']*)[^"']*["'][^>]*>([A-Z]{2,3})<\/span>/g)]
+  // Tighten to position-class spans only; bp3-tag was over-greedy.
+  const all = [...html.matchAll(/<span[^>]*class=["'][^"']*\bpos\s+pos\d+[^"']*["'][^>]*>([A-Z]{2,3})<\/span>/g)]
     .map((m) => m[1])
     .filter((p) => /^(GK|RWB|LWB|CB|RB|LB|CDM|CM|CAM|RM|LM|RW|LW|CF|ST)$/.test(p));
-  // Dedup, preserve order
   const dedup = [...new Set(all)];
   return { primary: dedup[0] || '', alternates: dedup.slice(1) };
 }
 
 function getMeta(html) {
-  // SoFIFA meta line: "ST  31 y.o.  (Oct 23, 1940)  175cm | 5'9"  77kg | 170lbs"
   const meta = {};
   const m = html.match(/(\d{2,3})\s*cm\s*\|\s*(\d+)['′]?(\d+)?["″]?/);
   if (m) {
-    const cm = m[1];
-    const ft = m[2];
-    const inch = m[3] || '0';
-    meta.height = `${cm}cm / ${ft}'${inch}"`;
+    meta.height = `${m[1]}cm / ${m[2]}'${m[3] || '0'}"`;
   }
   const w = html.match(/(\d{2,3})\s*kg\s*\|\s*(\d+)\s*lbs?/);
   if (w) meta.weight = `${w[1]}kg / ${w[2]}lb`;
   const a = html.match(/(\d{1,2})\s*y\.o\./);
   if (a) meta.age = parseInt(a[1], 10);
+  // Birth year (first 4-digit year in parens after a date)
+  const by = html.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\w*\s+\d{1,2},?\s+(\d{4})\b/);
+  if (by) meta.birthYear = parseInt(by[1], 10);
   return meta;
 }
 
 function getNation(html) {
-  // Flag image with title or alt = nation name
   let m = html.match(/<a[^>]*href=["']\/players\?na=\d+["'][^>]*>(?:<[^>]+>)*?([A-Za-zÀ-ÿ' .-]+)/);
   if (m) return stripTags(m[1]);
   m = html.match(/<img[^>]*class=["']flag["'][^>]*title=["']([^"']+)["']/);
@@ -237,9 +290,20 @@ function getNation(html) {
 }
 
 function getStars(html, label) {
-  // "Skill moves 5★" or "Weak Foot 4★" — SoFIFA renders count of stars
-  const re = new RegExp(`${escapeRe(label)}[^\\d]{0,30}(\\d)\\s*[★\\*]`, 'i');
-  const m = html.match(re);
+  // SoFIFA renders "5★ Skill Moves" — value FIRST, then star, then label.
+  // Try value-before-label first (the actual SoFIFA layout), then label-before-value as fallback.
+  const labelRe = escapeRe(label);
+  // Pattern A (canonical): "5 ★ … Label" within ~30 chars
+  const reA = new RegExp(`(\\d)\\s*[★\\*][^<]{0,30}${labelRe}\\b`, 'i');
+  let m = html.match(reA);
+  if (m) return parseInt(m[1], 10);
+  // Pattern B: "<span ...>5</span>★ … Label"
+  const reB = new RegExp(`>(\\d)<[^<]*[★\\*][^<]{0,30}${labelRe}\\b`, 'i');
+  m = html.match(reB);
+  if (m) return parseInt(m[1], 10);
+  // Pattern C (fallback): "Label … 5★"
+  const reC = new RegExp(`${labelRe}[^\\d]{0,30}(\\d)\\s*[★\\*]`, 'i');
+  m = html.match(reC);
   return m ? parseInt(m[1], 10) : '';
 }
 
@@ -251,15 +315,19 @@ function getFoot(html) {
 }
 
 function getPlaystyles(html) {
-  // PlayStyles section: <a href="/players?ps=...">Name</a>
   const styles = [...html.matchAll(/<a[^>]*href=["']\/players\?ps=\d+["'][^>]*>([^<]+)<\/a>/g)]
     .map((m) => stripTags(m[1]))
     .filter(Boolean);
-  // PlayStyles+ are sometimes rendered with a trailing "+"
   return [...new Set(styles)].join(', ');
 }
 
-function parsePlayer(html, fullUrl) {
+function getImageUrl(html) {
+  // Player face images on SoFIFA: cdn.sofifa.net/players/<id>/<version>/<size>.png
+  const m = html.match(/https?:\/\/cdn\.sofifa\.(?:net|com)\/players\/[^"'<\s]+/);
+  return m ? m[0] : '';
+}
+
+function parsePlayer(html, id, fullUrl) {
   const positions = getPositions(html);
   const meta = getMeta(html);
   const isGK = positions.primary === 'GK';
@@ -324,7 +392,19 @@ function parsePlayer(html, fullUrl) {
     'GK Positioning': isGK ? getAttribute(html, 'GK Positioning') : '',
     'GK Reflexes': isGK ? getAttribute(html, 'GK Reflexes') : '',
   };
-  return row;
+
+  const meta_ = {
+    id,
+    name: row.Name,
+    ovr: row.OVR,
+    position: row.Position,
+    nation: row.Nation,
+    birthYear: meta.birthYear || null,
+    imageUrl: getImageUrl(html),
+    sofifaUrl: fullUrl,
+  };
+
+  return { row, meta: meta_ };
 }
 
 // ── CSV writer ──
@@ -340,44 +420,74 @@ function rowToCsv(row) {
   return CSV_COLUMNS.map((c) => csvEscape(row[c])).join(',');
 }
 
-function writeCsv(rows) {
+function writeCsv(rows, path) {
   const header = CSV_COLUMNS.map((c) => csvEscape(c)).join(',');
   const body = rows.map(rowToCsv).join('\n');
-  writeFileSync(OUTPUT_CSV, header + '\n' + body + '\n', 'utf8');
+  atomicWrite(path, header + '\n' + body + '\n');
 }
 
-// ── Cache (resume support) ──
+// ── Atomic writes (Ctrl+C-safe) ──
+function atomicWrite(path, content) {
+  const tmp = `${path}.tmp`;
+  if (!existsSync(dirname(path))) mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(tmp, content, 'utf8');
+  renameSync(tmp, path);
+}
+
+// ── Cache ──
 function loadCache() {
-  if (!existsSync(CACHE_FILE)) return { ids: [], rows: {} };
+  if (!existsSync(CACHE_FILE)) return { ids: [], rows: {}, meta: {} };
   try {
-    return JSON.parse(readFileSync(CACHE_FILE, 'utf8'));
+    const c = JSON.parse(readFileSync(CACHE_FILE, 'utf8'));
+    if (!c.meta) c.meta = {};
+    return c;
   } catch {
-    return { ids: [], rows: {} };
+    return { ids: [], rows: {}, meta: {} };
   }
 }
 
 function saveCache(cache) {
-  if (!existsSync(dirname(CACHE_FILE))) mkdirSync(dirname(CACHE_FILE), { recursive: true });
-  writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf8');
+  atomicWrite(CACHE_FILE, JSON.stringify(cache, null, 2));
+}
+
+// ── ETA ──
+function eta(startMs, done, total) {
+  if (done === 0) return '?';
+  const elapsed = Date.now() - startMs;
+  const remaining = (elapsed / done) * (total - done);
+  const sec = Math.round(remaining / 1000);
+  if (sec < 60) return `${sec}s`;
+  const min = Math.floor(sec / 60);
+  return `${min}m${sec % 60}s`;
 }
 
 // ── Main ──
 async function main() {
   console.log('SoFIFA Icons Scraper');
   console.log(`  output: ${OUTPUT_CSV}`);
+  console.log(`  meta:   ${META_JSON}`);
   if (LIMIT !== Infinity) console.log(`  limit:  ${LIMIT}`);
+  if (RETRY_FAILED) console.log(`  mode:   retry-failed`);
+  else if (RESUME) console.log(`  mode:   resume`);
   console.log('');
 
-  const cache = RESUME ? loadCache() : { ids: [], rows: {} };
+  const cache = RESUME ? loadCache() : { ids: [], rows: {}, meta: {} };
+  if (RETRY_FAILED) {
+    let cleared = 0;
+    for (const id of Object.keys(cache.rows)) {
+      if (cache.rows[id]?.error) { delete cache.rows[id]; cleared++; }
+    }
+    console.log(`  cleared ${cleared} failed rows from cache\n`);
+  }
 
-  // ── Step 1: collect Icon URLs from list pages ──
+  // ── Step 1: collect Icon URLs ──
   if (cache.ids.length === 0) {
     console.log('[1/2] Collecting Icon URLs…');
     const collected = new Map();
     let offset = 0;
     while (true) {
       const url = ICONS_LIST_URL(offset);
-      console.log(`  fetch  ${url}`);
+      console.log(`  fetch  offset=${offset}`);
       const html = await get(url);
       const found = parseListPage(html);
       const newOnes = found.filter((p) => !collected.has(p.id));
@@ -388,52 +498,77 @@ async function main() {
       for (const p of newOnes) collected.set(p.id, p);
       console.log(`         +${newOnes.length} (total ${collected.size})`);
       offset += 60;
-      await sleep(SLEEP_MS);
+      await sleep(DELAY_MS);
     }
     cache.ids = [...collected.values()];
     saveCache(cache);
+    if (cache.ids.length < 30) {
+      console.warn(`  ⚠  only ${cache.ids.length} icons indexed — SoFIFA's Icons league ID may have changed (currently lg=2118 in script).`);
+    }
     console.log(`  ✓ ${cache.ids.length} unique icons indexed\n`);
   } else {
     console.log(`[1/2] Resuming with ${cache.ids.length} cached IDs (${Object.keys(cache.rows).length} already scraped)\n`);
   }
 
-  // ── Step 2: fetch detail pages ──
+  // ── Step 2: detail pages ──
   console.log('[2/2] Scraping detail pages…');
   const targets = cache.ids.slice(0, LIMIT);
+  const startMs = Date.now();
   let count = 0;
+  let debugDumped = false;
+
   for (const p of targets) {
     count++;
-    if (cache.rows[p.id]) {
+    if (cache.rows[p.id] && !cache.rows[p.id].error) {
       process.stdout.write(`  [${count}/${targets.length}] ✓ cached  ${p.slug}\n`);
       continue;
     }
     const fullUrl = `${BASE}${p.path}`;
-    process.stdout.write(`  [${count}/${targets.length}] fetch  ${p.slug} … `);
+    process.stdout.write(`  [${count}/${targets.length}] (${eta(startMs, count - 1, targets.length)} ETA) fetch  ${p.slug} … `);
     try {
       const html = await get(fullUrl);
-      const row = parsePlayer(html, fullUrl);
+      const { row, meta } = parsePlayer(html, p.id, fullUrl);
       if (!row.Name || !row.OVR) {
-        console.log(`PARSE FAIL (name=${row.Name} ovr=${row.OVR})`);
+        console.log(`PARSE FAIL (name=${row.Name || '∅'} ovr=${row.OVR || '∅'})`);
+        if (DEBUG && !debugDumped) {
+          atomicWrite(DEBUG_HTML, html);
+          console.log(`         debug HTML → ${DEBUG_HTML}`);
+          debugDumped = true;
+        }
       } else {
         console.log(`OK  ${row.Name} (${row.OVR} ${row.Position})`);
       }
       cache.rows[p.id] = row;
+      cache.meta[p.id] = meta;
       saveCache(cache);
     } catch (err) {
       console.log(`ERROR ${err.message}`);
       cache.rows[p.id] = { error: err.message };
       saveCache(cache);
     }
-    await sleep(SLEEP_MS);
+    await sleep(DELAY_MS);
   }
 
-  // ── Write CSV ──
-  const rows = Object.values(cache.rows).filter((r) => r && !r.error && r.Name && r.OVR);
-  rows.sort((a, b) => (b.OVR || 0) - (a.OVR || 0));
-  writeCsv(rows);
-  console.log(`\n✓ Wrote ${rows.length} icons → fc25_icons.csv`);
+  // ── Write outputs ──
+  const valid = Object.entries(cache.rows)
+    .filter(([, r]) => r && !r.error && r.Name && r.OVR)
+    .sort(([, a], [, b]) => (b.OVR || 0) - (a.OVR || 0));
+
+  // Populate sequential Rank by OVR-descending order (matches fc25_players.csv convention).
+  valid.forEach(([, r], i) => { r['Rank'] = i + 1; r['Unnamed: 0'] = i; });
+
+  writeCsv(valid.map(([, r]) => r), OUTPUT_CSV);
+
+  const metaOut = {};
+  for (const [id] of valid) {
+    if (cache.meta[id]) metaOut[id] = cache.meta[id];
+  }
+  atomicWrite(META_JSON, JSON.stringify(metaOut, null, 2));
+
+  console.log(`\n✓ Wrote ${valid.length} icons → ${OUTPUT_CSV}`);
+  console.log(`✓ Wrote ${Object.keys(metaOut).length} meta entries → ${META_JSON}`);
   const errors = Object.values(cache.rows).filter((r) => r && r.error).length;
-  if (errors) console.log(`  (${errors} errors — see ${CACHE_FILE})`);
+  if (errors) console.log(`  (${errors} errors — re-run with --retry-failed to retry)`);
 }
 
 main().catch((err) => {
