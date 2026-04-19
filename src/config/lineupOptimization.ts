@@ -5,9 +5,9 @@
 
 // ── Player Scoring Weights ──
 // Calibrated to match engine: baseStrength = avgOverall * (0.7 + fitness*0.2 + morale*0.1)
-export const LINEUP_POSITIONAL_OVERALL_WEIGHT = 0.70;
+export const LINEUP_POSITIONAL_OVERALL_WEIGHT = 0.85;
 export const LINEUP_FORM_WEIGHT = 12;
-export const LINEUP_FITNESS_WEIGHT = 20;
+export const LINEUP_FITNESS_WEIGHT = 8;
 export const LINEUP_MORALE_WEIGHT = 10;
 
 // ── Position Match Bonuses/Penalties ──
@@ -17,7 +17,7 @@ export const LINEUP_COMPATIBLE_POSITION_BONUS = 8;
 export const LINEUP_INCOMPATIBLE_POSITION_PENALTY = -40;
 
 // ── Fitness & Morale ──
-export const LINEUP_LOW_FITNESS_EXTRA_PENALTY = -8;
+export const LINEUP_LOW_FITNESS_EXTRA_PENALTY = -3;
 export const LINEUP_LOW_MORALE_THRESHOLD = 40;
 export const LINEUP_LOW_MORALE_EXTRA_PENALTY = -6;
 
@@ -76,10 +76,10 @@ export const BENCH_STARTER_TIRED_THRESHOLD = 70;
 // ── Position-Specific Fitness Overrides ──
 // Match engine: attackers use shooting*0.6 + fitness*0.4 for goal selection → fitness is critical
 export const POSITION_FITNESS_OVERRIDE: Record<string, number> = {
-  'ST': 22, 'LW': 20, 'RW': 20, 'CAM': 18,   // Attackers: fitness = 40% of goal selection
-  'CM': 15, 'CDM': 14, 'LM': 16, 'RM': 16,    // Midfield: balanced
-  'CB': 12, 'LB': 14, 'RB': 14,                // Defenders: less fitness-dependent
-  'GK': 8,                                       // GK: barely degrades in-match
+  'ST': 10, 'LW': 9, 'RW': 9, 'CAM': 8,   // Attackers: fitness is a tiebreaker, not primary
+  'CM': 6, 'CDM': 6, 'LM': 7, 'RM': 7,    // Midfield: balanced
+  'CB': 5, 'LB': 6, 'RB': 6,               // Defenders: less fitness-dependent
+  'GK': 3,                                   // GK: barely degrades in-match
 };
 
 // ── Match Context Adjustments ──
