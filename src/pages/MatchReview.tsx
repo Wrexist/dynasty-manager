@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type ReactNode } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import type { Club, Player } from '@/types/game';
@@ -36,7 +36,7 @@ const HIGHLIGHT_TONE_CLASS: Record<HighlightTone, { dot: string; text: string }>
   disallowed: { dot: 'bg-red-500',     text: 'text-red-400' },
   neutral:    { dot: 'bg-amber-400',   text: 'text-amber-400' },
   'own-goal': { dot: 'bg-amber-500',   text: 'text-amber-400' },
-  sub:        { dot: 'bg-sky-400',     text: 'text-sky-400' },
+  sub:        { dot: 'bg-indigo-400',  text: 'text-indigo-400' },
 };
 const HIGHLIGHT_LABEL: Partial<Record<MatchEvent['type'], string>> = {
   goal: 'GOAL', free_kick_goal: 'FREE KICK', long_range_goal: 'LONG RANGE',
@@ -59,7 +59,7 @@ import { YellowCardIcon, RedCardIcon } from '@/components/game/PlayerAvatar';
 import { getSuffix } from '@/utils/helpers';
 import { PageHint } from '@/components/game/PageHint';
 import { findTournamentMatch } from '@/hooks/useGameSelectors';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 
 const MatchReview = () => {
   const { currentMatchResult, clubs, players, playerClubId, boardConfidence, matchPlayerRatings, week, divisionFixtures, playerDivision, divisionTables, boardObjectives, monetization, lastMatchCompetition, virtualClubs } = useGameStore(useShallow(s => ({
@@ -78,9 +78,25 @@ const MatchReview = () => {
   const [isAdvancing, setIsAdvancing] = useState(false);
   const [highlightFilter, setHighlightFilter] = useState<'all' | 'us' | 'goals'>('all');
 
+  const reducedMotion = useReducedMotion();
+
   const matchInsights = useMemo(
     () => currentMatchResult ? generateMatchInsights(currentMatchResult, playerClubId) : [],
     [currentMatchResult, playerClubId]
+  );
+
+  const matchEvents = currentMatchResult?.events;
+  const allHighlights = useMemo(
+    () => (matchEvents ?? []).filter(e => (HIGHLIGHT_TYPES as readonly string[]).includes(e.type)),
+    [matchEvents]
+  );
+  const highlights = useMemo(
+    () => allHighlights.filter(e => {
+      if (highlightFilter === 'us') return e.clubId === playerClubId;
+      if (highlightFilter === 'goals') return (GOAL_SCORING_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error';
+      return true;
+    }),
+    [allHighlights, highlightFilter, playerClubId]
   );
 
   if (!currentMatchResult) {
@@ -240,13 +256,7 @@ const MatchReview = () => {
 
       {/* Key Highlights — animated two-lane timeline of the biggest moments */}
       {(() => {
-        const allHighlights = match.events.filter(e => (HIGHLIGHT_TYPES as readonly string[]).includes(e.type));
         if (allHighlights.length === 0) return null;
-        const highlights = allHighlights.filter(e => {
-          if (highlightFilter === 'us') return e.clubId === playerClubId;
-          if (highlightFilter === 'goals') return (GOAL_EVENT_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error';
-          return true;
-        });
 
         const renderPlayerPill = (p: Player, variant: 'scorer' | 'gk' | 'own-goal') => {
           const borderColor = variant === 'gk'
@@ -330,6 +340,89 @@ const MatchReview = () => {
                     const isHomeTeamEvent = ev.clubId === match.homeClubId;
                     const isSubstitution = ev.type === 'substitution';
                     const isOwnGoal = ev.type === 'own_goal';
+                    const forcedSub = isSubstitution && typeof ev.description === 'string'
+                      && ev.description.toLowerCase().includes('injured');
+                    const benefitingClubShort = isOwnGoal
+                      ? (clubs[ev.clubId]?.shortName ?? virtualClubs?.[ev.clubId]?.shortName ?? null)
+                      : null;
+
+                    let inner: ReactNode = null;
+                    if (isSubstitution) {
+                      if (evPlayer && assistPlayer) {
+                        const subAriaLabel = `Substitution at ${ev.minute}': ${evPlayer.firstName} ${evPlayer.lastName} on for ${forcedSub ? 'injured ' : ''}${assistPlayer.firstName} ${assistPlayer.lastName}`;
+                        inner = (
+                          <motion.div
+                            role="group"
+                            aria-label={subAriaLabel}
+                            className={cn('flex flex-col gap-1', isHomeTeamEvent ? 'items-end' : 'items-start')}
+                            initial={reducedMotion ? false : 'hidden'}
+                            animate="show"
+                            variants={{
+                              hidden: {},
+                              show: { transition: { staggerChildren: reducedMotion ? 0 : 0.08, delayChildren: reducedMotion ? 0 : 0.05 } },
+                            }}
+                          >
+                            <motion.div
+                              className={cn('flex items-center gap-1.5', isHomeTeamEvent && 'flex-row-reverse')}
+                              variants={{
+                                hidden: { opacity: 0, y: reducedMotion ? 0 : -4 },
+                                show: { opacity: 1, y: 0, transition: { duration: reducedMotion ? 0 : 0.3, ease: 'easeOut' } },
+                              }}
+                            >
+                              <ArrowUp className="w-3 h-3 text-emerald-400 shrink-0" aria-hidden />
+                              {renderPlayerPill(evPlayer, 'scorer')}
+                            </motion.div>
+                            <motion.div
+                              className={cn('flex items-center gap-1.5 opacity-75', isHomeTeamEvent && 'flex-row-reverse')}
+                              variants={{
+                                hidden: { opacity: 0, y: reducedMotion ? 0 : 4 },
+                                show: { opacity: 0.75, y: 0, transition: { duration: reducedMotion ? 0 : 0.3, ease: 'easeOut' } },
+                              }}
+                            >
+                              <ArrowDown className="w-3 h-3 text-red-400 shrink-0" aria-hidden />
+                              {forcedSub && <HeartPulse className="w-3 h-3 text-destructive shrink-0" aria-label="injured" />}
+                              {renderPlayerPill(assistPlayer, 'scorer')}
+                            </motion.div>
+                          </motion.div>
+                        );
+                      } else if (descriptionText) {
+                        inner = <p className="text-xs text-muted-foreground">{descriptionText}</p>;
+                      }
+                    } else if (evPlayer) {
+                      inner = (
+                        <div
+                          className={cn('flex items-center gap-1.5 flex-wrap', isHomeTeamEvent ? 'justify-end' : 'justify-start')}
+                          {...(isOwnGoal ? { role: 'group', 'aria-label': `Own goal by ${evPlayer.firstName} ${evPlayer.lastName}${benefitingClubShort ? ` — benefits ${benefitingClubShort}` : ''}` } : {})}
+                        >
+                          {renderPlayerPill(evPlayer, isOwnGoal ? 'own-goal' : 'scorer')}
+                          {isOwnGoal && (
+                            <>
+                              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider" aria-hidden>(OG)</span>
+                              {benefitingClubShort && (
+                                <span className="text-[10px] text-muted-foreground/80 font-medium tabular-nums" aria-hidden>
+                                  → {benefitingClubShort}
+                                </span>
+                              )}
+                            </>
+                          )}
+                          {ev.type === 'goalkeeper_error' && gkPlayer && renderPlayerPill(gkPlayer, 'gk')}
+                          {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && assistPlayer && (
+                            <button
+                              type="button"
+                              onClick={() => selectPlayer(assistPlayer.id)}
+                              className="inline-flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary transition-colors focus:outline-none"
+                              aria-label={`View ${assistPlayer.firstName} ${assistPlayer.lastName}`}
+                            >
+                              <span>assist</span>
+                              <FlagIcon nationality={assistPlayer.nationality} size={10} />
+                              <span>{assistPlayer.lastName}</span>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    } else if (descriptionText) {
+                      inner = <p className="text-xs text-muted-foreground">{descriptionText}</p>;
+                    }
 
                     const content = (
                       <div className={cn('flex flex-col gap-1 min-w-0', isHomeTeamEvent ? 'items-end text-right' : 'items-start text-left')}>
@@ -340,60 +433,7 @@ const MatchReview = () => {
                             <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: evClub.color }} />
                           )}
                         </div>
-                        {isSubstitution && evPlayer && assistPlayer ? (
-                          <motion.div
-                            className={cn('flex flex-col gap-1', isHomeTeamEvent ? 'items-end' : 'items-start')}
-                            initial="hidden"
-                            animate="show"
-                            variants={{
-                              hidden: {},
-                              show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
-                            }}
-                          >
-                            <motion.div
-                              className={cn('flex items-center gap-1.5', isHomeTeamEvent && 'flex-row-reverse')}
-                              variants={{
-                                hidden: { opacity: 0, y: -4 },
-                                show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
-                              }}
-                            >
-                              <ArrowUp className="w-3 h-3 text-emerald-400 shrink-0" aria-hidden />
-                              {renderPlayerPill(evPlayer, 'scorer')}
-                            </motion.div>
-                            <motion.div
-                              className={cn('flex items-center gap-1.5 opacity-75', isHomeTeamEvent && 'flex-row-reverse')}
-                              variants={{
-                                hidden: { opacity: 0, y: 4 },
-                                show: { opacity: 0.75, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
-                              }}
-                            >
-                              <ArrowDown className="w-3 h-3 text-red-400 shrink-0" aria-hidden />
-                              {renderPlayerPill(assistPlayer, 'scorer')}
-                            </motion.div>
-                          </motion.div>
-                        ) : evPlayer ? (
-                          <div className={cn('flex items-center gap-1.5 flex-wrap', isHomeTeamEvent ? 'justify-end' : 'justify-start')}>
-                            {renderPlayerPill(evPlayer, isOwnGoal ? 'own-goal' : 'scorer')}
-                            {isOwnGoal && (
-                              <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">(OG)</span>
-                            )}
-                            {ev.type === 'goalkeeper_error' && gkPlayer && renderPlayerPill(gkPlayer, 'gk')}
-                            {(GOAL_EVENT_TYPES as readonly string[]).includes(ev.type) && assistPlayer && (
-                              <button
-                                type="button"
-                                onClick={() => selectPlayer(assistPlayer.id)}
-                                className="inline-flex items-center gap-1 text-[10px] text-primary/70 hover:text-primary transition-colors focus:outline-none"
-                                aria-label={`View ${assistPlayer.firstName} ${assistPlayer.lastName}`}
-                              >
-                                <span>assist</span>
-                                <FlagIcon nationality={assistPlayer.nationality} size={10} />
-                                <span>{assistPlayer.lastName}</span>
-                              </button>
-                            )}
-                          </div>
-                        ) : descriptionText ? (
-                          <p className="text-xs text-muted-foreground">{descriptionText}</p>
-                        ) : null}
+                        {inner}
                       </div>
                     );
 
