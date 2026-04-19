@@ -2,28 +2,33 @@
 /**
  * SoFIFA Icons Scraper → fc25_icons.csv (+ fc25_icons_meta.json)
  *
- * Fetches every Icon player from sofifa.com and writes:
+ * Fetches every Icon player from sofifa.com via Playwright headless Chromium
+ * (real browser is required — Cloudflare blocks vanilla HTTP from cloud IPs)
+ * and writes:
  *   - fc25_icons.csv         58-col schema matching fc25_players.csv
  *   - fc25_icons_meta.json   sidecar: id → { name, ovr, imageUrl, sofifaUrl }
  *                             (intended for the pack-opening card UI)
  *
+ * Setup (one-time, local only):
+ *   npm run scrape:icons:setup     # downloads Chromium (~150MB)
+ *
  * Usage:
- *   node scripts/scrapeSoFIFAIcons.mjs                  # full scrape
- *   node scripts/scrapeSoFIFAIcons.mjs --limit 10       # smoke test
- *   node scripts/scrapeSoFIFAIcons.mjs --resume         # continue from cache
- *   node scripts/scrapeSoFIFAIcons.mjs --retry-failed   # re-run errored rows
- *   node scripts/scrapeSoFIFAIcons.mjs --output my.csv  # custom output path
- *   node scripts/scrapeSoFIFAIcons.mjs --debug          # dump first parse-fail HTML
+ *   npm run scrape:icons                            # full scrape
+ *   node scripts/scrapeSoFIFAIcons.mjs --limit 10   # smoke test
+ *   node scripts/scrapeSoFIFAIcons.mjs --resume     # continue from cache
+ *   node scripts/scrapeSoFIFAIcons.mjs --retry-failed
+ *   node scripts/scrapeSoFIFAIcons.mjs --output my.csv
+ *   node scripts/scrapeSoFIFAIcons.mjs --debug      # dump first parse-fail HTML
  *   node scripts/scrapeSoFIFAIcons.mjs --help
  *
- * Zero npm dependencies. Requires Node 18+ for native fetch.
- *
  * Sandbox note: the Claude Code sandbox blocks sofifa.com outbound
- * (x-deny-reason: host_not_allowed). Run this on a normal machine.
+ * (x-deny-reason: host_not_allowed). Use the GitHub Actions workflow or
+ * run on a normal machine.
  */
 import { writeFileSync, readFileSync, existsSync, mkdirSync, renameSync } from 'node:fs';
 import { join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { chromium } from 'playwright';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -74,22 +79,7 @@ const OUTPUT_CSV = (() => {
 // ── HTTP config ──
 const BASE = 'https://sofifa.com';
 const ICONS_LIST_URL = (offset) => `${BASE}/players?type=all&lg%5B0%5D=2118&offset=${offset}`;
-const HEADERS = {
-  'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-  'Accept-Language': 'en-US,en;q=0.9',
-  'Accept-Encoding': 'gzip, deflate, br',
-  'Cache-Control': 'no-cache',
-  'Pragma': 'no-cache',
-  'Sec-Ch-Ua': '"Chromium";v="126", "Not.A/Brand";v="24"',
-  'Sec-Ch-Ua-Mobile': '?0',
-  'Sec-Ch-Ua-Platform': '"macOS"',
-  'Sec-Fetch-Dest': 'document',
-  'Sec-Fetch-Mode': 'navigate',
-  'Sec-Fetch-Site': 'none',
-  'Sec-Fetch-User': '?1',
-  'Upgrade-Insecure-Requests': '1',
-};
+const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -145,37 +135,101 @@ const ATTR_LABELS = {
   'GK Reflexes': ['GK Reflexes', 'Reflexes'],
 };
 
-// ── HTTP with retry + better block detection ──
+// ── Playwright fetch with retry + Cloudflare-challenge detection ──
+// `page` is set once at the start of main(). Sequential requests reuse it.
+let page = null;
+
+const CF_CHALLENGE_RE = /Just a moment|cf-browser-verification|cf-challenge-running|__cf_chl_/i;
+
 async function get(url, attempt = 1) {
-  let res;
+  if (!page) throw new Error('Playwright page not initialized — call setupBrowser() first.');
+
   try {
-    res = await fetch(url, { headers: HEADERS, redirect: 'follow' });
-  } catch (err) {
-    if (attempt <= 3) {
+    const response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    const status = response?.status() ?? 0;
+
+    if (status === 403) {
+      const headers = response.headers();
+      const reason = headers['x-deny-reason'] || headers['cf-mitigated'] || 'unknown';
+      throw new Error(
+        `403 Forbidden from ${url} (reason: ${reason}). ` +
+        (reason === 'host_not_allowed'
+          ? 'Sandbox blocks sofifa.com — run this on a normal machine or via the GitHub Actions workflow.'
+          : 'SoFIFA / Cloudflare is blocking even Playwright. May need stealth plugin or a residential proxy.')
+      );
+    }
+    if ((status === 429 || status >= 500) && attempt <= 3) {
       const wait = Math.pow(2, attempt) * 1000;
-      console.warn(`  ! network error on ${url}: ${err.message} — backoff ${wait}ms (attempt ${attempt}/3)`);
+      console.warn(`  ! ${status} on ${url} — backoff ${wait}ms (attempt ${attempt}/3)`);
+      await sleep(wait);
+      return get(url, attempt + 1);
+    }
+    if (status >= 400) throw new Error(`HTTP ${status} from ${url}`);
+
+    let html = await page.content();
+
+    // Cloudflare interstitial — wait for the JS challenge to auto-resolve.
+    if (CF_CHALLENGE_RE.test(html)) {
+      console.warn(`  ! Cloudflare check detected on ${url} — waiting 8s for auto-resolve…`);
+      await page.waitForTimeout(8000);
+      html = await page.content();
+      if (CF_CHALLENGE_RE.test(html)) {
+        if (attempt <= 2) {
+          const wait = Math.pow(2, attempt) * 4000;
+          console.warn(`  ! Cloudflare still active — extra ${wait}ms backoff (attempt ${attempt}/2)`);
+          await sleep(wait);
+          return get(url, attempt + 1);
+        }
+        throw new Error(`Cloudflare challenge did not auto-resolve at ${url}. Need stealth plugin or residential proxy.`);
+      }
+    }
+
+    return html;
+  } catch (err) {
+    // Playwright surfaces navigation timeouts as "Timeout 30000ms exceeded"
+    const isTimeout = /Timeout\s*\d+ms\s*exceeded|net::ERR_/.test(err.message);
+    if (isTimeout && attempt <= 3) {
+      const wait = Math.pow(2, attempt) * 1000;
+      console.warn(`  ! navigation error on ${url}: ${err.message.split('\n')[0]} — backoff ${wait}ms (attempt ${attempt}/3)`);
       await sleep(wait);
       return get(url, attempt + 1);
     }
     throw err;
   }
-  if (res.status === 403) {
-    const reason = res.headers.get('x-deny-reason') || res.headers.get('cf-mitigated') || 'unknown';
-    throw new Error(
-      `403 Forbidden from ${url} (reason: ${reason}). ` +
-      (reason === 'host_not_allowed'
-        ? 'Sandbox blocks sofifa.com — run this script on a normal machine.'
-        : 'SoFIFA / Cloudflare is blocking. Try a different network or update User-Agent.')
-    );
+}
+
+// ── Browser lifecycle ──
+async function setupBrowser() {
+  let browser;
+  try {
+    browser = await chromium.launch({
+      headless: true,
+      args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
+    });
+  } catch (err) {
+    if (/Executable doesn't exist|browserType\.launch/i.test(err.message)) {
+      console.error('\nChromium is not installed.\n  Run: npm run scrape:icons:setup\n  (or: npx playwright install chromium)\n');
+      process.exit(1);
+    }
+    throw err;
   }
-  if ((res.status === 429 || res.status >= 500) && attempt <= 3) {
-    const wait = Math.pow(2, attempt) * 1000;
-    console.warn(`  ! ${res.status} on ${url} — backoff ${wait}ms (attempt ${attempt}/3)`);
-    await sleep(wait);
-    return get(url, attempt + 1);
-  }
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} from ${url}`);
-  return res.text();
+  const context = await browser.newContext({
+    viewport: { width: 1920, height: 1080 },
+    userAgent: USER_AGENT,
+    locale: 'en-US',
+    timezoneId: 'America/New_York',
+  });
+  // Block heavy resources we don't need — only HTML matters.
+  await context.route('**/*', (route) => {
+    const type = route.request().resourceType();
+    if (type === 'image' || type === 'font' || type === 'stylesheet' || type === 'media') {
+      return route.abort();
+    }
+    return route.continue();
+  });
+  page = await context.newPage();
+  page.setDefaultNavigationTimeout(30000);
+  return browser;
 }
 
 // ── List-page parser ──
@@ -480,7 +534,7 @@ function eta(startMs, done, total) {
 
 // ── Main ──
 async function main() {
-  console.log('SoFIFA Icons Scraper');
+  console.log('SoFIFA Icons Scraper (Playwright Chromium)');
   console.log(`  output: ${OUTPUT_CSV}`);
   console.log(`  meta:   ${META_JSON}`);
   if (LIMIT !== Infinity) console.log(`  limit:  ${LIMIT}`);
@@ -488,6 +542,18 @@ async function main() {
   else if (RESUME) console.log(`  mode:   resume`);
   console.log('');
 
+  console.log('Launching headless Chromium…');
+  const browser = await setupBrowser();
+  console.log('  ✓ browser ready\n');
+
+  try {
+    return await runScrape();
+  } finally {
+    await browser.close();
+  }
+}
+
+async function runScrape() {
   const cache = RESUME ? loadCache() : { ids: [], rows: {}, meta: {} };
   if (RETRY_FAILED) {
     let cleared = 0;

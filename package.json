@@ -20,6 +20,7 @@
     "ship": "bash scripts/ship.sh",
     "branch": "bash scripts/new-branch.sh",
     "scrape:icons": "node scripts/scrapeSoFIFAIcons.mjs",
+    "scrape:icons:setup": "playwright install chromium",
     "prepare": "husky",
     "version:sync": "node scripts/sync-version.mjs"
   },
@@ -76,6 +77,7 @@
     "husky": "^9.1.7",
     "jsdom": "^28.1.0",
     "lint-staged": "^16.4.0",
+    "playwright": "^1.59.1",
     "postcss": "^8.5.6",
     "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "^3.4.17",
