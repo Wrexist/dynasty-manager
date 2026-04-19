@@ -224,6 +224,63 @@ describe('Pack opening — openPack action', () => {
     expect(clubAfter.lineup.length).toBeLessThanOrEqual(11);
   });
 
+  it('returns placement metadata classifying each pull as starter / bench / squad', () => {
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    useGameStore.setState({
+      clubs: {
+        ...state.clubs,
+        [state.playerClubId]: { ...club, budget: 200_000_000 },
+      },
+    });
+    const result = useGameStore.getState().openPack('icon');
+    expect(result.success).toBe(true);
+    expect(result.placement).toBeDefined();
+    // An 88+ Icon pull should almost always land in the starting XI
+    const top = result.players![0];
+    expect(['starter', 'bench']).toContain(result.placement![top.id]);
+    expect(result.lineupChanges).toBeGreaterThan(0);
+  });
+
+  it('bronze pulls into a strong squad still register in lineup + subs or stay in squad-only', () => {
+    // Bronze tier rolls 60-68 OVR. Against a default Celtic squad (top
+    // flight), most bronze pulls won't crack the XI — but they should
+    // still be tracked in playerIds and have a classified placement.
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    useGameStore.setState({
+      clubs: {
+        ...state.clubs,
+        [state.playerClubId]: { ...club, budget: 5_000_000 },
+      },
+    });
+    const result = useGameStore.getState().openPack('bronze');
+    expect(result.success).toBe(true);
+
+    const after = useGameStore.getState().clubs[state.playerClubId];
+    // Every pulled player is tracked in playerIds
+    for (const p of result.players!) {
+      expect(after.playerIds).toContain(p.id);
+      // Placement must be defined for every pull
+      expect(['starter', 'bench', 'squad']).toContain(result.placement![p.id]);
+    }
+  });
+
+  it('leaves Optimize Lineup with zero work to do after opening', () => {
+    // After openPack auto-places, the same optimizer (via autoFillTeam)
+    // should produce no further changes — this is the contract the
+    // Optimize Lineup chip's "potential gain" hook relies on.
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 } },
+    });
+    const open = useGameStore.getState().openPack('icon');
+    expect(open.success).toBe(true);
+
+    const followUp = useGameStore.getState().autoFillTeam();
+    expect(followUp.changes).toBe(0);
+  });
+
   it('preserves existing lineup when formation is missing', () => {
     const state = useGameStore.getState();
     const club = state.clubs[state.playerClubId];
@@ -267,6 +324,30 @@ describe('Pack opening — releasePackedPlayer action', () => {
     expect(after.freeAgents).toContain(target.id);
     // Severance is exactly 1 week's wage
     expect(budgetBefore - after.clubs[state.playerClubId].budget).toBe(Math.round(target.wage));
+  });
+
+  it('refills the lineup after releasing an auto-placed pack starter', () => {
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 } },
+    });
+    const openResult = useGameStore.getState().openPack('icon');
+    expect(openResult.success).toBe(true);
+    const clubAfterOpen = useGameStore.getState().clubs[state.playerClubId];
+    const lineupLenBefore = clubAfterOpen.lineup.length;
+
+    // Release the icon pull (very likely a starter given 88+ OVR)
+    const target = openResult.players![0];
+    const rel = useGameStore.getState().releasePackedPlayer(target.id);
+    expect(rel.success).toBe(true);
+
+    const clubAfterRelease = useGameStore.getState().clubs[state.playerClubId];
+    // Lineup size must stay the same or only shrink by 1 if the squad
+    // genuinely can't produce 11 after the release. With a default squad
+    // and only one release, the refill should keep lineup size stable.
+    expect(clubAfterRelease.lineup.length).toBeGreaterThanOrEqual(lineupLenBefore - 1);
+    expect(clubAfterRelease.lineup).not.toContain(target.id);
+    expect(clubAfterRelease.subs).not.toContain(target.id);
   });
 
   it('rejects releasing a player not from the latest pack', () => {

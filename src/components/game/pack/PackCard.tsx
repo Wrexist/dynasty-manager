@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
-import type { Player } from '@/types/game';
+import type { PackPlayerPlacement, Player } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { cn } from '@/lib/utils';
 import { tierForOvr, tierGradient } from './packHelpers';
@@ -17,16 +17,25 @@ interface PackCardProps {
   entranceDelay?: number;
   /** When provided, renders a small × on the face to quick-release. */
   onDismiss?: () => void;
+  /** Where this pull landed in the squad after auto-place. */
+  placement?: PackPlayerPlacement;
 }
+
+const PLACEMENT_STYLES: Record<PackPlayerPlacement, { label: string; className: string }> = {
+  starter: { label: 'Starter', className: 'bg-emerald-500/90 text-white border-emerald-300/60' },
+  bench: { label: 'Bench', className: 'bg-sky-500/90 text-white border-sky-300/60' },
+  squad: { label: 'Squad', className: 'bg-black/60 text-white/90 border-white/30' },
+};
 
 /**
  * A single revealable player card. Slides up from below face-down, then
  * flips on tap. The flip itself is a 3D rotateY with perspective on the
  * parent.
  */
-export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0, onDismiss }: PackCardProps) {
+export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0, onDismiss, placement }: PackCardProps) {
   const tier = tierForOvr(player.overall);
   const [hovered, setHovered] = useState(false);
+  const placementStyle = placement ? PLACEMENT_STYLES[placement] : null;
 
   const handleClick = () => {
     if (revealed || !onReveal) return;
@@ -97,6 +106,19 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
         >
           <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/50" />
           <div className="relative h-full flex flex-col px-3 py-3 text-white">
+            {/* Placement badge — tells the user where this pull landed */}
+            {revealed && placementStyle && (
+              <div
+                className={cn(
+                  'absolute top-1 left-1 text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border backdrop-blur z-10',
+                  placementStyle.className,
+                )}
+                aria-label={`Placed as ${placementStyle.label}`}
+              >
+                {placementStyle.label}
+              </div>
+            )}
+
             {/* Quick-release × (summary only) */}
             {revealed && onDismiss && (
               <button

@@ -9,7 +9,11 @@ import { grantXP, XP_REWARDS } from '@/utils/managerPerks';
 import { LEGENDARY_OVR_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { STAT_MAX as CAREER_STAT_MAX, GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_STAT_GROWTH } from '@/config/managerCareer';
 import { playPackSfx } from '@/utils/packAudio';
-import { autoFillBestTeam } from '@/utils/autoFillLineup';
+import {
+  autoPlaceClubLineup,
+  buildAutoFillContext,
+  candidatesCanCrackSquad,
+} from '@/utils/autoFillContext';
 
 /** Match transferSlice's challenge gate. Packs count as signings — respect
  *  noTransfers and youthOnly scenario flags. Returns a blocking message or
@@ -203,37 +207,71 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     playPackSfx(topPlayer.overall >= WALKOUT_OVR_THRESHOLD ? 'rare-pull' : 'standard-pull');
 
     // ── Auto-place pack players into lineup/subs ──
-    // Pack players are already in playerIds above, but club.lineup / subs
-    // still point at the pre-pack 11/7. Run the same optimizer the
-    // Optimize Lineup button uses so new pulls appear in the XI or on
-    // the bench immediately — what users expect after a pack reveal.
-    // Pass undefined for match context: packs open any time in the week,
-    // often outside match days; neutral scoring is the right default.
+    // Pack players are in playerIds but club.lineup / subs still point at
+    // the pre-pack 11/7. Run the same optimizer Optimize Lineup uses so
+    // new pulls appear in the XI or bench immediately. Use the full
+    // match-aware context so designated takers stay in place and
+    // opponent-aware scoring applies if a fixture is this week.
     let clubsWithLineup = clubsWithAi;
     const playerClub = clubsWithAi[state.playerClubId];
-    if (playerClub && playerClub.formation) {
-      const squad = playerClub.playerIds
-        .map(id => playersWithAi[id])
-        .filter(Boolean);
-      if (squad.length > 0) {
-        const result = autoFillBestTeam(
-          squad,
-          playerClub.formation,
-          state.week,
-          state.season,
-          undefined,
-        );
-        if (result.lineup.length > 0) {
-          clubsWithLineup = {
-            ...clubsWithAi,
-            [state.playerClubId]: {
-              ...playerClub,
-              lineup: result.lineup.map(p => p.id),
-              subs: result.subs.map(p => p.id),
-            },
-          };
-        }
+    const packPlayerIds = finalizedPlayers.map(p => p.id);
+
+    // Fast-path: if pack pulls clearly can't reach bench (all OVR below
+    // the weakest current squad member), skip the rebuild. Saves Hungarian
+    // work on depth-tier bronze pulls into a strong squad.
+    const shouldRePlace = playerClub
+      && candidatesCanCrackSquad(playerClub, playersWithAi, packPlayerIds);
+
+    if (shouldRePlace && playerClub) {
+      const context = buildAutoFillContext(state, state.playerClubId, {
+        clubs: clubsWithAi,
+        players: playersWithAi,
+      });
+      const optimized = autoPlaceClubLineup(
+        playerClub,
+        playersWithAi,
+        state.week,
+        state.season,
+        context,
+      );
+      if (optimized !== playerClub) {
+        clubsWithLineup = { ...clubsWithAi, [state.playerClubId]: optimized };
       }
+    }
+
+    // ── Re-optimize AI clubs that received counter-signings ──
+    // Without this, AI lineups silently drift until match day (when
+    // orchestration rebuilds via selectBestLineup). Optimizing now
+    // keeps squad views consistent between weeks. Bounded: at most
+    // AI_BACKFILL_PER_TIER[tier] clubs (0-3) per pack open.
+    for (const aiClubId of Object.keys(aiBackfill.perClub)) {
+      if (aiClubId === state.playerClubId) continue;
+      const aiClub = clubsWithLineup[aiClubId];
+      if (!aiClub) continue;
+      const optimized = autoPlaceClubLineup(
+        aiClub,
+        playersWithAi,
+        state.week,
+        state.season,
+      );
+      if (optimized !== aiClub) {
+        clubsWithLineup = { ...clubsWithLineup, [aiClubId]: optimized };
+      }
+    }
+
+    // Count lineup changes for user feedback. Only compares the 11
+    // starters — bench churn is expected and low-signal for the user.
+    const postLineup = clubsWithLineup[state.playerClubId]?.lineup || [];
+    const lineupChanges = postLineup.filter((id, i) => id !== (club.lineup || [])[i]).length;
+
+    if (lineupChanges > 0) {
+      newMessages = addMsg(newMessages, {
+        week: state.week,
+        season: state.season,
+        type: 'transfer',
+        title: 'Lineup Updated',
+        body: `Auto-placed pack players: ${lineupChanges} lineup change${lineupChanges > 1 ? 's' : ''} applied.`,
+      });
     }
 
     set({
@@ -250,12 +288,25 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       lastMatchXPGain: xpEarned > 0 ? xpEarned : state.lastMatchXPGain,
     });
 
+    // Classify each pulled player so the reveal modal can badge them.
+    const placement: Record<string, 'starter' | 'bench' | 'squad'> = {};
+    const finalClub = clubsWithLineup[state.playerClubId];
+    const starterSet = new Set(finalClub?.lineup || []);
+    const benchSet = new Set(finalClub?.subs || []);
+    for (const p of finalizedPlayers) {
+      if (starterSet.has(p.id)) placement[p.id] = 'starter';
+      else if (benchSet.has(p.id)) placement[p.id] = 'bench';
+      else placement[p.id] = 'squad';
+    }
+
     return {
       success: true,
       message: `${tier.label} opened — ${tier.cards} player(s) signed.`,
       players: finalizedPlayers,
       record,
       pityTriggered,
+      placement,
+      lineupChanges,
     };
   },
 
@@ -285,7 +336,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       return { success: false, message: `Need £${severance.toLocaleString()} for one week's severance.` };
     }
 
-    const updatedClub = {
+    const strippedClub = {
       ...club,
       budget: club.budget - severance,
       playerIds: club.playerIds.filter(id => id !== playerId),
@@ -293,6 +344,25 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       subs: club.subs.filter(id => id !== playerId),
       wageBill: Math.max(0, club.wageBill - player.wage),
     };
+
+    // Refill the vacated lineup/sub slot so the user doesn't end up
+    // with 10 starters after a quick-release. Uses the same optimizer
+    // as openPack; the released player is excluded because their clubId
+    // is now '' in the updated players map we build below.
+    const nextPlayers = {
+      ...state.players,
+      [playerId]: { ...player, clubId: '' },
+    };
+    const updatedClub = autoPlaceClubLineup(
+      strippedClub,
+      nextPlayers,
+      state.week,
+      state.season,
+      buildAutoFillContext(state, state.playerClubId, {
+        clubs: { ...state.clubs, [state.playerClubId]: strippedClub },
+        players: nextPlayers,
+      }),
+    );
 
     const releasedPlayer = {
       ...player,
