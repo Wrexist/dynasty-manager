@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { SubNav } from '@/components/game/SubNav';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users, Search, Calendar, Newspaper, X, ArrowUpDown, TrendingUp } from 'lucide-react';
@@ -12,7 +11,7 @@ import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { TransferListing, IncomingOffer } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
-import { POSITION_FILTERS, PAGE_HINTS, MARKET_SUB_NAV, SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE, BUDGET_WARNING_THRESHOLD, HOT_FORM_THRESHOLD, GOOD_FORM_THRESHOLD, OFFER_EXPIRY_WARNING_WEEKS } from '@/config/ui';
+import { POSITION_FILTERS, PAGE_HINTS, SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE, BUDGET_WARNING_THRESHOLD, HOT_FORM_THRESHOLD, GOOD_FORM_THRESHOLD, OFFER_EXPIRY_WARNING_WEEKS } from '@/config/ui';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
@@ -242,9 +241,6 @@ const TransferPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      {/* SubNav */}
-      <SubNav items={MARKET_SUB_NAV} />
-
       <PageHint screen="transfers" title={PAGE_HINTS.transfers.title} body={PAGE_HINTS.transfers.body} />
 
       <div className="flex items-center justify-between">

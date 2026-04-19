@@ -6,11 +6,14 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { TopBar } from '@/components/game/TopBar';
 import { BottomNav } from '@/components/game/BottomNav';
+import { SubNav } from '@/components/game/SubNav';
 import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { BACK_TARGET, MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
+import { MARKET_SUB_NAV, SQUAD_SUB_NAV } from '@/config/ui';
+import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import { useMatchLocked, useCareerUnemployed } from '@/hooks/useGameSelectors';
 import { InfoTipProvider } from '@/components/game/InfoTip';
 import { getEntitlements, getCustomerInfo, extractSubscriptionInfo, startEntitlementListener, stopEntitlementListener } from '@/utils/purchases';
@@ -107,14 +110,37 @@ const screens: Record<string, React.ComponentType> = {
 
 const GameShell = () => {
   const navigate = useNavigate();
-  const { gameStarted, currentScreen } = useGameStore(useShallow(s => ({
+  const { gameStarted, currentScreen, packPityCounter } = useGameStore(useShallow(s => ({
     gameStarted: s.gameStarted,
     currentScreen: s.currentScreen,
+    packPityCounter: s.packPityCounter || 0,
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
   const activeTabs = isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
+
+  // Derive the sub-nav group for the current screen, if any.
+  // Hoisting the SubNav above the page AnimatePresence lets the active
+  // pill slide smoothly between siblings via framer-motion's layoutId.
+  const subNavGroup = (() => {
+    const group = SCREEN_GROUPS.find(g => g.includes(currentScreen));
+    if (!group) return null;
+    if (group[0] === 'squad') {
+      // Decorate Packs tab with a dot when pity is primed (pack feature hook).
+      const items = SQUAD_SUB_NAV;
+      return { items, layoutId: 'subnav-pill-squad' };
+    }
+    if (group[0] === 'transfers') {
+      const items = MARKET_SUB_NAV.map(item =>
+        item.screen === 'packs' && packPityCounter >= PACK_PITY_THRESHOLD - 2
+          ? { ...item, dot: 'bg-fuchsia-400' }
+          : item,
+      );
+      return { items, layoutId: 'subnav-pill-market' };
+    }
+    return null;
+  })();
 
   useEffect(() => {
     if (!gameStarted) navigate('/');
@@ -225,6 +251,11 @@ const GameShell = () => {
           style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}
           {...swipeHandlers}
         >
+          {subNavGroup && (
+            <div className="max-w-lg mx-auto">
+              <SubNav items={subNavGroup.items} layoutId={subNavGroup.layoutId} />
+            </div>
+          )}
           <AnimatePresence mode="wait">
             <motion.div
               key={currentScreen}

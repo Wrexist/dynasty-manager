@@ -350,6 +350,14 @@ export const MARKET_SUB_NAV: { screen: GameScreen; label: string }[] = [
   { screen: 'packs', label: 'Packs' },
 ];
 
+// ── Squad Sub-Navigation ──
+export const SQUAD_SUB_NAV: { screen: GameScreen; label: string }[] = [
+  { screen: 'squad', label: 'Squad' },
+  { screen: 'training', label: 'Training' },
+  { screen: 'staff', label: 'Staff' },
+  { screen: 'youth-academy', label: 'Youth' },
+];
+
 // ── Team Talk Options (match day half-time) ──
 export const TEAM_TALK_OPTIONS = [
   {

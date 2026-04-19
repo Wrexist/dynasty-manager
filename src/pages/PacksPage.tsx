@@ -4,10 +4,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { Package, Coins, Flame, AlertCircle } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { SubNav } from '@/components/game/SubNav';
 import { PageHint } from '@/components/game/PageHint';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
-import { MARKET_SUB_NAV, PAGE_HINTS, PLAYER_TIER_THRESHOLDS } from '@/config/ui';
+import { PAGE_HINTS, PLAYER_TIER_THRESHOLDS } from '@/config/ui';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { PACK_TIERS, PACK_TIER_MAP, PACK_PITY_THRESHOLD, RECENT_PULLS_LIMIT, getFeaturedPackTier } from '@/config/packs';
 import type { PackPlayerPlacement, PackTierKey } from '@/types/game';
@@ -90,7 +89,6 @@ const PacksPage = () => {
 
   return (
     <div className="max-w-lg mx-auto">
-      <SubNav items={MARKET_SUB_NAV} />
       <PageHint screen="packs" title={PAGE_HINTS.packs.title} body={PAGE_HINTS.packs.body} />
 
       <div className="px-4 pb-6 space-y-4">
