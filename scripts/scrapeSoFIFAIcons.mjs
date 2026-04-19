@@ -81,6 +81,15 @@ const BASE = 'https://sofifa.com';
 const ICONS_LIST_URL = (offset) => `${BASE}/players?type=all&lg%5B0%5D=2118&offset=${offset}`;
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
+// Extra non-Icon players to bundle into the same output (active players that
+// aren't on the Icons list but should appear alongside them in the pack pool).
+// SoFIFA redirects /player/<id>/ to the canonical slug+version URL so we don't
+// need to know the current version number.
+const EXTRA_PLAYERS = [
+  { id: '158023', slug: 'lionel-messi',      version: '', path: '/player/158023/' },
+  { id: '20801',  slug: 'cristiano-ronaldo', version: '', path: '/player/20801/' },
+];
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ── CSV header (must match fc25_players.csv exactly) ──
@@ -591,6 +600,22 @@ async function runScrape() {
     console.log(`  ✓ ${cache.ids.length} unique icons indexed\n`);
   } else {
     console.log(`[1/2] Resuming with ${cache.ids.length} cached IDs (${Object.keys(cache.rows).length} already scraped)\n`);
+  }
+
+  // Append EXTRA_PLAYERS (non-Icon active players) to the same cache, dedup'd
+  // by SoFIFA id. Runs on both fresh and resumed scrapes so adding new entries
+  // to EXTRA_PLAYERS later picks them up via --resume.
+  {
+    const haveIds = new Set(cache.ids.map((p) => p.id));
+    let added = 0;
+    for (const p of EXTRA_PLAYERS) {
+      if (!haveIds.has(p.id)) {
+        cache.ids.push(p);
+        console.log(`  +extra ${p.slug}`);
+        added++;
+      }
+    }
+    if (added > 0) saveCache(cache);
   }
 
   // ── Step 2: detail pages ──
