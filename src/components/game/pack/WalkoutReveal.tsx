@@ -224,7 +224,7 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
                 <div className="flex flex-col leading-none">
                   <motion.span
                     className="text-5xl font-display font-black drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] tabular-nums"
-                    animate={phase === 'hold' ? { x: [-3, 3, -2, 2, 0] } : undefined}
+                    animate={phase === 'hold' && !prefersReducedMotion ? { x: [-3, 3, -2, 2, 0] } : undefined}
                     transition={{ duration: 0.4 }}
                   >
                     <motion.span>{ovrLocked ? ovrDisplay : '—'}</motion.span>
@@ -301,7 +301,7 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
           }}
         >
           {typed || '\u00A0'}
-          {phase === 'name' && (
+          {phase === 'name' && !prefersReducedMotion && (
             <motion.span
               className="inline-block ml-0.5"
               animate={{ opacity: [1, 0, 1] }}

@@ -284,7 +284,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
           <motion.div
             key="pack"
             className="relative flex flex-col items-center justify-center pointer-events-none"
-            style={{ width: 220, height: 300 }}
+            style={{
+              width: 220,
+              height: 300,
+              ...(phase === 'charge' ? { willChange: 'transform' } : null),
+            }}
             initial={{ opacity: 0, scale: 0.2, rotateY: 40, y: 120 }}
             animate={phase === 'charge' ? {
               opacity: 1, scale: 1, rotateY: 0, y: 0,
@@ -297,7 +301,6 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
               ? { x: { duration: 0.35, repeat: Infinity, ease: 'linear' } }
               : { type: 'spring', stiffness: 240, damping: 18 }
             }
-            style={phase === 'charge' ? { willChange: 'transform' } : undefined}
           >
             {/* Floor shadow */}
             <motion.div

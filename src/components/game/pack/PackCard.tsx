@@ -70,7 +70,13 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
     >
       <motion.div
         className="relative w-full h-full rounded-2xl"
-        style={{ transformStyle: 'preserve-3d', willChange: 'transform' }}
+        style={{
+          transformStyle: 'preserve-3d',
+          // Narrow the GPU layer hint to moments the card is actually
+          // about to animate — hover primes the hidden face, revealed
+          // keeps the face composited while on screen.
+          willChange: hovered || revealed ? 'transform' : 'auto',
+        }}
         animate={{ rotateY: revealed ? 180 : 0, scale: hovered && !revealed ? 1.03 : 1 }}
         transition={{ duration: PACK_ANIM.flipMs / 1000, type: 'spring', stiffness: 180, damping: 18 }}
       >

@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 
 interface PackConfettiProps {
@@ -29,43 +29,50 @@ export const PackConfetti = memo(function PackConfetti({
   lightness = 55,
 }: PackConfettiProps) {
   const prefersReducedMotion = useReducedMotion();
-  if (prefersReducedMotion || count <= 0) return null;
   // Hard ceiling so a future config bump can't silently regress perf.
-  const safeCount = Math.min(count, 60);
+  const safeCount = Math.min(Math.max(0, count), 60);
+  // Particle layouts are rolled once per mount so a parent re-render
+  // during the explode beat can't reset every particle to its start.
+  const particles = useMemo(
+    () => Array.from({ length: safeCount }, () => ({
+      x: Math.random() * 100,
+      delay: Math.random() * 0.35,
+      duration: 1.5 + Math.random() * 1.4,
+      size: 4 + Math.random() * 7,
+      thin: Math.random() < 0.4 ? 1 : 0.35,
+      hue: hueBase + (Math.random() - 0.5) * hueRange,
+      drift: (Math.random() - 0.5) * 280,
+      rise: 260 + Math.random() * 260,
+      rot: (Math.random() - 0.5) * 720,
+      lightJitter: Math.random() * 18,
+    })),
+    [safeCount, hueBase, hueRange],
+  );
+  if (prefersReducedMotion || safeCount === 0) return null;
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: safeCount }).map((_, i) => {
-        const x = Math.random() * 100;
-        const delay = Math.random() * 0.35;
-        const duration = 1.5 + Math.random() * 1.4;
-        const size = 4 + Math.random() * 7;
-        const hue = hueBase + (Math.random() - 0.5) * hueRange;
-        const drift = (Math.random() - 0.5) * 280;
-        const rise = 260 + Math.random() * 260;
-        const rot = (Math.random() - 0.5) * 720;
-        return (
-          <motion.span
-            key={i}
-            className="absolute rounded-[2px] pointer-events-none"
-            style={{
-              width: size,
-              height: size * (Math.random() < 0.4 ? 1 : 0.35),
-              left: `${x}%`,
-              top: '55%',
-              backgroundColor: `hsl(${hue}, ${saturation}%, ${lightness + Math.random() * 18}%)`,
-              willChange: 'transform, opacity',
-            }}
-            initial={{ opacity: 0, y: 0, x: 0, rotate: 0 }}
-            animate={{
-              opacity: [0, 1, 1, 0],
-              y: [0, -rise],
-              x: [0, drift],
-              rotate: [0, rot],
-            }}
-            transition={{ duration, delay, ease: 'easeOut', times: [0, 0.15, 0.7, 1] }}
-          />
-        );
-      })}
+      {particles.map((p, i) => (
+        <motion.span
+          key={i}
+          className="absolute rounded-[2px] pointer-events-none"
+          style={{
+            width: p.size,
+            height: p.size * p.thin,
+            left: `${p.x}%`,
+            top: '55%',
+            backgroundColor: `hsl(${p.hue}, ${saturation}%, ${lightness + p.lightJitter}%)`,
+            willChange: 'transform, opacity',
+          }}
+          initial={{ opacity: 0, y: 0, x: 0, rotate: 0 }}
+          animate={{
+            opacity: [0, 1, 1, 0],
+            y: [0, -p.rise],
+            x: [0, p.drift],
+            rotate: [0, p.rot],
+          }}
+          transition={{ duration: p.duration, delay: p.delay, ease: 'easeOut', times: [0, 0.15, 0.7, 1] }}
+        />
+      ))}
     </div>
   );
 });
