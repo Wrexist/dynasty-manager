@@ -15,8 +15,8 @@ import {
   CONTRACT_YEARS_BRACKETS, CONTRACT_DEFAULT_YEARS,
   CONTRACT_INITIAL_OFFER_MULTIPLIER, CONTRACT_LOYALTY_BONUS_RATE,
   CONTRACT_MAX_ROUNDS,
-  CONTRACT_GAP_ACCEPT, CONTRACT_GAP_MOOD_ACCEPT, CONTRACT_GAP_HIGH_MOOD_ACCEPT,
-  CONTRACT_MOOD_ACCEPT_THRESHOLD, CONTRACT_HIGH_MOOD_THRESHOLD,
+  CONTRACT_GAP_ACCEPT, CONTRACT_GAP_VERY_CLOSE_ACCEPT, CONTRACT_GAP_MOOD_ACCEPT, CONTRACT_GAP_HIGH_MOOD_ACCEPT,
+  CONTRACT_VERY_CLOSE_MOOD_THRESHOLD, CONTRACT_MOOD_ACCEPT_THRESHOLD, CONTRACT_HIGH_MOOD_THRESHOLD,
   CONTRACT_COMPROMISE_BASE, CONTRACT_COMPROMISE_MOOD_SCALE,
   CONTRACT_LOWBALL_GAP, CONTRACT_MODERATE_GAP,
   CONTRACT_MOOD_HIT_LOWBALL, CONTRACT_MOOD_HIT_MODERATE, CONTRACT_MOOD_HIT_CLOSE,
@@ -166,9 +166,11 @@ export function negotiateRound(offer: ContractOffer, iconStatusBonus = 0): Contr
     : yearsDiff * CONTRACT_YEARS_ACCEPTANCE_PENALTY;
   const adjustedGap = gap + yearsAdjustment + iconStatusBonus;
 
-  // Player accepts if offer meets or exceeds demand (adjusted for years), or close enough + willing
+  // Player accepts if offer meets or exceeds demand (adjusted for years), or close enough + willing.
+  // Tiered by how close the offer is — the closer to demand, the more forgiving mood can be.
   if (
     adjustedGap >= CONTRACT_GAP_ACCEPT ||
+    (adjustedGap >= CONTRACT_GAP_VERY_CLOSE_ACCEPT && offer.playerMood >= CONTRACT_VERY_CLOSE_MOOD_THRESHOLD) ||
     (adjustedGap >= CONTRACT_GAP_MOOD_ACCEPT && offer.playerMood >= CONTRACT_MOOD_ACCEPT_THRESHOLD) ||
     (adjustedGap >= CONTRACT_GAP_HIGH_MOOD_ACCEPT && offer.playerMood >= CONTRACT_HIGH_MOOD_THRESHOLD)
   ) {
@@ -231,10 +233,14 @@ export function getAcceptanceHint(
 
   if (
     adjustedGap >= CONTRACT_GAP_ACCEPT ||
+    (adjustedGap >= CONTRACT_GAP_VERY_CLOSE_ACCEPT && playerMood >= CONTRACT_VERY_CLOSE_MOOD_THRESHOLD) ||
     (adjustedGap >= CONTRACT_GAP_MOOD_ACCEPT && playerMood >= CONTRACT_MOOD_ACCEPT_THRESHOLD) ||
     (adjustedGap >= CONTRACT_GAP_HIGH_MOOD_ACCEPT && playerMood >= CONTRACT_HIGH_MOOD_THRESHOLD)
   ) {
     return { text: 'Will accept this deal', colorClass: 'text-emerald-400/70' };
+  }
+  if (adjustedGap >= CONTRACT_GAP_VERY_CLOSE_ACCEPT) {
+    return { text: 'Very close — needs slightly better mood', colorClass: 'text-emerald-400/70' };
   }
   if (adjustedGap >= 0.9) {
     return { text: 'Close — may accept with better mood', colorClass: 'text-emerald-400/70' };

@@ -63,11 +63,16 @@ export const CONTRACT_LOYALTY_BONUS_RATE = 0.05;
 export const CONTRACT_MAX_ROUNDS = 3;
 
 // ── Acceptance Thresholds (offer/demand ratio) ──
+// Tiered so that the closer the offer is to the player's demand, the lower the
+// mood required to accept. A player who asks for £43K will accept £42K (97%) even
+// when "Cautious", but will only accept a big cut (85%) if they're very positive.
 export const CONTRACT_GAP_ACCEPT = 1.0;
+export const CONTRACT_GAP_VERY_CLOSE_ACCEPT = 0.95;
 export const CONTRACT_GAP_MOOD_ACCEPT = 0.92;
 export const CONTRACT_GAP_HIGH_MOOD_ACCEPT = 0.85;
-export const CONTRACT_MOOD_ACCEPT_THRESHOLD = 60;
-export const CONTRACT_HIGH_MOOD_THRESHOLD = 80;
+export const CONTRACT_VERY_CLOSE_MOOD_THRESHOLD = 35; // minimum "Cautious"
+export const CONTRACT_MOOD_ACCEPT_THRESHOLD = 50;     // mid "Cautious" (was 60)
+export const CONTRACT_HIGH_MOOD_THRESHOLD = 75;       // solid "Positive" (was 80)
 
 // ── Compromise ──
 export const CONTRACT_COMPROMISE_BASE = 0.03;

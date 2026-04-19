@@ -111,6 +111,20 @@ describe('contracts', () => {
       }
     });
 
+    it('should accept a slightly-below-demand offer even when player mood is only Cautious', () => {
+      // Matches the screenshot: £42K offer vs £43K demand (~97.7%), mood 48 (Cautious), 2 yrs at age 29 (matches preferred).
+      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 42000, demandedWage: 43000, agentFee: 5000, loyaltyBonus: 0, contractYears: 2, playerAge: 29, round: 1, status: 'in_progress' as const, playerMood: 48 };
+      const result = negotiateRound(offer);
+      expect(result.status).toBe('accepted');
+    });
+
+    it('should still reject a very-close offer if mood is Frustrated', () => {
+      // 97% of demand but mood 20 (Frustrated) should not pass even the very-close tier.
+      const offer = { id: '1', playerId: 'p1', type: 'renewal' as const, offeredWage: 42000, demandedWage: 43000, agentFee: 5000, loyaltyBonus: 0, contractYears: 2, playerAge: 29, round: 1, status: 'in_progress' as const, playerMood: 20 };
+      const result = negotiateRound(offer);
+      expect(result.status).not.toBe('accepted');
+    });
+
     it('should penalize acceptance when offering fewer years than preferred', () => {
       // Player aged 20 prefers 4 years. Offering 1 gives a -36% penalty (3 × 12%).
       // An offer at 95% of demand would normally be accepted (mood 70, gap 0.95 >= 0.92, mood >= 60).
