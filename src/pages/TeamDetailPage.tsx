@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Shield, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { getRatingColor } from '@/utils/uiHelpers';
+import { getRatingColor, getPlayerTier } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { TierBorderFrame } from '@/components/game/TierBorderFrame';
 import { LEAGUES } from '@/data/league';
 import { getSuffix } from '@/utils/helpers';
 import type { Player, Position } from '@/types/game';
@@ -220,9 +221,20 @@ const TeamDetailPage = () => {
                   className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded-lg cursor-pointer active:bg-muted/40 transition-colors"
                 >
                   {/* Overall */}
-                  <span className={cn('w-7 text-center font-mono font-bold text-sm tabular-nums', getRatingColor(p.overall))}>
-                    {p.overall}
-                  </span>
+                  <TierBorderFrame
+                    overall={p.overall}
+                    glow
+                    outerRadiusClass="rounded-lg"
+                    innerRadiusClass="rounded-[6.5px]"
+                    className="shrink-0"
+                    announceTier
+                  >
+                    <div className="w-9 h-9 rounded-[6.5px] flex items-center justify-center bg-gradient-to-b from-white/[0.06] to-transparent">
+                      <span className={cn('font-display font-bold text-base tabular-nums leading-none', getPlayerTier(p.overall).textClass)}>
+                        {p.overall}
+                      </span>
+                    </div>
+                  </TierBorderFrame>
                   {/* Name + position */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">

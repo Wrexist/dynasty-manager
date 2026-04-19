@@ -5,13 +5,14 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { TransferListing } from '@/types/game';
-import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
+import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel, getPlayerTier } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { formatMoney } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { NEGOTIATION_SLIDER_MIN_RATIO, NEGOTIATION_SLIDER_MAX_RATIO, NEGOTIATION_MAX_STRIKES } from '@/config/transfers';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { StrikeIndicator } from '@/components/game/StrikeIndicator';
+import { TierBorderFrame } from '@/components/game/TierBorderFrame';
 import {
   X, TrendingUp, TrendingDown,
   ArrowRight, RotateCcw, Handshake, XCircle, Star, AlertTriangle, Wallet, Users, Unlock, Lock,
@@ -243,10 +244,20 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                     </button>
                   </div>
                   <div className="flex items-center gap-3">
-                    <div className="w-14 h-14 rounded-xl bg-muted/80 flex items-center justify-center shrink-0 relative">
-                      <span className={cn('font-mono font-black text-2xl', getRatingColor(player.overall))}>
-                        {player.overall}
-                      </span>
+                    <div className="relative shrink-0">
+                      <TierBorderFrame
+                        overall={player.overall}
+                        glow
+                        outerRadiusClass="rounded-xl"
+                        innerRadiusClass="rounded-[10.5px]"
+                        announceTier
+                      >
+                        <div className="w-14 h-14 rounded-[10.5px] flex items-center justify-center bg-gradient-to-b from-white/[0.06] to-transparent">
+                          <span className={cn('font-display font-bold text-2xl tabular-nums leading-none', getPlayerTier(player.overall).textClass)}>
+                            {player.overall}
+                          </span>
+                        </div>
+                      </TierBorderFrame>
                       {hasPotential && (
                         <span className="absolute -top-1 -right-1 bg-primary/20 border border-primary/40 rounded-md px-1 py-px text-[9px] font-bold text-primary flex items-center gap-0.5">
                           <Star className="w-2.5 h-2.5" />{player.potential}
