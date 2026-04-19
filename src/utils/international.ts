@@ -25,8 +25,48 @@ import {
   NATIONAL_SQUAD_SIZE,
   NT_CANDIDATE_POOL_TARGET,
 } from '@/config/gameBalance';
-import { generatePlayer, pickNameForNationality } from '@/utils/playerGen';
+import { generatePlayer, pickNameForNationality, buildPlayerFromTemplate } from '@/utils/playerGen';
 import { generatePlayerAppearance } from '@/config/playerAppearance';
+import { NATIONAL_PLAYER_POOL } from '@/data/nationalPlayerPool';
+
+/**
+ * Nationality aliases — maps the game's canonical nation names (src/data/nations.ts)
+ * to equivalent labels used by FC25 data (club squads + NATIONAL_PLAYER_POOL).
+ * Required because the CSV uses e.g. "Côte d'Ivoire"/"Holland"/"Korea Republic"
+ * while the game's NATIONS list uses "Ivory Coast"/"Netherlands"/"South Korea".
+ */
+const NATIONALITY_ALIASES: Record<string, string[]> = {
+  'Ivory Coast': ["Côte d'Ivoire"],
+  'Netherlands': ['Holland'],
+  'South Korea': ['Korea Republic'],
+  'North Korea': ['Korea DPR'],
+  'USA': ['United States'],
+  'Ireland': ['Republic of Ireland'],
+  'UAE': ['United Arab Emirates'],
+  'China': ['China PR'],
+  'Cape Verde': ['Cape Verde Islands'],
+  'DR Congo': ['Congo DR'],
+};
+
+/** Return the canonical nationality plus any FC25-side aliases. */
+export function resolveNationalityAliases(nationality: string): string[] {
+  const aliases = NATIONALITY_ALIASES[nationality] ?? [];
+  return [nationality, ...aliases];
+}
+
+/** Combined pool of real FC25 templates for a nationality, merged across all aliases. */
+function getRealPoolForNationality(nationality: string) {
+  const names = resolveNationalityAliases(nationality);
+  const merged = names.flatMap(n => NATIONAL_PLAYER_POOL[n] ?? []);
+  // Dedup by fn+ln+pos (some names appear in multiple alias entries)
+  const seen = new Set<string>();
+  return merged.filter(t => {
+    const key = `${t.fn}|${t.ln}|${t.pos}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 
 let fixtureCounter = 0;
 function nextFixtureId(): string {
@@ -398,8 +438,9 @@ export function autoSelectNationalSquad(
   nationality: string,
   allPlayers: Record<string, Player>,
 ): string[] {
+  const nats = new Set(resolveNationalityAliases(nationality));
   const eligible = Object.values(allPlayers)
-    .filter(p => p.nationality === nationality && !p.injured && p.age >= 17)
+    .filter(p => nats.has(p.nationality) && !p.injured && p.age >= 17)
     .sort((a, b) => b.overall - a.overall);
 
   // Pick best 23, ensuring position coverage
@@ -456,54 +497,78 @@ const NT_QUALITY_TIERS = [
  * Generate a pool of national team candidate players for a given nationality.
  * Called when the user accepts the national team coaching job, to ensure
  * enough eligible players exist for squad selection.
+ *
+ * Strategy:
+ *   1. Count existing real in-game players of this nationality (from club squads).
+ *   2. Top up from the FC25 real-player pool (NATIONAL_PLAYER_POOL), skipping
+ *      duplicates of players already in-game for that nationality.
+ *   3. If still short (small nations), fall back to procedural generation.
  */
 export function generateNationalTeamPool(
   nationality: string,
   existingPlayers: Record<string, Player>,
   season: number,
 ): Record<string, Player> {
+  const nats = new Set(resolveNationalityAliases(nationality));
   const existing = Object.values(existingPlayers)
-    .filter(p => p.nationality === nationality && !p.injured && p.age >= 17);
+    .filter(p => nats.has(p.nationality) && !p.injured && p.age >= 17);
 
   const needed = NT_CANDIDATE_POOL_TARGET - existing.length;
   if (needed <= 0) return {};
 
   const newPlayers: Record<string, Player> = {};
-  let posIndex = 0;
 
-  // Build quality slots
+  // ── Step 1: Top up from real FC25 pool (across all nationality aliases) ──
+  const existingNameKeys = new Set(
+    existing.map(p => `${p.firstName.toLowerCase()}|${p.lastName.toLowerCase()}`)
+  );
+  const realPool = getRealPoolForNationality(nationality);
+  let realAdded = 0;
+  for (const t of realPool) {
+    if (realAdded >= needed) break;
+    const key = `${t.fn.toLowerCase()}|${t.ln.toLowerCase()}`;
+    if (existingNameKeys.has(key)) continue; // already in-game via club squad
+    existingNameKeys.add(key);
+    // Pass canonical nationality so appearance generation uses the game's
+    // nation name rather than the FC25 alias (e.g. "Netherlands" not "Holland")
+    const player = buildPlayerFromTemplate(t, '', season, nationality);
+    newPlayers[player.id] = player;
+    realAdded++;
+  }
+
+  // ── Step 2: Fall back to procedural generation for any remaining slots ──
+  const remaining = needed - realAdded;
+  if (remaining <= 0) return newPlayers;
+
+  let posIndex = 0;
   const qualitySlots: number[] = [];
   for (const tier of NT_QUALITY_TIERS) {
     for (let i = 0; i < tier.count; i++) {
       qualitySlots.push(tier.min + Math.floor(Math.random() * (tier.max - tier.min + 1)));
     }
   }
-  // Shuffle so positions aren't correlated with quality tiers
   for (let i = qualitySlots.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [qualitySlots[i], qualitySlots[j]] = [qualitySlots[j], qualitySlots[i]];
   }
 
-  for (let i = 0; i < needed; i++) {
+  for (let i = 0; i < remaining; i++) {
     const position = NT_POOL_POSITIONS[posIndex % NT_POOL_POSITIONS.length];
     posIndex++;
     const quality = qualitySlots[i % qualitySlots.length];
 
     const player = generatePlayer(position, quality, '', season);
-
-    // Override nationality and name to match the target nation
     player.nationality = nationality;
     const { firstName, lastName } = pickNameForNationality(nationality);
     player.firstName = firstName;
     player.lastName = lastName;
-    player.clubId = ''; // external club player
+    player.clubId = '';
     player.appearance = generatePlayerAppearance(nationality, position);
 
-    // Varied age distribution skewed toward prime years
     const ageRoll = Math.random();
-    if (ageRoll < 0.15) player.age = 18 + Math.floor(Math.random() * 3);       // 18-20
-    else if (ageRoll < 0.70) player.age = 23 + Math.floor(Math.random() * 7);   // 23-29
-    else player.age = 30 + Math.floor(Math.random() * 4);                        // 30-33
+    if (ageRoll < 0.15) player.age = 18 + Math.floor(Math.random() * 3);
+    else if (ageRoll < 0.70) player.age = 23 + Math.floor(Math.random() * 7);
+    else player.age = 30 + Math.floor(Math.random() * 4);
 
     newPlayers[player.id] = player;
   }
