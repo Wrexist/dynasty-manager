@@ -1,8 +1,9 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getFitnessHexColor, getPlayerTier, getTierBorderStyle } from '@/utils/uiHelpers';
+import { getRatingColor, getFitnessHexColor } from '@/utils/uiHelpers';
 import { Link, TrendingUp } from 'lucide-react';
 import type { Player } from '@/types/game';
+import { TierBorderFrame } from './TierBorderFrame';
 
 interface PlayerCardProps {
   player: Player;
@@ -47,14 +48,11 @@ export const PlayerCard = memo(function PlayerCard({
 }: PlayerCardProps) {
   const fitnessColor = getFitnessHexColor(player.fitness);
   const statusLabel = getStatusLabel(player, week);
-  const tier = getPlayerTier(player.overall);
-  const tierStyle = getTierBorderStyle(tier);
 
   if (variant === 'bench') {
     return (
       <div
         onClick={onClick}
-        data-tier={tier.key}
         className={cn(
           'shrink-0 cursor-pointer rounded-lg min-w-[44px] relative',
           'transition-all duration-150',
@@ -64,32 +62,34 @@ export const PlayerCard = memo(function PlayerCard({
           player.injured && 'opacity-40',
         )}
       >
-        <div className="rounded-lg p-[1.5px]" style={tierStyle}>
-          <div className="flex flex-col items-center bg-black/70 backdrop-blur-sm rounded-[6px] px-2 py-1.5">
-            <div className="flex items-center gap-1">
-              <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide">
-                {player.lastName.slice(0, 3).toUpperCase()}
-              </span>
-              <span className={cn('text-[10px] font-bold font-display tabular-nums', getRatingColor(player.overall))}>
-                {player.overall}
-              </span>
-            </div>
-            <div className="flex items-center gap-1 mt-0.5">
-              <span className="text-[6px] text-gray-400 font-medium">{player.position}</span>
-              {isBestSub && <TrendingUp className="w-2 h-2 text-primary" />}
-              {statusLabel && (
-                <span className="text-[5px] font-bold text-red-400">{statusLabel}</span>
-              )}
-            </div>
-            {/* Fitness indicator */}
-            <div className="w-full h-[2px] rounded-full bg-white/10 mt-1">
-              <div
-                className="h-full rounded-full transition-all"
-                style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
-              />
-            </div>
+        <TierBorderFrame
+          overall={player.overall}
+          glow
+          innerClassName="flex flex-col items-center bg-black/70 backdrop-blur-sm px-2 py-1.5"
+        >
+          <div className="flex items-center gap-1">
+            <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide">
+              {player.lastName.slice(0, 3).toUpperCase()}
+            </span>
+            <span className={cn('text-[10px] font-bold font-display tabular-nums', getRatingColor(player.overall))}>
+              {player.overall}
+            </span>
           </div>
-        </div>
+          <div className="flex items-center gap-1 mt-0.5">
+            <span className="text-[6px] text-gray-400 font-medium">{player.position}</span>
+            {isBestSub && <TrendingUp className="w-2 h-2 text-primary" />}
+            {statusLabel && (
+              <span className="text-[5px] font-bold text-red-400">{statusLabel}</span>
+            )}
+          </div>
+          {/* Fitness indicator */}
+          <div className="w-full h-[2px] rounded-full bg-white/10 mt-1">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
+            />
+          </div>
+        </TierBorderFrame>
       </div>
     );
   }
@@ -98,7 +98,6 @@ export const PlayerCard = memo(function PlayerCard({
   return (
     <div
       onClick={onClick}
-      data-tier={tier.key}
       className={cn(
         'cursor-pointer rounded-lg min-w-[40px] relative',
         'transition-all duration-150',
@@ -114,41 +113,43 @@ export const PlayerCard = memo(function PlayerCard({
         </span>
       )}
 
-      <div className="rounded-lg p-[1.5px]" style={tierStyle}>
-        <div className="flex flex-col items-center bg-black/80 backdrop-blur-sm rounded-[6px] px-2 py-1.5">
-          {/* Rating - largest element */}
-          <span className={cn('text-sm font-bold font-display tabular-nums leading-none', getRatingColor(player.overall))}>
-            {player.overall}
-          </span>
+      <TierBorderFrame
+        overall={player.overall}
+        glow
+        innerClassName="flex flex-col items-center bg-black/80 backdrop-blur-sm px-2 py-1.5"
+      >
+        {/* Rating - largest element */}
+        <span className={cn('text-sm font-bold font-display tabular-nums leading-none', getRatingColor(player.overall))}>
+          {player.overall}
+        </span>
 
-          {/* Fitness bar */}
-          <div className="w-full h-[2px] rounded-full bg-white/10 my-0.5">
-            <div
-              className="h-full rounded-full transition-all"
-              style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
-            />
-          </div>
-
-          {/* Name + morale dot */}
-          <div className="flex items-center gap-0.5">
-            <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', getMoraleDotClass(player.morale))} />
-            <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide leading-tight">
-              {player.lastName.slice(0, 3).toUpperCase()}
-            </span>
-          </div>
-
-          {/* Position + Chemistry */}
-          <div className="flex items-center gap-0.5 mt-px">
-            <span className="text-[6px] text-gray-400 font-medium leading-tight">{position}</span>
-            {chemistryLinkCount > 0 && (
-              <span className="flex items-center gap-px text-[6px] text-primary font-semibold leading-tight">
-                <Link className="w-1.5 h-1.5" />
-                {chemistryLinkCount}
-              </span>
-            )}
-          </div>
+        {/* Fitness bar */}
+        <div className="w-full h-[2px] rounded-full bg-white/10 my-0.5">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
+          />
         </div>
-      </div>
+
+        {/* Name + morale dot */}
+        <div className="flex items-center gap-0.5">
+          <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', getMoraleDotClass(player.morale))} />
+          <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide leading-tight">
+            {player.lastName.slice(0, 3).toUpperCase()}
+          </span>
+        </div>
+
+        {/* Position + Chemistry */}
+        <div className="flex items-center gap-0.5 mt-px">
+          <span className="text-[6px] text-gray-400 font-medium leading-tight">{position}</span>
+          {chemistryLinkCount > 0 && (
+            <span className="flex items-center gap-px text-[6px] text-primary font-semibold leading-tight">
+              <Link className="w-1.5 h-1.5" />
+              {chemistryLinkCount}
+            </span>
+          )}
+        </div>
+      </TierBorderFrame>
     </div>
   );
 });

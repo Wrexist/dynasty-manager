@@ -236,8 +236,6 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 'relative rounded-lg',
                 isSelectedOut && 'ring-2 ring-destructive scale-110 shadow-[0_0_12px_rgba(239,68,68,0.4)] animate-pulse',
                 isInjuredInMatch && !isSelectedOut && 'ring-2 ring-destructive/70 animate-pulse',
-                cardStatus === 'red' && !isSelectedOut && !isInjuredInMatch && 'ring-2 ring-red-600/70',
-                cardStatus === 'yellow' && !isSelectedOut && !isInjuredInMatch && 'ring-1 ring-amber-400/50',
               )}>
                 {/* Injury badge — top right */}
                 {isInjuredInMatch && !isSelectedOut && (
