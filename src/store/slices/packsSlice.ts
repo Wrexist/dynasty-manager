@@ -3,8 +3,12 @@ import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
 import { PACK_TIER_MAP, RECENT_PULLS_LIMIT } from '@/config/packs';
-import { generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
+import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { CHALLENGES } from '@/data/challenges';
+import { grantXP, XP_REWARDS } from '@/utils/managerPerks';
+import { LEGENDARY_OVR_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
+import { STAT_MAX as CAREER_STAT_MAX, GROWTH_NEGOTIATION_PER_TRANSFER as CAREER_STAT_GROWTH } from '@/config/managerCareer';
+import { playPackSfx } from '@/utils/packAudio';
 
 /** Match transferSlice's challenge gate. Packs count as signings — respect
  *  noTransfers and youthOnly scenario flags. Returns a blocking message or
@@ -135,15 +139,80 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     // season summaries reflect the spend.
     const newOpenedPacks = [record, ...(state.openedPacks || [])].slice(0, 200);
 
+    // ── AI counter-signings ──
+    // Each user pack triggers a small set of AI signings at strictly
+    // lower OVR so the league quality keeps pace without out-pacing
+    // the user. See AI_BACKFILL_* in config/packs.ts for the calibration.
+    const allClubsAfterPlayer = { ...state.clubs, [club.id]: updatedClub };
+    const aiBackfill = generateAiCounterSignings(
+      tierKey,
+      allClubsAfterPlayer,
+      state.playerClubId,
+      state.playerDivision,
+      state.season,
+    );
+    let clubsWithAi = allClubsAfterPlayer;
+    const playersWithAi = newPlayers;
+    for (const [aiClubId, aiPlayers] of Object.entries(aiBackfill.perClub)) {
+      const aiClub = clubsWithAi[aiClubId];
+      if (!aiClub) continue;
+      const aiNewIds: string[] = [];
+      let aiAddedWages = 0;
+      for (const p of aiPlayers) {
+        playersWithAi[p.id] = p;
+        aiNewIds.push(p.id);
+        aiAddedWages += p.wage;
+      }
+      clubsWithAi = {
+        ...clubsWithAi,
+        [aiClubId]: {
+          ...aiClub,
+          playerIds: [...aiClub.playerIds, ...aiNewIds],
+          wageBill: aiClub.wageBill + aiAddedWages,
+        },
+      };
+    }
+
+    // ── Manager XP for rare pulls ──
+    // Walkout-tier pulls grant career XP, scaling with OVR. Standard pulls
+    // get nothing — they're already a reward via the player itself.
+    let xpEarned = 0;
+    if (topPlayer.overall >= LEGENDARY_OVR_THRESHOLD) xpEarned = XP_REWARDS.packLegendaryPull;
+    else if (topPlayer.overall >= WALKOUT_OVR_THRESHOLD) xpEarned = XP_REWARDS.packRarePull;
+    const newProgression = xpEarned > 0
+      ? grantXP(state.managerProgression, xpEarned)
+      : state.managerProgression;
+
+    // ── Career-mode scoutingEye growth ──
+    // Mirrors transferSlice growing `negotiation` on a successful transfer.
+    // Opening packs is a talent-spotting decision, so it grows scoutingEye
+    // (smaller per-pack growth than per-transfer since packs are cheaper).
+    let newCareerManager = state.careerManager;
+    if (state.gameMode === 'career' && state.careerManager) {
+      newCareerManager = {
+        ...state.careerManager,
+        attributes: {
+          ...state.careerManager.attributes,
+          scoutingEye: Math.min(CAREER_STAT_MAX, state.careerManager.attributes.scoutingEye + CAREER_STAT_GROWTH * 0.5),
+        },
+      };
+    }
+
+    // Audio cue (no-op until assets are wired).
+    playPackSfx(topPlayer.overall >= WALKOUT_OVR_THRESHOLD ? 'rare-pull' : 'standard-pull');
+
     set({
-      players: newPlayers,
-      clubs: { ...state.clubs, [club.id]: updatedClub },
+      players: playersWithAi,
+      clubs: clubsWithAi,
       openedPacks: newOpenedPacks,
       packPityCounter: newPity,
       lastPackWeek: state.week,
       lastPackSeason: state.season,
       messages: newMessages,
       seasonTotalExpenses: (state.seasonTotalExpenses || 0) + tier.price,
+      managerProgression: newProgression,
+      careerManager: newCareerManager,
+      lastMatchXPGain: xpEarned > 0 ? xpEarned : state.lastMatchXPGain,
     });
 
     return {

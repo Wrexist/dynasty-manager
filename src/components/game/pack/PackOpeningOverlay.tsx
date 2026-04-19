@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { PackTierKey, Player } from '@/types/game';
-import { PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
+import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
 import { PackCard } from './PackCard';
@@ -53,6 +53,51 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
       window.clearTimeout(walkoutLingerTimerRef.current);
       walkoutLingerTimerRef.current = null;
     }
+  }, []);
+
+  // Auto-close once the user has dismissed every card from the summary.
+  // Without this they're left staring at "Added to Squad" with no cards.
+  useEffect(() => {
+    if (phase === 'summary' && players.length === 0) {
+      onClose();
+    }
+  }, [phase, players.length, onClose]);
+
+  // Focus trap. Modal overlays must contain Tab so keyboard users don't
+  // wander back into the locked-out main UI. Focuses the container on
+  // mount and wraps Tab/Shift+Tab around interactive descendants.
+  useEffect(() => {
+    const root = containerRef.current;
+    if (!root) return;
+    const prevActive = document.activeElement as HTMLElement | null;
+    root.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      const focusables = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusables.length === 0) { e.preventDefault(); return; }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement as HTMLElement | null;
+      if (e.shiftKey && (active === first || !root.contains(active))) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && (active === last || !root.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      // Restore focus to whatever was active before the overlay opened.
+      if (prevActive && typeof prevActive.focus === 'function') {
+        prevActive.focus();
+      }
+    };
   }, []);
 
   const topOvr = useMemo(() => players.reduce((m, p) => Math.max(m, p.overall), 0), [players]);
@@ -107,7 +152,15 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
     if (phase !== 'reveal') return;
     const allRevealed = players.every(p => revealedSet.has(p.id));
     if (!allRevealed) return;
-    const pendingWalkouts = players.filter(p => p.overall >= WALKOUT_OVR_THRESHOLD);
+    // Cap the walkout queue to the most-impactful pull(s). Rare Gold packs
+    // can yield 3+ cards above the walkout threshold; playing all of them
+    // back-to-back becomes ~25s of cinematic the user can't really skip.
+    // Sort by OVR desc, take the top N (default 1) — every other 84+ pull
+    // still gets a "Rare" badge on its standard flip.
+    const pendingWalkouts = players
+      .filter(p => p.overall >= WALKOUT_OVR_THRESHOLD)
+      .sort((a, b) => b.overall - a.overall)
+      .slice(0, MAX_WALKOUTS_PER_PACK);
     if (pendingWalkouts.length > 0) {
       setWalkoutQueue(pendingWalkouts);
       setCurrentWalkout(pendingWalkouts[0]);
@@ -182,7 +235,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
   const overlay = (
     <motion.div
       ref={containerRef}
-      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Opening ${tierDef.label}`}
+      tabIndex={-1}
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden focus:outline-none"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

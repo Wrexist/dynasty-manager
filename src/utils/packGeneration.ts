@@ -1,12 +1,16 @@
-import type { Player, PlayerAttributes, Position, PackTierKey, PackRarityWeights } from '@/types/game';
+import type { Club, Player, PlayerAttributes, Position, PackTierKey, PackRarityWeights } from '@/types/game';
 import { generatePlayer, calculateOverall } from '@/utils/playerGen';
 import { pick, clamp } from '@/utils/helpers';
 import { calculatePlayerValue, calculatePlayerWage } from '@/config/playerGeneration';
+import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import {
   PACK_TIER_MAP,
   PACK_POSITION_POOL,
   PACK_PITY_THRESHOLD,
   PACK_RARITY_BANDS,
+  AI_BACKFILL_PER_TIER,
+  AI_BACKFILL_OVR_GAP,
+  AI_BACKFILL_OVR_SPREAD,
 } from '@/config/packs';
 
 function pickRarity(weights: PackRarityWeights): keyof PackRarityWeights {
@@ -145,6 +149,83 @@ export function generatePackContents(
   }
 
   return players;
+}
+
+export interface AiBackfillResult {
+  /** Map of clubId → newly added Player ids. Slice uses this to update
+   *  each club's playerIds + wageBill. */
+  perClub: Record<string, Player[]>;
+}
+
+/** League-balance counter-signings. When the user opens a pack of `tierKey`,
+ *  a small number of AI clubs each get one new player at strictly lower OVR
+ *  than the user's guaranteed pull. This stops the user's pack acquisitions
+ *  from making the rest of the league trivially weak.
+ *
+ *  Always-on, conservative defaults:
+ *   - Total AI signings ≤ user's pack cards − 1 (user always gets more)
+ *   - Each AI signing OVR ≤ tier.guaranteedMinOvr − AI_BACKFILL_OVR_GAP
+ *     (user always gets the higher-rated cards)
+ *   - Skips the player's own club, clubs already at MAX_SQUAD_SIZE, and
+ *     any club not in the same playerDivision (keeps the boost local). */
+export function generateAiCounterSignings(
+  tierKey: PackTierKey,
+  clubs: Record<string, Club>,
+  playerClubId: string,
+  playerDivision: string,
+  season: number,
+): AiBackfillResult {
+  const tier = PACK_TIER_MAP[tierKey];
+  const slots = AI_BACKFILL_PER_TIER[tierKey] || 0;
+  if (slots === 0) return { perClub: {} };
+
+  // Eligible AI clubs: same division, not the player, room on roster.
+  const eligible = Object.values(clubs).filter(c =>
+    c.id !== playerClubId
+    && c.divisionId === playerDivision
+    && c.playerIds.length < MAX_SQUAD_SIZE,
+  );
+  if (eligible.length === 0) return { perClub: {} };
+
+  // OVR window: never above (user guarantee − GAP), down by SPREAD.
+  const ceiling = Math.max(40, tier.guaranteedMinOvr - AI_BACKFILL_OVR_GAP);
+  const floor = Math.max(40, ceiling - AI_BACKFILL_OVR_SPREAD);
+
+  // Reputation-weighted pick: better clubs win the "auction" more often.
+  // Without replacement so the same club doesn't get two AI signings from
+  // a single player open.
+  const pool = [...eligible];
+  const chosen: Club[] = [];
+  for (let i = 0; i < slots && pool.length > 0; i++) {
+    const totalWeight = pool.reduce((s, c) => s + Math.max(1, c.reputation || 0), 0);
+    let roll = Math.random() * totalWeight;
+    let pickIdx = 0;
+    for (let j = 0; j < pool.length; j++) {
+      roll -= Math.max(1, pool[j].reputation || 0);
+      if (roll <= 0) { pickIdx = j; break; }
+    }
+    chosen.push(pool.splice(pickIdx, 1)[0]);
+  }
+
+  const perClub: Record<string, Player[]> = {};
+  for (const club of chosen) {
+    const target = floor + Math.floor(Math.random() * (ceiling - floor + 1));
+    const position = pick(PACK_POSITION_POOL);
+    let player = generatePlayer(position, target, club.id, season);
+    let derived = calculateOverall(player.attributes, player.position);
+    // One reroll if extreme variance pushes us over the ceiling.
+    if (derived > ceiling) {
+      player = generatePlayer(position, target, club.id, season);
+      derived = calculateOverall(player.attributes, player.position);
+    }
+    player.overall = clamp(derived, floor, ceiling);
+    player.wage = calculatePlayerWage(player.overall);
+    player.value = calculatePlayerValue(player.overall);
+    if (player.potential < player.overall) player.potential = player.overall;
+    player.joinedSeason = season;
+    perClub[club.id] = [player];
+  }
+  return { perClub };
 }
 
 /** Should pity kick in on the next open? */

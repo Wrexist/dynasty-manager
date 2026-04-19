@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
-import { generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
-import { PACK_TIER_MAP, PACK_PITY_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
+import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
+import { AI_BACKFILL_OVR_GAP, AI_BACKFILL_PER_TIER, PACK_TIER_MAP, PACK_PITY_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { calculatePlayerValue, calculatePlayerWage } from '@/config/playerGeneration';
+import { XP_REWARDS } from '@/utils/managerPerks';
 
 /** Worst-case calculator output over N samples. Used to assert that wage/
  *  value fall within the range for a given OVR despite the calculators'
@@ -300,5 +301,105 @@ describe('Pack opening — challenge guard', () => {
     const result = useGameStore.getState().openPack('bronze');
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/challenge/i);
+  });
+});
+
+describe('Pack opening — AI counter-signings (league balance)', () => {
+  beforeEach(() => { initAndGetState(); });
+
+  it('AI signings stay strictly below the user\'s tier guarantee', () => {
+    // Open a Gold pack (78+ user guarantee). AI signings must be ≤ 73 OVR
+    // (78 − AI_BACKFILL_OVR_GAP). User's pack contains 5 cards; AI gets 2.
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
+    });
+    const beforeIds = new Set(Object.keys(useGameStore.getState().players));
+    const result = useGameStore.getState().openPack('gold');
+    expect(result.success).toBe(true);
+
+    const after = useGameStore.getState();
+    const userPackIds = new Set(result.players!.map(p => p.id));
+    // Strictly the players added by this open MINUS the user's pack contents.
+    const aiNewPlayers = Object.values(after.players).filter(p =>
+      !beforeIds.has(p.id)
+      && !userPackIds.has(p.id)
+      && p.clubId !== state.playerClubId,
+    );
+    // AI got at least 1 backfill across the league for a Gold pack.
+    expect(aiNewPlayers.length).toBeGreaterThan(0);
+    const ceiling = PACK_TIER_MAP.gold.guaranteedMinOvr - AI_BACKFILL_OVR_GAP;
+    for (const p of aiNewPlayers) {
+      expect(p.overall).toBeLessThanOrEqual(ceiling);
+    }
+  });
+
+  it('Icon packs grant the user the only signing — no AI backfill', () => {
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 } },
+    });
+    const beforePlayerCount = Object.keys(useGameStore.getState().players).length;
+    const result = useGameStore.getState().openPack('icon');
+    expect(result.success).toBe(true);
+    const after = useGameStore.getState();
+    const added = Object.keys(after.players).length - beforePlayerCount;
+    // Icon: 1 user card, 0 AI counter-signings (per AI_BACKFILL_PER_TIER.icon).
+    expect(added).toBe(PACK_TIER_MAP.icon.cards + AI_BACKFILL_PER_TIER.icon);
+  });
+
+  it('the helper itself never produces above the gap-adjusted ceiling', () => {
+    // Direct unit test on the helper: deterministic across many runs.
+    const state = useGameStore.getState();
+    for (let run = 0; run < 25; run++) {
+      const out = generateAiCounterSignings(
+        'rare',
+        state.clubs,
+        state.playerClubId,
+        state.playerDivision,
+        state.season,
+      );
+      const ceiling = PACK_TIER_MAP.rare.guaranteedMinOvr - AI_BACKFILL_OVR_GAP;
+      for (const players of Object.values(out.perClub)) {
+        for (const p of players) expect(p.overall).toBeLessThanOrEqual(ceiling);
+      }
+    }
+  });
+});
+
+describe('Pack opening — manager XP & career stat growth', () => {
+  beforeEach(() => { initAndGetState(); });
+
+  it('grants legendary XP when a 90+ player drops', () => {
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 } },
+    });
+    const xpBefore = useGameStore.getState().managerProgression.xp || 0;
+    const result = useGameStore.getState().openPack('icon');
+    expect(result.success).toBe(true);
+
+    const topOvr = Math.max(...result.players!.map(p => p.overall));
+    const after = useGameStore.getState();
+    const xpAfter = after.managerProgression.xp || 0;
+    if (topOvr >= 90) {
+      expect(xpAfter - xpBefore).toBeGreaterThanOrEqual(XP_REWARDS.packLegendaryPull);
+    } else {
+      // Icon pack guarantees 88+, so 84-89 grants the rare-pull XP at minimum.
+      expect(xpAfter - xpBefore).toBeGreaterThanOrEqual(XP_REWARDS.packRarePull);
+    }
+  });
+
+  it('does NOT grant XP for sub-walkout pulls', () => {
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
+    });
+    const xpBefore = useGameStore.getState().managerProgression.xp || 0;
+    // Bronze pack ceiling is 68 OVR — well below WALKOUT_OVR_THRESHOLD (84).
+    const result = useGameStore.getState().openPack('bronze');
+    expect(result.success).toBe(true);
+    const xpAfter = useGameStore.getState().managerProgression.xp || 0;
+    expect(xpAfter).toBe(xpBefore);
   });
 });

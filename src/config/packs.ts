@@ -110,6 +110,36 @@ export const WALKOUT_OVR_THRESHOLD = 84;
 /** Legendary threshold — extra animation polish layered on top of walkout. */
 export const LEGENDARY_OVR_THRESHOLD = 90;
 
+/** Max number of walkouts to play per pack. Even if multiple cards qualify
+ *  for a walkout, only the highest-OVR pull gets the cinematic — the rest
+ *  flip normally with a "Rare" badge. Keeps a Rare Gold pack from forcing
+ *  the user to sit through 30+ seconds of back-to-back walkouts. */
+export const MAX_WALKOUTS_PER_PACK = 1;
+
+/** ── AI counter-signings (league-balance scaling) ──
+ *  Each pack the user opens triggers a small set of AI signings that keep
+ *  the league quality from drifting too far below the user. The system is
+ *  deliberately calibrated so the user always gains MORE and BETTER
+ *  players than any single AI club: AI gets fewer cards, at lower OVR,
+ *  spread across multiple clubs. */
+export const AI_BACKFILL_PER_TIER: Record<PackTierKey, number> = {
+  bronze: 1,
+  silver: 1,
+  gold: 2,
+  premium: 2,
+  rare: 3,
+  icon: 0,    // Icon is the user's special prize — no AI peer
+};
+
+/** OVR gap between the player's pack guarantee and the AI counter-signings.
+ *  AI players can never roll higher than `userTier.guaranteedMinOvr - GAP`. */
+export const AI_BACKFILL_OVR_GAP = 5;
+
+/** OVR variance below the AI ceiling — AI signings roll in
+ *  [ceiling - SPREAD, ceiling]. Keeps distribution interesting without
+ *  giving any single AI club a star. */
+export const AI_BACKFILL_OVR_SPREAD = 6;
+
 /** After this many non-gold (< 80 OVR max) pulls, the next pack promotes its
  *  guaranteed slot to a minimum of 80 OVR. */
 export const PACK_PITY_THRESHOLD = 8;
