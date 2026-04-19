@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
 import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch, AlertTriangle, FileText, Users, LogOut, Smile, Meh, Frown, Repeat2, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getRatingColor, getFitnessColor, posBadgeColor } from '@/utils/uiHelpers';
+import { getRatingColor, getFitnessColor, posBadgeColor, getPlayerTier } from '@/utils/uiHelpers';
 import type { ElementType } from 'react';
 import { successToast } from '@/utils/gameToast';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
@@ -484,7 +484,7 @@ const SquadPage = () => {
                   className="shrink-0"
                 >
                   <div className="w-10 h-10 rounded-[6px] flex items-center justify-center bg-gradient-to-b from-white/[0.06] to-transparent">
-                    <span className={cn('font-display font-bold text-lg tabular-nums leading-none', getRatingColor(player.overall))}>
+                    <span className={cn('font-display font-bold text-lg tabular-nums leading-none', getPlayerTier(player.overall).textClass)}>
                       {player.overall}
                     </span>
                   </div>

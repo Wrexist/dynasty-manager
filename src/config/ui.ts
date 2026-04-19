@@ -19,15 +19,15 @@ export const RATING_COLOR_THRESHOLDS = [
 export const PLAYER_TIER_THRESHOLDS = [
   {
     min: 90, key: 'legendary', label: 'Legendary',
-    gradientFrom: '#fde68a', gradientVia: '#facc15', gradientTo: '#b45309',
-    textClass: 'text-amber-300',
-    badgeClass: 'bg-amber-400/20 text-amber-300 border border-amber-300/40',
+    gradientFrom: '#fbbf24', gradientVia: '#ef4444', gradientTo: '#7f1d1d',
+    textClass: 'text-rose-200',
+    badgeClass: 'bg-rose-400/20 text-rose-200 border border-rose-300/40',
   },
   {
     min: 80, key: 'gold', label: 'Gold',
     gradientFrom: '#fcd34d', gradientVia: '#f59e0b', gradientTo: '#92400e',
-    textClass: 'text-amber-400',
-    badgeClass: 'bg-amber-500/15 text-amber-400 border border-amber-400/40',
+    textClass: 'text-amber-200',
+    badgeClass: 'bg-amber-500/15 text-amber-200 border border-amber-300/40',
   },
   {
     min: 70, key: 'silver', label: 'Silver',
