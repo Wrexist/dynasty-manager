@@ -1,0 +1,148 @@
+name: Scrape SoFIFA Icons
+
+# Manual-only trigger. Run from: Actions tab → "Scrape SoFIFA Icons" → "Run workflow".
+# Outputs `fc25_icons.csv` + `fc25_icons_meta.json` as downloadable artifacts.
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Limit number of icons to scrape (leave empty for full scrape, use 5 for smoke test)'
+        required: false
+        default: ''
+        type: string
+      delay_ms:
+        description: 'Per-request delay in milliseconds (default 1000)'
+        required: false
+        default: '1000'
+        type: string
+      retry_failed:
+        description: 'Re-attempt only icons that previously errored (auto-restores cache from most recent run)'
+        required: false
+        default: false
+        type: boolean
+
+# Block concurrent manual runs so we never double-hit SoFIFA.
+concurrency:
+  group: scrape-icons
+  cancel-in-progress: false
+
+# Least-privilege token: only need to read the repo and download/upload artifacts.
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # When retry_failed is true, restore the cache from the most recent
+      # prior workflow run so --retry-failed has something to retry against.
+      # If no prior cache exists, the scraper treats retry_failed as a no-op.
+      - name: Restore previous cache (for retry-failed)
+        if: ${{ inputs.retry_failed }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PRIOR_RUN_ID=$(gh run list \
+            --workflow=scrape-icons.yml \
+            --limit=20 \
+            --json databaseId,status,conclusion \
+            --jq 'map(select(.databaseId != ${{ github.run_id }})) | .[0].databaseId' \
+            || echo "")
+          if [ -z "${PRIOR_RUN_ID}" ] || [ "${PRIOR_RUN_ID}" = "null" ]; then
+            echo "No prior runs found — retry_failed will be a no-op."
+            exit 0
+          fi
+          echo "Restoring cache from run ${PRIOR_RUN_ID}…"
+          if gh run download "${PRIOR_RUN_ID}" \
+              --name fc25-icons-cache \
+              --dir scripts/ 2>/dev/null; then
+            echo "Cache restored:"
+            ls -la scripts/.icons-cache.json
+          else
+            echo "Prior run had no cache artifact — retry_failed will be a no-op."
+          fi
+
+      - name: Run scraper
+        id: scrape
+        env:
+          INPUT_LIMIT: ${{ inputs.limit }}
+          INPUT_DELAY: ${{ inputs.delay_ms }}
+          INPUT_RETRY: ${{ inputs.retry_failed }}
+        run: |
+          set -euo pipefail
+          ARGS=()
+          if [ -n "${INPUT_LIMIT}" ]; then
+            ARGS+=(--limit "${INPUT_LIMIT}")
+          fi
+          if [ -n "${INPUT_DELAY}" ]; then
+            ARGS+=(--delay "${INPUT_DELAY}")
+          fi
+          if [ "${INPUT_RETRY}" = "true" ]; then
+            ARGS+=(--retry-failed)
+          fi
+          echo "Running: node scripts/scrapeSoFIFAIcons.mjs ${ARGS[*]}"
+          node scripts/scrapeSoFIFAIcons.mjs "${ARGS[@]}"
+
+      - name: Write run summary
+        if: always()
+        run: |
+          set -euo pipefail
+          {
+            echo "## SoFIFA Icons Scrape"
+            echo ""
+            if [ -f fc25_icons.csv ]; then
+              ROWS=$(($(wc -l < fc25_icons.csv) - 1))
+              SIZE=$(du -h fc25_icons.csv | cut -f1)
+              echo "- ✓ \`fc25_icons.csv\` — **${ROWS} icons** (${SIZE})"
+            else
+              echo "- ✗ \`fc25_icons.csv\` not produced"
+            fi
+            if [ -f fc25_icons_meta.json ]; then
+              META=$(jq 'length' fc25_icons_meta.json)
+              SIZE=$(du -h fc25_icons_meta.json | cut -f1)
+              echo "- ✓ \`fc25_icons_meta.json\` — **${META} entries** (${SIZE})"
+            else
+              echo "- ✗ \`fc25_icons_meta.json\` not produced"
+            fi
+            if [ -f scripts/.icons-cache.json ]; then
+              ERR=$(jq '[.rows | to_entries[] | select(.value.error)] | length' scripts/.icons-cache.json)
+              if [ "${ERR}" -gt 0 ]; then
+                echo "- ⚠ ${ERR} icons errored — re-run with **retry_failed=true** to retry them"
+              fi
+            fi
+            echo ""
+            echo "### Download"
+            echo "Scroll to the **Artifacts** section at the bottom of this run page to download \`fc25-icons.zip\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload scrape outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fc25-icons
+          path: |
+            fc25_icons.csv
+            fc25_icons_meta.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Upload cache (for resume / retry-failed)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fc25-icons-cache
+          path: scripts/.icons-cache.json
+          if-no-files-found: ignore
+          retention-days: 7
