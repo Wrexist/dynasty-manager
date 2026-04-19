@@ -49,7 +49,9 @@ export const LINEUP_BENCH_POSITION_PRIORITY: Record<string, number> = {
 /** Bonus per additional formation slot a bench player can cover (natural or compatible) */
 export const BENCH_VERSATILITY_BONUS_PER_SLOT = 3;
 /** Weight for fitness gap between bench player and the weakest positional starter they'd replace */
-export const BENCH_FRESHNESS_DIFF_WEIGHT = 0.12;
+export const BENCH_FRESHNESS_DIFF_WEIGHT = 0.08;
+/** Fitness weight for bench candidate base rating (lower than starter to keep OVR dominant) */
+export const BENCH_PLAYER_FITNESS_WEIGHT = 6;
 /** Form threshold above which a bench player is considered "hot" / in-form */
 export const BENCH_HIGH_FORM_THRESHOLD = 70;
 /** Bonus for bench players with form above the hot threshold */
