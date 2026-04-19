@@ -45,9 +45,11 @@ export const PlayerRatingBadge = memo(function PlayerRatingBadge({
   const isCircle = shape === 'circle';
   const outerRadius = isCircle ? 'rounded-full' : spec.outerRadius;
   const innerRadius = isCircle ? 'rounded-full' : spec.innerRadius;
+  const tier = getPlayerTier(overall);
 
   return (
     <TierBorderFrame
+      tier={tier}
       overall={overall}
       glow={glow}
       outerRadiusClass={outerRadius}
@@ -60,11 +62,17 @@ export const PlayerRatingBadge = memo(function PlayerRatingBadge({
         innerRadius,
         'flex items-center justify-center bg-gradient-to-b from-white/[0.06] to-transparent',
       )}>
-        <span className={cn(
-          'font-display font-bold tabular-nums leading-none',
-          spec.text,
-          getPlayerTier(overall).textClass,
-        )}>
+        <span
+          className={cn(
+            'font-display font-bold tabular-nums leading-none',
+            spec.text,
+            tier.textClass,
+          )}
+          style={{
+            WebkitTextStroke: `0.75px ${tier.outlineColor}`,
+            paintOrder: 'stroke fill',
+          }}
+        >
           {overall}
         </span>
       </div>
