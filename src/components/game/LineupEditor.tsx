@@ -12,7 +12,7 @@ import { PlayerCard } from './PlayerCard';
 import { ChemistryBar } from './ChemistryBar';
 import { InsightsPanel } from './InsightsPanel';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { getRatingColor } from '@/utils/uiHelpers';
+import { getRatingColor, getPlayerTier } from '@/utils/uiHelpers';
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { hapticLight, hapticMedium } from '@/utils/haptics';
@@ -347,7 +347,7 @@ export function LineupEditor() {
             <div className="mx-1 mt-2 bg-card/80 backdrop-blur-xl border border-border/50 rounded-xl p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className={cn('text-lg font-bold font-display tabular-nums', getRatingColor(selectedPlayer.overall))}>
+                  <span className={cn('text-lg font-bold font-display tabular-nums', getPlayerTier(selectedPlayer.overall).textClass)}>
                     {selectedPlayer.overall}
                   </span>
                   <div>

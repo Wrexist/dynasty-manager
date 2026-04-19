@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { LoanNegotiation } from '@/components/game/LoanNegotiation';
 import { UNLISTED_PLAYER_PREMIUM } from '@/config/transfers';
@@ -89,11 +90,7 @@ export function TransferApproach({ playerId, onClose }: Props) {
           <div className="p-4 space-y-4">
             {/* Player Card */}
             <div className="flex items-start gap-3">
-              <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                <span className={cn('font-mono font-black text-2xl', getRatingColor(player.overall))}>
-                  {player.overall}
-                </span>
-              </div>
+              <PlayerRatingBadge overall={player.overall} size="xl" />
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
                 <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}</p>

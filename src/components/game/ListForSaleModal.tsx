@@ -9,6 +9,7 @@ import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { formatMoney } from '@/utils/helpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
 import { LIST_PRICE_MULTIPLIER, LISTING_PRICE_FLOOR, LISTING_PRICE_MIN_RATIO, LISTING_PRICE_MAX_RATIO } from '@/config/transfers';
 import { LISTING_ATTRACTIVENESS } from '@/config/ui';
 import { hapticMedium } from '@/utils/haptics';
@@ -105,10 +106,8 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
               </button>
             </div>
             <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded-xl bg-muted/80 flex items-center justify-center shrink-0 relative">
-                <span className={cn('font-mono font-black text-2xl', getRatingColor(player.overall))}>
-                  {player.overall}
-                </span>
+              <div className="relative shrink-0">
+                <PlayerRatingBadge overall={player.overall} size="xl" />
                 {hasPotential && (
                   <span className="absolute -top-1 -right-1 bg-primary/20 border border-primary/40 rounded-md px-1 py-px text-[9px] font-bold text-primary flex items-center gap-0.5">
                     <Star className="w-2.5 h-2.5" />{player.potential}

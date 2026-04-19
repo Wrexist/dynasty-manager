@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
 import { LOAN_REQUEST_MIN_DURATION, LOAN_REQUEST_MAX_DURATION, LOAN_DEFAULT_DURATION, LOAN_DEFAULT_WAGE_SPLIT, LOAN_BUY_FEE_MULTIPLIER, LOAN_BUY_FEE_MIN_RATIO, LOAN_BUY_FEE_MAX_RATIO } from '@/config/transfers';
 import {
   X, Repeat2, ArrowRight, RotateCcw, Handshake, XCircle, ToggleLeft, ToggleRight,
@@ -165,11 +166,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <div className="w-14 h-14 rounded-xl bg-muted flex items-center justify-center shrink-0">
-                      <span className={cn('font-mono font-black text-2xl', getRatingColor(player.overall))}>
-                        {player.overall}
-                      </span>
-                    </div>
+                    <PlayerRatingBadge overall={player.overall} size="xl" />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
                       <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}</p>
@@ -443,11 +440,7 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
                   transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.15 }}
                 >
                   <div className="flex items-start gap-3">
-                    <div className="w-14 h-14 rounded-xl bg-blue-500/15 border-2 border-blue-500/40 flex items-center justify-center shrink-0">
-                      <span className={cn('font-mono font-black text-2xl', getRatingColor(player.overall))}>
-                        {player.overall}
-                      </span>
-                    </div>
+                    <PlayerRatingBadge overall={player.overall} size="xl" />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display text-base">
                         {player.firstName} {player.lastName}

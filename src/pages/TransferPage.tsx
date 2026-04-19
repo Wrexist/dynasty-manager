@@ -12,9 +12,9 @@ import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { TransferListing, IncomingOffer } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
-import { getRatingColor } from '@/utils/uiHelpers';
 import { POSITION_FILTERS, PAGE_HINTS, MARKET_SUB_NAV, SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE, BUDGET_WARNING_THRESHOLD, HOT_FORM_THRESHOLD, GOOD_FORM_THRESHOLD, OFFER_EXPIRY_WARNING_WEEKS } from '@/config/ui';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
+import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, FREE_AGENT_DEFAULT_CONTRACT_YEARS, FREE_AGENT_MIN_WAGE_RATIO, FREE_AGENT_MAX_WAGE_RATIO, LOAN_BUY_FEE_MULTIPLIER, PRE_SEASON_END } from '@/config/transfers';
@@ -710,12 +710,7 @@ const TransferPage = () => {
                 return (
                   <GlassPanel key={offer.id} className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-11 h-11 rounded-full bg-muted flex items-center justify-center shrink-0">
-                        <span className={cn(
-                          'font-mono font-black text-lg',
-                          getRatingColor(p.overall)
-                        )}>{p.overall}</span>
-                      </div>
+                      <PlayerRatingBadge overall={p.overall} size="lg" shape="circle" />
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
                         <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y</p>
@@ -766,12 +761,10 @@ const TransferPage = () => {
                 return (
                   <GlassPanel key={req.id} className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className="w-11 h-11 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
-                        <Clock className="w-5 h-5 text-amber-400" />
-                      </div>
+                      <PlayerRatingBadge overall={p.overall} size="lg" shape="circle" />
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
-                        <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} OVR {p.overall}</p>
+                        <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y</p>
                         <p className="text-xs text-muted-foreground mt-0.5">
                           From: <span className="text-foreground">{ownerClub?.name || '?'}</span>
                         </p>

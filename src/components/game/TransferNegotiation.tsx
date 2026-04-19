@@ -5,14 +5,14 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { TransferListing } from '@/types/game';
-import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel, getPlayerTier } from '@/utils/uiHelpers';
+import { getRatingColor, getTop3Attributes, getChanceColor, getChanceBarColor, getChanceLabel } from '@/utils/uiHelpers';
 import { formatWage } from '@/utils/contracts';
 import { formatMoney } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { NEGOTIATION_SLIDER_MIN_RATIO, NEGOTIATION_SLIDER_MAX_RATIO, NEGOTIATION_MAX_STRIKES } from '@/config/transfers';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { StrikeIndicator } from '@/components/game/StrikeIndicator';
-import { TierBorderFrame } from '@/components/game/TierBorderFrame';
+import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
 import {
   X, TrendingUp, TrendingDown,
   ArrowRight, RotateCcw, Handshake, XCircle, Star, AlertTriangle, Wallet, Users, Unlock, Lock,
@@ -245,19 +245,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="relative shrink-0">
-                      <TierBorderFrame
-                        overall={player.overall}
-                        glow
-                        outerRadiusClass="rounded-xl"
-                        innerRadiusClass="rounded-[10.5px]"
-                        announceTier
-                      >
-                        <div className="w-14 h-14 rounded-[10.5px] flex items-center justify-center bg-gradient-to-b from-white/[0.06] to-transparent">
-                          <span className={cn('font-display font-bold text-2xl tabular-nums leading-none', getPlayerTier(player.overall).textClass)}>
-                            {player.overall}
-                          </span>
-                        </div>
-                      </TierBorderFrame>
+                      <PlayerRatingBadge overall={player.overall} size="xl" />
                       {hasPotential && (
                         <span className="absolute -top-1 -right-1 bg-primary/20 border border-primary/40 rounded-md px-1 py-px text-[9px] font-bold text-primary flex items-center gap-0.5">
                           <Star className="w-2.5 h-2.5" />{player.potential}
@@ -522,11 +510,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.15 }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/40 flex items-center justify-center shrink-0">
-                      <span className={cn('font-mono font-black text-xl', getRatingColor(player.overall))}>
-                        {player.overall}
-                      </span>
-                    </div>
+                    <PlayerRatingBadge overall={player.overall} size="lg" />
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
                       <p className="text-[11px] text-muted-foreground">{player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /></p>

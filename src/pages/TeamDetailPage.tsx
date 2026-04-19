@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Shield, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getPlayerTier } from '@/utils/uiHelpers';
+import { getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { TierBorderFrame } from '@/components/game/TierBorderFrame';
+import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
+import { HeartPulse } from 'lucide-react';
 import { LEAGUES } from '@/data/league';
 import { getSuffix } from '@/utils/helpers';
 import type { Player, Position } from '@/types/game';
@@ -218,39 +219,27 @@ const TeamDetailPage = () => {
                 <div
                   key={p.id}
                   onClick={() => selectPlayer(p.id)}
-                  className="flex items-center gap-2 py-1.5 px-2 -mx-2 rounded-lg cursor-pointer active:bg-muted/40 transition-colors"
+                  className="flex items-center gap-2 py-2 px-2 -mx-2 rounded-lg cursor-pointer active:bg-muted/40 transition-colors"
                 >
                   {/* Overall */}
-                  <TierBorderFrame
-                    overall={p.overall}
-                    glow
-                    outerRadiusClass="rounded-lg"
-                    innerRadiusClass="rounded-[6.5px]"
-                    className="shrink-0"
-                    announceTier
-                  >
-                    <div className="w-9 h-9 rounded-[6.5px] flex items-center justify-center bg-gradient-to-b from-white/[0.06] to-transparent">
-                      <span className={cn('font-display font-bold text-base tabular-nums leading-none', getPlayerTier(p.overall).textClass)}>
-                        {p.overall}
-                      </span>
-                    </div>
-                  </TierBorderFrame>
+                  <PlayerRatingBadge overall={p.overall} size="sm" />
                   {/* Name + position */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <span className={cn('text-sm font-medium truncate', isStarter ? 'text-foreground' : 'text-muted-foreground')}>
                         {p.firstName[0]}. {p.lastName}
                       </span>
-                      {p.injured && <span className="text-[9px] text-destructive font-bold">INJ</span>}
+                      {p.injured && (
+                        <span className="flex items-center gap-0.5 shrink-0" title={`Injured — ${p.injuryWeeks || '?'} wk(s)`}>
+                          <HeartPulse className="w-3 h-3 text-destructive" />
+                          {p.injuryWeeks ? (
+                            <span className="text-[8px] font-bold text-destructive tabular-nums">{p.injuryWeeks}w</span>
+                          ) : null}
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                      <span className={cn(
-                        'px-1 py-0.5 rounded text-[9px] font-bold',
-                        ['GK'].includes(p.position) ? 'bg-amber-500/20 text-amber-400' :
-                        ['CB', 'LB', 'RB'].includes(p.position) ? 'bg-blue-500/20 text-blue-400' :
-                        ['CDM', 'CM', 'CAM', 'LM', 'RM'].includes(p.position) ? 'bg-emerald-500/20 text-emerald-400' :
-                        'bg-red-500/20 text-red-400'
-                      )}>
+                      <span className={cn('px-1 py-0.5 rounded text-[9px] font-bold', posBadgeColor(p.position))}>
                         {p.position}
                       </span>
                       <span>Age {p.age}</span>
