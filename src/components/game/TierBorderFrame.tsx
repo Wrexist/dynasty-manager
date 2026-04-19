@@ -37,7 +37,7 @@ export const TierBorderFrame = memo(function TierBorderFrame({
   overall,
   glow = false,
   outerRadiusClass = 'rounded-lg',
-  innerRadiusClass = 'rounded-[6px]',
+  innerRadiusClass = 'rounded-[6.5px]',
   paddingClass = 'p-[1.5px]',
   className,
   innerClassName,
@@ -57,11 +57,11 @@ export const TierBorderFrame = memo(function TierBorderFrame({
 
   return (
     <div
-      className={cn(outerRadiusClass, paddingClass, className)}
+      className={cn(outerRadiusClass, paddingClass, 'overflow-hidden', className)}
       style={wrapperStyle}
       data-tier={withDataTier ? tier.key : undefined}
     >
-      <div className={cn(innerRadiusClass, innerClassName)}>{children}</div>
+      <div className={cn(innerRadiusClass, 'overflow-hidden', innerClassName)}>{children}</div>
     </div>
   );
 });

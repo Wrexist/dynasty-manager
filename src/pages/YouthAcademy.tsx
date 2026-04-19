@@ -8,6 +8,7 @@ import { GraduationCap, Star, TrendingUp, ArrowUpRight, Trash2, Wrench, Users } 
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getPotentialInfo, getTop3Attributes, posBadgeColor } from '@/utils/uiHelpers';
+import { getPlayerDisplayName, getCardNameFontSizeClass } from '@/utils/playerDisplay';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { TierBorderFrame } from '@/components/game/TierBorderFrame';
 import { getStaffBonus } from '@/utils/staff';
@@ -161,9 +162,20 @@ const YouthAcademy = () => {
                                 style={{ width: `${player.fitness}%`, backgroundColor: getFitnessHexColor(player.fitness) }}
                               />
                             </div>
-                            <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide leading-tight">
-                              {player.lastName.slice(0, 3).toUpperCase()}
-                            </span>
+                            {(() => {
+                              const youthDisplayName = getPlayerDisplayName(player);
+                              return (
+                                <span
+                                  className={cn(
+                                    getCardNameFontSizeClass(youthDisplayName),
+                                    'font-bold text-white/90 uppercase tracking-wide leading-tight truncate max-w-full',
+                                  )}
+                                  title={`${player.firstName} ${player.lastName}`}
+                                >
+                                  {youthDisplayName}
+                                </span>
+                              );
+                            })()}
                             <span className="text-[6px] text-gray-400 font-medium leading-tight mt-px">{player.position}</span>
                           </div>
                         </TierBorderFrame>
