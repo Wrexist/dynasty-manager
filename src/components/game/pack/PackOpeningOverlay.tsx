@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Player } from '@/types/game';
-import { PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD, type PackTierKey } from '@/config/packs';
+import type { PackTierKey, Player } from '@/types/game';
+import { PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
 import { PackCard } from './PackCard';

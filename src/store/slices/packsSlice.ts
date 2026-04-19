@@ -55,12 +55,16 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       };
     }
 
-    // Once-per-week throttle, keyed by (season, week) so advancing a week
-    // re-enables opening. Skips the first-ever open (both fields start at 0).
+    // Once-per-week throttle, keyed solely by the cooldown fields
+    // (season, week). Advancing a week re-enables opening. The `> 0` guards
+    // skip the first-ever open (both fields start at 0). We deliberately
+    // don't consult `openedPacks` so the cooldown survives log pruning or
+    // any future migration that clears history.
     if (
-      (state.lastPackSeason || 0) === state.season
-      && (state.lastPackWeek || 0) === state.week
-      && ((state.openedPacks || []).length > 0)
+      (state.lastPackSeason || 0) > 0
+      && (state.lastPackWeek || 0) > 0
+      && state.lastPackSeason === state.season
+      && state.lastPackWeek === state.week
     ) {
       return { success: false, message: 'Only one pack per week — advance a week to open another.' };
     }
