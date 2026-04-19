@@ -20,6 +20,31 @@ const OUT_PATH = join(ROOT, 'src/data/nationalPlayerPool.ts');
 const MAX_PER_NATION = 60;
 const MIN_OVR = 58; // filter out very low-rated fodder
 
+/**
+ * Nations the game exposes as manageable national teams (from src/data/nations.ts)
+ * plus FC25-side alias labels for each (same mapping as NATIONALITY_ALIASES in
+ * src/utils/international.ts). The generated pool only includes these — nations
+ * that the user can never manage are stripped to cut bundle size.
+ */
+const GAME_NATIONS = new Set([
+  // UEFA
+  'France', 'Spain', 'England', 'Portugal', 'Netherlands', 'Belgium', 'Germany',
+  'Croatia', 'Italy', 'Switzerland', 'Denmark', 'Turkey', 'Austria', 'Norway',
+  'Ukraine', 'Poland', 'Wales', 'Sweden', 'Serbia', 'Czech Republic', 'Hungary',
+  'Scotland', 'Greece', 'Ireland',
+  // CONMEBOL
+  'Argentina', 'Brazil', 'Colombia', 'Uruguay', 'Ecuador', 'Paraguay', 'Chile', 'Peru',
+  // CAF
+  'Morocco', 'Senegal', 'Nigeria', 'Algeria', 'Egypt', 'Ivory Coast', 'Cameroon',
+  'Ghana', 'Mali', 'Gabon',
+  // AFC
+  'Japan', 'South Korea', 'Saudi Arabia', 'Australia',
+  // CONCACAF
+  'USA', 'Mexico', 'Canada', 'Costa Rica', 'Jamaica',
+  // FC25 aliases (kept separate in pool; merged by runtime resolver)
+  "Côte d'Ivoire", 'Holland', 'Korea Republic', 'United States', 'Republic of Ireland',
+]);
+
 // ── CSV parsing (same algorithm as importFC25.mjs) ──
 function parseCSV(content) {
   const lines = content.split('\n');
@@ -133,16 +158,19 @@ const csvContent = readFileSync(CSV_PATH, 'utf-8');
 const records = parseCSV(csvContent);
 console.log(`Parsed ${records.length} players`);
 
-// Group by nation
+// Group by nation (restricted to manageable game nations + FC25 aliases)
 const byNation = {};
+let filteredOutNations = 0;
 for (const row of records) {
   const nation = row['Nation'];
   if (!nation) continue;
+  if (!GAME_NATIONS.has(nation)) { filteredOutNations++; continue; }
   const ovr = parseInt(row['OVR']) || 0;
   if (ovr < MIN_OVR) continue;
   if (!byNation[nation]) byNation[nation] = [];
   byNation[nation].push(row);
 }
+console.log(`Filtered out ${filteredOutNations} players from non-game nations`);
 
 // Sort each nation by OVR desc, take top N
 const pool = {};

@@ -529,9 +529,9 @@ export function generateNationalTeamPool(
     const key = `${t.fn.toLowerCase()}|${t.ln.toLowerCase()}`;
     if (existingNameKeys.has(key)) continue; // already in-game via club squad
     existingNameKeys.add(key);
-    const player = buildPlayerFromTemplate(t, '', season);
-    // Normalize the alias to the canonical game nationality so UI/filters align
-    player.nationality = nationality;
+    // Pass canonical nationality so appearance generation uses the game's
+    // nation name rather than the FC25 alias (e.g. "Netherlands" not "Holland")
+    const player = buildPlayerFromTemplate(t, '', season, nationality);
     newPlayers[player.id] = player;
     realAdded++;
   }

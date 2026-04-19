@@ -171,13 +171,24 @@ function buildAgeTargets(count: number): { min: number; max: number }[] {
  * Build a Player from a PlayerTemplate (real-world roster data).
  * Seeds a procedurally-generated player then overrides identity and
  * FC25-derived attributes from the template.
+ *
+ * @param nationalityOverride Optional canonical nationality (e.g. "Netherlands")
+ *   used when the template carries an alias label ("Holland"); ensures the
+ *   player's saved nationality and generated appearance both use the canonical
+ *   name so UI filters/flags render correctly.
  */
-export function buildPlayerFromTemplate(t: PlayerTemplate, clubId: string, season: number): Player {
+export function buildPlayerFromTemplate(
+  t: PlayerTemplate,
+  clubId: string,
+  season: number,
+  nationalityOverride?: string,
+): Player {
+  const nationality = nationalityOverride ?? t.nat;
   const player = generatePlayer(t.pos, t.ovr, clubId, season);
   player.firstName = t.fn;
   player.lastName = t.ln;
   player.age = t.age;
-  player.nationality = t.nat;
+  player.nationality = nationality;
   if (t.pot !== undefined) {
     player.potential = t.pot;
   } else if (t.age >= 30) {
