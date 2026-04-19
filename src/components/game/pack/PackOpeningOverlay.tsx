@@ -194,7 +194,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
         {phase === 'portal' && (
           <motion.div
             className="absolute inset-0 pointer-events-none"
-            style={{ background: `radial-gradient(circle at 50% 50%, transparent 30%, ${tierDef.accent}33 100%)` }}
+            style={{ background: `radial-gradient(circle at 50% 50%, transparent 30%, color-mix(in srgb, ${tierDef.accent} 20%, transparent) 100%)` }}
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 1, 0.4] }}
             exit={{ opacity: 0 }}

@@ -8,6 +8,10 @@ import type { PackRarityWeights, PackTierDefinition, PackTierKey, Position } fro
  * Types live in `src/types/game.ts` per the single-source-of-truth rule.
  */
 
+// Color fields reference the HSL-tuple CSS vars declared in `src/index.css`
+// (`--pack-<tier>-from`, `-to`, `-accent`). Using `hsl(var(--x))` keeps pack
+// tiers in the same theme system as the rest of the dark UI — future themes
+// can swap the palette without touching config.
 export const PACK_TIERS: PackTierDefinition[] = [
   {
     key: 'bronze',
@@ -19,9 +23,9 @@ export const PACK_TIERS: PackTierDefinition[] = [
     ovrMin: 55,
     ovrMax: 68,
     rarity: { common: 0.30, bronze: 0.55, silver: 0.13, gold: 0.02, legendary: 0 },
-    gradientFrom: '#7c2d12',
-    gradientTo: '#fed7aa',
-    accent: '#fb923c',
+    gradientFrom: 'hsl(var(--pack-bronze-from))',
+    gradientTo: 'hsl(var(--pack-bronze-to))',
+    accent: 'hsl(var(--pack-bronze-accent))',
   },
   {
     key: 'silver',
@@ -33,9 +37,9 @@ export const PACK_TIERS: PackTierDefinition[] = [
     ovrMin: 62,
     ovrMax: 76,
     rarity: { common: 0.05, bronze: 0.35, silver: 0.48, gold: 0.11, legendary: 0.01 },
-    gradientFrom: '#475569',
-    gradientTo: '#e2e8f0',
-    accent: '#cbd5e1',
+    gradientFrom: 'hsl(var(--pack-silver-from))',
+    gradientTo: 'hsl(var(--pack-silver-to))',
+    accent: 'hsl(var(--pack-silver-accent))',
   },
   {
     key: 'gold',
@@ -47,9 +51,9 @@ export const PACK_TIERS: PackTierDefinition[] = [
     ovrMin: 68,
     ovrMax: 84,
     rarity: { common: 0, bronze: 0.12, silver: 0.48, gold: 0.38, legendary: 0.02 },
-    gradientFrom: '#92400e',
-    gradientTo: '#fcd34d',
-    accent: '#f59e0b',
+    gradientFrom: 'hsl(var(--pack-gold-from))',
+    gradientTo: 'hsl(var(--pack-gold-to))',
+    accent: 'hsl(var(--pack-gold-accent))',
   },
   {
     key: 'premium',
@@ -61,9 +65,9 @@ export const PACK_TIERS: PackTierDefinition[] = [
     ovrMin: 72,
     ovrMax: 87,
     rarity: { common: 0, bronze: 0.04, silver: 0.28, gold: 0.63, legendary: 0.05 },
-    gradientFrom: '#78350f',
-    gradientTo: '#fde68a',
-    accent: '#fbbf24',
+    gradientFrom: 'hsl(var(--pack-premium-from))',
+    gradientTo: 'hsl(var(--pack-premium-to))',
+    accent: 'hsl(var(--pack-premium-accent))',
   },
   {
     key: 'rare',
@@ -75,9 +79,9 @@ export const PACK_TIERS: PackTierDefinition[] = [
     ovrMin: 75,
     ovrMax: 89,
     rarity: { common: 0, bronze: 0, silver: 0.12, gold: 0.78, legendary: 0.10 },
-    gradientFrom: '#4c1d95',
-    gradientTo: '#f472b6',
-    accent: '#c084fc',
+    gradientFrom: 'hsl(var(--pack-rare-from))',
+    gradientTo: 'hsl(var(--pack-rare-to))',
+    accent: 'hsl(var(--pack-rare-accent))',
   },
   {
     key: 'icon',
@@ -89,9 +93,9 @@ export const PACK_TIERS: PackTierDefinition[] = [
     ovrMin: 85,
     ovrMax: 93,
     rarity: { common: 0, bronze: 0, silver: 0, gold: 0.55, legendary: 0.45 },
-    gradientFrom: '#312e81',
-    gradientTo: '#fde68a',
-    accent: '#fde047',
+    gradientFrom: 'hsl(var(--pack-icon-from))',
+    gradientTo: 'hsl(var(--pack-icon-to))',
+    accent: 'hsl(var(--pack-icon-accent))',
   },
 ];
 
