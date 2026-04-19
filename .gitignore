@@ -48,3 +48,5 @@ ios/DerivedData
 # OS files
 Thumbs.db
 fc25_players.csv
+fc25_icons.csv
+scripts/.icons-cache.json
