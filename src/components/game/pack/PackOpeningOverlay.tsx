@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { PackTierKey, Player } from '@/types/game';
+import type { PackPlayerPlacement, PackTierKey, Player } from '@/types/game';
 import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
@@ -18,6 +18,8 @@ interface PackOpeningOverlayProps {
   onClose: () => void;
   /** When provided, summary cards render a × quick-release action. */
   onDismiss?: (playerId: string) => void;
+  /** Per-player placement map from openPack so the reveal modal can badge pulls. */
+  placement?: Record<string, PackPlayerPlacement>;
 }
 
 type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
@@ -33,7 +35,7 @@ type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' 
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDismiss }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDismiss, placement }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
   const [phase, setPhase] = useState<Phase>('portal');
   const [revealedSet, setRevealedSet] = useState<Set<string>>(new Set());
@@ -443,6 +445,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
                 onReveal={phase === 'reveal' ? () => revealOne(p.id) : undefined}
                 onDismiss={phase === 'summary' && onDismiss ? () => onDismiss(p.id) : undefined}
                 entranceDelay={i * (PACK_ANIM.revealStaggerMs / 1000)}
+                placement={placement?.[p.id]}
               />
             ))}
           </div>

@@ -10,7 +10,7 @@ import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { MARKET_SUB_NAV, PAGE_HINTS, PLAYER_TIER_THRESHOLDS } from '@/config/ui';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { PACK_TIERS, PACK_TIER_MAP, PACK_PITY_THRESHOLD, RECENT_PULLS_LIMIT, getFeaturedPackTier } from '@/config/packs';
-import type { PackTierKey } from '@/types/game';
+import type { PackPlayerPlacement, PackTierKey } from '@/types/game';
 import { PackShopCard } from '@/components/game/pack/PackShopCard';
 import { PackOpeningOverlay } from '@/components/game/pack/PackOpeningOverlay';
 import { formatMoney } from '@/utils/helpers';
@@ -37,7 +37,7 @@ const PacksPage = () => {
   const openPack = useGameStore(s => s.openPack);
   const releasePackedPlayer = useGameStore(s => s.releasePackedPlayer);
 
-  const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean } | null>(null);
+  const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean; placement?: Record<string, PackPlayerPlacement> } | null>(null);
   const [replay, setReplay] = useState<{ tier: PackTierKey; players: Player[] } | null>(null);
 
   const handleDismiss = (playerId: string) => {
@@ -83,7 +83,7 @@ const PacksPage = () => {
       errorToast('Could not open pack', result.message);
       return;
     }
-    setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered });
+    setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
   };
 
   const recentPacks = openedPacks.slice(0, RECENT_PULLS_LIMIT);
@@ -233,6 +233,7 @@ const PacksPage = () => {
             pityTriggered={opening.pityTriggered}
             onClose={() => setOpening(null)}
             onDismiss={handleDismiss}
+            placement={opening.placement}
           />
         )}
       </AnimatePresence>

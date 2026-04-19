@@ -1,13 +1,15 @@
 import * as Sentry from '@sentry/react';
 import { LEAGUES, getLeaguesByCountry, generateDivisionFixtures, ALL_CLUBS } from '@/data/league';
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
+import { autoFillBestTeam } from '@/utils/autoFillLineup';
+import type { Club, Player, FormationType } from '@/types/game';
 /**
  * Save migration system for Dynasty Manager.
  * Each migration transforms save data from one version to the next.
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 57;
+const CURRENT_VERSION = 58;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -814,6 +816,48 @@ const migrations: Record<number, MigrationFn> = {
     lastPackWeek: data.lastPackWeek ?? 0,
     lastPackSeason: data.lastPackSeason ?? 0,
   }),
+
+  // v57 → v58: one-time lineup self-heal for the player's club. Earlier pack
+  // opens appended to playerIds but never touched lineup/subs, leaving
+  // pulls invisible until the user pressed Optimize. Re-run the optimizer
+  // once on load so existing saves self-heal retroactively. Bounded work:
+  // a single club, single Hungarian pass.
+  57: (data) => {
+    const clubs = data.clubs as Record<string, Club> | undefined;
+    const players = data.players as Record<string, Player> | undefined;
+    const playerClubId = data.playerClubId as string | undefined;
+    if (!clubs || !players || !playerClubId) {
+      return { ...data, version: 58 };
+    }
+    const club = clubs[playerClubId];
+    if (!club || !club.formation) {
+      return { ...data, version: 58 };
+    }
+    const squad = (club.playerIds || [])
+      .map(id => players[id])
+      .filter(Boolean) as Player[];
+    if (squad.length === 0) {
+      return { ...data, version: 58 };
+    }
+    const week = (data.week as number) ?? 1;
+    const season = (data.season as number) ?? 1;
+    const result = autoFillBestTeam(squad, club.formation as FormationType, week, season);
+    if (result.lineup.length === 0) {
+      return { ...data, version: 58 };
+    }
+    return {
+      ...data,
+      version: 58,
+      clubs: {
+        ...clubs,
+        [playerClubId]: {
+          ...club,
+          lineup: result.lineup.map(p => p.id),
+          subs: result.subs.map(p => p.id),
+        },
+      },
+    };
+  },
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {

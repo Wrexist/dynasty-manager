@@ -1700,12 +1700,19 @@ export interface OpenedPackRecord {
   topOvr: number;
 }
 
+/** Where a pulled player landed after auto-place: XI, bench, or squad-only. */
+export type PackPlayerPlacement = 'starter' | 'bench' | 'squad';
+
 export interface OpenPackResult {
   success: boolean;
   message: string;
   players?: Player[];
   record?: OpenedPackRecord;
   pityTriggered?: boolean;
+  /** Per-player placement map keyed by player id. */
+  placement?: Record<string, PackPlayerPlacement>;
+  /** Number of starter-slot changes the auto-place applied. */
+  lineupChanges?: number;
 }
 
 export interface ReleasePackedPlayerResult {
