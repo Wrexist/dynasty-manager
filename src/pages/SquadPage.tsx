@@ -3,7 +3,6 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { SubNav } from '@/components/game/SubNav';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
 import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
 import { cn } from '@/lib/utils';
@@ -18,13 +17,6 @@ import { POSITION_FILTERS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { getContractUrgency } from '@/utils/contracts';
-
-const SUBNAV_ITEMS = [
-  { screen: 'squad' as const, label: 'Squad' },
-  { screen: 'training' as const, label: 'Training' },
-  { screen: 'staff' as const, label: 'Staff' },
-  { screen: 'youth-academy' as const, label: 'Youth' },
-];
 
 type SortKey = 'overall' | 'potential' | 'age' | 'value' | 'fitness' | 'morale' | 'wage' | 'form';
 type StatusFilter = 'injured' | 'listed' | 'expiring' | 'onLoan' | 'youth' | 'starters' | 'bench' | 'unhappy';
@@ -229,9 +221,6 @@ const SquadPage = () => {
 
   return (
     <div className="max-w-lg mx-auto pb-4 space-y-4">
-      {/* SubNav */}
-      <SubNav items={SUBNAV_ITEMS} />
-
       <div className="px-4 space-y-4">
         <PageHint screen="squad" title={PAGE_HINTS.squad.title} body={PAGE_HINTS.squad.body} />
 

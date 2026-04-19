@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { SubNav } from '@/components/game/SubNav';
 import { Plus, ArrowUpRight, X, Shield, Dumbbell, Heart, Search, GraduationCap, Activity, UserCheck, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { StaffRole, StaffMember } from '@/types/game';
@@ -9,13 +8,6 @@ import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { STAFF_HIRING_FEE_WEEKS } from '@/config/staff';
 import { successToast, infoToast } from '@/utils/gameToast';
-
-const SQUAD_SUB_NAV = [
-  { screen: 'squad' as const, label: 'Squad' },
-  { screen: 'training' as const, label: 'Training' },
-  { screen: 'staff' as const, label: 'Staff' },
-  { screen: 'youth-academy' as const, label: 'Youth' },
-];
 
 const ROLE_LABELS: Record<StaffRole, string> = {
   'assistant-manager': 'Assistant Manager',
@@ -118,7 +110,6 @@ const StaffPage = () => {
 
   return (
     <div className="max-w-lg mx-auto">
-      <SubNav items={SQUAD_SUB_NAV} />
       <PageHint screen="staff" title={PAGE_HINTS.staff.title} body={PAGE_HINTS.staff.body} />
       <div className="px-4 pb-4 space-y-3">
         {/* Header */}

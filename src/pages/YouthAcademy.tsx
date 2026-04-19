@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { SubNav } from '@/components/game/SubNav';
 import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { GraduationCap, Star, TrendingUp, ArrowUpRight, Trash2, Wrench, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -17,12 +16,6 @@ import { PAGE_HINTS } from '@/config/ui';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { PageHint } from '@/components/game/PageHint';
-const SQUAD_SUB_NAV = [
-  { screen: 'squad' as const, label: 'Squad' },
-  { screen: 'training' as const, label: 'Training' },
-  { screen: 'staff' as const, label: 'Staff' },
-  { screen: 'youth-academy' as const, label: 'Youth' },
-];
 
 function devBarColor(score: number): string {
   if (score >= 80) return 'bg-emerald-500';
@@ -64,7 +57,6 @@ const YouthAcademy = () => {
 
   return (
     <div className="max-w-lg mx-auto">
-      <SubNav items={SQUAD_SUB_NAV} />
       <PageHint screen="youthAcademy" title={PAGE_HINTS.youthAcademy.title} body={PAGE_HINTS.youthAcademy.body} />
       <div className="px-4 pb-4 space-y-3">
         <h2 className="text-lg font-display font-bold text-foreground">Youth Academy</h2>

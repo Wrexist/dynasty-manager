@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { SubNav } from '@/components/game/SubNav';
 import { Dumbbell, Flame, Shield, Brain, Target, Zap, ChevronDown, ChevronUp, Trophy, AlertTriangle, TrendingUp, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TrainingModule } from '@/types/game';
@@ -21,13 +20,6 @@ import { TrainingGroundView } from '@/components/game/TrainingGroundView';
 import { DrillCard } from '@/components/game/DrillCard';
 import { DevelopmentHeatmap } from '@/components/game/DevelopmentHeatmap';
 import { LEAGUES } from '@/data/league';
-
-const SQUAD_SUB_NAV = [
-  { screen: 'squad' as const, label: 'Squad' },
-  { screen: 'training' as const, label: 'Training' },
-  { screen: 'staff' as const, label: 'Staff' },
-  { screen: 'youth-academy' as const, label: 'Youth' },
-];
 
 const MODULE_INFO: { module: TrainingModule; label: string; icon: React.ElementType; color: string }[] = [
   { module: 'fitness', label: 'Fitness', icon: Dumbbell, color: 'text-emerald-400' },
@@ -139,7 +131,6 @@ const TrainingPage = () => {
 
   return (
     <div className="max-w-lg mx-auto">
-      <SubNav items={SQUAD_SUB_NAV} />
       <div className="px-4 pb-4 space-y-3">
         <PageHint screen="training" title={PAGE_HINTS.training.title} body={PAGE_HINTS.training.body} />
         <h2 className="text-lg font-display font-bold text-foreground">Training</h2>

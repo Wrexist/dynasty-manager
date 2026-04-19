@@ -10,12 +10,12 @@ import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
 import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
-  Dumbbell, AlertTriangle, Banknote, Users, Shield, Settings, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward,
+  Dumbbell, AlertTriangle, Banknote, Users, Shield, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward, Package,
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getRoundName } from '@/data/cup';
 import { LEAGUES } from '@/data/league';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { FloatingXP } from '@/components/game/FloatingXP';
 import { cn } from '@/lib/utils';
 import { getNetWeeklyIncome } from '@/utils/financeHelpers';
@@ -26,6 +26,7 @@ import { getXPProgress, MANAGER_PERKS, canUnlockPerk, getTotalXP } from '@/utils
 import { getReputationTierLabel } from '@/utils/managerCareer';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/config/transfers';
 import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
+import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import type { Celebration } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
 import { CELEBRATION_STAGGER_MS, ADVANCE_DONE_MS } from '@/config/ui';
@@ -63,15 +64,19 @@ import { getCompetitionInfo } from '@/utils/competitionBadge';
 
 const WELCOME_KEY = 'dynasty-welcome-shown';
 const COLLAPSE_SPRING = { type: 'spring' as const, stiffness: 300, damping: 24 };
+// Each tile's tint composes three utilities: foreground icon color,
+// a radial `glow` behind the tile, and a translucent `chip` background
+// for the icon badge. Keeping adjacent tiles visually distinct is the
+// goal — no two tiles share a hue.
 const QUICK_LINKS = [
-  { label: 'Schedule', screen: 'calendar' as const, icon: Calendar, color: 'text-cyan-400' },
-  { label: 'League', screen: 'league-table' as const, icon: Trophy, color: 'text-amber-400' },
-  { label: 'Squad', screen: 'squad' as const, icon: Users, color: 'text-sky-400' },
-  { label: 'Tactics', screen: 'tactics' as const, icon: Shield, color: 'text-blue-400' },
-  { label: 'Training', screen: 'training' as const, icon: Dumbbell, color: 'text-emerald-400' },
-  { label: 'Club', screen: 'club' as const, icon: Settings, color: 'text-primary' },
-  { label: 'Transfers', screen: 'transfers' as const, icon: UserPlus, color: 'text-amber-400' },
-  { label: 'Cup', screen: 'cup' as const, icon: BarChart3, color: 'text-orange-400' },
+  { label: 'Schedule',  screen: 'calendar'     as const, icon: Calendar,  color: 'text-cyan-400',    glow: 'bg-cyan-500',    chip: 'bg-cyan-500/10 border-cyan-500/30' },
+  { label: 'League',    screen: 'league-table' as const, icon: Trophy,    color: 'text-amber-400',   glow: 'bg-amber-500',   chip: 'bg-amber-500/10 border-amber-500/30' },
+  { label: 'Squad',     screen: 'squad'        as const, icon: Users,     color: 'text-sky-400',     glow: 'bg-sky-500',     chip: 'bg-sky-500/10 border-sky-500/30' },
+  { label: 'Tactics',   screen: 'tactics'      as const, icon: Shield,    color: 'text-blue-400',    glow: 'bg-blue-500',    chip: 'bg-blue-500/10 border-blue-500/30' },
+  { label: 'Training',  screen: 'training'     as const, icon: Dumbbell,  color: 'text-emerald-400', glow: 'bg-emerald-500', chip: 'bg-emerald-500/10 border-emerald-500/30' },
+  { label: 'Packs',     screen: 'packs'        as const, icon: Package,   color: 'text-fuchsia-400', glow: 'bg-fuchsia-500', chip: 'bg-fuchsia-500/10 border-fuchsia-500/30' },
+  { label: 'Transfers', screen: 'transfers'    as const, icon: UserPlus,  color: 'text-rose-400',    glow: 'bg-rose-500',    chip: 'bg-rose-500/10 border-rose-500/30' },
+  { label: 'Cup',       screen: 'cup'          as const, icon: BarChart3, color: 'text-orange-400',  glow: 'bg-orange-500',  chip: 'bg-orange-500/10 border-orange-500/30' },
 ];
 const TIP_BG: Record<TipType, string> = {
   warning: 'bg-destructive/10',
@@ -90,6 +95,7 @@ const TIP_ICON: Record<TipType, string> = {
 const VISIBLE_ACHIEVEMENT_COUNT = ACHIEVEMENTS.filter(a => !a.hidden).length;
 
 const Dashboard = () => {
+  const reduceMotion = useReducedMotion();
   // Use useShallow to only re-render when specific properties change (prevents React #185)
   const {
     playerClubId, clubs, players, week, season, fixtures, leagueTable,
@@ -105,7 +111,7 @@ const Dashboard = () => {
     pendingPressConference, pendingStoryline, pendingTransferTalk,
     activeChallenge, youthAcademy, fanMood, sessionStats,
     pendingAchievementIds,
-    activeStorylineChains, unlockedAchievements,
+    activeStorylineChains, unlockedAchievements, packPityCounter,
   } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
     week: s.week, season: s.season, fixtures: s.fixtures, leagueTable: s.leagueTable,
@@ -131,6 +137,7 @@ const Dashboard = () => {
     pendingAchievementIds: s.pendingAchievementIds,
     activeStorylineChains: s.activeStorylineChains,
     unlockedAchievements: s.unlockedAchievements,
+    packPityCounter: s.packPityCounter || 0,
   })));
   // Actions — stable references, individual selectors
   const setScreen = useGameStore(s => s.setScreen);
@@ -590,13 +597,17 @@ const Dashboard = () => {
     mentality: 'Mentality',
   };
 
-  // Attention dots for quick links
+  // Attention dots for quick links.
+  // Board-critical confidence is already surfaced via <BoardWarning />, so we
+  // don't re-dot it here (the 'club' tile was removed and that entry would be
+  // dead code anyway).
   const lineupIncomplete = (club.lineup || []).filter(Boolean).length < 11;
+  const packPityPrimed = packPityCounter >= PACK_PITY_THRESHOLD - 2;
   const quickLinkDots: Record<string, string> = {
     ...(lineupIncomplete ? { squad: 'bg-destructive' } : {}),
     ...(transferWindowOpen ? { transfers: 'bg-emerald-500' } : {}),
     ...(training.tacticalFamiliarity < 40 ? { training: 'bg-amber-500' } : {}),
-    ...(boardConfidence <= CONFIDENCE_CRITICAL_THRESHOLD ? { club: 'bg-destructive' } : {}),
+    ...(packPityPrimed ? { packs: 'bg-fuchsia-400' } : {}),
   };
 
   return (
@@ -1084,24 +1095,29 @@ const Dashboard = () => {
       )}
 
       {/* Quick Links Grid */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-2.5">
         {QUICK_LINKS.map((link, i) => {
           const Icon = link.icon;
           const dot = quickLinkDots[link.screen];
           return (
             <motion.div
               key={link.label}
-              initial={{ opacity: 0, y: 8 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03, duration: 0.2 }}
+              transition={reduceMotion ? { duration: 0 } : { delay: i * 0.03, duration: 0.2 }}
             >
               <GlassPanel
-                className="relative px-2 py-3 flex flex-col items-center gap-1.5"
+                aria-label={`Navigate to ${link.label}`}
+                className="group relative overflow-hidden px-2 py-3.5 flex flex-col items-center gap-2 bg-gradient-to-br from-card/70 to-card/30 border-border/60 active:scale-95 transition-transform duration-150"
                 onClick={() => setScreen(link.screen)}
               >
-                <Icon className={cn("w-5 h-5", link.color)} />
-                <span className="text-[10px] font-medium text-foreground whitespace-nowrap">{link.label}</span>
-                {dot && <span className={cn('absolute top-1.5 right-1.5 w-2 h-2 rounded-full', dot)} />}
+                <span className={cn('pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full blur-2xl opacity-30', link.glow)} />
+                <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/20 to-transparent" />
+                <div className={cn('relative p-1.5 rounded-lg border', link.chip)}>
+                  <Icon className={cn('w-5 h-5', link.color)} />
+                </div>
+                <span className="relative text-xs font-semibold tracking-wide text-foreground whitespace-nowrap">{link.label}</span>
+                {dot && <span className={cn('absolute top-1.5 right-1.5 w-2 h-2 rounded-full ring-2 ring-card', dot)} />}
               </GlassPanel>
             </motion.div>
           );
