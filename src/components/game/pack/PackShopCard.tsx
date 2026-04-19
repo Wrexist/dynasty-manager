@@ -25,9 +25,13 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
       onClick={() => { if (disabled) return; hapticLight(); onSelect(); }}
       disabled={disabled}
       className={cn(
-        'group relative w-full rounded-2xl overflow-hidden border text-left isolate',
+        'group relative w-full rounded-[22px] overflow-hidden text-left isolate',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-        disabled ? 'opacity-50 grayscale cursor-not-allowed border-border/50' : 'border-white/15 shadow-[0_12px_30px_rgba(0,0,0,0.45)]',
+        // Liquid-glass rim: hairline outer stroke + bright top inset + dark
+        // bottom inset (faux refraction) + soft accent halo + drop shadow.
+        disabled
+          ? 'opacity-50 grayscale cursor-not-allowed shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)_inset]'
+          : 'shadow-[0_0_0_0.5px_rgba(255,255,255,0.22)_inset,inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(0,0,0,0.45),0_22px_55px_-18px_rgba(0,0,0,0.7)]',
         featured ? 'aspect-[16/9]' : 'aspect-[3/4]',
       )}
       style={{
@@ -43,22 +47,50 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
         fallback={<div className="absolute inset-0" />}
       />
 
-      {/* Legibility scrim — subtle at the top (badges), stronger at the bottom
-          (title + price rail). Keeps the artwork readable without dulling it. */}
+      {/* Legibility scrim — feather-light at the top, stronger at the bottom
+          where the frosted glass panel sits. */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.10) 28%, rgba(0,0,0,0.10) 55%, rgba(0,0,0,0.78) 100%)',
+            'linear-gradient(to bottom, rgba(0,0,0,0.30) 0%, rgba(0,0,0,0.00) 22%, rgba(0,0,0,0.00) 55%, rgba(0,0,0,0.55) 100%)',
         }}
       />
 
-      {/* Concentric inner border — classic trading-card frame detail */}
+      {/* Liquid-glass specular highlight — bright top crescent, like sky
+          reflected on a polished glass surface. */}
       <div
-        className={cn(
-          'absolute pointer-events-none border border-white/20',
-          featured ? 'inset-[6px] rounded-[10px]' : 'inset-[5px] rounded-[11px]',
-        )}
+        className="absolute inset-x-0 top-0 h-1/2 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(120% 90% at 50% -20%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 28%, rgba(255,255,255,0) 60%)',
+          mixBlendMode: 'screen',
+        }}
+      />
+
+      {/* Edge refraction streaks — faint vertical lights catching the rim,
+          sells the "thick glass" depth at the sides. */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(90deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 6%, rgba(255,255,255,0) 94%, rgba(255,255,255,0.12) 100%)',
+        }}
+      />
+
+      {/* Concentric inner glass ring — gradient stroke (light at top, dim at
+          bottom) reads as light bending through a glass bezel. */}
+      <div
+        aria-hidden
+        className={cn('absolute pointer-events-none rounded-[14px]', featured ? 'inset-[6px]' : 'inset-[5px]')}
+        style={{
+          padding: '1px',
+          background:
+            'linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.10) 35%, rgba(255,255,255,0.04) 70%, rgba(255,255,255,0.18) 100%)',
+          WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+          WebkitMaskComposite: 'xor',
+          maskComposite: 'exclude',
+        }}
       />
 
       {/* Shimmer sweep — featured only */}
@@ -72,14 +104,18 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
         />
       )}
 
-      {/* Badge stack — top-right, floats over the cover */}
+      {/* Glass-capsule badge stack — top-right, floats over the cover. */}
       <div className={cn('absolute flex flex-col items-end gap-1 z-10', featured ? 'top-3 right-3' : 'top-2.5 right-2.5')}>
         {featured && (
-          <span className="flex items-center gap-1 h-6 px-2 text-[10px] uppercase tracking-widest rounded-full bg-black/55 backdrop-blur border border-white/20 text-white">
+          <span
+            className="flex items-center gap-1 h-6 px-2.5 text-[10px] uppercase tracking-widest rounded-full text-white bg-white/15 border border-white/30 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_4px_10px_-2px_rgba(0,0,0,0.45)]"
+          >
             <Sparkles className="w-3 h-3" /> Featured
           </span>
         )}
-        <span className="flex items-center gap-1 h-6 px-2 text-[10px] font-bold tabular-nums rounded-full bg-black/55 backdrop-blur border border-white/20 text-white">
+        <span
+          className="flex items-center gap-1 h-6 px-2.5 text-[10px] font-bold tabular-nums rounded-full text-white bg-white/15 border border-white/30 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_4px_10px_-2px_rgba(0,0,0,0.45)]"
+        >
           <ShieldCheck className="w-3 h-3" />
           {tier.guaranteedMinOvr}+
         </span>
@@ -87,34 +123,42 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
 
       {/* Header — Dynasty Pack kicker sits top-left over the scrim */}
       <div className={cn('absolute left-0 right-0 z-10', featured ? 'top-3 px-4 pr-28' : 'top-2.5 px-3 pr-14')}>
-        <p className="text-[10px] uppercase tracking-[0.3em] opacity-90 font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+        <p className="text-[10px] uppercase tracking-[0.3em] opacity-95 font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)]">
           Dynasty Pack
         </p>
       </div>
 
-      {/* Footer — title, tagline, price rail pinned to the bottom scrim */}
-      <div className={cn('absolute inset-x-0 bottom-0 z-10 text-white', featured ? 'p-4' : 'p-3')}>
+      {/* Floating frosted-glass footer — Apple Liquid-Glass panel containing
+          the title, tagline, and price rail. Sits inset from the rim so the
+          cover art breathes around it. */}
+      <div
+        className={cn(
+          'absolute z-10 text-white rounded-2xl border border-white/25 backdrop-blur-2xl backdrop-saturate-150 bg-white/10',
+          'shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(0,0,0,0.30),0_10px_30px_-10px_rgba(0,0,0,0.55)]',
+          featured ? 'left-3 right-3 bottom-3 px-4 py-3' : 'left-2 right-2 bottom-2 px-3 py-2.5',
+        )}
+      >
         <h3
           className={cn(
-            'font-display font-black leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.75)] truncate',
+            'font-display font-black leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] truncate',
             featured ? 'text-2xl' : 'text-base',
           )}
         >
           {tier.label}
         </h3>
-        <p className={cn('opacity-95 leading-snug drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] mt-1', featured ? 'text-xs' : 'text-[11px]')}>
+        <p className={cn('opacity-95 leading-snug drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] mt-0.5', featured ? 'text-xs' : 'text-[11px]')}>
           {tier.tagline}
         </p>
         <div className="flex items-center justify-between pt-2 mt-2 border-t border-white/20">
-          <span className={cn('font-display font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] tabular-nums', featured ? 'text-lg' : 'text-base')}>
+          <span className={cn('font-display font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] tabular-nums', featured ? 'text-lg' : 'text-base')}>
             {formatMoney(tier.price)}
           </span>
           {disabled ? (
-            <span className="flex items-center gap-1 h-7 px-3 text-[10px] uppercase tracking-widest bg-black/55 rounded-md border border-white/20 backdrop-blur">
+            <span className="flex items-center gap-1 h-7 px-3 text-[10px] uppercase tracking-widest rounded-full bg-white/10 border border-white/25 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] font-semibold">
               <Lock className="w-3 h-3" /> {!affordable ? 'Budget' : 'Squad Full'}
             </span>
           ) : (
-            <span className="flex items-center h-7 px-3 text-[10px] uppercase tracking-widest bg-white/20 rounded-md border border-white/30 backdrop-blur font-semibold">
+            <span className="flex items-center h-7 px-3.5 text-[10px] uppercase tracking-widest rounded-full bg-white/25 border border-white/40 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_rgba(255,255,255,0.65),0_4px_12px_-2px_rgba(0,0,0,0.45)] font-semibold">
               Open
             </span>
           )}
