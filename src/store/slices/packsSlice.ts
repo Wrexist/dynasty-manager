@@ -145,34 +145,17 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       }
     }
 
-    // Log to finance ledger as an expense on the current week. If a record
-    // for this week already exists, update it; otherwise append.
-    const history = [...state.financeHistory];
-    const currentIdx = history.findIndex(r => r.season === state.season && r.week === state.week);
-    if (currentIdx >= 0) {
-      const rec = history[currentIdx];
-      history[currentIdx] = {
-        ...rec,
-        expenses: rec.expenses + tier.price,
-        balance: rec.balance - tier.price,
-      };
-    } else {
-      history.push({
-        season: state.season,
-        week: state.week,
-        income: 0,
-        expenses: tier.price,
-        transfers: 0,
-        balance: -tier.price,
-      });
-    }
-
+    // Finance ledger: mirror transferSlice's approach — don't write a
+    // mid-week financeHistory row (those are created at week-end by
+    // advanceWeek with balance = club.budget). Writing one here with
+    // `balance: -tier.price` produced a false negative entry on the
+    // Finance chart. We still bump the season-level running total so
+    // season summaries reflect the spend.
     const newOpenedPacks = [record, ...(state.openedPacks || [])].slice(0, 200);
 
     set({
       players: newPlayers,
       clubs: { ...state.clubs, [club.id]: updatedClub },
-      financeHistory: history,
       openedPacks: newOpenedPacks,
       packPityCounter: newPity,
       lastPackWeek: state.week,

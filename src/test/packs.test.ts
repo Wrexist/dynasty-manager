@@ -218,6 +218,44 @@ describe('Pack opening — releasePackedPlayer action', () => {
   });
 });
 
+describe('Pack opening — save/load persistence', () => {
+  beforeEach(() => { initAndGetState(); });
+
+  it('persists openedPacks, pity counter, and weekly throttle across save/load', () => {
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
+    });
+    const open = useGameStore.getState().openPack('bronze');
+    expect(open.success).toBe(true);
+
+    const preSave = useGameStore.getState();
+    const expectedOpenedPacksLength = preSave.openedPacks.length;
+    const expectedPity = preSave.packPityCounter;
+    const expectedLastWeek = preSave.lastPackWeek;
+    const expectedLastSeason = preSave.lastPackSeason;
+    expect(expectedOpenedPacksLength).toBeGreaterThan(0);
+
+    useGameStore.getState().saveGame(1);
+    // Wipe in-memory pack state to prove the values come from storage
+    useGameStore.setState({
+      openedPacks: [],
+      packPityCounter: 0,
+      lastPackWeek: 0,
+      lastPackSeason: 0,
+    });
+    const loaded = useGameStore.getState().loadGame(1);
+    expect(loaded).toBe(true);
+
+    const after = useGameStore.getState();
+    expect(after.openedPacks.length).toBe(expectedOpenedPacksLength);
+    expect(after.openedPacks[0].tier).toBe('bronze');
+    expect(after.packPityCounter).toBe(expectedPity);
+    expect(after.lastPackWeek).toBe(expectedLastWeek);
+    expect(after.lastPackSeason).toBe(expectedLastSeason);
+  });
+});
+
 describe('Pack opening — challenge guard', () => {
   beforeEach(() => { initAndGetState(); });
 

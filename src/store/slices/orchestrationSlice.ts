@@ -348,6 +348,12 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     jobVacancies: state.jobVacancies,
     jobOffers: state.jobOffers,
     activeInterview: state.activeInterview,
+    // Pack Opening — persist opened-packs log, pity counter, and weekly
+    // throttle so progress survives save/load.
+    openedPacks: state.openedPacks || [],
+    packPityCounter: state.packPityCounter || 0,
+    lastPackWeek: state.lastPackWeek || 0,
+    lastPackSeason: state.lastPackSeason || 0,
   };
   let json = JSON.stringify(saveData);
 
