@@ -10,7 +10,7 @@ import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
 import { Button } from '@/components/ui/button';
 import {
   Play, ChevronRight, ChevronDown, TrendingUp, DollarSign, Heart, Trophy, Calendar, Mail, ShoppingBag,
-  Dumbbell, AlertTriangle, Banknote, Users, Shield, Settings, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward,
+  Dumbbell, AlertTriangle, Banknote, Users, Shield, BarChart3, UserPlus, Award, Flame, Zap, Loader2, FastForward, Package,
 } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getRoundName } from '@/data/cup';
@@ -64,14 +64,14 @@ import { getCompetitionInfo } from '@/utils/competitionBadge';
 const WELCOME_KEY = 'dynasty-welcome-shown';
 const COLLAPSE_SPRING = { type: 'spring' as const, stiffness: 300, damping: 24 };
 const QUICK_LINKS = [
-  { label: 'Schedule', screen: 'calendar' as const, icon: Calendar, color: 'text-cyan-400' },
-  { label: 'League', screen: 'league-table' as const, icon: Trophy, color: 'text-amber-400' },
-  { label: 'Squad', screen: 'squad' as const, icon: Users, color: 'text-sky-400' },
-  { label: 'Tactics', screen: 'tactics' as const, icon: Shield, color: 'text-blue-400' },
-  { label: 'Training', screen: 'training' as const, icon: Dumbbell, color: 'text-emerald-400' },
-  { label: 'Club', screen: 'club' as const, icon: Settings, color: 'text-primary' },
-  { label: 'Transfers', screen: 'transfers' as const, icon: UserPlus, color: 'text-amber-400' },
-  { label: 'Cup', screen: 'cup' as const, icon: BarChart3, color: 'text-orange-400' },
+  { label: 'Schedule', screen: 'calendar' as const, icon: Calendar, color: 'text-cyan-400', glow: 'bg-cyan-500' },
+  { label: 'League', screen: 'league-table' as const, icon: Trophy, color: 'text-amber-400', glow: 'bg-amber-500' },
+  { label: 'Squad', screen: 'squad' as const, icon: Users, color: 'text-sky-400', glow: 'bg-sky-500' },
+  { label: 'Tactics', screen: 'tactics' as const, icon: Shield, color: 'text-blue-400', glow: 'bg-blue-500' },
+  { label: 'Training', screen: 'training' as const, icon: Dumbbell, color: 'text-emerald-400', glow: 'bg-emerald-500' },
+  { label: 'Packs', screen: 'packs' as const, icon: Package, color: 'text-fuchsia-400', glow: 'bg-fuchsia-500' },
+  { label: 'Transfers', screen: 'transfers' as const, icon: UserPlus, color: 'text-amber-400', glow: 'bg-amber-500' },
+  { label: 'Cup', screen: 'cup' as const, icon: BarChart3, color: 'text-orange-400', glow: 'bg-orange-500' },
 ];
 const TIP_BG: Record<TipType, string> = {
   warning: 'bg-destructive/10',
@@ -1084,7 +1084,7 @@ const Dashboard = () => {
       )}
 
       {/* Quick Links Grid */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-4 gap-2.5">
         {QUICK_LINKS.map((link, i) => {
           const Icon = link.icon;
           const dot = quickLinkDots[link.screen];
@@ -1096,11 +1096,15 @@ const Dashboard = () => {
               transition={{ delay: i * 0.03, duration: 0.2 }}
             >
               <GlassPanel
-                className="relative px-2 py-3 flex flex-col items-center gap-1.5"
+                className="group relative overflow-hidden px-2 py-3.5 flex flex-col items-center gap-2 bg-gradient-to-br from-card/70 to-card/30 border-border/60 active:scale-95 transition-transform duration-150"
                 onClick={() => setScreen(link.screen)}
               >
-                <Icon className={cn("w-5 h-5", link.color)} />
-                <span className="text-[10px] font-medium text-foreground whitespace-nowrap">{link.label}</span>
+                <span className={cn('pointer-events-none absolute -top-6 left-1/2 -translate-x-1/2 w-16 h-16 rounded-full blur-2xl opacity-30', link.glow)} />
+                <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-foreground/20 to-transparent" />
+                <div className="relative p-1.5 rounded-lg bg-foreground/5 border border-border/40">
+                  <Icon className={cn('w-5 h-5', link.color)} />
+                </div>
+                <span className="relative text-[11px] font-semibold tracking-wide text-foreground whitespace-nowrap">{link.label}</span>
                 {dot && <span className={cn('absolute top-1.5 right-1.5 w-2 h-2 rounded-full', dot)} />}
               </GlassPanel>
             </motion.div>
