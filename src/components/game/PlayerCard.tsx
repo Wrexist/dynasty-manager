@@ -1,6 +1,7 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { getPlayerTier, getFitnessHexColor } from '@/utils/uiHelpers';
+import { getPlayerDisplayName, getCardNameFontSizeClass } from '@/utils/playerDisplay';
 import { Link, TrendingUp } from 'lucide-react';
 import type { Player } from '@/types/game';
 import { TierBorderFrame } from './TierBorderFrame';
@@ -49,6 +50,9 @@ export const PlayerCard = memo(function PlayerCard({
   const fitnessColor = getFitnessHexColor(player.fitness);
   const statusLabel = getStatusLabel(player, week);
   const tier = getPlayerTier(player.overall);
+  const displayName = getPlayerDisplayName(player);
+  const nameFontSizeClass = getCardNameFontSizeClass(displayName);
+  const fullName = `${player.firstName} ${player.lastName}`;
 
   if (variant === 'bench') {
     return (
@@ -68,11 +72,18 @@ export const PlayerCard = memo(function PlayerCard({
           glow
           innerClassName="flex flex-col items-center bg-black/70 backdrop-blur-sm px-2 py-1.5"
         >
-          <div className="flex items-center gap-1">
-            <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide">
-              {player.lastName.slice(0, 3).toUpperCase()}
+          <div className="flex items-center gap-1 max-w-full">
+            <span
+              className={cn(
+                nameFontSizeClass,
+                'font-bold text-white/90 uppercase tracking-wide leading-tight truncate whitespace-nowrap min-w-0',
+              )}
+              title={fullName}
+              aria-label={fullName}
+            >
+              {displayName}
             </span>
-            <span className={cn('text-[10px] font-bold font-display tabular-nums', tier.textClass)}>
+            <span className={cn('text-[10px] font-bold font-display tabular-nums shrink-0', tier.textClass)}>
               {player.overall}
             </span>
           </div>
@@ -133,10 +144,17 @@ export const PlayerCard = memo(function PlayerCard({
         </div>
 
         {/* Name + morale dot */}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-0.5 max-w-full">
           <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', getMoraleDotClass(player.morale))} />
-          <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide leading-tight">
-            {player.lastName.slice(0, 3).toUpperCase()}
+          <span
+            className={cn(
+              nameFontSizeClass,
+              'font-bold text-white/90 uppercase tracking-wide leading-tight truncate whitespace-nowrap min-w-0',
+            )}
+            title={fullName}
+            aria-label={fullName}
+          >
+            {displayName}
           </span>
         </div>
 

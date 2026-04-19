@@ -47,7 +47,7 @@ export const TierBorderFrame = memo(function TierBorderFrame({
   overall,
   glow = false,
   outerRadiusClass = 'rounded-lg',
-  innerRadiusClass = 'rounded-[6px]',
+  innerRadiusClass = 'rounded-[6.5px]',
   paddingClass = 'p-[1.5px]',
   className,
   innerClassName,
@@ -79,7 +79,11 @@ export const TierBorderFrame = memo(function TierBorderFrame({
       data-tier={withDataTier ? tier.key : undefined}
       aria-label={resolvedAriaLabel}
     >
-      <div className={cn(innerRadiusClass, innerClassName)}>{children}</div>
+      {/* overflow-hidden on the inner rect clips any subpixel sliver of the
+          tier gradient that would otherwise bleed through at the corners.
+          Kept off the outer wrapper so the Gold/Legendary box-shadow glow
+          (set via wrapperStyle) renders freely outside the card. */}
+      <div className={cn(innerRadiusClass, 'overflow-hidden', innerClassName)}>{children}</div>
     </div>
   );
 });

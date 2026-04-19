@@ -138,11 +138,11 @@ const ScoutingPage = () => {
                           overall={report.estimatedOverall}
                           glow
                           outerRadiusClass="rounded-lg"
-                          innerRadiusClass="rounded-[6px]"
+                          innerRadiusClass="rounded-[6.5px]"
                           className="shrink-0"
                         >
                           <div className={cn(
-                            'w-10 h-10 rounded-[6px] flex items-center justify-center text-sm font-bold',
+                            'w-10 h-10 rounded-[6.5px] flex items-center justify-center text-sm font-bold',
                             getPotentialInfo(report.estimatedOverall).bgClass,
                           )}>
                             {report.estimatedOverall}

@@ -8,6 +8,7 @@ import { GraduationCap, Star, TrendingUp, ArrowUpRight, Trash2, Wrench, Users } 
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getPotentialInfo, getTop3Attributes, posBadgeColor } from '@/utils/uiHelpers';
+import { getPlayerDisplayName, getCardNameFontSizeClass } from '@/utils/playerDisplay';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { TierBorderFrame } from '@/components/game/TierBorderFrame';
 import { getStaffBonus } from '@/utils/staff';
@@ -126,6 +127,8 @@ const YouthAcademy = () => {
               if (!player) return null;
               const potentialInfo = getPotentialInfo(player.potential);
               const top3 = getTop3Attributes(player.attributes);
+              const cardDisplayName = getPlayerDisplayName(player);
+              const cardFullName = `${player.firstName} ${player.lastName}`;
               return (
                 <motion.div
                   key={prospect.playerId}
@@ -151,7 +154,7 @@ const YouthAcademy = () => {
                           glow
                           className="shrink-0"
                         >
-                          <div className="flex flex-col items-center rounded-[6px] bg-black/70 backdrop-blur-sm px-2 py-1.5 min-w-[40px]">
+                          <div className="flex flex-col items-center rounded-[6.5px] bg-black/70 backdrop-blur-sm px-2 py-1.5 min-w-[40px]">
                             <span className={cn('text-sm font-bold font-display tabular-nums leading-none', getRatingColor(player.overall))}>
                               {player.overall}
                             </span>
@@ -161,8 +164,15 @@ const YouthAcademy = () => {
                                 style={{ width: `${player.fitness}%`, backgroundColor: getFitnessHexColor(player.fitness) }}
                               />
                             </div>
-                            <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide leading-tight">
-                              {player.lastName.slice(0, 3).toUpperCase()}
+                            <span
+                              className={cn(
+                                getCardNameFontSizeClass(cardDisplayName),
+                                'font-bold text-white/90 uppercase tracking-wide leading-tight truncate whitespace-nowrap max-w-full',
+                              )}
+                              title={cardFullName}
+                              aria-label={cardFullName}
+                            >
+                              {cardDisplayName}
                             </span>
                             <span className="text-[6px] text-gray-400 font-medium leading-tight mt-px">{player.position}</span>
                           </div>
