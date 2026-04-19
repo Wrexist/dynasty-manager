@@ -25,7 +25,7 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
       onClick={() => { if (disabled) return; hapticLight(); onSelect(); }}
       disabled={disabled}
       className={cn(
-        'group relative w-full rounded-2xl overflow-hidden border text-left',
+        'group relative w-full rounded-2xl overflow-hidden border text-left isolate',
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
         disabled ? 'opacity-50 grayscale cursor-not-allowed border-border/50' : 'border-white/15 shadow-[0_12px_30px_rgba(0,0,0,0.45)]',
         featured ? 'aspect-[16/9]' : 'aspect-[3/4]',
@@ -35,11 +35,28 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
       }}
       aria-label={`Open ${tier.label}, ${formatMoney(tier.price)}${disabled ? ' (unavailable)' : ''}`}
     >
-      {/* Gloss + concentric inner border (inner radius = outer 16px − inset 6px = 10px) */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/12 via-transparent to-black/55 pointer-events-none" />
+      {/* Full-bleed cover art. The PNG IS the card — tier gradient above shows
+          through only if the image fails to load or while it streams in. */}
+      <PackArt
+        src={tier.artSrc}
+        className="absolute inset-0 w-full h-full object-cover object-center"
+        fallback={<div className="absolute inset-0" />}
+      />
+
+      {/* Legibility scrim — subtle at the top (badges), stronger at the bottom
+          (title + price rail). Keeps the artwork readable without dulling it. */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.10) 28%, rgba(0,0,0,0.10) 55%, rgba(0,0,0,0.78) 100%)',
+        }}
+      />
+
+      {/* Concentric inner border — classic trading-card frame detail */}
       <div
         className={cn(
-          'absolute pointer-events-none border border-white/15',
+          'absolute pointer-events-none border border-white/20',
           featured ? 'inset-[6px] rounded-[10px]' : 'inset-[5px] rounded-[11px]',
         )}
       />
@@ -55,69 +72,52 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
         />
       )}
 
-      {/* Absolutely-positioned badge stack — guarantees 12px breathing room from the rounded corner */}
+      {/* Badge stack — top-right, floats over the cover */}
       <div className={cn('absolute flex flex-col items-end gap-1 z-10', featured ? 'top-3 right-3' : 'top-2.5 right-2.5')}>
         {featured && (
-          <span className="flex items-center gap-1 h-6 px-2 text-[10px] uppercase tracking-widest rounded-full bg-black/40 backdrop-blur border border-white/20 text-white">
+          <span className="flex items-center gap-1 h-6 px-2 text-[10px] uppercase tracking-widest rounded-full bg-black/55 backdrop-blur border border-white/20 text-white">
             <Sparkles className="w-3 h-3" /> Featured
           </span>
         )}
-        <span className="flex items-center gap-1 h-6 px-2 text-[10px] font-bold tabular-nums rounded-full bg-black/40 backdrop-blur border border-white/20 text-white">
+        <span className="flex items-center gap-1 h-6 px-2 text-[10px] font-bold tabular-nums rounded-full bg-black/55 backdrop-blur border border-white/20 text-white">
           <ShieldCheck className="w-3 h-3" />
           {tier.guaranteedMinOvr}+
         </span>
       </div>
 
-      {/* Content */}
-      <div className={cn('relative h-full flex flex-col text-white', featured ? 'p-4' : 'p-3')}>
-        <div className={cn('min-w-0', featured ? 'pr-28' : 'pr-12')}>
-          <p className="text-[10px] uppercase tracking-[0.3em] opacity-80 font-semibold">Dynasty Pack</p>
-          <h3
-            className={cn(
-              'font-display font-black leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)] truncate',
-              featured ? 'text-2xl mt-1' : 'text-base mt-1',
-            )}
-          >
-            {tier.label}
-          </h3>
-        </div>
+      {/* Header — Dynasty Pack kicker sits top-left over the scrim */}
+      <div className={cn('absolute left-0 right-0 z-10', featured ? 'top-3 px-4 pr-28' : 'top-2.5 px-3 pr-14')}>
+        <p className="text-[10px] uppercase tracking-[0.3em] opacity-90 font-semibold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+          Dynasty Pack
+        </p>
+      </div>
 
-        {/* Art slot — AI-generated cover when present, otherwise placeholder.
-            Image fills the available space and is anchored to the centre so
-            the central focal motif is visible at both 3:4 and 16:9 framings. */}
-        <div className="flex-1 flex items-center justify-center my-2 overflow-hidden">
-          <PackArt
-            src={tier.artSrc}
-            className={cn('w-full h-full object-cover object-center', featured ? 'opacity-95' : 'opacity-90')}
-            fallback={(
-              <div
-                className={cn(
-                  'rounded-full bg-black/30 border border-white/20 flex items-center justify-center',
-                  featured ? 'w-16 h-16' : 'w-12 h-12',
-                )}
-              >
-                <span className={cn('font-display font-black text-white/70', featured ? 'text-2xl' : 'text-lg')}>
-                  {tier.label[0]}
-                </span>
-              </div>
-            )}
-          />
-        </div>
-
-        <div className="mt-auto space-y-1.5">
-          <p className="text-[11px] opacity-90 leading-snug">{tier.tagline}</p>
-          <div className="flex items-center justify-between pt-2 border-t border-white/15">
-            <span className={cn('font-display font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]', featured ? 'text-lg' : 'text-base')}>
-              {formatMoney(tier.price)}
+      {/* Footer — title, tagline, price rail pinned to the bottom scrim */}
+      <div className={cn('absolute inset-x-0 bottom-0 z-10 text-white', featured ? 'p-4' : 'p-3')}>
+        <h3
+          className={cn(
+            'font-display font-black leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.75)] truncate',
+            featured ? 'text-2xl' : 'text-base',
+          )}
+        >
+          {tier.label}
+        </h3>
+        <p className={cn('opacity-95 leading-snug drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] mt-1', featured ? 'text-xs' : 'text-[11px]')}>
+          {tier.tagline}
+        </p>
+        <div className="flex items-center justify-between pt-2 mt-2 border-t border-white/20">
+          <span className={cn('font-display font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)] tabular-nums', featured ? 'text-lg' : 'text-base')}>
+            {formatMoney(tier.price)}
+          </span>
+          {disabled ? (
+            <span className="flex items-center gap-1 h-7 px-3 text-[10px] uppercase tracking-widest bg-black/55 rounded-md border border-white/20 backdrop-blur">
+              <Lock className="w-3 h-3" /> {!affordable ? 'Budget' : 'Squad Full'}
             </span>
-            {disabled ? (
-              <span className="flex items-center gap-1 h-7 px-3 text-[10px] uppercase tracking-widest bg-black/40 rounded-md border border-white/15">
-                <Lock className="w-3 h-3" /> {!affordable ? 'Budget' : 'Squad Full'}
-              </span>
-            ) : (
-              <span className="flex items-center h-7 px-3 text-[10px] uppercase tracking-widest bg-white/15 rounded-md border border-white/20">Open</span>
-            )}
-          </div>
+          ) : (
+            <span className="flex items-center h-7 px-3 text-[10px] uppercase tracking-widest bg-white/20 rounded-md border border-white/30 backdrop-blur font-semibold">
+              Open
+            </span>
+          )}
         </div>
       </div>
     </motion.button>
