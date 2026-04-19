@@ -264,12 +264,7 @@ const MatchReview = () => {
         if (allHighlights.length === 0) return null;
 
         const renderPlayerPill = (p: Player, variant: 'scorer' | 'gk' | 'own-goal') => {
-          const borderColor = variant === 'gk'
-            ? '#f87171'
-            : variant === 'own-goal'
-              ? '#f59e0b'
-              : getRatingHex(p.overall);
-          const ratingColor = variant === 'gk'
+          const accentColor = variant === 'gk'
             ? '#f87171'
             : variant === 'own-goal'
               ? '#f59e0b'
@@ -283,7 +278,7 @@ const MatchReview = () => {
                 variant === 'gk' && 'opacity-85',
                 variant === 'own-goal' && 'border-dashed'
               )}
-              style={{ borderColor }}
+              style={{ borderColor: accentColor }}
               aria-label={`View ${p.firstName} ${p.lastName}`}
             >
               {variant === 'gk' && <span className="text-[9px] font-bold text-red-400 uppercase">GK</span>}
@@ -293,7 +288,7 @@ const MatchReview = () => {
               </span>
               <span
                 className="text-[10px] font-bold tabular-nums leading-none"
-                style={{ color: ratingColor }}
+                style={{ color: accentColor }}
               >
                 {p.overall}
               </span>
