@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { ScoutRegion, TransferListing } from '@/types/game';
 import { getPotentialInfo } from '@/utils/uiHelpers';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
+import { TierBorderFrame } from '@/components/game/TierBorderFrame';
 import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS, MARKET_SUB_NAV } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
@@ -132,12 +133,26 @@ const ScoutingPage = () => {
                 <GlassPanel key={report.id} className="p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={cn(
-                        'w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold',
-                        getPotentialInfo(report.estimatedOverall).bgClass
-                      )}>
-                        {showOverall ? report.estimatedOverall : '??'}
-                      </div>
+                      {showOverall ? (
+                        <TierBorderFrame
+                          overall={report.estimatedOverall}
+                          glow
+                          outerRadiusClass="rounded-lg"
+                          innerRadiusClass="rounded-[6px]"
+                          className="shrink-0"
+                        >
+                          <div className={cn(
+                            'w-10 h-10 rounded-[6px] flex items-center justify-center text-sm font-bold',
+                            getPotentialInfo(report.estimatedOverall).bgClass,
+                          )}>
+                            {report.estimatedOverall}
+                          </div>
+                        </TierBorderFrame>
+                      ) : (
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold bg-muted/40 border border-border/40 text-muted-foreground shrink-0">
+                          ??
+                        </div>
+                      )}
                       <div>
                         <p className="text-sm font-semibold text-foreground">
                           {showIdentity ? `${player.firstName} ${player.lastName}` : 'Unknown Player'}

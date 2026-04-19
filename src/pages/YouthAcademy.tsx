@@ -9,6 +9,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getPotentialInfo, getTop3Attributes, posBadgeColor } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { TierBorderFrame } from '@/components/game/TierBorderFrame';
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
 import { PAGE_HINTS } from '@/config/ui';
@@ -145,21 +146,27 @@ const YouthAcademy = () => {
                       {/* Top row: Avatar + Info + Potential */}
                       <div className="flex items-center gap-3">
                         {/* Player Card (matches tactics view) */}
-                        <div className="flex flex-col items-center shrink-0 rounded-lg bg-black/70 backdrop-blur-sm border border-white/[0.08] px-2 py-1.5 min-w-[40px]">
-                          <span className={cn('text-sm font-bold font-display tabular-nums leading-none', getRatingColor(player.overall))}>
-                            {player.overall}
-                          </span>
-                          <div className="w-full h-[2px] rounded-full bg-white/10 my-0.5">
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{ width: `${player.fitness}%`, backgroundColor: getFitnessHexColor(player.fitness) }}
-                            />
+                        <TierBorderFrame
+                          overall={player.overall}
+                          glow
+                          className="shrink-0"
+                        >
+                          <div className="flex flex-col items-center rounded-[6px] bg-black/70 backdrop-blur-sm px-2 py-1.5 min-w-[40px]">
+                            <span className={cn('text-sm font-bold font-display tabular-nums leading-none', getRatingColor(player.overall))}>
+                              {player.overall}
+                            </span>
+                            <div className="w-full h-[2px] rounded-full bg-white/10 my-0.5">
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{ width: `${player.fitness}%`, backgroundColor: getFitnessHexColor(player.fitness) }}
+                              />
+                            </div>
+                            <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide leading-tight">
+                              {player.lastName.slice(0, 3).toUpperCase()}
+                            </span>
+                            <span className="text-[6px] text-gray-400 font-medium leading-tight mt-px">{player.position}</span>
                           </div>
-                          <span className="text-[7px] font-bold text-white/90 uppercase tracking-wide leading-tight">
-                            {player.lastName.slice(0, 3).toUpperCase()}
-                          </span>
-                          <span className="text-[6px] text-gray-400 font-medium leading-tight mt-px">{player.position}</span>
-                        </div>
+                        </TierBorderFrame>
 
                         {/* Player Info */}
                         <div className="flex-1 min-w-0">
