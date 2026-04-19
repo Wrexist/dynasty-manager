@@ -98,6 +98,11 @@ const MatchReview = () => {
     }),
     [allHighlights, highlightFilter, playerClubId]
   );
+  const highlightCounts = useMemo(() => ({
+    all: allHighlights.length,
+    us: allHighlights.filter(e => e.clubId === playerClubId).length,
+    goals: allHighlights.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error').length,
+  }), [allHighlights, playerClubId]);
 
   if (!currentMatchResult) {
     return (
@@ -307,13 +312,20 @@ const MatchReview = () => {
                     type="button"
                     onClick={() => setHighlightFilter(f)}
                     className={cn(
-                      'px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-colors',
+                      'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider transition-colors',
                       highlightFilter === f
                         ? 'bg-primary text-primary-foreground'
                         : 'text-muted-foreground hover:text-foreground'
                     )}
+                    aria-label={`${f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'} — ${highlightCounts[f]} event${highlightCounts[f] === 1 ? '' : 's'}`}
                   >
-                    {f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'}
+                    <span>{f === 'us' ? 'Us' : f === 'goals' ? 'Goals' : 'All'}</span>
+                    <span className={cn(
+                      'text-[9px] font-bold tabular-nums',
+                      highlightFilter === f ? 'opacity-80' : 'opacity-50'
+                    )}>
+                      {highlightCounts[f]}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -439,15 +451,19 @@ const MatchReview = () => {
 
                     return (
                       <motion.div
-                        key={`${ev.type}-${ev.minute}-${i}`}
-                        initial={{ opacity: 0, x: isHomeTeamEvent ? 10 : -10 }}
+                        key={`${ev.minute}-${ev.type}-${ev.playerId ?? 'none'}-${ev.assistPlayerId ?? 'x'}`}
+                        initial={reducedMotion ? false : { opacity: 0, x: isHomeTeamEvent ? 10 : -10 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: Math.min(i * 0.08, 0.6), duration: 0.3 }}
+                        transition={{ delay: reducedMotion ? 0 : Math.min(i * 0.08, 0.6), duration: reducedMotion ? 0 : 0.3 }}
                         className="relative grid grid-cols-[1fr_12px_1fr] gap-2 items-start"
                       >
                         <div className="min-w-0">{isHomeTeamEvent && content}</div>
                         <div className="flex justify-center pt-1">
-                          <div className={cn('w-2.5 h-2.5 rounded-full border-2 border-background', toneClass.dot)} />
+                          <div className={cn(
+                            'w-2.5 h-2.5 rounded-full border-2 border-background',
+                            toneClass.dot,
+                            isOurs && 'ring-1 ring-primary/50 ring-offset-1 ring-offset-background'
+                          )} />
                         </div>
                         <div className="min-w-0">{!isHomeTeamEvent && content}</div>
                       </motion.div>
