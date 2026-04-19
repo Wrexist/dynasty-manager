@@ -1,6 +1,7 @@
 import type { Player, Position } from '@/types/game';
 import { generatePlayer } from '@/utils/playerGen';
 import { pick, clamp } from '@/utils/helpers';
+import { calculatePlayerValue, calculatePlayerWage } from '@/config/playerGeneration';
 import {
   PACK_TIER_MAP,
   PACK_POSITION_POOL,
@@ -52,6 +53,14 @@ function rollPackPlayer(
     player = generatePlayer(position, target, '', season);
   }
   player.overall = clamp(player.overall, lo, hi);
+  // Recompute wage + value against the clamped overall so a Bronze pack
+  // can't hand out Gold-rated wages if the underlying roll briefly
+  // overshot the tier ceiling.
+  player.wage = calculatePlayerWage(player.overall);
+  player.value = calculatePlayerValue(player.overall);
+  // Potential must track the new overall; don't let a stale pre-clamp
+  // potential above the ceiling slip through. Preserves the upside gap.
+  if (player.potential < player.overall) player.potential = player.overall;
   return player;
 }
 

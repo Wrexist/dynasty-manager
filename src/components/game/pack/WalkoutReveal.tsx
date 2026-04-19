@@ -148,6 +148,21 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
         transition={{ delay: PACK_ANIM.walkout.slitMs / 1000, duration: 0.5 }}
       />
 
+      {/* Floor shockwave rings — expand outward at OVR lock-in for weight */}
+      {(phase === 'ovr' || phase === 'hold') && [0, 0.15].map((d, i) => (
+        <motion.div
+          key={`ring-${i}`}
+          className="absolute left-1/2 -translate-x-1/2 bottom-[20%] rounded-full pointer-events-none"
+          style={{
+            border: `2px solid ${tier.gradientTo}`,
+            boxShadow: `0 0 24px ${tier.gradientTo}`,
+          }}
+          initial={{ width: 40, height: 14, opacity: 0.9 }}
+          animate={{ width: 520, height: 180, opacity: 0 }}
+          transition={{ duration: 1.1, delay: d, ease: [0.22, 1, 0.36, 1] }}
+        />
+      ))}
+
       {/* Lens flare at beam top */}
       <motion.div
         className="absolute left-1/2 -translate-x-1/2 rounded-full pointer-events-none"
@@ -204,6 +219,23 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
         </g>
       </motion.svg>
 
+      {/* Legendary breathing outer aura behind the name block */}
+      {isLegendary && (phase === 'name' || phase === 'ovr' || phase === 'hold') && (
+        <motion.div
+          className="absolute left-1/2 -translate-x-1/2 top-[14%] rounded-full pointer-events-none"
+          style={{
+            width: '72vw',
+            maxWidth: 460,
+            height: 260,
+            background: `radial-gradient(ellipse at center, ${tier.gradientTo}55 0%, ${tier.gradientVia}22 40%, transparent 70%)`,
+            filter: 'blur(8px)',
+          }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: [0.7, 1, 0.7], scale: [0.95, 1.06, 0.95] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
+
       {/* Name */}
       <div className="absolute left-1/2 -translate-x-1/2 top-[12%] text-center max-w-[90vw] px-4 pointer-events-none">
         <motion.div
@@ -227,14 +259,16 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
           }}
         >
           {typed || '\u00A0'}
-          <motion.span
-            className="inline-block ml-0.5"
-            animate={{ opacity: [1, 0, 1] }}
-            transition={{ duration: 0.8, repeat: phase === 'name' ? Infinity : 0 }}
-            style={{ color: tier.gradientTo }}
-          >
-            {phase === 'name' ? '|' : ''}
-          </motion.span>
+          {phase === 'name' && (
+            <motion.span
+              className="inline-block ml-0.5"
+              animate={{ opacity: [1, 0, 1] }}
+              transition={{ duration: 0.8, repeat: Infinity }}
+              style={{ color: tier.gradientTo }}
+            >
+              |
+            </motion.span>
+          )}
         </h1>
 
         {/* OVR + position below name */}
@@ -301,6 +335,15 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-widest text-white/40 pointer-events-none">
         Tap to skip
       </div>
+
+      {/* Screen-reader announcement. Polite so it doesn't clobber the OVR
+          roll but still announces the pull clearly. Only rendered on OVR
+          lock-in so it fires exactly once per walkout. */}
+      {(phase === 'ovr' || phase === 'hold') && (
+        <div className="sr-only" aria-live="polite" role="status">
+          {`${tier.label} pull — ${player.firstName} ${player.lastName}, ${player.overall} overall, ${player.position}, ${player.nationality}.`}
+        </div>
+      )}
 
       {/* Confetti retrigger when name/OVR are up */}
       {(phase === 'ovr' || phase === 'hold') && (

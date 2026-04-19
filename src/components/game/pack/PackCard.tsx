@@ -1,5 +1,6 @@
 import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { X } from 'lucide-react';
 import type { Player } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { cn } from '@/lib/utils';
@@ -14,6 +15,8 @@ interface PackCardProps {
   onReveal?: () => void;
   /** Staggered entrance delay (seconds). */
   entranceDelay?: number;
+  /** When provided, renders a small × on the face to quick-release. */
+  onDismiss?: () => void;
 }
 
 /**
@@ -21,7 +24,7 @@ interface PackCardProps {
  * flips on tap. The flip itself is a 3D rotateY with perspective on the
  * parent.
  */
-export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0 }: PackCardProps) {
+export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0, onDismiss }: PackCardProps) {
   const tier = tierForOvr(player.overall);
   const [hovered, setHovered] = useState(false);
 
@@ -31,13 +34,24 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
     onReveal();
   };
 
+  const handleDismiss = (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation();
+    if (!onDismiss) return;
+    onDismiss();
+  };
+
   return (
-    <motion.button
-      type="button"
+    <motion.div
       onClick={handleClick}
+      onKeyDown={(e) => { if (!revealed && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); handleClick(); } }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative block w-[150px] aspect-[3/4] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-2xl"
+      className={cn(
+        'relative block w-[150px] aspect-[3/4] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-2xl',
+        !revealed && onReveal && 'cursor-pointer',
+      )}
+      role={!revealed && onReveal ? 'button' : undefined}
+      tabIndex={!revealed && onReveal ? 0 : undefined}
       style={{ perspective: 1100 }}
       initial={{ opacity: 0, y: 120, scale: 0.8 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -83,6 +97,19 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
         >
           <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/50" />
           <div className="relative h-full flex flex-col px-3 py-3 text-white">
+            {/* Quick-release × (summary only) */}
+            {revealed && onDismiss && (
+              <button
+                type="button"
+                onClick={handleDismiss}
+                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/55 hover:bg-black/80 border border-white/25 flex items-center justify-center z-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                aria-label={`Release ${player.firstName} ${player.lastName}`}
+                title="Release (1 week severance)"
+              >
+                <X className="w-3 h-3 text-white/90" />
+              </button>
+            )}
+
             {/* Top row */}
             <div className="flex items-start justify-between">
               <div className="flex flex-col leading-none">
@@ -137,6 +164,6 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
           </div>
         </div>
       </motion.div>
-    </motion.button>
+    </motion.div>
   );
 });

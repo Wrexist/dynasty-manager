@@ -15,6 +15,8 @@ interface PackOpeningOverlayProps {
   players: Player[];
   pityTriggered?: boolean;
   onClose: () => void;
+  /** When provided, summary cards render a × quick-release action. */
+  onDismiss?: (playerId: string) => void;
 }
 
 type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' | 'summary';
@@ -30,7 +32,7 @@ type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' 
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDismiss }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
   const [phase, setPhase] = useState<Phase>('portal');
   const [revealedSet, setRevealedSet] = useState<Set<string>>(new Set());
@@ -136,13 +138,21 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose }: Pa
     setRevealedSet(new Set(players.map(p => p.id)));
   }, [players]);
 
-  // Escape key closes overlay (only during summary)
+  // Keyboard: Escape does phase-appropriate things so users never get stuck.
+  //   reveal  → fast-reveal every card (same as "Tap all to reveal")
+  //   walkout → skip the current walkout and move to the next / summary
+  //   summary → close the overlay
+  // Portal/arrival/charge/explode are short animations — we let them finish.
   useEffect(() => {
-    if (phase !== 'summary') return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (phase === 'reveal') { revealAll(); return; }
+      if (phase === 'walkout') { onWalkoutComplete(); return; }
+      if (phase === 'summary') { onClose(); return; }
+    };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [phase, onClose]);
+  }, [phase, onClose, revealAll, onWalkoutComplete]);
 
   const overlay = (
     <motion.div
@@ -338,6 +348,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose }: Pa
                 player={p}
                 revealed={revealedSet.has(p.id) || phase === 'summary'}
                 onReveal={phase === 'reveal' ? () => revealOne(p.id) : undefined}
+                onDismiss={phase === 'summary' && onDismiss ? () => onDismiss(p.id) : undefined}
                 entranceDelay={i * (PACK_ANIM.revealStaggerMs / 1000)}
               />
             ))}

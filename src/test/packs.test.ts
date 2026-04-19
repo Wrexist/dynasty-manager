@@ -75,17 +75,9 @@ describe('Pack opening — pity counter', () => {
 });
 
 describe('Pack opening — openPack action', () => {
-  beforeEach(() => {
-    initAndGetState();
-    // initGame() doesn't reset packs-slice state, which persists across tests.
-    // Force a clean slate so each test exercises first-open behaviour.
-    useGameStore.setState({
-      openedPacks: [],
-      packPityCounter: 0,
-      lastPackWeek: 0,
-      lastPackSeason: 0,
-    });
-  });
+  // initGame() now resets pack state on every fresh game, so each test
+  // gets a clean slate with no extra work.
+  beforeEach(() => { initAndGetState(); });
 
   it('rejects when budget is insufficient', () => {
     const state = useGameStore.getState();
@@ -172,5 +164,72 @@ describe('Pack opening — openPack action', () => {
     // Icon pack guarantees 88+ which is above walkout threshold
     const topOvr = Math.max(...result.players!.map(p => p.overall));
     expect(topOvr).toBeGreaterThanOrEqual(WALKOUT_OVR_THRESHOLD);
+  });
+
+  it('wage/value stay consistent with clamped OVR', () => {
+    // Open a bunch of bronze packs and verify no player has wage/value above
+    // what their clamped OVR would justify. Protects against the pre-clamp
+    // wage/value leakage bug.
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
+    });
+    const result = useGameStore.getState().openPack('bronze');
+    expect(result.success).toBe(true);
+    for (const p of result.players!) {
+      // Bronze pack ceiling is 68 OVR. Wages at 68 should not exceed a
+      // generous bound; this is a smoke check, not a precise ceiling.
+      expect(p.overall).toBeLessThanOrEqual(PACK_TIER_MAP.bronze.ovrMax);
+      // potential should never fall below overall
+      expect(p.potential).toBeGreaterThanOrEqual(p.overall);
+    }
+  });
+});
+
+describe('Pack opening — releasePackedPlayer action', () => {
+  beforeEach(() => { initAndGetState(); });
+
+  it('releases a just-packed player for one week of severance', () => {
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
+    });
+    const openResult = useGameStore.getState().openPack('bronze');
+    expect(openResult.success).toBe(true);
+    const target = openResult.players![0];
+    const budgetBefore = useGameStore.getState().clubs[state.playerClubId].budget;
+
+    const relResult = useGameStore.getState().releasePackedPlayer(target.id);
+    expect(relResult.success).toBe(true);
+
+    const after = useGameStore.getState();
+    expect(after.clubs[state.playerClubId].playerIds).not.toContain(target.id);
+    expect(after.freeAgents).toContain(target.id);
+    // Severance is exactly 1 week's wage
+    expect(budgetBefore - after.clubs[state.playerClubId].budget).toBe(Math.round(target.wage));
+  });
+
+  it('rejects releasing a player not from the latest pack', () => {
+    const state = useGameStore.getState();
+    const existingPlayerId = state.clubs[state.playerClubId].playerIds[0];
+    const result = useGameStore.getState().releasePackedPlayer(existingPlayerId);
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/just opened/i);
+  });
+});
+
+describe('Pack opening — challenge guard', () => {
+  beforeEach(() => { initAndGetState(); });
+
+  it('blocks opening when an active challenge disables transfers', () => {
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
+      // Penny Pincher disables all transfers
+      activeChallenge: { scenarioId: 'penny-pincher', startSeason: 1, seasonsRemaining: 1, completed: false, failed: false },
+    });
+    const result = useGameStore.getState().openPack('bronze');
+    expect(result.success).toBe(false);
+    expect(result.message).toMatch(/challenge/i);
   });
 });

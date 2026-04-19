@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Lock, Sparkles } from 'lucide-react';
+import { Lock, Sparkles, ShieldCheck } from 'lucide-react';
 import type { PackTierDefinition } from '@/config/packs';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
@@ -56,11 +56,17 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
             <p className="text-[10px] uppercase tracking-[0.3em] opacity-80 font-semibold">Dynasty Pack</p>
             <h3 className={cn('font-display font-black leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]', featured ? 'text-2xl mt-1' : 'text-lg mt-1')}>{tier.label}</h3>
           </div>
-          {featured && (
-            <span className="flex items-center gap-1 text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/15 backdrop-blur border border-white/20">
-              <Sparkles className="w-3 h-3" /> Featured
+          <div className="flex flex-col items-end gap-1">
+            {featured && (
+              <span className="flex items-center gap-1 text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-full bg-white/15 backdrop-blur border border-white/20">
+                <Sparkles className="w-3 h-3" /> Featured
+              </span>
+            )}
+            <span className="flex items-center gap-1 text-[10px] font-bold tabular-nums px-2 py-0.5 rounded-full bg-black/35 backdrop-blur border border-white/25">
+              <ShieldCheck className="w-3 h-3" />
+              {tier.guaranteedMinOvr}+
             </span>
-          )}
+          </div>
         </div>
 
         {/* Art slot — placeholder */}

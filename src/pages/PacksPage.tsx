@@ -6,6 +6,7 @@ import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { SubNav } from '@/components/game/SubNav';
 import { PageHint } from '@/components/game/PageHint';
+import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { MARKET_SUB_NAV, PAGE_HINTS, PLAYER_TIER_THRESHOLDS } from '@/config/ui';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { PACK_TIERS, PACK_TIER_MAP, PACK_PITY_THRESHOLD, RECENT_PULLS_LIMIT, type PackTierKey } from '@/config/packs';
@@ -16,7 +17,15 @@ import { cn } from '@/lib/utils';
 import { errorToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
 
-const FEATURED_TIER: PackTierKey = 'premium';
+/** Rotation of tiers surfaced in the Featured slot. Excludes Icon so it stays
+ *  special and doesn't show up every month. Cycles deterministically by
+ *  (season, week) so the same week shows the same featured pack. */
+const FEATURED_ROTATION: PackTierKey[] = ['premium', 'rare', 'gold', 'silver', 'premium', 'rare'];
+
+function pickFeaturedTier(season: number, week: number): PackTierKey {
+  const idx = Math.abs((season * 100 + week)) % FEATURED_ROTATION.length;
+  return FEATURED_ROTATION[idx];
+}
 
 function tierBadgeClass(ovr: number): string {
   for (const t of PLAYER_TIER_THRESHOLDS) if (ovr >= t.min) return t.badgeClass;
@@ -35,9 +44,20 @@ const PacksPage = () => {
     week: s.week,
   })));
   const openPack = useGameStore(s => s.openPack);
+  const releasePackedPlayer = useGameStore(s => s.releasePackedPlayer);
 
   const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean } | null>(null);
   const [replay, setReplay] = useState<{ tier: PackTierKey; players: Player[] } | null>(null);
+
+  const handleDismiss = (playerId: string) => {
+    const result = releasePackedPlayer(playerId);
+    if (!result.success) {
+      errorToast('Cannot release', result.message);
+      return;
+    }
+    // Drop this player from the live overlay view
+    setOpening(prev => prev ? { ...prev, players: prev.players.filter(p => p.id !== playerId) } : prev);
+  };
 
   const budget = club?.budget ?? 0;
   const squadSize = club?.playerIds.length ?? 0;
@@ -46,8 +66,9 @@ const PacksPage = () => {
   const pityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
   const pityProgressPct = Math.min(100, (packPityCounter / PACK_PITY_THRESHOLD) * 100);
 
-  const featured = PACK_TIER_MAP[FEATURED_TIER];
-  const nonFeatured = useMemo(() => PACK_TIERS.filter(t => t.key !== FEATURED_TIER), []);
+  const featuredKey = useMemo(() => pickFeaturedTier(season, week), [season, week]);
+  const featured = PACK_TIER_MAP[featuredKey];
+  const nonFeatured = useMemo(() => PACK_TIERS.filter(t => t.key !== featuredKey), [featuredKey]);
 
   const handleOpen = (tierKey: PackTierKey) => {
     if (weekCooldownActive) {
@@ -88,12 +109,16 @@ const PacksPage = () => {
             </h2>
             <p className="text-[11px] text-muted-foreground mt-0.5">Spend budget, sign players instantly.</p>
           </div>
-          <div className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur text-xs font-semibold',
-            budget <= 0 ? 'text-destructive border-destructive/40 bg-destructive/10' : 'text-primary border-primary/30 bg-primary/10',
-          )}>
+          <div
+            className={cn(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur text-xs font-semibold tabular-nums',
+              budget <= 0 ? 'text-destructive border-destructive/40 bg-destructive/10' : 'text-primary border-primary/30 bg-primary/10',
+            )}
+            aria-live="polite"
+            aria-label={`Budget ${formatMoney(budget)}`}
+          >
             <Coins className="w-3.5 h-3.5" />
-            {formatMoney(budget)}
+            <AnimatedNumber value={budget} duration={450} formatFn={formatMoney} />
           </div>
         </div>
 
@@ -213,6 +238,7 @@ const PacksPage = () => {
             players={opening.players}
             pityTriggered={opening.pityTriggered}
             onClose={() => setOpening(null)}
+            onDismiss={handleDismiss}
           />
         )}
       </AnimatePresence>
