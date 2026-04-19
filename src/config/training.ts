@@ -42,7 +42,7 @@ export const INDIVIDUAL_INJURY_RISK_MODIFIER = 1.15;
 
 // ── Fitness Recovery ──
 export const FITNESS_RECOVERY_PER_DAY = 3;
-export const FITNESS_RECOVERY_BASE = 10;
+export const FITNESS_RECOVERY_BASE = 13;
 export const FITNESS_MIN = 30;
 
 // ── Training Injury Age Scaling ──

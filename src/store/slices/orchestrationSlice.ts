@@ -72,7 +72,7 @@ import {
   getExpectedPosition,
   STREAK_MORALE_THRESHOLD, STREAK_MORALE_BONUS, STREAK_INCOME_THRESHOLD, STREAK_INCOME_MULTIPLIER, STREAK_FORM_THRESHOLD, STREAK_FORM_BONUS,
   BOARD_REVIEW_WEEKS,
-  MORALE_BENCH_WEEKLY_LOSS, MORALE_BENCH_MIN,
+  MORALE_BENCH_WEEKLY_LOSS, MORALE_BENCH_MIN, BENCH_REST_BONUS,
   CUP_EXTRA_TIME_GOAL_CHANCE, CUP_PENALTY_GK_QUALITY_FACTOR, CUP_PENALTY_KICKS,
   CONGESTED_FIXTURE_INJURY_MULTIPLIER,
   MOTIVATOR_MORALE_BOOST, YOUTH_DEVELOPER_BOOST,
@@ -3310,9 +3310,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       }
       p.lastAttributeChanges = Object.keys(attrChanges).length > 0 ? attrChanges : undefined;
 
-      // Benched players gradually lose morale
+      // Benched players gradually lose morale but gain extra fitness rest
       if (!playerClub.lineup.includes(pid) && !playerClub.subs.includes(pid) && !p.injured) {
         p.morale = Math.max(MORALE_BENCH_MIN, p.morale - MORALE_BENCH_WEEKLY_LOSS);
+        p.fitness = Math.min(100, p.fitness + BENCH_REST_BONUS);
       }
 
       // Track consecutive low morale weeks and escalate unhappiness

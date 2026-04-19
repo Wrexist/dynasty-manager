@@ -103,8 +103,8 @@ export function getExpectedPosition(reputation: number): number {
 }
 
 // ── Match Result Impact ──
-export const FITNESS_DRAIN_PER_MATCH = -15;
-export const FITNESS_MIN_POST_MATCH = 40;
+export const FITNESS_DRAIN_PER_MATCH = -10;
+export const FITNESS_MIN_POST_MATCH = 50;
 export const MORALE_WIN_CHANGE = 8;
 export const MORALE_LOSS_CHANGE = -10;
 export const FORM_WIN_CHANGE = 5;
@@ -243,6 +243,7 @@ export const STREAK_FORM_BONUS = 3;
 // ── Morale: Benched Players ──
 export const MORALE_BENCH_WEEKLY_LOSS = 2;
 export const MORALE_BENCH_MIN = 20;
+export const BENCH_REST_BONUS = 5;
 
 // ── Board Mid-Season Review ──
 export const BOARD_REVIEW_WEEKS = [15, 30];

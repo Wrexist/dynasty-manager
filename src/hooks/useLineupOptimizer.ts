@@ -4,6 +4,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { infoToast, successToast } from '@/utils/gameToast';
 import { toast } from 'sonner';
+import { positionalOverall } from '@/utils/autoFillLineup';
 
 /**
  * Shared hook for the "Optimize Lineup" button used by MatchPrep and TacticsPage.
@@ -33,7 +34,10 @@ export function useLineupOptimizer() {
     const allAvailable = club.playerIds.map(id => players[id]).filter(p =>
       p && !p.injured && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
     );
-    allAvailable.sort((a, b) => b.overall - a.overall);
+    // Sort by position-weighted OVR for a more accurate estimate than raw overall
+    allAvailable.sort((a, b) =>
+      positionalOverall(b.attributes, b.position) - positionalOverall(a.attributes, a.position)
+    );
     const bestXI = allAvailable.slice(0, 11);
     if (bestXI.length === 0) return 0;
     const bestAvg = bestXI.reduce((s, p) => s + p.overall, 0) / bestXI.length;

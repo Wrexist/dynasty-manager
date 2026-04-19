@@ -60,6 +60,7 @@ import {
   LINEUP_PENALTY_TAKER_BONUS,
   BENCH_DEFENSIVE_FORMATION_COVER_BONUS,
   LINEUP_BENCH_SWAP_PASSES,
+  BENCH_PLAYER_FITNESS_WEIGHT,
 } from '@/config/lineupOptimization';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 
@@ -95,7 +96,7 @@ const DEFENSIVE_POSITIONS: Position[] = ['CB', 'CDM', 'LB', 'RB'];
  * Calculate a player's effective overall for a specific target position
  * using that position's attribute weights (not the player's natural position weights).
  */
-function positionalOverall(attrs: PlayerAttributes, targetPosition: Position): number {
+export function positionalOverall(attrs: PlayerAttributes, targetPosition: Position): number {
   const weights = POSITION_WEIGHTS[targetPosition] || POSITION_WEIGHTS['CM'];
   const attrValues = [attrs.pace, attrs.shooting, attrs.passing, attrs.defending, attrs.physical, attrs.mental];
   let score = 0;
@@ -675,7 +676,7 @@ export function autoFillBestTeam(
     const isGKBackup = p.position === 'GK' && hasGKInLineup;
 
     // Base quality rating
-    const baseRating = p.overall * 0.7 + (p.form / 100) * 15 + (p.fitness / 100) * 10 + (p.morale / 100) * 5;
+    const baseRating = p.overall * 0.7 + (p.form / 100) * 15 + (p.fitness / 100) * BENCH_PLAYER_FITNESS_WEIGHT + (p.morale / 100) * 5;
 
     // Positional versatility: how many formation slots can this player cover?
     const formationCoverage = countFormationCoverage(p);
