@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
-import { getPlayerTier, getFitnessHexColor, getStableJerseyNumber } from '@/utils/uiHelpers';
+import { getPlayerTier, getFitnessHexColor } from '@/utils/uiHelpers';
 import { getPlayerDisplayName, getCardNameFontSizeClass } from '@/utils/playerDisplay';
 import { Link, TrendingUp, TrendingDown } from 'lucide-react';
 import type { Player } from '@/types/game';
@@ -59,7 +59,6 @@ export const PlayerCard = memo(function PlayerCard({
   const displayName = getPlayerDisplayName(player);
   const nameFontSizeClass = getCardNameFontSizeClass(displayName);
   const fullName = `${player.firstName} ${player.lastName}`;
-  const jersey = getStableJerseyNumber(player.id);
 
   const chemDisplay = chemistryLinkCount > 9 ? '9+' : chemistryLinkCount;
   const formTrend: 'hot' | 'cold' | null =
@@ -78,7 +77,7 @@ export const PlayerCard = memo(function PlayerCard({
     <div
       onClick={onClick}
       className={cn(
-        'cursor-pointer rounded-[7px] w-[48px] h-[64px] sm:w-[54px] sm:h-[72px] shrink-0 relative',
+        'cursor-pointer rounded-[7px] w-[48px] h-[48px] sm:w-[54px] sm:h-[54px] shrink-0 relative',
         'transition-transform duration-150',
         isSelected && 'scale-[1.08]',
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
@@ -104,52 +103,29 @@ export const PlayerCard = memo(function PlayerCard({
         paddingClass="p-[1.5px]"
         className="w-full h-full"
         innerClassName={cn(
-          'w-full h-full flex flex-col',
+          'w-full h-full flex flex-col px-1 py-0.5 gap-px',
           'bg-gradient-to-b from-black/85 to-black/65 backdrop-blur-sm',
           clubColor && 'border-l-[2px]',
         )}
         style={clubColor ? { borderLeftColor: clubColor } : undefined}
       >
-        {/* Row A: rating + flag + position */}
-        <div className="flex items-center justify-between gap-0.5 px-1 pt-0.5 leading-none">
-          <span className={cn('text-[15px] font-black font-display tabular-nums leading-none', tier.textClass)}>
+        {/* Row A: rating + flag + position (all plain text, no pill) */}
+        <div className="flex items-center justify-between gap-px w-full min-w-0 leading-none">
+          <span className={cn('text-[13px] font-black font-display tabular-nums leading-none shrink-0', tier.textClass)}>
             {player.overall}
           </span>
-          <div className="flex items-center gap-0.5 min-w-0">
-            <FlagIcon nationality={player.nationality} size={10} className="rounded-sm shrink-0" />
-            <span className="text-[7px] font-semibold uppercase tracking-wider text-white/75 bg-white/10 rounded-sm px-1 py-px leading-none">
-              {position}
-            </span>
-          </div>
-        </div>
-
-        {/* Row B: portrait band (jersey watermark + status indicators) */}
-        <div className="relative flex-1 flex items-center justify-center">
-          <span className="text-[22px] font-black font-display text-white/[0.07] tabular-nums leading-none select-none">
-            {jersey}
+          <FlagIcon nationality={player.nationality} size={9} className="rounded-[1px] shrink-0" />
+          <span className="text-[6px] font-bold uppercase tracking-wider text-white/70 leading-none shrink-0 tabular-nums">
+            {position}
           </span>
-          <div className="absolute top-0.5 right-0.5 flex items-center gap-0.5">
-            <span className={cn('w-1 h-1 rounded-full', getMoraleDotClass(player.morale))} aria-label={`Morale ${player.morale}`} />
-            {formTrend === 'hot' && <TrendingUp className="w-[7px] h-[7px] text-emerald-400" aria-label="Hot form" />}
-            {formTrend === 'cold' && <TrendingDown className="w-[7px] h-[7px] text-red-400" aria-label="Poor form" />}
-          </div>
-          {showChemistry && (
-            <div className="absolute bottom-0.5 right-0.5 flex items-center gap-px text-[6px] text-primary font-semibold tabular-nums leading-none">
-              <Link className="w-[6px] h-[6px]" />
-              {chemDisplay}
-            </div>
-          )}
-          {showBestSub && (
-            <TrendingUp className="absolute bottom-0.5 right-0.5 w-[7px] h-[7px] text-primary" aria-label="Suggested sub" />
-          )}
         </div>
 
-        {/* Row C: name */}
-        <div className="px-0.5 leading-none">
+        {/* Row B: name centered */}
+        <div className="flex-1 flex items-center justify-center min-w-0 leading-none">
           <span
             className={cn(
               nameFontSizeClass,
-              'block font-bold text-white/95 uppercase tracking-wide truncate whitespace-nowrap text-center',
+              'block font-bold text-white/95 uppercase tracking-wide truncate whitespace-nowrap w-full text-center',
             )}
             title={fullName}
             aria-label={fullName}
@@ -158,8 +134,26 @@ export const PlayerCard = memo(function PlayerCard({
           </span>
         </div>
 
+        {/* Row C: morale + form + chem/best-sub */}
+        <div className="flex items-center justify-between w-full min-w-0 leading-none">
+          <div className="flex items-center gap-px shrink-0">
+            <span className={cn('w-1 h-1 rounded-full', getMoraleDotClass(player.morale))} aria-label={`Morale ${player.morale}`} />
+            {formTrend === 'hot' && <TrendingUp className="w-[7px] h-[7px] text-emerald-400" aria-label="Hot form" />}
+            {formTrend === 'cold' && <TrendingDown className="w-[7px] h-[7px] text-red-400" aria-label="Poor form" />}
+          </div>
+          {showChemistry && (
+            <span className="flex items-center gap-px text-[6px] text-primary font-semibold tabular-nums leading-none shrink-0">
+              <Link className="w-[6px] h-[6px]" />
+              {chemDisplay}
+            </span>
+          )}
+          {showBestSub && (
+            <TrendingUp className="w-[7px] h-[7px] text-primary shrink-0" aria-label="Suggested sub" />
+          )}
+        </div>
+
         {/* Row D: fitness bar */}
-        <div className="w-full h-[3px] rounded-b-[5.5px] bg-white/10 mt-0.5 overflow-hidden">
+        <div className="w-full h-[3px] rounded-b-[5.5px] bg-white/10 overflow-hidden">
           <div
             className="h-full transition-all"
             style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
