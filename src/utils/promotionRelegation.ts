@@ -4,6 +4,8 @@
  * Bottom-tier fallback: clubs without a lower tier are replaced procedurally.
  */
 
+import * as Sentry from '@sentry/react';
+
 import { LeagueId, LeagueInfo, LeagueTableEntry, SeasonTurnover, Club } from '@/types/game';
 import { LEAGUES, getLeaguesByCountry } from '@/data/league';
 import type { ClubData } from '@/types/game';
@@ -245,8 +247,20 @@ export function applyPromotionRelegation(
     const pendingReplacements = isBottom ? (tier.replacedSlots || 0) : 0;
     const expectedNow = expectedAfterReplacements - pendingReplacements;
     const actual = workingDivisionClubs[tier.id]?.length || 0;
-    if (actual !== expectedNow && process.env.NODE_ENV !== 'production') {
-      console.warn(`[ProRel] League ${tier.id} has ${actual} teams, expected ${expectedNow}`);
+    if (actual !== expectedNow) {
+      // League-size invariant broken — replacement accounting drifted somewhere.
+      // Dev surfaces it in the console; production sends a Sentry breadcrumb so
+      // we can spot the drift in wild saves without bailing the season rollover.
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn(`[ProRel] League ${tier.id} has ${actual} teams, expected ${expectedNow}`);
+      } else {
+        Sentry.addBreadcrumb({
+          category: 'promotionRelegation',
+          level: 'warning',
+          message: 'League size drift',
+          data: { tierId: tier.id, actual, expected: expectedNow },
+        });
+      }
     }
   }
 

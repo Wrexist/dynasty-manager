@@ -44,6 +44,9 @@ const TitleScreen = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // `getSlotSummaries` is a module-level import with no closure state, so it
+  // is referentially stable — `refreshKey` is the only real dep (bumping it
+  // forces a re-read after delete / reset actions from the Sheet menu).
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const slots = useMemo(() => getSlotSummaries(), [refreshKey]);
   const handleContinue = (slot: number) => {
