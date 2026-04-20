@@ -136,7 +136,7 @@ const ClubSelection = () => {
       setSelectedLeague(null);
     } else {
       // Exiting onboarding — discard the draft so the next visit starts fresh
-      try { sessionStorage.removeItem(ONBOARDING_DRAFT_KEY); } catch { /* noop */ }
+      removeSessionKey(ONBOARDING_DRAFT_KEY);
       navigate('/');
     }
   };
