@@ -1,7 +1,7 @@
 import { memo, useState } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
-import type { PackPlayerPlacement, Player } from '@/types/game';
+import type { Player } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { cn } from '@/lib/utils';
 import { tierForOvr, tierGradient } from './packHelpers';
@@ -17,26 +17,17 @@ interface PackCardProps {
   entranceDelay?: number;
   /** When provided, renders a small × on the face to quick-release. */
   onDismiss?: () => void;
-  /** Where this pull landed in the squad after auto-place. */
-  placement?: PackPlayerPlacement;
 }
-
-const PLACEMENT_STYLES: Record<PackPlayerPlacement, { label: string; className: string }> = {
-  starter: { label: 'Starter', className: 'bg-emerald-500/90 text-white border-emerald-300/60' },
-  bench: { label: 'Bench', className: 'bg-sky-500/90 text-white border-sky-300/60' },
-  squad: { label: 'Squad', className: 'bg-black/60 text-white/90 border-white/30' },
-};
 
 /**
  * A single revealable player card. Slides up from below face-down, then
  * flips on tap. The flip itself is a 3D rotateY with perspective on the
  * parent.
  */
-export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0, onDismiss, placement }: PackCardProps) {
+export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0, onDismiss }: PackCardProps) {
   const tier = tierForOvr(player.overall);
   const prefersReducedMotion = useReducedMotion();
   const [hovered, setHovered] = useState(false);
-  const placementStyle = placement ? PLACEMENT_STYLES[placement] : null;
 
   const handleClick = () => {
     if (revealed || !onReveal) return;
@@ -116,20 +107,7 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: tierGradient(tier) }}
         >
           <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/50" />
-          <div className="relative h-full flex flex-col px-3 py-3 text-white">
-            {/* Placement badge — tells the user where this pull landed */}
-            {revealed && placementStyle && (
-              <div
-                className={cn(
-                  'absolute top-1 left-1 text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border backdrop-blur z-10',
-                  placementStyle.className,
-                )}
-                aria-label={`Placed as ${placementStyle.label}`}
-              >
-                {placementStyle.label}
-              </div>
-            )}
-
+          <div className="relative h-full flex flex-col px-3 py-2.5 text-white">
             {/* Quick-release × (summary only) */}
             {revealed && onDismiss && (
               <button
@@ -143,21 +121,47 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
               </button>
             )}
 
-            {/* Top row */}
+            {/* Top row — OVR on the left, flag on the right. Position now
+                lives on the centre disc, so this row stays clean. */}
             <div className="flex items-start justify-between">
-              <div className="flex flex-col leading-none">
-                <span className="text-4xl font-display font-black drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">{player.overall}</span>
-                <span className="mt-0.5 text-[11px] font-semibold tracking-wider opacity-90">{player.position}</span>
-              </div>
+              <span className="text-4xl font-display font-black leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                {player.overall}
+              </span>
               <div className="w-7 h-5 rounded-sm overflow-hidden border border-white/30 bg-black/30">
                 <FlagIcon nationality={player.nationality} size={28} fill />
               </div>
             </div>
 
-            {/* Body — placeholder for AI-art slot */}
-            <div className="flex-1 flex items-center justify-center my-1">
-              <div className="w-16 h-16 rounded-full bg-black/25 border border-white/15 flex items-center justify-center">
-                <span className="text-xl font-bold text-white/70">{player.firstName[0]}{player.lastName[0]}</span>
+            {/* Hero disc — radial highlight + inset shadow for depth,
+                initials over a position kicker. Tier gradient below
+                bleeds through the translucent fill. */}
+            <div className="flex-1 flex items-center justify-center my-0.5 min-h-0">
+              <div
+                className={cn(
+                  'relative w-16 h-16 rounded-full flex items-center justify-center',
+                  'border border-white/25',
+                  'shadow-[inset_0_2px_4px_rgba(255,255,255,0.25),inset_0_-3px_6px_rgba(0,0,0,0.35),0_6px_16px_-4px_rgba(0,0,0,0.55)]',
+                )}
+                style={{
+                  background:
+                    'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 35%, rgba(0,0,0,0.35) 100%)',
+                }}
+              >
+                <div
+                  className="absolute inset-0 rounded-full pointer-events-none"
+                  style={{
+                    background:
+                      'radial-gradient(ellipse 60% 40% at 50% 15%, rgba(255,255,255,0.45), transparent 70%)',
+                  }}
+                />
+                <div className="relative flex flex-col items-center leading-none">
+                  <span className="text-xl font-display font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
+                    {player.firstName[0]}{player.lastName[0]}
+                  </span>
+                  <span className="mt-0.5 text-[8px] font-bold tracking-[0.2em] text-white/85">
+                    {player.position}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -167,32 +171,33 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
               <p className="text-base font-display font-bold leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{player.lastName}</p>
             </div>
 
-            {/* Footer stat strip */}
-            <div className="mt-2 grid grid-cols-3 gap-1 text-[9px] font-semibold uppercase">
-              <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                <span className="opacity-70">PAC</span>
-                <span className="ml-1">{player.attributes.pace}</span>
-              </div>
-              <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                <span className="opacity-70">SHO</span>
-                <span className="ml-1">{player.attributes.shooting}</span>
-              </div>
-              <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                <span className="opacity-70">PAS</span>
-                <span className="ml-1">{player.attributes.passing}</span>
-              </div>
-              <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                <span className="opacity-70">DEF</span>
-                <span className="ml-1">{player.attributes.defending}</span>
-              </div>
-              <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                <span className="opacity-70">PHY</span>
-                <span className="ml-1">{player.attributes.physical}</span>
-              </div>
-              <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                <span className="opacity-70">AGE</span>
-                <span className="ml-1">{player.age}</span>
-              </div>
+            {/* Age / potential kicker — demoted from the stat grid so the
+                six main attributes get equal weight below. */}
+            <div className="flex items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[0.2em] opacity-75 mt-1">
+              <span>Age {player.age}</span>
+              <span className="opacity-40">•</span>
+              <span>Pot {player.potential}</span>
+            </div>
+
+            {/* Footer stat strip — stacked label/value, tabular numerals
+                keep 99 and 8 centred identically. Soft frosted chips. */}
+            <div className="mt-1.5 grid grid-cols-3 gap-1">
+              {([
+                ['PAC', player.attributes.pace],
+                ['SHO', player.attributes.shooting],
+                ['PAS', player.attributes.passing],
+                ['DRI', player.attributes.mental],
+                ['DEF', player.attributes.defending],
+                ['PHY', player.attributes.physical],
+              ] as const).map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex flex-col items-center rounded-md bg-black/35 border border-white/10 px-1 py-0.5 backdrop-blur-sm"
+                >
+                  <span className="text-[8px] font-bold tracking-[0.15em] opacity-65 leading-tight">{label}</span>
+                  <span className="text-[11px] font-display font-black tabular-nums leading-none mt-0.5">{value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
