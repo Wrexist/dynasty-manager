@@ -46,6 +46,11 @@ const HIGHLIGHT_LABEL: Partial<Record<MatchEvent['type'], string>> = {
 };
 /** Strip the "VAR CHECK — " prefix so it isn't shown next to the VAR label pill. */
 const stripVarPrefix = (text: string): string => text.replace(/^VAR CHECK\s*—\s*/, '');
+
+/** Stable empty-events sentinel for the useMemo fallback. Using `?? []` inline
+ *  would create a fresh array reference on every render when no match is
+ *  loaded, defeating the memo. */
+const EMPTY_EVENTS: MatchEvent[] = [];
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor, areColorsSimilar, getRatingHex } from '@/utils/uiHelpers';
@@ -108,7 +113,7 @@ const MatchReview = () => {
   // render — match.events can hold 60+ items for a full-time review. Must be
   // called unconditionally (Rules of Hooks) — the early returns below guard
   // the render path, not the data derivation.
-  const matchEventsForReview = currentMatchResult?.events ?? [];
+  const matchEventsForReview = currentMatchResult?.events ?? EMPTY_EVENTS;
   const { goals, injuries, cards } = useMemo(() => {
     const g: MatchEvent[] = [];
     const inj: MatchEvent[] = [];

@@ -86,7 +86,7 @@ import {
   OBJECTIVE_CYCLE_WEEKS,
   RARE_OBJECTIVE_XP_MULTIPLIER, LEGENDARY_OBJECTIVE_XP_MULTIPLIER,
   FORM_WIN_CHANGE, FORM_LOSS_CHANGE, FORM_DRAW_CHANGE,
-  CUP_EXTRA_TIME_REPUTATION_DIVISOR, CUP_FORFEIT_SCORE,
+  CUP_EXTRA_TIME_REPUTATION_DIVISOR, FORFEIT_SCORE,
   SIM_PENALTY_BASE_WIN_CHANCE, SIM_PENALTY_MENTAL_SCALE,
   LINEUP_SIZE,
 } from '@/config/gameBalance';
@@ -3019,8 +3019,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, LINEUP_SIZE);
       if (hp.length === 0 || ap.length === 0) {
         m.played = true;
-        m.homeGoals = hp.length === 0 ? 0 : 3;
-        m.awayGoals = ap.length === 0 ? 0 : 3;
+        m.homeGoals = hp.length === 0 ? 0 : FORFEIT_SCORE;
+        m.awayGoals = ap.length === 0 ? 0 : FORFEIT_SCORE;
         continue;
       }
       const { result } = simulateMatch(m, hc, ac, hp, ap);
@@ -3143,7 +3143,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           const hp = hAvail.slice(0, LINEUP_SIZE);
           const ap = aAvail.slice(0, LINEUP_SIZE);
           if (hp.length === 0 || ap.length === 0) {
-            leagueFixtures[fi] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : 3, awayGoals: ap.length === 0 ? 0 : 3, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited' }] };
+            leagueFixtures[fi] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited' }] };
             changed = true;
             continue;
           }
@@ -3471,7 +3471,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const aBenchAI = aAvail.slice(11, 18);
       // Forfeit if either team has no available players
       if (hp.length === 0 || ap.length === 0) {
-        const forfeit = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : 3, awayGoals: ap.length === 0 ? 0 : 3, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
+        const forfeit = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
         updatedFixtures[idx] = forfeit;
         continue;
       }
@@ -3505,7 +3505,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         // Forfeit if either team has no available players
         if (hPlayers.length === 0 || aPlayers.length === 0) {
           const winnerId = hPlayers.length === 0 ? tie.awayClubId : tie.homeClubId;
-          newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hPlayers.length === 0 ? 0 : CUP_FORFEIT_SCORE, awayGoals: aPlayers.length === 0 ? 0 : CUP_FORFEIT_SCORE, winnerId };
+          newCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hPlayers.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: aPlayers.length === 0 ? 0 : FORFEIT_SCORE, winnerId };
           continue;
         }
         const { result: cupResult } = simulateMatch(
@@ -3612,7 +3612,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
         if (hPlayers.length === 0 || aPlayers.length === 0) {
           const winnerId = hPlayers.length === 0 ? tie.awayClubId : tie.homeClubId;
-          newLeagueCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hPlayers.length === 0 ? 0 : CUP_FORFEIT_SCORE, awayGoals: aPlayers.length === 0 ? 0 : CUP_FORFEIT_SCORE, winnerId };
+          newLeagueCup.ties[tieIdx] = { ...tie, played: true, homeGoals: hPlayers.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: aPlayers.length === 0 ? 0 : FORFEIT_SCORE, winnerId };
           continue;
         }
         const { result: lcResult } = simulateMatch(
@@ -3848,7 +3848,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         const hp = hc.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, LINEUP_SIZE);
         const ap = ac.playerIds.map(id => newPlayers[id]).filter(Boolean).filter(p => !p.injured).slice(0, LINEUP_SIZE);
         if (hp.length === 0 || ap.length === 0) {
-          updatedLeagueFixtures[i] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : 3, awayGoals: ap.length === 0 ? 0 : 3, events: [] };
+          updatedLeagueFixtures[i] = { ...m, played: true, homeGoals: hp.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap.length === 0 ? 0 : FORFEIT_SCORE, events: [] };
           continue;
         }
         const { result } = simulateMatch(m, hc, ac, hp, ap);
@@ -5652,7 +5652,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const hp2 = hAvail2.slice(0, LINEUP_SIZE);
       const ap2 = aAvail2.slice(0, LINEUP_SIZE);
       if (hp2.length === 0 || ap2.length === 0) {
-        fullFixtures[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : 3, awayGoals: ap2.length === 0 ? 0 : 3, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
+        fullFixtures[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
         continue;
       }
       const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hAvail2.slice(11, 18), aAvail2.slice(11, 18));
@@ -6068,7 +6068,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const hp2 = hAvail3.slice(0, LINEUP_SIZE);
       const ap2 = aAvail3.slice(0, LINEUP_SIZE);
       if (hp2.length === 0 || ap2.length === 0) {
-        fullFixtures2[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : 3, awayGoals: ap2.length === 0 ? 0 : 3, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
+        fullFixtures2[idx] = { ...m, played: true, homeGoals: hp2.length === 0 ? 0 : FORFEIT_SCORE, awayGoals: ap2.length === 0 ? 0 : FORFEIT_SCORE, events: [{ minute: 0, type: 'half_time' as const, clubId: '', description: 'Match forfeited — insufficient players' }] };
         continue;
       }
       const { result: aiResult } = simulateMatch(m, hc2, ac2, hp2, ap2, undefined, undefined, undefined, undefined, getDerbyIntensity(m.homeClubId, m.awayClubId), undefined, season, undefined, hAvail3.slice(11, 18), aAvail3.slice(11, 18));

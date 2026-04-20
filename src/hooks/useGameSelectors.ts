@@ -6,6 +6,7 @@
 import { useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
+import { MORALE_BASELINE } from '@/config/matchEngine';
 import type { Club, Match, CupState, LeagueCupState, ContinentalTournamentState, SuperCupMatch } from '@/types/game';
 
 /** Get the player's club object. */
@@ -150,19 +151,63 @@ export function useUnreadCount(): number {
 }
 
 /** Squad-wide average morale for a club (defaults to the player's club).
- *  Uses 50 as the per-player fallback when a morale value is missing — that
- *  matches the default generated morale in `src/utils/playerGen.ts`, so
- *  rehydrated saves and freshly generated squads read the same at rest.
- *  Returns 50 when the squad is empty (no players = no signal, so neutral). */
+ *  Uses MORALE_BASELINE (50) as the per-player fallback when a morale value is
+ *  missing — keeps it in lockstep with the default generated morale in
+ *  `src/utils/playerGen.ts` and the performance baseline in matchEngine.
+ *  Returns MORALE_BASELINE when the squad is empty (no players = neutral). */
 export function useSquadAverageMorale(clubId?: string): number {
   return useGameStore(s => {
     const id = clubId ?? s.playerClubId;
     const club = s.clubs[id];
-    if (!club) return 50;
+    if (!club) return MORALE_BASELINE;
     const ids = club.playerIds;
-    if (ids.length === 0) return 50;
+    if (ids.length === 0) return MORALE_BASELINE;
     let sum = 0;
-    for (const pid of ids) sum += s.players[pid]?.morale ?? 50;
+    for (const pid of ids) sum += s.players[pid]?.morale ?? MORALE_BASELINE;
     return Math.round(sum / ids.length);
   });
+}
+
+/** One-pass squad summary for a club (defaults to the player's club).
+ *  Computes size, avgAge, avgOvr, avgMorale, and injured count in a single
+ *  iteration over playerIds — avoids the four separate reductions that
+ *  ClubPage was doing inline. Empty-squad returns sensible neutrals. */
+export interface SquadSummary {
+  size: number;
+  avgAge: number;
+  avgOvr: number;
+  avgMorale: number;
+  injured: number;
+}
+
+export function useSquadSummary(clubId?: string): SquadSummary {
+  // useShallow: the selector returns a fresh object each call, so we need
+  // shallow equality on the 5 numeric fields or every store update would
+  // trigger a re-render even when squad stats haven't changed.
+  return useGameStore(useShallow(s => {
+    const id = clubId ?? s.playerClubId;
+    const club = s.clubs[id];
+    const empty: SquadSummary = { size: 0, avgAge: 0, avgOvr: 0, avgMorale: MORALE_BASELINE, injured: 0 };
+    if (!club) return empty;
+    const ids = club.playerIds;
+    if (ids.length === 0) return empty;
+    let ageSum = 0, ovrSum = 0, moraleSum = 0, injured = 0, counted = 0;
+    for (const pid of ids) {
+      const p = s.players[pid];
+      if (!p) continue;
+      ageSum += p.age;
+      ovrSum += p.overall;
+      moraleSum += p.morale ?? MORALE_BASELINE;
+      if (p.injured) injured++;
+      counted++;
+    }
+    if (counted === 0) return empty;
+    return {
+      size: counted,
+      avgAge: Math.round((ageSum / counted) * 10) / 10,
+      avgOvr: Math.round(ovrSum / counted),
+      avgMorale: Math.round(moraleSum / counted),
+      injured,
+    };
+  }));
 }

@@ -223,8 +223,9 @@ export const CUP_EXTRA_TIME_REPUTATION_DIVISOR = 5;
 export const CUP_PENALTY_WIN_CHANCE = 0.5;
 export const CUP_PENALTY_GK_QUALITY_FACTOR = 0.15;
 export const CUP_PENALTY_KICKS = 5;
-/** Walkover score awarded when one side has no available players. */
-export const CUP_FORFEIT_SCORE = 3;
+/** Walkover score awarded when one side has no available players.
+ *  Used by league, cup, and continuation fixture forfeits alike. */
+export const FORFEIT_SCORE = 3;
 
 // ── Background-sim penalty shootout (AI-only ties) ──
 /** Base probability the player's side wins a simulated penalty shootout when
