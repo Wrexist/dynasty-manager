@@ -52,12 +52,10 @@ Dynasty Manager is a mobile-first football management simulation with native iOS
 - **Zustand 5.0.11** — modular store: `gameStore.ts` (25-line entry) + 9 slices + 3 helpers (~3,400 LOC total)
 - **React Router DOM 6.30.1** — routes: `/`, `/select-club`, `/game`, `*`
 - **Framer Motion 12.35.1** — page transitions, match animations
-- **@dnd-kit** (core + sortable + utilities) — drag-and-drop for lineup editing
 - **Recharts 2.15.4** — stats charts
 - **Sonner 1.7.4** — toast notifications
-- **Zod 3.25.76** — schema validation
 - **Capacitor 8.2.0** — native iOS/Android builds (haptics, splash screen, status bar, keyboard plugins)
-- **Vitest 3.2.4 + jsdom + Testing Library** — test infra (14 test files, 134 tests)
+- **Vitest 3.2.4 + jsdom + Testing Library** — test infra
 - **Husky 9.1.7 + lint-staged 16.4.0** — pre-commit hooks
 - **Package manager:** npm
 - **Fonts:** Oswald (headings) + DM Sans (body) via Google Fonts
@@ -159,7 +157,7 @@ src/
 - **Loans:** Separate loan system via `loanSlice.ts` — incoming/outgoing loan offers and deals.
 - **Season end:** `endSeason()` — age, contracts, replacements, new fixtures, reset stats, promotion/relegation.
 - **Promotion/Relegation:** Handled by `utils/promotionRelegation.ts` and `utils/playoffs.ts`. Playoff system for lower divisions.
-- **Persistence:** `saveGame()`/`loadGame()` via localStorage key `'dynasty-save'` (save version: **20**, migration in `utils/saveMigration.ts`).
+- **Persistence:** `saveGame()`/`loadGame()` via localStorage key `'dynasty-save'`. Current save version lives in `utils/saveMigration.ts` (see `CURRENT_VERSION` const); every schema change bumps it and adds a migration step.
 - **Progression:** Manager perks, prestige system, achievements, milestones, Hall of Managers.
 - **Narratives:** Storyline chains (`data/storylineChains.ts`), press conferences, player narratives.
 

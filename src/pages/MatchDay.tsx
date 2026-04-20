@@ -435,7 +435,10 @@ const MatchDay = () => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [phase, allEvents, speed, keyMoment, paused]);
 
-  // Persist speed preference to settings so it carries across matches
+  // Persist speed preference to settings so it carries across matches.
+  // Intentionally depends only on `speed`: `settings.matchSpeed` would cause
+  // a feedback loop after updateSettings lands, and `updateSettings` is a
+  // stable Zustand action (referentially stable across renders).
   useEffect(() => {
     if (speed !== settings.matchSpeed) updateSettings({ matchSpeed: speed });
     // eslint-disable-next-line react-hooks/exhaustive-deps

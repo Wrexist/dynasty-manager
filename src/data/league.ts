@@ -261,9 +261,22 @@ export function generateAllDivisionFixtures(
 }
 
 // ── League Table ──
+// Module-level memoization for `buildLeagueTable`. Keyed on (playedCount,
+// clubIds) so the same fixture snapshot returns a cached sort without
+// rebuilding the standings from scratch.
+//
+// INVARIANT: the cache MUST be cleared whenever fixtures mutate in a way
+// that doesn't bump `playedCount` — game load (different save), season
+// rollover (new fixture list, played = 0 again), and resetGame. This
+// happens via `clearLeagueTableCache()` calls in the store.
+//
+// A self-eviction guard at size 8 prevents unbounded growth if keys start
+// churning (e.g. mid-season rollovers); it's a belt-and-braces safety net,
+// not the primary clearing mechanism.
 const _btlCache = new Map<string, LeagueTableEntry[]>();
 
-/** Clear the league table cache — call on game init/load to prevent stale data */
+/** Clear the league table cache. Call on game init / load / reset to prevent
+ *  stale standings carrying across saves or season rollovers. */
 export function clearLeagueTableCache() { _btlCache.clear(); }
 
 export function buildLeagueTable(fixtures: Match[], clubIds: string[]): LeagueTableEntry[] {
