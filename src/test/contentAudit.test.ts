@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- diagnostic stats reporting */
 /**
  * Content Longevity Audit Tests
  *

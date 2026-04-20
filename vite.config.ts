@@ -85,6 +85,11 @@ export default defineConfig(() => ({
           if (id.includes('framer-motion')) return 'framer-motion';
           if (id.includes('recharts')) return 'recharts';
           if (id.includes('@radix-ui')) return 'radix';
+          if (id.includes('node_modules/@sentry')) return 'sentry';
+          if (id.includes('node_modules/lucide-react')) return 'lucide';
+          if (id.includes('node_modules/zustand')) return 'zustand';
+          if (id.includes('node_modules/react-router')) return 'router';
+          if (id.includes('node_modules/@capacitor')) return 'capacitor';
           if (id.includes('src/data/squads/') || id.includes('src/data/playerTemplates')) return 'squad-data';
           if (id.includes('src/data/nationalPlayerPool')) return 'national-pool';
         },

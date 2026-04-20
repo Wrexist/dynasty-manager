@@ -65,7 +65,6 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   const [counterFee, setCounterFee] = useState<number | null>(null);
   const [lastCounterFee, setLastCounterFee] = useState<number | null>(null);
   const [strikeCount, setStrikeCount] = useState(() => getPlayerStrikes(listing.playerId));
-  const [, setLatestStrikeOutcome] = useState<'rejected' | 'accepted' | null>(null);
   const lockout = isNegotiationLocked(listing.playerId);
 
   const minFee = Math.round(listing.askingPrice * NEGOTIATION_SLIDER_MIN_RATIO);
@@ -103,7 +102,6 @@ export function TransferNegotiation({ listing, onClose }: Props) {
 
   const handleSubmitOffer = useCallback((fee: number) => {
     setLastCounterFee(null);
-    setLatestStrikeOutcome(null);
     setPhase('thinking');
     setFinalFee(fee);
     timersRef.current.push(setTimeout(() => {
@@ -116,11 +114,9 @@ export function TransferNegotiation({ listing, onClose }: Props) {
       if (result.outcome === 'rejected') {
         const newStrikes = recordNegotiationStrike(listing.playerId);
         setStrikeCount(newStrikes);
-        setLatestStrikeOutcome('rejected');
       } else if (result.outcome === 'accepted') {
         clearNegotiationStrikes(listing.playerId);
         setStrikeCount(0);
-        setLatestStrikeOutcome('accepted');
       }
       setPhase('result');
     }, 1500));
@@ -139,7 +135,6 @@ export function TransferNegotiation({ listing, onClose }: Props) {
       if (result.success) {
         clearNegotiationStrikes(listing.playerId);
         setStrikeCount(0);
-        setLatestStrikeOutcome('accepted');
       }
       setPhase('result');
     }, 1000));
@@ -149,7 +144,6 @@ export function TransferNegotiation({ listing, onClose }: Props) {
     setPhase('negotiate');
     setOutcome(null);
     setResultMessage('');
-    setLatestStrikeOutcome(null);
     if (counterFee) {
       setOfferFee(counterFee);
       setLastCounterFee(counterFee);
