@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GameScreen } from '@/types/game';
@@ -34,6 +34,7 @@ export function BottomNav() {
   const matchLocked = useMatchLocked();
   const isUnemployed = useCareerUnemployed();
   const reduceMotion = useReducedMotion();
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const unreadCount = useMemo(() => messages.filter(m => !m.read).length, [messages]);
   const pendingOffers = incomingOffers.length;
   const hasJobOffers = gameMode === 'career' && jobOffers.length > 0;
@@ -50,16 +51,17 @@ export function BottomNav() {
         )}
       >
         {activeTabs.map(({ screen, label, icon: Icon, group }) => {
-          const active = group
+          const screenActive = group
             ? group.includes(currentScreen)
             : currentScreen === screen;
+          const active = screenActive && !drawerOpen;
           return (
             <button
               key={screen}
               type="button"
               onClick={() => { if (matchLocked) return; hapticLight(); setScreen(screen); }}
               aria-label={label}
-              aria-current={active ? 'page' : undefined}
+              aria-current={screenActive ? 'page' : undefined}
               aria-disabled={matchLocked || undefined}
               className={cn(
                 'relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-full transition-colors min-h-[44px]',
@@ -119,7 +121,7 @@ export function BottomNav() {
             </button>
           );
         })}
-        <MoreDrawer disabled={matchLocked} />
+        <MoreDrawer disabled={matchLocked} open={drawerOpen} onOpenChange={setDrawerOpen} />
       </nav>
     </div>
   );

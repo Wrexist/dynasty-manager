@@ -84,8 +84,19 @@ const PINNED_SET = new Set(PINNED_DRAWER_SCREENS);
 // Sections that collapse by default for new players
 const NEW_PLAYER_COLLAPSED_SECTIONS = new Set(['Management', 'Career']);
 
-export function MoreDrawer({ disabled }: { disabled?: boolean }) {
-  const [open, setOpen] = useState(false);
+interface MoreDrawerProps {
+  disabled?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawerProps) {
+  const [openInternal, setOpenInternal] = useState(false);
+  const open = openProp ?? openInternal;
+  const setOpen = (next: boolean) => {
+    if (onOpenChange) onOpenChange(next);
+    else setOpenInternal(next);
+  };
   const [search, setSearch] = useState('');
   const reduceMotion = useReducedMotion();
   const {
@@ -166,7 +177,7 @@ export function MoreDrawer({ disabled }: { disabled?: boolean }) {
           disabled={disabled}
           className={cn(
             'relative flex-1 flex flex-col items-center justify-center gap-0.5 py-2 rounded-full transition-colors min-h-[44px]',
-            disabled ? 'pointer-events-none opacity-40' : open ? 'text-primary-foreground' : 'text-foreground/70',
+            disabled ? 'pointer-events-none' : open ? 'text-primary-foreground' : 'text-foreground/70',
           )}
           aria-disabled={disabled || undefined}
         >
