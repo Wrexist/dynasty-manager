@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Lock, Sparkles, ShieldCheck } from 'lucide-react';
 import type { PackTierDefinition } from '@/config/packs';
 import { formatMoney } from '@/utils/helpers';
@@ -17,6 +17,7 @@ interface PackShopCardProps {
 
 export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured }: PackShopCardProps) {
   const disabled = !affordable || !squadOk;
+  const prefersReducedMotion = useReducedMotion();
   return (
     <motion.button
       type="button"
@@ -32,7 +33,7 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
         disabled
           ? 'opacity-50 grayscale cursor-not-allowed shadow-[0_0_0_0.5px_rgba(255,255,255,0.08)_inset]'
           : 'shadow-[0_0_0_0.5px_rgba(255,255,255,0.22)_inset,inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(0,0,0,0.45),0_22px_55px_-18px_rgba(0,0,0,0.7)]',
-        featured ? 'aspect-[16/9]' : 'aspect-[3/4]',
+        featured ? 'aspect-[3/4]' : 'aspect-[3/4]',
       )}
       style={{
         background: `linear-gradient(135deg, ${tier.gradientFrom} 0%, ${tier.gradientTo} 100%)`,
@@ -93,14 +94,24 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
         }}
       />
 
-      {/* Shimmer sweep — featured only */}
-      {featured && !disabled && (
+      {/* Shimmer sweep — featured gets the brighter/faster version */}
+      {featured && !disabled && !prefersReducedMotion && (
         <motion.div
           className="absolute inset-0 pointer-events-none"
           style={{ background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.28) 50%, transparent 70%)' }}
           initial={{ x: '-100%' }}
           animate={{ x: '120%' }}
           transition={{ duration: 1.6, repeat: Infinity, repeatDelay: 2.6, ease: 'easeInOut' }}
+        />
+      )}
+      {/* Shimmer sweep — non-featured, slower and subtler so the shop feels alive */}
+      {!featured && !disabled && !prefersReducedMotion && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: 'linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.14) 50%, transparent 65%)' }}
+          initial={{ x: '-100%' }}
+          animate={{ x: '120%' }}
+          transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 7, ease: 'easeInOut' }}
         />
       )}
 
