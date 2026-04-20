@@ -30,14 +30,14 @@ export function getPlayerDisplayName(player: PlayerNameFields): string {
 }
 
 /**
- * Font-size Tailwind class tuned to fit within the ~58px starter card /
+ * Font-size Tailwind class tuned to fit within the ~50px starter card /
  * ~44px bench card widths. Shrinks in readable steps as names get longer.
  */
 export function getCardNameFontSizeClass(name: string): string {
   const len = name.length;
-  if (len <= 4) return 'text-[9px]';
-  if (len <= 6) return 'text-[8px]';
-  if (len <= 8) return 'text-[7px]';
-  if (len <= 10) return 'text-[6.5px]';
+  if (len <= 4) return 'text-[8px]';
+  if (len <= 6) return 'text-[7px]';
+  if (len <= 8) return 'text-[6.5px]';
+  if (len <= 10) return 'text-[6px]';
   return 'text-[5.5px]';
 }

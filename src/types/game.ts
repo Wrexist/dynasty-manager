@@ -603,58 +603,58 @@ export interface FormationSlot {
 
 export const FORMATION_POSITIONS: Record<FormationType, FormationSlot[]> = {
   '4-3-3': [
-    { x: 50, y: 5, pos: 'GK' },
+    { x: 50, y: 3, pos: 'GK' },
     { x: 18, y: 25, pos: 'LB' }, { x: 38, y: 20, pos: 'CB' }, { x: 62, y: 20, pos: 'CB' }, { x: 82, y: 25, pos: 'RB' },
     { x: 30, y: 45, pos: 'CM' }, { x: 50, y: 40, pos: 'CM' }, { x: 70, y: 45, pos: 'CM' },
     { x: 18, y: 70, pos: 'LW' }, { x: 50, y: 78, pos: 'ST' }, { x: 82, y: 70, pos: 'RW' },
   ],
   '4-4-2': [
-    { x: 50, y: 5, pos: 'GK' },
+    { x: 50, y: 3, pos: 'GK' },
     { x: 18, y: 25, pos: 'LB' }, { x: 38, y: 20, pos: 'CB' }, { x: 62, y: 20, pos: 'CB' }, { x: 82, y: 25, pos: 'RB' },
     { x: 18, y: 50, pos: 'LM' }, { x: 38, y: 45, pos: 'CM' }, { x: 62, y: 45, pos: 'CM' }, { x: 82, y: 50, pos: 'RM' },
     { x: 36, y: 75, pos: 'ST' }, { x: 64, y: 75, pos: 'ST' },
   ],
   '3-5-2': [
-    { x: 50, y: 5, pos: 'GK' },
+    { x: 50, y: 3, pos: 'GK' },
     { x: 28, y: 20, pos: 'CB' }, { x: 50, y: 18, pos: 'CB' }, { x: 72, y: 20, pos: 'CB' },
     { x: 12, y: 45, pos: 'LM' }, { x: 35, y: 40, pos: 'CM' }, { x: 50, y: 35, pos: 'CDM' }, { x: 65, y: 40, pos: 'CM' }, { x: 88, y: 45, pos: 'RM' },
     { x: 36, y: 72, pos: 'ST' }, { x: 64, y: 72, pos: 'ST' },
   ],
   '4-2-3-1': [
-    { x: 50, y: 5, pos: 'GK' },
+    { x: 50, y: 3, pos: 'GK' },
     { x: 18, y: 25, pos: 'LB' }, { x: 38, y: 20, pos: 'CB' }, { x: 62, y: 20, pos: 'CB' }, { x: 82, y: 25, pos: 'RB' },
     { x: 35, y: 40, pos: 'CDM' }, { x: 65, y: 40, pos: 'CDM' },
     { x: 18, y: 60, pos: 'LW' }, { x: 50, y: 55, pos: 'CAM' }, { x: 82, y: 60, pos: 'RW' },
     { x: 50, y: 78, pos: 'ST' },
   ],
   '4-1-4-1': [
-    { x: 50, y: 5, pos: 'GK' },
+    { x: 50, y: 3, pos: 'GK' },
     { x: 18, y: 25, pos: 'LB' }, { x: 38, y: 20, pos: 'CB' }, { x: 62, y: 20, pos: 'CB' }, { x: 82, y: 25, pos: 'RB' },
     { x: 50, y: 38, pos: 'CDM' },
     { x: 18, y: 55, pos: 'LM' }, { x: 38, y: 52, pos: 'CM' }, { x: 62, y: 52, pos: 'CM' }, { x: 82, y: 55, pos: 'RM' },
     { x: 50, y: 78, pos: 'ST' },
   ],
   '3-4-3': [
-    { x: 50, y: 5, pos: 'GK' },
+    { x: 50, y: 3, pos: 'GK' },
     { x: 28, y: 20, pos: 'CB' }, { x: 50, y: 18, pos: 'CB' }, { x: 72, y: 20, pos: 'CB' },
     { x: 18, y: 45, pos: 'LM' }, { x: 40, y: 40, pos: 'CM' }, { x: 60, y: 40, pos: 'CM' }, { x: 82, y: 45, pos: 'RM' },
     { x: 18, y: 70, pos: 'LW' }, { x: 50, y: 78, pos: 'ST' }, { x: 82, y: 70, pos: 'RW' },
   ],
   '5-3-2': [
-    { x: 50, y: 5, pos: 'GK' },
+    { x: 50, y: 3, pos: 'GK' },
     { x: 10, y: 28, pos: 'LB' }, { x: 30, y: 20, pos: 'CB' }, { x: 50, y: 18, pos: 'CB' }, { x: 70, y: 20, pos: 'CB' }, { x: 90, y: 28, pos: 'RB' },
     { x: 30, y: 45, pos: 'CM' }, { x: 50, y: 42, pos: 'CM' }, { x: 70, y: 45, pos: 'CM' },
     { x: 36, y: 72, pos: 'ST' }, { x: 64, y: 72, pos: 'ST' },
   ],
   // ── Formation Master perk formations ──
   '4-5-1': [
-    { x: 50, y: 5, pos: 'GK' },
+    { x: 50, y: 3, pos: 'GK' },
     { x: 18, y: 25, pos: 'LB' }, { x: 38, y: 20, pos: 'CB' }, { x: 62, y: 20, pos: 'CB' }, { x: 82, y: 25, pos: 'RB' },
     { x: 10, y: 50, pos: 'LM' }, { x: 32, y: 45, pos: 'CM' }, { x: 50, y: 42, pos: 'CDM' }, { x: 68, y: 45, pos: 'CM' }, { x: 90, y: 50, pos: 'RM' },
     { x: 50, y: 78, pos: 'ST' },
   ],
   '4-1-2-1-2': [
-    { x: 50, y: 5, pos: 'GK' },
+    { x: 50, y: 3, pos: 'GK' },
     { x: 18, y: 25, pos: 'LB' }, { x: 38, y: 20, pos: 'CB' }, { x: 62, y: 20, pos: 'CB' }, { x: 82, y: 25, pos: 'RB' },
     { x: 50, y: 35, pos: 'CDM' },
     { x: 30, y: 50, pos: 'CM' }, { x: 70, y: 50, pos: 'CM' },
@@ -662,7 +662,7 @@ export const FORMATION_POSITIONS: Record<FormationType, FormationSlot[]> = {
     { x: 36, y: 78, pos: 'ST' }, { x: 64, y: 78, pos: 'ST' },
   ],
   '3-4-1-2': [
-    { x: 50, y: 5, pos: 'GK' },
+    { x: 50, y: 3, pos: 'GK' },
     { x: 28, y: 20, pos: 'CB' }, { x: 50, y: 18, pos: 'CB' }, { x: 72, y: 20, pos: 'CB' },
     { x: 15, y: 42, pos: 'LM' }, { x: 38, y: 38, pos: 'CM' }, { x: 62, y: 38, pos: 'CM' }, { x: 85, y: 42, pos: 'RM' },
     { x: 50, y: 60, pos: 'CAM' },

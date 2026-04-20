@@ -303,7 +303,11 @@ export function LineupEditor() {
           return (
             <div
               key={`slot-${i}`}
-              className={cn('absolute transition-opacity duration-200', isFaded && 'opacity-40')}
+              className={cn(
+                'absolute transition-opacity duration-200',
+                isFaded && 'opacity-40',
+                isSelected ? 'z-20' : 'z-10',
+              )}
               style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
             >
               {player ? (
@@ -320,7 +324,7 @@ export function LineupEditor() {
               ) : (
                 <div
                   className={cn(
-                    'w-[52px] h-9 sm:w-[58px] sm:h-10 rounded-lg border border-dashed border-white/20 bg-white/5 flex items-center justify-center',
+                    'w-[44px] h-8 sm:w-[50px] sm:h-9 rounded-lg border border-dashed border-white/20 bg-white/5 flex items-center justify-center',
                     selectedId ? 'cursor-pointer' : '',
                     compat ? (compat === 'natural' ? 'ring-2 ring-emerald-400' : compat === 'compatible' ? 'ring-2 ring-amber-400' : 'ring-2 ring-red-500') : ''
                   )}

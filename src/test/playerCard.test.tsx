@@ -189,10 +189,10 @@ describe('PlayerCard layout invariants', () => {
         onClick={() => { /* noop */ }}
       />,
     );
-    expect(starter.firstElementChild?.className).toContain('w-[52px]');
-    expect(starter.firstElementChild?.className).toContain('sm:w-[58px]');
-    expect(bench.firstElementChild?.className).toContain('w-[52px]');
-    expect(bench.firstElementChild?.className).toContain('sm:w-[58px]');
+    expect(starter.firstElementChild?.className).toContain('w-[44px]');
+    expect(starter.firstElementChild?.className).toContain('sm:w-[50px]');
+    expect(bench.firstElementChild?.className).toContain('w-[44px]');
+    expect(bench.firstElementChild?.className).toContain('sm:w-[50px]');
   });
 
   it('clamps chemistry-link count above 9 to "9+"', () => {
