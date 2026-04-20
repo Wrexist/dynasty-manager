@@ -24,4 +24,30 @@ export default tseslint.config(
       "no-console": ["warn", { allow: ["warn", "error"] }],
     },
   },
+  // Centralize all localStorage / sessionStorage access in
+  // src/store/helpers/persistence.ts. This rule prevents regression —
+  // if you need storage access, route it through an exported helper.
+  // Exception: src/utils/hallOfManagers.ts pre-dates the convention and
+  // owns its own key namespace; split out in a follow-up.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/store/helpers/persistence.ts",
+      "src/utils/hallOfManagers.ts",
+      "src/test/**",
+    ],
+    rules: {
+      "no-restricted-globals": [
+        "error",
+        {
+          name: "localStorage",
+          message: "Use src/store/helpers/persistence.ts (saveSlot/flag/session helpers) instead of direct localStorage access.",
+        },
+        {
+          name: "sessionStorage",
+          message: "Use readSessionJson / writeSessionJson / removeSessionKey from src/store/helpers/persistence.ts instead.",
+        },
+      ],
+    },
+  },
 );

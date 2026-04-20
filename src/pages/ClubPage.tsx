@@ -7,26 +7,25 @@ import { getConfidenceColor, getFanConfidenceColor } from '@/utils/uiHelpers';
 import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
+import { useSquadSummary } from '@/hooks/useGameSelectors';
 
 const ClubPage = () => {
-  const { playerClubId, clubs, players, season, boardConfidence, boardObjectives, fanMood } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, season, boardConfidence, boardObjectives, fanMood } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     clubs: s.clubs,
-    players: s.players,
     season: s.season,
     boardConfidence: s.boardConfidence,
     boardObjectives: s.boardObjectives,
     fanMood: s.fanMood,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  // One-pass selector for all 5 squad stats. Runs unconditionally (Rules of
+  // Hooks) — returns neutral values when the club is missing so the early
+  // return below still applies to render.
+  const { size, avgAge, avgOvr, avgMorale, injured } = useSquadSummary();
   const club = clubs[playerClubId];
   if (!club) return null;
 
-  const squad = club.playerIds.map(id => players[id]).filter(Boolean);
-  const avgAge = squad.length > 0 ? (squad.reduce((s, p) => s + p.age, 0) / squad.length).toFixed(1) : '0';
-  const avgOvr = squad.length > 0 ? Math.round(squad.reduce((s, p) => s + p.overall, 0) / squad.length) : 0;
-  const avgMorale = squad.length > 0 ? Math.round(squad.reduce((s, p) => s + (p.morale ?? 50), 0) / squad.length) : 50;
-  const injuries = squad.filter(p => p.injured).length;
   const weeklyIncome = getWeeklyIncome(club);
   const netWeekly = getNetWeeklyIncome(club);
 
@@ -136,7 +135,7 @@ const ClubPage = () => {
         </div>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-xl font-black text-foreground">{squad.length}</p>
+            <p className="text-xl font-black text-foreground">{size}</p>
             <p className="text-xs text-muted-foreground">Players</p>
           </div>
           <div>
@@ -148,8 +147,8 @@ const ClubPage = () => {
             <p className="text-xs text-muted-foreground">Avg Age</p>
           </div>
         </div>
-        {injuries > 0 && (
-          <p className="text-xs text-destructive mt-2 flex items-center gap-1"><HeartPulse className="w-3 h-3" /> {injuries} player{injuries > 1 ? 's' : ''} injured</p>
+        {injured > 0 && (
+          <p className="text-xs text-destructive mt-2 flex items-center gap-1"><HeartPulse className="w-3 h-3" /> {injured} player{injured > 1 ? 's' : ''} injured</p>
         )}
       </GlassPanel>
 

@@ -191,6 +191,19 @@ export const STOPPAGE_TIME_MAX_EXTRA = 3;
 export const STOPPAGE_TIME_INJURY_ADD = 0.5;
 export const STOPPAGE_TIME_CARD_ADD = 0.3;
 export const STOPPAGE_TIME_GOAL_ADD = 0.4;
+/** Hard ceiling on stoppage minutes per half. Real football rarely exceeds this. */
+export const STOPPAGE_TIME_MAX = 7;
+
+// ── National Team OVR → Strength mapping ──
+// Converts a national squad's average overall rating into a 0..1 "strength"
+// used by the background tournament simulator. A 40-OVR squad lands on
+// NATIONAL_OVR_STR_MIN, a 100-OVR squad saturates at NATIONAL_OVR_STR_MAX.
+export const NATIONAL_OVR_STR_MIN = 0.1;
+export const NATIONAL_OVR_STR_MAX = 0.85;
+/** Rating floor at which strength lands on NATIONAL_OVR_STR_MIN. */
+export const NATIONAL_OVR_STR_FLOOR = 40;
+/** Rating span across which strength interpolates MIN → MAX. */
+export const NATIONAL_OVR_STR_RANGE = 60;
 
 // ── Corner Goal ──
 export const CORNER_GOAL_CHANCE = 0.12;

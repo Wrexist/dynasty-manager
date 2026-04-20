@@ -15,18 +15,8 @@ import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractS
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
+import type { TitleFloatingCircle } from '@/types/game';
 
-interface FloatingCircle {
-  id: number;
-  size: number;
-  x: number;
-  y: number;
-  opacity: number;
-  color: string;
-  duration: number;
-  driftX: number;
-  driftY: number;
-}
 
 const TitleScreen = () => {
   const navigate = useNavigate();
@@ -101,7 +91,7 @@ const TitleScreen = () => {
   };
 
   // Generate floating circle definitions once
-  const floatingCircles = useMemo<FloatingCircle[]>(() => [
+  const floatingCircles = useMemo<TitleFloatingCircle[]>(() => [
     { id: 0, size: 280, x: 15, y: 10, opacity: 0.04, color: 'hsl(43 96% 46%)', duration: 22, driftX: 60, driftY: 40 },
     { id: 1, size: 180, x: 75, y: 70, opacity: 0.03, color: 'hsl(215 60% 50%)', duration: 18, driftX: -50, driftY: 35 },
     { id: 2, size: 350, x: 50, y: 40, opacity: 0.025, color: 'hsl(43 96% 46%)', duration: 25, driftX: 45, driftY: -55 },

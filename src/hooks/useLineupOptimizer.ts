@@ -3,6 +3,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { infoToast, successToast } from '@/utils/gameToast';
+import { LINEUP_SIZE } from '@/config/gameBalance';
 import { toast } from 'sonner';
 import { positionalOverall } from '@/utils/autoFillLineup';
 
@@ -41,7 +42,7 @@ export function useLineupOptimizer() {
       p && !p.injured && !p.onLoan && !(p.suspendedUntilWeek && p.suspendedUntilWeek > week)
     );
     allAvailable.sort((a, b) => effective(b) - effective(a));
-    const bestXI = allAvailable.slice(0, 11);
+    const bestXI = allAvailable.slice(0, LINEUP_SIZE);
     if (bestXI.length === 0) return 0;
     const bestAvg = bestXI.reduce((s, p) => s + effective(p), 0) / bestXI.length;
     return Math.max(0, Math.round(bestAvg - lineupAvg));

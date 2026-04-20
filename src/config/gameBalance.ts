@@ -217,9 +217,23 @@ export const CONGESTED_FIXTURE_INJURY_MULTIPLIER = 1.3;
 
 // ── Cup Draw Resolution ──
 export const CUP_EXTRA_TIME_GOAL_CHANCE = 0.35;
+/** Divisor applied to club reputation to get the extra-time scoring multiplier.
+ *  A reputation-100 side gets 100/5 = 20× the base extra-time chance. */
+export const CUP_EXTRA_TIME_REPUTATION_DIVISOR = 5;
 export const CUP_PENALTY_WIN_CHANCE = 0.5;
 export const CUP_PENALTY_GK_QUALITY_FACTOR = 0.15;
 export const CUP_PENALTY_KICKS = 5;
+/** Walkover score awarded when one side has no available players.
+ *  Used by league, cup, and continuation fixture forfeits alike. */
+export const FORFEIT_SCORE = 3;
+
+// ── Background-sim penalty shootout (AI-only ties) ──
+/** Base probability the player's side wins a simulated penalty shootout when
+ *  mental attributes are at zero. Scales up with squad mental composure. */
+export const SIM_PENALTY_BASE_WIN_CHANCE = 0.35;
+/** How much a 100-mental squad adds on top of the base win chance
+ *  (0-mental: 0.35, 100-mental: 0.65). */
+export const SIM_PENALTY_MENTAL_SCALE = 0.3;
 
 // ── Morale: Match Appearances ──
 export const MORALE_APPEARANCE_BOOST = 2;

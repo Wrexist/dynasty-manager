@@ -1719,3 +1719,81 @@ export interface ReleasePackedPlayerResult {
   success: boolean;
   message: string;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Page-local UI types — centralized here per CLAUDE.md single-source-of-truth
+// rule ("NEVER create type files outside src/types/game.ts"). Each block notes
+// which page(s) consume the type.
+// ─────────────────────────────────────────────────────────────────────────────
+
+/** SquadPage: sort key for the squad list. */
+export type SquadSortKey = 'overall' | 'potential' | 'age' | 'value' | 'fitness' | 'morale' | 'wage' | 'form';
+
+/** SquadPage: status chip filter for the squad list. */
+export type SquadStatusFilter = 'injured' | 'listed' | 'expiring' | 'onLoan' | 'youth' | 'starters' | 'bench' | 'unhappy';
+
+/** CalendarView: one row in the weekly schedule. */
+export interface CalendarEntry {
+  week: number;
+  type: 'league' | 'cup' | 'international' | 'bye';
+  match: Match | null;
+  cupTie: CupTie | null;
+  intlLabel?: string;
+  competitionLabel?: string;
+}
+
+/** CalendarView: phase grouping (Pre-season, Autumn, Spring, End of Season). */
+export interface CalendarPhaseGroup {
+  id: string;
+  label: string;
+  startWeek: number;
+  endWeek: number;
+  entries: CalendarEntry[];
+  phaseSummary: { wins: number; draws: number; losses: number; total: number };
+}
+
+/** ManagerCreation: step in the onboarding wizard. */
+export type ManagerCreationStep = 'name' | 'nationality' | 'age' | 'traits' | 'offers';
+
+/** ClubSelection: step in the club-selection onboarding flow. */
+export type OnboardingStep = 'nationality' | 'league' | 'club';
+
+/** ClubSelection: session-scoped draft persisted across refreshes. */
+export interface OnboardingDraft {
+  step: OnboardingStep;
+  nation: string | null;
+  league: LeagueId | null;
+}
+
+/** FacilitiesPage: which tab is active. */
+export type FacilityTab = 'stadium' | 'facilities';
+
+/** HelpPage: one entry in the help accordion. */
+export interface HelpSection {
+  title: string;
+  content: string;
+}
+
+/** InboxPage: color styling for each message type. */
+export interface MessageColorScheme {
+  iconBg: string;
+  iconText: string;
+  border: string;
+  dot: string;
+}
+
+/** MatchReview: tone of a highlight row. */
+export type MatchHighlightTone = 'goal' | 'card' | 'var' | 'disallowed' | 'neutral' | 'own-goal' | 'sub';
+
+/** TitleScreen: decorative floating circle in the background. */
+export interface TitleFloatingCircle {
+  id: number;
+  size: number;
+  x: number;
+  y: number;
+  opacity: number;
+  color: string;
+  duration: number;
+  driftX: number;
+  driftY: number;
+}

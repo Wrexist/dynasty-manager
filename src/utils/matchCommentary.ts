@@ -200,11 +200,14 @@ const DERBY_INTENSE_LINES = [
   'Form goes out the window in matches like these. Pure passion on display.',
 ];
 
-/** Pick a line from a pool, preferring unused lines. Falls back to any line if all are used. */
-function pickFreshLine(pool: string[], usedLines: Set<string>): string {
-  const fresh = pool.filter(l => !usedLines.has(l));
+/** Pick a line from a pool, preferring unused lines. Falls back to any line if all are used.
+ *  usedLines is a plain array (not Set) so HalfState survives JSON serialization on save.
+ *  The dedupe-on-push guard keeps `usedLines` bounded by the pool size even across the
+ *  fallback path, so `.includes()` checks stay cheap for the length of a match. */
+function pickFreshLine(pool: string[], usedLines: string[]): string {
+  const fresh = pool.filter(l => !usedLines.includes(l));
   const chosen = fresh.length > 0 ? pick(fresh) : pick(pool);
-  usedLines.add(chosen);
+  if (!usedLines.includes(chosen)) usedLines.push(chosen);
   return chosen;
 }
 
@@ -219,13 +222,13 @@ export function generateCommentary(
   weather?: WeatherCondition,
   pitch?: PitchCondition,
   derbyIntensity?: number,
-  usedLines?: Set<string>,
+  usedLines?: string[],
 ): string {
   const team = isHome ? homeShortName : awayShortName;
   const opp = isHome ? awayShortName : homeShortName;
   const teamGoals = isHome ? homeGoals : awayGoals;
   const oppGoals = isHome ? awayGoals : homeGoals;
-  const used = usedLines ?? new Set();
+  const used = usedLines ?? [];
   const fmt = (line: string) => line.replace(/\{team\}/g, team).replace(/\{opp\}/g, opp);
 
   // Weather short-circuit: configured chance directly selects a weather line

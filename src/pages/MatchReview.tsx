@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { isPro } from '@/utils/monetization';
 import { GOAL_SCORING_TYPES, GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { INJURY_TYPES } from '@/config/gameBalance';
-import type { MatchEvent } from '@/types/game';
+import type { MatchEvent, MatchHighlightTone } from '@/types/game';
 
 // ── Key Highlights display maps (kept near the component to stay readable) ──
 const HIGHLIGHT_TYPES: readonly MatchEvent['type'][] = [
@@ -19,8 +19,7 @@ const HIGHLIGHT_TYPES: readonly MatchEvent['type'][] = [
   'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal',
   'solo_goal', 'goalkeeper_error', 'var_check', 'var_disallowed', 'substitution',
 ];
-type HighlightTone = 'goal' | 'card' | 'var' | 'disallowed' | 'neutral' | 'own-goal' | 'sub';
-const HIGHLIGHT_TONE: Partial<Record<MatchEvent['type'], HighlightTone>> = {
+const HIGHLIGHT_TONE: Partial<Record<MatchEvent['type'], MatchHighlightTone>> = {
   goal: 'goal', penalty_scored: 'goal', free_kick_goal: 'goal', long_range_goal: 'goal',
   counter_attack_goal: 'goal', header_goal: 'goal', solo_goal: 'goal', goalkeeper_error: 'goal',
   red_card: 'card',
@@ -29,7 +28,7 @@ const HIGHLIGHT_TONE: Partial<Record<MatchEvent['type'], HighlightTone>> = {
   own_goal: 'own-goal',
   substitution: 'sub',
 };
-const HIGHLIGHT_TONE_CLASS: Record<HighlightTone, { dot: string; text: string }> = {
+const HIGHLIGHT_TONE_CLASS: Record<MatchHighlightTone, { dot: string; text: string }> = {
   goal:       { dot: 'bg-emerald-400', text: 'text-emerald-400' },
   card:       { dot: 'bg-red-500',     text: 'text-red-400' },
   var:        { dot: 'bg-blue-400',    text: 'text-blue-400' },
@@ -47,6 +46,11 @@ const HIGHLIGHT_LABEL: Partial<Record<MatchEvent['type'], string>> = {
 };
 /** Strip the "VAR CHECK — " prefix so it isn't shown next to the VAR label pill. */
 const stripVarPrefix = (text: string): string => text.replace(/^VAR CHECK\s*—\s*/, '');
+
+/** Stable empty-events sentinel for the useMemo fallback. Using `?? []` inline
+ *  would create a fresh array reference on every render when no match is
+ *  loaded, defeating the memo. */
+const EMPTY_EVENTS: MatchEvent[] = [];
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor, areColorsSimilar, getRatingHex } from '@/utils/uiHelpers';
@@ -104,6 +108,26 @@ const MatchReview = () => {
     goals: allHighlights.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error').length,
   }), [allHighlights, playerClubId]);
 
+  // Single-pass partition over match.events, memoized on the events array.
+  // Replaces three sequential .filter() calls that re-walked events on every
+  // render — match.events can hold 60+ items for a full-time review. Must be
+  // called unconditionally (Rules of Hooks) — the early returns below guard
+  // the render path, not the data derivation.
+  const matchEventsForReview = currentMatchResult?.events ?? EMPTY_EVENTS;
+  const { goals, injuries, cards } = useMemo(() => {
+    const g: MatchEvent[] = [];
+    const inj: MatchEvent[] = [];
+    const c: MatchEvent[] = [];
+    const goalTypes = GOAL_SCORING_TYPES as readonly string[];
+    for (const e of matchEventsForReview) {
+      if (goalTypes.includes(e.type)) g.push(e);
+      else if (e.type === 'injury') inj.push(e);
+      else if (e.type === 'yellow_card' || e.type === 'red_card') c.push(e);
+    }
+    g.sort((a, b) => a.minute - b.minute);
+    return { goals: g, injuries: inj, cards: c };
+  }, [matchEventsForReview]);
+
   if (!currentMatchResult) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">
@@ -140,10 +164,7 @@ const MatchReview = () => {
   const lost = !won && !drew;
   const xpDoubleClaimContext = `match_w${week}_${match.homeClubId}_${match.awayClubId}_${match.homeGoals}-${match.awayGoals}_${lastMatchCompetition || 'league'}`;
 
-  // Goals
-  const goals = match.events.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type)).sort((a, b) => a.minute - b.minute);
-  const injuries = match.events.filter(e => e.type === 'injury');
-  const cards = match.events.filter(e => e.type === 'yellow_card' || e.type === 'red_card');
+  // goals/injuries/cards are memoized above the early-return guard.
 
   // Historical review = match from a past week (e.g. opened from inbox)
   const isHistoricalReview = match.week !== week;

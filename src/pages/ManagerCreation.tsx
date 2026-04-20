@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import type { ManagerTraitId, ManagerAppearance, JobOffer } from '@/types/game';
+import type { ManagerTraitId, ManagerAppearance, JobOffer, ManagerCreationStep } from '@/types/game';
 import { ManagerTraitPicker } from '@/components/game/ManagerTraitPicker';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
@@ -18,11 +18,9 @@ import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROU
 import { CLUBS_DATA } from '@/data/league';
 import { toast } from 'sonner';
 
-type Step = 'name' | 'nationality' | 'age' | 'traits' | 'offers';
+const STEPS: ManagerCreationStep[] = ['name', 'nationality', 'age', 'traits', 'offers'];
 
-const STEPS: Step[] = ['name', 'nationality', 'age', 'traits', 'offers'];
-
-const STEP_LABELS: Record<Step, string> = {
+const STEP_LABELS: Record<ManagerCreationStep, string> = {
   name: 'Name',
   nationality: 'Nationality',
   age: 'Age',
@@ -47,7 +45,7 @@ const ManagerCreation = () => {
   const saveGame = useGameStore(s => s.saveGame);
   const slot = (location.state as { slot?: number })?.slot || 1;
 
-  const [step, setStep] = useState<Step>('name');
+  const [step, setStep] = useState<ManagerCreationStep>('name');
   const [managerName, setManagerName] = useState('');
   const [appearance] = useState<ManagerAppearance>({ ...DEFAULT_APPEARANCE });
   const [nationality, setNationality] = useState<string | null>(null);

@@ -110,6 +110,51 @@ export function clearFlagsByPrefix(prefix: string): void {
   catch { /* storage unavailable */ }
 }
 
+/** Read a JSON value from sessionStorage. Session storage is tab-scoped and
+ *  cleared on tab close — used for ephemeral draft state (e.g. mid-onboarding
+ *  progress) that should survive a refresh but not be persisted to save slots.
+ *  Returns null on any failure (unavailable / parse error / SSR). */
+export function readSessionJson<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** Write a JSON value to sessionStorage. Swallows quota/availability errors. */
+export function writeSessionJson(key: string, value: unknown): void {
+  if (typeof window === 'undefined') return;
+  try { sessionStorage.setItem(key, JSON.stringify(value)); }
+  catch { /* storage unavailable / quota exceeded — non-fatal */ }
+}
+
+/** Remove a key from sessionStorage. Swallows availability errors. */
+export function removeSessionKey(key: string): void {
+  if (typeof window === 'undefined') return;
+  try { sessionStorage.removeItem(key); }
+  catch { /* noop */ }
+}
+
+/** All browser-storage keys used by the game, in one place so callers never
+ *  pass raw string literals. Adding a new key? Register it here and reference
+ *  it from the caller via `STORAGE_KEYS.MY_THING`. */
+export const STORAGE_KEYS = {
+  /** sessionStorage: mid-onboarding draft (club selection). Tab-scoped. */
+  ONBOARDING_DRAFT: 'dynasty-onboarding-draft',
+  /** localStorage: in-session snapshot for crash recovery. */
+  SESSION_SNAPSHOT: 'dynasty-session-snapshot',
+  /** localStorage: persistent Hall of Managers data. */
+  HALL_OF_MANAGERS: 'dynasty-hall',
+  /** localStorage: save slot (1..3). */
+  saveSlot: (slot: number) => `dynasty-save-${slot}`,
+  /** localStorage: backup shadow of a save slot. */
+  saveSlotBackup: (slot: number) => `dynasty-save-${slot}-backup`,
+} as const;
+
 // ── Session Snapshot (for "Welcome back" recap) ──
 
 export interface SessionSnapshot {

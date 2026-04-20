@@ -11,8 +11,9 @@ import { Button } from '@/components/ui/button';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ArrowLeft, Wallet, Users, Loader2, Search, Globe, X, Building2, Sprout } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { LeagueId } from '@/types/game';
+import type { LeagueId, OnboardingStep, OnboardingDraft } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
+import { readSessionJson, writeSessionJson, removeSessionKey, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { toast } from 'sonner';
 
 
@@ -42,27 +43,19 @@ const LEAGUE_COUNTRY_COUNT = new Set(LEAGUES.map(l => l.countryId)).size;
 
 // Session-scoped draft so a refresh during onboarding doesn't wipe progress.
 // Cleared once the career is successfully started (see handleStart).
-const ONBOARDING_DRAFT_KEY = 'dynasty-onboarding-draft';
-type OnboardingStep = 'nationality' | 'league' | 'club';
-type OnboardingDraft = { step: OnboardingStep; nation: string | null; league: LeagueId | null };
+const ONBOARDING_DRAFT_KEY = STORAGE_KEYS.ONBOARDING_DRAFT;
 
 function readOnboardingDraft(): OnboardingDraft {
   const empty: OnboardingDraft = { step: 'nationality', nation: null, league: null };
-  if (typeof window === 'undefined') return empty;
-  try {
-    const raw = sessionStorage.getItem(ONBOARDING_DRAFT_KEY);
-    if (!raw) return empty;
-    const parsed = JSON.parse(raw) as Partial<OnboardingDraft>;
-    // Validate against current data — stale league/nation refs fall back to step 1
-    const validNation = parsed.nation && NATIONS.some(n => n.name === parsed.nation) ? parsed.nation : null;
-    const validLeague = parsed.league && LEAGUES.some(l => l.id === parsed.league) ? (parsed.league as LeagueId) : null;
-    let step: OnboardingStep = 'nationality';
-    if (parsed.step === 'club' && validNation && validLeague) step = 'club';
-    else if (parsed.step === 'league' && validNation) step = 'league';
-    return { step, nation: validNation, league: validLeague };
-  } catch {
-    return empty;
-  }
+  const parsed = readSessionJson<Partial<OnboardingDraft>>(ONBOARDING_DRAFT_KEY);
+  if (!parsed) return empty;
+  // Validate against current data — stale league/nation refs fall back to step 1
+  const validNation = parsed.nation && NATIONS.some(n => n.name === parsed.nation) ? parsed.nation : null;
+  const validLeague = parsed.league && LEAGUES.some(l => l.id === parsed.league) ? (parsed.league as LeagueId) : null;
+  let step: OnboardingStep = 'nationality';
+  if (parsed.step === 'club' && validNation && validLeague) step = 'club';
+  else if (parsed.step === 'league' && validNation) step = 'league';
+  return { step, nation: validNation, league: validLeague };
 }
 
 const ClubSelection = () => {
@@ -90,13 +83,8 @@ const ClubSelection = () => {
 
   // Persist the in-flight draft so refresh/tab-switch doesn't lose progress
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const draft: OnboardingDraft = { step, nation: selectedNationality, league: selectedLeague };
-      sessionStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(draft));
-    } catch {
-      // sessionStorage disabled / quota — non-fatal
-    }
+    const draft: OnboardingDraft = { step, nation: selectedNationality, league: selectedLeague };
+    writeSessionJson(ONBOARDING_DRAFT_KEY, draft);
   }, [step, selectedNationality, selectedLeague]);
 
   const handleStart = () => {
@@ -113,7 +101,7 @@ const ClubSelection = () => {
         } catch (saveErr) {
           Sentry.captureException(saveErr, { tags: { context: 'careerStartSave' } });
         }
-        try { sessionStorage.removeItem(ONBOARDING_DRAFT_KEY); } catch { /* noop */ }
+        removeSessionKey(ONBOARDING_DRAFT_KEY);
         queueMicrotask(() => navigate('/game'));
       } catch (err) {
         Sentry.captureException(err, { tags: { context: 'startGame' } });
@@ -148,7 +136,7 @@ const ClubSelection = () => {
       setSelectedLeague(null);
     } else {
       // Exiting onboarding — discard the draft so the next visit starts fresh
-      try { sessionStorage.removeItem(ONBOARDING_DRAFT_KEY); } catch { /* noop */ }
+      removeSessionKey(ONBOARDING_DRAFT_KEY);
       navigate('/');
     }
   };

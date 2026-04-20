@@ -13,6 +13,12 @@
 
 **Or use the one-liner:** `npm run ship -- "commit message"` — does ALL of the above automatically.
 
+> **ship.sh staging contract:** `npm run ship` stages *tracked changes only*
+> (`git add -u`). **Untracked files are never auto-staged** — if you created a
+> new file and want it in the commit, `git add <file>` first, then ship. The
+> script prints any untracked files for visibility and fails fast if nothing
+> ends up staged.
+
 ### When the user asks you to start a new feature/branch:
 ```bash
 npm run branch -- <branch-name>
@@ -313,7 +319,7 @@ Custom project commands available via `/project:<name>` in Claude Code sessions.
 - NEVER add npm deps without discussing tradeoffs
 - NEVER put game logic in components — store slices or utils only
 - NEVER hardcode balance values — use `src/config/` constants
-- NEVER use localStorage directly — go through store persistence helpers
+- NEVER use `localStorage` or `sessionStorage` directly — go through the helpers in `src/store/helpers/persistence.ts` (`readSessionJson` / `writeSessionJson` / `removeSessionKey` / `getFlag` / `setFlag` / `readSaveSlot` / etc.). New storage keys register in `STORAGE_KEYS`. Enforced by ESLint `no-restricted-globals`
 - NEVER break mobile-first layout — test at 375px
 - NEVER create type files outside `src/types/game.ts` — single source of truth
 - NEVER use `gh pr create` — GitHub API auth is not available. Give the user the PR URL from git push output instead
