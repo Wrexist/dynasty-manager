@@ -10,6 +10,7 @@ import { PackCard } from './PackCard';
 import { PackConfetti } from './PackConfetti';
 import { WalkoutReveal } from './WalkoutReveal';
 import { tierForOvr } from './packHelpers';
+import { cn } from '@/lib/utils';
 
 interface PackOpeningOverlayProps {
   tier: PackTierKey;
@@ -35,7 +36,7 @@ type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' 
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDismiss, placement }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDismiss }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('portal');
@@ -452,7 +453,6 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
                 onReveal={phase === 'reveal' ? () => revealOne(p.id) : undefined}
                 onDismiss={phase === 'summary' && onDismiss ? () => onDismiss(p.id) : undefined}
                 entranceDelay={prefersReducedMotion ? 0 : i * (PACK_ANIM.revealStaggerMs / 1000)}
-                placement={placement?.[p.id]}
               />
             ))}
           </div>
@@ -480,7 +480,13 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
               <button
                 type="button"
                 onClick={onClose}
-                className="flex-1 py-3 rounded-xl font-display font-bold text-sm uppercase tracking-widest bg-primary text-primary-foreground shadow-[0_0_24px_hsl(var(--primary)/0.45)] active:scale-[0.98] transition-transform"
+                className={cn(
+                  'flex-1 py-3.5 rounded-2xl font-display font-bold text-sm uppercase tracking-[0.2em]',
+                  'text-white bg-white/10 border border-white/25',
+                  'backdrop-blur-2xl backdrop-saturate-150',
+                  'shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(0,0,0,0.30),0_10px_30px_-10px_rgba(0,0,0,0.55)]',
+                  'active:scale-[0.98] active:bg-white/15 transition-[transform,background-color] duration-150',
+                )}
               >
                 Added to Squad
               </button>
