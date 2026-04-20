@@ -139,6 +139,22 @@ export function removeSessionKey(key: string): void {
   catch { /* noop */ }
 }
 
+/** All browser-storage keys used by the game, in one place so callers never
+ *  pass raw string literals. Adding a new key? Register it here and reference
+ *  it from the caller via `STORAGE_KEYS.MY_THING`. */
+export const STORAGE_KEYS = {
+  /** sessionStorage: mid-onboarding draft (club selection). Tab-scoped. */
+  ONBOARDING_DRAFT: 'dynasty-onboarding-draft',
+  /** localStorage: in-session snapshot for crash recovery. */
+  SESSION_SNAPSHOT: 'dynasty-session-snapshot',
+  /** localStorage: persistent Hall of Managers data. */
+  HALL_OF_MANAGERS: 'dynasty-hall',
+  /** localStorage: save slot (1..3). */
+  saveSlot: (slot: number) => `dynasty-save-${slot}`,
+  /** localStorage: backup shadow of a save slot. */
+  saveSlotBackup: (slot: number) => `dynasty-save-${slot}-backup`,
+} as const;
+
 // ── Session Snapshot (for "Welcome back" recap) ──
 
 export interface SessionSnapshot {

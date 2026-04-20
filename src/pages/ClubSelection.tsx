@@ -13,7 +13,7 @@ import { ArrowLeft, Wallet, Users, Loader2, Search, Globe, X, Building2, Sprout 
 import { cn } from '@/lib/utils';
 import type { LeagueId, OnboardingStep, OnboardingDraft } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
-import { readSessionJson, writeSessionJson, removeSessionKey } from '@/store/helpers/persistence';
+import { readSessionJson, writeSessionJson, removeSessionKey, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { toast } from 'sonner';
 
 
@@ -43,7 +43,7 @@ const LEAGUE_COUNTRY_COUNT = new Set(LEAGUES.map(l => l.countryId)).size;
 
 // Session-scoped draft so a refresh during onboarding doesn't wipe progress.
 // Cleared once the career is successfully started (see handleStart).
-const ONBOARDING_DRAFT_KEY = 'dynasty-onboarding-draft';
+const ONBOARDING_DRAFT_KEY = STORAGE_KEYS.ONBOARDING_DRAFT;
 
 function readOnboardingDraft(): OnboardingDraft {
   const empty: OnboardingDraft = { step: 'nationality', nation: null, league: null };
