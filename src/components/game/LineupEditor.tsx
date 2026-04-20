@@ -327,7 +327,7 @@ export function LineupEditor() {
               ) : (
                 <div
                   className={cn(
-                    'w-[48px] h-[64px] sm:w-[54px] sm:h-[72px] rounded-[7px] border border-dashed border-white/20 bg-white/5 flex items-center justify-center',
+                    'w-[48px] h-[48px] sm:w-[54px] sm:h-[54px] rounded-[7px] border border-dashed border-white/20 bg-white/5 flex items-center justify-center',
                     selectedId ? 'cursor-pointer' : '',
                     compat ? (compat === 'natural' ? 'ring-2 ring-emerald-400' : compat === 'compatible' ? 'ring-2 ring-amber-400' : 'ring-2 ring-red-500') : ''
                   )}

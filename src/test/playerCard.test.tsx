@@ -191,12 +191,12 @@ describe('PlayerCard layout invariants', () => {
     );
     expect(starter.firstElementChild?.className).toContain('w-[48px]');
     expect(starter.firstElementChild?.className).toContain('sm:w-[54px]');
-    expect(starter.firstElementChild?.className).toContain('h-[64px]');
-    expect(starter.firstElementChild?.className).toContain('sm:h-[72px]');
+    expect(starter.firstElementChild?.className).toContain('h-[48px]');
+    expect(starter.firstElementChild?.className).toContain('sm:h-[54px]');
     expect(bench.firstElementChild?.className).toContain('w-[48px]');
     expect(bench.firstElementChild?.className).toContain('sm:w-[54px]');
-    expect(bench.firstElementChild?.className).toContain('h-[64px]');
-    expect(bench.firstElementChild?.className).toContain('sm:h-[72px]');
+    expect(bench.firstElementChild?.className).toContain('h-[48px]');
+    expect(bench.firstElementChild?.className).toContain('sm:h-[54px]');
   });
 
   it('clamps chemistry-link count above 9 to "9+"', () => {
