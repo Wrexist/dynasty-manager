@@ -65,7 +65,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   const [counterFee, setCounterFee] = useState<number | null>(null);
   const [lastCounterFee, setLastCounterFee] = useState<number | null>(null);
   const [strikeCount, setStrikeCount] = useState(() => getPlayerStrikes(listing.playerId));
-  const [latestStrikeOutcome, setLatestStrikeOutcome] = useState<'rejected' | 'accepted' | null>(null);
+  const [, setLatestStrikeOutcome] = useState<'rejected' | 'accepted' | null>(null);
   const lockout = isNegotiationLocked(listing.playerId);
 
   const minFee = Math.round(listing.askingPrice * NEGOTIATION_SLIDER_MIN_RATIO);
