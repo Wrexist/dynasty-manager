@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { useState, useMemo, memo, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { CLUBS_DATA, LEAGUES, getLeaguesByCountry } from '@/data/league';
@@ -31,6 +31,24 @@ const STEPS = [
   { key: 'league', label: 'League' },
   { key: 'club', label: 'Club' },
 ] as const;
+
+// Apple Liquid-Glass surface — hairline white rim + top inset highlight +
+// bottom inset shadow + soft drop. Shared by nation/league/club rows and
+// the bottom-sheet stat tiles.
+const LIQUID_ROW_CLASS =
+  'relative overflow-hidden rounded-2xl bg-white/[0.04] backdrop-blur-2xl backdrop-saturate-150 border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),inset_0_-1px_0_rgba(0,0,0,0.35),0_6px_20px_-8px_rgba(0,0,0,0.5)] transition-all duration-200';
+
+// Small glass-capsule badge (prize chip, difficulty pill, etc.)
+const LIQUID_BADGE_CLASS =
+  'inline-flex items-center gap-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_10px_-2px_rgba(0,0,0,0.4)]';
+
+// Radial specular crescent that sits across the top half of each row. Pure
+// CSS, mix-blend screen so it catches light without fighting tier colors.
+const LIQUID_SPECULAR_STYLE: React.CSSProperties = {
+  background:
+    'radial-gradient(120% 90% at 50% -20%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 32%, rgba(255,255,255,0) 62%)',
+  mixBlendMode: 'screen',
+};
 
 // Pre-compute club counts per league at module level (runs once)
 const LEAGUE_CLUB_COUNTS: Record<string, number> = {};
@@ -63,6 +81,7 @@ const ClubSelection = () => {
   const location = useLocation();
   const initGame = useGameStore(s => s.initGame);
   const initNationalTeam = useGameStore(s => s.initNationalTeam);
+  const reduceMotion = useReducedMotion();
 
   // Hydrate once from sessionStorage draft (if user refreshed mid-onboarding)
   const initialDraft = useMemo(readOnboardingDraft, []);
@@ -188,9 +207,14 @@ const ClubSelection = () => {
 
   return (
     <div className="min-h-screen bg-background safe-area-top">
-      {/* Header */}
-      <div className="sticky top-0 z-20 bg-background/80 backdrop-blur-xl border-b border-border/30 px-4 pt-3 pb-2">
-        <div className="max-w-lg mx-auto">
+      {/* Header — frosted liquid-glass rim with specular top crescent */}
+      <div className="sticky top-0 z-20 bg-card/50 backdrop-blur-2xl backdrop-saturate-150 border-b border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_0_rgba(0,0,0,0.4)] px-4 pt-3 pb-2">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-2/3"
+          style={LIQUID_SPECULAR_STYLE}
+        />
+        <div className="relative max-w-lg mx-auto">
           <div className="flex items-center gap-3">
             <button
               onClick={handleBack}
@@ -236,29 +260,43 @@ const ClubSelection = () => {
             </AnimatePresence>
           </div>
 
-          {/* Step progress indicator — single progressbar so screen readers announce one state */}
+          {/* Step progress — Sonora-style capsule with sliding active pill */}
           <div
             role="progressbar"
             aria-valuenow={stepIndex + 1}
             aria-valuemin={1}
             aria-valuemax={STEPS.length}
             aria-valuetext={`Step ${stepIndex + 1} of ${STEPS.length}: ${STEPS[stepIndex].label}`}
-            className="flex items-center gap-2 mt-2.5"
+            className="flex gap-1 mt-2.5 bg-card/40 backdrop-blur-xl border border-border/50 rounded-full p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]"
           >
-            {STEPS.map((s, i) => (
-              <div key={s.key} aria-hidden="true" className="flex items-center gap-1.5 flex-1">
+            {STEPS.map((s, i) => {
+              const isActive = i === stepIndex;
+              const isComplete = i < stepIndex;
+              return (
                 <div
+                  key={s.key}
+                  aria-hidden="true"
                   className={cn(
-                    'h-1 rounded-full flex-1 transition-all duration-300',
-                    i <= stepIndex ? 'bg-primary' : 'bg-muted/30'
+                    'relative flex-1 px-3 py-1.5 rounded-full text-[10px] font-semibold text-center transition-colors',
+                    isActive ? 'text-primary-foreground' : isComplete ? 'text-primary' : 'text-muted-foreground/60',
                   )}
-                />
-                <span className={cn(
-                  'text-[9px] font-semibold transition-colors',
-                  i <= stepIndex ? 'text-primary' : 'text-muted-foreground/50'
-                )}>{s.label}</span>
-              </div>
-            ))}
+                >
+                  {isActive && (
+                    <motion.span
+                      layoutId="onboarding-step-pill"
+                      initial={false}
+                      transition={
+                        reduceMotion
+                          ? { duration: 0 }
+                          : { type: 'spring', stiffness: 500, damping: 38, mass: 0.8 }
+                      }
+                      className="absolute inset-0 rounded-full bg-primary/90 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.2),0_4px_16px_hsl(var(--primary)/0.35)]"
+                    />
+                  )}
+                  <span className="relative">{s.label}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -301,24 +339,24 @@ const ClubSelection = () => {
                             type="button"
                             onClick={() => handleNationalitySelect(nation.name)}
                             className={cn(
-                              'relative overflow-hidden rounded-xl border cursor-pointer w-full text-left',
-                              'active:scale-[0.97] transition-all duration-200 p-3',
-                              'bg-card/40 backdrop-blur-xl',
+                              LIQUID_ROW_CLASS,
+                              'cursor-pointer w-full text-left active:scale-[0.97] p-3',
                               isSelected
-                                ? 'ring-2 ring-primary border-primary/30 bg-primary/5'
-                                : 'border-border/30 hover:border-border/60'
+                                ? 'ring-2 ring-primary bg-primary/10 shadow-[0_0_24px_-4px_hsl(var(--primary)/0.45)]'
+                                : 'hover:border-white/20',
                             )}
                           >
-                            <div className="flex items-center gap-3">
+                            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
+                            <div className="relative flex items-center gap-3">
                               <FlagIcon nationality={nation.name} size={16} />
                               <div className="flex-1 min-w-0">
                                 <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
                                 <div className="flex items-center gap-2 mt-0.5">
-                                  <span className="text-[10px] font-medium text-muted-foreground bg-white/5 rounded px-1.5 py-0.5">
+                                  <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] font-medium text-muted-foreground px-2 py-0.5')}>
                                     #{nation.baseRanking} FIFA
                                   </span>
                                   {nation.baseRanking <= 10 && (
-                                    <span className="text-[10px] font-medium text-primary bg-primary/10 rounded px-1.5 py-0.5">
+                                    <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] font-medium text-primary px-2 py-0.5 bg-primary/15 border-primary/30')}>
                                       Top 10
                                     </span>
                                   )}
@@ -326,7 +364,7 @@ const ClubSelection = () => {
                               </div>
                             </div>
                             {stars.length > 0 && (
-                              <div className="flex items-center gap-3 mt-2.5 pt-2 border-t border-border/20">
+                              <div className="relative flex items-center gap-3 mt-2.5 pt-2 border-t border-white/10">
                                 {stars.map((player) => (
                                   <div key={player.name} className="flex-1 min-w-0">
                                     <p className="text-[11px] text-foreground/80 font-medium truncate">{player.name}</p>
@@ -407,23 +445,26 @@ const ClubSelection = () => {
               transition={{ duration: 0.25 }}
               className="space-y-3"
             >
-              {/* League info summary */}
+              {/* League info summary — liquid-glass surface with floating badges */}
               {leagueInfo && (
-                <GlassPanel className="p-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                <GlassPanel className="relative overflow-hidden p-4 rounded-2xl border-white/15 bg-white/[0.06] backdrop-saturate-150 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.25),0_8px_28px_-12px_rgba(0,0,0,0.55)]">
+                  <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-2/3" style={LIQUID_SPECULAR_STYLE} />
+                  <div className="relative flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
                       <FlagIcon nationality={leagueInfo.country} size={24} className="rounded-sm" />
-                      <div>
-                        <h3 className="text-xs font-semibold text-foreground">{leagueInfo.country}</h3>
+                      <div className="min-w-0">
+                        <h3 className="text-xs font-semibold text-foreground truncate">{leagueInfo.country}</h3>
                         <p className="text-[10px] text-muted-foreground">{leagueInfo.totalWeeks} week season</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-center">
-                        <div className="text-xs font-bold text-primary tabular-nums">{'\u00A3'}{(leagueInfo.prizeMoney / 1_000_000).toFixed(0)}M</div>
-                        <div className="text-[8px] text-muted-foreground">Prize</div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <div className={cn(LIQUID_BADGE_CLASS, 'px-2.5 py-1 flex-col items-center gap-0')}>
+                        <span className="text-xs font-bold text-primary tabular-nums leading-none">{'\u00A3'}{(leagueInfo.prizeMoney / 1_000_000).toFixed(0)}M</span>
+                        <span className="text-[8px] text-muted-foreground/80 leading-tight mt-0.5">Prize</span>
                       </div>
-                      <DifficultyPips difficulty={leagueInfo.difficulty} />
+                      <div className={cn(LIQUID_BADGE_CLASS, 'px-2 py-1')}>
+                        <DifficultyPips difficulty={leagueInfo.difficulty} />
+                      </div>
                     </div>
                   </div>
                 </GlassPanel>
@@ -457,18 +498,18 @@ const ClubSelection = () => {
                         onClick={() => setSelected(club.id)}
                         aria-pressed={isSelected}
                         className={cn(
-                          'relative w-full text-left rounded-xl border transition-all duration-200',
-                          'active:scale-[0.98] p-3',
-                          'bg-card/40 backdrop-blur-xl',
+                          LIQUID_ROW_CLASS,
+                          'w-full text-left active:scale-[0.98] p-3',
                           isSelected
-                            ? 'ring-2 ring-primary border-primary/30 bg-primary/5'
-                            : 'border-border/30 hover:border-border/60'
+                            ? 'ring-2 ring-primary bg-primary/10 shadow-[0_0_24px_-4px_hsl(var(--primary)/0.45)]'
+                            : 'hover:border-white/20',
                         )}
                       >
-                        <div className="flex items-center gap-3">
+                        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
+                        <div className="relative flex items-center gap-3">
                           {/* Club badge */}
                           <div
-                            className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center font-bold text-[10px] shadow-md"
+                            className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center font-bold text-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_10px_-2px_rgba(0,0,0,0.5)]"
                             style={{ backgroundColor: club.color, color: club.secondaryColor }}
                           >
                             {club.shortName}
@@ -517,13 +558,14 @@ const ClubSelection = () => {
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             role="dialog"
             aria-label={`${selectedClub.name} details`}
-            className="fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-xl border-t border-border/40 safe-area-bottom"
+            className="fixed bottom-0 left-0 right-0 z-30 bg-card/70 backdrop-blur-2xl backdrop-saturate-150 border-t border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_-12px_40px_-8px_rgba(0,0,0,0.6)] safe-area-bottom"
           >
-            <div className="max-w-lg mx-auto p-4 space-y-3">
+            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
+            <div className="relative max-w-lg mx-auto p-4 space-y-3">
               {/* Club header */}
               <div className="flex items-center gap-3">
                 <div
-                  className="w-11 h-11 rounded-lg flex items-center justify-center text-[10px] font-bold shadow-lg"
+                  className="w-11 h-11 rounded-lg flex items-center justify-center text-[10px] font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_12px_-2px_rgba(0,0,0,0.55)]"
                   style={{ backgroundColor: selectedClub.color, color: selectedClub.secondaryColor }}
                 >
                   {selectedClub.shortName}
@@ -541,31 +583,47 @@ const ClubSelection = () => {
                 </div>
               </div>
 
-              {/* Stats grid */}
+              {/* Stats grid — glass capsules */}
               <div className="grid grid-cols-4 gap-1.5">
-                <div className="bg-muted/20 rounded-lg px-2 py-2 text-center">
-                  <Wallet className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-0.5" />
-                  <div className="text-[11px] font-bold text-foreground tabular-nums">{'\u00A3'}{(selectedClub.budget / 1e6).toFixed(0)}M</div>
-                  <div className="text-[8px] text-muted-foreground">Budget</div>
+                <div className={cn(LIQUID_ROW_CLASS, 'px-2 py-2 text-center')}>
+                  <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
+                  <div className="relative">
+                    <Wallet className="w-3.5 h-3.5 text-emerald-400 mx-auto mb-0.5" />
+                    <div className="text-[11px] font-bold text-foreground tabular-nums">{'\u00A3'}{(selectedClub.budget / 1e6).toFixed(0)}M</div>
+                    <div className="text-[8px] text-muted-foreground">Budget</div>
+                  </div>
                 </div>
-                <div className="bg-muted/20 rounded-lg px-2 py-2 text-center">
-                  <Users className="w-3.5 h-3.5 text-blue-400 mx-auto mb-0.5" />
-                  <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.fanBase}</div>
-                  <div className="text-[8px] text-muted-foreground">Fans</div>
+                <div className={cn(LIQUID_ROW_CLASS, 'px-2 py-2 text-center')}>
+                  <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
+                  <div className="relative">
+                    <Users className="w-3.5 h-3.5 text-blue-400 mx-auto mb-0.5" />
+                    <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.fanBase}</div>
+                    <div className="text-[8px] text-muted-foreground">Fans</div>
+                  </div>
                 </div>
-                <div className="bg-muted/20 rounded-lg px-2 py-2 text-center">
-                  <Building2 className="w-3.5 h-3.5 text-amber-400 mx-auto mb-0.5" />
-                  <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.facilities}</div>
-                  <div className="text-[8px] text-muted-foreground">Facilities</div>
+                <div className={cn(LIQUID_ROW_CLASS, 'px-2 py-2 text-center')}>
+                  <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
+                  <div className="relative">
+                    <Building2 className="w-3.5 h-3.5 text-amber-400 mx-auto mb-0.5" />
+                    <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.facilities}</div>
+                    <div className="text-[8px] text-muted-foreground">Facilities</div>
+                  </div>
                 </div>
-                <div className="bg-muted/20 rounded-lg px-2 py-2 text-center">
-                  <Sprout className="w-3.5 h-3.5 text-purple-400 mx-auto mb-0.5" />
-                  <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.youthRating}</div>
-                  <div className="text-[8px] text-muted-foreground">Youth</div>
+                <div className={cn(LIQUID_ROW_CLASS, 'px-2 py-2 text-center')}>
+                  <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
+                  <div className="relative">
+                    <Sprout className="w-3.5 h-3.5 text-purple-400 mx-auto mb-0.5" />
+                    <div className="text-[11px] font-bold text-foreground tabular-nums">{selectedClub.youthRating}</div>
+                    <div className="text-[8px] text-muted-foreground">Youth</div>
+                  </div>
                 </div>
               </div>
 
-              <Button className="w-full h-11 text-sm font-bold rounded-xl" onClick={handleStart} disabled={loading}>
+              <Button
+                className="w-full h-12 text-sm font-bold rounded-full bg-primary/90 text-primary-foreground border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_10px_28px_-8px_hsl(var(--primary)/0.55)] hover:bg-primary"
+                onClick={handleStart}
+                disabled={loading}
+              >
                 {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Setting up...</> : 'Begin Career'}
               </Button>
             </div>
@@ -587,7 +645,7 @@ function SearchInput({ placeholder, value, onChange }: { placeholder: string; va
         value={value}
         onChange={e => onChange(e.target.value)}
         aria-label={placeholder}
-        className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-card/60 border border-border/40 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+        className="w-full pl-10 pr-10 py-2.5 rounded-full bg-white/[0.04] backdrop-blur-xl backdrop-saturate-150 border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.35)] text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
       />
       {value && (
         <button
@@ -666,16 +724,15 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
         type="button"
         onClick={() => onSelect(league.id)}
         className={cn(
-          'relative overflow-hidden rounded-xl border border-border/30 cursor-pointer w-full text-left',
-          'active:scale-[0.98] transition-all duration-200',
-          'bg-card/40 backdrop-blur-xl',
-          'hover:border-border/60 p-3',
-          isLowerTier && 'bg-card/30 opacity-90'
+          LIQUID_ROW_CLASS,
+          'cursor-pointer w-full text-left active:scale-[0.98] hover:border-white/20 p-3',
+          isLowerTier && 'bg-white/[0.025] opacity-90',
         )}
       >
-        <div className="flex items-center gap-3">
+        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
+        <div className="relative flex items-center gap-3">
           {isLowerTier ? (
-            <span className="text-[10px] font-semibold text-muted-foreground bg-muted/30 rounded px-1.5 py-0.5 min-w-[28px] text-center shrink-0 tabular-nums">T{league.tier}</span>
+            <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] font-semibold text-muted-foreground px-2 py-0.5 min-w-[32px] justify-center shrink-0 tabular-nums')}>T{league.tier}</span>
           ) : (
             <FlagIcon nationality={league.country} size={28} className="rounded-sm" />
           )}
@@ -684,10 +741,10 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
               {league.name}
             </h2>
             <div className="flex items-center gap-2 mt-1">
-              <span className="text-[10px] text-muted-foreground/60 bg-white/5 rounded px-1.5 py-0.5">
+              <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] text-muted-foreground/70 px-2 py-0.5')}>
                 {clubCount} clubs
               </span>
-              <span className="text-[10px] text-muted-foreground/60 bg-white/5 rounded px-1.5 py-0.5">
+              <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] text-muted-foreground/70 px-2 py-0.5 tabular-nums')}>
                 {'\u00A3'}{(league.prizeMoney / 1_000_000).toFixed(league.prizeMoney >= 1_000_000 ? 0 : 1)}M
               </span>
             </div>
