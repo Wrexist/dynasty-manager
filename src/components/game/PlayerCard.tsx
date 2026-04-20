@@ -6,6 +6,7 @@ import { Link, TrendingUp, TrendingDown } from 'lucide-react';
 import type { Player } from '@/types/game';
 import { TierBorderFrame } from './TierBorderFrame';
 import { FlagIcon } from './FlagIcon';
+import { CardArtBackground } from './CardArtBackground';
 
 const HOT_FORM_MIN = 70;
 const COLD_FORM_MAX = 35;
@@ -13,11 +14,9 @@ const COLD_FORM_MAX = 35;
 interface PlayerCardProps {
   player: Player;
   position: string;
-  variant: 'starter' | 'bench';
   isSelected: boolean;
   chemistryLinkCount: number;
   compatRing?: 'natural' | 'compatible' | 'wrong' | null;
-  isBestSub?: boolean;
   week?: number;
   clubColor?: string;
   onClick: () => void;
@@ -44,11 +43,9 @@ function getStatusLabel(player: Player, week?: number): string | null {
 export const PlayerCard = memo(function PlayerCard({
   player,
   position,
-  variant,
   isSelected,
   chemistryLinkCount,
   compatRing,
-  isBestSub,
   week,
   clubColor,
   onClick,
@@ -70,8 +67,7 @@ export const PlayerCard = memo(function PlayerCard({
           : null
       : null;
 
-  const showChemistry = variant === 'starter' && chemistryLinkCount > 0;
-  const showBestSub = variant === 'bench' && !!isBestSub;
+  const showChemistry = chemistryLinkCount > 0;
 
   return (
     <div
@@ -81,7 +77,6 @@ export const PlayerCard = memo(function PlayerCard({
         'transition-transform duration-150',
         isSelected && 'scale-[1.08]',
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
-        !isSelected && showBestSub && 'shadow-[0_0_8px_hsl(var(--primary)/0.35)]',
         player.injured && 'opacity-60',
       )}
     >
@@ -103,19 +98,21 @@ export const PlayerCard = memo(function PlayerCard({
         paddingClass="p-[1.5px]"
         className="w-full h-full"
         innerClassName={cn(
-          'w-full h-full flex flex-col px-1 py-0.5 gap-px',
-          'bg-gradient-to-b from-black/85 to-black/65 backdrop-blur-sm',
+          'w-full h-full relative',
           clubColor && 'border-l-[2px]',
         )}
         style={clubColor ? { borderLeftColor: clubColor } : undefined}
       >
+        <CardArtBackground overall={player.overall} overlayStrength={0.75} />
+
+        <div className="relative w-full h-full flex flex-col px-1 py-0.5 gap-px">
         {/* Row A: rating + flag + position (all plain text, no pill) */}
         <div className="flex items-center justify-between gap-px w-full min-w-0 leading-none">
-          <span className={cn('text-[13px] font-black font-display tabular-nums leading-none shrink-0', tier.textClass)}>
+          <span className={cn('text-[13px] font-black font-display tabular-nums leading-none shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]', tier.textClass)}>
             {player.overall}
           </span>
           <FlagIcon nationality={player.nationality} size={9} className="rounded-[1px] shrink-0" />
-          <span className="text-[6px] font-bold uppercase tracking-wider text-white/70 leading-none shrink-0 tabular-nums">
+          <span className="text-[6px] font-bold uppercase tracking-wider text-white/85 leading-none shrink-0 tabular-nums drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
             {position}
           </span>
         </div>
@@ -125,7 +122,7 @@ export const PlayerCard = memo(function PlayerCard({
           <span
             className={cn(
               nameFontSizeClass,
-              'block font-bold text-white/95 uppercase tracking-wide truncate whitespace-nowrap w-full text-center',
+              'block font-bold text-white uppercase tracking-wide truncate whitespace-nowrap w-full text-center drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]',
             )}
             title={fullName}
             aria-label={fullName}
@@ -147,18 +144,16 @@ export const PlayerCard = memo(function PlayerCard({
               {chemDisplay}
             </span>
           )}
-          {showBestSub && (
-            <TrendingUp className="w-[7px] h-[7px] text-primary shrink-0" aria-label="Suggested sub" />
-          )}
         </div>
 
         {/* Row D: fitness bar */}
-        <div className="w-full h-[3px] rounded-b-[5.5px] bg-white/10 overflow-hidden">
+        <div className="w-full h-[3px] rounded-b-[5.5px] bg-black/50 overflow-hidden">
           <div
             className="h-full transition-all"
             style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
             aria-label={`Fitness ${player.fitness}%`}
           />
+        </div>
         </div>
       </TierBorderFrame>
     </div>

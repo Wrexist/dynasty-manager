@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { Player } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { CardArtBackground } from '@/components/game/CardArtBackground';
 import { cn } from '@/lib/utils';
 import { tierForOvr, tierGradient } from './packHelpers';
 import { PACK_ANIM } from '@/config/packs';
@@ -106,7 +107,8 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
           )}
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: tierGradient(tier) }}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/50" />
+          <CardArtBackground overall={player.overall} eager overlayStrength={0.55} />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/40 pointer-events-none" />
           <div className="relative h-full flex flex-col px-3 py-2.5 text-white">
             {/* Quick-release × (summary only) */}
             {revealed && onDismiss && (

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, useMotionValue, useTransform, animate, useReducedMotion } from 'framer-motion';
 import type { Player } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { CardArtBackground } from '@/components/game/CardArtBackground';
 import { PACK_ANIM, LEGENDARY_OVR_THRESHOLD } from '@/config/packs';
 import { tierForOvr, tierGradient } from './packHelpers';
 import { PackConfetti } from './PackConfetti';
@@ -209,7 +210,8 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
             className="relative w-full h-full rounded-2xl overflow-hidden border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
             style={{ background: tierGradient(tier) }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/55 pointer-events-none" />
+            <CardArtBackground overall={player.overall} eager overlayStrength={0.45} />
+            <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/45 pointer-events-none" />
             <div className="absolute inset-[6px] rounded-[10px] border border-white/20 pointer-events-none" />
 
             {/* Static diagonal gloss */}

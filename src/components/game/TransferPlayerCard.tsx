@@ -6,6 +6,7 @@ import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
+import { CardArtBackground } from '@/components/game/CardArtBackground';
 
 interface TransferPlayerCardProps {
   player: Player;
@@ -31,8 +32,12 @@ export function TransferPlayerCard({
   const top3 = useMemo(() => getTop3Attributes(player.attributes), [player.attributes]);
 
   const card = (
-    <GlassPanel className="p-4">
-      <div className="flex items-start gap-3">
+    <GlassPanel className="relative overflow-hidden p-4 pl-5">
+      {/* Thin tier-art accent rail on the left edge */}
+      <div className="absolute left-0 top-0 bottom-0 w-[6px] overflow-hidden pointer-events-none">
+        <CardArtBackground overall={player.overall} variant="top-strip" overlayStrength={0.25} />
+      </div>
+      <div className="relative flex items-start gap-3">
         <PlayerRatingBadge overall={player.overall} size="lg" shape="circle" />
         <div className="flex-1 min-w-0">
           <button
@@ -62,7 +67,7 @@ export function TransferPlayerCard({
         </div>
         <div className="text-right shrink-0">{rightContent}</div>
       </div>
-      <div className="flex gap-2 mt-3">{actions}</div>
+      <div className="relative flex gap-2 mt-3">{actions}</div>
     </GlassPanel>
   );
 
