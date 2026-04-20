@@ -148,3 +148,21 @@ export function useCareerUnemployed(): boolean {
 export function useUnreadCount(): number {
   return useGameStore(s => s.messages.filter(m => !m.read).length);
 }
+
+/** Squad-wide average morale for a club (defaults to the player's club).
+ *  Uses 50 as the per-player fallback when a morale value is missing — that
+ *  matches the default generated morale in `src/utils/playerGen.ts`, so
+ *  rehydrated saves and freshly generated squads read the same at rest.
+ *  Returns 50 when the squad is empty (no players = no signal, so neutral). */
+export function useSquadAverageMorale(clubId?: string): number {
+  return useGameStore(s => {
+    const id = clubId ?? s.playerClubId;
+    const club = s.clubs[id];
+    if (!club) return 50;
+    const ids = club.playerIds;
+    if (ids.length === 0) return 50;
+    let sum = 0;
+    for (const pid of ids) sum += s.players[pid]?.morale ?? 50;
+    return Math.round(sum / ids.length);
+  });
+}

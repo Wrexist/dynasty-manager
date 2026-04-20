@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { getSuffix, resolveClub } from '@/utils/helpers';
 import { getConfidenceColor, getFanConfidenceColor, getFanConfidence } from '@/utils/uiHelpers';
-import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch } from '@/hooks/useGameSelectors';
+import { usePlayerClub, useLeaguePosition, useCurrentMatch, useUnreadCount, findTournamentMatch, useSquadAverageMorale } from '@/hooks/useGameSelectors';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PressConference } from '@/components/game/PressConference';
 import { WelcomeOverlay } from '@/components/game/WelcomeOverlay';
@@ -284,8 +284,7 @@ const Dashboard = () => {
 
   const entry = useMemo(() => leagueTable.find(e => e.clubId === playerClubId), [leagueTable, playerClubId]);
 
-  const avgMorale = useMemo(() => club && club.playerIds.length > 0
-    ? Math.round(club.playerIds.reduce((s, id) => s + (players[id]?.morale || 0), 0) / club.playerIds.length) : 0, [club, players]);
+  const avgMorale = useSquadAverageMorale();
 
   const pendingOffers = incomingOffers.length;
 

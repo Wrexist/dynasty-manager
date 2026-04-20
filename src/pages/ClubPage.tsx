@@ -7,6 +7,7 @@ import { getConfidenceColor, getFanConfidenceColor } from '@/utils/uiHelpers';
 import { getWeeklyIncome, getNetWeeklyIncome } from '@/utils/financeHelpers';
 import { FAN_MOOD_HIGH_THRESHOLD, FAN_MOOD_MID_THRESHOLD } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
+import { useSquadAverageMorale } from '@/hooks/useGameSelectors';
 
 const ClubPage = () => {
   const { playerClubId, clubs, players, season, boardConfidence, boardObjectives, fanMood } = useGameStore(useShallow(s => ({
@@ -19,13 +20,15 @@ const ClubPage = () => {
     fanMood: s.fanMood,
   })));
   const setScreen = useGameStore(s => s.setScreen);
+  // Hook must run unconditionally (Rules of Hooks). The selector itself
+  // returns the neutral 50 when the club is missing.
+  const avgMorale = useSquadAverageMorale();
   const club = clubs[playerClubId];
   if (!club) return null;
 
   const squad = club.playerIds.map(id => players[id]).filter(Boolean);
   const avgAge = squad.length > 0 ? (squad.reduce((s, p) => s + p.age, 0) / squad.length).toFixed(1) : '0';
   const avgOvr = squad.length > 0 ? Math.round(squad.reduce((s, p) => s + p.overall, 0) / squad.length) : 0;
-  const avgMorale = squad.length > 0 ? Math.round(squad.reduce((s, p) => s + (p.morale ?? 50), 0) / squad.length) : 50;
   const injuries = squad.filter(p => p.injured).length;
   const weeklyIncome = getWeeklyIncome(club);
   const netWeekly = getNetWeeklyIncome(club);

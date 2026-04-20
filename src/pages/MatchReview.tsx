@@ -103,6 +103,26 @@ const MatchReview = () => {
     goals: allHighlights.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type) || e.type === 'goalkeeper_error').length,
   }), [allHighlights, playerClubId]);
 
+  // Single-pass partition over match.events, memoized on the events array.
+  // Replaces three sequential .filter() calls that re-walked events on every
+  // render — match.events can hold 60+ items for a full-time review. Must be
+  // called unconditionally (Rules of Hooks) — the early returns below guard
+  // the render path, not the data derivation.
+  const matchEventsForReview = currentMatchResult?.events ?? [];
+  const { goals, injuries, cards } = useMemo(() => {
+    const g: MatchEvent[] = [];
+    const inj: MatchEvent[] = [];
+    const c: MatchEvent[] = [];
+    const goalTypes = GOAL_SCORING_TYPES as readonly string[];
+    for (const e of matchEventsForReview) {
+      if (goalTypes.includes(e.type)) g.push(e);
+      else if (e.type === 'injury') inj.push(e);
+      else if (e.type === 'yellow_card' || e.type === 'red_card') c.push(e);
+    }
+    g.sort((a, b) => a.minute - b.minute);
+    return { goals: g, injuries: inj, cards: c };
+  }, [matchEventsForReview]);
+
   if (!currentMatchResult) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">
@@ -139,10 +159,7 @@ const MatchReview = () => {
   const lost = !won && !drew;
   const xpDoubleClaimContext = `match_w${week}_${match.homeClubId}_${match.awayClubId}_${match.homeGoals}-${match.awayGoals}_${lastMatchCompetition || 'league'}`;
 
-  // Goals
-  const goals = match.events.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type)).sort((a, b) => a.minute - b.minute);
-  const injuries = match.events.filter(e => e.type === 'injury');
-  const cards = match.events.filter(e => e.type === 'yellow_card' || e.type === 'red_card');
+  // goals/injuries/cards are memoized above the early-return guard.
 
   // Historical review = match from a past week (e.g. opened from inbox)
   const isHistoricalReview = match.week !== week;
