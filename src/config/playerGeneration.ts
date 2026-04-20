@@ -85,10 +85,11 @@ export const AGE_BUCKETS: { min: number; max: number; count: number }[] = [
 ];
 
 // At game start, clubs are seeded with their real-world template rosters.
-// Any positions still missing from SQUAD_TEMPLATE are filled with at most this
-// many procedurally generated players so squads stay lean and the world grows
-// organically through weekly mechanics (signings, youth intake, free agents).
-export const INITIAL_FILLER_MAX = 3;
+// If a club has fewer than INITIAL_SQUAD_MIN_TARGET players from templates,
+// we top it up with procedurally generated filler so every squad is playable
+// (11 starters + bench depth). Clubs already at or above the target get no
+// extra filler — the world still grows organically via weekly mechanics.
+export const INITIAL_SQUAD_MIN_TARGET = 16;
 
 // ── Star/Veteran Generation ──
 export const STAR_PLAYER_BOOST_MIN = 8;

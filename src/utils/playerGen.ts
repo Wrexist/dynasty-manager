@@ -9,7 +9,7 @@ import {
   CONTRACT_BASE_YEARS, CONTRACT_RANDOM_YEARS,
   FITNESS_BASE, FITNESS_RANGE, MORALE_BASE, MORALE_RANGE, FORM_BASE, FORM_RANGE,
   SQUAD_TEMPLATE as CONFIG_SQUAD_TEMPLATE, AGE_BUCKETS as CONFIG_AGE_BUCKETS, PEAK_AGE_BUCKET,
-  INITIAL_FILLER_MAX,
+  INITIAL_SQUAD_MIN_TARGET,
   SQUAD_QUALITY_VARIANCE, SQUAD_QUALITY_MIN, SQUAD_QUALITY_MAX,
   QUALITY_SCALING_REFERENCE, QUALITY_SCALING_FLOOR, SQUAD_QUALITY_MIN_LOW, VETERAN_MENTAL_BONUS,
   YOUNG_POTENTIAL_BOOST_BASE, YOUNG_POTENTIAL_BOOST_RANGE, YOUNG_POTENTIAL_AGE_THRESHOLD,
@@ -21,6 +21,7 @@ import {
 } from '@/config/playerGeneration';
 import { NATIONALITY_NAME_POOLS, FALLBACK_FIRST_NAMES, FALLBACK_LAST_NAMES } from '@/config/namePool';
 import { CLUB_TEMPLATES, type PlayerTemplate } from '@/data/playerTemplates';
+import { resolveSquadKey } from '@/data/clubTemplateAliases';
 
 const ALL_NATIONALITIES = [
   'England', 'Spain', 'France', 'Germany', 'Italy', 'Brazil', 'Argentina', 'Portugal',
@@ -218,7 +219,7 @@ export function buildPlayerFromTemplate(
 
 export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number | string, isInitialSeason: boolean = false): Player[] {
   const scale = qualityScale(quality);
-  const templates = CLUB_TEMPLATES[clubId] || [];
+  const templates = CLUB_TEMPLATES[resolveSquadKey(clubId)] || [];
   const templatePlayers: Player[] = templates.map(t => buildPlayerFromTemplate(t, clubId, season));
 
   // ── Step 2: Determine remaining positions to fill ──
@@ -236,11 +237,13 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     }
   }
 
-  // At game start, keep squads lean — only cover critical gaps (GK first, by
-  // SQUAD_TEMPLATE order) and let the world grow via weekly signings, youth
-  // intake, and free agents. Age-bucket over-fill is skipped in this mode.
+  // At game start, only top up clubs that are below a minimum playable size
+  // (so every club can field a starting XI + bench). Clubs with rich template
+  // coverage get no extra filler — the world still grows via weekly signings,
+  // youth intake, and free agents. Filler slots are taken in SQUAD_TEMPLATE
+  // order, so critical positions (GK first) are covered before depth roles.
   const fillerPositions = isInitialSeason
-    ? remainingPositions.slice(0, INITIAL_FILLER_MAX)
+    ? remainingPositions.slice(0, Math.max(0, INITIAL_SQUAD_MIN_TARGET - templatePlayers.length))
     : remainingPositions;
 
   // ── Step 3: Generate random filler players for remaining slots ──
