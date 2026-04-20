@@ -76,8 +76,7 @@ export function getPlayerCardArt(overall: number | null | undefined): PlayerCard
   if (overall == null || !Number.isFinite(overall)) {
     return { src: '/player-cards/bronze.webp', filter: 'grayscale(1) brightness(0.55)' };
   }
-  if (overall >= 94) return { src: '/player-cards/icon.webp' };
-  if (overall >= 90) return { src: '/player-cards/rare.webp' };
+  if (overall >= 90) return { src: '/player-cards/icon.webp' };
   if (overall >= 85) return { src: '/player-cards/premium.webp' };
   if (overall >= 80) return { src: '/player-cards/gold.webp' };
   if (overall >= 70) return { src: '/player-cards/silver.webp' };
