@@ -10,25 +10,9 @@ import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END } from '@/con
 import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
 import { PageHint } from '@/components/game/PageHint';
 import { TOTAL_WEEKS, BOARD_REVIEW_WEEKS } from '@/config/gameBalance';
-import type { CupRound, Match, CupTie, ContinentalTournamentState, SuperCupMatch } from '@/types/game';
+import type { CupRound, Match, CupTie, ContinentalTournamentState, SuperCupMatch, CalendarEntry, CalendarPhaseGroup } from '@/types/game';
 
-interface CalendarEntry {
-  week: number;
-  type: 'league' | 'cup' | 'international' | 'bye';
-  match: Match | null;
-  cupTie: CupTie | null;
-  intlLabel?: string;
-  competitionLabel?: string;
-}
-
-interface PhaseGroup {
-  id: string;
-  label: string;
-  startWeek: number;
-  endWeek: number;
-  entries: CalendarEntry[];
-  phaseSummary: { wins: number; draws: number; losses: number; total: number };
-}
+type PhaseGroup = CalendarPhaseGroup;
 
 const CalendarView = () => {
   const {

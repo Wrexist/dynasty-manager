@@ -2,11 +2,7 @@ import { useState } from 'react';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronDown, ChevronUp, Search, HelpCircle, Route, Rocket, ShieldCheck } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
-
-interface HelpSection {
-  title: string;
-  content: string;
-}
+import type { HelpSection } from '@/types/game';
 
 const HELP_SECTIONS: HelpSection[] = [
   {

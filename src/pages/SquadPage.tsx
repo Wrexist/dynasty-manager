@@ -7,6 +7,7 @@ import { ListForSaleModal } from '@/components/game/ListForSaleModal';
 import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
 import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
+import type { SquadSortKey, SquadStatusFilter } from '@/types/game';
 import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch, AlertTriangle, FileText, Users, LogOut, Smile, Meh, Frown, Repeat2, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, getFitnessColor, posBadgeColor } from '@/utils/uiHelpers';
@@ -18,8 +19,8 @@ import { PageHint } from '@/components/game/PageHint';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { getContractUrgency } from '@/utils/contracts';
 
-type SortKey = 'overall' | 'potential' | 'age' | 'value' | 'fitness' | 'morale' | 'wage' | 'form';
-type StatusFilter = 'injured' | 'listed' | 'expiring' | 'onLoan' | 'youth' | 'starters' | 'bench' | 'unhappy';
+type SortKey = SquadSortKey;
+type StatusFilter = SquadStatusFilter;
 
 const SORT_OPTIONS: SortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
 

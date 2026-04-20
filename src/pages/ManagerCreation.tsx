@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, ArrowRight, Check, Loader2, Search, User, Globe, Sparkles, Briefcase, Star, TrendingUp, Building2, Trophy, Users, MapPin, HandCoins, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import type { ManagerTraitId, ManagerAppearance, JobOffer } from '@/types/game';
+import type { ManagerTraitId, ManagerAppearance, JobOffer, ManagerCreationStep } from '@/types/game';
 import { ManagerTraitPicker } from '@/components/game/ManagerTraitPicker';
 import { ManagerStatBar } from '@/components/game/ManagerStatBar';
 import { ManagerAvatar } from '@/components/game/ManagerAvatar';
@@ -18,7 +18,7 @@ import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROU
 import { CLUBS_DATA } from '@/data/league';
 import { toast } from 'sonner';
 
-type Step = 'name' | 'nationality' | 'age' | 'traits' | 'offers';
+type Step = ManagerCreationStep;
 
 const STEPS: Step[] = ['name', 'nationality', 'age', 'traits', 'offers'];
 

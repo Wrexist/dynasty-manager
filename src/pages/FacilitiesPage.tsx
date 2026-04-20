@@ -11,9 +11,7 @@ import { FACILITY_COST_PER_LEVEL, FACILITY_BASE_UPGRADE_WEEKS, FACILITY_MAX_LEVE
 import { PageHint } from '@/components/game/PageHint';
 import { STAND_INFO, getEffectiveStadiumLevel, getStadiumCapacity } from '@/utils/facilities';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { StandKey } from '@/types/game';
-
-type FacilityTab = 'stadium' | 'facilities';
+import type { StandKey, FacilityTab } from '@/types/game';
 
 const FACILITY_INFO = [
   { type: 'training' as const, label: 'Training Ground', icon: Dumbbell, color: 'text-emerald-400', key: 'trainingLevel' as const, benefit: 'Better training gains for all players' },

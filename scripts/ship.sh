@@ -41,7 +41,19 @@ if [ -n "$(git status --porcelain)" ]; then
     [ -z "$MSG" ] && fail "No commit message — aborting"
   fi
   info "Staging and committing..."
-  git add -A
+  # Stage tracked changes only. Untracked files must be added explicitly by the
+  # developer beforehand — prevents accidental commits of .env, credentials,
+  # build artifacts, or scratch files. Listing them for visibility.
+  UNTRACKED=$(git ls-files --others --exclude-standard)
+  if [ -n "$UNTRACKED" ]; then
+    warn "Untracked files (NOT being committed — add explicitly if wanted):"
+    echo "$UNTRACKED" | sed 's/^/  /'
+    echo ""
+  fi
+  git add -u
+  if [ -z "$(git diff --cached --name-only)" ]; then
+    fail "Nothing staged — all changes are untracked. Run 'git add <file>' on the files you want to commit and re-run."
+  fi
   git commit -m "$MSG"
   ok "Committed: $MSG"
 else

@@ -2,8 +2,35 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 58', () => {
-    expect(CURRENT_VERSION).toBe(58);
+  it('should have current version set to 59', () => {
+    expect(CURRENT_VERSION).toBe(59);
+  });
+
+  it('v58 → v59 normalizes halfTimeState.usedCommentaryLines to an array', () => {
+    // A Set<string> written via JSON.stringify serialized to `{}`. The new
+    // schema is a plain string[]; legacy saves must self-heal on load.
+    const v58LegacySet: Record<string, unknown> = {
+      version: 58,
+      halfTimeState: { usedCommentaryLines: {} },
+    };
+    const healed = migrateSaveData(v58LegacySet) as Record<string, unknown>;
+    const half = healed.halfTimeState as { usedCommentaryLines: unknown };
+    expect(Array.isArray(half.usedCommentaryLines)).toBe(true);
+    expect((half.usedCommentaryLines as unknown[]).length).toBe(0);
+
+    // A save that already uses string[] passes through intact.
+    const v58AlreadyArray: Record<string, unknown> = {
+      version: 58,
+      halfTimeState: { usedCommentaryLines: ['pressure on the ball!'] },
+    };
+    const passthru = migrateSaveData(v58AlreadyArray) as Record<string, unknown>;
+    const passHalf = passthru.halfTimeState as { usedCommentaryLines: unknown };
+    expect(passHalf.usedCommentaryLines).toEqual(['pressure on the ball!']);
+
+    // A save with no halfTimeState (no match in flight) skips normalization.
+    const v58NoMatch: Record<string, unknown> = { version: 58 };
+    const skipped = migrateSaveData(v58NoMatch) as Record<string, unknown>;
+    expect(skipped.halfTimeState).toBeUndefined();
   });
 
   it('should migrate v1 data to current version', () => {

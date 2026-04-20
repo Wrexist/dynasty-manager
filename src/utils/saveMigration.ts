@@ -9,7 +9,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 58;
+const CURRENT_VERSION = 59;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -856,6 +856,21 @@ const migrations: Record<number, MigrationFn> = {
           subs: result.subs.map(p => p.id),
         },
       },
+    };
+  },
+
+  // v58 → v59: HalfState.usedCommentaryLines changed from Set<string> to string[].
+  // Pre-v59 saves persisted `{}` (Sets don't survive JSON.stringify), which
+  // breaks `.includes()` after reload. Normalize any shape to a plain array.
+  58: (data) => {
+    const half = data.halfTimeState as { usedCommentaryLines?: unknown } | null | undefined;
+    if (!half) return { ...data, version: 59 };
+    const raw = half.usedCommentaryLines;
+    const normalized = Array.isArray(raw) ? raw : [];
+    return {
+      ...data,
+      version: 59,
+      halfTimeState: { ...half, usedCommentaryLines: normalized },
     };
   },
 };

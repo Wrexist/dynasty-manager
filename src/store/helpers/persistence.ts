@@ -110,6 +110,35 @@ export function clearFlagsByPrefix(prefix: string): void {
   catch { /* storage unavailable */ }
 }
 
+/** Read a JSON value from sessionStorage. Session storage is tab-scoped and
+ *  cleared on tab close — used for ephemeral draft state (e.g. mid-onboarding
+ *  progress) that should survive a refresh but not be persisted to save slots.
+ *  Returns null on any failure (unavailable / parse error / SSR). */
+export function readSessionJson<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
+}
+
+/** Write a JSON value to sessionStorage. Swallows quota/availability errors. */
+export function writeSessionJson(key: string, value: unknown): void {
+  if (typeof window === 'undefined') return;
+  try { sessionStorage.setItem(key, JSON.stringify(value)); }
+  catch { /* storage unavailable / quota exceeded — non-fatal */ }
+}
+
+/** Remove a key from sessionStorage. Swallows availability errors. */
+export function removeSessionKey(key: string): void {
+  if (typeof window === 'undefined') return;
+  try { sessionStorage.removeItem(key); }
+  catch { /* noop */ }
+}
+
 // ── Session Snapshot (for "Welcome back" recap) ──
 
 export interface SessionSnapshot {

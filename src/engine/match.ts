@@ -109,8 +109,9 @@ export interface HalfState {
   playerFitness: Record<string, number>;
   /** Tactical insights generated during the half */
   tacticalInsights: string[];
-  /** Tracks which gap-filler commentary templates have been used this match (avoids repetition) */
-  usedCommentaryLines: Set<string>;
+  /** Tracks which gap-filler commentary templates have been used this match (avoids repetition).
+   *  Plain array (not Set) so JSON.stringify in saveGame survives a mid-match save. */
+  usedCommentaryLines: string[];
 }
 
 /** Formation fit bonus: 0.0 to ~0.12 — mismatched players are a real penalty */
@@ -516,7 +517,7 @@ export function simulateHalf(
       awaySubbedIn: prevState?.awaySubbedIn ? [...prevState.awaySubbedIn] : [],
       playerFitness: { ...(prevState?.playerFitness ?? {}) },
       tacticalInsights: [...(prevState?.tacticalInsights ?? [])],
-      usedCommentaryLines: prevState?.usedCommentaryLines ?? new Set(),
+      usedCommentaryLines: prevState?.usedCommentaryLines ? [...prevState.usedCommentaryLines] : [],
     };
   }
 
@@ -553,7 +554,10 @@ export function simulateHalf(
   // Generate tactical insights for the player's team
   const tacticalInsights: string[] = prevState?.tacticalInsights ? [...prevState.tacticalInsights] : [];
   // Match-local commentary freshness tracking (carried between halves, fresh per match)
-  const usedLines: Set<string> = prevState?.usedCommentaryLines ?? new Set();
+  // Rehydrate from array — an old save may have persisted {} from a previous Set, guard with Array check.
+  const usedLines: string[] = Array.isArray(prevState?.usedCommentaryLines)
+    ? [...prevState!.usedCommentaryLines]
+    : [];
   if (!prevState && playerClubId) {
     const playerIsHome = playerClubId === homeClub.id;
     const myTactics = playerIsHome ? homeTactics : awayTactics;

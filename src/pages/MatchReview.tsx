@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { isPro } from '@/utils/monetization';
 import { GOAL_SCORING_TYPES, GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { INJURY_TYPES } from '@/config/gameBalance';
-import type { MatchEvent } from '@/types/game';
+import type { MatchEvent, HighlightTone } from '@/types/game';
 
 // ── Key Highlights display maps (kept near the component to stay readable) ──
 const HIGHLIGHT_TYPES: readonly MatchEvent['type'][] = [
@@ -19,7 +19,6 @@ const HIGHLIGHT_TYPES: readonly MatchEvent['type'][] = [
   'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal',
   'solo_goal', 'goalkeeper_error', 'var_check', 'var_disallowed', 'substitution',
 ];
-type HighlightTone = 'goal' | 'card' | 'var' | 'disallowed' | 'neutral' | 'own-goal' | 'sub';
 const HIGHLIGHT_TONE: Partial<Record<MatchEvent['type'], HighlightTone>> = {
   goal: 'goal', penalty_scored: 'goal', free_kick_goal: 'goal', long_range_goal: 'goal',
   counter_attack_goal: 'goal', header_goal: 'goal', solo_goal: 'goal', goalkeeper_error: 'goal',

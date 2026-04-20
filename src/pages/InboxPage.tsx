@@ -5,6 +5,7 @@ import { Mail, MailOpen, CheckCheck, Trophy, Stethoscope, ArrowLeftRight, Trendi
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Message, GameScreen } from '@/types/game';
+import type { MessageColorScheme } from '@/types/game';
 import { TRANSFER_TALK_RETRY_WEEKS } from '@/config/personality';
 import { STORYLINE_CHAINS } from '@/data/storylineChains';
 import { PageHint } from '@/components/game/PageHint';
@@ -22,13 +23,6 @@ const typeIcon: Record<Message['type'], React.ElementType> = {
   national_team: Globe,
   warning: AlertTriangle,
 };
-
-interface MessageColorScheme {
-  iconBg: string;
-  iconText: string;
-  border: string;
-  dot: string;
-}
 
 const typeColors: Record<Message['type'], MessageColorScheme> = {
   injury:        { iconBg: 'bg-red-500/20',     iconText: 'text-red-400',     border: 'border-red-500/30',     dot: 'bg-red-500' },
