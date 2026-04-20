@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useModalEscape } from '@/hooks/useModalEscape';
 import { useGameStore } from '@/store/gameStore';
 import { getActiveCosmetic } from '@/utils/monetization';
 import { COSMETIC_ITEMS } from '@/config/monetization';
@@ -71,6 +72,7 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
   const confettiId = getActiveCosmetic(monetization, 'confetti_style');
   const confettiConfig = CONFETTI_STYLES[confettiId || 'default'] || CONFETTI_STYLES.default;
   useScrollLock(open);
+  useModalEscape(open, onClose);
 
   return (
     <AnimatePresence>

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useModalEscape } from '@/hooks/useModalEscape';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { cn } from '@/lib/utils';
@@ -36,6 +37,9 @@ export function TransferApproach({ playerId, onClose }: Props) {
   const top3 = useMemo(() => player ? getTop3Attributes(player.attributes) : [], [player]);
 
   useScrollLock(mode === 'choose');
+  // Only active in 'choose' mode — in 'transfer' / 'loan' modes the child
+  // component (TransferNegotiation / LoanNegotiation) owns its own Escape.
+  useModalEscape(mode === 'choose', onClose);
 
   if (!player || !club) return null;
 

@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Player } from '@/types/game';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getFitnessColor } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useModalEscape } from '@/hooks/useModalEscape';
 import { Check, ChevronDown, HeartPulse, Sparkles, X } from 'lucide-react';
 import {
   PENALTY_TAKER_SHOOTING_WEIGHT, PENALTY_TAKER_MENTAL_WEIGHT,
@@ -91,14 +92,7 @@ export function PlayerSelect({ players, selectedId, onChange, placeholder, sortM
     });
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') handleClose();
-    };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [open, handleClose]);
+  useModalEscape(open, handleClose);
 
   return (
     <>

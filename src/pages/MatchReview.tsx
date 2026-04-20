@@ -53,7 +53,7 @@ const stripVarPrefix = (text: string): string => text.replace(/^VAR CHECK\s*—\
 const EMPTY_EVENTS: MatchEvent[] = [];
 import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
-import { getConfidenceColor, getMatchRatingColor, areColorsSimilar, getRatingHex } from '@/utils/uiHelpers';
+import { getConfidenceColor, getMatchRatingColor, areColorsSimilar, getRatingHex, UI_ACCENT_DANGER_HEX, UI_ACCENT_WARNING_HEX } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { generateMatchInsights } from '@/utils/matchInsights';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
@@ -286,9 +286,9 @@ const MatchReview = () => {
 
         const renderPlayerPill = (p: Player, variant: 'scorer' | 'gk' | 'own-goal') => {
           const accentColor = variant === 'gk'
-            ? '#f87171'
+            ? UI_ACCENT_DANGER_HEX
             : variant === 'own-goal'
-              ? '#f59e0b'
+              ? UI_ACCENT_WARNING_HEX
               : getRatingHex(p.overall);
           return (
             <button

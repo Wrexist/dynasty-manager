@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useModalEscape } from '@/hooks/useModalEscape';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -53,6 +54,9 @@ export function LoanNegotiation({ playerId, onClose }: Props) {
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
 
   useScrollLock();
+  // Phase-gate Escape to mirror backdrop click: only dismissible from
+  // 'negotiate' (not while AI is thinking or showing result).
+  useModalEscape(true, onClose, phase === 'negotiate');
 
   const evaluation = useMemo(() => evaluateLoanRequest(playerId, duration, wageSplit), [playerId, duration, wageSplit, evaluateLoanRequest]);
 

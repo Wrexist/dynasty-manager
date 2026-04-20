@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useModalEscape } from '@/hooks/useModalEscape';
 import { cn } from '@/lib/utils';
 import type { Achievement } from '@/utils/achievements';
 import { getTierColor, getTierBgColor, getAchievementXP } from '@/utils/achievements';
@@ -48,6 +49,7 @@ function Sparkle({ index: _index }: { index: number }) {
 
 export function AchievementUnlockModal({ open, onClose, achievement }: AchievementUnlockModalProps) {
   useScrollLock(open);
+  useModalEscape(open, onClose);
 
   if (!achievement) return null;
 

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useModalEscape } from '@/hooks/useModalEscape';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -44,6 +45,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
   const [askingPrice, setAskingPrice] = useState(defaultPrice);
 
   useScrollLock();
+  useModalEscape(true, onClose);
 
   const top3 = useMemo(() => getTop3Attributes(player.attributes), [player]);
 

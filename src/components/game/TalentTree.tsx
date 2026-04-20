@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
+import { useModalEscape } from '@/hooks/useModalEscape';
 import {
   TALENT_BRANCHES,
   getBranchPerks,
@@ -282,6 +283,7 @@ interface PerkDetailSheetProps {
 function PerkDetailSheet({ perk, progression, onUnlock, onClose }: PerkDetailSheetProps) {
   const [confirming, setConfirming] = useState(false);
   const isUnlocked = progression.unlockedPerks.includes(perk.id);
+  useModalEscape(true, onClose);
   const check = canUnlockPerk(perk, progression);
   const canBuy = check.canUnlock;
   const branchMeta = TALENT_BRANCHES.find(b => b.id === perk.branch);

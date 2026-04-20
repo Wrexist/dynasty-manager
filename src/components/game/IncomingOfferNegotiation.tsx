@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useModalEscape } from '@/hooks/useModalEscape';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -49,6 +50,9 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
   const [counterFee, setCounterFee] = useState(Math.round((minFee + maxFee) / 2));
   const [finalFee, setFinalFee] = useState(offer.fee);
   const [phase, setPhase] = useState<Phase>('negotiate');
+  // Phase-gate Escape to mirror backdrop click: only dismissible from
+  // 'negotiate' (not while AI is thinking or showing result).
+  useModalEscape(true, onClose, phase === 'negotiate');
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [resultMessage, setResultMessage] = useState('');
   const [buyerCounterFee, setBuyerCounterFee] = useState<number | null>(null);

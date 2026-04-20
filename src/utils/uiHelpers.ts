@@ -49,6 +49,14 @@ export function getRatingHex(value: number | undefined): string {
   return '#6b7280';
 }
 
+/** Semantic accent colors for inline `style` properties that can't use
+ *  Tailwind classes (borderColor on a dynamic <button>, etc.). These mirror
+ *  the Tailwind palette the rest of the UI uses (red-400, amber-500) so
+ *  inline-styled accents stay visually consistent with className-styled ones.
+ *  Prefer Tailwind classes when possible — these are only for style={{}}. */
+export const UI_ACCENT_DANGER_HEX = '#f87171';   // tailwind red-400
+export const UI_ACCENT_WARNING_HEX = '#f59e0b';  // tailwind amber-500
+
 /** Resolve the player tier (Legendary/Gold/Silver/Bronze/Common) for an overall rating. */
 export function getPlayerTier(overall: number | null | undefined): PlayerTier {
   if (overall == null || !Number.isFinite(overall) || overall < 0) {
