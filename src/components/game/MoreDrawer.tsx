@@ -93,10 +93,10 @@ interface MoreDrawerProps {
 export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawerProps) {
   const [openInternal, setOpenInternal] = useState(false);
   const open = openProp ?? openInternal;
-  const setOpen = (next: boolean) => {
+  const setOpen = useCallback((next: boolean) => {
     if (onOpenChange) onOpenChange(next);
     else setOpenInternal(next);
-  };
+  }, [onOpenChange]);
   const [search, setSearch] = useState('');
   const reduceMotion = useReducedMotion();
   const {
@@ -165,7 +165,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
     hapticLight();
     setScreen(screen);
     setOpen(false);
-  }, [setScreen]);
+  }, [setScreen, setOpen]);
 
   const isSearching = search.trim().length > 0;
   const searchLower = search.toLowerCase();

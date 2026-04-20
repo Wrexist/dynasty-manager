@@ -54,6 +54,10 @@ const FacilitiesPage = () => {
         }
       }
     }
+    // Granular deps are intentional: `facilities[key]` is dynamic but the set of
+    // possible keys is enumerated above. Adding the whole `facilities` object would
+    // retrigger on unrelated field updates.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facilities.upgradeInProgress, facilities.stadiumStands, facilities.trainingLevel, facilities.youthLevel, facilities.medicalLevel, facilities.recoveryLevel]);
 
   const effectiveLevel = getEffectiveStadiumLevel(facilities);

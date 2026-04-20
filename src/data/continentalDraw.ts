@@ -11,8 +11,6 @@ import {
   CONTINENTAL_GROUPS, CONTINENTAL_TEAMS_PER_GROUP,
   CONTINENTAL_TOTAL_TEAMS,
   CONTINENTAL_GROUP_WEEKS, GROUP_FIXTURE_TEMPLATE,
-  // Legacy exports kept for any remaining external references
-  CHAMPIONS_CUP_GROUPS, CHAMPIONS_CUP_TEAMS_PER_GROUP,
 } from '@/config/continental';
 import { shuffle } from '@/utils/helpers';
 import { getSeedingScore } from '@/utils/continentalCoefficients';

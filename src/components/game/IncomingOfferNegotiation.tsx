@@ -54,7 +54,6 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
   const [buyerCounterFee, setBuyerCounterFee] = useState<number | null>(null);
   const strikeKey = `incoming-${offer.playerId}-${offer.buyerClubId}`;
   const [strikeCount, setStrikeCount] = useState(() => getPlayerStrikes(strikeKey));
-  const [latestStrikeOutcome, setLatestStrikeOutcome] = useState<'rejected' | 'accepted' | null>(null);
   const lockout = isNegotiationLocked(strikeKey);
 
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -81,7 +80,6 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
   const handleSubmitCounter = useCallback((fee: number) => {
     setPhase('thinking');
     setFinalFee(fee);
-    setLatestStrikeOutcome(null);
     timersRef.current.push(setTimeout(() => {
       const result = negotiateIncomingOffer(offer.id, fee);
       setOutcome(result.outcome);
@@ -92,11 +90,9 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
       if (result.outcome === 'rejected') {
         const newStrikes = recordNegotiationStrike(strikeKey);
         setStrikeCount(newStrikes);
-        setLatestStrikeOutcome('rejected');
       } else if (result.outcome === 'accepted') {
         clearNegotiationStrikes(strikeKey);
         setStrikeCount(0);
-        setLatestStrikeOutcome('accepted');
       }
       setPhase('result');
     }, 1500));
@@ -115,7 +111,6 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
       if (result.success) {
         clearNegotiationStrikes(strikeKey);
         setStrikeCount(0);
-        setLatestStrikeOutcome('accepted');
       }
       setPhase('result');
     }, 1000));
@@ -126,7 +121,6 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
     setOutcome(null);
     setResultMessage('');
     setBuyerCounterFee(null);
-    setLatestStrikeOutcome(null);
   }, []);
 
   if (!player || !buyerClub || !sellerClub) return null;

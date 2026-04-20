@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import type { Player, Club, Message } from '@/types/game';
 import { generateRandomEvents } from '@/utils/randomEvents';
 import {

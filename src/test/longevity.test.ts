@@ -1,3 +1,4 @@
+/* eslint-disable no-console -- diagnostic stats reporting */
 /**
  * Longevity & Stress Tests — Multi-season simulation
  *
