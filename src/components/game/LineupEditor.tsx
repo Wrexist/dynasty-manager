@@ -317,7 +317,6 @@ export function LineupEditor() {
                 <PlayerCard
                   player={player}
                   position={slot.pos}
-                  variant="starter"
                   isSelected={isSelected}
                   chemistryLinkCount={playerChemCounts.get(player.id) || 0}
                   compatRing={!isSelected ? compat : null}

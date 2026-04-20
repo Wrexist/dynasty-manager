@@ -186,7 +186,6 @@ describe('PlayerCard layout invariants', () => {
       <PlayerCard
         player={makePlayer()}
         position="CM"
-        variant="starter"
         isSelected={false}
         chemistryLinkCount={12}
         onClick={() => { /* noop */ }}

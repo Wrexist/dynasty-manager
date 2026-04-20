@@ -259,7 +259,6 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 <PlayerCard
                   player={player}
                   position={slot.pos}
-                  variant="starter"
                   isSelected={false}
                   chemistryLinkCount={0}
                   onClick={() => handleLineupPlayerClick(playerId)}
