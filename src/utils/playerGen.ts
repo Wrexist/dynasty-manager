@@ -21,6 +21,7 @@ import {
 } from '@/config/playerGeneration';
 import { NATIONALITY_NAME_POOLS, FALLBACK_FIRST_NAMES, FALLBACK_LAST_NAMES } from '@/config/namePool';
 import { CLUB_TEMPLATES, type PlayerTemplate } from '@/data/playerTemplates';
+import { resolveSquadKey } from '@/data/clubTemplateAliases';
 
 const ALL_NATIONALITIES = [
   'England', 'Spain', 'France', 'Germany', 'Italy', 'Brazil', 'Argentina', 'Portugal',
@@ -218,7 +219,7 @@ export function buildPlayerFromTemplate(
 
 export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number | string, isInitialSeason: boolean = false): Player[] {
   const scale = qualityScale(quality);
-  const templates = CLUB_TEMPLATES[clubId] || [];
+  const templates = CLUB_TEMPLATES[resolveSquadKey(clubId)] || [];
   const templatePlayers: Player[] = templates.map(t => buildPlayerFromTemplate(t, clubId, season));
 
   // ── Step 2: Determine remaining positions to fill ──
