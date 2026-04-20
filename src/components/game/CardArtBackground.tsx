@@ -59,10 +59,12 @@ export const CardArtBackground = memo(function CardArtBackground({
         style={imgStyle}
         className={cn('absolute inset-0 w-full h-full object-cover select-none', imgObjectPosition)}
       />
+      {/* Top-to-bottom gradient: slight darkening at top (for rating text),
+          open window in middle to show artwork, strong fade at bottom for stats */}
       <div
         className="absolute inset-0"
         style={{
-          background: `linear-gradient(to bottom, transparent 0%, rgba(0,0,0,${overlayStrength * 0.5}) 55%, rgba(0,0,0,${overlayStrength}) 100%)`,
+          background: `linear-gradient(to bottom, rgba(0,0,0,${overlayStrength * 0.35}) 0%, transparent 25%, transparent 55%, rgba(0,0,0,${overlayStrength * 0.7}) 78%, rgba(0,0,0,${overlayStrength}) 100%)`,
         }}
       />
     </div>

@@ -74,15 +74,14 @@ export interface PlayerCardArt {
 
 export function getPlayerCardArt(overall: number | null | undefined): PlayerCardArt {
   if (overall == null || !Number.isFinite(overall)) {
-    return { src: '/player-cards/bronze.png', filter: 'grayscale(1) brightness(0.55)' };
+    return { src: '/player-cards/bronze.webp', filter: 'grayscale(1) brightness(0.55)' };
   }
-  if (overall >= 94) return { src: '/player-cards/icon.png' };
-  if (overall >= 90) return { src: '/player-cards/rare.png' };
-  if (overall >= 85) return { src: '/player-cards/premium.png' };
-  if (overall >= 80) return { src: '/player-cards/gold.png' };
-  if (overall >= 70) return { src: '/player-cards/silver.png' };
-  if (overall >= 60) return { src: '/player-cards/bronze.png' };
-  return { src: '/player-cards/bronze.png', filter: 'grayscale(1) brightness(0.55)' };
+  if (overall >= 90) return { src: '/player-cards/icon.webp' };
+  if (overall >= 85) return { src: '/player-cards/premium.webp' };
+  if (overall >= 80) return { src: '/player-cards/gold.webp' };
+  if (overall >= 70) return { src: '/player-cards/silver.webp' };
+  if (overall >= 60) return { src: '/player-cards/bronze.webp' };
+  return { src: '/player-cards/bronze.webp', filter: 'grayscale(1) brightness(0.55)' };
 }
 
 /** Inline-style gradient stroke for a tier border wrapper (clean, non-blurred). */
