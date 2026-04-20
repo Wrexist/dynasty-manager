@@ -8,12 +8,14 @@ function makePlayer(overrides: Partial<Player> = {}): Player {
   return {
     id: 'p1', firstName: 'John', lastName: 'Doe', age: 25, position: 'CM',
     nationality: 'England', overall: 70, potential: 80, value: 1_000_000, wage: 10_000,
-    clubId: 'club-a', contractEnd: 3, goals: 0, assists: 0, appearances: 10,
+    clubId: 'club-a', contractEnd: 3,
+    goals: 0, assists: 0, appearances: 10,
+    careerGoals: 0, careerAssists: 0, careerAppearances: 10,
     fitness: 85, morale: 70, form: 60, injured: false, injuryWeeks: 0,
-    yellowCards: 0, redCards: 0, suspended: false, suspendedUntil: 0,
+    yellowCards: 0, redCards: 0,
     attributes: { pace: 65, shooting: 60, passing: 75, defending: 55, physical: 65, mental: 70 },
     ...overrides,
-  } as Player;
+  };
 }
 
 function makeClub(overrides: Partial<Club> = {}): Club {
@@ -23,7 +25,7 @@ function makeClub(overrides: Partial<Club> = {}): Club {
     playerIds: [], lineup: [], subs: [], divisionId: 'eng',
     facilities: 5, youthRating: 5, boardPatience: 5,
     ...overrides,
-  } as Club;
+  };
 }
 
 function baseCtx(overrides: Partial<Parameters<typeof generateStorylines>[0]> = {}) {

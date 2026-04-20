@@ -3,17 +3,22 @@ import type { Player, Club, Match, FacilitiesState, ScoutingState, LeagueTableEn
 import { getWeekPreview, getFallbackPreview, generateCliffhangers } from '@/utils/weekPreview';
 
 // ── Fixture factories ─────────────────────────────────────────────────────────
+// Shapes are validated by the declared return types — no `as` casts, so any
+// field drift on the Player / Club / FacilitiesState interfaces will surface
+// as a test-file TS error instead of silently skipping validation.
 
 function makePlayer(overrides: Partial<Player> = {}): Player {
   return {
     id: 'p1', firstName: 'John', lastName: 'Doe', age: 25, position: 'CM',
     nationality: 'England', overall: 70, potential: 80, value: 1_000_000, wage: 10_000,
-    clubId: 'club-a', contractEnd: 3, goals: 0, assists: 0, appearances: 10,
+    clubId: 'club-a', contractEnd: 3,
+    goals: 0, assists: 0, appearances: 10,
+    careerGoals: 0, careerAssists: 0, careerAppearances: 10,
     fitness: 85, morale: 70, form: 60, injured: false, injuryWeeks: 0,
-    yellowCards: 0, redCards: 0, suspended: false, suspendedUntil: 0,
+    yellowCards: 0, redCards: 0,
     attributes: { pace: 65, shooting: 60, passing: 75, defending: 55, physical: 65, mental: 70 },
     ...overrides,
-  } as Player;
+  };
 }
 
 function makeClub(overrides: Partial<Club> = {}): Club {
@@ -23,17 +28,21 @@ function makeClub(overrides: Partial<Club> = {}): Club {
     playerIds: [], lineup: [], subs: [], divisionId: 'eng',
     facilities: 5, youthRating: 5, boardPatience: 5,
     ...overrides,
-  } as Club;
+  };
 }
 
 const emptyFacilities: FacilitiesState = {
-  trainingLevel: 3, youthLevel: 3, medicalLevel: 3,
-  stadiumLevel: 3, upgradeInProgress: null,
-} as FacilitiesState;
+  trainingLevel: 3,
+  youthLevel: 3,
+  medicalLevel: 3,
+  recoveryLevel: 3,
+  stadiumStands: { north: 1, south: 1, east: 1, west: 1 },
+  upgradeInProgress: null,
+};
 
 const emptyScouting: ScoutingState = {
   maxAssignments: 2, assignments: [], reports: [], discoveredPlayers: [],
-} as ScoutingState;
+};
 
 function baseCtx(overrides: Partial<Parameters<typeof getWeekPreview>[0]> = {}) {
   return {
@@ -159,22 +168,39 @@ describe('generateCliffhangers', () => {
 
   it('surfaces a title-race cliffhanger when within CLIFFHANGER_TITLE_RACE_GAP', () => {
     const table: LeagueTableEntry[] = [
-      { clubId: 'club-b', points: 30, won: 10, drawn: 0, lost: 0, goalsFor: 20, goalsAgainst: 5, goalDifference: 15, played: 10 },
-      { clubId: 'club-a', points: 27, won: 9, drawn: 0, lost: 1, goalsFor: 18, goalsAgainst: 7, goalDifference: 11, played: 10 },
+      { clubId: 'club-b', points: 30, won: 10, drawn: 0, lost: 0, goalsFor: 20, goalsAgainst: 5, goalDifference: 15, played: 10, form: [], cleanSheets: 4 },
+      { clubId: 'club-a', points: 27, won: 9, drawn: 0, lost: 1, goalsFor: 18, goalsAgainst: 7, goalDifference: 11, played: 10, form: [], cleanSheets: 3 },
     ];
     const items = generateCliffhangers(cliffCtx({ leagueTable: table, week: 15 }));
     expect(items.some(i => i.category === 'title_race')).toBe(true);
   });
 
-  it('caps output at MAX_CLIFFHANGERS', () => {
-    // Build a table where the player is leading by a razor-thin margin AND
-    // board confidence is terrible to maximize cliffhanger candidates.
+  it('slices output to MAX_CLIFFHANGERS when several candidates qualify', () => {
+    // Produce FIVE qualifying cliffhangers — more than MAX_CLIFFHANGERS (3):
+    //  1. Title race   (player leading by 1 point, week >= 10)
+    //  2. Star out of contract (overall >= 70, contractEnd <= season, week >= 15)
+    //  3. Player wants to leave (overall >= 65, wantsToLeave)
+    //  4. Board pressure (boardConfidence < 35)
+    //  5. Youth breakthrough (age <= 21, potential - overall >= 8)
     const table: LeagueTableEntry[] = [
-      { clubId: 'club-a', points: 30, won: 10, drawn: 0, lost: 0, goalsFor: 20, goalsAgainst: 5, goalDifference: 15, played: 10 },
-      { clubId: 'club-b', points: 29, won: 9, drawn: 2, lost: 0, goalsFor: 18, goalsAgainst: 6, goalDifference: 12, played: 11 },
+      { clubId: 'club-a', points: 30, won: 10, drawn: 0, lost: 0, goalsFor: 20, goalsAgainst: 5, goalDifference: 15, played: 10, form: [], cleanSheets: 4 },
+      { clubId: 'club-b', points: 29, won: 9, drawn: 2, lost: 0, goalsFor: 18, goalsAgainst: 6, goalDifference: 12, played: 11, form: [], cleanSheets: 3 },
     ];
-    const items = generateCliffhangers(cliffCtx({ leagueTable: table, week: 20, boardConfidence: 20 }));
-    // MAX_CLIFFHANGERS = 3 per config/gameBalance.
-    expect(items.length).toBeLessThanOrEqual(3);
+    const players: Record<string, Player> = {
+      star: makePlayer({ id: 'star', overall: 78, contractEnd: 1, lastName: 'Star' }),
+      unhappy: makePlayer({ id: 'unhappy', overall: 72, wantsToLeave: true, lastName: 'Unhappy' }),
+      youth: makePlayer({ id: 'youth', age: 19, overall: 62, potential: 82, lastName: 'Prospect' }),
+    };
+    const items = generateCliffhangers(cliffCtx({
+      leagueTable: table,
+      week: 20,
+      boardConfidence: 15,
+      players,
+      clubs: {
+        'club-a': makeClub({ playerIds: ['star', 'unhappy', 'youth'] }),
+        'club-b': makeClub({ id: 'club-b', name: 'Club B', shortName: 'B' }),
+      },
+    }));
+    expect(items).toHaveLength(3); // MAX_CLIFFHANGERS
   });
 });
