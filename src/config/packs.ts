@@ -26,7 +26,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientFrom: 'hsl(var(--pack-bronze-from))',
     gradientTo: 'hsl(var(--pack-bronze-to))',
     accent: 'hsl(var(--pack-bronze-accent))',
-    artSrc: '/packs/bronze.png',
+    artSrc: '/packs/bronze.webp',
   },
   {
     key: 'silver',
@@ -41,7 +41,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientFrom: 'hsl(var(--pack-silver-from))',
     gradientTo: 'hsl(var(--pack-silver-to))',
     accent: 'hsl(var(--pack-silver-accent))',
-    artSrc: '/packs/silver.png',
+    artSrc: '/packs/silver.webp',
   },
   {
     key: 'gold',
@@ -56,7 +56,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientFrom: 'hsl(var(--pack-gold-from))',
     gradientTo: 'hsl(var(--pack-gold-to))',
     accent: 'hsl(var(--pack-gold-accent))',
-    artSrc: '/packs/gold.png',
+    artSrc: '/packs/gold.webp',
   },
   {
     key: 'premium',
@@ -71,7 +71,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientFrom: 'hsl(var(--pack-premium-from))',
     gradientTo: 'hsl(var(--pack-premium-to))',
     accent: 'hsl(var(--pack-premium-accent))',
-    artSrc: '/packs/premium.png',
+    artSrc: '/packs/premium.webp',
   },
   {
     key: 'rare',
@@ -86,7 +86,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientFrom: 'hsl(var(--pack-rare-from))',
     gradientTo: 'hsl(var(--pack-rare-to))',
     accent: 'hsl(var(--pack-rare-accent))',
-    artSrc: '/packs/rare.png',
+    artSrc: '/packs/rare.webp',
   },
   {
     key: 'icon',
@@ -101,7 +101,7 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientFrom: 'hsl(var(--pack-icon-from))',
     gradientTo: 'hsl(var(--pack-icon-to))',
     accent: 'hsl(var(--pack-icon-accent))',
-    artSrc: '/packs/icon.png',
+    artSrc: '/packs/icon.webp',
   },
 ];
 
