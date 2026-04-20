@@ -85,13 +85,31 @@ const withLang = (url) => url + (url.includes('?') ? '&' : '?') + LANG_PARAM;
 const ICONS_LIST_URL = (offset) => withLang(`${BASE}/players?type=all&lg%5B0%5D=2118&offset=${offset}`);
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
-// Extra non-Icon players to bundle into the same output (active players that
-// aren't on the Icons list but should appear alongside them in the pack pool).
-// SoFIFA redirects /player/<id>/ to the canonical slug+version URL so we don't
-// need to know the current version number.
+// Curated list of star players to scrape as the icon pool, since SoFIFA
+// dropped its Icons league in FC26 (lg[0]=2118 returns zero results).
+// Stable SoFIFA IDs — if a slug changes, the /player/<id>/ redirect still
+// lands on the canonical page.
 const EXTRA_PLAYERS = [
-  { id: '158023', slug: 'lionel-messi',      version: '', path: '/player/158023/' },
-  { id: '20801',  slug: 'cristiano-ronaldo', version: '', path: '/player/20801/' },
+  { id: '158023', slug: 'lionel-messi',        path: '/player/158023/' },
+  { id: '20801',  slug: 'cristiano-ronaldo',   path: '/player/20801/' },
+  { id: '190871', slug: 'neymar-jr',           path: '/player/190871/' },
+  { id: '231747', slug: 'kylian-mbappe',       path: '/player/231747/' },
+  { id: '239085', slug: 'erling-haaland',      path: '/player/239085/' },
+  { id: '188545', slug: 'robert-lewandowski',  path: '/player/188545/' },
+  { id: '192985', slug: 'kevin-de-bruyne',     path: '/player/192985/' },
+  { id: '177003', slug: 'luka-modric',         path: '/player/177003/' },
+  { id: '182521', slug: 'toni-kroos',          path: '/player/182521/' },
+  { id: '209331', slug: 'mohamed-salah',       path: '/player/209331/' },
+  { id: '202126', slug: 'harry-kane',          path: '/player/202126/' },
+  { id: '203376', slug: 'virgil-van-dijk',     path: '/player/203376/' },
+  { id: '192119', slug: 'thibaut-courtois',    path: '/player/192119/' },
+  { id: '167495', slug: 'manuel-neuer',        path: '/player/167495/' },
+  { id: '200389', slug: 'jan-oblak',           path: '/player/200389/' },
+  { id: '238794', slug: 'vinicius-jr',         path: '/player/238794/' },
+  { id: '252371', slug: 'jude-bellingham',     path: '/player/252371/' },
+  { id: '212198', slug: 'bruno-fernandes',     path: '/player/212198/' },
+  { id: '200104', slug: 'son-heung-min',       path: '/player/200104/' },
+  { id: '165153', slug: 'karim-benzema',       path: '/player/165153/' },
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
