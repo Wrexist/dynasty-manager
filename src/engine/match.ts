@@ -643,9 +643,13 @@ export function simulateHalf(
   let awayFouls = prevState?.awayFouls ?? 0;
   let homeCorners = prevState?.homeCorners ?? 0;
   let awayCorners = prevState?.awayCorners ?? 0;
-  const sentOff = new Set<string>(prevState?.sentOff ?? []);
-  const injured = new Set<string>(prevState?.injured ?? []);
-  const unavailable = new Set<string>([...sentOff, ...injured]);
+  // In-memory Sets for fast membership checks. The persisted HalfState shape
+  // uses plain string[] (see fields `sentOff` / `injured` on HalfState) —
+  // these locals are suffixed `Set` to keep that distinction obvious on the
+  // return site where we call `Array.from(...)` back into the array shape.
+  const sentOffSet = new Set<string>(prevState?.sentOff ?? []);
+  const injuredSet = new Set<string>(prevState?.injured ?? []);
+  const unavailable = new Set<string>([...sentOffSet, ...injuredSet]);
 
   // Match injuries: track generated InjuryDetails per player
   const matchInjuries: Record<string, InjuryDetails> = prevState?.matchInjuries ? { ...prevState.matchInjuries } : {};
@@ -1495,7 +1499,7 @@ export function simulateHalf(
           pe.yellows++;
           if (pe.yellows >= 2) {
             pe.redCard = true;
-            sentOff.add(fouler.id);
+            sentOffSet.add(fouler.id);
             unavailable.add(fouler.id);
             // Momentum swings toward the opposing team on red card
             momentum = isHome
@@ -1523,7 +1527,7 @@ export function simulateHalf(
         const pe = playerEvents[fouler.id];
         if (pe && !pe.redCard) {
           pe.redCard = true;
-          sentOff.add(fouler.id);
+          sentOffSet.add(fouler.id);
           unavailable.add(fouler.id);
           // Momentum swings toward the opposing team on red card
           momentum = isHome
@@ -1556,7 +1560,7 @@ export function simulateHalf(
           const medLevel = isHome ? (awayMedicalLevel ?? 5) : (homeMedicalLevel ?? 5);
           const details = generateInjuryDetails(true, medLevel);
           matchInjuries[fouled.id] = details;
-          injured.add(fouled.id);
+          injuredSet.add(fouled.id);
           unavailable.add(fouled.id);
           const injLabel = INJURY_TYPES[details.type].label;
           const sevLabel = details.severity === 'minor' ? 'Minor' : details.severity === 'moderate' ? 'Moderate' : 'Serious';
@@ -1650,7 +1654,7 @@ export function simulateHalf(
       if (Math.random() < injuryProb) {
         const details = generateInjuryDetails(false, medLevel);
         matchInjuries[candidate.id] = details;
-        injured.add(candidate.id);
+        injuredSet.add(candidate.id);
         unavailable.add(candidate.id);
         const injLabel = INJURY_TYPES[details.type].label;
         const sevLabel = details.severity === 'minor' ? 'Minor' : details.severity === 'moderate' ? 'Moderate' : 'Serious';
@@ -1694,7 +1698,7 @@ export function simulateHalf(
       if (homeClub.id !== playerClubId && homeSubsUsed < MAX_SUBSTITUTIONS && homeBenchPool.length > 0 && Math.random() < AI_TACTICAL_SUB_CHANCE) {
         const homeLosing = homeGoals < awayGoals;
         const homeGoalDiff = homeGoals - awayGoals;
-        const homeSentOff = [...homePlayers, ...homeSubbedIn].filter(p => sentOff.has(p.id)).length;
+        const homeSentOff = [...homePlayers, ...homeSubbedIn].filter(p => sentOffSet.has(p.id)).length;
         const aiSub = tryAISub(homeBenchPool, [...homePlayers, ...homeSubbedIn], unavailable, homeSubsUsed, 'tactical', undefined, matchFitness, homeLosing, min, homeGoalDiff, homeSentOff);
         if (aiSub) {
           homeSubsUsed++; homeActive.add(aiSub.inPlayer.id);
@@ -1713,7 +1717,7 @@ export function simulateHalf(
       if (awayClub.id !== playerClubId && awaySubsUsed < MAX_SUBSTITUTIONS && awayBenchPool.length > 0 && Math.random() < AI_TACTICAL_SUB_CHANCE) {
         const awayLosing = awayGoals < homeGoals;
         const awayGoalDiff = awayGoals - homeGoals;
-        const awaySentOff = [...awayPlayers, ...awaySubbedIn].filter(p => sentOff.has(p.id)).length;
+        const awaySentOff = [...awayPlayers, ...awaySubbedIn].filter(p => sentOffSet.has(p.id)).length;
         const aiSub = tryAISub(awayBenchPool, [...awayPlayers, ...awaySubbedIn], unavailable, awaySubsUsed, 'tactical', undefined, matchFitness, awayLosing, min, awayGoalDiff, awaySentOff);
         if (aiSub) {
           awaySubsUsed++; awayActive.add(aiSub.inPlayer.id);
@@ -1764,7 +1768,7 @@ export function simulateHalf(
 
   return {
     events, homeGoals, awayGoals, homeShots, awayShots, homeSoT, awaySoT,
-    homeFouls, awayFouls, homeCorners, awayCorners, sentOff: Array.from(sentOff), injured: Array.from(injured), playerEvents,
+    homeFouls, awayFouls, homeCorners, awayCorners, sentOff: Array.from(sentOffSet), injured: Array.from(injuredSet), playerEvents,
     momentum, homeXG, awayXG, matchInjuries,
     homeSubsUsed, awaySubsUsed,
     homeBench: homeBenchPool, awayBench: awayBenchPool,

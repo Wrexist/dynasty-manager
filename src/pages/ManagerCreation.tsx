@@ -18,11 +18,9 @@ import { STARTING_AGE_MIN, STARTING_AGE_MAX, TRAITS_TO_PICK, MAX_NEGOTIATION_ROU
 import { CLUBS_DATA } from '@/data/league';
 import { toast } from 'sonner';
 
-type Step = ManagerCreationStep;
+const STEPS: ManagerCreationStep[] = ['name', 'nationality', 'age', 'traits', 'offers'];
 
-const STEPS: Step[] = ['name', 'nationality', 'age', 'traits', 'offers'];
-
-const STEP_LABELS: Record<Step, string> = {
+const STEP_LABELS: Record<ManagerCreationStep, string> = {
   name: 'Name',
   nationality: 'Nationality',
   age: 'Age',
@@ -47,7 +45,7 @@ const ManagerCreation = () => {
   const saveGame = useGameStore(s => s.saveGame);
   const slot = (location.state as { slot?: number })?.slot || 1;
 
-  const [step, setStep] = useState<Step>('name');
+  const [step, setStep] = useState<ManagerCreationStep>('name');
   const [managerName, setManagerName] = useState('');
   const [appearance] = useState<ManagerAppearance>({ ...DEFAULT_APPEARANCE });
   const [nationality, setNationality] = useState<string | null>(null);

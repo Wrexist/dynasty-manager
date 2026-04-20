@@ -12,7 +12,6 @@ import { PageHint } from '@/components/game/PageHint';
 import { TOTAL_WEEKS, BOARD_REVIEW_WEEKS } from '@/config/gameBalance';
 import type { CupRound, Match, CupTie, ContinentalTournamentState, SuperCupMatch, CalendarEntry, CalendarPhaseGroup } from '@/types/game';
 
-type PhaseGroup = CalendarPhaseGroup;
 
 const CalendarView = () => {
   const {
@@ -244,7 +243,7 @@ const CalendarView = () => {
 
   // Group entries by phase for section headers
   const phases = useMemo(() => {
-    const groups: PhaseGroup[] = [];
+    const groups: CalendarPhaseGroup[] = [];
 
     const addPhase = (id: string, label: string, start: number, end: number) => {
       const phaseEntries = entries.filter(e => e.week >= start && e.week <= end);

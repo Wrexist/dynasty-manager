@@ -19,10 +19,7 @@ import { PageHint } from '@/components/game/PageHint';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { getContractUrgency } from '@/utils/contracts';
 
-type SortKey = SquadSortKey;
-type StatusFilter = SquadStatusFilter;
-
-const SORT_OPTIONS: SortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
+const SORT_OPTIONS: SquadSortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
 
 function getMoraleIcon(morale: number): { Icon: ElementType; color: string; label: string } {
   if (morale >= 60) return { Icon: Smile, color: 'text-emerald-400', label: 'Happy' };
@@ -90,9 +87,9 @@ const SquadPage = () => {
   const setScreen = useGameStore(s => s.setScreen);
   const startNegotiation = useGameStore(s => s.startNegotiation);
   const [posFilter, setPosFilter] = useState(0);
-  const [sortBy, setSortBy] = useState<SortKey>('overall');
+  const [sortBy, setSortBy] = useState<SquadSortKey>('overall');
   const [sortAsc, setSortAsc] = useState(false);
-  const [statusFilters, setStatusFilters] = useState<Set<StatusFilter>>(new Set());
+  const [statusFilters, setStatusFilters] = useState<Set<SquadStatusFilter>>(new Set());
   const [confirmListId, setConfirmListId] = useState<string | null>(null);
   const [contractAlertsOpen, setContractAlertsOpen] = useState(true);
 
@@ -184,7 +181,7 @@ const SquadPage = () => {
 
   if (!club) return null;
 
-  const toggleStatus = (key: StatusFilter) => {
+  const toggleStatus = (key: SquadStatusFilter) => {
     setStatusFilters(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
@@ -360,14 +357,14 @@ const SquadPage = () => {
         {/* Status Filters */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">
           {([
-            { key: 'injured' as StatusFilter, label: 'Injured' },
-            { key: 'listed' as StatusFilter, label: 'Listed' },
-            { key: 'expiring' as StatusFilter, label: 'Expiring' },
-            { key: 'starters' as StatusFilter, label: 'Starters' },
-            { key: 'bench' as StatusFilter, label: 'Bench' },
-            { key: 'onLoan' as StatusFilter, label: 'On Loan' },
-            { key: 'youth' as StatusFilter, label: 'Youth' },
-            { key: 'unhappy' as StatusFilter, label: 'Unhappy' },
+            { key: 'injured' as SquadStatusFilter, label: 'Injured' },
+            { key: 'listed' as SquadStatusFilter, label: 'Listed' },
+            { key: 'expiring' as SquadStatusFilter, label: 'Expiring' },
+            { key: 'starters' as SquadStatusFilter, label: 'Starters' },
+            { key: 'bench' as SquadStatusFilter, label: 'Bench' },
+            { key: 'onLoan' as SquadStatusFilter, label: 'On Loan' },
+            { key: 'youth' as SquadStatusFilter, label: 'Youth' },
+            { key: 'unhappy' as SquadStatusFilter, label: 'Unhappy' },
           ]).map(({ key, label }) => (
             <button
               key={key}

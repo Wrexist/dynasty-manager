@@ -1783,7 +1783,7 @@ export interface MessageColorScheme {
 }
 
 /** MatchReview: tone of a highlight row. */
-export type HighlightTone = 'goal' | 'card' | 'var' | 'disallowed' | 'neutral' | 'own-goal' | 'sub';
+export type MatchHighlightTone = 'goal' | 'card' | 'var' | 'disallowed' | 'neutral' | 'own-goal' | 'sub';
 
 /** TitleScreen: decorative floating circle in the background. */
 export interface TitleFloatingCircle {

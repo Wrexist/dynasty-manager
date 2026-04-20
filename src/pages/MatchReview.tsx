@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { isPro } from '@/utils/monetization';
 import { GOAL_SCORING_TYPES, GOAL_EVENT_TYPES } from '@/config/matchEngine';
 import { INJURY_TYPES } from '@/config/gameBalance';
-import type { MatchEvent, HighlightTone } from '@/types/game';
+import type { MatchEvent, MatchHighlightTone } from '@/types/game';
 
 // ── Key Highlights display maps (kept near the component to stay readable) ──
 const HIGHLIGHT_TYPES: readonly MatchEvent['type'][] = [
@@ -19,7 +19,7 @@ const HIGHLIGHT_TYPES: readonly MatchEvent['type'][] = [
   'free_kick_goal', 'long_range_goal', 'counter_attack_goal', 'header_goal',
   'solo_goal', 'goalkeeper_error', 'var_check', 'var_disallowed', 'substitution',
 ];
-const HIGHLIGHT_TONE: Partial<Record<MatchEvent['type'], HighlightTone>> = {
+const HIGHLIGHT_TONE: Partial<Record<MatchEvent['type'], MatchHighlightTone>> = {
   goal: 'goal', penalty_scored: 'goal', free_kick_goal: 'goal', long_range_goal: 'goal',
   counter_attack_goal: 'goal', header_goal: 'goal', solo_goal: 'goal', goalkeeper_error: 'goal',
   red_card: 'card',
@@ -28,7 +28,7 @@ const HIGHLIGHT_TONE: Partial<Record<MatchEvent['type'], HighlightTone>> = {
   own_goal: 'own-goal',
   substitution: 'sub',
 };
-const HIGHLIGHT_TONE_CLASS: Record<HighlightTone, { dot: string; text: string }> = {
+const HIGHLIGHT_TONE_CLASS: Record<MatchHighlightTone, { dot: string; text: string }> = {
   goal:       { dot: 'bg-emerald-400', text: 'text-emerald-400' },
   card:       { dot: 'bg-red-500',     text: 'text-red-400' },
   var:        { dot: 'bg-blue-400',    text: 'text-blue-400' },

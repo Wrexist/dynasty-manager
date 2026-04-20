@@ -201,11 +201,13 @@ const DERBY_INTENSE_LINES = [
 ];
 
 /** Pick a line from a pool, preferring unused lines. Falls back to any line if all are used.
- *  usedLines is a plain array (not Set) so HalfState survives JSON serialization on save. */
+ *  usedLines is a plain array (not Set) so HalfState survives JSON serialization on save.
+ *  The dedupe-on-push guard keeps `usedLines` bounded by the pool size even across the
+ *  fallback path, so `.includes()` checks stay cheap for the length of a match. */
 function pickFreshLine(pool: string[], usedLines: string[]): string {
   const fresh = pool.filter(l => !usedLines.includes(l));
   const chosen = fresh.length > 0 ? pick(fresh) : pick(pool);
-  usedLines.push(chosen);
+  if (!usedLines.includes(chosen)) usedLines.push(chosen);
   return chosen;
 }
 

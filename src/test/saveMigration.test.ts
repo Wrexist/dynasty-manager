@@ -6,6 +6,39 @@ describe('saveMigration', () => {
     expect(CURRENT_VERSION).toBe(59);
   });
 
+  it('v57 → v59 chains cleanly with a realistic halfTimeState payload', () => {
+    // A save taken mid-match under v57 would still carry the legacy Set
+    // serialization in halfTimeState. Chain through v57→v58→v59 and confirm
+    // the final state has a plain array *and* other half-time fields survive.
+    const v57: Record<string, unknown> = {
+      version: 57,
+      halfTimeState: {
+        homeGoals: 1,
+        awayGoals: 0,
+        events: [{ minute: 22, type: 'goal', clubId: 'foo', description: 'Goal!' }],
+        usedCommentaryLines: {},
+      },
+    };
+    const out = migrateSaveData(v57) as Record<string, unknown>;
+    expect(out.version).toBe(CURRENT_VERSION);
+    const half = out.halfTimeState as Record<string, unknown>;
+    expect(Array.isArray(half.usedCommentaryLines)).toBe(true);
+    expect(half.homeGoals).toBe(1);
+    expect(Array.isArray(half.events)).toBe(true);
+  });
+
+  it('v58 → v59 survives corrupt halfTimeState shapes', () => {
+    // Defensive: a save where halfTimeState is a string / number / array
+    // should not crash the migration — it should skip normalization.
+    const cases: unknown[] = ['corrupt', 42, [], null];
+    for (const bad of cases) {
+      const data: Record<string, unknown> = { version: 58, halfTimeState: bad };
+      expect(() => migrateSaveData(data)).not.toThrow();
+      const out = migrateSaveData(data) as Record<string, unknown>;
+      expect(out.version).toBe(CURRENT_VERSION);
+    }
+  });
+
   it('v58 → v59 normalizes halfTimeState.usedCommentaryLines to an array', () => {
     // A Set<string> written via JSON.stringify serialized to `{}`. The new
     // schema is a plain string[]; legacy saves must self-heal on load.

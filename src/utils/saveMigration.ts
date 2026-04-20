@@ -862,15 +862,30 @@ const migrations: Record<number, MigrationFn> = {
   // v58 → v59: HalfState.usedCommentaryLines changed from Set<string> to string[].
   // Pre-v59 saves persisted `{}` (Sets don't survive JSON.stringify), which
   // breaks `.includes()` after reload. Normalize any shape to a plain array.
+  // Defensive against corrupted saves where halfTimeState may be anything.
   58: (data) => {
-    const half = data.halfTimeState as { usedCommentaryLines?: unknown } | null | undefined;
-    if (!half) return { ...data, version: 59 };
-    const raw = half.usedCommentaryLines;
+    const half = data.halfTimeState;
+    if (!half || typeof half !== 'object' || Array.isArray(half)) {
+      return { ...data, version: 59 };
+    }
+    const obj = half as Record<string, unknown>;
+    const raw = obj.usedCommentaryLines;
+    const wasLegacyShape = raw !== undefined && !Array.isArray(raw);
     const normalized = Array.isArray(raw) ? raw : [];
+    if (wasLegacyShape) {
+      // Observability: count how many real saves hit the legacy Set shape.
+      // Info-level so it doesn't page, but we can track volume in Sentry.
+      Sentry.addBreadcrumb({
+        category: 'saveMigration',
+        level: 'info',
+        message: 'v58→v59: healed halfTimeState.usedCommentaryLines from non-array',
+        data: { rawType: typeof raw },
+      });
+    }
     return {
       ...data,
       version: 59,
-      halfTimeState: { ...half, usedCommentaryLines: normalized },
+      halfTimeState: { ...obj, usedCommentaryLines: normalized },
     };
   },
 };
