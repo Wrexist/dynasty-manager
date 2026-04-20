@@ -78,7 +78,11 @@ const OUTPUT_CSV = (() => {
 
 // ── HTTP config ──
 const BASE = 'https://sofifa.com';
-const ICONS_LIST_URL = (offset) => `${BASE}/players?type=all&lg%5B0%5D=2118&offset=${offset}`;
+// Force English locale via ?hl=en-US — SoFIFA picks a language based on the
+// client IP otherwise, and non-English pages break every label-based parser.
+const LANG_PARAM = 'hl=en-US';
+const withLang = (url) => url + (url.includes('?') ? '&' : '?') + LANG_PARAM;
+const ICONS_LIST_URL = (offset) => withLang(`${BASE}/players?type=all&lg%5B0%5D=2118&offset=${offset}`);
 const USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
 // Extra non-Icon players to bundle into the same output (active players that
@@ -289,8 +293,17 @@ function getName(html) {
 }
 
 function getOVR(html) {
+  // Legacy pattern: <em title="Overall"> wrapping the number (pre-2026).
   let m = html.match(/<em[^>]*title=["']Overall(?: Rating)?["'][^>]*>(?:<[^>]+>)*?(\d{2,3})/i);
   if (m) return parseInt(m[1], 10);
+  // Current pattern: <em title="NN">NN</em> under the "Best overall" label.
+  m = html.match(/Best overall[\s\S]{0,40}?<em[^>]*title=["'](\d{2,3})["']/i);
+  if (m) return parseInt(m[1], 10);
+  // Meta description fallback: "...overall rating is NN." — language-independent
+  // when hl=en-US is honored, still matches the English meta on localized pages.
+  m = html.match(/overall rating is (\d{2,3})/i);
+  if (m) return parseInt(m[1], 10);
+  // Last-resort: legacy whitespace-separated "Overall NN".
   m = html.match(/Overall[^<]*<\/?[^>]*>\s*(\d{2,3})/i);
   return m ? parseInt(m[1], 10) : '';
 }
@@ -585,6 +598,14 @@ async function runScrape() {
       const newOnes = found.filter((p) => !collected.has(p.id));
       if (newOnes.length === 0) {
         console.log(`  done — no new icons at offset ${offset}`);
+        // If we never found any icons at all, dump the list HTML so the
+        // operator can inspect whether it's a Cloudflare wall, an empty
+        // league filter, or a markup change.
+        if (collected.size === 0 && offset === 0) {
+          const LIST_DEBUG = join(__dirname, '.icons-list-debug.html');
+          atomicWrite(LIST_DEBUG, html);
+          console.warn(`  ⚠  listing page produced 0 player hrefs — dumped HTML → ${LIST_DEBUG}`);
+        }
         break;
       }
       for (const p of newOnes) collected.set(p.id, p);
@@ -631,7 +652,7 @@ async function runScrape() {
       process.stdout.write(`  [${count}/${targets.length}] ✓ cached  ${p.slug}\n`);
       continue;
     }
-    const fullUrl = `${BASE}${p.path}`;
+    const fullUrl = withLang(`${BASE}${p.path}`);
     process.stdout.write(`  [${count}/${targets.length}] (${eta(startMs, count - 1, targets.length)} ETA) fetch  ${p.slug} … `);
     try {
       const html = await get(fullUrl);
