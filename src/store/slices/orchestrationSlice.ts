@@ -2768,7 +2768,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         stadiumCapacity: cd.stadiumCapacity,
       };
 
-      const squad = generateSquad(club.id, cd.squadQuality, 1, cd.divisionId);
+      const squad = generateSquad(club.id, cd.squadQuality, 1, cd.divisionId, /* isInitialSeason */ true);
       let totalWages = 0;
       squad.forEach(p => {
         allPlayers[p.id] = p;
@@ -2801,30 +2801,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const fixtures = divisionFixtures[playerDivision];
     const leagueTable = divisionTables[playerDivision];
 
+    // Game starts with an empty transfer market so the world feels new and
+    // grows organically through weekly mechanics: AI clubs list players via
+    // processAIListings, the market replenishes when it falls thin, and free
+    // agents spawn each week. End-of-season rollover still seeds a full
+    // pre-season market for subsequent years.
     const transferMarket: TransferListing[] = [];
-    // Seed market with bench players from all clubs
-    Object.values(clubs).forEach(c => {
-      const clubPlayers = c.playerIds.map(id => allPlayers[id]).filter(Boolean);
-      const benched = clubPlayers.filter(p => !c.lineup.includes(p.id));
-      if (benched.length > 2) {
-        const listed = shuffle(benched).slice(0, INITIAL_LISTINGS_MIN + Math.floor(Math.random() * INITIAL_LISTINGS_RANGE));
-        listed.forEach(p => {
-          transferMarket.push({ playerId: p.id, askingPrice: Math.round(p.value * (LISTING_PRICE_MIN_MULTIPLIER + Math.random() * LISTING_PRICE_RANDOM_RANGE)), sellerClubId: c.id, listedWeek: 1, listedSeason: 1, divisionId: c.divisionId });
-        });
-      }
-    });
 
-    // Generate external market players for all divisions (realistic populated market)
-    const initialMarket = generateInitialMarket(1, 1);
-    Object.assign(allPlayers, initialMarket.players);
-    transferMarket.push(...initialMarket.listings);
-
-    // Pre-season bonus: flood market with extra higher-quality players during friendlies
-    const preSeasonMarket = generatePreSeasonMarket(1, 1);
-    Object.assign(allPlayers, preSeasonMarket.players);
-    transferMarket.push(...preSeasonMarket.listings);
-
-    // Generate initial free agent pool
+    // Seed a small pool of free agents (2-3) so managers have a minimal
+    // signing option from day one.
     const initialFreeAgents = generateInitialFreeAgents(1);
     Object.assign(allPlayers, initialFreeAgents.players);
     const initialFreeAgentIds = initialFreeAgents.freeAgentIds;
