@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils';
 import type { LeagueId, OnboardingStep, OnboardingDraft } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
 import { readSessionJson, writeSessionJson, removeSessionKey, STORAGE_KEYS } from '@/store/helpers/persistence';
+import { hapticLight } from '@/utils/haptics';
 import { toast } from 'sonner';
 
 
@@ -34,13 +35,18 @@ const STEPS = [
 
 // Apple Liquid-Glass surface — hairline white rim + top inset highlight +
 // bottom inset shadow + soft drop. Shared by nation/league/club rows and
-// the bottom-sheet stat tiles.
+// the bottom-sheet stat tiles. NOTE: no backdrop-filter here — rows render
+// on a solid dark background (4% tint is imperceptibly blurred) and mobile
+// paints 20-40 of these at once, so we keep blur on hero surfaces only
+// (header, bottom sheet, summary panel, search pill).
 const LIQUID_ROW_CLASS =
-  'relative overflow-hidden rounded-2xl bg-white/[0.04] backdrop-blur-2xl backdrop-saturate-150 border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),inset_0_-1px_0_rgba(0,0,0,0.35),0_6px_20px_-8px_rgba(0,0,0,0.5)] transition-all duration-200';
+  'relative overflow-hidden rounded-2xl bg-white/[0.04] border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),inset_0_-1px_0_rgba(0,0,0,0.35),0_6px_20px_-8px_rgba(0,0,0,0.5)] transition-[box-shadow,background-color,border-color,transform] duration-200';
 
-// Small glass-capsule badge (prize chip, difficulty pill, etc.)
+// Small glass-capsule badge (prize chip, difficulty pill, etc.). No
+// backdrop-filter — badges nest inside row cards, and we avoid the
+// per-element compositor cost that stacks up 100+ badges on mobile.
 const LIQUID_BADGE_CLASS =
-  'inline-flex items-center gap-1 rounded-full bg-white/10 border border-white/20 backdrop-blur-xl backdrop-saturate-150 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_10px_-2px_rgba(0,0,0,0.4)]';
+  'inline-flex items-center gap-1 rounded-full bg-white/10 border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_10px_-2px_rgba(0,0,0,0.4)]';
 
 // Radial specular crescent that sits across the top half of each row. Pure
 // CSS, mix-blend screen so it catches light without fighting tier colors.
@@ -108,6 +114,7 @@ const ClubSelection = () => {
 
   const handleStart = () => {
     if (!selected || !selectedNationality || !selectedLeague || loading) return;
+    hapticLight();
     setLoading(true);
     requestAnimationFrame(() => {
       try {
@@ -131,12 +138,14 @@ const ClubSelection = () => {
   };
 
   const handleNationalitySelect = (name: string) => {
+    hapticLight();
     setSelectedNationality(name);
     setStep('league');
     window.scrollTo(0, 0);
   };
 
   const handleLeagueSelect = (leagueId: LeagueId) => {
+    hapticLight();
     setSelectedLeague(leagueId);
     setSelected(null);
     setClubSearch('');
@@ -495,7 +504,7 @@ const ClubSelection = () => {
                     >
                       <button
                         type="button"
-                        onClick={() => setSelected(club.id)}
+                        onClick={() => { if (!isSelected) hapticLight(); setSelected(club.id); }}
                         aria-pressed={isSelected}
                         className={cn(
                           LIQUID_ROW_CLASS,
