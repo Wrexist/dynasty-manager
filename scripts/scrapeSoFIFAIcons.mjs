@@ -154,7 +154,8 @@ let page = null;
 
 const CF_CHALLENGE_RE = /Just a moment|cf-browser-verification|cf-challenge-running|__cf_chl_/i;
 
-async function get(url, attempt = 1) {
+async function get(url, options = {}) {
+  const { waitFor, attempt = 1 } = options;
   if (!page) throw new Error('Playwright page not initialized — call setupBrowser() first.');
 
   try {
@@ -175,7 +176,7 @@ async function get(url, attempt = 1) {
       const wait = Math.pow(2, attempt) * 1000;
       console.warn(`  ! ${status} on ${url} — backoff ${wait}ms (attempt ${attempt}/3)`);
       await sleep(wait);
-      return get(url, attempt + 1);
+      return get(url, { ...options, attempt: attempt + 1 });
     }
     if (status >= 400) throw new Error(`HTTP ${status} from ${url}`);
 
@@ -191,9 +192,21 @@ async function get(url, attempt = 1) {
           const wait = Math.pow(2, attempt) * 4000;
           console.warn(`  ! Cloudflare still active — extra ${wait}ms backoff (attempt ${attempt}/2)`);
           await sleep(wait);
-          return get(url, attempt + 1);
+          return get(url, { ...options, attempt: attempt + 1 });
         }
         throw new Error(`Cloudflare challenge did not auto-resolve at ${url}. Need stealth plugin or residential proxy.`);
+      }
+    }
+
+    // Wait for a caller-specified selector to appear before snapshotting HTML.
+    // SoFIFA's /players listing is client-rendered — the initial HTML has an
+    // empty <tbody> and the JS populates rows after first paint.
+    if (waitFor) {
+      try {
+        await page.waitForSelector(waitFor, { timeout: 15000, state: 'attached' });
+        html = await page.content();
+      } catch {
+        console.warn(`  ! waitFor("${waitFor}") timed out on ${url} — continuing with current DOM`);
       }
     }
 
@@ -205,7 +218,7 @@ async function get(url, attempt = 1) {
       const wait = Math.pow(2, attempt) * 1000;
       console.warn(`  ! navigation error on ${url}: ${err.message.split('\n')[0]} — backoff ${wait}ms (attempt ${attempt}/3)`);
       await sleep(wait);
-      return get(url, attempt + 1);
+      return get(url, { ...options, attempt: attempt + 1 });
     }
     throw err;
   }
@@ -593,7 +606,9 @@ async function runScrape() {
     while (true) {
       const url = ICONS_LIST_URL(offset);
       console.log(`  fetch  offset=${offset}`);
-      const html = await get(url);
+      // Listing page is client-rendered — wait for at least one row in the
+      // player table before snapshotting, else we'd see an empty tbody.
+      const html = await get(url, { waitFor: 'tbody tr' });
       const found = parseListPage(html);
       const newOnes = found.filter((p) => !collected.has(p.id));
       if (newOnes.length === 0) {
