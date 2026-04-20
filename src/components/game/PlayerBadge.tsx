@@ -10,6 +10,7 @@ import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getPlayerTier } from '@/utils/uiHelpers';
 import { TierBorderFrame } from './TierBorderFrame';
+import { CardArtBackground } from './CardArtBackground';
 
 interface PlayerBadgeProps {
   clubColor: string;
@@ -54,6 +55,7 @@ export const PlayerBadge = memo(function PlayerBadge({
   const showJersey = size !== 'sm' && jerseyNumber != null && jerseyNumber > 0;
   const showGrowth = size === 'lg' && growthDelta != null && growthDelta !== 0;
   const tier = getPlayerTier(overall);
+  const showArtwork = size !== 'sm';
 
   return (
     <div className={cn('relative shrink-0', className)}>
@@ -69,16 +71,18 @@ export const PlayerBadge = memo(function PlayerBadge({
         <div
           className={cn(
             SIZE_CLASSES[size],
-            'flex flex-col items-center justify-between py-1.5',
-            'bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl border border-border/50',
-            'border-l-[3px] rounded-[10px]',
+            'relative flex flex-col items-center justify-between py-1.5',
+            !showArtwork && 'bg-gradient-to-b from-card/80 to-card/40 backdrop-blur-xl',
+            'border border-border/50 border-l-[3px] rounded-[10px] overflow-hidden',
           )}
           style={{ borderLeftColor: clubColor }}
         >
+          {showArtwork && <CardArtBackground overall={overall} overlayStrength={0.65} />}
+
           {/* Position pill */}
           <span className={cn(
             POS_SIZE[size],
-            'font-bold bg-white/10 text-white/80 rounded-full leading-tight tracking-wide',
+            'relative font-bold bg-black/40 text-white rounded-full leading-tight tracking-wide drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)]',
           )}>
             {position}
           </span>
@@ -86,7 +90,7 @@ export const PlayerBadge = memo(function PlayerBadge({
           {/* Overall rating */}
           <span className={cn(
             RATING_SIZE[size],
-            'font-black font-display tabular-nums leading-none',
+            'relative font-black font-display tabular-nums leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]',
             tier.textClass,
           )}>
             {overall}
@@ -94,7 +98,7 @@ export const PlayerBadge = memo(function PlayerBadge({
 
           {/* Jersey number */}
           {showJersey && (
-            <span className="text-[9px] font-medium text-muted-foreground tabular-nums leading-tight">
+            <span className="relative text-[9px] font-medium text-white/90 tabular-nums leading-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.7)]">
               #{jerseyNumber}
             </span>
           )}

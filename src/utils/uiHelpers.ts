@@ -60,6 +60,31 @@ export function getPlayerTier(overall: number | null | undefined): PlayerTier {
   return PLAYER_TIER_THRESHOLDS[PLAYER_TIER_THRESHOLDS.length - 1];
 }
 
+/**
+ * Tier-themed shield artwork for the player-card background layer. Seven
+ * bands over six PNGs so Gold and Legendary each split into "standard" and
+ * "premium" artwork, keeping top-end pulls visually distinct from 80-rated
+ * cards. Common tier reuses the Bronze shield under a desaturate filter so we
+ * don't need a seventh asset.
+ */
+export interface PlayerCardArt {
+  src: string;
+  filter?: string;
+}
+
+export function getPlayerCardArt(overall: number | null | undefined): PlayerCardArt {
+  if (overall == null || !Number.isFinite(overall)) {
+    return { src: '/player-cards/bronze.png', filter: 'grayscale(1) brightness(0.55)' };
+  }
+  if (overall >= 94) return { src: '/player-cards/icon.png' };
+  if (overall >= 90) return { src: '/player-cards/rare.png' };
+  if (overall >= 85) return { src: '/player-cards/premium.png' };
+  if (overall >= 80) return { src: '/player-cards/gold.png' };
+  if (overall >= 70) return { src: '/player-cards/silver.png' };
+  if (overall >= 60) return { src: '/player-cards/bronze.png' };
+  return { src: '/player-cards/bronze.png', filter: 'grayscale(1) brightness(0.55)' };
+}
+
 /** Inline-style gradient stroke for a tier border wrapper (clean, non-blurred). */
 export function getTierBorderStyle(tier: PlayerTier): { background: string } {
   return {

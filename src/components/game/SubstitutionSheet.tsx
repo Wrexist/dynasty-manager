@@ -15,6 +15,7 @@ import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight, Wand2, 
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 import { PITCH_COLORS } from '@/config/ui';
 import { PlayerCard } from './PlayerCard';
+import { BenchStrip } from './BenchStrip';
 import { YellowCardIcon, RedCardIcon } from './PlayerAvatar';
 import { computeSmartSub } from '@/utils/substitutionLogic';
 import { optimizeStarterPositions } from '@/utils/autoFillLineup';
@@ -258,7 +259,6 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                 <PlayerCard
                   player={player}
                   position={slot.pos}
-                  variant="starter"
                   isSelected={false}
                   chemistryLinkCount={0}
                   onClick={() => handleLineupPlayerClick(playerId)}
@@ -506,10 +506,9 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                     {benchCardStatus === 'red' ? <RedCardIcon size={10} /> : <YellowCardIcon size={10} />}
                   </div>
                 )}
-                <PlayerCard
+                <BenchStrip
                   player={p}
                   position={p.position}
-                  variant="bench"
                   isSelected={false}
                   chemistryLinkCount={0}
                   compatRing={benchCompat}

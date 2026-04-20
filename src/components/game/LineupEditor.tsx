@@ -9,6 +9,7 @@ import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@
 import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor } from '@/utils/formationLines';
 import { getSquadInsights } from '@/utils/squadInsights';
 import { PlayerCard } from './PlayerCard';
+import { BenchStrip } from './BenchStrip';
 import { ChemistryBar } from './ChemistryBar';
 import { InsightsPanel } from './InsightsPanel';
 import { FlagIcon } from '@/components/game/FlagIcon';
@@ -316,7 +317,6 @@ export function LineupEditor() {
                 <PlayerCard
                   player={player}
                   position={slot.pos}
-                  variant="starter"
                   isSelected={isSelected}
                   chemistryLinkCount={playerChemCounts.get(player.id) || 0}
                   compatRing={!isSelected ? compat : null}
@@ -448,11 +448,10 @@ export function LineupEditor() {
               ? getCompatibility(p, selectedSlotPos)
               : null;
             return (
-              <PlayerCard
+              <BenchStrip
                 key={`bench-${id}`}
                 player={p}
                 position={p.position}
-                variant="bench"
                 isSelected={isSelected}
                 chemistryLinkCount={playerChemCounts.get(p.id) || 0}
                 compatRing={!isSelected ? benchCompat : null}

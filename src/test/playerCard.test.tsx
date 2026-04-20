@@ -129,7 +129,6 @@ describe('PlayerCard tier border integration', () => {
       <PlayerCard
         player={makePlayer({ overall: 85 })}
         position="CM"
-        variant="starter"
         isSelected={false}
         chemistryLinkCount={0}
         onClick={() => { /* noop */ }}
@@ -138,12 +137,11 @@ describe('PlayerCard tier border integration', () => {
     expect(container.querySelector('[data-tier="gold"]')).not.toBeNull();
   });
 
-  it('renders a Bronze border for a 62 OVR bench player', () => {
+  it('renders a Bronze border for a 62 OVR player', () => {
     const { container } = render(
       <PlayerCard
         player={makePlayer({ overall: 62 })}
         position="CB"
-        variant="bench"
         isSelected={false}
         chemistryLinkCount={0}
         onClick={() => { /* noop */ }}
@@ -157,7 +155,6 @@ describe('PlayerCard tier border integration', () => {
       <PlayerCard
         player={makePlayer({ overall: 75, fitness: 20 })}
         position="CM"
-        variant="starter"
         isSelected={false}
         chemistryLinkCount={0}
         onClick={() => { /* noop */ }}
@@ -168,35 +165,20 @@ describe('PlayerCard tier border integration', () => {
 });
 
 describe('PlayerCard layout invariants', () => {
-  it('starter and bench both use the same fixed width tokens', () => {
-    const { container: starter } = render(
+  it('uses the fixed 48/54px width tokens', () => {
+    const { container } = render(
       <PlayerCard
         player={makePlayer()}
         position="CM"
-        variant="starter"
         isSelected={false}
         chemistryLinkCount={0}
         onClick={() => { /* noop */ }}
       />,
     );
-    const { container: bench } = render(
-      <PlayerCard
-        player={makePlayer()}
-        position="CM"
-        variant="bench"
-        isSelected={false}
-        chemistryLinkCount={0}
-        onClick={() => { /* noop */ }}
-      />,
-    );
-    expect(starter.firstElementChild?.className).toContain('w-[48px]');
-    expect(starter.firstElementChild?.className).toContain('sm:w-[54px]');
-    expect(starter.firstElementChild?.className).toContain('h-[48px]');
-    expect(starter.firstElementChild?.className).toContain('sm:h-[54px]');
-    expect(bench.firstElementChild?.className).toContain('w-[48px]');
-    expect(bench.firstElementChild?.className).toContain('sm:w-[54px]');
-    expect(bench.firstElementChild?.className).toContain('h-[48px]');
-    expect(bench.firstElementChild?.className).toContain('sm:h-[54px]');
+    expect(container.firstElementChild?.className).toContain('w-[48px]');
+    expect(container.firstElementChild?.className).toContain('sm:w-[54px]');
+    expect(container.firstElementChild?.className).toContain('h-[48px]');
+    expect(container.firstElementChild?.className).toContain('sm:h-[54px]');
   });
 
   it('clamps chemistry-link count above 9 to "9+"', () => {
@@ -204,7 +186,6 @@ describe('PlayerCard layout invariants', () => {
       <PlayerCard
         player={makePlayer()}
         position="CM"
-        variant="starter"
         isSelected={false}
         chemistryLinkCount={12}
         onClick={() => { /* noop */ }}
@@ -219,7 +200,6 @@ describe('PlayerCard layout invariants', () => {
       <PlayerCard
         player={makePlayer({ form: 85 })}
         position="CM"
-        variant="starter"
         isSelected={false}
         chemistryLinkCount={0}
         onClick={() => { /* noop */ }}
@@ -233,7 +213,6 @@ describe('PlayerCard layout invariants', () => {
       <PlayerCard
         player={makePlayer({ form: 20 })}
         position="CM"
-        variant="starter"
         isSelected={false}
         chemistryLinkCount={0}
         onClick={() => { /* noop */ }}
@@ -247,7 +226,6 @@ describe('PlayerCard layout invariants', () => {
       <PlayerCard
         player={makePlayer({ nationality: 'England' })}
         position="CM"
-        variant="starter"
         isSelected={false}
         chemistryLinkCount={0}
         onClick={() => { /* noop */ }}
@@ -261,7 +239,6 @@ describe('PlayerCard layout invariants', () => {
       <PlayerCard
         player={makePlayer()}
         position="CM"
-        variant="starter"
         isSelected={false}
         chemistryLinkCount={0}
         onClick={() => { /* noop */ }}

@@ -13,6 +13,7 @@ import { GlassPanel } from './GlassPanel';
 import { PlayerAvatar } from './PlayerAvatar';
 import { FlagIcon } from './FlagIcon';
 import { TierBorderFrame } from './TierBorderFrame';
+import { CardArtBackground } from './CardArtBackground';
 import { cn } from '@/lib/utils';
 import { getPlayerTier, getStableJerseyNumber } from '@/utils/uiHelpers';
 import { lighten, darken } from '@/utils/colorUtils';
@@ -69,12 +70,15 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
         className="relative overflow-hidden p-5 rounded-[14px]"
         aria-label={ariaLabel}
       >
-      {/* Club-color radial gradient backdrop */}
+      {/* Tier shield artwork sits under the club tint */}
+      <CardArtBackground overall={player.overall} overlayStrength={0.55} />
+
+      {/* Club-color radial gradient backdrop layered on top of the shield */}
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(circle at 15% 0%, ${backdropColor}33, transparent 55%)`,
+          background: `radial-gradient(circle at 15% 0%, ${backdropColor}55, transparent 55%)`,
         }}
       />
 
