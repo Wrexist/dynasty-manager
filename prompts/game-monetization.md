@@ -4,73 +4,96 @@
 
 ---
 
-You are a mobile game monetization strategist specializing in premium sports management games. Your job is to design a monetization system that players WANT to spend money on — not because they're forced to, but because the value feels worth it. Read CLAUDE.md first, then read the full codebase.
+You are the monetization architect for Dynasty Manager — a premium mobile football management sim with existing IAP infrastructure already partially implemented. Your mandate is player-first design: no pay-to-win, no dark patterns, no premium currency, no loot boxes, no energy gates. Every decision must pass the test: "Would I feel good about this as a player?"
+
+## NON-NEGOTIABLE CONSTRAINTS (Read Before Anything Else)
+
+- **No pay-to-win**: No purchased advantage that affects match outcomes, transfer success, or player development
+- **No premium currency**: Don't add gems/coins/tokens — the in-game budget IS the currency
+- **No energy/timer gates**: Players can play as much as they want, always
+- **No loot boxes**: Every purchase shows exactly what the player gets
+- **No stat boosts for money**: Player ratings, match engine, and AI behavior are never affected by spending
+- **No dark patterns**: No fake countdown timers, manipulative FOMO, predatory targeting
+- **Offline-first**: All purchased content must work without internet after initial purchase/restore
+- **Existing code respect**: Extend working systems — monetization is an overlay, not a rewrite
+- **No changes to `src/components/ui/*`** unless explicitly needed for the shop
+- **All balance constants in `src/config/`** — never hardcode prices or rewards in components
+- **Types in `src/types/game.ts`** — single source of truth
+- **Test coverage**: New monetization logic must have tests in `src/test/`
+
+---
 
 ## Current State Assessment
 
-Before designing anything, audit the existing systems that monetization must integrate with:
+Before designing anything, read the existing monetization infrastructure.
 
-### Existing In-Game Economy
-Read these files and map the full economy:
-- `src/config/gameBalance.ts` — All income/cost constants
-- `src/config/merchandise.ts` — 5 product lines, pricing tiers, campaigns
-- `src/config/sponsorship.ts` — 40 sponsors across 5 rep tiers, 7 sponsorship slots
-- `src/store/slices/merchandiseSlice.ts` — Merch state management
-- `src/store/slices/sponsorSlice.ts` — Sponsor lifecycle, satisfaction, offers
-- `src/utils/managerPerks.ts` — XP system, 20-perk tree across 5 tiers
-- `src/utils/prestige.ts` — 3 prestige paths, XP multipliers
-- `src/utils/achievements.ts` — 20+ achievements with XP rewards
+### Read These First (in order)
 
-Answer:
-- Where does in-game money come from and go? Map every income and expense source.
-- What does the player progression curve look like across 10+ seasons?
+If a file doesn't exist at the stated path, say so rather than proceeding as if you read it.
+
+**Existing infrastructure to read and assess (do NOT recreate these):**
+1. **`src/config/monetization.ts`** — Existing monetization constants and product definitions. Assess what's already defined.
+2. **`src/store/slices/monetizationSlice.ts`** — Existing purchase state, unlocks, ad rewards, cosmetics. Assess what's already implemented.
+3. **`src/utils/monetization.ts`** — Existing helper functions for checking entitlements. Assess what already exists.
+4. **`src/pages/ShopPage.tsx`** — Existing shop UI. Assess its current state and gaps.
+5. **`src/components/game/PurchaseModal.tsx`** — Existing purchase confirmation modal. Assess it.
+
+**Economy files (map the full economy before designing):**
+6. **`src/config/gameBalance.ts`** — All income/cost constants
+7. **`src/utils/managerPerks.ts`** — XP system and perk tree
+8. **`src/utils/prestige.ts`** — Prestige paths and XP multipliers
+9. **`src/utils/achievements.ts`** — Achievement system with XP rewards
+10. **`src/store/helpers/persistence.ts`** — Multi-slot save infrastructure (`readSaveSlot`, `writeSaveSlot`, `STORAGE_KEYS.saveSlot(n)` — multi-slot is already implemented; note the current free-tier slot count)
+
+**Platform readiness:**
+11. **`capacitor.config.ts`** — Current Capacitor setup
+12. **`package.json`** — Current plugins (check for any payment plugins already added)
+
+After reading, answer:
+- What monetization infrastructure already exists and is functional?
+- What is the single biggest gap between what exists and a shippable monetization system?
 - Where are the natural "I wish I could..." moments that create spending desire?
-- What existing systems could be extended with premium tiers vs. built from scratch?
 
-### Platform Readiness
-- `capacitor.config.ts` — Current Capacitor setup
-- `package.json` — Current plugins (haptics, splash, status bar, keyboard — NO payment plugins)
-- What Capacitor payment plugins exist? (RevenueCat, `@capawesome/capacitor-purchases`, etc.)
-- What are App Store / Play Store requirements for IAP in management/simulation games?
+---
 
 ## Part 1: Monetization Model Selection
 
-Evaluate each model against Dynasty Manager's specific characteristics:
+Evaluate each model against Dynasty Manager's characteristics:
 
 ### Model A: Premium (One-Time Purchase)
-- Price point analysis for football management sims on mobile
-- What content justifies the price? Compare to Football Manager Mobile, Retro Goal, etc.
+- Price point analysis for football management sims on mobile (Football Manager Mobile, Retro Goal comparisons)
+- What content justifies the price?
 - Pros: Simple, no ongoing pressure, premium brand perception
-- Cons: Revenue cap, harder discovery, must justify price to skeptics
+- Cons: Revenue cap, harder discovery
 
 ### Model B: Freemium with Cosmetics
-- What cosmetic layers can exist in a management sim? (Not a shooter — think carefully)
-- Manager customization, club aesthetics, UI themes, celebration styles, pitch visuals
+- What cosmetic layers can exist in a management sim? (Manager customization, club aesthetics, UI themes, celebration styles)
 - Can the existing prestige system become the "show off" hook?
 - Pros: Large audience, recurring revenue, no gameplay impact
 - Cons: Management sims have fewer cosmetic surfaces than action games
 
-### Model C: Freemium with Battle Pass / Season Pass
-- The game already has a weekly loop (`advanceWeek()`), XP system, and seasons — perfect fit
-- Free track vs. premium track rewards
+### Model C: Freemium with Season Pass
+- The game already has a weekly loop (`advanceWeek()`), XP system, and seasons — natural fit
 - How does this interact with the existing perk/achievement XP system?
-- Pros: Predictable revenue, drives engagement, FOMO (if done ethically)
+- **`SeasonPassPage.tsx` does not yet exist** — this is the primary implementation gap
+- Pros: Predictable revenue, drives engagement
 - Cons: Must deliver fresh content per pass cycle
 
 ### Model D: Hybrid (Free + Premium Upgrade)
 - Free version with ads → one-time purchase removes ads + unlocks extras
-- What's free vs. what's premium?
-- Pros: Wide funnel, clear value proposition, respects player choice
-- Cons: Must balance so free feels complete but premium feels worth it
+- Pros: Wide funnel, clear value proposition
+- Cons: Must balance so free feels complete
 
-**Recommend ONE primary model** with clear reasoning. If hybrid, specify which elements combine.
+**Recommend ONE primary model** with clear reasoning.
+
+---
 
 ## Part 2: Revenue Stream Design
 
 Design each revenue stream in detail. For every feature, specify:
 - What the player sees and feels
 - How it integrates with existing code (specific files and functions)
-- What new code/components are needed
+- What new code is needed vs. what already exists
 - Estimated implementation effort (S/M/L/XL)
 
 ### Stream 1: Cosmetic Layer
@@ -78,23 +101,21 @@ Design each revenue stream in detail. For every feature, specify:
 #### Manager Identity
 - Avatar system (portrait styles, accessories, outfit pieces)
 - Manager title/badge display (ties into prestige system at `src/utils/prestige.ts`)
-- Custom manager celebration animations after wins
-- Where this appears: `src/pages/ManagerProfile.tsx`, match results, leaderboards
+- Where this appears: `src/pages/ManagerProfile.tsx`, match results
 
 #### Club Aesthetics
-- Stadium themes (atmosphere effects in `src/pages/Facilities.tsx`)
+- Stadium themes (atmosphere effects in `src/pages/FacilitiesPage.tsx`)
 - Pitch visual styles (grass patterns, weather moods in `src/engine/match.ts`)
 - Kit design editor or premium kit packs
-- Custom formation board skins for `src/components/game/PitchView.tsx`
+- Custom formation board skins for `src/components/game/BoardPitch.tsx`
 
 #### UI Themes
 - Premium color accent options beyond the default gold (`43 96% 46%`)
-- Glass-morphism intensity variants
 - Trophy cabinet display styles in `src/pages/TrophyCabinet.tsx`
 
 ### Stream 2: Season Pass / Battle Pass
 
-Design a season pass that works WITH the existing game structure:
+Design a season pass that works WITH the existing structure:
 
 #### Structure
 - **Duration:** Aligns with in-game season (46 weeks of fixtures)
@@ -105,24 +126,21 @@ Design a season pass that works WITH the existing game structure:
 #### Reward Types (no pay-to-win)
 - Cosmetic: Manager outfits, pitch skins, UI themes
 - Convenience: Extra scout reports, advanced match stats overlay, detailed youth projections
-- Social: Badges, titles, profile frames for Hall of Managers (`src/pages/HallOfManagers.tsx`)
+- Social: Badges, titles, profile frames for Hall of Managers
 - Currency: Small in-game budget bonuses (must not break economy balance)
 
 #### Integration Points
 - XP events in `src/store/slices/orchestrationSlice.ts` (`advanceWeek()`)
 - Achievement unlocks in `src/utils/achievements.ts`
-- Match results in `src/engine/match.ts`
 - Season end in `orchestrationSlice.ts` (`endSeason()`)
+- **New file needed**: `src/pages/SeasonPassPage.tsx` — this is the primary missing UI component
 
 ### Stream 3: Premium Unlocks (One-Time or Tiered)
 
-Features that enhance the experience without affecting competitive balance:
-
-- **Extra Save Slots** — Currently single save at `localStorage 'dynasty-save'` (`src/store/helpers/persistence.ts`). Premium adds 3+ slots.
-- **Advanced Analytics Dashboard** — Deeper stats, trend graphs, season comparisons (extends `Recharts` usage)
-- **Custom Tactics Creator** — Beyond the 7 formations in `src/types/game.ts`. Create and name custom formations.
+- **Extra Save Slots** — Multi-slot save is already implemented via `STORAGE_KEYS.saveSlot(n)` in `src/store/helpers/persistence.ts`. The premium feature is unlocking additional slots beyond the free tier's allocation.
+- **Advanced Analytics Dashboard** — Deeper stats, trend graphs, season comparisons (extends Recharts usage)
+- **Custom Tactics Creator** — Beyond the 7 formations in `src/types/game.ts`
 - **Expanded Press Conferences** — More choices/outcomes from `src/data/pressConferences.ts`
-- **Historical Record Book** — Detailed all-time records beyond what `src/utils/records.ts` tracks
 - **Instant Sim Speed** — Skip match animation, see results instantly
 
 ### Stream 4: Rewarded Ads (Opt-In Only)
@@ -137,138 +155,106 @@ If the model includes ads, they MUST be:
 - Watch ad → get a bonus transfer budget injection for the window
 - Watch ad → unlock a free XP boost for the next 5 matches
 - Watch ad → get an extra youth academy intake preview
-- Watch ad → replay a match with different tactics (without advancing the week)
 
 ### Stream 5: Supporter Packs / Bundles (IAP)
-
-One-time purchase bundles themed around the game:
 
 - **Starter Pack** — Cosmetic bundle + small XP boost (available first 7 days only)
 - **Manager's Toolkit** — Extra save slots + advanced analytics + custom formations
 - **Dynasty Edition** — All premium features unlocked permanently
 - **Seasonal Kits** — Rotating cosmetic bundles per real-world season
 
+---
+
 ## Part 3: Economy Integration & Balance
 
-This is the most critical section. Monetization must NOT break the game.
+> **Before answering the balance checks below**, think through the causal chain: if a paying player gets benefit X, trace the path — what in-game outcomes does it affect, and what is the delta versus a free player after 10 seasons? Only then answer each question. Flag any benefit where the causal chain is unclear as `[NEEDS VERIFICATION]`.
 
-### Hard Rules
-- **No pay-to-win**: No purchased advantage that affects match outcomes, transfer success, or player development
-- **No premium currency**: Don't add gems/coins/tokens — the in-game budget IS the currency
-- **No energy/timer gates**: Players can play as much as they want, always
-- **No loot boxes**: Every purchase shows exactly what the player gets
-- **No stat boosts for money**: Player ratings, match engine, and AI behavior are never affected by spending
-
-### Balance Checks
-For every monetization feature, answer:
-- Can a free player reach the same gameplay outcomes as a paying player? (Must be YES)
-- Does this make the existing progression feel worse to push people toward paying? (Must be NO)
-- Would a player who spent £50 have a meaningful advantage in league standings? (Must be NO)
-- Does the free experience feel complete and fun on its own? (Must be YES)
+### Balance Checks (all must be YES/NO as specified)
+- Can a free player reach the same gameplay outcomes as a paying player? (Must be **YES**)
+- Does this make the existing progression feel worse to push people toward paying? (Must be **NO**)
+- Would a player who spent £50 have a meaningful advantage in league standings? (Must be **NO**)
+- Does the free experience feel complete and fun on its own? (Must be **YES**)
 
 ### Integration with `gameBalance.ts`
-- Review all constants in `src/config/gameBalance.ts`
+- Review constants in `src/config/gameBalance.ts`
 - Ensure no monetization feature modifies: `MATCH_*` constants, `TRAINING_*` rates, `TRANSFER_*` values, or any core simulation parameter
-- Monetization configs go in a NEW config file: `src/config/monetization.ts`
-- Monetization state goes in a NEW store slice: `src/store/slices/monetizationSlice.ts`
-- Types go in `src/types/game.ts` (per project convention — single type source of truth)
+- Monetization configs go in `src/config/monetization.ts` (already exists — extend it)
+- Monetization state goes in `src/store/slices/monetizationSlice.ts` (already exists — extend it)
+
+---
 
 ## Part 4: Technical Implementation Plan
 
 ### Payment Infrastructure
 - Recommend a Capacitor-compatible payment plugin (RevenueCat preferred for cross-platform)
-- Receipt validation strategy (server-side vs. client-side for an offline game)
-- Restore purchases flow (required by both app stores)
-- Handling offline purchases and syncing
+- Receipt validation strategy (client-side for offline game, restore purchases flow)
+- Handling offline purchases
 
 ### New Files Needed
 ```
-src/config/monetization.ts          — All monetization constants and product definitions
-src/store/slices/monetizationSlice.ts — Purchase state, unlocks, pass progress
-src/utils/monetization.ts           — Helper functions for checking entitlements
-src/pages/ShopPage.tsx              — Premium shop UI (new page, new route)
-src/pages/SeasonPassPage.tsx        — Battle pass progression display
-src/components/game/PurchaseModal.tsx — Purchase confirmation with App Store flow
+src/pages/SeasonPassPage.tsx    — Battle pass progression display (primary gap)
+```
+
+### Existing Infrastructure to Extend (do NOT recreate)
+```
+src/config/monetization.ts              — Extend with new product definitions
+src/store/slices/monetizationSlice.ts   — Extend with season pass state
+src/utils/monetization.ts               — Extend with new entitlement helpers
+src/pages/ShopPage.tsx                  — Extend with new product listings
+src/components/game/PurchaseModal.tsx   — Extend if new purchase flows needed
 ```
 
 ### Modified Files
 ```
-src/types/game.ts                   — Add monetization types (cosmetic IDs, pass tiers, entitlements)
-src/store/storeTypes.ts             — Add monetization state to GameState
-src/store/gameStore.ts              — Add monetization slice
-src/store/slices/orchestrationSlice.ts — Hook XP events into pass progression
-src/store/helpers/persistence.ts    — Handle multi-save-slot if implemented
-src/components/game/BottomNav.tsx   — Add Shop nav item
-src/App.tsx or router               — Add new routes
-capacitor.config.ts                 — Payment plugin config
-package.json                        — New dependencies
+src/types/game.ts                       — Add monetization types (cosmetic IDs, pass tiers)
+src/store/storeTypes.ts                 — Add season pass state to GameState
+src/store/gameStore.ts                  — Wire if new slice needed
+src/store/slices/orchestrationSlice.ts  — Hook XP events into pass progression
+src/components/game/BottomNav.tsx       — Add Shop nav item if missing
 ```
 
-### Data Architecture
-- Purchases stored locally (offline-first) + synced when online
-- Purchase receipts validated on restore
-- Cosmetic unlocks persisted in save file alongside game state
-- Pass progress tracked per real-world season (not in-game season)
+---
 
 ## Part 5: Pricing Strategy
 
 ### Market Research
-- Survey pricing of comparable games: Football Manager Mobile, Top Eleven, Score! Match, Retro Bowl
+- Compare: Football Manager Mobile, Top Eleven, Score! Match, Retro Bowl
 - What price points work for management sim audiences?
-- Regional pricing considerations (App Store tiers)
+- Regional pricing considerations
 
 ### Recommended Price Points
 For each product/bundle, recommend:
 - US price point
-- Whether it's one-time or recurring
+- One-time or recurring
 - Expected conversion rate benchmark for the genre
 - Perceived value justification
 
-### A/B Testing Plan
-- What can be tested without app updates? (Pricing, bundle composition, placement)
-- What metrics define success? (ARPU, conversion rate, retention impact)
+---
 
 ## Part 6: Prioritized Implementation Roadmap
-
-Sort all proposed features into phases:
 
 ### Phase 1: Foundation (Must-Have Before Launch)
 - Payment infrastructure + restore purchases
 - ONE core revenue stream fully implemented
-- Shop UI
+- Shop UI assessment and gap-fill
 - Analytics events for purchase funnel
 
 ### Phase 2: Growth (First 30 Days Post-Launch)
 - Second revenue stream
-- Starter pack (time-limited conversion driver)
+- Starter pack (time-limited)
 - A/B test hooks
 
 ### Phase 3: Scale (60-90 Days)
-- Season pass system
+- Season pass system (`SeasonPassPage.tsx`)
 - Expanded cosmetics
-- Bundle offers based on player behavior
 
-For each phase, estimate the number of new files, modified files, and overall effort.
+---
 
 ## Deliverables
 
-1. **Model recommendation** — Which monetization model and why
-2. **Feature specs** — Each revenue stream with integration details
-3. **Economy impact analysis** — Proof that game balance is preserved
-4. **Technical architecture** — New files, modified files, data flow
-5. **Pricing sheet** — Every product with recommended price
-6. **Phase 1 implementation** — Build the foundation: config, types, store slice, shop page, and payment integration
-
-## Rules
-
-- **Player-first**: Every monetization decision must pass the test "Would I feel good about this as a player?"
-- **No dark patterns**: No fake countdown timers, manipulative FOMO, predatory targeting of whales, or pay-to-progress gates
-- **Offline-first**: All purchased content must work without internet after initial purchase/restore
-- **Premium feel**: The shop and purchase flows must match the game's dark glass-morphism aesthetic — no cheap mobile game store vibes
-- **Platform compliance**: Follow Apple App Store and Google Play billing guidelines exactly
-- **Existing code respect**: Don't restructure working systems — extend them. Monetization is an overlay, not a rewrite.
-- **No changes to `src/components/ui/*`** unless explicitly needed for the shop
-- **All balance constants in `src/config/`** — never hardcode prices or rewards in components
-- **Types in `src/types/game.ts`** — single source of truth per project convention
-- **Test coverage**: New monetization logic must have tests in `src/test/`
-- Reference specific files and line numbers in your proposals
+1. **Model recommendation** — which model and why
+2. **Feature specs** — each revenue stream with integration details and references to existing infrastructure
+3. **Economy impact analysis** — proof that game balance is preserved
+4. **Technical architecture** — what to extend vs. what's new
+5. **Pricing sheet** — every product with recommended price
+6. **Phase 1 implementation** — build the foundation using existing infrastructure

@@ -1,6 +1,15 @@
 # Batch Work — Iterative Autonomous Loop
 
-Run an iterative loop for batch mechanical work. Best for: test coverage, refactors, documentation.
+You are running a disciplined autonomous batch loop for Dynasty Manager. You apply the project's non-negotiable constraints to every iteration without reminders. Each iteration is atomic: plan → implement → test → checkpoint.
+
+## NON-NEGOTIABLE CONSTRAINTS (Apply Every Iteration)
+
+- NEVER modify `src/components/ui/*`
+- ALWAYS run `npm run test` between iterations — a failing test means fix before continuing
+- ALWAYS spread nested objects in Zustand `set()` — direct mutation is a bug
+- ALWAYS `filter(Boolean)` when mapping player IDs to Player objects
+- NEVER put game logic in components — slices and utils only
+- NEVER hardcode balance values — use `src/config/` constants
 
 ## User Request
 
@@ -8,27 +17,36 @@ $ARGUMENTS
 
 ## Before Starting
 
-1. **Scope** — Define exactly which files/modules are targeted
-2. **Limit** — Default 5 iterations. 10+ only for test generation
-3. **Success criteria** — What does "done" look like?
+Define these three things explicitly before iteration 1:
+
+1. **Scope** — Exactly which files/modules are targeted. Name them.
+2. **Limit** — Default 5 iterations. Use 10+ only for test generation. State the limit upfront.
+3. **Success criteria** — What does "done" look like? Be specific (e.g., "every file in src/utils/ has a corresponding test file" or "orchestrationSlice.ts is below N LOC").
 
 ## Each Iteration
 
-1. Assess current state (done vs. remaining)
-2. Pick highest-value next item
-3. Implement following dynasty-manager conventions
-4. Run `npm run test` to verify
-5. If pass → next iteration. If fail → fix first.
+1. **Assess** — State current progress vs. remaining work
+2. **Pick** — Select the highest-value next item from the scope
+3. **Implement** — Follow dynasty-manager conventions (pattern match against similar existing code)
+4. **Test** — Run `npm run test`. If fail → fix before proceeding to step 5
+5. **Verify** — Does this iteration's output advance the stated success criteria? State: `Iteration N complete. Progress: [state]. Remaining: [what's left].`
+6. **Continue or stop** — Proceed to next iteration, or pause per termination conditions below
+
+## Termination Conditions — STOP and surface to user if:
+
+- An architectural decision requires human input (don't guess — ask)
+- A test fails and the fix is non-obvious after one attempt
+- You have completed 3+ iterations without measurable progress toward the success criteria
+- You reach the stated iteration limit
+
+When stopping: state `Batch paused: [reason]. Recommend: [action].`
 
 ## Common Tasks
 
-**Test coverage:** Target `src/utils/` without `src/test/` counterparts. Follow patterns in existing tests.
+**Test coverage:** Target `src/utils/` files without a `src/test/` counterpart. Read existing tests in `src/test/match.test.ts` (range assertions for probabilistic outcomes) and `src/test/longevity.test.ts` (multi-season loop helper) as pattern references. One new test file per iteration.
 
-**Refactoring:** Target `orchestrationSlice.ts` (~1,970 LOC). One extraction per iteration.
+**Refactoring:** Target `orchestrationSlice.ts` — read it first to understand its actual current size. One logical block extraction per iteration. Use `/project:refactor` for the extraction template and checkpoint format.
 
-## Rules
+**Documentation:** Target `src/utils/` exported functions missing JSDoc. One file per iteration. Write only when the WHY is non-obvious — skip self-explanatory function names.
 
-- NEVER modify `src/components/ui/*`
-- ALWAYS run `npm run test` between iterations
-- ALWAYS spread nested objects in Zustand `set()`
-- Stop if you hit an architectural decision needing human input
+**Type/config cleanup:** Find hardcoded magic numbers in `src/store/` or `src/engine/` that should be in `src/config/`. One constant move per iteration.
