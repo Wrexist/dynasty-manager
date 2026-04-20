@@ -41,12 +41,12 @@ export function BottomNav() {
   const activeTabs = isUnemployed ? unemployedTabs : tabs;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-2 safe-area-bottom pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-2 safe-area-bottom pointer-events-none [transform:translate3d(0,0,0)]">
       <nav
         role="navigation"
         aria-label="Main navigation"
         className={cn(
-          'pointer-events-auto max-w-lg mx-auto flex items-center gap-1 bg-card/40 backdrop-blur-xl border border-border/50 rounded-full p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]',
+          'pointer-events-auto max-w-lg mx-auto flex items-center gap-1 bg-card/70 backdrop-blur-md border border-border/50 rounded-full p-1 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.06)]',
           matchLocked && 'opacity-60',
         )}
       >
@@ -77,7 +77,7 @@ export function BottomNav() {
                       ? { duration: 0 }
                       : { type: 'spring', stiffness: 500, damping: 38, mass: 0.8 }
                   }
-                  className="absolute inset-0 rounded-full bg-primary/90 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.2),0_4px_16px_hsl(var(--primary)/0.35)]"
+                  className="absolute inset-0 rounded-full bg-primary/90 shadow-[inset_0_1px_0_hsl(var(--foreground)/0.2),0_2px_8px_hsl(var(--primary)/0.3)] will-change-transform"
                 />
               )}
               <span className="relative inline-flex flex-col items-center gap-0.5">

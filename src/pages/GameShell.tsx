@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/react';
-import { useEffect, useCallback, useRef, lazy, Suspense } from 'react';
+import { useEffect, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
@@ -146,6 +146,19 @@ const GameShell = () => {
     if (!gameStarted) navigate('/');
   }, [gameStarted, navigate]);
 
+  // Prefetch the hot main-tab chunks at idle so the first tap on each is instant.
+  useEffect(() => {
+    const idle = (cb: () => void) =>
+      (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback?.(cb) ??
+      setTimeout(cb, 400);
+    idle(() => {
+      import('./SquadPage');
+      import('./TacticsPage');
+      import('./TransferPage');
+      import('./InboxPage');
+    });
+  }, []);
+
   // Sync monetization state on game load
   useEffect(() => {
     let cancelled = false;
@@ -227,19 +240,7 @@ const GameShell = () => {
   }
   const Screen = screens[currentScreen] || Dashboard;
 
-  // Track navigation direction for transition animations
-  const prevScreenRef = useRef(currentScreen);
-  const direction = (() => {
-    const prev = prevScreenRef.current;
-    const prevIdx = activeTabs.indexOf(prev);
-    const curIdx = activeTabs.indexOf(currentScreen);
-    if (prevIdx >= 0 && curIdx >= 0) return curIdx > prevIdx ? 1 : curIdx < prevIdx ? -1 : 0;
-    // Detail screens slide in from right, back slides left
-    if (activeTabs.includes(currentScreen) && !activeTabs.includes(prev)) return -1;
-    if (!activeTabs.includes(currentScreen) && activeTabs.includes(prev)) return 1;
-    return 0;
-  })();
-  useEffect(() => { prevScreenRef.current = currentScreen; window.scrollTo(0, 0); }, [currentScreen]);
+  useEffect(() => { window.scrollTo(0, 0); }, [currentScreen]);
 
   return (
     <ErrorBoundary>
@@ -256,16 +257,16 @@ const GameShell = () => {
               <SubNav items={subNavGroup.items} layoutId={subNavGroup.layoutId} />
             </div>
           )}
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={currentScreen}
-              initial={{ opacity: 0, x: direction * 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: direction * -20 }}
-              transition={{ duration: 0.15 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.1, ease: 'easeOut' }}
             >
               <PageErrorBoundary>
-                <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+                <Suspense fallback={null}>
                   <Screen />
                 </Suspense>
               </PageErrorBoundary>
