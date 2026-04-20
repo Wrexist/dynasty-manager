@@ -277,9 +277,10 @@ export function LineupEditor() {
                 key={`chem-${a}-${b}`}
                 x1={x1} y1={y1} x2={x2} y2={y2}
                 stroke={color}
-                strokeWidth={strength >= 3 ? 0.6 : 0.4}
+                strokeWidth={strength >= 3 ? 0.7 : strength >= 2 ? 0.5 : 0.4}
                 strokeOpacity={isRelevant ? 0.7 : 0.12}
                 strokeLinecap="round"
+                strokeDasharray={strength === 1 ? '0.8 0.8' : undefined}
               />
             );
           })}
@@ -303,12 +304,13 @@ export function LineupEditor() {
           return (
             <div
               key={`slot-${i}`}
-              className={cn(
-                'absolute transition-opacity duration-200',
-                isFaded && 'opacity-40',
-                isSelected ? 'z-20' : 'z-10',
-              )}
-              style={{ left: `${left}%`, top: `${top}%`, transform: 'translate(-50%, -50%)' }}
+              className={cn('absolute transition-opacity duration-200', isFaded && 'opacity-40')}
+              style={{
+                left: `${left}%`,
+                top: `${top}%`,
+                transform: 'translate(-50%, -50%)',
+                zIndex: isSelected ? 40 : 10 + i,
+              }}
             >
               {player ? (
                 <PlayerCard
@@ -319,12 +321,13 @@ export function LineupEditor() {
                   chemistryLinkCount={playerChemCounts.get(player.id) || 0}
                   compatRing={!isSelected ? compat : null}
                   week={week}
+                  clubColor={club.color}
                   onClick={() => handleTap(playerId)}
                 />
               ) : (
                 <div
                   className={cn(
-                    'w-[44px] h-8 sm:w-[50px] sm:h-9 rounded-lg border border-dashed border-white/20 bg-white/5 flex items-center justify-center',
+                    'w-[48px] h-[64px] sm:w-[54px] sm:h-[72px] rounded-[7px] border border-dashed border-white/20 bg-white/5 flex items-center justify-center',
                     selectedId ? 'cursor-pointer' : '',
                     compat ? (compat === 'natural' ? 'ring-2 ring-emerald-400' : compat === 'compatible' ? 'ring-2 ring-amber-400' : 'ring-2 ring-red-500') : ''
                   )}
@@ -455,6 +458,7 @@ export function LineupEditor() {
                 compatRing={!isSelected ? benchCompat : null}
                 isBestSub={id === bestSubId}
                 week={week}
+                clubColor={club.color}
                 onClick={() => handleTap(id)}
               />
             );

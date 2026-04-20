@@ -189,10 +189,14 @@ describe('PlayerCard layout invariants', () => {
         onClick={() => { /* noop */ }}
       />,
     );
-    expect(starter.firstElementChild?.className).toContain('w-[44px]');
-    expect(starter.firstElementChild?.className).toContain('sm:w-[50px]');
-    expect(bench.firstElementChild?.className).toContain('w-[44px]');
-    expect(bench.firstElementChild?.className).toContain('sm:w-[50px]');
+    expect(starter.firstElementChild?.className).toContain('w-[48px]');
+    expect(starter.firstElementChild?.className).toContain('sm:w-[54px]');
+    expect(starter.firstElementChild?.className).toContain('h-[64px]');
+    expect(starter.firstElementChild?.className).toContain('sm:h-[72px]');
+    expect(bench.firstElementChild?.className).toContain('w-[48px]');
+    expect(bench.firstElementChild?.className).toContain('sm:w-[54px]');
+    expect(bench.firstElementChild?.className).toContain('h-[64px]');
+    expect(bench.firstElementChild?.className).toContain('sm:h-[72px]');
   });
 
   it('clamps chemistry-link count above 9 to "9+"', () => {
@@ -236,6 +240,20 @@ describe('PlayerCard layout invariants', () => {
       />,
     );
     expect(container.querySelector('[aria-label="Poor form"]')).not.toBeNull();
+  });
+
+  it('renders a nationality flag in the header', () => {
+    const { container } = render(
+      <PlayerCard
+        player={makePlayer({ nationality: 'England' })}
+        position="CM"
+        variant="starter"
+        isSelected={false}
+        chemistryLinkCount={0}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    expect(container.querySelector('img[title="England"]')).not.toBeNull();
   });
 
   it('omits the chemistry link cluster when chemistryLinkCount is 0', () => {
