@@ -151,11 +151,15 @@ const GameShell = () => {
     const idle = (cb: () => void) =>
       (window as unknown as { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback?.(cb) ??
       setTimeout(cb, 400);
+    // Prefetch failures (offline, stale hashed chunk after deploy) are
+    // non-fatal — Suspense will re-request on tap. Swallow to avoid
+    // unhandled rejections / Sentry noise.
+    const swallow = () => {};
     idle(() => {
-      import('./SquadPage');
-      import('./TacticsPage');
-      import('./TransferPage');
-      import('./InboxPage');
+      void import('./SquadPage').catch(swallow);
+      void import('./TacticsPage').catch(swallow);
+      void import('./TransferPage').catch(swallow);
+      void import('./InboxPage').catch(swallow);
     });
   }, []);
 
@@ -260,13 +264,13 @@ const GameShell = () => {
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={currentScreen}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
               transition={{ duration: 0.1, ease: 'easeOut' }}
             >
               <PageErrorBoundary>
-                <Suspense fallback={null}>
+                <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
                   <Screen />
                 </Suspense>
               </PageErrorBoundary>

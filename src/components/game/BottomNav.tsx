@@ -41,7 +41,7 @@ export function BottomNav() {
   const activeTabs = isUnemployed ? unemployedTabs : tabs;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-2 safe-area-bottom pointer-events-none [transform:translate3d(0,0,0)]">
+    <div className="fixed bottom-0 left-0 right-0 z-50 px-3 pt-2 pb-2 safe-area-bottom pointer-events-none transform-gpu">
       <nav
         role="navigation"
         aria-label="Main navigation"
