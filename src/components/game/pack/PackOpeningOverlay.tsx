@@ -319,14 +319,17 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
             >
               {/* AI cover art (when present) — sits beneath the gloss/border
                   overlays so the gradient frame still reads as the "pack". */}
-              {tierDef.artSrc && (
-                <PackArt
-                  src={tierDef.artSrc}
-                  loading="eager"
-                  className="absolute inset-0 w-full h-full object-cover object-center"
-                  fallback={null}
-                />
-              )}
+              <PackArt
+                src={tierDef.artSrc}
+                loading="eager"
+                className="absolute inset-0 w-full h-full object-cover object-center"
+                fallback={
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
+                  />
+                }
+              />
               <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/40" />
               <div className="absolute inset-3 rounded-xl border border-white/25" />
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white px-4 text-center">

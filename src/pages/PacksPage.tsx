@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Package, Coins, Flame, AlertCircle } from 'lucide-react';
@@ -48,6 +48,10 @@ const PacksPage = () => {
     // Drop this player from the live overlay view
     setOpening(prev => prev ? { ...prev, players: prev.players.filter(p => p.id !== playerId) } : prev);
   };
+
+  useEffect(() => {
+    PACK_TIERS.forEach((t) => { if (t.artSrc) { const img = new Image(); img.src = t.artSrc; } });
+  }, []);
 
   const budget = club?.budget ?? 0;
   const squadSize = club?.playerIds.length ?? 0;
@@ -199,16 +203,26 @@ const PacksPage = () => {
                     className="shrink-0 w-28 text-left rounded-xl border border-white/10 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                     style={{ background: `linear-gradient(135deg, ${tier.gradientFrom}, ${tier.gradientTo})` }}
                   >
-                    <div className="p-2 text-white">
-                      <p className="text-[9px] uppercase tracking-widest opacity-80 truncate">{tier.label}</p>
-                      <p className="text-2xl font-display font-black leading-none mt-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{rec.topOvr}</p>
-                      <p className={cn(
-                        'text-[9px] uppercase tracking-widest mt-1 inline-block px-1.5 py-0.5 rounded',
-                        tierBadgeClass(rec.topOvr),
-                      )}>
-                        Top Pull
-                      </p>
-                      <p className="text-[9px] opacity-80 mt-1">S{rec.season} · W{rec.week}</p>
+                    <div className="flex gap-2 p-2 text-white">
+                      {tier.artSrc && (
+                        <img
+                          src={tier.artSrc}
+                          alt=""
+                          aria-hidden
+                          className="w-6 h-8 rounded-sm object-cover shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-[9px] uppercase tracking-widest opacity-80 truncate">{tier.label}</p>
+                        <p className="text-2xl font-display font-black leading-none mt-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{rec.topOvr}</p>
+                        <p className={cn(
+                          'text-[9px] uppercase tracking-widest mt-1 inline-block px-1.5 py-0.5 rounded',
+                          tierBadgeClass(rec.topOvr),
+                        )}>
+                          Top Pull
+                        </p>
+                        <p className="text-[9px] opacity-80 mt-1">S{rec.season} · W{rec.week}</p>
+                      </div>
                     </div>
                   </button>
                 );
