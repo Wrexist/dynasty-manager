@@ -17,8 +17,9 @@ interface PackShopCardProps {
 
 /**
  * Slim pack card — the pack art is the visual. No tier-coloured backdrop,
- * no overlaid info panel. A compact footer row below the art shows label,
- * price, and a small Open pill. Guarantee badge floats over the art.
+ * no overlaid info panel, no hairline frame (the art bleeds to the page).
+ * A compact footer row below the art shows label, price, and a small Open
+ * pill. Guarantee badge floats over the art.
  */
 export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured }: PackShopCardProps) {
   const disabled = !affordable || !squadOk;
@@ -42,7 +43,6 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
       <div
         className={cn(
           'relative w-full overflow-hidden rounded-2xl isolate',
-          'border border-white/10',
           !disabled && 'shadow-[0_14px_32px_-16px_rgba(0,0,0,0.8)]',
           featured ? 'aspect-[4/5]' : 'aspect-[3/4]',
         )}
