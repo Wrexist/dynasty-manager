@@ -1,5 +1,9 @@
 import type { PlayerTemplate } from '@/data/playerTemplates';
 
+// NOTE: The 7 community-pack-only leagues (arg, aus, bra, ind, kor, mls, sau)
+// are intentionally NOT imported here. Their squad data lives behind a
+// dynamic import at src/data/communityPack/cpLeagueSquads.ts so it only
+// ships to users who opt in to the community pack at new-game time.
 import { SQUADS as AUSTRIA_SQUADS } from './austria';
 import { SQUADS as BELGIUM_SQUADS } from './belgium';
 import { SQUADS as BULGARIA_SQUADS } from './bulgaria';

@@ -145,6 +145,11 @@ export function removeSessionKey(key: string): void {
 export const STORAGE_KEYS = {
   /** sessionStorage: mid-onboarding draft (club selection). Tab-scoped. */
   ONBOARDING_DRAFT: 'dynasty-onboarding-draft',
+  /** sessionStorage: in-flight community pack opt-in for new-game onboarding.
+   *  Set by the community pack popup before the user reaches club selection;
+   *  null until the popup is answered. Tab-scoped, cleared once the career
+   *  starts (initGame writes the answer onto the save slot itself). */
+  COMMUNITY_PACK_DRAFT: 'dynasty-community-pack-draft',
   /** localStorage: in-session snapshot for crash recovery. */
   SESSION_SNAPSHOT: 'dynasty-session-snapshot',
   /** localStorage: persistent Hall of Managers data. */
