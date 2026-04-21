@@ -1,13 +1,19 @@
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
-import { removeFlag, clearFlagsByPrefix, deleteAllDynastyData } from '@/store/helpers/persistence';
+import {
+  removeFlag,
+  clearFlagsByPrefix,
+  deleteAllDynastyData,
+  readCommunityPackSlotPref,
+  writeCommunityPackSlotPref,
+} from '@/store/helpers/persistence';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
@@ -52,6 +58,8 @@ function ToggleRow({ icon: Icon, label, description, value, onChange }: {
 const SettingsPage = () => {
   const settings = useGameStore(s => s.settings);
   const monetization = useGameStore(s => s.monetization);
+  const activeSlot = useGameStore(s => s.activeSlot);
+  const currentCommunityPack = useGameStore(s => s.communityPackEnabled);
   const updateSettings = useGameStore(s => s.updateSettings);
   const flushSave = useGameStore(s => s.flushSave);
   const loadGame = useGameStore(s => s.loadGame);
@@ -67,6 +75,14 @@ const SettingsPage = () => {
   useEffect(() => () => { clearTimeout(savedTimerRef.current); }, []);
   const [restoringPurchases, setRestoringPurchases] = useState(false);
   const [showDeleteDataConfirm, setShowDeleteDataConfirm] = useState(false);
+  // The toggle controls the default for *future* new games on this slot. Seeded
+  // from the per-slot localStorage pref; falls back to the current save's
+  // communityPackEnabled when the pref hasn't been recorded yet (e.g. old saves
+  // created before per-slot prefs existed).
+  const [communityPackPref, setCommunityPackPref] = useState<boolean>(() => {
+    const stored = readCommunityPackSlotPref(activeSlot);
+    return stored === null ? currentCommunityPack === true : stored;
+  });
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -188,6 +204,25 @@ const SettingsPage = () => {
             onChange={() => updateSettings({ confirmAllOffers: !settings.confirmAllOffers })}
           />
         </div>
+      </GlassPanel>
+
+      {/* ─── Community Pack ─── */}
+      <GlassPanel className="p-4">
+        <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">Community Pack</h3>
+        <ToggleRow
+          icon={Users}
+          label="Use Real Players (Community Pack)"
+          description="Real players and squads, dynamic market, new leagues, FC26-inspired ratings."
+          value={communityPackPref}
+          onChange={() => {
+            const next = !communityPackPref;
+            setCommunityPackPref(next);
+            writeCommunityPackSlotPref(activeSlot, next);
+          }}
+        />
+        <p className="text-[10px] text-amber-400/80 leading-snug mt-3">
+          Changing this requires starting a new game. Existing progress uses the current setting.
+        </p>
       </GlassPanel>
 
       {/* ─── Display & Accessibility ─── */}
