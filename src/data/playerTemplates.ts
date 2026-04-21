@@ -18,6 +18,10 @@ export interface PlayerTemplate {
   // FC25 metadata
   altPos?: Position[];   // alternate positions the player can fill naturally
   skillMoves?: number;   // 1-5 star skill moves rating
+  source?: 'generated' | 'real';
+  fcId?: string;
+  heightCm?: number;
+  weightKg?: number;
 }
 
 import { ALL_SQUAD_TEMPLATES } from '@/data/squads';

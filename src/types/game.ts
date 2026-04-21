@@ -173,6 +173,10 @@ export interface Player {
   ballonDOrPlacements?: BallonDOrPlacement[];
   seasonRatingTotal?: number;   // cumulative match ratings this season (for avg rating calc)
   seasonRatedMatches?: number;  // number of matches with ratings this season
+  source?: 'generated' | 'real';
+  fcId?: string;
+  heightCm?: number;
+  weightKg?: number;
 }
 
 export interface PlayerAppearance {

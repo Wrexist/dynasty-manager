@@ -421,4 +421,14 @@ export interface GameState {
   lastPackSeason: number;
   openPack: (tier: PackTierKey) => OpenPackResult;
   releasePackedPlayer: (playerId: string) => ReleasePackedPlayerResult;
+
+  // Community Pack
+  communityPackEnabled: boolean;
+  cpPool: {
+    shuffleSeed: number;
+    cursor: number;
+    usedFcIds: string[];
+    marketListings: string[];
+    lastMarketRefreshWeek: number;
+  };
 }
