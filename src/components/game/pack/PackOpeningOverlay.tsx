@@ -279,78 +279,232 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
         )}
       </AnimatePresence>
 
-      {/* The pack itself — visible during arrival + charge + fade on explode */}
+      {/* The pack itself — visible during arrival + charge + tears open on explode.
+          The pack art asset already carries its own marble/foil styling, so we
+          skip the gradient frame / inset borders that were fighting the artwork.
+          Layout: two halves of the same image stacked via clip-path so we can
+          rip the pack in two on the explode beat. */}
       <AnimatePresence>
-        {(phase === 'arrival' || phase === 'charge') && (
+        {(phase === 'arrival' || phase === 'charge' || phase === 'explode') && (
           <motion.div
             key="pack"
             className="relative flex flex-col items-center justify-center pointer-events-none"
             style={{
-              width: 220,
-              height: 300,
-              ...(phase === 'charge' ? { willChange: 'transform' } : null),
+              width: 260,
+              height: 360,
+              perspective: 1200,
+              ...(phase === 'charge' || phase === 'explode' ? { willChange: 'transform' } : null),
             }}
-            initial={{ opacity: 0, scale: 0.2, rotateY: 40, y: 120 }}
-            animate={phase === 'charge' ? {
-              opacity: 1, scale: 1, rotateY: 0, y: 0,
-              x: prefersReducedMotion ? 0 : [0, -4, 4, -6, 6, -8, 8, -10, 10, -8, 8, -6, 6, -4, 4, 0],
-            } : {
-              opacity: 1, scale: 1, rotateY: 0, y: 0,
-            }}
-            exit={{ opacity: 0, scale: 1.3 }}
+            initial={{ opacity: 0, scale: 0.25, rotateY: 50, rotateX: -20, y: 140 }}
+            animate={(() => {
+              if (phase === 'explode') {
+                return { opacity: 1, scale: 1.06, rotateY: 0, rotateX: 0, y: 0 };
+              }
+              if (phase === 'charge') {
+                return {
+                  opacity: 1,
+                  scale: prefersReducedMotion ? 1 : [1, 1.02, 1, 1.04, 1, 1.05],
+                  rotateY: 0,
+                  rotateX: prefersReducedMotion ? 0 : [0, -2, 2, -3, 3, 0],
+                  y: 0,
+                  x: prefersReducedMotion ? 0 : [0, -4, 4, -6, 6, -8, 8, -10, 10, -8, 8, -6, 6, -4, 4, 0],
+                };
+              }
+              return { opacity: 1, scale: 1, rotateY: 0, rotateX: 0, y: 0 };
+            })()}
+            exit={{ opacity: 0, scale: 1.25 }}
             transition={phase === 'charge' && !prefersReducedMotion
-              ? { x: { duration: 0.35, repeat: Infinity, ease: 'linear' } }
-              : { type: 'spring', stiffness: 240, damping: 18 }
+              ? {
+                  x: { duration: 0.35, repeat: Infinity, ease: 'linear' },
+                  scale: { duration: chargeLength / 1000, ease: 'easeIn' },
+                  rotateX: { duration: 0.6, repeat: Infinity, ease: 'easeInOut' },
+                }
+              : phase === 'explode'
+                ? { duration: 0.25, ease: [0.22, 1, 0.36, 1] }
+                : { type: 'spring', stiffness: 220, damping: 16 }
             }
           >
             {/* Floor shadow */}
             <motion.div
-              className="absolute left-1/2 -translate-x-1/2 -bottom-4 w-40 h-4 rounded-full bg-black/70"
-              style={{ filter: 'blur(12px)' }}
+              className="absolute left-1/2 -translate-x-1/2 -bottom-2 w-48 h-5 rounded-full bg-black/75"
+              style={{ filter: 'blur(14px)' }}
               initial={{ opacity: 0, scaleX: 0.4 }}
-              animate={{ opacity: 0.8, scaleX: 1 }}
+              animate={phase === 'explode'
+                ? { opacity: 0, scaleX: 1.4 }
+                : { opacity: 0.85, scaleX: 1 }}
               transition={{ duration: 0.5 }}
             />
 
-            {/* Pack body */}
-            <div
-              className="relative w-full h-full rounded-2xl overflow-hidden border border-white/15 shadow-[0_30px_60px_rgba(0,0,0,0.6)]"
-              style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
-            >
-              {/* AI cover art (when present) — sits beneath the gloss/border
-                  overlays so the gradient frame still reads as the "pack". */}
-              <PackArt
-                src={tierDef.artSrc}
-                loading="eager"
-                className="absolute inset-0 w-full h-full object-cover object-center"
-                fallback={
-                  <div
-                    className="absolute inset-0"
-                    style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
-                  />
-                }
-              />
-              <div className="absolute inset-0 bg-gradient-to-br from-white/10 via-transparent to-black/40" />
-              <div className="absolute inset-3 rounded-xl border border-white/25" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-white px-4 text-center">
-                <span className="text-[10px] uppercase tracking-[0.35em] font-semibold opacity-80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">Dynasty Pack</span>
-                <span className="text-3xl font-display font-black drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)]">{tierDef.label}</span>
-                <span className="text-[11px] opacity-80 drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">{tierDef.cards} Players</span>
-              </div>
+            {/* Radiating light rays behind the pack during charge. Motion
+                handles opacity fade; inner CSS class handles the steady
+                rotation so Framer Motion's transform doesn't clobber it. */}
+            <AnimatePresence>
+              {phase === 'charge' && !prefersReducedMotion && (
+                <motion.div
+                  key="rays"
+                  className="absolute inset-0 pointer-events-none overflow-visible"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: [0, 0.5, 0.9] }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: chargeLength / 1000, ease: 'easeIn' }}
+                >
+                  <div className="pack-rays" />
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-              {/* Glow leaks during charge — color tells the rarity story */}
+            {/* Ambient halo — tier-tinted radial glow behind the pack. Grows
+                with the charge so it reads like the pack is about to burst. */}
+            <motion.div
+              className="absolute inset-[-30%] rounded-full pointer-events-none"
+              style={{
+                background: `radial-gradient(circle at 50% 50%, color-mix(in srgb, ${tierDef.accent} 45%, transparent) 0%, transparent 60%)`,
+                mixBlendMode: 'screen',
+                filter: 'blur(20px)',
+              }}
+              initial={{ opacity: 0.25, scale: 0.85 }}
+              animate={phase === 'charge'
+                ? { opacity: [0.35, 0.75, 0.95], scale: [0.85, 1.05, 1.25] }
+                : phase === 'explode'
+                  ? { opacity: 1, scale: 1.4 }
+                  : { opacity: 0.45, scale: 1 }}
+              transition={{
+                duration: phase === 'charge' ? chargeLength / 1000 : 0.3,
+                ease: 'easeOut',
+              }}
+            />
+
+            {/* The pack art itself — split into two halves so explode can tear
+                it apart along a jagged horizontal seam. Each half shows the
+                same asset but clipped to its slice. When not exploding the
+                seam is invisible since the halves align pixel-perfect. */}
+            <div
+              className="relative w-full h-full"
+              style={{ transformStyle: 'preserve-3d' }}
+            >
+              {/* Top half */}
+              <motion.div
+                className="absolute inset-0"
+                style={{
+                  clipPath:
+                    'polygon(0 0, 100% 0, 100% 48%, 92% 50%, 85% 49%, 78% 51%, 70% 49%, 62% 51%, 55% 49%, 48% 52%, 40% 50%, 32% 52%, 24% 50%, 16% 52%, 8% 50%, 0 52%)',
+                  willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
+                  filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.6))',
+                }}
+                initial={{ y: 0, rotate: 0, opacity: 1 }}
+                animate={phase === 'explode'
+                  ? { y: -460, rotate: -12, opacity: 0 }
+                  : { y: 0, rotate: 0, opacity: 1 }}
+                transition={phase === 'explode'
+                  ? { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+                  : { duration: 0 }}
+              >
+                <PackArt
+                  src={tierDef.artSrc}
+                  loading="eager"
+                  className="absolute inset-0 w-full h-full object-contain object-center"
+                  fallback={
+                    <div
+                      className="absolute inset-0 rounded-2xl border border-white/15"
+                      style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
+                    />
+                  }
+                />
+              </motion.div>
+
+              {/* Bottom half */}
+              <motion.div
+                className="absolute inset-0"
+                style={{
+                  clipPath:
+                    'polygon(0 52%, 8% 50%, 16% 52%, 24% 50%, 32% 52%, 40% 50%, 48% 52%, 55% 49%, 62% 51%, 70% 49%, 78% 51%, 85% 49%, 92% 50%, 100% 48%, 100% 100%, 0 100%)',
+                  willChange: phase === 'explode' ? 'transform, opacity' : 'auto',
+                  filter: 'drop-shadow(0 20px 40px rgba(0,0,0,0.6))',
+                }}
+                initial={{ y: 0, rotate: 0, opacity: 1 }}
+                animate={phase === 'explode'
+                  ? { y: 460, rotate: 12, opacity: 0 }
+                  : { y: 0, rotate: 0, opacity: 1 }}
+                transition={phase === 'explode'
+                  ? { duration: 0.6, ease: [0.22, 1, 0.36, 1] }
+                  : { duration: 0 }}
+              >
+                <PackArt
+                  src={tierDef.artSrc}
+                  loading="eager"
+                  className="absolute inset-0 w-full h-full object-contain object-center"
+                  fallback={
+                    <div
+                      className="absolute inset-0 rounded-2xl border border-white/15"
+                      style={{ background: `linear-gradient(160deg, ${tierDef.gradientFrom}, ${tierDef.gradientTo})` }}
+                    />
+                  }
+                />
+              </motion.div>
+
+              {/* Seam flash — bright line along the tear as it opens */}
+              <AnimatePresence>
+                {phase === 'explode' && (
+                  <motion.div
+                    key="seam-flash"
+                    className="absolute left-0 right-0 pointer-events-none"
+                    style={{
+                      top: '50%',
+                      height: 6,
+                      background: `linear-gradient(90deg, transparent, ${tierDef.accent}, white, ${tierDef.accent}, transparent)`,
+                      boxShadow: `0 0 24px ${tierDef.accent}, 0 0 48px white`,
+                      transform: 'translateY(-50%)',
+                      filter: 'blur(1px)',
+                    }}
+                    initial={{ opacity: 0, scaleX: 0 }}
+                    animate={{ opacity: [0, 1, 1, 0], scaleX: [0, 1, 1.1, 1.2] }}
+                    transition={{ duration: 0.55, ease: 'easeOut' }}
+                  />
+                )}
+              </AnimatePresence>
+
+              {/* Text overlay — sits across both halves but uses its own
+                  absolute positioning so it fades out quickly on explode
+                  while the halves still have time to fly away. Heavy dark
+                  outline (webkit-text-stroke + shadow stack) keeps it
+                  readable against the white-marble centre of the artwork. */}
+              <motion.div
+                className="absolute inset-0 flex flex-col items-center justify-end pb-10 gap-1 text-white px-4 text-center pointer-events-none"
+                initial={{ opacity: 0, y: 10 }}
+                animate={phase === 'explode'
+                  ? { opacity: 0, y: -10 }
+                  : { opacity: 1, y: 0 }}
+                transition={phase === 'explode'
+                  ? { duration: 0.15 }
+                  : { duration: 0.5, delay: 0.2 }}
+              >
+                <span className="pack-subtitle-outline text-[10px] uppercase tracking-[0.4em] font-semibold">
+                  Dynasty Pack
+                </span>
+                <span className="pack-title-outline text-4xl font-display font-black leading-none">
+                  {tierDef.label}
+                </span>
+                <span className="pack-subtitle-outline text-[11px] font-medium tracking-wide opacity-95">
+                  {tierDef.cards} {tierDef.cards === 1 ? 'Player' : 'Players'}
+                </span>
+              </motion.div>
+
+              {/* Tier-coloured glow leaks during charge — escaping through
+                  the tear seam and around the pack body. Tinted by the top
+                  pull's tier so the rarity is subtly telegraphed. */}
               <AnimatePresence>
                 {phase === 'charge' && (
                   <motion.div
                     key="leaks"
                     className="absolute inset-0 mix-blend-screen pointer-events-none"
                     style={{
-                      background: `radial-gradient(circle at 30% 40%, ${topTier.gradientVia}cc, transparent 40%),
-                                   radial-gradient(circle at 70% 60%, ${topTier.gradientTo}cc, transparent 45%),
-                                   radial-gradient(circle at 50% 20%, ${topTier.gradientFrom}aa, transparent 50%)`,
+                      background: `radial-gradient(circle at 50% 50%, ${topTier.gradientVia}dd, transparent 45%),
+                                   radial-gradient(circle at 30% 40%, ${topTier.gradientTo}aa, transparent 35%),
+                                   radial-gradient(circle at 70% 60%, ${topTier.gradientFrom}aa, transparent 35%)`,
+                      filter: 'blur(2px)',
                     }}
                     initial={{ opacity: 0 }}
-                    animate={{ opacity: [0, 0.9, 0.7, 1] }}
+                    animate={{ opacity: [0, 0.7, 0.85, 1] }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: chargeLength / 1000, ease: 'easeIn' }}
                   />
@@ -360,8 +514,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
               {/* Continuous shimmer sweep on arrival */}
               {phase === 'arrival' && !prefersReducedMotion && (
                 <motion.div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{ background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%)' }}
+                  className="absolute inset-0 pointer-events-none overflow-hidden"
+                  style={{
+                    background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%)',
+                    mixBlendMode: 'overlay',
+                  }}
                   initial={{ x: '-100%' }}
                   animate={{ x: '120%' }}
                   transition={{ duration: 1.2, ease: 'easeInOut', repeat: Infinity }}

@@ -191,6 +191,62 @@
       will-change: auto;
     }
   }
+
+  /* Pack-title outlined text. Used on the flying-in pack so the label reads
+     against any region of the pack art (white marble + gold ribbons). Paint
+     order puts the stroke behind the fill; the shadow stack adds a soft dark
+     halo on top of the stroke for extra separation. */
+  .pack-title-outline {
+    paint-order: stroke fill;
+    -webkit-text-stroke: 3px rgba(0, 0, 0, 0.85);
+    text-shadow:
+      0 0 6px rgba(0, 0, 0, 0.65),
+      0 2px 4px rgba(0, 0, 0, 0.75),
+      0 4px 16px rgba(0, 0, 0, 0.55);
+  }
+  .pack-subtitle-outline {
+    paint-order: stroke fill;
+    -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.85);
+    text-shadow:
+      0 0 4px rgba(0, 0, 0, 0.6),
+      0 1px 3px rgba(0, 0, 0, 0.8);
+  }
+
+  /* Radiating light rays behind the pack during the charge beat. A conic
+     gradient of alternating transparent/white slices, blurred and rotated
+     at a steady pace. Sits on the compositor fast path. */
+  @keyframes packRayRotate {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to   { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+  .pack-rays {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 180%;
+    height: 180%;
+    background: conic-gradient(from 0deg,
+      transparent 0deg, rgba(255,255,255,0.18) 6deg, transparent 12deg,
+      transparent 30deg, rgba(255,255,255,0.10) 36deg, transparent 42deg,
+      transparent 60deg, rgba(255,255,255,0.18) 66deg, transparent 72deg,
+      transparent 90deg, rgba(255,255,255,0.10) 96deg, transparent 102deg,
+      transparent 120deg, rgba(255,255,255,0.18) 126deg, transparent 132deg,
+      transparent 150deg, rgba(255,255,255,0.10) 156deg, transparent 162deg,
+      transparent 180deg, rgba(255,255,255,0.18) 186deg, transparent 192deg,
+      transparent 210deg, rgba(255,255,255,0.10) 216deg, transparent 222deg,
+      transparent 240deg, rgba(255,255,255,0.18) 246deg, transparent 252deg,
+      transparent 270deg, rgba(255,255,255,0.10) 276deg, transparent 282deg,
+      transparent 300deg, rgba(255,255,255,0.18) 306deg, transparent 312deg,
+      transparent 330deg, rgba(255,255,255,0.10) 336deg, transparent 342deg);
+    filter: blur(4px);
+    mix-blend-mode: screen;
+    animation: packRayRotate 9s linear infinite;
+    will-change: transform;
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pack-rays { animation: none; }
+  }
 }
 
 /* Match event fade-in animation */
