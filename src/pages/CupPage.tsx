@@ -8,6 +8,7 @@ import { Trophy, Shield, ChevronRight, ChevronDown, Calendar, Target } from 'luc
 import type { CupRound, CupTie } from '@/types/game';
 import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
+import { GlassPanel } from '@/components/game/GlassPanel';
 
 function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: string; clubs: Record<string, { name: string; shortName: string; color: string }> }) {
   const home = clubs[tie.homeClubId];
@@ -18,10 +19,7 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
     : null;
 
   return (
-    <div className={cn(
-      'bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-3',
-      isPlayerMatch && 'ring-1 ring-primary/40'
-    )}>
+    <GlassPanel className={cn('p-3', isPlayerMatch && 'ring-1 ring-primary/40')}>
       <div className="flex items-center gap-2">
         {/* Home */}
         <div className={cn('flex-1 flex items-center gap-2', winnerId === tie.homeClubId && 'font-bold')}>
@@ -74,7 +72,7 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
           Pens: {tie.penaltyShootout.home}-{tie.penaltyShootout.away}
         </div>
       )}
-    </div>
+    </GlassPanel>
   );
 }
 

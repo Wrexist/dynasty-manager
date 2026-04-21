@@ -84,22 +84,22 @@ function TournamentView({ tournament, competition }: { tournament: ContinentalTo
         </motion.div>
       )}
 
-      {/* Tab navigation */}
-      <div className="flex gap-1 bg-card/40 rounded-lg p-1 relative">
+      {/* Tab navigation — liquid-glass segmented control */}
+      <div className="flex gap-1 p-0.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-1px_0_rgba(0,0,0,0.28)] relative">
         {(['groups', 'knockout'] as const).map(t => (
           <button
             key={t}
             onClick={() => t === 'knockout' && tournament.knockoutTies.length === 0 ? undefined : setTab(t)}
             disabled={t === 'knockout' && tournament.knockoutTies.length === 0}
             className={cn(
-              'flex-1 py-1.5 text-xs font-medium rounded-md transition-colors relative z-10',
-              tab === t ? 'text-foreground' : t === 'knockout' && tournament.knockoutTies.length === 0 ? 'text-muted-foreground/40' : 'text-muted-foreground'
+              'flex-1 py-1.5 text-xs font-semibold rounded-full transition-colors relative z-10',
+              tab === t ? 'text-foreground' : t === 'knockout' && tournament.knockoutTies.length === 0 ? 'text-muted-foreground/40' : 'text-muted-foreground hover:text-foreground'
             )}
           >
             {tab === t && (
               <motion.div
                 layoutId="continental-tab"
-                className="absolute inset-0 bg-card rounded-md shadow-sm"
+                className="absolute inset-0 rounded-full bg-white/12 border border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),inset_0_-1px_0_rgba(0,0,0,0.25)]"
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}

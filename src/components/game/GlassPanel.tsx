@@ -2,6 +2,21 @@ import { useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
 
+/**
+ * Shared liquid-glass class string — use via `cn(LIQUID_GLASS_SURFACE, ...)`
+ * on elements that need the GlassPanel look but can't use the `<GlassPanel>`
+ * component directly (e.g. `<motion.button>` with hover/press animation,
+ * interactive cards that need their own event handlers, etc.).
+ *
+ * This is the single source of truth for the liquid-glass surface. Changes
+ * here ripple everywhere the constant is imported.
+ */
+export const LIQUID_GLASS_SURFACE =
+  'relative overflow-hidden rounded-2xl ' +
+  'bg-gradient-to-br from-[hsl(222_35%_14%/0.65)] via-[hsl(222_28%_10%/0.7)] to-[hsl(222_40%_7%/0.78)] ' +
+  'backdrop-blur-2xl backdrop-saturate-150 ' +
+  'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-1px_0_rgba(0,0,0,0.4),0_14px_36px_-16px_rgba(0,0,0,0.55)]';
+
 interface GlassPanelProps {
   children: React.ReactNode;
   className?: string;

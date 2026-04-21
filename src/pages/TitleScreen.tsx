@@ -5,6 +5,7 @@ import { useGameStore } from '@/store/gameStore';
 import { getSlotSummaries } from '@/store/slices/orchestrationSlice';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { GlassPanel } from '@/components/game/GlassPanel';
 import { Play, Settings, RotateCcw, Trash2, Save, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
@@ -193,7 +194,7 @@ const TitleScreen = () => {
         {slots.map((slot, idx) => (
           <motion.div key={slot.slot} custom={idx + 1} variants={buttonVariants} initial="hidden" animate="visible">
             {slot.exists ? (
-              <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-3">
+              <GlassPanel className="p-3">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <Save className="w-4 h-4 text-primary" />
@@ -241,7 +242,7 @@ const TitleScreen = () => {
                     </Button>
                   )}
                 </div>
-              </div>
+              </GlassPanel>
             ) : (
               <Button
                 size="lg"
@@ -280,7 +281,7 @@ const TitleScreen = () => {
               </SheetHeader>
               <div className="space-y-3 py-4 overflow-y-auto">
                 {/* Match Speed */}
-                <div className="bg-card/60 rounded-xl p-4">
+                <GlassPanel className="p-4">
                   <h3 className="text-sm font-semibold text-foreground mb-3">Match Speed</h3>
                   <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
                     {MATCH_SPEEDS.map(s => {
@@ -304,10 +305,10 @@ const TitleScreen = () => {
                       );
                     })}
                   </div>
-                </div>
+                </GlassPanel>
 
                 {/* Display */}
-                <div className="bg-card/60 rounded-xl p-4">
+                <GlassPanel className="p-4">
                   <h3 className="text-sm font-semibold text-foreground mb-3">Display</h3>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -347,10 +348,10 @@ const TitleScreen = () => {
                       </button>
                     </div>
                   </div>
-                </div>
+                </GlassPanel>
 
                 {/* Purchases & Subscription */}
-                <div className="bg-card/60 rounded-xl p-4">
+                <GlassPanel className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-sm font-semibold text-foreground">Purchases</h3>
                     {userIsPro && (
@@ -406,10 +407,10 @@ const TitleScreen = () => {
                   <p className="text-[10px] text-muted-foreground mt-2">
                     Restore previously purchased items from your App Store or Play Store account.
                   </p>
-                </div>
+                </GlassPanel>
 
                 {/* Support */}
-                <div className="bg-card/60 rounded-xl p-4">
+                <GlassPanel className="p-4">
                   <h3 className="text-sm font-semibold text-foreground mb-3">Support</h3>
                   <Button
                     variant="secondary"
@@ -419,10 +420,10 @@ const TitleScreen = () => {
                     <Mail className="w-4 h-4" />
                     Contact Support
                   </Button>
-                </div>
+                </GlassPanel>
 
                 {/* Help */}
-                <div className="bg-card/60 rounded-xl p-4">
+                <GlassPanel className="p-4">
                   <h3 className="text-sm font-semibold text-foreground mb-3">Help</h3>
                   <Button
                     variant="secondary"
@@ -436,10 +437,10 @@ const TitleScreen = () => {
                     <HelpCircle className="w-4 h-4" />
                     Replay Tutorial
                   </Button>
-                </div>
+                </GlassPanel>
 
                 {/* About */}
-                <div className="bg-card/60 rounded-xl p-4 space-y-3">
+                <GlassPanel className="p-4 space-y-3">
                   <div className="flex items-center gap-3">
                     <img
                       src="/logo.png"
@@ -455,7 +456,7 @@ const TitleScreen = () => {
                     A football management simulation. Pick a club, manage your squad, set tactics,
                     handle transfers, and lead your team to glory across multiple seasons.
                   </p>
-                </div>
+                </GlassPanel>
 
                 <p className="text-[10px] text-muted-foreground/50 text-center pb-2">
                   Game data is saved locally in your browser.

@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { getRoundName, ROUND_ORDER, CUP_BYE_MARKER } from '@/data/cup';
 import { LEAGUE_CUP_WEEKS } from '@/config/continental';
 import { TournamentHeader } from '@/components/game/TournamentHeader';
+import { GlassPanel } from '@/components/game/GlassPanel';
 import { cn } from '@/lib/utils';
 import { Shield, ChevronRight, ChevronDown, Calendar, Award, Target } from 'lucide-react';
 import type { CupRound, CupTie } from '@/types/game';
@@ -19,10 +20,7 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
     : null;
 
   return (
-    <div className={cn(
-      'bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-3',
-      isPlayerMatch && 'ring-1 ring-cyan-400/40'
-    )}>
+    <GlassPanel className={cn('p-3', isPlayerMatch && 'ring-1 ring-cyan-400/40')}>
       <div className="flex items-center gap-2">
         <div className={cn('flex-1 flex items-center gap-2', winnerId === tie.homeClubId && 'font-bold')}>
           <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{ backgroundColor: home?.color || '#888' }}>
@@ -70,7 +68,7 @@ function TieCard({ tie, playerClubId, clubs }: { tie: CupTie; playerClubId: stri
           Pens: {tie.penaltyShootout.home}-{tie.penaltyShootout.away}
         </div>
       )}
-    </div>
+    </GlassPanel>
   );
 }
 
