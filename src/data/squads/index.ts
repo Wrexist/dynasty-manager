@@ -1,5 +1,6 @@
 import type { PlayerTemplate } from '@/data/playerTemplates';
 
+import { SQUADS as ARG_SQUADS } from './arg';
 import { SQUADS as AUSTRIA_SQUADS } from './austria';
 import { SQUADS as BELGIUM_SQUADS } from './belgium';
 import { SQUADS as BULGARIA_SQUADS } from './bulgaria';
@@ -41,6 +42,7 @@ import { SQUADS as UKRAINE_SQUADS } from './ukraine';
 
 /** All club squad templates, keyed by club ID */
 export const ALL_SQUAD_TEMPLATES: Record<string, PlayerTemplate[]> = {
+  ...ARG_SQUADS,
   ...AUSTRIA_SQUADS,
   ...BELGIUM_SQUADS,
   ...BULGARIA_SQUADS,

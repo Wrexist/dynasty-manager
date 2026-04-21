@@ -38,8 +38,9 @@ import { LEAGUE_INFO as ISL_LEAGUE, CLUBS as ISL_CLUBS } from './iceland';
 import { LEAGUE_INFO as IRL_LEAGUE, CLUBS as IRL_CLUBS } from './ireland';
 import { LEAGUE_INFO as ISR_LEAGUE, CLUBS as ISR_CLUBS } from './israel';
 import { LEAGUE_INFO as CYP_LEAGUE, CLUBS as CYP_CLUBS } from './cyprus';
+import { LEAGUE_INFO as ARG_LEAGUE, CLUBS as ARG_CLUBS } from './arg';
 
-/** All league definitions (30 countries, 38 total divisions) */
+/** All league definitions (31 countries, 39 total divisions) */
 export const ALL_LEAGUES: LeagueInfo[] = [
   ENG_LEAGUE, ENG2_LEAGUE, ENG3_LEAGUE, ENG4_LEAGUE,
   ESP_LEAGUE, ESP2_LEAGUE,
@@ -51,6 +52,7 @@ export const ALL_LEAGUES: LeagueInfo[] = [
   AUT_LEAGUE, SCO_LEAGUE, SWE_LEAGUE, CRO_LEAGUE, HUN_LEAGUE,
   SRB_LEAGUE, ROU_LEAGUE, UKR_LEAGUE, BUL_LEAGUE, SVK_LEAGUE,
   FIN_LEAGUE, ISL_LEAGUE, IRL_LEAGUE, ISR_LEAGUE, CYP_LEAGUE,
+  ARG_LEAGUE,
 ];
 
 /** All clubs across all leagues and divisions */
@@ -65,6 +67,7 @@ export const ALL_CLUBS_DATA: ClubData[] = [
   ...AUT_CLUBS, ...SCO_CLUBS, ...SWE_CLUBS, ...CRO_CLUBS, ...HUN_CLUBS,
   ...SRB_CLUBS, ...ROU_CLUBS, ...UKR_CLUBS, ...BUL_CLUBS, ...SVK_CLUBS,
   ...FIN_CLUBS, ...ISL_CLUBS, ...IRL_CLUBS, ...ISR_CLUBS, ...CYP_CLUBS,
+  ...ARG_CLUBS,
 ];
 
 /** Clubs indexed by league ID for quick lookup */
