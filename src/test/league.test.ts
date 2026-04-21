@@ -91,8 +91,8 @@ describe('league', () => {
   });
 
   describe('LEAGUES', () => {
-    it('has 38 leagues (30 countries + 8 lower divisions)', () => {
-      expect(LEAGUES.length).toBe(38);
+    it('has 45 leagues (30 countries + 8 lower divisions + 7 community-pack leagues)', () => {
+      expect(LEAGUES.length).toBe(45);
     });
 
     it('all league ids are unique', () => {
