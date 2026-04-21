@@ -75,7 +75,11 @@ function ToggleRow({ icon: Icon, label, description, value, onChange }: {
       >
         <span
           className={cn(
-            'absolute top-[2px] w-[18px] h-[18px] rounded-full transition-all',
+            // `left-0` anchors the knob at the track's inner-left edge.
+            // Without it, buttons' default `text-align: center` lands the
+            // knob's static x-position in the middle of the track, and the
+            // translate then pushes it past the right rim on the ON state.
+            'absolute left-0 top-[2px] w-[18px] h-[18px] rounded-full transition-transform',
             'bg-gradient-to-b from-white to-white/80',
             'shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_2px_4px_-1px_rgba(0,0,0,0.35)]',
             value ? 'translate-x-[22px]' : 'translate-x-[2px]',
