@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -212,7 +212,7 @@ const SettingsPage = () => {
         <ToggleRow
           icon={Users}
           label="Use Real Players (Community Pack)"
-          description="Real players and squads, dynamic market, new leagues, FC26-inspired ratings."
+          description="Real-world squads, rotating transfer market, seven extra leagues, ratings from a community FC26 dataset."
           value={communityPackPref}
           onChange={() => {
             const next = !communityPackPref;
@@ -220,8 +220,29 @@ const SettingsPage = () => {
             writeCommunityPackSlotPref(activeSlot, next);
           }}
         />
-        <p className="text-[10px] text-amber-400/80 leading-snug mt-3">
-          Changing this requires starting a new game. Existing progress uses the current setting.
+
+        {/* Attribution card — matches CommunityPackPopup treatment so the
+            disclaimer is identical everywhere the feature is surfaced. */}
+        <div className="mt-3 rounded-xl p-3 bg-amber-500/8 border border-amber-400/30 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.25)]">
+          <div className="flex gap-2.5">
+            <ShieldAlert className="w-4 h-4 flex-shrink-0 text-amber-300 mt-0.5" />
+            <div className="space-y-1.5">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-amber-200">
+                Community-sourced — not our data
+              </p>
+              <p className="text-[10px] leading-snug text-amber-100/85">
+                Dynasty Manager didn't create the real-player pool; it's a
+                community-compiled FC26 dataset loaded offline on your device.
+                We are <strong>not affiliated with, endorsed by, or sponsored by</strong>
+                {' '}EA SPORTS, the FC franchise, FIFA, or any club, league, or player.
+                All names, ratings, and likenesses belong to their respective rights holders.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-[10px] text-muted-foreground/70 leading-snug mt-3">
+          Changing this applies to new games only — existing saves keep the setting they were started with.
         </p>
       </GlassPanel>
 
