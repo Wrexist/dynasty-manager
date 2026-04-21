@@ -252,9 +252,12 @@ const ClubSelection = () => {
   const backLabel = step === 'club' ? 'Back to leagues' : step === 'league' ? 'Back to nations' : 'Back to menu';
 
   return (
-    <div className="min-h-screen bg-background safe-area-top">
-      {/* Header — frosted liquid-glass rim with specular top crescent */}
-      <div className="sticky top-0 z-20 bg-card/50 backdrop-blur-2xl backdrop-saturate-150 border-b border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_0_rgba(0,0,0,0.4)] px-4 pt-3 pb-2">
+    <div className="min-h-screen bg-background">
+      {/* Header — frosted liquid-glass rim with specular top crescent.
+          safe-area-top lives here (not on the outer div) so the sticky
+          header itself reserves room for the notch/Dynamic Island when
+          scrolled — otherwise the title clips behind the status bar. */}
+      <div className="sticky top-0 z-20 bg-card/50 backdrop-blur-2xl backdrop-saturate-150 border-b border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_1px_0_rgba(0,0,0,0.4)] px-4 pt-3 pb-2 safe-area-top">
         <span
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-0 h-2/3"

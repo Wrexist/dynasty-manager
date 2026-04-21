@@ -1,21 +1,22 @@
 /**
  * PlayerHeroCard — premium hero banner for the Player Detail page.
  *
- * Club-tinted gradient panel with a large jersey avatar, big inline rating,
- * growth trajectory arrow, and tier-glow halo. Derives a stable jersey
- * number from the player id so the shirt never renders empty.
+ * Club-tinted tier-art panel pairing a scaled-up tactics-style player
+ * card with the full meta row (rating, tier, position, age, nationality,
+ * club). A dark side scrim keeps the name and stats legible against the
+ * tier artwork backdrop.
  */
 
 import { memo, useMemo } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { Player, Club } from '@/types/game';
 import { GlassPanel } from './GlassPanel';
-import { PlayerAvatar } from './PlayerAvatar';
+import { PlayerBadge } from './PlayerBadge';
 import { FlagIcon } from './FlagIcon';
 import { TierBorderFrame } from './TierBorderFrame';
 import { CardArtBackground } from './CardArtBackground';
 import { cn } from '@/lib/utils';
-import { getPlayerTier, getStableJerseyNumber } from '@/utils/uiHelpers';
+import { getPlayerTier } from '@/utils/uiHelpers';
 import { lighten, darken } from '@/utils/colorUtils';
 
 interface PlayerHeroCardProps {
@@ -44,7 +45,6 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
   const showPotential = player.potential > player.overall;
   const skillMoves = player.skillMoves ?? 0;
   const growth = player.growthDelta;
-  const jerseyNumber = useMemo(() => getStableJerseyNumber(player.id), [player.id]);
   const backdropColor = useMemo(() => getBackdropColor(clubColor), [clubColor]);
   const tier = getPlayerTier(player.overall);
 
@@ -82,30 +82,30 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
         }}
       />
 
+      {/* Dark scrim over the text column so the name stays readable
+          against busy tier artwork regardless of club color. */}
+      <div
+        aria-hidden
+        className="absolute inset-y-0 right-0 left-1/3 pointer-events-none"
+        style={{
+          background: 'linear-gradient(to right, rgba(0,0,0,0) 0%, rgba(0,0,0,0.45) 40%, rgba(0,0,0,0.65) 100%)',
+        }}
+      />
+
       <div className="relative flex items-start gap-4">
-        {/* Jersey avatar — stable derived number keeps the shirt from looking empty */}
-        <div className="shrink-0">
-          <PlayerAvatar
-            jerseyColor={clubColor}
-            secondaryColor={club?.secondaryColor}
-            jerseyNumber={jerseyNumber}
-            overall={player.overall}
-            position={player.position}
-            size={80}
-          />
-        </div>
+        {/* Player card — tactics-style tier badge with position + rating */}
+        <PlayerBadge
+          clubColor={clubColor}
+          overall={player.overall}
+          position={player.position}
+          size="xl"
+          growthDelta={growth}
+          noGlow
+        />
 
         <div className="flex-1 min-w-0 pt-0.5">
-          {/* Rating + name row */}
-          <div className="flex items-baseline gap-2">
-            <span
-              className={cn(
-                'text-3xl font-black font-display tabular-nums leading-none',
-                tier.textClass,
-              )}
-            >
-              {player.overall}
-            </span>
+          {/* Tier + growth row (rating already shown on the card badge) */}
+          <div className="flex items-center gap-2">
             <span
               className={cn(
                 'px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide shrink-0',
@@ -116,39 +116,40 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
               {tier.label}
             </span>
             {growth != null && growth > 0 && (
-              <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0" aria-label={`growing +${growth}`} />
+              <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" aria-label={`growing +${growth}`} />
             )}
             {growth != null && growth < 0 && (
-              <TrendingDown className="w-4 h-4 text-destructive shrink-0" aria-label={`declining ${growth}`} />
+              <TrendingDown className="w-4 h-4 text-destructive shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]" aria-label={`declining ${growth}`} />
             )}
-            <p className="text-lg font-black text-foreground leading-tight truncate flex-1 min-w-0">
-              {player.firstName} {player.lastName}
-            </p>
           </div>
 
+          <p className="text-lg font-black text-white leading-tight truncate mt-1.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+            {player.firstName} {player.lastName}
+          </p>
+
           {/* Meta row */}
-          <p className="text-xs text-muted-foreground flex items-center gap-1 flex-wrap mt-1.5">
-            <span className="font-semibold text-foreground/80">{player.position}</span>
-            <span>·</span>
+          <p className="text-xs text-white/90 flex items-center gap-1 flex-wrap mt-1.5 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+            <span className="font-semibold">{player.position}</span>
+            <span className="text-white/60">·</span>
             <span>{player.age}</span>
-            <span>·</span>
+            <span className="text-white/60">·</span>
             <FlagIcon nationality={player.nationality} size={14} />
             <span>{player.nationality}</span>
             {player.source === 'real' && player.heightCm && player.weightKg && (
               <>
-                <span>·</span>
+                <span className="text-white/60">·</span>
                 <span className="tabular-nums">{player.heightCm}cm · {player.weightKg}kg</span>
               </>
             )}
             {showPotential && (
               <>
-                <span>·</span>
+                <span className="text-white/60">·</span>
                 <span className="text-primary font-semibold">Pot {player.potential}</span>
               </>
             )}
             {skillMoves >= 3 && (
               <>
-                <span>·</span>
+                <span className="text-white/60">·</span>
                 <span className="text-amber-400">{'★'.repeat(skillMoves)} Skills</span>
               </>
             )}
@@ -156,7 +157,7 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
 
           {player.source === 'real' && (
             <span
-              className="inline-block mt-1.5 px-1.5 py-0.5 rounded text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80 bg-muted/30 border border-border/40"
+              className="inline-block mt-1.5 px-1.5 py-0.5 rounded text-[9px] font-medium uppercase tracking-wider text-white/80 bg-black/40 border border-white/10 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]"
               aria-label="Real player"
             >
               Real Player
@@ -164,9 +165,9 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
           )}
 
           {/* Club row */}
-          <div className="flex items-center gap-1.5 mt-2">
-            <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: clubColor }} />
-            <span className="text-xs text-muted-foreground truncate">
+          <div className="flex items-center gap-1.5 mt-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+            <div className="w-3 h-3 rounded-full shrink-0 ring-1 ring-black/50" style={{ backgroundColor: clubColor }} />
+            <span className="text-xs text-white/85 truncate">
               {club?.name || 'Unknown'}
             </span>
           </div>

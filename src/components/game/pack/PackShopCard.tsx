@@ -16,10 +16,11 @@ interface PackShopCardProps {
 }
 
 /**
- * Pack card with an Apple-style Liquid Glass overlay. The pack art fills
- * the whole card; label, price, and a Buy button live inside a translucent
- * glass panel at the bottom that refracts colour from the art behind it
- * via backdrop-blur + backdrop-saturate.
+ * Pack card with an Apple-style Liquid Glass overlay. The pack art bleeds
+ * to the page (no hairline frame); label, price, and a Buy button live
+ * inside a translucent glass panel at the bottom that refracts colour
+ * from the art behind it via backdrop-blur + backdrop-saturate. Guarantee
+ * badge floats over the art top-right.
  */
 export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured }: PackShopCardProps) {
   const disabled = !affordable || !squadOk;
@@ -42,7 +43,6 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
       <div
         className={cn(
           'relative w-full overflow-hidden rounded-2xl isolate',
-          'border border-white/10',
           !disabled && 'shadow-[0_14px_32px_-16px_rgba(0,0,0,0.8)]',
           featured ? 'aspect-[4/5]' : 'aspect-[3/4]',
         )}
