@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Lock, Sparkles, ShieldCheck } from 'lucide-react';
-import type { PackTierDefinition } from '@/config/packs';
+import type { PackTierDefinition } from '@/types/game';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';

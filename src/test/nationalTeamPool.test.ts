@@ -71,8 +71,8 @@ describe('National Team Real-Player Pool', () => {
         goals: 0, assists: 0, appearances: 0,
         careerGoals: 0, careerAssists: 0, careerAppearances: 0,
         yellowCards: 0, redCards: 0,
-        personality: { temperament: 'calm', ambition: 50, loyalty: 50, workRate: 50, leadership: 50, professionalism: 50, ego: 50 },
-        appearance: { skinTone: 'medium', hairStyle: 'short', hairColor: 'dark', facialHair: 'clean', eyeColor: 'brown' },
+        personality: { professionalism: 10, ambition: 10, temperament: 10, loyalty: 10, leadership: 10 },
+        appearance: { skinTone: 2, hairStyle: 2, hairColor: 2, height: 1, build: 1, facialHair: 0 },
         skillMoves: 5,
         joinedSeason: 1,
       },
@@ -93,8 +93,8 @@ describe('National Team Real-Player Pool', () => {
   it('autoSelectNationalSquad picks players matching any alias nationality', () => {
     // Two players labeled with different alias forms
     const players: Record<string, Player> = {
-      p1: { id: 'p1', firstName: 'A', lastName: 'One', nationality: 'Netherlands', age: 25, position: 'GK', overall: 82, potential: 82, attributes: { pace: 50, shooting: 50, passing: 50, defending: 50, physical: 50, mental: 50 }, clubId: '', wage: 0, value: 0, contractEnd: 2, fitness: 100, morale: 80, form: 70, injured: false, injuryWeeks: 0, goals: 0, assists: 0, appearances: 0, careerGoals: 0, careerAssists: 0, careerAppearances: 0, yellowCards: 0, redCards: 0, personality: { temperament: 'calm', ambition: 50, loyalty: 50, workRate: 50, leadership: 50, professionalism: 50, ego: 50 }, appearance: { skinTone: 'medium', hairStyle: 'short', hairColor: 'dark', facialHair: 'clean', eyeColor: 'brown' }, skillMoves: 2, joinedSeason: 1 },
-      p2: { id: 'p2', firstName: 'B', lastName: 'Two', nationality: 'Holland', age: 25, position: 'CB', overall: 80, potential: 80, attributes: { pace: 50, shooting: 50, passing: 50, defending: 50, physical: 50, mental: 50 }, clubId: '', wage: 0, value: 0, contractEnd: 2, fitness: 100, morale: 80, form: 70, injured: false, injuryWeeks: 0, goals: 0, assists: 0, appearances: 0, careerGoals: 0, careerAssists: 0, careerAppearances: 0, yellowCards: 0, redCards: 0, personality: { temperament: 'calm', ambition: 50, loyalty: 50, workRate: 50, leadership: 50, professionalism: 50, ego: 50 }, appearance: { skinTone: 'medium', hairStyle: 'short', hairColor: 'dark', facialHair: 'clean', eyeColor: 'brown' }, skillMoves: 2, joinedSeason: 1 },
+      p1: { id: 'p1', firstName: 'A', lastName: 'One', nationality: 'Netherlands', age: 25, position: 'GK', overall: 82, potential: 82, attributes: { pace: 50, shooting: 50, passing: 50, defending: 50, physical: 50, mental: 50 }, clubId: '', wage: 0, value: 0, contractEnd: 2, fitness: 100, morale: 80, form: 70, injured: false, injuryWeeks: 0, goals: 0, assists: 0, appearances: 0, careerGoals: 0, careerAssists: 0, careerAppearances: 0, yellowCards: 0, redCards: 0, personality: { professionalism: 10, ambition: 10, temperament: 10, loyalty: 10, leadership: 10 }, appearance: { skinTone: 2, hairStyle: 2, hairColor: 2, height: 1, build: 1, facialHair: 0 }, skillMoves: 2, joinedSeason: 1 },
+      p2: { id: 'p2', firstName: 'B', lastName: 'Two', nationality: 'Holland', age: 25, position: 'CB', overall: 80, potential: 80, attributes: { pace: 50, shooting: 50, passing: 50, defending: 50, physical: 50, mental: 50 }, clubId: '', wage: 0, value: 0, contractEnd: 2, fitness: 100, morale: 80, form: 70, injured: false, injuryWeeks: 0, goals: 0, assists: 0, appearances: 0, careerGoals: 0, careerAssists: 0, careerAppearances: 0, yellowCards: 0, redCards: 0, personality: { professionalism: 10, ambition: 10, temperament: 10, loyalty: 10, leadership: 10 }, appearance: { skinTone: 2, hairStyle: 2, hairColor: 2, height: 1, build: 1, facialHair: 0 }, skillMoves: 2, joinedSeason: 1 },
     };
     const squad = autoSelectNationalSquad('Netherlands', players);
     expect(squad).toContain('p1');

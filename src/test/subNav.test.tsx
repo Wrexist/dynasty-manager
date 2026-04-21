@@ -59,7 +59,7 @@ describe('SubNav', () => {
     act(() => {
       useGameStore.setState({
         currentScreen: 'match',
-        matchPhase: 'simulating',
+        matchPhase: 'first_half',
       } as Partial<ReturnType<typeof useGameStore.getState>>);
     });
     render(<SubNav items={ITEMS} />);
