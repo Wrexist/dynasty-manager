@@ -255,7 +255,7 @@ describe('communityPack: needsRefill', () => {
   });
 });
 
-describe('communityPack: save migration v59 → v60', () => {
+describe(`communityPack: save migration v59 → v${CURRENT_VERSION}`, () => {
   it('adds default communityPackEnabled=false on a v59 save', () => {
     const v59: Record<string, unknown> = { version: 59 };
     const migrated = migrateSaveData(v59) as Record<string, unknown>;

@@ -44,6 +44,24 @@ export function CommunityPackPopup({ open, onChoice, onClose }: CommunityPackPop
           // Hairline outer stroke + bright top inset + dark bottom inset
           // (reads as thick glass with light refracting through the rim).
           'shadow-[0_0_0_0.5px_rgba(255,255,255,0.22)_inset,inset_0_1px_0_rgba(255,255,255,0.28),inset_0_-1px_0_rgba(0,0,0,0.45),0_30px_80px_-20px_rgba(0,0,0,0.75)]',
+          // Boost the shadcn-injected Close button (DialogPrimitive.Close)
+          // so the X stays legible against the bright specular crescent that
+          // overlaps its top-right position. Targets the last direct button
+          // child — that's the DialogPrimitive.Close node shadcn appends to
+          // DialogContent. Adds a subtle dark backdrop + rounded pill + higher
+          // contrast icon color, independent of the glass overlay layers.
+          '[&>button[type="button"]]:z-20',
+          '[&>button[type="button"]]:rounded-full',
+          '[&>button[type="button"]]:bg-black/30',
+          '[&>button[type="button"]]:backdrop-blur-md',
+          '[&>button[type="button"]]:p-1',
+          '[&>button[type="button"]]:opacity-100',
+          '[&>button[type="button"]]:text-white/80',
+          '[&>button[type="button"]]:hover:text-white',
+          '[&>button[type="button"]]:hover:bg-black/45',
+          '[&>button[type="button"]]:ring-1',
+          '[&>button[type="button"]]:ring-inset',
+          '[&>button[type="button"]]:ring-white/15',
         )}
       >
         {/* Top specular crescent — bright sky reflection on polished glass */}
@@ -109,7 +127,7 @@ export function CommunityPackPopup({ open, onChoice, onClose }: CommunityPackPop
           <div
             className={cn(
               'relative mt-4 rounded-2xl p-3.5',
-              'bg-amber-500/8 border border-amber-400/30 backdrop-blur-xl',
+              'bg-amber-500/[0.08] border border-amber-400/30 backdrop-blur-xl',
               'shadow-[inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-1px_0_rgba(0,0,0,0.3)]',
             )}
           >
@@ -161,7 +179,7 @@ export function CommunityPackPopup({ open, onChoice, onClose }: CommunityPackPop
               onClick={() => choose(false)}
               className={cn(
                 'relative w-full h-11 rounded-full font-semibold text-sm',
-                'bg-white/8 text-foreground/90',
+                'bg-white/[0.08] text-foreground/90',
                 'border border-white/20 backdrop-blur-xl backdrop-saturate-150',
                 'shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_0_rgba(0,0,0,0.3),0_8px_20px_-10px_rgba(0,0,0,0.5)]',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40',

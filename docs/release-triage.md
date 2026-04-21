@@ -23,7 +23,7 @@ Effort:
 | P0-3 | 15 `TS2322` errors in `nationalTeamPool.test.ts` — string values assigned to numeric fields. | `src/test/nationalTeamPool.test.ts:74-75, 96-97` | **S** | Blocks `typecheck`. The test passes at runtime (Vitest doesn't type-check) but the fixture is wrong-typed — easy to miss if someone later relies on the type. Fix is literally dropping quotes around the numbers. |
 | P0-4 | `TS2352` — `matchPhase: "simulating"` isn't a member of the `MatchPhase` union. | `src/test/subNav.test.tsx:60` | **S** | Blocks `typecheck`. Likely stale after a rename — check the intended value from the current `MatchPhase` union (`"first_half" \| "second_half" \| ...`) and update. |
 
-**P0 total: 4 issues, all S, ~1 hour combined.** No security CVEs. No runtime crashes found. No `@ts-ignore` anywhere (the audit mis-reported 2 in `ads.ts` — actual count is **0**; those were `@ts-expect-error` which is self-checking and not masking bugs).
+**P0 total: 4 issues, all S, ~1 hour combined.** No security CVEs. No runtime crashes found. No `@ts-ignore` anywhere — both docs now report `@ts-ignore = 0`. The 18 self-checking `@ts-expect-error` occurrences are the actual TypeScript-silencer population.
 
 ---
 
@@ -48,7 +48,7 @@ Effort:
 | # | Item | File | Effort | Why it matters |
 |---|------|------|:-:|---|
 | P2-1 | 18 `@ts-expect-error` annotations — mostly correct, but 11 of them cluster in `src/test/sponsorship.test.ts`. Review whether the test should be refactored to not need them. | `src/test/sponsorship.test.ts` (11), `src/utils/purchases.ts` (3), `src/utils/haptics.ts` (2), `src/test/match.test.ts` (1), `src/store/slices/orchestrationSlice.ts` (1) | **M** | `@ts-expect-error` is self-validating (compiler errors when the silenced error disappears), so low risk. The concentration in sponsorship tests suggests a typing gap worth closing. |
-| P2-2 | 18 `: any` annotations in native bridges (`purchases.ts`, `haptics.ts`, `ads.ts`) and test helpers. | same files as P2-1 | **M** | Most are legitimate shims for untyped Capacitor plugins. Adding minimal declared interfaces for the plugin surfaces we actually call would remove them and give IDE hints. |
+| P2-2 | 18 explicit `any` annotations in native bridges (`purchases.ts`, `haptics.ts`, `ads.ts`) and test helpers. | same files as P2-1 | **M** | Most are legitimate shims for untyped Capacitor plugins. Adding minimal declared interfaces for the plugin surfaces we actually call would remove them and give IDE hints. |
 | P2-3 | `index-*.js` main chunk is 1.02 MB min / 285 KB gzip. | Vite build output | **M** | Run `npm run analyze` (rollup-plugin-visualizer is already installed) to identify what's eagerly imported and pull candidates into route-level chunks. Dashboard at 119 KB suggests dashboard-visible imports may be leaking into index. Trim before hitting the App Store 4 MB over-cellular warning. |
 | P2-4 | `squad-data-*.js` is 1.88 MB / 360 KB gzip for every user, even ones who never enable community pack. | `src/data/squads/*` | **L** | Biggest single baseline payload. Could lazy-load per-continent or per-division. Would reduce cold-start data transfer by ~40%. Not blocking, but a clear win. |
 | P2-5 | No tests for `orchestrationSlice.ts` (~1,970 LOC, the largest file). | `src/test/` (new file) | **L** | High-complexity file with only 1 `@ts-expect-error` but a lot of inline game logic (week advance, season end, community-pack init). Longevity tests exercise paths but aren't unit-level. Low test-to-LOC ratio for the game-loop brain. |

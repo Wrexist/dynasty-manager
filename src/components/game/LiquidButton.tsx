@@ -39,7 +39,7 @@ export function LiquidButton({
 }: LiquidButtonProps) {
   const toneClasses: Record<LiquidButtonTone, string> = {
     default:
-      'bg-white/6 text-foreground/90 border-white/15 hover:bg-white/10 ' +
+      'bg-white/[0.06] text-foreground/90 border-white/15 hover:bg-white/10 ' +
       'shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(0,0,0,0.5)]',
     primary:
       'bg-gradient-to-b from-primary/95 to-primary/75 text-primary-foreground border-primary/40 hover:from-primary hover:to-primary/80 ' +

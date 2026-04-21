@@ -253,7 +253,7 @@ const SettingsPage = () => {
 
         {/* Attribution card — matches CommunityPackPopup treatment so the
             disclaimer is identical everywhere the feature is surfaced. */}
-        <div className="mt-3 rounded-xl p-3 bg-amber-500/8 border border-amber-400/30 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.25)]">
+        <div className="mt-3 rounded-xl p-3 bg-amber-500/[0.08] border border-amber-400/30 backdrop-blur-xl shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.25)]">
           <div className="flex gap-2.5">
             <ShieldAlert className="w-4 h-4 flex-shrink-0 text-amber-300 mt-0.5" />
             <div className="space-y-1.5">

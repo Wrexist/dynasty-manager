@@ -45,7 +45,7 @@ Counts under `src/`:
 | `FIXME` | 0 | — |
 | `XXX` | 0 | — |
 | `HACK` | 0 | — |
-| `@ts-ignore` | 2 | `src/utils/ads.ts` (x2) |
+| `@ts-ignore` | 0 | — |
 | `@ts-expect-error` | 18 | `src/test/sponsorship.test.ts` (11), `src/utils/purchases.ts` (3), `src/utils/haptics.ts` (2), `src/test/match.test.ts` (1), `src/store/slices/orchestrationSlice.ts` (1) |
 | `: any` type annotations | 18 | same spread as `@ts-expect-error` — most cluster around Capacitor/RevenueCat bridges (`purchases.ts`, `haptics.ts`, `ads.ts`) and test fixtures |
 | Bare `any` tokens (non-annotation keywords like `any` in identifiers, strings, comments) | 107 occurrences across 44 files — mostly false positives (word "any" in JSDoc, `Array.isArray`, English strings). Not a real signal. |
@@ -194,9 +194,13 @@ dataset was folded in as an opt-in league + free-agent expansion.
 | 7 — Tests | `src/test/communityPack.test.ts` with odds/assign/migration coverage | **No community-pack test file.** Existing `packs.test.ts` covers the unrelated in-game pack-opening system, not the FC26 community pack. | ❌ missing |
 
 ### Orphaned files check — clean
-- All `src/data/communityPack/*.ts` files are imported (`byClub`,
-  `freeAgents`, `newLeagues` via `orchestrationSlice.ts`; `cpLeagueSquads`
-  via `data/squads/index.ts`).
+- All `src/data/communityPack/*.ts` files are imported. `byClub`,
+  `freeAgents`, and `cpLeagueSquads` are **dynamically imported** from
+  `orchestrationSlice.ts` inside `initGame` so their chunks only ship
+  when the user opts in. `src/data/squads/index.ts` intentionally
+  excludes the 7 community-pack leagues (see the comment at the top of
+  that file). `newLeagues.ts` is imported statically by
+  `orchestrationSlice.ts`.
 - `src/utils/communityPackPool.ts` is imported by `orchestrationSlice.ts`
   and re-exported in test fixtures.
 - `src/components/CommunityPackPopup.tsx` is imported by `TitleScreen.tsx`.
@@ -220,7 +224,12 @@ causes the TS error in section 1: `PackShopCard.tsx` imports
 ## Summary — what to look at before release
 
 **Real blockers**
-1. **18 TS errors** (section 1). Build doesn't catch them, but `npm run typecheck` and `preflight` will fail downstream. Two of them are genuine bugs (`PackShopCard` import path, `gameStore` initial state), fifteen are stale test fixtures.
+1. **18 TS errors** (section 1). `npm run build` / `npm run preflight`
+   still pass because Vite does not type-check, but `npm run typecheck`
+   fails. Two of them are genuine bugs (`PackShopCard` import path,
+   `gameStore` initial state); fifteen are stale test fixtures. Left
+   unaddressed these will surface in IDE diagnostics and in any CI
+   step that enforces `tsc --noEmit`.
 2. **Community-pack Phase 7 tests missing** (section 8). Plan required them; the largest new feature ships without automated coverage for the pipeline/migration/pool helpers.
 
 **Worth addressing soon**
