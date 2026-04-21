@@ -5,7 +5,7 @@ import { InfoTip, InfoTipProvider } from '@/components/game/InfoTip';
 
 function Harness({ children, initialPath = '/' }: { children: React.ReactNode; initialPath?: string }) {
   return (
-    <MemoryRouter initialEntries={[initialPath]}>
+    <MemoryRouter initialEntries={[initialPath]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <InfoTipProvider>{children}</InfoTipProvider>
     </MemoryRouter>
   );
@@ -86,7 +86,7 @@ describe('InfoTip', () => {
     }
 
     render(
-      <MemoryRouter initialEntries={['/']}>
+      <MemoryRouter initialEntries={['/']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <InfoTipProvider>
           <Routes>
             <Route path="/" element={<Nav />} />
