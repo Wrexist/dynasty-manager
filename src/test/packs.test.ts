@@ -3,16 +3,26 @@ import { useGameStore } from '@/store/gameStore';
 import { generateAiCounterSignings, generatePackContents, shouldPityTrigger, updatedPityCounter } from '@/utils/packGeneration';
 import { AI_BACKFILL_OVR_GAP, AI_BACKFILL_PER_TIER, PACK_TIER_MAP, PACK_PITY_THRESHOLD, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
-import { calculatePlayerValue, calculatePlayerWage } from '@/config/playerGeneration';
+import {
+  VALUE_EXP_BASE,
+  VALUE_EXP_RATE,
+  VALUE_RANDOM_FACTOR,
+  WAGE_EXP_BASE,
+  WAGE_EXP_RATE,
+  WAGE_FLOOR,
+  WAGE_RANDOM_FACTOR,
+} from '@/config/playerGeneration';
 import { XP_REWARDS } from '@/utils/managerPerks';
 
-/** Worst-case calculator output over N samples. Used to assert that wage/
- *  value fall within the range for a given OVR despite the calculators'
- *  internal random factor (±10% wage, ±15% value). */
-function upperBoundFromSamples(calc: (ovr: number) => number, ovr: number, samples = 200): number {
-  let max = 0;
-  for (let i = 0; i < samples; i++) max = Math.max(max, calc(ovr));
-  return max;
+/** Theoretical worst-case outputs of the wage/value calculators for a given
+ *  OVR — the random multiplier maxes out at `1 + RANDOM_FACTOR`. Used to
+ *  catch pre-clamp leakage (wage/value derived from a higher pre-clamp OVR
+ *  would blow through these bounds by >10-100x depending on the gap). */
+function maxWageForOvr(ovr: number): number {
+  return Math.max(WAGE_FLOOR, Math.round(WAGE_EXP_BASE * Math.exp(WAGE_EXP_RATE * ovr) * (1 + WAGE_RANDOM_FACTOR)));
+}
+function maxValueForOvr(ovr: number): number {
+  return Math.round(VALUE_EXP_BASE * Math.exp(VALUE_EXP_RATE * ovr) * (1 + VALUE_RANDOM_FACTOR));
 }
 
 const CLUB_ID = 'celtic';
@@ -191,12 +201,11 @@ describe('Pack opening — openPack action', () => {
     expect(result.success).toBe(true);
     for (const p of result.players!) {
       expect(p.overall).toBeLessThanOrEqual(PACK_TIER_MAP.bronze.ovrMax);
-      // +1 tolerance for rounding; bound is still tight enough to catch a
-      // wage that leaked from a 75+ OVR pre-clamp roll.
-      const maxWage = upperBoundFromSamples(calculatePlayerWage, p.overall) + 1;
-      const maxValue = upperBoundFromSamples(calculatePlayerValue, p.overall) + 1;
-      expect(p.wage).toBeLessThanOrEqual(maxWage);
-      expect(p.value).toBeLessThanOrEqual(maxValue);
+      // Theoretical max uses (1 + RANDOM_FACTOR); +1 covers rounding.
+      // Bound is still tight enough to catch a wage that leaked from a
+      // 75+ OVR pre-clamp roll (pre-clamp leakage would exceed this by 2-100x).
+      expect(p.wage).toBeLessThanOrEqual(maxWageForOvr(p.overall) + 1);
+      expect(p.value).toBeLessThanOrEqual(maxValueForOvr(p.overall) + 1);
       expect(p.potential).toBeGreaterThanOrEqual(p.overall);
     }
   });

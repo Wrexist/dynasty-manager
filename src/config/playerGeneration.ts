@@ -39,10 +39,10 @@ export const DEFAULT_POSITION_WEIGHTS = [1/6, 1/6, 1/6, 1/6, 1/6, 1/6];
 // Wage curve:  ~£1.1K/wk at OVR 40  →  ~£390K/wk at OVR 91
 export const VALUE_EXP_BASE = 550;
 export const VALUE_EXP_RATE = 0.136;
-const VALUE_RANDOM_FACTOR = 0.15;
+export const VALUE_RANDOM_FACTOR = 0.15;
 export const WAGE_EXP_BASE = 10;
 export const WAGE_EXP_RATE = 0.116;
-const WAGE_RANDOM_FACTOR = 0.10;
+export const WAGE_RANDOM_FACTOR = 0.10;
 export const WAGE_FLOOR = 500;
 
 /** Calculate realistic market value from overall rating using an exponential curve. */
