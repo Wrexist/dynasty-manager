@@ -62,12 +62,26 @@ for (const league of LEAGUES) {
   LEAGUE_CLUB_COUNTS[league.id] = CLUBS_BY_LEAGUE[league.id]?.length || league.teamCount;
 }
 
-// Unique country count across all leagues (top-tier leagues represent nations)
-const LEAGUE_COUNTRY_COUNT = new Set(LEAGUES.map(l => l.countryId)).size;
+// Leagues sourced from the FC26 community pack. Hidden from the league list
+// during new-game onboarding unless the user opts in to the community pack
+// (see COMMUNITY_PACK_DRAFT_KEY below). Existing 37 baseline leagues are
+// always visible. 'chn' is included for forward-compat — it will be a no-op
+// until that league file lands.
+const COMMUNITY_PACK_LEAGUE_IDS: ReadonlySet<string> = new Set([
+  'arg', 'mls', 'sau', 'kor', 'bra', 'aus', 'ind', 'chn',
+]);
 
 // Session-scoped draft so a refresh during onboarding doesn't wipe progress.
 // Cleared once the career is successfully started (see handleStart).
 const ONBOARDING_DRAFT_KEY = STORAGE_KEYS.ONBOARDING_DRAFT;
+const COMMUNITY_PACK_DRAFT_KEY = STORAGE_KEYS.COMMUNITY_PACK_DRAFT;
+
+// Reads the in-flight community pack opt-in for new-game onboarding. The
+// flag is null until the user answers the popup; we treat null as "off" so
+// community pack leagues stay hidden until explicitly enabled.
+function readCommunityPackOptIn(): boolean {
+  return readSessionJson<boolean>(COMMUNITY_PACK_DRAFT_KEY) === true;
+}
 
 function readOnboardingDraft(): OnboardingDraft {
   const empty: OnboardingDraft = { step: 'nationality', nation: null, league: null };
@@ -94,6 +108,10 @@ const ClubSelection = () => {
   const [step, setStep] = useState<OnboardingStep>(initialDraft.step);
   const [selectedNationality, setSelectedNationality] = useState<string | null>(initialDraft.nation);
   const [selectedLeague, setSelectedLeague] = useState<LeagueId | null>(initialDraft.league);
+  // Snapshot the community-pack opt-in once at mount. The popup writes to the
+  // session key before navigating here; on a fresh new-game flow with no popup
+  // answer yet this resolves to false and the new-pack leagues stay hidden.
+  const [communityPackEnabled] = useState<boolean>(readCommunityPackOptIn);
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [nationSearch, setNationSearch] = useState('');
@@ -119,7 +137,7 @@ const ClubSelection = () => {
     requestAnimationFrame(() => {
       try {
         const pendingSlot = (location.state as { slot?: number })?.slot || 1;
-        initGame(selected);
+        initGame(selected, { communityPackEnabled });
         initNationalTeam(selectedNationality);
         useGameStore.setState({ activeSlot: pendingSlot });
         try {
@@ -128,6 +146,7 @@ const ClubSelection = () => {
           Sentry.captureException(saveErr, { tags: { context: 'careerStartSave' } });
         }
         removeSessionKey(ONBOARDING_DRAFT_KEY);
+        removeSessionKey(COMMUNITY_PACK_DRAFT_KEY);
         queueMicrotask(() => navigate('/game'));
       } catch (err) {
         Sentry.captureException(err, { tags: { context: 'startGame' } });
@@ -188,15 +207,41 @@ const ClubSelection = () => {
 
   const selectedClub = CLUBS_DATA.find(c => c.id === selected);
 
+  // Visible league pool — drops community-pack leagues unless the user has
+  // opted in. Used by both search and the regions render path so the gate
+  // can never leak through one but not the other.
+  const visibleLeagues = useMemo(
+    () => communityPackEnabled
+      ? LEAGUES
+      : LEAGUES.filter(l => !COMMUNITY_PACK_LEAGUE_IDS.has(l.id)),
+    [communityPackEnabled],
+  );
+
   const filteredLeagues = useMemo(() => {
     if (!leagueSearch) return null;
     const q = leagueSearch.toLowerCase();
-    return LEAGUES.filter(l =>
+    return visibleLeagues.filter(l =>
       l.name.toLowerCase().includes(q) ||
       l.country.toLowerCase().includes(q) ||
       l.id.toLowerCase().includes(q)
     );
-  }, [leagueSearch]);
+  }, [leagueSearch, visibleLeagues]);
+
+  // When the community pack is enabled, surface the new leagues as their own
+  // region so users can find them without searching. Each entry mirrors the
+  // shape of LEAGUE_REGIONS but is computed live since the visibility
+  // depends on the opt-in flag.
+  const regionsToRender = useMemo(() => {
+    if (!communityPackEnabled) return LEAGUE_REGIONS;
+    const cpIds = LEAGUES
+      .filter(l => COMMUNITY_PACK_LEAGUE_IDS.has(l.id))
+      .map(l => l.id);
+    if (cpIds.length === 0) return LEAGUE_REGIONS;
+    return [
+      ...LEAGUE_REGIONS,
+      { label: 'Community Pack Leagues', ids: cpIds },
+    ];
+  }, [communityPackEnabled]);
 
   // Memoize nation filtering to avoid inline recomputation
   const nationsByConfederation = useMemo(() => {
@@ -251,7 +296,7 @@ const ClubSelection = () => {
                     <h1 ref={headingRef} tabIndex={-1} className="text-lg font-bold text-foreground font-display outline-none">Choose League</h1>
                     <p className="text-[10px] text-muted-foreground truncate">
                       {selectedNationality && <><span className="text-foreground/70"><FlagIcon nationality={selectedNationality} size={16} /> {selectedNationality}</span> · </>}
-                      {LEAGUE_COUNTRY_COUNT} countries · {LEAGUES.length} divisions
+                      {new Set(visibleLeagues.map(l => l.countryId)).size} countries · {visibleLeagues.length} divisions
                     </p>
                   </>
                 ) : (
@@ -423,7 +468,7 @@ const ClubSelection = () => {
                   )}
                 </div>
               ) : (
-                LEAGUE_REGIONS.map(region => {
+                regionsToRender.map(region => {
                   const regionLeagues = region.ids.map(id => LEAGUES.find(l => l.id === id)).filter(Boolean);
                   return (
                     <div key={region.label}>
