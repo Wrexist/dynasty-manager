@@ -9,7 +9,7 @@
  * See scripts/community-pack-plan.md § "Phase 1 — Data pipeline" for the
  * per-turn breakdown.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, statSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -504,20 +504,165 @@ export const newLeagues: Record<string, NewLeague> = ${body};
 }
 
 /**
- * Orchestration: load report → read CSV → buildPlayer per row →
- * validate (unique ids, all positions valid, no empty names) →
- * writeByClub + writeFreeAgents + writeNewLeagues → print summary.
+ * Orchestration:
+ *   1. Load fc26-report.json and build three lookup structures:
+ *      - AB map: fc26ClubName → { bucket, gameClubId, gameLeagueId }
+ *      - D set:  fc26ClubName → skip
+ *      - qualified-C2 league-id set (+ id → name for metadata)
+ *   2. Parse the CSV and route each row:
+ *      - skip if club_name empty or in D
+ *      - A/B match: append to byClub[gameClubId]
+ *      - qualified C2 league: nest under newLeagues[leagueId][clubName]
+ *      - anything else (C1, unqualified C2): push to freeAgents
+ *   3. Dedupe players by fcId globally (first occurrence wins).
+ *   4. Write all three output files.
+ *   5. Print routing stats + on-disk file sizes.
  * @returns {void}
  */
 function main() {
   const report = JSON.parse(readFileSync(REPORT_PATH, 'utf-8'));
   console.log(`Loaded report: ${report.summary.totalPlayers} players, ${report.summary.totalClubs} clubs`);
+  ensureOutputDir();
 
-  if (!existsSync(OUTPUT_DIR)) {
-    mkdirSync(OUTPUT_DIR, { recursive: true });
+  // ── Lookup maps ─────────────────────────────────────────────────────────
+  const abMap = new Map(); // fc26ClubName → { bucket, gameClubId, gameLeagueId }
+  for (const e of report.bucketA) {
+    abMap.set(e.fc26Name, { bucket: 'A', gameClubId: e.gameClubId, gameLeagueId: e.gameLeagueId });
+  }
+  for (const e of report.bucketB) {
+    if (abMap.has(e.fc26Name)) {
+      console.warn(`[collision] fc26Name "${e.fc26Name}" in both A and B; keeping A`);
+      continue;
+    }
+    abMap.set(e.fc26Name, { bucket: 'B', gameClubId: e.gameClubId, gameLeagueId: e.gameLeagueId });
   }
 
-  // TODO: Turn 9 — full orchestration. Skeleton stops here.
+  const dSet = new Set();
+  for (const e of report.bucketD) {
+    if (e.fc26Name) dSet.add(e.fc26Name);
+  }
+
+  const qualifiedLeagueIds = new Set();
+  const qualifiedLeagueNames = {};
+  for (const q of report.bucketC2.qualifiedLeagues) {
+    qualifiedLeagueIds.add(q.fc26LeagueId);
+    qualifiedLeagueNames[q.fc26LeagueId] = q.leagueName;
+  }
+
+  // ── Parse CSV and route ─────────────────────────────────────────────────
+  console.log(`Reading ${CSV_PATH}`);
+  const csvContent = readFileSync(CSV_PATH, 'utf-8');
+  const rows = parseCSV(csvContent);
+  console.log(`Parsed ${rows.length} rows`);
+
+  const byClubMap = new Map(); // gameClubId → players[]
+  const freeAgents = [];
+  /** @type {Record<string, { leagueName: string, clubsMap: Map<string, { name: string, players: object[] }> }>} */
+  const newLeaguesData = {};
+  const seenFcIds = new Set();
+
+  let skippedEmpty = 0;
+  let skippedD = 0;
+  let dupCount = 0;
+  let routedAB = 0;
+  let routedC2Qualified = 0;
+  let routedFreeAgent = 0;
+
+  for (const row of rows) {
+    const clubName = (row.club_name || '').trim();
+    const fc26LeagueId = parseInt(row.league_id, 10);
+
+    if (!clubName) { skippedEmpty++; continue; }
+    if (dSet.has(clubName)) { skippedD++; continue; }
+
+    const player = buildPlayer(row);
+
+    if (player.fcId) {
+      if (seenFcIds.has(player.fcId)) {
+        dupCount++;
+        if (dupCount <= 10) {
+          console.warn(`[dup] fcId ${player.fcId} (${player.fn} ${player.ln}) already seen — skipping`);
+        }
+        continue;
+      }
+      seenFcIds.add(player.fcId);
+    }
+
+    const abHit = abMap.get(clubName);
+    if (abHit) {
+      if (!byClubMap.has(abHit.gameClubId)) byClubMap.set(abHit.gameClubId, []);
+      byClubMap.get(abHit.gameClubId).push(player);
+      routedAB++;
+    } else if (qualifiedLeagueIds.has(fc26LeagueId)) {
+      let bucket = newLeaguesData[fc26LeagueId];
+      if (!bucket) {
+        bucket = {
+          leagueName: qualifiedLeagueNames[fc26LeagueId] || row.league_name || '',
+          clubsMap: new Map(),
+        };
+        newLeaguesData[fc26LeagueId] = bucket;
+      }
+      let club = bucket.clubsMap.get(clubName);
+      if (!club) {
+        club = { name: clubName, players: [] };
+        bucket.clubsMap.set(clubName, club);
+      }
+      club.players.push(player);
+      routedC2Qualified++;
+    } else {
+      freeAgents.push(player);
+      routedFreeAgent++;
+    }
+  }
+
+  if (dupCount > 10) console.warn(`[dup] ...and ${dupCount - 10} more dup fcIds (suppressed)`);
+
+  // ── Writers expect a plain-object club list, not a Map ──────────────────
+  const newLeaguesOutput = {};
+  for (const [id, data] of Object.entries(newLeaguesData)) {
+    newLeaguesOutput[id] = {
+      leagueName: data.leagueName,
+      clubs: Array.from(data.clubsMap.values()),
+    };
+  }
+
+  writeByClub(byClubMap, {});
+  writeFreeAgents(freeAgents);
+  writeNewLeagues(newLeaguesOutput);
+
+  // ── Stats ───────────────────────────────────────────────────────────────
+  let byClubTotal = 0;
+  for (const players of byClubMap.values()) byClubTotal += players.length;
+
+  let newLeagueTotal = 0;
+  let newLeagueClubCount = 0;
+  for (const data of Object.values(newLeaguesOutput)) {
+    newLeagueClubCount += data.clubs.length;
+    for (const c of data.clubs) newLeagueTotal += c.players.length;
+  }
+
+  console.log('\n=== ROUTING ===');
+  console.log(`skipped (empty club_name): ${skippedEmpty}`);
+  console.log(`skipped (bucket D):         ${skippedD}`);
+  console.log(`dedup (duplicate fcId):     ${dupCount}`);
+  console.log(`routed → byClub:            ${routedAB}`);
+  console.log(`routed → newLeagues:        ${routedC2Qualified}`);
+  console.log(`routed → freeAgents:        ${routedFreeAgent}`);
+
+  console.log('\n=== OUTPUT ===');
+  console.log(`byClub.ts:     ${byClubMap.size} clubs, ${byClubTotal} players`);
+  console.log(`freeAgents.ts: ${freeAgents.length} players`);
+  console.log(`newLeagues.ts: ${Object.keys(newLeaguesOutput).length} leagues, ${newLeagueClubCount} clubs, ${newLeagueTotal} players`);
+  console.log(`total routed:  ${byClubTotal + freeAgents.length + newLeagueTotal} players`);
+
+  console.log('\n=== FILE SIZES ===');
+  let totalBytes = 0;
+  for (const fname of ['byClub.ts', 'freeAgents.ts', 'newLeagues.ts']) {
+    const size = statSync(join(OUTPUT_DIR, fname)).size;
+    totalBytes += size;
+    console.log(`${fname.padEnd(16)} ${(size / 1024 / 1024).toFixed(2)} MB`);
+  }
+  console.log(`${'total'.padEnd(16)} ${(totalBytes / 1024 / 1024).toFixed(2)} MB`);
 }
 
 // Entry point — only run main when invoked directly, not when imported.
