@@ -13,7 +13,9 @@ import {
 } from '@/config/managerCareer';
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies, getLeaguesByCountry } from '@/data/league';
 import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
-import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
+import { generateSquad, selectBestLineup, generatePlayer, calculateOverall, buildPlayerFromTemplate } from '@/utils/playerGen';
+import type { PlayerTemplate } from '@/data/playerTemplates';
+import { getActivePool, drawForMarket } from '@/utils/communityPackPool';
 import { simulateMatch, simulateHalf, finalizeMatch, generateMatchWeather } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
 import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
@@ -2744,11 +2746,27 @@ function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS }[])
 }
 
 export const createOrchestrationSlice = (set: Set, get: Get) => ({
-  initGame: (clubId: string) => {
+  initGame: async (clubId: string, options?: { communityPackEnabled?: boolean }) => {
+    const communityPackEnabled = options?.communityPackEnabled ?? false;
+
+    // Lazy-load community pack datasets only when enabled so the default bundle
+    // stays lean. Dynamic imports are cached by the module system.
+    let cpByClub: Record<string, PlayerTemplate[]> | undefined;
+    let cpFreeAgents: PlayerTemplate[] | undefined;
+    if (communityPackEnabled) {
+      const [byClubMod, freeAgentsMod] = await Promise.all([
+        import('@/data/communityPack/byClub'),
+        import('@/data/communityPack/freeAgents'),
+      ]);
+      cpByClub = byClubMod.byClub as Record<string, PlayerTemplate[]>;
+      cpFreeAgents = freeAgentsMod.freeAgents as PlayerTemplate[];
+    }
+
     resetSeasonGrowth();
     clearLeagueTableCache();
     const allPlayers: Record<string, Player> = {};
     const clubs: Record<string, Club> = {};
+    const assignedFcIds: string[] = [];
 
     // Find which league the selected club belongs to
     const selectedClubData = ALL_CLUBS.find(c => c.id === clubId);
@@ -2774,7 +2792,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         stadiumCapacity: cd.stadiumCapacity,
       };
 
-      const squad = generateSquad(club.id, cd.squadQuality, 1, cd.divisionId, /* isInitialSeason */ true);
+      const cpTemplates = communityPackEnabled ? cpByClub?.[club.id] : undefined;
+      const squad = cpTemplates && cpTemplates.length > 0
+        ? cpTemplates.map(t => {
+            if (t.fcId) assignedFcIds.push(t.fcId);
+            return buildPlayerFromTemplate(t, club.id, 1);
+          })
+        : generateSquad(club.id, cd.squadQuality, 1, cd.divisionId, /* isInitialSeason */ true);
       let totalWages = 0;
       squad.forEach(p => {
         allPlayers[p.id] = p;
@@ -2813,6 +2837,41 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // agents spawn each week. End-of-season rollover still seeds a full
     // pre-season market for subsequent years.
     const transferMarket: TransferListing[] = [];
+
+    // cpPool state accumulates as we seed the world. The shuffleSeed is fixed
+    // per save so the active pool is reproducible across sessions.
+    const cpShuffleSeed = communityPackEnabled ? Date.now() % 0x80000000 : 0;
+    const cpMarketListings: string[] = [];
+
+    // Seed the transfer market from the community pack free-agent pool so the
+    // player has ~60 real players to browse on day one when the pack is on.
+    if (communityPackEnabled && cpFreeAgents) {
+      const activePool = getActivePool(cpFreeAgents, {
+        shuffleSeed: cpShuffleSeed,
+        cursor: 0,
+        usedFcIds: assignedFcIds,
+        marketListings: [],
+        lastMarketRefreshWeek: 0,
+      });
+      const initialMarket = drawForMarket(activePool, 60, assignedFcIds, cpShuffleSeed);
+      for (const t of initialMarket) {
+        const player = buildPlayerFromTemplate(t, '', 1);
+        if (t.fcId) player.fcId = t.fcId;
+        allPlayers[player.id] = player;
+        const markup = 1.1 + Math.random() * 0.4;
+        transferMarket.push({
+          playerId: player.id,
+          askingPrice: Math.max(50_000, Math.round(player.value * markup)),
+          sellerClubId: '',
+          externalPlayer: true,
+          divisionId: '',
+        });
+        if (t.fcId) {
+          cpMarketListings.push(t.fcId);
+          assignedFcIds.push(t.fcId);
+        }
+      }
+    }
 
     // Seed a small pool of free agents (2-3) so managers have a minimal
     // signing option from day one.
@@ -2956,6 +3015,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         firstLaunchTimestamp: get().monetization?.firstLaunchTimestamp || Date.now(),
         subscription: get().monetization?.subscription || null,
       },
+      communityPackEnabled,
+      cpPool: {
+        shuffleSeed: cpShuffleSeed,
+        cursor: 0,
+        usedFcIds: communityPackEnabled ? assignedFcIds : [],
+        marketListings: cpMarketListings,
+        lastMarketRefreshWeek: 0,
+      },
     });
   },
 
@@ -3040,7 +3107,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     });
   },
 
-  advanceWeek: () => {
+  advanceWeek: async () => {
     const state = get();
 
     // Career mode: unemployed managers skip gameplay, only process job market
@@ -5247,6 +5314,74 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         }
 
         set({ careerManager: cm, messages: careerMessages });
+      }
+    }
+
+    // Community pack market refresh: every 4 weeks, rotate out the oldest 20
+    // listings and draw 20 fresh templates from the free-agent pool.
+    {
+      const cpState = get();
+      if (
+        cpState.communityPackEnabled &&
+        cpState.week - cpState.cpPool.lastMarketRefreshWeek >= 4
+      ) {
+        const rotateOut = cpState.cpPool.marketListings.slice(0, 20);
+        const keep = cpState.cpPool.marketListings.slice(20);
+        const freeAgentsMod = await import('@/data/communityPack/freeAgents');
+        const cpFreeAgents = freeAgentsMod.freeAgents as PlayerTemplate[];
+        const activePool = getActivePool(cpFreeAgents, cpState.cpPool);
+        const newDraws = drawForMarket(
+          activePool,
+          20,
+          cpState.cpPool.usedFcIds,
+          cpState.cpPool.shuffleSeed + cpState.week,
+        );
+        const newIds = newDraws
+          .map(t => t.fcId)
+          .filter((id): id is string => typeof id === 'string');
+
+        const rotateOutSet = new Set(rotateOut);
+        const updatedPlayers = { ...cpState.players };
+        const newListings: TransferListing[] = [];
+        for (const t of newDraws) {
+          const p = buildPlayerFromTemplate(t, '', cpState.season);
+          if (t.fcId) p.fcId = t.fcId;
+          updatedPlayers[p.id] = p;
+          const markup = 1.1 + Math.random() * 0.4;
+          newListings.push({
+            playerId: p.id,
+            askingPrice: Math.max(50_000, Math.round(p.value * markup)),
+            sellerClubId: '',
+            externalPlayer: true,
+            divisionId: '',
+          });
+        }
+
+        // Drop listings whose external player was rotated out, and prune
+        // those orphaned player records from state.
+        const keptMarket: TransferListing[] = [];
+        for (const l of cpState.transferMarket) {
+          const p = updatedPlayers[l.playerId];
+          if (p?.fcId && rotateOutSet.has(p.fcId)) {
+            delete updatedPlayers[l.playerId];
+            continue;
+          }
+          keptMarket.push(l);
+        }
+
+        set({
+          transferMarket: [...keptMarket, ...newListings],
+          players: updatedPlayers,
+          cpPool: {
+            ...cpState.cpPool,
+            marketListings: [...keep, ...newIds],
+            usedFcIds: [
+              ...cpState.cpPool.usedFcIds.filter(id => !rotateOutSet.has(id)),
+              ...newIds,
+            ],
+            lastMarketRefreshWeek: cpState.week,
+          },
+        });
       }
     }
 

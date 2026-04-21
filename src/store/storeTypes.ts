@@ -223,12 +223,12 @@ export interface GameState {
   currentLeagueCupTieId: string | null;
 
   // Actions — Core
-  initGame: (clubId: string) => void;
+  initGame: (clubId: string, options?: { communityPackEnabled?: boolean }) => Promise<void> | void;
   initializeLeague: (leagueId: string) => void;
   setScreen: (screen: GameScreen) => void;
   selectPlayer: (id: string | null) => void;
   selectClub: (id: string | null) => void;
-  advanceWeek: () => void;
+  advanceWeek: () => Promise<void> | void;
   advanceToNextMatch: () => void;
   endSeason: () => void;
   saveGame: (slot?: number) => void;
