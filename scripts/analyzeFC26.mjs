@@ -355,34 +355,221 @@ function categorizeClub(fc26Row, gameClubsByLeague) {
 }
 
 /**
- * Scan the CSV for league ids that aren't in FC26_LEAGUE_ID_TO_GAME_ID and
- * meet the MIN_CLUBS / MIN_AVG_PLAYERS thresholds. Surfaces candidates
- * (including whatever id the Chinese Super League ends up using) so we can
- * extend NEW_LEAGUE_CANDIDATES in later turns.
- * @param {object[]} rows
- * @returns {Array<{ leagueId: number, clubCount: number, avgPlayers: number, sampleTeams: string[] }>}
+ * Group C2 (unmapped-league) entries by fc26LeagueId and split them into
+ * leagues that meet the MIN_CLUBS / MIN_AVG_PLAYERS thresholds vs those
+ * that don't. Input entries are expected to be enriched with `playerCount`
+ * by main() before they reach here.
+ *
+ * @param {Array<{ fc26LeagueId: number, fc26LeagueName: string, fc26Name: string, playerCount: number }>} c2Entries
+ * @returns {{ qualified: object[], belowThreshold: object[] }}
  */
-function detectNewLeagues(rows) {
-  return [];
+function detectNewLeagues(c2Entries) {
+  const byLeague = new Map();
+  for (const e of c2Entries) {
+    const id = e.fc26LeagueId;
+    if (!byLeague.has(id)) {
+      byLeague.set(id, {
+        fc26LeagueId: id,
+        leagueName: e.fc26LeagueName || '',
+        clubNames: new Set(),
+        totalPlayers: 0,
+      });
+    }
+    const g = byLeague.get(id);
+    g.clubNames.add(e.fc26Name);
+    g.totalPlayers += e.playerCount || 0;
+    // First non-empty name wins as the canonical league name.
+    if (!g.leagueName && e.fc26LeagueName) g.leagueName = e.fc26LeagueName;
+  }
+
+  const qualified = [];
+  const belowThreshold = [];
+  for (const g of byLeague.values()) {
+    const clubCount = g.clubNames.size;
+    const avgPlayersPerClub = clubCount > 0 ? g.totalPlayers / clubCount : 0;
+    const summary = {
+      fc26LeagueId: g.fc26LeagueId,
+      leagueName: g.leagueName,
+      clubCount,
+      totalPlayers: g.totalPlayers,
+      avgPlayersPerClub: Math.round(avgPlayersPerClub * 10) / 10,
+      sampleTeams: Array.from(g.clubNames).sort().slice(0, 5),
+    };
+    if (clubCount >= MIN_CLUBS && avgPlayersPerClub >= MIN_AVG_PLAYERS) {
+      qualified.push(summary);
+    } else {
+      belowThreshold.push(summary);
+    }
+  }
+
+  qualified.sort((a, b) => b.totalPlayers - a.totalPlayers);
+  belowThreshold.sort((a, b) => b.totalPlayers - a.totalPlayers);
+  return { qualified, belowThreshold };
 }
 
 /**
  * Assemble the final report object written to scripts/fc26-report.json.
- * Must include: source checksum + row count, column catalogue, OVR histogram,
- * position distribution, per-league summaries (mapped + candidate),
- * bucket counts, and the unknown-position / unknown-league tails.
- * @param {object[]} rows
+ * @param {object[]} categorized  categorizeClub results enriched with
+ *                                fc26Name / fc26LeagueId / playerCount
+ * @param {{ qualified: object[], belowThreshold: object[] }} newLeagueResult
  * @returns {object}
  */
-function buildReport(rows) {
-  return {};
+function buildReport(categorized, newLeagueResult) {
+  const bucketCounts = { A: 0, B: 0, C1: 0, C2: 0, D: 0 };
+  const bucketA = [];
+  const bucketB = [];
+  const bucketC1 = {};
+  const bucketD = [];
+
+  // Track which FC26 clubs resolved to the same in-game club id so we
+  // can surface collisions (two FC26 entries both claiming e.g. arsenal).
+  const gameClubHits = new Map();
+
+  let totalPlayers = 0;
+  let totalClubs = 0;
+
+  for (const e of categorized) {
+    totalPlayers += e.playerCount || 0;
+    totalClubs += 1;
+    bucketCounts[e.bucket] = (bucketCounts[e.bucket] || 0) + 1;
+
+    if (e.bucket === 'A') {
+      bucketA.push({
+        fc26Name: e.fc26Name,
+        gameClubId: e.gameClubId,
+        gameLeagueId: e.gameLeagueId,
+        playerCount: e.playerCount,
+      });
+      const key = `${e.gameLeagueId}::${e.gameClubId}`;
+      if (!gameClubHits.has(key)) gameClubHits.set(key, []);
+      gameClubHits.get(key).push({ fc26Name: e.fc26Name, bucket: 'A' });
+    } else if (e.bucket === 'B') {
+      bucketB.push({
+        fc26Name: e.fc26Name,
+        gameClubId: e.gameClubId,
+        gameLeagueId: e.gameLeagueId,
+        score: e.score,
+        playerCount: e.playerCount,
+      });
+      const key = `${e.gameLeagueId}::${e.gameClubId}`;
+      if (!gameClubHits.has(key)) gameClubHits.set(key, []);
+      gameClubHits.get(key).push({ fc26Name: e.fc26Name, bucket: 'B', score: e.score });
+    } else if (e.bucket === 'C1') {
+      if (!bucketC1[e.gameLeagueId]) bucketC1[e.gameLeagueId] = [];
+      bucketC1[e.gameLeagueId].push({
+        fc26Name: e.fc26Name,
+        playerCount: e.playerCount,
+      });
+    } else if (e.bucket === 'D') {
+      bucketD.push({
+        fc26Name: e.fc26Name,
+        fc26LeagueId: e.fc26LeagueId,
+        reason: e.reason,
+      });
+    }
+    // C2 rolled up by detectNewLeagues — nothing to accumulate here.
+  }
+
+  const collisionWarnings = [];
+  for (const [key, hits] of gameClubHits) {
+    if (hits.length > 1) {
+      const [gameLeagueId, gameClubId] = key.split('::');
+      collisionWarnings.push({ gameLeagueId, gameClubId, fc26Names: hits });
+    }
+  }
+
+  // Sort outputs for human readability.
+  bucketA.sort((a, b) =>
+    a.gameLeagueId.localeCompare(b.gameLeagueId) ||
+    a.fc26Name.localeCompare(b.fc26Name));
+  // Lowest score first so review starts with the shakiest fuzzy matches.
+  bucketB.sort((a, b) => a.score - b.score);
+  for (const list of Object.values(bucketC1)) {
+    list.sort((a, b) => b.playerCount - a.playerCount || a.fc26Name.localeCompare(b.fc26Name));
+  }
+  bucketD.sort((a, b) =>
+    (a.fc26LeagueId || 0) - (b.fc26LeagueId || 0) ||
+    String(a.fc26Name).localeCompare(String(b.fc26Name)));
+  collisionWarnings.sort((a, b) =>
+    a.gameLeagueId.localeCompare(b.gameLeagueId) ||
+    a.gameClubId.localeCompare(b.gameClubId));
+
+  return {
+    generatedAt: new Date().toISOString(),
+    summary: { totalPlayers, totalClubs, bucketCounts },
+    bucketA,
+    bucketB,
+    bucketC1,
+    bucketC2: {
+      qualifiedLeagues: newLeagueResult.qualified,
+      belowThresholdLeagues: newLeagueResult.belowThreshold,
+    },
+    bucketD,
+    collisionWarnings,
+  };
 }
 
 /**
- * Orchestration: read CSV → parse → buildReport → write JSON → print summary.
+ * Orchestration: read CSV → group rows by club → categorize each club once
+ * → detect new leagues on the C2 set → build the report → write JSON.
  * @returns {void}
  */
-function main() {}
+function main() {
+  console.log(`Reading ${CSV_PATH}`);
+  const csvContent = readFileSync(CSV_PATH, 'utf-8');
+  const rows = parseCSV(csvContent);
+  console.log(`Parsed ${rows.length} rows`);
+
+  console.log('Loading in-game club ids...');
+  const gameClubs = loadGameClubIds();
+  console.log(`  ${gameClubs.size} leagues registered in src/data/leagues`);
+
+  // Group by (league_id, club_name) so each club is categorized once.
+  const clubGroups = new Map();
+  for (const row of rows) {
+    const leagueId = row.league_id ?? '';
+    const clubName = (row.club_name ?? row.team_name ?? '').trim();
+    const key = `${leagueId}::${clubName}`;
+    if (!clubGroups.has(key)) {
+      clubGroups.set(key, {
+        leagueId,
+        clubName,
+        leagueName: row.league_name ?? '',
+        rows: [],
+      });
+    }
+    clubGroups.get(key).rows.push(row);
+  }
+  console.log(`  ${clubGroups.size} unique clubs`);
+
+  // Categorize each group and attach player count + source metadata so
+  // buildReport / detectNewLeagues don't have to revisit the raw rows.
+  const categorized = [];
+  for (const group of clubGroups.values()) {
+    const result = categorizeClub(group.rows[0], gameClubs);
+    categorized.push({
+      ...result,
+      fc26Name: group.clubName,
+      fc26LeagueId: parseInt(group.leagueId, 10),
+      fc26LeagueName: group.leagueName,
+      playerCount: group.rows.length,
+    });
+  }
+
+  const c2Entries = categorized.filter(e => e.bucket === 'C2');
+  const newLeagueResult = detectNewLeagues(c2Entries);
+
+  const report = buildReport(categorized, newLeagueResult);
+
+  writeFileSync(REPORT_PATH, JSON.stringify(report, null, 2));
+  console.log(`\nWrote ${REPORT_PATH}`);
+
+  console.log('\n=== SUMMARY ===');
+  console.log(JSON.stringify(report.summary, null, 2));
+  console.log(`Collision warnings: ${report.collisionWarnings.length}`);
+  console.log(`Qualified new leagues: ${newLeagueResult.qualified.length}`);
+  console.log(`Below-threshold leagues: ${newLeagueResult.belowThreshold.length}`);
+}
 
 // Entry point — only run main when invoked directly, not when imported.
 if (import.meta.url === `file://${process.argv[1]}`) {

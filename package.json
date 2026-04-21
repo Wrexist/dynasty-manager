@@ -25,6 +25,7 @@
     "branch": "bash scripts/new-branch.sh",
     "scrape:icons": "node scripts/scrapeSoFIFAIcons.mjs",
     "scrape:icons:setup": "playwright install chromium",
+    "analyze-fc26": "node scripts/analyzeFC26.mjs",
     "prepare": "husky",
     "version:sync": "node scripts/sync-version.mjs"
   },
