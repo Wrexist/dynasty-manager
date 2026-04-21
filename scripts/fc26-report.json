@@ -1,0 +1,2702 @@
+{
+  "generatedAt": "2026-04-21T04:24:42.460Z",
+  "summary": {
+    "totalPlayers": 18405,
+    "totalClubs": 663,
+    "bucketCounts": {
+      "A": 196,
+      "B": 5,
+      "C1": 275,
+      "C2": 184,
+      "D": 3
+    }
+  },
+  "bucketA": [
+    {
+      "fc26Name": "Wolfsberger AC",
+      "gameClubId": "wolfsberger-ac",
+      "gameLeagueId": "aut",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "AFC Bournemouth",
+      "gameClubId": "bournemouth",
+      "gameLeagueId": "eng",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Arsenal",
+      "gameClubId": "arsenal",
+      "gameLeagueId": "eng",
+      "playerCount": 24
+    },
+    {
+      "fc26Name": "Aston Villa",
+      "gameClubId": "aston-villa",
+      "gameLeagueId": "eng",
+      "playerCount": 24
+    },
+    {
+      "fc26Name": "Brentford",
+      "gameClubId": "brentford",
+      "gameLeagueId": "eng",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Chelsea",
+      "gameClubId": "chelsea",
+      "gameLeagueId": "eng",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Crystal Palace",
+      "gameClubId": "crystal-palace",
+      "gameLeagueId": "eng",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Everton",
+      "gameClubId": "everton",
+      "gameLeagueId": "eng",
+      "playerCount": 24
+    },
+    {
+      "fc26Name": "Fulham FC",
+      "gameClubId": "fulham",
+      "gameLeagueId": "eng",
+      "playerCount": 24
+    },
+    {
+      "fc26Name": "Liverpool",
+      "gameClubId": "liverpool",
+      "gameLeagueId": "eng",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Manchester City",
+      "gameClubId": "manchester-city",
+      "gameLeagueId": "eng",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Manchester United",
+      "gameClubId": "manchester-united",
+      "gameLeagueId": "eng",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Newcastle United",
+      "gameClubId": "newcastle-united",
+      "gameLeagueId": "eng",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Nottingham Forest",
+      "gameClubId": "nottingham-forest",
+      "gameLeagueId": "eng",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Tottenham Hotspur",
+      "gameClubId": "tottenham-hotspur",
+      "gameLeagueId": "eng",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "West Ham United",
+      "gameClubId": "west-ham-united",
+      "gameLeagueId": "eng",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Wolverhampton Wanderers",
+      "gameClubId": "wolverhampton-wanderers",
+      "gameLeagueId": "eng",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Blackburn Rovers",
+      "gameClubId": "blackburn-rovers",
+      "gameLeagueId": "eng-2",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Bristol City",
+      "gameClubId": "bristol-city",
+      "gameLeagueId": "eng-2",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Coventry City",
+      "gameClubId": "coventry-city",
+      "gameLeagueId": "eng-2",
+      "playerCount": 23
+    },
+    {
+      "fc26Name": "Derby County",
+      "gameClubId": "derby-county",
+      "gameLeagueId": "eng-2",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Hull City",
+      "gameClubId": "hull-city",
+      "gameLeagueId": "eng-2",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Middlesbrough",
+      "gameClubId": "middlesbrough",
+      "gameLeagueId": "eng-2",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Millwall FC",
+      "gameClubId": "millwall",
+      "gameLeagueId": "eng-2",
+      "playerCount": 33
+    },
+    {
+      "fc26Name": "Oxford United",
+      "gameClubId": "oxford-united",
+      "gameLeagueId": "eng-2",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Portsmouth",
+      "gameClubId": "portsmouth",
+      "gameLeagueId": "eng-2",
+      "playerCount": 32
+    },
+    {
+      "fc26Name": "Stoke City",
+      "gameClubId": "stoke-city",
+      "gameLeagueId": "eng-2",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Swansea City",
+      "gameClubId": "swansea-city",
+      "gameLeagueId": "eng-2",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Watford",
+      "gameClubId": "watford",
+      "gameLeagueId": "eng-2",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Barnsley",
+      "gameClubId": "barnsley",
+      "gameLeagueId": "eng-3",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Blackpool FC",
+      "gameClubId": "blackpool",
+      "gameLeagueId": "eng-3",
+      "playerCount": 22
+    },
+    {
+      "fc26Name": "Burton Albion",
+      "gameClubId": "burton-albion",
+      "gameLeagueId": "eng-3",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Exeter City",
+      "gameClubId": "exeter-city",
+      "gameLeagueId": "eng-3",
+      "playerCount": 32
+    },
+    {
+      "fc26Name": "Leyton Orient",
+      "gameClubId": "leyton-orient",
+      "gameLeagueId": "eng-3",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Lincoln City",
+      "gameClubId": "lincoln-city",
+      "gameLeagueId": "eng-3",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Mansfield Town",
+      "gameClubId": "mansfield-town",
+      "gameLeagueId": "eng-3",
+      "playerCount": 24
+    },
+    {
+      "fc26Name": "Reading FC",
+      "gameClubId": "reading",
+      "gameLeagueId": "eng-3",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Stevenage",
+      "gameClubId": "stevenage",
+      "gameLeagueId": "eng-3",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Wigan Athletic",
+      "gameClubId": "wigan-athletic",
+      "gameLeagueId": "eng-3",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Barrow",
+      "gameClubId": "barrow",
+      "gameLeagueId": "eng-4",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Cheltenham Town",
+      "gameClubId": "cheltenham-town",
+      "gameLeagueId": "eng-4",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Chesterfield",
+      "gameClubId": "chesterfield",
+      "gameLeagueId": "eng-4",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Crewe Alexandra",
+      "gameClubId": "crewe-alexandra",
+      "gameLeagueId": "eng-4",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Fleetwood Town",
+      "gameClubId": "fleetwood-town",
+      "gameLeagueId": "eng-4",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Gillingham",
+      "gameClubId": "gillingham",
+      "gameLeagueId": "eng-4",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Grimsby Town",
+      "gameClubId": "grimsby-town",
+      "gameLeagueId": "eng-4",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Harrogate Town",
+      "gameClubId": "harrogate-town",
+      "gameLeagueId": "eng-4",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Newport County",
+      "gameClubId": "newport-county",
+      "gameLeagueId": "eng-4",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Notts County",
+      "gameClubId": "notts-county",
+      "gameLeagueId": "eng-4",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Salford City",
+      "gameClubId": "salford-city",
+      "gameLeagueId": "eng-4",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Swindon Town",
+      "gameClubId": "swindon-town",
+      "gameLeagueId": "eng-4",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Tranmere Rovers",
+      "gameClubId": "tranmere-rovers",
+      "gameLeagueId": "eng-4",
+      "playerCount": 24
+    },
+    {
+      "fc26Name": "Walsall",
+      "gameClubId": "walsall",
+      "gameLeagueId": "eng-4",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Atlético Madrid",
+      "gameClubId": "atletico-madrid",
+      "gameLeagueId": "esp",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Deportivo Alavés",
+      "gameClubId": "deportivo-alaves",
+      "gameLeagueId": "esp",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "FC Barcelona",
+      "gameClubId": "barcelona",
+      "gameLeagueId": "esp",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Getafe CF",
+      "gameClubId": "getafe",
+      "gameLeagueId": "esp",
+      "playerCount": 23
+    },
+    {
+      "fc26Name": "Girona FC",
+      "gameClubId": "girona",
+      "gameLeagueId": "esp",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Rayo Vallecano",
+      "gameClubId": "rayo-vallecano",
+      "gameLeagueId": "esp",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Real Madrid",
+      "gameClubId": "real-madrid",
+      "gameLeagueId": "esp",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Real Sociedad",
+      "gameClubId": "real-sociedad",
+      "gameLeagueId": "esp",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Sevilla FC",
+      "gameClubId": "sevilla",
+      "gameLeagueId": "esp",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Valencia CF",
+      "gameClubId": "valencia",
+      "gameLeagueId": "esp",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Villarreal CF",
+      "gameClubId": "villarreal",
+      "gameLeagueId": "esp",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "CD Castellón",
+      "gameClubId": "cd-castellon",
+      "gameLeagueId": "esp-2",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "CD Mirandés",
+      "gameClubId": "cd-mirandes",
+      "gameLeagueId": "esp-2",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Real Zaragoza",
+      "gameClubId": "real-zaragoza",
+      "gameLeagueId": "esp-2",
+      "playerCount": 33
+    },
+    {
+      "fc26Name": "SD Eibar",
+      "gameClubId": "sd-eibar",
+      "gameLeagueId": "esp-2",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "SD Huesca",
+      "gameClubId": "sd-huesca",
+      "gameLeagueId": "esp-2",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "UD Almería",
+      "gameClubId": "ud-almeria",
+      "gameLeagueId": "esp-2",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "FC Nantes",
+      "gameClubId": "nantes",
+      "gameLeagueId": "fra",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Paris Saint-Germain",
+      "gameClubId": "paris-saint-germain",
+      "gameLeagueId": "fra",
+      "playerCount": 23
+    },
+    {
+      "fc26Name": "Toulouse FC",
+      "gameClubId": "toulouse",
+      "gameLeagueId": "fra",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Amiens SC",
+      "gameClubId": "amiens-sc",
+      "gameLeagueId": "fra-2",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Clermont Foot 63",
+      "gameClubId": "clermont-foot-63",
+      "gameLeagueId": "fra-2",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "En Avant Guingamp",
+      "gameClubId": "en-avant-guingamp",
+      "gameLeagueId": "fra-2",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "ESTAC Troyes",
+      "gameClubId": "estac-troyes",
+      "gameLeagueId": "fra-2",
+      "playerCount": 33
+    },
+    {
+      "fc26Name": "Grenoble Foot 38",
+      "gameClubId": "grenoble-foot-38",
+      "gameLeagueId": "fra-2",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "USL Dunkerque",
+      "gameClubId": "usl-dunkerque",
+      "gameLeagueId": "fra-2",
+      "playerCount": 24
+    },
+    {
+      "fc26Name": "1. FC Union Berlin",
+      "gameClubId": "union-berlin",
+      "gameLeagueId": "ger",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Borussia Dortmund",
+      "gameClubId": "borussia-dortmund",
+      "gameLeagueId": "ger",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Borussia Mönchengladbach",
+      "gameClubId": "borussia-monchengladbach",
+      "gameLeagueId": "ger",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Eintracht Frankfurt",
+      "gameClubId": "eintracht-frankfurt",
+      "gameLeagueId": "ger",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "FC Augsburg",
+      "gameClubId": "augsburg",
+      "gameLeagueId": "ger",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "FC St. Pauli",
+      "gameClubId": "st-pauli",
+      "gameLeagueId": "ger",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "RB Leipzig",
+      "gameClubId": "rb-leipzig",
+      "gameLeagueId": "ger",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "SC Freiburg",
+      "gameClubId": "freiburg",
+      "gameLeagueId": "ger",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "SV Werder Bremen",
+      "gameClubId": "werder-bremen",
+      "gameLeagueId": "ger",
+      "playerCount": 32
+    },
+    {
+      "fc26Name": "VfB Stuttgart",
+      "gameClubId": "stuttgart",
+      "gameLeagueId": "ger",
+      "playerCount": 32
+    },
+    {
+      "fc26Name": "VfL Wolfsburg",
+      "gameClubId": "wolfsburg",
+      "gameLeagueId": "ger",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "1. FC Kaiserslautern",
+      "gameClubId": "kaiserslautern",
+      "gameLeagueId": "ger-2",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Hannover 96",
+      "gameClubId": "hannover-96",
+      "gameLeagueId": "ger-2",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Hertha BSC",
+      "gameClubId": "hertha-bsc",
+      "gameLeagueId": "ger-2",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Karlsruher SC",
+      "gameClubId": "karlsruher-sc",
+      "gameLeagueId": "ger-2",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "SC Preußen Münster",
+      "gameClubId": "preuen-munster",
+      "gameLeagueId": "ger-2",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "1. FC Saarbrücken",
+      "gameClubId": "saarbrucken",
+      "gameLeagueId": "ger-3",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "FC Energie Cottbus",
+      "gameClubId": "energie-cottbus",
+      "gameLeagueId": "ger-3",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Rot-Weiss Essen",
+      "gameClubId": "rot-weiss-essen",
+      "gameLeagueId": "ger-3",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "SV Wehen Wiesbaden",
+      "gameClubId": "wehen-wiesbaden",
+      "gameLeagueId": "ger-3",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Viktoria Köln",
+      "gameClubId": "viktoria-koln",
+      "gameLeagueId": "ger-3",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Derry City",
+      "gameClubId": "derry-city",
+      "gameLeagueId": "irl",
+      "playerCount": 23
+    },
+    {
+      "fc26Name": "Drogheda United",
+      "gameClubId": "drogheda-united",
+      "gameLeagueId": "irl",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Galway United",
+      "gameClubId": "galway-united",
+      "gameLeagueId": "irl",
+      "playerCount": 24
+    },
+    {
+      "fc26Name": "Shamrock Rovers",
+      "gameClubId": "shamrock-rovers",
+      "gameLeagueId": "irl",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Shelbourne FC",
+      "gameClubId": "shelbourne",
+      "gameLeagueId": "irl",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Sligo Rovers",
+      "gameClubId": "sligo-rovers",
+      "gameLeagueId": "irl",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "St Patrick's Athletic FC",
+      "gameClubId": "st-patricks-athletic",
+      "gameLeagueId": "irl",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Waterford FC",
+      "gameClubId": "waterford",
+      "gameLeagueId": "irl",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Atalanta",
+      "gameClubId": "atalanta",
+      "gameLeagueId": "ita",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Bologna",
+      "gameClubId": "bologna",
+      "gameLeagueId": "ita",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Cagliari",
+      "gameClubId": "cagliari",
+      "gameLeagueId": "ita",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Como",
+      "gameClubId": "como",
+      "gameLeagueId": "ita",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Fiorentina",
+      "gameClubId": "fiorentina",
+      "gameLeagueId": "ita",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Genoa",
+      "gameClubId": "genoa",
+      "gameLeagueId": "ita",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Hellas Verona FC",
+      "gameClubId": "hellas-verona",
+      "gameLeagueId": "ita",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Juventus",
+      "gameClubId": "juventus",
+      "gameLeagueId": "ita",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Lazio",
+      "gameClubId": "lazio",
+      "gameLeagueId": "ita",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Lecce",
+      "gameClubId": "lecce",
+      "gameLeagueId": "ita",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Napoli",
+      "gameClubId": "napoli",
+      "gameLeagueId": "ita",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Parma",
+      "gameClubId": "parma",
+      "gameLeagueId": "ita",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Torino",
+      "gameClubId": "torino",
+      "gameLeagueId": "ita",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Udinese",
+      "gameClubId": "udinese",
+      "gameLeagueId": "ita",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Catanzaro",
+      "gameClubId": "catanzaro",
+      "gameLeagueId": "ita-2",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Cesena FC",
+      "gameClubId": "cesena",
+      "gameLeagueId": "ita-2",
+      "playerCount": 23
+    },
+    {
+      "fc26Name": "Frosinone",
+      "gameClubId": "frosinone",
+      "gameLeagueId": "ita-2",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Mantova",
+      "gameClubId": "mantova",
+      "gameLeagueId": "ita-2",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Modena",
+      "gameClubId": "modena",
+      "gameLeagueId": "ita-2",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Palermo FC",
+      "gameClubId": "palermo",
+      "gameLeagueId": "ita-2",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Reggiana",
+      "gameClubId": "reggiana",
+      "gameLeagueId": "ita-2",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Sampdoria",
+      "gameClubId": "sampdoria",
+      "gameLeagueId": "ita-2",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Spezia",
+      "gameClubId": "spezia",
+      "gameLeagueId": "ita-2",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "SS Juve Stabia",
+      "gameClubId": "ss-juve-stabia",
+      "gameLeagueId": "ita-2",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Südtirol",
+      "gameClubId": "sudtirol",
+      "gameLeagueId": "ita-2",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Ajax",
+      "gameClubId": "ajax",
+      "gameLeagueId": "ned",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "AZ Alkmaar",
+      "gameClubId": "az-alkmaar",
+      "gameLeagueId": "ned",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Feyenoord",
+      "gameClubId": "feyenoord",
+      "gameLeagueId": "ned",
+      "playerCount": 33
+    },
+    {
+      "fc26Name": "Fortuna Sittard",
+      "gameClubId": "fortuna-sittard",
+      "gameLeagueId": "ned",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Go Ahead Eagles",
+      "gameClubId": "go-ahead-eagles",
+      "gameLeagueId": "ned",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Heracles Almelo",
+      "gameClubId": "heracles-almelo",
+      "gameLeagueId": "ned",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "NAC Breda",
+      "gameClubId": "nac-breda",
+      "gameLeagueId": "ned",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "NEC Nijmegen",
+      "gameClubId": "nec-nijmegen",
+      "gameLeagueId": "ned",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "PEC Zwolle",
+      "gameClubId": "pec-zwolle",
+      "gameLeagueId": "ned",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "SC Heerenveen",
+      "gameClubId": "heerenveen",
+      "gameLeagueId": "ned",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Sparta Rotterdam",
+      "gameClubId": "sparta-rotterdam",
+      "gameLeagueId": "ned",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Cracovia",
+      "gameClubId": "cracovia",
+      "gameLeagueId": "pol",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Górnik Zabrze",
+      "gameClubId": "gornik-zabrze",
+      "gameLeagueId": "pol",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Korona Kielce",
+      "gameClubId": "korona-kielce",
+      "gameLeagueId": "pol",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Lech Poznań",
+      "gameClubId": "lech-poznan",
+      "gameLeagueId": "pol",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Lechia Gdańsk",
+      "gameClubId": "lechia-gdansk",
+      "gameLeagueId": "pol",
+      "playerCount": 24
+    },
+    {
+      "fc26Name": "Motor Lublin",
+      "gameClubId": "motor-lublin",
+      "gameLeagueId": "pol",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Piast Gliwice",
+      "gameClubId": "piast-gliwice",
+      "gameLeagueId": "pol",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Pogoń Szczecin",
+      "gameClubId": "pogon-szczecin",
+      "gameLeagueId": "pol",
+      "playerCount": 23
+    },
+    {
+      "fc26Name": "Radomiak Radom",
+      "gameClubId": "radomiak-radom",
+      "gameLeagueId": "pol",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Raków Częstochowa",
+      "gameClubId": "rakow-czestochowa",
+      "gameLeagueId": "pol",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Casa Pia",
+      "gameClubId": "casa-pia",
+      "gameLeagueId": "por",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Famalicão",
+      "gameClubId": "famalicao",
+      "gameLeagueId": "por",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "FC Arouca",
+      "gameClubId": "arouca",
+      "gameLeagueId": "por",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "FC Porto",
+      "gameClubId": "porto",
+      "gameLeagueId": "por",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Gil Vicente FC",
+      "gameClubId": "gil-vicente",
+      "gameLeagueId": "por",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Moreirense FC",
+      "gameClubId": "moreirense",
+      "gameLeagueId": "por",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Rio Ave FC",
+      "gameClubId": "rio-ave",
+      "gameLeagueId": "por",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Santa Clara",
+      "gameClubId": "santa-clara",
+      "gameLeagueId": "por",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Sporting CP",
+      "gameClubId": "sporting-cp",
+      "gameLeagueId": "por",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "CFR Cluj",
+      "gameClubId": "cfr-cluj",
+      "gameLeagueId": "rou",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Dinamo Bucureşti",
+      "gameClubId": "dinamo-bucuresti",
+      "gameLeagueId": "rou",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "FC Hermannstadt",
+      "gameClubId": "hermannstadt",
+      "gameLeagueId": "rou",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "FCSB",
+      "gameClubId": "fcsb",
+      "gameLeagueId": "rou",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Oțelul Galați",
+      "gameClubId": "otelul-galati",
+      "gameLeagueId": "rou",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Rapid Bucuresti",
+      "gameClubId": "rapid-bucuresti",
+      "gameLeagueId": "rou",
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Universitatea Cluj",
+      "gameClubId": "universitatea-cluj",
+      "gameLeagueId": "rou",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Universitatea Craiova",
+      "gameClubId": "universitatea-craiova",
+      "gameLeagueId": "rou",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "UTA Arad",
+      "gameClubId": "uta-arad",
+      "gameLeagueId": "rou",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Aberdeen",
+      "gameClubId": "aberdeen",
+      "gameLeagueId": "sco",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Celtic",
+      "gameClubId": "celtic",
+      "gameLeagueId": "sco",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Dundee FC",
+      "gameClubId": "dundee",
+      "gameLeagueId": "sco",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Dundee United FC",
+      "gameClubId": "dundee-united",
+      "gameLeagueId": "sco",
+      "playerCount": 24
+    },
+    {
+      "fc26Name": "Hearts",
+      "gameClubId": "hearts",
+      "gameLeagueId": "sco",
+      "playerCount": 32
+    },
+    {
+      "fc26Name": "Hibernian",
+      "gameClubId": "hibernian",
+      "gameLeagueId": "sco",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Kilmarnock",
+      "gameClubId": "kilmarnock",
+      "gameLeagueId": "sco",
+      "playerCount": 26
+    },
+    {
+      "fc26Name": "Motherwell FC",
+      "gameClubId": "motherwell",
+      "gameLeagueId": "sco",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Rangers FC",
+      "gameClubId": "rangers",
+      "gameLeagueId": "sco",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "St. Mirren",
+      "gameClubId": "st-mirren",
+      "gameLeagueId": "sco",
+      "playerCount": 23
+    },
+    {
+      "fc26Name": "AIK",
+      "gameClubId": "aik",
+      "gameLeagueId": "swe",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "GAIS",
+      "gameClubId": "gais",
+      "gameLeagueId": "swe",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "IFK Göteborg",
+      "gameClubId": "ifk-goteborg",
+      "gameLeagueId": "swe",
+      "playerCount": 22
+    },
+    {
+      "fc26Name": "IFK Norrköping",
+      "gameClubId": "ifk-norrkoping",
+      "gameLeagueId": "swe",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Malmö FF",
+      "gameClubId": "malmo-ff",
+      "gameLeagueId": "swe",
+      "playerCount": 30
+    },
+    {
+      "fc26Name": "Alanyaspor",
+      "gameClubId": "alanyaspor",
+      "gameLeagueId": "tur",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Antalyaspor",
+      "gameClubId": "antalyaspor",
+      "gameLeagueId": "tur",
+      "playerCount": 27
+    },
+    {
+      "fc26Name": "Çaykur Rizespor",
+      "gameClubId": "caykur-rizespor",
+      "gameLeagueId": "tur",
+      "playerCount": 23
+    },
+    {
+      "fc26Name": "Eyüpspor",
+      "gameClubId": "eyupspor",
+      "gameLeagueId": "tur",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Gaziantep FK",
+      "gameClubId": "gaziantep-fk",
+      "gameLeagueId": "tur",
+      "playerCount": 28
+    },
+    {
+      "fc26Name": "Kayserispor",
+      "gameClubId": "kayserispor",
+      "gameLeagueId": "tur",
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Konyaspor",
+      "gameClubId": "konyaspor",
+      "gameLeagueId": "tur",
+      "playerCount": 24
+    },
+    {
+      "fc26Name": "Samsunspor",
+      "gameClubId": "samsunspor",
+      "gameLeagueId": "tur",
+      "playerCount": 25
+    },
+    {
+      "fc26Name": "Trabzonspor",
+      "gameClubId": "trabzonspor",
+      "gameLeagueId": "tur",
+      "playerCount": 24
+    }
+  ],
+  "bucketB": [
+    {
+      "fc26Name": "Legia Warszawa",
+      "gameClubId": "legia-warsaw",
+      "gameLeagueId": "pol",
+      "score": 0.8571428571428572,
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Blau-Weiß Linz",
+      "gameClubId": "blau-weiss-linz",
+      "gameLeagueId": "aut",
+      "score": 0.8666666666666667,
+      "playerCount": 29
+    },
+    {
+      "fc26Name": "Bohemian FC",
+      "gameClubId": "bohemians",
+      "gameLeagueId": "irl",
+      "score": 0.8888888888888888,
+      "playerCount": 23
+    },
+    {
+      "fc26Name": "Zagłębie Lubin",
+      "gameClubId": "zaglebie-lubin",
+      "gameLeagueId": "pol",
+      "score": 0.9285714285714286,
+      "playerCount": 31
+    },
+    {
+      "fc26Name": "Jagiellonia Białystok",
+      "gameClubId": "jagiellonia-bialystok",
+      "gameLeagueId": "pol",
+      "score": 0.9523809523809523,
+      "playerCount": 26
+    }
+  ],
+  "bucketC1": {
+    "ger": [
+      {
+        "fc26Name": "TSG 1899 Hoffenheim",
+        "playerCount": 33
+      },
+      {
+        "fc26Name": "Hamburger SV",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "1. FC Köln",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "1. FSV Mainz 05",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "1. FC Heidenheim 1846",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Bayer 04 Leverkusen",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "FC Bayern München",
+        "playerCount": 26
+      }
+    ],
+    "ita": [
+      {
+        "fc26Name": "Cremonese",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Pisa",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Sassuolo",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Roma",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Inter",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "AC Milan",
+        "playerCount": 23
+      }
+    ],
+    "esp": [
+      {
+        "fc26Name": "Real Betis Balompié",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "Real Oviedo",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "Elche CF",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "RC Celta",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Athletic Club",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Levante UD",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "CA Osasuna",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "RCD Mallorca",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "RCD Espanyol",
+        "playerCount": 25
+      }
+    ],
+    "tur": [
+      {
+        "fc26Name": "Gençlerbirliği SK",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Fenerbahçe SK",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Medipol Başakşehir FK",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Fatih Karagümrük",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Beşiktaş JK",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Galatasaray SK",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Kocaelispor",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Kasımpaşa SK",
+        "playerCount": 24
+      },
+      {
+        "fc26Name": "Göztepe SK",
+        "playerCount": 23
+      }
+    ],
+    "ned": [
+      {
+        "fc26Name": "FC Utrecht",
+        "playerCount": 33
+      },
+      {
+        "fc26Name": "FC Groningen",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Excelsior",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "FC Volendam",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "FC Twente",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "PSV",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Telstar",
+        "playerCount": 27
+      }
+    ],
+    "por": [
+      {
+        "fc26Name": "Alverca",
+        "playerCount": 34
+      },
+      {
+        "fc26Name": "GD Estoril Praia",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "Estrela da Amadora",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "SL Benfica",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "CD Nacional",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Sporting Clube de Braga",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "CD Tondela",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Vitória SC",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "AVS Futebol SAD",
+        "playerCount": 26
+      }
+    ],
+    "fra": [
+      {
+        "fc26Name": "Olympique de Marseille",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "Angers SCO",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Lille OSC",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Paris FC",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "RC Strasbourg Alsace",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "AJ Auxerre",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "AS Monaco",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "OGC Nice",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "RC Lens",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "FC Lorient",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "FC Metz",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Olympique Lyonnais",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Le Havre AC",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "Stade Brestois 29",
+        "playerCount": 24
+      },
+      {
+        "fc26Name": "Stade Rennais FC",
+        "playerCount": 21
+      }
+    ],
+    "eng": [
+      {
+        "fc26Name": "Sunderland",
+        "playerCount": 36
+      },
+      {
+        "fc26Name": "Burnley",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "Brighton & Hove Albion",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Leeds United",
+        "playerCount": 26
+      }
+    ],
+    "eng-2": [
+      {
+        "fc26Name": "Sheffield United",
+        "playerCount": 34
+      },
+      {
+        "fc26Name": "Wrexham",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "Norwich City",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "Queens Park Rangers",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "Leicester City",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Preston North End",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Southampton",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Birmingham City",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Ipswich Town",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Sheffield Wednesday",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Charlton Athletic",
+        "playerCount": 24
+      },
+      {
+        "fc26Name": "West Bromwich Albion",
+        "playerCount": 24
+      }
+    ],
+    "fra-2": [
+      {
+        "fc26Name": "FC Annecy",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Rodez Aveyron Football",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Stade de Reims",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Red Star FC",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Sporting Club Bastia",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "US Boulogne Cote d'Opale",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "AS Saint-Étienne",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Le Mans FC",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Montpellier HSC",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "AS Nancy Lorraine",
+        "playerCount": 24
+      },
+      {
+        "fc26Name": "Pau FC",
+        "playerCount": 24
+      },
+      {
+        "fc26Name": "Stade Lavallois Mayenne FC",
+        "playerCount": 24
+      }
+    ],
+    "nor": [
+      {
+        "fc26Name": "Sarpsborg 08 FF",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "Hamarkameratene",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "FK Haugesund",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Kristiansund BK",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Sandefjord Fotball",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Molde FK",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Viking FK",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "FK Bodø/Glimt",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "SK Brann",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Fredrikstad FK",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Bryne FK",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "KFUM-Kameratene Oslo",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "Strømsgodset IF",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "Tromsø IL",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "Vålerenga Fotball",
+        "playerCount": 23
+      },
+      {
+        "fc26Name": "Rosenborg BK",
+        "playerCount": 22
+      }
+    ],
+    "che": [
+      {
+        "fc26Name": "Shanghai Shenhua",
+        "playerCount": 36
+      },
+      {
+        "fc26Name": "Beijing Guoan",
+        "playerCount": 35
+      },
+      {
+        "fc26Name": "Shanghai Port",
+        "playerCount": 35
+      },
+      {
+        "fc26Name": "Qingdao Hainiu FC",
+        "playerCount": 33
+      },
+      {
+        "fc26Name": "Henan FC",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "Wuhan Three Towns",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "Changchun Yatai",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "Chengdu Rongcheng",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "Qingdao West Coast FC",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "Shandong Taishan",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "Dalian Yingbo",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Yunnan Yukun",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Zhejiang FC",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Tianjin Jinmen Tiger",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Meizhou Hakka",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Shenzhen Peng City",
+        "playerCount": 27
+      }
+    ],
+    "bel": [
+      {
+        "fc26Name": "RSC Anderlecht",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "Club Brugge KV",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "Royal Antwerp FC",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "KVC Westerlo",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Oud-Heverlee Leuven",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Cercle Brugge KSV",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Standard de Liège",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "SV Zulte Waregem",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "KAA Gent",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "KRC Genk",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "KV Mechelen",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Union Saint-Gilloise",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "RAAL La Louvière",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "FCV Dender EH",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "Royal Charleroi Sporting Club",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "Sint-Truidense VV",
+        "playerCount": 24
+      }
+    ],
+    "ita-2": [
+      {
+        "fc26Name": "Avellino",
+        "playerCount": 33
+      },
+      {
+        "fc26Name": "Carrarese",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Pescara",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "SSC Bari",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Empoli",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Monza",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Padova",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Venezia",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Virtus Entella",
+        "playerCount": 27
+      }
+    ],
+    "ger-2": [
+      {
+        "fc26Name": "1. FC Nürnberg",
+        "playerCount": 37
+      },
+      {
+        "fc26Name": "1. FC Magdeburg",
+        "playerCount": 36
+      },
+      {
+        "fc26Name": "Holstein Kiel",
+        "playerCount": 33
+      },
+      {
+        "fc26Name": "VfL Bochum 1848",
+        "playerCount": 33
+      },
+      {
+        "fc26Name": "DSC Arminia Bielefeld",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "FC Schalke 04",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "SC Paderborn 07",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "SpVgg Greuther Fürth",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "SV Darmstadt 98",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Eintracht Braunschweig",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Fortuna Düsseldorf",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "SV Elversberg",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Dynamo Dresden",
+        "playerCount": 25
+      }
+    ],
+    "gre": [
+      {
+        "fc26Name": "FC Zürich",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "FC Basel 1893",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "FC Winterthur",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "FC Lugano",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "FC Sion",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "FC Luzern",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Servette FC",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "BSC Young Boys",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "FC Thun",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "FC Lausanne-Sport",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "Grasshopper Club Zürich",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "FC St.Gallen 1879",
+        "playerCount": 24
+      }
+    ],
+    "esp-2": [
+      {
+        "fc26Name": "UD Las Palmas",
+        "playerCount": 35
+      },
+      {
+        "fc26Name": "Real Valladolid CF",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "Cultural Leonesa",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Málaga CF",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Real Sporting de Gijón",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Racing Santander",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "AD Ceuta FC",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Burgos CF",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "CD Leganés",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Granada CF",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Real Sociedad de Fútbol B",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Albacete Balompié",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Cádiz CF",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Córdoba CF",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "FC Andorra",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "RC Deportivo de La Coruña",
+        "playerCount": 25
+      }
+    ],
+    "den": [
+      {
+        "fc26Name": "Vejle Boldklub",
+        "playerCount": 32
+      },
+      {
+        "fc26Name": "Silkeborg IF",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "FC København",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "FC Nordsjælland",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Fredericia",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Randers FC",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Odense Boldklub",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "Sønderjyske Fodbold",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "Brøndby IF",
+        "playerCount": 24
+      },
+      {
+        "fc26Name": "FC Midtjylland",
+        "playerCount": 24
+      },
+      {
+        "fc26Name": "Viborg FF",
+        "playerCount": 24
+      },
+      {
+        "fc26Name": "Aarhus Gymnastikforening",
+        "playerCount": 23
+      }
+    ],
+    "aut": [
+      {
+        "fc26Name": "SK Rapid",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "FC Red Bull Salzburg",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "TSV Hartberg",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "SV Ried",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "WSG Tirol",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "FK Austria Wien",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "LASK Linz",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "SK Sturm Graz",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Grazer AK 1902",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "SC Rheindorf Altach",
+        "playerCount": 26
+      }
+    ],
+    "sco": [
+      {
+        "fc26Name": "Falkirk",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Livingston FC",
+        "playerCount": 27
+      }
+    ],
+    "swe": [
+      {
+        "fc26Name": "BK Häcken",
+        "playerCount": 33
+      },
+      {
+        "fc26Name": "IF Brommapojkarna",
+        "playerCount": 33
+      },
+      {
+        "fc26Name": "Djurgårdens IF",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Halmstads BK",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Mjällby AIF",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "IK Sirius",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Degerfors IF",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "Hammarby Fotboll",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "Östers IF",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "IF Elfsborg",
+        "playerCount": 24
+      },
+      {
+        "fc26Name": "IFK Värnamo",
+        "playerCount": 23
+      }
+    ],
+    "eng-4": [
+      {
+        "fc26Name": "Accrington Stanley",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Barnet",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Crawley Town",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Colchester United",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Oldham Athletic",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Milton Keynes Dons",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Bristol Rovers",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Bromley",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Cambridge United",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Shrewsbury Town",
+        "playerCount": 21
+      }
+    ],
+    "eng-3": [
+      {
+        "fc26Name": "Peterborough United",
+        "playerCount": 33
+      },
+      {
+        "fc26Name": "Bolton Wanderers",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "Luton Town",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Rotherham United",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Bradford City",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Huddersfield Town",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Port Vale",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Wycombe Wanderers",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Northampton Town",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Stockport County",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "AFC Wimbledon",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Doncaster Rovers",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Plymouth Argyle",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Cardiff City",
+        "playerCount": 25
+      }
+    ],
+    "ger-3": [
+      {
+        "fc26Name": "1. FC Schweinfurt 05",
+        "playerCount": 31
+      },
+      {
+        "fc26Name": "FC Hansa Rostock",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "TSV 1860 München",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "TSV Havelse",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "VfB Stuttgart II",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "MSV Duisburg",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Alemannia Aachen",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "FC Erzgebirge Aue",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "SSV Jahn Regensburg",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "SSV Ulm 1846",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "SC Verl",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "SV Waldhof Mannheim",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "VfL Osnabrück",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "TSG 1899 Hoffenheim II",
+        "playerCount": 25
+      },
+      {
+        "fc26Name": "FC Ingolstadt 04",
+        "playerCount": 24
+      }
+    ],
+    "pol": [
+      {
+        "fc26Name": "Widzew Łódź",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "GKS Katowice",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "Arka Gdynia",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Wisła Płock",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "Bruk-Bet Termalica Nieciecza",
+        "playerCount": 25
+      }
+    ],
+    "rou": [
+      {
+        "fc26Name": "Asociația Clubul Sportiv Petrolul 52",
+        "playerCount": 34
+      },
+      {
+        "fc26Name": "FC Botoşani",
+        "playerCount": 30
+      },
+      {
+        "fc26Name": "Csíkszereda Miercurea Ciuc",
+        "playerCount": 29
+      },
+      {
+        "fc26Name": "Unirea Slobozia",
+        "playerCount": 28
+      },
+      {
+        "fc26Name": "FC Argeș",
+        "playerCount": 27
+      },
+      {
+        "fc26Name": "FCV Farul Constanța",
+        "playerCount": 26
+      },
+      {
+        "fc26Name": "Metaloglobus București",
+        "playerCount": 26
+      }
+    ],
+    "irl": [
+      {
+        "fc26Name": "Cork City",
+        "playerCount": 27
+      }
+    ]
+  },
+  "bucketC2": {
+    "qualifiedLeagues": [
+      {
+        "fc26LeagueId": 353,
+        "leagueName": "Liga Profesional de Fútbol",
+        "clubCount": 30,
+        "totalPlayers": 944,
+        "avgPlayersPerClub": 31.5,
+        "sampleTeams": [
+          "Argentinos Juniors",
+          "Atlético Tucumán",
+          "Barracas Central",
+          "Belgrano de Córdoba",
+          "Boca Juniors"
+        ]
+      },
+      {
+        "fc26LeagueId": 39,
+        "leagueName": "Major League Soccer",
+        "clubCount": 30,
+        "totalPlayers": 803,
+        "avgPlayersPerClub": 26.8,
+        "sampleTeams": [
+          "Atlanta United",
+          "Austin FC",
+          "CF Montréal",
+          "Charlotte FC",
+          "Chicago Fire"
+        ]
+      },
+      {
+        "fc26LeagueId": 350,
+        "leagueName": "Pro League",
+        "clubCount": 18,
+        "totalPlayers": 536,
+        "avgPlayersPerClub": 29.8,
+        "sampleTeams": [
+          "Al Ahli SFC",
+          "Al Akhdoud Saudi Club",
+          "Al Ettifaq",
+          "Al Fateh",
+          "Al Fayha"
+        ]
+      },
+      {
+        "fc26LeagueId": 83,
+        "leagueName": "K League 1",
+        "clubCount": 12,
+        "totalPlayers": 427,
+        "avgPlayersPerClub": 35.6,
+        "sampleTeams": [
+          "Daegu FC",
+          "Daejeon Citizen",
+          "FC Anyang",
+          "FC Seoul",
+          "Gangwon FC"
+        ]
+      },
+      {
+        "fc26LeagueId": 2149,
+        "leagueName": "Super League",
+        "clubCount": 14,
+        "totalPlayers": 348,
+        "avgPlayersPerClub": 24.9,
+        "sampleTeams": [
+          "Bengaluru FC",
+          "Chennaiyin FC",
+          "East Bengal FC",
+          "FC Goa",
+          "Hyderabad FC"
+        ]
+      },
+      {
+        "fc26LeagueId": 351,
+        "leagueName": "A-League Men",
+        "clubCount": 13,
+        "totalPlayers": 302,
+        "avgPlayersPerClub": 23.2,
+        "sampleTeams": [
+          "Adelaide United",
+          "Auckland FC",
+          "Brisbane Roar",
+          "Central Coast Mariners",
+          "Macarthur FC"
+        ]
+      },
+      {
+        "fc26LeagueId": 7,
+        "leagueName": "Série A",
+        "clubCount": 14,
+        "totalPlayers": 280,
+        "avgPlayersPerClub": 20,
+        "sampleTeams": [
+          "Atlético Mineiro",
+          "Bahia",
+          "Botafogo",
+          "Corinthians",
+          "Cruzeiro"
+        ]
+      }
+    ],
+    "belowThresholdLeagues": [
+      {
+        "fc26LeagueId": 335,
+        "leagueName": "Primera Division",
+        "clubCount": 6,
+        "totalPlayers": 156,
+        "avgPlayersPerClub": 26,
+        "sampleTeams": [
+          "CD Palestino",
+          "Colo-Colo",
+          "Deportes Iquique",
+          "Universidad Católica",
+          "Universidad de Chile"
+        ]
+      },
+      {
+        "fc26LeagueId": 2020,
+        "leagueName": "Liga 1",
+        "clubCount": 6,
+        "totalPlayers": 146,
+        "avgPlayersPerClub": 24.3,
+        "sampleTeams": [
+          "Alianza Lima",
+          "Atlético Grau",
+          "Cienciano",
+          "FBC Melgar",
+          "Sporting Cristal"
+        ]
+      },
+      {
+        "fc26LeagueId": 337,
+        "leagueName": "División Profesional",
+        "clubCount": 5,
+        "totalPlayers": 126,
+        "avgPlayersPerClub": 25.2,
+        "sampleTeams": [
+          "Cerro Porteño",
+          "Club Olimpia",
+          "Guaraní",
+          "Libertad",
+          "Sportivo Luqueño"
+        ]
+      },
+      {
+        "fc26LeagueId": 63,
+        "leagueName": "Super League",
+        "clubCount": 4,
+        "totalPlayers": 123,
+        "avgPlayersPerClub": 30.8,
+        "sampleTeams": [
+          "AEK Athens",
+          "Olympiacos FC",
+          "PAOK",
+          "Panathinaikos FC"
+        ]
+      },
+      {
+        "fc26LeagueId": 2018,
+        "leagueName": "Serie A",
+        "clubCount": 5,
+        "totalPlayers": 122,
+        "avgPlayersPerClub": 24.4,
+        "sampleTeams": [
+          "Barcelona de Guayaquil",
+          "Independiente del Valle",
+          "LDU Quito",
+          "Mushuc Runa",
+          "Universidad Católica del Ecuador"
+        ]
+      },
+      {
+        "fc26LeagueId": 336,
+        "leagueName": "Categoría Primera A",
+        "clubCount": 4,
+        "totalPlayers": 108,
+        "avgPlayersPerClub": 27,
+        "sampleTeams": [
+          "América de Cali",
+          "Atlético Bucaramanga",
+          "Atlético Nacional",
+          "Once Caldas"
+        ]
+      },
+      {
+        "fc26LeagueId": 338,
+        "leagueName": "Primera División",
+        "clubCount": 5,
+        "totalPlayers": 108,
+        "avgPlayersPerClub": 21.6,
+        "sampleTeams": [
+          "Boston River",
+          "Cerro Largo",
+          "Club Nacional de Football",
+          "Peñarol",
+          "Racing Club de Montevideo"
+        ]
+      },
+      {
+        "fc26LeagueId": 2017,
+        "leagueName": "División de Fútbol Profesional",
+        "clubCount": 4,
+        "totalPlayers": 94,
+        "avgPlayersPerClub": 23.5,
+        "sampleTeams": [
+          "Bolívar",
+          "Gualberto Villarroel SJ",
+          "Nacional Potosí",
+          "San Antonio Bulo Bulo"
+        ]
+      },
+      {
+        "fc26LeagueId": 2019,
+        "leagueName": "Primera Division",
+        "clubCount": 4,
+        "totalPlayers": 92,
+        "avgPlayersPerClub": 23,
+        "sampleTeams": [
+          "Academia Puerto Cabello",
+          "Carabobo FC",
+          "Caracas FC",
+          "Deportivo Táchira"
+        ]
+      },
+      {
+        "fc26LeagueId": 319,
+        "leagueName": "První liga",
+        "clubCount": 3,
+        "totalPlayers": 82,
+        "avgPlayersPerClub": 27.3,
+        "sampleTeams": [
+          "SK Slavia Praha",
+          "Sparta Praha",
+          "Viktoria Plzeň"
+        ]
+      },
+      {
+        "fc26LeagueId": 317,
+        "leagueName": "Hrvatska nogometna liga",
+        "clubCount": 2,
+        "totalPlayers": 62,
+        "avgPlayersPerClub": 31,
+        "sampleTeams": [
+          "Dinamo Zagreb",
+          "Hajduk Split"
+        ]
+      },
+      {
+        "fc26LeagueId": 64,
+        "leagueName": "Nemzeti Bajnokság I",
+        "clubCount": 1,
+        "totalPlayers": 33,
+        "avgPlayersPerClub": 33,
+        "sampleTeams": [
+          "Ferencvárosi Torna Club"
+        ]
+      },
+      {
+        "fc26LeagueId": 322,
+        "leagueName": "Veikkausliiga",
+        "clubCount": 1,
+        "totalPlayers": 31,
+        "avgPlayersPerClub": 31,
+        "sampleTeams": [
+          "HJK Helsinki"
+        ]
+      },
+      {
+        "fc26LeagueId": 318,
+        "leagueName": "1. Division",
+        "clubCount": 1,
+        "totalPlayers": 29,
+        "avgPlayersPerClub": 29,
+        "sampleTeams": [
+          "APOEL FC"
+        ]
+      },
+      {
+        "fc26LeagueId": 2013,
+        "leagueName": "Pro League",
+        "clubCount": 1,
+        "totalPlayers": 27,
+        "avgPlayersPerClub": 27,
+        "sampleTeams": [
+          "Al Ain"
+        ]
+      },
+      {
+        "fc26LeagueId": 313,
+        "leagueName": "Premyer Liqa",
+        "clubCount": 1,
+        "totalPlayers": 25,
+        "avgPlayersPerClub": 25,
+        "sampleTeams": [
+          "Qarabağ FK"
+        ]
+      }
+    ]
+  },
+  "bucketD": [
+    {
+      "fc26Name": "",
+      "fc26LeagueId": null,
+      "reason": "missing club_name"
+    },
+    {
+      "fc26Name": "Dynamo Kyiv",
+      "fc26LeagueId": 332,
+      "reason": "league 332 in SKIP_LEAGUE_IDS"
+    },
+    {
+      "fc26Name": "Shakhtar Donetsk",
+      "fc26LeagueId": 332,
+      "reason": "league 332 in SKIP_LEAGUE_IDS"
+    }
+  ],
+  "collisionWarnings": []
+}
