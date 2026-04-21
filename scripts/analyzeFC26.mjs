@@ -135,7 +135,47 @@ function parseCSVLine(line) {
  * @returns {string}
  */
 function normalizeClubName(name) {
-  return '';
+  if (!name) return '';
+  // 1. Lowercase
+  let s = String(name).toLowerCase();
+  // 2. Strip accents (NFD + remove combining marks U+0300–U+036F)
+  s = s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  // 3. Remove leading prefixes (longest-first so "1. fc" beats "1." and "fc")
+  const prefixes = [
+    '1. fc ', '1.fc ', '1. ',
+    'afc ', 'fc ', 'cf ', 'sc ', 'ac ', 'sv ', 'tsg ', 'vfl ', 'vfb ',
+  ];
+  let stripped = true;
+  while (stripped) {
+    stripped = false;
+    for (const p of prefixes) {
+      if (s.startsWith(p)) {
+        s = s.slice(p.length);
+        stripped = true;
+        break;
+      }
+    }
+  }
+  // 4. Remove trailing suffixes
+  const suffixes = [' afc', ' fc', ' cf'];
+  stripped = true;
+  while (stripped) {
+    stripped = false;
+    for (const sfx of suffixes) {
+      if (s.endsWith(sfx)) {
+        s = s.slice(0, -sfx.length);
+        stripped = true;
+        break;
+      }
+    }
+  }
+  // 5. Collapse whitespace → single hyphen
+  s = s.trim().replace(/\s+/g, '-');
+  // 6. Strip anything that isn't a-z, 0-9, or hyphen
+  s = s.replace(/[^a-z0-9-]/g, '');
+  // Collapse runs of hyphens and trim leading/trailing hyphens
+  s = s.replace(/-+/g, '-').replace(/^-|-$/g, '');
+  return s;
 }
 
 /**
@@ -146,19 +186,71 @@ function normalizeClubName(name) {
  * @returns {number}
  */
 function levenshtein(a, b) {
-  return 0;
+  a = a || '';
+  b = b || '';
+  if (a === b) return 0;
+  if (!a.length) return b.length;
+  if (!b.length) return a.length;
+
+  // Two-row DP to keep memory at O(min(a,b)).
+  let prev = new Array(b.length + 1);
+  let curr = new Array(b.length + 1);
+  for (let j = 0; j <= b.length; j++) prev[j] = j;
+
+  for (let i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a.charCodeAt(i - 1) === b.charCodeAt(j - 1) ? 0 : 1;
+      curr[j] = Math.min(
+        curr[j - 1] + 1,       // insertion
+        prev[j] + 1,           // deletion
+        prev[j - 1] + cost,    // substitution
+      );
+    }
+    [prev, curr] = [curr, prev];
+  }
+  return prev[b.length];
 }
 
 /**
- * Best-match lookup of a CSV club name against the set of known in-game
- * club ids. Returns { id, score } for the top candidate if the normalized
- * edit distance is under a threshold, else null.
- * @param {string} csvName
+ * Best-match lookup of a CSV club name against a set of known in-game
+ * club ids. Returns { clubId, score, isFuzzy } for the top candidate:
+ *   - exact normalized match → isFuzzy: false, score: 1.0
+ *   - else score ≥ 0.85 AND |len(a) - len(b)| ≤ 4 → isFuzzy: true
+ *   - else null
+ * Score = 1 - (distance / max(len(a), len(b))).
+ * The third arg is kept for API parity with the plan; filtering to a
+ * single league is the caller's job.
+ * @param {string} fc26Name
  * @param {string[]} gameClubIds
- * @returns {{ id: string, score: number } | null}
+ * @param {boolean} [sameLeagueOnly]
+ * @returns {{ clubId: string, score: number, isFuzzy: boolean } | null}
  */
-function fuzzyMatch(csvName, gameClubIds) {
-  return null;
+function fuzzyMatch(fc26Name, gameClubIds, sameLeagueOnly = true) {
+  const norm = normalizeClubName(fc26Name);
+  if (!norm) return null;
+
+  let best = null;
+  for (const candidate of gameClubIds) {
+    const candNorm = normalizeClubName(candidate);
+    if (!candNorm) continue;
+
+    if (candNorm === norm) {
+      return { clubId: candidate, score: 1.0, isFuzzy: false };
+    }
+
+    const lenDiff = Math.abs(norm.length - candNorm.length);
+    if (lenDiff > 4) continue;
+
+    const dist = levenshtein(norm, candNorm);
+    const maxLen = Math.max(norm.length, candNorm.length);
+    const score = maxLen === 0 ? 0 : 1 - dist / maxLen;
+
+    if (score >= 0.85 && (!best || score > best.score)) {
+      best = { clubId: candidate, score, isFuzzy: true };
+    }
+  }
+  return best;
 }
 
 /**
