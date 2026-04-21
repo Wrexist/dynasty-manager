@@ -47,18 +47,37 @@ jobs:
             echo "| $(basename "$f") | ${SIZE_KB} |"
           done | sort -t'|' -k3 -rn
 
-          # Total JS size
+          # Total JS size (all chunks — includes opt-in community pack data)
           JS_TOTAL=$(find dist/assets -name '*.js' -type f -printf '%s\n' | awk '{sum += $1} END {print sum+0}')
           JS_MB=$(awk "BEGIN {printf \"%.2f\", $JS_TOTAL / 1048576}")
           echo ""
           echo "Total JS: ${JS_MB} MB"
 
-          # Budget: fail if total JS exceeds 5.5 MB
-          if [ "$JS_TOTAL" -gt 5767168 ]; then
-            echo "::error::JS bundle size (${JS_MB} MB) exceeds budget (5.50 MB)"
+          # Community pack chunks are lazy-loaded only when the user enables
+          # the pack at new-game time, so they do not count against the base
+          # bundle budget that protects first-load UX.
+          CP_TOTAL=$(find dist/assets \( -name 'freeAgents-*.js' -o -name 'byClub-*.js' \) -type f -printf '%s\n' | awk '{sum += $1} END {print sum+0}')
+          CP_MB=$(awk "BEGIN {printf \"%.2f\", $CP_TOTAL / 1048576}")
+          CORE_JS=$((JS_TOTAL - CP_TOTAL))
+          CORE_MB=$(awk "BEGIN {printf \"%.2f\", $CORE_JS / 1048576}")
+          echo "Community pack chunks: ${CP_MB} MB (lazy)"
+          echo "Core JS (excl. community pack): ${CORE_MB} MB"
+
+          # Budget: fail if core JS (excl. community pack) exceeds 5.5 MB
+          if [ "$CORE_JS" -gt 5767168 ]; then
+            echo "::error::Core JS bundle size (${CORE_MB} MB) exceeds budget (5.50 MB)"
             exit 1
           fi
-          echo "Bundle size OK (${JS_MB} MB JS, budget: 5.50 MB)"
+          echo "Bundle size OK (core ${CORE_MB} MB, budget: 5.50 MB)"
+
+          # Community pack budget: fail if CP chunks exceed 4.0 MB
+          if [ "$CP_TOTAL" -gt 4194304 ]; then
+            echo "::error::Community pack chunks (${CP_MB} MB) exceed budget (4.00 MB)"
+            exit 1
+          fi
+          if [ "$CP_TOTAL" -gt 0 ]; then
+            echo "Community pack size OK (${CP_MB} MB, budget: 4.00 MB)"
+          fi
 
           # Main chunk budget: fail if largest index-*.js exceeds 1200 KB
           MAIN_JS=$(find dist/assets -name 'index-*.js' -not -name '*.map' -type f -printf '%s %p\n' | sort -rn | head -1 | awk '{print $2}')
