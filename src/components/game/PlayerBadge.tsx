@@ -17,7 +17,7 @@ interface PlayerBadgeProps {
   overall: number;
   position: string;
   jerseyNumber?: number;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl';
   growthDelta?: number;
   /** Suppress the tier glow halo (e.g. when nested inside a glowing parent). */
   noGlow?: boolean;
@@ -28,18 +28,21 @@ const SIZE_CLASSES = {
   sm: 'w-[40px] h-[48px]',
   md: 'w-[52px] h-[66px]',
   lg: 'w-[60px] h-[76px]',
+  xl: 'w-[76px] h-[96px]',
 } as const;
 
 const RATING_SIZE = {
   sm: 'text-lg',
   md: 'text-xl',
   lg: 'text-2xl',
+  xl: 'text-3xl',
 } as const;
 
 const POS_SIZE = {
   sm: 'text-[7px] px-1 py-px',
   md: 'text-[8px] px-1.5 py-0.5',
   lg: 'text-[9px] px-2 py-0.5',
+  xl: 'text-[10px] px-2 py-0.5',
 } as const;
 
 export const PlayerBadge = memo(function PlayerBadge({
@@ -53,7 +56,7 @@ export const PlayerBadge = memo(function PlayerBadge({
   className,
 }: PlayerBadgeProps) {
   const showJersey = size !== 'sm' && jerseyNumber != null && jerseyNumber > 0;
-  const showGrowth = size === 'lg' && growthDelta != null && growthDelta !== 0;
+  const showGrowth = (size === 'lg' || size === 'xl') && growthDelta != null && growthDelta !== 0;
   const tier = getPlayerTier(overall);
   const showArtwork = size !== 'sm';
 

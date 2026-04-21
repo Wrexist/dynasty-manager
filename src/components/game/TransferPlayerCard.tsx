@@ -5,8 +5,9 @@ import { Player } from '@/types/game';
 import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
+import { PlayerBadge } from '@/components/game/PlayerBadge';
 import { CardArtBackground } from '@/components/game/CardArtBackground';
+import { useGameStore } from '@/store/gameStore';
 
 interface TransferPlayerCardProps {
   player: Player;
@@ -19,6 +20,8 @@ interface TransferPlayerCardProps {
   animationIndex?: number;
 }
 
+const UNATTACHED_COLOR = '#64748b';
+
 export function TransferPlayerCard({
   player,
   onSelect,
@@ -30,6 +33,7 @@ export function TransferPlayerCard({
   animationIndex,
 }: TransferPlayerCardProps) {
   const top3 = useMemo(() => getTop3Attributes(player.attributes), [player.attributes]);
+  const clubColor = useGameStore(s => s.clubs[player.clubId]?.color) ?? UNATTACHED_COLOR;
 
   const card = (
     <GlassPanel className="relative overflow-hidden p-4 pl-5">
@@ -38,7 +42,12 @@ export function TransferPlayerCard({
         <CardArtBackground overall={player.overall} variant="top-strip" overlayStrength={0.25} />
       </div>
       <div className="relative flex items-start gap-3">
-        <PlayerRatingBadge overall={player.overall} size="lg" shape="circle" />
+        <PlayerBadge
+          clubColor={clubColor}
+          overall={player.overall}
+          position={player.position}
+          size="md"
+        />
         <div className="flex-1 min-w-0">
           <button
             type="button"
@@ -51,8 +60,8 @@ export function TransferPlayerCard({
               {showFlag ? ' ' : ''}{player.firstName} {player.lastName}
             </p>
             <p className="text-xs text-muted-foreground">
-              {player.position} {'\u2022'} {player.age}y
-              {showPotential && <> {'\u2022'} POT {player.potential || player.overall}</>}
+              {player.position} {'•'} {player.age}y
+              {showPotential && <> {'•'} POT {player.potential || player.overall}</>}
             </p>
           </button>
           {subtitle && <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>}
