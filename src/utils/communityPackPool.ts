@@ -94,3 +94,62 @@ export function drawForScouting(
   const rand = mulberry32(seed);
   return candidates[Math.floor(rand() * candidates.length)];
 }
+
+export type AIQualityTier = 'elite' | 'top' | 'mid' | 'low';
+
+export function drawForAISquadFill(
+  activePool: PlayerTemplate[],
+  position: Position,
+  qualityTier: AIQualityTier,
+  excludeIds: string[],
+  seed: number,
+): PlayerTemplate | null {
+  const excluded = new Set(excludeIds);
+  const inTier = (ovr: number): boolean => {
+    switch (qualityTier) {
+      case 'elite': return ovr >= 80;
+      case 'top': return ovr >= 70 && ovr < 80;
+      case 'mid': return ovr >= 60 && ovr < 70;
+      case 'low': return ovr < 60;
+    }
+  };
+  const candidates = activePool.filter((t) => {
+    if (t.fcId && excluded.has(t.fcId)) return false;
+    if (!inTier(t.ovr)) return false;
+    if (t.pos === position) return true;
+    if (t.altPos?.includes(position)) return true;
+    return false;
+  });
+  if (candidates.length === 0) return null;
+  const rand = mulberry32(seed);
+  return candidates[Math.floor(rand() * candidates.length)];
+}
+
+export function drawForYouth(
+  activePool: PlayerTemplate[],
+  excludeIds: string[],
+  seed: number,
+): PlayerTemplate | null {
+  const excluded = new Set(excludeIds);
+  const candidates = activePool.filter((t) => {
+    if (t.fcId && excluded.has(t.fcId)) return false;
+    return t.age >= 16 && t.age <= 21 && t.ovr <= 70;
+  });
+  if (candidates.length === 0) return null;
+  const rand = mulberry32(seed);
+  return candidates[Math.floor(rand() * candidates.length)];
+}
+
+export function advanceCursor(
+  cpPool: CpPoolState,
+  advanceBy: number,
+): Partial<CpPoolState> {
+  return { cursor: cpPool.cursor + advanceBy };
+}
+
+export function needsRefill(
+  cpPool: CpPoolState,
+  activePoolLength: number,
+): boolean {
+  return activePoolLength < 200;
+}
