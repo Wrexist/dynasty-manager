@@ -211,7 +211,16 @@ export function buildPlayerFromTemplate(
   }
   if (t.altPos?.length) player.alternatePositions = t.altPos;
   if (t.skillMoves) player.skillMoves = t.skillMoves;
-  player.appearance = generatePlayerAppearance(player.nationality, player.position);
+  if (t.source) player.source = t.source;
+  if (t.fcId) player.fcId = t.fcId;
+  if (t.heightCm) player.heightCm = t.heightCm;
+  if (t.weightKg) player.weightKg = t.weightKg;
+  player.appearance = generatePlayerAppearance(
+    player.nationality,
+    player.position,
+    player.heightCm,
+    player.weightKg,
+  );
   player.value = calculatePlayerValue(player.overall);
   player.wage = calculatePlayerWage(player.overall);
   return player;

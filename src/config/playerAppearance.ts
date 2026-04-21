@@ -116,18 +116,42 @@ const POSITION_HEIGHT: Record<string, [number, number, number]> = {
 };
 
 // ── Generation ──
-export function generatePlayerAppearance(nationality: string, position: string): PlayerAppearance {
+/**
+ * Generate a stylized PlayerAppearance from optional real-world hints.
+ *
+ * When `heightCm` / `weightKg` are supplied (e.g. from a real-player template),
+ * the categorical `height` and `build` buckets are derived from the actual
+ * measurements instead of rolled from position priors, so real players look
+ * closer to their real silhouettes.
+ */
+export function generatePlayerAppearance(
+  nationality: string,
+  position: string,
+  heightCm?: number,
+  weightKg?: number,
+): PlayerAppearance {
   const key = normalizeNationality(nationality);
   const skinWeights = REGION_SKIN[key] || DIVERSE_BIAS;
   const buildWeights = POSITION_BUILD[position] || [2, 4, 2];
   const heightWeights = POSITION_HEIGHT[position] || [2, 4, 1];
 
+  // Real measurements override the position-based rolls when available.
+  const heightBucket = heightCm
+    ? heightCm < 178 ? 0 : heightCm < 186 ? 1 : 2
+    : weightedPick(heightWeights);
+  const buildBucket = heightCm && weightKg
+    ? (() => {
+        const bmi = weightKg / ((heightCm / 100) ** 2);
+        return bmi < 22 ? 0 : bmi < 24.5 ? 1 : 2;
+      })()
+    : weightedPick(buildWeights);
+
   return {
     skinTone: weightedPick(skinWeights),
     hairStyle: Math.floor(Math.random() * PLAYER_HAIR_STYLES.length),
     hairColor: weightedPick([4, 3, 2, 1, 1, 1, 0, 0]), // darker hair more common
-    height: weightedPick(heightWeights),
-    build: weightedPick(buildWeights),
+    height: heightBucket,
+    build: buildBucket,
     facialHair: weightedPick([5, 2, 1, 1, 1]),   // most clean-shaven
     accessory: weightedPick([7, 1, 1, 1, 1]),     // most have none
     bootColor: weightedPick([3, 3, 2, 1]),         // black/white most common
