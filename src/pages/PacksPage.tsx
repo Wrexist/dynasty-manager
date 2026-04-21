@@ -3,7 +3,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Package, Coins, Flame, AlertCircle } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
-import { GlassPanel } from '@/components/game/GlassPanel';
+import { GlassPanel, LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import { PageHint } from '@/components/game/PageHint';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { PAGE_HINTS, PLAYER_TIER_THRESHOLDS } from '@/config/ui';
@@ -17,9 +17,9 @@ import { cn } from '@/lib/utils';
 import { errorToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
 
-function tierBadgeClass(ovr: number): string {
-  for (const t of PLAYER_TIER_THRESHOLDS) if (ovr >= t.min) return t.badgeClass;
-  return PLAYER_TIER_THRESHOLDS[PLAYER_TIER_THRESHOLDS.length - 1].badgeClass;
+function playerTier(ovr: number) {
+  for (const t of PLAYER_TIER_THRESHOLDS) if (ovr >= t.min) return t;
+  return PLAYER_TIER_THRESHOLDS[PLAYER_TIER_THRESHOLDS.length - 1];
 }
 
 const PacksPage = () => {
@@ -186,43 +186,89 @@ const PacksPage = () => {
           </div>
         </GlassPanel>
 
-        {/* Recent pulls */}
+        {/* Recent pulls — liquid glass cards highlighting the best player from each pack. */}
         {recentPacks.length > 0 && (
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">Recent Pulls</h3>
-            <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+            <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
               {recentPacks.map(rec => {
                 const tier = PACK_TIER_MAP[rec.tier];
                 const pulled = rec.playerIds.map(id => players[id]).filter(Boolean) as Player[];
                 if (pulled.length === 0) return null;
+                const best = pulled.reduce((top, p) => (p.overall > top.overall ? p : top), pulled[0]);
+                const ptier = playerTier(best.overall);
                 return (
                   <button
                     key={rec.id}
                     type="button"
                     onClick={() => setReplay({ tier: rec.tier, players: pulled })}
-                    className="shrink-0 w-28 text-left rounded-xl border border-white/10 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
-                    style={{ background: `linear-gradient(135deg, ${tier.gradientFrom}, ${tier.gradientTo})` }}
+                    className={cn(
+                      LIQUID_GLASS_SURFACE,
+                      'group shrink-0 w-48 text-left p-3 transition-transform',
+                      'hover:-translate-y-0.5 active:scale-[0.98]',
+                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                    )}
+                    aria-label={`Replay ${tier.label} — top pull ${best.firstName} ${best.lastName} ${best.overall} OVR`}
                   >
-                    <div className="flex gap-2 p-2 text-white">
-                      {tier.artSrc && (
-                        <img
-                          src={tier.artSrc}
-                          alt=""
-                          aria-hidden
-                          className="w-6 h-8 rounded-sm object-cover shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
-                        />
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-[9px] uppercase tracking-widest opacity-80 truncate">{tier.label}</p>
-                        <p className="text-2xl font-display font-black leading-none mt-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{rec.topOvr}</p>
-                        <p className={cn(
-                          'text-[9px] uppercase tracking-widest mt-1 inline-block px-1.5 py-0.5 rounded',
-                          tierBadgeClass(rec.topOvr),
-                        )}>
-                          Top Pull
+                    {/* Tier-coloured glow at the top corner — subtle pack signature. */}
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute -top-10 -right-10 w-28 h-28 rounded-full blur-2xl opacity-50"
+                      style={{ background: `radial-gradient(circle, ${tier.gradientFrom} 0%, transparent 70%)` }}
+                    />
+                    {/* Top row — pack chip + season stamp. */}
+                    <div className="relative flex items-center justify-between gap-2 mb-2">
+                      <span className="flex items-center gap-1.5 min-w-0">
+                        {tier.artSrc && (
+                          <img
+                            src={tier.artSrc}
+                            alt=""
+                            aria-hidden
+                            className="w-5 h-6 rounded-sm object-cover shrink-0 shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
+                          />
+                        )}
+                        <span className="text-[9px] font-semibold uppercase tracking-widest text-muted-foreground truncate">
+                          {tier.label}
+                        </span>
+                      </span>
+                      <span className="text-[9px] tabular-nums text-muted-foreground/80 shrink-0">
+                        S{rec.season} · W{rec.week}
+                      </span>
+                    </div>
+
+                    {/* Best player block — big OVR + name + position. */}
+                    <div className="relative flex items-end gap-2.5">
+                      <span
+                        className="text-4xl font-display font-black leading-none tabular-nums bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
+                        style={{
+                          backgroundImage: `linear-gradient(135deg, ${ptier.gradientFrom} 0%, ${ptier.gradientVia} 60%, ${ptier.gradientTo} 100%)`,
+                        }}
+                      >
+                        {best.overall}
+                      </span>
+                      <div className="min-w-0 pb-0.5">
+                        <p className="text-sm font-bold text-foreground leading-tight truncate">
+                          {best.firstName.charAt(0)}. {best.lastName}
                         </p>
-                        <p className="text-[9px] opacity-80 mt-1">S{rec.season} · W{rec.week}</p>
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground leading-tight mt-0.5">
+                          {best.position} · {ptier.label}
+                        </p>
                       </div>
+                    </div>
+
+                    {/* Footer — top pull badge + pack pull count. */}
+                    <div className="relative flex items-center justify-between mt-2.5">
+                      <span className={cn(
+                        'text-[9px] font-semibold uppercase tracking-widest px-1.5 py-0.5 rounded',
+                        ptier.badgeClass,
+                      )}>
+                        Top Pull
+                      </span>
+                      {pulled.length > 1 && (
+                        <span className="text-[9px] text-muted-foreground tabular-nums">
+                          +{pulled.length - 1} more
+                        </span>
+                      )}
                     </div>
                   </button>
                 );
