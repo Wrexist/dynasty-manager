@@ -265,16 +265,77 @@ function mapPosition(fc26Positions) {
 }
 
 /**
- * Glue: one CSV row → one CommunityPlayer object ready for serialization.
- * Calls translateOutfieldStats/translateGKStats (GK vs outfield branch),
- * mapPosition, deriveMental, applyFudge, and finally assigns a stable id
- * (hash of fc26_id || `${fn}-${ln}-${nat}`).
+ * Glue: one FC26 CSV row → one PlayerTemplate object matching the shape
+ * used in src/data/squads/*.ts, plus community-pack-only metadata.
+ *
+ * Pipeline:
+ *   1. Detect GK from the first token of player_positions.
+ *   2. Pull raw 5-field stats from the GK or outfield translator.
+ *   3. Compute `mental` via deriveMental(row, isGK).
+ *   4. Combine into a 6-field stat block.
+ *   5. Run applyFudge keyed on player_id (deterministic).
+ *   6. Map positions to the in-game alias set.
+ *   7. Split short_name (fallback long_name) into fn/ln. If the source
+ *      has a space, fn = everything before the last space, ln = last
+ *      word. If single-word, fn = first initial, ln = the whole name.
+ *   8. Assemble the PlayerTemplate, omitting `altPos` when empty to
+ *      mirror the existing squad-file convention.
+ *
  * @param {Record<string, string>} row
- * @param {object} reportContext  pre-loaded fc26-report.json
- * @returns {object | null} null when the row should be dropped entirely
+ * @returns {object} PlayerTemplate + { source, fcId, heightCm, weightKg }
  */
-function buildPlayer(row, reportContext) {
-  // TODO: Turn 7 — stitch the per-row pipeline together.
+function buildPlayer(row) {
+  const primary = String(row.player_positions || '').split(',')[0].trim().toUpperCase();
+  const isGK = primary === 'GK';
+
+  const rawStats = isGK ? translateGKStats(row) : translateOutfieldStats(row);
+  const mental = deriveMental(row, isGK);
+  const stats = { ...rawStats, mental };
+  const fudged = applyFudge(stats, row.player_id);
+
+  const { pos, altPos } = mapPosition(row.player_positions);
+
+  const nameSource = (row.short_name && row.short_name.trim())
+    || (row.long_name && row.long_name.trim())
+    || '';
+  let fn, ln;
+  const lastSpace = nameSource.lastIndexOf(' ');
+  if (lastSpace >= 0) {
+    fn = nameSource.slice(0, lastSpace);
+    ln = nameSource.slice(lastSpace + 1);
+  } else {
+    fn = nameSource.charAt(0);
+    ln = nameSource;
+  }
+
+  const skillMovesParsed = parseInt(row.skill_moves, 10);
+
+  const template = {
+    fn,
+    ln,
+    pos,
+    age: parseInt(row.age, 10),
+    nat: row.nationality_name,
+    ovr: parseInt(row.overall, 10),
+    pot: parseInt(row.potential, 10),
+    pace: fudged.pace,
+    shooting: fudged.shooting,
+    passing: fudged.passing,
+    defending: fudged.defending,
+    physical: fudged.physical,
+    mental: fudged.mental,
+    skillMoves: Number.isNaN(skillMovesParsed) ? 1 : skillMovesParsed,
+    source: 'real',
+    fcId: row.player_id,
+    heightCm: parseInt(row.height_cm, 10),
+    weightKg: parseInt(row.weight_kg, 10),
+  };
+
+  if (altPos.length > 0) {
+    template.altPos = altPos;
+  }
+
+  return template;
 }
 
 /**
