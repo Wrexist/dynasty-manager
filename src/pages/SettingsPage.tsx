@@ -1,8 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
-import { GlassPanel } from '@/components/game/GlassPanel';
 import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -22,7 +20,121 @@ import { MATCH_SPEEDS } from '@/config/matchSpeed';
 
 const APP_VERSION = 'v1.0.0 · Football Edition';
 
-/** Reusable toggle row with label, description, and switch */
+/**
+ * Liquid-glass section wrapper — inset light highlights, specular crescent,
+ * edge refraction streaks. Matches the CommunityPackPopup treatment so the
+ * Settings surface reads as thick, polished glass end-to-end.
+ */
+function LiquidSection({ title, children, tone = 'default' }: {
+  title?: string;
+  children: React.ReactNode;
+  tone?: 'default' | 'danger';
+}) {
+  return (
+    <div
+      className={cn(
+        'relative overflow-hidden rounded-3xl p-4',
+        'bg-gradient-to-br from-[hsl(222_35%_14%/0.65)] via-[hsl(222_28%_10%/0.7)] to-[hsl(222_40%_7%/0.75)]',
+        'backdrop-blur-2xl backdrop-saturate-150',
+        tone === 'danger'
+          ? 'shadow-[0_0_0_0.5px_rgba(255,110,110,0.18)_inset,inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-1px_0_rgba(0,0,0,0.4),0_16px_40px_-18px_rgba(0,0,0,0.6)]'
+          : 'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-1px_0_rgba(0,0,0,0.4),0_16px_40px_-18px_rgba(0,0,0,0.6)]',
+      )}
+    >
+      {/* Top specular crescent */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
+        style={{
+          background:
+            'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 30%, rgba(255,255,255,0) 60%)',
+          mixBlendMode: 'screen',
+        }}
+      />
+      {/* Edge refraction */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 rounded-3xl"
+        style={{
+          background:
+            'linear-gradient(90deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 6%, rgba(255,255,255,0) 94%, rgba(255,255,255,0.08) 100%)',
+        }}
+      />
+      <div className="relative">
+        {title && (
+          <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">{title}</h3>
+        )}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Liquid-glass button — translucent capsule with specular top rim, inset
+ * bottom shadow, haptic-ready focus ring. `tone` tunes the surface:
+ *   - default: neutral glass
+ *   - primary: gold gradient (primary CTA)
+ *   - amber / destructive: tinted glass for warnings
+ */
+type LiquidButtonTone = 'default' | 'primary' | 'amber' | 'destructive';
+
+function LiquidButton({
+  children,
+  onClick,
+  tone = 'default',
+  disabled,
+  className,
+  'aria-label': ariaLabel,
+  type = 'button',
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  tone?: LiquidButtonTone;
+  disabled?: boolean;
+  className?: string;
+  'aria-label'?: string;
+  type?: 'button' | 'submit';
+}) {
+  const toneClasses: Record<LiquidButtonTone, string> = {
+    default:
+      'bg-white/6 text-foreground/90 border-white/15 hover:bg-white/10 ' +
+      'shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(0,0,0,0.5)]',
+    primary:
+      'bg-gradient-to-b from-primary/95 to-primary/75 text-primary-foreground border-primary/40 hover:from-primary hover:to-primary/80 ' +
+      'shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(0,0,0,0.35),0_10px_22px_-8px_hsl(43_96%_46%/0.55)]',
+    amber:
+      'bg-amber-400/10 text-amber-200 border-amber-400/35 hover:bg-amber-400/15 ' +
+      'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),inset_0_-1px_0_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(0,0,0,0.45)]',
+    destructive:
+      'bg-destructive/15 text-red-300 border-destructive/35 hover:bg-destructive/20 ' +
+      'shadow-[inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-1px_0_rgba(0,0,0,0.35),0_6px_16px_-8px_rgba(0,0,0,0.45)]',
+  };
+
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      className={cn(
+        'relative w-full h-11 rounded-2xl font-semibold text-sm border backdrop-blur-xl backdrop-saturate-150',
+        'active:scale-[0.98] transition-transform',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+        disabled && 'opacity-50 cursor-not-allowed',
+        toneClasses[tone],
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Reusable toggle row with label, description, and liquid-glass pill switch.
+ * Knob has a subtle specular highlight on top; track shows a gold glow when on.
+ */
 function ToggleRow({ icon: Icon, label, description, value, onChange }: {
   icon: React.ElementType;
   label: string;
@@ -40,16 +152,25 @@ function ToggleRow({ icon: Icon, label, description, value, onChange }: {
         </div>
       </div>
       <button
+        role="switch"
+        aria-checked={value}
+        aria-label={label}
         onClick={onChange}
         className={cn(
-          'w-10 h-6 rounded-full transition-colors relative shrink-0',
-          value ? 'bg-primary' : 'bg-muted/50'
+          'relative w-11 h-6 rounded-full shrink-0 transition-colors border backdrop-blur-md',
+          value
+            ? 'bg-gradient-to-b from-primary/90 to-primary/70 border-primary/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(0,0,0,0.3),0_0_18px_-4px_hsl(43_96%_46%/0.55)]'
+            : 'bg-white/5 border-white/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3)]',
         )}
       >
-        <div className={cn(
-          'w-4 h-4 bg-white rounded-full absolute top-1 transition-transform',
-          value ? 'translate-x-5' : 'translate-x-1'
-        )} />
+        <span
+          className={cn(
+            'absolute top-[2px] w-[18px] h-[18px] rounded-full transition-all',
+            'bg-gradient-to-b from-white to-white/80',
+            'shadow-[inset_0_1px_0_rgba(255,255,255,0.8),0_2px_4px_-1px_rgba(0,0,0,0.35)]',
+            value ? 'translate-x-[22px]' : 'translate-x-[2px]',
+          )}
+        />
       </button>
     </div>
   );
@@ -155,13 +276,12 @@ const SettingsPage = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
-      <h2 className="text-lg font-display font-bold text-foreground">Settings</h2>
+      <h2 className="text-lg font-display font-bold text-foreground tracking-tight">Settings</h2>
 
       {/* ─── Gameplay ─── */}
-      <GlassPanel className="p-4">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">Gameplay</h3>
+      <LiquidSection title="Gameplay">
         <div className="space-y-4">
-          {/* Match Speed */}
+          {/* Match Speed — glass segmented control */}
           <div>
             <div className="flex items-center gap-2 mb-2">
               <Zap className="w-4 h-4 text-muted-foreground" />
@@ -170,20 +290,21 @@ const SettingsPage = () => {
                 <p className="text-[10px] text-muted-foreground">How fast match events play out</p>
               </div>
             </div>
-            <div className="flex bg-muted/20 rounded-lg border border-border/30 p-0.5">
+            <div className="flex p-0.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-1px_0_rgba(0,0,0,0.28)]">
               {MATCH_SPEEDS.map(s => {
                 const locked = s.pro && !userIsPro;
+                const active = settings.matchSpeed === s.value;
                 return (
                   <button
                     key={s.value}
                     onClick={() => locked ? setScreen('shop') : updateSettings({ matchSpeed: s.value })}
                     className={cn(
-                      'flex-1 flex items-center justify-center gap-0.5 py-2.5 rounded-md text-xs font-semibold transition-all',
+                      'flex-1 flex items-center justify-center gap-1 py-2 rounded-full text-xs font-semibold transition-all',
                       locked
                         ? 'text-muted-foreground/40 cursor-default'
-                        : settings.matchSpeed === s.value
-                          ? 'bg-primary/20 text-primary'
-                          : 'text-muted-foreground hover:text-foreground'
+                        : active
+                          ? 'bg-gradient-to-b from-primary/90 to-primary/70 text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_12px_-4px_hsl(43_96%_46%/0.55)]'
+                          : 'text-muted-foreground hover:text-foreground',
                     )}
                   >
                     {locked && <Crown className="w-2.5 h-2.5" />}
@@ -194,7 +315,7 @@ const SettingsPage = () => {
             </div>
           </div>
 
-          <div className="border-t border-border/20" />
+          <div className="border-t border-white/10" />
 
           <ToggleRow
             icon={ShieldCheck}
@@ -204,11 +325,10 @@ const SettingsPage = () => {
             onChange={() => updateSettings({ confirmAllOffers: !settings.confirmAllOffers })}
           />
         </div>
-      </GlassPanel>
+      </LiquidSection>
 
       {/* ─── Community Pack ─── */}
-      <GlassPanel className="p-4">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">Community Pack</h3>
+      <LiquidSection title="Community Pack">
         <ToggleRow
           icon={Users}
           label="Use Real Players (Community Pack)"
@@ -244,11 +364,10 @@ const SettingsPage = () => {
         <p className="text-[10px] text-muted-foreground/70 leading-snug mt-3">
           Changing this applies to new games only — existing saves keep the setting they were started with.
         </p>
-      </GlassPanel>
+      </LiquidSection>
 
       {/* ─── Display & Accessibility ─── */}
-      <GlassPanel className="p-4">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">Display & Accessibility</h3>
+      <LiquidSection title="Display & Accessibility">
         <div className="space-y-4">
           <ToggleRow
             icon={Eye}
@@ -258,7 +377,7 @@ const SettingsPage = () => {
             onChange={() => updateSettings({ showOverallOnPitch: !settings.showOverallOnPitch })}
           />
 
-          <div className="border-t border-border/20" />
+          <div className="border-t border-white/10" />
 
           <ToggleRow
             icon={Lightbulb}
@@ -268,7 +387,7 @@ const SettingsPage = () => {
             onChange={() => updateSettings({ hidePageHints: !settings.hidePageHints })}
           />
 
-          <div className="border-t border-border/20" />
+          <div className="border-t border-white/10" />
 
           <ToggleRow
             icon={MonitorSmartphone}
@@ -278,7 +397,7 @@ const SettingsPage = () => {
             onChange={() => updateSettings({ reducedMotion: !settings.reducedMotion })}
           />
 
-          <div className="border-t border-border/20" />
+          <div className="border-t border-white/10" />
 
           <ToggleRow
             icon={Vibrate}
@@ -288,11 +407,10 @@ const SettingsPage = () => {
             onChange={() => updateSettings({ hapticsEnabled: !settings.hapticsEnabled })}
           />
         </div>
-      </GlassPanel>
+      </LiquidSection>
 
       {/* ─── Data ─── */}
-      <GlassPanel className="p-4">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">Data</h3>
+      <LiquidSection title="Data">
         <div className="space-y-3">
           <ToggleRow
             icon={RotateCcw}
@@ -302,115 +420,95 @@ const SettingsPage = () => {
             onChange={() => updateSettings({ autoSave: !settings.autoSave })}
           />
 
-          <div className="border-t border-border/20" />
+          <div className="border-t border-white/10" />
 
           <div className="space-y-2">
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-3 h-11"
-              onClick={handleSave}
-            >
-              <Save className="w-4 h-4" />
-              {saved ? 'Game Saved!' : 'Save Game'}
-            </Button>
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-3 h-11"
-              onClick={() => loadGame()}
-            >
-              <Download className="w-4 h-4" />
-              Load Game
-            </Button>
+            <LiquidButton onClick={handleSave}>
+              <span className="flex items-center justify-start gap-3 px-3">
+                <Save className="w-4 h-4" />
+                {saved ? 'Game Saved!' : 'Save Game'}
+              </span>
+            </LiquidButton>
+            <LiquidButton onClick={() => loadGame()}>
+              <span className="flex items-center justify-start gap-3 px-3">
+                <Download className="w-4 h-4" />
+                Load Game
+              </span>
+            </LiquidButton>
             {!showMenuConfirm ? (
-              <Button
-                variant="secondary"
-                className="w-full justify-start gap-3 h-11 text-amber-400 hover:text-amber-400 hover:bg-amber-400/10"
+              <LiquidButton
+                tone="amber"
                 onClick={() => { setShowMenuConfirm(true); setShowResetConfirm(false); }}
               >
-                <Home className="w-4 h-4" />
-                Main Menu
-              </Button>
+                <span className="flex items-center justify-start gap-3 px-3">
+                  <Home className="w-4 h-4" />
+                  Main Menu
+                </span>
+              </LiquidButton>
             ) : (
               <div className="flex gap-2">
-                <Button
-                  className="flex-1 h-11"
-                  onClick={handleReturnToMenu}
-                >
-                  Save & Exit
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="flex-1 h-11"
-                  onClick={() => setShowMenuConfirm(false)}
-                >
+                <LiquidButton tone="primary" className="flex-1" onClick={handleReturnToMenu}>
+                  Save &amp; Exit
+                </LiquidButton>
+                <LiquidButton className="flex-1" onClick={() => setShowMenuConfirm(false)}>
                   Cancel
-                </Button>
+                </LiquidButton>
               </div>
             )}
             {!showResetConfirm ? (
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10"
+              <LiquidButton
+                tone="destructive"
                 onClick={() => { setShowResetConfirm(true); setShowMenuConfirm(false); }}
               >
-                <Trash2 className="w-4 h-4" />
-                Reset Game
-              </Button>
+                <span className="flex items-center justify-start gap-3 px-3">
+                  <Trash2 className="w-4 h-4" />
+                  Reset Game
+                </span>
+              </LiquidButton>
             ) : (
               <div className="flex gap-2">
-                <Button
-                  variant="destructive"
-                  className="flex-1 h-11"
-                  onClick={handleReset}
-                >
+                <LiquidButton tone="destructive" className="flex-1" onClick={handleReset}>
                   Confirm Reset
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="flex-1 h-11"
-                  onClick={() => setShowResetConfirm(false)}
-                >
+                </LiquidButton>
+                <LiquidButton className="flex-1" onClick={() => setShowResetConfirm(false)}>
                   Cancel
-                </Button>
+                </LiquidButton>
               </div>
             )}
           </div>
         </div>
-      </GlassPanel>
+      </LiquidSection>
 
       {/* ─── Help ─── */}
-      <GlassPanel className="p-4">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">Help</h3>
+      <LiquidSection title="Help">
         <div className="space-y-2">
-          <Button
-            variant="secondary"
-            className="w-full justify-start gap-3 h-11"
+          <LiquidButton
             onClick={() => {
               removeFlag('dynasty-welcome-shown');
               clearFlagsByPrefix('dynasty-hint-');
               infoToast('Tutorial Reset', 'The welcome tutorial and page hints will show again.');
             }}
           >
-            <HelpCircle className="w-4 h-4" />
-            Replay Tutorial
-          </Button>
-          <Button
-            variant="secondary"
-            className="w-full justify-start gap-3 h-11"
-            onClick={() => setScreen('help')}
-          >
-            <BookOpen className="w-4 h-4" />
-            Game Guide
-          </Button>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <HelpCircle className="w-4 h-4" />
+              Replay Tutorial
+            </span>
+          </LiquidButton>
+          <LiquidButton onClick={() => setScreen('help')}>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <BookOpen className="w-4 h-4" />
+              Game Guide
+            </span>
+          </LiquidButton>
         </div>
-      </GlassPanel>
+      </LiquidSection>
 
       {/* ─── Purchases & Subscription ─── */}
-      <GlassPanel className="p-4">
+      <LiquidSection>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Purchases</h3>
           {userIsPro && (
-            <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+            <span className="text-[10px] bg-primary/20 text-primary border border-primary/30 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]">
               <Crown className="w-3 h-3" /> Pro
             </span>
           )}
@@ -418,12 +516,12 @@ const SettingsPage = () => {
 
         {/* Active Subscription Info */}
         {hasActiveSub && monetization.subscription && (
-          <div className="bg-muted/20 rounded-lg p-3 mb-3 space-y-1">
+          <div className="rounded-2xl p-3 mb-3 space-y-1 bg-white/5 border border-white/10 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-1px_0_rgba(0,0,0,0.25)]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-foreground">
                 {PRODUCTS[monetization.subscription.productId]?.name || 'Dynasty Pro'}
               </span>
-              <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold capitalize">
+              <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-semibold capitalize border border-primary/30">
                 {monetization.subscription.tier}
               </span>
             </div>
@@ -443,176 +541,168 @@ const SettingsPage = () => {
 
         <div className="space-y-2">
           {hasActiveSub && (
-            <Button
-              variant="secondary"
-              className="w-full justify-start gap-3 h-11"
-              onClick={handleManageSubscription}
-            >
-              <ExternalLink className="w-4 h-4" />
-              Manage Subscription
-            </Button>
+            <LiquidButton onClick={handleManageSubscription}>
+              <span className="flex items-center justify-start gap-3 px-3">
+                <ExternalLink className="w-4 h-4" />
+                Manage Subscription
+              </span>
+            </LiquidButton>
           )}
-          <Button
-            variant="secondary"
-            className="w-full justify-start gap-3 h-11"
-            onClick={handleRestorePurchases}
-            disabled={restoringPurchases}
-          >
-            <RefreshCw className={cn('w-4 h-4', restoringPurchases && 'animate-spin')} />
-            {restoringPurchases ? 'Restoring...' : 'Restore Purchases'}
-          </Button>
+          <LiquidButton onClick={handleRestorePurchases} disabled={restoringPurchases}>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <RefreshCw className={cn('w-4 h-4', restoringPurchases && 'animate-spin')} />
+              {restoringPurchases ? 'Restoring…' : 'Restore Purchases'}
+            </span>
+          </LiquidButton>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-2">
+        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
           Restore previously purchased items from your App Store or Play Store account.
         </p>
-      </GlassPanel>
+      </LiquidSection>
 
       {/* ─── Support & Feedback ─── */}
-      <GlassPanel className="p-4">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">Support</h3>
+      <LiquidSection title="Support">
         <div className="space-y-2">
-          <Button
-            variant="secondary"
-            className="w-full justify-start gap-3 h-11"
+          <LiquidButton
             onClick={() => window.open('mailto:support@dynastymanager.com?subject=Dynasty%20Manager%20Support', '_blank')}
           >
-            <Mail className="w-4 h-4" />
-            Contact Support
-          </Button>
-          <Button
-            variant="secondary"
-            className="w-full justify-start gap-3 h-11"
-            onClick={() => setFeedbackOpen(true)}
-          >
-            <MessageSquare className="w-4 h-4" />
-            Send Feedback
-          </Button>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <Mail className="w-4 h-4" />
+              Contact Support
+            </span>
+          </LiquidButton>
+          <LiquidButton onClick={() => setFeedbackOpen(true)}>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <MessageSquare className="w-4 h-4" />
+              Send Feedback
+            </span>
+          </LiquidButton>
         </div>
-        <p className="text-[10px] text-muted-foreground mt-2">
+        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
           Report a bug, request a feature, or get help with a purchase.
         </p>
-      </GlassPanel>
+      </LiquidSection>
 
       {/* ─── Legal ─── */}
-      <GlassPanel className="p-4">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">Legal</h3>
+      <LiquidSection title="Legal">
         <div className="space-y-2">
-          <Button
-            variant="secondary"
-            className="w-full justify-start gap-3 h-11"
-            onClick={() => window.open('/privacy-policy.html', '_blank')}
-          >
-            <Shield className="w-4 h-4" />
-            Privacy Policy
-          </Button>
-          <Button
-            variant="secondary"
-            className="w-full justify-start gap-3 h-11"
-            onClick={() => window.open('/terms-of-service.html', '_blank')}
-          >
-            <FileText className="w-4 h-4" />
-            Terms of Service
-          </Button>
+          <LiquidButton onClick={() => window.open('/privacy-policy.html', '_blank')}>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <Shield className="w-4 h-4" />
+              Privacy Policy
+            </span>
+          </LiquidButton>
+          <LiquidButton onClick={() => window.open('/terms-of-service.html', '_blank')}>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <FileText className="w-4 h-4" />
+              Terms of Service
+            </span>
+          </LiquidButton>
         </div>
-      </GlassPanel>
+      </LiquidSection>
 
       {/* ─── Data Management (destructive) ─── */}
-      <GlassPanel className="p-4">
-        <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">Data Management</h3>
+      <LiquidSection title="Data Management" tone="danger">
         {!showDeleteDataConfirm ? (
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-3 h-11 text-destructive hover:text-destructive hover:bg-destructive/10"
+          <LiquidButton
+            tone="destructive"
             onClick={() => { setShowDeleteDataConfirm(true); setShowResetConfirm(false); setShowMenuConfirm(false); }}
           >
-            <AlertTriangle className="w-4 h-4" />
-            Delete All My Data
-          </Button>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <AlertTriangle className="w-4 h-4" />
+              Delete All My Data
+            </span>
+          </LiquidButton>
         ) : (
           <div className="space-y-3">
-            <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3">
-              <p className="text-xs text-destructive font-semibold mb-1">This cannot be undone</p>
-              <p className="text-[10px] text-muted-foreground">
+            <div className="rounded-2xl p-3 bg-destructive/10 border border-destructive/30 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.3)]">
+              <p className="text-xs text-red-300 font-semibold mb-1">This cannot be undone</p>
+              <p className="text-[10px] text-muted-foreground leading-snug">
                 This will permanently delete all save games, career history, Hall of Managers records, and preferences from this device.
               </p>
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="destructive"
-                className="flex-1 h-11"
-                onClick={handleDeleteAllData}
-              >
+              <LiquidButton tone="destructive" className="flex-1" onClick={handleDeleteAllData}>
                 Delete Everything
-              </Button>
-              <Button
-                variant="secondary"
-                className="flex-1 h-11"
-                onClick={() => setShowDeleteDataConfirm(false)}
-              >
+              </LiquidButton>
+              <LiquidButton className="flex-1" onClick={() => setShowDeleteDataConfirm(false)}>
                 Cancel
-              </Button>
+              </LiquidButton>
             </div>
           </div>
         )}
-        <p className="text-[10px] text-muted-foreground mt-2">
+        <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
           Remove all game data stored on this device. Subscription status is managed by your App Store or Play Store account.
         </p>
-      </GlassPanel>
+      </LiquidSection>
 
       {/* ─── About ─── */}
-      <div className="flex flex-col items-center gap-1.5 py-2">
+      <div className="flex flex-col items-center gap-1.5 py-3">
         <img
           src="/logo.png"
           alt="Dynasty Manager"
-          className="w-12 h-12 drop-shadow-[0_0_10px_hsl(var(--primary)/0.3)]"
+          className="w-12 h-12 drop-shadow-[0_0_12px_hsl(var(--primary)/0.35)]"
         />
-        <p className="text-xs text-muted-foreground font-semibold">Dynasty Manager</p>
+        <p className="text-xs text-foreground/80 font-semibold tracking-wide">Dynasty Manager</p>
         <p className="text-[10px] text-muted-foreground">{APP_VERSION}</p>
       </div>
 
-      {/* Feedback Sheet */}
+      {/* Feedback Sheet — matching liquid-glass treatment */}
       <Sheet open={feedbackOpen} onOpenChange={setFeedbackOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl">
+        <SheetContent
+          side="bottom"
+          className={cn(
+            'rounded-t-3xl border-0 p-5',
+            'bg-gradient-to-b from-[hsl(222_35%_14%/0.92)] via-[hsl(222_28%_10%/0.95)] to-[hsl(222_40%_7%/0.98)]',
+            'backdrop-blur-2xl backdrop-saturate-150',
+            'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.25),0_-20px_60px_-20px_rgba(0,0,0,0.7)]',
+          )}
+        >
           <SheetHeader>
-            <SheetTitle>Send Feedback</SheetTitle>
+            <SheetTitle className="font-display tracking-tight">Send Feedback</SheetTitle>
           </SheetHeader>
 
           <div className="px-1 pb-6">
-            {/* Category pills */}
-            <div className="flex gap-2 mt-4">
-              {(['bug', 'feature', 'general'] as const).map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setFeedbackCategory(cat)}
-                  className={cn(
-                    'flex-1 py-2.5 rounded-lg text-xs font-semibold transition-all',
-                    feedbackCategory === cat
-                      ? 'bg-primary/20 text-primary border border-primary/30'
-                      : 'bg-muted/30 text-muted-foreground hover:bg-muted/50'
-                  )}
-                >
-                  {cat === 'bug' ? 'Bug Report' : cat === 'feature' ? 'Feature Request' : 'General'}
-                </button>
-              ))}
+            {/* Category pills — glass segmented control */}
+            <div className="flex gap-2 mt-4 p-0.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-1px_0_rgba(0,0,0,0.28)]">
+              {(['bug', 'feature', 'general'] as const).map(cat => {
+                const active = feedbackCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setFeedbackCategory(cat)}
+                    className={cn(
+                      'flex-1 py-2 rounded-full text-xs font-semibold transition-all',
+                      active
+                        ? 'bg-gradient-to-b from-primary/90 to-primary/70 text-primary-foreground shadow-[inset_0_1px_0_rgba(255,255,255,0.5),inset_0_-1px_0_rgba(0,0,0,0.3),0_4px_12px_-4px_hsl(43_96%_46%/0.55)]'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    {cat === 'bug' ? 'Bug Report' : cat === 'feature' ? 'Feature Request' : 'General'}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Message textarea */}
             <textarea
               value={feedbackMessage}
               onChange={(e) => setFeedbackMessage(e.target.value)}
-              placeholder="Tell us what's on your mind..."
-              className="w-full mt-4 p-3 rounded-lg bg-muted/30 border border-border/50 text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50"
+              placeholder="Tell us what's on your mind…"
+              className="w-full mt-4 p-3 rounded-2xl bg-white/5 border border-white/15 backdrop-blur-md text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3)]"
               rows={4}
             />
 
             {/* Send button */}
-            <Button
-              className="w-full mt-4 h-11"
-              disabled={!feedbackMessage.trim()}
-              onClick={handleSendFeedback}
-            >
-              Send Feedback
-            </Button>
+            <div className="mt-4">
+              <LiquidButton
+                tone="primary"
+                onClick={handleSendFeedback}
+                disabled={!feedbackMessage.trim()}
+              >
+                Send Feedback
+              </LiquidButton>
+            </div>
           </div>
         </SheetContent>
       </Sheet>
