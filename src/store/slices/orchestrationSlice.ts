@@ -15,6 +15,7 @@ import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivision
 import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall, buildPlayerFromTemplate } from '@/utils/playerGen';
 import type { PlayerTemplate } from '@/data/playerTemplates';
+import { getActivePool, drawForMarket } from '@/utils/communityPackPool';
 import { simulateMatch, simulateHalf, finalizeMatch, generateMatchWeather } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
 import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
@@ -2751,12 +2752,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // Lazy-load community pack datasets only when enabled so the default bundle
     // stays lean. Dynamic imports are cached by the module system.
     let cpByClub: Record<string, PlayerTemplate[]> | undefined;
+    let cpFreeAgents: PlayerTemplate[] | undefined;
     if (communityPackEnabled) {
-      const [byClubMod] = await Promise.all([
+      const [byClubMod, freeAgentsMod] = await Promise.all([
         import('@/data/communityPack/byClub'),
         import('@/data/communityPack/freeAgents'),
       ]);
       cpByClub = byClubMod.byClub as Record<string, PlayerTemplate[]>;
+      cpFreeAgents = freeAgentsMod.freeAgents as PlayerTemplate[];
     }
 
     resetSeasonGrowth();
@@ -2834,6 +2837,40 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // agents spawn each week. End-of-season rollover still seeds a full
     // pre-season market for subsequent years.
     const transferMarket: TransferListing[] = [];
+
+    // cpPool state accumulates as we seed the world. The shuffleSeed is fixed
+    // per save so the active pool is reproducible across sessions.
+    const cpShuffleSeed = communityPackEnabled ? Date.now() % 0x80000000 : 0;
+    const cpMarketListings: string[] = [];
+
+    // Seed the transfer market from the community pack free-agent pool so the
+    // player has ~60 real players to browse on day one when the pack is on.
+    if (communityPackEnabled && cpFreeAgents) {
+      const activePool = getActivePool(cpFreeAgents, {
+        shuffleSeed: cpShuffleSeed,
+        cursor: 0,
+        usedFcIds: assignedFcIds,
+        marketListings: [],
+        lastMarketRefreshWeek: 0,
+      });
+      const initialMarket = drawForMarket(activePool, 60, assignedFcIds, cpShuffleSeed);
+      for (const t of initialMarket) {
+        const player = buildPlayerFromTemplate(t, '', 1);
+        allPlayers[player.id] = player;
+        const markup = 1.1 + Math.random() * 0.4;
+        transferMarket.push({
+          playerId: player.id,
+          askingPrice: Math.max(50_000, Math.round(player.value * markup)),
+          sellerClubId: '',
+          externalPlayer: true,
+          divisionId: '',
+        });
+        if (t.fcId) {
+          cpMarketListings.push(t.fcId);
+          assignedFcIds.push(t.fcId);
+        }
+      }
+    }
 
     // Seed a small pool of free agents (2-3) so managers have a minimal
     // signing option from day one.
@@ -2979,10 +3016,10 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       },
       communityPackEnabled,
       cpPool: {
-        shuffleSeed: communityPackEnabled ? Date.now() % 0x80000000 : 0,
+        shuffleSeed: cpShuffleSeed,
         cursor: 0,
         usedFcIds: communityPackEnabled ? assignedFcIds : [],
-        marketListings: [],
+        marketListings: cpMarketListings,
         lastMarketRefreshWeek: 0,
       },
     });
