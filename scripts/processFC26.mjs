@@ -145,27 +145,123 @@ function deriveMental(row, isGK) {
 }
 
 /**
- * Post-hoc stat fudge for known FC26 data quirks. See
- * scripts/community-pack-plan.md § Phase 1 Turn 6 for the full rule list
- * (striker SHO floor, CB passing cap, young-player zeroed-pace fix).
- * Reads tuning constants from scripts/fc26-fudge.json.
- * @param {object} player  player object after translate + mapPosition
- * @returns {object} same player object (mutated in place), for chaining
+ * mulberry32 — small, fast, deterministic 32-bit PRNG. Inlined so the
+ * processor stays dependency-free.
+ * @param {number} seed  unsigned 32-bit integer
+ * @returns {() => number}  uniform float in [0, 1)
  */
-function applyFudge(player) {
-  // TODO: Turn 6 — apply balancing rules from fc26-fudge.json.
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 /**
- * Map an FC26 position string to an in-game `Position`.
- * Reuses the alias table convention from importFC25.mjs
- * (LWB→LB, RWB→RB, CF→ST, LF→LW, RF→RW), falling back to 'CM' and
- * logging unknown tokens to fc26-unknowns.json.
- * @param {string} fc26Pos
- * @returns {string}
+ * FNV-1a string hash → unsigned 32-bit int. Used to seed mulberry32 from
+ * a player id so the same id always reproduces the same fudge.
+ * @param {string} str
+ * @returns {number}
  */
-function mapPosition(fc26Pos) {
-  // TODO: Turn 2 — alias table + fallback + unknown-token log.
+function hashStringToSeed(str) {
+  let h = 2166136261 >>> 0;
+  const s = String(str);
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h >>> 0;
+}
+
+/**
+ * Deterministic per-player stat fudge. Keyed off playerId so the same id
+ * always produces the same result. Picks 1 + (seed % 3) distinct stat
+ * keys, applies a delta drawn from {-3, -2, +2, +3} to each (skipping 0
+ * and ±1 so the change is visible), and clamps every fudged value to
+ * [1, 99]. Returns a NEW stats object — input is not mutated.
+ * @param {Record<string, number>} stats
+ * @param {string} playerId
+ * @returns {Record<string, number>}
+ */
+function applyFudge(stats, playerId) {
+  const seed = hashStringToSeed(playerId);
+  const rng = mulberry32(seed);
+  const numToFudge = 1 + (seed % 3); // 1, 2, or 3
+  const deltas = [-3, -2, 2, 3];
+
+  const keys = Object.keys(stats);
+  // Fisher–Yates shuffle a copy of the key indices using the seeded rng,
+  // then take the first `numToFudge` to pick distinct keys.
+  const order = keys.map((_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+
+  const result = { ...stats };
+  const take = Math.min(numToFudge, order.length);
+  for (let i = 0; i < take; i++) {
+    const key = keys[order[i]];
+    const delta = deltas[Math.floor(rng() * deltas.length)];
+    const clamped = Math.max(1, Math.min(99, result[key] + delta));
+    result[key] = clamped;
+  }
+  return result;
+}
+
+/**
+ * Map an FC26 player_positions string (comma-separated, e.g. "CM,CDM")
+ * to in-game positions.
+ *   pos    — first mapped position
+ *   altPos — deduped list of subsequent mapped positions
+ * Tokens not in the alias table are dropped.
+ * @param {string} fc26Positions
+ * @returns {{ pos: string | undefined, altPos: string[] }}
+ */
+function mapPosition(fc26Positions) {
+  const ALIASES = {
+    LWB: 'LB',
+    RWB: 'RB',
+    LW: 'LW',
+    RW: 'RW',
+    CF: 'ST',
+    LF: 'ST',
+    RF: 'ST',
+    LS: 'ST',
+    RS: 'ST',
+    CAM: 'CAM',
+    CDM: 'CDM',
+    CM: 'CM',
+    CB: 'CB',
+    LB: 'LB',
+    RB: 'RB',
+    GK: 'GK',
+    ST: 'ST',
+  };
+
+  const tokens = String(fc26Positions || '')
+    .split(',')
+    .map(t => t.trim().toUpperCase())
+    .filter(Boolean);
+
+  const mapped = [];
+  const seen = new Set();
+  for (const t of tokens) {
+    const m = ALIASES[t];
+    if (m && !seen.has(m)) {
+      mapped.push(m);
+      seen.add(m);
+    }
+  }
+
+  return {
+    pos: mapped[0],
+    altPos: mapped.slice(1),
+  };
 }
 
 /**
