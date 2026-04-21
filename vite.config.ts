@@ -90,7 +90,15 @@ export default defineConfig(() => ({
           if (id.includes('node_modules/zustand')) return 'zustand';
           if (id.includes('node_modules/react-router')) return 'router';
           if (id.includes('node_modules/@capacitor')) return 'capacitor';
-          if (id.includes('src/data/squads/') || id.includes('src/data/playerTemplates')) return 'squad-data';
+          // The 7 community-pack-only league squads live in src/data/squads/
+          // but must not ship in the eager `squad-data` chunk — they are
+          // dynamic-imported via src/data/communityPack/cpLeagueSquads.ts.
+          if (id.includes('src/data/squads/')) {
+            if (/\/(arg|aus|bra|ind|kor|mls|sau)\.ts$/.test(id)) return 'cpLeagueSquads';
+            return 'squad-data';
+          }
+          if (id.includes('src/data/communityPack/cpLeagueSquads')) return 'cpLeagueSquads';
+          if (id.includes('src/data/playerTemplates')) return 'squad-data';
           if (id.includes('src/data/nationalPlayerPool')) return 'national-pool';
         },
       },

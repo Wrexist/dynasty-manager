@@ -2754,11 +2754,19 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     let cpByClub: Record<string, PlayerTemplate[]> | undefined;
     let cpFreeAgents: PlayerTemplate[] | undefined;
     if (communityPackEnabled) {
-      const [byClubMod, freeAgentsMod] = await Promise.all([
+      const [byClubMod, freeAgentsMod, cpLeagueSquadsMod] = await Promise.all([
         import('@/data/communityPack/byClub'),
         import('@/data/communityPack/freeAgents'),
+        import('@/data/communityPack/cpLeagueSquads'),
       ]);
-      cpByClub = byClubMod.byClub as Record<string, PlayerTemplate[]>;
+      // Merge the 7 community-pack-only league squads (arg, mls, sau, kor,
+      // bra, aus, ind) into cpByClub. byClub entries win on collision since
+      // they carry richer metadata (fcId, height/weight), but the two
+      // datasets cover disjoint club ids in practice.
+      cpByClub = {
+        ...cpLeagueSquadsMod.cpLeagueSquads,
+        ...byClubMod.byClub,
+      } as Record<string, PlayerTemplate[]>;
       cpFreeAgents = freeAgentsMod.freeAgents as PlayerTemplate[];
     }
 

@@ -56,7 +56,7 @@ jobs:
           # Community pack chunks are lazy-loaded only when the user enables
           # the pack at new-game time, so they do not count against the base
           # bundle budget that protects first-load UX.
-          CP_TOTAL=$(find dist/assets \( -name 'freeAgents-*.js' -o -name 'byClub-*.js' \) -type f -printf '%s\n' | awk '{sum += $1} END {print sum+0}')
+          CP_TOTAL=$(find dist/assets \( -name 'freeAgents-*.js' -o -name 'byClub-*.js' -o -name 'cpLeagueSquads-*.js' \) -type f -printf '%s\n' | awk '{sum += $1} END {print sum+0}')
           CP_MB=$(awk "BEGIN {printf \"%.2f\", $CP_TOTAL / 1048576}")
           CORE_JS=$((JS_TOTAL - CP_TOTAL))
           CORE_MB=$(awk "BEGIN {printf \"%.2f\", $CORE_JS / 1048576}")
