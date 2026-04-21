@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ChevronDown, ChevronUp, Trophy, Crown } from 'lucide-react';
+import { ChevronDown, ChevronUp, Trophy, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { darken, lighten } from '@/utils/colorUtils';
@@ -291,35 +291,25 @@ const BallonDor = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={() => setScreen(previousScreen || 'dashboard')}
-          className="flex items-center gap-1 text-muted-foreground text-sm"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-
-        {/* Season selector */}
-        {seasonsWithData.length > 1 && (
-          <div className="flex items-center gap-1">
-            {seasonsWithData.slice(0, 5).map(h => (
-              <button
-                key={h.season}
-                onClick={() => { setSelectedSeason(h.season); setExpandedRank(null); }}
-                className={cn(
-                  'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all',
-                  h.season === activeSeason
-                    ? 'bg-primary/20 text-primary border border-primary/30'
-                    : 'bg-muted/30 text-muted-foreground hover:bg-muted/50',
-                )}
-              >
-                S{h.season}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      {/* Season selector */}
+      {seasonsWithData.length > 1 && (
+        <div className="flex items-center gap-1 justify-end">
+          {seasonsWithData.slice(0, 5).map(h => (
+            <button
+              key={h.season}
+              onClick={() => { setSelectedSeason(h.season); setExpandedRank(null); }}
+              className={cn(
+                'px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all',
+                h.season === activeSeason
+                  ? 'bg-primary/20 text-primary border border-primary/30'
+                  : 'bg-muted/30 text-muted-foreground hover:bg-muted/50',
+              )}
+            >
+              S{h.season}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Title */}
       <motion.div

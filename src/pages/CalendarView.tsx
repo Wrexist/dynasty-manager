@@ -2,7 +2,7 @@ import { useRef, useEffect, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ArrowLeft, Calendar, Trophy, Flame, AlertTriangle, Globe, Briefcase } from 'lucide-react';
+import { Calendar, Trophy, Flame, AlertTriangle, Globe, Briefcase } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getDerbyIntensity } from '@/data/league';
@@ -327,10 +327,6 @@ const CalendarView = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      <button onClick={() => setScreen('dashboard')} className="flex items-center gap-1 text-muted-foreground text-sm">
-        <ArrowLeft className="w-4 h-4" /> Back
-      </button>
-
       <PageHint
         screen="calendar"
         title="Season Calendar"

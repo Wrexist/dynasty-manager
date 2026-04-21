@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { Calendar, Settings, ArrowLeft, Star, Mail, Crown, Briefcase } from 'lucide-react';
+import { Settings, ArrowLeft, Star, Mail, Crown, Briefcase } from 'lucide-react';
 import { getXPProgress } from '@/utils/managerPerks';
 import { getReputationTierLabel, getReputationTierShortLabel } from '@/utils/managerCareer';
 import { getSuffix } from '@/utils/helpers';
 import { getRecentForm } from '@/utils/formGuide';
 import { FormGuide } from '@/components/game/FormGuide';
-import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
 import { LEAGUES } from '@/data/league';
 import { DETAIL_SCREENS, BACK_TARGET, SCREEN_TITLES, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { hapticMedium } from '@/utils/haptics';
@@ -18,11 +17,10 @@ import { XP_GLOW_MS } from '@/config/ui';
 
 export function TopBar() {
   const {
-    season, week, playerClubId, clubs, leagueTable, playerDivision, fixtures,
+    playerClubId, clubs, leagueTable, playerDivision, fixtures,
     currentScreen, previousScreen, managerProgression, gameMode, careerManager,
     messages,
   } = useGameStore(useShallow(s => ({
-    season: s.season, week: s.week,
     playerClubId: s.playerClubId, clubs: s.clubs, leagueTable: s.leagueTable,
     playerDivision: s.playerDivision, fixtures: s.fixtures,
     currentScreen: s.currentScreen, previousScreen: s.previousScreen,
@@ -69,7 +67,13 @@ export function TopBar() {
     ? UNEMPLOYED_MAIN_TABS.includes(currentScreen)
     : !DETAIL_SCREENS.includes(currentScreen);
   const showBack = !matchLocked && !isMainTab;
-  const rawBack = BACK_TARGET[currentScreen] || previousScreen || 'dashboard';
+  // Context-aware back: when a detail screen was opened *from another detail
+  // screen* (e.g. team-detail → player-detail), honour that trail rather than
+  // the static BACK_TARGET fallback, so the round back button returns the user
+  // to where they actually came from.
+  const rawBack = (currentScreen === 'player-detail' && previousScreen === 'team-detail')
+    ? 'team-detail'
+    : (BACK_TARGET[currentScreen] || previousScreen || 'dashboard');
   // When unemployed, redirect any back target that would hit a club screen to job-market
   const backTarget = isUnemployed
     ? (rawBack === 'dashboard' || rawBack === 'squad' ? 'job-market' : rawBack)
@@ -90,14 +94,45 @@ export function TopBar() {
         </div>
       </div>
       <div className="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
-        <div className="flex items-center gap-1.5 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0">
           {showBack && (
             <button
-              onClick={() => setScreen(backTarget)}
+              onClick={() => { setScreen(backTarget); hapticMedium(); }}
               aria-label="Go back"
-              className="p-2 -ml-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors shrink-0 min-w-[36px] min-h-[36px] flex items-center justify-center"
+              className={cn(
+                // Round Liquid Glass back button — translucent, outlined, sees
+                // through to the background with subtle refraction + specular
+                // highlight. Single source of styling for the top-bar back.
+                'group relative shrink-0 w-11 h-11 -ml-1 rounded-full overflow-hidden',
+                'flex items-center justify-center text-foreground/90 hover:text-foreground',
+                'bg-gradient-to-br from-white/[0.14] via-white/[0.06] to-white/[0.02]',
+                'backdrop-blur-xl backdrop-saturate-150',
+                'border border-white/25',
+                'shadow-[inset_0_1px_0_rgba(255,255,255,0.38),inset_0_-1px_0_rgba(0,0,0,0.35),0_6px_16px_-8px_rgba(0,0,0,0.55)]',
+                'transition-[transform,background-color] duration-200',
+                'hover:bg-white/[0.08] active:scale-95',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
+              )}
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-[18px] h-[18px] relative z-10" />
+              {/* Specular highlight — bright crescent on top of the glass. */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-full"
+                style={{
+                  background:
+                    'radial-gradient(120% 80% at 50% -20%, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.08) 35%, rgba(255,255,255,0) 60%)',
+                  mixBlendMode: 'screen',
+                }}
+              />
+              {/* Rim refraction — subtle inner bright ring to catch the edge. */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 rounded-full"
+                style={{
+                  boxShadow: 'inset 0 0 0 0.5px rgba(255,255,255,0.22)',
+                }}
+              />
             </button>
           )}
           {isUnemployed ? (
@@ -190,11 +225,6 @@ export function TopBar() {
           >
             <Settings className="w-4 h-4" />
           </button>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground" aria-live="polite" aria-atomic="true">
-            <Calendar className="w-3 h-3" aria-hidden="true" />
-            <span>W{week} · S{season}</span>
-          </div>
-          <SaveStatusIndicator />
         </div>
       </div>
     </header>

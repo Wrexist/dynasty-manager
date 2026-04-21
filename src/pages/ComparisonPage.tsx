@@ -5,13 +5,11 @@ import { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } fro
 import { cn } from '@/lib/utils';
 import { CHART_COLORS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
-import { ArrowLeft } from 'lucide-react';
 
 const ComparisonPage = () => {
   const clubs = useGameStore(s => s.clubs);
   const players = useGameStore(s => s.players);
   const playerClubId = useGameStore(s => s.playerClubId);
-  const setScreen = useGameStore(s => s.setScreen);
   const club = clubs[playerClubId];
   const squadPlayers = club?.playerIds.map(id => players[id]).filter(Boolean).sort((a, b) => b.overall - a.overall) || [];
 
@@ -21,9 +19,6 @@ const ComparisonPage = () => {
   if (squadPlayers.length < 2) {
     return (
       <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
-        <button onClick={() => setScreen('squad')} className="flex items-center gap-1 text-muted-foreground text-sm">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
         <GlassPanel className="p-6 text-center">
           <p className="text-muted-foreground">Need at least 2 players to compare.</p>
         </GlassPanel>
