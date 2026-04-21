@@ -10,6 +10,7 @@
  * 4. For production: replace the test API key below with per-platform keys
  */
 
+import * as Sentry from '@sentry/react';
 import type { ProductId, SubscriptionInfo } from '@/types/game';
 import { PRODUCTS } from '@/config/monetization';
 import { Capacitor } from '@capacitor/core';
@@ -43,6 +44,7 @@ export async function initPurchases(): Promise<void> {
     initialized = true;
   } catch (err) {
     console.warn('[Purchases] Failed to initialize RevenueCat:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.init' } });
     // Mark initialized to prevent retry loops — purchases will use mock mode
     initialized = true;
   }
@@ -84,6 +86,7 @@ export async function purchaseProduct(productId: ProductId): Promise<ProductId[]
       return [];
     }
     console.error('[Purchases] Purchase failed:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.purchaseProduct' }, extra: { productId } });
     throw err;
   }
 }
@@ -100,6 +103,7 @@ export async function restorePurchases(): Promise<ProductId[]> {
     return mapEntitlements(customerInfo);
   } catch (err) {
     console.error('[Purchases] Restore failed:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.restore' } });
     throw err;
   }
 }
@@ -116,6 +120,7 @@ export async function getEntitlements(): Promise<ProductId[]> {
     return mapEntitlements(customerInfo);
   } catch (err) {
     console.error('[Purchases] Get entitlements failed:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.getEntitlements' } });
     return [];
   }
 }
@@ -133,6 +138,7 @@ export async function getCustomerInfo(): Promise<any | null> {
     return customerInfo;
   } catch (err) {
     console.error('[Purchases] Get customer info failed:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.getCustomerInfo' } });
     return null;
   }
 }
@@ -220,6 +226,7 @@ export async function presentPaywall(offeringIdentifier?: string): Promise<Paywa
     return mapPaywallResult(result);
   } catch (err) {
     console.error('[Purchases] Paywall presentation failed:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.presentPaywall' }, extra: { offeringIdentifier } });
     return 'error';
   }
 }
@@ -236,6 +243,7 @@ export async function presentPaywallIfNeeded(entitlementId: string = 'pro'): Pro
     return mapPaywallResult(result);
   } catch (err) {
     console.error('[Purchases] Paywall presentation failed:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.presentPaywallIfNeeded' }, extra: { entitlementId } });
     return 'error';
   }
 }

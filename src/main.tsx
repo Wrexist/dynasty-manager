@@ -82,15 +82,22 @@ async function initNative() {
       await StatusBar.setBackgroundColor({ color: '#0f1524' });
     } catch (err) {
       console.warn('[initNative] StatusBar init failed:', err);
+      Sentry.captureException(err, { tags: { context: 'initNative.StatusBar' } });
     }
 
     // RevenueCat — isolated from AdMob
     try { await initPurchases(); }
-    catch (err) { console.warn('[initNative] Purchases init failed:', err); }
+    catch (err) {
+      console.warn('[initNative] Purchases init failed:', err);
+      Sentry.captureException(err, { tags: { context: 'initNative.Purchases' } });
+    }
 
     // AdMob — isolated from other SDKs
     try { await initAds(); }
-    catch (err) { console.warn('[initNative] Ads init failed:', err); }
+    catch (err) {
+      console.warn('[initNative] Ads init failed:', err);
+      Sentry.captureException(err, { tags: { context: 'initNative.Ads' } });
+    }
 
     // Auto-save game state when app is backgrounded (iOS may reclaim WebView)
     try {
@@ -103,6 +110,7 @@ async function initNative() {
       });
     } catch (err) {
       console.warn('[initNative] App lifecycle init failed:', err);
+      Sentry.captureException(err, { tags: { context: 'initNative.AppLifecycle' } });
     }
 
     // Wait for React to paint before hiding splash (3s safety timeout)
@@ -114,6 +122,7 @@ async function initNative() {
     await SplashScreen.hide();
   } catch (err) {
     console.error('[initNative] Native initialization failed:', err);
+    Sentry.captureException(err, { tags: { context: 'initNative' } });
   }
 }
 
