@@ -231,7 +231,7 @@ const ClubSelection = () => {
     if (cpIds.length === 0) return LEAGUE_REGIONS;
     return [
       ...LEAGUE_REGIONS,
-      { label: 'Community Pack Leagues', ids: cpIds },
+      { label: 'Community Pack Leagues (fan-sourced)', ids: cpIds },
     ];
   }, [communityPackEnabled]);
 

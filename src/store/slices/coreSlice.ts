@@ -55,6 +55,18 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   continentalCoefficients: {} as GameState['continentalCoefficients'],
   clubPowerRankings: {} as Record<string, number>,
 
+  // Community Pack — opt-in data layer. Populated by initGame when enabled;
+  // defaults here so GameState is satisfied before first init and for saves
+  // that predate the v59→v60 migration.
+  communityPackEnabled: false,
+  cpPool: {
+    shuffleSeed: 0,
+    cursor: 0,
+    usedFcIds: [] as string[],
+    marketListings: [] as string[],
+    lastMarketRefreshWeek: 0,
+  },
+
   // League system defaults
   seasonPhase: 'regular' as SeasonPhase,
   divisionFixtures: {} as GameState['divisionFixtures'],

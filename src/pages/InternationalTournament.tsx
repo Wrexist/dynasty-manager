@@ -6,6 +6,7 @@ import { Globe, Trophy, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
+import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 
 const PHASE_STEPS = [
   { key: 'group', label: 'Groups' },
@@ -63,7 +64,7 @@ const InternationalTournament = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl p-5"
+        className={cn(LIQUID_GLASS_SURFACE, 'border border-white/10 p-5')}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-amber-500/5 to-transparent pointer-events-none" />
         <div className="relative">
@@ -135,9 +136,9 @@ const InternationalTournament = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 + gi * 0.1 }}
-              className="bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl overflow-hidden"
+              className={cn(LIQUID_GLASS_SURFACE, 'border border-white/10')}
             >
-              <div className="px-4 py-2.5 bg-card/60 border-b border-border/20">
+              <div className="px-4 py-2.5 bg-white/5 border-b border-white/10">
                 <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">{group.name}</h3>
               </div>
 
@@ -242,9 +243,9 @@ const InternationalTournament = () => {
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 + ri * 0.1 }}
-                className="bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl overflow-hidden"
+                className={cn(LIQUID_GLASS_SURFACE, 'border border-white/10')}
               >
-                <div className="px-4 py-2.5 bg-card/60 border-b border-border/20 flex items-center gap-2">
+                <div className="px-4 py-2.5 bg-white/5 border-b border-white/10 flex items-center gap-2">
                   <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">{roundLabel}</h3>
                   {tournament.currentRound === round && tournament.phase !== 'complete' && (
                     <span className="text-[10px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium">Current</span>

@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { ArrowLeft, ChevronRight, ChevronDown, Trophy, Search, X, ChevronsUpDown, Loader2 } from 'lucide-react';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
+import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import type { ChallengeScenario, ClubData, LeagueInfo } from '@/types/game';
 
 // Pre-compute sorted clubs per league (runs once at module level)
@@ -217,9 +218,9 @@ const ChallengePicker = () => {
                           onClick={() => { if (!isSearching) toggleLeague(league.id); }}
                           aria-expanded={isExpanded}
                           className={cn(
-                            'w-full flex items-center gap-3 p-3 rounded-xl transition-all',
-                            'bg-card/60 backdrop-blur-xl border',
-                            isExpanded ? 'border-primary/30 bg-card/80' : 'border-border/30 hover:border-border/60',
+                            LIQUID_GLASS_SURFACE,
+                            'w-full flex items-center gap-3 p-3 transition-colors border',
+                            isExpanded ? 'border-primary/40' : 'border-white/10 hover:border-white/20',
                             isSearching && 'cursor-default',
                           )}
                         >
@@ -351,7 +352,10 @@ const ChallengePicker = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
               onClick={() => handleSelectChallenge(challenge)}
-              className="w-full text-left bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-4 hover:border-primary/40 active:scale-[0.98] transition-all"
+              className={cn(
+                LIQUID_GLASS_SURFACE,
+                'w-full text-left p-4 border border-white/10 hover:border-primary/40 active:scale-[0.98] transition-colors',
+              )}
             >
               <div className="flex items-start gap-3">
                 <DynamicIcon name={challenge.icon} className="w-7 h-7 text-primary shrink-0" />

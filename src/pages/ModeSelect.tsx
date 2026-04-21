@@ -114,9 +114,13 @@ const ModeSelect = () => {
               aria-disabled={disabled}
               className={cn(
                 'group relative w-full text-left rounded-2xl p-5 border overflow-hidden',
-                'bg-card/60 backdrop-blur-xl',
+                // Liquid-glass base — matches GlassPanel so cards feel uniform
+                // with the rest of the app.
+                'bg-gradient-to-br from-[hsl(222_35%_14%/0.65)] via-[hsl(222_28%_10%/0.7)] to-[hsl(222_40%_7%/0.78)]',
+                'backdrop-blur-2xl backdrop-saturate-150',
+                'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-1px_0_rgba(0,0,0,0.4),0_14px_36px_-16px_rgba(0,0,0,0.55)]',
                 'transition-all duration-300 ease-out',
-                !disabled && 'hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20 active:scale-[0.98]',
+                !disabled && 'hover:-translate-y-0.5 active:scale-[0.98]',
                 disabled && 'opacity-70 cursor-default',
                 mode.borderColor,
               )}

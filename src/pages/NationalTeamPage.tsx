@@ -8,6 +8,7 @@ import { Globe, Users, Trophy, ChevronRight, ChevronDown, CheckCircle, XCircle, 
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { Button } from '@/components/ui/button';
 import { PageHint } from '@/components/game/PageHint';
+import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import { PAGE_HINTS } from '@/config/ui';
 import { NT_JOB_MIN_REPUTATION } from '@/config/gameBalance';
 import { FORMATIONS } from '@/config/tactics';
@@ -79,7 +80,7 @@ const NationalTeamPage = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-2xl border border-primary/40 bg-card/60 backdrop-blur-xl p-6 shadow-[0_0_30px_hsl(var(--primary)/0.15)]"
+          className={cn(LIQUID_GLASS_SURFACE, 'border border-primary/40 p-6 shadow-[0_0_30px_hsl(var(--primary)/0.15)]')}
         >
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-teal-500/5 pointer-events-none" />
           <div className="relative space-y-5">
@@ -240,7 +241,7 @@ const NationalTeamPage = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl border border-border/40 bg-card/60 backdrop-blur-xl p-5"
+        className={cn(LIQUID_GLASS_SURFACE, 'border border-white/10 p-5')}
       >
         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
         <div className="relative flex items-center gap-4">
@@ -264,7 +265,7 @@ const NationalTeamPage = () => {
 
       {/* Tenure (career mode) */}
       {gameMode === 'career' && careerManager?.nationalTeamAppointedSeason && (
-        <div className="flex items-center gap-3 bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl px-4 py-3">
+        <div className={cn(LIQUID_GLASS_SURFACE, 'flex items-center gap-3 border border-white/10 px-4 py-3')}>
           <Calendar className="w-4 h-4 text-primary shrink-0" />
           <div className="flex-1">
             <p className="text-xs text-muted-foreground">Appointed Season {careerManager.nationalTeamAppointedSeason}</p>
@@ -282,7 +283,7 @@ const NationalTeamPage = () => {
       )}
 
       {/* Formation Picker */}
-      <div className="bg-card/40 backdrop-blur-xl border border-border/30 rounded-xl p-4">
+      <div className={cn(LIQUID_GLASS_SURFACE, 'border border-white/10 p-4')}>
         <div className="flex items-center justify-between mb-1">
           <h2 className="text-sm font-bold text-foreground">Formation</h2>
           <button
