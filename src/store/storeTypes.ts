@@ -223,7 +223,7 @@ export interface GameState {
   currentLeagueCupTieId: string | null;
 
   // Actions — Core
-  initGame: (clubId: string) => void;
+  initGame: (clubId: string, options?: { communityPackEnabled?: boolean }) => Promise<void> | void;
   initializeLeague: (leagueId: string) => void;
   setScreen: (screen: GameScreen) => void;
   selectPlayer: (id: string | null) => void;

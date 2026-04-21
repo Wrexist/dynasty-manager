@@ -13,7 +13,8 @@ import {
 } from '@/config/managerCareer';
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies, getLeaguesByCountry } from '@/data/league';
 import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
-import { generateSquad, selectBestLineup, generatePlayer, calculateOverall } from '@/utils/playerGen';
+import { generateSquad, selectBestLineup, generatePlayer, calculateOverall, buildPlayerFromTemplate } from '@/utils/playerGen';
+import type { PlayerTemplate } from '@/data/playerTemplates';
 import { simulateMatch, simulateHalf, finalizeMatch, generateMatchWeather } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
 import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
@@ -2744,11 +2745,25 @@ function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS }[])
 }
 
 export const createOrchestrationSlice = (set: Set, get: Get) => ({
-  initGame: (clubId: string) => {
+  initGame: async (clubId: string, options?: { communityPackEnabled?: boolean }) => {
+    const communityPackEnabled = options?.communityPackEnabled ?? false;
+
+    // Lazy-load community pack datasets only when enabled so the default bundle
+    // stays lean. Dynamic imports are cached by the module system.
+    let cpByClub: Record<string, PlayerTemplate[]> | undefined;
+    if (communityPackEnabled) {
+      const [byClubMod] = await Promise.all([
+        import('@/data/communityPack/byClub'),
+        import('@/data/communityPack/freeAgents'),
+      ]);
+      cpByClub = byClubMod.byClub as Record<string, PlayerTemplate[]>;
+    }
+
     resetSeasonGrowth();
     clearLeagueTableCache();
     const allPlayers: Record<string, Player> = {};
     const clubs: Record<string, Club> = {};
+    const assignedFcIds: string[] = [];
 
     // Find which league the selected club belongs to
     const selectedClubData = ALL_CLUBS.find(c => c.id === clubId);
@@ -2774,7 +2789,13 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         stadiumCapacity: cd.stadiumCapacity,
       };
 
-      const squad = generateSquad(club.id, cd.squadQuality, 1, cd.divisionId, /* isInitialSeason */ true);
+      const cpTemplates = communityPackEnabled ? cpByClub?.[club.id] : undefined;
+      const squad = cpTemplates && cpTemplates.length > 0
+        ? cpTemplates.map(t => {
+            if (t.fcId) assignedFcIds.push(t.fcId);
+            return buildPlayerFromTemplate(t, club.id, 1);
+          })
+        : generateSquad(club.id, cd.squadQuality, 1, cd.divisionId, /* isInitialSeason */ true);
       let totalWages = 0;
       squad.forEach(p => {
         allPlayers[p.id] = p;
@@ -2955,6 +2976,14 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         entitlements: get().monetization?.entitlements || [],
         firstLaunchTimestamp: get().monetization?.firstLaunchTimestamp || Date.now(),
         subscription: get().monetization?.subscription || null,
+      },
+      communityPackEnabled,
+      cpPool: {
+        shuffleSeed: communityPackEnabled ? Date.now() % 0x80000000 : 0,
+        cursor: 0,
+        usedFcIds: communityPackEnabled ? assignedFcIds : [],
+        marketListings: [],
+        lastMarketRefreshWeek: 0,
       },
     });
   },
