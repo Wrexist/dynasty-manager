@@ -74,36 +74,74 @@ function parseCSVLine(line) {
 // ── Function stubs (bodies land in later turns) ───────────────────────────
 
 /**
- * Map FC26 outfield attribute columns (PAC/SHO/PAS/DRI/DEF/PHY plus
- * sub-attrs) to the game's 6-field PlayerTemplate schema. Clamps to [1, 99]
- * and defaults missing cells to 50.
- * @param {Record<string, string>} row
- * @returns {{ pace: number, shooting: number, passing: number, defending: number, physical: number, mental: number }}
- */
-function translateOutfieldStats(row) {
-  // TODO: Turn 3 — map PAC/SHO/PAS/DEF/PHY + deriveMental().
-}
-
-/**
- * Map FC26 goalkeeper columns (GK Diving/Handling/Kicking/Reflexes/Speed/
- * Positioning + Strength/Stamina) into the same 6-field schema so GKs
- * share one row shape with outfielders.
- * @param {Record<string, string>} row
- * @returns {{ pace: number, shooting: number, passing: number, defending: number, physical: number, mental: number }}
- */
-function translateGKStats(row) {
-  // TODO: Turn 4 — collapse GK sub-stats into the shared schema.
-}
-
-/**
- * Derive outfield `mental` from FC26 sub-attrs.
- * Mirrors importFC25.mjs: round((Composure + Vision + Reactions) / 3).
- * Missing sub-attrs default to 50.
- * @param {Record<string, string>} row
+ * Parse a CSV cell as an integer, defaulting to 50 when missing or NaN.
+ * @param {string | undefined} value
  * @returns {number}
  */
-function deriveMental(row) {
-  // TODO: Turn 5 — average Composure/Vision/Reactions with defaults.
+function toIntOr50(value) {
+  const n = parseInt(value, 10);
+  return Number.isNaN(n) ? 50 : n;
+}
+
+/**
+ * Map FC26 outfield top-level attribute columns to the game's 5-field
+ * stat block. FC26 spells physical as `physic`; rename on the way in.
+ * Missing or NaN cells default to 50. `mental` is derived separately via
+ * deriveMental().
+ * @param {Record<string, string>} row
+ * @returns {{ pace: number, shooting: number, passing: number, defending: number, physical: number }}
+ */
+function translateOutfieldStats(row) {
+  return {
+    pace: toIntOr50(row.pace),
+    shooting: toIntOr50(row.shooting),
+    passing: toIntOr50(row.passing),
+    defending: toIntOr50(row.defending),
+    physical: toIntOr50(row.physic),
+  };
+}
+
+/**
+ * Map FC26 goalkeeper attribute columns into the same 5-field stat block
+ * so GKs share one row shape with outfielders. Missing or NaN cells
+ * default to 50. `mental` is derived separately via deriveMental().
+ * @param {Record<string, string>} row
+ * @returns {{ pace: number, shooting: number, passing: number, defending: number, physical: number }}
+ */
+function translateGKStats(row) {
+  return {
+    pace: toIntOr50(row.goalkeeping_reflexes),
+    shooting: toIntOr50(row.goalkeeping_diving),
+    passing: toIntOr50(row.goalkeeping_kicking),
+    defending: toIntOr50(row.goalkeeping_positioning),
+    physical: toIntOr50(row.goalkeeping_handling),
+  };
+}
+
+/**
+ * Derive the `mental` stat from FC26 sub-attrs.
+ *   - GKs use goalkeeping_speed directly (defaults to 50 when missing).
+ *   - Outfielders average dribbling, mentality_composure,
+ *     movement_reactions, and mentality_vision, skipping any NaN cells.
+ *     If every source is NaN, defaults to 50.
+ * @param {Record<string, string>} row
+ * @param {boolean} isGK
+ * @returns {number}
+ */
+function deriveMental(row, isGK) {
+  if (isGK) {
+    return toIntOr50(row.goalkeeping_speed);
+  }
+  const sources = [
+    row.dribbling,
+    row.mentality_composure,
+    row.movement_reactions,
+    row.mentality_vision,
+  ];
+  const nums = sources.map(v => parseInt(v, 10)).filter(n => !Number.isNaN(n));
+  if (nums.length === 0) return 50;
+  const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+  return Math.round(avg);
 }
 
 /**
