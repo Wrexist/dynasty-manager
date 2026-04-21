@@ -7,7 +7,7 @@
  * with the column catalogue + bucket summaries that Phase 1 (processFC26.mjs)
  * consumes. No writes into src/.
  */
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, readdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -254,28 +254,104 @@ function fuzzyMatch(fc26Name, gameClubIds, sameLeagueOnly = true) {
 }
 
 /**
- * Load every club id currently defined in src/data/leagues/*.ts so we know
- * what "existing" means when bucketing. Returns a flat array of ids.
- * @returns {string[]}
+ * Load every club id currently defined in src/data/leagues/*.ts, grouped by
+ * the league's internal LEAGUE_INFO.id (not filename — filenames use country
+ * words like "england2.ts" but carry id: 'eng-2' inside).
+ * @returns {Map<string, Set<string>>} gameLeagueId → set of club ids
  */
 function loadGameClubIds() {
-  return [];
+  const dir = join(ROOT, 'src/data/leagues');
+  const map = new Map();
+  const files = readdirSync(dir).filter(f => f.endsWith('.ts') && f !== 'index.ts');
+
+  for (const file of files) {
+    const content = readFileSync(join(dir, file), 'utf-8');
+
+    // LEAGUE_INFO.id — look at the first id: occurrence AFTER the
+    // LEAGUE_INFO declaration so we don't pick up stray ones.
+    const infoMatch = content.match(/LEAGUE_INFO[\s\S]*?id:\s*['"]([a-z0-9-]+)['"]/);
+    if (!infoMatch) continue;
+    const gameLeagueId = infoMatch[1];
+
+    // Club ids live inside the CLUBS array — everything after the first
+    // mention of CLUBS is the club section.
+    const clubsIdx = content.indexOf('CLUBS');
+    const clubSection = clubsIdx >= 0 ? content.slice(clubsIdx) : '';
+    const clubIds = new Set();
+    for (const m of clubSection.matchAll(/id:\s*['"]([a-z0-9-]+)['"]/g)) {
+      // Skip the league id itself if the regex picks it up for any reason.
+      if (m[1] !== gameLeagueId) clubIds.add(m[1]);
+    }
+
+    map.set(gameLeagueId, clubIds);
+  }
+  return map;
 }
 
 /**
- * Decide which bucket a CSV club falls into:
- *   'existing'  → matches a known in-game club id (exact or via KNOWN_ALIASES)
- *   'fuzzy'     → fuzzy-matches an existing club; needs human review
- *   'new'       → belongs to a mapped league but has no game counterpart
- *   'candidate' → belongs to a NEW_LEAGUE_CANDIDATES league
- *   'skip'      → league is in SKIP_LEAGUE_IDS
- *   'unmapped'  → league id we don't know about at all
- * @param {{ teamName: string, leagueId: number }} club
- * @param {string[]} gameClubIds
- * @returns {{ bucket: string, matchedId: string | null, score: number | null }}
+ * Sort a single FC26 CSV row into one of five buckets. The caller is
+ * expected to aggregate the results.
+ *
+ *   A   — clean match: league is mapped and club names normalize to the same id
+ *   B   — fuzzy match: needs human alias review before being trusted
+ *   C1  — league known, club is new (league turnover since FC25)
+ *   C2  — league itself is not in the game yet
+ *   D   — drop: league in SKIP_LEAGUE_IDS, or row has no club_name
+ *
+ * @param {Record<string, string>} fc26Row  raw CSV row
+ * @param {Map<string, Set<string>>} gameClubsByLeague  from loadGameClubIds
+ * @returns {object}
  */
-function categorizeClub(club, gameClubIds) {
-  return { bucket: 'unmapped', matchedId: null, score: null };
+function categorizeClub(fc26Row, gameClubsByLeague) {
+  const leagueIdRaw = fc26Row.league_id ?? fc26Row['league_id'] ?? '';
+  const leagueId = parseInt(leagueIdRaw, 10);
+  const fc26Name = (fc26Row.club_name ?? fc26Row.team_name ?? '').trim();
+  const fc26LeagueName = (fc26Row.league_name ?? '').trim();
+
+  // Step 0 — drop conditions.
+  if (!fc26Name) {
+    return { bucket: 'D', reason: 'missing club_name' };
+  }
+  if (SKIP_LEAGUE_IDS.includes(leagueId)) {
+    return { bucket: 'D', reason: `league ${leagueId} in SKIP_LEAGUE_IDS` };
+  }
+
+  // Step 1 — is the league mapped to an in-game league?
+  const gameLeagueId = FC26_LEAGUE_ID_TO_GAME_ID[leagueId];
+  if (!gameLeagueId) {
+    return {
+      bucket: 'C2',
+      fc26LeagueId: leagueId,
+      fc26LeagueName,
+      fc26Name,
+    };
+  }
+
+  // Step 2 — try the alias table first (overrides fuzzy).
+  const clubSet = gameClubsByLeague.get(gameLeagueId);
+  const aliasTarget = KNOWN_ALIASES[fc26Name];
+  if (aliasTarget && clubSet && clubSet.has(aliasTarget)) {
+    return { bucket: 'A', gameLeagueId, gameClubId: aliasTarget };
+  }
+
+  // Step 3 — fuzzy match within the same league only.
+  const candidates = clubSet ? Array.from(clubSet) : [];
+  const match = fuzzyMatch(fc26Name, candidates, true);
+  if (match) {
+    if (!match.isFuzzy) {
+      return { bucket: 'A', gameLeagueId, gameClubId: match.clubId };
+    }
+    return {
+      bucket: 'B',
+      gameLeagueId,
+      gameClubId: match.clubId,
+      score: match.score,
+      fc26Name,
+    };
+  }
+
+  // Step 4 — league is known but the club isn't; flag as new.
+  return { bucket: 'C1', gameLeagueId, fc26Name };
 }
 
 /**
