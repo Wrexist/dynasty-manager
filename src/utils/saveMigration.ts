@@ -9,7 +9,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 59;
+const CURRENT_VERSION = 60;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -888,6 +888,20 @@ const migrations: Record<number, MigrationFn> = {
       halfTimeState: { ...obj, usedCommentaryLines: normalized },
     };
   },
+
+  // v59 → v60: Community Pack fields added to GameState.
+  59: (data) => ({
+    ...data,
+    version: 60,
+    communityPackEnabled: data.communityPackEnabled ?? false,
+    cpPool: data.cpPool ?? {
+      shuffleSeed: 0,
+      cursor: 0,
+      usedFcIds: [],
+      marketListings: [],
+      lastMarketRefreshWeek: 0,
+    },
+  }),
 };
 
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
