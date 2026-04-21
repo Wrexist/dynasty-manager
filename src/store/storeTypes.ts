@@ -228,7 +228,7 @@ export interface GameState {
   setScreen: (screen: GameScreen) => void;
   selectPlayer: (id: string | null) => void;
   selectClub: (id: string | null) => void;
-  advanceWeek: () => void;
+  advanceWeek: () => Promise<void> | void;
   advanceToNextMatch: () => void;
   endSeason: () => void;
   saveGame: (slot?: number) => void;

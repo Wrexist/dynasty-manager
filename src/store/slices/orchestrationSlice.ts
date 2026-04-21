@@ -2856,6 +2856,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       const initialMarket = drawForMarket(activePool, 60, assignedFcIds, cpShuffleSeed);
       for (const t of initialMarket) {
         const player = buildPlayerFromTemplate(t, '', 1);
+        if (t.fcId) player.fcId = t.fcId;
         allPlayers[player.id] = player;
         const markup = 1.1 + Math.random() * 0.4;
         transferMarket.push({
@@ -3106,7 +3107,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     });
   },
 
-  advanceWeek: () => {
+  advanceWeek: async () => {
     const state = get();
 
     // Career mode: unemployed managers skip gameplay, only process job market
@@ -5313,6 +5314,74 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         }
 
         set({ careerManager: cm, messages: careerMessages });
+      }
+    }
+
+    // Community pack market refresh: every 4 weeks, rotate out the oldest 20
+    // listings and draw 20 fresh templates from the free-agent pool.
+    {
+      const cpState = get();
+      if (
+        cpState.communityPackEnabled &&
+        cpState.week - cpState.cpPool.lastMarketRefreshWeek >= 4
+      ) {
+        const rotateOut = cpState.cpPool.marketListings.slice(0, 20);
+        const keep = cpState.cpPool.marketListings.slice(20);
+        const freeAgentsMod = await import('@/data/communityPack/freeAgents');
+        const cpFreeAgents = freeAgentsMod.freeAgents as PlayerTemplate[];
+        const activePool = getActivePool(cpFreeAgents, cpState.cpPool);
+        const newDraws = drawForMarket(
+          activePool,
+          20,
+          cpState.cpPool.usedFcIds,
+          cpState.cpPool.shuffleSeed + cpState.week,
+        );
+        const newIds = newDraws
+          .map(t => t.fcId)
+          .filter((id): id is string => typeof id === 'string');
+
+        const rotateOutSet = new Set(rotateOut);
+        const updatedPlayers = { ...cpState.players };
+        const newListings: TransferListing[] = [];
+        for (const t of newDraws) {
+          const p = buildPlayerFromTemplate(t, '', cpState.season);
+          if (t.fcId) p.fcId = t.fcId;
+          updatedPlayers[p.id] = p;
+          const markup = 1.1 + Math.random() * 0.4;
+          newListings.push({
+            playerId: p.id,
+            askingPrice: Math.max(50_000, Math.round(p.value * markup)),
+            sellerClubId: '',
+            externalPlayer: true,
+            divisionId: '',
+          });
+        }
+
+        // Drop listings whose external player was rotated out, and prune
+        // those orphaned player records from state.
+        const keptMarket: TransferListing[] = [];
+        for (const l of cpState.transferMarket) {
+          const p = updatedPlayers[l.playerId];
+          if (p?.fcId && rotateOutSet.has(p.fcId)) {
+            delete updatedPlayers[l.playerId];
+            continue;
+          }
+          keptMarket.push(l);
+        }
+
+        set({
+          transferMarket: [...keptMarket, ...newListings],
+          players: updatedPlayers,
+          cpPool: {
+            ...cpState.cpPool,
+            marketListings: [...keep, ...newIds],
+            usedFcIds: [
+              ...cpState.cpPool.usedFcIds.filter(id => !rotateOutSet.has(id)),
+              ...newIds,
+            ],
+            lastMarketRefreshWeek: cpState.week,
+          },
+        });
       }
     }
 
