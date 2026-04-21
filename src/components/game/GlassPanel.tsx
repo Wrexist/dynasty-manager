@@ -15,7 +15,7 @@ export const LIQUID_GLASS_SURFACE =
   'relative overflow-hidden rounded-2xl ' +
   'bg-gradient-to-br from-[hsl(222_35%_14%/0.65)] via-[hsl(222_28%_10%/0.7)] to-[hsl(222_40%_7%/0.78)] ' +
   'backdrop-blur-2xl backdrop-saturate-150 ' +
-  'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-1px_0_rgba(0,0,0,0.4),0_14px_36px_-16px_rgba(0,0,0,0.55)]';
+  'shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.35),0_10px_28px_-14px_rgba(0,0,0,0.45)]';
 
 interface GlassPanelProps {
   children: React.ReactNode;
@@ -81,8 +81,8 @@ export function GlassPanel({
         'bg-gradient-to-br from-[hsl(222_35%_14%/0.65)] via-[hsl(222_28%_10%/0.7)] to-[hsl(222_40%_7%/0.78)]',
         'backdrop-blur-2xl backdrop-saturate-150',
         tone === 'danger'
-          ? 'shadow-[0_0_0_0.5px_rgba(255,120,120,0.18)_inset,inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.4),0_14px_36px_-16px_rgba(0,0,0,0.6)]'
-          : 'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-1px_0_rgba(0,0,0,0.4),0_14px_36px_-16px_rgba(0,0,0,0.55)]',
+          ? 'shadow-[0_0_0_1px_rgba(255,120,120,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-1px_0_rgba(0,0,0,0.35),0_10px_28px_-14px_rgba(0,0,0,0.5)]'
+          : 'shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.35),0_10px_28px_-14px_rgba(0,0,0,0.45)]',
         onClick && 'cursor-pointer active:scale-[0.985] transition-transform focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none',
         className,
       )}
@@ -95,17 +95,24 @@ export function GlassPanel({
         className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
         style={{
           background:
-            'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0.05) 30%, rgba(255,255,255,0) 60%)',
+            'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 30%, rgba(255,255,255,0) 60%)',
           mixBlendMode: 'screen',
         }}
       />
-      {/* Edge refraction — catches the rim on left/right. */}
+      {/* Edge refraction — catches the rim on left/right. The mask fades the
+          bright streaks out vertically before they hit the rounded corners,
+          otherwise the straight gradient gets clipped mid-curve and reads as
+          a notch/rough edge. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            'linear-gradient(90deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0) 6%, rgba(255,255,255,0) 94%, rgba(255,255,255,0.07) 100%)',
+            'linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0) 8%, rgba(255,255,255,0) 92%, rgba(255,255,255,0.05) 100%)',
+          WebkitMaskImage:
+            'linear-gradient(180deg, transparent 0%, #000 20%, #000 80%, transparent 100%)',
+          maskImage:
+            'linear-gradient(180deg, transparent 0%, #000 20%, #000 80%, transparent 100%)',
         }}
       />
     </div>
