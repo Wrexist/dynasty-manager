@@ -150,6 +150,10 @@ export const STORAGE_KEYS = {
    *  null until the popup is answered. Tab-scoped, cleared once the career
    *  starts (initGame writes the answer onto the save slot itself). */
   COMMUNITY_PACK_DRAFT: 'dynasty-community-pack-draft',
+  /** localStorage: per-slot community pack opt-in remembered across new-game
+   *  attempts on the same slot. Set the first time the popup is answered for
+   *  a slot; cleared when the slot is deleted. */
+  communityPackSlotPref: (slot: number) => `dynasty-cp-slot-${slot}`,
   /** localStorage: in-session snapshot for crash recovery. */
   SESSION_SNAPSHOT: 'dynasty-session-snapshot',
   /** localStorage: persistent Hall of Managers data. */
@@ -159,6 +163,31 @@ export const STORAGE_KEYS = {
   /** localStorage: backup shadow of a save slot. */
   saveSlotBackup: (slot: number) => `dynasty-save-${slot}-backup`,
 } as const;
+
+/** Read the per-slot community pack opt-in. Returns null if the user has
+ *  never answered the popup for this slot (popup should show on next
+ *  "New Game" click). */
+export function readCommunityPackSlotPref(slot: number): boolean | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.communityPackSlotPref(slot));
+    if (raw === '1') return true;
+    if (raw === '0') return false;
+    return null;
+  } catch { return null; }
+}
+
+/** Persist the per-slot community pack opt-in so subsequent "New Game"
+ *  clicks on the same slot skip the popup. */
+export function writeCommunityPackSlotPref(slot: number, enabled: boolean): void {
+  try { localStorage.setItem(STORAGE_KEYS.communityPackSlotPref(slot), enabled ? '1' : '0'); }
+  catch { /* storage unavailable / quota — non-fatal */ }
+}
+
+/** Clear the per-slot opt-in so the popup shows again on the next "New Game". */
+export function clearCommunityPackSlotPref(slot: number): void {
+  try { localStorage.removeItem(STORAGE_KEYS.communityPackSlotPref(slot)); }
+  catch { /* storage unavailable */ }
+}
 
 // ── Session Snapshot (for "Welcome back" recap) ──
 
