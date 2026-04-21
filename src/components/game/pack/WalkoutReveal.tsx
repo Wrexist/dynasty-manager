@@ -238,14 +238,18 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
                 </div>
               </div>
 
-              {/* Body — portrait placeholder */}
-              <div className="flex-1 flex items-center justify-center my-2">
-                <div className="w-20 h-20 rounded-full bg-black/25 border border-white/15 flex items-center justify-center">
-                  <span className="text-2xl font-bold text-white/70">{player.firstName[0]}{player.lastName[0]}</span>
+              {/* Body — portrait placeholder. Initials get letter-spacing
+                  so pairs like "RI" don't visually collide, and the disc
+                  itself is sized so it never crowds the name below. */}
+              <div className="flex-1 flex items-center justify-center my-2 min-h-0">
+                <div className="w-16 h-16 rounded-full bg-black/25 border border-white/15 flex items-center justify-center">
+                  <span className="text-xl font-bold text-white/75 tracking-[0.1em]">{player.firstName[0]}{player.lastName[0]}</span>
                 </div>
               </div>
 
-              {/* Tier label + name */}
+              {/* Tier label + last name. First name is dropped here — the
+                  full name is already typewritered in below the card, so
+                  duplicating it cramped the layout. */}
               <div className="text-center">
                 <p
                   className="text-[10px] uppercase tracking-[0.3em] font-semibold opacity-85"
@@ -253,12 +257,15 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
                 >
                   {tier.label}
                 </p>
-                <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80 truncate mt-0.5">{player.firstName}</p>
-                <p className="text-lg font-display font-bold leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{player.lastName}</p>
+                <p className="text-lg font-display font-bold leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] mt-0.5">
+                  {player.lastName}
+                </p>
               </div>
 
-              {/* Stat strip */}
-              <div className="mt-2 grid grid-cols-3 gap-1 text-[9px] font-semibold uppercase">
+              {/* Stat strip — six core attributes, same order as PackCard
+                  (PAC/SHO/PAS/DRI/DEF/PHY). Age lives on the potential row
+                  below the card so we keep all six attributes on the face. */}
+              <div className="mt-2 grid grid-cols-3 gap-1 text-[9px] font-semibold uppercase tabular-nums">
                 <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
                   <span className="opacity-70">PAC</span>
                   <span className="ml-1">{player.attributes.pace}</span>
@@ -272,16 +279,16 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
                   <span className="ml-1">{player.attributes.passing}</span>
                 </div>
                 <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
+                  <span className="opacity-70">DRI</span>
+                  <span className="ml-1">{player.attributes.mental}</span>
+                </div>
+                <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
                   <span className="opacity-70">DEF</span>
                   <span className="ml-1">{player.attributes.defending}</span>
                 </div>
                 <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
                   <span className="opacity-70">PHY</span>
                   <span className="ml-1">{player.attributes.physical}</span>
-                </div>
-                <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                  <span className="opacity-70">AGE</span>
-                  <span className="ml-1">{player.age}</span>
                 </div>
               </div>
             </div>

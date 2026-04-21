@@ -123,24 +123,30 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
               </button>
             )}
 
-            {/* Top row — OVR on the left, flag on the right. Position now
-                lives on the centre disc, so this row stays clean. */}
+            {/* Top row — OVR stacked with position on the left, flag on the
+                right. Keeping position here (not on the disc) so it stays
+                visible even when the centre disc is compressed. */}
             <div className="flex items-start justify-between">
-              <span className="text-4xl font-display font-black leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                {player.overall}
-              </span>
-              <div className="w-7 h-5 rounded-sm overflow-hidden border border-white/30 bg-black/30">
+              <div className="flex flex-col leading-none">
+                <span className="text-3xl font-display font-black drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                  {player.overall}
+                </span>
+                <span className="mt-0.5 text-[9px] font-bold tracking-[0.2em] text-white/85">
+                  {player.position}
+                </span>
+              </div>
+              <div className="w-7 h-5 rounded-sm overflow-hidden border border-white/30 bg-black/30 shrink-0">
                 <FlagIcon nationality={player.nationality} size={28} fill />
               </div>
             </div>
 
-            {/* Hero disc — radial highlight + inset shadow for depth,
-                initials over a position kicker. Tier gradient below
-                bleeds through the translucent fill. */}
-            <div className="flex-1 flex items-center justify-center my-0.5 min-h-0">
+            {/* Hero disc — radial highlight + inset shadow for depth. Just
+                the initials now; position moved to the top-left so the disc
+                stays clean and doesn't crowd the name below. */}
+            <div className="flex-1 flex items-center justify-center min-h-0">
               <div
                 className={cn(
-                  'relative w-16 h-16 rounded-full flex items-center justify-center',
+                  'relative w-12 h-12 rounded-full flex items-center justify-center',
                   'border border-white/25',
                   'shadow-[inset_0_2px_4px_rgba(255,255,255,0.25),inset_0_-3px_6px_rgba(0,0,0,0.35),0_6px_16px_-4px_rgba(0,0,0,0.55)]',
                 )}
@@ -156,29 +162,19 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
                       'radial-gradient(ellipse 60% 40% at 50% 15%, rgba(255,255,255,0.45), transparent 70%)',
                   }}
                 />
-                <div className="relative flex flex-col items-center leading-none">
-                  <span className="text-xl font-display font-black text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
-                    {player.firstName[0]}{player.lastName[0]}
-                  </span>
-                  <span className="mt-0.5 text-[8px] font-bold tracking-[0.2em] text-white/85">
-                    {player.position}
-                  </span>
-                </div>
+                <span className="relative text-base font-display font-black text-white tracking-[0.08em] drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
+                  {player.firstName[0]}{player.lastName[0]}
+                </span>
               </div>
             </div>
 
-            {/* Name */}
-            <div className="text-center">
-              <p className="text-[11px] font-semibold uppercase tracking-wide opacity-80 truncate">{player.firstName}</p>
-              <p className="text-base font-display font-bold leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{player.lastName}</p>
-            </div>
-
-            {/* Age / potential kicker — demoted from the stat grid so the
-                six main attributes get equal weight below. */}
-            <div className="flex items-center justify-center gap-2 text-[9px] font-semibold uppercase tracking-[0.2em] opacity-75 mt-1">
-              <span>Age {player.age}</span>
-              <span className="opacity-40">•</span>
-              <span>Pot {player.potential}</span>
+            {/* Name — last name only, big and bold. First name is on the
+                walkout typewriter and the Added-to-Squad announcement so
+                we drop it here to reclaim vertical space. */}
+            <div className="text-center px-1">
+              <p className="text-sm font-display font-bold leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                {player.lastName}
+              </p>
             </div>
 
             {/* Footer stat strip — stacked label/value, tabular numerals
