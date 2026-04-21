@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
+import { GlassPanel } from '@/components/game/GlassPanel';
+import { LiquidButton } from '@/components/game/LiquidButton';
 import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -20,114 +22,22 @@ import { MATCH_SPEEDS } from '@/config/matchSpeed';
 
 const APP_VERSION = 'v1.0.0 · Football Edition';
 
-/**
- * Liquid-glass section wrapper — inset light highlights, specular crescent,
- * edge refraction streaks. Matches the CommunityPackPopup treatment so the
- * Settings surface reads as thick, polished glass end-to-end.
- */
-function LiquidSection({ title, children, tone = 'default' }: {
+/** Section wrapper — thin adapter that adds the settings-standard padding +
+ *  title around the shared GlassPanel primitive. Every section on this page
+ *  uses the same liquid-glass surface via GlassPanel; this helper just keeps
+ *  the section title styling DRY. */
+function SettingsSection({ title, children, tone = 'default' }: {
   title?: string;
   children: React.ReactNode;
   tone?: 'default' | 'danger';
 }) {
   return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-3xl p-4',
-        'bg-gradient-to-br from-[hsl(222_35%_14%/0.65)] via-[hsl(222_28%_10%/0.7)] to-[hsl(222_40%_7%/0.75)]',
-        'backdrop-blur-2xl backdrop-saturate-150',
-        tone === 'danger'
-          ? 'shadow-[0_0_0_0.5px_rgba(255,110,110,0.18)_inset,inset_0_1px_0_rgba(255,255,255,0.16),inset_0_-1px_0_rgba(0,0,0,0.4),0_16px_40px_-18px_rgba(0,0,0,0.6)]'
-          : 'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-1px_0_rgba(0,0,0,0.4),0_16px_40px_-18px_rgba(0,0,0,0.6)]',
+    <GlassPanel className="p-4" tone={tone}>
+      {title && (
+        <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">{title}</h3>
       )}
-    >
-      {/* Top specular crescent */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-1/2"
-        style={{
-          background:
-            'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.05) 30%, rgba(255,255,255,0) 60%)',
-          mixBlendMode: 'screen',
-        }}
-      />
-      {/* Edge refraction */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 rounded-3xl"
-        style={{
-          background:
-            'linear-gradient(90deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 6%, rgba(255,255,255,0) 94%, rgba(255,255,255,0.08) 100%)',
-        }}
-      />
-      <div className="relative">
-        {title && (
-          <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-3">{title}</h3>
-        )}
-        {children}
-      </div>
-    </div>
-  );
-}
-
-/**
- * Liquid-glass button — translucent capsule with specular top rim, inset
- * bottom shadow, haptic-ready focus ring. `tone` tunes the surface:
- *   - default: neutral glass
- *   - primary: gold gradient (primary CTA)
- *   - amber / destructive: tinted glass for warnings
- */
-type LiquidButtonTone = 'default' | 'primary' | 'amber' | 'destructive';
-
-function LiquidButton({
-  children,
-  onClick,
-  tone = 'default',
-  disabled,
-  className,
-  'aria-label': ariaLabel,
-  type = 'button',
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  tone?: LiquidButtonTone;
-  disabled?: boolean;
-  className?: string;
-  'aria-label'?: string;
-  type?: 'button' | 'submit';
-}) {
-  const toneClasses: Record<LiquidButtonTone, string> = {
-    default:
-      'bg-white/6 text-foreground/90 border-white/15 hover:bg-white/10 ' +
-      'shadow-[inset_0_1px_0_rgba(255,255,255,0.32),inset_0_-1px_0_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(0,0,0,0.5)]',
-    primary:
-      'bg-gradient-to-b from-primary/95 to-primary/75 text-primary-foreground border-primary/40 hover:from-primary hover:to-primary/80 ' +
-      'shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(0,0,0,0.35),0_10px_22px_-8px_hsl(43_96%_46%/0.55)]',
-    amber:
-      'bg-amber-400/10 text-amber-200 border-amber-400/35 hover:bg-amber-400/15 ' +
-      'shadow-[inset_0_1px_0_rgba(255,255,255,0.25),inset_0_-1px_0_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(0,0,0,0.45)]',
-    destructive:
-      'bg-destructive/15 text-red-300 border-destructive/35 hover:bg-destructive/20 ' +
-      'shadow-[inset_0_1px_0_rgba(255,255,255,0.22),inset_0_-1px_0_rgba(0,0,0,0.35),0_6px_16px_-8px_rgba(0,0,0,0.45)]',
-  };
-
-  return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={ariaLabel}
-      className={cn(
-        'relative w-full h-11 rounded-2xl font-semibold text-sm border backdrop-blur-xl backdrop-saturate-150',
-        'active:scale-[0.98] transition-transform',
-        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50',
-        disabled && 'opacity-50 cursor-not-allowed',
-        toneClasses[tone],
-        className,
-      )}
-    >
       {children}
-    </button>
+    </GlassPanel>
   );
 }
 
@@ -279,7 +189,7 @@ const SettingsPage = () => {
       <h2 className="text-lg font-display font-bold text-foreground tracking-tight">Settings</h2>
 
       {/* ─── Gameplay ─── */}
-      <LiquidSection title="Gameplay">
+      <SettingsSection title="Gameplay">
         <div className="space-y-4">
           {/* Match Speed — glass segmented control */}
           <div>
@@ -325,10 +235,10 @@ const SettingsPage = () => {
             onChange={() => updateSettings({ confirmAllOffers: !settings.confirmAllOffers })}
           />
         </div>
-      </LiquidSection>
+      </SettingsSection>
 
       {/* ─── Community Pack ─── */}
-      <LiquidSection title="Community Pack">
+      <SettingsSection title="Community Pack">
         <ToggleRow
           icon={Users}
           label="Use Real Players (Community Pack)"
@@ -364,10 +274,10 @@ const SettingsPage = () => {
         <p className="text-[10px] text-muted-foreground/70 leading-snug mt-3">
           Changing this applies to new games only — existing saves keep the setting they were started with.
         </p>
-      </LiquidSection>
+      </SettingsSection>
 
       {/* ─── Display & Accessibility ─── */}
-      <LiquidSection title="Display & Accessibility">
+      <SettingsSection title="Display & Accessibility">
         <div className="space-y-4">
           <ToggleRow
             icon={Eye}
@@ -407,10 +317,10 @@ const SettingsPage = () => {
             onChange={() => updateSettings({ hapticsEnabled: !settings.hapticsEnabled })}
           />
         </div>
-      </LiquidSection>
+      </SettingsSection>
 
       {/* ─── Data ─── */}
-      <LiquidSection title="Data">
+      <SettingsSection title="Data">
         <div className="space-y-3">
           <ToggleRow
             icon={RotateCcw}
@@ -477,10 +387,10 @@ const SettingsPage = () => {
             )}
           </div>
         </div>
-      </LiquidSection>
+      </SettingsSection>
 
       {/* ─── Help ─── */}
-      <LiquidSection title="Help">
+      <SettingsSection title="Help">
         <div className="space-y-2">
           <LiquidButton
             onClick={() => {
@@ -501,10 +411,10 @@ const SettingsPage = () => {
             </span>
           </LiquidButton>
         </div>
-      </LiquidSection>
+      </SettingsSection>
 
       {/* ─── Purchases & Subscription ─── */}
-      <LiquidSection>
+      <SettingsSection>
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Purchases</h3>
           {userIsPro && (
@@ -558,10 +468,10 @@ const SettingsPage = () => {
         <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
           Restore previously purchased items from your App Store or Play Store account.
         </p>
-      </LiquidSection>
+      </SettingsSection>
 
       {/* ─── Support & Feedback ─── */}
-      <LiquidSection title="Support">
+      <SettingsSection title="Support">
         <div className="space-y-2">
           <LiquidButton
             onClick={() => window.open('mailto:support@dynastymanager.com?subject=Dynasty%20Manager%20Support', '_blank')}
@@ -581,10 +491,10 @@ const SettingsPage = () => {
         <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
           Report a bug, request a feature, or get help with a purchase.
         </p>
-      </LiquidSection>
+      </SettingsSection>
 
       {/* ─── Legal ─── */}
-      <LiquidSection title="Legal">
+      <SettingsSection title="Legal">
         <div className="space-y-2">
           <LiquidButton onClick={() => window.open('/privacy-policy.html', '_blank')}>
             <span className="flex items-center justify-start gap-3 px-3">
@@ -599,10 +509,10 @@ const SettingsPage = () => {
             </span>
           </LiquidButton>
         </div>
-      </LiquidSection>
+      </SettingsSection>
 
       {/* ─── Data Management (destructive) ─── */}
-      <LiquidSection title="Data Management" tone="danger">
+      <SettingsSection title="Data Management" tone="danger">
         {!showDeleteDataConfirm ? (
           <LiquidButton
             tone="destructive"
@@ -634,7 +544,7 @@ const SettingsPage = () => {
         <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
           Remove all game data stored on this device. Subscription status is managed by your App Store or Play Store account.
         </p>
-      </LiquidSection>
+      </SettingsSection>
 
       {/* ─── About ─── */}
       <div className="flex flex-col items-center gap-1.5 py-3">
