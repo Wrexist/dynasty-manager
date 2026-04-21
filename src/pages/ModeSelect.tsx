@@ -61,7 +61,9 @@ const modes: readonly Mode[] = [
 const ModeSelect = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const slot = (location.state as { slot?: number })?.slot || 1;
+  const navState = (location.state as { slot?: number; communityPackEnabled?: boolean }) || {};
+  const slot = navState.slot || 1;
+  const communityPackEnabled = navState.communityPackEnabled === true;
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center p-6 safe-area-top safe-area-bottom">
@@ -99,7 +101,7 @@ const ModeSelect = () => {
               });
               return;
             }
-            if (mode.route) navigate(mode.route, { state: { slot } });
+            if (mode.route) navigate(mode.route, { state: { slot, communityPackEnabled } });
           };
 
           return (

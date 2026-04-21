@@ -394,7 +394,7 @@ export interface GameState {
   // internally by orchestrationSlice.advanceWeek() — no public actions needed.
 
   // Actions — Career Mode
-  initCareerGame: (manager: CareerManager, clubId: string) => void;
+  initCareerGame: (manager: CareerManager, clubId: string, options?: { communityPackEnabled?: boolean }) => void;
   applyForJob: (vacancyId: string) => { success: boolean; message: string };
   respondToJobOffer: (offerId: string, accept: boolean) => void;
   resignFromClub: () => void;

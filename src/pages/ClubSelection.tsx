@@ -64,9 +64,9 @@ for (const league of LEAGUES) {
 
 // Leagues sourced from the FC26 community pack. Hidden from the league list
 // during new-game onboarding unless the user opts in to the community pack
-// (see COMMUNITY_PACK_DRAFT_KEY below). Existing 37 baseline leagues are
-// always visible. 'chn' is included for forward-compat — it will be a no-op
-// until that league file lands.
+// via the popup on TitleScreen (threaded here through navigation state).
+// Existing 37 baseline leagues are always visible. 'chn' is included for
+// forward-compat — it will be a no-op until that league file lands.
 const COMMUNITY_PACK_LEAGUE_IDS: ReadonlySet<string> = new Set([
   'arg', 'mls', 'sau', 'kor', 'bra', 'aus', 'ind', 'chn',
 ]);
@@ -74,14 +74,6 @@ const COMMUNITY_PACK_LEAGUE_IDS: ReadonlySet<string> = new Set([
 // Session-scoped draft so a refresh during onboarding doesn't wipe progress.
 // Cleared once the career is successfully started (see handleStart).
 const ONBOARDING_DRAFT_KEY = STORAGE_KEYS.ONBOARDING_DRAFT;
-const COMMUNITY_PACK_DRAFT_KEY = STORAGE_KEYS.COMMUNITY_PACK_DRAFT;
-
-// Reads the in-flight community pack opt-in for new-game onboarding. The
-// flag is null until the user answers the popup; we treat null as "off" so
-// community pack leagues stay hidden until explicitly enabled.
-function readCommunityPackOptIn(): boolean {
-  return readSessionJson<boolean>(COMMUNITY_PACK_DRAFT_KEY) === true;
-}
 
 function readOnboardingDraft(): OnboardingDraft {
   const empty: OnboardingDraft = { step: 'nationality', nation: null, league: null };
@@ -108,10 +100,11 @@ const ClubSelection = () => {
   const [step, setStep] = useState<OnboardingStep>(initialDraft.step);
   const [selectedNationality, setSelectedNationality] = useState<string | null>(initialDraft.nation);
   const [selectedLeague, setSelectedLeague] = useState<LeagueId | null>(initialDraft.league);
-  // Snapshot the community-pack opt-in once at mount. The popup writes to the
-  // session key before navigating here; on a fresh new-game flow with no popup
-  // answer yet this resolves to false and the new-pack leagues stay hidden.
-  const [communityPackEnabled] = useState<boolean>(readCommunityPackOptIn);
+  // Community pack opt-in is threaded in via navigation state from the popup
+  // on TitleScreen. Defaults to false if this page is reached without a prior
+  // answer (e.g. deep link or refresh).
+  const communityPackEnabled =
+    (location.state as { communityPackEnabled?: boolean } | null)?.communityPackEnabled === true;
   const [selected, setSelected] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [nationSearch, setNationSearch] = useState('');
@@ -146,7 +139,6 @@ const ClubSelection = () => {
           Sentry.captureException(saveErr, { tags: { context: 'careerStartSave' } });
         }
         removeSessionKey(ONBOARDING_DRAFT_KEY);
-        removeSessionKey(COMMUNITY_PACK_DRAFT_KEY);
         queueMicrotask(() => navigate('/game'));
       } catch (err) {
         Sentry.captureException(err, { tags: { context: 'startGame' } });

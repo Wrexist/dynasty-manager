@@ -10,7 +10,14 @@ import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { signalReady } from '@/main';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
-import { removeFlag, clearFlagsByPrefix } from '@/store/helpers/persistence';
+import {
+  removeFlag,
+  clearFlagsByPrefix,
+  readCommunityPackSlotPref,
+  writeCommunityPackSlotPref,
+  clearCommunityPackSlotPref,
+} from '@/store/helpers/persistence';
+import { CommunityPackPopup } from '@/components/CommunityPackPopup';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
@@ -30,6 +37,8 @@ const TitleScreen = () => {
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [restoringPurchases, setRestoringPurchases] = useState(false);
+  // Which slot is currently prompting the community pack popup. null = hidden.
+  const [communityPackSlot, setCommunityPackSlot] = useState<number | null>(null);
   const userIsPro = isPro(monetization);
   const hasActiveSub = isSubscriptionActive(monetization);
 
@@ -58,11 +67,28 @@ const TitleScreen = () => {
   };
 
   const handleNewGame = (slot: number) => {
-    navigate('/mode-select', { state: { slot } });
+    const pref = readCommunityPackSlotPref(slot);
+    if (pref === null) {
+      // First New Game on this slot — ask once, then remember the choice.
+      setCommunityPackSlot(slot);
+      return;
+    }
+    navigate('/mode-select', { state: { slot, communityPackEnabled: pref } });
+  };
+
+  const handleCommunityPackChoice = (enabled: boolean) => {
+    const slot = communityPackSlot;
+    if (slot === null) return;
+    writeCommunityPackSlotPref(slot, enabled);
+    setCommunityPackSlot(null);
+    navigate('/mode-select', { state: { slot, communityPackEnabled: enabled } });
   };
 
   const handleDelete = (slot: number) => {
     resetGame(slot);
+    // Clear the per-slot community pack pref so the popup shows again
+    // on the next "New Game" for this slot.
+    clearCommunityPackSlotPref(slot);
     setConfirmDelete(null);
     setRefreshKey(k => k + 1);
   };
@@ -441,6 +467,12 @@ const TitleScreen = () => {
       </div>
 
       <p className="absolute bottom-6 text-[10px] text-muted-foreground/50 tracking-wider">v0.2 ALPHA</p>
+
+      <CommunityPackPopup
+        open={communityPackSlot !== null}
+        onChoice={handleCommunityPackChoice}
+        onClose={() => setCommunityPackSlot(null)}
+      />
     </div>
   );
 };

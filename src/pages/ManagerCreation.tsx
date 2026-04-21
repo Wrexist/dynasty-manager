@@ -43,7 +43,9 @@ const ManagerCreation = () => {
   const initCareerGame = useGameStore(s => s.initCareerGame);
   const setManagerNationality = useGameStore(s => s.setManagerNationality);
   const saveGame = useGameStore(s => s.saveGame);
-  const slot = (location.state as { slot?: number })?.slot || 1;
+  const navState = (location.state as { slot?: number; communityPackEnabled?: boolean }) || {};
+  const slot = navState.slot || 1;
+  const communityPackEnabled = navState.communityPackEnabled === true;
 
   const [step, setStep] = useState<ManagerCreationStep>('name');
   const [managerName, setManagerName] = useState('');
@@ -105,7 +107,7 @@ const ManagerCreation = () => {
     if (stepIdx > 0) {
       setStep(STEPS[stepIdx - 1]);
     } else {
-      navigate('/mode-select', { state: { slot } });
+      navigate('/mode-select', { state: { slot, communityPackEnabled } });
     }
   };
 
@@ -136,7 +138,7 @@ const ManagerCreation = () => {
           bonuses: selectedOffer.bonuses,
         };
 
-        initCareerGame(manager, selectedOffer.clubId);
+        initCareerGame(manager, selectedOffer.clubId, { communityPackEnabled });
         setManagerNationality(nationality);
         useGameStore.setState({ activeSlot: slot });
         try { saveGame(slot); } catch { /* save failure shouldn't block */ }

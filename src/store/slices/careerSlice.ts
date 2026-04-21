@@ -39,9 +39,9 @@ export const createCareerSlice = (set: Set, get: Get) => ({
   jobOffers: [] as JobOffer[],
   activeInterview: null as ActiveInterview | null,
 
-  initCareerGame: (manager: CareerManager, clubId: string) => {
+  initCareerGame: (manager: CareerManager, clubId: string, options?: { communityPackEnabled?: boolean }) => {
     // Initialize the regular game first (triggers its own set())
-    get().initGame(clubId);
+    get().initGame(clubId, options);
 
     // Immediately merge career-specific state into a single follow-up set()
     // to avoid cascading re-renders from two sequential set() calls
