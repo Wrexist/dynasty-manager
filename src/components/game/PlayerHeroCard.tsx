@@ -134,6 +134,12 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
             <span>·</span>
             <FlagIcon nationality={player.nationality} size={14} />
             <span>{player.nationality}</span>
+            {player.source === 'real' && player.heightCm && player.weightKg && (
+              <>
+                <span>·</span>
+                <span className="tabular-nums">{player.heightCm}cm · {player.weightKg}kg</span>
+              </>
+            )}
             {showPotential && (
               <>
                 <span>·</span>
@@ -147,6 +153,15 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
               </>
             )}
           </p>
+
+          {player.source === 'real' && (
+            <span
+              className="inline-block mt-1.5 px-1.5 py-0.5 rounded text-[9px] font-medium uppercase tracking-wider text-muted-foreground/80 bg-muted/30 border border-border/40"
+              aria-label="Real player"
+            >
+              Real Player
+            </span>
+          )}
 
           {/* Club row */}
           <div className="flex items-center gap-1.5 mt-2">
