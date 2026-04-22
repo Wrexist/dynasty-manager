@@ -373,16 +373,21 @@ const ShopPage = () => {
               <div
                 key={feature}
                 className={cn(
-                  'flex items-center gap-2 p-2.5 rounded-lg',
-                  userIsPro ? 'bg-emerald-500/5 border border-emerald-500/10' : 'bg-muted/20 border border-border/30'
+                  // Mini liquid-glass tile — matches drawer/quick-access look.
+                  'relative overflow-hidden flex items-center gap-2 p-2.5 rounded-xl transform-gpu',
+                  'bg-gradient-to-br from-[hsl(222_35%_14%/0.55)] via-[hsl(222_28%_10%/0.65)] to-[hsl(222_40%_7%/0.75)]',
+                  'backdrop-blur-xl backdrop-saturate-150',
+                  userIsPro
+                    ? 'shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.28),0_0_0_1px_rgba(16,185,129,0.18)_inset]'
+                    : 'shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.28),0_0_0_1px_rgba(255,255,255,0.05)_inset]',
                 )}
               >
                 {userIsPro ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 relative" />
                 ) : (
-                  <Icon className="w-3.5 h-3.5 text-[hsl(var(--gold))] shrink-0" />
+                  <Icon className="w-3.5 h-3.5 text-[hsl(var(--gold))] shrink-0 relative drop-shadow-[0_1px_0_rgba(0,0,0,0.4)]" />
                 )}
-                <span className="text-[11px] text-foreground font-medium leading-tight">{PRO_FEATURE_LABELS[feature]}</span>
+                <span className="text-[11px] text-foreground font-medium leading-tight relative">{PRO_FEATURE_LABELS[feature]}</span>
               </div>
             );
           })}
