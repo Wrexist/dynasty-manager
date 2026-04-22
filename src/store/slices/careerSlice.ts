@@ -39,9 +39,13 @@ export const createCareerSlice = (set: Set, get: Get) => ({
   jobOffers: [] as JobOffer[],
   activeInterview: null as ActiveInterview | null,
 
-  initCareerGame: (manager: CareerManager, clubId: string, options?: { communityPackEnabled?: boolean }) => {
-    // Initialize the regular game first (triggers its own set())
-    get().initGame(clubId, options);
+  initCareerGame: async (manager: CareerManager, clubId: string, options?: { communityPackEnabled?: boolean }) => {
+    // initGame is async when communityPackEnabled is true (it dynamically
+    // imports pack datasets). Await so clubs/players are populated before
+    // we read them below — otherwise careerManager.careerHistory's clubName
+    // falls back to the raw id and the save seatbelt blocks the follow-up
+    // saveGame call in ManagerCreation.
+    await get().initGame(clubId, options);
 
     // Immediately merge career-specific state into a single follow-up set()
     // to avoid cascading re-renders from two sequential set() calls

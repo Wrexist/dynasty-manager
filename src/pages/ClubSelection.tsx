@@ -127,10 +127,14 @@ const ClubSelection = () => {
     if (!selected || !selectedNationality || !selectedLeague || loading) return;
     hapticLight();
     setLoading(true);
-    requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
       try {
         const pendingSlot = (location.state as { slot?: number })?.slot || 1;
-        initGame(selected, { communityPackEnabled });
+        // initGame is async when communityPackEnabled is true (it dynamically
+        // imports the pack datasets). Must await so gameStarted is true
+        // before saveGame runs — otherwise performSave's seatbelt bails out
+        // and the new save never reaches localStorage, leaving the slot empty.
+        await initGame(selected, { communityPackEnabled });
         initNationalTeam(selectedNationality);
         useGameStore.setState({ activeSlot: pendingSlot });
         try {
