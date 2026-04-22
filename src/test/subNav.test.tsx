@@ -8,6 +8,9 @@ vi.mock('@/utils/haptics', () => ({
   hapticLight: vi.fn(),
   hapticMedium: vi.fn(),
   hapticHeavy: vi.fn(),
+  hapticSuccess: vi.fn(),
+  hapticError: vi.fn(),
+  hapticWarning: vi.fn(),
 }));
 
 const ITEMS: SubNavItem[] = [

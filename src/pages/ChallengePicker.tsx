@@ -156,9 +156,10 @@ const ChallengePicker = () => {
               />
               {clubSearch && (
                 <button
+                  type="button"
                   onClick={() => { setClubSearch(''); searchRef.current?.focus(); }}
                   aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -336,7 +337,12 @@ const ChallengePicker = () => {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-border/30 safe-area-top">
-        <button onClick={() => navigate('/')} className="p-2 rounded-lg hover:bg-muted/50">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          aria-label="Back"
+          className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-muted/50"
+        >
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
         <div>

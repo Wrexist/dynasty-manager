@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { Button } from '@/components/ui/button';
@@ -6,6 +7,7 @@ import { useScrollLock } from '@/hooks/useScrollLock';
 import { useGameStore } from '@/store/gameStore';
 import { getActiveCosmetic } from '@/utils/monetization';
 import { COSMETIC_ITEMS } from '@/config/monetization';
+import { hapticSuccess } from '@/utils/haptics';
 
 interface CelebrationModalProps {
   open: boolean;
@@ -71,6 +73,13 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
   const confettiId = getActiveCosmetic(monetization, 'confetti_style');
   const confettiConfig = CONFETTI_STYLES[confettiId || 'default'] || CONFETTI_STYLES.default;
   useScrollLock(open);
+
+  // Single source of truth for celebration moments — promotions, trophy
+  // wins, season triumphs all funnel through this modal, so we fire one
+  // success haptic on open instead of sprinkling them through callers.
+  useEffect(() => {
+    if (open) hapticSuccess();
+  }, [open]);
 
   return (
     <AnimatePresence>

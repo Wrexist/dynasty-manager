@@ -178,7 +178,7 @@ export function TopBar() {
             disabled={matchLocked}
             onClick={() => { setScreen('inbox'); hapticMedium(); }}
             aria-label={unreadCount > 0 ? `Inbox — ${unreadCount} unread` : 'Inbox'}
-            className="relative p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+            className="relative p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Mail className="w-4 h-4" />
             {unreadCount > 0 && (
@@ -191,7 +191,7 @@ export function TopBar() {
             disabled={matchLocked}
             onClick={() => { setScreen('shop'); hapticMedium(); }}
             aria-label="Shop"
-            className="p-2 rounded-lg hover:bg-muted/50 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+            className="p-2 rounded-lg hover:bg-muted/50 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Crown className="w-4 h-4 text-[hsl(var(--gold))] drop-shadow-[0_0_4px_hsl(var(--gold)/0.4)]" />
           </button>
@@ -221,7 +221,7 @@ export function TopBar() {
             disabled={matchLocked}
             onClick={() => { setScreen('settings'); hapticMedium(); }}
             aria-label="Settings"
-            className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+            className="p-2 rounded-lg hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Settings className="w-4 h-4" />
           </button>
