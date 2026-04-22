@@ -79,7 +79,7 @@ describe('validateSaveShape', () => {
     const orphan = { playerClubId: 'ghost', clubs: { c1: {} }, season: 1, week: 1 };
     const r = validateSaveShape(orphan);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toMatch(/not present/);
+    if (r.ok === false) expect(r.reason).toMatch(/not present/);
   });
 });
 

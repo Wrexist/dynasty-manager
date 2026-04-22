@@ -26,6 +26,7 @@ import { MAX_SCOUT_REPORTS } from '@/config/scouting';
 import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle, formatMoney } from '@/utils/helpers';
+import { guardAsync } from '@/utils/asyncGuard';
 import { fnv1a } from '@/utils/hashString';
 import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot, recoverStaleSaveTmp, trimFixturesForSave, trimFixtureArrayForSave } from '@/store/helpers/persistence';
 import { migrateSaveData, validateSaveShape, isSaveFromNewerVersion, CURRENT_VERSION } from '@/utils/saveMigration';
@@ -5397,7 +5398,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     if (get().settings.autoSave) get().saveGame();
   },
 
-  advanceToNextMatch: () => {
+  advanceToNextMatch: async () => {
     const hasMatchThisWeek = (s: GameState): boolean => {
       const { week: w, fixtures, friendlies, playerClubId: pcId, cup, leagueCup, domesticSuperCup, continentalSuperCup } = s;
       if (friendlies?.some(m => m.week === w && !m.played && (m.homeClubId === pcId || m.awayClubId === pcId))) return true;
@@ -5415,7 +5416,11 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       if (s.seasonPhase !== 'regular') break;
       if (s.week >= s.totalWeeks) break;
       if (hasMatchThisWeek(s)) break;
-      s.advanceWeek();
+      // `advanceWeek` is async when Community Pack is enabled (it
+      // dynamic-imports the free-agents dataset on the 4-weekly market
+      // refresh). Without `await` the loop would fire overlapping advances,
+      // each reading stale state via get() — a real race on CP saves.
+      await s.advanceWeek();
       // Suppress the weekly digest for intermediate advances so the modal
       // only shows for the final week (the one with the upcoming match).
       set({ weeklyDigest: null });
@@ -7049,8 +7054,15 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       preserveProgression = false;
     }
 
-    // Reinitialize game with new club
-    get().initGame(newClubId);
+    // Reinitialize game with new club. initGame is only async when Community
+    // Pack is enabled (dynamic imports); in the prestige-reset flow CP is
+    // never threaded through, so this is effectively sync. Still guard with
+    // guardAsync in case a future change enables CP through this path.
+    guardAsync(
+      get().initGame(newClubId),
+      'resetAfterPrestige.initGame',
+      { title: 'Reset failed', body: 'Could not restart for prestige bonus.' },
+    );
 
     // Apply prestige bonuses after init
     const freshState = get();

@@ -12,6 +12,7 @@ import { createEmptyRecords } from '@/utils/records';
 import { buildTransferTalk } from '@/utils/transferTalk';
 import { getFarewellSummary } from '@/utils/playerNarratives';
 import { getStarPlayerMerch } from '@/utils/merchandise';
+import { guardAsync } from '@/utils/asyncGuard';
 import { STAR_PLAYER_SALE_DIP_WEEKS } from '@/config/merchandise';
 import { placePlayerInClub } from '../helpers/rosterOps';
 
@@ -635,8 +636,14 @@ export const createFeatureSlice = (set: Set, get: Get) => ({
     const scenario = CHALLENGES.find(c => c.id === scenarioId);
     if (!scenario) return;
 
-    // Initialize the game first
-    get().initGame(clubId);
+    // Initialize the game first. Challenge flow doesn't thread Community
+    // Pack so initGame is sync in practice; guardAsync is belt-and-braces
+    // in case CP plumbing reaches this call path later.
+    guardAsync(
+      get().initGame(clubId),
+      'startChallenge.initGame',
+      { title: 'Challenge start failed', body: 'Could not initialise the challenge scenario.' },
+    );
 
     // Apply challenge modifiers
     const state = get();

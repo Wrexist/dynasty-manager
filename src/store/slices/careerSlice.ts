@@ -7,6 +7,7 @@ import { PITCH_SCORE_BASE, BOARD_TOLERANCE_START, UNEMPLOYED_INITIAL_OFFERS } fr
 import { generateAIManagerProfile } from '@/config/aiManager';
 import { generateInitialStaff, generateStaffMarket } from '@/utils/staff';
 import { selectBestLineup } from '@/utils/playerGen';
+import { guardAsync } from '@/utils/asyncGuard';
 
 /** Inject live league position/form data into vacancies from divisionTables. */
 function enrichVacanciesWithLeagueData(
@@ -463,7 +464,14 @@ export const createCareerSlice = (set: Set, get: Get) => ({
       const lastEntry = updatedHistory[updatedHistory.length - 1];
       const continuedSeason = (lastEntry?.endSeason || 0) + 1;
 
-      state.initGame(clubId);
+      // Career league change re-inits the game. initGame is only async when
+      // Community Pack is enabled, which isn't threaded through this path;
+      // guardAsync is defensive in case CP ever reaches here.
+      guardAsync(
+        state.initGame(clubId),
+        'signContract.initGame',
+        { title: 'League change failed', body: 'Could not initialise the new league.' },
+      );
       const newState = get();
       const club = newState.clubs[clubId];
 

@@ -234,7 +234,7 @@ export interface GameState {
   selectPlayer: (id: string | null) => void;
   selectClub: (id: string | null) => void;
   advanceWeek: () => Promise<void> | void;
-  advanceToNextMatch: () => void;
+  advanceToNextMatch: () => Promise<void> | void;
   endSeason: () => void;
   saveGame: (slot?: number) => void;
   flushSave: () => void;
