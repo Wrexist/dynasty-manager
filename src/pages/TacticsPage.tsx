@@ -4,11 +4,12 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
 import { cn } from '@/lib/utils';
+import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 import { getRatingColor, getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS, getAvailableFormations } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
 import { FORMATION_POSITIONS, type Position } from '@/types/game';
-import { AlertTriangle, Save, Trash2, Upload, Shield, Swords, Target } from 'lucide-react';
+import { AlertTriangle, Ban, HeartPulse, Save, Trash2, Upload, Shield, Swords, Target, Zap } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD, HELP_TEXTS } from '@/config/ui';
@@ -29,9 +30,9 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, tactics, training } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, tactics, training, season, week } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players, tactics: s.tactics,
-    training: s.training,
+    training: s.training, season: s.season, week: s.week,
   })));
   const monetization = useGameStore(s => s.monetization);
   const managerProgression = useGameStore(s => s.managerProgression);
@@ -93,6 +94,15 @@ const TacticsPage = () => {
     };
   }, [lineupPlayers, club, players]);
 
+  // Matchday readiness: chemistry + availability flags for the starting XI
+  const readiness = useMemo(() => {
+    if (!club || lineupPlayers.length === 0) return null;
+    const bonus = getChemistryBonus(lineupPlayers, club.formation, season);
+    const injured = lineupPlayers.filter(p => p.injured);
+    const suspended = lineupPlayers.filter(p => p.suspendedUntilWeek !== undefined && p.suspendedUntilWeek > week);
+    return { bonus, label: getChemistryLabel(bonus), injured, suspended };
+  }, [club, lineupPlayers, season, week]);
+
   if (!club) return null;
 
   const isPresetActive = (preset: StylePreset): boolean => {
@@ -109,6 +119,65 @@ const TacticsPage = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <PageHint screen="tactics" title={PAGE_HINTS.tactics.title} body={PAGE_HINTS.tactics.body} />
       <h2 className="text-lg font-bold text-foreground font-display">Tactics</h2>
+
+      {/* Matchday Readiness */}
+      {readiness && (() => {
+        const unavailable = readiness.injured.length + readiness.suspended.length;
+        const available = lineupPlayers.length - unavailable;
+        return (
+          <GlassPanel className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4 text-primary" />
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Matchday Readiness</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-muted/20 rounded-lg py-2 text-center">
+                <p className="text-[9px] text-muted-foreground font-semibold mb-0.5">FORMATION</p>
+                <p className="text-lg font-mono font-bold text-foreground tabular-nums leading-none">{club.formation}</p>
+              </div>
+              <div className="bg-muted/20 rounded-lg py-2 text-center">
+                <p className="text-[9px] text-muted-foreground font-semibold mb-0.5">CHEMISTRY</p>
+                <p className={cn('text-lg font-bold tabular-nums leading-none', readiness.label.color)}>
+                  +{Math.round(readiness.bonus * 100)}%
+                </p>
+                <p className={cn('text-[9px] font-semibold mt-0.5', readiness.label.color)}>{readiness.label.label}</p>
+              </div>
+              <div className={cn(
+                'rounded-lg py-2 text-center',
+                unavailable > 0 ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-muted/20'
+              )}>
+                <p className="text-[9px] text-muted-foreground font-semibold mb-0.5">AVAILABLE</p>
+                <p className={cn(
+                  'text-lg font-bold tabular-nums leading-none',
+                  unavailable > 0 ? 'text-amber-400' : 'text-emerald-400'
+                )}>
+                  {available}/{lineupPlayers.length}
+                </p>
+              </div>
+            </div>
+            {unavailable > 0 && (
+              <div className="mt-3 space-y-1">
+                {readiness.injured.map(p => (
+                  <div key={`inj-${p.id}`} className="flex items-center gap-1.5 text-[10px]">
+                    <HeartPulse className="w-3 h-3 text-destructive shrink-0" />
+                    <span className="text-destructive font-semibold">Injured</span>
+                    <span className="text-foreground">{p.firstName[0]}. {p.lastName}</span>
+                    <span className="text-muted-foreground ml-auto tabular-nums">{p.injuryWeeks}w</span>
+                  </div>
+                ))}
+                {readiness.suspended.map(p => (
+                  <div key={`sus-${p.id}`} className="flex items-center gap-1.5 text-[10px]">
+                    <Ban className="w-3 h-3 text-amber-400 shrink-0" />
+                    <span className="text-amber-400 font-semibold">Suspended</span>
+                    <span className="text-foreground">{p.firstName[0]}. {p.lastName}</span>
+                    <span className="text-muted-foreground ml-auto tabular-nums">until W{p.suspendedUntilWeek}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </GlassPanel>
+        );
+      })()}
 
       {/* Formation Selection */}
       <GlassPanel className="p-4">
