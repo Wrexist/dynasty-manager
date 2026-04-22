@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -99,7 +100,7 @@ function getTacticsSummary(t: { mentality: string; tempo: string; width: string;
   return parts.length ? parts.join(' · ') : 'Balanced';
 }
 
-const MatchDay = () => {
+const MatchDayInner = () => {
   const { playerClubId, week, clubs, matchSubsUsed, tactics, cup, leagueCup, championsCup, shieldCup, conferenceCup, virtualClubs, currentCupTieId, domesticSuperCup, continentalSuperCup, monetization, matchPhase, matchTeamTalk, penaltyShootoutKicks } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId,
     week: s.week,
@@ -1743,5 +1744,12 @@ const MatchDay = () => {
     </div>
   );
 };
+
+// Scoped ErrorBoundary so a match-engine render crash falls back to "Return
+// to Menu" with telemetry tagged `match`, without taking down the surrounding
+// game shell (top bar, bottom nav remain mounted).
+const MatchDay = () => (
+  <ErrorBoundary scope="match"><MatchDayInner /></ErrorBoundary>
+);
 
 export default MatchDay;

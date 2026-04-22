@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
 
@@ -26,7 +27,7 @@ interface CommunityPackPopupProps {
  *    sourced — we didn't author it and we aren't affiliated with any
  *    football rights holder.
  */
-export function CommunityPackPopup({ open, onChoice, onClose }: CommunityPackPopupProps) {
+function CommunityPackPopupInner({ open, onChoice, onClose }: CommunityPackPopupProps) {
   const prefersReducedMotion = useReducedMotion();
 
   const choose = (enabled: boolean) => {
@@ -195,5 +196,17 @@ export function CommunityPackPopup({ open, onChoice, onClose }: CommunityPackPop
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Scoped boundary so a CP-data render failure (lazy chunk import promise
+// rejecting during Suspense, or a malformed pool entry crashing a child
+// component) falls back to a friendly card without taking down the new-game
+// flow it's mounted in.
+export function CommunityPackPopup(props: CommunityPackPopupProps) {
+  return (
+    <ErrorBoundary scope="community-pack">
+      <CommunityPackPopupInner {...props} />
+    </ErrorBoundary>
   );
 }
