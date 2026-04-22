@@ -186,7 +186,10 @@ const ChallengePicker = () => {
         </div>
 
         {/* League-grouped clubs */}
-        <div className="flex-1 overflow-y-auto px-4 pb-8 max-w-lg mx-auto w-full">
+        <div
+          className="flex-1 overflow-y-auto px-4 max-w-lg mx-auto w-full touch-pan-y"
+          style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
+        >
           {LEAGUE_REGIONS.map(region => {
             const regionLeagues = region.ids
               .map(id => LEAGUE_MAP[id])
@@ -343,7 +346,10 @@ const ChallengePicker = () => {
       </div>
 
       {/* Challenge List */}
-      <div className="flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full">
+      <div
+        className="flex-1 overflow-y-auto px-4 pt-4 max-w-lg mx-auto w-full touch-pan-y"
+        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+      >
         <div className="space-y-3">
           {CHALLENGES.map((challenge, i) => (
             <motion.button

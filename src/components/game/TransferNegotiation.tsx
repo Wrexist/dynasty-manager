@@ -714,9 +714,12 @@ export function TransferNegotiation({ listing, onClose }: Props) {
           </AnimatePresence>
           </div>
 
-          {/* Sticky action buttons */}
+          {/* Sticky action buttons — extra inset clears iOS home indicator. */}
           {phase === 'negotiate' && !lockout.locked && (
-            <div className="border-t border-border/30 bg-card/95 px-4 py-3">
+            <div
+              className="border-t border-border/30 bg-card/95 px-4 pt-3"
+              style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+            >
               <button
                 type="button"
                 onClick={() => handleSubmitOffer(offerFee)}

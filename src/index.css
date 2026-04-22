@@ -149,6 +149,32 @@
     padding-right: env(safe-area-inset-right, 0px);
   }
 
+  /* Combined bottom padding: BottomNav (5rem footprint) + iOS home indicator.
+     Use on every scrollable page so the last row of content clears the tab
+     bar and the home-indicator gesture area on notched devices. */
+  .pb-nav-safe {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* For pages whose content already lives above a fixed action bar (e.g. the
+     match prep CTA at bottom-20), we still need to clear the home indicator. */
+  .pb-bar-safe {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Vertical-scroll-only zones. Tells the OS to keep horizontal gestures for
+     itself (iOS back swipe) and not interpret them as page swipes. */
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
+
+  /* In-app horizontal swipe zones (e.g. tab navigation). pan-y allows
+     vertical scroll, the script's own logic disables left-edge swipes so the
+     iOS back gesture still wins in its 20px hot zone. */
+  .touch-pan-y-no-pinch {
+    touch-action: pan-y pinch-zoom;
+  }
+
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
