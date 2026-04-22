@@ -16,7 +16,7 @@ import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
 import { readSessionJson, writeSessionJson, removeSessionKey, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { hapticLight } from '@/utils/haptics';
 import { LoadingOverlay } from '@/components/LoadingOverlay';
-import { toast } from 'sonner';
+import { errorToast } from '@/utils/gameToast';
 
 
 
@@ -147,7 +147,14 @@ const ClubSelection = () => {
         queueMicrotask(() => navigate('/game'));
       } catch (err) {
         Sentry.captureException(err, { tags: { context: 'startGame' } });
-        toast.error('Something went wrong starting your career. Please try again.');
+        // Use errorToast so the failure carries haptic feedback and matches
+        // the rest of the app's error surfaces. The Begin Career button
+        // stays enabled (setLoading(false)) so the retry is one tap away —
+        // the toast tells the user what to do.
+        errorToast(
+          'Couldn’t start your career',
+          'Something went wrong loading the squad data. Tap Begin Career again to retry.',
+        );
         setLoading(false);
       }
     });

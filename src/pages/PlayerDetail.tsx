@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { EmptyState } from '@/components/EmptyState';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
 import { POSITION_COMPATIBILITY, type Position, type TrainingModule } from '@/types/game';
@@ -740,7 +741,15 @@ const PlayerDetail = () => {
         </GlassPanel>
       )}
 
-      {/* Match History */}
+      {/* Match History — shows an empty state for new players so the card
+          doesn't silently disappear before their first appearance. */}
+      {(!player.matchHistory || player.matchHistory.length === 0) && (
+        <EmptyState
+          icon={Trophy}
+          title="No match history yet"
+          description="Your first match is coming up. Appearances, goals, and ratings will appear here."
+        />
+      )}
       {player.matchHistory && player.matchHistory.length > 0 && (
         <GlassPanel className="p-4">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Recent Matches</p>

@@ -449,8 +449,11 @@ const MatchDayInner = () => {
 
   // Haptic feedback + goal flash for goals and final whistle.
   // Differentiate by which side scored: success "ding" when the user's club
-  // scores, heavy impact when the opponent does. Own-goals credit the
-  // opposite side from ev.clubId.
+  // scores, heavy impact when the opponent does. For every score-changing
+  // event (goals AND own_goals) the engine writes ev.clubId as the
+  // BENEFITING team, so a simple equality check is correct — no inversion.
+  // (match.ts:1637 pushes own_goal with clubId: club.id, where `club` is
+  // the attacking side that gets credited.)
   const prevGoalCountRef = useRef(0);
   const [goalFlash, setGoalFlash] = useState(false);
   const goalFlashTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -462,8 +465,7 @@ const MatchDayInner = () => {
   useEffect(() => {
     if (currentGoalCount > prevGoalCountRef.current) {
       const latest = scoreChangingEvents[scoreChangingEvents.length - 1];
-      const eventByPlayerTeam = latest && latest.clubId === playerClubId;
-      const userScored = latest?.type === 'own_goal' ? !eventByPlayerTeam : eventByPlayerTeam;
+      const userScored = latest?.clubId === playerClubId;
       if (userScored) hapticSuccess(); else hapticHeavy();
       setGoalFlash(true);
       clearTimeout(goalFlashTimerRef.current);
