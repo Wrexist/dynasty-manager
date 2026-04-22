@@ -25,17 +25,23 @@ libraries, and removed `recharts` from the eager preload list. See
 | **`dist/assets/` total (excl. source maps)** | **8.97 MB** | — |
 | Source maps (`.map`, hidden from users, uploaded to Sentry) | 25.39 MB | — |
 
-### Initial page load (what users actually download on first visit)
+### Initial page load — **BEFORE pass C.2** (historical baseline)
 
-Per `dist/index.html`, the eagerly preloaded chunks (`<script type="module">`
-+ `<link rel="modulepreload">`) are:
+> ⚠️ These numbers reflect the state at the **start of pass C.1** when this
+> doc was first written. Pass C.2 dropped `recharts` from the eager preload
+> list. For the current (post-C.2) eager total, see
+> [Pass C.2 — Code splitting & lazy loading](#pass-c2--code-splitting--lazy-loading)
+> below — the headline is **~878 KB gzipped, −109 KB from the ~987 KB here.**
+
+Per `dist/index.html` at the C.1 baseline, the eagerly preloaded chunks
+(`<script type="module">` + `<link rel="modulepreload">`) were:
 
 | Chunk | Raw | Gzip | Notes |
 |---|---|---|---|
 | `index-*.js` (main entry) | 1031.94 KB | 288.29 KB | Store, routes, shared UI |
 | `squad-data-*.js` | 1876.97 KB | 360.15 KB | 39 base-league squad files (England, Germany, Italy, …) |
 | `national-pool-*.js` | 456.59 KB | 82.34 KB | `nationalPlayerPool.ts` |
-| `recharts-*.js` | 413.90 KB | 111.08 KB | Charting lib |
+| `recharts-*.js` | 413.90 KB | 111.08 KB | ~~Charting lib~~ **moved to lazy in C.2** |
 | `radix-*.js` | 217.18 KB | 71.16 KB | Radix primitives |
 | `framer-motion-*.js` | 133.47 KB | 44.09 KB | Animation lib |
 | `lucide-*.js` | 37.24 KB | 12.04 KB | Icons |
@@ -44,7 +50,8 @@ Per `dist/index.html`, the eagerly preloaded chunks (`<script type="module">`
 | `capacitor-*.js` | 12.87 KB | 4.86 KB | Native bridge |
 | `zustand-*.js` | 1.48 KB | 0.73 KB | State |
 | CSS `index-*.css` | 155.63 KB | 21.36 KB | Tailwind output |
-| **Eager total** | **~4.28 MB** | **~987 KB** | Over-the-wire before first paint |
+| **Eager total (pre-C.2)** | **~4.28 MB** | **~987 KB** | Over-the-wire before first paint |
+| **Eager total (post-C.2)** | **~3.87 MB** | **~878 KB** | recharts no longer preloaded |
 
 ### Lazy (route-split / dynamic-imported) chunks
 
@@ -204,11 +211,11 @@ Users who never enable the community pack pay **zero** extra bytes. Users who
 do enable it pay **~602 KB gzipped** (~3.52 MB raw) once, at the time they
 start a game with CP enabled — via `orchestrationSlice.ts:2759-2761`.
 
-### Initial payload (non-CP user): ~987 KB gzipped (~4.28 MB raw)
+### Initial payload (non-CP user) — ~987 KB gzipped pre-C.2, **~878 KB gzipped post-C.2**
 
-That is the number to watch on mid-range phones. `recharts` + `squad-data` +
-`national-pool` are the three biggest levers remaining **before** the main
-app chunk.
+That is the number to watch on mid-range phones. `recharts` has since moved
+to lazy chunks (see C.2 below). `squad-data` and `national-pool` are the
+remaining levers **before** the main app chunk.
 
 ---
 

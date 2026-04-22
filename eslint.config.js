@@ -67,11 +67,20 @@ export default tseslint.config(
         {
           patterns: [
             {
+              // Both alias (`@/data/communityPack/...`) and relative forms
+              // (`../../data/communityPack/...`) are blocked — even though
+              // the codebase uses the `@/` alias everywhere, a relative
+              // specifier would silently bypass the alias-only check and
+              // collapse the dynamic-import split.
               group: [
                 "@/data/communityPack/byClub",
                 "@/data/communityPack/freeAgents",
                 "@/data/communityPack/newLeagues",
                 "@/data/communityPack/cpLeagueSquads",
+                "**/data/communityPack/byClub",
+                "**/data/communityPack/freeAgents",
+                "**/data/communityPack/newLeagues",
+                "**/data/communityPack/cpLeagueSquads",
               ],
               message: "Community-pack data must be dynamic-imported via `await import('@/data/communityPack/...')` from inside initGame so it stays out of the eager bundle. See docs/bundle-report.md.",
             },

@@ -15,17 +15,24 @@ measure and flag anything out of spec.
 
 | Path | Target | Mean | p50 | p95 | Max | Verdict |
 |---|---:|---:|---:|---:|---:|:---:|
-| Match sim (`simulateMatch`) | **< 50 ms** | **1.93 ms** | 1.56 | 3.50 | 17.2 | ✅ pass (25× under) |
-| Weekly tick (`advanceWeek + playCurrentMatch`) | **< 500 ms** | **100.78 ms** | 97.10 | 147.1 | 194.2 | ✅ pass (5× under) |
-| Initial game load (`initGame`) | **< 3000 ms** | **54.29 ms** | 48.11 | 104.5 | 104.5 | ✅ pass (55× under) |
+| Match sim (`simulateMatch`) | **< 50 ms** | **1.92 ms** | 1.68 | 3.30 | 21.1 | ✅ pass (26× under) |
+| Weekly tick (`playCurrentMatch + advanceWeek`) | **< 500 ms** | **109.38 ms** | 104.20 | 152.3 | 201.4 | ✅ pass (4.5× under) |
+| Initial game load (`resetGame + initGame`) | **< 3000 ms** | **51.89 ms** | 42.47 | 103.2 | 103.2 | ✅ pass (58× under) |
 
-Numbers from two successive runs (stable to ~1 ms):
+Numbers from the `PERF_AUDIT=1` run that wrote
+`docs/perf-baseline.json`:
 
+```text
+initGame       n=5    mean 51.9 ms   p95 103 ms
+simulateMatch  n=200  mean 1.9 ms    p95 3.3 ms
+weeklyTick     n=46   mean 109 ms    p95 152 ms
 ```
-initGame       n=5    mean 53-54 ms   p95 88-105 ms
-simulateMatch  n=200  mean 1.8-1.9 ms  p95 3.2-3.5 ms
-weeklyTick     n=46   mean 101-102 ms  p95 147-153 ms
-```
+
+> **Weekly tick order:** the harness runs `playCurrentMatch()` first, then
+> `await advanceWeek()` — the same order as real gameplay (user plays their
+> match, then taps "advance"). An earlier version of the harness did it the
+> other way and slightly understated weekly cost; corrected in the latest
+> perf commit.
 
 **Nothing exceeds 2× target.** No flags raised.
 
@@ -41,7 +48,10 @@ This baseline was captured on:
 
 **Mid-range Android phones are typically 2–5× slower** due to:
 
-1. **JavaScriptCore instead of V8** in the iOS/Android WebView (Capacitor).
+1. **Different WebView engines:** iOS WKWebView runs WebKit / JavaScriptCore
+   (a distinct JIT from V8). Android WebView is Chromium / V8 — same engine
+   family as Node, but optimized for mobile power/heat rather than desktop
+   throughput. Both are slower in practice than desktop V8.
 2. Thermal throttling on sustained work (full-season sims heat up the CPU).
 3. Slower memory bandwidth → GC pauses are more visible.
 4. Actual **React reconciliation + paint** overhead (jsdom doesn't paint).

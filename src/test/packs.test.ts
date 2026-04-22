@@ -225,16 +225,16 @@ describe('Pack opening — openPack action', () => {
 
     const after = useGameStore.getState();
     const clubAfter = after.clubs[state.playerClubId];
-    const squadIds = new Set([...clubAfter.lineup, ...clubAfter.subs]);
 
     // Every pulled player is tracked in playerIds; auto-place is best-effort
-    // and a strong existing squad can keep some pulls in squad-only.
+    // and a strong existing squad can keep some pulls in squad-only. The
+    // prior `placedCount > 0` assertion flaked on CI when Celtic's default
+    // squad was already stacked with 88+ OVR — the "something placed"
+    // property is already covered deterministically by the placement-
+    // metadata test below.
     for (const p of result.players!) {
       expect(clubAfter.playerIds).toContain(p.id);
     }
-    // At least one of the 5 icon pulls (88+ OVR) should crack the lineup or subs.
-    const placedCount = result.players!.filter((p) => squadIds.has(p.id)).length;
-    expect(placedCount).toBeGreaterThan(0);
     expect(clubAfter.lineup.length).toBeLessThanOrEqual(11);
   });
 

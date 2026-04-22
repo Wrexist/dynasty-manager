@@ -49,7 +49,7 @@ function stats(samples: number[]): Stats {
 }
 
 function makeClub(id: string, name: string): Club {
-  return {
+  const club: Club = {
     id,
     name,
     shortName: name.slice(0, 3).toUpperCase(),
@@ -67,7 +67,8 @@ function makeClub(id: string, name: string): Club {
     lineup: [],
     subs: [],
     divisionId: 'eng',
-  } as Club;
+  };
+  return club;
 }
 
 function setupStandaloneMatch() {
@@ -97,8 +98,12 @@ describe.skipIf(!RUN)('Runtime perf baseline (PERF_AUDIT=1)', () => {
       };
 
       // ── 1. initGame: 5 samples, fresh store each ───────────────────────
+      //    resetGame() clears the full GameState before timing; otherwise
+      //    each subsequent initGame runs on top of the prior game's state
+      //    and measures a "reinit" rather than a "cold init".
       const initSamples: number[] = [];
       for (let i = 0; i < 5; i++) {
+        useGameStore.getState().resetGame();
         const t0 = performance.now();
         await useGameStore.getState().initGame(CLUB_ID);
         initSamples.push(performance.now() - t0);
@@ -135,13 +140,20 @@ describe.skipIf(!RUN)('Runtime perf baseline (PERF_AUDIT=1)', () => {
       //    Uses the real game loop so timings include AI sims, injuries,
       //    transfer offers, training, development, messages, etc. Fresh
       //    game, fresh state.
+      //
+      //    Order matches real gameplay: user plays their match at week W
+      //    via playCurrentMatch(), then clicks "Advance" to sim AI for
+      //    week W and move to week W+1. Doing it in the other order
+      //    (advance-then-play) would leave the player's week-1 fixture
+      //    orphaned as "unplayed" and skew the per-iteration cost.
+      useGameStore.getState().resetGame();
       await useGameStore.getState().initGame(CLUB_ID);
       const weekSamples: number[] = [];
       const store = useGameStore;
       for (let w = 0; w < 46; w++) {
         const t0 = performance.now();
-        await store.getState().advanceWeek();
         store.getState().playCurrentMatch();
+        await store.getState().advanceWeek();
         weekSamples.push(performance.now() - t0);
       }
       const weekStats = stats(weekSamples);
