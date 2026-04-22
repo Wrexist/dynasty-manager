@@ -15,6 +15,20 @@ import { NEW_PLAYER_DRAWER_WEEK_THRESHOLD } from '@/config/ui';
 import { getSuffix } from '@/utils/helpers';
 import { useCareerUnemployed } from '@/hooks/useGameSelectors';
 
+// Liquid-glass tile shared by pinned quick-actions and drawer rows. Mirrors
+// the GlassPanel treatment (gradient + thick-rim inset shadow + specular top
+// highlight) but tuned for the smaller tile/row footprint so the rim reads
+// crisply at this scale. Applied on the button itself — the specular crescent
+// is painted via ::after in the class list below.
+const GLASS_TILE =
+  'relative overflow-hidden transform-gpu ' +
+  'bg-gradient-to-br from-[hsl(222_35%_14%/0.55)] via-[hsl(222_28%_10%/0.65)] to-[hsl(222_40%_7%/0.75)] ' +
+  'backdrop-blur-xl backdrop-saturate-150 ' +
+  'shadow-[0_0_0_1px_rgba(255,255,255,0.05)_inset,inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.28),0_6px_18px_-12px_rgba(0,0,0,0.5)] ' +
+  'before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-1/2 ' +
+  'before:bg-[radial-gradient(120%_90%_at_50%_-30%,rgba(255,255,255,0.09)_0%,rgba(255,255,255,0.02)_32%,rgba(255,255,255,0)_62%)] ' +
+  'before:mix-blend-screen';
+
 interface DrawerItem {
   screen: GameScreen;
   label: string;
@@ -206,59 +220,91 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
           </span>
         </button>
       </SheetTrigger>
-      <SheetContent side="bottom" className="bg-card/95 backdrop-blur-xl border-border/50 rounded-t-2xl max-w-lg mx-auto pb-8 max-h-[70vh] overflow-y-auto" onOpenAutoFocus={(e) => e.preventDefault()}>
-        <SheetHeader className="pb-2">
-          <SheetTitle className="text-foreground font-display text-lg">Quick Access</SheetTitle>
+      <SheetContent
+        side="bottom"
+        className={cn(
+          'relative max-w-lg mx-auto pb-8 max-h-[78vh] overflow-y-auto rounded-t-[28px] border-0 p-5 pt-3 transform-gpu',
+          // Liquid-glass drawer surface — deeper gradient than tiles so rows
+          // sit inside the panel (floating layer effect). Multi-layer inset
+          // shadow gives the rim its "thick polished glass" feel.
+          'bg-gradient-to-b from-[hsl(222_32%_14%/0.82)] via-[hsl(222_28%_10%/0.88)] to-[hsl(222_38%_7%/0.94)]',
+          'backdrop-blur-2xl backdrop-saturate-150',
+          'shadow-[0_0_0_1px_rgba(255,255,255,0.08)_inset,inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.35),0_-18px_48px_-18px_rgba(0,0,0,0.6)]',
+        )}
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        {/* Specular crescent across the top rim — same trick as GlassPanel. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-1/3 rounded-t-[28px] overflow-hidden"
+          style={{
+            background:
+              'radial-gradient(120% 90% at 50% -30%, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.03) 32%, rgba(255,255,255,0) 62%)',
+            mixBlendMode: 'screen',
+          }}
+        />
+        {/* iOS-style grabber handle — cues the sheet as draggable and
+            anchors the panel visually at the top. */}
+        <div className="flex justify-center mb-2 -mt-1">
+          <div className="h-1 w-10 rounded-full bg-white/15" />
+        </div>
+        <SheetHeader className="pb-3">
+          <SheetTitle className="text-foreground font-display text-lg tracking-wide">Quick Access</SheetTitle>
         </SheetHeader>
 
-        {/* Pinned essentials row */}
+        {/* Pinned essentials row — each becomes a liquid-glass tile so the
+            four quick actions read as a unified premium surface. Active
+            screen gets a primary-tinted rim instead of a separate bg. */}
         {!isSearching && (
-          <div className="grid grid-cols-4 gap-2 mb-3">
-            {PINNED_ITEMS.filter(i => !isUnemployed || UNEMPLOYED_ALLOWED_SCREENS.has(i.screen)).map(({ screen, label, icon: Icon }) => (
-              <button
-                key={screen}
-                onClick={() => handleNav(screen)}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 py-2.5 px-1 rounded-xl active:scale-[0.96] transition-all min-h-[56px] justify-center",
-                  currentScreen === screen
-                    ? "bg-primary/10 border border-primary/30"
-                    : "bg-muted/30 hover:bg-muted/50"
-                )}
-              >
-                <div className="relative">
-                  <Icon className="w-5 h-5 text-primary" />
-                  {screen === 'inbox' && unread > 0 && (
-                    <div className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 bg-destructive rounded-full flex items-center justify-center px-1">
-                      <span className="text-[9px] font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread}</span>
-                    </div>
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {PINNED_ITEMS.filter(i => !isUnemployed || UNEMPLOYED_ALLOWED_SCREENS.has(i.screen)).map(({ screen, label, icon: Icon }) => {
+              const isActive = currentScreen === screen;
+              return (
+                <button
+                  key={screen}
+                  onClick={() => handleNav(screen)}
+                  className={cn(
+                    GLASS_TILE,
+                    'flex flex-col items-center gap-1 py-2.5 px-1 rounded-2xl min-h-[64px] justify-center',
+                    'active:scale-[0.96] transition-transform duration-150',
+                    isActive && 'ring-1 ring-primary/60 shadow-[0_0_0_1px_hsl(var(--primary)/0.35)_inset,inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3),0_6px_18px_-12px_hsl(var(--primary)/0.45)]',
                   )}
-                </div>
-                <span className="text-[11px] font-medium text-foreground">{label}</span>
-                {/* Contextual hints on pinned items */}
-                {screen === 'calendar' && hasMatchThisWeek && (
-                  <span className="text-[9px] text-emerald-400 font-semibold -mt-1">Match Day</span>
-                )}
-                {screen === 'league-table' && leaguePosition && (
-                  <span className="text-[9px] text-muted-foreground -mt-1">{leaguePosition}{getSuffix(leaguePosition)}</span>
-                )}
-              </button>
-            ))}
+                >
+                  <div className="relative">
+                    <Icon className={cn('w-5 h-5 drop-shadow-[0_1px_0_rgba(0,0,0,0.4)]', isActive ? 'text-primary' : 'text-primary/90')} />
+                    {screen === 'inbox' && unread > 0 && (
+                      <div className="absolute -top-1.5 -right-2.5 min-w-[16px] h-4 bg-destructive rounded-full flex items-center justify-center px-1 shadow-[0_0_0_1.5px_hsl(222_30%_7%)]">
+                        <span className="text-[9px] font-bold text-destructive-foreground">{unread > 9 ? '9+' : unread}</span>
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[11px] font-medium text-foreground/95 relative">{label}</span>
+                  {/* Contextual hints on pinned items */}
+                  {screen === 'calendar' && hasMatchThisWeek && (
+                    <span className="text-[9px] text-emerald-400 font-semibold relative">Match Day</span>
+                  )}
+                  {screen === 'league-table' && leaguePosition && (
+                    <span className="text-[9px] text-muted-foreground relative">{leaguePosition}{getSuffix(leaguePosition)}</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
         )}
 
-        {/* Search */}
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+        {/* Search — glass pill styled to match drawer tiles. */}
+        <div className={cn(GLASS_TILE, 'relative mb-4 rounded-full')}>
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none z-[1]" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search all features..."
-            className="w-full pl-8 pr-3 py-2 rounded-lg bg-muted/30 border border-border/30 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+            className="relative w-full pl-9 pr-4 py-2.5 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/60 focus:outline-none rounded-full"
           />
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {drawerSections.map(section => {
             // In career mode, prepend career-specific items to the Career section
             const baseItems = (section.title === 'Career' && gameMode === 'career')
@@ -277,10 +323,10 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
               if (items.length === 0) return null;
               return (
                 <div key={section.title}>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold px-3 mb-1">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-semibold px-1.5 mb-2">
                     {section.title}
                   </p>
-                  <div className="space-y-0.5">
+                  <div className="space-y-1.5">
                     {items.map(item => (
                       <DrawerListItem
                         key={item.screen}
@@ -315,17 +361,17 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
               <div key={section.title}>
                 <button
                   onClick={() => toggleSection(section.title)}
-                  className="flex items-center gap-1.5 w-full px-3 py-2 -my-1 rounded-lg active:bg-muted/30 transition-colors"
+                  className="flex items-center gap-2 w-full px-1.5 py-1.5 mb-1.5 rounded-lg active:bg-white/5 transition-colors"
                 >
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-[0.18em] font-semibold">
                     {section.title}
                   </p>
-                  <span className="text-[10px] text-muted-foreground/50">
+                  <span className="text-[10px] text-muted-foreground/50 tabular-nums">
                     {visibleItems.length}
                   </span>
                   <ChevronDown className={cn(
-                    "w-3 h-3 text-muted-foreground/50 transition-transform duration-200 ml-auto",
-                    sectionCollapsed && "-rotate-90"
+                    'w-3 h-3 text-muted-foreground/50 transition-transform duration-200 ml-auto',
+                    sectionCollapsed && '-rotate-90',
                   )} />
                 </button>
                 <AnimatePresence initial={false}>
@@ -349,7 +395,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
                       transition={{ duration: 0.2, ease: 'easeInOut' }}
                       className="overflow-hidden"
                     >
-                      <div className="space-y-0.5">
+                      <div className="space-y-1.5">
                         {visibleItems.map(item => (
                           <DrawerListItem
                             key={item.screen}
@@ -386,29 +432,40 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
   nationalTeamOffer: { status: string } | null | undefined;
 }) {
   const { screen, label, icon: Icon, description, gold } = item;
+  const isActive = currentScreen === screen;
   return (
     <button
       onClick={() => onNav(screen)}
       className={cn(
-        "flex items-center gap-3 w-full p-3 rounded-xl active:scale-[0.98] transition-all",
-        currentScreen === screen
-          ? "bg-primary/10 border border-primary/30"
-          : gold
-            ? "bg-[hsl(var(--gold)/0.05)] hover:bg-[hsl(var(--gold)/0.1)]"
-            : "hover:bg-muted/50"
+        GLASS_TILE,
+        'flex items-center gap-3 w-full p-3 rounded-2xl active:scale-[0.985] transition-transform duration-150',
+        // State rims layered on top of the base glass. Active = primary halo,
+        // gold = warm gold halo, otherwise neutral glass.
+        isActive && 'ring-1 ring-primary/60 shadow-[0_0_0_1px_hsl(var(--primary)/0.35)_inset,inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3),0_6px_18px_-12px_hsl(var(--primary)/0.45)]',
+        !isActive && gold && 'ring-1 ring-[hsl(var(--gold)/0.35)] shadow-[0_0_0_1px_hsl(var(--gold)/0.25)_inset,inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3),0_6px_18px_-12px_hsl(var(--gold)/0.4)]',
       )}
     >
-      <div className={cn(
-        "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-        gold ? "bg-[hsl(var(--gold)/0.1)]" : "bg-muted/50"
-      )}>
-        <Icon className={cn("w-5 h-5", gold ? "text-[hsl(var(--gold))]" : "text-primary")} />
+      {/* Icon tile — a nested mini glass surface with gold or primary tint. */}
+      <div
+        className={cn(
+          'relative w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transform-gpu overflow-hidden',
+          'bg-gradient-to-br from-white/8 via-white/4 to-black/20',
+          'shadow-[inset_0_1px_0_rgba(255,255,255,0.15),inset_0_-1px_0_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.05)_inset]',
+          gold && 'shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.32),0_0_0_1px_hsl(var(--gold)/0.3)_inset,0_0_10px_-2px_hsl(var(--gold)/0.25)]',
+        )}
+      >
+        <Icon
+          className={cn(
+            'w-5 h-5 relative drop-shadow-[0_1px_0_rgba(0,0,0,0.4)]',
+            gold ? 'text-[hsl(var(--gold))]' : 'text-primary',
+          )}
+        />
       </div>
-      <div className="flex-1 text-left min-w-0">
+      <div className="flex-1 text-left min-w-0 relative">
         <div className="flex items-center gap-2">
           <p className="text-sm font-semibold text-foreground">{label}</p>
           {screen === 'inbox' && unread > 0 && (
-            <span className="text-[10px] bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full font-bold">
+            <span className="text-[10px] bg-destructive text-destructive-foreground px-1.5 py-0.5 rounded-full font-bold shadow-[0_0_0_1.5px_hsl(222_30%_7%)]">
               {unread}
             </span>
           )}
@@ -426,9 +483,9 @@ function DrawerListItem({ item, currentScreen, onNav, unread, hasPendingCupMatch
             <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse shrink-0" />
           )}
         </div>
-        <p className="text-xs text-muted-foreground">{description}</p>
+        <p className="text-xs text-muted-foreground/90">{description}</p>
       </div>
-      <ChevronRight className={cn("w-4 h-4 shrink-0", gold ? "text-[hsl(var(--gold)/0.5)]" : "text-muted-foreground")} />
+      <ChevronRight className={cn('w-4 h-4 shrink-0 relative', gold ? 'text-[hsl(var(--gold)/0.6)]' : 'text-muted-foreground/70')} />
     </button>
   );
 }
