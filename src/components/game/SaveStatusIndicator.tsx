@@ -17,9 +17,14 @@ function formatRelative(ts: number, now: number): string {
   return `${Math.floor(diff / 3_600_000)}h ago`;
 }
 
-/** Compact autosave indicator — spinner while saving, a green check when
- *  freshly saved, muted "Xm ago" afterwards, destructive state on failure.
- *  Tappable to force a manual save. */
+/**
+ * Settings row for the autosave state — icon + label + relative time, with a
+ * "Save now" affordance on the right. Renders nothing when autosave is off and
+ * the store has never attempted a save (nothing meaningful to show).
+ *
+ * Previously lived in the top bar as a compact pill; moved into Settings so
+ * the header stays quiet and the save state has a dedicated, proper place.
+ */
 export function SaveStatusIndicator() {
   const { saveStatus, lastSavedAt, saveFailureMessage, autoSaveEnabled } = useGameStore(
     useShallow(s => ({
@@ -44,54 +49,64 @@ export function SaveStatusIndicator() {
     useGameStore.getState().flushSave();
   };
 
-  if (!autoSaveEnabled && saveStatus === 'idle') return null;
+  if (!autoSaveEnabled && saveStatus === 'idle' && !lastSavedAt) return null;
 
-  let content: { icon: React.ReactNode; text: string; className: string; label: string } | null = null;
+  let icon: React.ReactNode;
+  let label: string;
+  let detail: string;
+  let tone: string;
 
   if (saveStatus === 'saving') {
-    content = {
-      icon: <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />,
-      text: 'Saving…',
-      className: 'text-muted-foreground',
-      label: 'Saving your game',
-    };
+    icon = <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />;
+    label = 'Saving…';
+    detail = 'Writing your progress to this device';
+    tone = 'text-muted-foreground';
   } else if (saveStatus === 'failed') {
-    const reason = saveFailureMessage ? ` — ${saveFailureMessage}` : '';
-    content = {
-      icon: <CloudOff className="w-3 h-3" aria-hidden="true" />,
-      text: 'Save failed',
-      className: 'text-destructive',
-      label: `Save failed${reason}. Tap to retry.`,
-    };
+    icon = <CloudOff className="w-4 h-4" aria-hidden="true" />;
+    label = 'Save failed';
+    detail = saveFailureMessage || 'Tap "Save now" to retry.';
+    tone = 'text-destructive';
   } else if (saveStatus === 'saved' && lastSavedAt) {
     const justSaved = now - lastSavedAt < JUST_SAVED_MS;
     const relative = formatRelative(lastSavedAt, now);
-    content = {
-      icon: justSaved
-        ? <Check className="w-3 h-3" aria-hidden="true" />
-        : <Cloud className="w-3 h-3" aria-hidden="true" />,
-      text: justSaved ? 'Saved' : relative,
-      className: justSaved ? 'text-emerald-400' : 'text-muted-foreground',
-      label: `Saved ${relative} — tap to save now`,
-    };
+    icon = justSaved
+      ? <Check className="w-4 h-4" aria-hidden="true" />
+      : <Cloud className="w-4 h-4" aria-hidden="true" />;
+    label = justSaved ? 'Just saved' : `Last saved ${relative}`;
+    detail = autoSaveEnabled ? 'Autosave is on' : 'Autosave is off';
+    tone = justSaved ? 'text-emerald-400' : 'text-muted-foreground';
+  } else {
+    icon = <Cloud className="w-4 h-4" aria-hidden="true" />;
+    label = 'No save yet';
+    detail = autoSaveEnabled ? 'Your game will save automatically' : 'Autosave is off — tap "Save now"';
+    tone = 'text-muted-foreground';
   }
 
-  if (!content) return null;
-
   return (
-    <button
-      type="button"
-      onClick={handleTap}
-      aria-label={content.label}
-      aria-live="polite"
-      title={content.label}
-      className={cn(
-        'flex items-center gap-1 text-[10px] transition-colors duration-500 px-1 -mx-1 rounded hover:bg-muted/40',
-        content.className,
-      )}
-    >
-      {content.icon}
-      <span className="hidden sm:inline">{content.text}</span>
-    </button>
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex items-start gap-2.5 min-w-0">
+        <span className={cn('mt-0.5 shrink-0 transition-colors', tone)} aria-hidden="true">{icon}</span>
+        <div className="min-w-0">
+          <p className={cn('text-sm leading-tight', saveStatus === 'failed' ? 'text-destructive' : 'text-foreground')}>
+            {label}
+          </p>
+          <p className="text-[10px] text-muted-foreground leading-snug mt-0.5">{detail}</p>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={handleTap}
+        disabled={saveStatus === 'saving'}
+        aria-label="Save now"
+        className={cn(
+          'text-[11px] font-semibold px-3 py-1.5 rounded-full shrink-0 transition-colors',
+          'bg-white/5 border border-white/15 backdrop-blur-md text-foreground/90',
+          'shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.28)]',
+          'hover:bg-white/10 active:bg-white/15 disabled:opacity-50 disabled:cursor-default',
+        )}
+      >
+        Save now
+      </button>
+    </div>
   );
 }

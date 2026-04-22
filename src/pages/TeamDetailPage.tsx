@@ -3,7 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Shield, Users } from 'lucide-react';
+import { Shield, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
@@ -34,7 +34,6 @@ const TeamDetailPage = () => {
   })));
   const setScreen = useGameStore(s => s.setScreen);
   const selectPlayer = useGameStore(s => s.selectPlayer);
-  const selectClub = useGameStore(s => s.selectClub);
 
   const club = selectedClubId ? clubs[selectedClubId] : null;
 
@@ -83,14 +82,8 @@ const TeamDetailPage = () => {
     ? club.aiManagerProfile.style.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
     : null;
 
-  const handleBack = () => { selectClub(null); setScreen('league-table'); };
-
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      <button onClick={handleBack} className="flex items-center gap-1 text-muted-foreground text-sm">
-        <ArrowLeft className="w-4 h-4" /> Back
-      </button>
-
       {/* Club Header */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25 }}>
         <GlassPanel className="p-5">

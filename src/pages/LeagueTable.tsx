@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ArrowLeft, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ChevronDown, Search, X, Info } from 'lucide-react';
+import { ChevronLeft, ChevronRight, TrendingUp, TrendingDown, ChevronDown, Search, X, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { LEAGUES, getLeaguesByCountry } from '@/data/league';
@@ -40,7 +40,6 @@ const LeagueTable = () => {
     week: s.week,
     totalWeeks: s.totalWeeks,
   })));
-  const setScreen = useGameStore((s) => s.setScreen);
   const selectClub = useGameStore((s) => s.selectClub);
   const selectPlayer = useGameStore((s) => s.selectPlayer);
   const initializeLeague = useGameStore((s) => s.initializeLeague);
@@ -152,10 +151,6 @@ const LeagueTable = () => {
 
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
-      <button onClick={() => setScreen('dashboard')} className="flex items-center gap-1 text-muted-foreground text-sm">
-        <ArrowLeft className="w-4 h-4" /> Back
-      </button>
-
       <PageHint
         screen="league-table"
         title="League Table"

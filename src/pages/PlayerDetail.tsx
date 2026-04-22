@@ -5,7 +5,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
 import { POSITION_COMPATIBILITY, type Position, type TrainingModule } from '@/types/game';
-import { ArrowLeft, Heart, Zap, TrendingUp, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2, Trophy, Medal } from 'lucide-react';
+import { Heart, Zap, TrendingUp, Tag, X, Target, Activity, FileText, Brain, Award, HeartPulse, Stethoscope, AlertTriangle, Dumbbell, Flame, Shield, Banknote, Repeat2, Trophy, Medal } from 'lucide-react';
 import { TransferApproach } from '@/components/game/TransferApproach';
 import { LoanNegotiation } from '@/components/game/LoanNegotiation';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
@@ -228,12 +228,6 @@ const PlayerDetail = () => {
   return (
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <PageHint screen="playerDetail" title={PAGE_HINTS.playerDetail.title} body={PAGE_HINTS.playerDetail.body} />
-      <button
-        onClick={() => { selectPlayer(null); setScreen(previousScreen === 'team-detail' ? 'team-detail' : 'squad'); }}
-        className="flex items-center gap-1 text-muted-foreground text-sm"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back
-      </button>
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25 }}>

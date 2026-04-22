@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
+import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
 import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
@@ -326,6 +327,10 @@ const SettingsPage = () => {
       {/* ─── Data ─── */}
       <SettingsSection title="Data">
         <div className="space-y-3">
+          <SaveStatusIndicator />
+
+          <div className="border-t border-white/10" />
+
           <ToggleRow
             icon={RotateCcw}
             label="Auto-save"
