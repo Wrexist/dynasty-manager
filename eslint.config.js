@@ -50,4 +50,43 @@ export default tseslint.config(
       ],
     },
   },
+  // Community-pack data (byClub, freeAgents, newLeagues) is ~3.5 MB gzipped
+  // and must only ship to users who opt in to the community pack at new-game
+  // time. It is dynamic-imported from orchestrationSlice via `await import(...)`
+  // guarded by `communityPackEnabled`. A static import anywhere else would
+  // collapse the split and ship the whole pack to every user on boot.
+  {
+    files: ["src/**/*.{ts,tsx}"],
+    ignores: [
+      "src/data/communityPack/**",
+      "src/test/**",
+    ],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              // Both alias (`@/data/communityPack/...`) and relative forms
+              // (`../../data/communityPack/...`) are blocked — even though
+              // the codebase uses the `@/` alias everywhere, a relative
+              // specifier would silently bypass the alias-only check and
+              // collapse the dynamic-import split.
+              group: [
+                "@/data/communityPack/byClub",
+                "@/data/communityPack/freeAgents",
+                "@/data/communityPack/newLeagues",
+                "@/data/communityPack/cpLeagueSquads",
+                "**/data/communityPack/byClub",
+                "**/data/communityPack/freeAgents",
+                "**/data/communityPack/newLeagues",
+                "**/data/communityPack/cpLeagueSquads",
+              ],
+              message: "Community-pack data must be dynamic-imported via `await import('@/data/communityPack/...')` from inside initGame so it stays out of the eager bundle. See docs/bundle-report.md.",
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
