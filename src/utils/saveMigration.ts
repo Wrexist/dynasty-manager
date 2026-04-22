@@ -904,6 +904,45 @@ const migrations: Record<number, MigrationFn> = {
   }),
 };
 
+/** Lightweight structural check for a save payload *after* migration. Guards
+ *  the `loadGame` apply path from crashing on malformed data when all we did
+ *  was `JSON.parse` something off disk. Keep minimal — if the top-level shape
+ *  is intact we trust the migration chain for everything deeper. */
+export type SaveValidationResult = { ok: true } | { ok: false; reason: string };
+
+export function validateSaveShape(data: unknown): SaveValidationResult {
+  if (!data || typeof data !== 'object' || Array.isArray(data)) {
+    return { ok: false, reason: 'save root is not an object' };
+  }
+  const d = data as Record<string, unknown>;
+  if (typeof d.playerClubId !== 'string' || !d.playerClubId) {
+    return { ok: false, reason: 'missing playerClubId' };
+  }
+  if (!d.clubs || typeof d.clubs !== 'object' || Array.isArray(d.clubs)) {
+    return { ok: false, reason: 'missing clubs map' };
+  }
+  if (typeof d.season !== 'number' || !Number.isFinite(d.season)) {
+    return { ok: false, reason: 'missing season' };
+  }
+  if (typeof d.week !== 'number' || !Number.isFinite(d.week)) {
+    return { ok: false, reason: 'missing week' };
+  }
+  const clubs = d.clubs as Record<string, unknown>;
+  if (!(d.playerClubId in clubs)) {
+    return { ok: false, reason: 'playerClubId not present in clubs map' };
+  }
+  return { ok: true };
+}
+
+/** Returns true if the save was written by a newer app than we can migrate.
+ *  Loading a future-version save with an old app silently drops fields and
+ *  corrupts the downgrade path — we refuse instead. */
+export function isSaveFromNewerVersion(data: unknown): boolean {
+  if (!data || typeof data !== 'object') return false;
+  const v = (data as { version?: unknown }).version;
+  return typeof v === 'number' && Number.isFinite(v) && v > CURRENT_VERSION;
+}
+
 export function migrateSaveData(data: Record<string, unknown>): Record<string, unknown> {
   let version = (data.version || 1) as number;
   let migrated = { ...data };

@@ -162,6 +162,10 @@ export const STORAGE_KEYS = {
   saveSlot: (slot: number) => `dynasty-save-${slot}`,
   /** localStorage: backup shadow of a save slot. */
   saveSlotBackup: (slot: number) => `dynasty-save-${slot}-backup`,
+  /** localStorage: staging area for atomic writes. If this key is present
+   *  at load time it means the previous write crashed between "stage" and
+   *  "promote"; the recovery path inspects it. */
+  saveSlotTmp: (slot: number) => `dynasty-save-${slot}-tmp`,
 } as const;
 
 /** Read the per-slot community pack opt-in. Returns null if the user has
@@ -246,54 +250,122 @@ export function readSaveSlot(slot: number): string | null {
   catch { return null; }
 }
 
-/** Write a raw save string to a slot, with quota-aware retry.
- *  Strategy: write the main save first, then backup if space allows.
- *  On quota exceeded, free space progressively and retry. */
+/** Write a raw save string to a slot with verified staging + automatic backup.
+ *
+ *  Sequence:
+ *    1. Stage the new payload in `dynasty-save-${slot}-tmp`.
+ *    2. Verify tmp is byte-identical AND round-trips through JSON.parse —
+ *       catches silent localStorage truncation / BOM / partial-write issues.
+ *    3. Remove the staged tmp immediately to free its quota footprint.
+ *    4. Rotate the previous main into `-backup` (best effort).
+ *    5. Set main to the in-memory payload (still held in `json`).
+ *    6. On quota error at step 5, drop backup and retry once.
+ *
+ *  If step 1 fails outright (quota after `tryFreeStorageSpace`), we skip
+ *  staging and fall through to the legacy direct-write path — the save is
+ *  still atomic at the localStorage key level, we just lose the pre-commit
+ *  verification.
+ *
+ *  The tmp key exists only briefly as a "did this payload really round-trip
+ *  through storage intact?" probe; it is never the authoritative source.
+ *  `recoverStaleSaveTmp()` sweeps leftover tmp keys on the load path in case
+ *  a crash interrupted the sequence between step 1 and step 3. */
 export function writeSaveSlot(slot: number, json: string): void {
-  const key = `dynasty-save-${slot}`;
-  const backupKey = `${key}-backup`;
+  const mainKey = STORAGE_KEYS.saveSlot(slot);
+  const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
+  const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
 
-  // Keep the old data in memory for backup (don't read twice)
-  let oldData: string | null = null;
+  // Clean any stale tmp from a previous crashed write.
+  try { localStorage.removeItem(tmpKey); } catch { /* ignore */ }
+
+  // Snapshot the current main BEFORE any destructive op.
+  let oldMain: string | null = null;
+  try { oldMain = localStorage.getItem(mainKey); } catch { /* ignore */ }
+
+  // Step 1-2: stage and verify. On any failure, fall through to the
+  // non-atomic direct-write fallback.
+  let staged = false;
   try {
-    oldData = localStorage.getItem(key);
-  } catch { /* ignore */ }
+    localStorage.setItem(tmpKey, json);
+    const readback = localStorage.getItem(tmpKey);
+    if (readback === json) {
+      JSON.parse(readback);
+      staged = true;
+    }
+  } catch {
+    /* fall through */
+  }
+  // Step 3: free the tmp's quota regardless of whether verify passed.
+  try { localStorage.removeItem(tmpKey); } catch { /* ignore */ }
 
-  // Remove backup first to free space for the main save
+  if (!staged) {
+    // Direct-write fallback (legacy quota-retry behaviour).
+    try { localStorage.removeItem(backupKey); } catch { /* ignore */ }
+    try {
+      localStorage.setItem(mainKey, json);
+    } catch (err) {
+      if (!isQuotaError(err)) throw new Error('SAVE_WRITE_FAILED');
+      tryFreeStorageSpace(slot);
+      try { localStorage.setItem(mainKey, json); }
+      catch { throw new Error('SAVE_WRITE_FAILED'); }
+    }
+    if (oldMain !== null) {
+      try { localStorage.setItem(backupKey, oldMain); }
+      catch { /* quota — acceptable */ }
+    }
+    return;
+  }
+
+  // Atomic path: staged + verified. Rotate then promote.
   try { localStorage.removeItem(backupKey); } catch { /* ignore */ }
-
-  // Attempt 1: write the main save
+  if (oldMain !== null) {
+    try { localStorage.setItem(backupKey, oldMain); }
+    catch { /* quota — main write is the priority */ }
+  }
   try {
-    localStorage.setItem(key, json);
-  } catch (err) {
-    if (!isQuotaError(err)) throw new Error('SAVE_WRITE_FAILED');
-
-    // Attempt 2: free space and retry
-    tryFreeStorageSpace(slot);
-    try {
-      localStorage.setItem(key, json);
-    } catch (err2) {
-      if (!isQuotaError(err2)) throw new Error('SAVE_WRITE_FAILED');
-      // Attempt 3: remove ALL backups (including our own, already done) and retry
-      for (let i = 1; i <= 3; i++) {
-        try { localStorage.removeItem(`dynasty-save-${i}-backup`); } catch { /* ignore */ }
-      }
-      try {
-        localStorage.setItem(key, json);
-      } catch {
-        throw new Error('SAVE_WRITE_FAILED');
-      }
-    }
+    localStorage.setItem(mainKey, json);
+  } catch {
+    // Drop backup and retry — main has priority.
+    try { localStorage.removeItem(backupKey); } catch { /* ignore */ }
+    try { localStorage.setItem(mainKey, json); }
+    catch { throw new Error('SAVE_WRITE_FAILED'); }
   }
+}
 
-  // Main save succeeded — try to create backup from old data (best-effort)
-  if (oldData) {
-    try {
-      localStorage.setItem(backupKey, oldData);
-    } catch {
-      // Not enough space for backup — that's okay, main save is safe
+/** Read the staging-area payload for a slot. Callers use this during the
+ *  load path to salvage a save that was being written when the previous
+ *  process crashed. Returns null if no staging payload is present. */
+export function readSaveSlotTmp(slot: number): string | null {
+  try { return localStorage.getItem(STORAGE_KEYS.saveSlotTmp(slot)); }
+  catch { return null; }
+}
+
+/** Drop the tmp key for a slot. Used after recovery or to drop a stale tmp
+ *  that couldn't be salvaged. */
+export function clearSaveSlotTmp(slot: number): void {
+  try { localStorage.removeItem(STORAGE_KEYS.saveSlotTmp(slot)); }
+  catch { /* storage unavailable */ }
+}
+
+/** Module-init recovery: if a tmp key exists for a slot whose main save is
+ *  missing (e.g. process crashed between steps 1–4 of writeSaveSlot), and
+ *  the tmp parses as valid JSON, promote it to main. Otherwise drop stale
+ *  tmp keys so they can't cause confusion on the next write. Idempotent. */
+export function recoverStaleSaveTmp(): void {
+  try {
+    for (let slot = 1; slot <= MAX_SLOTS; slot++) {
+      const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
+      const mainKey = STORAGE_KEYS.saveSlot(slot);
+      const tmp = localStorage.getItem(tmpKey);
+      if (tmp === null) continue;
+      const main = localStorage.getItem(mainKey);
+      if (main === null) {
+        try { JSON.parse(tmp); localStorage.setItem(mainKey, tmp); }
+        catch { /* tmp corrupted — drop it */ }
+      }
+      localStorage.removeItem(tmpKey);
     }
-  }
+  } catch { /* storage unavailable */ }
 }
 
 /** Read the backup save for a slot */
@@ -302,10 +374,16 @@ export function readSaveSlotBackup(slot: number): string | null {
   catch { return null; }
 }
 
-/** Promote backup to primary for a slot */
+/** Promote the backup shadow to primary for a slot. Drops the backup key
+ *  before writing main so we don't trip the localStorage quota storing two
+ *  copies of the same payload in Safari / embedded WebView / Node test env
+ *  (jsdom has a 5 MB cap that a ~2 MB save can double past). The next
+ *  regular save cycle will rotate the new main into a fresh backup. */
 export function promoteSaveBackup(slot: number, raw: string): void {
-  try { localStorage.setItem(`dynasty-save-${slot}`, raw); }
-  catch { /* storage unavailable */ }
+  try {
+    localStorage.removeItem(STORAGE_KEYS.saveSlotBackup(slot));
+    localStorage.setItem(STORAGE_KEYS.saveSlot(slot), raw);
+  } catch { /* storage unavailable */ }
 }
 
 /** Remove a save slot */
@@ -338,6 +416,7 @@ export function deleteAllDynastyData(): void {
     for (let i = 1; i <= MAX_SLOTS; i++) {
       localStorage.removeItem(`dynasty-save-${i}`);
       localStorage.removeItem(`dynasty-save-${i}-backup`);
+      localStorage.removeItem(`dynasty-save-${i}-tmp`);
     }
     localStorage.removeItem(HALL_KEY);
     localStorage.removeItem(SNAPSHOT_KEY);

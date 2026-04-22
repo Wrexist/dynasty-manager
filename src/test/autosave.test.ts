@@ -90,9 +90,13 @@ describe('autosave: async scheduled path', () => {
     store.saveGame();
     vi.runAllTimers();
     const writes = setItem.mock.calls.filter(([k]) => String(k).startsWith('dynasty-save-'));
-    // Debounce + idle coalescing → one primary save (backup writes may add
-    // extra setItem calls for the -backup key, so we filter for just primary).
-    const primary = writes.filter(([k]) => !String(k).endsWith('-backup'));
+    // Debounce + idle coalescing → one primary save. Exclude the -backup
+    // (backup rotation) and -tmp (atomic-write staging) keys so we're only
+    // counting writes to the authoritative slot.
+    const primary = writes.filter(([k]) => {
+      const key = String(k);
+      return !key.endsWith('-backup') && !key.endsWith('-tmp');
+    });
     expect(primary.length).toBe(1);
   });
 });
@@ -259,9 +263,10 @@ describe('autosave: rapid lifecycle hooks', () => {
     const setItem = vi.spyOn(Storage.prototype, 'setItem');
     useGameStore.getState().flushForLifecycle();
     useGameStore.getState().flushForLifecycle();
-    const primary = setItem.mock.calls.filter(
-      ([k]) => String(k).startsWith('dynasty-save-') && !String(k).endsWith('-backup'),
-    );
+    const primary = setItem.mock.calls.filter(([k]) => {
+      const key = String(k);
+      return key.startsWith('dynasty-save-') && !key.endsWith('-backup') && !key.endsWith('-tmp');
+    });
     expect(primary.length).toBe(1);
   });
 });

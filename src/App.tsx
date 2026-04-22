@@ -6,6 +6,7 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SaveRecoveryDialog } from "@/components/SaveRecoveryDialog";
 import TitleScreen from "./pages/TitleScreen";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +39,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <SaveRecoveryDialog />
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={<TitleScreen />} />

@@ -43,6 +43,10 @@ export const createCoreSlice = (set: Set, get: Get) => ({
   lastSavedAt: null as number | null,
   saveFailureMessage: null as string | null,
 
+  // Set by loadGame() when a slot can't be loaded cleanly. SaveRecoveryDialog
+  // reads this to render the appropriate message + actions. Transient.
+  loadError: null as GameState['loadError'],
+
   // Season tracking (enriches SeasonHistory at endSeason)
   lastMatchCompetition: null as string | null,
   seasonStartAvgOVR: 0,

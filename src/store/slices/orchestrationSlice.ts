@@ -27,8 +27,8 @@ import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle, formatMoney } from '@/utils/helpers';
 import { fnv1a } from '@/utils/hashString';
-import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot, trimFixturesForSave, trimFixtureArrayForSave } from '@/store/helpers/persistence';
-import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
+import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot, recoverStaleSaveTmp, trimFixturesForSave, trimFixtureArrayForSave } from '@/store/helpers/persistence';
+import { migrateSaveData, validateSaveShape, isSaveFromNewerVersion, CURRENT_VERSION } from '@/utils/saveMigration';
 import { checkAchievements, ACHIEVEMENTS, getAchievementXP } from '@/utils/achievements';
 import { generateCupDraw, advanceCupRound, getCupResultForClub, getRoundName, CUP_BYE_MARKER } from '@/data/cup';
 import { getChampionsCupQualifiers, getShieldCupQualifiers, getConferenceCupQualifiers, generateContinentalDraw } from '@/data/continentalDraw';
@@ -6678,32 +6678,69 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     resetSeasonGrowth();
     clearLeagueTableCache();
     migrateLegacySave();
+    // Salvage any staging-area payload left over from a previous crashed
+    // write. Idempotent — no-op when there's nothing to do.
+    recoverStaleSaveTmp();
     const s = slot ?? get().activeSlot;
-    let raw = readSaveSlot(s);
+    const raw = readSaveSlot(s);
     if (!raw) return false;
 
-    // Try to parse primary save; if corrupted, fall back to backup
-    let parsed;
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
+    // Try to parse primary; on failure, transparently fall back to backup.
+    // When neither parses we surface a loadError so the dialog can offer the
+    // user a way forward (there's nothing left to try).
+    let parsed: unknown = null;
+    let fromBackup = false;
+    try { parsed = JSON.parse(raw); }
+    catch {
       Sentry.captureMessage('[Load] Primary save corrupted, trying backup', 'warning');
-      raw = readSaveSlotBackup(s);
-      if (!raw) return false;
-      try {
-        parsed = JSON.parse(raw);
-        // Restore backup as primary
-        promoteSaveBackup(s, raw);
-      } catch { return false; }
+      const backupRaw = readSaveSlotBackup(s);
+      if (backupRaw) {
+        try {
+          parsed = JSON.parse(backupRaw);
+          fromBackup = true;
+          // Promote the backup to primary so the next save cycle starts from
+          // a known-good state.
+          promoteSaveBackup(s, backupRaw);
+        } catch { /* both corrupt */ }
+      }
+      if (parsed === null) {
+        set({ loadError: { slot: s, kind: 'corrupt', canRecover: false, reason: 'primary and backup both unparseable' } });
+        return false;
+      }
+    }
+
+    // Version guard — refuse to downgrade. Loading a future-version save
+    // silently drops fields and will corrupt the next write.
+    if (isSaveFromNewerVersion(parsed)) {
+      const v = (parsed as { version?: number }).version;
+      set({ loadError: { slot: s, kind: 'newer_version', saveVersion: v, canRecover: !fromBackup && readSaveSlotBackup(s) !== null, reason: `save version ${v} > app version ${CURRENT_VERSION}` } });
+      return false;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let data: Record<string, any>;
+    try {
+      data = migrateSaveData(parsed as Record<string, unknown>) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err) {
+      Sentry.captureException(err, { tags: { context: 'loadGame.migrate' } });
+      set({ loadError: { slot: s, kind: 'migration_failed', canRecover: !fromBackup && readSaveSlotBackup(s) !== null, reason: err instanceof Error ? err.message : 'migration threw' } });
+      return false;
+    }
+    if (data.migrationError) {
+      Sentry.captureMessage('[LoadGame] Save migration failed — save data may be corrupt', 'error');
+      set({ loadError: { slot: s, kind: 'migration_failed', canRecover: !fromBackup && readSaveSlotBackup(s) !== null } });
+      return false;
+    }
+
+    const shape = validateSaveShape(data);
+    if (shape.ok === false) {
+      const reason = shape.reason;
+      Sentry.captureMessage(`[LoadGame] Validation failed: ${reason}`, 'error');
+      set({ loadError: { slot: s, kind: 'validation_failed', canRecover: !fromBackup && readSaveSlotBackup(s) !== null, reason } });
+      return false;
     }
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = migrateSaveData(parsed) as Record<string, any>;
-      if (data.migrationError) {
-        Sentry.captureMessage('[LoadGame] Save migration failed — save data may be corrupt', 'error');
-        return false;
-      }
       const clubIds = Object.keys(data.clubs);
       const leagueTable = buildLeagueTable(data.fixtures, clubIds);
 
@@ -6812,6 +6849,8 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         saveStatus: 'saved' as const,
         lastSavedAt: Date.now(),
         saveFailureMessage: null,
+        // Clear any stale load banner — this load just succeeded.
+        loadError: null,
       });
       // Reset change-detection hash — any prior session's hash is meaningless
       // now that we've replaced state wholesale.
@@ -6819,8 +6858,70 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       // Hydrate module-level growth tracker so development functions use persisted data
       hydrateSeasonGrowth(data.seasonGrowthTracker || {});
       return true;
-    } catch { return false; }
+    } catch (err) {
+      Sentry.captureException(err, { tags: { context: 'loadGame.apply' } });
+      set({ loadError: { slot: s, kind: 'validation_failed', canRecover: !fromBackup && readSaveSlotBackup(s) !== null, reason: err instanceof Error ? err.message : 'apply threw' } });
+      return false;
+    }
   },
+
+  attemptSaveRecovery: (slot: number) => {
+    // User clicked "Try Recovery" in the SaveRecoveryDialog. Bypasses the
+    // primary and loads straight from backup. If the backup itself is
+    // missing / corrupt / invalid, we surface that as a second loadError
+    // and the dialog's "Recovery" action disappears (canRecover=false).
+    cancelPendingSave();
+    resetSeasonGrowth();
+    clearLeagueTableCache();
+    migrateLegacySave();
+    recoverStaleSaveTmp();
+    const backupRaw = readSaveSlotBackup(slot);
+    if (!backupRaw) {
+      set({ loadError: { slot, kind: 'corrupt', canRecover: false, reason: 'no backup to recover from' } });
+      return false;
+    }
+    let parsed: unknown;
+    try { parsed = JSON.parse(backupRaw); }
+    catch {
+      set({ loadError: { slot, kind: 'corrupt', canRecover: false, reason: 'backup unparseable' } });
+      return false;
+    }
+
+    if (isSaveFromNewerVersion(parsed)) {
+      const v = (parsed as { version?: number }).version;
+      set({ loadError: { slot, kind: 'newer_version', saveVersion: v, canRecover: false, reason: 'backup also from newer version' } });
+      return false;
+    }
+
+    let data: Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    try {
+      data = migrateSaveData(parsed as Record<string, unknown>) as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
+    } catch (err) {
+      Sentry.captureException(err, { tags: { context: 'attemptSaveRecovery.migrate' } });
+      set({ loadError: { slot, kind: 'migration_failed', canRecover: false, reason: err instanceof Error ? err.message : 'migration threw' } });
+      return false;
+    }
+    if (data.migrationError) {
+      set({ loadError: { slot, kind: 'migration_failed', canRecover: false } });
+      return false;
+    }
+    const shape = validateSaveShape(data);
+    if (shape.ok === false) {
+      set({ loadError: { slot, kind: 'validation_failed', canRecover: false, reason: shape.reason } });
+      return false;
+    }
+
+    // Promote backup → primary so subsequent saves/loads use the recovered
+    // data as the known-good primary.
+    try { promoteSaveBackup(slot, backupRaw); } catch { /* non-fatal */ }
+
+    // Delegate to the main apply path by re-running loadGame now that the
+    // primary is the recovered backup. Safer than duplicating the big apply
+    // block here.
+    return get().loadGame(slot);
+  },
+
+  clearLoadError: () => set({ loadError: null }),
 
   cleanupAbandonedMatch: () => {
     const state = get();
