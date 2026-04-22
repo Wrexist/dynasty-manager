@@ -8,7 +8,11 @@
 This report baselines bundle size after the community-pack (~8–12 MB of
 player/squad data) was added. Goal: confirm the extra data does **not** ship
 in the eager initial payload — it must only load when a user opts in to the
-community pack. No optimization work is done here — analysis only.
+community pack.
+
+**Update (pass C.2):** also verified route-level code splitting, audited heavy
+libraries, and removed `recharts` from the eager preload list. See
+[Pass C.2 changes](#pass-c2--code-splitting--lazy-loading) at the bottom.
 
 ---
 
@@ -218,3 +222,138 @@ ANALYZE=true ANALYZE_OPEN=true npm run build   # also opens stats.html in browse
 `rollup-plugin-visualizer@7.0.1` is declared in `package.json` devDependencies.
 Vite config (`vite.config.ts:62-68`) only enables it when `ANALYZE=true` so
 normal builds aren't slowed by the size calculation.
+
+---
+
+## Pass C.2 — Code splitting & lazy loading
+
+Follow-up pass to verify (and enforce) the three rules the main report
+called out:
+
+1. Community-pack data only via `await import()` inside `initGame`.
+2. Route-level code splitting (`React.lazy()` + `Suspense`).
+3. Heavy libraries (>200 KB) dynamic-imported where used.
+
+### 1. Community-pack imports — audit + guardrail
+
+**Audit command:**
+
+```bash
+grep -rnE "import.*from .*(byClub|freeAgents|newLeagues|cpLeagueSquads)" src/
+```
+
+Results:
+
+| File | Kind | Verdict |
+|---|---|---|
+| `src/store/slices/orchestrationSlice.ts:2759-2761, 5339` | `await import('@/data/communityPack/...')` | ✅ dynamic, gated by `communityPackEnabled` |
+| `src/data/communityPack/cpLeagueSquads.ts:3-9` | static (imports 7 CP squad files) | ✅ inside CP bundle itself, which is dynamic-imported |
+| `src/test/communityPack.test.ts:17` | static | ✅ tests, excluded from prod bundle |
+
+No leaks. `src/data/communityPack/newLeagues.ts` has **zero importers** — it
+is dead code on disk, not in any chunk. Flagged for deletion in a follow-up.
+
+**Regression guard — added to `eslint.config.js`:**
+
+```js
+"no-restricted-imports": ["error", {
+  patterns: [{
+    group: [
+      "@/data/communityPack/byClub",
+      "@/data/communityPack/freeAgents",
+      "@/data/communityPack/newLeagues",
+      "@/data/communityPack/cpLeagueSquads",
+    ],
+    message: "Community-pack data must be dynamic-imported via `await import(...)` from inside initGame.",
+  }],
+}]
+```
+
+A static import of any CP data file now fails `npm run lint` → `npm run
+preflight` → pre-commit → CI. The rule excludes `src/data/communityPack/**`
+(itself) and `src/test/**`.
+
+### 2. Route-level code splitting — audit
+
+**Entry routes** (`src/App.tsx:14-18`): `ClubSelection`, `GameShell`,
+`ChallengePicker`, `ModeSelect`, `ManagerCreation` — all `lazy()` behind a
+single `Suspense` fallback.
+
+**In-game screens** (`src/pages/GameShell.tsx:22-62`): **41 pages** all
+`lazy()`-loaded: Dashboard, SquadPage, TacticsPage, TransferPage, ClubPage,
+MatchDay, PlayerDetail, LeagueTable, InboxPage, SeasonSummary, CalendarView,
+TrainingPage, ScoutingPage, PacksPage, StaffPage, YouthAcademy,
+FacilitiesPage, FinancePage, MatchPrep, MatchReview, BoardPage, SettingsPage,
+ComparisonPage, ManagerProfile, CupPage, LeagueCupPage, ContinentalPage,
+SuperCupPage, PerksPage, TrophyCabinet, PrestigePage, HallOfManagers,
+MerchandisePage, TeamDetailPage, ShopPage, HelpPage, NationalTeamPage,
+InternationalTournament, JobMarket, CareerOverview, BallonDor.
+
+**Not lazy (by design):** `TitleScreen` (first paint, 23 KB) and `NotFound`
+(minimal). 46 of 48 pages are code-split — full coverage.
+
+### 3. Heavy library audit (>200 KB raw)
+
+| Library | Raw | Gzip | Consumers | Action |
+|---|---|---|---|---|
+| **recharts** | 414 KB | 111 KB | 5 lazy pages only (PlayerDetail via PlayerRadarChart, FinancePage, ManagerProfile, TrainingPage, ComparisonPage) | ✅ **Removed from `manualChunks`** — now splits with consumer pages, no longer in eager preload |
+| **radix-ui** | 217 KB | 71 KB | global: `Toaster`, `Sonner`, `TooltipProvider` all mount at `App.tsx:37-40`; `Sheet` used on `TitleScreen` | Must stay eager — used by the title screen |
+| **framer-motion** | 133 KB | 44 KB | (<200 KB — below threshold) `MotionConfig` at App level | eager (globally used) |
+
+**Recharts fix — `vite.config.ts`:**
+
+```diff
+-          if (id.includes('recharts')) return 'recharts';
++          // recharts intentionally NOT manualChunked — only 5 lazy pages
++          // consume it. Letting Rollup colocate with consumer pages keeps
++          // its 414 KB / 111 KB gz out of the eager modulepreload list.
+```
+
+This removes `recharts` from `dist/index.html`'s `<link rel="modulepreload">`
+list. The chart code splits into three smaller chunks (`RadarChart.js`,
+`LineChart.js`, `generateCategoricalChart.js`), each fetched only when a
+page that renders charts is navigated to.
+
+### Before / After (eager initial load)
+
+| | Before (C.1) | After (C.2) | Δ |
+|---|---:|---:|---:|
+| Eager JS (raw) | 4121.90 KB | ~3718 KB | **−404 KB** |
+| Eager JS (gzip) | 965.79 KB | ~857 KB | **−109 KB gzip** |
+| Eager + CSS (gzip) | 987.14 KB | **~878 KB** | **−109 KB gzip (−11%)** |
+| `recharts` in modulepreload | ✅ yes | ❌ no | removed |
+| Main `index-*.js` chunk (gzip) | 288.29 KB | 288.38 KB | unchanged |
+
+Note: the **main entry chunk itself did not drop** — `recharts` was never in
+it (it's been its own chunk). What dropped is the **total eager preload set**
+by dropping recharts from the `<link rel="modulepreload">` list. For the
+main entry chunk to shrink meaningfully, the next levers are:
+
+- **`orchestrationSlice.ts`** (331 KB / 67 KB gz in `index`) — tech-debt
+  refactor split listed in CLAUDE.md. Big lift.
+- **`src/data/pressConferences.ts`** (66 KB / 15.5 KB gz in `index`) — only
+  used on press-conference flow; could be dynamic-imported from the action
+  that generates a press conference.
+- **`src/data/storylineChains.ts`** (41 KB / 10.6 KB gz in `index`) — same
+  pattern.
+
+### Still eager but potentially deferrable (future pass)
+
+- **`squad-data-*.js`** — 1.88 MB raw / 360 KB gz. Pulled into the eager graph
+  by `orchestrationSlice → playerGen (static) → CLUB_TEMPLATES → ALL_SQUAD_TEMPLATES`.
+  Only consumed inside `initGame`'s `generateSquad()` calls. Converting
+  `generateSquad` to async (or injecting templates as a param) would move
+  this whole chunk to dynamic. ~360 KB gz savings available, but the
+  refactor touches many callers (incl. tests and save migration) — deferred.
+- **`national-pool-*.js`** — 457 KB raw / 82 KB gz. Used by international-
+  tournament screens. Similar shape: statically imported today, could be
+  lazy-loaded when international screens are entered.
+- **`recharts` → `generateCategoricalChart`** — 359 KB raw / 101 KB gz. Now
+  lazy; no further action needed.
+
+### Verification
+
+1. `grep -rnE "import.*from .*(byClub|freeAgents|newLeagues|cpLeagueSquads)" src/` — no matches outside CP bundle + tests.
+2. `cat dist/index.html | grep modulepreload` — no `recharts*` entry.
+3. `ANALYZE=true npm run build` — stats.html regenerated.
+4. `npm run preflight` — lint (including new ESLint guard), **862 tests**, build all green.

@@ -86,8 +86,13 @@ export default defineConfig(() => ({
       output: {
         manualChunks(id) {
           if (id.includes('framer-motion')) return 'framer-motion';
-          if (id.includes('recharts')) return 'recharts';
           if (id.includes('@radix-ui')) return 'radix';
+          // Note: recharts (~414 KB raw / 111 KB gz) is intentionally NOT
+          // manually chunked. Letting Rollup co-locate it with the 5 lazy
+          // pages that use it (PlayerDetail via PlayerRadarChart,
+          // FinancePage, ManagerProfile, TrainingPage, ComparisonPage)
+          // keeps it out of the eager modulepreload list so mid-range
+          // phones don't download ~111 KB of chart code they may never use.
           if (id.includes('node_modules/@sentry')) return 'sentry';
           if (id.includes('node_modules/lucide-react')) return 'lucide';
           if (id.includes('node_modules/zustand')) return 'zustand';
