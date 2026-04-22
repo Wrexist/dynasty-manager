@@ -4,12 +4,14 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
 import { cn } from '@/lib/utils';
-import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
+import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
+import { MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE } from '@/config/chemistry';
 import { getRatingColor, getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS, getAvailableFormations } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
-import { FORMATION_POSITIONS, type Position } from '@/types/game';
-import { AlertTriangle, Ban, HeartPulse, Save, Trash2, Upload, Shield, Swords, Target, Zap } from 'lucide-react';
+import { FORMATION_POSITIONS, type Position, type ChemistryLink } from '@/types/game';
+import { AlertTriangle, Ban, BookOpen, ChevronDown, ChevronUp, Globe, Handshake, Heart, HeartPulse, Save, Trash2, Upload, Shield, Swords, Target, Zap } from 'lucide-react';
+import { FlagIcon } from '@/components/game/FlagIcon';
 import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD, HELP_TEXTS } from '@/config/ui';
@@ -48,6 +50,7 @@ const TacticsPage = () => {
   const setPenaltyTaker = useGameStore(s => s.setPenaltyTaker);
   const club = clubs[playerClubId];
   const [presetName, setPresetName] = useState('');
+  const [showAllChem, setShowAllChem] = useState(false);
   const userIsPro = isPro(monetization);
   const { potentialGain, autoFilling, optimizeLineup } = useLineupOptimizer();
 
@@ -102,6 +105,16 @@ const TacticsPage = () => {
     const suspended = lineupPlayers.filter(p => p.suspendedUntilWeek !== undefined && p.suspendedUntilWeek > week);
     return { bonus, label: getChemistryLabel(bonus), injured, suspended };
   }, [club, lineupPlayers, season, week]);
+
+  // Full chemistry link breakdown (only computed when lineup is set)
+  const chemistry = useMemo(() => {
+    if (!club || lineupPlayers.length === 0) return null;
+    const links = calculateChemistryLinks(lineupPlayers, club.formation, season);
+    if (links.length === 0) return { links, sortedDesc: [] as ChemistryLink[], bonus: 0 };
+    const sortedDesc = [...links].sort((a, b) => b.strength - a.strength);
+    const bonus = getChemistryBonus(lineupPlayers, club.formation, season);
+    return { links, sortedDesc, bonus };
+  }, [club, lineupPlayers, season]);
 
   if (!club) return null;
 
@@ -325,6 +338,94 @@ const TacticsPage = () => {
       <GlassPanel className="p-4">
         <LineupEditor />
       </GlassPanel>
+
+      {/* Chemistry Summary */}
+      {chemistry && chemistry.links.length > 0 && (() => {
+        const label = getChemistryLabel(chemistry.bonus);
+        const top = chemistry.sortedDesc.slice(0, 3);
+        const bottom = chemistry.links.length > 3 ? chemistry.sortedDesc.slice(-3).reverse() : [];
+        const typeMeta: Record<ChemistryLink['type'], { icon: JSX.Element; color: string; label: string }> = {
+          nationality: { icon: <Globe className="w-3 h-3 text-primary shrink-0" />, color: 'text-primary', label: 'Nationality' },
+          mentor: { icon: <BookOpen className="w-3 h-3 text-emerald-400 shrink-0" />, color: 'text-emerald-400', label: 'Mentor' },
+          partnership: { icon: <Handshake className="w-3 h-3 text-amber-400 shrink-0" />, color: 'text-amber-400', label: 'Partnership' },
+          loyalty: { icon: <Heart className="w-3 h-3 text-sky-400 shrink-0" />, color: 'text-sky-400', label: 'Loyalty' },
+        };
+        const renderRow = (link: ChemistryLink, idx: number) => {
+          const a = players[link.playerIdA];
+          const b = players[link.playerIdB];
+          if (!a || !b) return null;
+          let displayA = a, displayB = b;
+          if (link.type === 'mentor') {
+            const senior = a.age >= MENTOR_SENIOR_AGE && b.age <= MENTOR_JUNIOR_AGE ? a
+              : b.age >= MENTOR_SENIOR_AGE && a.age <= MENTOR_JUNIOR_AGE ? b
+              : a;
+            displayA = senior;
+            displayB = senior === a ? b : a;
+          }
+          const sep = link.type === 'mentor' ? '→' : '&';
+          const meta = typeMeta[link.type];
+          return (
+            <div key={`${link.type}-${link.playerIdA}-${link.playerIdB}-${idx}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
+              {meta.icon}
+              {link.type === 'nationality' && <FlagIcon nationality={a.nationality} size={12} />}
+              <span className="text-[10px] text-foreground flex-1 truncate">{displayA.lastName} {sep} {displayB.lastName}</span>
+              <span className={cn('text-[9px] font-bold', meta.color)}>+{link.strength}</span>
+            </div>
+          );
+        };
+        return (
+          <GlassPanel className="p-4">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Chemistry</p>
+              <div className="flex items-center gap-2">
+                <span className={cn('text-xs font-bold tabular-nums', label.color)}>+{Math.round(chemistry.bonus * 100)}%</span>
+                <span className={cn('text-[10px] font-semibold', label.color)}>{label.label}</span>
+                <span className="text-[9px] text-muted-foreground">· {chemistry.links.length} links</span>
+              </div>
+            </div>
+
+            {!showAllChem && (
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[9px] text-muted-foreground font-semibold mb-1">STRONGEST</p>
+                  <div className="space-y-0.5">{top.map(renderRow)}</div>
+                </div>
+                {bottom.length > 0 && (
+                  <div>
+                    <p className="text-[9px] text-muted-foreground font-semibold mb-1">WEAKEST</p>
+                    <div className="space-y-0.5">{bottom.map(renderRow)}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {showAllChem && (
+              <div className="space-y-2 max-h-[30vh] overflow-y-auto">
+                {(['nationality', 'mentor', 'partnership', 'loyalty'] as const).map(type => {
+                  const group = chemistry.links.filter(l => l.type === type);
+                  if (group.length === 0) return null;
+                  return (
+                    <div key={type}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        {typeMeta[type].icon}
+                        <span className="text-[10px] text-muted-foreground font-semibold">{typeMeta[type].label} ({group.length})</span>
+                      </div>
+                      <div className="space-y-0.5">{group.map(renderRow)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowAllChem(v => !v)}
+              className="mt-3 w-full flex items-center justify-center gap-1 py-1.5 rounded-md text-[10px] font-semibold text-primary hover:bg-primary/10 transition-colors"
+            >
+              {showAllChem ? <>Show less <ChevronUp className="w-3 h-3" /></> : <>Show all <ChevronDown className="w-3 h-3" /></>}
+            </button>
+          </GlassPanel>
+        );
+      })()}
 
       {/* Style Presets */}
       <GlassPanel className="p-4">
