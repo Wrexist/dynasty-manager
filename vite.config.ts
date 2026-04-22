@@ -61,9 +61,10 @@ export default defineConfig(() => ({
     serviceWorkerPlugin(),
     process.env.ANALYZE === 'true' && visualizer({
       filename: 'stats.html',
-      open: true,
+      open: process.env.ANALYZE_OPEN === 'true',
       gzipSize: true,
       brotliSize: true,
+      template: 'treemap',
     }),
   ].filter(Boolean),
   resolve: {
