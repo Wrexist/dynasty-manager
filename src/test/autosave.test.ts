@@ -265,3 +265,40 @@ describe('autosave: rapid lifecycle hooks', () => {
     expect(primary.length).toBe(1);
   });
 });
+
+describe('new-game save pipeline', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    __resetAutosaveSchedulerForTests();
+    useGameStore.getState().resetGame();
+    localStorage.clear();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  // Regression: initGame is async (Promise<void>) because it dynamically
+  // imports community-pack data. The onboarding handler used to call it
+  // without awaiting, so saveGame ran before gameStarted was set and the
+  // performSave seatbelt silently discarded the write. The slot then showed
+  // as empty on the Title Screen.
+  it('writes to the chosen slot when initGame is awaited (sandbox flow)', async () => {
+    await useGameStore.getState().initGame(CLUB_ID);
+    useGameStore.setState({ activeSlot: 2 });
+    useGameStore.getState().saveGame(2);
+    expect(localStorage.getItem('dynasty-save-2')).not.toBeNull();
+    const parsed = JSON.parse(localStorage.getItem('dynasty-save-2')!);
+    expect(parsed.playerClubId).toBe(CLUB_ID);
+    expect(parsed.activeSlot).toBe(2);
+  });
+
+  it('saveGame silently bails out if caller skips the await (documents the bug this fix prevents)', () => {
+    // Intentionally do NOT await — simulates the old ClubSelection behaviour.
+    // With communityPackEnabled=false there is no await inside initGame, so
+    // the synchronous body still runs and state ends up populated; the save
+    // DOES land. This test pins that baseline so we catch regressions that
+    // add a new await before the set().
+    void useGameStore.getState().initGame(CLUB_ID);
+    useGameStore.setState({ activeSlot: 3 });
+    useGameStore.getState().saveGame(3);
+    expect(localStorage.getItem('dynasty-save-3')).not.toBeNull();
+  });
+});

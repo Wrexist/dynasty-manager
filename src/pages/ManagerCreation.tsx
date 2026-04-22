@@ -125,7 +125,7 @@ const ManagerCreation = () => {
   const handleStart = () => {
     if (!selectedOffer || !nationality || loading) return;
     setLoading(true);
-    requestAnimationFrame(() => {
+    requestAnimationFrame(async () => {
       try {
         const finalAttributes = applyTraitBonuses(baseAttributes.current, selectedTraits);
         const manager = createDefaultManager(managerName.trim(), nationality, age, selectedTraits, appearance, finalAttributes);
@@ -139,7 +139,11 @@ const ManagerCreation = () => {
           bonuses: selectedOffer.bonuses,
         };
 
-        initCareerGame(manager, selectedOffer.clubId, { communityPackEnabled });
+        // Must await — initCareerGame internally awaits initGame, which is
+        // async when communityPackEnabled is true. Without awaiting, saveGame
+        // below runs before gameStarted is set and the performSave seatbelt
+        // silently discards the write, leaving the slot empty on reload.
+        await initCareerGame(manager, selectedOffer.clubId, { communityPackEnabled });
         setManagerNationality(nationality);
         useGameStore.setState({ activeSlot: slot });
         try { saveGame(slot); } catch { /* save failure shouldn't block */ }
