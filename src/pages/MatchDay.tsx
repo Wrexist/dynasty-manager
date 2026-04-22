@@ -19,7 +19,9 @@ import { useCurrentMatch } from '@/hooks/useGameSelectors';
 import { getCompetitionInfo } from '@/utils/competitionBadge';
 import { PostMatchPopup } from '@/components/game/PostMatchPopup';
 import { TacticalPanel } from '@/components/game/TacticalPanel';
-import { getCommentaryStyle, enrichDescription } from '@/utils/matchCommentary';
+import { enrichDescription } from '@/utils/matchCommentary';
+import { CommentaryRow } from '@/components/game/CommentaryRow';
+import { isStructuredEvent } from '@/utils/matchEventDisplay';
 import { MATCH_SPEEDS, DEFAULT_MATCH_SPEED } from '@/config/matchSpeed';
 import { analyzeHalftime } from '@/config/halftimeAnalysis';
 import { TEAM_TALK_OPTIONS } from '@/config/ui';
@@ -1086,16 +1088,19 @@ const MatchDay = () => {
           {visibleEvents.length > 0 && (
             <GlassPanel className="p-4 max-h-40 overflow-y-auto">
               <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">First Half</p>
-              <div className="space-y-1">
-                {visibleEvents.filter(e => !['kickoff', 'half_time'].includes(e.type)).map((ev, i) => {
-                  const style = getCommentaryStyle(ev);
-                  return (
-                    <div key={i} className={cn('flex items-start gap-2 text-xs', style.textClass)}>
-                      <span className="font-mono w-6 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
-                      <span className="flex-1">{getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId)}</span>
-                    </div>
-                  );
-                })}
+              <div className="space-y-1.5">
+                {visibleEvents
+                  .filter(e => !['kickoff', 'half_time', 'commentary'].includes(e.type))
+                  .map((ev, i) => (
+                    <CommentaryRow
+                      key={i}
+                      event={ev}
+                      players={players}
+                      clubs={clubs}
+                      fallbackColor={virtualClubs?.[ev.clubId]?.color}
+                      compact
+                    />
+                  ))}
               </div>
             </GlassPanel>
           )}
@@ -1591,33 +1596,22 @@ const MatchDay = () => {
           <GlassPanel className="p-4 max-h-[30vh] overflow-y-auto">
             <div className="space-y-2" aria-live="polite" aria-label="Match events">
               {visibleEvents.filter(e => e.type !== 'kickoff').map((ev, i) => {
-                const style = getCommentaryStyle(ev);
-                const isCardEvent = ev.type === 'yellow_card' || ev.type === 'red_card';
-                const isAITactical = ev.type === 'ai_tactical_change';
-                const cardStyle = ev.type === 'yellow_card'
-                  ? 'border-amber-400/45 bg-amber-500/10 shadow-[0_0_12px_rgba(251,191,36,0.15)]'
-                  : ev.type === 'red_card'
-                    ? 'border-red-500/55 bg-red-500/15 shadow-[0_0_14px_rgba(239,68,68,0.25)]'
-                    : '';
-                const aiTacticalStyle = isAITactical ? 'border-blue-400/30 bg-blue-500/10 rounded-lg border px-2 py-1.5' : '';
+                // Structured events (goals, cards, shots, subs...) render as
+                // clear label-pill + player-chip rows. Ambient commentary and
+                // tactical prompts keep their prose styling via CommentaryRow's
+                // fallback branch.
+                const description = isStructuredEvent(ev.type)
+                  ? undefined
+                  : getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId);
                 return (
-                  <div
+                  <CommentaryRow
                     key={i}
-                    className={cn(
-                      'flex items-start gap-2 text-sm animate-[fadeSlideIn_0.2s_ease-out]',
-                      isCardEvent && 'rounded-lg border px-2 py-1.5',
-                      cardStyle,
-                      aiTacticalStyle,
-                      style.textClass
-                    )}
-                  >
-                    <span className="text-xs font-mono w-8 shrink-0 text-primary tabular-nums">{ev.minute}'</span>
-                    {ev.type === 'yellow_card' && <span className="leading-none mt-0.5"><YellowCardIcon size={12} /></span>}
-                    {ev.type === 'red_card' && <span className="leading-none mt-0.5"><RedCardIcon size={12} /></span>}
-                    {isAITactical && <span className="leading-none mt-0.5"><Layers className="w-3 h-3 text-blue-400" /></span>}
-                    <span className={cn('flex-1', isAITactical && 'text-blue-300 italic')}>{getEnrichedDescription(ev, visibleEvents, match.homeClubId, playerClubId === match.homeClubId)}</span>
-                    <div className="w-2 h-2 rounded-full shrink-0 mt-1.5" style={{ backgroundColor: clubs[ev.clubId]?.color || '#888' }} />
-                  </div>
+                    event={ev}
+                    players={players}
+                    clubs={clubs}
+                    fallbackColor={virtualClubs?.[ev.clubId]?.color}
+                    description={description}
+                  />
                 );
               })}
               <div ref={eventsEndRef} />
