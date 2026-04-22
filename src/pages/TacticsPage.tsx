@@ -4,13 +4,13 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { LineupEditor } from '@/components/game/LineupEditor';
 import { OptimizeLineupButton } from '@/components/game/OptimizeLineupButton';
 import { cn } from '@/lib/utils';
-import { calculateChemistryLinks } from '@/utils/chemistry';
+import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 import { MENTOR_SENIOR_AGE, MENTOR_JUNIOR_AGE } from '@/config/chemistry';
 import { getRatingColor, getRatingBadgeClasses } from '@/utils/uiHelpers';
 import { MENTALITIES, WIDTHS, TEMPOS, DEFENSIVE_LINES, PRESSING_OPTIONS, STYLE_PRESETS, getAvailableFormations } from '@/config/tactics';
 import type { StylePreset } from '@/config/tactics';
-import { FORMATION_POSITIONS, type Position } from '@/types/game';
-import { Globe, BookOpen, Handshake, Heart, ArrowRightLeft, AlertTriangle, Save, Trash2, Upload, Shield, Swords, Target } from 'lucide-react';
+import { FORMATION_POSITIONS, type Position, type ChemistryLink } from '@/types/game';
+import { AlertTriangle, Ban, BookOpen, ChevronDown, ChevronUp, Globe, Handshake, Heart, HeartPulse, Save, Trash2, Upload, Shield, Swords, Target, Zap } from 'lucide-react';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
@@ -32,9 +32,9 @@ function pressingLabel(v: number): string {
 }
 
 const TacticsPage = () => {
-  const { playerClubId, clubs, players, tactics, season, training } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, tactics, training, season, week } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players, tactics: s.tactics,
-    season: s.season, training: s.training,
+    training: s.training, season: s.season, week: s.week,
   })));
   const monetization = useGameStore(s => s.monetization);
   const managerProgression = useGameStore(s => s.managerProgression);
@@ -46,22 +46,16 @@ const TacticsPage = () => {
   const saveTacticalPreset = useGameStore(s => s.saveTacticalPreset);
   const loadTacticalPreset = useGameStore(s => s.loadTacticalPreset);
   const deleteTacticalPreset = useGameStore(s => s.deleteTacticalPreset);
-  const updateLineup = useGameStore(s => s.updateLineup);
   const setSetPieceTaker = useGameStore(s => s.setSetPieceTaker);
   const setPenaltyTaker = useGameStore(s => s.setPenaltyTaker);
   const club = clubs[playerClubId];
-  const [swapSubId, setSwapSubId] = useState<string | null>(null);
   const [presetName, setPresetName] = useState('');
+  const [showAllChem, setShowAllChem] = useState(false);
+  const [showAdvancedTactics, setShowAdvancedTactics] = useState(false);
   const userIsPro = isPro(monetization);
   const { potentialGain, autoFilling, optimizeLineup } = useLineupOptimizer();
-  const { chemLinks } = useMemo(() => {
-    if (!club) return { chemLinks: [] as ReturnType<typeof calculateChemistryLinks> };
-    const lp = club.lineup.map(id => players[id]).filter(Boolean);
-    const chemLinks = calculateChemistryLinks(lp, club.formation, season);
-    return { chemLinks };
-  }, [club, players, season]);
 
-  // Memoize lineup players (used by Starting XI list, set-piece filters, potentialGain)
+  // Memoize lineup players (used by team rating breakdown and set-piece filters)
   const lineupPlayers = useMemo(() => {
     if (!club) return [];
     return club.lineup.map(id => players[id]).filter(Boolean);
@@ -104,13 +98,24 @@ const TacticsPage = () => {
     };
   }, [lineupPlayers, club, players]);
 
-  // Group chemistry links by type (memoized)
-  const { natLinks, mentorLinks, partnershipLinks, loyaltyLinks } = useMemo(() => ({
-    natLinks: chemLinks.filter(l => l.type === 'nationality'),
-    mentorLinks: chemLinks.filter(l => l.type === 'mentor'),
-    partnershipLinks: chemLinks.filter(l => l.type === 'partnership'),
-    loyaltyLinks: chemLinks.filter(l => l.type === 'loyalty'),
-  }), [chemLinks]);
+  // Matchday readiness: chemistry + availability flags for the starting XI
+  const readiness = useMemo(() => {
+    if (!club || lineupPlayers.length === 0) return null;
+    const bonus = getChemistryBonus(lineupPlayers, club.formation, season);
+    const injured = lineupPlayers.filter(p => p.injured);
+    const suspended = lineupPlayers.filter(p => p.suspendedUntilWeek !== undefined && p.suspendedUntilWeek > week);
+    return { bonus, label: getChemistryLabel(bonus), injured, suspended };
+  }, [club, lineupPlayers, season, week]);
+
+  // Full chemistry link breakdown (only computed when lineup is set)
+  const chemistry = useMemo(() => {
+    if (!club || lineupPlayers.length === 0) return null;
+    const links = calculateChemistryLinks(lineupPlayers, club.formation, season);
+    if (links.length === 0) return { links, sortedDesc: [] as ChemistryLink[], bonus: 0 };
+    const sortedDesc = [...links].sort((a, b) => b.strength - a.strength);
+    const bonus = getChemistryBonus(lineupPlayers, club.formation, season);
+    return { links, sortedDesc, bonus };
+  }, [club, lineupPlayers, season]);
 
   if (!club) return null;
 
@@ -128,6 +133,65 @@ const TacticsPage = () => {
     <div className="max-w-lg mx-auto px-4 py-4 space-y-4">
       <PageHint screen="tactics" title={PAGE_HINTS.tactics.title} body={PAGE_HINTS.tactics.body} />
       <h2 className="text-lg font-bold text-foreground font-display">Tactics</h2>
+
+      {/* Matchday Readiness */}
+      {readiness && (() => {
+        const unavailable = readiness.injured.length + readiness.suspended.length;
+        const available = lineupPlayers.length - unavailable;
+        return (
+          <GlassPanel className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Zap className="w-4 h-4 text-primary" />
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Matchday Readiness</p>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-muted/20 rounded-lg py-2 text-center">
+                <p className="text-[9px] text-muted-foreground font-semibold mb-0.5">FORMATION</p>
+                <p className="text-lg font-mono font-bold text-foreground tabular-nums leading-none">{club.formation}</p>
+              </div>
+              <div className="bg-muted/20 rounded-lg py-2 text-center">
+                <p className="text-[9px] text-muted-foreground font-semibold mb-0.5">CHEMISTRY</p>
+                <p className={cn('text-lg font-bold tabular-nums leading-none', readiness.label.color)}>
+                  +{Math.round(readiness.bonus * 100)}%
+                </p>
+                <p className={cn('text-[9px] font-semibold mt-0.5', readiness.label.color)}>{readiness.label.label}</p>
+              </div>
+              <div className={cn(
+                'rounded-lg py-2 text-center',
+                unavailable > 0 ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-muted/20'
+              )}>
+                <p className="text-[9px] text-muted-foreground font-semibold mb-0.5">AVAILABLE</p>
+                <p className={cn(
+                  'text-lg font-bold tabular-nums leading-none',
+                  unavailable > 0 ? 'text-amber-400' : 'text-emerald-400'
+                )}>
+                  {available}/{lineupPlayers.length}
+                </p>
+              </div>
+            </div>
+            {unavailable > 0 && (
+              <div className="mt-3 space-y-1">
+                {readiness.injured.map(p => (
+                  <div key={`inj-${p.id}`} className="flex items-center gap-1.5 text-[10px]">
+                    <HeartPulse className="w-3 h-3 text-destructive shrink-0" />
+                    <span className="text-destructive font-semibold">Injured</span>
+                    <span className="text-foreground">{p.firstName[0]}. {p.lastName}</span>
+                    <span className="text-muted-foreground ml-auto tabular-nums">{p.injuryWeeks}w</span>
+                  </div>
+                ))}
+                {readiness.suspended.map(p => (
+                  <div key={`sus-${p.id}`} className="flex items-center gap-1.5 text-[10px]">
+                    <Ban className="w-3 h-3 text-amber-400 shrink-0" />
+                    <span className="text-amber-400 font-semibold">Suspended</span>
+                    <span className="text-foreground">{p.firstName[0]}. {p.lastName}</span>
+                    <span className="text-muted-foreground ml-auto tabular-nums">until W{p.suspendedUntilWeek}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </GlassPanel>
+        );
+      })()}
 
       {/* Formation Selection */}
       <GlassPanel className="p-4">
@@ -276,107 +340,93 @@ const TacticsPage = () => {
         <LineupEditor />
       </GlassPanel>
 
-      {/* Chemistry Links Detail */}
-      {chemLinks.length > 0 && (
-        <GlassPanel className="p-4">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Chemistry Links ({chemLinks.length})</p>
+      {/* Chemistry Summary */}
+      {chemistry && chemistry.links.length > 0 && (() => {
+        const label = getChemistryLabel(chemistry.bonus);
+        const top = chemistry.sortedDesc.slice(0, 3);
+        const bottom = chemistry.links.length > 3 ? chemistry.sortedDesc.slice(-3).reverse() : [];
+        const typeMeta: Record<ChemistryLink['type'], { icon: JSX.Element; color: string; label: string }> = {
+          nationality: { icon: <Globe className="w-3 h-3 text-primary shrink-0" />, color: 'text-primary', label: 'Nationality' },
+          mentor: { icon: <BookOpen className="w-3 h-3 text-emerald-400 shrink-0" />, color: 'text-emerald-400', label: 'Mentor' },
+          partnership: { icon: <Handshake className="w-3 h-3 text-amber-400 shrink-0" />, color: 'text-amber-400', label: 'Partnership' },
+          loyalty: { icon: <Heart className="w-3 h-3 text-sky-400 shrink-0" />, color: 'text-sky-400', label: 'Loyalty' },
+        };
+        const renderRow = (link: ChemistryLink, idx: number) => {
+          const a = players[link.playerIdA];
+          const b = players[link.playerIdB];
+          if (!a || !b) return null;
+          let displayA = a, displayB = b;
+          if (link.type === 'mentor') {
+            const senior = a.age >= MENTOR_SENIOR_AGE && b.age <= MENTOR_JUNIOR_AGE ? a
+              : b.age >= MENTOR_SENIOR_AGE && a.age <= MENTOR_JUNIOR_AGE ? b
+              : a;
+            displayA = senior;
+            displayB = senior === a ? b : a;
+          }
+          const sep = link.type === 'mentor' ? '→' : '&';
+          const meta = typeMeta[link.type];
+          return (
+            <div key={`${link.type}-${link.playerIdA}-${link.playerIdB}-${idx}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
+              {meta.icon}
+              {link.type === 'nationality' && <FlagIcon nationality={a.nationality} size={12} />}
+              <span className="text-[10px] text-foreground flex-1 truncate">{displayA.lastName} {sep} {displayB.lastName}</span>
+              <span className={cn('text-[9px] font-bold', meta.color)}>+{link.strength}</span>
+            </div>
+          );
+        };
+        return (
+          <GlassPanel className="p-4">
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+              <p className="text-xs text-muted-foreground uppercase tracking-wider">Chemistry</p>
+              <div className="flex items-center gap-2">
+                <span className={cn('text-xs font-bold tabular-nums', label.color)}>+{Math.round(chemistry.bonus * 100)}%</span>
+                <span className={cn('text-[10px] font-semibold', label.color)}>{label.label}</span>
+                <span className="text-[9px] text-muted-foreground">· {chemistry.links.length} links</span>
+              </div>
+            </div>
 
-          <div className="space-y-2 max-h-[30vh] overflow-y-auto">
-            {natLinks.length > 0 && (
-              <div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Globe className="w-3 h-3 text-primary" />
-                  <span className="text-[10px] text-muted-foreground font-semibold">Nationality ({natLinks.length})</span>
+            {!showAllChem && (
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[9px] text-muted-foreground font-semibold mb-1">STRONGEST</p>
+                  <div className="space-y-0.5">{top.map(renderRow)}</div>
                 </div>
-                <div className="space-y-0.5">
-                  {natLinks.map((link) => {
-                    const a = players[link.playerIdA];
-                    const b = players[link.playerIdB];
-                    if (!a || !b) return null;
-                    return (
-                      <div key={`nat-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
-                        <FlagIcon nationality={a.nationality} size={14} />
-                        <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
-                        <span className="text-[9px] text-primary font-bold">+{link.strength}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                {bottom.length > 0 && (
+                  <div>
+                    <p className="text-[9px] text-muted-foreground font-semibold mb-1">WEAKEST</p>
+                    <div className="space-y-0.5">{bottom.map(renderRow)}</div>
+                  </div>
+                )}
               </div>
             )}
 
-            {mentorLinks.length > 0 && (
-              <div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <BookOpen className="w-3 h-3 text-emerald-400" />
-                  <span className="text-[10px] text-muted-foreground font-semibold">Mentor ({mentorLinks.length})</span>
-                </div>
-                <div className="space-y-0.5">
-                  {mentorLinks.map((link) => {
-                    const a = players[link.playerIdA];
-                    const b = players[link.playerIdB];
-                    if (!a || !b) return null;
-                    const senior = a.age >= MENTOR_SENIOR_AGE && b.age <= MENTOR_JUNIOR_AGE ? a
-                      : b.age >= MENTOR_SENIOR_AGE && a.age <= MENTOR_JUNIOR_AGE ? b
-                      : a;
-                    const junior = senior === a ? b : a;
-                    return (
-                      <div key={`men-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
-                        <span className="text-[10px] text-foreground flex-1">{senior.lastName} → {junior.lastName}</span>
-                        <span className="text-[9px] text-emerald-400 font-bold">+{link.strength}</span>
+            {showAllChem && (
+              <div className="space-y-2 max-h-[30vh] overflow-y-auto">
+                {(['nationality', 'mentor', 'partnership', 'loyalty'] as const).map(type => {
+                  const group = chemistry.links.filter(l => l.type === type);
+                  if (group.length === 0) return null;
+                  return (
+                    <div key={type}>
+                      <div className="flex items-center gap-1.5 mb-1">
+                        {typeMeta[type].icon}
+                        <span className="text-[10px] text-muted-foreground font-semibold">{typeMeta[type].label} ({group.length})</span>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="space-y-0.5">{group.map(renderRow)}</div>
+                    </div>
+                  );
+                })}
               </div>
             )}
 
-            {partnershipLinks.length > 0 && (
-              <div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Handshake className="w-3 h-3 text-amber-400" />
-                  <span className="text-[10px] text-muted-foreground font-semibold">Partnership ({partnershipLinks.length})</span>
-                </div>
-                <div className="space-y-0.5">
-                  {partnershipLinks.map((link) => {
-                    const a = players[link.playerIdA];
-                    const b = players[link.playerIdB];
-                    if (!a || !b) return null;
-                    return (
-                      <div key={`part-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
-                        <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
-                        <span className="text-[9px] text-amber-400 font-bold">+{link.strength}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {loyaltyLinks.length > 0 && (
-              <div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Heart className="w-3 h-3 text-sky-400" />
-                  <span className="text-[10px] text-muted-foreground font-semibold">Loyalty ({loyaltyLinks.length})</span>
-                </div>
-                <div className="space-y-0.5">
-                  {loyaltyLinks.map((link) => {
-                    const a = players[link.playerIdA];
-                    const b = players[link.playerIdB];
-                    if (!a || !b) return null;
-                    return (
-                      <div key={`loy-${link.playerIdA}-${link.playerIdB}`} className="flex items-center gap-2 bg-muted/20 rounded px-2 py-1">
-                        <span className="text-[10px] text-foreground flex-1">{a.lastName} & {b.lastName}</span>
-                        <span className="text-[9px] text-sky-400 font-bold">+{link.strength}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </GlassPanel>
-      )}
+            <button
+              onClick={() => setShowAllChem(v => !v)}
+              className="mt-3 w-full flex items-center justify-center gap-1 py-1.5 rounded-md text-[10px] font-semibold text-primary hover:bg-primary/10 transition-colors"
+            >
+              {showAllChem ? <>Show less <ChevronUp className="w-3 h-3" /></> : <>Show all <ChevronDown className="w-3 h-3" /></>}
+            </button>
+          </GlassPanel>
+        );
+      })()}
 
       {/* Style Presets */}
       <GlassPanel className="p-4">
@@ -467,119 +517,19 @@ const TacticsPage = () => {
         <ProUpsell feature="Custom Tactics Creator" />
       )}
 
-      {/* Tactical Instructions */}
-      <GlassPanel className="p-4 space-y-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider">Tactical Instructions</p>
-
-        {/* Mentality */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Mentality <InfoTip text={HELP_TEXTS.mentality} /></p>
-          <div className="flex flex-wrap gap-1.5">
-            {MENTALITIES.map(m => (
-              <button
-                key={m.value}
-                onClick={() => { setTactics({ mentality: m.value }); hapticLight(); }}
-                className={cn(
-                  'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  tactics.mentality === m.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Team Width */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Team Width <InfoTip text={HELP_TEXTS.width} /></p>
-          <div className="flex flex-wrap gap-1.5">
-            {WIDTHS.map(w => (
-              <button
-                key={w.value}
-                onClick={() => { setTactics({ width: w.value }); hapticLight(); }}
-                className={cn(
-                  'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  tactics.width === w.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Tempo */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Tempo <InfoTip text={HELP_TEXTS.tempo} /></p>
-          <div className="flex flex-wrap gap-1.5">
-            {TEMPOS.map(t => (
-              <button
-                key={t.value}
-                onClick={() => { setTactics({ tempo: t.value }); hapticLight(); }}
-                className={cn(
-                  'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  tactics.tempo === t.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Defensive Line */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Defensive Line <InfoTip text={HELP_TEXTS.defensiveLine} /></p>
-          <div className="flex flex-wrap gap-1.5">
-            {DEFENSIVE_LINES.map(d => (
-              <button
-                key={d.value}
-                onClick={() => { setTactics({ defensiveLine: d.value }); hapticLight(); }}
-                className={cn(
-                  'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  tactics.defensiveLine === d.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Pressing */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Pressing <InfoTip text={HELP_TEXTS.pressingIntensity} /></p>
-          <div className="flex flex-wrap gap-1.5">
-            {PRESSING_OPTIONS.map(p => (
-              <button
-                key={p.value}
-                onClick={() => { setTactics({ pressingIntensity: p.value }); hapticLight(); }}
-                className={cn(
-                  'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  tactics.pressingIntensity === p.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </GlassPanel>
-
-      {/* Team Instructions Summary */}
+      {/* Advanced Tactical Instructions — collapsed by default, summary chips always visible */}
       <GlassPanel className="p-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Current Instructions</p>
+        <button
+          onClick={() => setShowAdvancedTactics(v => !v)}
+          className="w-full flex items-center justify-between gap-2 mb-2"
+          aria-expanded={showAdvancedTactics}
+        >
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Advanced Instructions</p>
+          <span className="flex items-center gap-1 text-[10px] font-semibold text-primary">
+            {showAdvancedTactics ? <>Hide <ChevronUp className="w-3 h-3" /></> : <>Customize <ChevronDown className="w-3 h-3" /></>}
+          </span>
+        </button>
+
         <div className="flex flex-wrap gap-2">
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary border border-primary/20">
             {tactics.mentality.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
@@ -597,77 +547,115 @@ const TacticsPage = () => {
             {pressingLabel(tactics.pressingIntensity)} Press
           </span>
         </div>
-      </GlassPanel>
 
-      {/* Lineup List */}
-      <GlassPanel className="p-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Starting XI</p>
-        <div className="space-y-1">
-          {lineupPlayers.map((p, i) => (
-            <div key={p.id} className="flex items-center gap-2 py-1">
-              <span className="text-xs text-muted-foreground w-5">{i + 1}</span>
-              <span className="text-xs font-mono text-primary w-8">{p.position}</span>
-              <span className="text-sm text-foreground flex-1"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName[0]}. {p.lastName}</span>
-              <span className={cn(
-                'text-xs font-mono',
-                getRatingColor(p.overall)
-              )}>{p.overall}</span>
+        {showAdvancedTactics && (
+          <div className="mt-4 space-y-4 border-t border-border/30 pt-4">
+            {/* Mentality */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Mentality <InfoTip text={HELP_TEXTS.mentality} /></p>
+              <div className="flex flex-wrap gap-1.5">
+                {MENTALITIES.map(m => (
+                  <button
+                    key={m.value}
+                    onClick={() => { setTactics({ mentality: m.value }); hapticLight(); }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      tactics.mentality === m.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          ))}
-        </div>
-      </GlassPanel>
 
-      {/* Subs — tap a sub to swap with a starting player */}
-      <GlassPanel className="p-4">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-xs text-muted-foreground uppercase tracking-wider">Substitutes</p>
-          {swapSubId && (
-            <button onClick={() => setSwapSubId(null)} className="text-[10px] text-primary font-semibold">Cancel</button>
-          )}
-        </div>
+            {/* Team Width */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Team Width <InfoTip text={HELP_TEXTS.width} /></p>
+              <div className="flex flex-wrap gap-1.5">
+                {WIDTHS.map(w => (
+                  <button
+                    key={w.value}
+                    onClick={() => { setTactics({ width: w.value }); hapticLight(); }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      tactics.width === w.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-        {/* When a sub is selected, show starters to swap with */}
-        {swapSubId && (
-          <div className="mb-3 p-2 bg-primary/5 border border-primary/20 rounded-lg">
-            <p className="text-[10px] text-primary mb-1.5">Tap a starter to swap with {players[swapSubId]?.lastName}:</p>
-            <div className="space-y-1">
-              {club.lineup.map(id => players[id]).filter(Boolean).map(p => (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    const newLineup = club.lineup.map(id => id === p.id ? swapSubId : id);
-                    const newSubs = club.subs.map(id => id === swapSubId ? p.id : id);
-                    updateLineup(newLineup, newSubs);
-                    setSwapSubId(null);
-                  }}
-                  className="flex items-center gap-2 py-1 w-full hover:bg-muted/30 rounded px-1 transition-colors"
-                >
-                  <ArrowRightLeft className="w-3 h-3 text-primary" />
-                  <span className="text-xs font-mono text-muted-foreground w-8">{p.position}</span>
-                  <span className="text-sm text-foreground flex-1 text-left"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName[0]}. {p.lastName}</span>
-                  <span className={cn('text-xs font-mono', getRatingColor(p.overall))}>{p.overall}</span>
-                </button>
-              ))}
+            {/* Tempo */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Tempo <InfoTip text={HELP_TEXTS.tempo} /></p>
+              <div className="flex flex-wrap gap-1.5">
+                {TEMPOS.map(t => (
+                  <button
+                    key={t.value}
+                    onClick={() => { setTactics({ tempo: t.value }); hapticLight(); }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      tactics.tempo === t.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Defensive Line */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Defensive Line <InfoTip text={HELP_TEXTS.defensiveLine} /></p>
+              <div className="flex flex-wrap gap-1.5">
+                {DEFENSIVE_LINES.map(d => (
+                  <button
+                    key={d.value}
+                    onClick={() => { setTactics({ defensiveLine: d.value }); hapticLight(); }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      tactics.defensiveLine === d.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Pressing */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Pressing <InfoTip text={HELP_TEXTS.pressingIntensity} /></p>
+              <div className="flex flex-wrap gap-1.5">
+                {PRESSING_OPTIONS.map(p => (
+                  <button
+                    key={p.value}
+                    onClick={() => { setTactics({ pressingIntensity: p.value }); hapticLight(); }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      tactics.pressingIntensity === p.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         )}
-
-        <div className="space-y-1">
-          {club.subs.map(id => players[id]).filter(Boolean).map(p => (
-            <button
-              key={p.id}
-              onClick={() => setSwapSubId(swapSubId === p.id ? null : p.id)}
-              className={cn(
-                'flex items-center gap-2 py-1 w-full rounded px-1 transition-colors',
-                swapSubId === p.id ? 'bg-primary/10 border border-primary/30' : 'hover:bg-muted/30'
-              )}
-            >
-              <span className="text-xs font-mono text-muted-foreground w-8">{p.position}</span>
-              <span className="text-sm text-foreground/70 flex-1 text-left"><FlagIcon nationality={p.nationality} size={16} /> {p.firstName[0]}. {p.lastName}</span>
-              <span className={cn('text-xs font-mono', getRatingColor(p.overall))}>{p.overall}</span>
-            </button>
-          ))}
-        </div>
       </GlassPanel>
 
       {/* Set-Piece Takers */}
