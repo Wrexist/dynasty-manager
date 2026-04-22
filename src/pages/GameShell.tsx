@@ -107,6 +107,25 @@ const screens: Record<string, React.ComponentType> = {
   'ballon-dor': BallonDor,
 };
 
+// Route-level Suspense fallback while a lazy page chunk downloads. Renders
+// a structural placeholder in the same `max-w-lg` column the real screens
+// use so there's no visual jump when the chunk resolves. Honors reduced
+// motion via Tailwind's motion-reduce variant.
+const PageSuspenseFallback = () => (
+  <div
+    role="status"
+    aria-busy="true"
+    aria-live="polite"
+    aria-label="Loading page"
+    className="max-w-lg mx-auto px-4 py-4 space-y-3"
+  >
+    <div className="h-9 w-40 rounded-md bg-muted/40 animate-pulse motion-reduce:animate-none" />
+    <div className="h-28 rounded-xl bg-card/40 border border-border/40 animate-pulse motion-reduce:animate-none" />
+    <div className="h-40 rounded-xl bg-card/40 border border-border/40 animate-pulse motion-reduce:animate-none" />
+    <div className="h-40 rounded-xl bg-card/40 border border-border/40 animate-pulse motion-reduce:animate-none" />
+  </div>
+);
+
 
 const GameShell = () => {
   const navigate = useNavigate();
@@ -275,7 +294,7 @@ const GameShell = () => {
               transition={{ duration: 0.1, ease: 'easeOut' }}
             >
               <PageErrorBoundary>
-                <Suspense fallback={<div className="flex items-center justify-center h-64"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>}>
+                <Suspense fallback={<PageSuspenseFallback />}>
                   <Screen />
                 </Suspense>
               </PageErrorBoundary>

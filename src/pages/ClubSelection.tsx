@@ -15,6 +15,7 @@ import type { LeagueId, OnboardingStep, OnboardingDraft } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
 import { readSessionJson, writeSessionJson, removeSessionKey, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { hapticLight } from '@/utils/haptics';
+import { LoadingOverlay } from '@/components/LoadingOverlay';
 import { toast } from 'sonner';
 
 
@@ -257,6 +258,15 @@ const ClubSelection = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Initial setup can take 1–2s when the community pack is enabled
+          because initGame dynamically imports several MB of pool data.
+          Without a full-screen overlay the user would see the Begin Career
+          button pulse while the page sits frozen. */}
+      <LoadingOverlay
+        open={loading}
+        message={communityPackEnabled ? 'Loading community pack…' : 'Setting up your career…'}
+        detail={communityPackEnabled ? 'Importing the full player database — this takes a moment.' : undefined}
+      />
       {/* Header — frosted liquid-glass rim with specular top crescent.
           safe-area-top lives here (not on the outer div) so the sticky
           header itself reserves room for the notch/Dynamic Island when
