@@ -149,11 +149,13 @@ const TitleScreen = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 overflow-hidden relative safe-area-top safe-area-bottom">
-      {/* Floating background circles — pure CSS animation for GPU efficiency */}
+      {/* Floating background circles — pure CSS animation for GPU efficiency.
+          The .title-float-circle class gives index.css a clean handle to
+          disable the drift under prefers-reduced-motion. */}
       {floatingCircles.map((circle) => (
         <div
           key={circle.id}
-          className="absolute rounded-full blur-2xl pointer-events-none will-change-transform"
+          className="title-float-circle absolute rounded-full blur-2xl pointer-events-none will-change-transform"
           style={{
             width: circle.size,
             height: circle.size,

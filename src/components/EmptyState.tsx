@@ -62,6 +62,7 @@ export function EmptyState({
       )}
       {action && (
         <Button
+          type="button"
           variant={action.variant ?? 'secondary'}
           size="sm"
           className="mt-4 h-11"

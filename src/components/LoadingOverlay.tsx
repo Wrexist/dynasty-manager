@@ -47,15 +47,18 @@ export function LoadingOverlay({
           transition={{ duration: 0.15 }}
           className={cn(
             variant === 'page' ? 'fixed inset-0' : 'absolute inset-0',
-            'z-[60] flex flex-col items-center justify-center gap-4 bg-background/80 backdrop-blur-sm',
+            // touch-none blocks underlying taps + keeps iOS back gesture
+            // from firing while the overlay is up.
+            'z-[60] flex flex-col items-center justify-center gap-4 bg-background/80 backdrop-blur-sm touch-none',
             className,
           )}
-          // Block underlying taps + keep iOS back gesture from also firing.
-          style={{ touchAction: 'none' }}
           onClick={(e) => e.stopPropagation()}
         >
           <div
-            className="w-12 h-12 rounded-full border-[3px] border-primary/20 border-t-primary animate-spin motion-reduce:animate-pulse motion-reduce:border-t-primary/40"
+            // motion-safe keeps the spin for regular users; motion-reduce
+            // swaps it to no animation + a solid primary ring so the
+            // indicator is still visually distinct without rotation.
+            className="w-12 h-12 rounded-full border-[3px] border-primary/20 border-t-primary motion-safe:animate-spin motion-reduce:animate-none motion-reduce:border-primary/40"
             aria-hidden="true"
           />
           <div className="text-center px-6 max-w-xs">

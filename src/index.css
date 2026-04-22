@@ -168,13 +168,6 @@
     touch-action: pan-y;
   }
 
-  /* In-app horizontal swipe zones (e.g. tab navigation). pan-y allows
-     vertical scroll, the script's own logic disables left-edge swipes so the
-     iOS back gesture still wins in its 20px hot zone. */
-  .touch-pan-y-no-pinch {
-    touch-action: pan-y pinch-zoom;
-  }
-
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
@@ -287,7 +280,10 @@
   }
 }
 
-/* Player avatar idle bob + breathing animation */
+/* Player avatar idle bob + breathing animation. Applied to every player
+   avatar in lineups/benches, so the reduced-motion guard matters — an
+   infinite 2.8s transform on 20+ nodes is exactly the vestibular-trigger
+   pattern WCAG 2.3.3 asks us to avoid. */
 @keyframes playerIdleBob {
   0%, 100% { transform: translateY(0) scaleY(1); }
   50% { transform: translateY(-0.6px) scaleY(1.006); }
@@ -295,13 +291,21 @@
 .player-avatar-idle {
   animation: playerIdleBob 2.8s ease-in-out infinite;
 }
+@media (prefers-reduced-motion: reduce) {
+  .player-avatar-idle { animation: none; }
+}
 
-/* Title screen floating background circles (pure CSS, no JS animation overhead) */
+/* Title screen floating background circles (pure CSS, no JS animation
+   overhead). Duration is applied inline from the JS config; we can't cap
+   it here, but we can disable the drift entirely under reduced motion. */
 @keyframes floatDrift {
   0%, 100% { transform: translate(-50%, -50%) translate(0, 0); }
   25% { transform: translate(-50%, -50%) translate(var(--drift-x), var(--drift-y)); }
   50% { transform: translate(-50%, -50%) translate(calc(var(--drift-x) * -0.6), calc(var(--drift-y) * 0.7)); }
   75% { transform: translate(-50%, -50%) translate(calc(var(--drift-x) * 0.3), calc(var(--drift-y) * -0.4)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-float-circle { animation: none; }
 }
 
 /* ── Custom Age Slider ── */

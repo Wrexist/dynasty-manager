@@ -741,13 +741,15 @@ const PlayerDetail = () => {
         </GlassPanel>
       )}
 
-      {/* Match History — shows an empty state for new players so the card
-          doesn't silently disappear before their first appearance. */}
+      {/* Match History — shows an empty state so the card doesn't silently
+          disappear. The copy is neutral because this screen opens for any
+          player (rivals, transferred-out players, backfilled rosters) —
+          assuming a future match would be inaccurate for those cases. */}
       {(!player.matchHistory || player.matchHistory.length === 0) && (
         <EmptyState
           icon={Trophy}
           title="No match history yet"
-          description="Your first match is coming up. Appearances, goals, and ratings will appear here."
+          description="Appearances, goals, and ratings will appear here after this player features in a match."
         />
       )}
       {player.matchHistory && player.matchHistory.length > 0 && (

@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
@@ -72,6 +72,10 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
   const displayTitle = celebItem ? celebItem.name : title;
   const confettiId = getActiveCosmetic(monetization, 'confetti_style');
   const confettiConfig = CONFETTI_STYLES[confettiId || 'default'] || CONFETTI_STYLES.default;
+  // 20–30 particles animating translate + scale for 1.5–3s is a vestibular
+  // trigger for reduced-motion users. Skip rendering them entirely — the
+  // spring-in modal + haptic + gold border is celebration enough.
+  const prefersReducedMotion = useReducedMotion();
   useScrollLock(open);
 
   // Single source of truth for celebration moments — promotions, trophy
@@ -102,12 +106,14 @@ export function CelebrationModal({ open, onClose, title, description, icon, stat
             exit={{ scale: 0.9, opacity: 0, y: 10 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           >
-            {/* Particles */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-              {Array.from({ length: confettiConfig.count }).map((_, i) => (
-                <Particle key={i} config={confettiConfig} />
-              ))}
-            </div>
+            {/* Particles — skipped under reduced motion. */}
+            {!prefersReducedMotion && (
+              <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                {Array.from({ length: confettiConfig.count }).map((_, i) => (
+                  <Particle key={i} config={confettiConfig} />
+                ))}
+              </div>
+            )}
 
             {/* Close button */}
             <button

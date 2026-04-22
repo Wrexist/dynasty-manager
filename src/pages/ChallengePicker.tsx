@@ -152,7 +152,7 @@ const ChallengePicker = () => {
                 onChange={e => setClubSearch(e.target.value)}
                 placeholder="Search clubs..."
                 aria-label="Search clubs"
-                className="w-full bg-muted/30 border border-border/30 rounded-lg pl-9 pr-8 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary/40 transition-colors"
+                className="w-full bg-muted/30 border border-border/30 rounded-lg pl-9 pr-12 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary/40 transition-colors"
               />
               {clubSearch && (
                 <button
