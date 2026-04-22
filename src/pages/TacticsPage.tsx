@@ -51,6 +51,7 @@ const TacticsPage = () => {
   const club = clubs[playerClubId];
   const [presetName, setPresetName] = useState('');
   const [showAllChem, setShowAllChem] = useState(false);
+  const [showAdvancedTactics, setShowAdvancedTactics] = useState(false);
   const userIsPro = isPro(monetization);
   const { potentialGain, autoFilling, optimizeLineup } = useLineupOptimizer();
 
@@ -516,119 +517,19 @@ const TacticsPage = () => {
         <ProUpsell feature="Custom Tactics Creator" />
       )}
 
-      {/* Tactical Instructions */}
-      <GlassPanel className="p-4 space-y-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider">Tactical Instructions</p>
-
-        {/* Mentality */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Mentality <InfoTip text={HELP_TEXTS.mentality} /></p>
-          <div className="flex flex-wrap gap-1.5">
-            {MENTALITIES.map(m => (
-              <button
-                key={m.value}
-                onClick={() => { setTactics({ mentality: m.value }); hapticLight(); }}
-                className={cn(
-                  'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  tactics.mentality === m.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Team Width */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Team Width <InfoTip text={HELP_TEXTS.width} /></p>
-          <div className="flex flex-wrap gap-1.5">
-            {WIDTHS.map(w => (
-              <button
-                key={w.value}
-                onClick={() => { setTactics({ width: w.value }); hapticLight(); }}
-                className={cn(
-                  'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  tactics.width === w.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Tempo */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Tempo <InfoTip text={HELP_TEXTS.tempo} /></p>
-          <div className="flex flex-wrap gap-1.5">
-            {TEMPOS.map(t => (
-              <button
-                key={t.value}
-                onClick={() => { setTactics({ tempo: t.value }); hapticLight(); }}
-                className={cn(
-                  'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  tactics.tempo === t.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Defensive Line */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Defensive Line <InfoTip text={HELP_TEXTS.defensiveLine} /></p>
-          <div className="flex flex-wrap gap-1.5">
-            {DEFENSIVE_LINES.map(d => (
-              <button
-                key={d.value}
-                onClick={() => { setTactics({ defensiveLine: d.value }); hapticLight(); }}
-                className={cn(
-                  'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  tactics.defensiveLine === d.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {d.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Pressing */}
-        <div>
-          <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Pressing <InfoTip text={HELP_TEXTS.pressingIntensity} /></p>
-          <div className="flex flex-wrap gap-1.5">
-            {PRESSING_OPTIONS.map(p => (
-              <button
-                key={p.value}
-                onClick={() => { setTactics({ pressingIntensity: p.value }); hapticLight(); }}
-                className={cn(
-                  'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                  tactics.pressingIntensity === p.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </GlassPanel>
-
-      {/* Team Instructions Summary */}
+      {/* Advanced Tactical Instructions — collapsed by default, summary chips always visible */}
       <GlassPanel className="p-4">
-        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2">Current Instructions</p>
+        <button
+          onClick={() => setShowAdvancedTactics(v => !v)}
+          className="w-full flex items-center justify-between gap-2 mb-2"
+          aria-expanded={showAdvancedTactics}
+        >
+          <p className="text-xs text-muted-foreground uppercase tracking-wider">Advanced Instructions</p>
+          <span className="flex items-center gap-1 text-[10px] font-semibold text-primary">
+            {showAdvancedTactics ? <>Hide <ChevronUp className="w-3 h-3" /></> : <>Customize <ChevronDown className="w-3 h-3" /></>}
+          </span>
+        </button>
+
         <div className="flex flex-wrap gap-2">
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-primary/15 text-primary border border-primary/20">
             {tactics.mentality.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}
@@ -646,6 +547,115 @@ const TacticsPage = () => {
             {pressingLabel(tactics.pressingIntensity)} Press
           </span>
         </div>
+
+        {showAdvancedTactics && (
+          <div className="mt-4 space-y-4 border-t border-border/30 pt-4">
+            {/* Mentality */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Mentality <InfoTip text={HELP_TEXTS.mentality} /></p>
+              <div className="flex flex-wrap gap-1.5">
+                {MENTALITIES.map(m => (
+                  <button
+                    key={m.value}
+                    onClick={() => { setTactics({ mentality: m.value }); hapticLight(); }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      tactics.mentality === m.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Team Width */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Team Width <InfoTip text={HELP_TEXTS.width} /></p>
+              <div className="flex flex-wrap gap-1.5">
+                {WIDTHS.map(w => (
+                  <button
+                    key={w.value}
+                    onClick={() => { setTactics({ width: w.value }); hapticLight(); }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      tactics.width === w.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Tempo */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Tempo <InfoTip text={HELP_TEXTS.tempo} /></p>
+              <div className="flex flex-wrap gap-1.5">
+                {TEMPOS.map(t => (
+                  <button
+                    key={t.value}
+                    onClick={() => { setTactics({ tempo: t.value }); hapticLight(); }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      tactics.tempo === t.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Defensive Line */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Defensive Line <InfoTip text={HELP_TEXTS.defensiveLine} /></p>
+              <div className="flex flex-wrap gap-1.5">
+                {DEFENSIVE_LINES.map(d => (
+                  <button
+                    key={d.value}
+                    onClick={() => { setTactics({ defensiveLine: d.value }); hapticLight(); }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      tactics.defensiveLine === d.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Pressing */}
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Pressing <InfoTip text={HELP_TEXTS.pressingIntensity} /></p>
+              <div className="flex flex-wrap gap-1.5">
+                {PRESSING_OPTIONS.map(p => (
+                  <button
+                    key={p.value}
+                    onClick={() => { setTactics({ pressingIntensity: p.value }); hapticLight(); }}
+                    className={cn(
+                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      tactics.pressingIntensity === p.value
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                    )}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </GlassPanel>
 
       {/* Set-Piece Takers */}
