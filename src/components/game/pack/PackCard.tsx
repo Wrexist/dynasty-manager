@@ -3,7 +3,6 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { Player } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { CardArtBackground } from '@/components/game/CardArtBackground';
 import { cn } from '@/lib/utils';
 import { tierForOvr, tierGradient } from './packHelpers';
 import { PACK_ANIM } from '@/config/packs';
@@ -99,23 +98,58 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
           )}
         </div>
 
-        {/* Face */}
+        {/* Face — clean dark surface, tier expressed through a thin
+            gradient stroke, a tinted corner glow behind the OVR, and the
+            rating digit itself. No more gold slab or hero disc. */}
         <div
-          className={cn(
-            'absolute inset-0 rounded-2xl overflow-hidden border shadow-[0_18px_36px_rgba(0,0,0,0.55)]',
-            'border-white/15',
-          )}
-          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: tierGradient(tier) }}
+          className="absolute inset-0 rounded-2xl overflow-hidden shadow-[0_18px_36px_rgba(0,0,0,0.55)]"
+          style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
-          <CardArtBackground overall={player.overall} eager overlayStrength={0.55} />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/40 pointer-events-none" />
-          <div className="relative h-full flex flex-col px-3 py-2.5 text-white">
+          {/* Base: deep glass, not black — matches the app surface token
+              so the card sits inside any page without a visual seam. */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                'linear-gradient(180deg, hsl(222, 34%, 11%) 0%, hsl(222, 30%, 8%) 100%)',
+            }}
+          />
+          {/* Tier-tinted corner glow — quickly readable tier without a
+              full gold wash. Diameter is generous so falloff is gentle. */}
+          <div
+            aria-hidden
+            className="absolute -top-14 -left-10 w-40 h-40 rounded-full blur-[30px] pointer-events-none opacity-45"
+            style={{ background: `radial-gradient(circle, ${tier.gradientVia}, transparent 65%)` }}
+          />
+          {/* Counter-glow in the opposite corner so the surface doesn't
+              feel lopsided. Much dimmer. */}
+          <div
+            aria-hidden
+            className="absolute -bottom-16 -right-12 w-40 h-40 rounded-full blur-[36px] pointer-events-none opacity-20"
+            style={{ background: `radial-gradient(circle, ${tier.gradientTo}, transparent 70%)` }}
+          />
+          {/* Thin tier-gradient border stroke (1px) via mask-composite so
+              the inside stays crisp and dark. */}
+          <div
+            aria-hidden
+            className="absolute inset-0 rounded-2xl pointer-events-none"
+            style={{
+              padding: '1px',
+              background: tierGradient(tier),
+              WebkitMask:
+                'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+              WebkitMaskComposite: 'xor',
+              maskComposite: 'exclude',
+            }}
+          />
+
+          <div className="relative h-full flex flex-col px-4 pt-4 pb-3 text-white">
             {/* Quick-release × (summary only) */}
             {revealed && onDismiss && (
               <button
                 type="button"
                 onClick={handleDismiss}
-                className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/55 hover:bg-black/80 border border-white/25 flex items-center justify-center z-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/55 hover:bg-black/80 border border-white/25 flex items-center justify-center z-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                 aria-label={`Release ${player.firstName} ${player.lastName}`}
                 title="Release (1 week severance)"
               >
@@ -123,63 +157,45 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
               </button>
             )}
 
-            {/* Top row — OVR stacked with position on the left, flag on the
-                right. Keeping position here (not on the disc) so it stays
-                visible even when the centre disc is compressed. */}
-            <div className="flex items-start justify-between">
-              <div className="flex flex-col leading-none">
-                <span className="text-3xl font-display font-black drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                  {player.overall}
-                </span>
-                <span className="mt-0.5 text-[9px] font-bold tracking-[0.2em] text-white/85">
-                  {player.position}
-                </span>
-              </div>
-              <div className="w-7 h-5 rounded-sm overflow-hidden border border-white/30 bg-black/30 shrink-0">
-                <FlagIcon nationality={player.nationality} size={28} fill />
-              </div>
-            </div>
-
-            {/* Hero disc — radial highlight + inset shadow for depth. Just
-                the initials now; position moved to the top-left so the disc
-                stays clean and doesn't crowd the name below. */}
-            <div className="flex-1 flex items-center justify-center min-h-0">
+            {/* OVR + position, inset from the corner so they sit inside
+                the frame rather than hugging it. OVR is tier-tinted so
+                you can eyeball Gold vs Icon vs Silver at a glance. */}
+            <div className="leading-none">
               <div
-                className={cn(
-                  'relative w-12 h-12 rounded-full flex items-center justify-center',
-                  'border border-white/25',
-                  'shadow-[inset_0_2px_4px_rgba(255,255,255,0.25),inset_0_-3px_6px_rgba(0,0,0,0.35),0_6px_16px_-4px_rgba(0,0,0,0.55)]',
-                )}
+                className="text-[40px] font-display font-black tabular-nums tracking-tight"
                 style={{
-                  background:
-                    'radial-gradient(circle at 30% 25%, rgba(255,255,255,0.35) 0%, rgba(255,255,255,0.08) 35%, rgba(0,0,0,0.35) 100%)',
+                  color: tier.gradientFrom,
+                  textShadow: `0 2px 10px ${tier.gradientVia}55`,
                 }}
               >
-                <div
-                  className="absolute inset-0 rounded-full pointer-events-none"
-                  style={{
-                    background:
-                      'radial-gradient(ellipse 60% 40% at 50% 15%, rgba(255,255,255,0.45), transparent 70%)',
-                  }}
-                />
-                <span className="relative text-base font-display font-black text-white tracking-[0.08em] drop-shadow-[0_1px_2px_rgba(0,0,0,0.55)]">
-                  {player.firstName[0]}{player.lastName[0]}
-                </span>
+                {player.overall}
+              </div>
+              <div className="mt-1 text-[10px] font-bold tracking-[0.22em] text-white/55">
+                {player.position}
               </div>
             </div>
 
-            {/* Name — last name only, big and bold. First name is on the
-                walkout typewriter and the Added-to-Squad announcement so
-                we drop it here to reclaim vertical space. */}
-            <div className="text-center px-1">
-              <p className="text-sm font-display font-bold leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-                {player.lastName}
+            {/* Identity block — last name (primary), flag pinned to its
+                right, first name as a small dim eyebrow below. The row
+                truncates gracefully; flag never collapses. */}
+            <div className="flex-1 flex flex-col items-center justify-center min-h-0 text-center">
+              <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full px-1">
+                <p className="text-[17px] font-display font-black leading-none truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                  {player.lastName}
+                </p>
+                <div className="w-[18px] h-[13px] rounded-[2px] overflow-hidden border border-white/15 shrink-0">
+                  <FlagIcon nationality={player.nationality} fill />
+                </div>
+              </div>
+              <p className="mt-1 text-[9px] tracking-[0.22em] uppercase font-semibold text-white/35 truncate max-w-full px-1">
+                {player.firstName}
               </p>
             </div>
 
-            {/* Footer stat strip — stacked label/value, tabular numerals
-                keep 99 and 8 centred identically. Soft frosted chips. */}
-            <div className="mt-1.5 grid grid-cols-3 gap-1">
+            {/* Stats — compact inline label/value pairs, no chip boxes.
+                Label is muted and small, value is bold with tabular
+                numerals so columns stay aligned between 9 and 99. */}
+            <div className="grid grid-cols-3 gap-x-2.5 gap-y-1.5">
               {([
                 ['PAC', player.attributes.pace],
                 ['SHO', player.attributes.shooting],
@@ -188,12 +204,13 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
                 ['DEF', player.attributes.defending],
                 ['PHY', player.attributes.physical],
               ] as const).map(([label, value]) => (
-                <div
-                  key={label}
-                  className="flex flex-col items-center rounded-md bg-black/35 border border-white/10 px-1 py-0.5 backdrop-blur-sm"
-                >
-                  <span className="text-[8px] font-bold tracking-[0.15em] opacity-65 leading-tight">{label}</span>
-                  <span className="text-[11px] font-display font-black tabular-nums leading-none mt-0.5">{value}</span>
+                <div key={label} className="flex items-baseline justify-between gap-1">
+                  <span className="text-[9px] font-semibold tracking-[0.12em] text-white/45 leading-none">
+                    {label}
+                  </span>
+                  <span className="text-[12px] font-display font-black tabular-nums leading-none text-white">
+                    {value}
+                  </span>
                 </div>
               ))}
             </div>
