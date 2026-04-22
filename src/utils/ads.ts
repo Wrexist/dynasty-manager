@@ -71,7 +71,7 @@ export async function showRewardedAd(): Promise<boolean> {
       console.warn('[Ads] No ad available');
       return false;
     }
-    console.error('[Ads] Rewarded ad error:', err);
+    if (import.meta.env.DEV) console.error('[Ads] Rewarded ad error:', err);
     return false;
   }
 }
