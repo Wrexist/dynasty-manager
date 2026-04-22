@@ -312,3 +312,44 @@ the PR body (not automated — no Playwright in the repo yet).
    immediately? Default pick: stack. Quick-sell is a tap away.
 
 Every default is reversible — none of them block Phase 1.
+
+---
+
+## What actually shipped (2026-04)
+
+This plan was written for a full `PackStore` / `PackOpen` / `Collection` UI
+stack. The scope that landed is narrower: a **data + engine integration**
+that lets FC26 community players flow through the existing squad and
+transfer systems, gated by a new-game opt-in popup. Phases 2–4 of the plan
+(tier-banded odds, pack-opening animations, Collection browser) were
+**not built** in this round and remain open for a future release.
+
+### Phases that shipped
+
+| # | Commit | Ships as |
+|---|--------|----------|
+| 1 | `75d0b88` | `Player.source`/`fcId`/`heightCm`/`weightKg` + `GameState.communityPack*` types |
+| 2 | `a087a91` | v59→v60 save migration (`src/utils/saveMigration.ts:892-897`) |
+| 3 | `861ea9f` | Seeded shuffle + active-pool helpers (`src/utils/communityPackPool.ts`) |
+| 4 | `765a287` | Market + scouting draw helpers |
+| 5 | `f8a12cd` | AI fill, youth, cursor-advance helpers |
+| 6 | `683ed34` | Community-pack branch inside `initGame` |
+| 7 | `6747b84` | Seed initial transfer market from CP free agents |
+| 8 | `ed6b688` | Rotate CP market listings every 4 weeks |
+
+Plus: `CommunityPackPopup.tsx` (opt-in at new-game), Settings toggle
+(`e849045`), FC26 league squads (MLS, Saudi, K League, Brasileirão,
+A-League, ISL, Argentina), bundle budget tracking (`6ca134c`), and a
+34-test suite at `src/test/communityPack.test.ts` (PR #392 / `a6171e8`).
+
+### What the plan describes but didn't ship
+
+- `PackStore.tsx`, `PackOpen.tsx`, `Collection.tsx` UI pages.
+- Pack-opening animation sequence and tier-banded odds tables.
+- The `openPack`, `assignToSquad`, `quickSell` store actions and
+  `ownedIds` state shape.
+- Pack currency sourcing decision (Open Question #1) — still open.
+
+The data pipeline (Phases 0–1) and the runtime engine integration (the
+8 phases above) are production. The collection / pack-opening UI is the
+natural follow-up cycle.
