@@ -1,11 +1,12 @@
-import { Component, type ReactNode, lazy, Suspense } from "react";
-import * as Sentry from "@sentry/react";
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { HashRouter, Routes, Route } from "react-router-dom";
 import { MotionConfig } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { SaveRecoveryDialog } from "@/components/SaveRecoveryDialog";
 import TitleScreen from "./pages/TitleScreen";
 import NotFound from "./pages/NotFound";
 
@@ -28,65 +29,40 @@ const LoadingFallback = () => (
   </div>
 );
 
-// Error boundary to prevent white-screen crashes
-class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
-  constructor(props: { children: ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    Sentry.captureException(error, { extra: { componentStack: errorInfo.componentStack } });
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-4">
-          <div className="bg-card/60 backdrop-blur-xl border border-border/50 rounded-xl p-8 max-w-md text-center space-y-4">
-            <h1 className="text-xl font-bold text-primary">Something went wrong</h1>
-            <p className="text-muted-foreground text-sm">
-              An unexpected error occurred. Your save data is safe.
-            </p>
-            <button
-              onClick={() => {
-                this.setState({ hasError: false });
-                window.location.hash = '#/';
-              }}
-              className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
-            >
-              Return to Title Screen
-            </button>
-          </div>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
-
 const App = () => {
   const reducedMotion = useGameStore(s => s.settings.reducedMotion);
 
   return (
-  <ErrorBoundary>
+  <ErrorBoundary scope="app">
     <MotionConfig reducedMotion={reducedMotion ? "always" : "user"}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <SaveRecoveryDialog />
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               <Route path="/" element={<TitleScreen />} />
-              <Route path="/mode-select" element={<ModeSelect />} />
-              <Route path="/select-club" element={<ClubSelection />} />
-              <Route path="/create-manager" element={<ManagerCreation />} />
-              <Route path="/challenge" element={<ChallengePicker />} />
-              <Route path="/game" element={<GameShell />} />
+              <Route
+                path="/mode-select"
+                element={<ErrorBoundary scope="mode-select"><ModeSelect /></ErrorBoundary>}
+              />
+              <Route
+                path="/select-club"
+                element={<ErrorBoundary scope="select-club"><ClubSelection /></ErrorBoundary>}
+              />
+              <Route
+                path="/create-manager"
+                element={<ErrorBoundary scope="create-manager"><ManagerCreation /></ErrorBoundary>}
+              />
+              <Route
+                path="/challenge"
+                element={<ErrorBoundary scope="challenge"><ChallengePicker /></ErrorBoundary>}
+              />
+              <Route
+                path="/game"
+                element={<ErrorBoundary scope="game-shell"><GameShell /></ErrorBoundary>}
+              />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

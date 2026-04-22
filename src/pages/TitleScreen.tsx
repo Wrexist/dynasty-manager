@@ -62,8 +62,14 @@ const TitleScreen = () => {
   const handleContinue = (slot: number) => {
     if (loadGame(slot)) {
       queueMicrotask(() => navigate('/game'));
-    } else {
-      errorToast('Save data corrupted', 'Your save could not be loaded. Try another slot or start a new game.');
+      return;
+    }
+    // If loadGame set a loadError, the SaveRecoveryDialog will render over
+    // this screen with the appropriate message + actions (recovery / skip).
+    // Only fall back to the toast when the slot is genuinely empty — the
+    // dialog isn't shown for that path.
+    if (!useGameStore.getState().loadError) {
+      errorToast('Save data not found', 'This slot is empty.');
     }
   };
 

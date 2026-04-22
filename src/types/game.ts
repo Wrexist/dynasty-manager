@@ -978,6 +978,30 @@ export interface SlotSummary {
   gameMode?: GameMode;
 }
 
+/** Why a `loadGame()` call failed. Populated on GameState.loadError so the
+ *  SaveRecoveryDialog can render the appropriate message + actions. */
+export type LoadErrorKind =
+  /** JSON parse failed on primary (and backup if it was tried too). */
+  | 'corrupt'
+  /** Save was written by a newer version of the app. Refuse, don't guess. */
+  | 'newer_version'
+  /** Structural check failed after migration (missing required fields). */
+  | 'validation_failed'
+  /** migrateSaveData threw during one of the version steps. */
+  | 'migration_failed';
+
+export interface LoadError {
+  slot: number;
+  kind: LoadErrorKind;
+  /** Free-form detail for logs / DEV surface. */
+  reason?: string;
+  /** True if an untried backup still exists for this slot. The dialog shows
+   *  a "Try recovery" action only when this is true. */
+  canRecover: boolean;
+  /** Save file version, when known (populated for 'newer_version'). */
+  saveVersion?: number;
+}
+
 // Cup competition types
 export type CupRound = 'R1' | 'R2' | 'R3' | 'R4' | 'QF' | 'SF' | 'F';
 

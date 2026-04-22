@@ -85,7 +85,7 @@ export async function purchaseProduct(productId: ProductId): Promise<ProductId[]
       // User cancelled — not an error
       return [];
     }
-    console.error('[Purchases] Purchase failed:', err);
+    if (import.meta.env.DEV) console.error('[Purchases] Purchase failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.purchaseProduct' }, extra: { productId } });
     throw err;
   }
@@ -102,7 +102,7 @@ export async function restorePurchases(): Promise<ProductId[]> {
     const { customerInfo } = await Purchases.restorePurchases();
     return mapEntitlements(customerInfo);
   } catch (err) {
-    console.error('[Purchases] Restore failed:', err);
+    if (import.meta.env.DEV) console.error('[Purchases] Restore failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.restore' } });
     throw err;
   }
@@ -119,7 +119,7 @@ export async function getEntitlements(): Promise<ProductId[]> {
     const { customerInfo } = await Purchases.getCustomerInfo();
     return mapEntitlements(customerInfo);
   } catch (err) {
-    console.error('[Purchases] Get entitlements failed:', err);
+    if (import.meta.env.DEV) console.error('[Purchases] Get entitlements failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.getEntitlements' } });
     return [];
   }
@@ -137,7 +137,7 @@ export async function getCustomerInfo(): Promise<any | null> {
     const { customerInfo } = await Purchases.getCustomerInfo();
     return customerInfo;
   } catch (err) {
-    console.error('[Purchases] Get customer info failed:', err);
+    if (import.meta.env.DEV) console.error('[Purchases] Get customer info failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.getCustomerInfo' } });
     return null;
   }
@@ -225,7 +225,7 @@ export async function presentPaywall(offeringIdentifier?: string): Promise<Paywa
     const { result } = await RevenueCatUI.presentPaywall(options);
     return mapPaywallResult(result);
   } catch (err) {
-    console.error('[Purchases] Paywall presentation failed:', err);
+    if (import.meta.env.DEV) console.error('[Purchases] Paywall presentation failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.presentPaywall' }, extra: { offeringIdentifier } });
     return 'error';
   }
@@ -242,7 +242,7 @@ export async function presentPaywallIfNeeded(entitlementId: string = 'pro'): Pro
     });
     return mapPaywallResult(result);
   } catch (err) {
-    console.error('[Purchases] Paywall presentation failed:', err);
+    if (import.meta.env.DEV) console.error('[Purchases] Paywall presentation failed:', err);
     Sentry.captureException(err, { tags: { context: 'purchases.presentPaywallIfNeeded' }, extra: { entitlementId } });
     return 'error';
   }

@@ -4,6 +4,7 @@ import { FlagIcon } from '@/components/game/FlagIcon';
 import { cn } from '@/lib/utils';
 import { Globe, Trophy, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { guardAsync } from '@/utils/asyncGuard';
 import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
@@ -110,14 +111,20 @@ const InternationalTournament = () => {
           </div>
 
           {isInternationalPhase && tournament.phase !== 'complete' && (
-            <Button className="w-full mt-2" onClick={advanceWeek}>
+            <Button
+              className="w-full mt-2"
+              onClick={() => guardAsync(advanceWeek(), 'InternationalTournament.advanceWeek', { title: 'Could not advance week', body: 'Please try again.' })}
+            >
               <Play className="w-4 h-4 mr-2" />
               {getAdvanceLabel(tournament.phase, tournament.currentRound)}
             </Button>
           )}
 
           {tournament.phase === 'complete' && isInternationalPhase && (
-            <Button className="w-full mt-2" onClick={advanceWeek}>
+            <Button
+              className="w-full mt-2"
+              onClick={() => guardAsync(advanceWeek(), 'InternationalTournament.advanceWeek', { title: 'Could not advance week', body: 'Please try again.' })}
+            >
               {getAdvanceLabel(tournament.phase, tournament.currentRound)}
             </Button>
           )}

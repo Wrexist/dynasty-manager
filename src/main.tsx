@@ -121,7 +121,7 @@ async function initNative() {
     ]);
     await SplashScreen.hide();
   } catch (err) {
-    console.error('[initNative] Native initialization failed:', err);
+    if (import.meta.env.DEV) console.error('[initNative] Native initialization failed:', err);
     Sentry.captureException(err, { tags: { context: 'initNative' } });
   }
 }

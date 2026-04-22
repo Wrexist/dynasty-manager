@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from 'vitest';
 import {
   getSponsorById,
@@ -25,10 +24,13 @@ import {
   processSponsorSeasonEnd,
   generateStarterDeals,
 } from '@/store/slices/sponsorSlice';
+import type { GameState } from '@/store/storeTypes';
 import type {
+  Club,
   SponsorDeal,
   SponsorOffer,
   SponsorBonusCondition,
+  SponsorSlotId,
   FacilitiesState,
   Match,
   LeagueTableEntry,
@@ -104,7 +106,32 @@ function makeCupState(overrides: Partial<CupState> = {}): CupState {
   };
 }
 
-function makeState(overrides: Record<string, any> = {}): any {
+function makeMatch(overrides: Partial<Match> = {}): Match {
+  return {
+    id: 'match-1',
+    week: 1,
+    homeClubId: 'test-club',
+    awayClubId: 'other-club',
+    played: true,
+    homeGoals: 0,
+    awayGoals: 0,
+    events: [],
+    ...overrides,
+  };
+}
+
+function makeClub(overrides: Partial<Club> = {}): Club {
+  return {
+    id: 'test-club',
+    name: 'Test FC',
+    reputation: 3,
+    budget: 1_000_000,
+    playerIds: [],
+    ...overrides,
+  } as unknown as Club;
+}
+
+function makeState(overrides: Partial<GameState> = {}): GameState {
   return {
     week: 5,
     season: 1,
@@ -115,13 +142,7 @@ function makeState(overrides: Record<string, any> = {}): any {
     sponsorSlotCooldowns: {},
     facilities: makeFacilities(),
     clubs: {
-      'test-club': {
-        id: 'test-club',
-        name: 'Test FC',
-        reputation: 3,
-        budget: 1_000_000,
-        playerIds: [],
-      },
+      'test-club': makeClub(),
     },
     currentMatchResult: null,
     messages: [],
@@ -134,7 +155,7 @@ function makeState(overrides: Record<string, any> = {}): any {
     divisionFixtures: { eng: [] },
     cup: makeCupState(),
     ...overrides,
-  };
+  } as unknown as GameState;
 }
 
 // ── Config Helpers ──
@@ -296,7 +317,7 @@ describe('sponsorship config helpers', () => {
     });
 
     it('returns null for invalid slot', () => {
-      const offer = generateOffer('nonexistent_slot' as any, 3, [], 5, 1);
+      const offer = generateOffer('nonexistent_slot' as SponsorSlotId, 3, [], 5, 1);
       expect(offer).toBeNull();
     });
 
@@ -326,19 +347,18 @@ describe('processSponsorWeek', () => {
     expect(result.sponsorOffers).toHaveLength(1);
     expect(result.sponsorOffers![0].id).toBe('valid');
     // Two expired offers generate two messages
-    const expiredMsgs = result.messages!.filter((m: any) => m.title === 'Sponsor Offer Expired');
+    const expiredMsgs = result.messages!.filter((m) => m.title === 'Sponsor Offer Expired');
     expect(expiredMsgs).toHaveLength(2);
   });
 
   it('updates satisfaction after a win (+2)', () => {
     const deal = makeDeal({ satisfaction: 50 });
-    const matchResult: Partial<Match> = {
+    const matchResult = makeMatch({
       homeClubId: 'test-club',
       awayClubId: 'other-club',
       homeGoals: 2,
       awayGoals: 1,
-      played: true,
-    };
+    });
     const state = makeState({
       sponsorDeals: [deal],
       currentMatchResult: matchResult,
@@ -350,13 +370,12 @@ describe('processSponsorWeek', () => {
 
   it('updates satisfaction after a loss (-3)', () => {
     const deal = makeDeal({ satisfaction: 50 });
-    const matchResult: Partial<Match> = {
+    const matchResult = makeMatch({
       homeClubId: 'test-club',
       awayClubId: 'other-club',
       homeGoals: 0,
       awayGoals: 2,
-      played: true,
-    };
+    });
     const state = makeState({
       sponsorDeals: [deal],
       currentMatchResult: matchResult,
@@ -368,13 +387,12 @@ describe('processSponsorWeek', () => {
 
   it('updates satisfaction correctly when player is away team', () => {
     const deal = makeDeal({ satisfaction: 50 });
-    const matchResult: Partial<Match> = {
+    const matchResult = makeMatch({
       homeClubId: 'other-club',
       awayClubId: 'test-club',
       homeGoals: 0,
       awayGoals: 3,
-      played: true,
-    };
+    });
     const state = makeState({
       sponsorDeals: [deal],
       currentMatchResult: matchResult,
@@ -395,7 +413,7 @@ describe('processSponsorWeek', () => {
 
     const result = processSponsorWeek(state);
     expect(result.sponsorDeals).toHaveLength(0);
-    const terminationMsg = result.messages!.find((m: any) => m.title === 'Sponsor Pulls Out!');
+    const terminationMsg = result.messages!.find((m) => m.title === 'Sponsor Pulls Out!');
     expect(terminationMsg).toBeDefined();
   });
 
@@ -403,13 +421,12 @@ describe('processSponsorWeek', () => {
     // Previous satisfaction above warning, current drops below after a loss
     const prevSatisfaction = SPONSOR_SAT_WARNING_THRESHOLD + 1;
     const deal = makeDeal({ satisfaction: prevSatisfaction });
-    const matchResult: Partial<Match> = {
+    const matchResult = makeMatch({
       homeClubId: 'test-club',
       awayClubId: 'other-club',
       homeGoals: 0,
       awayGoals: 1,
-      played: true,
-    };
+    });
 
     // The function compares updated deal sat to threshold, and checks original deal sat
     const state = makeState({
@@ -419,7 +436,7 @@ describe('processSponsorWeek', () => {
 
     const result = processSponsorWeek(state);
     // After loss: 31 + (-3) = 28, which is <= 30 and > 15, and prev was 31 > 30
-    const warningMsg = result.messages!.find((m: any) => m.title === 'Sponsor Unhappy');
+    const warningMsg = result.messages!.find((m) => m.title === 'Sponsor Unhappy');
     expect(warningMsg).toBeDefined();
   });
 
@@ -432,7 +449,7 @@ describe('processSponsorWeek', () => {
     });
 
     const result = processSponsorWeek(state);
-    const warningMsg = result.messages!.find((m: any) => m.title === 'Sponsor Unhappy');
+    const warningMsg = result.messages!.find((m) => m.title === 'Sponsor Unhappy');
     expect(warningMsg).toBeUndefined();
   });
 
@@ -444,7 +461,7 @@ describe('processSponsorWeek', () => {
       sponsorDeals: [],
       sponsorOffers: [],
       clubs: {
-        'test-club': { id: 'test-club', name: 'Test FC', reputation: 3, budget: 1_000_000 },
+        'test-club': makeClub(),
       },
     });
 
@@ -454,7 +471,7 @@ describe('processSponsorWeek', () => {
     expect(result.sponsorOffers!.length).toBeLessThanOrEqual(2);
 
     // Each offer should have a notification message
-    const offerMsgs = result.messages!.filter((m: any) => m.title === 'Sponsor Offer Received');
+    const offerMsgs = result.messages!.filter((m) => m.title === 'Sponsor Offer Received');
     expect(offerMsgs.length).toBe(result.sponsorOffers!.length);
   });
 
@@ -468,19 +485,18 @@ describe('processSponsorWeek', () => {
 
     const result = processSponsorWeek(state);
     // No new offers should be generated (only expired offer processing etc.)
-    const offerMsgs = (result.messages || []).filter((m: any) => m.title === 'Sponsor Offer Received');
+    const offerMsgs = (result.messages || []).filter((m) => m.title === 'Sponsor Offer Received');
     expect(offerMsgs.length).toBe(0);
   });
 
   it('clamps satisfaction to 100 max', () => {
     const deal = makeDeal({ satisfaction: 99 });
-    const matchResult: Partial<Match> = {
+    const matchResult = makeMatch({
       homeClubId: 'test-club',
       awayClubId: 'other-club',
       homeGoals: 5,
       awayGoals: 0,
-      played: true,
-    };
+    });
     const state = makeState({
       sponsorDeals: [deal],
       currentMatchResult: matchResult,
@@ -512,7 +528,7 @@ describe('processSponsorSeasonEnd', () => {
     });
 
     const result = processSponsorSeasonEnd(state);
-    const bonusMsg = result.messages!.find((m: any) => m.title === 'Sponsor Bonus Earned!');
+    const bonusMsg = result.messages!.find((m) => m.title === 'Sponsor Bonus Earned!');
     expect(bonusMsg).toBeDefined();
     expect(result.clubs!['test-club'].budget).toBe(1_000_000 + 100_000);
   });
@@ -536,7 +552,7 @@ describe('processSponsorSeasonEnd', () => {
     });
 
     const result = processSponsorSeasonEnd(state);
-    const bonusMsg = result.messages!.find((m: any) => m.title === 'Sponsor Bonus Earned!');
+    const bonusMsg = result.messages!.find((m) => m.title === 'Sponsor Bonus Earned!');
     expect(bonusMsg).toBeUndefined();
     expect(result.clubs!['test-club'].budget).toBe(1_000_000);
   });
@@ -563,7 +579,7 @@ describe('processSponsorSeasonEnd', () => {
     expect(result.sponsorDeals).toHaveLength(1);
     expect(result.sponsorDeals![0].id).toBe('active');
 
-    const expiredMsg = result.messages!.find((m: any) => m.title === 'Sponsorship Expired');
+    const expiredMsg = result.messages!.find((m) => m.title === 'Sponsorship Expired');
     expect(expiredMsg).toBeDefined();
   });
 
@@ -656,7 +672,7 @@ describe('processSponsorSeasonEnd', () => {
     });
 
     const result = processSponsorSeasonEnd(state);
-    const bonusMsg = result.messages!.find((m: any) => m.title === 'Sponsor Bonus Earned!');
+    const bonusMsg = result.messages!.find((m) => m.title === 'Sponsor Bonus Earned!');
     expect(bonusMsg).toBeDefined();
     expect(result.clubs!['test-club'].budget).toBe(1_000_000 + 200_000);
   });

@@ -73,7 +73,9 @@ export default defineConfig(() => ({
   },
   build: {
     target: 'es2020',
-    sourcemap: true,
+    // Hidden: emit .map files for Sentry upload but don't reference them
+    // from the JS. Keeps dist/ lean without losing symbolicated stack traces.
+    sourcemap: 'hidden',
     rollupOptions: {
       // AdMob plugin excluded from build until production ad IDs are configured.
       // Dynamic imports in ads.ts are guarded and never reached.

@@ -3,6 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import type { Club, Player } from '@/types/game';
 import { resolveClub } from '@/utils/helpers';
+import { guardAsync } from '@/utils/asyncGuard';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, Trophy, ArrowUp, ArrowDown } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
@@ -194,7 +195,11 @@ const MatchReview = () => {
         // Another match this week — return to dashboard without advancing
         setScreen('dashboard');
       } else {
-        advanceWeek();
+        guardAsync(
+          advanceWeek(),
+          'MatchReview.advanceWeek',
+          { title: 'Could not advance week', body: 'Please try again.' },
+        );
         setScreen('dashboard');
       }
       setIsAdvancing(false);

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/store/gameStore';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
@@ -91,7 +92,7 @@ function ToggleRow({ icon: Icon, label, description, value, onChange }: {
   );
 }
 
-const SettingsPage = () => {
+const SettingsPageInner = () => {
   const settings = useGameStore(s => s.settings);
   const monetization = useGameStore(s => s.monetization);
   const activeSlot = useGameStore(s => s.activeSlot);
@@ -628,5 +629,12 @@ const SettingsPage = () => {
     </div>
   );
 };
+
+// Scoped ErrorBoundary so a save/load failure in this page (manual save,
+// import/export, slot operations) renders a friendly fallback with telemetry
+// tagged `settings`, instead of bombing the surrounding game shell.
+const SettingsPage = () => (
+  <ErrorBoundary scope="settings"><SettingsPageInner /></ErrorBoundary>
+);
 
 export default SettingsPage;

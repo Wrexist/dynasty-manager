@@ -13,6 +13,10 @@ import { generateFixtures } from '@/data/league';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import { MANAGER_PERKS, xpForLevel } from '@/utils/managerPerks';
 
+// Gated behind VITEST_AUDIT=1 so regular CI/dev runs stay quiet.
+// Run `VITEST_AUDIT=1 npm test` to surface these diagnostic numbers.
+const auditLog: typeof console.log = process.env.VITEST_AUDIT ? console.log : () => {};
+
 describe('3A: Storyline Chain Content', () => {
   it('has at least 4 unique storyline chains', () => {
     expect(STORYLINE_CHAINS.length).toBeGreaterThanOrEqual(4);
@@ -37,7 +41,7 @@ describe('3A: Storyline Chain Content', () => {
     const chainsCount = STORYLINE_CHAINS.length;
     const expectedTriggersPerSeason = 46 * 0.15;
     const seasonsToExhaust = Math.ceil(chainsCount / Math.min(expectedTriggersPerSeason, chainsCount));
-    console.log(`[Content Audit] Storyline chains: ${chainsCount}, estimated seasons to see all: ~${seasonsToExhaust}`);
+    auditLog(`[Content Audit] Storyline chains: ${chainsCount}, estimated seasons to see all: ~${seasonsToExhaust}`);
     // With 10+ chains at ~7 triggers/season, takes ~2 seasons to see all
     // 15+ chains would push this to 3+ seasons
     expect(chainsCount).toBeGreaterThanOrEqual(10);
@@ -50,7 +54,7 @@ describe('3B: Press Conference Variety', () => {
     const totalQuestions = Object.values(PRESS_QUESTIONS).reduce((sum, qs) => sum + qs.length, 0);
     const totalResponses = totalQuestions * 3; // 3 base tones each
     const proOptions = Object.values(PRESS_QUESTIONS).flat().filter(q => q.proOption).length;
-    console.log(`[Content Audit] Press conferences: ${contexts.length} contexts, ${totalQuestions} questions × 3 tones = ${totalResponses} base responses (+${proOptions} pro options)`);
+    auditLog(`[Content Audit] Press conferences: ${contexts.length} contexts, ${totalQuestions} questions × 3 tones = ${totalResponses} base responses (+${proOptions} pro options)`);
 
     // At least 10 contexts for situational variety
     expect(contexts.length).toBeGreaterThanOrEqual(10);
@@ -68,14 +72,14 @@ describe('3C: Weekly Objective Variety', () => {
     // We know there are 16 templates (10 common + 5 rare + 1 legendary)
     const templateCount = 16;
     expect(templateCount).toBeGreaterThanOrEqual(12);
-    console.log(`[Content Audit] Weekly objectives: ${templateCount} templates, 3 per week = ~15 weeks to see most`);
+    auditLog(`[Content Audit] Weekly objectives: ${templateCount} templates, 3 per week = ~15 weeks to see most`);
   });
 });
 
 describe('3D: Challenge Replayability', () => {
   it('has at least 6 unique challenge scenarios', () => {
     expect(CHALLENGES.length).toBeGreaterThanOrEqual(6);
-    console.log(`[Content Audit] Challenges: ${CHALLENGES.length} scenarios`);
+    auditLog(`[Content Audit] Challenges: ${CHALLENGES.length} scenarios`);
 
     // Check for difficulty variety
     const difficulties = new Set(CHALLENGES.map(c => c.difficulty));
@@ -107,7 +111,7 @@ describe('3E: Fixture Randomization', () => {
       f.awayClubId === fixtures2[i].awayClubId
     );
     expect(identical).toBe(false);
-    console.log('[Content Audit] Fixtures are randomized via Fisher-Yates shuffle — different order each season');
+    auditLog('[Content Audit] Fixtures are randomized via Fisher-Yates shuffle — different order each season');
   });
 
   it('generates correct number of fixtures for various league sizes', () => {
@@ -124,7 +128,7 @@ describe('3E: Fixture Randomization', () => {
 describe('3F: Achievement Completability', () => {
   it('has 25+ achievements', () => {
     expect(ACHIEVEMENTS.length).toBeGreaterThanOrEqual(25);
-    console.log(`[Content Audit] Achievements: ${ACHIEVEMENTS.length} total`);
+    auditLog(`[Content Audit] Achievements: ${ACHIEVEMENTS.length} total`);
   });
 
   it('every achievement has a valid check function', () => {
@@ -142,7 +146,7 @@ describe('3F: Achievement Completability', () => {
     const gold = ACHIEVEMENTS.filter(a => a.tier === 'gold');
     const hidden = ACHIEVEMENTS.filter(a => a.hidden);
 
-    console.log(`[Content Audit] Achievement tiers: ${bronze.length} bronze, ${silver.length} silver, ${gold.length} gold (${hidden.length} hidden)`);
+    auditLog(`[Content Audit] Achievement tiers: ${bronze.length} bronze, ${silver.length} silver, ${gold.length} gold (${hidden.length} hidden)`);
 
     expect(bronze.length).toBeGreaterThan(0);
     expect(silver.length).toBeGreaterThan(0);
@@ -155,7 +159,7 @@ describe('3F: Achievement Completability', () => {
     // Hard (season 5-10): back-to-back, unbeaten-20, goal-machine-30, transfer-mogul, shrewd-seller, youth-star, clean-sheet-15, dynasty-10, cup-winner, double
     // Situational: survive-sacking, promotion (requires being in lower div)
     const totalAchievements = ACHIEVEMENTS.length;
-    console.log(`[Content Audit] ~8 seasons to unlock most achievements, ~12+ for completionists (${totalAchievements} total)`);
+    auditLog(`[Content Audit] ~8 seasons to unlock most achievements, ~12+ for completionists (${totalAchievements} total)`);
     expect(totalAchievements).toBeGreaterThan(20);
   });
 });
@@ -176,12 +180,12 @@ describe('3G: Manager Perk Progression Timeline', () => {
     expect(tiers.get(5)).toBe(5);
     expect(tiers.get(6)).toBe(4); // Prestige tier 6
     expect(tiers.get(7)).toBe(4); // Prestige tier 7
-    console.log(`[Content Audit] Perk tree: ${MANAGER_PERKS.length} perks across 7 tiers in 4 branches + prestige`);
+    auditLog(`[Content Audit] Perk tree: ${MANAGER_PERKS.length} perks across 7 tiers in 4 branches + prestige`);
   });
 
   it('calculates total XP needed for all perks', () => {
     const totalCost = MANAGER_PERKS.reduce((sum, p) => sum + p.cost, 0);
-    console.log(`[Content Audit] Total perk XP cost: ${totalCost}`);
+    auditLog(`[Content Audit] Total perk XP cost: ${totalCost}`);
 
     // Tier costs: 4×80 + 4×200 + 4×400 + 4×600 + 4×800 + 1×1200 + 4×1000 + 4×1500 = 19520
     expect(totalCost).toBe(19520);
@@ -201,7 +205,7 @@ describe('3G: Manager Perk Progression Timeline', () => {
     const totalCost = MANAGER_PERKS.reduce((sum, p) => sum + p.cost, 0);
     const seasonsToMax = Math.ceil(totalCost / xpPerSeason);
 
-    console.log(`[Content Audit] Estimated ${seasonsToMax} seasons to max perk tree at ~${xpPerSeason} XP/season`);
+    auditLog(`[Content Audit] Estimated ${seasonsToMax} seasons to max perk tree at ~${xpPerSeason} XP/season`);
 
     // Flag if exhausted before season 8
     if (seasonsToMax < 8) {
@@ -214,7 +218,7 @@ describe('3G: Manager Perk Progression Timeline', () => {
     for (let level = 1; level <= 50; level++) {
       totalLevelXP += xpForLevel(level);
     }
-    console.log(`[Content Audit] XP to reach level 50: ${totalLevelXP} (formula: 50 + level × 30)`);
+    auditLog(`[Content Audit] XP to reach level 50: ${totalLevelXP} (formula: 50 + level × 30)`);
   });
 
   it('every perk has a valid prerequisite chain', () => {

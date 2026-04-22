@@ -1,4 +1,4 @@
-import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, PackTierKey } from '@/types/game';
+import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, PackTierKey, LoadError } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -25,6 +25,11 @@ export interface GameState {
   saveStatus: 'idle' | 'saving' | 'saved' | 'failed';
   lastSavedAt: number | null;
   saveFailureMessage: string | null;
+
+  // Corrupted-save / version-mismatch banner state. Populated by loadGame()
+  // when a slot can't be loaded cleanly; consumed by SaveRecoveryDialog.
+  // Not persisted.
+  loadError: LoadError | null;
 
   // Club & Squad
   clubs: Record<string, Club>;
@@ -229,13 +234,18 @@ export interface GameState {
   selectPlayer: (id: string | null) => void;
   selectClub: (id: string | null) => void;
   advanceWeek: () => Promise<void> | void;
-  advanceToNextMatch: () => void;
+  advanceToNextMatch: () => Promise<void> | void;
   endSeason: () => void;
   saveGame: (slot?: number) => void;
   flushSave: () => void;
   flushPendingOnly: () => void;
   flushForLifecycle: () => void;
   loadGame: (slot?: number) => boolean;
+  /** Attempt to load from the per-slot backup, bypassing the primary. Used
+   *  by the SaveRecoveryDialog when the primary save is unrecoverable. */
+  attemptSaveRecovery: (slot: number) => boolean;
+  /** Dismiss any pending `loadError` banner (user clicked "Skip"). */
+  clearLoadError: () => void;
   resetGame: (slot?: number) => void;
   markMessageRead: (id: string) => void;
   markAllRead: () => void;

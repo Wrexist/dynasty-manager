@@ -3,6 +3,7 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
+import { guardAsync } from '@/utils/asyncGuard';
 import { ReputationBadge } from '@/components/game/ReputationBadge';
 import { ConfirmDialog } from '@/components/game/ConfirmDialog';
 import { BoardPitch } from '@/components/game/BoardPitch';
@@ -54,7 +55,11 @@ const JobMarket = () => {
   };
 
   const handleWait = () => {
-    advanceWeek();
+    guardAsync(
+      advanceWeek(),
+      'JobMarket.advanceWeek',
+      { title: 'Could not advance week', body: 'Please try again.' },
+    );
   };
 
   const availableVacancies = jobVacancies.filter(v =>

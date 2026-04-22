@@ -29,6 +29,7 @@ import { SPRING_PHASE_END_WEEK } from '@/config/gameBalance';
 import { PACK_PITY_THRESHOLD } from '@/config/packs';
 import type { Celebration } from '@/utils/celebrations';
 import { celebrationToast } from '@/utils/gameToast';
+import { guardAsync } from '@/utils/asyncGuard';
 import { CELEBRATION_STAGGER_MS, ADVANCE_DONE_MS } from '@/config/ui';
 import { CelebrationModal } from '@/components/game/CelebrationModal';
 import { StorylineModal } from '@/components/game/StorylineModal';
@@ -964,7 +965,11 @@ const Dashboard = () => {
             hapticMedium();
             setIsAdvancing(true);
             setTimeout(() => {
-              advanceWeek();
+              guardAsync(
+                advanceWeek(),
+                'Dashboard.advanceWeek',
+                { title: 'Could not advance week', body: 'Please try again.' },
+              );
               setIsAdvancing(false);
               setAdvanceDone(true);
               hapticHeavy();
@@ -980,7 +985,11 @@ const Dashboard = () => {
               disabled={isAdvancing}
               onClick={() => {
                 hapticMedium();
-                advanceToNextMatch();
+                guardAsync(
+                  advanceToNextMatch(),
+                  'Dashboard.advanceToNextMatch',
+                  { title: 'Could not advance', body: 'Please try again.' },
+                );
               }}
             >
               <FastForward className="w-3.5 h-3.5 inline mr-1 align-[-2px]" /> Skip to Next Match

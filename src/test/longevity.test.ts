@@ -10,6 +10,10 @@ import { useGameStore } from '@/store/gameStore';
 import { validateGameState } from './stateValidator';
 import { LEAGUES } from '@/data/league';
 
+// Gated behind VITEST_AUDIT=1 so regular CI/dev runs stay quiet.
+// Run `VITEST_AUDIT=1 npm test` to surface these diagnostic numbers.
+const auditLog: typeof console.log = process.env.VITEST_AUDIT ? console.log : () => {};
+
 const CLUB_ID = 'manchester-city'; // eng league club for most tests
 const TOTAL_WEEKS = 46;
 
@@ -335,9 +339,9 @@ describe('State Size & Growth Tracking', () => {
     expect(lastEntry.totalPlayers).toBeLessThan(10000);
 
     // Log growth summary for manual review
-    console.log('=== State Growth Summary ===');
+    auditLog('=== State Growth Summary ===');
     sizes.forEach(s => {
-      console.log(`Season ${s.season}: ${s.totalPlayers} total players (${s.activePlayers} active), ${s.financeHistoryLength} finance entries, ${s.careerTimelineLength} timeline entries`);
+      auditLog(`Season ${s.season}: ${s.totalPlayers} total players (${s.activePlayers} active), ${s.financeHistoryLength} finance entries, ${s.careerTimelineLength} timeline entries`);
     });
   });
 });
