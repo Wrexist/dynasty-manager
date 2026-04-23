@@ -218,8 +218,12 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
             )}
           </div>
 
-          {/* Action button */}
-          <div className="border-t border-border/30 bg-card/95 px-4 py-3">
+          {/* Action button — extra bottom inset on mobile keeps the CTA clear
+              of the iOS home indicator when the modal stretches near 85vh. */}
+          <div
+            className="border-t border-border/30 bg-card/95 px-4 pt-3"
+            style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+          >
             <button
               type="button"
               onClick={handleList}

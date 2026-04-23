@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { signalReady } from '@/main';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
+import { hapticMedium } from '@/utils/haptics';
 import {
   removeFlag,
   clearFlagsByPrefix,
@@ -92,6 +93,7 @@ const TitleScreen = () => {
   };
 
   const handleDelete = (slot: number) => {
+    hapticMedium();
     resetGame(slot);
     // Clear the per-slot community pack pref so the popup shows again
     // on the next "New Game" for this slot.
@@ -147,11 +149,13 @@ const TitleScreen = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 overflow-hidden relative safe-area-top safe-area-bottom">
-      {/* Floating background circles — pure CSS animation for GPU efficiency */}
+      {/* Floating background circles — pure CSS animation for GPU efficiency.
+          The .title-float-circle class gives index.css a clean handle to
+          disable the drift under prefers-reduced-motion. */}
       {floatingCircles.map((circle) => (
         <div
           key={circle.id}
-          className="absolute rounded-full blur-2xl pointer-events-none will-change-transform"
+          className="title-float-circle absolute rounded-full blur-2xl pointer-events-none will-change-transform"
           style={{
             width: circle.size,
             height: circle.size,
@@ -229,10 +233,10 @@ const TitleScreen = () => {
                   </Button>
                   {confirmDelete === slot.slot ? (
                     <div className="flex gap-1">
-                      <Button size="sm" variant="destructive" className="h-9 text-xs px-3" onClick={() => handleDelete(slot.slot)}>
+                      <Button size="sm" variant="destructive" className="h-11 min-w-[44px] text-xs px-3" onClick={() => handleDelete(slot.slot)}>
                         Confirm
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-9 text-xs px-2 hover:bg-muted/20 hover:text-foreground" onClick={() => setConfirmDelete(null)}>
+                      <Button size="sm" variant="ghost" className="h-11 min-w-[44px] text-xs px-2 hover:bg-muted/20 hover:text-foreground" onClick={() => setConfirmDelete(null)}>
                         Cancel
                       </Button>
                     </div>
@@ -240,7 +244,7 @@ const TitleScreen = () => {
                     <Button
                       size="sm"
                       variant="ghost"
-                      className="h-9 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20"
+                      className="h-11 w-11 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20"
                       onClick={() => setConfirmDelete(slot.slot)}
                       aria-label={`Delete save slot ${slot.slot}`}
                     >

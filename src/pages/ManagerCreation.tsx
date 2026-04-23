@@ -210,7 +210,13 @@ const ManagerCreation = () => {
     <div className="min-h-screen bg-background flex flex-col safe-area-top safe-area-bottom">
       {/* Header */}
       <div className="p-4 flex items-center gap-3">
-        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground -ml-2" onClick={handleBack}>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label="Back"
+          className="text-muted-foreground hover:text-foreground -ml-2 h-11 w-11 px-0"
+          onClick={handleBack}
+        >
           <ArrowLeft className="w-4 h-4" />
         </Button>
         <div className="flex-1">

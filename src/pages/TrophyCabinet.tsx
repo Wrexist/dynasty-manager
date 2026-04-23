@@ -90,8 +90,8 @@ const TrophyCabinet = () => {
               <span>{unlocked}/{totalVisible} unlocked</span>
               <div className="flex items-center gap-3">
                 <span className="text-[hsl(var(--gold))]">{goldDone} gold</span>
-                <span className="text-gray-300">{silverDone} silver</span>
-                <span className="text-amber-600">{bronzeDone} bronze</span>
+                <span className="text-[hsl(var(--silver))]">{silverDone} silver</span>
+                <span className="text-[hsl(var(--bronze))]">{bronzeDone} bronze</span>
               </div>
             </div>
           </GlassPanel>
@@ -309,7 +309,7 @@ const TrophyCabinet = () => {
           <div key={tier} className="mb-3 last:mb-0">
             <p className={cn(
               'text-[10px] font-bold uppercase tracking-wider mb-2',
-              tier === 'gold' ? 'text-[hsl(var(--gold))]' : tier === 'silver' ? 'text-gray-300' : 'text-amber-600'
+              tier === 'gold' ? 'text-[hsl(var(--gold))]' : tier === 'silver' ? 'text-[hsl(var(--silver))]' : 'text-[hsl(var(--bronze))]'
             )}>
               {tier} ({achievementsByTier[tier].filter(a => unlockedAchievements.includes(a.id)).length}/{achievementsByTier[tier].filter(a => !a.hidden || unlockedAchievements.includes(a.id)).length})
             </p>

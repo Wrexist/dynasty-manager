@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { EmptyState } from '@/components/EmptyState';
 import { StatBar } from '@/components/game/StatBar';
 import { Button } from '@/components/ui/button';
 import { POSITION_COMPATIBILITY, type Position, type TrainingModule } from '@/types/game';
@@ -282,8 +283,8 @@ const PlayerDetail = () => {
                     <Trophy className={cn(
                       'w-5 h-5',
                       isGold && 'text-[hsl(43,96%,56%)]',
-                      isSilver && 'text-gray-300',
-                      isBronze && 'text-amber-600',
+                      isSilver && 'text-[hsl(var(--silver))]',
+                      isBronze && 'text-[hsl(var(--bronze))]',
                     )} />
                   ) : (
                     <Medal className={cn(
@@ -740,7 +741,17 @@ const PlayerDetail = () => {
         </GlassPanel>
       )}
 
-      {/* Match History */}
+      {/* Match History — shows an empty state so the card doesn't silently
+          disappear. The copy is neutral because this screen opens for any
+          player (rivals, transferred-out players, backfilled rosters) —
+          assuming a future match would be inaccurate for those cases. */}
+      {(!player.matchHistory || player.matchHistory.length === 0) && (
+        <EmptyState
+          icon={Trophy}
+          title="No match history yet"
+          description="Appearances, goals, and ratings will appear here after this player features in a match."
+        />
+      )}
       {player.matchHistory && player.matchHistory.length > 0 && (
         <GlassPanel className="p-4">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-3">Recent Matches</p>

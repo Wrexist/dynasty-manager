@@ -9,6 +9,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
+import { hapticMedium } from '@/utils/haptics';
 import {
   removeFlag,
   clearFlagsByPrefix,
@@ -172,16 +173,19 @@ const SettingsPageInner = () => {
   };
 
   const handleReturnToMenu = () => {
+    hapticMedium();
     flushSave();
     navigate('/');
   };
 
   const handleReset = () => {
+    hapticMedium();
     resetGame();
     setShowResetConfirm(false);
   };
 
   const handleDeleteAllData = () => {
+    hapticMedium();
     deleteAllDynastyData();
     setShowDeleteDataConfirm(false);
     navigate('/');

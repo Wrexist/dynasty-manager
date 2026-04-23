@@ -8,6 +8,8 @@ import { useGameStore } from '@/store/gameStore';
 let Haptics: any = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let ImpactStyle: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let NotificationType: any = null;
 
 async function loadHaptics() {
   if (Haptics !== null) return;
@@ -15,6 +17,7 @@ async function loadHaptics() {
     const mod = await import('@capacitor/haptics');
     Haptics = mod.Haptics;
     ImpactStyle = mod.ImpactStyle;
+    NotificationType = mod.NotificationType;
   } catch {
     // Capacitor not available (browser dev mode)
     Haptics = false;
@@ -50,5 +53,34 @@ export async function hapticHeavy() {
   await loadHaptics();
   if (Haptics && ImpactStyle) {
     Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
+  }
+}
+
+// ── Notification haptics ──
+// Use these for outcomes, not interactions. iOS distinguishes them as a
+// distinct success ding / error buzz / warning tick pattern that's
+// noticeably different from a plain impact tap.
+
+export async function hapticSuccess() {
+  if (!isHapticsEnabled()) return;
+  await loadHaptics();
+  if (Haptics && NotificationType) {
+    Haptics.notification({ type: NotificationType.Success }).catch(() => {});
+  }
+}
+
+export async function hapticError() {
+  if (!isHapticsEnabled()) return;
+  await loadHaptics();
+  if (Haptics && NotificationType) {
+    Haptics.notification({ type: NotificationType.Error }).catch(() => {});
+  }
+}
+
+export async function hapticWarning() {
+  if (!isHapticsEnabled()) return;
+  await loadHaptics();
+  if (Haptics && NotificationType) {
+    Haptics.notification({ type: NotificationType.Warning }).catch(() => {});
   }
 }

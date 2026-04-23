@@ -12,6 +12,7 @@ import { getMilestoneIcon } from '@/utils/milestones';
 import { PageHint } from '@/components/game/PageHint';
 import { isPro, getActiveCosmetic } from '@/utils/monetization';
 import { ProUpsell } from '@/components/game/ProUpsell';
+import { SkeletonList, Skeleton } from '@/components/Skeleton';
 
 const AVATAR_ICONS: Record<string, React.ElementType> = {
   'avatar-classic': User,
@@ -46,6 +47,14 @@ const RecordRow = ({ label, record }: { label: string; record: RecordEntry | nul
 import { lazy, Suspense } from 'react';
 const CareerOverviewLazy = lazy(() => import('./CareerOverview'));
 
+const CareerOverviewSkeleton = () => (
+  <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
+    <Skeleton className="h-6 w-44" />
+    <Skeleton className="h-28 rounded-xl" />
+    <SkeletonList rows={3} />
+  </div>
+);
+
 const ManagerProfile = () => {
   const { season, seasonHistory, unlockedAchievements, managerStats, clubs, playerClubId, clubRecords, careerTimeline, monetization, gameMode, careerManager } = useGameStore(useShallow((s) => ({
     season: s.season,
@@ -61,10 +70,16 @@ const ManagerProfile = () => {
     careerManager: s.careerManager,
   })));
 
-  // In career mode, show the career overview page instead
+  // In career mode, show the career overview page instead. A bare `null`
+  // fallback left the user on a blank page while the chunk downloaded —
+  // replaced with a structural skeleton that matches the overview layout.
   if (gameMode === 'career') {
     return careerManager
-      ? <Suspense fallback={null}><CareerOverviewLazy /></Suspense>
+      ? (
+        <Suspense fallback={<CareerOverviewSkeleton />}>
+          <CareerOverviewLazy />
+        </Suspense>
+      )
       : null;
   }
   const club = clubs[playerClubId];

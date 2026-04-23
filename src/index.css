@@ -29,6 +29,14 @@
 
     --gold: 43 96% 46%;
 
+    /* Medal tier palette — siblings to --gold so silver/bronze chips can
+       pick up the same "use a semantic token" pattern. Tuned for the
+       dark theme: tailwind's amber-600 / gray-300 are either too dark
+       (bronze vanishes on bg-card) or look flat (silver drifts blue),
+       so these hand-picked HSL values keep a warm, readable tier. */
+    --silver: 215 12% 78%;
+    --bronze: 25 75% 55%;
+
     --secondary: 215 25% 18%;
     --secondary-foreground: 220 15% 85%;
 
@@ -149,6 +157,25 @@
     padding-right: env(safe-area-inset-right, 0px);
   }
 
+  /* Combined bottom padding: BottomNav (5rem footprint) + iOS home indicator.
+     Use on every scrollable page so the last row of content clears the tab
+     bar and the home-indicator gesture area on notched devices. */
+  .pb-nav-safe {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* For pages whose content already lives above a fixed action bar (e.g. the
+     match prep CTA at bottom-20), we still need to clear the home indicator. */
+  .pb-bar-safe {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Vertical-scroll-only zones. Tells the OS to keep horizontal gestures for
+     itself (iOS back swipe) and not interpret them as page swipes. */
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
+
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
@@ -261,7 +288,10 @@
   }
 }
 
-/* Player avatar idle bob + breathing animation */
+/* Player avatar idle bob + breathing animation. Applied to every player
+   avatar in lineups/benches, so the reduced-motion guard matters — an
+   infinite 2.8s transform on 20+ nodes is exactly the vestibular-trigger
+   pattern WCAG 2.3.3 asks us to avoid. */
 @keyframes playerIdleBob {
   0%, 100% { transform: translateY(0) scaleY(1); }
   50% { transform: translateY(-0.6px) scaleY(1.006); }
@@ -269,13 +299,21 @@
 .player-avatar-idle {
   animation: playerIdleBob 2.8s ease-in-out infinite;
 }
+@media (prefers-reduced-motion: reduce) {
+  .player-avatar-idle { animation: none; }
+}
 
-/* Title screen floating background circles (pure CSS, no JS animation overhead) */
+/* Title screen floating background circles (pure CSS, no JS animation
+   overhead). Duration is applied inline from the JS config; we can't cap
+   it here, but we can disable the drift entirely under reduced motion. */
 @keyframes floatDrift {
   0%, 100% { transform: translate(-50%, -50%) translate(0, 0); }
   25% { transform: translate(-50%, -50%) translate(var(--drift-x), var(--drift-y)); }
   50% { transform: translate(-50%, -50%) translate(calc(var(--drift-x) * -0.6), calc(var(--drift-y) * 0.7)); }
   75% { transform: translate(-50%, -50%) translate(calc(var(--drift-x) * 0.3), calc(var(--drift-y) * -0.4)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .title-float-circle { animation: none; }
 }
 
 /* ── Custom Age Slider ── */

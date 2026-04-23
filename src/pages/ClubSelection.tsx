@@ -15,7 +15,8 @@ import type { LeagueId, OnboardingStep, OnboardingDraft } from '@/types/game';
 import { DIFFICULTY_CONFIG, DIFFICULTY_BARS } from '@/config/ui';
 import { readSessionJson, writeSessionJson, removeSessionKey, STORAGE_KEYS } from '@/store/helpers/persistence';
 import { hapticLight } from '@/utils/haptics';
-import { toast } from 'sonner';
+import { LoadingOverlay } from '@/components/LoadingOverlay';
+import { errorToast } from '@/utils/gameToast';
 
 
 
@@ -146,7 +147,14 @@ const ClubSelection = () => {
         queueMicrotask(() => navigate('/game'));
       } catch (err) {
         Sentry.captureException(err, { tags: { context: 'startGame' } });
-        toast.error('Something went wrong starting your career. Please try again.');
+        // Use errorToast so the failure carries haptic feedback and matches
+        // the rest of the app's error surfaces. The Begin Career button
+        // stays enabled (setLoading(false)) so the retry is one tap away —
+        // the toast tells the user what to do.
+        errorToast(
+          'Couldn’t start your career',
+          'Something went wrong loading the squad data. Tap Begin Career again to retry.',
+        );
         setLoading(false);
       }
     });
@@ -257,6 +265,15 @@ const ClubSelection = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Initial setup can take 1–2s when the community pack is enabled
+          because initGame dynamically imports several MB of pool data.
+          Without a full-screen overlay the user would see the Begin Career
+          button pulse while the page sits frozen. */}
+      <LoadingOverlay
+        open={loading}
+        message={communityPackEnabled ? 'Loading community pack…' : 'Setting up your career…'}
+        detail={communityPackEnabled ? 'Importing the full player database — this takes a moment.' : undefined}
+      />
       {/* Header — frosted liquid-glass rim with specular top crescent.
           safe-area-top lives here (not on the outer div) so the sticky
           header itself reserves room for the notch/Dynamic Island when

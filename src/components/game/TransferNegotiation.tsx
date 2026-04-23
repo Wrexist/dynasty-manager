@@ -176,15 +176,17 @@ export function TransferNegotiation({ listing, onClose }: Props) {
         {/* Backdrop */}
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" style={{ touchAction: 'none' }} onClick={phase !== 'thinking' ? onClose : undefined} />
 
-        {/* Modal */}
+        {/* Modal — constrains total height to 85vh and uses flex column
+            layout so the sticky CTA at the bottom shares the cap with the
+            scrollable content instead of being pushed off-screen. */}
         <motion.div
-          className="relative w-full max-w-sm bg-card/95 backdrop-blur-xl border border-border/50 rounded-b-2xl sm:rounded-2xl overflow-hidden sm:mx-4"
+          className="relative w-full max-w-sm max-h-[85vh] bg-card/95 backdrop-blur-xl border border-border/50 rounded-b-2xl sm:rounded-2xl overflow-hidden sm:mx-4 flex flex-col"
           initial={{ y: -100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -60, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 28 }}
         >
-          <div className="max-h-[85vh] overflow-y-auto overscroll-contain">
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
           {/* ── NEGOTIATE PHASE ── */}
           <AnimatePresence mode="wait">
             {phase === 'negotiate' && (
@@ -714,9 +716,14 @@ export function TransferNegotiation({ listing, onClose }: Props) {
           </AnimatePresence>
           </div>
 
-          {/* Sticky action buttons */}
+          {/* Sticky action buttons — extra inset clears iOS home indicator.
+              shrink-0 keeps it at the bottom of the flex column so the
+              scroll area above shrinks instead of the CTA going off-screen. */}
           {phase === 'negotiate' && !lockout.locked && (
-            <div className="border-t border-border/30 bg-card/95 px-4 py-3">
+            <div
+              className="shrink-0 border-t border-border/30 bg-card/95 px-4 pt-3"
+              style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+            >
               <button
                 type="button"
                 onClick={() => handleSubmitOffer(offerFee)}

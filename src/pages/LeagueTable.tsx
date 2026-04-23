@@ -190,10 +190,15 @@ const LeagueTable = () => {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === 'Escape') setPickerOpen(false); }}
                   placeholder="Search leagues..."
-                  className="w-full pl-8 pr-8 py-2 text-sm bg-muted/50 rounded-lg border border-border/30 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  className="w-full pl-8 pr-12 py-2 text-sm bg-muted/50 rounded-lg border border-border/30 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/50"
                 />
                 {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    aria-label="Clear search"
+                    className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center"
+                  >
                     <X className="w-3.5 h-3.5 text-muted-foreground" />
                   </button>
                 )}

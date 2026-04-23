@@ -11,7 +11,7 @@ import { resolveClub } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Play, FastForward, Pause, RefreshCw, Zap, Flame, Shield, AlertTriangle, Calendar, MapPin, Trophy, Hand, Clock, Crown, type LucideIcon } from 'lucide-react';
-import { hapticHeavy, hapticMedium, hapticLight } from '@/utils/haptics';
+import { hapticHeavy, hapticMedium, hapticLight, hapticSuccess } from '@/utils/haptics';
 import { KEY_MOMENT_LOSING_MINUTE, KEY_MOMENT_TIGHT_FINISH_MINUTE, MAX_SUBSTITUTIONS, KEY_MOMENT_DOMINANT_POSSESSION_MIN, KEY_MOMENT_POSSESSION_THRESHOLD, KEY_MOMENT_NEAR_MISS_COUNT, SHOUT_DURATION, SHOUT_COOLDOWN, MAX_SHOUTS_PER_MATCH, MATCH_LOW_FITNESS_THRESHOLD, FITNESS_DEGRADE_PER_MINUTE, PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD } from '@/config/matchEngine';
 import { MOTIVATE_FITNESS_DRAIN_MULT, CALM_FITNESS_DRAIN_MULT, DEMAND_FITNESS_DRAIN_MULT } from '@/config/teamTalk';
 import type { HalfState } from '@/engine/match';
@@ -447,20 +447,32 @@ const MatchDayInner = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speed]);
 
-  // Haptic feedback + goal flash for goals and final whistle
+  // Haptic feedback + goal flash for goals and final whistle.
+  // Differentiate by which side scored: success "ding" when the user's club
+  // scores, heavy impact when the opponent does. For every score-changing
+  // event (goals AND own_goals) the engine writes ev.clubId as the
+  // BENEFITING team, so a simple equality check is correct — no inversion.
+  // (match.ts:1637 pushes own_goal with clubId: club.id, where `club` is
+  // the attacking side that gets credited.)
   const prevGoalCountRef = useRef(0);
   const [goalFlash, setGoalFlash] = useState(false);
   const goalFlashTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const currentGoalCount = visibleEvents.filter(e => isScoreChangingEvent(e)).length;
+  const scoreChangingEvents = useMemo(
+    () => visibleEvents.filter(e => isScoreChangingEvent(e)),
+    [visibleEvents],
+  );
+  const currentGoalCount = scoreChangingEvents.length;
   useEffect(() => {
     if (currentGoalCount > prevGoalCountRef.current) {
-      hapticHeavy();
+      const latest = scoreChangingEvents[scoreChangingEvents.length - 1];
+      const userScored = latest?.clubId === playerClubId;
+      if (userScored) hapticSuccess(); else hapticHeavy();
       setGoalFlash(true);
       clearTimeout(goalFlashTimerRef.current);
       goalFlashTimerRef.current = setTimeout(() => setGoalFlash(false), GOAL_FLASH_MS);
     }
     prevGoalCountRef.current = currentGoalCount;
-  }, [currentGoalCount]);
+  }, [currentGoalCount, scoreChangingEvents, playerClubId]);
 
   useEffect(() => {
     if (phase === 'post') hapticMedium();

@@ -5,6 +5,7 @@ import type { Club, Player } from '@/types/game';
 import { resolveClub } from '@/utils/helpers';
 import { guardAsync } from '@/utils/asyncGuard';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { EmptyState } from '@/components/EmptyState';
 import { ChevronRight, Flame, Calendar, HeartPulse, Star, TrendingUp, TrendingDown, Minus, MapPin, Shield, ArrowLeft, Trophy, ArrowUp, ArrowDown } from 'lucide-react';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { cn } from '@/lib/utils';
@@ -133,11 +134,12 @@ const MatchReview = () => {
     return (
       <div className="max-w-lg mx-auto px-4 py-4">
         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
-          <GlassPanel className="p-6 text-center">
-            <Calendar className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">No match to review</p>
-            <Button variant="secondary" className="mt-3" onClick={() => setScreen('dashboard')}>Back to Dashboard</Button>
-          </GlassPanel>
+          <EmptyState
+            icon={Calendar}
+            title="No match to review"
+            description="Play a fixture and the post-match breakdown will appear here — goals, ratings, highlights, all of it."
+            action={{ label: 'Back to Dashboard', onClick: () => setScreen('dashboard') }}
+          />
         </motion.div>
       </div>
     );

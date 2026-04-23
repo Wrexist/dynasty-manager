@@ -152,13 +152,14 @@ const ChallengePicker = () => {
                 onChange={e => setClubSearch(e.target.value)}
                 placeholder="Search clubs..."
                 aria-label="Search clubs"
-                className="w-full bg-muted/30 border border-border/30 rounded-lg pl-9 pr-8 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary/40 transition-colors"
+                className="w-full bg-muted/30 border border-border/30 rounded-lg pl-9 pr-12 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-primary/40 transition-colors"
               />
               {clubSearch && (
                 <button
+                  type="button"
                   onClick={() => { setClubSearch(''); searchRef.current?.focus(); }}
                   aria-label="Clear search"
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                 >
                   <X className="w-3.5 h-3.5" />
                 </button>
@@ -186,7 +187,10 @@ const ChallengePicker = () => {
         </div>
 
         {/* League-grouped clubs */}
-        <div className="flex-1 overflow-y-auto px-4 pb-8 max-w-lg mx-auto w-full">
+        <div
+          className="flex-1 overflow-y-auto px-4 max-w-lg mx-auto w-full touch-pan-y"
+          style={{ paddingBottom: 'calc(2rem + env(safe-area-inset-bottom, 0px))' }}
+        >
           {LEAGUE_REGIONS.map(region => {
             const regionLeagues = region.ids
               .map(id => LEAGUE_MAP[id])
@@ -333,7 +337,12 @@ const ChallengePicker = () => {
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 p-4 border-b border-border/30 safe-area-top">
-        <button onClick={() => navigate('/')} className="p-2 rounded-lg hover:bg-muted/50">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          aria-label="Back"
+          className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-muted/50"
+        >
           <ArrowLeft className="w-5 h-5 text-foreground" />
         </button>
         <div>
@@ -343,7 +352,10 @@ const ChallengePicker = () => {
       </div>
 
       {/* Challenge List */}
-      <div className="flex-1 overflow-y-auto p-4 max-w-lg mx-auto w-full">
+      <div
+        className="flex-1 overflow-y-auto px-4 pt-4 max-w-lg mx-auto w-full touch-pan-y"
+        style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}
+      >
         <div className="space-y-3">
           {CHALLENGES.map((challenge, i) => (
             <motion.button

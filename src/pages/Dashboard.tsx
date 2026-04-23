@@ -1431,7 +1431,7 @@ const Dashboard = () => {
                           <p className="text-xs font-semibold text-foreground truncate">{a.title}</p>
                           <span className={cn(
                             'text-[8px] font-bold uppercase px-1 py-0.5 rounded shrink-0',
-                            a.tier === 'gold' ? 'text-primary bg-primary/15' : a.tier === 'silver' ? 'text-slate-300 bg-slate-400/15' : 'text-amber-600 bg-amber-700/15'
+                            a.tier === 'gold' ? 'text-primary bg-primary/15' : a.tier === 'silver' ? 'text-[hsl(var(--silver))] bg-[hsl(var(--silver))]/10' : 'text-[hsl(var(--bronze))] bg-[hsl(var(--bronze))]/10'
                           )}>
                             {a.tier}
                           </span>
