@@ -152,9 +152,9 @@ const RankingRow = ({ entry, index, isExpanded, onToggle, isPlayerClub }: {
         <div className={cn(
           'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-sm tabular-nums',
           isPodium ? 'bg-gradient-to-br' : '',
-          entry.rank === 1 && 'from-[hsl(var(--gold))] to-[hsl(35,90%,35%)] text-black',
-          entry.rank === 2 && 'from-[hsl(var(--silver))] to-[hsl(215,10%,60%)] text-black',
-          entry.rank === 3 && 'from-[hsl(var(--bronze))] to-[hsl(25,65%,35%)] text-black',
+          entry.rank === 1 && 'from-[hsl(var(--gold))] to-[hsl(var(--gold)/0.7)] text-black',
+          entry.rank === 2 && 'from-[hsl(var(--silver))] to-[hsl(var(--silver)/0.7)] text-black',
+          entry.rank === 3 && 'from-[hsl(var(--bronze))] to-[hsl(var(--bronze)/0.7)] text-black',
           !isPodium && 'bg-muted/30 text-muted-foreground',
         )}>
           {entry.rank}
@@ -356,8 +356,8 @@ const BallonDor = () => {
                 >
                   <div className={cn(
                     'w-7 h-7 rounded-lg flex items-center justify-center mx-auto mb-2 font-black text-sm',
-                    entry.rank === 2 && 'bg-gradient-to-br from-gray-300 to-gray-400 text-black',
-                    entry.rank === 3 && 'bg-gradient-to-br from-amber-600 to-amber-800 text-black',
+                    entry.rank === 2 && 'bg-gradient-to-br from-[hsl(var(--silver))] to-[hsl(var(--silver)/0.7)] text-black',
+                    entry.rank === 3 && 'bg-gradient-to-br from-[hsl(var(--bronze))] to-[hsl(var(--bronze)/0.7)] text-black',
                   )}>
                     {entry.rank}
                   </div>

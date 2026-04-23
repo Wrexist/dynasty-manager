@@ -272,17 +272,17 @@ const PlayerDetail = () => {
                   transition={{ delay: i * 0.06 }}
                   className={cn(
                     'flex flex-col items-center rounded-lg px-3 py-2 border min-w-[56px]',
-                    isGold && 'bg-[hsl(43,96%,46%)]/15 border-[hsl(43,96%,46%)]/30 shadow-[0_0_12px_hsl(43,96%,46%,0.2)]',
-                    isSilver && 'bg-gray-300/10 border-gray-300/25',
-                    isBronze && 'bg-amber-700/10 border-amber-700/25',
-                    !isPodium && isTop10 && 'bg-primary/8 border-primary/20',
+                    isGold && 'bg-[hsl(var(--gold))]/15 border-[hsl(var(--gold))]/30 shadow-[0_0_12px_hsl(var(--gold)/0.2)]',
+                    isSilver && 'bg-[hsl(var(--silver))]/10 border-[hsl(var(--silver))]/25',
+                    isBronze && 'bg-[hsl(var(--bronze))]/10 border-[hsl(var(--bronze))]/25',
+                    !isPodium && isTop10 && 'bg-primary/10 border-primary/20',
                     !isTop10 && 'bg-muted/20 border-border/30',
                   )}
                 >
                   {isPodium ? (
                     <Trophy className={cn(
                       'w-5 h-5',
-                      isGold && 'text-[hsl(43,96%,56%)]',
+                      isGold && 'text-[hsl(var(--gold))]',
                       isSilver && 'text-[hsl(var(--silver))]',
                       isBronze && 'text-[hsl(var(--bronze))]',
                     )} />
@@ -294,9 +294,9 @@ const PlayerDetail = () => {
                   )}
                   <span className={cn(
                     'text-[10px] font-black tabular-nums leading-none mt-0.5',
-                    isGold && 'text-[hsl(43,96%,56%)]',
-                    isSilver && 'text-gray-300',
-                    isBronze && 'text-amber-600',
+                    isGold && 'text-[hsl(var(--gold))]',
+                    isSilver && 'text-[hsl(var(--silver))]',
+                    isBronze && 'text-[hsl(var(--bronze))]',
                     !isPodium && isTop10 && 'text-primary',
                     !isTop10 && 'text-muted-foreground',
                   )}>

@@ -720,10 +720,7 @@ export function TransferNegotiation({ listing, onClose }: Props) {
               shrink-0 keeps it at the bottom of the flex column so the
               scroll area above shrinks instead of the CTA going off-screen. */}
           {phase === 'negotiate' && !lockout.locked && (
-            <div
-              className="shrink-0 border-t border-border/30 bg-card/95 px-4 pt-3"
-              style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
-            >
+            <div className="shrink-0 border-t border-border/30 bg-card/95 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
               <button
                 type="button"
                 onClick={() => handleSubmitOffer(offerFee)}

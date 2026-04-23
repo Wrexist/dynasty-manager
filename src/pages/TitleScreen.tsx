@@ -165,7 +165,7 @@ const TitleScreen = () => {
             opacity: circle.opacity,
             '--drift-x': `${circle.driftX}px`,
             '--drift-y': `${circle.driftY}px`,
-            animation: `floatDrift ${circle.duration}s ease-in-out infinite`,
+            animation: `float-drift ${circle.duration}s ease-in-out infinite`,
           } as React.CSSProperties}
         />
       ))}

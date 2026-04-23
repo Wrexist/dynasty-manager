@@ -170,10 +170,12 @@
     padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Vertical-scroll-only zones. Tells the OS to keep horizontal gestures for
-     itself (iOS back swipe) and not interpret them as page swipes. */
+  /* Vertical-scroll-only zones. Tells the OS to keep horizontal gestures
+     for itself (iOS back swipe) and not interpret them as page swipes.
+     pinch-zoom is kept explicitly — per the pointer events spec, pan-y
+     alone disables pinch-to-zoom, which breaks accessibility zoom. */
   .touch-pan-y {
-    touch-action: pan-y;
+    touch-action: pan-y pinch-zoom;
   }
 
   .tabular-nums {
@@ -292,28 +294,32 @@
    avatar in lineups/benches, so the reduced-motion guard matters — an
    infinite 2.8s transform on 20+ nodes is exactly the vestibular-trigger
    pattern WCAG 2.3.3 asks us to avoid. */
-@keyframes playerIdleBob {
+@keyframes player-idle-bob {
   0%, 100% { transform: translateY(0) scaleY(1); }
   50% { transform: translateY(-0.6px) scaleY(1.006); }
 }
 .player-avatar-idle {
-  animation: playerIdleBob 2.8s ease-in-out infinite;
+  animation: player-idle-bob 2.8s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .player-avatar-idle { animation: none; }
+  /* !important is required because the animation is applied inline by
+     the JS config (see TitleScreen.tsx), and inline styles otherwise
+     win over stylesheet rules. Same reason we need it on .title-float-
+     circle below. */
+  .player-avatar-idle { animation: none !important; }
 }
 
 /* Title screen floating background circles (pure CSS, no JS animation
    overhead). Duration is applied inline from the JS config; we can't cap
    it here, but we can disable the drift entirely under reduced motion. */
-@keyframes floatDrift {
+@keyframes float-drift {
   0%, 100% { transform: translate(-50%, -50%) translate(0, 0); }
   25% { transform: translate(-50%, -50%) translate(var(--drift-x), var(--drift-y)); }
   50% { transform: translate(-50%, -50%) translate(calc(var(--drift-x) * -0.6), calc(var(--drift-y) * 0.7)); }
   75% { transform: translate(-50%, -50%) translate(calc(var(--drift-x) * 0.3), calc(var(--drift-y) * -0.4)); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .title-float-circle { animation: none; }
+  .title-float-circle { animation: none !important; }
 }
 
 /* ── Custom Age Slider ── */
