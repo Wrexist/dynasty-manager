@@ -47,12 +47,21 @@ export function LoadingOverlay({
           transition={{ duration: 0.15 }}
           className={cn(
             variant === 'page' ? 'fixed inset-0' : 'absolute inset-0',
-            // touch-none blocks underlying taps + keeps iOS back gesture
-            // from firing while the overlay is up.
+            // touch-none tells the browser not to handle gestures here;
+            // the stopPropagation handlers below keep React synthetic
+            // pointer/touch events from bubbling to ancestor swipe
+            // handlers (e.g. GameShell's tab-swipe useSwipeGesture) while
+            // an async op is in flight.
             'z-[60] flex flex-col items-center justify-center gap-4 bg-background/80 backdrop-blur-sm touch-none',
             className,
           )}
           onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+          onPointerMove={(e) => e.stopPropagation()}
+          onPointerUp={(e) => e.stopPropagation()}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
         >
           <div
             // motion-safe keeps the spin for regular users; motion-reduce
