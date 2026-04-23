@@ -1,4 +1,4 @@
-import { memo, useState } from 'react';
+import { memo, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import type { Player } from '@/types/game';
@@ -34,6 +34,13 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
   const prefersReducedMotion = useReducedMotion();
   const [hovered, setHovered] = useState(false);
   const [statView, setStatView] = useState<StatView>(0);
+
+  // Snap back to the stats grid if the card is ever flipped back down
+  // (future re-pack / preview flows). Today reveal is one-way so this
+  // is a defensive guard, not a hot path.
+  useEffect(() => {
+    if (!revealed) setStatView(0);
+  }, [revealed]);
 
   const handleClick = () => {
     if (!revealed) {
@@ -73,7 +80,9 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
       transition={{ delay: entranceDelay, type: 'spring', stiffness: 180, damping: 24 }}
       aria-label={
         revealed
-          ? `${player.firstName} ${player.lastName}, ${player.overall} overall. Tap to cycle stat views.`
+          ? `${player.firstName} ${player.lastName}, ${player.overall} overall. Showing ${
+              statView === 0 ? 'stats' : statView === 1 ? 'profile' : 'condition'
+            }. Tap to cycle stat views.`
           : 'Tap to reveal'
       }
     >
