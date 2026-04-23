@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -16,8 +16,12 @@ import {
   deleteAllDynastyData,
   readCommunityPackSlotPref,
   writeCommunityPackSlotPref,
+  readAnalyticsConsent,
+  writeAnalyticsConsent,
 } from '@/store/helpers/persistence';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
+import { triggerTestError } from '@/utils/sentry';
+import { refreshAnalyticsConsent, track } from '@/utils/analytics';
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
 import { SAVE_CONFIRMATION_MS } from '@/config/ui';
@@ -124,6 +128,9 @@ const SettingsPageInner = () => {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
+  // Analytics consent — device-level pref, lives outside the save. Seed from
+  // localStorage; toggling writes back immediately.
+  const [analyticsGranted, setAnalyticsGranted] = useState(() => readAnalyticsConsent() === 'granted');
   const userIsPro = isPro(monetization);
   const hasActiveSub = isSubscriptionActive(monetization);
 
@@ -258,6 +265,7 @@ const SettingsPageInner = () => {
             const next = !communityPackPref;
             setCommunityPackPref(next);
             writeCommunityPackSlotPref(activeSlot, next);
+            track(next ? 'community_pack_enabled' : 'community_pack_disabled', {});
           }}
         />
 
@@ -526,6 +534,22 @@ const SettingsPageInner = () => {
         </div>
       </SettingsSection>
 
+      {/* ─── Privacy ─── */}
+      <SettingsSection title="Privacy">
+        <ToggleRow
+          icon={ChartBar}
+          label="Share anonymous usage stats"
+          description="Help improve the game. We never send names, tactics, save data, fingerprints, or IP."
+          value={analyticsGranted}
+          onChange={() => {
+            const next = !analyticsGranted;
+            setAnalyticsGranted(next);
+            writeAnalyticsConsent(next ? 'granted' : 'denied');
+            refreshAnalyticsConsent();
+          }}
+        />
+      </SettingsSection>
+
       {/* ─── Data Management (destructive) ─── */}
       <SettingsSection title="Data Management" tone="danger">
         {!showDeleteDataConfirm ? (
@@ -560,6 +584,22 @@ const SettingsPageInner = () => {
           Remove all game data stored on this device. Subscription status is managed by your App Store or Play Store account.
         </p>
       </SettingsSection>
+
+      {/* ─── Developer (dev build only) ─── */}
+      {import.meta.env.DEV && (
+        <SettingsSection title="Developer">
+          <LiquidButton tone="amber" onClick={triggerTestError}>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <Bug className="w-4 h-4" />
+              Throw test error (Sentry)
+            </span>
+          </LiquidButton>
+          <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+            Fires an uncaught error to verify the crash-reporting pipeline.
+            Visible only in development builds.
+          </p>
+        </SettingsSection>
+      )}
 
       {/* ─── About ─── */}
       <div className="flex flex-col items-center gap-1.5 py-3">

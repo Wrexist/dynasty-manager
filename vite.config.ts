@@ -4,6 +4,12 @@ import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
 import fs from "fs";
 
+// Expose the package.json version to app code at build time so Sentry can tag
+// releases. Read synchronously at config-load — cheap, runs once per build.
+const pkgVersion = JSON.parse(
+  fs.readFileSync(path.resolve(__dirname, "package.json"), "utf-8"),
+).version;
+
 /** Vite plugin that generates sw.js with a build-time cache version */
 function serviceWorkerPlugin() {
   return {
@@ -49,6 +55,9 @@ self.addEventListener('fetch', (event) => {
 
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
+  define: {
+    __APP_VERSION__: JSON.stringify(pkgVersion),
+  },
   server: {
     host: "::",
     port: 8080,

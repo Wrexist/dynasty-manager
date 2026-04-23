@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,8 +7,11 @@ import { MotionConfig } from "framer-motion";
 import { useGameStore } from "@/store/gameStore";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { SaveRecoveryDialog } from "@/components/SaveRecoveryDialog";
+import { AnalyticsConsentModal } from "@/components/AnalyticsConsentModal";
 import TitleScreen from "./pages/TitleScreen";
 import NotFound from "./pages/NotFound";
+import { readAnalyticsConsent } from "@/store/helpers/persistence";
+import { refreshAnalyticsConsent } from "@/utils/analytics";
 
 // Lazy-loaded routes for code splitting
 const ClubSelection = lazy(() => import("./pages/ClubSelection"));
@@ -31,6 +34,15 @@ const LoadingFallback = () => (
 
 const App = () => {
   const reducedMotion = useGameStore(s => s.settings.reducedMotion);
+  // First-launch analytics consent: read once on mount, gate the rest of the
+  // app until the user answers. `refreshAnalyticsConsent` seeds the in-memory
+  // cache so early `track()` calls (e.g. from splash) see 'granted' only if
+  // the user already answered on a previous launch.
+  const [consent, setConsent] = useState(() => {
+    refreshAnalyticsConsent();
+    return readAnalyticsConsent();
+  });
+  useEffect(() => { refreshAnalyticsConsent(); }, []);
 
   return (
   <ErrorBoundary scope="app">
@@ -38,6 +50,10 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <AnalyticsConsentModal
+          open={consent === 'unknown'}
+          onChoice={() => setConsent(readAnalyticsConsent())}
+        />
         <HashRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <SaveRecoveryDialog />
           <Suspense fallback={<LoadingFallback />}>
