@@ -6,6 +6,7 @@ import { initPurchases } from '@/utils/purchases';
 import { initAds } from '@/utils/ads';
 import { useGameStore } from '@/store/gameStore';
 import { initSentry, addGameBreadcrumb } from '@/utils/sentry';
+import { track } from '@/utils/analytics';
 
 // Configures the SDK iff VITE_SENTRY_DSN is set — release tag, PII scrubbing,
 // and breadcrumb scrubbing live in src/utils/sentry.ts.
@@ -33,6 +34,7 @@ requestAnimationFrame(() => {
 // Catch unhandled promise rejections (async errors outside React tree)
 window.addEventListener('unhandledrejection', (event) => {
   addGameBreadcrumb('crash', 'Unhandled promise rejection');
+  track('crash', { category: 'unhandled_rejection' });
   Sentry.captureException(event.reason, { tags: { context: 'unhandledRejection' } });
 });
 
@@ -41,6 +43,7 @@ window.addEventListener('unhandledrejection', (event) => {
 // breadcrumb — gives the dashboard one extra trail entry per crash.
 window.addEventListener('error', (event) => {
   addGameBreadcrumb('crash', 'Uncaught error', { message: event.message?.slice(0, 120) ?? null });
+  track('crash', { category: 'uncaught_error' });
 });
 
 // Save any pending state before the page goes away. We use flushForLifecycle()

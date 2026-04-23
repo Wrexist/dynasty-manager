@@ -166,7 +166,27 @@ export const STORAGE_KEYS = {
    *  at load time it means the previous write crashed between "stage" and
    *  "promote"; the recovery path inspects it. */
   saveSlotTmp: (slot: number) => `dynasty-save-${slot}-tmp`,
+  /** localStorage: device-level analytics consent. Lives outside the per-slot
+   *  save so the user only answers once. Values: 'granted' | 'denied'. Missing
+   *  key = never asked → show the consent screen. */
+  ANALYTICS_CONSENT: 'dynasty-analytics-consent',
 } as const;
+
+/** Analytics consent state. `'unknown'` surfaces the first-launch prompt. */
+export type AnalyticsConsent = 'unknown' | 'granted' | 'denied';
+
+export function readAnalyticsConsent(): AnalyticsConsent {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.ANALYTICS_CONSENT);
+    if (raw === 'granted' || raw === 'denied') return raw;
+    return 'unknown';
+  } catch { return 'unknown'; }
+}
+
+export function writeAnalyticsConsent(value: 'granted' | 'denied'): void {
+  try { localStorage.setItem(STORAGE_KEYS.ANALYTICS_CONSENT, value); }
+  catch { /* storage unavailable — consent stays 'unknown', analytics stays off. */ }
+}
 
 /** Read the per-slot community pack opt-in. Returns null if the user has
  *  never answered the popup for this slot (popup should show on next
