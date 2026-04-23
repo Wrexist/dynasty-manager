@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/react';
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { addGameBreadcrumb } from '@/utils/sentry';
 
 interface Props {
   children: ReactNode;
@@ -28,6 +29,9 @@ export class ErrorBoundary extends Component<Props, State> {
     if (import.meta.env.DEV) {
       console.error('[ErrorBoundary]', this.props.scope ?? 'unknown', error, info);
     }
+    addGameBreadcrumb('crash', 'React error boundary caught', {
+      scope: this.props.scope ?? 'unknown',
+    });
     Sentry.captureException(error, {
       tags: { errorboundary: this.props.scope ?? 'unknown' },
       extra: { componentStack: info.componentStack },

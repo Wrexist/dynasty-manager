@@ -5,20 +5,11 @@ import "./index.css";
 import { initPurchases } from '@/utils/purchases';
 import { initAds } from '@/utils/ads';
 import { useGameStore } from '@/store/gameStore';
+import { initSentry, addGameBreadcrumb } from '@/utils/sentry';
 
-// Initialize Sentry for crash reporting (only if DSN is configured)
-const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
-if (sentryDsn) {
-  Sentry.init({
-    dsn: sentryDsn,
-    environment: import.meta.env.DEV ? 'development' : 'production',
-    // Only send errors in production, reduce noise in dev
-    enabled: !import.meta.env.DEV,
-    // Sample 100% of errors, 10% of transactions
-    sampleRate: 1.0,
-    tracesSampleRate: 0.1,
-  });
-}
+// Configures the SDK iff VITE_SENTRY_DSN is set — release tag, PII scrubbing,
+// and breadcrumb scrubbing live in src/utils/sentry.ts.
+initSentry();
 
 // Promise that resolves once the first frame has painted
 let resolveAppReady: (() => void) | null = null;
@@ -41,7 +32,15 @@ requestAnimationFrame(() => {
 
 // Catch unhandled promise rejections (async errors outside React tree)
 window.addEventListener('unhandledrejection', (event) => {
+  addGameBreadcrumb('crash', 'Unhandled promise rejection');
   Sentry.captureException(event.reason, { tags: { context: 'unhandledRejection' } });
+});
+
+// Catch uncaught synchronous errors outside the React tree. The Sentry SDK's
+// own GlobalHandlers integration covers this, but we piggy-back to drop a
+// breadcrumb — gives the dashboard one extra trail entry per crash.
+window.addEventListener('error', (event) => {
+  addGameBreadcrumb('crash', 'Uncaught error', { message: event.message?.slice(0, 120) ?? null });
 });
 
 // Save any pending state before the page goes away. We use flushForLifecycle()

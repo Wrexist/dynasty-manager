@@ -37,6 +37,7 @@ import { generateYouthProspects, generateIntakePreview } from '@/utils/youth';
 import type { GameState } from '../storeTypes';
 import { addMsg, getSuffix, pick, shuffle, formatMoney } from '@/utils/helpers';
 import { guardAsync } from '@/utils/asyncGuard';
+import { addGameBreadcrumb } from '@/utils/sentry';
 import { fnv1a } from '@/utils/hashString';
 import { migrateLegacySave, saveSessionSnapshot, readSaveSlot, readSaveSlotBackup, writeSaveSlot, promoteSaveBackup, removeSaveSlot, recoverStaleSaveTmp, trimFixturesForSave, trimFixtureArrayForSave } from '@/store/helpers/persistence';
 import { migrateSaveData, validateSaveShape, isSaveFromNewerVersion, CURRENT_VERSION } from '@/utils/saveMigration';
@@ -431,8 +432,20 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
 
   if (saveFailed) {
     set({ saveStatus: 'failed', saveFailureMessage: 'Storage may be full' });
+    addGameBreadcrumb('save', 'Save failed', {
+      week: state.week,
+      season: state.season,
+      slot: s,
+      bytes: json.length,
+    });
   } else {
     set({ saveStatus: 'saved', lastSavedAt: Date.now(), saveFailureMessage: null });
+    addGameBreadcrumb('save', 'Save succeeded', {
+      week: state.week,
+      season: state.season,
+      slot: s,
+      bytes: json.length,
+    });
   }
 
   // Save session snapshot for "Welcome back" recap
@@ -1477,6 +1490,13 @@ function endSeasonImpl(set: Set, get: Get) {
 
   const playerEntry = leagueTable.find(e => e.clubId === playerClubId);
   const pos = playerEntry ? leagueTable.indexOf(playerEntry) + 1 : 20;
+
+  addGameBreadcrumb('season_end', 'Season ended', {
+    season,
+    division: playerDiv,
+    finalPosition: pos,
+    boardConfidence,
+  });
 
   const allPlayersList = Object.values(players);
   const topScorer = allPlayersList.filter(p => p.goals > 0).sort((a, b) => b.goals - a.goals)[0];
@@ -2795,6 +2815,17 @@ function computeShoutMods(matchShouts: { type: keyof typeof SHOUT_MODIFIERS }[])
 export const createOrchestrationSlice = (set: Set, get: Get) => ({
   initGame: async (clubId: string, options?: { communityPackEnabled?: boolean }) => {
     const communityPackEnabled = options?.communityPackEnabled ?? false;
+
+    // Division is derived from club metadata, not the user's name — safe to
+    // ship as a breadcrumb field. `clubId` is a stable internal id ("eng-liv"
+    // style), not the user's custom club name.
+    const initClubData = ALL_CLUBS.find(c => c.id === clubId);
+    addGameBreadcrumb('game_start', 'Game started', {
+      clubId,
+      division: initClubData?.divisionId ?? null,
+      communityPackEnabled,
+      gameMode: get().gameMode ?? 'sandbox',
+    });
 
     // Lazy-load community pack datasets only when enabled so the default bundle
     // stays lean. Dynamic imports are cached by the module system.
