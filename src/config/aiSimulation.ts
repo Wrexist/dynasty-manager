@@ -94,6 +94,38 @@ export const AI_LOAN_NEWS_MIN_OVERALL = 70;          // Only generate loan news 
 // Phase E.5 balance sim reported 0 FA news entries across 5 seasons at 70.
 export const AI_FA_NEWS_MIN_OVERALL = 60;
 
+// ── Community Pack FA Pool Seeding (Phase E.7) ──
+// Front-loads real CP players into the FA pool at game start and tapers over
+// the first three seasons. After S3, organic contract expiry is the only
+// source of new FAs. Matches how a real football save starts (a handful of
+// notable free agents available immediately, then steady year-over-year
+// turnover).
+//
+// Total seed volume across 3 seasons: 85 players out of ~136 marquee (80+
+// OVR) CP templates — leaves ~50 for the 4-weekly transfer-market refresh.
+export const CP_FA_SEED_COUNT_BY_SEASON: Record<number, number> = {
+  1: 50,  // at initGame
+  2: 25,  // at advanceWeek of week 1, season 2
+  3: 10,  // at advanceWeek of week 1, season 3
+};
+
+// Per-wave tier mix. Elite seats are capped tight — real football has 1-2
+// Bosman-quality FAs per window, not a weekly Kimmich flood.
+export const CP_FA_SEED_ELITE_COUNT = 2;
+export const CP_FA_SEED_TOP_COUNT = 8;
+
+// OVR bands. Everything 83+ is elite, 78-82 is top, 68-77 is mid. Anything
+// below 68 isn't seeded — low-tier FAs are better left to procedural spawn
+// so the CP pool stays reserved for recognizable names.
+export const CP_FA_SEED_ELITE_MIN_OVR = 83;
+export const CP_FA_SEED_TOP_MIN_OVR = 78;
+export const CP_FA_SEED_MID_MIN_OVR = 68;
+
+// Released-veteran archetype. Under 26 is academy/scouting territory; over
+// 33 runs up against the FA-admission filter (34+ retires out of the pool).
+export const CP_FA_SEED_MIN_AGE = 26;
+export const CP_FA_SEED_MAX_AGE = 33;
+
 // ── Style-Based Position Priorities ──
 // Which positions each manager style prioritises when buying
 export const AI_STYLE_PRIORITY_POSITIONS: Record<string, Position[]> = {

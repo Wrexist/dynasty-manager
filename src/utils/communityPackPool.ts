@@ -9,6 +9,20 @@ export interface CpPoolState {
   usedFcIds: string[];
   marketListings: string[];
   lastMarketRefreshWeek: number;
+  /** Last season we ran the Phase E.7 CP→FA-pool seed injection for. Guards
+   *  the advanceWeek week-1 check against re-seeding on save/reload. */
+  lastSeedSeason: number;
+}
+
+/** Config for drawForFaPoolSeed — tier/age bands for the game-start FA injection. */
+export interface FaSeedBands {
+  minAge: number;
+  maxAge: number;
+  eliteMinOvr: number;  // OVR >= this is elite
+  topMinOvr: number;    // OVR >= this but < eliteMinOvr is top
+  midMinOvr: number;    // OVR >= this but < topMinOvr is mid; below this isn't seeded
+  eliteCount: number;   // requested elite picks per wave
+  topCount: number;     // requested top picks per wave
 }
 
 export function mulberry32(seed: number): () => number {
@@ -152,4 +166,55 @@ export function needsRefill(
   activePoolLength: number,
 ): boolean {
   return activePoolLength < 200;
+}
+
+/**
+ * Draw a game-start FA wave from the CP pool. Partitions the active pool by
+ * OVR tier (elite / top / mid), applies the released-veteran age band, and
+ * picks up to `count` templates — elite first, then top, then mid — so the
+ * first few seats reliably go to recognizable names. Returns fewer than
+ * `count` if any tier runs dry; callers should treat a short result as "that
+ * was everything we could surface" and carry on.
+ *
+ * Distinct from `drawForMarket` (which randomizes by weighted tier roll per
+ * pick and has no age filter) because the FA-pool seed wants a predictable
+ * elite-heavy shape, not a market-shelf distribution.
+ */
+export function drawForFaPoolSeed(
+  activePool: PlayerTemplate[],
+  count: number,
+  excludeIds: string[],
+  seed: number,
+  bands: FaSeedBands,
+): PlayerTemplate[] {
+  if (count <= 0) return [];
+  const excluded = new Set(excludeIds);
+  const inAgeBand = (t: PlayerTemplate) => t.age >= bands.minAge && t.age <= bands.maxAge;
+  const available = activePool
+    .filter((t) => !t.fcId || !excluded.has(t.fcId))
+    .filter(inAgeBand);
+
+  const elite = available.filter((t) => t.ovr >= bands.eliteMinOvr);
+  const top = available.filter((t) => t.ovr >= bands.topMinOvr && t.ovr < bands.eliteMinOvr);
+  const mid = available.filter((t) => t.ovr >= bands.midMinOvr && t.ovr < bands.topMinOvr);
+
+  const rand = mulberry32(seed);
+  const result: PlayerTemplate[] = [];
+  const used = new Set<string>();
+
+  const drawFrom = (pool: PlayerTemplate[], n: number) => {
+    for (let i = 0; i < n; i++) {
+      const candidates = pool.filter((t) => !t.fcId || !used.has(t.fcId));
+      if (candidates.length === 0) return;
+      const pick = candidates[Math.floor(rand() * candidates.length)];
+      result.push(pick);
+      if (pick.fcId) used.add(pick.fcId);
+    }
+  };
+
+  drawFrom(elite, Math.min(bands.eliteCount, count));
+  drawFrom(top, Math.min(bands.topCount, Math.max(0, count - result.length)));
+  drawFrom(mid, Math.max(0, count - result.length));
+
+  return result;
 }

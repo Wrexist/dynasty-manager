@@ -440,5 +440,6 @@ export interface GameState {
     usedFcIds: string[];
     marketListings: string[];
     lastMarketRefreshWeek: number;
+    lastSeedSeason: number;
   };
 }

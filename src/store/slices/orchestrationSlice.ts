@@ -15,7 +15,17 @@ import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivision
 import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall, buildPlayerFromTemplate } from '@/utils/playerGen';
 import type { PlayerTemplate } from '@/data/playerTemplates';
-import { getActivePool, drawForMarket } from '@/utils/communityPackPool';
+import { getActivePool, drawForMarket, drawForFaPoolSeed } from '@/utils/communityPackPool';
+import {
+  CP_FA_SEED_COUNT_BY_SEASON,
+  CP_FA_SEED_ELITE_COUNT,
+  CP_FA_SEED_TOP_COUNT,
+  CP_FA_SEED_ELITE_MIN_OVR,
+  CP_FA_SEED_TOP_MIN_OVR,
+  CP_FA_SEED_MID_MIN_OVR,
+  CP_FA_SEED_MIN_AGE,
+  CP_FA_SEED_MAX_AGE,
+} from '@/config/aiSimulation';
 import { simulateMatch, simulateHalf, finalizeMatch, generateMatchWeather } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
 import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
@@ -2897,6 +2907,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         usedFcIds: assignedFcIds,
         marketListings: [],
         lastMarketRefreshWeek: 0,
+        lastSeedSeason: 0,
       });
       const initialMarket = drawForMarket(activePool, 60, assignedFcIds, cpShuffleSeed);
       for (const t of initialMarket) {
@@ -2923,6 +2934,54 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const initialFreeAgents = generateInitialFreeAgents(1);
     Object.assign(allPlayers, initialFreeAgents.players);
     const initialFreeAgentIds = initialFreeAgents.freeAgentIds;
+
+    // Phase E.7 — front-load the FA pool with real CP names at game start.
+    // Seeds taper over S2/S3 in advanceWeek; after S3 the pool relies on
+    // organic contract expiry. Elite count is capped tight per CP_FA_SEED_*
+    // so the user sees a handful of recognisable names day one without
+    // turning the FA tab into a weekly Bosman flood.
+    let cpCursorAfterSeed = 0;
+    if (communityPackEnabled && cpFreeAgents) {
+      const s1SeedCount = CP_FA_SEED_COUNT_BY_SEASON[1] ?? 0;
+      if (s1SeedCount > 0) {
+        const seedActivePool = getActivePool(cpFreeAgents, {
+          shuffleSeed: cpShuffleSeed,
+          cursor: 0,
+          usedFcIds: assignedFcIds,
+          marketListings: [],
+          lastMarketRefreshWeek: 0,
+          lastSeedSeason: 0,
+        });
+        const seeds = drawForFaPoolSeed(
+          seedActivePool,
+          s1SeedCount,
+          assignedFcIds,
+          cpShuffleSeed ^ 0x5A5A5A5A,
+          {
+            minAge: CP_FA_SEED_MIN_AGE,
+            maxAge: CP_FA_SEED_MAX_AGE,
+            eliteMinOvr: CP_FA_SEED_ELITE_MIN_OVR,
+            topMinOvr: CP_FA_SEED_TOP_MIN_OVR,
+            midMinOvr: CP_FA_SEED_MID_MIN_OVR,
+            eliteCount: CP_FA_SEED_ELITE_COUNT,
+            topCount: CP_FA_SEED_TOP_COUNT,
+          },
+        );
+        for (const t of seeds) {
+          const p = buildPlayerFromTemplate(t, '', 1);
+          if (t.fcId) p.fcId = t.fcId;
+          p.clubId = '';
+          // Match the wage-on-release reduction used by the contract-expiry
+          // path so these seeds feel like "released players open to offers"
+          // rather than mid-contract stars.
+          p.wage = Math.round(p.wage * 0.8);
+          allPlayers[p.id] = p;
+          initialFreeAgentIds.push(p.id);
+          if (t.fcId) assignedFcIds.push(t.fcId);
+        }
+        cpCursorAfterSeed = seeds.length;
+      }
+    }
 
     const initClub = clubs[clubId];
     const objectives = generateObjectives(initClub);
@@ -3063,10 +3122,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       communityPackEnabled,
       cpPool: {
         shuffleSeed: cpShuffleSeed,
-        cursor: 0,
+        // Advance the cursor by the seed count so subsequent refreshes
+        // draw from fresh territory in the shuffle, not the same 800-
+        // window we just pulled seeds from.
+        cursor: cpCursorAfterSeed,
         usedFcIds: communityPackEnabled ? assignedFcIds : [],
         marketListings: cpMarketListings,
         lastMarketRefreshWeek: 0,
+        // S1 seed was placed above; mark it done so the advanceWeek
+        // week-1 check doesn't re-seed S1.
+        lastSeedSeason: 1,
       },
     });
   },
@@ -5439,6 +5504,69 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             lastMarketRefreshWeek: cpState.week,
           },
         });
+      }
+    }
+
+    // Phase E.7 — CP FA pool season-start seed. Fires on week 1 of S2/S3,
+    // gated by cpPool.lastSeedSeason so reloads don't re-inject. Tapers per
+    // CP_FA_SEED_COUNT_BY_SEASON — S1 is handled inline at initGame.
+    {
+      const cpSeedState = get();
+      const seedCount = CP_FA_SEED_COUNT_BY_SEASON[cpSeedState.season] ?? 0;
+      if (
+        cpSeedState.communityPackEnabled &&
+        cpSeedState.week === 1 &&
+        seedCount > 0 &&
+        cpSeedState.cpPool.lastSeedSeason < cpSeedState.season
+      ) {
+        const freeAgentsMod = await import('@/data/communityPack/freeAgents');
+        const cpFreeAgents = freeAgentsMod.freeAgents as PlayerTemplate[];
+        const activePool = getActivePool(cpFreeAgents, cpSeedState.cpPool);
+        const seeds = drawForFaPoolSeed(
+          activePool,
+          seedCount,
+          cpSeedState.cpPool.usedFcIds,
+          cpSeedState.cpPool.shuffleSeed ^ (0x5A5A5A5A + cpSeedState.season),
+          {
+            minAge: CP_FA_SEED_MIN_AGE,
+            maxAge: CP_FA_SEED_MAX_AGE,
+            eliteMinOvr: CP_FA_SEED_ELITE_MIN_OVR,
+            topMinOvr: CP_FA_SEED_TOP_MIN_OVR,
+            midMinOvr: CP_FA_SEED_MID_MIN_OVR,
+            eliteCount: CP_FA_SEED_ELITE_COUNT,
+            topCount: CP_FA_SEED_TOP_COUNT,
+          },
+        );
+        if (seeds.length > 0) {
+          const updatedPlayers = { ...cpSeedState.players };
+          const updatedFreeAgents = [...cpSeedState.freeAgents];
+          const newFcIds: string[] = [];
+          for (const t of seeds) {
+            const p = buildPlayerFromTemplate(t, '', cpSeedState.season);
+            if (t.fcId) p.fcId = t.fcId;
+            p.clubId = '';
+            p.wage = Math.round(p.wage * 0.8);
+            updatedPlayers[p.id] = p;
+            updatedFreeAgents.push(p.id);
+            if (t.fcId) newFcIds.push(t.fcId);
+          }
+          set({
+            players: updatedPlayers,
+            freeAgents: updatedFreeAgents,
+            cpPool: {
+              ...cpSeedState.cpPool,
+              cursor: cpSeedState.cpPool.cursor + seeds.length,
+              usedFcIds: [...cpSeedState.cpPool.usedFcIds, ...newFcIds],
+              lastSeedSeason: cpSeedState.season,
+            },
+          });
+        } else {
+          // No eligible templates (pool exhausted or all used) — still bump
+          // the marker so we don't retry every tick.
+          set({
+            cpPool: { ...cpSeedState.cpPool, lastSeedSeason: cpSeedState.season },
+          });
+        }
       }
     }
 
