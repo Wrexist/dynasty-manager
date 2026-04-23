@@ -453,8 +453,14 @@ export const TRANSFER_TALK_CONVINCE_SUCCESS_MORALE = 15;
 export const TRANSFER_TALK_CONVINCE_FAIL_MORALE = 5;
 
 // ── Free Agent Market ──
-/** Maximum free agents in the pool at any time */
-export const FREE_AGENT_POOL_MAX = 80;
+/**
+ * Maximum free agents in the pool at any time. Bumped from 80 → 200 after the
+ * Phase E FA-pool diagnostic showed ~140 CP fcIds per season were being
+ * silently dropped at the cap during the contract-expiry pass (endSeason in
+ * orchestrationSlice.ts). Real top flights carry hundreds of FAs in a window;
+ * 200 fits the seasonal inflow without flooring memory or list-render cost.
+ */
+export const FREE_AGENT_POOL_MAX = 200;
 // ── Cliffhanger System ──
 /** Maximum number of cliffhangers shown per week */
 export const MAX_CLIFFHANGERS = 3;

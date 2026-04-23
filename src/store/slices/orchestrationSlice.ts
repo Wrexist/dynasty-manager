@@ -1784,10 +1784,39 @@ function finalizeSeason(
     }
   }
 
+  // Carry last season's unsigned free agents into the new pool. Without this,
+  // state.freeAgents was silently wiped each endSeason — combined with the
+  // cap-full silent-drop below, CP players expiring from clubs almost never
+  // persisted long enough to reach the user's FA tab. Existing FAs that age
+  // past the 34 retirement threshold here are dropped (same gate we use when
+  // admitting newly-expiring players).
+  const existingFaSet = new Set(state.freeAgents);
   const freeAgentIds: string[] = [];
+  for (const faId of state.freeAgents) {
+    const fa = mergedPlayers[faId];
+    if (!fa) continue;
+    if (fa.age + 1 > 34) continue;
+    const agedFa: Player = {
+      ...fa, age: fa.age + 1,
+      careerGoals: (fa.careerGoals || 0) + fa.goals,
+      careerAssists: (fa.careerAssists || 0) + fa.assists,
+      careerAppearances: (fa.careerAppearances || 0) + fa.appearances,
+      goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0,
+      seasonRatingTotal: 0, seasonRatedMatches: 0, matchHistory: [],
+      suspendedUntilWeek: undefined, growthDelta: 0, lastAttributeChanges: undefined, lastTrainingGains: undefined, onLoan: false,
+      loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined, lastTransferTalkWeek: undefined,
+      listedForSale: false,
+    };
+    newPlayers[agedFa.id] = agedFa;
+    freeAgentIds.push(agedFa.id);
+  }
   const farewells: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] }[] = [];
 
   Object.values(mergedPlayers).forEach(p => {
+    // Existing FAs already processed above — skip to avoid double-aging and
+    // double-adding them to freeAgentIds.
+    if (existingFaSet.has(p.id)) return;
+
     const aged = {
       ...p, age: p.age + 1,
       // Accumulate career stats before resetting season stats
@@ -2107,10 +2136,17 @@ function finalizeSeason(
   const shieldQualified = newShieldCup && !newShieldCup.playerEliminated;
   const confQualified = newConferenceCup && !newConferenceCup.playerEliminated;
 
-  // Clean up old external players (unattached players not in any club or free agent pool)
-  const oldFreeAgentSet = new Set(state.freeAgents);
+  // Clean up orphaned unattached players — must use the NEWLY-built freeAgentIds
+  // set (carry-overs + this-season's expiries), not state.freeAgents (the old
+  // set from before the expiry loop ran). Previously this used the old set,
+  // so every player the expiry loop just routed to the FA pool was immediately
+  // deleted here — about ~140 CP fcIds per season. The original intent of this
+  // block is to purge external transfer-market players whose listings rotated
+  // out, which the new set still catches (those players are never in
+  // freeAgentIds).
+  const newFreeAgentSet = new Set(freeAgentIds);
   for (const [pid, p] of Object.entries(newPlayers)) {
-    if (p.clubId === '' && !oldFreeAgentSet.has(pid)) {
+    if (p.clubId === '' && !newFreeAgentSet.has(pid)) {
       delete newPlayers[pid];
     }
   }
