@@ -8,8 +8,8 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 interface TransferPlayerCardProps {
   player: Player;
   onSelect: (id: string) => void;
-  rightContent: ReactNode;
-  actions: ReactNode;
+  rightContent?: ReactNode;
+  actions?: ReactNode;
   subtitle?: ReactNode;
   showFlag?: boolean;
   showPotential?: boolean;
@@ -25,6 +25,10 @@ interface TransferPlayerCardProps {
  *
  * The stat chips that used to live here have been retired: the shield
  * card already shows all six attributes on its face.
+ *
+ * `rightContent` and `actions` are both optional so the same shell can
+ * serve loan sections that carry status-only metadata (no price, no
+ * buttons) without empty zero-height gaps.
  */
 export function TransferPlayerCard({
   player,
@@ -60,10 +64,10 @@ export function TransferPlayerCard({
             </p>
             {subtitle && <div className="text-xs text-muted-foreground mt-1">{subtitle}</div>}
           </div>
-          <div className="text-right shrink-0">{rightContent}</div>
+          {rightContent && <div className="text-right shrink-0">{rightContent}</div>}
         </div>
       </div>
-      <div className="flex gap-2 mt-3">{actions}</div>
+      {actions && <div className="flex gap-2 mt-3">{actions}</div>}
     </GlassPanel>
   );
 

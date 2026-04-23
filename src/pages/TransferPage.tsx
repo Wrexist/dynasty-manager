@@ -13,7 +13,6 @@ import { TransferListing, IncomingOffer } from '@/types/game';
 import { successToast, errorToast, infoToast } from '@/utils/gameToast';
 import { POSITION_FILTERS, PAGE_HINTS, SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OFFER_FEE, BUDGET_WARNING_THRESHOLD, HOT_FORM_THRESHOLD, GOOD_FORM_THRESHOLD, OFFER_EXPIRY_WARNING_WEEKS } from '@/config/ui';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
-import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
 import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, FREE_AGENT_DEFAULT_CONTRACT_YEARS, FREE_AGENT_MIN_WAGE_RATIO, FREE_AGENT_MAX_WAGE_RATIO, LOAN_BUY_FEE_MULTIPLIER, PRE_SEASON_END } from '@/config/transfers';
@@ -704,43 +703,43 @@ const TransferPage = () => {
                 if (!p) return null;
                 const fromClub = clubs[offer.fromClubId];
                 return (
-                  <GlassPanel key={offer.id} className="p-4">
-                    <div className="flex items-start gap-3">
-                      <PlayerRatingBadge overall={p.overall} size="lg" shape="circle" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
-                        <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          From: <span className="text-foreground">{fromClub?.name || '?'}</span>
-                        </p>
-                        <div className="flex gap-3 mt-1 text-[10px] text-muted-foreground">
+                  <TransferPlayerCard
+                    key={offer.id}
+                    player={p}
+                    onSelect={selectPlayer}
+                    subtitle={
+                      <>
+                        <div>From: <span className="text-foreground">{fromClub?.name || '?'}</span></div>
+                        <div className="flex gap-3 mt-1 text-[10px]">
                           <span>{offer.durationWeeks} weeks</span>
                           <span>Wage: {offer.wageSplit}%</span>
                           {offer.recallClause && <span className="text-primary">Recall clause</span>}
                         </div>
-                      </div>
-                    </div>
-                    <div className="flex gap-2 mt-3">
-                      <Button
-                        size="sm" className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
-                        onClick={() => {
-                          const r = respondToLoanOffer(offer.id, true);
-                          if (r.success) { successToast(r.message); } else { errorToast(r.message); }
-                        }}
-                      >
-                        Accept Loan
-                      </Button>
-                      <Button
-                        size="sm" variant="destructive" className="flex-1 h-8 text-xs"
-                        onClick={() => {
-                          const r = respondToLoanOffer(offer.id, false);
-                          if (r.success) { successToast(r.message); } else { errorToast(r.message); }
-                        }}
-                      >
-                        Reject
-                      </Button>
-                    </div>
-                  </GlassPanel>
+                      </>
+                    }
+                    actions={
+                      <>
+                        <Button
+                          size="sm" className="flex-1 h-8 text-xs bg-emerald-600 hover:bg-emerald-700"
+                          onClick={() => {
+                            const r = respondToLoanOffer(offer.id, true);
+                            if (r.success) { successToast(r.message); } else { errorToast(r.message); }
+                          }}
+                        >
+                          Accept Loan
+                        </Button>
+                        <Button
+                          size="sm" variant="destructive" className="flex-1 h-8 text-xs"
+                          onClick={() => {
+                            const r = respondToLoanOffer(offer.id, false);
+                            if (r.success) { successToast(r.message); } else { errorToast(r.message); }
+                          }}
+                        >
+                          Reject
+                        </Button>
+                      </>
+                    }
+                  />
                 );
               })}
             </div>
@@ -755,16 +754,14 @@ const TransferPage = () => {
                 if (!p) return null;
                 const ownerClub = clubs[req.toClubId];
                 return (
-                  <GlassPanel key={req.id} className="p-4">
-                    <div className="flex items-start gap-3">
-                      <PlayerRatingBadge overall={p.overall} size="lg" shape="circle" />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
-                        <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          From: <span className="text-foreground">{ownerClub?.name || '?'}</span>
-                        </p>
-                        <div className="flex gap-3 mt-1 text-[10px] text-muted-foreground">
+                  <TransferPlayerCard
+                    key={req.id}
+                    player={p}
+                    onSelect={selectPlayer}
+                    subtitle={
+                      <>
+                        <div>From: <span className="text-foreground">{ownerClub?.name || '?'}</span></div>
+                        <div className="flex gap-3 mt-1 text-[10px]">
                           <span>{req.durationWeeks} weeks</span>
                           <span>Wage: {req.wageSplit}%</span>
                           {req.recallClause && <span className="text-blue-400">Recall</span>}
@@ -778,9 +775,9 @@ const TransferPage = () => {
                             {req.status === 'pending' ? 'Awaiting Response' : req.status.charAt(0).toUpperCase() + req.status.slice(1)}
                           </span>
                         </div>
-                      </div>
-                    </div>
-                  </GlassPanel>
+                      </>
+                    }
+                  />
                 );
               })}
             </div>
@@ -802,27 +799,24 @@ const TransferPage = () => {
                       const elapsed = (season - loan.startSeason) * totalWeeks + (week - loan.startWeek);
                       const remaining = Math.max(0, loan.durationWeeks - elapsed);
                       return (
-                        <GlassPanel key={loan.id} className="p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-11 h-11 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-                              <Repeat2 className="w-5 h-5 text-blue-400" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
-                              <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} OVR {p.overall}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                At: <span className="text-foreground">{destClub?.name || '?'}</span>
-                              </p>
-                              <div className="flex gap-3 mt-1 text-[10px] text-muted-foreground">
-                                <span>{remaining} weeks left</span>
+                        <TransferPlayerCard
+                          key={loan.id}
+                          player={p}
+                          onSelect={selectPlayer}
+                          subtitle={
+                            <>
+                              <div>At: <span className="text-foreground">{destClub?.name || '?'}</span></div>
+                              <div className="flex gap-3 mt-1 text-[10px] flex-wrap">
+                                <span className="inline-flex items-center gap-1 text-blue-400"><Repeat2 className="w-3 h-3" />On loan</span>
+                                <span>{remaining}w left</span>
                                 <span>Wage: {loan.wageSplit}%</span>
                                 {loan.obligatoryBuyFee && <span className="text-amber-400">{'\u00A3'}{(loan.obligatoryBuyFee / 1e6).toFixed(1)}M buy</span>}
                               </div>
-                            </div>
-                          </div>
-                          {loan.recallClause && elapsed >= LOAN_MIN_WEEKS_BEFORE_RECALL && (
+                            </>
+                          }
+                          actions={loan.recallClause && elapsed >= LOAN_MIN_WEEKS_BEFORE_RECALL ? (
                             <Button
-                              size="sm" variant="outline" className="w-full h-8 text-xs mt-3"
+                              size="sm" variant="outline" className="w-full h-8 text-xs"
                               onClick={() => {
                                 const r = recallLoan(loan.id);
                                 if (r.success) { successToast(r.message); } else { errorToast(r.message); }
@@ -830,8 +824,8 @@ const TransferPage = () => {
                             >
                               Recall Player
                             </Button>
-                          )}
-                        </GlassPanel>
+                          ) : undefined}
+                        />
                       );
                     })}
                   </div>
@@ -847,27 +841,24 @@ const TransferPage = () => {
                       const elapsed = (season - loan.startSeason) * totalWeeks + (week - loan.startWeek);
                       const remaining = Math.max(0, loan.durationWeeks - elapsed);
                       return (
-                        <GlassPanel key={loan.id} className="p-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-11 h-11 rounded-full bg-blue-500/20 flex items-center justify-center shrink-0">
-                              <Repeat2 className="w-5 h-5 text-blue-400" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-foreground text-sm">{p.firstName} {p.lastName}</p>
-                              <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} OVR {p.overall}</p>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                From: <span className="text-foreground">{parentClub?.name || '?'}</span>
-                              </p>
-                              <div className="flex gap-3 mt-1 text-[10px] text-muted-foreground">
-                                <span>{remaining} weeks left</span>
+                        <TransferPlayerCard
+                          key={loan.id}
+                          player={p}
+                          onSelect={selectPlayer}
+                          subtitle={
+                            <>
+                              <div>From: <span className="text-foreground">{parentClub?.name || '?'}</span></div>
+                              <div className="flex gap-3 mt-1 text-[10px] flex-wrap">
+                                <span className="inline-flex items-center gap-1 text-blue-400"><Repeat2 className="w-3 h-3" />On loan</span>
+                                <span>{remaining}w left</span>
                                 <span>Wage: {loan.wageSplit}%</span>
                                 {loan.obligatoryBuyFee && <span className="text-amber-400">{'\u00A3'}{(loan.obligatoryBuyFee / 1e6).toFixed(1)}M buy clause</span>}
                               </div>
-                            </div>
-                          </div>
-                          {transferWindowOpen && (
+                            </>
+                          }
+                          actions={transferWindowOpen ? (
                             <Button
-                              size="sm" variant="outline" className="w-full h-8 text-xs mt-3"
+                              size="sm" variant="outline" className="w-full h-8 text-xs"
                               onClick={() => {
                                 hapticMedium();
                                 const fee = loan.obligatoryBuyFee || Math.round(p.value * LOAN_BUY_FEE_MULTIPLIER);
@@ -881,8 +872,8 @@ const TransferPage = () => {
                             >
                               Buy Permanently — {formatMoney(loan.obligatoryBuyFee || Math.round(p.value * LOAN_BUY_FEE_MULTIPLIER))}
                             </Button>
-                          )}
-                        </GlassPanel>
+                          ) : undefined}
+                        />
                       );
                     })}
                   </div>
