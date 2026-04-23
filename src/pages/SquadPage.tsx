@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { ListForSaleModal } from '@/components/game/ListForSaleModal';
-import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
 import type { SquadSortKey, SquadStatusFilter } from '@/types/game';
@@ -443,147 +443,129 @@ const SquadPage = () => {
                     ? 'listed' as const
                     : null;
 
+            const hasTrainingPlan = (training.individualPlans || []).some(p => p.playerId === player.id);
+
             return (
               <motion.div
                 key={player.id}
                 initial={i < 15 ? { opacity: 0, y: 6 } : false}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: Math.min(i * 0.02, 0.3), duration: 0.15 }}
-                onClick={() => selectPlayer(player.id)}
-                role="button"
-                tabIndex={0}
-                aria-label={`View ${player.firstName} ${player.lastName}`}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(player.id); } }}
                 className={cn(
-                  'flex items-center gap-2.5 py-2.5 px-3 cursor-pointer transition-all rounded-xl',
+                  'flex items-stretch gap-3 p-3 rounded-xl transition-colors',
                   'bg-card/50 backdrop-blur-sm border border-border/30',
-                  'hover:bg-card/80 hover:border-border/50 active:scale-[0.99]',
                   player.wantsToLeave && 'border-amber-500/25',
                   player.injured && 'opacity-60',
                 )}
               >
-                {/* Overall Rating Badge */}
-                <PlayerRatingBadge overall={player.overall} size="md" />
+                <PlayerCard
+                  player={player}
+                  size="md"
+                  interactive="detail"
+                  showConditionView={false}
+                  onDetailClick={(p) => selectPlayer(p.id)}
+                  className="shrink-0"
+                />
 
-                {/* Player Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <p className="font-semibold text-foreground text-sm truncate">
-                      <FlagIcon nationality={player.nationality} size={16} /> {player.firstName[0]}. {player.lastName}
-                    </p>
-                    {player.growthDelta > 0 && (
-                      <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
-                    )}
-                    {player.growthDelta < 0 && (
-                      <TrendingDown className="w-3 h-3 text-destructive shrink-0" />
-                    )}
-                  </div>
-
-                  {/* Position + Age + Status Row */}
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded', posBadgeColor(player.position))}>
-                      {player.position}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground tabular-nums">{player.age}y</span>
-                    {lineupSet.has(player.id) && (
-                      <span className="text-[8px] font-bold text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">XI</span>
-                    )}
-                    {subsSet.has(player.id) && (
-                      <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded">SUB</span>
-                    )}
-                    {(training.individualPlans || []).some(p => p.playerId === player.id) && (
-                      <span title="Individual training plan set"><Dumbbell className="w-3 h-3 text-primary/70 shrink-0" /></span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Fitness + Morale + Form Column */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Form indicator */}
-                  <span className={cn('text-[9px] font-bold tabular-nums w-7 text-center', form.color)} title={`Form: ${player.form}`}>
-                    {form.label}
-                  </span>
-
-                  {/* Fitness bar */}
-                  <div className="w-11 space-y-0.5" title={`Fitness ${player.fitness}%`}>
-                    <div className="h-1.5 bg-muted/80 rounded-full overflow-hidden">
-                      <div
-                        className={cn('h-full rounded-full transition-all', fitnessColor)}
-                        style={{ width: `${player.fitness}%` }}
-                      />
+                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5 gap-2">
+                  {/* Top row: name + growth arrow; right-aligned action buttons */}
+                  <div className="flex items-start gap-2 min-w-0">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-foreground text-sm flex items-center gap-1.5 min-w-0">
+                        <FlagIcon nationality={player.nationality} size={14} className="shrink-0" />
+                        <span className="truncate">{player.firstName[0]}. {player.lastName}</span>
+                        {player.growthDelta > 0 && <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />}
+                        {player.growthDelta < 0 && <TrendingDown className="w-3 h-3 text-destructive shrink-0" />}
+                      </p>
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                        <span className="text-[10px] text-muted-foreground tabular-nums">{player.age}y</span>
+                        {lineupSet.has(player.id) && (
+                          <span className="text-[8px] font-bold text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">XI</span>
+                        )}
+                        {subsSet.has(player.id) && (
+                          <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded">SUB</span>
+                        )}
+                        {hasTrainingPlan && (
+                          <span title="Individual training plan set"><Dumbbell className="w-3 h-3 text-primary/70 shrink-0" /></span>
+                        )}
+                      </div>
                     </div>
-                    <p className="text-[8px] text-muted-foreground text-center tabular-nums">{player.fitness}%</p>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      {contractUrgency && !player.onLoan && !player.injured && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); hapticLight(); startNegotiation(player.id, true); }}
+                          className={cn(
+                            'p-1 rounded-md transition-colors',
+                            contractUrgency === 'expired'
+                              ? 'text-destructive hover:bg-destructive/10'
+                              : 'text-amber-400 hover:bg-amber-400/10'
+                          )}
+                          title={contractUrgency === 'expired'
+                            ? `Contract expires end of this season (S${player.contractEnd})`
+                            : `Contract expires end of next season (S${player.contractEnd})`}
+                          aria-label={`Negotiate renewal for ${player.firstName} ${player.lastName}`}
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                      {statusBadge === 'injured' && (
+                        <span className="flex items-center gap-0.5" title={`Injured — ${player.injuryWeeks || '?'} wk(s)`}>
+                          <HeartPulse className="w-3.5 h-3.5 text-destructive" />
+                          <span className="text-[8px] font-bold text-destructive tabular-nums">{player.injuryWeeks}w</span>
+                        </span>
+                      )}
+                      {statusBadge === 'wantsOut' && (
+                        <span
+                          className="flex items-center gap-0.5 text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-md"
+                          title="Wants to leave the club"
+                        >
+                          <LogOut className="w-2.5 h-2.5" />
+                          <span className="text-[7px] font-bold uppercase tracking-wide">Out</span>
+                        </span>
+                      )}
+                      {statusBadge === 'onLoan' && (
+                        <span
+                          className="flex items-center gap-0.5 text-sky-400 bg-sky-400/10 border border-sky-400/20 px-1.5 py-0.5 rounded-md"
+                          title="On loan"
+                        >
+                          <Repeat2 className="w-2.5 h-2.5" />
+                          <span className="text-[7px] font-bold uppercase tracking-wide">Loan</span>
+                        </span>
+                      )}
+                      {statusBadge === 'listed' && (
+                        <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
+                          LISTED
+                        </span>
+                      )}
+                      {!statusBadge && (
+                        <button
+                          onClick={(e) => handleListForSale(e, player.id)}
+                          className="text-muted-foreground/40 hover:text-primary transition-colors p-1.5"
+                          title="List for sale"
+                        >
+                          <Tag className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Morale icon */}
-                  <morale.Icon className={cn('w-3.5 h-3.5 shrink-0', morale.color)} title={`Morale: ${morale.label} (${player.morale}%)`} />
-                </div>
-
-                {/* Contract urgency indicator — always allocate space for alignment */}
-                <div className="w-6 shrink-0 flex items-center justify-center">
-                  {contractUrgency && !player.onLoan && !player.injured && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        hapticLight();
-                        startNegotiation(player.id, true);
-                      }}
-                      className={cn(
-                        'p-1 rounded-md transition-colors',
-                        contractUrgency === 'expired'
-                          ? 'text-destructive hover:bg-destructive/10'
-                          : 'text-amber-400 hover:bg-amber-400/10'
-                      )}
-                      title={contractUrgency === 'expired'
-                        ? `Contract expires end of this season (S${player.contractEnd})`
-                        : `Contract expires end of next season (S${player.contractEnd})`}
-                      aria-label={`Negotiate renewal for ${player.firstName} ${player.lastName}`}
-                    >
-                      <FileText className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Status Column — single priority badge to prevent overflow */}
-                <div className="flex items-center justify-end shrink-0 w-11">
-                  {statusBadge === 'injured' && (
-                    <span className="flex items-center gap-0.5" title={`Injured — ${player.injuryWeeks || '?'} wk(s)`}>
-                      <HeartPulse className="w-3.5 h-3.5 text-destructive" />
-                      <span className="text-[8px] font-bold text-destructive tabular-nums">{player.injuryWeeks}w</span>
+                  {/* Quick-glance cluster — form, fitness bar, morale */}
+                  <div className="flex items-center gap-2 text-[10px]">
+                    <span className={cn('font-bold tabular-nums shrink-0 w-7', form.color)} title={`Form: ${player.form}`}>
+                      {form.label}
                     </span>
-                  )}
-                  {statusBadge === 'wantsOut' && (
-                    <span
-                      className="flex items-center gap-0.5 text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-md"
-                      title="Wants to leave the club"
-                    >
-                      <LogOut className="w-2.5 h-2.5" />
-                      <span className="text-[7px] font-bold uppercase tracking-wide">Out</span>
-                    </span>
-                  )}
-                  {statusBadge === 'onLoan' && (
-                    <span
-                      className="flex items-center gap-0.5 text-sky-400 bg-sky-400/10 border border-sky-400/20 px-1.5 py-0.5 rounded-md"
-                      title="On loan"
-                    >
-                      <Repeat2 className="w-2.5 h-2.5" />
-                      <span className="text-[7px] font-bold uppercase tracking-wide">Loan</span>
-                    </span>
-                  )}
-                  {statusBadge === 'listed' && (
-                    <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
-                      LISTED
-                    </span>
-                  )}
-                  {!statusBadge && (
-                    <button
-                      onClick={(e) => handleListForSale(e, player.id)}
-                      className="text-muted-foreground/40 hover:text-primary transition-colors p-1.5"
-                      title="List for sale"
-                    >
-                      <Tag className="w-3 h-3" />
-                    </button>
-                  )}
+                    <div className="flex-1 min-w-[40px]" title={`Fitness ${player.fitness}%`}>
+                      <div className="h-1.5 bg-muted/80 rounded-full overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full transition-all', fitnessColor)}
+                          style={{ width: `${player.fitness}%` }}
+                        />
+                      </div>
+                      <p className="text-[8px] text-muted-foreground text-center tabular-nums mt-0.5">{player.fitness}%</p>
+                    </div>
+                    <morale.Icon className={cn('w-3.5 h-3.5 shrink-0', morale.color)} title={`Morale: ${morale.label} (${player.morale}%)`} />
+                  </div>
                 </div>
               </motion.div>
             );
