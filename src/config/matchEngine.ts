@@ -140,7 +140,10 @@ export const FITNESS_FACTOR_BASE = 0.7;
 export const FITNESS_FACTOR_SCALE = 0.3;
 
 // ── Goal Chance Formula ──
-export const GOAL_CHANCE_ATTACK_MULT = 0.30;
+// Bumped from 0.30 → 0.32 in Phase E.6 after the 5-season balance sim
+// reported PL mean 2.58 g/m with two seasons dipping to 2.43/2.11. The
+// ~7% lift centres the PL band more solidly inside the 2.6-2.9 target.
+export const GOAL_CHANCE_ATTACK_MULT = 0.32;
 export const GOAL_CHANCE_DEFENSE_MULT = 0.20;
 export const GOAL_CHANCE_ATTACK_MOD_SCALE = 0.35;
 export const GOAL_CHANCE_COUNTER_VULN_SCALE = 0.18;

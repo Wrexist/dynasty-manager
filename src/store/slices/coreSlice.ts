@@ -69,6 +69,7 @@ export const createCoreSlice = (set: Set, get: Get) => ({
     usedFcIds: [] as string[],
     marketListings: [] as string[],
     lastMarketRefreshWeek: 0,
+    lastSeedSeason: 0,
   },
 
   // League system defaults

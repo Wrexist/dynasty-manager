@@ -117,7 +117,7 @@ function CommunityPackPopupInner({ open, onChoice, onClose }: CommunityPackPopup
             </div>
             <DialogDescription className="pt-3 text-sm leading-relaxed text-foreground/80">
               Play with real-world squads, recognisable names, and ratings
-              inspired by the FC26 community dataset — plus a rotating
+              inspired by real-world football data — plus a rotating
               transfer market and seven extra leagues.
             </DialogDescription>
           </DialogHeader>
@@ -139,15 +139,15 @@ function CommunityPackPopupInner({ open, onChoice, onClose }: CommunityPackPopup
                   Community-sourced — not our data
                 </p>
                 <p className="text-[11px] leading-snug text-amber-100/85">
-                  Dynasty Manager didn't create the real-player pool. It's a
-                  community-compiled dataset based on FC26 stats, loaded
-                  entirely offline on your device.
+                  Player data is community-sourced. Dynasty Manager didn't
+                  create the real-player pool — it's a community-compiled
+                  dataset loaded entirely offline on your device.
                 </p>
                 <p className="text-[11px] leading-snug text-amber-100/85">
-                  Dynasty Manager is <strong>not affiliated with, endorsed by,
-                  or sponsored by</strong> EA SPORTS, the FC franchise, FIFA,
-                  or any club, league, or player. All names, ratings, and
-                  likenesses belong to their respective rights holders.
+                  This app is <strong>not affiliated with or endorsed by</strong>
+                  {' '}any football league, club, player, or governing body.
+                  All names, ratings, and likenesses belong to their respective
+                  rights holders.
                 </p>
               </div>
             </div>

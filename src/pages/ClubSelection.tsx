@@ -423,7 +423,7 @@ const ClubSelection = () => {
                                 <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
                                 <div className="flex items-center gap-2 mt-0.5">
                                   <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] font-medium text-muted-foreground px-2 py-0.5')}>
-                                    #{nation.baseRanking} FIFA
+                                    World #{nation.baseRanking}
                                   </span>
                                   {nation.baseRanking <= 10 && (
                                     <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] font-medium text-primary px-2 py-0.5 bg-primary/15 border-primary/30')}>

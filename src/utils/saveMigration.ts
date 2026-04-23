@@ -9,7 +9,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 60;
+const CURRENT_VERSION = 61;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -902,6 +902,27 @@ const migrations: Record<number, MigrationFn> = {
       lastMarketRefreshWeek: 0,
     },
   }),
+
+  // v60 → v61: added cpPool.lastSeedSeason for Phase E.7 FA-pool seeding.
+  // Old saves: treat as "already past the seed window" so we don't retro-
+  // inject FAs into in-progress games — seeds are a game-start mechanic.
+  60: (data) => {
+    const existingPool = data.cpPool as Record<string, unknown> | undefined;
+    return {
+      ...data,
+      version: 61,
+      cpPool: existingPool
+        ? { ...existingPool, lastSeedSeason: existingPool.lastSeedSeason ?? 99 }
+        : {
+            shuffleSeed: 0,
+            cursor: 0,
+            usedFcIds: [],
+            marketListings: [],
+            lastMarketRefreshWeek: 0,
+            lastSeedSeason: 99,
+          },
+    };
+  },
 };
 
 /** Lightweight structural check for a save payload *after* migration. Guards

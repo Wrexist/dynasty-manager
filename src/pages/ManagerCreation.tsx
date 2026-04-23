@@ -354,7 +354,7 @@ const ManagerCreation = () => {
                                   <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
                                   <div className="flex items-center gap-2 mt-0.5">
                                     <span className="text-[10px] font-medium text-muted-foreground bg-white/5 rounded px-1.5 py-0.5">
-                                      #{nation.baseRanking} FIFA
+                                      World #{nation.baseRanking}
                                     </span>
                                     {nation.baseRanking <= 10 && (
                                       <span className="text-[10px] font-medium text-primary bg-primary/10 rounded px-1.5 py-0.5">

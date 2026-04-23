@@ -15,7 +15,17 @@ import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivision
 import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall, buildPlayerFromTemplate } from '@/utils/playerGen';
 import type { PlayerTemplate } from '@/data/playerTemplates';
-import { getActivePool, drawForMarket } from '@/utils/communityPackPool';
+import { getActivePool, drawForMarket, drawForFaPoolSeed } from '@/utils/communityPackPool';
+import {
+  CP_FA_SEED_COUNT_BY_SEASON,
+  CP_FA_SEED_ELITE_COUNT,
+  CP_FA_SEED_TOP_COUNT,
+  CP_FA_SEED_ELITE_MIN_OVR,
+  CP_FA_SEED_TOP_MIN_OVR,
+  CP_FA_SEED_MID_MIN_OVR,
+  CP_FA_SEED_MIN_AGE,
+  CP_FA_SEED_MAX_AGE,
+} from '@/config/aiSimulation';
 import { simulateMatch, simulateHalf, finalizeMatch, generateMatchWeather } from '@/engine/match';
 import { generateInitialStaff, generateStaffMarket, getStaffBonus, getTrainingStaffBonus } from '@/utils/staff';
 import { GK_COACH_DEV_BONUS_PER_QUALITY, STAFF_MARKET_REFRESH_WEEK } from '@/config/staff';
@@ -1784,10 +1794,39 @@ function finalizeSeason(
     }
   }
 
+  // Carry last season's unsigned free agents into the new pool. Without this,
+  // state.freeAgents was silently wiped each endSeason — combined with the
+  // cap-full silent-drop below, CP players expiring from clubs almost never
+  // persisted long enough to reach the user's FA tab. Existing FAs that age
+  // past the 34 retirement threshold here are dropped (same gate we use when
+  // admitting newly-expiring players).
+  const existingFaSet = new Set(state.freeAgents);
   const freeAgentIds: string[] = [];
+  for (const faId of state.freeAgents) {
+    const fa = mergedPlayers[faId];
+    if (!fa) continue;
+    if (fa.age + 1 > 34) continue;
+    const agedFa: Player = {
+      ...fa, age: fa.age + 1,
+      careerGoals: (fa.careerGoals || 0) + fa.goals,
+      careerAssists: (fa.careerAssists || 0) + fa.assists,
+      careerAppearances: (fa.careerAppearances || 0) + fa.appearances,
+      goals: 0, assists: 0, appearances: 0, yellowCards: 0, redCards: 0,
+      seasonRatingTotal: 0, seasonRatedMatches: 0, matchHistory: [],
+      suspendedUntilWeek: undefined, growthDelta: 0, lastAttributeChanges: undefined, lastTrainingGains: undefined, onLoan: false,
+      loanFromClubId: undefined, loanToClubId: undefined, lowMoraleWeeks: 0, wantsToLeave: false, transferCooldownUntilWeek: undefined, lastTransferTalkWeek: undefined,
+      listedForSale: false,
+    };
+    newPlayers[agedFa.id] = agedFa;
+    freeAgentIds.push(agedFa.id);
+  }
   const farewells: { playerId: string; playerName: string; seasonsServed: number; stats: { label: string; value: string }[] }[] = [];
 
   Object.values(mergedPlayers).forEach(p => {
+    // Existing FAs already processed above — skip to avoid double-aging and
+    // double-adding them to freeAgentIds.
+    if (existingFaSet.has(p.id)) return;
+
     const aged = {
       ...p, age: p.age + 1,
       // Accumulate career stats before resetting season stats
@@ -2107,10 +2146,17 @@ function finalizeSeason(
   const shieldQualified = newShieldCup && !newShieldCup.playerEliminated;
   const confQualified = newConferenceCup && !newConferenceCup.playerEliminated;
 
-  // Clean up old external players (unattached players not in any club or free agent pool)
-  const oldFreeAgentSet = new Set(state.freeAgents);
+  // Clean up orphaned unattached players — must use the NEWLY-built freeAgentIds
+  // set (carry-overs + this-season's expiries), not state.freeAgents (the old
+  // set from before the expiry loop ran). Previously this used the old set,
+  // so every player the expiry loop just routed to the FA pool was immediately
+  // deleted here — about ~140 CP fcIds per season. The original intent of this
+  // block is to purge external transfer-market players whose listings rotated
+  // out, which the new set still catches (those players are never in
+  // freeAgentIds).
+  const newFreeAgentSet = new Set(freeAgentIds);
   for (const [pid, p] of Object.entries(newPlayers)) {
-    if (p.clubId === '' && !oldFreeAgentSet.has(pid)) {
+    if (p.clubId === '' && !newFreeAgentSet.has(pid)) {
       delete newPlayers[pid];
     }
   }
@@ -2861,6 +2907,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
         usedFcIds: assignedFcIds,
         marketListings: [],
         lastMarketRefreshWeek: 0,
+        lastSeedSeason: 0,
       });
       const initialMarket = drawForMarket(activePool, 60, assignedFcIds, cpShuffleSeed);
       for (const t of initialMarket) {
@@ -2887,6 +2934,54 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const initialFreeAgents = generateInitialFreeAgents(1);
     Object.assign(allPlayers, initialFreeAgents.players);
     const initialFreeAgentIds = initialFreeAgents.freeAgentIds;
+
+    // Phase E.7 — front-load the FA pool with real CP names at game start.
+    // Seeds taper over S2/S3 in advanceWeek; after S3 the pool relies on
+    // organic contract expiry. Elite count is capped tight per CP_FA_SEED_*
+    // so the user sees a handful of recognisable names day one without
+    // turning the FA tab into a weekly Bosman flood.
+    let cpCursorAfterSeed = 0;
+    if (communityPackEnabled && cpFreeAgents) {
+      const s1SeedCount = CP_FA_SEED_COUNT_BY_SEASON[1] ?? 0;
+      if (s1SeedCount > 0) {
+        const seedActivePool = getActivePool(cpFreeAgents, {
+          shuffleSeed: cpShuffleSeed,
+          cursor: 0,
+          usedFcIds: assignedFcIds,
+          marketListings: [],
+          lastMarketRefreshWeek: 0,
+          lastSeedSeason: 0,
+        });
+        const seeds = drawForFaPoolSeed(
+          seedActivePool,
+          s1SeedCount,
+          assignedFcIds,
+          cpShuffleSeed ^ 0x5A5A5A5A,
+          {
+            minAge: CP_FA_SEED_MIN_AGE,
+            maxAge: CP_FA_SEED_MAX_AGE,
+            eliteMinOvr: CP_FA_SEED_ELITE_MIN_OVR,
+            topMinOvr: CP_FA_SEED_TOP_MIN_OVR,
+            midMinOvr: CP_FA_SEED_MID_MIN_OVR,
+            eliteCount: CP_FA_SEED_ELITE_COUNT,
+            topCount: CP_FA_SEED_TOP_COUNT,
+          },
+        );
+        for (const t of seeds) {
+          const p = buildPlayerFromTemplate(t, '', 1);
+          if (t.fcId) p.fcId = t.fcId;
+          p.clubId = '';
+          // Match the wage-on-release reduction used by the contract-expiry
+          // path so these seeds feel like "released players open to offers"
+          // rather than mid-contract stars.
+          p.wage = Math.round(p.wage * 0.8);
+          allPlayers[p.id] = p;
+          initialFreeAgentIds.push(p.id);
+          if (t.fcId) assignedFcIds.push(t.fcId);
+        }
+        cpCursorAfterSeed = seeds.length;
+      }
+    }
 
     const initClub = clubs[clubId];
     const objectives = generateObjectives(initClub);
@@ -3027,10 +3122,16 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       communityPackEnabled,
       cpPool: {
         shuffleSeed: cpShuffleSeed,
-        cursor: 0,
+        // Advance the cursor by the seed count so subsequent refreshes
+        // draw from fresh territory in the shuffle, not the same 800-
+        // window we just pulled seeds from.
+        cursor: cpCursorAfterSeed,
         usedFcIds: communityPackEnabled ? assignedFcIds : [],
         marketListings: cpMarketListings,
         lastMarketRefreshWeek: 0,
+        // S1 seed was placed above; mark it done so the advanceWeek
+        // week-1 check doesn't re-seed S1.
+        lastSeedSeason: 1,
       },
     });
   },
@@ -5327,12 +5428,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // Community pack market refresh: every 4 weeks, rotate out the oldest 20
-    // listings and draw 20 fresh templates from the free-agent pool.
+    // listings and draw 20 fresh templates from the free-agent pool. The
+    // `lastMarketRefreshWeek > week` leg catches the post-endSeason case
+    // where week has just reset to 1 but lastMarketRefreshWeek is still
+    // the previous season's late-game value (e.g. 44); without it the
+    // `>=4` check would stall for most of the next season.
     {
       const cpState = get();
+      const weeksSinceRefresh = cpState.week - cpState.cpPool.lastMarketRefreshWeek;
+      const seasonRolledOver = cpState.cpPool.lastMarketRefreshWeek > cpState.week;
       if (
         cpState.communityPackEnabled &&
-        cpState.week - cpState.cpPool.lastMarketRefreshWeek >= 4
+        (weeksSinceRefresh >= 4 || seasonRolledOver)
       ) {
         const rotateOut = cpState.cpPool.marketListings.slice(0, 20);
         const keep = cpState.cpPool.marketListings.slice(20);
@@ -5383,6 +5490,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           players: updatedPlayers,
           cpPool: {
             ...cpState.cpPool,
+            // Advance the cursor by the number of templates we just consumed.
+            // Without this, getActivePool() keeps returning the same 800-entry
+            // window with an ever-growing used-fcId filter — in long saves the
+            // effective pool starves silently. Aligns runtime behaviour with
+            // the existing advanceCursor unit tests.
+            cursor: cpState.cpPool.cursor + newDraws.length,
             marketListings: [...keep, ...newIds],
             usedFcIds: [
               ...cpState.cpPool.usedFcIds.filter(id => !rotateOutSet.has(id)),
@@ -5391,6 +5504,69 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
             lastMarketRefreshWeek: cpState.week,
           },
         });
+      }
+    }
+
+    // Phase E.7 — CP FA pool season-start seed. Fires on week 1 of S2/S3,
+    // gated by cpPool.lastSeedSeason so reloads don't re-inject. Tapers per
+    // CP_FA_SEED_COUNT_BY_SEASON — S1 is handled inline at initGame.
+    {
+      const cpSeedState = get();
+      const seedCount = CP_FA_SEED_COUNT_BY_SEASON[cpSeedState.season] ?? 0;
+      if (
+        cpSeedState.communityPackEnabled &&
+        cpSeedState.week === 1 &&
+        seedCount > 0 &&
+        cpSeedState.cpPool.lastSeedSeason < cpSeedState.season
+      ) {
+        const freeAgentsMod = await import('@/data/communityPack/freeAgents');
+        const cpFreeAgents = freeAgentsMod.freeAgents as PlayerTemplate[];
+        const activePool = getActivePool(cpFreeAgents, cpSeedState.cpPool);
+        const seeds = drawForFaPoolSeed(
+          activePool,
+          seedCount,
+          cpSeedState.cpPool.usedFcIds,
+          cpSeedState.cpPool.shuffleSeed ^ (0x5A5A5A5A + cpSeedState.season),
+          {
+            minAge: CP_FA_SEED_MIN_AGE,
+            maxAge: CP_FA_SEED_MAX_AGE,
+            eliteMinOvr: CP_FA_SEED_ELITE_MIN_OVR,
+            topMinOvr: CP_FA_SEED_TOP_MIN_OVR,
+            midMinOvr: CP_FA_SEED_MID_MIN_OVR,
+            eliteCount: CP_FA_SEED_ELITE_COUNT,
+            topCount: CP_FA_SEED_TOP_COUNT,
+          },
+        );
+        if (seeds.length > 0) {
+          const updatedPlayers = { ...cpSeedState.players };
+          const updatedFreeAgents = [...cpSeedState.freeAgents];
+          const newFcIds: string[] = [];
+          for (const t of seeds) {
+            const p = buildPlayerFromTemplate(t, '', cpSeedState.season);
+            if (t.fcId) p.fcId = t.fcId;
+            p.clubId = '';
+            p.wage = Math.round(p.wage * 0.8);
+            updatedPlayers[p.id] = p;
+            updatedFreeAgents.push(p.id);
+            if (t.fcId) newFcIds.push(t.fcId);
+          }
+          set({
+            players: updatedPlayers,
+            freeAgents: updatedFreeAgents,
+            cpPool: {
+              ...cpSeedState.cpPool,
+              cursor: cpSeedState.cpPool.cursor + seeds.length,
+              usedFcIds: [...cpSeedState.cpPool.usedFcIds, ...newFcIds],
+              lastSeedSeason: cpSeedState.season,
+            },
+          });
+        } else {
+          // No eligible templates (pool exhausted or all used) — still bump
+          // the marker so we don't retry every tick.
+          set({
+            cpPool: { ...cpSeedState.cpPool, lastSeedSeason: cpSeedState.season },
+          });
+        }
       }
     }
 

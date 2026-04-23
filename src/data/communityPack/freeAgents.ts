@@ -430,7 +430,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 90
   },
   {
-    "fn": "E",
+    "fn": "Ederson",
     "ln": "Ederson",
     "pos": "GK",
     "age": 31,
@@ -470,7 +470,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 89
   },
   {
-    "fn": "S",
+    "fn": "Sancet",
     "ln": "Sancet",
     "pos": "CAM",
     "age": 25,
@@ -494,7 +494,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "G",
+    "fn": "Grimaldo",
     "ln": "Grimaldo",
     "pos": "LB",
     "age": 29,
@@ -623,7 +623,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "I",
+    "fn": "Isco",
     "ln": "Isco",
     "pos": "CAM",
     "age": 33,
@@ -666,7 +666,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 81
   },
   {
-    "fn": "V",
+    "fn": "Vivian",
     "ln": "Vivian",
     "pos": "CB",
     "age": 25,
@@ -1037,7 +1037,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "B",
+    "fn": "Berenguer",
     "ln": "Berenguer",
     "pos": "CAM",
     "age": 29,
@@ -1307,7 +1307,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "R",
+    "fn": "Rafa",
     "ln": "Rafa",
     "pos": "CAM",
     "age": 32,
@@ -1788,7 +1788,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Antony",
     "ln": "Antony",
     "pos": "RW",
     "age": 25,
@@ -2058,7 +2058,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "R",
+    "fn": "Raíllo",
     "ln": "Raíllo",
     "pos": "CB",
     "age": 33,
@@ -2138,7 +2138,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 85
   },
   {
-    "fn": "F",
+    "fn": "Fred",
     "ln": "Fred",
     "pos": "CM",
     "age": 32,
@@ -2389,7 +2389,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 69
   },
   {
-    "fn": "M",
+    "fn": "Mingueza",
     "ln": "Mingueza",
     "pos": "RB",
     "age": 26,
@@ -2818,7 +2818,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 79
   },
   {
-    "fn": "F",
+    "fn": "Florentino",
     "ln": "Florentino",
     "pos": "CDM",
     "age": 25,
@@ -2862,7 +2862,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "A",
+    "fn": "Alexsandro",
     "ln": "Alexsandro",
     "pos": "CB",
     "age": 25,
@@ -3034,7 +3034,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Angeliño",
     "ln": "Angeliño",
     "pos": "LB",
     "age": 28,
@@ -3114,7 +3114,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83
   },
   {
-    "fn": "F",
+    "fn": "Fornals",
     "ln": "Fornals",
     "pos": "CDM",
     "age": 29,
@@ -3160,7 +3160,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "R",
+    "fn": "Rodinei",
     "ln": "Rodinei",
     "pos": "RB",
     "age": 33,
@@ -3364,7 +3364,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "G",
+    "fn": "Guruzeta",
     "ln": "Guruzeta",
     "pos": "ST",
     "age": 28,
@@ -3477,7 +3477,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "K",
+    "fn": "Kaku",
     "ln": "Kaku",
     "pos": "CAM",
     "age": 30,
@@ -3540,7 +3540,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "R",
+    "fn": "Reinildo",
     "ln": "Reinildo",
     "pos": "LB",
     "age": 31,
@@ -3646,7 +3646,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 77
   },
   {
-    "fn": "B",
+    "fn": "Bartra",
     "ln": "Bartra",
     "pos": "CB",
     "age": 34,
@@ -3879,7 +3879,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 94
   },
   {
-    "fn": "C",
+    "fn": "Catena",
     "ln": "Catena",
     "pos": "CB",
     "age": 30,
@@ -4183,7 +4183,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Chiquinho",
     "ln": "Chiquinho",
     "pos": "CM",
     "age": 29,
@@ -4322,7 +4322,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Cucho",
     "ln": "Cucho",
     "pos": "ST",
     "age": 26,
@@ -4368,7 +4368,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "J",
+    "fn": "Jauregizar",
     "ln": "Jauregizar",
     "pos": "CM",
     "age": 21,
@@ -4552,7 +4552,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "P",
+    "fn": "Puado",
     "ln": "Puado",
     "pos": "ST",
     "age": 27,
@@ -4885,7 +4885,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Moncayola",
     "ln": "Moncayola",
     "pos": "CM",
     "age": 27,
@@ -5160,7 +5160,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Maffeo",
     "ln": "Maffeo",
     "pos": "RB",
     "age": 27,
@@ -5180,7 +5180,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 70
   },
   {
-    "fn": "B",
+    "fn": "Bruma",
     "ln": "Bruma",
     "pos": "LW",
     "age": 30,
@@ -5483,7 +5483,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "D",
+    "fn": "Dante",
     "ln": "Dante",
     "pos": "CB",
     "age": 41,
@@ -5586,7 +5586,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 79
   },
   {
-    "fn": "N",
+    "fn": "Natan",
     "ln": "Natan",
     "pos": "CB",
     "age": 24,
@@ -6158,7 +6158,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "W",
+    "fn": "Wesley",
     "ln": "Wesley",
     "pos": "RB",
     "age": 21,
@@ -6340,7 +6340,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "E",
+    "fn": "Emerson",
     "ln": "Emerson",
     "pos": "LB",
     "age": 30,
@@ -6423,7 +6423,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 77
   },
   {
-    "fn": "V",
+    "fn": "Vanderson",
     "ln": "Vanderson",
     "pos": "RB",
     "age": 24,
@@ -6884,7 +6884,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "T",
+    "fn": "Terrats",
     "ln": "Terrats",
     "pos": "CM",
     "age": 24,
@@ -7062,7 +7062,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "R",
+    "fn": "Riquelme",
     "ln": "Riquelme",
     "pos": "LW",
     "age": 25,
@@ -7309,7 +7309,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Altimira",
     "ln": "Altimira",
     "pos": "CDM",
     "age": 23,
@@ -7332,7 +7332,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "G",
+    "fn": "Gorosabel",
     "ln": "Gorosabel",
     "pos": "RB",
     "age": 28,
@@ -7502,7 +7502,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 65
   },
   {
-    "fn": "T",
+    "fn": "Tetê",
     "ln": "Tetê",
     "pos": "RW",
     "age": 25,
@@ -7562,7 +7562,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 78
   },
   {
-    "fn": "S",
+    "fn": "Suso",
     "ln": "Suso",
     "pos": "CAM",
     "age": 31,
@@ -7713,7 +7713,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Abde",
     "ln": "Abde",
     "pos": "LW",
     "age": 23,
@@ -8656,7 +8656,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "K",
+    "fn": "Kirian",
     "ln": "Kirian",
     "pos": "CM",
     "age": 29,
@@ -9504,7 +9504,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Areso",
     "ln": "Areso",
     "pos": "RB",
     "age": 25,
@@ -10234,7 +10234,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 85
   },
   {
-    "fn": "Y",
+    "fn": "Yeremay",
     "ln": "Yeremay",
     "pos": "LW",
     "age": 22,
@@ -10850,7 +10850,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "C",
+    "fn": "Costinha",
     "ln": "Costinha",
     "pos": "RB",
     "age": 25,
@@ -11142,7 +11142,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "R",
+    "fn": "Rômulo",
     "ln": "Rômulo",
     "pos": "RW",
     "age": 29,
@@ -11338,7 +11338,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "L",
+    "fn": "Lekue",
     "ln": "Lekue",
     "pos": "RB",
     "age": 32,
@@ -11564,7 +11564,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "T",
+    "fn": "Taison",
     "ln": "Taison",
     "pos": "CAM",
     "age": 37,
@@ -11903,7 +11903,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "B",
+    "fn": "Bernardo",
     "ln": "Bernardo",
     "pos": "CB",
     "age": 30,
@@ -12016,7 +12016,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "S",
+    "fn": "Sandro",
     "ln": "Sandro",
     "pos": "ST",
     "age": 29,
@@ -12082,7 +12082,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 65
   },
   {
-    "fn": "C",
+    "fn": "Cryzan",
     "ln": "Cryzan",
     "pos": "ST",
     "age": 28,
@@ -12616,7 +12616,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 71
   },
   {
-    "fn": "C",
+    "fn": "Carreira",
     "ln": "Carreira",
     "pos": "RB",
     "age": 24,
@@ -13788,7 +13788,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83
   },
   {
-    "fn": "O",
+    "fn": "Otávio",
     "ln": "Otávio",
     "pos": "CB",
     "age": 23,
@@ -14100,7 +14100,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 85
   },
   {
-    "fn": "A",
+    "fn": "Aarón",
     "ln": "Aarón",
     "pos": "GK",
     "age": 29,
@@ -14522,7 +14522,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "H",
+    "fn": "Hannibal",
     "ln": "Hannibal",
     "pos": "CM",
     "age": 22,
@@ -14662,7 +14662,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Morales",
     "ln": "Morales",
     "pos": "ST",
     "age": 37,
@@ -14837,7 +14837,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Cadu",
     "ln": "Cadu",
     "pos": "RB",
     "age": 27,
@@ -15018,7 +15018,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "O",
+    "fn": "Olasagasti",
     "ln": "Olasagasti",
     "pos": "CM",
     "age": 24,
@@ -15656,7 +15656,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "D",
+    "fn": "Davidson",
     "ln": "Davidson",
     "pos": "LW",
     "age": 34,
@@ -15832,7 +15832,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "B",
+    "fn": "Brugui",
     "ln": "Brugui",
     "pos": "ST",
     "age": 28,
@@ -16057,7 +16057,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 77
   },
   {
-    "fn": "V",
+    "fn": "Vako",
     "ln": "Vako",
     "pos": "ST",
     "age": 32,
@@ -16146,7 +16146,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 62
   },
   {
-    "fn": "V",
+    "fn": "Vesga",
     "ln": "Vesga",
     "pos": "CDM",
     "age": 32,
@@ -16467,7 +16467,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "L",
+    "fn": "Leonardo",
     "ln": "Leonardo",
     "pos": "ST",
     "age": 28,
@@ -16556,7 +16556,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "J",
+    "fn": "Jofre",
     "ln": "Jofre",
     "pos": "RW",
     "age": 24,
@@ -16813,7 +16813,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83
   },
   {
-    "fn": "R",
+    "fn": "Roberto",
     "ln": "Roberto",
     "pos": "ST",
     "age": 23,
@@ -17034,7 +17034,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "B",
+    "fn": "Bigas",
     "ln": "Bigas",
     "pos": "CB",
     "age": 34,
@@ -17585,7 +17585,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 70
   },
   {
-    "fn": "M",
+    "fn": "Marquinhos",
     "ln": "Marquinhos",
     "pos": "LW",
     "age": 28,
@@ -18329,7 +18329,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 78
   },
   {
-    "fn": "H",
+    "fn": "Herrando",
     "ln": "Herrando",
     "pos": "CB",
     "age": 24,
@@ -18369,7 +18369,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 84
   },
   {
-    "fn": "M",
+    "fn": "Mujaid",
     "ln": "Mujaid",
     "pos": "CB",
     "age": 25,
@@ -19111,7 +19111,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "L",
+    "fn": "Lincoln",
     "ln": "Lincoln",
     "pos": "CAM",
     "age": 26,
@@ -20075,7 +20075,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "S",
+    "fn": "Samu",
     "ln": "Samu",
     "pos": "CM",
     "age": 29,
@@ -20239,7 +20239,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "P",
+    "fn": "Pizzi",
     "ln": "Pizzi",
     "pos": "CM",
     "age": 35,
@@ -20756,7 +20756,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "E",
+    "fn": "Erik",
     "ln": "Erik",
     "pos": "LB",
     "age": 24,
@@ -21547,7 +21547,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "C",
+    "fn": "Camacho",
     "ln": "Camacho",
     "pos": "LW",
     "age": 31,
@@ -21976,7 +21976,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "V",
+    "fn": "Villalibre",
     "ln": "Villalibre",
     "pos": "ST",
     "age": 27,
@@ -22039,7 +22039,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "A",
+    "fn": "Akieme",
     "ln": "Akieme",
     "pos": "LB",
     "age": 27,
@@ -22473,7 +22473,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Q",
+    "fn": "Quiles",
     "ln": "Quiles",
     "pos": "ST",
     "age": 30,
@@ -22626,7 +22626,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Y",
+    "fn": "Yarek",
     "ln": "Yarek",
     "pos": "CB",
     "age": 20,
@@ -22649,7 +22649,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Z",
+    "fn": "Zeca",
     "ln": "Zeca",
     "pos": "ST",
     "age": 28,
@@ -22995,7 +22995,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "M",
+    "fn": "Maroan",
     "ln": "Maroan",
     "pos": "ST",
     "age": 24,
@@ -23015,7 +23015,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 85
   },
   {
-    "fn": "C",
+    "fn": "Calero",
     "ln": "Calero",
     "pos": "CB",
     "age": 29,
@@ -23078,7 +23078,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 85
   },
   {
-    "fn": "O",
+    "fn": "Ontiveros",
     "ln": "Ontiveros",
     "pos": "ST",
     "age": 27,
@@ -23304,7 +23304,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 79
   },
   {
-    "fn": "E",
+    "fn": "Elgezabal",
     "ln": "Elgezabal",
     "pos": "CB",
     "age": 32,
@@ -23550,7 +23550,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 78
   },
   {
-    "fn": "G",
+    "fn": "Gustavo",
     "ln": "Gustavo",
     "pos": "ST",
     "age": 31,
@@ -24232,7 +24232,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 91
   },
   {
-    "fn": "T",
+    "fn": "Torrente",
     "ln": "Torrente",
     "pos": "CB",
     "age": 23,
@@ -24495,7 +24495,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 79
   },
   {
-    "fn": "A",
+    "fn": "Adrián",
     "ln": "Adrián",
     "pos": "GK",
     "age": 38,
@@ -25385,7 +25385,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Melero",
     "ln": "Melero",
     "pos": "CM",
     "age": 31,
@@ -27084,7 +27084,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "D",
+    "fn": "Dela",
     "ln": "Dela",
     "pos": "CB",
     "age": 26,
@@ -27177,7 +27177,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "J",
+    "fn": "Josan",
     "ln": "Josan",
     "pos": "RB",
     "age": 35,
@@ -27484,7 +27484,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 86
   },
   {
-    "fn": "P",
+    "fn": "Puertas",
     "ln": "Puertas",
     "pos": "CAM",
     "age": 33,
@@ -27906,7 +27906,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 71
   },
   {
-    "fn": "X",
+    "fn": "Xeka",
     "ln": "Xeka",
     "pos": "CM",
     "age": 30,
@@ -28065,7 +28065,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 73
   },
   {
-    "fn": "S",
+    "fn": "Salinas",
     "ln": "Salinas",
     "pos": "LB",
     "age": 24,
@@ -28132,7 +28132,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "W",
+    "fn": "Welington",
     "ln": "Welington",
     "pos": "LB",
     "age": 24,
@@ -28984,7 +28984,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Z",
+    "fn": "Zine",
     "ln": "Zine",
     "pos": "ST",
     "age": 22,
@@ -29052,7 +29052,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "F",
+    "fn": "Franculino",
     "ln": "Franculino",
     "pos": "ST",
     "age": 21,
@@ -29112,7 +29112,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "F",
+    "fn": "Franquesa",
     "ln": "Franquesa",
     "pos": "LB",
     "age": 28,
@@ -29698,7 +29698,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 71
   },
   {
-    "fn": "C",
+    "fn": "Chiquinho",
     "ln": "Chiquinho",
     "pos": "LW",
     "age": 25,
@@ -29997,7 +29997,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Carracedo",
     "ln": "Carracedo",
     "pos": "RW",
     "age": 29,
@@ -31418,7 +31418,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "V",
+    "fn": "Vallejo",
     "ln": "Vallejo",
     "pos": "CB",
     "age": 28,
@@ -32244,7 +32244,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "C",
+    "fn": "Caro",
     "ln": "Caro",
     "pos": "GK",
     "age": 31,
@@ -32324,7 +32324,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 87
   },
   {
-    "fn": "E",
+    "fn": "Ezkieta",
     "ln": "Ezkieta",
     "pos": "GK",
     "age": 28,
@@ -33346,7 +33346,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "V",
+    "fn": "Villares",
     "ln": "Villares",
     "pos": "CM",
     "age": 29,
@@ -33867,7 +33867,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Morci",
     "ln": "Morci",
     "pos": "LW",
     "age": 26,
@@ -33930,7 +33930,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Melendo",
     "ln": "Melendo",
     "pos": "CM",
     "age": 27,
@@ -34034,7 +34034,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "S",
+    "fn": "Stoichkov",
     "ln": "Stoichkov",
     "pos": "ST",
     "age": 31,
@@ -35006,7 +35006,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "R",
+    "fn": "Ricard",
     "ln": "Ricard",
     "pos": "RB",
     "age": 25,
@@ -36636,7 +36636,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 78
   },
   {
-    "fn": "I",
+    "fn": "Izeta",
     "ln": "Izeta",
     "pos": "ST",
     "age": 25,
@@ -36727,7 +36727,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "J",
+    "fn": "Jefté",
     "ln": "Jefté",
     "pos": "ST",
     "age": 31,
@@ -36813,7 +36813,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Casas",
     "ln": "Casas",
     "pos": "ST",
     "age": 25,
@@ -37221,7 +37221,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Arthur",
     "ln": "Arthur",
     "pos": "RB",
     "age": 22,
@@ -37958,7 +37958,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 73
   },
   {
-    "fn": "E",
+    "fn": "Edgar",
     "ln": "Edgar",
     "pos": "CB",
     "age": 28,
@@ -38089,7 +38089,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Mella",
     "ln": "Mella",
     "pos": "RW",
     "age": 20,
@@ -38149,7 +38149,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 81
   },
   {
-    "fn": "H",
+    "fn": "Higinio",
     "ln": "Higinio",
     "pos": "ST",
     "age": 31,
@@ -38189,7 +38189,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "L",
+    "fn": "Loureiro",
     "ln": "Loureiro",
     "pos": "CB",
     "age": 28,
@@ -38252,7 +38252,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "K",
+    "fn": "Kikas",
     "ln": "Kikas",
     "pos": "ST",
     "age": 26,
@@ -38509,7 +38509,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "P",
+    "fn": "Peter",
     "ln": "Peter",
     "pos": "RW",
     "age": 22,
@@ -38595,7 +38595,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "H",
+    "fn": "Herzog",
     "ln": "Herzog",
     "pos": "CB",
     "age": 21,
@@ -38635,7 +38635,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83
   },
   {
-    "fn": "V",
+    "fn": "Valera",
     "ln": "Valera",
     "pos": "LW",
     "age": 23,
@@ -40069,7 +40069,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "D",
+    "fn": "Dálcio",
     "ln": "Dálcio",
     "pos": "CDM",
     "age": 29,
@@ -40520,7 +40520,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "A",
+    "fn": "Aldasoro",
     "ln": "Aldasoro",
     "pos": "CDM",
     "age": 26,
@@ -41407,7 +41407,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Meseguer",
     "ln": "Meseguer",
     "pos": "CM",
     "age": 26,
@@ -41431,7 +41431,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "L",
+    "fn": "Liziero",
     "ln": "Liziero",
     "pos": "CM",
     "age": 27,
@@ -41477,7 +41477,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "R",
+    "fn": "Riki",
     "ln": "Riki",
     "pos": "CM",
     "age": 27,
@@ -41912,7 +41912,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "M",
+    "fn": "Mollejo",
     "ln": "Mollejo",
     "pos": "ST",
     "age": 24,
@@ -42541,7 +42541,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "K",
+    "fn": "Kady",
     "ln": "Kady",
     "pos": "CAM",
     "age": 29,
@@ -42993,7 +42993,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Chissumba",
     "ln": "Chissumba",
     "pos": "LB",
     "age": 20,
@@ -43237,7 +43237,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 73
   },
   {
-    "fn": "K",
+    "fn": "Kiki",
     "ln": "Kiki",
     "pos": "LB",
     "age": 30,
@@ -44217,7 +44217,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "B",
+    "fn": "Bebeto",
     "ln": "Bebeto",
     "pos": "RB",
     "age": 35,
@@ -44412,7 +44412,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 92
   },
   {
-    "fn": "A",
+    "fn": "Algobia",
     "ln": "Algobia",
     "pos": "CM",
     "age": 26,
@@ -44901,7 +44901,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "I",
+    "fn": "Imanol",
     "ln": "Imanol",
     "pos": "LB",
     "age": 25,
@@ -45838,7 +45838,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "M",
+    "fn": "Miguel",
     "ln": "Miguel",
     "pos": "ST",
     "age": 25,
@@ -45878,7 +45878,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 70
   },
   {
-    "fn": "A",
+    "fn": "Atienza",
     "ln": "Atienza",
     "pos": "CDM",
     "age": 26,
@@ -45902,7 +45902,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Arana",
     "ln": "Arana",
     "pos": "ST",
     "age": 25,
@@ -47181,7 +47181,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 87
   },
   {
-    "fn": "L",
+    "fn": "Latasa",
     "ln": "Latasa",
     "pos": "ST",
     "age": 24,
@@ -47498,7 +47498,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "R",
+    "fn": "Riccieli",
     "ln": "Riccieli",
     "pos": "CB",
     "age": 26,
@@ -47561,7 +47561,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 88
   },
   {
-    "fn": "M",
+    "fn": "Montero",
     "ln": "Montero",
     "pos": "CB",
     "age": 26,
@@ -47764,7 +47764,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Alemão",
     "ln": "Alemão",
     "pos": "CB",
     "age": 22,
@@ -47907,7 +47907,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "E",
+    "fn": "Egiluz",
     "ln": "Egiluz",
     "pos": "CB",
     "age": 23,
@@ -48215,7 +48215,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83
   },
   {
-    "fn": "C",
+    "fn": "Cantero",
     "ln": "Cantero",
     "pos": "GK",
     "age": 30,
@@ -49055,7 +49055,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 91
   },
   {
-    "fn": "W",
+    "fn": "Warleson",
     "ln": "Warleson",
     "pos": "GK",
     "age": 28,
@@ -49853,7 +49853,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "P",
+    "fn": "Paulinho",
     "ln": "Paulinho",
     "pos": "LB",
     "age": 30,
@@ -49943,7 +49943,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Anuar",
     "ln": "Anuar",
     "pos": "CM",
     "age": 30,
@@ -50602,7 +50602,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "V",
+    "fn": "Vilarrasa",
     "ln": "Vilarrasa",
     "pos": "LB",
     "age": 25,
@@ -51431,7 +51431,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "D",
+    "fn": "Dawhan",
     "ln": "Dawhan",
     "pos": "CDM",
     "age": 29,
@@ -51566,7 +51566,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "L",
+    "fn": "Luismi",
     "ln": "Luismi",
     "pos": "CM",
     "age": 33,
@@ -52270,7 +52270,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 76
   },
   {
-    "fn": "M",
+    "fn": "Metinho",
     "ln": "Metinho",
     "pos": "CDM",
     "age": 22,
@@ -53144,7 +53144,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "K",
+    "fn": "Kevin",
     "ln": "Kevin",
     "pos": "RB",
     "age": 32,
@@ -53316,7 +53316,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "J",
+    "fn": "Juan",
     "ln": "Juan",
     "pos": "ST",
     "age": 23,
@@ -54137,7 +54137,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "F",
+    "fn": "Fali",
     "ln": "Fali",
     "pos": "CB",
     "age": 31,
@@ -54743,7 +54743,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "R",
+    "fn": "Robert",
     "ln": "Robert",
     "pos": "LW",
     "age": 20,
@@ -55060,7 +55060,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 84
   },
   {
-    "fn": "R",
+    "fn": "Ros",
     "ln": "Ros",
     "pos": "CB",
     "age": 29,
@@ -55084,7 +55084,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "L",
+    "fn": "Larrubia",
     "ln": "Larrubia",
     "pos": "ST",
     "age": 23,
@@ -55127,7 +55127,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "O",
+    "fn": "Obrador",
     "ln": "Obrador",
     "pos": "LB",
     "age": 21,
@@ -55584,7 +55584,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 64
   },
   {
-    "fn": "T",
+    "fn": "Tomané",
     "ln": "Tomané",
     "pos": "ST",
     "age": 32,
@@ -55853,7 +55853,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 78
   },
   {
-    "fn": "C",
+    "fn": "Chapela",
     "ln": "Chapela",
     "pos": "LW",
     "age": 26,
@@ -56649,7 +56649,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "J",
+    "fn": "Joaquín",
     "ln": "Joaquín",
     "pos": "ST",
     "age": 26,
@@ -59041,7 +59041,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 90
   },
   {
-    "fn": "C",
+    "fn": "Charles",
     "ln": "Charles",
     "pos": "GK",
     "age": 31,
@@ -59906,7 +59906,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "L",
+    "fn": "Leonai",
     "ln": "Leonai",
     "pos": "CDM",
     "age": 30,
@@ -60020,7 +60020,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Cafú",
     "ln": "Cafú",
     "pos": "CDM",
     "age": 32,
@@ -60133,7 +60133,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "E",
+    "fn": "Escudero",
     "ln": "Escudero",
     "pos": "LB",
     "age": 35,
@@ -60801,7 +60801,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "D",
+    "fn": "Danilo",
     "ln": "Danilo",
     "pos": "LB",
     "age": 33,
@@ -60916,7 +60916,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "D",
+    "fn": "Darlan",
     "ln": "Darlan",
     "pos": "CM",
     "age": 27,
@@ -61751,7 +61751,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 70
   },
   {
-    "fn": "M",
+    "fn": "Marvin",
     "ln": "Marvin",
     "pos": "RB",
     "age": 25,
@@ -61817,7 +61817,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "D",
+    "fn": "Duk",
     "ln": "Duk",
     "pos": "LW",
     "age": 25,
@@ -62594,7 +62594,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "W",
+    "fn": "Witi",
     "ln": "Witi",
     "pos": "LW",
     "age": 28,
@@ -62888,7 +62888,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "B",
+    "fn": "Baltazar",
     "ln": "Baltazar",
     "pos": "CM",
     "age": 25,
@@ -62998,7 +62998,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 71
   },
   {
-    "fn": "B",
+    "fn": "Beni",
     "ln": "Beni",
     "pos": "CM",
     "age": 23,
@@ -63215,7 +63215,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 73
   },
   {
-    "fn": "C",
+    "fn": "Climent",
     "ln": "Climent",
     "pos": "LB",
     "age": 23,
@@ -64227,7 +64227,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Albarrán",
     "ln": "Albarrán",
     "pos": "RB",
     "age": 31,
@@ -64428,7 +64428,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "P",
+    "fn": "Pejiño",
     "ln": "Pejiño",
     "pos": "RW",
     "age": 28,
@@ -64584,7 +64584,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "D",
+    "fn": "Dotor",
     "ln": "Dotor",
     "pos": "CM",
     "age": 24,
@@ -64845,7 +64845,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "G",
+    "fn": "Gabrielzinho",
     "ln": "Gabrielzinho",
     "pos": "LW",
     "age": 29,
@@ -65246,7 +65246,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "J",
+    "fn": "Jesé",
     "ln": "Jesé",
     "pos": "ST",
     "age": 32,
@@ -65508,7 +65508,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 71
   },
   {
-    "fn": "R",
+    "fn": "Rhaldney",
     "ln": "Rhaldney",
     "pos": "CDM",
     "age": 26,
@@ -65981,7 +65981,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "L",
+    "fn": "Lazo",
     "ln": "Lazo",
     "pos": "ST",
     "age": 29,
@@ -66250,7 +66250,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Masca",
     "ln": "Masca",
     "pos": "ST",
     "age": 25,
@@ -66875,7 +66875,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "P",
+    "fn": "Pleguezuelo",
     "ln": "Pleguezuelo",
     "pos": "CB",
     "age": 28,
@@ -67066,7 +67066,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 74
   },
   {
-    "fn": "F",
+    "fn": "Figueiredo",
     "ln": "Figueiredo",
     "pos": "LW",
     "age": 23,
@@ -68223,7 +68223,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Adilson",
     "ln": "Adilson",
     "pos": "LW",
     "age": 28,
@@ -68792,7 +68792,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 77
   },
   {
-    "fn": "M",
+    "fn": "Maranhão",
     "ln": "Maranhão",
     "pos": "RW",
     "age": 26,
@@ -68941,7 +68941,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 90
   },
   {
-    "fn": "C",
+    "fn": "Chuki",
     "ln": "Chuki",
     "pos": "CAM",
     "age": 21,
@@ -69362,7 +69362,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "F",
+    "fn": "Ferro",
     "ln": "Ferro",
     "pos": "CB",
     "age": 28,
@@ -69634,7 +69634,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 86
   },
   {
-    "fn": "J",
+    "fn": "Jauregi",
     "ln": "Jauregi",
     "pos": "ST",
     "age": 28,
@@ -70389,7 +70389,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "H",
+    "fn": "Héliton",
     "ln": "Héliton",
     "pos": "CB",
     "age": 29,
@@ -71706,7 +71706,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 81
   },
   {
-    "fn": "B",
+    "fn": "Bernardo",
     "ln": "Bernardo",
     "pos": "GK",
     "age": 22,
@@ -76077,7 +76077,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "R",
+    "fn": "Ricardinho",
     "ln": "Ricardinho",
     "pos": "RB",
     "age": 31,
@@ -77460,7 +77460,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "S",
+    "fn": "Serginho",
     "ln": "Serginho",
     "pos": "RW",
     "age": 30,
@@ -77718,7 +77718,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "G",
+    "fn": "Gabilondo",
     "ln": "Gabilondo",
     "pos": "RB",
     "age": 26,
@@ -79167,7 +79167,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "B",
+    "fn": "Bruninho",
     "ln": "Bruninho",
     "pos": "LW",
     "age": 22,
@@ -79214,7 +79214,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Clemente",
     "ln": "Clemente",
     "pos": "LB",
     "age": 26,
@@ -79984,7 +79984,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "L",
+    "fn": "Lobete",
     "ln": "Lobete",
     "pos": "ST",
     "age": 24,
@@ -80992,7 +80992,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "C",
+    "fn": "Chupete",
     "ln": "Chupete",
     "pos": "ST",
     "age": 20,
@@ -81118,7 +81118,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 85
   },
   {
-    "fn": "N",
+    "fn": "Nazinho",
     "ln": "Nazinho",
     "pos": "LB",
     "age": 21,
@@ -81496,7 +81496,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83
   },
   {
-    "fn": "J",
+    "fn": "Janderson",
     "ln": "Janderson",
     "pos": "ST",
     "age": 26,
@@ -81605,7 +81605,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Minsu",
     "ln": "Minsu",
     "pos": "LW",
     "age": 19,
@@ -82092,7 +82092,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 79
   },
   {
-    "fn": "M",
+    "fn": "Miro",
     "ln": "Miro",
     "pos": "ST",
     "age": 22,
@@ -82875,7 +82875,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 84
   },
   {
-    "fn": "N",
+    "fn": "Naves",
     "ln": "Naves",
     "pos": "CB",
     "age": 23,
@@ -83621,7 +83621,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 90
   },
   {
-    "fn": "N",
+    "fn": "Nicolas",
     "ln": "Nicolas",
     "pos": "GK",
     "age": 37,
@@ -84221,7 +84221,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 85
   },
   {
-    "fn": "O",
+    "fn": "Owono",
     "ln": "Owono",
     "pos": "GK",
     "age": 24,
@@ -84345,7 +84345,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "N",
+    "fn": "Nené",
     "ln": "Nené",
     "pos": "CDM",
     "age": 30,
@@ -84713,7 +84713,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Cristian",
     "ln": "Cristian",
     "pos": "CM",
     "age": 29,
@@ -85841,7 +85841,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 76
   },
   {
-    "fn": "N",
+    "fn": "Nanu",
     "ln": "Nanu",
     "pos": "RB",
     "age": 31,
@@ -85925,7 +85925,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 74
   },
   {
-    "fn": "T",
+    "fn": "Théo",
     "ln": "Théo",
     "pos": "CM",
     "age": 23,
@@ -87470,7 +87470,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "G",
+    "fn": "Gustavo",
     "ln": "Gustavo",
     "pos": "CM",
     "age": 22,
@@ -88475,7 +88475,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 73
   },
   {
-    "fn": "R",
+    "fn": "Robinho",
     "ln": "Robinho",
     "pos": "CM",
     "age": 22,
@@ -88519,7 +88519,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "W",
+    "fn": "Wesley",
     "ln": "Wesley",
     "pos": "ST",
     "age": 28,
@@ -90510,7 +90510,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 70
   },
   {
-    "fn": "S",
+    "fn": "Show",
     "ln": "Show",
     "pos": "CDM",
     "age": 26,
@@ -92196,7 +92196,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "G",
+    "fn": "Genís",
     "ln": "Genís",
     "pos": "CB",
     "age": 28,
@@ -92425,7 +92425,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Alcedo",
     "ln": "Alcedo",
     "pos": "LB",
     "age": 24,
@@ -92735,7 +92735,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Cícero",
     "ln": "Cícero",
     "pos": "CDM",
     "age": 28,
@@ -92758,7 +92758,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Cabello",
     "ln": "Cabello",
     "pos": "CB",
     "age": 21,
@@ -95539,7 +95539,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Mantilla",
     "ln": "Mantilla",
     "pos": "RB",
     "age": 25,
@@ -96904,7 +96904,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83
   },
   {
-    "fn": "I",
+    "fn": "Iturbe",
     "ln": "Iturbe",
     "pos": "GK",
     "age": 21,
@@ -97164,7 +97164,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 84
   },
   {
-    "fn": "C",
+    "fn": "Cañizares",
     "ln": "Cañizares",
     "pos": "GK",
     "age": 23,
@@ -97204,7 +97204,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 77
   },
   {
-    "fn": "A",
+    "fn": "Aceves",
     "ln": "Aceves",
     "pos": "GK",
     "age": 21,
@@ -98267,7 +98267,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "J",
+    "fn": "Juanpe",
     "ln": "Juanpe",
     "pos": "CM",
     "age": 29,
@@ -98814,7 +98814,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "W",
+    "fn": "Wenderson",
     "ln": "Wenderson",
     "pos": "CM",
     "age": 26,
@@ -99191,7 +99191,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "V",
+    "fn": "Villahermosa",
     "ln": "Villahermosa",
     "pos": "CM",
     "age": 24,
@@ -99559,7 +99559,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Y",
+    "fn": "Yayo",
     "ln": "Yayo",
     "pos": "CM",
     "age": 20,
@@ -99964,7 +99964,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "B",
+    "fn": "Bicho",
     "ln": "Bicho",
     "pos": "CAM",
     "age": 29,
@@ -100445,7 +100445,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Aisar",
     "ln": "Aisar",
     "pos": "RB",
     "age": 23,
@@ -102621,7 +102621,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 78
   },
   {
-    "fn": "G",
+    "fn": "Guirao",
     "ln": "Guirao",
     "pos": "CDM",
     "age": 22,
@@ -103042,7 +103042,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "M",
+    "fn": "Mariezkurrena",
     "ln": "Mariezkurrena",
     "pos": "ST",
     "age": 20,
@@ -103112,7 +103112,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "R",
+    "fn": "Rego",
     "ln": "Rego",
     "pos": "CDM",
     "age": 22,
@@ -103518,7 +103518,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 74
   },
   {
-    "fn": "M",
+    "fn": "Mata",
     "ln": "Mata",
     "pos": "ST",
     "age": 36,
@@ -103627,7 +103627,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Meléndez",
     "ln": "Meléndez",
     "pos": "CM",
     "age": 26,
@@ -103713,7 +103713,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 68
   },
   {
-    "fn": "R",
+    "fn": "Ruan",
     "ln": "Ruan",
     "pos": "RB",
     "age": 30,
@@ -103759,7 +103759,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Collado",
     "ln": "Collado",
     "pos": "ST",
     "age": 24,
@@ -104221,7 +104221,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 76
   },
   {
-    "fn": "P",
+    "fn": "Pibe",
     "ln": "Pibe",
     "pos": "LW",
     "age": 29,
@@ -104578,7 +104578,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 77
   },
   {
-    "fn": "S",
+    "fn": "Satrústegui",
     "ln": "Satrústegui",
     "pos": "CB",
     "age": 34,
@@ -104823,7 +104823,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "L",
+    "fn": "Lorran",
     "ln": "Lorran",
     "pos": "CAM",
     "age": 18,
@@ -106094,7 +106094,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 70
   },
   {
-    "fn": "R",
+    "fn": "Redru",
     "ln": "Redru",
     "pos": "LB",
     "age": 28,
@@ -107727,7 +107727,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "P",
+    "fn": "Pelayo",
     "ln": "Pelayo",
     "pos": "CB",
     "age": 22,
@@ -107959,7 +107959,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "O",
+    "fn": "Olabarrieta",
     "ln": "Olabarrieta",
     "pos": "LW",
     "age": 19,
@@ -108853,7 +108853,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 83
   },
   {
-    "fn": "L",
+    "fn": "Lautaro",
     "ln": "Lautaro",
     "pos": "ST",
     "age": 24,
@@ -110080,7 +110080,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 92
   },
   {
-    "fn": "F",
+    "fn": "Fortuño",
     "ln": "Fortuño",
     "pos": "GK",
     "age": 23,
@@ -111121,7 +111121,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "J",
+    "fn": "Jota",
     "ln": "Jota",
     "pos": "CM",
     "age": 32,
@@ -112816,7 +112816,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "P",
+    "fn": "Pacheco",
     "ln": "Pacheco",
     "pos": "CM",
     "age": 23,
@@ -112887,7 +112887,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "R",
+    "fn": "Ramalho",
     "ln": "Ramalho",
     "pos": "CM",
     "age": 26,
@@ -114064,7 +114064,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "R",
+    "fn": "Rupérez",
     "ln": "Rupérez",
     "pos": "RB",
     "age": 22,
@@ -114154,7 +114154,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "D",
+    "fn": "Dalisson",
     "ln": "Dalisson",
     "pos": "CAM",
     "age": 25,
@@ -115561,7 +115561,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Maestre",
     "ln": "Maestre",
     "pos": "CDM",
     "age": 34,
@@ -116468,7 +116468,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Mauro",
     "ln": "Mauro",
     "pos": "CDM",
     "age": 20,
@@ -119587,7 +119587,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 68
   },
   {
-    "fn": "A",
+    "fn": "Almenara",
     "ln": "Almenara",
     "pos": "RB",
     "age": 28,
@@ -120820,7 +120820,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 86
   },
   {
-    "fn": "T",
+    "fn": "Trilli",
     "ln": "Trilli",
     "pos": "RB",
     "age": 22,
@@ -121026,7 +121026,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 77
   },
   {
-    "fn": "H",
+    "fn": "Hormigo",
     "ln": "Hormigo",
     "pos": "LB",
     "age": 22,
@@ -122791,7 +122791,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "T",
+    "fn": "Tristán",
     "ln": "Tristán",
     "pos": "GK",
     "age": 23,
@@ -122871,7 +122871,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "F",
+    "fn": "Fraga",
     "ln": "Fraga",
     "pos": "GK",
     "age": 22,
@@ -128567,7 +128567,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Y",
+    "fn": "Yeray",
     "ln": "Yeray",
     "pos": "RW",
     "age": 22,
@@ -128912,7 +128912,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Arturo",
     "ln": "Arturo",
     "pos": "RW",
     "age": 18,
@@ -129163,7 +129163,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "N",
+    "fn": "Neiva",
     "ln": "Neiva",
     "pos": "LW",
     "age": 24,
@@ -130898,7 +130898,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "R",
+    "fn": "Rafinha",
     "ln": "Rafinha",
     "pos": "CAM",
     "age": 27,
@@ -131837,7 +131837,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "B",
+    "fn": "Bomba",
     "ln": "Bomba",
     "pos": "CB",
     "age": 19,
@@ -131877,7 +131877,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 85
   },
   {
-    "fn": "M",
+    "fn": "Marvel",
     "ln": "Marvel",
     "pos": "CB",
     "age": 22,
@@ -132444,7 +132444,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "Y",
+    "fn": "Yarlen",
     "ln": "Yarlen",
     "pos": "RW",
     "age": 19,
@@ -132464,7 +132464,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 70
   },
   {
-    "fn": "J",
+    "fn": "Jastin",
     "ln": "Jastin",
     "pos": "CAM",
     "age": 21,
@@ -135152,7 +135152,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "A",
+    "fn": "Arana",
     "ln": "Arana",
     "pos": "GK",
     "age": 23,
@@ -139151,7 +139151,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "D",
+    "fn": "Dadie",
     "ln": "Dadie",
     "pos": "RW",
     "age": 22,
@@ -141501,7 +141501,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "P",
+    "fn": "Peixinho",
     "ln": "Peixinho",
     "pos": "RW",
     "age": 21,
@@ -142215,7 +142215,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 93
   },
   {
-    "fn": "J",
+    "fn": "Jeremy",
     "ln": "Jeremy",
     "pos": "ST",
     "age": 20,
@@ -143071,7 +143071,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "A",
+    "fn": "Arnu",
     "ln": "Arnu",
     "pos": "ST",
     "age": 18,
@@ -143091,7 +143091,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 74
   },
   {
-    "fn": "K",
+    "fn": "Koke",
     "ln": "Koke",
     "pos": "RB",
     "age": 20,
@@ -146224,7 +146224,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 93
   },
   {
-    "fn": "M",
+    "fn": "Monedero",
     "ln": "Monedero",
     "pos": "GK",
     "age": 20,
@@ -146264,7 +146264,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 85
   },
   {
-    "fn": "A",
+    "fn": "Astralaga",
     "ln": "Astralaga",
     "pos": "GK",
     "age": 21,
@@ -146344,7 +146344,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 78
   },
   {
-    "fn": "K",
+    "fn": "Killane",
     "ln": "Killane",
     "pos": "GK",
     "age": 20,
@@ -146404,7 +146404,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 85
   },
   {
-    "fn": "M",
+    "fn": "Mateus",
     "ln": "Mateus",
     "pos": "GK",
     "age": 23,
@@ -146616,7 +146616,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Cheli",
     "ln": "Cheli",
     "pos": "CM",
     "age": 19,
@@ -147357,7 +147357,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "M",
+    "fn": "Marcelo",
     "ln": "Marcelo",
     "pos": "CDM",
     "age": 22,
@@ -147995,7 +147995,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "E",
+    "fn": "Erick",
     "ln": "Erick",
     "pos": "RB",
     "age": 21,
@@ -148726,7 +148726,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 68
   },
   {
-    "fn": "O",
+    "fn": "Osambela",
     "ln": "Osambela",
     "pos": "CM",
     "age": 20,
@@ -151012,7 +151012,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "L",
+    "fn": "Lorenzo",
     "ln": "Lorenzo",
     "pos": "RB",
     "age": 22,
@@ -152003,7 +152003,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 74
   },
   {
-    "fn": "O",
+    "fn": "Orobengoa",
     "ln": "Orobengoa",
     "pos": "ST",
     "age": 21,
@@ -153362,7 +153362,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "L",
+    "fn": "Leonço",
     "ln": "Leonço",
     "pos": "ST",
     "age": 32,
@@ -153751,7 +153751,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 80
   },
   {
-    "fn": "A",
+    "fn": "Aranda",
     "ln": "Aranda",
     "pos": "CB",
     "age": 19,
@@ -154700,7 +154700,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 79
   },
   {
-    "fn": "N",
+    "fn": "Nicolau",
     "ln": "Nicolau",
     "pos": "GK",
     "age": 22,
@@ -155697,7 +155697,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 72
   },
   {
-    "fn": "D",
+    "fn": "Deivison",
     "ln": "Deivison",
     "pos": "CM",
     "age": 19,
@@ -155880,7 +155880,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "C",
+    "fn": "Capi",
     "ln": "Capi",
     "pos": "CDM",
     "age": 18,
@@ -156570,7 +156570,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 71
   },
   {
-    "fn": "J",
+    "fn": "Josema",
     "ln": "Josema",
     "pos": "CM",
     "age": 22,
@@ -157852,7 +157852,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 76
   },
   {
-    "fn": "A",
+    "fn": "Astiazarán",
     "ln": "Astiazarán",
     "pos": "CAM",
     "age": 19,
@@ -161335,7 +161335,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 82
   },
   {
-    "fn": "A",
+    "fn": "Astigarraga",
     "ln": "Astigarraga",
     "pos": "CB",
     "age": 21,
@@ -165021,7 +165021,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "J",
+    "fn": "Jota",
     "ln": "Jota",
     "pos": "RB",
     "age": 19,
@@ -165968,7 +165968,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Arguibide",
     "ln": "Arguibide",
     "pos": "RB",
     "age": 20,
@@ -167534,7 +167534,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "S",
+    "fn": "Seydou",
     "ln": "Seydou",
     "pos": "CB",
     "age": 20,
@@ -169752,7 +169752,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 85
   },
   {
-    "fn": "G",
+    "fn": "Gui",
     "ln": "Gui",
     "pos": "GK",
     "age": 19,
@@ -169929,7 +169929,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "E",
+    "fn": "Ethan",
     "ln": "Ethan",
     "pos": "CM",
     "age": 21,
@@ -171317,7 +171317,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "I",
+    "fn": "Izan",
     "ln": "Izan",
     "pos": "RW",
     "age": 22,
@@ -171709,7 +171709,7 @@ export const freeAgents: CommunityPlayer[] = [
     ]
   },
   {
-    "fn": "A",
+    "fn": "Albert",
     "ln": "Albert",
     "pos": "LB",
     "age": 17,
@@ -171772,7 +171772,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 73
   },
   {
-    "fn": "E",
+    "fn": "Esquerdinha",
     "ln": "Esquerdinha",
     "pos": "LB",
     "age": 19,
@@ -174243,7 +174243,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 78
   },
   {
-    "fn": "O",
+    "fn": "Otávio",
     "ln": "Otávio",
     "pos": "CB",
     "age": 19,
@@ -179357,7 +179357,7 @@ export const freeAgents: CommunityPlayer[] = [
     "weightKg": 75
   },
   {
-    "fn": "T",
+    "fn": "Talisca",
     "ln": "Talisca",
     "pos": "CB",
     "age": 22,

@@ -253,7 +253,7 @@ const NationalTeamPage = () => {
           </div>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-foreground font-display">{managerNationality}</h1>
-            <p className="text-sm text-muted-foreground">FIFA Ranking: #{nationalTeam.fifaRanking}</p>
+            <p className="text-sm text-muted-foreground">World Ranking: #{nationalTeam.fifaRanking}</p>
             <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {squadPlayers.length} players</span>
               <span>{totalCaps} caps</span>

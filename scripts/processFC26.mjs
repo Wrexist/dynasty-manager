@@ -277,7 +277,12 @@ function mapPosition(fc26Positions) {
  *   6. Map positions to the in-game alias set.
  *   7. Split short_name (fallback long_name) into fn/ln. If the source
  *      has a space, fn = everything before the last space, ln = last
- *      word. If single-word, fn = first initial, ln = the whole name.
+ *      word. Single-word names (mononyms like "Raphinha", "Pedri",
+ *      "Ângelo") are duplicated into both fn and ln to match the
+ *      hand-written squad convention (see src/data/squads/spain.ts);
+ *      the original charAt(0) synthesis produced garbage like
+ *      "R Raphinha" / "Â Ângelo" and broke UI sites that render
+ *      `{firstName[0]}. {lastName}`.
  *   8. Assemble the PlayerTemplate, omitting `altPos` when empty to
  *      mirror the existing squad-file convention.
  *
@@ -304,7 +309,9 @@ function buildPlayer(row) {
     fn = nameSource.slice(0, lastSpace);
     ln = nameSource.slice(lastSpace + 1);
   } else {
-    fn = nameSource.charAt(0);
+    // Mononym — mirror the full name into both fn and ln to match the
+    // hand-written squad convention. See buildPlayer() step 7 above.
+    fn = nameSource;
     ln = nameSource;
   }
 
