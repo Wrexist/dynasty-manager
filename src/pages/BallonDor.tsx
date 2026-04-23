@@ -11,8 +11,8 @@ import { BallonDOrEntry } from '@/types/game';
 
 const RANK_MEDAL_COLORS: Record<number, { bg: string; text: string; border: string; glow: string }> = {
   1: { bg: 'bg-[hsl(43,96%,46%)]/20', text: 'text-[hsl(43,96%,56%)]', border: 'border-[hsl(43,96%,46%)]/40', glow: 'shadow-[0_0_20px_hsl(43,96%,46%,0.3)]' },
-  2: { bg: 'bg-gray-300/10', text: 'text-gray-300', border: 'border-gray-300/30', glow: 'shadow-[0_0_15px_rgba(209,213,219,0.2)]' },
-  3: { bg: 'bg-amber-700/15', text: 'text-amber-600', border: 'border-amber-700/30', glow: 'shadow-[0_0_15px_rgba(180,83,9,0.2)]' },
+  2: { bg: 'bg-[hsl(var(--silver))]/10', text: 'text-[hsl(var(--silver))]', border: 'border-[hsl(var(--silver))]/30', glow: 'shadow-[0_0_15px_hsl(var(--silver)/0.2)]' },
+  3: { bg: 'bg-[hsl(var(--bronze))]/15', text: 'text-[hsl(var(--bronze))]', border: 'border-[hsl(var(--bronze))]/30', glow: 'shadow-[0_0_15px_hsl(var(--bronze)/0.2)]' },
 };
 
 function getMedalStyle(rank: number) {
@@ -152,9 +152,9 @@ const RankingRow = ({ entry, index, isExpanded, onToggle, isPlayerClub }: {
         <div className={cn(
           'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 font-black text-sm tabular-nums',
           isPodium ? 'bg-gradient-to-br' : '',
-          entry.rank === 1 && 'from-[hsl(43,96%,46%)] to-[hsl(35,90%,35%)] text-black',
-          entry.rank === 2 && 'from-gray-300 to-gray-400 text-black',
-          entry.rank === 3 && 'from-amber-600 to-amber-800 text-black',
+          entry.rank === 1 && 'from-[hsl(var(--gold))] to-[hsl(35,90%,35%)] text-black',
+          entry.rank === 2 && 'from-[hsl(var(--silver))] to-[hsl(215,10%,60%)] text-black',
+          entry.rank === 3 && 'from-[hsl(var(--bronze))] to-[hsl(25,65%,35%)] text-black',
           !isPodium && 'bg-muted/30 text-muted-foreground',
         )}>
           {entry.rank}

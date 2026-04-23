@@ -283,8 +283,8 @@ const PlayerDetail = () => {
                     <Trophy className={cn(
                       'w-5 h-5',
                       isGold && 'text-[hsl(43,96%,56%)]',
-                      isSilver && 'text-gray-300',
-                      isBronze && 'text-amber-600',
+                      isSilver && 'text-[hsl(var(--silver))]',
+                      isBronze && 'text-[hsl(var(--bronze))]',
                     )} />
                   ) : (
                     <Medal className={cn(

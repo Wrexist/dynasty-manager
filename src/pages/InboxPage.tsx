@@ -53,7 +53,9 @@ function getMatchResultColors(msg: Message): MessageColorScheme {
   if (t.startsWith('defeat') || t.includes('eliminated')) {
     return { iconBg: 'bg-red-500/20', iconText: 'text-red-400', border: 'border-red-500/30', dot: 'bg-red-500' };
   }
-  return { iconBg: 'bg-slate-400/20', iconText: 'text-slate-300', border: 'border-slate-400/30', dot: 'bg-slate-400' };
+  // Draw / neutral match result — use muted semantic tokens instead of a
+  // bespoke slate palette so the chip tracks the dark theme's neutral tier.
+  return { iconBg: 'bg-muted/30', iconText: 'text-muted-foreground', border: 'border-border/50', dot: 'bg-muted-foreground/70' };
 }
 
 function getMessageColors(msg: Message): MessageColorScheme {

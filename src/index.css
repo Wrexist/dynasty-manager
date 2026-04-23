@@ -29,6 +29,14 @@
 
     --gold: 43 96% 46%;
 
+    /* Medal tier palette — siblings to --gold so silver/bronze chips can
+       pick up the same "use a semantic token" pattern. Tuned for the
+       dark theme: tailwind's amber-600 / gray-300 are either too dark
+       (bronze vanishes on bg-card) or look flat (silver drifts blue),
+       so these hand-picked HSL values keep a warm, readable tier. */
+    --silver: 215 12% 78%;
+    --bronze: 25 75% 55%;
+
     --secondary: 215 25% 18%;
     --secondary-foreground: 220 15% 85%;
 
