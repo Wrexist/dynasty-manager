@@ -252,7 +252,7 @@ const SettingsPageInner = () => {
         <ToggleRow
           icon={Users}
           label="Use Real Players (Community Pack)"
-          description="Real-world squads, rotating transfer market, seven extra leagues, ratings from a community FC26 dataset."
+          description="Real-world squads, rotating transfer market, seven extra leagues, ratings inspired by real-world football data."
           value={communityPackPref}
           onChange={() => {
             const next = !communityPackPref;
@@ -271,11 +271,12 @@ const SettingsPageInner = () => {
                 Community-sourced — not our data
               </p>
               <p className="text-[10px] leading-snug text-amber-100/85">
-                Dynasty Manager didn't create the real-player pool; it's a
-                community-compiled FC26 dataset loaded offline on your device.
-                We are <strong>not affiliated with, endorsed by, or sponsored by</strong>
-                {' '}EA SPORTS, the FC franchise, FIFA, or any club, league, or player.
-                All names, ratings, and likenesses belong to their respective rights holders.
+                Player data is community-sourced. Dynasty Manager didn't create
+                the real-player pool; it's a community-compiled dataset loaded
+                offline on your device. This app is <strong>not affiliated with
+                or endorsed by</strong> any football league, club, player, or
+                governing body. All names, ratings, and likenesses belong to
+                their respective rights holders.
               </p>
             </div>
           </div>
