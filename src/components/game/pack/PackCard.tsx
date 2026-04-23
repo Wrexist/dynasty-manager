@@ -122,10 +122,10 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
           {/* Targeted darkening for legibility — does not flatten the art:
               · radial vignette top-left so the OVR pops on bright shields
                 (icon's white marble especially)
-              · gentle band across the divider zone so the name reads on
-                the busy fan/sweep
-              · stronger fade on the bottom panel so stat values stay crisp
-                regardless of tier */}
+              · soft band just above the divider so the name reads on the
+                bright fan-sweep
+              · stronger fade starting right at the divider so stats stay
+                crisp across every tier */}
           <div
             aria-hidden
             className="absolute inset-0 pointer-events-none"
@@ -133,14 +133,14 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
               background:
                 // OVR vignette (top-left)
                 'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.65), transparent 75%),' +
-                // Name band (around 60% mark)
-                'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.32) 60%, rgba(0,0,0,0.18) 70%, transparent 76%),' +
-                // Bottom panel for stats
-                'linear-gradient(to bottom, transparent 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)',
+                // Name band (sits just above the shield divider at ~62%)
+                'linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.32) 58%, rgba(0,0,0,0.18) 62%, transparent 64%),' +
+                // Bottom panel for stats (starts at divider ~63%)
+                'linear-gradient(to bottom, transparent 63%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)',
             }}
           />
 
-          <div className="relative h-full flex flex-col px-3.5 pt-3 pb-2.5 text-white">
+          <div className="relative h-full text-white">
             {/* Quick-release × (summary only) */}
             {revealed && onDismiss && (
               <button
@@ -154,14 +154,13 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
               </button>
             )}
 
-            {/* OVR + position — top-left crest. White with strong shadow
-                reads on every tier; tier identity comes from the shield
-                colour itself, no need to dye the digit. */}
-            <div className="leading-none">
-              <div
-                className="text-[38px] font-display font-black tabular-nums tracking-tight"
-                style={{ textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.45)' }}
-              >
+            {/* OVR + position — inset from the shield's top-left curve so
+                the digits sit inside the crest, not on its edge. */}
+            <div
+              className="absolute top-[14px] left-[18px] leading-none"
+              style={{ textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.45)' }}
+            >
+              <div className="text-[36px] font-display font-black tabular-nums tracking-tight">
                 {player.overall}
               </div>
               <div
@@ -172,57 +171,58 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
               </div>
             </div>
 
-            {/* Identity block — sits in the divider band of the shield.
-                Last name big, flag pinned to its right; first name as a
-                dim eyebrow underneath. min-w-0 lets long names truncate
-                without pushing the flag off-card. */}
-            <div className="flex-1 flex flex-col items-center justify-end pb-1 min-h-0 text-center">
-              <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full px-1">
-                <p
-                  className="text-[16px] font-display font-black leading-none truncate"
-                  style={{ textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 10px rgba(0,0,0,0.45)' }}
-                >
-                  {player.lastName}
-                </p>
-                <div className="w-[18px] h-[13px] rounded-[2px] overflow-hidden border border-white/40 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
-                  <FlagIcon nationality={player.nationality} fill />
+            {/* Identity block — sits ABOVE the shield divider, snug against
+                it. Shows "First Last" when short enough; falls back to
+                last name only to avoid spilling past the shield edges. */}
+            {(() => {
+              const combinedLen = player.firstName.length + player.lastName.length + 1;
+              const displayName = combinedLen > 14 ? player.lastName : `${player.firstName} ${player.lastName}`;
+              return (
+                <div className="absolute left-3 right-3 bottom-[38%] text-center">
+                  <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full">
+                    <p
+                      className="text-[16px] font-display font-black leading-none truncate"
+                      style={{ textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}
+                    >
+                      {displayName}
+                    </p>
+                    <div className="w-[18px] h-[13px] rounded-[2px] overflow-hidden border border-white/40 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                      <FlagIcon nationality={player.nationality} fill />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <p
-                className="mt-0.5 text-[8px] tracking-[0.22em] uppercase font-semibold text-white/75 truncate max-w-full px-1"
-                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}
-              >
-                {player.firstName}
-              </p>
-            </div>
+              );
+            })()}
 
-            {/* Stats — compact label/value pairs in the bottom panel.
-                Stronger text shadow because the bottom panel can be
-                bright (gold/silver) or marble (icon). */}
-            <div className="grid grid-cols-3 gap-x-2 gap-y-1">
-              {([
-                ['PAC', player.attributes.pace],
-                ['SHO', player.attributes.shooting],
-                ['PAS', player.attributes.passing],
-                ['DRI', player.attributes.mental],
-                ['DEF', player.attributes.defending],
-                ['PHY', player.attributes.physical],
-              ] as const).map(([label, value]) => (
-                <div key={label} className="flex items-baseline justify-between gap-1">
-                  <span
-                    className="text-[9px] font-semibold tracking-[0.12em] text-white/75 leading-none"
-                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                  >
-                    {label}
-                  </span>
-                  <span
-                    className="text-[12px] font-display font-black tabular-nums leading-none text-white"
-                    style={{ textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
-                  >
-                    {value}
-                  </span>
-                </div>
-              ))}
+            {/* Stats — top-aligned inside the shield's lower gray panel,
+                just under the divider. Inline label/value pairs keep the
+                whole grid compact while still filling the panel width. */}
+            <div className="absolute left-3.5 right-3.5 top-[64%]">
+              <div className="grid grid-cols-3 gap-x-2 gap-y-1.5">
+                {([
+                  ['PAC', player.attributes.pace],
+                  ['SHO', player.attributes.shooting],
+                  ['PAS', player.attributes.passing],
+                  ['DRI', player.attributes.mental],
+                  ['DEF', player.attributes.defending],
+                  ['PHY', player.attributes.physical],
+                ] as const).map(([label, value]) => (
+                  <div key={label} className="flex items-baseline justify-between gap-1">
+                    <span
+                      className="text-[9px] font-semibold tracking-[0.12em] text-white/75 leading-none"
+                      style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                    >
+                      {label}
+                    </span>
+                    <span
+                      className="text-[12px] font-display font-black tabular-nums leading-none text-white"
+                      style={{ textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+                    >
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
