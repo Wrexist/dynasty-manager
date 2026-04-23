@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { tierForOvr, tierGradient } from './packHelpers';
 import { PACK_ANIM } from '@/config/packs';
 import { hapticMedium } from '@/utils/haptics';
+import { getPlayerCardArt } from '@/utils/uiHelpers';
 
 interface PackCardProps {
   player: Player;
@@ -26,6 +27,7 @@ interface PackCardProps {
  */
 export const PackCard = memo(function PackCard({ player, revealed, onReveal, entranceDelay = 0, onDismiss }: PackCardProps) {
   const tier = tierForOvr(player.overall);
+  const cardArt = getPlayerCardArt(player.overall);
   const prefersReducedMotion = useReducedMotion();
   const [hovered, setHovered] = useState(false);
 
@@ -98,52 +100,47 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
           )}
         </div>
 
-        {/* Face — clean dark surface, tier expressed through a thin
-            gradient stroke, a tinted corner glow behind the OVR, and the
-            rating digit itself. No more gold slab or hero disc. */}
+        {/* Face — shield artwork is the background; numbers, name, flag
+            and stats sit inside the shield's natural panels (top-left
+            crest, mid divider band, bottom panel). */}
         <div
           className="absolute inset-0 rounded-2xl overflow-hidden shadow-[0_18px_36px_rgba(0,0,0,0.55)]"
           style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
         >
-          {/* Base: deep glass, not black — matches the app surface token
-              so the card sits inside any page without a visual seam. */}
+          {/* Shield artwork — full-bleed, eager-loaded for the reveal. */}
+          <img
+            src={cardArt.src}
+            alt=""
+            aria-hidden
+            draggable={false}
+            loading="eager"
+            decoding="async"
+            className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+            style={cardArt.filter ? { filter: cardArt.filter } : undefined}
+          />
+
+          {/* Targeted darkening for legibility — does not flatten the art:
+              · radial vignette top-left so the OVR pops on bright shields
+                (icon's white marble especially)
+              · gentle band across the divider zone so the name reads on
+                the busy fan/sweep
+              · stronger fade on the bottom panel so stat values stay crisp
+                regardless of tier */}
           <div
-            className="absolute inset-0"
+            aria-hidden
+            className="absolute inset-0 pointer-events-none"
             style={{
               background:
-                'linear-gradient(180deg, hsl(222, 34%, 11%) 0%, hsl(222, 30%, 8%) 100%)',
-            }}
-          />
-          {/* Tier-tinted corner glow — quickly readable tier without a
-              full gold wash. Diameter is generous so falloff is gentle. */}
-          <div
-            aria-hidden
-            className="absolute -top-14 -left-10 w-40 h-40 rounded-full blur-[30px] pointer-events-none opacity-45"
-            style={{ background: `radial-gradient(circle, ${tier.gradientVia}, transparent 65%)` }}
-          />
-          {/* Counter-glow in the opposite corner so the surface doesn't
-              feel lopsided. Much dimmer. */}
-          <div
-            aria-hidden
-            className="absolute -bottom-16 -right-12 w-40 h-40 rounded-full blur-[36px] pointer-events-none opacity-20"
-            style={{ background: `radial-gradient(circle, ${tier.gradientTo}, transparent 70%)` }}
-          />
-          {/* Thin tier-gradient border stroke (1px) via mask-composite so
-              the inside stays crisp and dark. */}
-          <div
-            aria-hidden
-            className="absolute inset-0 rounded-2xl pointer-events-none"
-            style={{
-              padding: '1px',
-              background: tierGradient(tier),
-              WebkitMask:
-                'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-              WebkitMaskComposite: 'xor',
-              maskComposite: 'exclude',
+                // OVR vignette (top-left)
+                'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.65), transparent 75%),' +
+                // Name band (around 60% mark)
+                'linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.32) 60%, rgba(0,0,0,0.18) 70%, transparent 76%),' +
+                // Bottom panel for stats
+                'linear-gradient(to bottom, transparent 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)',
             }}
           />
 
-          <div className="relative h-full flex flex-col px-4 pt-4 pb-3 text-white">
+          <div className="relative h-full flex flex-col px-3.5 pt-3 pb-2.5 text-white">
             {/* Quick-release × (summary only) */}
             {revealed && onDismiss && (
               <button
@@ -157,45 +154,52 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
               </button>
             )}
 
-            {/* OVR + position, inset from the corner so they sit inside
-                the frame rather than hugging it. OVR is tier-tinted so
-                you can eyeball Gold vs Icon vs Silver at a glance. */}
+            {/* OVR + position — top-left crest. White with strong shadow
+                reads on every tier; tier identity comes from the shield
+                colour itself, no need to dye the digit. */}
             <div className="leading-none">
               <div
-                className="text-[40px] font-display font-black tabular-nums tracking-tight"
-                style={{
-                  color: tier.gradientFrom,
-                  textShadow: `0 2px 10px ${tier.gradientVia}55`,
-                }}
+                className="text-[38px] font-display font-black tabular-nums tracking-tight"
+                style={{ textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.45)' }}
               >
                 {player.overall}
               </div>
-              <div className="mt-1 text-[10px] font-bold tracking-[0.22em] text-white/55">
+              <div
+                className="mt-0.5 text-[10px] font-bold tracking-[0.22em] text-white/90"
+                style={{ textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+              >
                 {player.position}
               </div>
             </div>
 
-            {/* Identity block — last name (primary), flag pinned to its
-                right, first name as a small dim eyebrow below. The row
-                truncates gracefully; flag never collapses. */}
-            <div className="flex-1 flex flex-col items-center justify-center min-h-0 text-center">
+            {/* Identity block — sits in the divider band of the shield.
+                Last name big, flag pinned to its right; first name as a
+                dim eyebrow underneath. min-w-0 lets long names truncate
+                without pushing the flag off-card. */}
+            <div className="flex-1 flex flex-col items-center justify-end pb-1 min-h-0 text-center">
               <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full px-1">
-                <p className="text-[17px] font-display font-black leading-none truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                <p
+                  className="text-[16px] font-display font-black leading-none truncate"
+                  style={{ textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 10px rgba(0,0,0,0.45)' }}
+                >
                   {player.lastName}
                 </p>
-                <div className="w-[18px] h-[13px] rounded-[2px] overflow-hidden border border-white/15 shrink-0">
+                <div className="w-[18px] h-[13px] rounded-[2px] overflow-hidden border border-white/40 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
                   <FlagIcon nationality={player.nationality} fill />
                 </div>
               </div>
-              <p className="mt-1 text-[9px] tracking-[0.22em] uppercase font-semibold text-white/35 truncate max-w-full px-1">
+              <p
+                className="mt-0.5 text-[8px] tracking-[0.22em] uppercase font-semibold text-white/75 truncate max-w-full px-1"
+                style={{ textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}
+              >
                 {player.firstName}
               </p>
             </div>
 
-            {/* Stats — compact inline label/value pairs, no chip boxes.
-                Label is muted and small, value is bold with tabular
-                numerals so columns stay aligned between 9 and 99. */}
-            <div className="grid grid-cols-3 gap-x-2.5 gap-y-1.5">
+            {/* Stats — compact label/value pairs in the bottom panel.
+                Stronger text shadow because the bottom panel can be
+                bright (gold/silver) or marble (icon). */}
+            <div className="grid grid-cols-3 gap-x-2 gap-y-1">
               {([
                 ['PAC', player.attributes.pace],
                 ['SHO', player.attributes.shooting],
@@ -205,10 +209,16 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
                 ['PHY', player.attributes.physical],
               ] as const).map(([label, value]) => (
                 <div key={label} className="flex items-baseline justify-between gap-1">
-                  <span className="text-[9px] font-semibold tracking-[0.12em] text-white/45 leading-none">
+                  <span
+                    className="text-[9px] font-semibold tracking-[0.12em] text-white/75 leading-none"
+                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                  >
                     {label}
                   </span>
-                  <span className="text-[12px] font-display font-black tabular-nums leading-none text-white">
+                  <span
+                    className="text-[12px] font-display font-black tabular-nums leading-none text-white"
+                    style={{ textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+                  >
                     {value}
                   </span>
                 </div>
