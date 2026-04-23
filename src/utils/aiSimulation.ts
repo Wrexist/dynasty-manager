@@ -34,7 +34,7 @@ import {
   AI_LOAN_WEEKLY_CHANCE, AI_LOAN_TARGET_AGE_MAX, AI_LOAN_TARGET_OVERALL_GAP,
   AI_LOAN_DURATIONS, AI_LOAN_WAGE_SPLITS, AI_LOAN_RECALL_CHANCE,
   AI_LOAN_OBLIGATORY_BUY_CHANCE, AI_LOAN_OBLIGATORY_BUY_MULTIPLIER,
-  AI_TRANSFER_NEWS_MIN_FEE, AI_LOAN_NEWS_MIN_OVERALL,
+  AI_TRANSFER_NEWS_MIN_FEE, AI_LOAN_NEWS_MIN_OVERALL, AI_FA_NEWS_MIN_OVERALL,
   AI_STYLE_PRIORITY_POSITIONS,
   AI_TRANSFER_PRESEASON_MULTIPLIER,
 } from '@/config/aiSimulation';
@@ -738,8 +738,10 @@ function processAIFreeAgents(
 
     updFreeAgents = updFreeAgents.filter(id => id !== candidate.id);
 
-    // News for notable signings
-    if (candidate.overall >= AI_LOAN_NEWS_MIN_OVERALL) {
+    // News for notable signings. FA-specific threshold (60) is lower than
+    // the loan threshold (70) because FAs skew sub-70 and 70+ cut off all
+    // mid-division activity in the Phase E.5 balance sim.
+    if (candidate.overall >= AI_FA_NEWS_MIN_OVERALL) {
       updNews.push({
         id: crypto.randomUUID(),
         week,

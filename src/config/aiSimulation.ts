@@ -87,7 +87,12 @@ export const AI_LOAN_OBLIGATORY_BUY_MULTIPLIER = 0.85;
 
 // ── Transfer News ──
 export const AI_TRANSFER_NEWS_MIN_FEE = 2_000_000;   // Only generate news for £2M+ transfers
-export const AI_LOAN_NEWS_MIN_OVERALL = 70;           // Only generate loan news for 70+ overall players
+export const AI_LOAN_NEWS_MIN_OVERALL = 70;          // Only generate loan news for 70+ overall players
+// FA signings skew sub-70 (most real-world FAs are fringe/released). Keeping
+// the loan threshold at 70 but lowering the FA bar means mid-division signings
+// surface in the news feed without spamming it with youth-team fillers. The
+// Phase E.5 balance sim reported 0 FA news entries across 5 seasons at 70.
+export const AI_FA_NEWS_MIN_OVERALL = 60;
 
 // ── Style-Based Position Priorities ──
 // Which positions each manager style prioritises when buying

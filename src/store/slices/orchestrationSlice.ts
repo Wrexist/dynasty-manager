@@ -5327,12 +5327,18 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     }
 
     // Community pack market refresh: every 4 weeks, rotate out the oldest 20
-    // listings and draw 20 fresh templates from the free-agent pool.
+    // listings and draw 20 fresh templates from the free-agent pool. The
+    // `lastMarketRefreshWeek > week` leg catches the post-endSeason case
+    // where week has just reset to 1 but lastMarketRefreshWeek is still
+    // the previous season's late-game value (e.g. 44); without it the
+    // `>=4` check would stall for most of the next season.
     {
       const cpState = get();
+      const weeksSinceRefresh = cpState.week - cpState.cpPool.lastMarketRefreshWeek;
+      const seasonRolledOver = cpState.cpPool.lastMarketRefreshWeek > cpState.week;
       if (
         cpState.communityPackEnabled &&
-        cpState.week - cpState.cpPool.lastMarketRefreshWeek >= 4
+        (weeksSinceRefresh >= 4 || seasonRolledOver)
       ) {
         const rotateOut = cpState.cpPool.marketListings.slice(0, 20);
         const keep = cpState.cpPool.marketListings.slice(20);
@@ -5383,6 +5389,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
           players: updatedPlayers,
           cpPool: {
             ...cpState.cpPool,
+            // Advance the cursor by the number of templates we just consumed.
+            // Without this, getActivePool() keeps returning the same 800-entry
+            // window with an ever-growing used-fcId filter — in long saves the
+            // effective pool starves silently. Aligns runtime behaviour with
+            // the existing advanceCursor unit tests.
+            cursor: cpState.cpPool.cursor + newDraws.length,
             marketListings: [...keep, ...newIds],
             usedFcIds: [
               ...cpState.cpPool.usedFcIds.filter(id => !rotateOutSet.has(id)),
