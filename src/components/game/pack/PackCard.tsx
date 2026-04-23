@@ -407,10 +407,8 @@ function PotentialRow({ current, potential }: { current: number; potential: numb
             {current}
           </span>
           <span
-            className="px-1.5 py-[1px] rounded-full text-[8px] font-black tracking-[0.15em] uppercase"
+            className="px-1.5 py-[1px] rounded-full text-[8px] font-black tracking-[0.15em] uppercase bg-gradient-to-b from-amber-300 to-amber-500 text-amber-950"
             style={{
-              background: 'linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%)',
-              color: '#422006',
               boxShadow:
                 '0 0 6px rgba(251,191,36,0.55), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.25)',
             }}
@@ -445,10 +443,9 @@ function PotentialRow({ current, potential }: { current: number; potential: numb
         }}
       >
         <div
-          className="absolute inset-y-0 left-0 rounded-full"
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-b from-amber-300 to-amber-500"
           style={{
             width: `${pct}%`,
-            background: 'linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45), 0 0 6px rgba(251,191,36,0.45)',
           }}
         >
