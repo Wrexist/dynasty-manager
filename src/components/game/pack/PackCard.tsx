@@ -1,6 +1,6 @@
 import { memo, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Star } from 'lucide-react';
 import type { Player } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { cn } from '@/lib/utils';
@@ -361,16 +361,68 @@ function ProfileRow({ label, children }: ProfileRowProps) {
 function SkillStars({ value }: { value: number }) {
   const v = Math.max(1, Math.min(5, Math.round(value)));
   return (
-    <span className="tracking-[0.1em] text-amber-300">
-      {'★'.repeat(v)}
-      <span className="text-white/25">{'★'.repeat(5 - v)}</span>
+    <span className="inline-flex items-center gap-[1.5px]" aria-label={`Skill moves: ${v} of 5`}>
+      {Array.from({ length: 5 }).map((_, i) => {
+        const filled = i < v;
+        return (
+          <Star
+            key={i}
+            aria-hidden
+            className={cn(
+              'w-[10px] h-[10px]',
+              filled ? 'text-white fill-white' : 'text-white/35 fill-transparent',
+            )}
+            strokeWidth={filled ? 0 : 2}
+            style={
+              filled
+                ? { filter: 'drop-shadow(0 0 3px rgba(251,191,36,0.85)) drop-shadow(0 1px 2px rgba(0,0,0,0.7))' }
+                : { filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))' }
+            }
+          />
+        );
+      })}
     </span>
   );
 }
 
 function PotentialRow({ current, potential }: { current: number; potential: number }) {
-  const cap = Math.max(current, potential);
-  const pct = Math.min(100, (current / cap) * 100);
+  // A player at or above their ceiling has no more room to grow — show
+  // a gold MAX badge instead of a 100%-full bar with duplicate numbers.
+  const maxed = current >= potential;
+
+  if (maxed) {
+    return (
+      <div className="flex items-center justify-between gap-1.5 text-[10px] leading-none">
+        <span
+          className="text-[8px] font-semibold tracking-[0.12em] text-white/60 shrink-0"
+          style={{ textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+        >
+          POT
+        </span>
+        <div className="flex items-center gap-1.5">
+          <span
+            className="font-display font-black tabular-nums text-[11px] text-white"
+            style={{ textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}
+          >
+            {current}
+          </span>
+          <span
+            className="px-1.5 py-[1px] rounded-full text-[8px] font-black tracking-[0.15em] uppercase"
+            style={{
+              background: 'linear-gradient(180deg, #fcd34d 0%, #f59e0b 100%)',
+              color: '#422006',
+              boxShadow:
+                '0 0 6px rgba(251,191,36,0.55), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.25)',
+            }}
+          >
+            MAX
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const pct = Math.min(100, (current / potential) * 100);
   return (
     <div className="flex items-center gap-1.5 text-[10px] leading-none">
       <span
