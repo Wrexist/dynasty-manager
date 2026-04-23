@@ -69,7 +69,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 72
           },
           {
-            "fn": "A",
+            "fn": "Anselmo",
             "ln": "Anselmo",
             "pos": "CM",
             "age": 36,
@@ -3446,7 +3446,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "S",
+            "fn": "Santos",
             "ln": "Santos",
             "pos": "RW",
             "age": 23,
@@ -6698,7 +6698,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "Daegu FC",
         "players": [
           {
-            "fn": "C",
+            "fn": "Cesinha",
             "ln": "Cesinha",
             "pos": "ST",
             "age": 35,
@@ -6816,7 +6816,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "E",
+            "fn": "Edgar",
             "ln": "Edgar",
             "pos": "ST",
             "age": 38,
@@ -6973,7 +6973,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "G",
+            "fn": "Geovani",
             "ln": "Geovani",
             "pos": "RW",
             "age": 24,
@@ -8078,7 +8078,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "H",
+            "fn": "Hernandes",
             "ln": "Hernandes",
             "pos": "ST",
             "age": 25,
@@ -8426,7 +8426,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 80
           },
           {
-            "fn": "Y",
+            "fn": "Yago",
             "ln": "Yago",
             "pos": "RW",
             "age": 28,
@@ -8472,7 +8472,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "E",
+            "fn": "Eduardo",
             "ln": "Eduardo",
             "pos": "CM",
             "age": 28,
@@ -11493,7 +11493,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "Gwangju FC",
         "players": [
           {
-            "fn": "R",
+            "fn": "Reis",
             "ln": "Reis",
             "pos": "ST",
             "age": 32,
@@ -12195,7 +12195,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "Jeju United FC",
         "players": [
           {
-            "fn": "I",
+            "fn": "Italo",
             "ln": "Italo",
             "pos": "CM",
             "age": 27,
@@ -12350,7 +12350,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "Y",
+            "fn": "Yuri",
             "ln": "Yuri",
             "pos": "ST",
             "age": 27,
@@ -12436,7 +12436,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "D",
+            "fn": "Denílson",
             "ln": "Denílson",
             "pos": "RW",
             "age": 25,
@@ -12479,7 +12479,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "P",
+            "fn": "Pedrinho",
             "ln": "Pedrinho",
             "pos": "ST",
             "age": 23,
@@ -12502,7 +12502,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "E",
+            "fn": "Evandro",
             "ln": "Evandro",
             "pos": "ST",
             "age": 28,
@@ -13755,7 +13755,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "Pohang Steelers",
         "players": [
           {
-            "fn": "O",
+            "fn": "Oberdan",
             "ln": "Oberdan",
             "pos": "CDM",
             "age": 29,
@@ -13778,7 +13778,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "W",
+            "fn": "Wanderson",
             "ln": "Wanderson",
             "pos": "LB",
             "age": 36,
@@ -14680,7 +14680,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 72
           },
           {
-            "fn": "A",
+            "fn": "Andrigo",
             "ln": "Andrigo",
             "pos": "RW",
             "age": 30,
@@ -14770,7 +14770,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "W",
+            "fn": "Willyan",
             "ln": "Willyan",
             "pos": "LW",
             "age": 31,
@@ -15480,7 +15480,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "M",
+            "fn": "Marcão",
             "ln": "Marcão",
             "pos": "ST",
             "age": 31,
@@ -35193,7 +35193,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "R",
+            "fn": "Rick",
             "ln": "Rick",
             "pos": "LW",
             "age": 25,
@@ -36863,7 +36863,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "B",
+            "fn": "Berrocal",
             "ln": "Berrocal",
             "pos": "CB",
             "age": 25,
@@ -41254,7 +41254,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "FC Cincinnati",
         "players": [
           {
-            "fn": "E",
+            "fn": "Evander",
             "ln": "Evander",
             "pos": "CAM",
             "age": 27,
@@ -41452,7 +41452,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "B",
+            "fn": "Brenner",
             "ln": "Brenner",
             "pos": "ST",
             "age": 25,
@@ -41913,7 +41913,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 82
           },
           {
-            "fn": "R",
+            "fn": "Ramiro",
             "ln": "Ramiro",
             "pos": "CDM",
             "age": 32,
@@ -42047,7 +42047,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "K",
+            "fn": "Kaick",
             "ln": "Kaick",
             "pos": "CDM",
             "age": 19,
@@ -42204,7 +42204,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "P",
+            "fn": "Pedrinho",
             "ln": "Pedrinho",
             "pos": "CAM",
             "age": 22,
@@ -42650,7 +42650,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 82
           },
           {
-            "fn": "A",
+            "fn": "Artur",
             "ln": "Artur",
             "pos": "CDM",
             "age": 29,
@@ -43953,7 +43953,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 78
           },
           {
-            "fn": "Z",
+            "fn": "Zanka",
             "ln": "Zanka",
             "pos": "CB",
             "age": 35,
@@ -46662,7 +46662,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "T",
+            "fn": "Thiago",
             "ln": "Thiago",
             "pos": "CB",
             "age": 30,
@@ -49129,7 +49129,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 74
           },
           {
-            "fn": "A",
+            "fn": "Antony",
             "ln": "Antony",
             "pos": "LW",
             "age": 23,
@@ -49778,7 +49778,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 72
           },
           {
-            "fn": "R",
+            "fn": "Rafael",
             "ln": "Rafael",
             "pos": "GK",
             "age": 35,
@@ -50816,7 +50816,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 74
           },
           {
-            "fn": "D",
+            "fn": "Daniel",
             "ln": "Daniel",
             "pos": "GK",
             "age": 31,
@@ -50942,7 +50942,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "R",
+            "fn": "Rodrigues",
             "ln": "Rodrigues",
             "pos": "CB",
             "age": 27,
@@ -52070,7 +52070,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "J",
+            "fn": "Joaquín",
             "ln": "Joaquín",
             "pos": "CB",
             "age": 29,
@@ -52583,7 +52583,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "K",
+            "fn": "Klauss",
             "ln": "Klauss",
             "pos": "ST",
             "age": 28,
@@ -54362,7 +54362,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 67
           },
           {
-            "fn": "I",
+            "fn": "Ibañez",
             "ln": "Ibañez",
             "pos": "CB",
             "age": 26,
@@ -54402,7 +54402,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 76
           },
           {
-            "fn": "G",
+            "fn": "Galeno",
             "ln": "Galeno",
             "pos": "LW",
             "age": 27,
@@ -55030,7 +55030,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 75
           },
           {
-            "fn": "P",
+            "fn": "Petros",
             "ln": "Petros",
             "pos": "CDM",
             "age": 36,
@@ -55598,7 +55598,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "M",
+            "fn": "Medrán",
             "ln": "Medrán",
             "pos": "CM",
             "age": 31,
@@ -56283,7 +56283,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 91
           },
           {
-            "fn": "P",
+            "fn": "Pacheco",
             "ln": "Pacheco",
             "pos": "GK",
             "age": 33,
@@ -56904,7 +56904,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "J",
+            "fn": "Jason",
             "ln": "Jason",
             "pos": "ST",
             "age": 30,
@@ -57169,7 +57169,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "R",
+            "fn": "Rangel",
             "ln": "Rangel",
             "pos": "LB",
             "age": 21,
@@ -58257,7 +58257,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 71
           },
           {
-            "fn": "M",
+            "fn": "Malcom",
             "ln": "Malcom",
             "pos": "CAM",
             "age": 28,
@@ -58988,7 +58988,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 67
           },
           {
-            "fn": "F",
+            "fn": "Fabinho",
             "ln": "Fabinho",
             "pos": "CDM",
             "age": 31,
@@ -60589,7 +60589,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 75
           },
           {
-            "fn": "G",
+            "fn": "Guga",
             "ln": "Guga",
             "pos": "ST",
             "age": 18,
@@ -60891,7 +60891,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 79
           },
           {
-            "fn": "L",
+            "fn": "Lázaro",
             "ln": "Lázaro",
             "pos": "ST",
             "age": 23,
@@ -61519,7 +61519,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "B",
+            "fn": "Bento",
             "ln": "Bento",
             "pos": "GK",
             "age": 26,
@@ -61563,7 +61563,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "Â",
+            "fn": "Ângelo",
             "ln": "Ângelo",
             "pos": "RW",
             "age": 20,
@@ -61623,7 +61623,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 83
           },
           {
-            "fn": "W",
+            "fn": "Wesley",
             "ln": "Wesley",
             "pos": "LW",
             "age": 20,
@@ -62100,7 +62100,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 86
           },
           {
-            "fn": "O",
+            "fn": "Otávio",
             "ln": "Otávio",
             "pos": "CAM",
             "age": 30,
@@ -62775,7 +62775,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 84
           },
           {
-            "fn": "T",
+            "fn": "Tozé",
             "ln": "Tozé",
             "pos": "CM",
             "age": 32,
@@ -62798,7 +62798,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "S",
+            "fn": "Sergio",
             "ln": "Sergio",
             "pos": "CB",
             "age": 33,
@@ -64230,7 +64230,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 79
           },
           {
-            "fn": "M",
+            "fn": "Mailson",
             "ln": "Mailson",
             "pos": "GK",
             "age": 28,
@@ -64297,7 +64297,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "F",
+            "fn": "Flavio",
             "ln": "Flavio",
             "pos": "CM",
             "age": 29,
@@ -64759,7 +64759,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "Damac FC",
         "players": [
           {
-            "fn": "K",
+            "fn": "Kewin",
             "ln": "Kewin",
             "pos": "GK",
             "age": 30,
@@ -66159,7 +66159,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 82
           },
           {
-            "fn": "F",
+            "fn": "Formosandrinho",
             "ln": "Formosandrinho",
             "pos": "ST",
             "age": 29,
@@ -66314,7 +66314,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "S",
+            "fn": "Sacramentinho",
             "ln": "Sacramentinho",
             "pos": "GK",
             "age": 37,
@@ -66492,7 +66492,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "S",
+            "fn": "Silvosinho",
             "ln": "Silvosinho",
             "pos": "RB",
             "age": 29,
@@ -66621,7 +66621,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "V",
+            "fn": "Vanderleiton",
             "ln": "Vanderleiton",
             "pos": "CB",
             "age": 25,
@@ -66813,7 +66813,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "F",
+            "fn": "Fachendinho",
             "ln": "Fachendinho",
             "pos": "ST",
             "age": 29,
@@ -66862,7 +66862,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "V",
+            "fn": "Vieirundinho",
             "ln": "Vieirundinho",
             "pos": "CB",
             "age": 33,
@@ -67380,7 +67380,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 82
           },
           {
-            "fn": "M",
+            "fn": "Meirelinson",
             "ln": "Meirelinson",
             "pos": "CB",
             "age": 29,
@@ -67732,7 +67732,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 88
           },
           {
-            "fn": "J",
+            "fn": "Jorginhson",
             "ln": "Jorginhson",
             "pos": "CDM",
             "age": 29,
@@ -67865,7 +67865,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "K",
+            "fn": "Kelivelson",
             "ln": "Kelivelson",
             "pos": "CDM",
             "age": 29,
@@ -67955,7 +67955,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "N",
+            "fn": "Nascimentardo",
             "ln": "Nascimentardo",
             "pos": "CAM",
             "age": 25,
@@ -68137,7 +68137,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "Flamengo",
         "players": [
           {
-            "fn": "O",
+            "fn": "Oswaldinato",
             "ln": "Oswaldinato",
             "pos": "ST",
             "age": 29,
@@ -68970,7 +68970,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "E",
+            "fn": "Estevãtinho",
             "ln": "Estevãtinho",
             "pos": "CAM",
             "age": 29,
@@ -69133,7 +69133,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 80
           },
           {
-            "fn": "C",
+            "fn": "Calegarcinho",
             "ln": "Calegarcinho",
             "pos": "ST",
             "age": 37,
@@ -69725,7 +69725,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 83
           },
           {
-            "fn": "C",
+            "fn": "Carvamelinho",
             "ln": "Carvamelinho",
             "pos": "RB",
             "age": 29,
@@ -69881,7 +69881,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "P",
+            "fn": "Peixotacinho",
             "ln": "Peixotacinho",
             "pos": "CB",
             "age": 29,
@@ -69990,7 +69990,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 73
           },
           {
-            "fn": "Z",
+            "fn": "Zervandro",
             "ln": "Zervandro",
             "pos": "CB",
             "age": 25,
@@ -70364,7 +70364,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 77
           },
           {
-            "fn": "F",
+            "fn": "Fredditinho",
             "ln": "Fredditinho",
             "pos": "ST",
             "age": 33,
@@ -71212,7 +71212,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "Vasco da Gama",
         "players": [
           {
-            "fn": "L",
+            "fn": "Lafortiscinho",
             "ln": "Lafortiscinho",
             "pos": "LB",
             "age": 29,
@@ -71449,7 +71449,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 79
           },
           {
-            "fn": "B",
+            "fn": "Barbosaldinho",
             "ln": "Barbosaldinho",
             "pos": "CB",
             "age": 33,
@@ -71694,7 +71694,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "P",
+            "fn": "Porphirinho",
             "ln": "Porphirinho",
             "pos": "CDM",
             "age": 25,
@@ -71760,7 +71760,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 67
           },
           {
-            "fn": "P",
+            "fn": "Pombaixinho",
             "ln": "Pombaixinho",
             "pos": "CB",
             "age": 29,
@@ -72733,7 +72733,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "E",
+            "fn": "Elsinho",
             "ln": "Elsinho",
             "pos": "CB",
             "age": 34,
@@ -73341,7 +73341,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "J",
+            "fn": "Jeakson",
             "ln": "Jeakson",
             "pos": "CM",
             "age": 24,
@@ -73364,7 +73364,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "L",
+            "fn": "Lalramsanga",
             "ln": "Lalramsanga",
             "pos": "CM",
             "age": 25,
@@ -73914,7 +73914,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "FC Goa",
         "players": [
           {
-            "fn": "G",
+            "fn": "Guarrotxena",
             "ln": "Guarrotxena",
             "pos": "ST",
             "age": 32,
@@ -73958,7 +73958,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 80
           },
           {
-            "fn": "T",
+            "fn": "Timor",
             "ln": "Timor",
             "pos": "CM",
             "age": 35,
@@ -76762,7 +76762,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "Mohun Bagan Super Giant",
         "players": [
           {
-            "fn": "A",
+            "fn": "Alberto",
             "ln": "Alberto",
             "pos": "CB",
             "age": 32,
@@ -77042,7 +77042,7 @@ export const newLeagues: Record<string, NewLeague> = {
             "weightKg": 67
           },
           {
-            "fn": "R",
+            "fn": "Robinho",
             "ln": "Robinho",
             "pos": "CAM",
             "age": 29,
@@ -77338,7 +77338,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "Mumbai City FC",
         "players": [
           {
-            "fn": "T",
+            "fn": "Tiri",
             "ln": "Tiri",
             "pos": "CB",
             "age": 33,
@@ -77881,7 +77881,7 @@ export const newLeagues: Record<string, NewLeague> = {
         "name": "NorthEast United",
         "players": [
           {
-            "fn": "J",
+            "fn": "Jairo",
             "ln": "Jairo",
             "pos": "ST",
             "age": 31,
@@ -77929,7 +77929,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "A",
+            "fn": "Andy",
             "ln": "Andy",
             "pos": "CM",
             "age": 35,
@@ -77952,7 +77952,7 @@ export const newLeagues: Record<string, NewLeague> = {
             ]
           },
           {
-            "fn": "G",
+            "fn": "Guillermo",
             "ln": "Guillermo",
             "pos": "ST",
             "age": 32,
