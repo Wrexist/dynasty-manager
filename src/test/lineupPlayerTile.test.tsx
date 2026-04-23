@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
-import { PlayerCard } from '@/components/game/PlayerCard';
+import { LineupPlayerTile } from '@/components/game/LineupPlayerTile';
 import { TierBorderFrame } from '@/components/game/TierBorderFrame';
 import { getPlayerTier, getTierGlowStyle } from '@/utils/uiHelpers';
 import type { Player } from '@/types/game';
@@ -123,10 +123,10 @@ describe('TierBorderFrame', () => {
   });
 });
 
-describe('PlayerCard tier border integration', () => {
+describe('LineupPlayerTile tier border integration', () => {
   it('renders a Gold border for an 85 OVR starter', () => {
     const { container } = render(
-      <PlayerCard
+      <LineupPlayerTile
         player={makePlayer({ overall: 85 })}
         position="CM"
         isSelected={false}
@@ -139,7 +139,7 @@ describe('PlayerCard tier border integration', () => {
 
   it('renders a Bronze border for a 62 OVR player', () => {
     const { container } = render(
-      <PlayerCard
+      <LineupPlayerTile
         player={makePlayer({ overall: 62 })}
         position="CB"
         isSelected={false}
@@ -152,7 +152,7 @@ describe('PlayerCard tier border integration', () => {
 
   it('does not apply the red warning border regardless of fitness/chem state', () => {
     const { container } = render(
-      <PlayerCard
+      <LineupPlayerTile
         player={makePlayer({ overall: 75, fitness: 20 })}
         position="CM"
         isSelected={false}
@@ -164,10 +164,10 @@ describe('PlayerCard tier border integration', () => {
   });
 });
 
-describe('PlayerCard layout invariants', () => {
+describe('LineupPlayerTile layout invariants', () => {
   it('uses the fixed 48/54px width tokens', () => {
     const { container } = render(
-      <PlayerCard
+      <LineupPlayerTile
         player={makePlayer()}
         position="CM"
         isSelected={false}
@@ -183,7 +183,7 @@ describe('PlayerCard layout invariants', () => {
 
   it('clamps chemistry-link count above 9 to "9+"', () => {
     const { getByText, queryByText } = render(
-      <PlayerCard
+      <LineupPlayerTile
         player={makePlayer()}
         position="CM"
         isSelected={false}
@@ -197,7 +197,7 @@ describe('PlayerCard layout invariants', () => {
 
   it('renders a hot-form trend icon when form >= 70', () => {
     const { container } = render(
-      <PlayerCard
+      <LineupPlayerTile
         player={makePlayer({ form: 85 })}
         position="CM"
         isSelected={false}
@@ -210,7 +210,7 @@ describe('PlayerCard layout invariants', () => {
 
   it('renders a poor-form trend icon when form < 35', () => {
     const { container } = render(
-      <PlayerCard
+      <LineupPlayerTile
         player={makePlayer({ form: 20 })}
         position="CM"
         isSelected={false}
@@ -223,7 +223,7 @@ describe('PlayerCard layout invariants', () => {
 
   it('renders a nationality flag in the header', () => {
     const { container } = render(
-      <PlayerCard
+      <LineupPlayerTile
         player={makePlayer({ nationality: 'England' })}
         position="CM"
         isSelected={false}
@@ -236,7 +236,7 @@ describe('PlayerCard layout invariants', () => {
 
   it('omits the chemistry link cluster when chemistryLinkCount is 0', () => {
     const { container } = render(
-      <PlayerCard
+      <LineupPlayerTile
         player={makePlayer()}
         position="CM"
         isSelected={false}

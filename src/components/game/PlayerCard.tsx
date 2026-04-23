@@ -1,161 +1,516 @@
-import { memo } from 'react';
-import { cn } from '@/lib/utils';
-import { getPlayerTier, getFitnessHexColor } from '@/utils/uiHelpers';
-import { getPlayerDisplayName, getCardNameFontSizeClass } from '@/utils/playerDisplay';
-import { Link, TrendingUp, TrendingDown } from 'lucide-react';
+import { memo, useEffect, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { X, Star } from 'lucide-react';
 import type { Player } from '@/types/game';
-import { TierBorderFrame } from './TierBorderFrame';
-import { FlagIcon } from './FlagIcon';
-import { CardArtBackground } from './CardArtBackground';
+import { FlagIcon } from '@/components/game/FlagIcon';
+import { cn } from '@/lib/utils';
+import { hapticLight } from '@/utils/haptics';
+import { getPlayerCardArt } from '@/utils/uiHelpers';
+import { getPersonalityLabel } from '@/utils/personality';
 
-const HOT_FORM_MIN = 70;
-const COLD_FORM_MAX = 35;
+export type PlayerCardSize = 'sm' | 'md' | 'lg' | 'xl';
+export type PlayerCardInteraction = 'cycle' | 'detail' | 'none';
+
+type StatView = 0 | 1 | 2;
 
 interface PlayerCardProps {
   player: Player;
-  position: string;
-  isSelected: boolean;
-  chemistryLinkCount: number;
-  compatRing?: 'natural' | 'compatible' | 'wrong' | null;
-  week?: number;
-  clubColor?: string;
-  onClick: () => void;
+  /** Visual size. sm=64 (bench), md=110 (squad rows), lg=150 (market), xl=220 (detail). */
+  size?: PlayerCardSize;
+  /**
+   * Tap behaviour:
+   *  - 'cycle'  → cycles stats → profile → (condition) → stats
+   *  - 'detail' → calls onDetailClick (e.g. open player page)
+   *  - 'none'   → static, no click affordance
+   */
+  interactive?: PlayerCardInteraction;
+  onDetailClick?: (player: Player) => void;
+  /** When false, the condition view (FIT/MOR/FRM) is omitted from the cycle. */
+  showConditionView?: boolean;
+  /** Optional quick-release × on the face (pack summary context). */
+  onDismiss?: () => void;
+  /** Optional override for the tooltip / aria-label on the dismiss button. */
+  dismissLabel?: string;
+  className?: string;
 }
 
-const COMPAT_RING_CLASSES = {
-  natural: 'ring-2 ring-emerald-400/80',
-  compatible: 'ring-2 ring-amber-400/80',
-  wrong: 'ring-2 ring-red-500/80',
-};
+// Fixed external size → one place to tune the four presets.
+const SIZE_PX: Record<PlayerCardSize, number> = { sm: 64, md: 110, lg: 150, xl: 220 };
 
-function getMoraleDotClass(morale: number): string {
-  if (morale >= 60) return 'bg-emerald-400';
-  if (morale >= 35) return 'bg-amber-400';
-  return 'bg-red-400';
+/**
+ * Derived pixel tokens, proportional to card width. Everything inside the
+ * face scales from these so the design reads the same at 64 and 220.
+ * Ratios were calibrated from the lg (150px) reference:
+ *   ovr 36, name 16, statVal 12, statLabel 9, pos 10, flag 18×13.
+ */
+function sizeTokens(size: PlayerCardSize) {
+  const w = SIZE_PX[size];
+  return {
+    widthPx: w,
+    ovrPx: Math.round(w * 0.24),
+    ovrTopPx: Math.round(w * 0.093),
+    ovrLeftPx: Math.round(w * 0.12),
+    posPx: Math.max(7, Math.round(w * 0.067)),
+    namePx: Math.max(8, Math.round(w * 0.107)),
+    statLabelPx: Math.max(6, Math.round(w * 0.06)),
+    statValPx: Math.max(8, Math.round(w * 0.08)),
+    profileLabelPx: Math.max(6, Math.round(w * 0.053)),
+    profileValPx: Math.max(7, Math.round(w * 0.067)),
+    flagWPx: Math.max(10, Math.round(w * 0.12)),
+    flagHPx: Math.max(7, Math.round(w * 0.087)),
+    statRowGapPx: Math.max(1, Math.round(w * 0.01)),
+    outerRadiusPx: Math.max(8, Math.round(w * 0.107)),
+    paddingXPx: Math.max(8, Math.round(w * 0.093)),
+    dismissPx: Math.max(16, Math.round(w * 0.16)),
+  };
 }
 
-function getStatusLabel(player: Player, week?: number): string | null {
-  if (player.injured) return 'INJ';
-  if (player.suspendedUntilWeek && (week === undefined || player.suspendedUntilWeek > week)) return 'SUS';
-  return null;
-}
-
+/**
+ * Shared "shield" player card visual. Same look used across packs, squad,
+ * transfer market and player detail — only size + tap behaviour change.
+ *
+ * Packs wrap this in `PackCard` to add the face-down back + 3D flip.
+ */
 export const PlayerCard = memo(function PlayerCard({
   player,
-  position,
-  isSelected,
-  chemistryLinkCount,
-  compatRing,
-  week,
-  clubColor,
-  onClick,
+  size = 'lg',
+  interactive = 'cycle',
+  onDetailClick,
+  showConditionView = true,
+  onDismiss,
+  dismissLabel,
+  className,
 }: PlayerCardProps) {
-  const fitnessColor = getFitnessHexColor(player.fitness);
-  const statusLabel = getStatusLabel(player, week);
-  const tier = getPlayerTier(player.overall);
-  const displayName = getPlayerDisplayName(player);
-  const nameFontSizeClass = getCardNameFontSizeClass(displayName);
-  const fullName = `${player.firstName} ${player.lastName}`;
+  const tk = sizeTokens(size);
+  const cardArt = getPlayerCardArt(player.overall);
+  const prefersReducedMotion = useReducedMotion();
+  const [statView, setStatView] = useState<StatView>(0);
 
-  const chemDisplay = chemistryLinkCount > 9 ? '9+' : chemistryLinkCount;
-  const formTrend: 'hot' | 'cold' | null =
-    typeof player.form === 'number'
-      ? player.form >= HOT_FORM_MIN
-        ? 'hot'
-        : player.form < COLD_FORM_MAX
-          ? 'cold'
-          : null
-      : null;
+  // Clamp cycle length to the views we actually render.
+  const viewCount = showConditionView ? 3 : 2;
+  useEffect(() => {
+    if (statView >= viewCount) setStatView(0);
+  }, [viewCount, statView]);
 
-  const showChemistry = chemistryLinkCount > 0;
+  const handleClick = () => {
+    if (interactive === 'cycle') {
+      hapticLight();
+      setStatView((v) => ((v + 1) % viewCount) as StatView);
+      return;
+    }
+    if (interactive === 'detail') {
+      if (!onDetailClick) return;
+      hapticLight();
+      onDetailClick(player);
+    }
+  };
+
+  const clickable = interactive !== 'none';
+
+  const handleDismiss = (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation();
+    if (!onDismiss) return;
+    onDismiss();
+  };
+
+  const combinedLen = player.firstName.length + player.lastName.length + 1;
+  const displayName = combinedLen > 14 ? player.lastName : `${player.firstName} ${player.lastName}`;
+
+  const viewLabel = statView === 0 ? 'stats' : statView === 1 ? 'profile' : 'condition';
+  const ariaLabel =
+    interactive === 'cycle'
+      ? `${player.firstName} ${player.lastName}, ${player.overall} overall. Showing ${viewLabel}. Tap to cycle stat views.`
+      : interactive === 'detail'
+        ? `${player.firstName} ${player.lastName}, ${player.overall} overall. Open details.`
+        : `${player.firstName} ${player.lastName}, ${player.overall} overall.`;
 
   return (
     <div
-      onClick={onClick}
+      onClick={clickable ? handleClick : undefined}
+      onKeyDown={(e) => {
+        if (!clickable) return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleClick();
+        }
+      }}
       className={cn(
-        'cursor-pointer rounded-[7px] w-[48px] h-[48px] sm:w-[54px] sm:h-[54px] shrink-0 relative',
-        'transition-transform duration-150',
-        isSelected && 'scale-[1.08]',
-        !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
-        player.injured && 'opacity-60',
+        'relative block aspect-[3/4] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 shadow-[0_18px_36px_rgba(0,0,0,0.55)]',
+        clickable && 'cursor-pointer',
+        className,
       )}
+      style={{ width: tk.widthPx, borderRadius: tk.outerRadiusPx }}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={ariaLabel}
     >
-      {statusLabel && (
-        <span className="absolute -top-1.5 -right-1.5 z-10 text-[6px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm">
-          {statusLabel}
-        </span>
-      )}
+      {/* Shield artwork — full-bleed background. */}
+      <img
+        src={cardArt.src}
+        alt=""
+        aria-hidden
+        draggable={false}
+        loading="eager"
+        decoding="async"
+        className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+        style={cardArt.filter ? { filter: cardArt.filter } : undefined}
+      />
 
-      {isSelected && (
-        <span className="absolute inset-0 rounded-[7px] ring-2 ring-primary animate-pulse pointer-events-none z-10" />
-      )}
+      {/* Targeted darkening for legibility (same gradient stack as pack face). */}
+      <div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.65), transparent 75%),' +
+            'linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.32) 58%, rgba(0,0,0,0.18) 62%, transparent 64%),' +
+            'linear-gradient(to bottom, transparent 63%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)',
+        }}
+      />
 
-      <TierBorderFrame
-        overall={player.overall}
-        glow
-        outerRadiusClass="rounded-[7px]"
-        innerRadiusClass="rounded-[5.5px]"
-        paddingClass="p-[1.5px]"
-        className="w-full h-full"
-        innerClassName={cn(
-          'w-full h-full relative',
-          clubColor && 'border-l-[2px]',
-        )}
-        style={clubColor ? { borderLeftColor: clubColor } : undefined}
-      >
-        <CardArtBackground overall={player.overall} overlayStrength={0.75} />
-
-        <div className="relative w-full h-full flex flex-col px-1 py-0.5 gap-px">
-        {/* Row A: rating + flag + position (all plain text, no pill) */}
-        <div className="flex items-center justify-between gap-px w-full min-w-0 leading-none">
-          <span className={cn('text-[13px] font-black font-display tabular-nums leading-none shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]', tier.textClass)}>
-            {player.overall}
-          </span>
-          <FlagIcon nationality={player.nationality} size={9} className="rounded-[1px] shrink-0" />
-          <span className="text-[6px] font-bold uppercase tracking-wider text-white/85 leading-none shrink-0 tabular-nums drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
-            {position}
-          </span>
-        </div>
-
-        {/* Row B: name centered */}
-        <div className="flex-1 flex items-center justify-center min-w-0 leading-none">
-          <span
-            className={cn(
-              nameFontSizeClass,
-              'block font-bold text-white uppercase tracking-wide truncate whitespace-nowrap w-full text-center drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]',
-            )}
-            title={fullName}
-            aria-label={fullName}
+      <div className="relative h-full text-white">
+        {/* Quick-release × */}
+        {onDismiss && (
+          <button
+            type="button"
+            onClick={handleDismiss}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDismiss(e); } }}
+            className="absolute rounded-full bg-black/55 hover:bg-black/80 border border-white/25 flex items-center justify-center z-10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+            style={{ top: 6, right: 6, width: tk.dismissPx, height: tk.dismissPx }}
+            aria-label={dismissLabel ?? `Release ${player.firstName} ${player.lastName}`}
+            title={dismissLabel}
           >
-            {displayName}
-          </span>
-        </div>
+            <X style={{ width: tk.dismissPx * 0.5, height: tk.dismissPx * 0.5 }} className="text-white/90" />
+          </button>
+        )}
 
-        {/* Row C: morale + form + chem/best-sub */}
-        <div className="flex items-center justify-between w-full min-w-0 leading-none">
-          <div className="flex items-center gap-px shrink-0">
-            <span className={cn('w-1 h-1 rounded-full', getMoraleDotClass(player.morale))} aria-label={`Morale ${player.morale}`} />
-            {formTrend === 'hot' && <TrendingUp className="w-[7px] h-[7px] text-emerald-400" aria-label="Hot form" />}
-            {formTrend === 'cold' && <TrendingDown className="w-[7px] h-[7px] text-red-400" aria-label="Poor form" />}
-          </div>
-          {showChemistry && (
-            <span className="flex items-center gap-px text-[6px] text-primary font-semibold tabular-nums leading-none shrink-0">
-              <Link className="w-[6px] h-[6px]" />
-              {chemDisplay}
-            </span>
-          )}
-        </div>
-
-        {/* Row D: fitness bar */}
-        <div className="w-full h-[3px] rounded-b-[5.5px] bg-black/50 overflow-hidden">
+        {/* OVR + position — inset from the shield's top-left curve. */}
+        <div
+          className="absolute leading-none"
+          style={{ top: tk.ovrTopPx, left: tk.ovrLeftPx, textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.45)' }}
+        >
           <div
-            className="h-full transition-all"
-            style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
-            aria-label={`Fitness ${player.fitness}%`}
-          />
+            className="font-display font-black tabular-nums tracking-tight"
+            style={{ fontSize: tk.ovrPx }}
+          >
+            {player.overall}
+          </div>
+          <div
+            className="mt-0.5 font-bold tracking-[0.22em] text-white/90"
+            style={{ fontSize: tk.posPx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+          >
+            {player.position}
+          </div>
         </div>
+
+        {/* Identity block — sits just above the shield divider. */}
+        <div
+          className="absolute text-center bottom-[38%]"
+          style={{ left: tk.paddingXPx, right: tk.paddingXPx }}
+        >
+          <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full">
+            <p
+              className="min-w-0 font-display font-black leading-none truncate"
+              style={{ fontSize: tk.namePx, textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}
+            >
+              {displayName}
+            </p>
+            <div
+              className="rounded-[2px] overflow-hidden border border-white/40 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+              style={{ width: tk.flagWPx, height: tk.flagHPx }}
+            >
+              <FlagIcon nationality={player.nationality} fill />
+            </div>
+          </div>
         </div>
-      </TierBorderFrame>
+
+        {/* Stat panel — top-aligned inside the shield's lower gray band. */}
+        <div
+          className="absolute top-[64%] bottom-[6%]"
+          style={{ left: tk.paddingXPx * 0.8, right: tk.paddingXPx * 0.8 }}
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            {statView === 0 && (
+              <motion.div
+                key="stats"
+                {...viewMotion(prefersReducedMotion)}
+                className="grid grid-cols-3 gap-x-2"
+                style={{ rowGap: tk.statRowGapPx + 4 }}
+              >
+                {([
+                  ['PAC', player.attributes.pace],
+                  ['SHO', player.attributes.shooting],
+                  ['PAS', player.attributes.passing],
+                  ['DRI', player.attributes.mental],
+                  ['DEF', player.attributes.defending],
+                  ['PHY', player.attributes.physical],
+                ] as const).map(([label, value]) => (
+                  <div key={label} className="flex items-baseline justify-between gap-1">
+                    <span
+                      className="font-semibold tracking-[0.12em] text-white/75 leading-none"
+                      style={{ fontSize: tk.statLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                    >
+                      {label}
+                    </span>
+                    <span
+                      className="font-display font-black tabular-nums leading-none text-white"
+                      style={{ fontSize: tk.statValPx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+                    >
+                      {value}
+                    </span>
+                  </div>
+                ))}
+              </motion.div>
+            )}
+            {statView === 1 && (
+              <motion.div
+                key="profile"
+                {...viewMotion(prefersReducedMotion)}
+                className="space-y-[5px]"
+              >
+                <ProfileRow label="SKL" tk={tk}>
+                  <SkillStars value={player.skillMoves ?? 3} tk={tk} />
+                </ProfileRow>
+                <PotentialRow current={player.overall} potential={player.potential ?? player.overall} tk={tk} />
+                <ProfileRow label="POS" tk={tk}>
+                  <span className="truncate font-semibold text-white/90">
+                    {[player.position, ...(player.alternatePositions ?? [])].join(' · ')}
+                  </span>
+                </ProfileRow>
+                {player.personality && (
+                  <ProfileRow label="PER" tk={tk}>
+                    <span className="truncate font-semibold text-white/90">
+                      {getPersonalityLabel(player.personality)}
+                    </span>
+                  </ProfileRow>
+                )}
+              </motion.div>
+            )}
+            {statView === 2 && showConditionView && (
+              <motion.div
+                key="condition"
+                {...viewMotion(prefersReducedMotion)}
+                className="space-y-[7px] pt-1"
+              >
+                <LiquidGlassBar label="FIT" value={player.fitness} tk={tk} />
+                <LiquidGlassBar label="MOR" value={player.morale} tk={tk} />
+                <LiquidGlassBar label="FRM" value={player.form} tk={tk} />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* View indicator — only for the cycle interaction, where discovery matters. */}
+        {interactive === 'cycle' && viewCount > 1 && (
+          <div
+            aria-hidden
+            className="absolute bottom-[1.5%] left-1/2 -translate-x-1/2 flex items-center gap-1 z-10"
+          >
+            {Array.from({ length: viewCount }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  'h-[3px] rounded-full transition-all duration-200',
+                  statView === i ? 'w-3 bg-white/85' : 'w-[3px] bg-white/35',
+                )}
+                style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 });
+
+// ── Stat-view sub-pieces ─────────────────────────────────────────────
+
+type SizeTokens = ReturnType<typeof sizeTokens>;
+
+function viewMotion(prefersReducedMotion: boolean | null) {
+  if (prefersReducedMotion) {
+    return {
+      initial: { opacity: 0 },
+      animate: { opacity: 1 },
+      exit: { opacity: 0 },
+      transition: { duration: 0.12 },
+    };
+  }
+  return {
+    initial: { opacity: 0, y: 6 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -6 },
+    transition: { duration: 0.18 },
+  };
+}
+
+function ProfileRow({ label, tk, children }: { label: string; tk: SizeTokens; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-1.5 leading-none" style={{ fontSize: tk.profileValPx }}>
+      <span
+        className="font-semibold tracking-[0.12em] text-white/60 shrink-0"
+        style={{ fontSize: tk.profileLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+      >
+        {label}
+      </span>
+      <span className="min-w-0 text-right" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}>
+        {children}
+      </span>
+    </div>
+  );
+}
+
+function SkillStars({ value, tk }: { value: number; tk: SizeTokens }) {
+  const v = Math.max(1, Math.min(5, Math.round(value)));
+  const starPx = Math.max(8, Math.round(tk.widthPx * 0.067));
+  return (
+    <span className="inline-flex items-center gap-[1.5px]" aria-label={`Skill moves: ${v} of 5`}>
+      {Array.from({ length: 5 }).map((_, i) => {
+        const filled = i < v;
+        return (
+          <Star
+            key={i}
+            aria-hidden
+            className={cn(filled ? 'text-white fill-white' : 'text-white/35 fill-transparent')}
+            style={{
+              width: starPx,
+              height: starPx,
+              filter: filled
+                ? 'drop-shadow(0 0 3px rgba(251,191,36,0.85)) drop-shadow(0 1px 2px rgba(0,0,0,0.7))'
+                : 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))',
+            }}
+            strokeWidth={filled ? 0 : 2}
+          />
+        );
+      })}
+    </span>
+  );
+}
+
+function PotentialRow({ current, potential, tk }: { current: number; potential: number; tk: SizeTokens }) {
+  const maxed = current >= potential;
+
+  if (maxed) {
+    return (
+      <div className="flex items-center justify-between gap-1.5 leading-none">
+        <span
+          className="font-semibold tracking-[0.12em] text-white/60 shrink-0"
+          style={{ fontSize: tk.profileLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+        >
+          POT
+        </span>
+        <div className="flex items-center gap-1.5">
+          <span
+            className="font-display font-black tabular-nums text-white"
+            style={{ fontSize: tk.profileValPx + 1, textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}
+          >
+            {current}
+          </span>
+          <span
+            className="px-1.5 py-[1px] rounded-full font-black tracking-[0.15em] uppercase bg-gradient-to-b from-amber-300 to-amber-500 text-amber-950"
+            style={{
+              fontSize: tk.profileLabelPx,
+              boxShadow:
+                '0 0 6px rgba(251,191,36,0.55), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.25)',
+            }}
+          >
+            MAX
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  const pct = Math.min(100, (current / potential) * 100);
+  return (
+    <div className="flex items-center gap-1.5 leading-none">
+      <span
+        className="font-semibold tracking-[0.12em] text-white/60 shrink-0"
+        style={{ fontSize: tk.profileLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+      >
+        POT
+      </span>
+      <span
+        className="font-display font-black tabular-nums text-white/80 shrink-0"
+        style={{ fontSize: tk.profileLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}
+      >
+        {current}
+      </span>
+      <div
+        className="flex-1 relative h-[5px] rounded-full overflow-hidden"
+        style={{
+          background: 'linear-gradient(180deg, rgba(0,0,0,0.5), rgba(0,0,0,0.65))',
+          boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.08), inset 0 -1px 0 rgba(0,0,0,0.5)',
+        }}
+      >
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-b from-amber-300 to-amber-500"
+          style={{
+            width: `${pct}%`,
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.45), 0 0 6px rgba(251,191,36,0.45)',
+          }}
+        >
+          <div
+            className="absolute inset-x-0 top-0 h-1/2 rounded-full pointer-events-none"
+            style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.4), transparent)' }}
+          />
+        </div>
+      </div>
+      <span
+        className="font-display font-black tabular-nums text-white shrink-0"
+        style={{ fontSize: tk.profileValPx + 1, textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}
+      >
+        {potential}
+      </span>
+    </div>
+  );
+}
+
+function LiquidGlassBar({ label, value, tk }: { label: string; value: number; tk: SizeTokens }) {
+  const pct = Math.max(0, Math.min(100, value));
+  const tone =
+    pct >= 75
+      ? { top: '#34d399', bottom: '#059669', glow: 'rgba(52,211,153,0.45)' }
+      : pct >= 50
+        ? { top: '#fbbf24', bottom: '#d97706', glow: 'rgba(251,191,36,0.45)' }
+        : { top: '#f87171', bottom: '#dc2626', glow: 'rgba(248,113,113,0.45)' };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span
+        className="font-semibold tracking-[0.12em] text-white/70 leading-none shrink-0"
+        style={{ width: 28, fontSize: tk.profileLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+      >
+        {label}
+      </span>
+      <div
+        className="flex-1 relative h-[7px] rounded-full overflow-hidden backdrop-blur-sm"
+        style={{
+          background: 'linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.55))',
+          boxShadow:
+            'inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08)',
+        }}
+      >
+        <div
+          className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-300"
+          style={{
+            width: `${pct}%`,
+            background: `linear-gradient(180deg, ${tone.top}, ${tone.bottom})`,
+            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.45), 0 0 6px ${tone.glow}`,
+          }}
+        >
+          <div
+            className="absolute inset-x-0 top-0 h-1/2 rounded-full pointer-events-none"
+            style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.4), transparent)' }}
+          />
+        </div>
+      </div>
+      <span
+        className="font-display font-black tabular-nums text-white text-right leading-none shrink-0"
+        style={{ width: 20, fontSize: tk.profileValPx, textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}
+      >
+        {Math.round(value)}
+      </span>
+    </div>
+  );
+}
