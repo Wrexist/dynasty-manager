@@ -181,7 +181,7 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
                 <div className="absolute left-3 right-3 bottom-[38%] text-center">
                   <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full">
                     <p
-                      className="text-[16px] font-display font-black leading-none truncate"
+                      className="min-w-0 text-[16px] font-display font-black leading-none truncate"
                       style={{ textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}
                     >
                       {displayName}
