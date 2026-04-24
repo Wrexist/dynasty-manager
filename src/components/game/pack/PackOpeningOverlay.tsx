@@ -706,6 +706,29 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
               Tap all to reveal
             </motion.button>
           )}
+
+          {/* Close fallback — when the summary has no per-card actions
+              (replay mode opens the overlay with only `onClose`), the grid
+              otherwise offers no clickable way out and touch users are
+              stuck. Keyboard users still have Escape. */}
+          {phase === 'summary' && !onKeep && !onQuickSell && (
+            <motion.button
+              type="button"
+              onClick={onClose}
+              className={cn(
+                'py-2.5 px-8 rounded-2xl font-display font-bold text-xs uppercase tracking-[0.2em]',
+                'text-white bg-white/10 border border-white/25',
+                'backdrop-blur-2xl backdrop-saturate-150',
+                'shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(0,0,0,0.30),0_10px_30px_-10px_rgba(0,0,0,0.55)]',
+                'active:scale-[0.98] active:bg-white/15 transition-[transform,background-color] duration-150',
+              )}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.15 }}
+            >
+              Close
+            </motion.button>
+          )}
         </motion.div>
       )}
 
