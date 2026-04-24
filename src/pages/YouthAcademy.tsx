@@ -2,14 +2,11 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { getFitnessHexColor } from '@/utils/uiHelpers';
-import { GraduationCap, Star, TrendingUp, ArrowUpRight, Trash2, Wrench, Users } from 'lucide-react';
+import { PlayerCard } from '@/components/game/PlayerCard';
+import { GraduationCap, Star, ArrowUpRight, Trash2, Wrench, Users, X, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { getRatingColor, getPotentialInfo, getTop3Attributes, posBadgeColor } from '@/utils/uiHelpers';
-import { getPlayerDisplayName, getCardNameFontSizeClass } from '@/utils/playerDisplay';
-import { FlagIcon } from '@/components/game/FlagIcon';
-import { TierBorderFrame } from '@/components/game/TierBorderFrame';
+import { getPotentialInfo, posBadgeColor } from '@/utils/uiHelpers';
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
 import { PAGE_HINTS } from '@/config/ui';
@@ -21,6 +18,12 @@ function devBarColor(score: number): string {
   if (score >= 80) return 'bg-emerald-500';
   if (score >= 40) return 'bg-primary';
   return 'bg-amber-500';
+}
+
+function devTextColor(score: number): string {
+  if (score >= 80) return 'text-emerald-400';
+  if (score >= 40) return 'text-primary';
+  return 'text-amber-400';
 }
 
 const YouthAcademy = () => {
@@ -42,18 +45,39 @@ const YouthAcademy = () => {
   const youthCoachQuality = useMemo(() => getStaffBonus(staff.members, 'youth-coach'), [staff.members]);
   const youthLevel = facilities.youthLevel;
 
-  // Dev speed bonus from coach + facility
   const devSpeedBonus = useMemo(() => {
     const coachBonus = youthCoachQuality * 0.3;
     const facilityBonus = youthLevel * 0.2;
     return Math.round((coachBonus + facilityBonus) * 100);
   }, [youthCoachQuality, youthLevel]);
 
-  // Count graduates in current squad
   const graduatesInSquad = useMemo(() => {
     if (!club) return 0;
     return club.playerIds.filter(id => players[id]?.isFromYouthAcademy).length;
   }, [club, players]);
+
+  const readyCount = useMemo(
+    () => youthAcademy.prospects.filter(p => p.readyToPromote).length,
+    [youthAcademy.prospects],
+  );
+
+  const handlePromote = (playerId: string) => {
+    hapticLight();
+    const yp = players[playerId];
+    const r = promoteYouth(playerId);
+    if (r.success) {
+      successToast('Player Promoted', `${yp?.firstName ?? ''} ${yp?.lastName ?? ''} joins the first team`);
+    } else {
+      errorToast(r.message || 'Cannot promote player.');
+    }
+  };
+
+  const handleRelease = (playerId: string) => {
+    const rp = players[playerId];
+    releaseYouth(playerId);
+    setConfirmReleaseId(null);
+    infoToast('Player Released', `${rp?.firstName ?? ''} ${rp?.lastName ?? ''} has left the academy`);
+  };
 
   return (
     <div className="max-w-lg mx-auto">
@@ -113,161 +137,117 @@ const YouthAcademy = () => {
         {/* Prospects */}
         {youthAcademy.prospects.length > 0 ? (
           <div className="space-y-2">
-            <h3 className="text-sm font-semibold text-foreground">Youth Prospects</h3>
-            {youthAcademy.prospects.map((prospect, i) => {
-              const player = players[prospect.playerId];
-              if (!player) return null;
-              const potentialInfo = getPotentialInfo(player.potential);
-              const top3 = getTop3Attributes(player.attributes);
-              const cardDisplayName = getPlayerDisplayName(player);
-              const cardFullName = `${player.firstName} ${player.lastName}`;
-              return (
-                <motion.div
-                  key={prospect.playerId}
-                  initial={i < 10 ? { opacity: 0, y: 8 } : false}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: Math.min(i * 0.04, 0.4), duration: 0.2 }}
-                >
-                  <GlassPanel className="p-0 overflow-hidden">
-                    {/* Clickable card body */}
-                    <div
-                      onClick={() => { hapticLight(); selectPlayer(player.id); }}
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`View ${player.firstName} ${player.lastName}`}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(player.id); } }}
-                      className="p-3 cursor-pointer hover:bg-white/[0.02] transition-colors"
-                    >
-                      {/* Top row: Avatar + Info + Potential */}
-                      <div className="flex items-center gap-3">
-                        {/* Player Card (matches tactics view) */}
-                        <TierBorderFrame
-                          overall={player.overall}
-                          glow
-                          className="shrink-0"
-                        >
-                          <div className="flex flex-col items-center rounded-[6.5px] bg-black/70 backdrop-blur-sm px-2 py-1.5 min-w-[40px]">
-                            <span className={cn('text-sm font-bold font-display tabular-nums leading-none', getRatingColor(player.overall))}>
-                              {player.overall}
-                            </span>
-                            <div className="w-full h-[2px] rounded-full bg-white/10 my-0.5">
-                              <div
-                                className="h-full rounded-full transition-all"
-                                style={{ width: `${player.fitness}%`, backgroundColor: getFitnessHexColor(player.fitness) }}
-                              />
-                            </div>
-                            <span
-                              className={cn(
-                                getCardNameFontSizeClass(cardDisplayName),
-                                'font-bold text-white/90 uppercase tracking-wide leading-tight truncate whitespace-nowrap max-w-full',
-                              )}
-                              title={cardFullName}
-                              aria-label={cardFullName}
-                            >
-                              {cardDisplayName}
-                            </span>
-                            <span className="text-[6px] text-gray-400 font-medium leading-tight mt-px">{player.position}</span>
-                          </div>
-                        </TierBorderFrame>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">
+                Youth Prospects
+                <span className="ml-1.5 text-xs text-muted-foreground tabular-nums">({youthAcademy.prospects.length})</span>
+              </h3>
+              {readyCount > 0 && (
+                <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/15 px-2 py-0.5 rounded-full tabular-nums">
+                  {readyCount} ready
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3 justify-items-center pt-1">
+              {youthAcademy.prospects.map((prospect, i) => {
+                const player = players[prospect.playerId];
+                if (!player) return null;
+                const isConfirming = confirmReleaseId === prospect.playerId;
 
-                        {/* Player Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <p className="font-semibold text-foreground text-sm truncate">
-                              <FlagIcon nationality={player.nationality} size={16} /> {player.firstName[0]}. {player.lastName}
-                            </p>
-                            <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
-                          </div>
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className={cn('text-[10px] font-bold px-1.5 py-0.5 rounded', posBadgeColor(player.position))}>
-                              {player.position}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground tabular-nums">{player.age}y</span>
-                          </div>
-                        </div>
+                return (
+                  <motion.div
+                    key={prospect.playerId}
+                    initial={i < 10 ? { opacity: 0, y: 8 } : false}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.2 }}
+                    className="flex flex-col items-center"
+                  >
+                    <div className="relative">
+                      <PlayerCard
+                        player={player}
+                        size="lg"
+                        interactive="detail"
+                        showConditionView={false}
+                        onDetailClick={(p) => selectPlayer(p.id)}
+                      />
 
-                        {/* Potential */}
-                        <div className="text-right shrink-0">
-                          <div className="flex items-center gap-1 justify-end">
-                            <Star className={cn('w-3 h-3', potentialInfo.fillClass)} />
-                            <span className={cn('text-sm font-bold tabular-nums', potentialInfo.textClass)}>{player.potential}</span>
-                          </div>
-                          <span className={cn('text-[9px] font-medium', potentialInfo.textClass)}>{potentialInfo.label}</span>
-                        </div>
-                      </div>
-
-                      {/* Top 3 Attributes */}
-                      <div className="flex items-center gap-1.5 mt-2.5">
-                        {top3.map(attr => (
-                          <div key={attr.label} className="flex items-center gap-1 bg-muted/30 rounded-md px-2 py-1">
-                            <span className="text-[9px] text-muted-foreground font-medium">{attr.label}</span>
-                            <span className={cn('text-[10px] font-bold tabular-nums', getRatingColor(attr.value))}>{attr.value}</span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Development Progress */}
-                      <div className="mt-2.5">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] text-muted-foreground">Development</span>
-                          <span className={cn(
-                            'text-[10px] font-semibold tabular-nums',
-                            prospect.developmentScore >= 80 ? 'text-emerald-400' : prospect.developmentScore >= 40 ? 'text-primary' : 'text-amber-400'
-                          )}>
-                            {Math.round(prospect.developmentScore)}%
+                      {/* Top-right overlay pills — mirrors Squad page pattern */}
+                      <div className="absolute top-1.5 right-1.5 flex flex-col gap-1 items-end z-10 pointer-events-none">
+                        {prospect.readyToPromote && (
+                          <span
+                            title="Ready for first team"
+                            className="flex items-center gap-0.5 rounded-md text-[9px] font-bold tracking-wide px-1.5 py-[2px] backdrop-blur-sm border shadow-[0_1px_3px_rgba(0,0,0,0.5)] leading-none bg-emerald-500/95 text-white border-emerald-300/30"
+                          >
+                            <ArrowUpRight className="w-2.5 h-2.5" />
+                            READY
                           </span>
-                        </div>
-                        <div className="w-full h-1.5 bg-muted/50 rounded-full overflow-hidden">
-                          <div
-                            className={cn('h-full rounded-full transition-all duration-500', devBarColor(prospect.developmentScore))}
-                            style={{ width: `${prospect.developmentScore}%` }}
-                          />
-                        </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Action buttons — separated from clickable area */}
-                    <div className="flex gap-2 px-3 pb-3 pt-1">
-                      {prospect.readyToPromote ? (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); hapticLight(); const yp = players[prospect.playerId]; const r = promoteYouth(prospect.playerId); if (r.success) { successToast('Player Promoted', `${yp?.firstName ?? ''} ${yp?.lastName ?? ''} joins the first team`); } else { errorToast(r.message || 'Cannot promote player.'); } }}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/30 active:scale-[0.97] transition-all"
-                        >
-                          <ArrowUpRight className="w-3.5 h-3.5" /> Promote to Squad
-                        </button>
-                      ) : (
-                        <div className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-muted/20 text-muted-foreground/50 text-xs font-medium cursor-default">
-                          <ArrowUpRight className="w-3.5 h-3.5" /> Not Ready
-                        </div>
-                      )}
-                      {confirmReleaseId === prospect.playerId ? (
-                        <div className="flex items-center gap-1.5">
+                    {/* Development bar — matches card width (150px) */}
+                    <div className="mt-1.5 w-[150px]">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Dev</span>
+                        <span className={cn('text-[9px] font-semibold tabular-nums', devTextColor(prospect.developmentScore))}>
+                          {Math.round(prospect.developmentScore)}%
+                        </span>
+                      </div>
+                      <div className="w-full h-1 bg-muted/50 rounded-full overflow-hidden">
+                        <div
+                          className={cn('h-full rounded-full transition-all duration-500', devBarColor(prospect.developmentScore))}
+                          style={{ width: `${prospect.developmentScore}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Action row */}
+                    <div className="mt-1.5 flex gap-1 w-[150px]">
+                      {isConfirming ? (
+                        <>
                           <button
-                            onClick={(e) => { e.stopPropagation(); const rp = players[prospect.playerId]; releaseYouth(prospect.playerId); setConfirmReleaseId(null); infoToast('Player Released', `${rp?.firstName ?? ''} ${rp?.lastName ?? ''} has left the academy`); }}
-                            className="flex items-center justify-center gap-1 py-2 px-3 rounded-lg bg-destructive/20 text-destructive text-xs font-bold active:scale-[0.97] transition-all min-h-[36px]"
+                            onClick={() => handleRelease(prospect.playerId)}
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md bg-destructive/20 text-destructive text-[10px] font-bold active:scale-[0.97] transition-all"
+                            aria-label="Confirm release"
                           >
-                            Confirm
+                            <Check className="w-3 h-3" /> Release
                           </button>
                           <button
-                            onClick={(e) => { e.stopPropagation(); setConfirmReleaseId(null); }}
-                            className="py-2 px-3 rounded-lg bg-muted/30 text-muted-foreground text-xs font-semibold min-h-[36px]"
+                            onClick={() => setConfirmReleaseId(null)}
+                            className="px-2 py-1.5 rounded-md bg-muted/30 text-muted-foreground active:scale-[0.97] transition-all"
+                            aria-label="Cancel release"
                           >
-                            Cancel
+                            <X className="w-3 h-3" />
                           </button>
-                        </div>
+                        </>
                       ) : (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setConfirmReleaseId(prospect.playerId); }}
-                          className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-destructive/10 text-destructive text-xs font-semibold hover:bg-destructive/20 active:scale-[0.97] transition-all"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                        <>
+                          {prospect.readyToPromote ? (
+                            <button
+                              onClick={() => handlePromote(prospect.playerId)}
+                              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-md bg-emerald-500/20 text-emerald-400 text-[10px] font-semibold hover:bg-emerald-500/30 active:scale-[0.97] transition-all"
+                            >
+                              <ArrowUpRight className="w-3 h-3" /> Promote
+                            </button>
+                          ) : (
+                            <div className="flex-1 py-1.5 rounded-md bg-muted/20 text-muted-foreground/50 text-[10px] font-medium text-center cursor-default">
+                              Developing
+                            </div>
+                          )}
+                          <button
+                            onClick={() => { hapticLight(); setConfirmReleaseId(prospect.playerId); }}
+                            className="px-2 py-1.5 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20 active:scale-[0.97] transition-all"
+                            aria-label="Release player"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </>
                       )}
                     </div>
-                  </GlassPanel>
-                </motion.div>
-              );
-            })}
+                  </motion.div>
+                );
+              })}
+            </div>
           </div>
         ) : (
           <GlassPanel className="p-8 text-center space-y-2">
