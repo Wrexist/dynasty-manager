@@ -1,6 +1,5 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
-import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { Link, TrendingUp, TrendingDown } from 'lucide-react';
 import type { Player } from '@/types/game';
 import { PlayerCard } from './PlayerCard';
@@ -15,6 +14,7 @@ interface LineupPlayerTileProps {
   chemistryLinkCount: number;
   compatRing?: 'natural' | 'compatible' | 'wrong' | null;
   week?: number;
+  /** @deprecated kept for prop-API compatibility; colorstripe removed from tile. */
   clubColor?: string;
   onClick: () => void;
 }
@@ -50,10 +50,8 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
   chemistryLinkCount,
   compatRing,
   week,
-  clubColor,
   onClick,
 }: LineupPlayerTileProps) {
-  const fitnessColor = getFitnessHexColor(player.fitness);
   const statusLabel = getStatusLabel(player, week);
   const fullName = `${player.firstName} ${player.lastName}`;
 
@@ -90,16 +88,6 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
         compact
       />
 
-      {/* Club-color accent — rendered as a left-edge overlay so it does
-          not collide with Tailwind ring-* classes (both use box-shadow). */}
-      {clubColor && (
-        <span
-          aria-hidden
-          className="absolute left-0 top-0 bottom-0 w-[2px] rounded-l-[7px] pointer-events-none z-10"
-          style={{ backgroundColor: clubColor }}
-        />
-      )}
-
       {isSelected && (
         <span className="absolute inset-0 rounded-[7px] ring-2 ring-primary animate-pulse pointer-events-none z-10" />
       )}
@@ -110,29 +98,20 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
         </span>
       )}
 
-      {/* Morale + form indicator (top-right corner, above the stats area) */}
+      {/* Morale + form indicator (top-right corner) */}
       <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-px">
         {formTrend === 'hot' && <TrendingUp className="w-[7px] h-[7px] text-emerald-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]" aria-label="Hot form" />}
         {formTrend === 'cold' && <TrendingDown className="w-[7px] h-[7px] text-red-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]" aria-label="Poor form" />}
         <span className={cn('w-1 h-1 rounded-full shadow-[0_0_0_0.5px_rgba(0,0,0,0.6)]', getMoraleDotClass(player.morale))} aria-label={`Morale ${player.morale}`} />
       </div>
 
-      {/* Chemistry link count (bottom-left, above fitness bar) */}
+      {/* Chemistry link count (bottom-left corner) */}
       {chemistryLinkCount > 0 && (
-        <span className="absolute bottom-1 left-0.5 z-10 flex items-center gap-px text-[6px] text-primary font-semibold tabular-nums leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]">
+        <span className="absolute bottom-0.5 left-0.5 z-10 flex items-center gap-px text-[6px] text-primary font-semibold tabular-nums leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]">
           <Link className="w-[6px] h-[6px]" />
           {chemDisplay}
         </span>
       )}
-
-      {/* Fitness bar — bottom edge of the card */}
-      <div className="absolute left-0 right-0 bottom-0 h-[3px] rounded-b-[7px] bg-black/60 overflow-hidden z-10">
-        <div
-          className="h-full transition-all"
-          style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
-          aria-label={`Fitness ${player.fitness}%`}
-        />
-      </div>
     </div>
   );
 });
