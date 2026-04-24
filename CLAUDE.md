@@ -6,28 +6,53 @@
 The iOS TestFlight workflow runs `scripts/check-whats-new.mjs` and fails the
 build if the top entry is missing or incomplete.
 
+### Every PR's default: add a bullet with `npm run whats-new`
+
+Most of the time you won't be editing `whatsNew.ts` by hand — use the helper:
+
+```bash
+npm run whats-new -- new       "Added adaptive AI tactics."
+npm run whats-new -- improved  "Match engine runs 30% faster."
+npm run whats-new -- fixed     "Fixed crash on Cup Final."
+npm run whats-new -- highlight "Rival managers now adapt to scoreline."
+npm run whats-new -- show                   # preview current top entry
+```
+
+The helper appends to the existing top entry, or auto-creates a new one if
+`package.json` was just bumped. Bullets are auto-capitalized + period-
+terminated. It is idempotent and safe to run multiple times.
+
+**PR check:** `.github/workflows/pr-checks.yml` runs a `whats-new-check` job
+that fails any PR which changes user-visible files but doesn't update
+`src/data/whatsNew.ts`. The job posts an inline comment with the exact fix
+command. Escape hatches — add one of these labels if a PR genuinely doesn't
+need a changelog entry: `skip-changelog`, `no-changelog`, `dependencies`,
+`infra`, `ci`. Draft PRs are skipped.
+
 ### Before triggering `iOS TestFlight Deploy`:
 
 1. **Bump `package.json` version** (semver — patch for fixes, minor for features).
-2. **Prepend a new entry to `RELEASE_NOTES`** in `src/data/whatsNew.ts`.
-   - Keep all prior entries. Never delete history.
-3. **Fill every field** — treat this like a real App Store release note that
-   players will read inside the game:
-   - `version` — matches `package.json` exactly.
-   - `build` — leave as `null`. CI injects `github.run_number` automatically
-     at bundle time so the shipped app shows the real CFBundleVersion.
-   - `date` — today in `YYYY-MM-DD`.
-   - `headline` — 3–8 word App Store hook (e.g. "Cup glory, smarter AI, faster matches.").
+2. **Confirm the top entry is complete** — run `npm run whats-new -- show`.
+   The helper already created the entry on your first `npm run whats-new -- <cat>`
+   call; just make sure the `headline` and `summary` are filled in:
+   ```bash
+   npm run whats-new -- headline "Short App Store hook."
+   npm run whats-new -- summary  "One to three sentence player summary."
+   ```
+3. **Keep all prior entries.** Never delete history.
+4. **Write App Store style:**
+   - `headline` — 3–8 word hook (e.g. "Cup glory, smarter AI, faster matches.").
    - `summary` — 1–3 sentences, player-facing tone, says what actually changed.
-   - Categorize changes into `highlights` / `new` / `improved` / `fixed`.
    - Every bullet is a complete sentence ending with a period.
    - **Never** mention refactors, lint, tests, file names, or internal work.
      Write for a player who has never seen the codebase.
+5. **`build`** — leave as `null`. CI injects `github.run_number` automatically
+   at bundle time so the shipped app shows the real CFBundleVersion.
 
 ### Validation:
 
 ```bash
-node scripts/check-whats-new.mjs     # run locally before ship
+npm run whats-new:check       # same script CI runs
 ```
 
 The iOS TestFlight workflow runs this automatically before the archive step,

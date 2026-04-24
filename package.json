@@ -29,7 +29,9 @@
     "process-fc26": "node scripts/processFC26.mjs",
     "validate-cp": "node scripts/validateCommunityPack.mjs",
     "prepare": "husky",
-    "version:sync": "node scripts/sync-version.mjs"
+    "version:sync": "node scripts/sync-version.mjs",
+    "whats-new": "node scripts/add-whats-new-entry.mjs",
+    "whats-new:check": "node scripts/check-whats-new.mjs"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
