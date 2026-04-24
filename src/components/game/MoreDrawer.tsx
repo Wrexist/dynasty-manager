@@ -223,7 +223,7 @@ export function MoreDrawer({ disabled, open: openProp, onOpenChange }: MoreDrawe
       <SheetContent
         side="bottom"
         className={cn(
-          'relative max-w-lg mx-auto pb-8 max-h-[78vh] overflow-y-auto rounded-t-[28px] border-0 p-5 pt-3 transform-gpu',
+          'max-w-lg mx-auto pb-8 max-h-[78vh] overflow-y-auto rounded-t-[28px] border-0 p-5 pt-3 transform-gpu',
           // Liquid-glass drawer surface — deeper gradient than tiles so rows
           // sit inside the panel (floating layer effect). Multi-layer inset
           // shadow gives the rim its "thick polished glass" feel.
