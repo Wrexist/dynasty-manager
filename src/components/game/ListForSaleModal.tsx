@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -44,6 +45,7 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
   const [askingPrice, setAskingPrice] = useState(defaultPrice);
 
   useScrollLock();
+  useEscapeClose(onClose);
 
   const top3 = useMemo(() => getTop3Attributes(player.attributes), [player]);
 
@@ -93,13 +95,16 @@ export function ListForSaleModal({ player, onClose, onListed }: Props) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -60, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="list-for-sale-title"
         >
           {/* Player Header */}
           <div className="p-4 pb-3">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
-                <Tag className="w-3.5 h-3.5 text-primary" />
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">List for Sale</p>
+                <Tag className="w-3.5 h-3.5 text-primary" aria-hidden />
+                <p id="list-for-sale-title" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">List for Sale</p>
               </div>
               <button type="button" onClick={onClose} aria-label="Close" className="p-1.5 -mr-1.5 rounded-lg hover:bg-muted/50 transition-colors">
                 <X className="w-4 h-4 text-muted-foreground" />

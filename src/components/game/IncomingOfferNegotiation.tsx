@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -60,6 +61,7 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
 
   useScrollLock();
+  useEscapeClose(onClose, phase === 'negotiate');
 
   const evaluation = useMemo(() => evaluateIncomingCounter(offer.id, counterFee), [offer.id, counterFee, evaluateIncomingCounter]);
 
@@ -147,6 +149,9 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.9, opacity: 0, y: 20 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Incoming offer negotiation"
         >
           <div className="max-h-[85vh] overflow-y-auto overscroll-contain">
           {/* ── NEGOTIATE PHASE ── */}
