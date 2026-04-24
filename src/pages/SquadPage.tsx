@@ -3,17 +3,15 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { toast } from 'sonner';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { ListForSaleModal } from '@/components/game/ListForSaleModal';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
 import type { SquadSortKey, SquadStatusFilter } from '@/types/game';
-import { Tag, TrendingUp, TrendingDown, HeartPulse, Dumbbell, ShoppingCart, UserSearch, AlertTriangle, FileText, Users, LogOut, Smile, Meh, Frown, Repeat2, ChevronDown } from 'lucide-react';
+import { HeartPulse, ShoppingCart, UserSearch, AlertTriangle, FileText, Users, LogOut, Repeat2, Tag, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { getRatingColor, getFitnessColor, posBadgeColor } from '@/utils/uiHelpers';
+import { getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import type { ElementType } from 'react';
-import { successToast } from '@/utils/gameToast';
-import { hapticLight, hapticMedium } from '@/utils/haptics';
+import { hapticLight } from '@/utils/haptics';
 import { POSITION_FILTERS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { FlagIcon } from '@/components/game/FlagIcon';
@@ -21,17 +19,29 @@ import { getContractUrgency } from '@/utils/contracts';
 
 const SORT_OPTIONS: SquadSortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
 
-function getMoraleIcon(morale: number): { Icon: ElementType; color: string; label: string } {
-  if (morale >= 60) return { Icon: Smile, color: 'text-emerald-400', label: 'Happy' };
-  if (morale >= 35) return { Icon: Meh, color: 'text-amber-400', label: 'Unsettled' };
-  return { Icon: Frown, color: 'text-red-400', label: 'Low' };
-}
+type PillTone = 'emerald' | 'amber' | 'red' | 'sky' | 'primary';
 
+const PILL_TONE: Record<PillTone, string> = {
+  emerald: 'bg-emerald-500/95 text-white border-emerald-300/30',
+  amber: 'bg-amber-500/95 text-white border-amber-300/30',
+  red: 'bg-red-500/95 text-white border-red-300/30',
+  sky: 'bg-sky-500/95 text-white border-sky-300/30',
+  primary: 'bg-primary/95 text-primary-foreground border-primary/40',
+};
 
-function getFormLabel(form: number): { label: string; color: string } {
-  if (form >= 70) return { label: 'Hot', color: 'text-emerald-400' };
-  if (form >= 45) return { label: 'OK', color: 'text-muted-foreground' };
-  return { label: 'Cold', color: 'text-red-400' };
+function StatusPill({ tone, Icon, label, title }: { tone: PillTone; Icon?: ElementType; label?: string; title?: string }) {
+  return (
+    <span
+      title={title}
+      className={cn(
+        'flex items-center gap-0.5 rounded-md text-[9px] font-bold tracking-wide px-1.5 py-[2px] backdrop-blur-sm border shadow-[0_1px_3px_rgba(0,0,0,0.5)] leading-none',
+        PILL_TONE[tone],
+      )}
+    >
+      {Icon && <Icon className="w-2.5 h-2.5" />}
+      {label && <span className="tabular-nums">{label}</span>}
+    </span>
+  );
 }
 
 function ContractAlertChip({ p, variant, onSelect, onRenew }: {
@@ -79,9 +89,9 @@ function ContractAlertChip({ p, variant, onSelect, onRenew }: {
 }
 
 const SquadPage = () => {
-  const { playerClubId, clubs, players, season, training } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, season } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
-    season: s.season, training: s.training,
+    season: s.season,
   })));
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const setScreen = useGameStore(s => s.setScreen);
@@ -90,7 +100,6 @@ const SquadPage = () => {
   const [sortBy, setSortBy] = useState<SquadSortKey>('overall');
   const [sortAsc, setSortAsc] = useState(false);
   const [statusFilters, setStatusFilters] = useState<Set<SquadStatusFilter>>(new Set());
-  const [confirmListId, setConfirmListId] = useState<string | null>(null);
   const [contractAlertsOpen, setContractAlertsOpen] = useState(true);
 
   const club = clubs[playerClubId];
@@ -190,11 +199,6 @@ const SquadPage = () => {
     });
   };
 
-  const handleListForSale = (e: React.MouseEvent, playerId: string) => {
-    e.stopPropagation();
-    setConfirmListId(playerId);
-  };
-
   const handleRenew = (playerId: string) => {
     const result = startNegotiation(playerId, true);
     if (result && !result.success) {
@@ -202,19 +206,6 @@ const SquadPage = () => {
         ? `Negotiations locked for ${result.lockedWeeks} more week${result.lockedWeeks !== 1 ? 's' : ''}`
         : 'Unable to start negotiations');
     }
-  };
-
-  const handleListComplete = (appeased: boolean) => {
-    if (!confirmListId) return;
-    const player = players[confirmListId];
-    if (!player) return;
-    hapticMedium();
-    if (appeased) {
-      successToast(`${player.lastName} appreciates your honesty!`, 'Transfer request withdrawn — morale improved.');
-    } else {
-      successToast(`${player.lastName} listed for sale!`, 'Offers will appear in your Inbox.');
-    }
-    setConfirmListId(null);
   };
 
   return (
@@ -405,183 +396,81 @@ const SquadPage = () => {
           ))}
         </div>
 
-        {/* Player List */}
-        <div className="space-y-1.5">
-          {squad.length === 0 && (
-            <GlassPanel className="p-8 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {statusFilters.size > 0 ? 'No players match your filters' : 'No players in your squad'}
-              </p>
-              <p className="text-[10px] text-muted-foreground/60">
-                {statusFilters.size > 0 ? 'Try clearing your filters above' : 'Sign players from the transfer market or check free agents'}
-              </p>
-              {statusFilters.size === 0 && (
-                <div className="flex gap-2 justify-center pt-1">
-                  <button onClick={() => setScreen('transfers')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/20 text-primary hover:bg-primary/30 transition-colors">
-                    <ShoppingCart className="w-3 h-3" /> Transfer Market
-                  </button>
-                  <button onClick={() => setScreen('scouting')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/50 text-muted-foreground hover:bg-muted transition-colors">
-                    <UserSearch className="w-3 h-3" /> Scout Players
-                  </button>
-                </div>
-              )}
-            </GlassPanel>
-          )}
-          {squad.map((player, i) => {
-            const fitnessColor = getFitnessColor(player.fitness);
-            const morale = getMoraleIcon(player.morale);
-            const form = getFormLabel(player.form);
-            const contractUrgency = getContractUrgency(player.contractEnd, season);
-            // Determine the single most important status to show (priority order)
-            const statusBadge = player.injured
-              ? 'injured' as const
-              : player.wantsToLeave
-                ? 'wantsOut' as const
-                : player.onLoan
-                  ? 'onLoan' as const
-                  : player.listedForSale
-                    ? 'listed' as const
-                    : null;
+        {/* Player Grid — cards only, tap to open detail for full info */}
+        {squad.length === 0 ? (
+          <GlassPanel className="p-8 text-center space-y-3">
+            <p className="text-sm text-muted-foreground">
+              {statusFilters.size > 0 ? 'No players match your filters' : 'No players in your squad'}
+            </p>
+            <p className="text-[10px] text-muted-foreground/60">
+              {statusFilters.size > 0 ? 'Try clearing your filters above' : 'Sign players from the transfer market or check free agents'}
+            </p>
+            {statusFilters.size === 0 && (
+              <div className="flex gap-2 justify-center pt-1">
+                <button onClick={() => setScreen('transfers')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-primary/20 text-primary hover:bg-primary/30 transition-colors">
+                  <ShoppingCart className="w-3 h-3" /> Transfer Market
+                </button>
+                <button onClick={() => setScreen('scouting')} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted/50 text-muted-foreground hover:bg-muted transition-colors">
+                  <UserSearch className="w-3 h-3" /> Scout Players
+                </button>
+              </div>
+            )}
+          </GlassPanel>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 justify-items-center pt-1">
+            {squad.map((player, i) => {
+              const contractUrgency = getContractUrgency(player.contractEnd, season);
+              const isStarter = lineupSet.has(player.id);
+              const isSub = subsSet.has(player.id);
 
-            const hasTrainingPlan = (training.individualPlans || []).some(p => p.playerId === player.id);
+              return (
+                <motion.div
+                  key={player.id}
+                  initial={i < 15 ? { opacity: 0, y: 6 } : false}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: Math.min(i * 0.02, 0.3), duration: 0.15 }}
+                  className={cn('relative', player.injured && 'opacity-70')}
+                >
+                  <PlayerCard
+                    player={player}
+                    size="lg"
+                    interactive="detail"
+                    showConditionView={false}
+                    onDetailClick={(p) => selectPlayer(p.id)}
+                  />
 
-            return (
-              <motion.div
-                key={player.id}
-                initial={i < 15 ? { opacity: 0, y: 6 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.02, 0.3), duration: 0.15 }}
-                className={cn(
-                  'flex items-stretch gap-3 p-3 rounded-xl transition-colors',
-                  'bg-card/50 backdrop-blur-sm border border-border/30',
-                  player.wantsToLeave && 'border-amber-500/25',
-                  player.injured && 'opacity-60',
-                )}
-              >
-                <PlayerCard
-                  player={player}
-                  size="md"
-                  interactive="detail"
-                  showConditionView={false}
-                  onDetailClick={(p) => selectPlayer(p.id)}
-                  className="shrink-0"
-                />
-
-                <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5 gap-2">
-                  {/* Top row: name + growth arrow; right-aligned action buttons */}
-                  <div className="flex items-start gap-2 min-w-0">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-foreground text-sm flex items-center gap-1.5 min-w-0">
-                        <FlagIcon nationality={player.nationality} size={14} className="shrink-0" />
-                        <span className="truncate">{player.firstName[0]}. {player.lastName}</span>
-                        {player.growthDelta > 0 && <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />}
-                        {player.growthDelta < 0 && <TrendingDown className="w-3 h-3 text-destructive shrink-0" />}
-                      </p>
-                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                        <span className="text-[10px] text-muted-foreground tabular-nums">{player.age}y</span>
-                        {lineupSet.has(player.id) && (
-                          <span className="text-[8px] font-bold text-emerald-400 bg-emerald-400/10 px-1 py-0.5 rounded">XI</span>
-                        )}
-                        {subsSet.has(player.id) && (
-                          <span className="text-[8px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded">SUB</span>
-                        )}
-                        {hasTrainingPlan && (
-                          <span title="Individual training plan set"><Dumbbell className="w-3 h-3 text-primary/70 shrink-0" /></span>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 shrink-0">
-                      {contractUrgency && !player.onLoan && !player.injured && (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); hapticLight(); startNegotiation(player.id, true); }}
-                          className={cn(
-                            'p-1 rounded-md transition-colors',
-                            contractUrgency === 'expired'
-                              ? 'text-destructive hover:bg-destructive/10'
-                              : 'text-amber-400 hover:bg-amber-400/10'
-                          )}
-                          title={contractUrgency === 'expired'
-                            ? `Contract expires end of this season (S${player.contractEnd})`
-                            : `Contract expires end of next season (S${player.contractEnd})`}
-                          aria-label={`Negotiate renewal for ${player.firstName} ${player.lastName}`}
-                        >
-                          <FileText className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      {statusBadge === 'injured' && (
-                        <span className="flex items-center gap-0.5" title={`Injured — ${player.injuryWeeks || '?'} wk(s)`}>
-                          <HeartPulse className="w-3.5 h-3.5 text-destructive" />
-                          <span className="text-[8px] font-bold text-destructive tabular-nums">{player.injuryWeeks}w</span>
-                        </span>
-                      )}
-                      {statusBadge === 'wantsOut' && (
-                        <span
-                          className="flex items-center gap-0.5 text-amber-400 bg-amber-400/10 border border-amber-400/20 px-1.5 py-0.5 rounded-md"
-                          title="Wants to leave the club"
-                        >
-                          <LogOut className="w-2.5 h-2.5" />
-                          <span className="text-[7px] font-bold uppercase tracking-wide">Out</span>
-                        </span>
-                      )}
-                      {statusBadge === 'onLoan' && (
-                        <span
-                          className="flex items-center gap-0.5 text-sky-400 bg-sky-400/10 border border-sky-400/20 px-1.5 py-0.5 rounded-md"
-                          title="On loan"
-                        >
-                          <Repeat2 className="w-2.5 h-2.5" />
-                          <span className="text-[7px] font-bold uppercase tracking-wide">Loan</span>
-                        </span>
-                      )}
-                      {statusBadge === 'listed' && (
-                        <span className="text-[8px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-md">
-                          LISTED
-                        </span>
-                      )}
-                      {!statusBadge && (
-                        <button
-                          onClick={(e) => handleListForSale(e, player.id)}
-                          className="text-muted-foreground/40 hover:text-primary transition-colors p-1.5"
-                          title="List for sale"
-                        >
-                          <Tag className="w-3 h-3" />
-                        </button>
-                      )}
-                    </div>
+                  {/* Top-right overlay — at-a-glance pills. Detail screen (tap) shows the rest. */}
+                  <div className="absolute top-1.5 right-1.5 flex flex-col gap-1 items-end z-10 pointer-events-none">
+                    {isStarter && <StatusPill tone="emerald" label="XI" title="In starting XI" />}
+                    {isSub && <StatusPill tone="amber" label="SUB" title="On the bench" />}
+                    {player.injured && (
+                      <StatusPill tone="red" Icon={HeartPulse} label={`${player.injuryWeeks || '?'}w`} title={`Injured — ${player.injuryWeeks || '?'} wk(s)`} />
+                    )}
+                    {!player.injured && player.wantsToLeave && (
+                      <StatusPill tone="amber" Icon={LogOut} label="OUT" title="Wants to leave" />
+                    )}
+                    {!player.injured && !player.wantsToLeave && player.onLoan && (
+                      <StatusPill tone="sky" Icon={Repeat2} label="LOAN" title="On loan" />
+                    )}
+                    {!player.injured && !player.wantsToLeave && !player.onLoan && player.listedForSale && (
+                      <StatusPill tone="primary" Icon={Tag} label="LIST" title="Listed for sale" />
+                    )}
+                    {contractUrgency && !player.onLoan && !player.injured && (
+                      <StatusPill
+                        tone={contractUrgency === 'expired' ? 'red' : 'amber'}
+                        Icon={FileText}
+                        title={contractUrgency === 'expired'
+                          ? `Contract expires end of this season (S${player.contractEnd})`
+                          : `Contract expires end of next season (S${player.contractEnd})`}
+                      />
+                    )}
                   </div>
-
-                  {/* Quick-glance cluster — form, fitness bar, morale */}
-                  <div className="flex items-center gap-2 text-[10px]">
-                    <span className={cn('font-bold tabular-nums shrink-0 w-7', form.color)} title={`Form: ${player.form}`}>
-                      {form.label}
-                    </span>
-                    <div className="flex-1 min-w-[40px]" title={`Fitness ${player.fitness}%`}>
-                      <div className="h-1.5 bg-muted/80 rounded-full overflow-hidden">
-                        <div
-                          className={cn('h-full rounded-full transition-all', fitnessColor)}
-                          style={{ width: `${player.fitness}%` }}
-                        />
-                      </div>
-                      <p className="text-[8px] text-muted-foreground text-center tabular-nums mt-0.5">{player.fitness}%</p>
-                    </div>
-                    <morale.Icon className={cn('w-3.5 h-3.5 shrink-0', morale.color)} title={`Morale: ${morale.label} (${player.morale}%)`} />
-                  </div>
-                </div>
-              </motion.div>
-            );
-          })}
-
-        </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
-
-      {/* List for Sale Modal */}
-      {confirmListId && players[confirmListId] && (
-        <ListForSaleModal
-          player={players[confirmListId]}
-          onClose={() => setConfirmListId(null)}
-          onListed={handleListComplete}
-        />
-      )}
     </div>
   );
 };
