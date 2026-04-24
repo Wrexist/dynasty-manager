@@ -1,15 +1,19 @@
 /**
  * DevToolsPanel — floating bottom-right tester for Dynasty Manager.
  *
- * Gated on `import.meta.env.DEV || localStorage.getItem('devtools') === '1'`
- * so prod builds stay clean by default. Set `localStorage.devtools = '1'`
- * in a production deploy to enable on-device testing.
+ * Visibility: enabled whenever Vite mode is non-production (so: `npm run
+ * dev`, `npm run build:dev`, tests) OR when localStorage has the
+ * `devtools` flag set to '1'. Evaluated synchronously at module load
+ * with no useEffect, no gameStarted gate, and a max z-index so nothing
+ * can hide the trigger. Shows a console banner on first render so you
+ * can confirm it's mounted even before expanding the panel.
  *
  * Everything here talks to the live game store directly — no separate
  * dev-only actions on the store surface. Keeps the zustand API small.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Wrench, X, Zap, Coins, Clock, Navigation, TestTube, Save } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
@@ -54,12 +58,50 @@ const SCREEN_SHORTCUTS: { screen: GameScreen; label: string }[] = [
   { screen: 'settings', label: 'Settings' },
 ];
 
-function shouldRender(): boolean {
-  if (import.meta.env.DEV) return true;
+/**
+ * Evaluate once at module load. Only the Vite dev server (`import.meta
+ * .env.DEV === true`) auto-enables the panel; every other build — prod,
+ * staging, qa, build:dev, preview — requires the localStorage opt-in so
+ * custom modes like `vite build --mode staging` can't accidentally ship
+ * state-mutating shortcuts to end users.
+ */
+function resolveVisibility(): { visible: boolean; source: string } {
+  let dev = false;
+  let mode = 'unknown';
   try {
-    return typeof window !== 'undefined' && window.localStorage?.getItem('devtools') === '1';
+    dev = import.meta.env?.DEV === true;
+    mode = import.meta.env?.MODE ?? 'unknown';
   } catch {
-    return false;
+    // import.meta can throw in exotic runtimes; fall through.
+  }
+
+  let flag = false;
+  try {
+    if (typeof window !== 'undefined') {
+      flag = window.localStorage?.getItem('devtools') === '1';
+    }
+  } catch {
+    // localStorage can throw in private-mode Safari etc.
+  }
+
+  if (flag) return { visible: true, source: `localStorage:devtools=1 (mode=${mode})` };
+  if (dev) return { visible: true, source: `vite dev server (mode=${mode})` };
+  return { visible: false, source: `non-dev build (mode=${mode}), no flag` };
+}
+
+const VISIBILITY = resolveVisibility();
+if (typeof console !== 'undefined') {
+  if (VISIBILITY.visible) {
+    // eslint-disable-next-line no-console
+    console.info(
+      `%c[DevTools] mounted — ${VISIBILITY.source}`,
+      'background:#f59e0b;color:#000;padding:2px 6px;border-radius:3px;font-weight:bold;',
+    );
+  } else {
+    // eslint-disable-next-line no-console
+    console.info(
+      `[DevTools] hidden — ${VISIBILITY.source}. Run \`localStorage.devtools='1'; location.reload()\` to enable.`,
+    );
   }
 }
 
@@ -68,6 +110,7 @@ export function DevToolsPanel() {
   const season = useGameStore((s) => s.season);
   const week = useGameStore((s) => s.week);
   const totalWeeks = useGameStore((s) => s.totalWeeks);
+  const playerClubId = useGameStore((s) => s.playerClubId);
   const budget = useGameStore((s) => s.clubs[s.playerClubId]?.budget ?? 0);
   const setScreen = useGameStore((s) => s.setScreen);
   const advanceWeek = useGameStore((s) => s.advanceWeek);
@@ -77,12 +120,7 @@ export function DevToolsPanel() {
   const resetGame = useGameStore((s) => s.resetGame);
 
   const [open, setOpen] = useState(false);
-  const [enabled, setEnabled] = useState(false);
-
-  // Check eligibility once after mount — avoids SSR/client mismatch noise.
-  useEffect(() => {
-    setEnabled(shouldRender());
-  }, []);
+  const navigate = useNavigate();
 
   const budgetLabel = useMemo(() => {
     if (budget >= 1_000_000) return `£${(budget / 1_000_000).toFixed(1)}M`;
@@ -90,26 +128,45 @@ export function DevToolsPanel() {
     return `£${budget}`;
   }, [budget]);
 
-  if (!enabled || !gameStarted) return null;
+  // Gate on dev/flag. No gameStarted gate — panel is useful pre-game too
+  // (can jump to Settings, reset slot, etc.).
+  if (!VISIBILITY.visible) return null;
 
   const go = (screen: GameScreen) => {
-    setScreen(screen);
+    // Panel may be open from any route — title, club-select, /game. Ensure
+    // we switch to /game so GameShell is the active route and can pick up
+    // the screen-state change.
+    if (gameStarted) {
+      setScreen(screen);
+      navigate('/game');
+    } else {
+      toast.info('Start or load a game first');
+    }
     setOpen(false);
+  };
+
+  const needsGame = !gameStarted || !playerClubId;
+  const requireGame = (fn: () => void) => () => {
+    if (needsGame) {
+      toast.info('Start or load a game first');
+      return;
+    }
+    fn();
   };
 
   return (
     <>
-      {/* Floating trigger — sits above the bottom nav with safe-area padding */}
+      {/* Floating trigger — max z-index, above bottom nav with big safe-area buffer */}
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'fixed right-3 z-[90] flex items-center gap-1.5 rounded-full px-3 py-2 shadow-lg',
-          'bg-amber-500 text-black font-bold text-[11px] uppercase tracking-wider',
-          'border-2 border-amber-300/60',
+          'fixed right-3 z-[2147483646] flex items-center gap-1.5 rounded-full px-3 py-2 shadow-xl',
+          'bg-amber-500 text-black font-black text-[11px] uppercase tracking-wider',
+          'border-2 border-amber-200',
           'hover:bg-amber-400 active:scale-95 transition-all',
         )}
-        style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
+        style={{ bottom: 'calc(7rem + env(safe-area-inset-bottom, 0px))' }}
         aria-label={open ? 'Close dev tools' : 'Open dev tools'}
       >
         <Wrench className="w-3.5 h-3.5" />
@@ -125,30 +182,30 @@ export function DevToolsPanel() {
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.15 }}
             className={cn(
-              'fixed z-[91] right-3 left-3 sm:left-auto sm:w-[360px]',
+              'fixed z-[2147483647] right-3 left-3 sm:left-auto sm:w-[360px]',
               'bg-card border border-amber-500/40 rounded-xl shadow-2xl',
               'overflow-hidden flex flex-col',
             )}
             style={{
-              bottom: 'calc(8.5rem + env(safe-area-inset-bottom, 0px))',
-              maxHeight: 'calc(100vh - 12rem - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px))',
+              bottom: 'calc(10rem + env(safe-area-inset-bottom, 0px))',
+              maxHeight: 'calc(100vh - 14rem - env(safe-area-inset-bottom, 0px) - env(safe-area-inset-top, 0px))',
             }}
             role="dialog"
             aria-label="Developer tools"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-3 py-2 border-b border-amber-500/30 bg-amber-500/10 shrink-0">
-              <div className="flex items-center gap-2">
-                <Wrench className="w-3.5 h-3.5 text-amber-400" />
-                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-400">Dev Tools</p>
-                <span className="text-[10px] text-muted-foreground tabular-nums">
-                  · S{season} W{week}/{totalWeeks} · {budgetLabel}
+              <div className="flex items-center gap-2 min-w-0">
+                <Wrench className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-400 shrink-0">Dev Tools</p>
+                <span className="text-[10px] text-muted-foreground tabular-nums truncate">
+                  {gameStarted ? `· S${season} W${week}/${totalWeeks} · ${budgetLabel}` : '· (no game loaded)'}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="p-1 rounded hover:bg-white/10 transition-colors"
+                className="p-1 rounded hover:bg-white/10 transition-colors shrink-0"
                 aria-label="Close"
               >
                 <X className="w-3.5 h-3.5 text-muted-foreground" />
@@ -166,22 +223,10 @@ export function DevToolsPanel() {
                   ))}
                 </div>
                 <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-                  <Pill
-                    tone="primary"
-                    onClick={() => {
-                      inspectFirstPlayer();
-                      setOpen(false);
-                    }}
-                  >
+                  <Pill tone="primary" onClick={requireGame(() => { inspectFirstPlayer(); setOpen(false); })}>
                     Inspect 1st player
                   </Pill>
-                  <Pill
-                    tone="primary"
-                    onClick={() => {
-                      inspectRivalClub();
-                      setOpen(false);
-                    }}
-                  >
+                  <Pill tone="primary" onClick={requireGame(() => { inspectRivalClub(); setOpen(false); })}>
                     Inspect rival club
                   </Pill>
                 </div>
@@ -189,29 +234,22 @@ export function DevToolsPanel() {
 
               <Section icon={Clock} title="Time">
                 <div className="grid grid-cols-3 gap-1.5">
-                  <Pill
-                    onClick={async () => {
-                      await Promise.resolve(advanceWeek());
-                      toast.success(`Advanced to W${useGameStore.getState().week}`);
-                    }}
-                  >
+                  <Pill onClick={requireGame(async () => {
+                    await Promise.resolve(advanceWeek());
+                    toast.success(`Advanced to W${useGameStore.getState().week}`);
+                  })}>
                     +1 week
                   </Pill>
-                  <Pill
-                    onClick={async () => {
-                      await Promise.resolve(advanceToNextMatch());
-                      toast.success('Jumped to next match');
-                    }}
-                  >
+                  <Pill onClick={requireGame(async () => {
+                    await Promise.resolve(advanceToNextMatch());
+                    toast.success('Jumped to next match');
+                  })}>
                     Next match
                   </Pill>
-                  <Pill
-                    tone="danger"
-                    onClick={() => {
-                      endSeason();
-                      toast.success('Season ended');
-                    }}
-                  >
+                  <Pill tone="danger" onClick={requireGame(() => {
+                    endSeason();
+                    toast.success('Season ended');
+                  })}>
                     End season
                   </Pill>
                 </div>
@@ -219,49 +257,38 @@ export function DevToolsPanel() {
 
               <Section icon={TestTube} title="Scenarios">
                 <div className="grid grid-cols-2 gap-1.5">
-                  <Pill
-                    tone="primary"
-                    onClick={() => {
-                      const { count } = seedBallonDor();
-                      toast.success(`Seeded Ballon d'Or (${count} players)`);
-                      setScreen('ballon-dor');
-                      setOpen(false);
-                    }}
-                  >
+                  <Pill tone="primary" onClick={requireGame(() => {
+                    const { count } = seedBallonDor();
+                    toast.success(`Seeded Ballon d'Or (${count} players)`);
+                    setScreen('ballon-dor');
+                    setOpen(false);
+                  })}>
                     Seed Ballon d'Or
                   </Pill>
-                  <Pill
-                    onClick={() => {
-                      armPackPity();
-                      toast.success('Pack pity armed');
-                    }}
-                  >
+                  <Pill onClick={requireGame(() => {
+                    armPackPity();
+                    toast.success('Pack pity armed');
+                  })}>
                     Arm pack pity
                   </Pill>
-                  <Pill
-                    onClick={() => {
-                      const r = injectInjury();
-                      if (r) toast.success(`Injured ${r.playerName}`);
-                      else toast.info('No healthy squad player to injure');
-                    }}
-                  >
+                  <Pill onClick={requireGame(() => {
+                    const r = injectInjury();
+                    if (r) toast.success(`Injured ${r.playerName}`);
+                    else toast.info('No healthy squad player to injure');
+                  })}>
                     Random injury
                   </Pill>
-                  <Pill
-                    onClick={() => {
-                      const { healed, fitnessReset } = healSquad();
-                      toast.success(`Healed ${healed}, refreshed ${fitnessReset}`);
-                    }}
-                  >
+                  <Pill onClick={requireGame(() => {
+                    const { healed, fitnessReset } = healSquad();
+                    toast.success(`Healed ${healed}, refreshed ${fitnessReset}`);
+                  })}>
                     Heal & refresh
                   </Pill>
-                  <Pill
-                    onClick={() => {
-                      const r = toggleWantsToLeave();
-                      if (r) toast.success(`${r.playerName} wantsToLeave → ${r.nowWants ? 'true' : 'false'}`);
-                      else toast.info('No eligible player');
-                    }}
-                  >
+                  <Pill onClick={requireGame(() => {
+                    const r = toggleWantsToLeave();
+                    if (r) toast.success(`${r.playerName} wantsToLeave → ${r.nowWants ? 'true' : 'false'}`);
+                    else toast.info('No eligible player');
+                  })}>
                     Toggle "wants out"
                   </Pill>
                 </div>
@@ -269,72 +296,33 @@ export function DevToolsPanel() {
 
               <Section icon={Coins} title="Money">
                 <div className="grid grid-cols-4 gap-1.5">
-                  <Pill
-                    onClick={() => {
-                      adjustBudget(1_000_000);
-                      toast.success('+£1M');
-                    }}
-                  >
-                    +£1M
-                  </Pill>
-                  <Pill
-                    onClick={() => {
-                      adjustBudget(10_000_000);
-                      toast.success('+£10M');
-                    }}
-                  >
-                    +£10M
-                  </Pill>
-                  <Pill
-                    onClick={() => {
-                      adjustBudget(100_000_000);
-                      toast.success('+£100M');
-                    }}
-                  >
-                    +£100M
-                  </Pill>
-                  <Pill
-                    tone="danger"
-                    onClick={() => {
-                      adjustBudget(-10_000_000);
-                      toast.info('-£10M');
-                    }}
-                  >
-                    −£10M
-                  </Pill>
+                  <Pill onClick={requireGame(() => { adjustBudget(1_000_000); toast.success('+£1M'); })}>+£1M</Pill>
+                  <Pill onClick={requireGame(() => { adjustBudget(10_000_000); toast.success('+£10M'); })}>+£10M</Pill>
+                  <Pill onClick={requireGame(() => { adjustBudget(100_000_000); toast.success('+£100M'); })}>+£100M</Pill>
+                  <Pill tone="danger" onClick={requireGame(() => { adjustBudget(-10_000_000); toast.info('-£10M'); })}>−£10M</Pill>
                 </div>
               </Section>
 
               <Section icon={Save} title="Save">
                 <div className="grid grid-cols-2 gap-1.5">
-                  <Pill
-                    onClick={() => {
-                      saveGame();
-                      toast.success('Saved');
-                    }}
-                  >
-                    Save now
-                  </Pill>
-                  <Pill
-                    tone="danger"
-                    onClick={() => {
-                      if (!window.confirm('Reset current save slot? This cannot be undone.')) return;
-                      resetGame();
-                      toast.success('Save reset');
-                      setOpen(false);
-                    }}
-                  >
+                  <Pill onClick={requireGame(() => { saveGame(); toast.success('Saved'); })}>Save now</Pill>
+                  <Pill tone="danger" onClick={requireGame(() => {
+                    if (!window.confirm('Reset current save slot? This cannot be undone.')) return;
+                    resetGame();
+                    toast.success('Save reset');
+                    setOpen(false);
+                  })}>
                     Reset slot
                   </Pill>
                 </div>
               </Section>
 
               <p className="text-[10px] text-muted-foreground/70 text-center pt-1">
-                Gated on DEV mode or localStorage <code className="text-amber-400">devtools=1</code>
+                {VISIBILITY.source}
               </p>
             </div>
 
-            {/* Quick time hint */}
+            {/* Footer hint */}
             <div className="shrink-0 flex items-center justify-center gap-1 px-3 py-1.5 border-t border-border/40 text-[9px] text-muted-foreground">
               <Zap className="w-2.5 h-2.5 text-amber-400" />
               <span>Side-stepping game logic — expect state drift</span>
