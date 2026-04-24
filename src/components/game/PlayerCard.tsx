@@ -1,12 +1,28 @@
 import { memo, useEffect, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X, Star } from 'lucide-react';
-import type { Player } from '@/types/game';
+import type { Player, PlayerAttributes } from '@/types/game';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
-import { getPlayerCardArt } from '@/utils/uiHelpers';
+import { getPlayerCardArt, getFitnessHexColor } from '@/utils/uiHelpers';
 import { getPersonalityLabel } from '@/utils/personality';
+
+const ATTR_LABELS: Record<keyof PlayerAttributes, string> = {
+  pace: 'PAC',
+  shooting: 'SHO',
+  passing: 'PAS',
+  mental: 'DRI',
+  defending: 'DEF',
+  physical: 'PHY',
+};
+
+function getTopThreeStats(attrs: PlayerAttributes): Array<{ label: string; value: number }> {
+  return (Object.keys(ATTR_LABELS) as Array<keyof PlayerAttributes>)
+    .map((k) => ({ label: ATTR_LABELS[k], value: attrs[k] }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 3);
+}
 
 export type PlayerCardSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type PlayerCardInteraction = 'cycle' | 'detail' | 'none';
@@ -55,20 +71,24 @@ const SIZE_PX: Record<PlayerCardSize, number> = { xs: 52, sm: 64, md: 110, lg: 1
  */
 function sizeTokens(size: PlayerCardSize) {
   const w = SIZE_PX[size];
+  // xs runs a tighter typographic scale: the tactics tile needs to fit a
+  // longer surname on a single line (no inline flag), so namePx drops
+  // and flag shrinks to a top-right corner badge instead of a sibling.
+  const isXs = size === 'xs';
   return {
     widthPx: w,
     ovrPx: Math.round(w * 0.24),
     ovrTopPx: Math.round(w * 0.093),
     ovrLeftPx: Math.round(w * 0.12),
     posPx: Math.max(7, Math.round(w * 0.067)),
-    namePx: Math.max(8, Math.round(w * 0.107)),
+    namePx: isXs ? Math.max(7, Math.round(w * 0.09)) : Math.max(8, Math.round(w * 0.107)),
     firstNamePx: Math.max(6, Math.round(w * 0.073)),
     statLabelPx: Math.max(6, Math.round(w * 0.06)),
     statValPx: Math.max(8, Math.round(w * 0.08)),
     profileLabelPx: Math.max(6, Math.round(w * 0.053)),
     profileValPx: Math.max(7, Math.round(w * 0.067)),
-    flagWPx: Math.max(10, Math.round(w * 0.12)),
-    flagHPx: Math.max(7, Math.round(w * 0.087)),
+    flagWPx: isXs ? Math.max(9, Math.round(w * 0.18)) : Math.max(10, Math.round(w * 0.12)),
+    flagHPx: isXs ? Math.max(6, Math.round(w * 0.13)) : Math.max(7, Math.round(w * 0.087)),
     statRowGapPx: Math.max(1, Math.round(w * 0.01)),
     outerRadiusPx: Math.max(8, Math.round(w * 0.107)),
     paddingXPx: Math.max(8, Math.round(w * 0.093)),
@@ -216,7 +236,19 @@ export const PlayerCard = memo(function PlayerCard({
           </div>
         </div>
 
-        {/* Identity block — surname + flag on top, first name below. */}
+        {/* Flag — pinned to the top-right corner on xs so the surname line
+            can use the full card width (more letters of long names fit). */}
+        {size === 'xs' && (
+          <div
+            aria-hidden
+            className="absolute rounded-[2px] overflow-hidden border border-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.6)] z-10"
+            style={{ top: tk.ovrTopPx, right: tk.ovrLeftPx, width: tk.flagWPx, height: tk.flagHPx }}
+          >
+            <FlagIcon nationality={player.nationality} fill />
+          </div>
+        )}
+
+        {/* Identity block — surname (+ inline flag on md+). */}
         <div
           className="absolute text-center bottom-[39%]"
           style={{ left: tk.paddingXPx, right: tk.paddingXPx }}
@@ -228,12 +260,14 @@ export const PlayerCard = memo(function PlayerCard({
             >
               {player.lastName}
             </p>
-            <div
-              className="rounded-[2px] overflow-hidden border border-white/40 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
-              style={{ width: tk.flagWPx, height: tk.flagHPx }}
-            >
-              <FlagIcon nationality={player.nationality} fill />
-            </div>
+            {size !== 'xs' && (
+              <div
+                className="rounded-[2px] overflow-hidden border border-white/40 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+                style={{ width: tk.flagWPx, height: tk.flagHPx }}
+              >
+                <FlagIcon nationality={player.nationality} fill />
+              </div>
+            )}
           </div>
           {size !== 'xs' && size !== 'sm' && !compact && (
             <p
@@ -244,6 +278,57 @@ export const PlayerCard = memo(function PlayerCard({
             </p>
           )}
         </div>
+
+        {/* Tactics-tile bottom band: fitness sits on the card's natural
+            divider (gradient line around ~60% from top, between the name
+            and the gray band), with the player's top 3 attributes below
+            it in the stat strip. Only renders for the xs compact variant
+            used on the formation pitch. */}
+        {size === 'xs' && compact && (() => {
+          const fitnessColor = getFitnessHexColor(player.fitness);
+          const topStats = getTopThreeStats(player.attributes);
+          const statFontPx = Math.max(7, Math.round(tk.widthPx * 0.14));
+          return (
+            <>
+              {/* Fitness bar — sits right over the card's divider line. */}
+              <div
+                className="absolute left-0 right-0 pointer-events-none"
+                style={{ top: '61%', paddingLeft: tk.paddingXPx * 0.4, paddingRight: tk.paddingXPx * 0.4 }}
+              >
+                <div
+                  className="h-[2px] w-full rounded-full bg-black/60 overflow-hidden shadow-[0_0_2px_rgba(0,0,0,0.8)]"
+                  aria-label={`Fitness ${player.fitness}%`}
+                >
+                  <div
+                    className="h-full"
+                    style={{ width: `${Math.max(0, Math.min(100, player.fitness))}%`, backgroundColor: fitnessColor }}
+                  />
+                </div>
+              </div>
+
+              {/* Top-3 stats row — in the gray band under the line. */}
+              <div
+                className="absolute left-0 right-0 flex items-center justify-around gap-[2px] leading-none pointer-events-none"
+                style={{
+                  top: '72%',
+                  paddingLeft: tk.paddingXPx * 0.25,
+                  paddingRight: tk.paddingXPx * 0.25,
+                  fontSize: statFontPx,
+                }}
+              >
+                {topStats.map((s) => (
+                  <span
+                    key={s.label}
+                    className="font-display font-black tabular-nums text-white"
+                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.7)' }}
+                  >
+                    {s.value}
+                  </span>
+                ))}
+              </div>
+            </>
+          );
+        })()}
 
         {/* Stat panel — top-aligned inside the shield's lower gray band.
             Omitted in compact mode (sm / dense list contexts). */}

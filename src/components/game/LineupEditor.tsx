@@ -23,6 +23,12 @@ const VP_Y = 46;
 const VP_H = 59;
 const VP_W = 68;
 
+// Vertical span (in SVG units) used to lay out slots inside the half-pitch.
+// Wider span → more vertical room between player tiles → less overlap on
+// formations that stack attackers / midfielders close together.
+const SLOT_Y_RANGE = 46;
+const SLOT_Y_BOTTOM = 97;
+
 function getCompatibility(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
   if (player.position === slotPos) return 'natural';
   if (canPlayPosition(player, slotPos)) return 'compatible';
@@ -246,7 +252,7 @@ export function LineupEditor() {
   return (
     <div>
       {/* Half Pitch (bottom half only) */}
-      <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: 'min(24rem, 100%)' }}>
+      <div className="relative w-full mx-auto" style={{ aspectRatio: `${VP_W}/${VP_H}`, maxWidth: 'min(28rem, 100%)' }}>
         <svg viewBox={`0 ${VP_Y} ${VP_W} ${VP_H}`} className="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
           {/* Pitch background & markings */}
           <rect x="0" y="0" width="68" height="105" rx="1.5" fill={PITCH_COLORS.FILL} />
@@ -268,9 +274,9 @@ export function LineupEditor() {
             const idB = lineup[b];
             if (!idA || !idB) return null;
             const x1 = 2 + (slotA.x / 100) * 64;
-            const y1 = 95 - (slotA.y / 100) * 39;
+            const y1 = SLOT_Y_BOTTOM - (slotA.y / 100) * SLOT_Y_RANGE;
             const x2 = 2 + (slotB.x / 100) * 64;
-            const y2 = 95 - (slotB.y / 100) * 39;
+            const y2 = SLOT_Y_BOTTOM - (slotB.y / 100) * SLOT_Y_RANGE;
             // Fade lines not connected to selected player
             const isRelevant = !selectedId || idA === selectedId || idB === selectedId;
             return (
@@ -292,7 +298,7 @@ export function LineupEditor() {
           const playerId = lineup[i];
           const player = playerId ? players[playerId] : null;
           const cxSvg = 2 + (slot.x / 100) * 64;
-          const cySvg = 95 - (slot.y / 100) * 39;
+          const cySvg = SLOT_Y_BOTTOM - (slot.y / 100) * SLOT_Y_RANGE;
           const left = (cxSvg / VP_W) * 100;
           const top = ((cySvg - VP_Y) / VP_H) * 100;
 
@@ -321,7 +327,6 @@ export function LineupEditor() {
                   chemistryLinkCount={playerChemCounts.get(player.id) || 0}
                   compatRing={!isSelected ? compat : null}
                   week={week}
-                  clubColor={club.color}
                   onClick={() => handleTap(playerId)}
                 />
               ) : (
