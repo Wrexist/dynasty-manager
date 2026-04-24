@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRightLeft, Check, AlertCircle, Zap, ArrowRight, Wand2, ArrowUp } from 'lucide-react';
 import { MAX_SUBSTITUTIONS } from '@/config/matchEngine';
 import { PITCH_COLORS } from '@/config/ui';
-import { PlayerCard } from './PlayerCard';
+import { LineupPlayerTile } from './LineupPlayerTile';
 import { BenchStrip } from './BenchStrip';
 import { YellowCardIcon, RedCardIcon } from './PlayerAvatar';
 import { computeSmartSub } from '@/utils/substitutionLogic';
@@ -256,7 +256,7 @@ export function SubstitutionSheet({ open, onOpenChange, onSubMade, matchMinute, 
                     <ArrowUp className="w-2.5 h-2.5 text-sky-400" />
                   </div>
                 )}
-                <PlayerCard
+                <LineupPlayerTile
                   player={player}
                   position={slot.pos}
                   isSelected={false}

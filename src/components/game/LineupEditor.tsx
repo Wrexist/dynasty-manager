@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { calculateChemistryLinks, getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 import { getChemistryLines, buildChemistryStrengthMap, getChemistryLineColor } from '@/utils/formationLines';
 import { getSquadInsights } from '@/utils/squadInsights';
-import { PlayerCard } from './PlayerCard';
+import { LineupPlayerTile } from './LineupPlayerTile';
 import { BenchStrip } from './BenchStrip';
 import { ChemistryBar } from './ChemistryBar';
 import { InsightsPanel } from './InsightsPanel';
@@ -314,7 +314,7 @@ export function LineupEditor() {
               }}
             >
               {player ? (
-                <PlayerCard
+                <LineupPlayerTile
                   player={player}
                   position={slot.pos}
                   isSelected={isSelected}
