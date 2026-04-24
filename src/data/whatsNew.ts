@@ -33,28 +33,11 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-export type ReleaseCategory = 'highlights' | 'new' | 'improved' | 'fixed';
+import type { ReleaseNote } from '@/types/game';
+import { readWhatsNewSeenVersion, writeWhatsNewSeenVersion } from '@/store/helpers/persistence';
 
-export interface ReleaseNote {
-  /** Semver marketing version, e.g. "1.0.1". Must match package.json on ship. */
-  version: string;
-  /** iOS CFBundleVersion / Android versionCode. Injected by CI if null. */
-  build: number | null;
-  /** ISO calendar date the TestFlight build was shipped (YYYY-MM-DD). */
-  date: string;
-  /** Short headline, App Store style. 3–8 words. */
-  headline: string;
-  /** 1–3 sentence player-facing summary. */
-  summary: string;
-  /** Marquee changes worth calling out at the top of the card. */
-  highlights?: string[];
-  /** Brand-new features. */
-  new?: string[];
-  /** Improvements to existing features. */
-  improved?: string[];
-  /** Bug fixes. */
-  fixed?: string[];
-}
+export type { ReleaseCategory, ReleaseNote } from '@/types/game';
+export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
 
 /**
  * Release notes, newest first. Index 0 is always the latest TestFlight build.
@@ -97,19 +80,16 @@ export const RELEASE_NOTES: ReleaseNote[] = [
   },
 ];
 
+// Defensive — RELEASE_NOTES must never be empty in a built bundle. Both the
+// PR-check and TestFlight CI guards block that, but this throws early during
+// dev / SSR / tests if someone clears the array by mistake. Without it,
+// LATEST_RELEASE.version below would be a runtime "cannot read of undefined".
+if (RELEASE_NOTES.length === 0) {
+  throw new Error('RELEASE_NOTES must contain at least one entry. See src/data/whatsNew.ts header.');
+}
+
 /** The current/topmost release — used for the badge on the menu tile. */
 export const LATEST_RELEASE: ReleaseNote = RELEASE_NOTES[0];
-
-/* ──────────────────────────────────────────────────────────────────────────
- * "Seen" tracking — persistence helpers live in persistence.ts (ESLint's
- * no-restricted-globals rule keeps all localStorage access routed there).
- * Re-exported here so menu tiles can check the badge state without pulling
- * the full WhatsNewPage chunk into the Settings / TitleScreen bundle.
- * ────────────────────────────────────────────────────────────────────────── */
-
-import { readWhatsNewSeenVersion, writeWhatsNewSeenVersion } from '@/store/helpers/persistence';
-
-export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
 
 /** True when the latest release hasn't been opened yet. Drives the "NEW" badge. */
 export function hasUnseenWhatsNew(): boolean {

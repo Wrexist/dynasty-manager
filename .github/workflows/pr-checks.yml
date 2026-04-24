@@ -118,6 +118,8 @@ jobs:
             // ─── Escape hatches ────────────────────────────────────────
             // Authors can opt out when a PR genuinely doesn't need a
             // changelog entry (dep bumps, CI work, pure refactors).
+            // Comparison is lowercased so labels like `Dependencies` or
+            // `CI` (whatever a contributor happens to type) all match.
             const SKIP_LABELS = new Set([
               'skip-changelog',
               'no-changelog',
@@ -125,7 +127,7 @@ jobs:
               'infra',
               'ci',
             ]);
-            const labelNames = (pr.labels || []).map(l => l.name);
+            const labelNames = (pr.labels || []).map(l => (l.name || '').toLowerCase());
             const skipLabel = labelNames.find(n => SKIP_LABELS.has(n));
             if (skipLabel) {
               core.info(`Skipping — \`${skipLabel}\` label is present.`);
@@ -181,8 +183,10 @@ jobs:
             const relevant = files.filter(
               f => f.status !== 'removed' && isUserVisible(f.filename),
             );
+            // A delete of whatsNew.ts shouldn't satisfy the guard — it's
+            // the opposite of updating it. Require an add/modify/rename.
             const whatsNewTouched = files.some(
-              f => f.filename === WHATS_NEW_PATH,
+              f => f.filename === WHATS_NEW_PATH && f.status !== 'removed',
             );
 
             // ─── Decide ────────────────────────────────────────────────
@@ -267,7 +271,7 @@ jobs:
               ``,
               `#### Don't need a changelog entry?`,
               ``,
-              `Add one of these labels to bypass: \`skip-changelog\`, \`no-changelog\`, \`dependencies\`, \`infra\`, \`ci\`.`,
+              `Add one of these labels to bypass: \`skip-changelog\`, \`no-changelog\`, \`dependencies\`, \`infra\`, \`ci\`. (Dependabot PRs are auto-labelled \`dependencies\` and skip this check automatically. Manual dep bumps that touch \`package.json\` will trip it — apply the label or add a one-line note.)`,
               ``,
               `<details><summary>Files that triggered this check (${relevant.length})</summary>`,
               ``,

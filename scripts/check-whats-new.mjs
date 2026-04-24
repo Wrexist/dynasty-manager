@@ -100,9 +100,15 @@ let inString = null; // "'" | '"' | '`' | null
 let entryEnd = -1;
 for (let j = entryStart; j < whatsNewSource.length; j++) {
   const ch = whatsNewSource[j];
-  const prev = whatsNewSource[j - 1];
   if (inString) {
-    if (ch === inString && prev !== '\\') inString = null;
+    if (ch === inString) {
+      // Only treat the quote as escaped when preceded by an ODD number of
+      // backslashes. `\'` = escaped, `\\'` = literal backslash + closing
+      // quote, `\\\'` = literal backslash + escaped quote, etc.
+      let bs = 0;
+      for (let k = j - 1; k >= 0 && whatsNewSource[k] === '\\'; k--) bs++;
+      if (bs % 2 === 0) inString = null;
+    }
     continue;
   }
   if (ch === "'" || ch === '"' || ch === '`') { inString = ch; continue; }
@@ -196,10 +202,13 @@ if (entryBuildRaw === null) {
 // --- Optionally inject the build number ---
 if (injectBuild !== null && !Number.isNaN(injectBuild)) {
   // Replace the first `build: null` OR `build: 'pending'` OR `build: <number>`
-  // inside the top entry only. Rebuild the file around the new block.
+  // inside the top entry only. We anchor on a preceding `{`, `,`, or
+  // newline+whitespace so the regex never matches `build:` inside string
+  // literals (e.g. a future bullet that says "Fixed rebuild: null crash.").
+  // Rebuild the file around the new block.
   const newEntryBlock = entryBlock.replace(
-    /build:\s*(null|['"]pending['"]|\d+)/,
-    `build: ${injectBuild}`,
+    /([{,\n]\s*)build:\s*(null|['"]pending['"]|\d+)/,
+    `$1build: ${injectBuild}`,
   );
   if (newEntryBlock === entryBlock) {
     warn(`Could not inject build number ${injectBuild} — no \`build:\` field found in top entry.`);

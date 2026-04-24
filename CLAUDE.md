@@ -27,7 +27,13 @@ that fails any PR which changes user-visible files but doesn't update
 `src/data/whatsNew.ts`. The job posts an inline comment with the exact fix
 command. Escape hatches — add one of these labels if a PR genuinely doesn't
 need a changelog entry: `skip-changelog`, `no-changelog`, `dependencies`,
-`infra`, `ci`. Draft PRs are skipped.
+`infra`, `ci` (label matching is case-insensitive). Draft PRs are skipped.
+
+> **Heads-up — `package.json` changes count as user-visible.** That's so a
+> version bump alone trips the guard and reminds you to add release notes.
+> Dependabot PRs are auto-labelled `dependencies` and skip automatically;
+> manual dep bumps that touch `package.json` will trip the check — apply
+> the `dependencies` label or add a one-line note via `npm run whats-new`.
 
 ### Before triggering `iOS TestFlight Deploy`:
 

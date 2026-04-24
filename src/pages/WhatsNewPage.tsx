@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GlassPanel } from '@/components/game/GlassPanel';
@@ -102,7 +102,10 @@ function ChangeSection({ category, items }: { category: ReleaseCategory; items: 
 function ReleaseCard({ entry, isLatest }: { entry: ReleaseNote; isLatest: boolean }) {
   const sections = CATEGORY_ORDER
     .map<[ReleaseCategory, string[] | undefined]>(cat => [cat, entry[cat]])
-    .filter(([, items]) => items && items.length > 0) as [ReleaseCategory, string[]][];
+    .filter(
+      (pair): pair is [ReleaseCategory, string[]] =>
+        !!pair[1] && pair[1].length > 0,
+    );
 
   return (
     <GlassPanel className={cn('p-4 space-y-3.5', isLatest && 'border border-primary/20')}>
@@ -183,7 +186,8 @@ const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
     writeWhatsNewSeenVersion(LATEST_RELEASE.version);
   }, []);
 
-  const notes = useMemo(() => RELEASE_NOTES, []);
+  // RELEASE_NOTES is a module-level constant — no need to memoize.
+  const notes = RELEASE_NOTES;
 
   const handleBack = () => {
     // In-game → go back to Settings. Standalone (title screen) → try to pop

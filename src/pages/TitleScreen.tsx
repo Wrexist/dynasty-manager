@@ -366,7 +366,7 @@ const TitleScreen = () => {
         <motion.div custom={slots.length + 3} variants={buttonVariants} initial="hidden" animate="visible">
           <GlassPanel
             className="p-0"
-            onClick={() => { setRefreshKey(k => k + 1); navigate('/whats-new'); }}
+            onClick={() => navigate('/whats-new')}
             aria-label="What's new in this update"
           >
             <div className="flex items-center gap-3 px-4 py-3.5">
@@ -589,7 +589,7 @@ const TitleScreen = () => {
                     <Button
                       variant="secondary"
                       className="w-full justify-start gap-3 h-11"
-                      onClick={() => { setRefreshKey(k => k + 1); navigate('/whats-new'); }}
+                      onClick={() => navigate('/whats-new')}
                     >
                       <Sparkles className="w-4 h-4" />
                       <span className="flex-1 text-left">What&apos;s New</span>

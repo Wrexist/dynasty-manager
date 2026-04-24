@@ -140,9 +140,14 @@ function findTopEntryBounds(source) {
   let inString = null;
   for (let j = entryStart; j < source.length; j++) {
     const ch = source[j];
-    const prev = source[j - 1];
     if (inString) {
-      if (ch === inString && prev !== '\\') inString = null;
+      if (ch === inString) {
+        // Escaped only when preceded by an ODD number of backslashes
+        // (`\'` escapes, `\\'` does not, `\\\'` escapes again, ...).
+        let bs = 0;
+        for (let k = j - 1; k >= 0 && source[k] === '\\'; k--) bs++;
+        if (bs % 2 === 0) inString = null;
+      }
       continue;
     }
     if (ch === "'" || ch === '"' || ch === '`') { inString = ch; continue; }
@@ -221,9 +226,21 @@ function parseTopEntry(source) {
  * ──────────────────────────────────────────────────────────────────────── */
 
 function strLit(s) {
-  // Single-quoted with escaped backslashes + apostrophes. Matches the
-  // existing file's convention so git diffs stay minimal.
-  return "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'";
+  // Single-quoted with escaped backslashes, apostrophes, and control chars.
+  // Matches the existing file's convention so git diffs stay minimal, and
+  // round-trips multi-line input safely (the parser side translates `\n`
+  // back to a real newline, so emitting the literal `\n` sequence is the
+  // only way to preserve it inside a single-quoted TS string).
+  return (
+    "'" +
+    String(s)
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r')
+      .replace(/\t/g, '\\t') +
+    "'"
+  );
 }
 
 function renderArray(indent, items) {
@@ -308,32 +325,32 @@ function ensureCurrentTopEntry(source, pkgVersion) {
 function appendBullet(category, text) {
   if (!text) fail(`Missing bullet text. Example: npm run whats-new -- ${category} "Your change here."`);
   const pkgVersion = readPkgVersion();
-  let source = readSource();
-  let state = ensureCurrentTopEntry(source, pkgVersion);
+  const source = readSource();
+  const state = ensureCurrentTopEntry(source, pkgVersion);
 
   // Normalize bullet — capitalize first letter, ensure trailing period.
+  // The same normalization runs on every invocation, so the dedupe check
+  // below catches "fixed crash" / "Fixed crash." / "fixed crash" all as
+  // the same bullet.
   let bullet = text.trim();
   if (bullet.length === 0) fail('Bullet text is empty.');
   bullet = bullet[0].toUpperCase() + bullet.slice(1);
   if (!/[.!?]$/.test(bullet)) bullet += '.';
 
-  const next = { ...state.fields };
-  next[category] = [...(next[category] || []), bullet];
+  const existing = state.fields[category] || [];
+  if (existing.includes(bullet)) {
+    ok(`\`${category}\` already contains "${bullet}" — no change.`);
+    return;
+  }
 
-  const rendered = renderEntry(next, { indent: '  ' });
-  const nextSource =
-    state.source.slice(0, state.bounds.start) +
-    rendered.replace(/^ {2}/, '') + // remove outer indent — we match existing file pattern
-    state.source.slice(state.bounds.end);
+  const next = { ...state.fields, [category]: [...existing, bullet] };
 
-  // The renderEntry output starts with 2-space indent; the existing file
-  // already has 2-space indent before `{`. Rebuild more carefully:
+  // Re-render the top entry in place, preserving its leading indent so the
+  // diff is minimal. state.bounds.start points at `{`, so we strip the
+  // rendered output's leading whitespace before splicing it back.
   const block = state.source.slice(state.bounds.start, state.bounds.end);
-  const leadingIndentMatch = block.match(/^(\s*)/);
-  const leadingIndent = leadingIndentMatch ? leadingIndentMatch[1] : '';
-  const rerendered = renderEntry(next, { indent: leadingIndent || '  ' });
-  // rerendered begins with `${leadingIndent}{` — we need to drop the
-  // leading indent since state.bounds.start already points at `{`.
+  const leadingIndent = (block.match(/^(\s*)/) || ['', ''])[1] || '  ';
+  const rerendered = renderEntry(next, { indent: leadingIndent });
   const renderedFromBrace = rerendered.replace(/^\s*/, '');
 
   const finalSource =
@@ -360,13 +377,11 @@ function setField(field, value) {
     fail(`date must be ISO YYYY-MM-DD (got "${value}").`);
   }
 
-  const next = { ...state.fields };
-  next[field] = value;
+  const next = { ...state.fields, [field]: value };
 
   const block = state.source.slice(state.bounds.start, state.bounds.end);
-  const leadingIndentMatch = block.match(/^(\s*)/);
-  const leadingIndent = leadingIndentMatch ? leadingIndentMatch[1] : '';
-  const rerendered = renderEntry(next, { indent: leadingIndent || '  ' });
+  const leadingIndent = (block.match(/^(\s*)/) || ['', ''])[1] || '  ';
+  const rerendered = renderEntry(next, { indent: leadingIndent });
   const renderedFromBrace = rerendered.replace(/^\s*/, '');
 
   const finalSource =
