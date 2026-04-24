@@ -423,7 +423,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
         messages: addMsg(s0.messages, {
           type: 'warning',
           title: 'Save Failed',
-          body: 'Your game could not be saved — storage may be full. Try freeing up space on your device.',
+          body: 'Your game could not be saved. We’ll keep retrying automatically. If this keeps happening, restart the app.',
           week: s0.week,
           season: s0.season,
         }),
@@ -432,7 +432,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
   }
 
   if (saveFailed) {
-    set({ saveStatus: 'failed', saveFailureMessage: 'Storage may be full' });
+    set({ saveStatus: 'failed', saveFailureMessage: 'Save could not be written' });
     addGameBreadcrumb('save', 'Save failed', {
       week: state.week,
       season: state.season,

@@ -9,7 +9,7 @@ import { GlassPanel } from '@/components/game/GlassPanel';
 import { Play, Settings, Trash2, Save, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink, ChevronRight, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
-import { signalReady } from '@/main';
+import { signalReady, saveStorageReady } from '@/main';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
 import { hapticMedium, hapticLight } from '@/utils/haptics';
 import {
@@ -18,6 +18,7 @@ import {
   readCommunityPackSlotPref,
   writeCommunityPackSlotPref,
   clearCommunityPackSlotPref,
+  isSaveStorageHydrated,
 } from '@/store/helpers/persistence';
 import { CommunityPackPopup } from '@/components/CommunityPackPopup';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
@@ -55,11 +56,27 @@ const TitleScreen = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Save slots live in IndexedDB (authoritative) with a localStorage mirror
+  // (may be empty on mobile when quota was exceeded). Until the IDB hydration
+  // promise resolves, `getSlotSummaries` returns empty — so we gate the
+  // slot picker on it and bump `refreshKey` once hydration lands.
+  const [hydrated, setHydrated] = useState(isSaveStorageHydrated());
+  useEffect(() => {
+    if (hydrated) return;
+    let cancelled = false;
+    saveStorageReady.then(() => {
+      if (cancelled) return;
+      setHydrated(true);
+      setRefreshKey(k => k + 1);
+    });
+    return () => { cancelled = true; };
+  }, [hydrated]);
+
   // `getSlotSummaries` is a module-level import with no closure state, so it
   // is referentially stable — `refreshKey` is the only real dep (bumping it
   // forces a re-read after delete / reset actions from the Sheet menu).
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const slots = useMemo(() => getSlotSummaries(), [refreshKey]);
+  const slots = useMemo(() => getSlotSummaries(), [refreshKey, hydrated]);
   const handleContinue = (slot: number) => {
     if (loadGame(slot)) {
       queueMicrotask(() => navigate('/game'));

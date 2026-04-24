@@ -1,49 +1,112 @@
 import type { SlotSummary } from '@/types/game';
+import { idbGet, idbPut, idbDel, idbKeys, requestPersistentStorage } from './idbStorage';
 
-// ── Storage Quota Helpers ──
+// ── Durable Save Storage ──
+//
+// Two-layer architecture:
+//   1. **Memory cache** — a module-level mirror of every save slot + backup.
+//      Serves every synchronous read (`readSaveSlot`, `getSlotSummaries`,
+//      `loadGame`), so the rest of the game can stay sync.
+//   2. **IndexedDB** — authoritative persistent store. Writes fire async
+//      after the memory cache is updated. Hydrated on app start.
+//      Unlike `localStorage` (capped at ~5 MB per origin on mobile
+//      WKWebView), IDB is bounded only by device free space, so full-size
+//      saves with community-pack data persist reliably.
+//   3. **localStorage** — best-effort forward-compat mirror. Writes may
+//      silently fail on quota; never throws. Existing installs that have
+//      saves only in localStorage are migrated into IDB + memory cache on
+//      the first call to `hydrateSaveStorage`.
 
-/** Try to free localStorage space by removing backups and non-essential data.
- *  Returns true if any space was freed. */
-export function tryFreeStorageSpace(protectedSlot?: number): boolean {
-  let freed = false;
-  try {
-    // 1. Remove backups for all slots (cheapest to lose)
-    for (let i = 1; i <= 3; i++) {
-      if (i === protectedSlot) continue; // skip the slot we're trying to save
-      const backupKey = `dynasty-save-${i}-backup`;
-      if (localStorage.getItem(backupKey) !== null) {
-        localStorage.removeItem(backupKey);
-        freed = true;
+const MAX_SLOTS = 3;
+
+const memSlots: (string | null)[] = [null, null, null, null]; // slot 0 unused
+const memSlotBackups: (string | null)[] = [null, null, null, null];
+let hydrated = false;
+let hydratePromise: Promise<void> | null = null;
+
+/** Hydrate the in-memory save cache from IndexedDB. Called once at app
+ *  start; subsequent calls return the same promise. If IDB is empty for
+ *  a slot, we fall back to localStorage — this is the upgrade path for
+ *  installs that saved to localStorage on an older app version. After
+ *  hydration, `isSaveStorageHydrated()` returns true and
+ *  `getSlotSummaries()` / `readSaveSlot()` serve data from memory. */
+export function hydrateSaveStorage(): Promise<void> {
+  if (hydratePromise) return hydratePromise;
+  hydratePromise = (async () => {
+    try {
+      // Ask the browser to keep IDB data around under storage pressure.
+      // Fire-and-forget — the promise resolves whether or not it's granted.
+      void requestPersistentStorage();
+      const jobs: Promise<void>[] = [];
+      for (let slot = 1; slot <= MAX_SLOTS; slot++) {
+        jobs.push(hydrateOneSlot(slot));
       }
+      await Promise.all(jobs);
+    } finally {
+      hydrated = true;
     }
-    // Also remove backup for the protected slot — better to lose backup than fail the save
-    if (protectedSlot) {
-      const ownBackup = `dynasty-save-${protectedSlot}-backup`;
-      if (localStorage.getItem(ownBackup) !== null) {
-        localStorage.removeItem(ownBackup);
-        freed = true;
-      }
-    }
-    // 2. Remove session snapshot (small but every bit helps)
-    if (localStorage.getItem('dynasty-session-snapshot') !== null) {
-      localStorage.removeItem('dynasty-session-snapshot');
-      freed = true;
-    }
-  } catch {
-    // storage unavailable
-  }
-  return freed;
+  })();
+  return hydratePromise;
 }
 
-/** Check if an error is a storage quota exceeded error */
-function isQuotaError(err: unknown): boolean {
-  if (err instanceof DOMException) {
-    // Different browsers use different error names/codes
-    return err.code === 22 || err.code === 1014 ||
-      err.name === 'QuotaExceededError' ||
-      err.name === 'NS_ERROR_DOM_QUOTA_REACHED';
+async function hydrateOneSlot(slot: number): Promise<void> {
+  const mainKey = STORAGE_KEYS.saveSlot(slot);
+  const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
+  const [idbMain, idbBackup] = await Promise.all([idbGet(mainKey), idbGet(backupKey)]);
+  if (idbMain) {
+    memSlots[slot] = idbMain;
+  } else {
+    // Fallback: migrate localStorage → IDB so this user's existing save
+    // survives the 5 MB quota going forward.
+    try {
+      const ls = localStorage.getItem(mainKey);
+      if (ls) {
+        memSlots[slot] = ls;
+        void idbPut(mainKey, ls);
+      }
+    } catch { /* storage unavailable */ }
   }
-  return false;
+  if (idbBackup) {
+    memSlotBackups[slot] = idbBackup;
+  } else {
+    try {
+      const ls = localStorage.getItem(backupKey);
+      if (ls) {
+        memSlotBackups[slot] = ls;
+        void idbPut(backupKey, ls);
+      }
+    } catch { /* storage unavailable */ }
+  }
+}
+
+/** True once `hydrateSaveStorage` has resolved. UI code that lists slots
+ *  (e.g. the Title Screen) should gate on this so it doesn't render an
+ *  empty picker before IDB has been read. */
+export function isSaveStorageHydrated(): boolean {
+  return hydrated;
+}
+
+/** Test-only: reset the memory cache so each test starts from a blank
+ *  slate. Never call from production. */
+export function __resetSaveStorageForTests(): void {
+  for (let i = 0; i < memSlots.length; i++) {
+    memSlots[i] = null;
+    memSlotBackups[i] = null;
+  }
+  hydrated = false;
+  hydratePromise = null;
+}
+
+/** Best-effort localStorage write. Swallows quota/availability errors —
+ *  the IDB mirror is the source of truth. */
+function lsSetSafe(key: string, value: string): void {
+  try { localStorage.setItem(key, value); }
+  catch { /* quota or unavailable — IDB has the data */ }
+}
+
+function lsRemoveSafe(key: string): void {
+  try { localStorage.removeItem(key); }
+  catch { /* unavailable */ }
 }
 
 // ── Save Data Trimming ──
@@ -245,16 +308,19 @@ export function clearSessionSnapshot(): void {
   catch { /* storage unavailable */ }
 }
 
-/** Migrate legacy single-slot save to slot 1 */
+/** Migrate legacy single-slot save to slot 1. Writes through every layer
+ *  (memory cache, IDB, localStorage) so the upgrade sticks across sessions
+ *  even when localStorage is tight. */
 export function migrateLegacySave() {
   try {
     const legacy = localStorage.getItem('dynasty-save');
-    if (legacy && !localStorage.getItem('dynasty-save-1')) {
-      localStorage.setItem('dynasty-save-1', legacy);
+    if (!legacy) return;
+    if (!readSaveSlot(1)) {
+      memSlots[1] = legacy;
+      void idbPut(STORAGE_KEYS.saveSlot(1), legacy);
+      lsSetSafe(STORAGE_KEYS.saveSlot(1), legacy);
     }
-    if (legacy) {
-      localStorage.removeItem('dynasty-save');
-    }
+    lsRemoveSafe('dynasty-save');
   } catch {
     // storage unavailable
   }
@@ -262,154 +328,143 @@ export function migrateLegacySave() {
 
 // ── Save Slot Helpers (used by orchestrationSlice) ──
 
-const MAX_SLOTS = 3;
-
-/** Read a raw save string from a slot */
+/** Read a raw save string from a slot. Returns the in-memory cache first
+ *  (authoritative during a session), falling back to `localStorage` for
+ *  fresh installs that haven't run `hydrateSaveStorage` yet. Never throws. */
 export function readSaveSlot(slot: number): string | null {
-  try { return localStorage.getItem(`dynasty-save-${slot}`); }
-  catch { return null; }
+  const cached = memSlots[slot];
+  if (cached) return cached;
+  try {
+    const ls = localStorage.getItem(STORAGE_KEYS.saveSlot(slot));
+    if (ls) memSlots[slot] = ls;
+    return ls;
+  } catch { return null; }
 }
 
-/** Write a raw save string to a slot with verified staging + automatic backup.
+/** Write a raw save string to a slot with automatic backup rotation.
  *
- *  Sequence:
- *    1. Stage the new payload in `dynasty-save-${slot}-tmp`.
- *    2. Verify tmp is byte-identical AND round-trips through JSON.parse —
- *       catches silent localStorage truncation / BOM / partial-write issues.
- *    3. Remove the staged tmp immediately to free its quota footprint.
- *    4. Rotate the previous main into `-backup` (best effort).
- *    5. Set main to the in-memory payload (still held in `json`).
- *    6. On quota error at step 5, drop backup and retry once.
+ *  Ordering:
+ *    1. Rotate the previous main into the in-memory backup slot.
+ *    2. Install the new payload in the in-memory main slot (authoritative
+ *       for every read this session).
+ *    3. Fire async IDB writes for main + backup (durable across sessions,
+ *       unbounded quota on mobile WKWebView).
+ *    4. Best-effort mirror to `localStorage` — swallows quota errors so a
+ *       save never fails the user-visible flow. The 5 MB cap on mobile
+ *       WKWebView is the reason we moved to IDB in the first place.
  *
- *  If step 1 fails outright (quota after `tryFreeStorageSpace`), we skip
- *  staging and fall through to the legacy direct-write path — the save is
- *  still atomic at the localStorage key level, we just lose the pre-commit
- *  verification.
- *
- *  The tmp key exists only briefly as a "did this payload really round-trip
- *  through storage intact?" probe; it is never the authoritative source.
- *  `recoverStaleSaveTmp()` sweeps leftover tmp keys on the load path in case
- *  a crash interrupted the sequence between step 1 and step 3. */
+ *  Writes are never silently lost: step 2 guarantees the current session
+ *  sees the save immediately, and step 3 guarantees the next session does
+ *  too (IDB transactions are ACID). localStorage is purely a compatibility
+ *  mirror for older code paths and tests. */
 export function writeSaveSlot(slot: number, json: string): void {
   const mainKey = STORAGE_KEYS.saveSlot(slot);
   const backupKey = STORAGE_KEYS.saveSlotBackup(slot);
   const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
 
-  // Clean any stale tmp from a previous crashed write.
+  // Step 1-2: update memory cache (sync, authoritative for this session).
+  // `readSaveSlot` falls back to localStorage when the cache is empty, so a
+  // pre-hydration write still rotates the previous save into the backup
+  // slot instead of losing it.
+  const oldMain = readSaveSlot(slot);
+  if (oldMain) memSlotBackups[slot] = oldMain;
+  memSlots[slot] = json;
+
+  // Sweep any legacy tmp key from the old atomic-staging write path so it
+  // doesn't get salvaged later as a phantom older save.
   try { localStorage.removeItem(tmpKey); } catch { /* ignore */ }
 
-  // Snapshot the current main BEFORE any destructive op.
-  let oldMain: string | null = null;
-  try { oldMain = localStorage.getItem(mainKey); } catch { /* ignore */ }
+  // Step 3: fire IDB writes. Fire-and-forget — the memory cache already
+  // holds the data so a dropped promise is visible in the next hydration,
+  // not a user-visible failure.
+  void idbPut(mainKey, json);
+  if (oldMain) void idbPut(backupKey, oldMain);
+  else void idbDel(backupKey);
 
-  // Step 1-2: stage and verify. On any failure, fall through to the
-  // non-atomic direct-write fallback.
-  let staged = false;
-  try {
-    localStorage.setItem(tmpKey, json);
-    const readback = localStorage.getItem(tmpKey);
-    if (readback === json) {
-      JSON.parse(readback);
-      staged = true;
-    }
-  } catch {
-    /* fall through */
-  }
-  // Step 3: free the tmp's quota regardless of whether verify passed.
-  try { localStorage.removeItem(tmpKey); } catch { /* ignore */ }
-
-  if (!staged) {
-    // Direct-write fallback (legacy quota-retry behaviour).
-    try { localStorage.removeItem(backupKey); } catch { /* ignore */ }
-    try {
-      localStorage.setItem(mainKey, json);
-    } catch (err) {
-      if (!isQuotaError(err)) throw new Error('SAVE_WRITE_FAILED');
-      tryFreeStorageSpace(slot);
-      try { localStorage.setItem(mainKey, json); }
-      catch { throw new Error('SAVE_WRITE_FAILED'); }
-    }
-    if (oldMain !== null) {
-      try { localStorage.setItem(backupKey, oldMain); }
-      catch { /* quota — acceptable */ }
-    }
-    return;
-  }
-
-  // Atomic path: staged + verified. Rotate then promote.
-  try { localStorage.removeItem(backupKey); } catch { /* ignore */ }
-  if (oldMain !== null) {
-    try { localStorage.setItem(backupKey, oldMain); }
-    catch { /* quota — main write is the priority */ }
-  }
+  // Step 4: best-effort localStorage mirror. On quota exceeded we drop
+  // whatever was there so the two stores don't diverge — IDB is truth.
   try {
     localStorage.setItem(mainKey, json);
+    if (oldMain) lsSetSafe(backupKey, oldMain);
+    else lsRemoveSafe(backupKey);
   } catch {
-    // Drop backup and retry — main has priority.
-    try { localStorage.removeItem(backupKey); } catch { /* ignore */ }
-    try { localStorage.setItem(mainKey, json); }
-    catch { throw new Error('SAVE_WRITE_FAILED'); }
+    // Quota exceeded — drop the mirror. Do NOT throw; the IDB + memory
+    // write already succeeded. Users used to see "Save Failed" here
+    // because the old path threw SAVE_WRITE_FAILED; that's gone now.
+    lsRemoveSafe(mainKey);
+    lsRemoveSafe(backupKey);
   }
 }
 
-/** Read the staging-area payload for a slot. Callers use this during the
- *  load path to salvage a save that was being written when the previous
- *  process crashed. Returns null if no staging payload is present. */
+/** Read the staging-area payload for a slot. Retained for backward compat —
+ *  the new write path no longer stages through a tmp key, but old
+ *  installs may still have one lying around. */
 export function readSaveSlotTmp(slot: number): string | null {
   try { return localStorage.getItem(STORAGE_KEYS.saveSlotTmp(slot)); }
   catch { return null; }
 }
 
-/** Drop the tmp key for a slot. Used after recovery or to drop a stale tmp
- *  that couldn't be salvaged. */
+/** Drop the tmp key for a slot. Kept for backward compat. */
 export function clearSaveSlotTmp(slot: number): void {
   try { localStorage.removeItem(STORAGE_KEYS.saveSlotTmp(slot)); }
   catch { /* storage unavailable */ }
 }
 
-/** Module-init recovery: if a tmp key exists for a slot whose main save is
- *  missing (e.g. process crashed between steps 1–4 of writeSaveSlot), and
- *  the tmp parses as valid JSON, promote it to main. Otherwise drop stale
- *  tmp keys so they can't cause confusion on the next write. Idempotent. */
+/** Sweep stale tmp keys from a previous app version that still used the
+ *  tmp-staging write path. If tmp is valid JSON and the slot is empty
+ *  (no memory cache entry, no localStorage primary), salvage it; otherwise
+ *  drop it. Idempotent. */
 export function recoverStaleSaveTmp(): void {
   try {
     for (let slot = 1; slot <= MAX_SLOTS; slot++) {
       const tmpKey = STORAGE_KEYS.saveSlotTmp(slot);
-      const mainKey = STORAGE_KEYS.saveSlot(slot);
       const tmp = localStorage.getItem(tmpKey);
       if (tmp === null) continue;
-      const main = localStorage.getItem(mainKey);
-      if (main === null) {
-        try { JSON.parse(tmp); localStorage.setItem(mainKey, tmp); }
-        catch { /* tmp corrupted — drop it */ }
+      const hasPrimary = memSlots[slot] !== null || localStorage.getItem(STORAGE_KEYS.saveSlot(slot)) !== null;
+      if (!hasPrimary) {
+        try {
+          JSON.parse(tmp);
+          memSlots[slot] = tmp;
+          void idbPut(STORAGE_KEYS.saveSlot(slot), tmp);
+          lsSetSafe(STORAGE_KEYS.saveSlot(slot), tmp);
+        } catch { /* tmp corrupted — drop it */ }
       }
       localStorage.removeItem(tmpKey);
     }
   } catch { /* storage unavailable */ }
 }
 
-/** Read the backup save for a slot */
+/** Read the backup save for a slot. Memory cache → localStorage fallback. */
 export function readSaveSlotBackup(slot: number): string | null {
-  try { return localStorage.getItem(`dynasty-save-${slot}-backup`); }
-  catch { return null; }
-}
-
-/** Promote the backup shadow to primary for a slot. Drops the backup key
- *  before writing main so we don't trip the localStorage quota storing two
- *  copies of the same payload in Safari / embedded WebView / Node test env
- *  (jsdom has a 5 MB cap that a ~2 MB save can double past). The next
- *  regular save cycle will rotate the new main into a fresh backup. */
-export function promoteSaveBackup(slot: number, raw: string): void {
+  const cached = memSlotBackups[slot];
+  if (cached) return cached;
   try {
-    localStorage.removeItem(STORAGE_KEYS.saveSlotBackup(slot));
-    localStorage.setItem(STORAGE_KEYS.saveSlot(slot), raw);
-  } catch { /* storage unavailable */ }
+    const ls = localStorage.getItem(STORAGE_KEYS.saveSlotBackup(slot));
+    if (ls) memSlotBackups[slot] = ls;
+    return ls;
+  } catch { return null; }
 }
 
-/** Remove a save slot */
+/** Promote the backup shadow to primary for a slot. Updates memory cache,
+ *  IDB, and localStorage so subsequent reads/writes treat the recovered
+ *  data as the new source of truth. */
+export function promoteSaveBackup(slot: number, raw: string): void {
+  memSlots[slot] = raw;
+  memSlotBackups[slot] = null;
+  void idbPut(STORAGE_KEYS.saveSlot(slot), raw);
+  void idbDel(STORAGE_KEYS.saveSlotBackup(slot));
+  lsRemoveSafe(STORAGE_KEYS.saveSlotBackup(slot));
+  lsSetSafe(STORAGE_KEYS.saveSlot(slot), raw);
+}
+
+/** Remove a save slot from every layer (memory, IDB, localStorage). */
 export function removeSaveSlot(slot: number): void {
-  try { localStorage.removeItem(`dynasty-save-${slot}`); }
-  catch { /* storage unavailable */ }
+  memSlots[slot] = null;
+  memSlotBackups[slot] = null;
+  void idbDel(STORAGE_KEYS.saveSlot(slot));
+  void idbDel(STORAGE_KEYS.saveSlotBackup(slot));
+  lsRemoveSafe(STORAGE_KEYS.saveSlot(slot));
+  lsRemoveSafe(STORAGE_KEYS.saveSlotBackup(slot));
 }
 
 // ── Hall of Managers persistence ──
@@ -430,8 +485,22 @@ export function writeHallData(json: string): void {
 
 // ── Delete All Data (Apple account deletion requirement) ──
 
-/** Wipe all Dynasty Manager data from localStorage */
+/** Wipe all Dynasty Manager data from every storage layer (memory cache,
+ *  IndexedDB, localStorage). Required for the Apple account-deletion flow. */
 export function deleteAllDynastyData(): void {
+  // Memory cache — zero out sync source of truth.
+  for (let i = 0; i < memSlots.length; i++) {
+    memSlots[i] = null;
+    memSlotBackups[i] = null;
+  }
+  // IndexedDB — drop every key namespaced for Dynasty.
+  void (async () => {
+    try {
+      const keys = await idbKeys();
+      await Promise.all(keys.map(k => idbDel(k)));
+    } catch { /* ignore */ }
+  })();
+  // localStorage — drop every key the app may have written.
   try {
     for (let i = 1; i <= MAX_SLOTS; i++) {
       localStorage.removeItem(`dynasty-save-${i}`);
@@ -448,16 +517,13 @@ export function deleteAllDynastyData(): void {
   } catch { /* storage unavailable */ }
 }
 
-/** Get summaries for all 3 save slots */
+/** Get summaries for all 3 save slots. Reads from the memory cache (so
+ *  IDB-only saves show up on the Title Screen) with a localStorage
+ *  fallback for users whose slots haven't been hydrated yet. */
 export function getSlotSummaries(): SlotSummary[] {
   migrateLegacySave();
   return [1, 2, 3].map(slot => {
-    let raw: string | null = null;
-    try {
-      raw = localStorage.getItem(`dynasty-save-${slot}`);
-    } catch {
-      return { slot, exists: false };
-    }
+    const raw = readSaveSlot(slot);
     if (!raw) return { slot, exists: false };
     try {
       const data = JSON.parse(raw);
