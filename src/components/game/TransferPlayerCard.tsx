@@ -1,27 +1,35 @@
-import { ReactNode, useMemo } from 'react';
+import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
-import { getRatingColor, getTop3Attributes } from '@/utils/uiHelpers';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { PlayerBadge } from '@/components/game/PlayerBadge';
-import { CardArtBackground } from '@/components/game/CardArtBackground';
-import { useGameStore } from '@/store/gameStore';
+import { PlayerCard } from '@/components/game/PlayerCard';
 
 interface TransferPlayerCardProps {
   player: Player;
   onSelect: (id: string) => void;
-  rightContent: ReactNode;
-  actions: ReactNode;
+  rightContent?: ReactNode;
+  actions?: ReactNode;
   subtitle?: ReactNode;
   showFlag?: boolean;
   showPotential?: boolean;
   animationIndex?: number;
 }
 
-const UNATTACHED_COLOR = '#64748b';
-
+/**
+ * Transfer-market list row. The left column is a {@link PlayerCard}
+ * (size="lg", 150×200) in 'detail' mode — tapping the card opens the
+ * player page. The right column shows age + optional POT + a caller-
+ * provided subtitle (e.g. "From: Liverpool") and right-aligned price /
+ * status metadata. Action buttons span the full row below.
+ *
+ * The stat chips that used to live here have been retired: the shield
+ * card already shows all six attributes on its face.
+ *
+ * `rightContent` and `actions` are both optional so the same shell can
+ * serve loan sections that carry status-only metadata (no price, no
+ * buttons) without empty zero-height gaps.
+ */
 export function TransferPlayerCard({
   player,
   onSelect,
@@ -32,51 +40,34 @@ export function TransferPlayerCard({
   showPotential = false,
   animationIndex,
 }: TransferPlayerCardProps) {
-  const top3 = useMemo(() => getTop3Attributes(player.attributes), [player.attributes]);
-  const clubColor = useGameStore(s => s.clubs[player.clubId]?.color) ?? UNATTACHED_COLOR;
-
   const card = (
-    <GlassPanel className="relative overflow-hidden p-4 pl-5">
-      {/* Thin tier-art accent rail on the left edge */}
-      <div className="absolute left-0 top-0 bottom-0 w-[6px] overflow-hidden pointer-events-none">
-        <CardArtBackground overall={player.overall} variant="top-strip" overlayStrength={0.25} />
-      </div>
-      <div className="relative flex items-start gap-3">
-        <PlayerBadge
-          clubColor={clubColor}
-          overall={player.overall}
-          position={player.position}
-          size="md"
+    <GlassPanel className="relative overflow-hidden p-3">
+      <div className="flex gap-3">
+        <PlayerCard
+          player={player}
+          size="lg"
+          interactive="detail"
+          showConditionView={false}
+          onDetailClick={(p) => onSelect(p.id)}
+          className="shrink-0"
         />
-        <div className="flex-1 min-w-0">
-          <button
-            type="button"
-            className="text-left w-full"
-            aria-label={`View ${player.firstName} ${player.lastName}`}
-            onClick={() => onSelect(player.id)}
-          >
-            <p className="font-bold text-foreground text-sm">
-              {showFlag && <FlagIcon nationality={player.nationality} size={16} />}
-              {showFlag ? ' ' : ''}{player.firstName} {player.lastName}
+
+        <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="font-bold text-foreground text-sm flex items-center gap-1.5 min-w-0">
+              {showFlag && <FlagIcon nationality={player.nationality} size={14} className="shrink-0" />}
+              <span className="truncate">{player.firstName} {player.lastName}</span>
             </p>
             <p className="text-xs text-muted-foreground">
               {player.position} {'•'} {player.age}y
               {showPotential && <> {'•'} POT {player.potential || player.overall}</>}
             </p>
-          </button>
-          {subtitle && <div className="text-xs text-muted-foreground mt-0.5">{subtitle}</div>}
-          <div className="flex gap-2 mt-1.5">
-            {top3.map(attr => (
-              <span key={attr.label} className="text-[10px] font-mono bg-muted/70 px-1.5 py-0.5 rounded">
-                <span className="text-muted-foreground">{attr.label}</span>{' '}
-                <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
-              </span>
-            ))}
+            {subtitle && <div className="text-xs text-muted-foreground mt-1">{subtitle}</div>}
           </div>
+          {rightContent && <div className="text-right shrink-0">{rightContent}</div>}
         </div>
-        <div className="text-right shrink-0">{rightContent}</div>
       </div>
-      <div className="relative flex gap-2 mt-3">{actions}</div>
+      {actions && <div className="flex gap-2 mt-3">{actions}</div>}
     </GlassPanel>
   );
 
