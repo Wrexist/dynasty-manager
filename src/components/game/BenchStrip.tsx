@@ -80,7 +80,6 @@ export const BenchStrip = memo(function BenchStrip({
         !isSelected && isBestSub && 'shadow-[0_0_10px_hsl(var(--primary)/0.45)]',
         player.injured && 'opacity-60',
       )}
-      style={clubColor ? { boxShadow: `inset 3px 0 0 0 ${clubColor}` } : undefined}
       role="button"
       tabIndex={0}
       aria-label={fullName}
@@ -91,6 +90,18 @@ export const BenchStrip = memo(function BenchStrip({
         size="sm"
         interactive="none"
       />
+
+      {/* Club-color accent — rendered as a left-edge overlay so it does
+          not clobber the compatibility ring or best-sub glow (both are
+          box-shadow based, same CSS property an inline box-shadow would
+          overwrite). */}
+      {clubColor && (
+        <span
+          aria-hidden
+          className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[12px] pointer-events-none z-10"
+          style={{ backgroundColor: clubColor }}
+        />
+      )}
 
       {isSelected && (
         <span className="absolute inset-0 rounded-[12px] ring-2 ring-primary animate-pulse pointer-events-none z-20" />
