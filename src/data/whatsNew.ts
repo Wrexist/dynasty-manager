@@ -62,8 +62,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     build: null,
     date: '2026-04-24',
     headline: 'Introducing the What\'s New centre.',
-    summary:
-      'Every TestFlight build from here on ships with a proper App Store–style changelog, so you always know what changed, when it shipped, and what to try first.',
+    summary: 'Every TestFlight build from here on ships with a proper App Store–style changelog, so you always know what changed, when it shipped, and what to try first.',
     highlights: [
       'Brand-new "What\'s New" page, available from the main menu and in-game Settings.',
     ],
@@ -75,6 +74,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     improved: [
       'Release notes are now grouped into Highlights, New, Improved, and Fixed sections for quicker scanning.',
       'The latest version is marked with a "NEW" badge until you open the page, so you never miss a meaningful update.',
+      'Press Escape to close the contract, transfer, loan, and list-for-sale modals.',
+      'Modals and form inputs now expose proper accessibility labels for screen readers.',
     ],
     fixed: [],
   },
