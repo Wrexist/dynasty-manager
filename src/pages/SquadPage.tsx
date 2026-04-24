@@ -7,42 +7,18 @@ import { PlayerCard } from '@/components/game/PlayerCard';
 import { cn } from '@/lib/utils';
 import { Player } from '@/types/game';
 import type { SquadSortKey, SquadStatusFilter } from '@/types/game';
-import { HeartPulse, ShoppingCart, UserSearch, AlertTriangle, FileText, Users, LogOut, Repeat2, Tag, ChevronDown } from 'lucide-react';
+import { ShoppingCart, UserSearch, AlertTriangle, FileText, Users, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
-import type { ElementType } from 'react';
 import { hapticLight } from '@/utils/haptics';
 import { POSITION_FILTERS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { getContractUrgency } from '@/utils/contracts';
+import { StatusPill } from '@/components/game/StatusPill';
+import { PlayerStatusBadges } from '@/components/game/PlayerStatusBadges';
 
 const SORT_OPTIONS: SquadSortKey[] = ['overall', 'potential', 'age', 'value', 'fitness', 'morale', 'wage', 'form'];
-
-type PillTone = 'emerald' | 'amber' | 'red' | 'sky' | 'primary';
-
-const PILL_TONE: Record<PillTone, string> = {
-  emerald: 'bg-emerald-500/95 text-white border-emerald-300/30',
-  amber: 'bg-amber-500/95 text-white border-amber-300/30',
-  red: 'bg-red-500/95 text-white border-red-300/30',
-  sky: 'bg-sky-500/95 text-white border-sky-300/30',
-  primary: 'bg-primary/95 text-primary-foreground border-primary/40',
-};
-
-function StatusPill({ tone, Icon, label, title }: { tone: PillTone; Icon?: ElementType; label?: string; title?: string }) {
-  return (
-    <span
-      title={title}
-      className={cn(
-        'flex items-center gap-0.5 rounded-md text-[9px] font-bold tracking-wide px-1.5 py-[2px] backdrop-blur-sm border shadow-[0_1px_3px_rgba(0,0,0,0.5)] leading-none',
-        PILL_TONE[tone],
-      )}
-    >
-      {Icon && <Icon className="w-2.5 h-2.5" />}
-      {label && <span className="tabular-nums">{label}</span>}
-    </span>
-  );
-}
 
 function ContractAlertChip({ p, variant, onSelect, onRenew }: {
   p: Player; variant: 'expired' | 'near';
@@ -89,9 +65,9 @@ function ContractAlertChip({ p, variant, onSelect, onRenew }: {
 }
 
 const SquadPage = () => {
-  const { playerClubId, clubs, players, season } = useGameStore(useShallow(s => ({
+  const { playerClubId, clubs, players, season, week } = useGameStore(useShallow(s => ({
     playerClubId: s.playerClubId, clubs: s.clubs, players: s.players,
-    season: s.season,
+    season: s.season, week: s.week,
   })));
   const selectPlayer = useGameStore(s => s.selectPlayer);
   const setScreen = useGameStore(s => s.setScreen);
@@ -419,7 +395,6 @@ const SquadPage = () => {
         ) : (
           <div className="grid grid-cols-2 gap-3 justify-items-center pt-1">
             {squad.map((player, i) => {
-              const contractUrgency = getContractUrgency(player.contractEnd, season);
               const isStarter = lineupSet.has(player.id);
               const isSub = subsSet.has(player.id);
 
@@ -440,30 +415,19 @@ const SquadPage = () => {
                   />
 
                   {/* Top-right overlay — at-a-glance pills. Detail screen (tap) shows the rest. */}
-                  <div className="absolute top-1.5 right-1.5 flex flex-col gap-1 items-end z-10 pointer-events-none">
-                    {isStarter && <StatusPill tone="emerald" label="XI" title="In starting XI" />}
-                    {isSub && <StatusPill tone="amber" label="SUB" title="On the bench" />}
-                    {player.injured && (
-                      <StatusPill tone="red" Icon={HeartPulse} label={`${player.injuryWeeks || '?'}w`} title={`Injured — ${player.injuryWeeks || '?'} wk(s)`} />
-                    )}
-                    {!player.injured && player.wantsToLeave && (
-                      <StatusPill tone="amber" Icon={LogOut} label="OUT" title="Wants to leave" />
-                    )}
-                    {!player.injured && !player.wantsToLeave && player.onLoan && (
-                      <StatusPill tone="sky" Icon={Repeat2} label="LOAN" title="On loan" />
-                    )}
-                    {!player.injured && !player.wantsToLeave && !player.onLoan && player.listedForSale && (
-                      <StatusPill tone="primary" Icon={Tag} label="LIST" title="Listed for sale" />
-                    )}
-                    {contractUrgency && !player.onLoan && !player.injured && (
-                      <StatusPill
-                        tone={contractUrgency === 'expired' ? 'red' : 'amber'}
-                        Icon={FileText}
-                        title={contractUrgency === 'expired'
-                          ? `Contract expires end of this season (S${player.contractEnd})`
-                          : `Contract expires end of next season (S${player.contractEnd})`}
-                      />
-                    )}
+                  <div className="absolute top-1.5 right-1.5 z-10 pointer-events-none">
+                    <PlayerStatusBadges
+                      player={player}
+                      season={season}
+                      week={week}
+                      contextBadge={
+                        isStarter ? (
+                          <StatusPill tone="emerald" label="XI" title="In starting XI" />
+                        ) : isSub ? (
+                          <StatusPill tone="amber" label="SUB" title="On the bench" />
+                        ) : null
+                      }
+                    />
                   </div>
                 </motion.div>
               );

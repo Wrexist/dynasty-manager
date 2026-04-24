@@ -84,11 +84,20 @@ export function getPlayerCardArt(overall: number | null | undefined): PlayerCard
   return { src: '/player-cards/bronze.webp', filter: 'grayscale(1) brightness(0.55)' };
 }
 
+/**
+ * Build a 3-stop 135deg linear-gradient CSS string from a tier palette.
+ * Shared primitive for both {@link getTierBorderStyle} (50% mid-stop for a
+ * balanced border) and the pack surfaces (`packHelpers.tierGradient`,
+ * 45% mid-stop for a slightly punchier face). Using one helper keeps the
+ * tier colour definitions authoritative in {@link PLAYER_TIER_THRESHOLDS}.
+ */
+export function buildTierGradient(tier: PlayerTier, midStopPercent = 50): string {
+  return `linear-gradient(135deg, ${tier.gradientFrom} 0%, ${tier.gradientVia} ${midStopPercent}%, ${tier.gradientTo} 100%)`;
+}
+
 /** Inline-style gradient stroke for a tier border wrapper (clean, non-blurred). */
 export function getTierBorderStyle(tier: PlayerTier): { background: string } {
-  return {
-    background: `linear-gradient(135deg, ${tier.gradientFrom}, ${tier.gradientVia} 50%, ${tier.gradientTo})`,
-  };
+  return { background: buildTierGradient(tier, 50) };
 }
 
 /**

@@ -14,17 +14,24 @@ import { TrendingUp, TrendingDown, Star } from 'lucide-react';
 import type { Player, Club } from '@/types/game';
 import { GlassPanel } from './GlassPanel';
 import { PlayerCard } from './PlayerCard';
+import { PlayerStatusBadges } from './PlayerStatusBadges';
 import { cn } from '@/lib/utils';
 import { getPlayerTier } from '@/utils/uiHelpers';
 
 interface PlayerHeroCardProps {
   player: Player;
   club?: Club;
+  /** Current season — enables contract-urgency badge when provided. */
+  season?: number;
+  /** Current week — enables suspension badge when provided. */
+  week?: number;
 }
 
 export const PlayerHeroCard = memo(function PlayerHeroCard({
   player,
   club,
+  season,
+  week,
 }: PlayerHeroCardProps) {
   const clubColor = club?.color || '#888';
   const showPotential = player.potential > player.overall;
@@ -50,13 +57,19 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
     >
       <div data-tier={tier.key} className="relative flex items-stretch gap-3">
         {/* Card (smaller hero size, self-contained tier art) */}
-        <PlayerCard
-          player={player}
-          size="lg"
-          interactive="cycle"
-          showConditionView
-          className="shrink-0"
-        />
+        <div className="relative shrink-0">
+          <PlayerCard
+            player={player}
+            size="lg"
+            interactive="cycle"
+            showConditionView
+          />
+          {season != null && (
+            <div className="absolute top-1.5 right-1.5 z-10 pointer-events-none">
+              <PlayerStatusBadges player={player} season={season} week={week} />
+            </div>
+          )}
+        </div>
 
         {/* Meta column — hugs the right of the card */}
         <div className="flex-1 min-w-0 flex flex-col py-0.5">
