@@ -7,10 +7,17 @@ import { initAds } from '@/utils/ads';
 import { useGameStore } from '@/store/gameStore';
 import { initSentry, addGameBreadcrumb } from '@/utils/sentry';
 import { track } from '@/utils/analytics';
+import { hydrateSaveStorage } from '@/store/helpers/persistence';
 
 // Configures the SDK iff VITE_SENTRY_DSN is set — release tag, PII scrubbing,
 // and breadcrumb scrubbing live in src/utils/sentry.ts.
 initSentry();
+
+// Kick off save-storage hydration before React renders. The promise is
+// exported for UI code (TitleScreen) to await before showing the slot
+// picker — otherwise the picker could render "No Save" on an install
+// whose data lives only in IndexedDB, not localStorage.
+export const saveStorageReady = hydrateSaveStorage();
 
 // Promise that resolves once the first frame has painted
 let resolveAppReady: (() => void) | null = null;

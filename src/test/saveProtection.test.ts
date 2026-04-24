@@ -20,6 +20,7 @@ import {
   readSaveSlotBackup,
   readSaveSlotTmp,
   recoverStaleSaveTmp,
+  __resetSaveStorageForTests,
 } from '@/store/helpers/persistence';
 import {
   validateSaveShape,
@@ -27,6 +28,14 @@ import {
   CURRENT_VERSION,
 } from '@/utils/saveMigration';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
+
+/** Reset every save-storage layer (memory cache + localStorage) between
+ *  tests. Required now that the memory cache outlives a `localStorage.clear()`
+ *  and can leak a previous test's state into the next one. */
+function clearAllSaveStorage() {
+  __resetSaveStorageForTests();
+  localStorage.clear();
+}
 
 const SLOT = 1;
 
@@ -104,7 +113,7 @@ describe('isSaveFromNewerVersion', () => {
 
 describe('atomic writeSaveSlot', () => {
   beforeEach(() => {
-    localStorage.clear();
+    clearAllSaveStorage();
   });
 
   it('leaves no tmp key after a successful write', () => {
@@ -142,7 +151,7 @@ describe('atomic writeSaveSlot', () => {
 });
 
 describe('recoverStaleSaveTmp', () => {
-  beforeEach(() => { localStorage.clear(); });
+  beforeEach(() => { clearAllSaveStorage(); });
 
   it('promotes a valid tmp when primary is missing (simulated crash recovery)', () => {
     // Write succeeded at step 1 (stage tmp) but crashed before step 4 (promote).
@@ -171,7 +180,7 @@ describe('recoverStaleSaveTmp', () => {
 });
 
 describe('loadGame — corruption + version guard', () => {
-  beforeEach(() => { localStorage.clear(); });
+  beforeEach(() => { clearAllSaveStorage(); });
 
   it('sets loadError when slot JSON is invalid AND no backup exists', () => {
     localStorage.setItem(STORAGE_KEYS.saveSlot(SLOT), 'not-json{{{');
@@ -238,7 +247,7 @@ describe('loadGame — corruption + version guard', () => {
 });
 
 describe('attemptSaveRecovery', () => {
-  beforeEach(() => { localStorage.clear(); });
+  beforeEach(() => { clearAllSaveStorage(); });
 
   it('loads from the backup slot when user opts to recover', () => {
     vi.useFakeTimers();

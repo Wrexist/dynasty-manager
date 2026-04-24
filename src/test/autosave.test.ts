@@ -9,6 +9,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGameStore } from '@/store/gameStore';
 import { fnv1a } from '@/utils/hashString';
 import { __resetAutosaveSchedulerForTests } from '@/store/slices/orchestrationSlice';
+import { __resetSaveStorageForTests } from '@/store/helpers/persistence';
 
 const CLUB_ID = 'manchester-city';
 
@@ -18,6 +19,7 @@ function initFresh() {
   // to setTimeout. Use fake timers so scheduled callbacks run deterministically.
   vi.useFakeTimers();
   __resetAutosaveSchedulerForTests();
+  __resetSaveStorageForTests();
   useGameStore.getState().resetGame();
   localStorage.clear();
   useGameStore.getState().initGame(CLUB_ID);
@@ -275,6 +277,7 @@ describe('new-game save pipeline', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     __resetAutosaveSchedulerForTests();
+    __resetSaveStorageForTests();
     useGameStore.getState().resetGame();
     localStorage.clear();
   });
