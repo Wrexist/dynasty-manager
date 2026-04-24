@@ -34,23 +34,18 @@ const STEPS = [
   { key: 'club', label: 'Club' },
 ] as const;
 
-// Apple Liquid-Glass surface — hairline white rim + top inset highlight +
-// bottom inset shadow + soft drop. Shared by nation/league/club rows and
-// the bottom-sheet stat tiles. NOTE: no backdrop-filter here — rows render
-// on a solid dark background (4% tint is imperceptibly blurred) and mobile
-// paints 20-40 of these at once, so we keep blur on hero surfaces only
-// (header, bottom sheet, summary panel, search pill).
+// Row surface — calm, flat card with a single hairline border and a soft
+// top-inset highlight. Rows stack 50+ on screen, so we keep the chrome light
+// (no layered drop shadow, no specular overlay) and reserve the richer
+// liquid-glass treatment for hero surfaces (header, summary panel, bottom
+// sheet, stat tiles).
 const LIQUID_ROW_CLASS =
-  'relative overflow-hidden rounded-2xl bg-white/[0.04] border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.10),inset_0_-1px_0_rgba(0,0,0,0.35),0_6px_20px_-8px_rgba(0,0,0,0.5)] transition-[box-shadow,background-color,border-color,transform] duration-200';
+  'relative overflow-hidden rounded-2xl bg-white/[0.035] border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-[background-color,border-color,transform] duration-200';
 
-// Small glass-capsule badge (prize chip, difficulty pill, etc.). No
-// backdrop-filter — badges nest inside row cards, and we avoid the
-// per-element compositor cost that stacks up 100+ badges on mobile.
-const LIQUID_BADGE_CLASS =
-  'inline-flex items-center gap-1 rounded-full bg-white/10 border border-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_10px_-2px_rgba(0,0,0,0.4)]';
-
-// Radial specular crescent that sits across the top half of each row. Pure
-// CSS, mix-blend screen so it catches light without fighting tier colors.
+// Radial specular crescent applied to hero surfaces (page header, summary
+// panel, bottom sheet, stat tiles). Pure CSS, mix-blend screen so it catches
+// light without fighting tier colors. Not used on row cards anymore — stacks
+// of 50+ rows made the page feel busy.
 const LIQUID_SPECULAR_STYLE: React.CSSProperties = {
   background:
     'radial-gradient(120% 90% at 50% -20%, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.08) 32%, rgba(255,255,255,0) 62%)',
@@ -394,10 +389,19 @@ const ClubSelection = () => {
                   <h3 className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-1">
                     {label}
                   </h3>
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     {nations.map((nation, i) => {
                       const stars = NATION_STARS[nation.name] || [];
                       const isSelected = selectedNationality === nation.name;
+                      const rankClass =
+                        nation.baseRanking <= 5 ? 'text-emerald-400' :
+                        nation.baseRanking <= 10 ? 'text-primary' :
+                        nation.baseRanking <= 20 ? 'text-foreground' : 'text-muted-foreground';
+                      const tierLabel =
+                        nation.baseRanking <= 5 ? 'World-class' :
+                        nation.baseRanking <= 10 ? 'Elite' :
+                        nation.baseRanking <= 20 ? 'Top tier' :
+                        nation.baseRanking <= 40 ? 'Strong' : 'Emerging';
                       return (
                         <motion.div
                           key={nation.name}
@@ -410,38 +414,37 @@ const ClubSelection = () => {
                             onClick={() => handleNationalitySelect(nation.name)}
                             className={cn(
                               LIQUID_ROW_CLASS,
-                              'cursor-pointer w-full text-left active:scale-[0.97] p-3',
+                              'cursor-pointer w-full text-left active:scale-[0.98] p-4',
                               isSelected
                                 ? 'ring-2 ring-primary bg-primary/10 shadow-[0_0_24px_-4px_hsl(var(--primary)/0.45)]'
                                 : 'hover:border-white/20',
                             )}
                           >
-                            <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
-                            <div className="relative flex items-center gap-3">
-                              <FlagIcon nationality={nation.name} size={16} />
+                            <div className="flex items-center gap-3">
+                              <FlagIcon nationality={nation.name} size={28} className="rounded-sm shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-foreground text-sm truncate">{nation.name}</p>
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] font-medium text-muted-foreground px-2 py-0.5')}>
-                                    World #{nation.baseRanking}
-                                  </span>
-                                  {nation.baseRanking <= 10 && (
-                                    <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] font-medium text-primary px-2 py-0.5 bg-primary/15 border-primary/30')}>
-                                      Top 10
-                                    </span>
-                                  )}
+                                <p className="font-semibold text-foreground text-base leading-tight truncate">{nation.name}</p>
+                                <p className={cn('text-[11px] mt-0.5 font-medium', rankClass)}>
+                                  {tierLabel}
+                                </p>
+                              </div>
+                              <div className="shrink-0 flex flex-col items-end gap-0.5">
+                                <div className="flex items-baseline gap-0.5 tabular-nums leading-none">
+                                  <span className="text-[11px] font-medium text-muted-foreground/50">#</span>
+                                  <span className={cn('text-2xl font-display font-bold', rankClass)}>{nation.baseRanking}</span>
                                 </div>
+                                <span className="text-[9px] font-semibold text-muted-foreground/50 uppercase tracking-wider">World</span>
                               </div>
                             </div>
                             {stars.length > 0 && (
-                              <div className="relative flex items-center gap-3 mt-2.5 pt-2 border-t border-white/10">
+                              <div className="mt-3 pt-3 border-t border-white/[0.06] grid grid-cols-3 gap-2">
                                 {stars.map((player) => (
-                                  <div key={player.name} className="flex-1 min-w-0">
-                                    <p className="text-[11px] text-foreground/80 font-medium truncate">{player.name}</p>
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="text-[10px] text-muted-foreground/60">{player.position}</span>
+                                  <div key={player.name} className="min-w-0">
+                                    <p className="text-[11px] text-foreground/90 font-medium truncate leading-tight">{player.name}</p>
+                                    <div className="flex items-baseline gap-1.5 mt-1">
+                                      <span className="text-[9px] uppercase tracking-wider text-muted-foreground/50 font-semibold">{player.position}</span>
                                       <span className={cn(
-                                        'text-[10px] font-bold',
+                                        'text-xs font-bold tabular-nums',
                                         player.rating >= 90 ? 'text-emerald-400' :
                                         player.rating >= 85 ? 'text-primary' :
                                         player.rating >= 80 ? 'text-amber-400' : 'text-muted-foreground'
@@ -515,26 +518,28 @@ const ClubSelection = () => {
               transition={{ duration: 0.25 }}
               className="space-y-3"
             >
-              {/* League info summary — liquid-glass surface with floating badges */}
+              {/* League info summary — hero header with 3-stat row */}
               {leagueInfo && (
                 <GlassPanel className="relative overflow-hidden p-4 rounded-2xl border-white/15 bg-white/[0.06] backdrop-saturate-150 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.25),0_8px_28px_-12px_rgba(0,0,0,0.55)]">
                   <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-2/3" style={LIQUID_SPECULAR_STYLE} />
-                  <div className="relative flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FlagIcon nationality={leagueInfo.country} size={24} className="rounded-sm" />
-                      <div className="min-w-0">
-                        <h3 className="text-xs font-semibold text-foreground truncate">{leagueInfo.country}</h3>
-                        <p className="text-[10px] text-muted-foreground">{leagueInfo.totalWeeks} week season</p>
-                      </div>
+                  <div className="relative flex items-center gap-3">
+                    <FlagIcon nationality={leagueInfo.country} size={32} className="rounded-sm shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold leading-none">{leagueInfo.country}</p>
+                      <h3 className="text-sm font-semibold text-foreground mt-1 leading-tight">{leagueInfo.totalWeeks} week season</h3>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <div className={cn(LIQUID_BADGE_CLASS, 'px-2.5 py-1 flex-col items-center gap-0')}>
-                        <span className="text-xs font-bold text-primary tabular-nums leading-none">{'\u00A3'}{(leagueInfo.prizeMoney / 1_000_000).toFixed(0)}M</span>
-                        <span className="text-[8px] text-muted-foreground/80 leading-tight mt-0.5">Prize</span>
-                      </div>
-                      <div className={cn(LIQUID_BADGE_CLASS, 'px-2 py-1')}>
-                        <DifficultyPips difficulty={leagueInfo.difficulty} />
-                      </div>
+                  </div>
+                  <div className="relative grid grid-cols-3 gap-2 mt-3 pt-3 border-t border-white/[0.08]">
+                    <div className="text-center">
+                      <p className="text-sm font-bold text-primary tabular-nums leading-none">{'\u00A3'}{(leagueInfo.prizeMoney / 1_000_000).toFixed(0)}M</p>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 font-semibold mt-1">Prize</p>
+                    </div>
+                    <div className="text-center border-l border-white/[0.08]">
+                      <p className="text-sm font-bold text-foreground tabular-nums leading-none">{leagueClubs.length}</p>
+                      <p className="text-[9px] uppercase tracking-wider text-muted-foreground/60 font-semibold mt-1">Clubs</p>
+                    </div>
+                    <div className="text-center border-l border-white/[0.08] flex flex-col items-center justify-center">
+                      <DifficultyPips difficulty={leagueInfo.difficulty} />
                     </div>
                   </div>
                 </GlassPanel>
@@ -550,7 +555,7 @@ const ClubSelection = () => {
               )}
 
               {/* Club list */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {filteredClubs.length === 0 && clubSearch && (
                   <p className="text-center text-muted-foreground text-sm py-8">No clubs match "{clubSearch}"</p>
                 )}
@@ -569,17 +574,16 @@ const ClubSelection = () => {
                         aria-pressed={isSelected}
                         className={cn(
                           LIQUID_ROW_CLASS,
-                          'w-full text-left active:scale-[0.98] p-3',
+                          'w-full text-left active:scale-[0.98] p-3.5',
                           isSelected
                             ? 'ring-2 ring-primary bg-primary/10 shadow-[0_0_24px_-4px_hsl(var(--primary)/0.45)]'
                             : 'hover:border-white/20',
                         )}
                       >
-                        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
-                        <div className="relative flex items-center gap-3">
+                        <div className="flex items-center gap-3">
                           {/* Club badge */}
                           <div
-                            className="w-10 h-10 rounded-lg shrink-0 flex items-center justify-center font-bold text-[10px] shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_10px_-2px_rgba(0,0,0,0.5)]"
+                            className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center font-bold text-xs shadow-[inset_0_1px_0_rgba(255,255,255,0.25),0_4px_10px_-2px_rgba(0,0,0,0.5)]"
                             style={{ backgroundColor: club.color, color: club.secondaryColor }}
                           >
                             {club.shortName}
@@ -587,25 +591,26 @@ const ClubSelection = () => {
 
                           {/* Club info */}
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-foreground text-sm leading-tight">{club.name}</p>
-                            <div className="flex items-center gap-2 mt-1">
+                            <p className="font-semibold text-foreground text-sm leading-tight truncate">{club.name}</p>
+                            {club.stadiumName && (
+                              <p className="text-[10px] text-muted-foreground/60 truncate mt-0.5">{club.stadiumName}</p>
+                            )}
+                            <div className="mt-1.5">
                               <ReputationDots value={club.reputation} />
-                              {club.stadiumName && (
-                                <span className="text-[10px] text-muted-foreground/50 truncate">{club.stadiumName}</span>
-                              )}
                             </div>
                           </div>
 
                           {/* Budget */}
                           <div className="shrink-0 text-right">
                             <span className={cn(
-                              'text-xs font-bold tabular-nums',
+                              'text-sm font-bold tabular-nums',
                               club.budget >= 150_000_000 ? 'text-emerald-400' :
                               club.budget >= 80_000_000 ? 'text-foreground' :
                               club.budget >= 30_000_000 ? 'text-amber-400' : 'text-muted-foreground'
                             )}>
                               {'\u00A3'}{(club.budget / 1_000_000).toFixed(0)}M
                             </span>
+                            <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider font-semibold mt-0.5">Budget</p>
                           </div>
                         </div>
                       </button>
@@ -781,46 +786,48 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.04, type: 'spring', stiffness: 300, damping: 30 }}
-      className={cn('relative', isLowerTier && 'pl-5')}
+      className={cn('relative', isLowerTier && 'pl-6')}
     >
-      {/* Tier connector line (visual hierarchy for sub-leagues) */}
+      {/* Tier connector — vertical line + horizontal tick showing pyramid structure */}
       {isLowerTier && (
-        <span
-          aria-hidden="true"
-          className="absolute left-2 top-0 bottom-0 w-px bg-border/40"
-        />
+        <>
+          <span
+            aria-hidden="true"
+            className="absolute left-2 top-0 bottom-0 w-px bg-border/40"
+          />
+          <span
+            aria-hidden="true"
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-3 h-px bg-border/40"
+          />
+        </>
       )}
       <button
         type="button"
         onClick={() => onSelect(league.id)}
         className={cn(
           LIQUID_ROW_CLASS,
-          'cursor-pointer w-full text-left active:scale-[0.98] hover:border-white/20 p-3',
-          isLowerTier && 'bg-white/[0.025] opacity-90',
+          'cursor-pointer w-full text-left active:scale-[0.98] hover:border-white/20',
+          isLowerTier ? 'bg-white/[0.02] p-3' : 'p-4',
         )}
       >
-        <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 h-1/2" style={LIQUID_SPECULAR_STYLE} />
-        <div className="relative flex items-center gap-3">
+        <div className="flex items-center gap-3">
           {isLowerTier ? (
-            <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] font-semibold text-muted-foreground px-2 py-0.5 min-w-[32px] justify-center shrink-0 tabular-nums')}>T{league.tier}</span>
+            <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+              <span className="text-[10px] font-bold text-muted-foreground tabular-nums">T{league.tier}</span>
+            </div>
           ) : (
-            <FlagIcon nationality={league.country} size={28} className="rounded-sm" />
+            <FlagIcon nationality={league.country} size={32} className="rounded-sm shrink-0" />
           )}
           <div className="flex-1 min-w-0">
-            <h2 className="font-display font-bold text-sm text-foreground truncate">
+            <h2 className={cn('font-display font-bold text-foreground truncate leading-tight', isLowerTier ? 'text-sm' : 'text-base')}>
               {league.name}
             </h2>
-            <div className="flex items-center gap-2 mt-1">
-              <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] text-muted-foreground/70 px-2 py-0.5')}>
-                {clubCount} clubs
-              </span>
-              <span className={cn(LIQUID_BADGE_CLASS, 'text-[10px] text-muted-foreground/70 px-2 py-0.5 tabular-nums')}>
-                {'\u00A3'}{(league.prizeMoney / 1_000_000).toFixed(league.prizeMoney >= 1_000_000 ? 0 : 1)}M
-              </span>
-            </div>
+            <p className="text-[11px] text-muted-foreground/70 mt-1 tabular-nums">
+              {clubCount} clubs {'·'} {'\u00A3'}{(league.prizeMoney / 1_000_000).toFixed(league.prizeMoney >= 1_000_000 ? 0 : 1)}M prize
+            </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="flex gap-0.5" role="img" aria-label={`Difficulty: ${difficulty?.label || league.difficulty}`}>
+          <div className="shrink-0 flex flex-col items-end gap-1" role="img" aria-label={`Difficulty: ${difficulty?.label || league.difficulty}`}>
+            <div className="flex gap-0.5">
               {[1, 2, 3, 4].map(n => (
                 <div
                   key={n}
@@ -831,7 +838,7 @@ const LeagueCard = memo(function LeagueCard({ league, index, onSelect, isLowerTi
                 />
               ))}
             </div>
-            <span className={cn('text-[10px] font-semibold', difficulty?.color)}>
+            <span className={cn('text-[10px] font-semibold leading-none', difficulty?.color)}>
               {difficulty?.label}
             </span>
           </div>
