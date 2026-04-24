@@ -713,6 +713,7 @@ const SettingsPageInner = () => {
               value={feedbackMessage}
               onChange={(e) => setFeedbackMessage(e.target.value)}
               placeholder="Tell us what's on your mind…"
+              aria-label="Feedback message"
               className="w-full mt-4 p-3 rounded-2xl bg-white/5 border border-white/15 backdrop-blur-md text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_-1px_0_rgba(0,0,0,0.3)]"
               rows={4}
             />
