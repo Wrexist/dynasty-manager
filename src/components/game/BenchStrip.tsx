@@ -39,16 +39,11 @@ function getStatusLabel(player: Player, week?: number): string | null {
 }
 
 /**
- * Horizontal bench/subs tile. A compact 64×85 {@link PlayerCard} (sm,
- * compact mode — no stats cycle, no view indicator) carries the shield
- * identity; the narrow right column carries the decision-support
- * metadata the bench actually needs at a glance: form trend, chemistry
- * link count, morale dot, fitness bar, suggested-sub marker, and the
- * out-of-action status chip (INJ/SUS).
- *
- * Width ~140px, height ~85px. The whole strip is clickable — the inner
- * card is `interactive='none'` so parent-level selection is the only
- * click behaviour.
+ * Bench / reserves tile. Renders the shared FIFA-style {@link PlayerCard}
+ * shield at `sm` with the stat panel on — same visual as the squad page,
+ * just scaled down to fit the horizontal bench scroller. Decision-support
+ * metadata (morale, form, chemistry, fitness, best-sub marker, INJ/SUS)
+ * sits as overlays so the card itself stays the familiar squad-page look.
  */
 export const BenchStrip = memo(function BenchStrip({
   player,
@@ -79,72 +74,60 @@ export const BenchStrip = memo(function BenchStrip({
       onClick={onClick}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
       className={cn(
-        'relative shrink-0 cursor-pointer rounded-[10px] transition-transform duration-150',
-        'flex items-stretch gap-1.5 p-1 pr-2 w-[138px]',
-        'bg-card/40 backdrop-blur-sm border border-border/40',
-        isSelected && 'scale-[1.04] border-primary/60',
+        'relative shrink-0 cursor-pointer rounded-[12px] transition-transform duration-150',
+        isSelected && 'scale-[1.05] z-10',
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
-        !isSelected && isBestSub && 'shadow-[0_0_8px_hsl(var(--primary)/0.35)]',
-        clubColor && 'border-l-[3px]',
+        !isSelected && isBestSub && 'shadow-[0_0_10px_hsl(var(--primary)/0.45)]',
         player.injured && 'opacity-60',
       )}
-      style={clubColor ? { borderLeftColor: clubColor } : undefined}
+      style={clubColor ? { boxShadow: `inset 3px 0 0 0 ${clubColor}` } : undefined}
       role="button"
       tabIndex={0}
       aria-label={fullName}
       title={fullName}
     >
-      {statusLabel && (
-        <span className="absolute -top-1.5 -right-1.5 z-10 text-[6px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm">
-          {statusLabel}
-        </span>
-      )}
-
-      {isSelected && (
-        <span className="absolute inset-0 rounded-[10px] ring-2 ring-primary animate-pulse pointer-events-none z-10" />
-      )}
-
       <PlayerCard
         player={player}
         size="sm"
         interactive="none"
-        compact
-        className="shrink-0"
       />
 
-      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1 py-0.5">
-        <div className="flex items-center gap-0.5 min-w-0">
-          <span
-            className="flex-1 min-w-0 text-[9px] font-bold text-foreground uppercase tracking-wide truncate"
-            title={fullName}
-          >
-            {player.lastName}
-          </span>
-          {formTrend === 'hot' && <TrendingUp className="w-[8px] h-[8px] text-emerald-400 shrink-0" aria-label="Hot form" />}
-          {formTrend === 'cold' && <TrendingDown className="w-[8px] h-[8px] text-red-400 shrink-0" aria-label="Poor form" />}
-          {isBestSub && <TrendingUp className="w-[9px] h-[9px] text-primary shrink-0" aria-label="Suggested sub" />}
-        </div>
+      {isSelected && (
+        <span className="absolute inset-0 rounded-[12px] ring-2 ring-primary animate-pulse pointer-events-none z-20" />
+      )}
 
-        <div className="flex items-center gap-1 min-w-0">
-          <span
-            className={cn('w-1.5 h-1.5 rounded-full shrink-0', getMoraleDotClass(player.morale))}
-            aria-label={`Morale ${player.morale}`}
-          />
-          {chemistryLinkCount > 0 && (
-            <span className="flex items-center gap-px text-[8px] text-primary font-semibold tabular-nums leading-none shrink-0">
-              <Link className="w-[7px] h-[7px]" />
-              {chemDisplay}
-            </span>
-          )}
-        </div>
+      {statusLabel && (
+        <span className="absolute -top-1.5 -right-1.5 z-20 text-[7px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm">
+          {statusLabel}
+        </span>
+      )}
 
-        <div className="h-[3px] w-full rounded-full bg-muted/80 overflow-hidden" title={`Fitness ${player.fitness}%`}>
-          <div
-            className="h-full transition-all"
-            style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
-            aria-label={`Fitness ${player.fitness}%`}
-          />
-        </div>
+      {/* Morale + form indicators — bottom-left on the shield */}
+      <div className="absolute bottom-1 left-1 z-10 flex items-center gap-0.5">
+        <span
+          className={cn('w-1.5 h-1.5 rounded-full shadow-[0_0_0_0.5px_rgba(0,0,0,0.6)]', getMoraleDotClass(player.morale))}
+          aria-label={`Morale ${player.morale}`}
+        />
+        {formTrend === 'hot' && <TrendingUp className="w-[9px] h-[9px] text-emerald-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]" aria-label="Hot form" />}
+        {formTrend === 'cold' && <TrendingDown className="w-[9px] h-[9px] text-red-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]" aria-label="Poor form" />}
+        {isBestSub && <TrendingUp className="w-[10px] h-[10px] text-primary drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]" aria-label="Suggested sub" />}
+      </div>
+
+      {/* Chemistry link count — bottom-right on the shield */}
+      {chemistryLinkCount > 0 && (
+        <span className="absolute bottom-1 right-1 z-10 flex items-center gap-px text-[8px] text-primary font-semibold tabular-nums leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]">
+          <Link className="w-[7px] h-[7px]" />
+          {chemDisplay}
+        </span>
+      )}
+
+      {/* Fitness bar — bottom edge, below the card */}
+      <div className="mt-1 h-[3px] w-full rounded-full bg-muted/80 overflow-hidden" title={`Fitness ${player.fitness}%`}>
+        <div
+          className="h-full transition-all"
+          style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
+          aria-label={`Fitness ${player.fitness}%`}
+        />
       </div>
     </div>
   );

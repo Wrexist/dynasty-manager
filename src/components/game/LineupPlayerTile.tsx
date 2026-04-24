@@ -1,12 +1,9 @@
 import { memo } from 'react';
 import { cn } from '@/lib/utils';
-import { getPlayerTier, getFitnessHexColor } from '@/utils/uiHelpers';
-import { getPlayerDisplayName, getCardNameFontSizeClass } from '@/utils/playerDisplay';
+import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { Link, TrendingUp, TrendingDown } from 'lucide-react';
 import type { Player } from '@/types/game';
-import { TierBorderFrame } from './TierBorderFrame';
-import { FlagIcon } from './FlagIcon';
-import { CardArtBackground } from './CardArtBackground';
+import { PlayerCard } from './PlayerCard';
 
 const HOT_FORM_MIN = 70;
 const COLD_FORM_MAX = 35;
@@ -40,9 +37,15 @@ function getStatusLabel(player: Player, week?: number): string | null {
   return null;
 }
 
+/**
+ * Formation slot tile — renders the shared FIFA-style {@link PlayerCard}
+ * shield (xs, compact) so the tactics pitch matches the squad page look.
+ * All the tactics-only decoration (selection pulse, compatibility ring,
+ * chemistry count, status badge, fitness bar, club accent) is overlaid
+ * on top of the card.
+ */
 export const LineupPlayerTile = memo(function LineupPlayerTile({
   player,
-  position,
   isSelected,
   chemistryLinkCount,
   compatRing,
@@ -52,9 +55,6 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
 }: LineupPlayerTileProps) {
   const fitnessColor = getFitnessHexColor(player.fitness);
   const statusLabel = getStatusLabel(player, week);
-  const tier = getPlayerTier(player.overall);
-  const displayName = getPlayerDisplayName(player);
-  const nameFontSizeClass = getCardNameFontSizeClass(displayName);
   const fullName = `${player.firstName} ${player.lastName}`;
 
   const chemDisplay = chemistryLinkCount > 9 ? '9+' : chemistryLinkCount;
@@ -67,95 +67,63 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
           : null
       : null;
 
-  const showChemistry = chemistryLinkCount > 0;
-
   return (
     <div
       onClick={onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } }}
+      role="button"
+      tabIndex={0}
+      aria-label={fullName}
+      title={fullName}
       className={cn(
-        'cursor-pointer rounded-[7px] w-[48px] h-[48px] sm:w-[54px] sm:h-[54px] shrink-0 relative',
+        'relative shrink-0 cursor-pointer rounded-[7px]',
         'transition-transform duration-150',
-        isSelected && 'scale-[1.08]',
+        isSelected && 'scale-[1.08] z-10',
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
         player.injured && 'opacity-60',
       )}
+      style={clubColor ? { boxShadow: `inset 2px 0 0 0 ${clubColor}` } : undefined}
     >
-      {statusLabel && (
-        <span className="absolute -top-1.5 -right-1.5 z-10 text-[6px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm">
-          {statusLabel}
-        </span>
-      )}
+      <PlayerCard
+        player={player}
+        size="xs"
+        interactive="none"
+        compact
+      />
 
       {isSelected && (
         <span className="absolute inset-0 rounded-[7px] ring-2 ring-primary animate-pulse pointer-events-none z-10" />
       )}
 
-      <TierBorderFrame
-        overall={player.overall}
-        glow
-        outerRadiusClass="rounded-[7px]"
-        innerRadiusClass="rounded-[5.5px]"
-        paddingClass="p-[1.5px]"
-        className="w-full h-full"
-        innerClassName={cn(
-          'w-full h-full relative',
-          clubColor && 'border-l-[2px]',
-        )}
-        style={clubColor ? { borderLeftColor: clubColor } : undefined}
-      >
-        <CardArtBackground overall={player.overall} overlayStrength={0.75} />
+      {statusLabel && (
+        <span className="absolute -top-1.5 -right-1.5 z-20 text-[6px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm">
+          {statusLabel}
+        </span>
+      )}
 
-        <div className="relative w-full h-full flex flex-col px-1 py-0.5 gap-px">
-        {/* Row A: rating + flag + position (all plain text, no pill) */}
-        <div className="flex items-center justify-between gap-px w-full min-w-0 leading-none">
-          <span className={cn('text-[13px] font-black font-display tabular-nums leading-none shrink-0 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]', tier.textClass)}>
-            {player.overall}
-          </span>
-          <FlagIcon nationality={player.nationality} size={9} className="rounded-[1px] shrink-0" />
-          <span className="text-[6px] font-bold uppercase tracking-wider text-white/85 leading-none shrink-0 tabular-nums drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]">
-            {position}
-          </span>
-        </div>
+      {/* Morale + form indicator (top-right corner, above the stats area) */}
+      <div className="absolute top-0.5 right-0.5 z-10 flex items-center gap-px">
+        {formTrend === 'hot' && <TrendingUp className="w-[7px] h-[7px] text-emerald-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]" aria-label="Hot form" />}
+        {formTrend === 'cold' && <TrendingDown className="w-[7px] h-[7px] text-red-400 drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]" aria-label="Poor form" />}
+        <span className={cn('w-1 h-1 rounded-full shadow-[0_0_0_0.5px_rgba(0,0,0,0.6)]', getMoraleDotClass(player.morale))} aria-label={`Morale ${player.morale}`} />
+      </div>
 
-        {/* Row B: name centered */}
-        <div className="flex-1 flex items-center justify-center min-w-0 leading-none">
-          <span
-            className={cn(
-              nameFontSizeClass,
-              'block font-bold text-white uppercase tracking-wide truncate whitespace-nowrap w-full text-center drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]',
-            )}
-            title={fullName}
-            aria-label={fullName}
-          >
-            {displayName}
-          </span>
-        </div>
+      {/* Chemistry link count (bottom-left, above fitness bar) */}
+      {chemistryLinkCount > 0 && (
+        <span className="absolute bottom-1 left-0.5 z-10 flex items-center gap-px text-[6px] text-primary font-semibold tabular-nums leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]">
+          <Link className="w-[6px] h-[6px]" />
+          {chemDisplay}
+        </span>
+      )}
 
-        {/* Row C: morale + form + chem/best-sub */}
-        <div className="flex items-center justify-between w-full min-w-0 leading-none">
-          <div className="flex items-center gap-px shrink-0">
-            <span className={cn('w-1 h-1 rounded-full', getMoraleDotClass(player.morale))} aria-label={`Morale ${player.morale}`} />
-            {formTrend === 'hot' && <TrendingUp className="w-[7px] h-[7px] text-emerald-400" aria-label="Hot form" />}
-            {formTrend === 'cold' && <TrendingDown className="w-[7px] h-[7px] text-red-400" aria-label="Poor form" />}
-          </div>
-          {showChemistry && (
-            <span className="flex items-center gap-px text-[6px] text-primary font-semibold tabular-nums leading-none shrink-0">
-              <Link className="w-[6px] h-[6px]" />
-              {chemDisplay}
-            </span>
-          )}
-        </div>
-
-        {/* Row D: fitness bar */}
-        <div className="w-full h-[3px] rounded-b-[5.5px] bg-black/50 overflow-hidden">
-          <div
-            className="h-full transition-all"
-            style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
-            aria-label={`Fitness ${player.fitness}%`}
-          />
-        </div>
-        </div>
-      </TierBorderFrame>
+      {/* Fitness bar — bottom edge of the card */}
+      <div className="absolute left-0 right-0 bottom-0 h-[3px] rounded-b-[7px] bg-black/60 overflow-hidden z-10">
+        <div
+          className="h-full transition-all"
+          style={{ width: `${player.fitness}%`, backgroundColor: fitnessColor }}
+          aria-label={`Fitness ${player.fitness}%`}
+        />
+      </div>
     </div>
   );
 });

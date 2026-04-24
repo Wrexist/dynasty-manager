@@ -123,8 +123,8 @@ describe('TierBorderFrame', () => {
   });
 });
 
-describe('LineupPlayerTile tier border integration', () => {
-  it('renders a Gold border for an 85 OVR starter', () => {
+describe('LineupPlayerTile shield art integration', () => {
+  it('renders the premium shield for an 85 OVR starter', () => {
     const { container } = render(
       <LineupPlayerTile
         player={makePlayer({ overall: 85 })}
@@ -134,10 +134,10 @@ describe('LineupPlayerTile tier border integration', () => {
         onClick={() => { /* noop */ }}
       />,
     );
-    expect(container.querySelector('[data-tier="gold"]')).not.toBeNull();
+    expect(container.querySelector('img[src*="premium.webp"]')).not.toBeNull();
   });
 
-  it('renders a Bronze border for a 62 OVR player', () => {
+  it('renders the bronze shield for a 62 OVR player', () => {
     const { container } = render(
       <LineupPlayerTile
         player={makePlayer({ overall: 62 })}
@@ -147,25 +147,12 @@ describe('LineupPlayerTile tier border integration', () => {
         onClick={() => { /* noop */ }}
       />,
     );
-    expect(container.querySelector('[data-tier="bronze"]')).not.toBeNull();
-  });
-
-  it('does not apply the red warning border regardless of fitness/chem state', () => {
-    const { container } = render(
-      <LineupPlayerTile
-        player={makePlayer({ overall: 75, fitness: 20 })}
-        position="CM"
-        isSelected={false}
-        chemistryLinkCount={0}
-        onClick={() => { /* noop */ }}
-      />,
-    );
-    expect(container.querySelector('.border-red-500\\/40')).toBeNull();
+    expect(container.querySelector('img[src*="bronze.webp"]')).not.toBeNull();
   });
 });
 
 describe('LineupPlayerTile layout invariants', () => {
-  it('uses the fixed 48/54px width tokens', () => {
+  it('uses the xs PlayerCard size (52px wide shield)', () => {
     const { container } = render(
       <LineupPlayerTile
         player={makePlayer()}
@@ -175,10 +162,11 @@ describe('LineupPlayerTile layout invariants', () => {
         onClick={() => { /* noop */ }}
       />,
     );
-    expect(container.firstElementChild?.className).toContain('w-[48px]');
-    expect(container.firstElementChild?.className).toContain('sm:w-[54px]');
-    expect(container.firstElementChild?.className).toContain('h-[48px]');
-    expect(container.firstElementChild?.className).toContain('sm:h-[54px]');
+    // The inner PlayerCard sets width via inline style on an element
+    // with class aspect-[3/4]; find it and verify the fixed xs width.
+    const card = container.querySelector('.aspect-\\[3\\/4\\]') as HTMLElement | null;
+    expect(card).not.toBeNull();
+    expect(card?.style.width).toBe('52px');
   });
 
   it('clamps chemistry-link count above 9 to "9+"', () => {
@@ -231,7 +219,7 @@ describe('LineupPlayerTile layout invariants', () => {
         onClick={() => { /* noop */ }}
       />,
     );
-    expect(container.querySelector('img[title="England"]')).not.toBeNull();
+    expect(container.querySelector('[title="England"]')).not.toBeNull();
   });
 
   it('omits the chemistry link cluster when chemistryLinkCount is 0', () => {
