@@ -14,7 +14,7 @@ import { PackShopCard } from '@/components/game/pack/PackShopCard';
 import { PackOpeningOverlay } from '@/components/game/pack/PackOpeningOverlay';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
-import { errorToast } from '@/utils/gameToast';
+import { errorToast, successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
 
 function playerTier(ovr: number) {
@@ -34,18 +34,26 @@ const PacksPage = () => {
     week: s.week,
   })));
   const openPack = useGameStore(s => s.openPack);
-  const releasePackedPlayer = useGameStore(s => s.releasePackedPlayer);
+  const quickSellPackedPlayer = useGameStore(s => s.quickSellPackedPlayer);
 
   const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean; placement?: Record<string, PackPlayerPlacement> } | null>(null);
   const [replay, setReplay] = useState<{ tier: PackTierKey; players: Player[] } | null>(null);
 
-  const handleDismiss = (playerId: string) => {
-    const result = releasePackedPlayer(playerId);
+  // Keep just drops the card from the overlay view — the player stays on
+  // the squad (openPack already wrote them in). No store action needed.
+  const handleKeep = (playerId: string) => {
+    setOpening(prev => prev ? { ...prev, players: prev.players.filter(p => p.id !== playerId) } : prev);
+  };
+
+  const handleQuickSell = (playerId: string) => {
+    const result = quickSellPackedPlayer(playerId);
     if (!result.success) {
-      errorToast('Cannot release', result.message);
+      errorToast('Cannot quick-sell', result.message);
       return;
     }
-    // Drop this player from the live overlay view
+    if (typeof result.amount === 'number') {
+      successToast('Quick-sold', `+${formatMoney(result.amount)} to budget.`);
+    }
     setOpening(prev => prev ? { ...prev, players: prev.players.filter(p => p.id !== playerId) } : prev);
   };
 
@@ -294,7 +302,8 @@ const PacksPage = () => {
             players={opening.players}
             pityTriggered={opening.pityTriggered}
             onClose={() => setOpening(null)}
-            onDismiss={handleDismiss}
+            onKeep={handleKeep}
+            onQuickSell={handleQuickSell}
             placement={opening.placement}
           />
         )}

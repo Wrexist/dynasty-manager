@@ -1,4 +1,4 @@
-import type { OpenedPackRecord, OpenPackResult, PackTierKey, Player, ReleasePackedPlayerResult } from '@/types/game';
+import type { OpenedPackRecord, OpenPackResult, PackTierKey, Player, QuickSellPackedPlayerResult, ReleasePackedPlayerResult } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
@@ -406,6 +406,99 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     });
 
     return { success: true, message: `${player.firstName} ${player.lastName} released.` };
+  },
+
+  /** Quick-sell a just-packed player for 65% of their market value. Same
+   *  freshness guard as {@link releasePackedPlayer} — only the latest
+   *  pack's roster, same (season, week). Unlike release, this credits the
+   *  club budget instead of charging severance: it's a liquidity escape
+   *  for dupes and low-OVR pulls. */
+  quickSellPackedPlayer: (playerId: string): QuickSellPackedPlayerResult => {
+    const state = get();
+    const last = (state.openedPacks || [])[0];
+    if (
+      !last
+      || last.season !== state.season
+      || last.week !== state.week
+      || !last.playerIds.includes(playerId)
+    ) {
+      return { success: false, message: 'Can only quick-sell players from the pack you just opened.' };
+    }
+    const player = state.players[playerId];
+    if (!player || player.clubId !== state.playerClubId) {
+      return { success: false, message: 'Not your player.' };
+    }
+    const club = state.clubs[state.playerClubId];
+    const amount = Math.max(0, Math.round((player.value || 0) * 0.65));
+
+    const strippedClub = {
+      ...club,
+      budget: club.budget + amount,
+      playerIds: club.playerIds.filter(id => id !== playerId),
+      lineup: club.lineup.filter(id => id !== playerId),
+      subs: club.subs.filter(id => id !== playerId),
+      wageBill: Math.max(0, club.wageBill - player.wage),
+    };
+
+    // Same refill pass the release flow does — avoids ending up with
+    // a 10-man lineup when the quick-sold card was auto-placed as a starter.
+    const nextPlayers = {
+      ...state.players,
+      [playerId]: { ...player, clubId: '' },
+    };
+    const updatedClub = autoPlaceClubLineup(
+      strippedClub,
+      nextPlayers,
+      state.week,
+      state.season,
+      buildAutoFillContext(state, state.playerClubId, {
+        clubs: { ...state.clubs, [state.playerClubId]: strippedClub },
+        players: nextPlayers,
+      }),
+    );
+
+    const soldPlayer = {
+      ...player,
+      clubId: '',
+      contractEnd: state.season,
+      listedForSale: false,
+      sellOnPercentage: undefined,
+      sellOnClubId: undefined,
+    };
+
+    const updatedRecord: OpenedPackRecord = {
+      ...last,
+      playerIds: last.playerIds.filter(id => id !== playerId),
+    };
+    const remainingPackPlayers = updatedRecord.playerIds
+      .map(id => state.players[id])
+      .filter(Boolean) as Player[];
+    updatedRecord.topOvr = remainingPackPlayers.reduce((m, p) => Math.max(m, p.overall), 0);
+
+    const newOpenedPacks = [...state.openedPacks];
+    newOpenedPacks[0] = updatedRecord;
+
+    const newMessages = addMsg(state.messages, {
+      week: state.week,
+      season: state.season,
+      type: 'transfer',
+      title: `${player.lastName} Quick-Sold`,
+      body: `${player.firstName} ${player.lastName} was quick-sold for £${amount.toLocaleString()} (65% of market value).`,
+    });
+
+    set({
+      players: { ...state.players, [playerId]: soldPlayer },
+      clubs: { ...state.clubs, [state.playerClubId]: updatedClub },
+      freeAgents: [...state.freeAgents, playerId],
+      openedPacks: newOpenedPacks,
+      messages: newMessages,
+    });
+
+    return {
+      success: true,
+      message: `${player.firstName} ${player.lastName} sold for £${amount.toLocaleString()}.`,
+      amount,
+    };
   },
 });
 

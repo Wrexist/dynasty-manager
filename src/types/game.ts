@@ -1748,6 +1748,13 @@ export interface ReleasePackedPlayerResult {
   message: string;
 }
 
+export interface QuickSellPackedPlayerResult {
+  success: boolean;
+  message: string;
+  /** Amount credited to the club budget when the sale succeeds. */
+  amount?: number;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Page-local UI types — centralized here per CLAUDE.md single-source-of-truth
 // rule ("NEVER create type files outside src/types/game.ts"). Each block notes
