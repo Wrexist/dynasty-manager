@@ -3,6 +3,8 @@ import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { PlayerCard, PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
+import { StatusPill } from '@/components/game/StatusPill';
+import { PlayerStatusBadges } from '@/components/game/PlayerStatusBadges';
 import { GraduationCap, Star, ArrowUpRight, Trash2, Wrench, Users, X, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -27,13 +29,15 @@ function devTextColor(score: number): string {
 }
 
 const YouthAcademy = () => {
-  const { youthAcademy, players, clubs, playerClubId, facilities, staff } = useGameStore(useShallow(s => ({
+  const { youthAcademy, players, clubs, playerClubId, facilities, staff, season, week } = useGameStore(useShallow(s => ({
     youthAcademy: s.youthAcademy,
     players: s.players,
     clubs: s.clubs,
     playerClubId: s.playerClubId,
     facilities: s.facilities,
     staff: s.staff,
+    season: s.season,
+    week: s.week,
   })));
   const promoteYouth = useGameStore(s => s.promoteYouth);
   const releaseYouth = useGameStore(s => s.releaseYouth);
@@ -172,16 +176,23 @@ const YouthAcademy = () => {
                       />
 
                       {/* Top-right overlay pills — mirrors Squad page pattern */}
-                      <div className="absolute top-1.5 right-1.5 flex flex-col gap-1 items-end z-10 pointer-events-none">
-                        {prospect.readyToPromote && (
-                          <span
-                            title="Ready for first team"
-                            className="flex items-center gap-0.5 rounded-md text-[9px] font-bold tracking-wide px-1.5 py-[2px] backdrop-blur-sm border shadow-[0_1px_3px_rgba(0,0,0,0.5)] leading-none bg-emerald-500/95 text-white border-emerald-300/30"
-                          >
-                            <ArrowUpRight className="w-2.5 h-2.5" />
-                            READY
-                          </span>
-                        )}
+                      <div className="absolute top-1.5 right-1.5 z-10 pointer-events-none">
+                        <PlayerStatusBadges
+                          player={player}
+                          season={season}
+                          week={week}
+                          hideContract
+                          contextBadge={
+                            prospect.readyToPromote ? (
+                              <StatusPill
+                                tone="emerald"
+                                Icon={ArrowUpRight}
+                                label="READY"
+                                title="Ready for first team"
+                              />
+                            ) : null
+                          }
+                        />
                       </div>
                     </div>
 

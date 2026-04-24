@@ -4,6 +4,9 @@ import { Player } from '@/types/game';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { PlayerCard } from '@/components/game/PlayerCard';
+import { PlayerStatusBadges } from '@/components/game/PlayerStatusBadges';
+import { useGameStore } from '@/store/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 
 interface TransferPlayerCardProps {
   player: Player;
@@ -40,17 +43,24 @@ export function TransferPlayerCard({
   showPotential = false,
   animationIndex,
 }: TransferPlayerCardProps) {
+  const { season, week } = useGameStore(
+    useShallow(s => ({ season: s.season, week: s.week })),
+  );
   const card = (
     <GlassPanel className="relative overflow-hidden p-3">
       <div className="flex gap-3">
-        <PlayerCard
-          player={player}
-          size="lg"
-          interactive="detail"
-          showConditionView={false}
-          onDetailClick={(p) => onSelect(p.id)}
-          className="shrink-0"
-        />
+        <div className="relative shrink-0">
+          <PlayerCard
+            player={player}
+            size="lg"
+            interactive="detail"
+            showConditionView={false}
+            onDetailClick={(p) => onSelect(p.id)}
+          />
+          <div className="absolute top-1.5 right-1.5 z-10 pointer-events-none">
+            <PlayerStatusBadges player={player} season={season} week={week} />
+          </div>
+        </div>
 
         <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
           <div className="min-w-0">
