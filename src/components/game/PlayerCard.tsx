@@ -31,7 +31,15 @@ type StatView = 0 | 1 | 2;
 
 interface PlayerCardProps {
   player: Player;
-  /** Visual size. xs=52 (tactics pitch), sm=64 (bench), md=110 (squad rows), lg=150 (market), xl=220 (detail). */
+  /**
+   * Visual size. Canonical assignments (see {@link PLAYER_CARD_SIZE_PX}):
+   *  - `xs` (52) — tactics pitch tile
+   *  - `sm` (64) — bench strip
+   *  - `md` (110) — reserved; not currently used
+   *  - `lg` (150) — squad grid, youth academy, transfer market,
+   *                 player detail hero, pack reveal (the main app card)
+   *  - `xl` (220) — pack walkout hero only
+   */
   size?: PlayerCardSize;
   /**
    * Tap behaviour:
@@ -58,10 +66,16 @@ interface PlayerCardProps {
   className?: string;
 }
 
-// Fixed external size → one place to tune the presets.
-// xs is the tightest tier — used on the tactics pitch where 11 shields
-// need to fit across a half-pitch without overlapping.
-const SIZE_PX: Record<PlayerCardSize, number> = { xs: 52, sm: 64, md: 110, lg: 150, xl: 220 };
+/**
+ * Fixed external size tokens → single source of truth for the card preset
+ * widths. xs is the tightest tier (tactics pitch, 11 shields across a
+ * half-pitch); lg is the main app card used nearly everywhere; xl is only
+ * the walkout hero. Exported so layout code that sits next to a card (dev
+ * bars under youth prospects, pack container sizing, etc.) can align to
+ * the same number without hardcoding `w-[150px]` in parallel.
+ */
+export const PLAYER_CARD_SIZE_PX: Record<PlayerCardSize, number> = { xs: 52, sm: 64, md: 110, lg: 150, xl: 220 };
+const SIZE_PX = PLAYER_CARD_SIZE_PX;
 
 /**
  * Derived pixel tokens, proportional to card width. Everything inside the

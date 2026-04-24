@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { tierForOvr, tierGradient } from './packHelpers';
 import { PACK_ANIM } from '@/config/packs';
 import { hapticMedium } from '@/utils/haptics';
-import { PlayerCard } from '@/components/game/PlayerCard';
+import { PlayerCard, PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
 
 interface PackCardProps {
   player: Player;
@@ -56,12 +56,12 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        'relative block w-[150px] aspect-[3/4] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-2xl',
+        'relative block aspect-[3/4] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 rounded-2xl',
         canReveal && 'cursor-pointer',
       )}
       role={canReveal ? 'button' : undefined}
       tabIndex={canReveal ? 0 : undefined}
-      style={{ perspective: 1100 }}
+      style={{ width: PLAYER_CARD_SIZE_PX.lg, perspective: 1100 }}
       initial={{ opacity: 0, y: 120, scale: 0.8 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ delay: entranceDelay, type: 'spring', stiffness: 180, damping: 24 }}
