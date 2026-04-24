@@ -2926,12 +2926,17 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     const fixtures = divisionFixtures[playerDivision];
     const leagueTable = divisionTables[playerDivision];
 
-    // Game starts with an empty transfer market so the world feels new and
-    // grows organically through weekly mechanics: AI clubs list players via
-    // processAIListings, the market replenishes when it falls thin, and free
-    // agents spawn each week. End-of-season rollover still seeds a full
-    // pre-season market for subsequent years.
+    // Seed the transfer market at game start so week 1 has browsable players
+    // while the summer window is open. Mirrors the end-of-season rollover path
+    // (generateInitialMarket + generatePreSeasonMarket) so S1 behaves like any
+    // other pre-season. Community-pack listings below stack on top.
     const transferMarket: TransferListing[] = [];
+    const initialSeasonMarket = generateInitialMarket(1, 1);
+    Object.assign(allPlayers, initialSeasonMarket.players);
+    transferMarket.push(...initialSeasonMarket.listings);
+    const initialPreSeasonMarket = generatePreSeasonMarket(1, 1);
+    Object.assign(allPlayers, initialPreSeasonMarket.players);
+    transferMarket.push(...initialPreSeasonMarket.listings);
 
     // cpPool state accumulates as we seed the world. The shuffleSeed is fixed
     // per save so the active pool is reproducible across sessions.

@@ -100,7 +100,7 @@ const SquadPage = () => {
   const [sortBy, setSortBy] = useState<SquadSortKey>('overall');
   const [sortAsc, setSortAsc] = useState(false);
   const [statusFilters, setStatusFilters] = useState<Set<SquadStatusFilter>>(new Set());
-  const [contractAlertsOpen, setContractAlertsOpen] = useState(true);
+  const [contractAlertsOpen, setContractAlertsOpen] = useState(false);
 
   const club = clubs[playerClubId];
 
