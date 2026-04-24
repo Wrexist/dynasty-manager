@@ -16,6 +16,7 @@ import { useState, useMemo } from 'react';
 import { PageHint } from '@/components/game/PageHint';
 import { PAGE_HINTS, PRESSING_LOW_THRESHOLD, PRESSING_MED_THRESHOLD, HELP_TEXTS } from '@/config/ui';
 import { InfoTip } from '@/components/game/InfoTip';
+import { LiquidGlassSlider } from '@/components/game/LiquidGlassSlider';
 import { PlayerSelect } from '@/components/game/PlayerSelect';
 import { useLineupOptimizer } from '@/hooks/useLineupOptimizer';
 import { infoToast } from '@/utils/gameToast';
@@ -549,110 +550,60 @@ const TacticsPage = () => {
         </div>
 
         {showAdvancedTactics && (
-          <div className="mt-4 space-y-4 border-t border-border/30 pt-4">
+          <div className="mt-4 space-y-5 border-t border-border/30 pt-4">
             {/* Mentality */}
             <div>
-              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Mentality <InfoTip text={HELP_TEXTS.mentality} /></p>
-              <div className="flex flex-wrap gap-1.5">
-                {MENTALITIES.map(m => (
-                  <button
-                    key={m.value}
-                    onClick={() => { setTactics({ mentality: m.value }); hapticLight(); }}
-                    className={cn(
-                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                      tactics.mentality === m.value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                    )}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
+              <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">Mentality <InfoTip text={HELP_TEXTS.mentality} /></p>
+              <LiquidGlassSlider
+                ariaLabel="Mentality"
+                options={MENTALITIES}
+                value={tactics.mentality}
+                onChange={v => setTactics({ mentality: v })}
+              />
             </div>
 
             {/* Team Width */}
             <div>
-              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Team Width <InfoTip text={HELP_TEXTS.width} /></p>
-              <div className="flex flex-wrap gap-1.5">
-                {WIDTHS.map(w => (
-                  <button
-                    key={w.value}
-                    onClick={() => { setTactics({ width: w.value }); hapticLight(); }}
-                    className={cn(
-                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                      tactics.width === w.value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                    )}
-                  >
-                    {w.label}
-                  </button>
-                ))}
-              </div>
+              <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">Team Width <InfoTip text={HELP_TEXTS.width} /></p>
+              <LiquidGlassSlider
+                ariaLabel="Team Width"
+                options={WIDTHS}
+                value={tactics.width}
+                onChange={v => setTactics({ width: v })}
+              />
             </div>
 
             {/* Tempo */}
             <div>
-              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Tempo <InfoTip text={HELP_TEXTS.tempo} /></p>
-              <div className="flex flex-wrap gap-1.5">
-                {TEMPOS.map(t => (
-                  <button
-                    key={t.value}
-                    onClick={() => { setTactics({ tempo: t.value }); hapticLight(); }}
-                    className={cn(
-                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                      tactics.tempo === t.value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                    )}
-                  >
-                    {t.label}
-                  </button>
-                ))}
-              </div>
+              <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">Tempo <InfoTip text={HELP_TEXTS.tempo} /></p>
+              <LiquidGlassSlider
+                ariaLabel="Tempo"
+                options={TEMPOS}
+                value={tactics.tempo}
+                onChange={v => setTactics({ tempo: v })}
+              />
             </div>
 
             {/* Defensive Line */}
             <div>
-              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Defensive Line <InfoTip text={HELP_TEXTS.defensiveLine} /></p>
-              <div className="flex flex-wrap gap-1.5">
-                {DEFENSIVE_LINES.map(d => (
-                  <button
-                    key={d.value}
-                    onClick={() => { setTactics({ defensiveLine: d.value }); hapticLight(); }}
-                    className={cn(
-                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                      tactics.defensiveLine === d.value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                    )}
-                  >
-                    {d.label}
-                  </button>
-                ))}
-              </div>
+              <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">Defensive Line <InfoTip text={HELP_TEXTS.defensiveLine} /></p>
+              <LiquidGlassSlider
+                ariaLabel="Defensive Line"
+                options={DEFENSIVE_LINES}
+                value={tactics.defensiveLine}
+                onChange={v => setTactics({ defensiveLine: v })}
+              />
             </div>
 
             {/* Pressing */}
             <div>
-              <p className="text-xs text-muted-foreground mb-1.5 flex items-center gap-1">Pressing <InfoTip text={HELP_TEXTS.pressingIntensity} /></p>
-              <div className="flex flex-wrap gap-1.5">
-                {PRESSING_OPTIONS.map(p => (
-                  <button
-                    key={p.value}
-                    onClick={() => { setTactics({ pressingIntensity: p.value }); hapticLight(); }}
-                    className={cn(
-                      'px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                      tactics.pressingIntensity === p.value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                    )}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
+              <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">Pressing <InfoTip text={HELP_TEXTS.pressingIntensity} /></p>
+              <LiquidGlassSlider
+                ariaLabel="Pressing"
+                options={PRESSING_OPTIONS}
+                value={tactics.pressingIntensity}
+                onChange={v => setTactics({ pressingIntensity: v })}
+              />
             </div>
           </div>
         )}
