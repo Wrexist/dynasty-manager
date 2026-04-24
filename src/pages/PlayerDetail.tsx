@@ -350,9 +350,9 @@ const PlayerDetail = () => {
           <p className="text-[10px] text-muted-foreground">Fitness</p>
         </GlassPanel>
         <GlassPanel className="p-3 text-center">
-          <Heart className="w-4 h-4 text-primary mx-auto mb-1" />
+          <Heart className={cn("w-4 h-4 mx-auto mb-1", getMoodColor(player.morale))} />
           <p className={cn("text-lg font-black tabular-nums", getMoodColor(player.morale))}>{player.morale}%</p>
-          <p className="text-[10px] text-muted-foreground">{getMoodLabel(player.morale)}</p>
+          <p className="text-[10px] text-muted-foreground">Morale <span className="text-muted-foreground/60">· {getMoodLabel(player.morale)}</span></p>
         </GlassPanel>
         <GlassPanel className="p-3 text-center">
           <TrendingUp className="w-4 h-4 text-primary mx-auto mb-1" />
