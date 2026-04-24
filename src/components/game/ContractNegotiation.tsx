@@ -6,6 +6,7 @@ import { X, ArrowRight, Check, AlertTriangle, Minus, Plus, Calendar } from 'luci
 import { formatWage, getPreferredYears, getYearsAdjustment, getAcceptanceHint } from '@/utils/contracts';
 import { getMoodColor, getMoodLabel, getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { useFlash } from '@/hooks/useFlash';
 import { motion } from 'framer-motion';
 import { hapticMedium, hapticHeavy, hapticLight } from '@/utils/haptics';
@@ -24,6 +25,7 @@ export function ContractNegotiation() {
   const submittingRef = useRef(false);
 
   useScrollLock(!!activeNegotiation);
+  useEscapeClose(cancelNegotiation, !!activeNegotiation);
 
   useEffect(() => {
     if (activeNegotiation) hapticMedium();
@@ -90,6 +92,9 @@ export function ContractNegotiation() {
         transition={{ type: 'spring', stiffness: 300, damping: 28 }}
         className="bg-card border border-border/50 rounded-2xl w-full max-w-sm overflow-hidden max-h-[85vh] overflow-y-auto"
         style={{ overscrollBehavior: 'contain' }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="contract-negotiation-title"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/30">
@@ -103,7 +108,7 @@ export function ContractNegotiation() {
               </span>
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-bold text-foreground">
+              <p id="contract-negotiation-title" className="text-sm font-bold text-foreground">
                 {activeNegotiation.type === 'renewal' ? 'Contract Renewal' : 'New Contract'}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">

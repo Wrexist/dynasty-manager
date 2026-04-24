@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useEscapeClose } from '@/hooks/useEscapeClose';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -81,6 +82,9 @@ export function TransferNegotiation({ listing, onClose }: Props) {
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
 
   useScrollLock();
+  // Block Escape during the AI's "thinking" phase to mirror the backdrop
+  // click gate — losing the modal mid-decision would desync the offer state.
+  useEscapeClose(onClose, phase !== 'thinking');
 
   const evaluation = useMemo(() => evaluateOffer(listing.playerId, offerFee), [listing.playerId, offerFee, evaluateOffer]);
 
@@ -185,6 +189,9 @@ export function TransferNegotiation({ listing, onClose }: Props) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: -60, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Transfer negotiation for ${player.firstName} ${player.lastName}`}
         >
           <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
           {/* ── NEGOTIATE PHASE ── */}

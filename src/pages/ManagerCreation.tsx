@@ -264,6 +264,7 @@ const ManagerCreation = () => {
                     onChange={e => setManagerName(e.target.value)}
                     placeholder="Enter your name..."
                     maxLength={30}
+                    aria-label="Manager name"
                     className="w-full bg-white/5 border border-white/15 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/30 transition-colors backdrop-blur-md shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-1px_0_rgba(0,0,0,0.25)]"
                     autoFocus
                   />
@@ -284,6 +285,7 @@ const ManagerCreation = () => {
                     value={nationSearch}
                     onChange={e => setNationSearch(e.target.value)}
                     placeholder="Search nations..."
+                    aria-label="Search nations"
                     className={cn(LIQUID_GLASS_SURFACE, 'w-full pl-9 pr-9 py-2.5 border border-white/10 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all')}
                   />
                   {nationSearch && (
@@ -418,6 +420,8 @@ const ManagerCreation = () => {
                       max={STARTING_AGE_MAX}
                       value={age}
                       onChange={e => setAge(Number(e.target.value))}
+                      aria-label="Starting age"
+                      aria-valuetext={`${age} years old`}
                       className="age-slider"
                       style={{
                         '--slider-progress': `${((age - STARTING_AGE_MIN) / (STARTING_AGE_MAX - STARTING_AGE_MIN)) * 100}%`,
@@ -615,6 +619,8 @@ const ManagerCreation = () => {
                                   step={100}
                                   value={counterSalary}
                                   onChange={e => setCounterSalary(Number(e.target.value))}
+                                  aria-label="Counter-offer salary"
+                                  aria-valuetext={`£${Math.round(counterSalary / 1000)} thousand`}
                                   className="flex-1 accent-primary h-1.5"
                                   onClick={e => e.stopPropagation()}
                                 />
