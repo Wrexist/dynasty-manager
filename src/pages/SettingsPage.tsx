@@ -4,7 +4,8 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Wrench } from 'lucide-react';
+import { DevToolsBody, DEV_TOOLS_VISIBLE } from '@/components/dev/DevToolsPanel';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -128,6 +129,7 @@ const SettingsPageInner = () => {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackCategory, setFeedbackCategory] = useState<'bug' | 'feature' | 'general'>('general');
   const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [devToolsOpen, setDevToolsOpen] = useState(false);
   // Analytics consent — device-level pref, lives outside the save. Seed from
   // localStorage; toggling writes back immediately.
   const [analyticsGranted, setAnalyticsGranted] = useState(() => readAnalyticsConsent() === 'granted');
@@ -601,6 +603,25 @@ const SettingsPageInner = () => {
         </SettingsSection>
       )}
 
+      {/* ─── Dev Tools (mirror of the floating trigger) ───
+          Same visibility gate as the bottom-right pill, so we don't surface
+          state-mutating shortcuts in shipped prod builds. Useful when the
+          floating button goes off-screen or is occluded by an overlay. */}
+      {DEV_TOOLS_VISIBLE && (
+        <SettingsSection title="Dev Tools">
+          <LiquidButton tone="amber" onClick={() => setDevToolsOpen(true)}>
+            <span className="flex items-center justify-start gap-3 px-3">
+              <Wrench className="w-4 h-4" />
+              Open Dev Tools
+            </span>
+          </LiquidButton>
+          <p className="text-[10px] text-muted-foreground mt-2 leading-snug">
+            Same controls as the floating dev pill — screen shortcuts, time
+            advance, budget adjust, save/reset. Opens in a bottom sheet.
+          </p>
+        </SettingsSection>
+      )}
+
       {/* ─── About ─── */}
       <div className="flex flex-col items-center gap-1.5 py-3">
         <img
@@ -611,6 +632,28 @@ const SettingsPageInner = () => {
         <p className="text-xs text-foreground/80 font-semibold tracking-wide">Dynasty Manager</p>
         <p className="text-[10px] text-muted-foreground">{APP_VERSION}</p>
       </div>
+
+      {/* Dev Tools Sheet — hosts the shared DevToolsBody inside a bottom
+          sheet so Settings has a reliable entry point when the floating
+          pill is hidden. Sheet provides its own overlay + X close; we
+          hide the body's internal X to avoid a visual duplicate. */}
+      <Sheet open={devToolsOpen} onOpenChange={setDevToolsOpen}>
+        <SheetContent
+          side="bottom"
+          className={cn(
+            'rounded-t-3xl border-0 p-0',
+            'bg-gradient-to-b from-[hsl(222_35%_14%/0.92)] via-[hsl(222_28%_10%/0.95)] to-[hsl(222_40%_7%/0.98)]',
+            'backdrop-blur-2xl backdrop-saturate-150',
+            'shadow-[0_0_0_0.5px_rgba(255,255,255,0.14)_inset,inset_0_1px_0_rgba(255,255,255,0.25),0_-20px_60px_-20px_rgba(0,0,0,0.7)]',
+            'h-[85vh] max-h-[85vh] flex flex-col',
+          )}
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Dev Tools</SheetTitle>
+          </SheetHeader>
+          <DevToolsBody onClose={() => setDevToolsOpen(false)} showCloseButton={false} />
+        </SheetContent>
+      </Sheet>
 
       {/* Feedback Sheet — matching liquid-glass treatment */}
       <Sheet open={feedbackOpen} onOpenChange={setFeedbackOpen}>
