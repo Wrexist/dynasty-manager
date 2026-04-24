@@ -50,7 +50,9 @@ function makeClub(overrides: Partial<Club> = {}): Club {
 describe('PlayerHeroCard', () => {
   it('renders player name, rating, and club', () => {
     render(<PlayerHeroCard player={makePlayer()} club={makeClub()} />);
-    expect(screen.getByText('Derry Murkin')).toBeInTheDocument();
+    // Name is rendered stacked: surname on top line, first name below.
+    expect(screen.getByText('Murkin')).toBeInTheDocument();
+    expect(screen.getByText('Derry')).toBeInTheDocument();
     expect(screen.getByText('69')).toBeInTheDocument();
     expect(screen.getByText('FC Schalke 04')).toBeInTheDocument();
   });

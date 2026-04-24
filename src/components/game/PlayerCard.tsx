@@ -60,6 +60,7 @@ function sizeTokens(size: PlayerCardSize) {
     ovrLeftPx: Math.round(w * 0.12),
     posPx: Math.max(7, Math.round(w * 0.067)),
     namePx: Math.max(8, Math.round(w * 0.107)),
+    firstNamePx: Math.max(6, Math.round(w * 0.073)),
     statLabelPx: Math.max(6, Math.round(w * 0.06)),
     statValPx: Math.max(8, Math.round(w * 0.08)),
     profileLabelPx: Math.max(6, Math.round(w * 0.053)),
@@ -125,9 +126,6 @@ export const PlayerCard = memo(function PlayerCard({
     if (!onDismiss) return;
     onDismiss();
   };
-
-  const combinedLen = player.firstName.length + player.lastName.length + 1;
-  const displayName = combinedLen > 14 ? player.lastName : `${player.firstName} ${player.lastName}`;
 
   const viewLabel = statView === 0 ? 'stats' : statView === 1 ? 'profile' : 'condition';
   const ariaLabel =
@@ -209,24 +207,24 @@ export const PlayerCard = memo(function PlayerCard({
             {player.overall}
           </div>
           <div
-            className="mt-0.5 font-bold tracking-[0.22em] text-white/90"
+            className="mt-0.5 font-bold tracking-[0.15em] text-white/90"
             style={{ fontSize: tk.posPx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
           >
             {player.position}
           </div>
         </div>
 
-        {/* Identity block — sits just above the shield divider. */}
+        {/* Identity block — surname + flag on top, first name below. */}
         <div
-          className="absolute text-center bottom-[38%]"
+          className="absolute text-center bottom-[39%]"
           style={{ left: tk.paddingXPx, right: tk.paddingXPx }}
         >
           <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full">
             <p
-              className="min-w-0 font-display font-black leading-none truncate"
+              className="min-w-0 font-display font-black leading-none truncate uppercase tracking-[0.02em]"
               style={{ fontSize: tk.namePx, textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}
             >
-              {displayName}
+              {player.lastName}
             </p>
             <div
               className="rounded-[2px] overflow-hidden border border-white/40 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
@@ -235,6 +233,14 @@ export const PlayerCard = memo(function PlayerCard({
               <FlagIcon nationality={player.nationality} fill />
             </div>
           </div>
+          {size !== 'sm' && !compact && (
+            <p
+              className="mt-0.5 font-medium text-white/80 leading-none truncate"
+              style={{ fontSize: tk.firstNamePx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+            >
+              {player.firstName}
+            </p>
+          )}
         </div>
 
         {/* Stat panel — top-aligned inside the shield's lower gray band.
