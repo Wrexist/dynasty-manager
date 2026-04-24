@@ -6,12 +6,12 @@ import { getSlotSummaries } from '@/store/slices/orchestrationSlice';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Play, Settings, RotateCcw, Trash2, Save, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink } from 'lucide-react';
+import { Play, Settings, Trash2, Save, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink, ChevronRight, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { signalReady } from '@/main';
 import { infoToast, successToast, errorToast } from '@/utils/gameToast';
-import { hapticMedium } from '@/utils/haptics';
+import { hapticMedium, hapticLight } from '@/utils/haptics';
 import {
   removeFlag,
   clearFlagsByPrefix,
@@ -148,7 +148,7 @@ const TitleScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 overflow-hidden relative safe-area-top safe-area-bottom">
+    <div className="min-h-screen bg-background flex flex-col items-center px-6 pt-10 pb-14 overflow-hidden relative safe-area-top safe-area-bottom">
       {/* Floating background circles — pure CSS animation for GPU efficiency.
           The .title-float-circle class gives index.css a clean handle to
           disable the drift under prefers-reduced-motion. */}
@@ -175,115 +175,191 @@ const TitleScreen = () => {
         initial={{ opacity: 0, y: -40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.9, ease: 'easeOut' }}
-        className="text-center relative z-10"
+        className="text-center relative z-10 flex flex-col items-center"
       >
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
+          className="relative mb-5"
         >
-          <img src="/logo.png" alt="Dynasty Manager" className="w-32 h-32 mx-auto mb-6 drop-shadow-[0_0_20px_hsl(var(--primary)/0.4)]" />
+          {/* Soft halo behind logo for premium glow */}
+          <div
+            aria-hidden
+            className="absolute inset-0 -z-10 rounded-full blur-2xl opacity-60"
+            style={{ background: 'radial-gradient(circle, hsl(43 96% 46% / 0.35) 0%, transparent 70%)' }}
+          />
+          <img
+            src="/logo.png"
+            alt="Dynasty Manager"
+            className="w-28 h-28 drop-shadow-[0_6px_24px_hsl(43_96%_46%/0.35)]"
+          />
         </motion.div>
-        <h1 className="text-5xl font-black text-foreground tracking-tight font-display">DYNASTY</h1>
-        <p className="text-xl text-primary font-bold tracking-[0.35em] mt-1 font-display">MANAGER</p>
-        <p className="text-sm text-muted-foreground mt-3 tracking-[0.35em] uppercase font-display">Football Edition</p>
+        <h1 className="text-[3.25rem] leading-none font-black text-foreground tracking-tight font-display">DYNASTY</h1>
+        <p className="text-xl text-primary font-bold tracking-[0.38em] mt-1.5 font-display">MANAGER</p>
+        <div className="flex items-center justify-center gap-2.5 mt-3.5">
+          <span aria-hidden className="h-px w-8 bg-gradient-to-r from-transparent to-primary/40" />
+          <p className="text-[10px] text-muted-foreground tracking-[0.42em] uppercase font-display">Football Edition</p>
+          <span aria-hidden className="h-px w-8 bg-gradient-to-l from-transparent to-primary/40" />
+        </div>
       </motion.div>
 
-      {/* Save Slots */}
-      <div className="mt-12 flex flex-col gap-3 w-full max-w-xs relative z-10">
-        <motion.p
+      {/* Save Slots + CTAs */}
+      <div className="mt-10 flex flex-col gap-2.5 w-full max-w-sm relative z-10">
+        <motion.div
           custom={0}
           variants={buttonVariants}
           initial="hidden"
           animate="visible"
-          className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1"
+          className="flex items-center justify-between px-1 mb-1"
         >
-          Save Slots
-        </motion.p>
+          <p className="text-[10px] text-muted-foreground uppercase tracking-[0.3em] font-semibold">Save Slots</p>
+          <p className="text-[10px] text-muted-foreground/50 uppercase tracking-[0.3em] font-semibold">
+            {slots.filter(s => s.exists).length}/{slots.length}
+          </p>
+        </motion.div>
 
         {slots.map((slot, idx) => (
           <motion.div key={slot.slot} custom={idx + 1} variants={buttonVariants} initial="hidden" animate="visible">
             {slot.exists ? (
-              <GlassPanel className="p-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Save className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="text-sm font-bold text-foreground truncate">{slot.clubName}</p>
-                      {slot.gameMode === 'career' && (
-                        <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold shrink-0">Career</span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      Season {slot.season} — Week {slot.week}
-                      {slot.position && ` — ${slot.position}${getSuffix(Number(slot.position))} place`}
-                    </p>
-                  </div>
-                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
-                </div>
-                <div className="flex gap-2 mt-2">
-                  <Button
-                    size="sm"
-                    className="flex-1 h-9 text-xs font-bold gap-1.5"
-                    onClick={() => handleContinue(slot.slot)}
+              <GlassPanel className="p-0">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => { hapticLight(); handleContinue(slot.slot); }}
+                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left active:scale-[0.985] transition-transform"
+                    aria-label={`Continue — ${slot.clubName}, Season ${slot.season} Week ${slot.week}`}
                   >
-                    <RotateCcw className="w-3 h-3" /> Continue
-                  </Button>
-                  {confirmDelete === slot.slot ? (
-                    <div className="flex gap-1">
-                      <Button size="sm" variant="destructive" className="h-11 min-w-[44px] text-xs px-3" onClick={() => handleDelete(slot.slot)}>
-                        Confirm
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-11 min-w-[44px] text-xs px-2 hover:bg-muted/20 hover:text-foreground" onClick={() => setConfirmDelete(null)}>
-                        Cancel
-                      </Button>
+                    <div className="relative shrink-0">
+                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/25 to-primary/10 border border-primary/30 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_12px_-4px_hsl(43_96%_46%/0.4)]">
+                        <Save className="w-[18px] h-[18px] text-primary" />
+                      </div>
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-background/90 animate-pulse" />
                     </div>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-11 w-11 px-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20"
-                      onClick={() => setConfirmDelete(slot.slot)}
-                      aria-label={`Delete save slot ${slot.slot}`}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
-                  )}
+                    <div className="flex-1 min-w-0 pr-8">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-bold text-foreground truncate">{slot.clubName}</p>
+                        {slot.gameMode === 'career' && (
+                          <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-[1px] rounded-full font-semibold shrink-0 uppercase tracking-wider border border-primary/25">
+                            Career
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground truncate mt-0.5 flex items-center gap-1.5">
+                        <RotateCcw className="w-3 h-3 text-primary/70 shrink-0" aria-hidden />
+                        Season {slot.season} · Wk {slot.week}
+                        {slot.position && ` · ${slot.position}${getSuffix(Number(slot.position))}`}
+                      </p>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); hapticLight(); setConfirmDelete(slot.slot); }}
+                    className="absolute top-1.5 right-1.5 w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground/60 hover:text-destructive hover:bg-destructive/10 active:bg-destructive/20 transition-colors"
+                    aria-label={`Delete save slot ${slot.slot}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
+                {confirmDelete === slot.slot && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    className="border-t border-white/[0.08] px-4 py-3 flex items-center gap-2"
+                  >
+                    <p className="text-[11px] text-muted-foreground flex-1">Delete this save permanently?</p>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDelete(null)}
+                      className="h-8 px-3 rounded-lg text-[11px] font-semibold text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(slot.slot)}
+                      className="h-8 px-3 rounded-lg text-[11px] font-semibold bg-destructive/20 text-red-300 border border-destructive/30 hover:bg-destructive/30 active:bg-destructive/40 transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]"
+                    >
+                      Delete
+                    </button>
+                  </motion.div>
+                )}
               </GlassPanel>
             ) : (
-              <Button
-                size="lg"
-                variant="outline"
-                className="w-full h-14 text-base gap-3 border-dashed border-border/50 hover:bg-primary/10 hover:text-primary active:bg-primary/20"
+              <GlassPanel
+                className="p-0"
                 onClick={() => handleNewGame(slot.slot)}
+                aria-label={`Start new game in slot ${slot.slot}`}
               >
-                <Play className="h-4 w-4" /> New Game — Slot {slot.slot}
-              </Button>
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-dashed border-white/15 flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+                    <Play className="w-[18px] h-[18px] text-muted-foreground fill-muted-foreground/30" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground/90">New Game</p>
+                    <p className="text-[11px] text-muted-foreground/80 mt-0.5">Slot {slot.slot} · Start a new dynasty</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                </div>
+              </GlassPanel>
             )}
           </motion.div>
         ))}
 
-        {/* Challenge Mode button */}
-        <motion.div custom={slots.length + 1} variants={buttonVariants} initial="hidden" animate="visible">
-          <Button
-            size="lg"
-            variant="outline"
-            className="w-full h-12 gap-3 border-primary/30 text-primary hover:bg-primary/10"
-            onClick={() => navigate('/challenge')}
-          >
-            <Swords className="h-4 w-4" /> Challenge Mode
-          </Button>
+        {/* Divider between save slots and quick actions */}
+        <motion.div
+          custom={slots.length + 1}
+          variants={buttonVariants}
+          initial="hidden"
+          animate="visible"
+          className="flex items-center gap-3 px-1 pt-3 pb-0.5"
+        >
+          <span aria-hidden className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         </motion.div>
 
+        {/* Challenge Mode */}
         <motion.div custom={slots.length + 2} variants={buttonVariants} initial="hidden" animate="visible">
+          <GlassPanel
+            className="p-0"
+            onClick={() => navigate('/challenge')}
+            aria-label="Challenge Mode"
+          >
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/25 to-primary/10 border border-primary/30 flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_4px_12px_-4px_hsl(43_96%_46%/0.4)]">
+                <Swords className="w-[18px] h-[18px] text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-foreground">Challenge Mode</p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Curated scenarios · bespoke objectives</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-primary/70 shrink-0" />
+            </div>
+          </GlassPanel>
+        </motion.div>
+
+        {/* Settings */}
+        <motion.div custom={slots.length + 3} variants={buttonVariants} initial="hidden" animate="visible">
           <Sheet>
             <SheetTrigger asChild>
-              <Button size="lg" variant="ghost" className="w-full h-12 text-muted-foreground gap-3 hover:bg-muted/20 hover:text-muted-foreground">
-                <Settings className="h-4 w-4" /> Settings
-              </Button>
+              <button
+                type="button"
+                onClick={() => hapticLight()}
+                className="w-full rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-[0.985] transition-transform"
+                aria-label="Open settings"
+              >
+                <GlassPanel className="p-0">
+                  <div className="flex items-center gap-3 px-4 py-3.5">
+                    <div className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/15 flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+                      <Settings className="w-[18px] h-[18px] text-muted-foreground" />
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-sm font-bold text-foreground">Settings</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Speed · display · purchases</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+                  </div>
+                </GlassPanel>
+              </button>
             </SheetTrigger>
             <SheetContent side="bottom" className="bg-background border-border/50 rounded-t-2xl max-h-[85vh]">
               <SheetHeader>
@@ -477,7 +553,7 @@ const TitleScreen = () => {
         </motion.div>
       </div>
 
-      <p className="absolute bottom-6 text-[10px] text-muted-foreground/50 tracking-wider">v0.2 ALPHA</p>
+      <p className="absolute bottom-5 text-[10px] text-muted-foreground/50 tracking-[0.4em] font-display">v0.2 ALPHA</p>
 
       <CommunityPackPopup
         open={communityPackSlot !== null}
