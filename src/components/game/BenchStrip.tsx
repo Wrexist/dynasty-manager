@@ -16,6 +16,7 @@ interface BenchStripProps {
   compatRing?: 'natural' | 'compatible' | 'wrong' | null;
   isBestSub?: boolean;
   week?: number;
+  /** @deprecated kept for prop-API compatibility; club-color stripe removed. */
   clubColor?: string;
   onClick: () => void;
 }
@@ -52,7 +53,6 @@ export const BenchStrip = memo(function BenchStrip({
   compatRing,
   isBestSub,
   week,
-  clubColor,
   onClick,
 }: BenchStripProps) {
   const fitnessColor = getFitnessHexColor(player.fitness);
@@ -90,18 +90,6 @@ export const BenchStrip = memo(function BenchStrip({
         size="sm"
         interactive="none"
       />
-
-      {/* Club-color accent — rendered as a left-edge overlay so it does
-          not clobber the compatibility ring or best-sub glow (both are
-          box-shadow based, same CSS property an inline box-shadow would
-          overwrite). */}
-      {clubColor && (
-        <span
-          aria-hidden
-          className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-[12px] pointer-events-none z-10"
-          style={{ backgroundColor: clubColor }}
-        />
-      )}
 
       {isSelected && (
         <span className="absolute inset-0 rounded-[12px] ring-2 ring-primary animate-pulse pointer-events-none z-20" />

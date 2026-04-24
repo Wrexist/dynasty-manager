@@ -26,6 +26,7 @@ function getTopThreeStats(attrs: PlayerAttributes): Array<{ label: string; value
 
 export type PlayerCardSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type PlayerCardInteraction = 'cycle' | 'detail' | 'none';
+export type PositionTone = 'natural' | 'compatible' | 'wrong';
 
 type StatView = 0 | 1 | 2;
 
@@ -59,12 +60,24 @@ interface PlayerCardProps {
    * there's nothing left to cycle.
    */
   compact?: boolean;
+  /**
+   * When set, colors the position label to signal how well the player fits
+   * the slot they're in (tactics pitch only): natural → green, compatible →
+   * amber, wrong → red. Omit for neutral white.
+   */
+  positionTone?: PositionTone | null;
   /** Optional quick-release × on the face (pack summary context). */
   onDismiss?: () => void;
   /** Optional override for the tooltip / aria-label on the dismiss button. */
   dismissLabel?: string;
   className?: string;
 }
+
+const POSITION_TONE_COLORS: Record<PositionTone, string> = {
+  natural: '#34d399',
+  compatible: '#fbbf24',
+  wrong: '#f87171',
+};
 
 /**
  * Fixed external size tokens → single source of truth for the card preset
@@ -123,6 +136,7 @@ export const PlayerCard = memo(function PlayerCard({
   onDetailClick,
   showConditionView = true,
   compact = false,
+  positionTone = null,
   onDismiss,
   dismissLabel,
   className,
@@ -231,7 +245,9 @@ export const PlayerCard = memo(function PlayerCard({
           </button>
         )}
 
-        {/* OVR + position — inset from the shield's top-left curve. */}
+        {/* OVR + position — inset from the shield's top-left curve. The
+            position label optionally takes on a compat tone on the pitch:
+            green = natural slot, amber = compatible, red = wrong. */}
         <div
           className="absolute leading-none"
           style={{ top: tk.ovrTopPx, left: tk.ovrLeftPx, textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.45)' }}
@@ -243,55 +259,72 @@ export const PlayerCard = memo(function PlayerCard({
             {player.overall}
           </div>
           <div
-            className="mt-0.5 font-bold tracking-[0.15em] text-white/90"
-            style={{ fontSize: tk.posPx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+            className="mt-0.5 font-bold tracking-[0.15em]"
+            style={{
+              fontSize: tk.posPx,
+              color: positionTone ? POSITION_TONE_COLORS[positionTone] : 'rgba(255,255,255,0.9)',
+              textShadow: positionTone
+                ? '0 1px 3px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.5)'
+                : '0 1px 3px rgba(0,0,0,0.85)',
+            }}
           >
             {player.position}
           </div>
         </div>
 
-        {/* Flag — pinned to the top-right corner on xs so the surname line
-            can use the full card width (more letters of long names fit). */}
-        {size === 'xs' && (
-          <div
-            aria-hidden
-            className="absolute rounded-[2px] overflow-hidden border border-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.6)] z-10"
-            style={{ top: tk.ovrTopPx, right: tk.ovrLeftPx, width: tk.flagWPx, height: tk.flagHPx }}
-          >
-            <FlagIcon nationality={player.nationality} fill />
-          </div>
-        )}
-
-        {/* Identity block — surname (+ inline flag on md+). */}
-        <div
-          className="absolute text-center bottom-[39%]"
-          style={{ left: tk.paddingXPx, right: tk.paddingXPx }}
-        >
-          <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full">
-            <p
-              className="min-w-0 font-display font-black leading-none truncate uppercase tracking-[0.02em]"
-              style={{ fontSize: tk.namePx, textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}
+        {/* Identity block — flag sits above the surname on the small
+            tactics/bench tiles (xs / sm) so the same stack reads at a
+            glance regardless of name length. Larger cards keep the flag
+            inline with the surname (squad-page / pack look). */}
+        {(() => {
+          const flagOverName = size === 'xs' || size === 'sm';
+          const showFirstName =
+            size === 'xs' ? compact : size === 'sm' ? true : !compact;
+          return (
+            <div
+              className="absolute text-center"
+              style={{
+                left: tk.paddingXPx,
+                right: tk.paddingXPx,
+                bottom: flagOverName ? '44%' : '39%',
+              }}
             >
-              {player.lastName}
-            </p>
-            {size !== 'xs' && (
-              <div
-                className="rounded-[2px] overflow-hidden border border-white/40 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
-                style={{ width: tk.flagWPx, height: tk.flagHPx }}
-              >
-                <FlagIcon nationality={player.nationality} fill />
+              {flagOverName && (
+                <div
+                  aria-hidden
+                  className="mx-auto mb-0.5 rounded-[2px] overflow-hidden border border-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+                  style={{ width: tk.flagWPx, height: tk.flagHPx }}
+                >
+                  <FlagIcon nationality={player.nationality} fill />
+                </div>
+              )}
+              <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full">
+                <p
+                  className="min-w-0 font-display font-black leading-none truncate uppercase tracking-[0.02em]"
+                  style={{ fontSize: tk.namePx, textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}
+                >
+                  {player.lastName}
+                </p>
+                {!flagOverName && (
+                  <div
+                    className="rounded-[2px] overflow-hidden border border-white/40 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+                    style={{ width: tk.flagWPx, height: tk.flagHPx }}
+                  >
+                    <FlagIcon nationality={player.nationality} fill />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-          {size !== 'xs' && size !== 'sm' && !compact && (
-            <p
-              className="mt-0.5 font-medium text-white/80 leading-none truncate"
-              style={{ fontSize: tk.firstNamePx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
-            >
-              {player.firstName}
-            </p>
-          )}
-        </div>
+              {showFirstName && (
+                <p
+                  className="mt-0.5 font-medium text-white/80 leading-none truncate"
+                  style={{ fontSize: tk.firstNamePx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+                >
+                  {player.firstName}
+                </p>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Tactics-tile bottom band: fitness sits on the card's natural
             divider (gradient line around ~60% from top, between the name
@@ -301,7 +334,8 @@ export const PlayerCard = memo(function PlayerCard({
         {size === 'xs' && compact && (() => {
           const fitnessColor = getFitnessHexColor(player.fitness);
           const topStats = getTopThreeStats(player.attributes);
-          const statFontPx = Math.max(7, Math.round(tk.widthPx * 0.14));
+          const statValPx = Math.max(7, Math.round(tk.widthPx * 0.14));
+          const statLabelPx = Math.max(5, Math.round(tk.widthPx * 0.09));
           return (
             <>
               {/* Fitness bar — sits right over the card's divider line. */}
@@ -320,24 +354,31 @@ export const PlayerCard = memo(function PlayerCard({
                 </div>
               </div>
 
-              {/* Top-3 stats row — in the gray band under the line. */}
+              {/* Top-3 stats — each cell stacks its label above the value
+                  so the tactics pitch reads PAC/SHO/DEF etc. at a glance. */}
               <div
-                className="absolute left-0 right-0 flex items-center justify-around gap-[2px] leading-none pointer-events-none"
+                className="absolute left-0 right-0 flex items-start justify-around gap-[2px] leading-none pointer-events-none"
                 style={{
-                  top: '72%',
+                  top: '68%',
                   paddingLeft: tk.paddingXPx * 0.25,
                   paddingRight: tk.paddingXPx * 0.25,
-                  fontSize: statFontPx,
                 }}
               >
                 {topStats.map((s) => (
-                  <span
-                    key={s.label}
-                    className="font-display font-black tabular-nums text-white"
-                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.7)' }}
-                  >
-                    {s.value}
-                  </span>
+                  <div key={s.label} className="flex flex-col items-center leading-none">
+                    <span
+                      className="font-semibold tracking-[0.08em] text-white/75"
+                      style={{ fontSize: statLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.95)' }}
+                    >
+                      {s.label}
+                    </span>
+                    <span
+                      className="font-display font-black tabular-nums text-white"
+                      style={{ fontSize: statValPx, marginTop: 1, textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.7)' }}
+                    >
+                      {s.value}
+                    </span>
+                  </div>
                 ))}
               </div>
             </>
@@ -347,10 +388,12 @@ export const PlayerCard = memo(function PlayerCard({
         {/* Stat panel — top-aligned inside the shield's lower gray band.
             Omitted in compact mode (sm / dense list contexts). Kept inset
             from the ornate bottom frame on rare/gold cards so stats don't
-            sit on top of the border artwork. */}
+            sit on top of the border artwork. On sm (bench tile) each cell
+            stacks its label above the value so the tiny shield still reads
+            at a glance. */}
         {!compact && (
         <div
-          className="absolute top-[68%] bottom-[9%]"
+          className={cn('absolute', size === 'sm' ? 'top-[60%] bottom-[4%]' : 'top-[68%] bottom-[9%]')}
           style={{ left: tk.paddingXPx * 0.9, right: tk.paddingXPx * 0.9 }}
         >
           <AnimatePresence mode="wait" initial={false}>
@@ -369,20 +412,37 @@ export const PlayerCard = memo(function PlayerCard({
                   ['DEF', player.attributes.defending],
                   ['PHY', player.attributes.physical],
                 ] as const).map(([label, value]) => (
-                  <div key={label} className="flex items-baseline justify-between gap-1">
-                    <span
-                      className="font-semibold tracking-[0.12em] text-white/75 leading-none"
-                      style={{ fontSize: tk.statLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                    >
-                      {label}
-                    </span>
-                    <span
-                      className="font-display font-black tabular-nums leading-none text-white"
-                      style={{ fontSize: tk.statValPx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
-                    >
-                      {value}
-                    </span>
-                  </div>
+                  size === 'sm' ? (
+                    <div key={label} className="flex flex-col items-center leading-none">
+                      <span
+                        className="font-semibold tracking-[0.08em] text-white/75"
+                        style={{ fontSize: tk.statLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                      >
+                        {label}
+                      </span>
+                      <span
+                        className="font-display font-black tabular-nums text-white"
+                        style={{ fontSize: tk.statValPx, marginTop: 1, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+                      >
+                        {value}
+                      </span>
+                    </div>
+                  ) : (
+                    <div key={label} className="flex items-baseline justify-between gap-1">
+                      <span
+                        className="font-semibold tracking-[0.12em] text-white/75 leading-none"
+                        style={{ fontSize: tk.statLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                      >
+                        {label}
+                      </span>
+                      <span
+                        className="font-display font-black tabular-nums leading-none text-white"
+                        style={{ fontSize: tk.statValPx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+                      >
+                        {value}
+                      </span>
+                    </div>
+                  )
                 ))}
               </motion.div>
             )}
