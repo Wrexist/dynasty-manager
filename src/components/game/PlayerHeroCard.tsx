@@ -1,40 +1,25 @@
 /**
- * PlayerHeroCard — premium hero banner for the Player Detail page.
+ * PlayerHeroCard — compact hero banner for the Player Detail page.
  *
- * Wraps the shared {@link PlayerCard} (size="xl", interactive="cycle")
- * with a tier-glow frame and a supplementary info column: tier label,
- * growth arrow, full nationality name, height/weight, potential, skill
- * stars, real-player badge, and club identity. Copies of data already
- * shown on the card face (OVR, position, name, flag, stats) are
- * deliberately omitted so the banner doesn't read as duplicated.
+ * Lays the shared {@link PlayerCard} (size="lg", interactive="cycle")
+ * side-by-side with a meta column: tier label, growth arrow, potential,
+ * age / nationality, skill stars, real-player badge, and club identity.
+ * The card art already carries tier colours, so the panel stays neutral
+ * — no gradient halo or club tint behind it — and keeps the data-tier
+ * attribute for test / style hooks.
  */
 
-import { memo, useMemo } from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
+import { memo } from 'react';
+import { TrendingUp, TrendingDown, Star } from 'lucide-react';
 import type { Player, Club } from '@/types/game';
 import { GlassPanel } from './GlassPanel';
 import { PlayerCard } from './PlayerCard';
-import { TierBorderFrame } from './TierBorderFrame';
 import { cn } from '@/lib/utils';
 import { getPlayerTier } from '@/utils/uiHelpers';
-import { lighten, darken } from '@/utils/colorUtils';
 
 interface PlayerHeroCardProps {
   player: Player;
   club?: Club;
-}
-
-/** Return a club color safe for use as a subtle backdrop tint. */
-function getBackdropColor(hex: string): string {
-  const num = parseInt(hex.replace('#', ''), 16);
-  if (Number.isNaN(num)) return hex;
-  const r = (num >> 16) & 0xff;
-  const g = (num >> 8) & 0xff;
-  const b = num & 0xff;
-  const luminance = (r * 0.299 + g * 0.587 + b * 0.114) / 255;
-  if (luminance < 0.2) return lighten(hex, 0.5);
-  if (luminance > 0.85) return darken(hex, 0.3);
-  return hex;
 }
 
 export const PlayerHeroCard = memo(function PlayerHeroCard({
@@ -43,9 +28,9 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
 }: PlayerHeroCardProps) {
   const clubColor = club?.color || '#888';
   const showPotential = player.potential > player.overall;
+  const potentialGap = Math.max(0, player.potential - player.overall);
   const skillMoves = player.skillMoves ?? 0;
   const growth = player.growthDelta;
-  const backdropColor = useMemo(() => getBackdropColor(clubColor), [clubColor]);
   const tier = getPlayerTier(player.overall);
 
   const ariaLabel = [
@@ -59,99 +44,107 @@ export const PlayerHeroCard = memo(function PlayerHeroCard({
   ].filter(Boolean).join(', ');
 
   return (
-    <TierBorderFrame
-      tier={tier}
-      glow
-      outerRadiusClass="rounded-2xl"
-      innerRadiusClass="rounded-[14px]"
-      paddingClass="p-[2px]"
+    <GlassPanel
+      className="relative p-3"
+      aria-label={ariaLabel}
     >
-      <GlassPanel
-        className="relative overflow-hidden p-4 rounded-[14px]"
-        aria-label={ariaLabel}
-      >
-        {/* Subtle club-color radial tint to anchor the hero to the team identity */}
-        <div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `radial-gradient(circle at 85% 0%, ${backdropColor}33, transparent 60%)`,
-          }}
+      <div data-tier={tier.key} className="relative flex items-stretch gap-3">
+        {/* Card (smaller hero size, self-contained tier art) */}
+        <PlayerCard
+          player={player}
+          size="lg"
+          interactive="cycle"
+          showConditionView
+          className="shrink-0"
         />
 
-        <div className="relative flex flex-col sm:flex-row items-center sm:items-start gap-4">
-          <PlayerCard
-            player={player}
-            size="xl"
-            interactive="cycle"
-            showConditionView
-            className="shrink-0"
-          />
-
-          <div className="flex-1 min-w-0 pt-1 space-y-2">
-            {/* Tier + growth row */}
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  'px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide shrink-0',
-                  tier.badgeClass,
-                )}
-                aria-label={`tier ${tier.label}`}
-              >
-                {tier.label}
-              </span>
-              {growth != null && growth > 0 && (
-                <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0" aria-label={`growing +${growth}`} />
+        {/* Meta column — hugs the right of the card */}
+        <div className="flex-1 min-w-0 flex flex-col py-0.5">
+          {/* Tier pill + growth trend */}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span
+              className={cn(
+                'px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide shrink-0',
+                tier.badgeClass,
               )}
-              {growth != null && growth < 0 && (
-                <TrendingDown className="w-4 h-4 text-destructive shrink-0" aria-label={`declining ${growth}`} />
-              )}
-            </div>
-
-            {/* Meta — only fields the card doesn't already show */}
-            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              <span>{player.age}y</span>
-              <span className="text-muted-foreground/50">·</span>
-              <span>{player.nationality}</span>
-              {player.source === 'real' && player.heightCm && player.weightKg && (
-                <>
-                  <span className="text-muted-foreground/50">·</span>
-                  <span className="tabular-nums">{player.heightCm}cm · {player.weightKg}kg</span>
-                </>
-              )}
-              {showPotential && (
-                <>
-                  <span className="text-muted-foreground/50">·</span>
-                  <span className="text-primary font-semibold">Pot {player.potential}</span>
-                </>
-              )}
-              {skillMoves >= 3 && (
-                <>
-                  <span className="text-muted-foreground/50">·</span>
-                  <span className="text-amber-400">{'★'.repeat(skillMoves)}</span>
-                </>
-              )}
-            </div>
-
-            {player.source === 'real' && (
-              <span
-                className="inline-block px-1.5 py-0.5 rounded text-[9px] font-medium uppercase tracking-wider text-muted-foreground bg-muted/40 border border-border/40"
-                aria-label="Real player"
-              >
-                Real Player
+              aria-label={`tier ${tier.label}`}
+            >
+              {tier.label}
+            </span>
+            {growth != null && growth > 0 && (
+              <span className="inline-flex items-center gap-0.5 text-emerald-400 text-[10px] font-semibold tabular-nums">
+                <TrendingUp className="w-3 h-3" aria-label={`growing +${growth}`} />
+                +{growth}
               </span>
             )}
+            {growth != null && growth < 0 && (
+              <span className="inline-flex items-center gap-0.5 text-destructive text-[10px] font-semibold tabular-nums">
+                <TrendingDown className="w-3 h-3" aria-label={`declining ${growth}`} />
+                {growth}
+              </span>
+            )}
+          </div>
 
-            {/* Club row */}
-            <div className="flex items-center gap-1.5">
-              <div className="w-3 h-3 rounded-full shrink-0 ring-1 ring-black/40" style={{ backgroundColor: clubColor }} />
-              <span className="text-xs text-foreground/90 truncate">
-                {club?.name || 'Unknown'}
+          {/* Potential — prominent when there's room to grow */}
+          {showPotential && (
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <p className="font-display text-2xl font-black text-primary tabular-nums leading-none tracking-tight">
+                {`Pot ${player.potential}`}
+              </p>
+              <span className="px-1.5 py-0.5 rounded-full text-[9px] text-emerald-300 font-semibold tabular-nums bg-emerald-500/10 border border-emerald-500/30">
+                +{potentialGap}
               </span>
             </div>
+          )}
+          {!showPotential && (
+            <div className="mt-2">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-semibold uppercase tracking-wide text-amber-200 bg-amber-500/10 border border-amber-400/40">
+                Maxed out
+              </span>
+            </div>
+          )}
+
+          {/* Meta rows — age, nationality, body, skill moves */}
+          <div className="mt-2 space-y-0.5 text-[11px] text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <span className="tabular-nums">{player.age}y</span>
+              <span className="text-muted-foreground/40">·</span>
+              <span className="truncate">{player.nationality}</span>
+            </div>
+            {player.source === 'real' && player.heightCm && player.weightKg && (
+              <div className="tabular-nums">
+                {player.heightCm}cm · {player.weightKg}kg
+              </div>
+            )}
+            {skillMoves >= 3 && (
+              <div className="flex items-center gap-0.5 text-amber-400" aria-label={`${skillMoves}-star skill moves`}>
+                {Array.from({ length: skillMoves }).map((_, i) => (
+                  <Star key={i} className="w-2.5 h-2.5 fill-current" aria-hidden />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Club identity */}
+          <div className="mt-2 pt-2 border-t border-border/30 flex items-center gap-1.5 min-w-0">
+            <div
+              className="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-black/40"
+              style={{ backgroundColor: clubColor }}
+            />
+            <span className="text-[11px] text-foreground/90 truncate">
+              {club?.name || 'Unknown'}
+            </span>
+            {player.source === 'real' && (
+              <span
+                className="ml-auto px-1.5 py-0.5 rounded text-[8px] font-medium uppercase tracking-wider text-muted-foreground bg-muted/40 border border-border/40 shrink-0"
+                aria-label="Real player"
+              >
+                Real
+              </span>
+            )}
           </div>
         </div>
-      </GlassPanel>
-    </TierBorderFrame>
+      </div>
+    </GlassPanel>
   );
 });
