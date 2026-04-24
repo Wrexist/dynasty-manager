@@ -1,4 +1,4 @@
-import { TacticalInstructions, TrainingState, TrainingModule, ScoutRegion, FacilitiesState, TacticalPreset, StadiumStands } from '@/types/game';
+import { TacticalInstructions, TrainingState, TrainingModule, ScoutRegion, FacilitiesState, TacticalPreset, StadiumStands, Position } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { GROWTH_YOUTH_PER_PROMOTION, STAT_MAX as CAREER_STAT_MAX } from '@/config/managerCareer';
@@ -87,6 +87,33 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const plans = (s.training.individualPlans || []).filter(p => p.playerId !== playerId);
     if (focus) plans.push({ playerId, focus });
     return { training: { ...s.training, individualPlans: plans } };
+  }),
+
+  setPlayerPrimaryPosition: (playerId: string, newPosition: Position) => set(s => {
+    const player = s.players[playerId];
+    if (!player) return {};
+    if (player.position === newPosition) return {};
+    // Guard: only allow promoting an existing alternate — we don't teach
+    // the player a brand-new position.
+    const alts = player.alternatePositions || [];
+    if (!alts.includes(newPosition)) return {};
+    // Swap: old primary slots into alternates; chosen alt becomes primary.
+    // Keep the rest of the alternates order stable so repeat swaps stay
+    // predictable for the UI.
+    const nextAlts: Position[] = [
+      player.position,
+      ...alts.filter(p => p !== newPosition),
+    ];
+    return {
+      players: {
+        ...s.players,
+        [playerId]: {
+          ...player,
+          position: newPosition,
+          alternatePositions: nextAlts,
+        },
+      },
+    };
   }),
 
   hireStaff: (staffId: string) => {

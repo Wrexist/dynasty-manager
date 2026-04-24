@@ -75,6 +75,7 @@ const PlayerDetail = () => {
   const respondToOffer = useGameStore(s => s.respondToOffer);
   const startNegotiation = useGameStore(s => s.startNegotiation);
   const setIndividualTraining = useGameStore(s => s.setIndividualTraining);
+  const setPlayerPrimaryPosition = useGameStore(s => s.setPlayerPrimaryPosition);
 
   const [showApproach, setShowApproach] = useState(false);
   const [showLoanRequest, setShowLoanRequest] = useState(false);
@@ -577,33 +578,55 @@ const PlayerDetail = () => {
       {/* Role Suitability */}
       <GlassPanel className="p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Target className="w-3.5 h-3.5 text-primary" />
+          <Target className="w-3.5 h-3.5 text-primary" aria-hidden />
           <p className="text-xs text-muted-foreground uppercase tracking-wider">Role Suitability</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {compatiblePositions.map((pos: Position) => {
             const isNatural = pos === naturalPosition;
+            // Only the player's declared alternates (FC25 data) are
+            // swappable. POSITION_COMPATIBILITY lists positions the player
+            // can *play*, but promoting one of those would effectively
+            // invent a new alt. Click-to-swap is the real "make this
+            // their primary position" action; the rest stay informational.
+            const isSwappableAlt =
+              !isNatural
+              && isOwnPlayer
+              && (player.alternatePositions || []).includes(pos);
+            const baseClasses = cn(
+              'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border transition-colors',
+              isNatural
+                ? 'border-primary/40 bg-primary/10'
+                : isSwappableAlt
+                  ? 'border-border/40 bg-muted/30 hover:bg-muted/50 hover:border-primary/40 cursor-pointer active:scale-[0.98]'
+                  : 'border-border/40 bg-muted/30',
+            );
+            const label = isNatural ? 'Natural' : isSwappableAlt ? 'Tap to promote' : 'Capable';
+            if (isSwappableAlt) {
+              return (
+                <button
+                  key={pos}
+                  type="button"
+                  className={baseClasses}
+                  onClick={() => {
+                    hapticLight();
+                    setPlayerPrimaryPosition(player.id, pos);
+                    successToast('Position Updated', `${player.firstName} ${player.lastName} now plays as ${pos}.`);
+                  }}
+                  aria-label={`Promote ${pos} to primary position`}
+                >
+                  <span className="text-xs font-bold text-foreground">{pos}</span>
+                  <span className="text-[9px] font-medium text-muted-foreground">{label}</span>
+                </button>
+              );
+            }
             return (
-              <div
-                key={pos}
-                className={cn(
-                  'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border',
-                  isNatural
-                    ? 'border-primary/40 bg-primary/10'
-                    : 'border-border/40 bg-muted/30'
-                )}
-              >
-                <span className={cn(
-                  'text-xs font-bold',
-                  isNatural ? 'text-primary' : 'text-foreground'
-                )}>
+              <div key={pos} className={baseClasses}>
+                <span className={cn('text-xs font-bold', isNatural ? 'text-primary' : 'text-foreground')}>
                   {pos}
                 </span>
-                <span className={cn(
-                  'text-[9px] font-medium',
-                  isNatural ? 'text-primary/70' : 'text-muted-foreground'
-                )}>
-                  {isNatural ? 'Natural' : 'Capable'}
+                <span className={cn('text-[9px] font-medium', isNatural ? 'text-primary/70' : 'text-muted-foreground')}>
+                  {label}
                 </span>
               </div>
             );

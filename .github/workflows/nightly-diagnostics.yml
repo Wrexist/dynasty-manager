@@ -1,0 +1,82 @@
+name: Nightly Diagnostics
+
+# Runs the gated perf + balance + FA-pool diagnostics that are skipped
+# in the default `npm run test` path. These sims are expensive (30-90s
+# each) so they don't belong in the PR-checks loop — but they need a
+# recurring home so regressions don't silently land in main.
+#
+# Triggers:
+#   - Scheduled: 03:15 UTC daily. Off-peak, rounded to a minute that no
+#     other workflow uses.
+#   - Manual: Actions tab → Run workflow. Useful after a balance change
+#     to get a report without waiting for the next cron tick.
+#
+# On failure, the uploaded artefacts (perf-baseline.json, balance-report.md)
+# preserve the raw numbers so a reviewer can see what drifted without
+# re-running the job locally.
+
+on:
+  schedule:
+    - cron: '15 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  perf:
+    name: Runtime perf baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run perf audit
+        env:
+          PERF_AUDIT: '1'
+        run: npx vitest run src/test/perf.test.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-baseline
+          path: docs/perf-baseline.json
+          if-no-files-found: ignore
+
+  balance:
+    name: Balance report (5-season sim)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run balance sim
+        env:
+          VITEST_BALANCE: '1'
+        run: npx vitest run src/test/balanceReport.test.ts
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: balance-report
+          path: docs/balance-report.md
+          if-no-files-found: ignore
+
+  fa-pool:
+    name: Free-agent pool diagnostic
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Run FA pool diagnostic
+        env:
+          VITEST_FA_DIAG: '1'
+        run: npx vitest run src/test/faPoolDiagnostic.test.ts

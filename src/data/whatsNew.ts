@@ -62,8 +62,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     build: null,
     date: '2026-04-24',
     headline: 'Introducing the What\'s New centre.',
-    summary:
-      'Every TestFlight build from here on ships with a proper App Store–style changelog, so you always know what changed, when it shipped, and what to try first.',
+    summary: 'Every TestFlight build from here on ships with a proper App Store–style changelog, so you always know what changed, when it shipped, and what to try first.',
     highlights: [
       'Brand-new "What\'s New" page, available from the main menu and in-game Settings.',
     ],
@@ -71,6 +70,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Added a What\'s New tile on the title screen that surfaces the latest release notes the moment you launch the game.',
       'Added a "What\'s New" shortcut in the Settings → Help section so you can revisit any past update without leaving your save.',
       'Every release now records its build number and ship date so historical notes stay traceable across versions.',
+      'Tap any alternate position on a player\'s detail page to make it their primary role — no more squad-page juggling to get a natural fit.',
     ],
     improved: [
       'Release notes are now grouped into Highlights, New, Improved, and Fixed sections for quicker scanning.',
