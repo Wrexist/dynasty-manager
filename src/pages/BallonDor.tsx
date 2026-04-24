@@ -7,7 +7,8 @@ import { ChevronDown, ChevronUp, Trophy, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { darken, lighten } from '@/utils/colorUtils';
-import { BallonDOrEntry } from '@/types/game';
+import { PlayerCard } from '@/components/game/PlayerCard';
+import { BallonDOrEntry, Player } from '@/types/game';
 
 const RANK_MEDAL_COLORS: Record<number, { bg: string; text: string; border: string; glow: string }> = {
   1: { bg: 'bg-[hsl(43,96%,46%)]/20', text: 'text-[hsl(43,96%,56%)]', border: 'border-[hsl(43,96%,46%)]/40', glow: 'shadow-[0_0_20px_hsl(43,96%,46%,0.3)]' },
@@ -121,12 +122,13 @@ const WinnerSpotlight = ({ entry, onNavigate }: { entry: BallonDOrEntry; onNavig
   </motion.div>
 );
 
-const RankingRow = ({ entry, index, isExpanded, onToggle, isPlayerClub }: {
+const RankingRow = ({ entry, index, isExpanded, onToggle, isPlayerClub, player }: {
   entry: BallonDOrEntry;
   index: number;
   isExpanded: boolean;
   onToggle: () => void;
   isPlayerClub: boolean;
+  player?: Player;
 }) => {
   const style = getMedalStyle(entry.rank);
   const isPodium = entry.rank <= 3;
@@ -160,18 +162,28 @@ const RankingRow = ({ entry, index, isExpanded, onToggle, isPlayerClub }: {
           {entry.rank}
         </div>
 
-        {/* Player card */}
-        <div
-          className="w-8 h-10 rounded-md flex flex-col items-center justify-center shrink-0 border relative overflow-hidden"
-          style={{
-            background: `linear-gradient(135deg, ${lighten(entry.clubColor, 0.1)} 0%, ${darken(entry.clubColor, 0.35)} 100%)`,
-            borderColor: darken(entry.clubColor, 0.15),
-          }}
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-black/10 pointer-events-none" />
-          <span className="relative z-10 text-[8px] font-bold text-white/70">{entry.position}</span>
-          <span className="relative z-10 text-sm font-black text-white drop-shadow-md tabular-nums">{entry.overall}</span>
-        </div>
+        {/* Player card — shield when the Player still exists, fallback club-tinted block otherwise */}
+        {player ? (
+          <PlayerCard
+            player={player}
+            size="sm"
+            interactive="none"
+            compact
+            className="shrink-0"
+          />
+        ) : (
+          <div
+            className="w-8 h-10 rounded-md flex flex-col items-center justify-center shrink-0 border relative overflow-hidden"
+            style={{
+              background: `linear-gradient(135deg, ${lighten(entry.clubColor, 0.1)} 0%, ${darken(entry.clubColor, 0.35)} 100%)`,
+              borderColor: darken(entry.clubColor, 0.15),
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-black/10 pointer-events-none" />
+            <span className="relative z-10 text-[8px] font-bold text-white/70">{entry.position}</span>
+            <span className="relative z-10 text-sm font-black text-white drop-shadow-md tabular-nums">{entry.overall}</span>
+          </div>
+        )}
 
         {/* Name and club */}
         <div className="flex-1 min-w-0 text-left">
@@ -339,6 +351,7 @@ const BallonDor = () => {
         <div className="grid grid-cols-2 gap-3">
           {[ranking[1], ranking[2]].map((entry, i) => {
             const style = getMedalStyle(entry.rank);
+            const podiumPlayer = players[entry.playerId];
             return (
               <motion.div
                 key={entry.playerId}
@@ -361,6 +374,16 @@ const BallonDor = () => {
                   )}>
                     {entry.rank}
                   </div>
+                  {podiumPlayer && (
+                    <div className="flex justify-center mb-2">
+                      <PlayerCard
+                        player={podiumPlayer}
+                        size="sm"
+                        interactive="none"
+                        compact
+                      />
+                    </div>
+                  )}
                   <p className={cn('text-xs font-bold truncate', style.text)}>{entry.playerName}</p>
                   <div className="flex items-center justify-center gap-1 mt-1">
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.clubColor }} />
@@ -392,6 +415,7 @@ const BallonDor = () => {
                 isExpanded={expandedRank === entry.rank}
                 onToggle={() => setExpandedRank(expandedRank === entry.rank ? null : entry.rank)}
                 isPlayerClub={entry.clubName === playerClubName}
+                player={players[entry.playerId]}
               />
             ))}
           </div>

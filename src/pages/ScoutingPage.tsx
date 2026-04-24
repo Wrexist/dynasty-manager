@@ -8,6 +8,7 @@ import { ScoutRegion, TransferListing } from '@/types/game';
 import { getPotentialInfo } from '@/utils/uiHelpers';
 import { AdRewardButton } from '@/components/game/AdRewardButton';
 import { TierBorderFrame } from '@/components/game/TierBorderFrame';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { SCOUTING_KNOWLEDGE_THRESHOLDS, PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
@@ -127,11 +128,20 @@ const ScoutingPage = () => {
               const listing = findListing(report.playerId);
               const showIdentity = report.knowledgeLevel >= SCOUTING_KNOWLEDGE_THRESHOLDS.REVEAL_IDENTITY;
               const showOverall = report.knowledgeLevel >= SCOUTING_KNOWLEDGE_THRESHOLDS.REVEAL_OVERALL;
+              const fullyScouted = showOverall && showIdentity;
               return (
                 <GlassPanel key={report.id} className="p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {showOverall ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      {fullyScouted ? (
+                        <PlayerCard
+                          player={player}
+                          size="sm"
+                          interactive="none"
+                          compact
+                          className="shrink-0"
+                        />
+                      ) : showOverall ? (
                         <TierBorderFrame
                           overall={report.estimatedOverall}
                           glow
@@ -151,8 +161,8 @@ const ScoutingPage = () => {
                           ??
                         </div>
                       )}
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground truncate">
                           {showIdentity ? `${player.firstName} ${player.lastName}` : 'Unknown Player'}
                         </p>
                         <p className="text-xs text-muted-foreground">
@@ -287,16 +297,17 @@ const ScoutingPage = () => {
                 const listing = findListing(pid);
                 return (
                   <GlassPanel key={pid} className="p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          'w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold',
-                          getPotentialInfo(player.overall).bgClass
-                        )}>
-                          {player.overall}
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{player.firstName} {player.lastName}</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <PlayerCard
+                          player={player}
+                          size="sm"
+                          interactive="none"
+                          compact
+                          className="shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">{player.firstName} {player.lastName}</p>
                           <p className="text-xs text-muted-foreground">{player.position} · Age {player.age} · Pot. {player.potential}</p>
                         </div>
                       </div>

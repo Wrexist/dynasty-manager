@@ -2,14 +2,12 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { getFitnessHexColor } from '@/utils/uiHelpers';
 import { GraduationCap, Star, TrendingUp, ArrowUpRight, Trash2, Wrench, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor, getPotentialInfo, getTop3Attributes, posBadgeColor } from '@/utils/uiHelpers';
-import { getPlayerDisplayName, getCardNameFontSizeClass } from '@/utils/playerDisplay';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { TierBorderFrame } from '@/components/game/TierBorderFrame';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { getStaffBonus } from '@/utils/staff';
 import { hapticLight } from '@/utils/haptics';
 import { PAGE_HINTS } from '@/config/ui';
@@ -119,8 +117,6 @@ const YouthAcademy = () => {
               if (!player) return null;
               const potentialInfo = getPotentialInfo(player.potential);
               const top3 = getTop3Attributes(player.attributes);
-              const cardDisplayName = getPlayerDisplayName(player);
-              const cardFullName = `${player.firstName} ${player.lastName}`;
               return (
                 <motion.div
                   key={prospect.playerId}
@@ -138,43 +134,22 @@ const YouthAcademy = () => {
                       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectPlayer(player.id); } }}
                       className="p-3 cursor-pointer hover:bg-white/[0.02] transition-colors"
                     >
-                      {/* Top row: Avatar + Info + Potential */}
-                      <div className="flex items-center gap-3">
-                        {/* Player Card (matches tactics view) */}
-                        <TierBorderFrame
-                          overall={player.overall}
-                          glow
+                      {/* Top row: shield card + info + potential */}
+                      <div className="flex items-start gap-3">
+                        <PlayerCard
+                          player={player}
+                          size="sm"
+                          interactive="none"
+                          compact
                           className="shrink-0"
-                        >
-                          <div className="flex flex-col items-center rounded-[6.5px] bg-black/70 backdrop-blur-sm px-2 py-1.5 min-w-[40px]">
-                            <span className={cn('text-sm font-bold font-display tabular-nums leading-none', getRatingColor(player.overall))}>
-                              {player.overall}
-                            </span>
-                            <div className="w-full h-[2px] rounded-full bg-white/10 my-0.5">
-                              <div
-                                className="h-full rounded-full transition-all"
-                                style={{ width: `${player.fitness}%`, backgroundColor: getFitnessHexColor(player.fitness) }}
-                              />
-                            </div>
-                            <span
-                              className={cn(
-                                getCardNameFontSizeClass(cardDisplayName),
-                                'font-bold text-white/90 uppercase tracking-wide leading-tight truncate whitespace-nowrap max-w-full',
-                              )}
-                              title={cardFullName}
-                              aria-label={cardFullName}
-                            >
-                              {cardDisplayName}
-                            </span>
-                            <span className="text-[6px] text-gray-400 font-medium leading-tight mt-px">{player.position}</span>
-                          </div>
-                        </TierBorderFrame>
+                        />
 
                         {/* Player Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5">
-                            <p className="font-semibold text-foreground text-sm truncate">
-                              <FlagIcon nationality={player.nationality} size={16} /> {player.firstName[0]}. {player.lastName}
+                            <p className="font-semibold text-foreground text-sm flex items-center gap-1 truncate">
+                              <FlagIcon nationality={player.nationality} size={14} className="shrink-0" />
+                              {player.firstName[0]}. {player.lastName}
                             </p>
                             <TrendingUp className="w-3 h-3 text-emerald-400 shrink-0" />
                           </div>

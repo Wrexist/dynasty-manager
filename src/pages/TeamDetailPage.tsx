@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { HeartPulse } from 'lucide-react';
 import { LEAGUES } from '@/data/league';
 import { getSuffix } from '@/utils/helpers';
@@ -212,10 +212,15 @@ const TeamDetailPage = () => {
                 <div
                   key={p.id}
                   onClick={() => selectPlayer(p.id)}
-                  className="flex items-center gap-2 py-2 px-2 -mx-2 rounded-lg cursor-pointer active:bg-muted/40 transition-colors"
+                  className="flex items-center gap-3 py-2 px-2 -mx-2 rounded-lg cursor-pointer active:bg-muted/40 transition-colors"
                 >
-                  {/* Overall */}
-                  <PlayerRatingBadge overall={p.overall} size="sm" />
+                  <PlayerCard
+                    player={p}
+                    size="sm"
+                    interactive="none"
+                    compact
+                    className="shrink-0"
+                  />
                   {/* Name + position */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
