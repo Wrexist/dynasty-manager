@@ -249,7 +249,11 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25 }}
-      style={{ background: 'rgba(4,6,10,0.96)', willChange: 'opacity' }}
+      style={{
+        background:
+          'radial-gradient(ellipse 70% 50% at 50% 42%, rgba(18,22,34,0.98), rgba(2,3,6,0.99) 70%, #000 100%)',
+        willChange: 'opacity',
+      }}
     >
       {/* Vignette pulse on portal open */}
       <AnimatePresence>
@@ -579,8 +583,8 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
               key="flash"
               className="absolute inset-0 bg-white pointer-events-none"
               initial={{ opacity: 0 }}
-              animate={{ opacity: [0, 0.25, 0] }}
-              transition={{ duration: 0.18 }}
+              animate={{ opacity: [0, 0.32, 0] }}
+              transition={{ duration: 0.26, times: [0, 0.3, 1] }}
             />
             <PackConfetti count={prefersReducedMotion ? 0 : confettiCount} hueBase={topOvr >= 90 ? 48 : topOvr >= 84 ? 35 : 43} hueRange={28} />
           </>
@@ -601,9 +605,20 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
         )}
       </AnimatePresence>
 
-      {/* Reveal grid */}
+      {/* Reveal grid. Heavily dimmed + blurred during the walkout so the
+          hero card carries the frame unopposed; snaps back in full for
+          summary so the player can inspect every pull. */}
       {(phase === 'reveal' || phase === 'walkout' || phase === 'summary') && (
-        <div className="relative w-full max-w-[min(92vw,480px)] px-4 flex flex-col items-center gap-4">
+        <motion.div
+          className="relative w-full max-w-[min(92vw,480px)] px-4 flex flex-col items-center gap-4"
+          animate={{
+            opacity: phase === 'walkout' ? 0.12 : 1,
+            filter: phase === 'walkout' ? 'blur(8px) saturate(0.6)' : 'blur(0px) saturate(1)',
+            scale: phase === 'walkout' ? 0.92 : 1,
+          }}
+          transition={{ duration: 0.35, ease: 'easeOut' }}
+          style={{ willChange: phase === 'walkout' ? 'filter, opacity, transform' : 'auto' }}
+        >
           <div className="flex flex-wrap justify-center gap-3">
             {players.map((p, i) => (
               <PackCard
@@ -652,7 +667,7 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
               </button>
             </motion.div>
           )}
-        </div>
+        </motion.div>
       )}
 
       {/* Walkout overlay */}

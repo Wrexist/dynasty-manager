@@ -79,23 +79,56 @@ export const PackCard = memo(function PackCard({ player, revealed, onReveal, ent
         animate={{ rotateY: revealed ? 180 : 0, scale: hovered && !revealed ? 1.03 : 1 }}
         transition={{ duration: PACK_ANIM.flipMs / 1000, type: 'spring', stiffness: 180, damping: 18 }}
       >
-        {/* Back */}
+        {/* Back — tier-gradient foil with dynasty crown monogram, inset
+            rule, specular sheen and a shimmer sweep. Same visual language
+            as the walkout back so the reveal feels coherent. */}
         <div
-          className="absolute inset-0 rounded-2xl border border-border/60 overflow-hidden shadow-[0_12px_30px_rgba(0,0,0,0.6)]"
+          className="absolute inset-0 rounded-2xl border border-white/15 overflow-hidden shadow-[0_12px_30px_rgba(0,0,0,0.6)]"
           style={{ backfaceVisibility: 'hidden', background: tierGradient(tier) }}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-white/5 via-transparent to-black/40" />
-          <div className="absolute inset-[6px] rounded-[10px] border border-white/15 pointer-events-none" />
-          <div className="relative h-full flex flex-col items-center justify-center gap-2 text-center px-3">
-            <div className="w-10 h-10 rounded-full bg-black/30 backdrop-blur flex items-center justify-center">
-              <span className="text-white text-lg font-display font-black">?</span>
+          {/* Specular sheen — gives the foil a top-left light direction. */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background:
+                'linear-gradient(160deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0) 42%),' +
+                'radial-gradient(circle at 50% 120%, rgba(0,0,0,0.5), transparent 60%)',
+            }}
+          />
+          <div className="absolute inset-[6px] rounded-[10px] border border-white/25 pointer-events-none" />
+
+          <div className="relative h-full flex flex-col items-center justify-center gap-2 text-center px-3 text-white">
+            <div className="w-11 h-11 rounded-full bg-black/35 border border-white/30 flex items-center justify-center backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_6px_16px_rgba(0,0,0,0.45)]">
+              <svg viewBox="0 0 24 24" className="w-6 h-6 text-white/95" aria-hidden>
+                <path
+                  d="M3 16 L5 8 L9 12 L12 5.5 L15 12 L19 8 L21 16 L21 19 L3 19 Z"
+                  fill="currentColor"
+                  stroke="currentColor"
+                  strokeWidth="0.75"
+                  strokeLinejoin="round"
+                />
+                <circle cx="5" cy="7" r="0.9" fill="currentColor" />
+                <circle cx="12" cy="4.4" r="1" fill="currentColor" />
+                <circle cx="19" cy="7" r="0.9" fill="currentColor" />
+              </svg>
             </div>
-            <span className="text-[10px] uppercase tracking-widest text-white/80 font-semibold">Tap to reveal</span>
+            <span
+              className="text-[9px] uppercase tracking-[0.35em] text-white/85 font-semibold"
+              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.55)' }}
+            >
+              Dynasty Pack
+            </span>
+            <span
+              className="text-[9px] uppercase tracking-widest text-white/60 font-semibold mt-0.5"
+              style={{ textShadow: '0 1px 2px rgba(0,0,0,0.55)' }}
+            >
+              Tap to reveal
+            </span>
           </div>
           {!revealed && !prefersReducedMotion && (
             <motion.div
               className="absolute inset-0 pointer-events-none"
-              style={{ background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.22) 50%, transparent 70%)' }}
+              style={{ background: 'linear-gradient(115deg, transparent 32%, rgba(255,255,255,0.28) 50%, transparent 68%)', mixBlendMode: 'overlay' }}
               initial={{ x: '-100%' }}
               animate={{ x: '120%' }}
               transition={{ repeat: Infinity, repeatDelay: 4, duration: 1.4, ease: 'easeInOut' }}

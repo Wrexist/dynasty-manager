@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react';
-import { motion, useMotionValue, useTransform, animate, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import type { Player } from '@/types/game';
-import { FlagIcon } from '@/components/game/FlagIcon';
-import { CardArtBackground } from '@/components/game/CardArtBackground';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { PACK_ANIM, LEGENDARY_OVR_THRESHOLD } from '@/config/packs';
-import { tierForOvr, tierGradient } from './packHelpers';
+import { tierForOvr } from './packHelpers';
 import { PackConfetti } from './PackConfetti';
 import { useTypewriter } from './useTypewriter';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
@@ -15,57 +14,54 @@ interface WalkoutRevealProps {
   onComplete: () => void;
 }
 
+// Walkout hero card width. xl PlayerCard is 220px natural — we scale to
+// this width so the card reads bigger than any other card in the app
+// without leaving the reusable PlayerCard visual behind.
+const WALKOUT_CARD_W = 244;
+const PLAYER_CARD_XL_W = 220;
+const CARD_SCALE = WALKOUT_CARD_W / PLAYER_CARD_XL_W;
+
 /**
- * 84+ hero reveal. A centered FUT-style card scales into frame inside a
- * rotating holographic border, name types in below, OVR rolls inside the
- * card, potential bar slides in. No silhouette figure — the card IS the hero.
+ * 84+ hero reveal. The walkout card IS the real {@link PlayerCard} under a
+ * cinematic frame — no bespoke card visual, so the walkout matches every
+ * other card surface in the app pixel for pixel.
+ *
+ * Beats:
+ *   enter → card scales in face-down (tier back, holo ring, halo)
+ *   name  → typewriter name + tier label under the card
+ *   flip  → 3D Y-flip reveals the real PlayerCard; flash + shockwave
+ *   hold  → potential bar + subtle bob; hold ~2.2s
+ *   done  → onComplete()
  */
 export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
   const tier = tierForOvr(player.overall);
   const isLegendary = player.overall >= LEGENDARY_OVR_THRESHOLD;
   const prefersReducedMotion = useReducedMotion();
 
-  const [phase, setPhase] = useState<'enter' | 'name' | 'ovr' | 'hold' | 'done'>('enter');
-
-  const ovrMV = useMotionValue(1);
-  const ovrDisplay = useTransform(ovrMV, (v) => Math.round(v).toString());
+  const [phase, setPhase] = useState<'enter' | 'name' | 'flip' | 'hold' | 'done'>('enter');
 
   const name = `${player.firstName} ${player.lastName}`.toUpperCase();
   const typed = useTypewriter(
     name,
     PACK_ANIM.walkout.typewriterPerCharMs,
-    phase === 'name' || phase === 'ovr' || phase === 'hold',
+    phase === 'name' || phase === 'flip' || phase === 'hold',
     !!prefersReducedMotion,
   );
 
-  // Beat orchestration — simpler than the old 6-phase machine.
-  //   enter → card scales in (500ms settle)
-  //   name  → typewriter starts
-  //   ovr   → counter rolls + lock-in shake
-  //   hold  → potential bar + hold ~2.2s
-  //   done  → onComplete()
   useEffect(() => {
     hapticLight();
-    const settleMs = 500;
-    const t1 = window.setTimeout(() => { setPhase('name'); hapticMedium(); }, settleMs + 200);
-    const t2 = window.setTimeout(() => {
-      setPhase('ovr');
-      hapticHeavy();
-      animate(ovrMV, player.overall, {
-        duration: PACK_ANIM.walkout.ovrRollMs / 1000,
-        ease: [0.16, 1, 0.3, 1],
-      });
-    }, settleMs + 200 + name.length * PACK_ANIM.walkout.typewriterPerCharMs + 120);
-    const t3 = window.setTimeout(() => {
-      setPhase('hold');
-    }, settleMs + 200 + name.length * PACK_ANIM.walkout.typewriterPerCharMs + 120 + PACK_ANIM.walkout.ovrRollMs + 180);
-    const t4 = window.setTimeout(() => {
-      setPhase('done');
-      onComplete();
-    }, settleMs + 200 + name.length * PACK_ANIM.walkout.typewriterPerCharMs + 120 + PACK_ANIM.walkout.ovrRollMs + 180 + PACK_ANIM.walkout.holdMs);
+    const enterMs = 520;
+    const nameMs = Math.max(520, name.length * PACK_ANIM.walkout.typewriterPerCharMs + 120);
+    const flipMs = 720;
+
+    const t1 = window.setTimeout(() => { setPhase('name'); hapticMedium(); }, enterMs);
+    const t2 = window.setTimeout(() => { setPhase('flip'); hapticHeavy(); }, enterMs + nameMs);
+    const t3 = window.setTimeout(() => { setPhase('hold'); }, enterMs + nameMs + flipMs);
+    const t4 = window.setTimeout(() => { setPhase('done'); onComplete(); },
+      enterMs + nameMs + flipMs + PACK_ANIM.walkout.holdMs);
 
     return () => { [t1, t2, t3, t4].forEach(window.clearTimeout); };
-  }, [player.overall, ovrMV, name.length, onComplete]);
+  }, [name.length, onComplete]);
 
   const skip = () => {
     if (phase === 'done') return;
@@ -73,7 +69,8 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
     onComplete();
   };
 
-  const ovrLocked = phase === 'ovr' || phase === 'hold';
+  const revealed = phase === 'flip' || phase === 'hold';
+  const tierGradient = `linear-gradient(135deg, ${tier.gradientFrom} 0%, ${tier.gradientVia} 45%, ${tier.gradientTo} 100%)`;
 
   return (
     <motion.div
@@ -84,224 +81,246 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
       transition={{ duration: 0.25 }}
       onClick={skip}
     >
-      {/* Dark tier vignette */}
+      {/* Deep tier vignette — darker than the overlay behind it so the grid
+          of reveal cards visually recedes even further during the walkout. */}
       <div
         className="absolute inset-0"
         style={{
-          background: `radial-gradient(circle at 50% 50%, ${tier.gradientFrom}22 0%, #000 70%)`,
+          background: `radial-gradient(circle at 50% 46%, ${tier.gradientFrom}26 0%, rgba(0,0,0,0.82) 52%, #000 85%)`,
         }}
       />
 
-      {/* Legendary rotating laurel rays — skipped under reduced-motion.
-          Blur filter dropped (the conic-gradient alpha stops already feather
-          the rays) and size/rotation tempo eased for a cheaper composite. */}
+      {/* Legendary rotating sun rays — tempo slowed; blur dropped so rays
+          stay on the compositor fast path. */}
       {isLegendary && !prefersReducedMotion && (
         <motion.div
           className="absolute inset-0 flex items-center justify-center pointer-events-none"
           style={{ willChange: 'transform' }}
           animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 28, ease: 'linear' }}
+          transition={{ repeat: Infinity, duration: 32, ease: 'linear' }}
         >
           <div
-            className="w-[140vw] h-[140vw] max-w-none"
+            className="w-[160vw] h-[160vw] max-w-none rounded-full"
             style={{
               background:
-                'conic-gradient(from 0deg, rgba(253,224,71,0.0) 0deg, rgba(253,224,71,0.18) 8deg, rgba(253,224,71,0.0) 18deg, rgba(253,224,71,0.0) 45deg, rgba(253,224,71,0.14) 52deg, rgba(253,224,71,0.0) 62deg, rgba(253,224,71,0.0) 90deg, rgba(253,224,71,0.18) 98deg, rgba(253,224,71,0.0) 108deg, rgba(253,224,71,0.0) 135deg, rgba(253,224,71,0.14) 142deg, rgba(253,224,71,0.0) 152deg, rgba(253,224,71,0.0) 180deg, rgba(253,224,71,0.18) 188deg, rgba(253,224,71,0.0) 198deg, rgba(253,224,71,0.0) 225deg, rgba(253,224,71,0.14) 232deg, rgba(253,224,71,0.0) 242deg, rgba(253,224,71,0.0) 270deg, rgba(253,224,71,0.18) 278deg, rgba(253,224,71,0.0) 288deg, rgba(253,224,71,0.0) 315deg, rgba(253,224,71,0.14) 322deg, rgba(253,224,71,0.0) 332deg, rgba(253,224,71,0.0) 360deg)',
-              borderRadius: '50%',
+                'conic-gradient(from 0deg, rgba(253,224,71,0.0) 0deg, rgba(253,224,71,0.16) 6deg, rgba(253,224,71,0.0) 14deg, rgba(253,224,71,0.0) 45deg, rgba(253,224,71,0.12) 52deg, rgba(253,224,71,0.0) 60deg, rgba(253,224,71,0.0) 90deg, rgba(253,224,71,0.16) 98deg, rgba(253,224,71,0.0) 106deg, rgba(253,224,71,0.0) 135deg, rgba(253,224,71,0.12) 142deg, rgba(253,224,71,0.0) 150deg, rgba(253,224,71,0.0) 180deg, rgba(253,224,71,0.16) 188deg, rgba(253,224,71,0.0) 196deg, rgba(253,224,71,0.0) 225deg, rgba(253,224,71,0.12) 232deg, rgba(253,224,71,0.0) 240deg, rgba(253,224,71,0.0) 270deg, rgba(253,224,71,0.16) 278deg, rgba(253,224,71,0.0) 286deg, rgba(253,224,71,0.0) 315deg, rgba(253,224,71,0.12) 322deg, rgba(253,224,71,0.0) 330deg, rgba(253,224,71,0.0) 360deg)',
             }}
           />
         </motion.div>
       )}
 
-      {/* Soft tier halo behind the card */}
+      {/* Tier halo behind the card */}
       <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[54%] rounded-full pointer-events-none"
         style={{
-          width: 420,
-          height: 420,
-          background: `radial-gradient(circle, ${tier.gradientTo}55 0%, ${tier.gradientVia}22 40%, transparent 70%)`,
-          filter: 'blur(24px)',
+          width: 460,
+          height: 460,
+          background: `radial-gradient(circle, ${tier.gradientVia}44 0%, ${tier.gradientTo}1a 38%, transparent 72%)`,
+          filter: 'blur(30px)',
         }}
       />
 
-      {/* Floor glow disc */}
-      <div
-        className="absolute left-1/2 -translate-x-1/2 bottom-[22%] rounded-full pointer-events-none"
-        style={{
-          width: 260,
-          height: 60,
-          background: `radial-gradient(ellipse at center, ${tier.gradientTo}aa 0%, transparent 70%)`,
-          filter: 'blur(6px)',
-        }}
-      />
-
-      {/* Floor shockwave rings — expand outward at OVR lock-in for weight */}
-      {ovrLocked && [0, 0.15].map((d, i) => (
-        <motion.div
-          key={`ring-${i}`}
-          className="absolute left-1/2 -translate-x-1/2 bottom-[20%] rounded-full pointer-events-none"
-          style={{
-            border: `2px solid ${tier.gradientTo}`,
-            boxShadow: `0 0 24px ${tier.gradientTo}`,
-          }}
-          initial={{ width: 40, height: 14, opacity: 0.9 }}
-          animate={{ width: 520, height: 180, opacity: 0 }}
-          transition={{ duration: 1.1, delay: d, ease: [0.22, 1, 0.36, 1] }}
-        />
-      ))}
-
-      {/* Legendary breathing outer aura — skipped under reduced-motion.
-          Blur filter removed (softer radial alpha stops carry the feathering)
-          and tempo slowed to reduce per-frame composite work. */}
+      {/* Legendary breathing aura */}
       {isLegendary && !prefersReducedMotion && (
         <motion.div
-          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full pointer-events-none"
+          className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-[54%] rounded-full pointer-events-none"
           style={{
-            width: '76vw',
-            maxWidth: 480,
-            height: 480,
-            background: `radial-gradient(ellipse at center, ${tier.gradientTo}33 0%, ${tier.gradientVia}1a 45%, transparent 72%)`,
+            width: '80vw',
+            maxWidth: 520,
+            height: 520,
+            background: `radial-gradient(ellipse at center, ${tier.gradientVia}33 0%, ${tier.gradientTo}1a 45%, transparent 72%)`,
             willChange: 'transform, opacity',
           }}
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: [0.55, 0.9, 0.55], scale: [0.96, 1.05, 0.96] }}
-          transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut' }}
         />
       )}
 
-      {/* Hero card — the real FUT-style face with a rotating holo border.
-          The hold-phase bob is skipped under reduced-motion. */}
+      {/* Floor glow disc */}
+      <div
+        className="absolute left-1/2 -translate-x-1/2 top-[64%] rounded-full pointer-events-none"
+        style={{
+          width: 280,
+          height: 64,
+          background: `radial-gradient(ellipse at center, ${tier.gradientTo}aa 0%, transparent 70%)`,
+          filter: 'blur(8px)',
+        }}
+      />
+
+      {/* Flip-beat flash — short bright overlay on card flip. */}
+      <AnimatePresence>
+        {phase === 'flip' && !prefersReducedMotion && (
+          <motion.div
+            key="flash"
+            className="absolute inset-0 bg-white pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.22, 0] }}
+            transition={{ duration: 0.35, times: [0, 0.35, 1] }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Floor shockwave rings on flip — expand outward at the reveal
+          moment for weight. Three staggered rings over ~1.3s each. */}
+      {revealed && [0, 0.18, 0.36].map((d, i) => (
+        <motion.div
+          key={`ring-${i}`}
+          className="absolute left-1/2 -translate-x-1/2 top-[66%] rounded-full pointer-events-none"
+          style={{
+            border: `2px solid ${tier.gradientVia}`,
+            boxShadow: `0 0 24px ${tier.gradientVia}`,
+          }}
+          initial={{ width: 40, height: 14, opacity: 0.9 }}
+          animate={{ width: 560, height: 200, opacity: 0 }}
+          transition={{ duration: 1.3, delay: d, ease: [0.22, 1, 0.36, 1] }}
+        />
+      ))}
+
+      {/* Hero card — 3D flip wrapper around the face-down back and a real
+          PlayerCard on the face. Scales the xl PlayerCard (220px) up to
+          244px so the walkout reads larger than any other card surface
+          without introducing a bespoke visual. */}
       <motion.div
         className="relative"
-        style={{ width: 'min(78vw, 240px)', willChange: 'transform, opacity' }}
-        initial={{ opacity: 0, scale: 0.4, y: 30 }}
+        style={{
+          width: WALKOUT_CARD_W,
+          aspectRatio: '3 / 4',
+          perspective: 1400,
+          willChange: 'transform, opacity',
+        }}
+        initial={{ opacity: 0, scale: 0.45, y: 40 }}
         animate={{
           opacity: 1,
-          scale: 1,
+          scale: phase === 'hold' && !prefersReducedMotion ? [1, 1.015, 1] : 1,
           y: phase === 'hold' && !prefersReducedMotion ? [0, -4, 0] : 0,
         }}
         transition={
           phase === 'hold' && !prefersReducedMotion
-            ? { y: { duration: 3.2, repeat: Infinity, ease: 'easeInOut' } }
-            : { type: 'spring', stiffness: 220, damping: 20 }
+            ? { duration: 3.6, repeat: Infinity, ease: 'easeInOut' }
+            : { type: 'spring', stiffness: 220, damping: 22 }
         }
       >
-        <div className="relative aspect-[3/4] rounded-2xl">
-          {/* Holographic animated ring — a conic rainbow spinning just outside the card edge */}
-          <div
-            className="absolute -inset-[3px] rounded-[18px] holo-ring pointer-events-none"
-            aria-hidden
-          />
-          {/* Tier-tinted inner glow that pulses subtly. Static under
-              reduced-motion (no infinite opacity loop). */}
-          <motion.div
-            className="absolute -inset-[1px] rounded-[16px] pointer-events-none"
-            style={{
-              background: `linear-gradient(135deg, ${tier.gradientFrom}, ${tier.gradientTo})`,
-              filter: 'blur(8px)',
-              opacity: 0.55,
-            }}
-            animate={prefersReducedMotion ? undefined : { opacity: [0.45, 0.7, 0.45] }}
-            transition={prefersReducedMotion ? undefined : { duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-          />
+        {/* Holographic rotating ring just outside the card edge */}
+        <div className="absolute -inset-[4px] rounded-[22px] holo-ring pointer-events-none" aria-hidden />
 
-          {/* Card face */}
+        {/* Tier-tinted inner glow — static under reduced motion. */}
+        <motion.div
+          className="absolute -inset-[2px] rounded-[20px] pointer-events-none"
+          style={{ background: tierGradient, filter: 'blur(12px)', opacity: 0.55 }}
+          animate={prefersReducedMotion ? undefined : { opacity: [0.42, 0.72, 0.42] }}
+          transition={prefersReducedMotion ? undefined : { duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
+        />
+
+        {/* Flip card wrapper */}
+        <motion.div
+          className="absolute inset-0"
+          style={{ transformStyle: 'preserve-3d' }}
+          animate={{ rotateY: revealed ? 180 : 0 }}
+          transition={{ duration: 0.72, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {/* Back — tier-gradient with marble specular, monogram crest,
+              Dynasty Pack / tier typography, shimmer sweep. */}
           <div
-            className="relative w-full h-full rounded-2xl overflow-hidden border border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
-            style={{ background: tierGradient(tier) }}
+            className="absolute inset-0 rounded-2xl overflow-hidden border border-white/15 shadow-[0_24px_56px_rgba(0,0,0,0.65)]"
+            style={{ backfaceVisibility: 'hidden', background: tierGradient }}
           >
-            <CardArtBackground overall={player.overall} eager overlayStrength={0.45} />
-            <div className="absolute inset-0 bg-gradient-to-b from-white/10 via-transparent to-black/45 pointer-events-none" />
-            <div className="absolute inset-[6px] rounded-[10px] border border-white/20 pointer-events-none" />
-
-            {/* Static diagonal gloss */}
+            {/* Specular sheen — top-left bright, bottom-right dark — gives
+                the back an inherent light direction. */}
             <div
               className="absolute inset-0 pointer-events-none"
-              style={{ background: 'linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.18) 50%, transparent 65%)' }}
+              style={{
+                background:
+                  'linear-gradient(160deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0) 40%),' +
+                  'radial-gradient(circle at 50% 118%, rgba(0,0,0,0.55), transparent 60%)',
+              }}
             />
+            {/* Inset rule for the framed ornate feel */}
+            <div className="absolute inset-[10px] rounded-[14px] border border-white/25 pointer-events-none" />
 
-            <div className="relative h-full flex flex-col px-4 py-4 text-white">
-              {/* Top row: OVR + position on the left, flag on the right */}
-              <div className="flex items-start justify-between">
-                <div className="flex flex-col leading-none">
-                  <motion.span
-                    className="text-5xl font-display font-black drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)] tabular-nums"
-                    animate={phase === 'hold' && !prefersReducedMotion ? { x: [-3, 3, -2, 2, 0] } : undefined}
-                    transition={{ duration: 0.4 }}
-                  >
-                    <motion.span>{ovrLocked ? ovrDisplay : '—'}</motion.span>
-                  </motion.span>
-                  <span className="mt-1 text-xs font-semibold tracking-wider opacity-90">{player.position}</span>
-                </div>
-                <div className="w-8 h-6 rounded-sm overflow-hidden border border-white/30 bg-black/30">
-                  <FlagIcon nationality={player.nationality} size={32} fill />
-                </div>
+            {/* Monogram crest — simple crown silhouette in a glass disc. */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white text-center px-6 pointer-events-none">
+              <div className="w-[72px] h-[72px] rounded-full bg-black/35 border border-white/30 flex items-center justify-center backdrop-blur-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_8px_24px_rgba(0,0,0,0.5)]">
+                <svg viewBox="0 0 24 24" className="w-9 h-9 text-white/95" aria-hidden>
+                  <path
+                    d="M3 16 L5 8 L9 12 L12 5.5 L15 12 L19 8 L21 16 L21 19 L3 19 Z"
+                    fill="currentColor"
+                    stroke="currentColor"
+                    strokeWidth="0.75"
+                    strokeLinejoin="round"
+                  />
+                  <circle cx="5" cy="7" r="1.1" fill="currentColor" />
+                  <circle cx="12" cy="4.2" r="1.2" fill="currentColor" />
+                  <circle cx="19" cy="7" r="1.1" fill="currentColor" />
+                </svg>
               </div>
-
-              {/* Body — portrait placeholder. Initials get letter-spacing
-                  so pairs like "RI" don't visually collide, and the disc
-                  itself is sized so it never crowds the name below. */}
-              <div className="flex-1 flex items-center justify-center my-2 min-h-0">
-                <div className="w-16 h-16 rounded-full bg-black/25 border border-white/15 flex items-center justify-center">
-                  <span className="text-xl font-bold text-white/75 tracking-[0.1em]">{player.firstName[0]}{player.lastName[0]}</span>
-                </div>
-              </div>
-
-              {/* Tier label + last name. First name is dropped here — the
-                  full name is already typewritered in below the card, so
-                  duplicating it cramped the layout. */}
-              <div className="text-center">
+              <div>
                 <p
-                  className="text-[10px] uppercase tracking-[0.3em] font-semibold opacity-85"
-                  style={{ color: tier.gradientTo }}
+                  className="text-[10px] uppercase tracking-[0.42em] font-semibold text-white/85"
+                  style={{ textShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+                >
+                  Dynasty Pack
+                </p>
+                <p
+                  className="mt-1 text-xl font-display font-black tracking-[0.08em] uppercase"
+                  style={{ textShadow: '0 2px 6px rgba(0,0,0,0.55)' }}
                 >
                   {tier.label}
                 </p>
-                <p className="text-lg font-display font-bold leading-tight truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] mt-0.5">
-                  {player.lastName}
-                </p>
-              </div>
-
-              {/* Stat strip — six core attributes, same order as PackCard
-                  (PAC/SHO/PAS/DRI/DEF/PHY). Age lives on the potential row
-                  below the card so we keep all six attributes on the face. */}
-              <div className="mt-2 grid grid-cols-3 gap-1 text-[9px] font-semibold uppercase tabular-nums">
-                <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                  <span className="opacity-70">PAC</span>
-                  <span className="ml-1">{player.attributes.pace}</span>
-                </div>
-                <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                  <span className="opacity-70">SHO</span>
-                  <span className="ml-1">{player.attributes.shooting}</span>
-                </div>
-                <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                  <span className="opacity-70">PAS</span>
-                  <span className="ml-1">{player.attributes.passing}</span>
-                </div>
-                <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                  <span className="opacity-70">DRI</span>
-                  <span className="ml-1">{player.attributes.mental}</span>
-                </div>
-                <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                  <span className="opacity-70">DEF</span>
-                  <span className="ml-1">{player.attributes.defending}</span>
-                </div>
-                <div className="rounded-sm bg-black/30 px-1.5 py-0.5 text-center">
-                  <span className="opacity-70">PHY</span>
-                  <span className="ml-1">{player.attributes.physical}</span>
-                </div>
               </div>
             </div>
+
+            {/* Shimmer sweep — only before the flip, keeps the back alive. */}
+            {!prefersReducedMotion && !revealed && (
+              <motion.div
+                className="absolute inset-0 pointer-events-none overflow-hidden"
+                style={{
+                  background: 'linear-gradient(115deg, transparent 32%, rgba(255,255,255,0.32) 50%, transparent 68%)',
+                  mixBlendMode: 'overlay',
+                }}
+                initial={{ x: '-100%' }}
+                animate={{ x: '120%' }}
+                transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+              />
+            )}
           </div>
-        </div>
+
+          {/* Face — the real PlayerCard, reused across the app. Scaled up to
+              244px from its natural xl (220px) so the walkout hero reads
+              larger than any other card in the app. */}
+          <div
+            className="absolute inset-0 flex items-center justify-center"
+            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+            aria-hidden={!revealed}
+          >
+            <div style={{ transform: `scale(${CARD_SCALE})`, transformOrigin: 'center' }}>
+              <PlayerCard
+                player={player}
+                size="xl"
+                interactive="none"
+                showConditionView={false}
+              />
+            </div>
+          </div>
+        </motion.div>
       </motion.div>
 
-      {/* Typewriter name below the card — gradient text */}
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-[12%] text-center max-w-[90vw] px-4 pointer-events-none">
+      {/* Nameplate + potential below the card */}
+      <div className="absolute left-1/2 -translate-x-1/2 bottom-[10%] text-center max-w-[90vw] px-4 pointer-events-none">
+        <motion.p
+          className="text-[10px] uppercase tracking-[0.4em] font-semibold mb-1.5"
+          style={{ color: tier.gradientVia, textShadow: '0 2px 6px rgba(0,0,0,0.6)' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: phase === 'enter' ? 0 : 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          {tier.label}
+        </motion.p>
+
         <h1
           className="font-display font-black leading-none tracking-tight drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)]"
           style={{
-            fontSize: 'clamp(22px, 6vw, 34px)',
+            fontSize: 'clamp(22px, 6.5vw, 36px)',
             backgroundImage: `linear-gradient(90deg, ${tier.gradientFrom}, ${tier.gradientVia}, ${tier.gradientTo})`,
             WebkitBackgroundClip: 'text',
             backgroundClip: 'text',
@@ -309,27 +328,30 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
             minHeight: '1.1em',
           }}
         >
-          {typed || '\u00A0'}
+          {typed || ' '}
           {phase === 'name' && !prefersReducedMotion && (
             <motion.span
               className="inline-block ml-0.5"
               animate={{ opacity: [1, 0, 1] }}
               transition={{ duration: 0.8, repeat: Infinity }}
-              style={{ color: tier.gradientTo }}
+              style={{ color: tier.gradientVia }}
             >
               |
             </motion.span>
           )}
         </h1>
 
-        {/* Potential bar slides in at hold */}
+        {/* Potential bar — slides in at hold. */}
         <motion.div
           className="mt-3 mx-auto max-w-[240px]"
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: phase === 'hold' ? 1 : 0, x: phase === 'hold' ? 0 : -30 }}
-          transition={{ duration: 0.35, delay: phase === 'hold' ? 0.15 : 0 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: phase === 'hold' ? 1 : 0, y: phase === 'hold' ? 0 : 10 }}
+          transition={{ duration: 0.4, delay: phase === 'hold' ? 0.2 : 0 }}
         >
-          <div className="flex items-center justify-between text-[10px] uppercase tracking-widest mb-1" style={{ color: tier.gradientTo }}>
+          <div
+            className="flex items-center justify-between text-[10px] uppercase tracking-widest mb-1"
+            style={{ color: tier.gradientVia }}
+          >
             <span>Potential</span>
             <span>{player.potential}</span>
           </div>
@@ -339,7 +361,7 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
               style={{ background: `linear-gradient(90deg, ${tier.gradientFrom}, ${tier.gradientTo})` }}
               initial={{ width: 0 }}
               animate={{ width: phase === 'hold' ? `${player.potential}%` : '0%' }}
-              transition={{ duration: 0.6, delay: phase === 'hold' ? 0.25 : 0, ease: 'easeOut' }}
+              transition={{ duration: 0.7, delay: phase === 'hold' ? 0.3 : 0, ease: 'easeOut' }}
             />
           </div>
         </motion.div>
@@ -350,26 +372,16 @@ export function WalkoutReveal({ player, onComplete }: WalkoutRevealProps) {
         Tap to skip
       </div>
 
-      {/* Screen-reader announcement. Polite so it doesn't clobber the OVR
-          roll but still announces the pull clearly. Only rendered on OVR
-          lock-in so it fires exactly once per walkout. */}
-      {ovrLocked && (
+      {/* SR announcement at reveal. */}
+      {revealed && (
         <div className="sr-only" aria-live="polite" role="status">
           {`${tier.label} pull — ${player.firstName} ${player.lastName}, ${player.overall} overall, ${player.position}, ${player.nationality}.`}
         </div>
       )}
 
-      {/* Confetti retrigger when OVR locks in — only for legendary pulls,
-          and skipped entirely under reduced-motion. The explosion beat
-          already fired the main burst; this is a small legendary-only
-          accent (was 60–80 particles, now ~16) on top of the shockwave
-          rings that already carry the impact. */}
-      {ovrLocked && isLegendary && !prefersReducedMotion && (
-        <PackConfetti
-          count={16}
-          hueBase={48}
-          hueRange={24}
-        />
+      {/* Legendary-only confetti accent on flip. */}
+      {revealed && isLegendary && !prefersReducedMotion && (
+        <PackConfetti count={20} hueBase={48} hueRange={24} />
       )}
     </motion.div>
   );
