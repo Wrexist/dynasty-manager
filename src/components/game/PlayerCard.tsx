@@ -27,6 +27,14 @@ interface PlayerCardProps {
   onDetailClick?: (player: Player) => void;
   /** When false, the condition view (FIT/MOR/FRM) is omitted from the cycle. */
   showConditionView?: boolean;
+  /**
+   * Compact mode — used at sm or in tight list contexts. Drops the stat
+   * panel (stats / profile / condition views) and the view indicator
+   * entirely, leaving just OVR + position + name + flag on the shield.
+   * `interactive='cycle'` is treated as `'none'` when compact because
+   * there's nothing left to cycle.
+   */
+  compact?: boolean;
   /** Optional quick-release × on the face (pack summary context). */
   onDismiss?: () => void;
   /** Optional override for the tooltip / aria-label on the dismiss button. */
@@ -77,6 +85,7 @@ export const PlayerCard = memo(function PlayerCard({
   interactive = 'cycle',
   onDetailClick,
   showConditionView = true,
+  compact = false,
   onDismiss,
   dismissLabel,
   className,
@@ -86,6 +95,10 @@ export const PlayerCard = memo(function PlayerCard({
   const prefersReducedMotion = useReducedMotion();
   const [statView, setStatView] = useState<StatView>(0);
 
+  // Compact cards have no cycle target — treat 'cycle' as 'none'.
+  const effectiveInteractive: PlayerCardInteraction =
+    compact && interactive === 'cycle' ? 'none' : interactive;
+
   // Clamp cycle length to the views we actually render.
   const viewCount = showConditionView ? 3 : 2;
   useEffect(() => {
@@ -93,19 +106,19 @@ export const PlayerCard = memo(function PlayerCard({
   }, [viewCount, statView]);
 
   const handleClick = () => {
-    if (interactive === 'cycle') {
+    if (effectiveInteractive === 'cycle') {
       hapticLight();
       setStatView((v) => ((v + 1) % viewCount) as StatView);
       return;
     }
-    if (interactive === 'detail') {
+    if (effectiveInteractive === 'detail') {
       if (!onDetailClick) return;
       hapticLight();
       onDetailClick(player);
     }
   };
 
-  const clickable = interactive !== 'none';
+  const clickable = effectiveInteractive !== 'none';
 
   const handleDismiss = (e: React.MouseEvent | React.KeyboardEvent) => {
     e.stopPropagation();
@@ -118,9 +131,9 @@ export const PlayerCard = memo(function PlayerCard({
 
   const viewLabel = statView === 0 ? 'stats' : statView === 1 ? 'profile' : 'condition';
   const ariaLabel =
-    interactive === 'cycle'
+    effectiveInteractive === 'cycle'
       ? `${player.firstName} ${player.lastName}, ${player.overall} overall. Showing ${viewLabel}. Tap to cycle stat views.`
-      : interactive === 'detail'
+      : effectiveInteractive === 'detail'
         ? `${player.firstName} ${player.lastName}, ${player.overall} overall. Open details.`
         : `${player.firstName} ${player.lastName}, ${player.overall} overall.`;
 
@@ -224,7 +237,9 @@ export const PlayerCard = memo(function PlayerCard({
           </div>
         </div>
 
-        {/* Stat panel — top-aligned inside the shield's lower gray band. */}
+        {/* Stat panel — top-aligned inside the shield's lower gray band.
+            Omitted in compact mode (sm / dense list contexts). */}
+        {!compact && (
         <div
           className="absolute top-[64%] bottom-[6%]"
           style={{ left: tk.paddingXPx * 0.8, right: tk.paddingXPx * 0.8 }}
@@ -299,9 +314,10 @@ export const PlayerCard = memo(function PlayerCard({
             )}
           </AnimatePresence>
         </div>
+        )}
 
         {/* View indicator — only for the cycle interaction, where discovery matters. */}
-        {interactive === 'cycle' && viewCount > 1 && (
+        {!compact && effectiveInteractive === 'cycle' && viewCount > 1 && (
           <div
             aria-hidden
             className="absolute bottom-[1.5%] left-1/2 -translate-x-1/2 flex items-center gap-1 z-10"
