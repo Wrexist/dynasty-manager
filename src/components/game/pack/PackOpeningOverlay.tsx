@@ -5,6 +5,7 @@ import type { PackPlayerPlacement, PackTierKey, Player } from '@/types/game';
 import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD } from '@/config/packs';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
+import { formatMoney } from '@/utils/helpers';
 import { PackArt } from './PackArt';
 import { PackCard } from './PackCard';
 import { PackConfetti } from './PackConfetti';
@@ -12,13 +13,18 @@ import { WalkoutReveal } from './WalkoutReveal';
 import { tierForOvr } from './packHelpers';
 import { cn } from '@/lib/utils';
 
+/** Quick-sell refund rate — matches packsSlice.quickSellPackedPlayer. */
+const QUICK_SELL_RATE = 0.65;
+
 interface PackOpeningOverlayProps {
   tier: PackTierKey;
   players: Player[];
   pityTriggered?: boolean;
   onClose: () => void;
-  /** When provided, summary cards render a × quick-release action. */
-  onDismiss?: (playerId: string) => void;
+  /** Keep the pulled player — just removes them from the summary view. */
+  onKeep?: (playerId: string) => void;
+  /** Quick-sell the pulled player at {@link QUICK_SELL_RATE} of market value. */
+  onQuickSell?: (playerId: string) => void;
   /** Per-player placement map from openPack so the reveal modal can badge pulls. */
   placement?: Record<string, PackPlayerPlacement>;
 }
@@ -36,7 +42,7 @@ type Phase = 'portal' | 'arrival' | 'charge' | 'explode' | 'reveal' | 'walkout' 
  *
  * Mounts a portal so the overlay sits above bottom nav and other UI.
  */
-export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDismiss }: PackOpeningOverlayProps) {
+export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKeep, onQuickSell }: PackOpeningOverlayProps) {
   const tierDef = PACK_TIER_MAP[tier];
   const prefersReducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<Phase>('portal');
@@ -469,11 +475,12 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
 
               {/* Text overlay — sits across both halves but uses its own
                   absolute positioning so it fades out quickly on explode
-                  while the halves still have time to fly away. Heavy dark
-                  outline (webkit-text-stroke + shadow stack) keeps it
-                  readable against the white-marble centre of the artwork. */}
+                  while the halves still have time to fly away. Frosted
+                  glass bar + gold gradient title + mirrored blurred
+                  reflection so the label reads as reflective liquid glass
+                  rather than plain outlined text. */}
               <motion.div
-                className="absolute inset-0 flex flex-col items-center justify-end pb-10 gap-1 text-white px-4 text-center pointer-events-none"
+                className="absolute inset-0 flex flex-col items-center justify-end pb-8 text-white px-4 text-center pointer-events-none"
                 initial={{ opacity: 0, y: 10 }}
                 animate={phase === 'explode'
                   ? { opacity: 0, y: -10 }
@@ -482,15 +489,25 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
                   ? { duration: 0.15 }
                   : { duration: 0.5, delay: 0.2 }}
               >
-                <span className="pack-subtitle-outline text-[10px] uppercase tracking-[0.4em] font-semibold">
-                  Dynasty Pack
-                </span>
-                <span className="pack-title-outline text-4xl font-display font-black leading-none">
-                  {tierDef.label}
-                </span>
-                <span className="pack-subtitle-outline text-[11px] font-medium tracking-wide opacity-95">
-                  {tierDef.cards} {tierDef.cards === 1 ? 'Player' : 'Players'}
-                </span>
+                <div className="pack-label-frost rounded-2xl px-4 py-2.5 flex flex-col items-center gap-1">
+                  <span className="pack-subtitle-reflective text-[10px] uppercase font-semibold">
+                    Dynasty Pack
+                  </span>
+                  <div className="relative leading-none">
+                    <span className="pack-title-reflective block text-[34px] font-display font-black tracking-tight">
+                      {tierDef.label}
+                    </span>
+                    <span
+                      aria-hidden
+                      className="pack-title-reflective pack-title-reflection absolute inset-x-0 top-full block text-[34px] font-display font-black tracking-tight"
+                    >
+                      {tierDef.label}
+                    </span>
+                  </div>
+                  <span className="pack-subtitle-reflective text-[10px] font-medium opacity-95 mt-0.5">
+                    {tierDef.cards} {tierDef.cards === 1 ? 'Player' : 'Players'}
+                  </span>
+                </div>
               </motion.div>
 
               {/* Tier-coloured glow leaks during charge — escaping through
@@ -619,17 +636,62 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
           transition={{ duration: 0.35, ease: 'easeOut' }}
           style={{ willChange: phase === 'walkout' ? 'filter, opacity, transform' : 'auto' }}
         >
-          <div className="flex flex-wrap justify-center gap-3">
-            {players.map((p, i) => (
-              <PackCard
-                key={p.id}
-                player={p}
-                revealed={revealedSet.has(p.id) || phase === 'summary'}
-                onReveal={phase === 'reveal' ? () => revealOne(p.id) : undefined}
-                onDismiss={phase === 'summary' && onDismiss ? () => onDismiss(p.id) : undefined}
-                entranceDelay={prefersReducedMotion ? 0 : i * (PACK_ANIM.revealStaggerMs / 1000)}
-              />
-            ))}
+          <div className="flex flex-wrap justify-center gap-x-3 gap-y-4">
+            {players.map((p, i) => {
+              const quickSellAmount = Math.max(0, Math.round((p.value || 0) * QUICK_SELL_RATE));
+              return (
+                <div key={p.id} className="flex flex-col items-center gap-2">
+                  <PackCard
+                    player={p}
+                    revealed={revealedSet.has(p.id) || phase === 'summary'}
+                    onReveal={phase === 'reveal' ? () => revealOne(p.id) : undefined}
+                    entranceDelay={prefersReducedMotion ? 0 : i * (PACK_ANIM.revealStaggerMs / 1000)}
+                  />
+                  {phase === 'summary' && (onKeep || onQuickSell) && (
+                    <motion.div
+                      className="flex gap-1.5 w-[150px]"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => onKeep?.(p.id)}
+                        disabled={!onKeep}
+                        className={cn(
+                          'flex-1 py-2 rounded-xl text-[10px] font-display font-bold uppercase tracking-[0.18em]',
+                          'text-white bg-white/10 border border-white/25 backdrop-blur-xl backdrop-saturate-150',
+                          'shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-1px_0_rgba(0,0,0,0.3),0_6px_16px_-8px_rgba(0,0,0,0.55)]',
+                          'active:scale-[0.97] active:bg-white/15 transition-[transform,background-color] duration-150',
+                          'disabled:opacity-40 disabled:cursor-not-allowed',
+                        )}
+                      >
+                        Keep
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onQuickSell?.(p.id)}
+                        disabled={!onQuickSell || quickSellAmount <= 0}
+                        aria-label={`Quick sell for ${formatMoney(quickSellAmount)}`}
+                        className={cn(
+                          'flex-1 py-2 rounded-xl text-[10px] font-display font-bold uppercase tracking-[0.08em] leading-tight',
+                          'text-amber-950 bg-gradient-to-b from-amber-300 to-amber-500 border border-amber-200/70',
+                          'shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(120,60,0,0.35),0_6px_16px_-8px_rgba(251,191,36,0.55)]',
+                          'active:scale-[0.97] transition-[transform] duration-150',
+                          'disabled:opacity-40 disabled:cursor-not-allowed',
+                          'flex flex-col items-center justify-center',
+                        )}
+                      >
+                        <span>Sell</span>
+                        <span className="tabular-nums tracking-tight text-[9px] font-black">
+                          {formatMoney(quickSellAmount)}
+                        </span>
+                      </button>
+                    </motion.div>
+                  )}
+                </div>
+              );
+            })}
           </div>
 
           {phase === 'reveal' && (
@@ -643,29 +705,6 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onDi
             >
               Tap all to reveal
             </motion.button>
-          )}
-
-          {phase === 'summary' && (
-            <motion.div
-              className="w-full flex items-center gap-2 pt-2"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.15 }}
-            >
-              <button
-                type="button"
-                onClick={onClose}
-                className={cn(
-                  'flex-1 py-3.5 rounded-2xl font-display font-bold text-sm uppercase tracking-[0.2em]',
-                  'text-white bg-white/10 border border-white/25',
-                  'backdrop-blur-2xl backdrop-saturate-150',
-                  'shadow-[inset_0_1px_0_rgba(255,255,255,0.45),inset_0_-1px_0_rgba(0,0,0,0.30),0_10px_30px_-10px_rgba(0,0,0,0.55)]',
-                  'active:scale-[0.98] active:bg-white/15 transition-[transform,background-color] duration-150',
-                )}
-              >
-                Added to Squad
-              </button>
-            </motion.div>
           )}
         </motion.div>
       )}

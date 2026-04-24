@@ -246,11 +246,13 @@ export const PlayerCard = memo(function PlayerCard({
         </div>
 
         {/* Stat panel — top-aligned inside the shield's lower gray band.
-            Omitted in compact mode (sm / dense list contexts). */}
+            Omitted in compact mode (sm / dense list contexts). Kept inset
+            from the ornate bottom frame on rare/gold cards so stats don't
+            sit on top of the border artwork. */}
         {!compact && (
         <div
-          className="absolute top-[64%] bottom-[6%]"
-          style={{ left: tk.paddingXPx * 0.8, right: tk.paddingXPx * 0.8 }}
+          className="absolute top-[68%] bottom-[9%]"
+          style={{ left: tk.paddingXPx * 0.9, right: tk.paddingXPx * 0.9 }}
         >
           <AnimatePresence mode="wait" initial={false}>
             {statView === 0 && (
@@ -258,7 +260,7 @@ export const PlayerCard = memo(function PlayerCard({
                 key="stats"
                 {...viewMotion(prefersReducedMotion)}
                 className="grid grid-cols-3 gap-x-2"
-                style={{ rowGap: tk.statRowGapPx + 4 }}
+                style={{ rowGap: tk.statRowGapPx + 1 }}
               >
                 {([
                   ['PAC', player.attributes.pace],
