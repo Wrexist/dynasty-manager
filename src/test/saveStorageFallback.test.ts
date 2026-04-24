@@ -148,3 +148,71 @@ describe('save storage — hydration fallback', () => {
     expect(readSaveSlot(SLOT)).toBe(payload);
   });
 });
+
+describe('save storage — quota fallback preserves stale mirror', () => {
+  beforeEach(() => {
+    __resetSaveStorageForTests();
+    localStorage.clear();
+  });
+  afterEach(() => vi.restoreAllMocks());
+
+  // Codex P1 regression: when localStorage hits quota on a fresh write
+  // AND IDB is unavailable (private browsing / blocked storage), the
+  // previous localStorage copy is the user's only durable save. The
+  // earlier fix erased mainKey on quota error, which silently lost the
+  // save across sessions. The new behaviour leaves the stale-but-valid
+  // mirror in place as a last-resort fallback.
+  it('keeps the previous localStorage copy when a follow-up write hits quota', () => {
+    // Seed a first save that fits.
+    writeSaveSlot(SLOT, validSave({ week: 1 }));
+    // Reset the memory cache so the next write's `oldMain` is read from
+    // localStorage (simulating a fresh session post-hydration).
+    __resetSaveStorageForTests();
+    expect(localStorage.getItem(STORAGE_KEYS.saveSlot(SLOT))).toBe(validSave({ week: 1 }));
+
+    // Now simulate quota exceeded for any setItem targeting a save slot.
+    const real = Storage.prototype.setItem;
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(function (this: Storage, key: string, value: string) {
+      if (key.startsWith('dynasty-save-')) {
+        const err = new Error('QuotaExceededError');
+        (err as unknown as { name: string }).name = 'QuotaExceededError';
+        throw err;
+      }
+      return real.call(this, key, value);
+    });
+
+    writeSaveSlot(SLOT, validSave({ week: 2 }));
+
+    // The durable localStorage copy from the earlier successful write
+    // must still be present — erasing it would leave IDB-unavailable
+    // users with no recovery path on next launch.
+    expect(localStorage.getItem(STORAGE_KEYS.saveSlot(SLOT))).toBe(validSave({ week: 1 }));
+    // The in-memory cache still reflects the fresh write for this session.
+    expect(readSaveSlot(SLOT)).toBe(validSave({ week: 2 }));
+  });
+});
+
+describe('deleteAllDynastyData — awaitable', () => {
+  beforeEach(() => {
+    __resetSaveStorageForTests();
+    localStorage.clear();
+  });
+
+  // Codex P2: the function used to return void while firing the IDB
+  // purge in a detached async IIFE — callers then navigated/toasted as
+  // if deletion was complete, but the app could be killed mid-purge and
+  // leave IDB saves that reappear on next launch. The new signature
+  // returns a Promise so callers can await the full wipe.
+  it('returns a Promise that resolves after all layers are cleared', async () => {
+    const { deleteAllDynastyData } = await import('@/store/helpers/persistence');
+    writeSaveSlot(SLOT, validSave());
+    expect(readSaveSlot(SLOT)).not.toBeNull();
+
+    const result = deleteAllDynastyData();
+    expect(result).toBeInstanceOf(Promise);
+    await result;
+
+    expect(readSaveSlot(SLOT)).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEYS.saveSlot(SLOT))).toBeNull();
+  });
+});

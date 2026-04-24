@@ -191,9 +191,12 @@ const SettingsPageInner = () => {
     setShowResetConfirm(false);
   };
 
-  const handleDeleteAllData = () => {
+  const handleDeleteAllData = async () => {
     hapticMedium();
-    deleteAllDynastyData();
+    // Await the IDB purge before confirming deletion to the user —
+    // otherwise backgrounding the app before it finishes can leave
+    // IndexedDB saves that reappear on next launch.
+    await deleteAllDynastyData();
     setShowDeleteDataConfirm(false);
     navigate('/');
     setTimeout(() => {

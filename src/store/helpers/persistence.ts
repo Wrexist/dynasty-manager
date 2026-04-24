@@ -381,18 +381,23 @@ export function writeSaveSlot(slot: number, json: string): void {
   if (oldMain) void idbPut(backupKey, oldMain);
   else void idbDel(backupKey);
 
-  // Step 4: best-effort localStorage mirror. On quota exceeded we drop
-  // whatever was there so the two stores don't diverge — IDB is truth.
+  // Step 4: best-effort localStorage mirror. Never throws — the IDB +
+  // memory write is already authoritative.
+  //
+  // On quota, we LEAVE the previous localStorage contents in place. This
+  // matters when IDB is also unavailable (private browsing, blocked
+  // storage): the stale-but-valid mirror is still the user's last durable
+  // copy of their save. Erasing it here would silently destroy the only
+  // record of progress — the exact failure mode Codex flagged.
   try {
     localStorage.setItem(mainKey, json);
+    // Main write succeeded — rotate the backup mirror to match memory.
     if (oldMain) lsSetSafe(backupKey, oldMain);
     else lsRemoveSafe(backupKey);
   } catch {
-    // Quota exceeded — drop the mirror. Do NOT throw; the IDB + memory
-    // write already succeeded. Users used to see "Save Failed" here
-    // because the old path threw SAVE_WRITE_FAILED; that's gone now.
-    lsRemoveSafe(mainKey);
-    lsRemoveSafe(backupKey);
+    // Quota exceeded on main. Keep the stale localStorage copy as a
+    // last-resort durable fallback for the IDB-unavailable path. The
+    // memory cache and IDB mirror already hold the fresh payload.
   }
 }
 
@@ -486,21 +491,22 @@ export function writeHallData(json: string): void {
 // ── Delete All Data (Apple account deletion requirement) ──
 
 /** Wipe all Dynasty Manager data from every storage layer (memory cache,
- *  IndexedDB, localStorage). Required for the Apple account-deletion flow. */
-export function deleteAllDynastyData(): void {
-  // Memory cache — zero out sync source of truth.
+ *  IndexedDB, localStorage). Required for the Apple account-deletion flow.
+ *
+ *  The promise resolves only after the IndexedDB purge has finished, so
+ *  callers can await completion before navigating away or signaling the
+ *  user that deletion succeeded. Returning before the async purge
+ *  completes would leave IDB saves that reappear on next launch if the
+ *  app is backgrounded in that window. */
+export async function deleteAllDynastyData(): Promise<void> {
+  // Memory cache — zero out the sync source of truth first so any
+  // render during the async IDB purge sees empty slots.
   for (let i = 0; i < memSlots.length; i++) {
     memSlots[i] = null;
     memSlotBackups[i] = null;
   }
-  // IndexedDB — drop every key namespaced for Dynasty.
-  void (async () => {
-    try {
-      const keys = await idbKeys();
-      await Promise.all(keys.map(k => idbDel(k)));
-    } catch { /* ignore */ }
-  })();
-  // localStorage — drop every key the app may have written.
+  // localStorage — drop every key the app may have written. Synchronous
+  // so it's safe to do before the IDB await.
   try {
     for (let i = 1; i <= MAX_SLOTS; i++) {
       localStorage.removeItem(`dynasty-save-${i}`);
@@ -515,6 +521,12 @@ export function deleteAllDynastyData(): void {
       .filter(k => k.startsWith('dynasty-'))
       .forEach(k => localStorage.removeItem(k));
   } catch { /* storage unavailable */ }
+  // IndexedDB — drop every key namespaced for Dynasty. Awaited so
+  // callers know the purge is truly complete before proceeding.
+  try {
+    const keys = await idbKeys();
+    await Promise.all(keys.map(k => idbDel(k)));
+  } catch { /* IDB unavailable or transaction aborted — best-effort */ }
 }
 
 /** Get summaries for all 3 save slots. Reads from the memory cache (so

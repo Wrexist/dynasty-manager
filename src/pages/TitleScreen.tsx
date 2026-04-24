@@ -78,6 +78,10 @@ const TitleScreen = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const slots = useMemo(() => getSlotSummaries(), [refreshKey, hydrated]);
   const handleContinue = (slot: number) => {
+    // Guard against taps during the brief window before IDB hydration
+    // completes — `slots` reports `exists: false` until then, so continue
+    // would surface a misleading "save data not found" toast.
+    if (!hydrated) return;
     if (loadGame(slot)) {
       queueMicrotask(() => navigate('/game'));
       return;
@@ -92,6 +96,10 @@ const TitleScreen = () => {
   };
 
   const handleNewGame = (slot: number) => {
+    // Critical guard: without this, tapping a slot during IDB hydration
+    // can overwrite a career that exists only in IDB (not yet surfaced
+    // in `slots`). Block until we're certain the slot is truly empty.
+    if (!hydrated) return;
     const pref = readCommunityPackSlotPref(slot);
     if (pref === null) {
       // First New Game on this slot — ask once, then remember the choice.
@@ -301,6 +309,27 @@ const TitleScreen = () => {
                     </button>
                   </motion.div>
                 )}
+              </GlassPanel>
+            ) : !hydrated ? (
+              // Save storage is still reading from IndexedDB. A slot that
+              // reports empty right now may in fact hold an existing
+              // career; show a loading placeholder instead of the "New
+              // Game" CTA so a tap during hydration can't overwrite data
+              // that hasn't surfaced yet.
+              <GlassPanel
+                className="p-0 opacity-60 pointer-events-none"
+                aria-label={`Slot ${slot.slot} loading`}
+                aria-busy="true"
+              >
+                <div className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-white/[0.04] border border-dashed border-white/15 flex items-center justify-center shrink-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]">
+                    <RefreshCw className="w-[18px] h-[18px] text-muted-foreground animate-spin" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground/90">Loading…</p>
+                    <p className="text-[11px] text-muted-foreground/80 mt-0.5">Slot {slot.slot} · Checking for save data</p>
+                  </div>
+                </div>
               </GlassPanel>
             ) : (
               <GlassPanel
