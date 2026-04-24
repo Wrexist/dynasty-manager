@@ -10,7 +10,6 @@ import { SubNav } from '@/components/game/SubNav';
 import { PageErrorBoundary } from '@/components/game/PageErrorBoundary';
 import { ErrorBoundary } from '@/components/game/ErrorBoundary';
 import { ContractNegotiation } from '@/components/game/ContractNegotiation';
-import { DevToolsPanel } from '@/components/dev/DevToolsPanel';
 import { useSwipeGesture } from '@/hooks/useSwipeGesture';
 import { BACK_TARGET, MAIN_TABS, SCREEN_GROUPS, UNEMPLOYED_MAIN_TABS } from '@/config/navigation';
 import { MARKET_SUB_NAV, SQUAD_SUB_NAV } from '@/config/ui';
@@ -304,7 +303,6 @@ const GameShell = () => {
         </main>
         <BottomNav />
         <ContractNegotiation />
-        <DevToolsPanel />
       </div>
       </InfoTipProvider>
     </ErrorBoundary>
