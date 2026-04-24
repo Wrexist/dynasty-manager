@@ -93,7 +93,11 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
       )}
 
       {statusLabel && (
-        <span className="absolute -top-1.5 -right-1.5 z-20 text-[6px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm">
+        <span
+          title={statusLabel === 'INJ' ? 'Injured' : 'Suspended'}
+          aria-label={statusLabel === 'INJ' ? 'Injured' : 'Suspended'}
+          className="absolute -top-1.5 -right-1.5 z-20 text-[6px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm"
+        >
           {statusLabel}
         </span>
       )}
@@ -107,8 +111,11 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
 
       {/* Chemistry link count (bottom-left corner) */}
       {chemistryLinkCount > 0 && (
-        <span className="absolute bottom-0.5 left-0.5 z-10 flex items-center gap-px text-[6px] text-primary font-semibold tabular-nums leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]">
-          <Link className="w-[6px] h-[6px]" />
+        <span
+          aria-label={`${chemistryLinkCount} chemistry link${chemistryLinkCount === 1 ? '' : 's'}`}
+          className="absolute bottom-0.5 left-0.5 z-10 flex items-center gap-px text-[6px] text-primary font-semibold tabular-nums leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]"
+        >
+          <Link className="w-[6px] h-[6px]" aria-hidden />
           {chemDisplay}
         </span>
       )}
