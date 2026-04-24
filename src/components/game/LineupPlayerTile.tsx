@@ -82,7 +82,6 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
         player.injured && 'opacity-60',
       )}
-      style={clubColor ? { boxShadow: `inset 2px 0 0 0 ${clubColor}` } : undefined}
     >
       <PlayerCard
         player={player}
@@ -90,6 +89,16 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
         interactive="none"
         compact
       />
+
+      {/* Club-color accent — rendered as a left-edge overlay so it does
+          not collide with Tailwind ring-* classes (both use box-shadow). */}
+      {clubColor && (
+        <span
+          aria-hidden
+          className="absolute left-0 top-0 bottom-0 w-[2px] rounded-l-[7px] pointer-events-none z-10"
+          style={{ backgroundColor: clubColor }}
+        />
+      )}
 
       {isSelected && (
         <span className="absolute inset-0 rounded-[7px] ring-2 ring-primary animate-pulse pointer-events-none z-10" />

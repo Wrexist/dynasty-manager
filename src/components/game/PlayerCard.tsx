@@ -15,7 +15,7 @@ type StatView = 0 | 1 | 2;
 
 interface PlayerCardProps {
   player: Player;
-  /** Visual size. sm=64 (bench), md=110 (squad rows), lg=150 (market), xl=220 (detail). */
+  /** Visual size. xs=52 (tactics pitch), sm=64 (bench), md=110 (squad rows), lg=150 (market), xl=220 (detail). */
   size?: PlayerCardSize;
   /**
    * Tap behaviour:
