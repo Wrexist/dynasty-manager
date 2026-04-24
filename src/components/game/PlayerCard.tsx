@@ -8,7 +8,7 @@ import { hapticLight } from '@/utils/haptics';
 import { getPlayerCardArt } from '@/utils/uiHelpers';
 import { getPersonalityLabel } from '@/utils/personality';
 
-export type PlayerCardSize = 'sm' | 'md' | 'lg' | 'xl';
+export type PlayerCardSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 export type PlayerCardInteraction = 'cycle' | 'detail' | 'none';
 
 type StatView = 0 | 1 | 2;
@@ -42,8 +42,10 @@ interface PlayerCardProps {
   className?: string;
 }
 
-// Fixed external size → one place to tune the four presets.
-const SIZE_PX: Record<PlayerCardSize, number> = { sm: 64, md: 110, lg: 150, xl: 220 };
+// Fixed external size → one place to tune the presets.
+// xs is the tightest tier — used on the tactics pitch where 11 shields
+// need to fit across a half-pitch without overlapping.
+const SIZE_PX: Record<PlayerCardSize, number> = { xs: 52, sm: 64, md: 110, lg: 150, xl: 220 };
 
 /**
  * Derived pixel tokens, proportional to card width. Everything inside the
@@ -233,7 +235,7 @@ export const PlayerCard = memo(function PlayerCard({
               <FlagIcon nationality={player.nationality} fill />
             </div>
           </div>
-          {size !== 'sm' && !compact && (
+          {size !== 'xs' && size !== 'sm' && !compact && (
             <p
               className="mt-0.5 font-medium text-white/80 leading-none truncate"
               style={{ fontSize: tk.firstNamePx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
