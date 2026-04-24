@@ -108,7 +108,11 @@ export const BenchStrip = memo(function BenchStrip({
       )}
 
       {statusLabel && (
-        <span className="absolute -top-1.5 -right-1.5 z-20 text-[7px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm">
+        <span
+          title={statusLabel === 'INJ' ? 'Injured' : 'Suspended'}
+          aria-label={statusLabel === 'INJ' ? 'Injured' : 'Suspended'}
+          className="absolute -top-1.5 -right-1.5 z-20 text-[7px] font-bold bg-red-500 text-white px-1 py-px rounded-full leading-tight shadow-sm"
+        >
           {statusLabel}
         </span>
       )}
@@ -126,8 +130,11 @@ export const BenchStrip = memo(function BenchStrip({
 
       {/* Chemistry link count — bottom-right on the shield */}
       {chemistryLinkCount > 0 && (
-        <span className="absolute bottom-1 right-1 z-10 flex items-center gap-px text-[8px] text-primary font-semibold tabular-nums leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]">
-          <Link className="w-[7px] h-[7px]" />
+        <span
+          aria-label={`${chemistryLinkCount} chemistry link${chemistryLinkCount === 1 ? '' : 's'}`}
+          className="absolute bottom-1 right-1 z-10 flex items-center gap-px text-[8px] text-primary font-semibold tabular-nums leading-none drop-shadow-[0_1px_1px_rgba(0,0,0,0.85)]"
+        >
+          <Link className="w-[7px] h-[7px]" aria-hidden />
           {chemDisplay}
         </span>
       )}

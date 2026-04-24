@@ -235,4 +235,57 @@ describe('LineupPlayerTile layout invariants', () => {
     // Lucide Link icon gets a `lucide-link` class; should not render when count is 0
     expect(container.querySelector('.lucide-link')).toBeNull();
   });
+
+  it('labels the INJ status pill with a descriptive aria-label for screen readers', () => {
+    const { getByLabelText } = render(
+      <LineupPlayerTile
+        player={makePlayer({ injured: true, injuryWeeks: 3 })}
+        position="CM"
+        isSelected={false}
+        chemistryLinkCount={0}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    expect(getByLabelText('Injured')).toBeDefined();
+  });
+
+  it('labels the SUS status pill with a descriptive aria-label when suspended', () => {
+    const { getByLabelText } = render(
+      <LineupPlayerTile
+        player={makePlayer({ suspendedUntilWeek: 10 })}
+        position="CM"
+        isSelected={false}
+        chemistryLinkCount={0}
+        week={5}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    expect(getByLabelText('Suspended')).toBeDefined();
+  });
+
+  it('labels the chemistry link cluster with its count for screen readers', () => {
+    const { getByLabelText } = render(
+      <LineupPlayerTile
+        player={makePlayer()}
+        position="CM"
+        isSelected={false}
+        chemistryLinkCount={3}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    expect(getByLabelText('3 chemistry links')).toBeDefined();
+  });
+
+  it('pluralises correctly for a single chemistry link', () => {
+    const { getByLabelText } = render(
+      <LineupPlayerTile
+        player={makePlayer()}
+        position="CM"
+        isSelected={false}
+        chemistryLinkCount={1}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    expect(getByLabelText('1 chemistry link')).toBeDefined();
+  });
 });
