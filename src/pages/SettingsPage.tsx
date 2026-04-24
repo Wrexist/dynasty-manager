@@ -4,7 +4,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { LiquidButton } from '@/components/game/LiquidButton';
 import { SaveStatusIndicator } from '@/components/game/SaveStatusIndicator';
-import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar } from 'lucide-react';
+import { Save, Download, Trash2, Zap, Eye, RotateCcw, HelpCircle, Crown, RefreshCw, ExternalLink, Mail, MessageSquare, Vibrate, FileText, Shield, ShieldAlert, Home, AlertTriangle, Lightbulb, ShieldCheck, MonitorSmartphone, BookOpen, Users, Bug, ChartBar, Sparkles } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect } from 'react';
@@ -26,6 +26,7 @@ import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
 import { SAVE_CONFIRMATION_MS } from '@/config/ui';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
+import { hasUnseenWhatsNew, LATEST_RELEASE } from '@/data/whatsNew';
 
 const APP_VERSION = 'v1.0.0 · Football Edition';
 
@@ -431,6 +432,21 @@ const SettingsPageInner = () => {
             <span className="flex items-center justify-start gap-3 px-3">
               <BookOpen className="w-4 h-4" />
               Game Guide
+            </span>
+          </LiquidButton>
+          <LiquidButton onClick={() => setScreen('whats-new')}>
+            <span className="flex items-center justify-start gap-3 px-3 w-full">
+              <Sparkles className="w-4 h-4" />
+              <span className="flex-1 text-left">What&apos;s New</span>
+              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium tabular-nums">
+                <span>v{LATEST_RELEASE.version}</span>
+                {hasUnseenWhatsNew() && (
+                  <span
+                    aria-label="Unread update"
+                    className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 ring-2 ring-background/90 animate-pulse"
+                  />
+                )}
+              </span>
             </span>
           </LiquidButton>
         </div>

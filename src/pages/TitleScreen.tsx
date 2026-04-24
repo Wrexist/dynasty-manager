@@ -6,7 +6,7 @@ import { getSlotSummaries } from '@/store/slices/orchestrationSlice';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { Play, Settings, Trash2, Save, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink, ChevronRight, RotateCcw } from 'lucide-react';
+import { Play, Settings, Trash2, Save, Swords, Eye, HelpCircle, RefreshCw, Mail, Crown, ExternalLink, ChevronRight, RotateCcw, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSuffix } from '@/utils/helpers';
 import { signalReady, saveStorageReady } from '@/main';
@@ -25,6 +25,7 @@ import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractS
 import { isPro, isSubscriptionActive } from '@/utils/monetization';
 import { PRODUCTS } from '@/config/monetization';
 import { MATCH_SPEEDS } from '@/config/matchSpeed';
+import { hasUnseenWhatsNew, LATEST_RELEASE } from '@/data/whatsNew';
 import type { TitleFloatingCircle } from '@/types/game';
 
 
@@ -47,6 +48,12 @@ const TitleScreen = () => {
 
   // Signal to main.tsx that the first screen is mounted (hides splash)
   useEffect(() => { signalReady?.(); }, []);
+
+  // Re-read "What's New" seen state on every mount so the NEW badge
+  // clears once the user returns from /whats-new. `refreshKey` already
+  // bumps on focus-related flows; this mirrors that cadence.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const whatsNewUnseen = useMemo(() => hasUnseenWhatsNew(), [refreshKey]);
 
   // Prefetch the Dashboard chunk while the user reads the title screen
   useEffect(() => {
@@ -354,8 +361,46 @@ const TitleScreen = () => {
           </GlassPanel>
         </motion.div>
 
-        {/* Settings */}
+        {/* What's New — App Store–style release notes. Shows a dot on the
+            icon when the latest version hasn't been opened yet. */}
         <motion.div custom={slots.length + 3} variants={buttonVariants} initial="hidden" animate="visible">
+          <GlassPanel
+            className="p-0"
+            onClick={() => { setRefreshKey(k => k + 1); navigate('/whats-new'); }}
+            aria-label="What's new in this update"
+          >
+            <div className="flex items-center gap-3 px-4 py-3.5">
+              <div className="relative shrink-0">
+                <div className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/15 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+                  <Sparkles className="w-[18px] h-[18px] text-primary" />
+                </div>
+                {whatsNewUnseen && (
+                  <span
+                    aria-hidden
+                    className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-background/90 animate-pulse"
+                  />
+                )}
+              </div>
+              <div className="flex-1 min-w-0 text-left">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-bold text-foreground">What&apos;s New</p>
+                  {whatsNewUnseen && (
+                    <span className="text-[9px] bg-emerald-400/15 text-emerald-300 px-1.5 py-[1px] rounded-full font-semibold uppercase tracking-wider border border-emerald-400/30">
+                      New
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+                  v{LATEST_RELEASE.version} · {LATEST_RELEASE.headline}
+                </p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
+            </div>
+          </GlassPanel>
+        </motion.div>
+
+        {/* Settings */}
+        <motion.div custom={slots.length + 4} variants={buttonVariants} initial="hidden" animate="visible">
           <Sheet>
             <SheetTrigger asChild>
               <button
@@ -528,18 +573,34 @@ const TitleScreen = () => {
                 {/* Help */}
                 <GlassPanel className="p-4">
                   <h3 className="text-sm font-semibold text-foreground mb-3">Help</h3>
-                  <Button
-                    variant="secondary"
-                    className="w-full justify-start gap-3 h-11"
-                    onClick={() => {
-                      removeFlag('dynasty-welcome-shown');
-                      clearFlagsByPrefix('dynasty-hint-');
-                      infoToast('Tutorial Reset', 'The welcome tutorial and page hints will show again.');
-                    }}
-                  >
-                    <HelpCircle className="w-4 h-4" />
-                    Replay Tutorial
-                  </Button>
+                  <div className="space-y-2">
+                    <Button
+                      variant="secondary"
+                      className="w-full justify-start gap-3 h-11"
+                      onClick={() => {
+                        removeFlag('dynasty-welcome-shown');
+                        clearFlagsByPrefix('dynasty-hint-');
+                        infoToast('Tutorial Reset', 'The welcome tutorial and page hints will show again.');
+                      }}
+                    >
+                      <HelpCircle className="w-4 h-4" />
+                      Replay Tutorial
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="w-full justify-start gap-3 h-11"
+                      onClick={() => { setRefreshKey(k => k + 1); navigate('/whats-new'); }}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span className="flex-1 text-left">What&apos;s New</span>
+                      <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-medium">
+                        <span>v{LATEST_RELEASE.version}</span>
+                        {whatsNewUnseen && (
+                          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        )}
+                      </span>
+                    </Button>
+                  </div>
                 </GlassPanel>
 
                 {/* About */}

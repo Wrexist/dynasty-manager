@@ -63,6 +63,24 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run test
+
+      # ─── What's New guard ──────────────────────────────────────────────
+      # Fails the build if src/data/whatsNew.ts is missing a top entry for
+      # the current package.json version, or if that entry is incomplete
+      # (no headline / summary / date / bullet points). Prepend a new entry
+      # to RELEASE_NOTES before triggering this workflow. See CLAUDE.md →
+      # "TestFlight release notes — MANDATORY" for the authoring rules.
+      - name: Validate What's New entry for this build
+        run: node scripts/check-whats-new.mjs
+
+      # Inject the TestFlight build number (github.run_number) into the top
+      # RELEASE_NOTES entry's `build` field before bundling, so the shipped
+      # app shows the real CFBundleVersion in its in-app What's New card
+      # even if the PR author left `build: null`. This mutation is scoped
+      # to the CI runner — the repo copy stays as-is.
+      - name: Inject build number into What's New
+        run: node scripts/check-whats-new.mjs --inject-build ${{ github.run_number }}
+
       - name: Build with production keys
         env:
           VITE_REVENUECAT_API_KEY: ${{ secrets.VITE_REVENUECAT_API_KEY }}

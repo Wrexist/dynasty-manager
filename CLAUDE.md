@@ -1,5 +1,65 @@
 # CLAUDE.md — Dynasty Manager
 
+## ⚠️ MANDATORY: TestFlight Release Notes ("What's New")
+
+**Every TestFlight build MUST ship with a fresh `src/data/whatsNew.ts` entry.**
+The iOS TestFlight workflow runs `scripts/check-whats-new.mjs` and fails the
+build if the top entry is missing or incomplete.
+
+### Before triggering `iOS TestFlight Deploy`:
+
+1. **Bump `package.json` version** (semver — patch for fixes, minor for features).
+2. **Prepend a new entry to `RELEASE_NOTES`** in `src/data/whatsNew.ts`.
+   - Keep all prior entries. Never delete history.
+3. **Fill every field** — treat this like a real App Store release note that
+   players will read inside the game:
+   - `version` — matches `package.json` exactly.
+   - `build` — leave as `null`. CI injects `github.run_number` automatically
+     at bundle time so the shipped app shows the real CFBundleVersion.
+   - `date` — today in `YYYY-MM-DD`.
+   - `headline` — 3–8 word App Store hook (e.g. "Cup glory, smarter AI, faster matches.").
+   - `summary` — 1–3 sentences, player-facing tone, says what actually changed.
+   - Categorize changes into `highlights` / `new` / `improved` / `fixed`.
+   - Every bullet is a complete sentence ending with a period.
+   - **Never** mention refactors, lint, tests, file names, or internal work.
+     Write for a player who has never seen the codebase.
+
+### Validation:
+
+```bash
+node scripts/check-whats-new.mjs     # run locally before ship
+```
+
+The iOS TestFlight workflow runs this automatically before the archive step,
+then re-runs it with `--inject-build ${{ github.run_number }}` to stamp the
+real build number into the shipped bundle.
+
+### Where players see it:
+
+- **Main menu (TitleScreen)** — "What's New" tile with a green "NEW" dot until opened.
+- **Main menu (TitleScreen) → Settings sheet → Help** — secondary entry.
+- **In-game Settings → Help → "What's New"** — persistent entry point.
+- Latest entry is badged `Latest` and `NEW`; older entries stay with full build + date.
+
+### Example entry:
+
+```ts
+{
+  version: '1.0.1',
+  build: null,                 // CI fills this with github.run_number
+  date: '2026-04-28',
+  headline: 'Faster matches and sharper AI.',
+  summary:
+    'Match simulation is 30% faster, rival managers adapt their tactics, and three blocking match-day bugs are fixed.',
+  highlights: ['Rival managers now adjust tactics based on the scoreline.'],
+  new: ['Added adaptive AI tactics that respond to the scoreline.'],
+  improved: ['Match engine runs 30% faster on older devices.'],
+  fixed: ['Fixed a crash when loading a save from the League Cup final.'],
+},
+```
+
+---
+
 ## ⚠️ MANDATORY: Read This First — Git & Shipping Workflow
 
 **These are NON-NEGOTIABLE rules. Every Claude session MUST follow them.**

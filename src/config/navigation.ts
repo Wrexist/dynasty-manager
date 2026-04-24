@@ -3,7 +3,7 @@ import { GameScreen } from '@/types/game';
 export const DETAIL_SCREENS: GameScreen[] = [
   'player-detail', 'match-review', 'board', 'finance', 'merchandise', 'facilities',
   'settings', 'season-summary', 'calendar', 'match-prep',
-  'league-table', 'comparison', 'manager-profile', 'cup', 'league-cup', 'champions-cup', 'shield-cup', 'super-cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club', 'team-detail', 'shop', 'help',
+  'league-table', 'comparison', 'manager-profile', 'cup', 'league-cup', 'champions-cup', 'shield-cup', 'super-cup', 'perks', 'trophy-cabinet', 'prestige', 'hall-of-managers', 'club', 'team-detail', 'shop', 'help', 'whats-new',
   'national-team', 'international-tournament', 'conference-cup',
   'job-market', 'career-overview', 'ballon-dor',
 ];
@@ -35,6 +35,7 @@ export const BACK_TARGET: Partial<Record<GameScreen, GameScreen>> = {
   'team-detail': 'league-table',
   'shop': 'dashboard',
   'help': 'dashboard',
+  'whats-new': 'settings',
   'national-team': 'dashboard',
   'international-tournament': 'dashboard',
   'conference-cup': 'dashboard',
@@ -80,6 +81,7 @@ export const SCREEN_TITLES: Partial<Record<GameScreen, string>> = {
   'youth-academy': 'Youth Academy',
   'shop': 'Shop',
   'help': 'Game Guide',
+  'whats-new': "What's New",
   'national-team': 'National Team',
   'international-tournament': 'Tournament',
   'conference-cup': 'Conference Cup',
@@ -109,7 +111,7 @@ export const DRAWER_PROGRESSIVE_SCREENS: Partial<Record<GameScreen, number>> = {
 // Screens accessible when unemployed in career mode (everything else redirects to job-market)
 export const UNEMPLOYED_ALLOWED_SCREENS = new Set<GameScreen>([
   'job-market', 'career-overview', 'inbox', 'settings', 'manager-profile',
-  'trophy-cabinet', 'hall-of-managers', 'perks', 'prestige', 'help', 'shop',
+  'trophy-cabinet', 'hall-of-managers', 'perks', 'prestige', 'help', 'whats-new', 'shop',
   'ballon-dor', 'league-table', 'calendar', 'team-detail', 'season-summary',
   'player-detail',
 ]);
