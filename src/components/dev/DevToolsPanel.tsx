@@ -59,17 +59,18 @@ const SCREEN_SHORTCUTS: { screen: GameScreen; label: string }[] = [
 ];
 
 /**
- * Evaluate once at module load. Anything that's not a production bundle
- * gets the panel by default; production bundles require an opt-in flag.
+ * Evaluate once at module load. Only the Vite dev server (`import.meta
+ * .env.DEV === true`) auto-enables the panel; every other build — prod,
+ * staging, qa, build:dev, preview — requires the localStorage opt-in so
+ * custom modes like `vite build --mode staging` can't accidentally ship
+ * state-mutating shortcuts to end users.
  */
 function resolveVisibility(): { visible: boolean; source: string } {
-  // Vite populates import.meta.env.MODE and DEV. Treat anything non-
-  // production as dev-eligible so build:dev and preview also get it.
-  let mode = 'unknown';
   let dev = false;
+  let mode = 'unknown';
   try {
+    dev = import.meta.env?.DEV === true;
     mode = import.meta.env?.MODE ?? 'unknown';
-    dev = import.meta.env?.DEV === true || mode !== 'production';
   } catch {
     // import.meta can throw in exotic runtimes; fall through.
   }
@@ -84,8 +85,8 @@ function resolveVisibility(): { visible: boolean; source: string } {
   }
 
   if (flag) return { visible: true, source: `localStorage:devtools=1 (mode=${mode})` };
-  if (dev) return { visible: true, source: `vite mode=${mode}` };
-  return { visible: false, source: `vite mode=${mode}, no flag` };
+  if (dev) return { visible: true, source: `vite dev server (mode=${mode})` };
+  return { visible: false, source: `non-dev build (mode=${mode}), no flag` };
 }
 
 const VISIBILITY = resolveVisibility();
