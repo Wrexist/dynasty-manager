@@ -10,6 +10,11 @@
  *
  * Everything here talks to the live game store directly — no separate
  * dev-only actions on the store surface. Keeps the zustand API small.
+ *
+ * The panel body is also exported as `DevToolsBody` so Settings can
+ * surface the same controls inside a bottom sheet — useful when the
+ * floating trigger gets occluded by another overlay or goes off-screen
+ * on short viewports.
  */
 
 import { useMemo, useState } from 'react';
@@ -105,7 +110,27 @@ if (typeof console !== 'undefined') {
   }
 }
 
-export function DevToolsPanel() {
+/** Module-level visibility flag for consumers like SettingsPage that want
+ *  to mirror the floating trigger's gating without re-running the check. */
+export const DEV_TOOLS_VISIBLE = VISIBILITY.visible;
+export const DEV_TOOLS_VISIBILITY_SOURCE = VISIBILITY.source;
+
+/**
+ * Inner body of the dev tools panel — header, scrollable sections, footer.
+ * Extracted so Settings can host the same controls inside a bottom sheet.
+ *
+ * `onClose` is called after any action that would leave the overlay
+ * covering the target screen (nav, seed Ballon d'Or, reset slot).
+ * `showCloseButton` hides the internal X when the container already
+ * provides its own close affordance (shadcn Sheet does).
+ */
+export function DevToolsBody({
+  onClose,
+  showCloseButton = true,
+}: {
+  onClose: () => void;
+  showCloseButton?: boolean;
+}) {
   const gameStarted = useGameStore((s) => s.gameStarted);
   const season = useGameStore((s) => s.season);
   const week = useGameStore((s) => s.week);
@@ -119,7 +144,6 @@ export function DevToolsPanel() {
   const saveGame = useGameStore((s) => s.saveGame);
   const resetGame = useGameStore((s) => s.resetGame);
 
-  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
   const budgetLabel = useMemo(() => {
@@ -127,10 +151,6 @@ export function DevToolsPanel() {
     if (budget >= 1_000) return `£${Math.round(budget / 1_000)}K`;
     return `£${budget}`;
   }, [budget]);
-
-  // Gate on dev/flag. No gameStarted gate — panel is useful pre-game too
-  // (can jump to Settings, reset slot, etc.).
-  if (!VISIBILITY.visible) return null;
 
   const go = (screen: GameScreen) => {
     // Panel may be open from any route — title, club-select, /game. Ensure
@@ -142,7 +162,7 @@ export function DevToolsPanel() {
     } else {
       toast.info('Start or load a game first');
     }
-    setOpen(false);
+    onClose();
   };
 
   const needsGame = !gameStarted || !playerClubId;
@@ -153,6 +173,155 @@ export function DevToolsPanel() {
     }
     fn();
   };
+
+  return (
+    <div className="flex flex-col overflow-hidden h-full">
+      {/* Header */}
+      <div className="flex items-center justify-between px-3 py-2 border-b border-amber-500/30 bg-amber-500/10 shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <Wrench className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+          <p className="text-[11px] font-bold uppercase tracking-wider text-amber-400 shrink-0">Dev Tools</p>
+          <span className="text-[10px] text-muted-foreground tabular-nums truncate">
+            {gameStarted ? `· S${season} W${week}/${totalWeeks} · ${budgetLabel}` : '· (no game loaded)'}
+          </span>
+        </div>
+        {showCloseButton && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1 rounded hover:bg-white/10 transition-colors shrink-0"
+            aria-label="Close"
+          >
+            <X className="w-3.5 h-3.5 text-muted-foreground" />
+          </button>
+        )}
+      </div>
+
+      {/* Scrollable body */}
+      <div className="overflow-y-auto flex-1 p-3 space-y-4">
+        <Section icon={Navigation} title="Screens">
+          <div className="grid grid-cols-3 gap-1.5">
+            {SCREEN_SHORTCUTS.map((s) => (
+              <Pill key={s.screen} onClick={() => go(s.screen)}>
+                {s.label}
+              </Pill>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 mt-1.5">
+            <Pill tone="primary" onClick={requireGame(() => { inspectFirstPlayer(); onClose(); })}>
+              Inspect 1st player
+            </Pill>
+            <Pill tone="primary" onClick={requireGame(() => { inspectRivalClub(); onClose(); })}>
+              Inspect rival club
+            </Pill>
+          </div>
+        </Section>
+
+        <Section icon={Clock} title="Time">
+          <div className="grid grid-cols-3 gap-1.5">
+            <Pill onClick={requireGame(async () => {
+              await Promise.resolve(advanceWeek());
+              toast.success(`Advanced to W${useGameStore.getState().week}`);
+            })}>
+              +1 week
+            </Pill>
+            <Pill onClick={requireGame(async () => {
+              await Promise.resolve(advanceToNextMatch());
+              toast.success('Jumped to next match');
+            })}>
+              Next match
+            </Pill>
+            <Pill tone="danger" onClick={requireGame(() => {
+              endSeason();
+              toast.success('Season ended');
+            })}>
+              End season
+            </Pill>
+          </div>
+        </Section>
+
+        <Section icon={TestTube} title="Scenarios">
+          <div className="grid grid-cols-2 gap-1.5">
+            <Pill tone="primary" onClick={requireGame(() => {
+              const { count } = seedBallonDor();
+              toast.success(`Seeded Ballon d'Or (${count} players)`);
+              setScreen('ballon-dor');
+              onClose();
+            })}>
+              Seed Ballon d'Or
+            </Pill>
+            <Pill onClick={requireGame(() => {
+              armPackPity();
+              toast.success('Pack pity armed');
+            })}>
+              Arm pack pity
+            </Pill>
+            <Pill onClick={requireGame(() => {
+              const r = injectInjury();
+              if (r) toast.success(`Injured ${r.playerName}`);
+              else toast.info('No healthy squad player to injure');
+            })}>
+              Random injury
+            </Pill>
+            <Pill onClick={requireGame(() => {
+              const { healed, fitnessReset } = healSquad();
+              toast.success(`Healed ${healed}, refreshed ${fitnessReset}`);
+            })}>
+              Heal & refresh
+            </Pill>
+            <Pill onClick={requireGame(() => {
+              const r = toggleWantsToLeave();
+              if (r) toast.success(`${r.playerName} wantsToLeave → ${r.nowWants ? 'true' : 'false'}`);
+              else toast.info('No eligible player');
+            })}>
+              Toggle "wants out"
+            </Pill>
+          </div>
+        </Section>
+
+        <Section icon={Coins} title="Money">
+          <div className="grid grid-cols-4 gap-1.5">
+            <Pill onClick={requireGame(() => { adjustBudget(1_000_000); toast.success('+£1M'); })}>+£1M</Pill>
+            <Pill onClick={requireGame(() => { adjustBudget(10_000_000); toast.success('+£10M'); })}>+£10M</Pill>
+            <Pill onClick={requireGame(() => { adjustBudget(100_000_000); toast.success('+£100M'); })}>+£100M</Pill>
+            <Pill tone="danger" onClick={requireGame(() => { adjustBudget(-10_000_000); toast.info('-£10M'); })}>−£10M</Pill>
+          </div>
+        </Section>
+
+        <Section icon={Save} title="Save">
+          <div className="grid grid-cols-2 gap-1.5">
+            <Pill onClick={requireGame(() => { saveGame(); toast.success('Saved'); })}>Save now</Pill>
+            <Pill tone="danger" onClick={requireGame(() => {
+              if (!window.confirm('Reset current save slot? This cannot be undone.')) return;
+              resetGame();
+              toast.success('Save reset');
+              onClose();
+            })}>
+              Reset slot
+            </Pill>
+          </div>
+        </Section>
+
+        <p className="text-[10px] text-muted-foreground/70 text-center pt-1">
+          {VISIBILITY.source}
+        </p>
+      </div>
+
+      {/* Footer hint */}
+      <div className="shrink-0 flex items-center justify-center gap-1 px-3 py-1.5 border-t border-border/40 text-[9px] text-muted-foreground">
+        <Zap className="w-2.5 h-2.5 text-amber-400" />
+        <span>Side-stepping game logic — expect state drift</span>
+      </div>
+    </div>
+  );
+}
+
+export function DevToolsPanel() {
+  const [open, setOpen] = useState(false);
+
+  // Gate on dev/flag. No gameStarted gate — panel is useful pre-game too
+  // (can jump to Settings, reset slot, etc.).
+  if (!VISIBILITY.visible) return null;
 
   return (
     <>
@@ -193,140 +362,7 @@ export function DevToolsPanel() {
             role="dialog"
             aria-label="Developer tools"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-3 py-2 border-b border-amber-500/30 bg-amber-500/10 shrink-0">
-              <div className="flex items-center gap-2 min-w-0">
-                <Wrench className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <p className="text-[11px] font-bold uppercase tracking-wider text-amber-400 shrink-0">Dev Tools</p>
-                <span className="text-[10px] text-muted-foreground tabular-nums truncate">
-                  {gameStarted ? `· S${season} W${week}/${totalWeeks} · ${budgetLabel}` : '· (no game loaded)'}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="p-1 rounded hover:bg-white/10 transition-colors shrink-0"
-                aria-label="Close"
-              >
-                <X className="w-3.5 h-3.5 text-muted-foreground" />
-              </button>
-            </div>
-
-            {/* Scrollable body */}
-            <div className="overflow-y-auto flex-1 p-3 space-y-4">
-              <Section icon={Navigation} title="Screens">
-                <div className="grid grid-cols-3 gap-1.5">
-                  {SCREEN_SHORTCUTS.map((s) => (
-                    <Pill key={s.screen} onClick={() => go(s.screen)}>
-                      {s.label}
-                    </Pill>
-                  ))}
-                </div>
-                <div className="grid grid-cols-2 gap-1.5 mt-1.5">
-                  <Pill tone="primary" onClick={requireGame(() => { inspectFirstPlayer(); setOpen(false); })}>
-                    Inspect 1st player
-                  </Pill>
-                  <Pill tone="primary" onClick={requireGame(() => { inspectRivalClub(); setOpen(false); })}>
-                    Inspect rival club
-                  </Pill>
-                </div>
-              </Section>
-
-              <Section icon={Clock} title="Time">
-                <div className="grid grid-cols-3 gap-1.5">
-                  <Pill onClick={requireGame(async () => {
-                    await Promise.resolve(advanceWeek());
-                    toast.success(`Advanced to W${useGameStore.getState().week}`);
-                  })}>
-                    +1 week
-                  </Pill>
-                  <Pill onClick={requireGame(async () => {
-                    await Promise.resolve(advanceToNextMatch());
-                    toast.success('Jumped to next match');
-                  })}>
-                    Next match
-                  </Pill>
-                  <Pill tone="danger" onClick={requireGame(() => {
-                    endSeason();
-                    toast.success('Season ended');
-                  })}>
-                    End season
-                  </Pill>
-                </div>
-              </Section>
-
-              <Section icon={TestTube} title="Scenarios">
-                <div className="grid grid-cols-2 gap-1.5">
-                  <Pill tone="primary" onClick={requireGame(() => {
-                    const { count } = seedBallonDor();
-                    toast.success(`Seeded Ballon d'Or (${count} players)`);
-                    setScreen('ballon-dor');
-                    setOpen(false);
-                  })}>
-                    Seed Ballon d'Or
-                  </Pill>
-                  <Pill onClick={requireGame(() => {
-                    armPackPity();
-                    toast.success('Pack pity armed');
-                  })}>
-                    Arm pack pity
-                  </Pill>
-                  <Pill onClick={requireGame(() => {
-                    const r = injectInjury();
-                    if (r) toast.success(`Injured ${r.playerName}`);
-                    else toast.info('No healthy squad player to injure');
-                  })}>
-                    Random injury
-                  </Pill>
-                  <Pill onClick={requireGame(() => {
-                    const { healed, fitnessReset } = healSquad();
-                    toast.success(`Healed ${healed}, refreshed ${fitnessReset}`);
-                  })}>
-                    Heal & refresh
-                  </Pill>
-                  <Pill onClick={requireGame(() => {
-                    const r = toggleWantsToLeave();
-                    if (r) toast.success(`${r.playerName} wantsToLeave → ${r.nowWants ? 'true' : 'false'}`);
-                    else toast.info('No eligible player');
-                  })}>
-                    Toggle "wants out"
-                  </Pill>
-                </div>
-              </Section>
-
-              <Section icon={Coins} title="Money">
-                <div className="grid grid-cols-4 gap-1.5">
-                  <Pill onClick={requireGame(() => { adjustBudget(1_000_000); toast.success('+£1M'); })}>+£1M</Pill>
-                  <Pill onClick={requireGame(() => { adjustBudget(10_000_000); toast.success('+£10M'); })}>+£10M</Pill>
-                  <Pill onClick={requireGame(() => { adjustBudget(100_000_000); toast.success('+£100M'); })}>+£100M</Pill>
-                  <Pill tone="danger" onClick={requireGame(() => { adjustBudget(-10_000_000); toast.info('-£10M'); })}>−£10M</Pill>
-                </div>
-              </Section>
-
-              <Section icon={Save} title="Save">
-                <div className="grid grid-cols-2 gap-1.5">
-                  <Pill onClick={requireGame(() => { saveGame(); toast.success('Saved'); })}>Save now</Pill>
-                  <Pill tone="danger" onClick={requireGame(() => {
-                    if (!window.confirm('Reset current save slot? This cannot be undone.')) return;
-                    resetGame();
-                    toast.success('Save reset');
-                    setOpen(false);
-                  })}>
-                    Reset slot
-                  </Pill>
-                </div>
-              </Section>
-
-              <p className="text-[10px] text-muted-foreground/70 text-center pt-1">
-                {VISIBILITY.source}
-              </p>
-            </div>
-
-            {/* Footer hint */}
-            <div className="shrink-0 flex items-center justify-center gap-1 px-3 py-1.5 border-t border-border/40 text-[9px] text-muted-foreground">
-              <Zap className="w-2.5 h-2.5 text-amber-400" />
-              <span>Side-stepping game logic — expect state drift</span>
-            </div>
+            <DevToolsBody onClose={() => setOpen(false)} />
           </motion.div>
         )}
       </AnimatePresence>
