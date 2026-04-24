@@ -55,6 +55,7 @@ const MerchandisePage = lazy(() => import('./MerchandisePage'));
 const TeamDetailPage = lazy(() => import('./TeamDetailPage'));
 const ShopPage = lazy(() => import('./ShopPage'));
 const HelpPage = lazy(() => import('./HelpPage'));
+const WhatsNewPage = lazy(() => import('./WhatsNewPage'));
 const NationalTeamPage = lazy(() => import('./NationalTeamPage'));
 const InternationalTournament = lazy(() => import('./InternationalTournament'));
 const JobMarket = lazy(() => import('./JobMarket'));
@@ -100,6 +101,7 @@ const screens: Record<string, React.ComponentType> = {
   'team-detail': TeamDetailPage,
   'shop': ShopPage,
   'help': HelpPage,
+  'whats-new': WhatsNewPage,
   'national-team': NationalTeamPage,
   'international-tournament': InternationalTournament,
   'job-market': JobMarket,

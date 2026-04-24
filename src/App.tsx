@@ -20,6 +20,7 @@ const GameShell = lazy(() => import("./pages/GameShell"));
 const ChallengePicker = lazy(() => import("./pages/ChallengePicker"));
 const ModeSelect = lazy(() => import("./pages/ModeSelect"));
 const ManagerCreation = lazy(() => import("./pages/ManagerCreation"));
+const WhatsNewPage = lazy(() => import("./pages/WhatsNewPage"));
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -75,6 +76,10 @@ const App = () => {
               <Route
                 path="/challenge"
                 element={<ErrorBoundary scope="challenge"><ChallengePicker /></ErrorBoundary>}
+              />
+              <Route
+                path="/whats-new"
+                element={<ErrorBoundary scope="whats-new"><WhatsNewPage standalone /></ErrorBoundary>}
               />
               <Route
                 path="/game"

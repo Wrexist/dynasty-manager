@@ -233,7 +233,23 @@ export const STORAGE_KEYS = {
    *  save so the user only answers once. Values: 'granted' | 'denied'. Missing
    *  key = never asked → show the consent screen. */
   ANALYTICS_CONSENT: 'dynasty-analytics-consent',
+  /** localStorage: latest "What's New" release the user has opened. Stored as
+   *  a plain version string (e.g. "1.0.1"). Used to gate the "NEW" badge on
+   *  the main-menu + Settings tiles so it clears once they tap through. */
+  WHATS_NEW_SEEN_VERSION: 'dynasty-whats-new-seen',
 } as const;
+
+/** Read the latest "What's New" version the user has acknowledged. */
+export function readWhatsNewSeenVersion(): string | null {
+  try { return localStorage.getItem(STORAGE_KEYS.WHATS_NEW_SEEN_VERSION); }
+  catch { return null; }
+}
+
+/** Mark a "What's New" version as read (typically the latest, on page open). */
+export function writeWhatsNewSeenVersion(version: string): void {
+  try { localStorage.setItem(STORAGE_KEYS.WHATS_NEW_SEEN_VERSION, version); }
+  catch { /* storage unavailable — non-fatal */ }
+}
 
 /** Analytics consent state. `'unknown'` surfaces the first-launch prompt. */
 export type AnalyticsConsent = 'unknown' | 'granted' | 'denied';

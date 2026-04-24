@@ -1,5 +1,96 @@
 # CLAUDE.md — Dynasty Manager
 
+## ⚠️ MANDATORY: TestFlight Release Notes ("What's New")
+
+**Every TestFlight build MUST ship with a fresh `src/data/whatsNew.ts` entry.**
+The iOS TestFlight workflow runs `scripts/check-whats-new.mjs` and fails the
+build if the top entry is missing or incomplete.
+
+### Every PR's default: add a bullet with `npm run whats-new`
+
+Most of the time you won't be editing `whatsNew.ts` by hand — use the helper:
+
+```bash
+npm run whats-new -- new       "Added adaptive AI tactics."
+npm run whats-new -- improved  "Match engine runs 30% faster."
+npm run whats-new -- fixed     "Fixed crash on Cup Final."
+npm run whats-new -- highlight "Rival managers now adapt to scoreline."
+npm run whats-new -- show                   # preview current top entry
+```
+
+The helper appends to the existing top entry, or auto-creates a new one if
+`package.json` was just bumped. Bullets are auto-capitalized + period-
+terminated. It is idempotent and safe to run multiple times.
+
+**PR check:** `.github/workflows/pr-checks.yml` runs a `whats-new-check` job
+that fails any PR which changes user-visible files but doesn't update
+`src/data/whatsNew.ts`. The job posts an inline comment with the exact fix
+command. Escape hatches — add one of these labels if a PR genuinely doesn't
+need a changelog entry: `skip-changelog`, `no-changelog`, `dependencies`,
+`infra`, `ci` (label matching is case-insensitive). Draft PRs are skipped.
+
+> **Heads-up — `package.json` changes count as user-visible.** That's so a
+> version bump alone trips the guard and reminds you to add release notes.
+> Dependabot PRs are auto-labelled `dependencies` and skip automatically;
+> manual dep bumps that touch `package.json` will trip the check — apply
+> the `dependencies` label or add a one-line note via `npm run whats-new`.
+
+### Before triggering `iOS TestFlight Deploy`:
+
+1. **Bump `package.json` version** (semver — patch for fixes, minor for features).
+2. **Confirm the top entry is complete** — run `npm run whats-new -- show`.
+   The helper already created the entry on your first `npm run whats-new -- <cat>`
+   call; just make sure the `headline` and `summary` are filled in:
+   ```bash
+   npm run whats-new -- headline "Short App Store hook."
+   npm run whats-new -- summary  "One to three sentence player summary."
+   ```
+3. **Keep all prior entries.** Never delete history.
+4. **Write App Store style:**
+   - `headline` — 3–8 word hook (e.g. "Cup glory, smarter AI, faster matches.").
+   - `summary` — 1–3 sentences, player-facing tone, says what actually changed.
+   - Every bullet is a complete sentence ending with a period.
+   - **Never** mention refactors, lint, tests, file names, or internal work.
+     Write for a player who has never seen the codebase.
+5. **`build`** — leave as `null`. CI injects `github.run_number` automatically
+   at bundle time so the shipped app shows the real CFBundleVersion.
+
+### Validation:
+
+```bash
+npm run whats-new:check       # same script CI runs
+```
+
+The iOS TestFlight workflow runs this automatically before the archive step,
+then re-runs it with `--inject-build ${{ github.run_number }}` to stamp the
+real build number into the shipped bundle.
+
+### Where players see it:
+
+- **Main menu (TitleScreen)** — "What's New" tile with a green "NEW" dot until opened.
+- **Main menu (TitleScreen) → Settings sheet → Help** — secondary entry.
+- **In-game Settings → Help → "What's New"** — persistent entry point.
+- Latest entry is badged `Latest` and `NEW`; older entries stay with full build + date.
+
+### Example entry:
+
+```ts
+{
+  version: '1.0.1',
+  build: null,                 // CI fills this with github.run_number
+  date: '2026-04-28',
+  headline: 'Faster matches and sharper AI.',
+  summary:
+    'Match simulation is 30% faster, rival managers adapt their tactics, and three blocking match-day bugs are fixed.',
+  highlights: ['Rival managers now adjust tactics based on the scoreline.'],
+  new: ['Added adaptive AI tactics that respond to the scoreline.'],
+  improved: ['Match engine runs 30% faster on older devices.'],
+  fixed: ['Fixed a crash when loading a save from the League Cup final.'],
+},
+```
+
+---
+
 ## ⚠️ MANDATORY: Read This First — Git & Shipping Workflow
 
 **These are NON-NEGOTIABLE rules. Every Claude session MUST follow them.**

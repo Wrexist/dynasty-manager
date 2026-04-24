@@ -80,7 +80,7 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor';
 
 export interface PlayerAttributes {
   pace: number;
@@ -1831,4 +1831,30 @@ export interface TitleFloatingCircle {
   duration: number;
   driftX: number;
   driftY: number;
+}
+
+/** WhatsNewPage: bucket a release-note bullet falls into. */
+export type ReleaseCategory = 'highlights' | 'new' | 'improved' | 'fixed';
+
+/** WhatsNewPage: one TestFlight build's release notes. Authored in
+ *  src/data/whatsNew.ts and validated by scripts/check-whats-new.mjs. */
+export interface ReleaseNote {
+  /** Semver marketing version, e.g. "1.0.1". Must match package.json on ship. */
+  version: string;
+  /** iOS CFBundleVersion / Android versionCode. Injected by CI if null. */
+  build: number | null;
+  /** ISO calendar date the TestFlight build was shipped (YYYY-MM-DD). */
+  date: string;
+  /** Short headline, App Store style. 3–8 words. */
+  headline: string;
+  /** 1–3 sentence player-facing summary. */
+  summary: string;
+  /** Marquee changes worth calling out at the top of the card. */
+  highlights?: string[];
+  /** Brand-new features. */
+  new?: string[];
+  /** Improvements to existing features. */
+  improved?: string[];
+  /** Bug fixes. */
+  fixed?: string[];
 }
