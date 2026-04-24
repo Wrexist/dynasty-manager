@@ -6,6 +6,7 @@ import { MAX_WALKOUTS_PER_PACK, PACK_ANIM, PACK_TIER_MAP, WALKOUT_OVR_THRESHOLD 
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { hapticHeavy, hapticLight, hapticMedium } from '@/utils/haptics';
 import { formatMoney } from '@/utils/helpers';
+import { PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
 import { PackArt } from './PackArt';
 import { PackCard } from './PackCard';
 import { PackConfetti } from './PackConfetti';
@@ -649,7 +650,8 @@ export function PackOpeningOverlay({ tier, players, pityTriggered, onClose, onKe
                   />
                   {phase === 'summary' && (onKeep || onQuickSell) && (
                     <motion.div
-                      className="flex gap-1.5 w-[150px]"
+                      className="flex gap-1.5"
+                      style={{ width: PLAYER_CARD_SIZE_PX.lg }}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.3, delay: 0.1 + i * 0.04 }}

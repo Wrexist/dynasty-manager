@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
-import { PlayerCard } from '@/components/game/PlayerCard';
+import { PlayerCard, PLAYER_CARD_SIZE_PX } from '@/components/game/PlayerCard';
 import { GraduationCap, Star, ArrowUpRight, Trash2, Wrench, Users, X, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -185,8 +185,8 @@ const YouthAcademy = () => {
                       </div>
                     </div>
 
-                    {/* Development bar — matches card width (150px) */}
-                    <div className="mt-1.5 w-[150px]">
+                    {/* Development bar — matches PlayerCard lg width */}
+                    <div className="mt-1.5" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
                       <div className="flex items-center justify-between mb-0.5">
                         <span className="text-[9px] text-muted-foreground uppercase tracking-wider">Dev</span>
                         <span className={cn('text-[9px] font-semibold tabular-nums', devTextColor(prospect.developmentScore))}>
@@ -202,7 +202,7 @@ const YouthAcademy = () => {
                     </div>
 
                     {/* Action row */}
-                    <div className="mt-1.5 flex gap-1 w-[150px]">
+                    <div className="mt-1.5 flex gap-1" style={{ width: PLAYER_CARD_SIZE_PX.lg }}>
                       {isConfirming ? (
                         <>
                           <button
