@@ -76,6 +76,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'The latest version is marked with a "NEW" badge until you open the page, so you never miss a meaningful update.',
       'Press Escape to close the contract, transfer, loan, and list-for-sale modals.',
       'Modals and form inputs now expose proper accessibility labels for screen readers.',
+      'Formation tiles now glow emerald when a player has strong chemistry links (3+) with their neighbours, so pitch chemistry reads at a glance.',
     ],
     fixed: [],
   },

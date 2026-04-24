@@ -77,6 +77,26 @@ interface PlayerCardProps {
 export const PLAYER_CARD_SIZE_PX: Record<PlayerCardSize, number> = { xs: 52, sm: 64, md: 110, lg: 150, xl: 220 };
 const SIZE_PX = PLAYER_CARD_SIZE_PX;
 
+// Shared text-shadow strings — hoisted to module scope so every render
+// reuses the same string literal instead of allocating a fresh object for
+// each of the ~18 styled nodes inside a single card face. At 11 cards on a
+// tactics pitch, this drops the per-render allocation count by ~180.
+const TS_OVR = '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.45)';
+const TS_NAME = '0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)';
+const TS_MD = '0 1px 3px rgba(0,0,0,0.85)';
+const TS_SM = '0 1px 2px rgba(0,0,0,0.8)';
+const TS_SM_STRONG = '0 1px 2px rgba(0,0,0,0.85)';
+const TS_XS_STAT = '0 1px 2px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.7)';
+
+/** Stacked darkening gradient for shield art legibility — identical across
+ *  every card, so defined once rather than per-render. */
+const FACE_OVERLAY_GRADIENT =
+  'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.65), transparent 75%),'
+  + 'linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.32) 58%, rgba(0,0,0,0.18) 62%, transparent 64%),'
+  + 'linear-gradient(to bottom, transparent 63%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)';
+const FACE_OVERLAY_STYLE = { background: FACE_OVERLAY_GRADIENT };
+const VIEW_INDICATOR_DOT_STYLE = { boxShadow: '0 1px 2px rgba(0,0,0,0.6)' };
+
 /**
  * Derived pixel tokens, proportional to card width. Everything inside the
  * face scales from these so the design reads the same at 64 and 220.
@@ -207,12 +227,7 @@ export const PlayerCard = memo(function PlayerCard({
       <div
         aria-hidden
         className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.65), transparent 75%),' +
-            'linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.32) 58%, rgba(0,0,0,0.18) 62%, transparent 64%),' +
-            'linear-gradient(to bottom, transparent 63%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)',
-        }}
+        style={FACE_OVERLAY_STYLE}
       />
 
       <div className="relative h-full text-white">
@@ -234,7 +249,7 @@ export const PlayerCard = memo(function PlayerCard({
         {/* OVR + position — inset from the shield's top-left curve. */}
         <div
           className="absolute leading-none"
-          style={{ top: tk.ovrTopPx, left: tk.ovrLeftPx, textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.45)' }}
+          style={{ top: tk.ovrTopPx, left: tk.ovrLeftPx, textShadow: TS_OVR }}
         >
           <div
             className="font-display font-black tabular-nums tracking-tight"
@@ -244,7 +259,7 @@ export const PlayerCard = memo(function PlayerCard({
           </div>
           <div
             className="mt-0.5 font-bold tracking-[0.15em] text-white/90"
-            style={{ fontSize: tk.posPx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+            style={{ fontSize: tk.posPx, textShadow: TS_MD }}
           >
             {player.position}
           </div>
@@ -270,7 +285,7 @@ export const PlayerCard = memo(function PlayerCard({
           <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full">
             <p
               className="min-w-0 font-display font-black leading-none truncate uppercase tracking-[0.02em]"
-              style={{ fontSize: tk.namePx, textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}
+              style={{ fontSize: tk.namePx, textShadow: TS_NAME }}
             >
               {player.lastName}
             </p>
@@ -286,7 +301,7 @@ export const PlayerCard = memo(function PlayerCard({
           {size !== 'xs' && size !== 'sm' && !compact && (
             <p
               className="mt-0.5 font-medium text-white/80 leading-none truncate"
-              style={{ fontSize: tk.firstNamePx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+              style={{ fontSize: tk.firstNamePx, textShadow: TS_MD }}
             >
               {player.firstName}
             </p>
@@ -334,7 +349,7 @@ export const PlayerCard = memo(function PlayerCard({
                   <span
                     key={s.label}
                     className="font-display font-black tabular-nums text-white"
-                    style={{ textShadow: '0 1px 2px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.7)' }}
+                    style={{ textShadow: TS_XS_STAT }}
                   >
                     {s.value}
                   </span>
@@ -372,13 +387,13 @@ export const PlayerCard = memo(function PlayerCard({
                   <div key={label} className="flex items-baseline justify-between gap-1">
                     <span
                       className="font-semibold tracking-[0.12em] text-white/75 leading-none"
-                      style={{ fontSize: tk.statLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                      style={{ fontSize: tk.statLabelPx, textShadow: TS_SM }}
                     >
                       {label}
                     </span>
                     <span
                       className="font-display font-black tabular-nums leading-none text-white"
-                      style={{ fontSize: tk.statValPx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+                      style={{ fontSize: tk.statValPx, textShadow: TS_MD }}
                     >
                       {value}
                     </span>
@@ -438,7 +453,7 @@ export const PlayerCard = memo(function PlayerCard({
                   'h-[3px] rounded-full transition-all duration-200',
                   statView === i ? 'w-3 bg-white/85' : 'w-[3px] bg-white/35',
                 )}
-                style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.6)' }}
+                style={VIEW_INDICATOR_DOT_STYLE}
               />
             ))}
           </div>
@@ -474,11 +489,11 @@ function ProfileRow({ label, tk, children }: { label: string; tk: SizeTokens; ch
     <div className="flex items-center justify-between gap-1.5 leading-none" style={{ fontSize: tk.profileValPx }}>
       <span
         className="font-semibold tracking-[0.12em] text-white/60 shrink-0"
-        style={{ fontSize: tk.profileLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+        style={{ fontSize: tk.profileLabelPx, textShadow: TS_SM }}
       >
         {label}
       </span>
-      <span className="min-w-0 text-right" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}>
+      <span className="min-w-0 text-right" style={{ textShadow: TS_SM_STRONG }}>
         {children}
       </span>
     </div>
@@ -520,14 +535,14 @@ function PotentialRow({ current, potential, tk }: { current: number; potential: 
       <div className="flex items-center justify-between gap-1.5 leading-none">
         <span
           className="font-semibold tracking-[0.12em] text-white/60 shrink-0"
-          style={{ fontSize: tk.profileLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+          style={{ fontSize: tk.profileLabelPx, textShadow: TS_SM }}
         >
           POT
         </span>
         <div className="flex items-center gap-1.5">
           <span
             className="font-display font-black tabular-nums text-white"
-            style={{ fontSize: tk.profileValPx + 1, textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}
+            style={{ fontSize: tk.profileValPx + 1, textShadow: TS_SM_STRONG }}
           >
             {current}
           </span>
@@ -551,13 +566,13 @@ function PotentialRow({ current, potential, tk }: { current: number; potential: 
     <div className="flex items-center gap-1.5 leading-none">
       <span
         className="font-semibold tracking-[0.12em] text-white/60 shrink-0"
-        style={{ fontSize: tk.profileLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+        style={{ fontSize: tk.profileLabelPx, textShadow: TS_SM }}
       >
         POT
       </span>
       <span
         className="font-display font-black tabular-nums text-white/80 shrink-0"
-        style={{ fontSize: tk.profileLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}
+        style={{ fontSize: tk.profileLabelPx, textShadow: TS_SM_STRONG }}
       >
         {current}
       </span>
@@ -583,7 +598,7 @@ function PotentialRow({ current, potential, tk }: { current: number; potential: 
       </div>
       <span
         className="font-display font-black tabular-nums text-white shrink-0"
-        style={{ fontSize: tk.profileValPx + 1, textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}
+        style={{ fontSize: tk.profileValPx + 1, textShadow: TS_SM_STRONG }}
       >
         {potential}
       </span>
@@ -604,7 +619,7 @@ function LiquidGlassBar({ label, value, tk }: { label: string; value: number; tk
     <div className="flex items-center gap-1.5">
       <span
         className="font-semibold tracking-[0.12em] text-white/70 leading-none shrink-0"
-        style={{ width: 28, fontSize: tk.profileLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+        style={{ width: 28, fontSize: tk.profileLabelPx, textShadow: TS_SM }}
       >
         {label}
       </span>
@@ -632,7 +647,7 @@ function LiquidGlassBar({ label, value, tk }: { label: string; value: number; tk
       </div>
       <span
         className="font-display font-black tabular-nums text-white text-right leading-none shrink-0"
-        style={{ width: 20, fontSize: tk.profileValPx, textShadow: '0 1px 2px rgba(0,0,0,0.85)' }}
+        style={{ width: 20, fontSize: tk.profileValPx, textShadow: TS_SM_STRONG }}
       >
         {Math.round(value)}
       </span>

@@ -7,6 +7,17 @@ import { PlayerCard } from './PlayerCard';
 const HOT_FORM_MIN = 70;
 const COLD_FORM_MAX = 35;
 
+// Chemistry-glow thresholds. A midfielder surrounded by compatible
+// neighbours can hit 4-6 links easily; wingers and fullbacks typically
+// cap out at 2-3. Tuned so the glow rewards the "full chem" feel without
+// painting the whole pitch green.
+const CHEM_GLOW_MIN = 3;
+const CHEM_GLOW_STRONG = 5;
+// Static box-shadow strings — keep the filter on the compositor (no
+// transition/animation) so a full lineup doesn't cost a paint per frame.
+const CHEM_GLOW_SUBTLE = 'shadow-[0_0_6px_rgba(52,211,153,0.35)]';
+const CHEM_GLOW_INTENSE = 'shadow-[0_0_10px_rgba(52,211,153,0.55)]';
+
 interface LineupPlayerTileProps {
   player: Player;
   position: string;
@@ -78,6 +89,11 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
         'transition-transform duration-150',
         isSelected && 'scale-[1.08] z-10',
         !isSelected && compatRing && COMPAT_RING_CLASSES[compatRing],
+        // Chemistry glow — emerald halo that layers via box-shadow so it
+        // coexists with the compatRing (which uses `ring-*`). Suppressed
+        // when selected (the primary-pulse ring owns the focus state).
+        !isSelected && chemistryLinkCount >= CHEM_GLOW_STRONG && CHEM_GLOW_INTENSE,
+        !isSelected && chemistryLinkCount >= CHEM_GLOW_MIN && chemistryLinkCount < CHEM_GLOW_STRONG && CHEM_GLOW_SUBTLE,
         player.injured && 'opacity-60',
       )}
     >

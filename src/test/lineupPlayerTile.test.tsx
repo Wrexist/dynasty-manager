@@ -288,4 +288,63 @@ describe('LineupPlayerTile layout invariants', () => {
     );
     expect(getByLabelText('1 chemistry link')).toBeDefined();
   });
+
+  it('applies a subtle chemistry glow at 3-4 links', () => {
+    const { container } = render(
+      <LineupPlayerTile
+        player={makePlayer()}
+        position="CM"
+        isSelected={false}
+        chemistryLinkCount={3}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    const tile = container.querySelector('[role="button"]') as HTMLElement;
+    expect(tile.className).toContain('shadow-[0_0_6px_rgba(52,211,153,0.35)]');
+    expect(tile.className).not.toContain('shadow-[0_0_10px');
+  });
+
+  it('applies an intense chemistry glow at 5+ links', () => {
+    const { container } = render(
+      <LineupPlayerTile
+        player={makePlayer()}
+        position="CM"
+        isSelected={false}
+        chemistryLinkCount={6}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    const tile = container.querySelector('[role="button"]') as HTMLElement;
+    expect(tile.className).toContain('shadow-[0_0_10px_rgba(52,211,153,0.55)]');
+    expect(tile.className).not.toContain('shadow-[0_0_6px');
+  });
+
+  it('omits the chemistry glow under the 3-link threshold', () => {
+    const { container } = render(
+      <LineupPlayerTile
+        player={makePlayer()}
+        position="CM"
+        isSelected={false}
+        chemistryLinkCount={2}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    const tile = container.querySelector('[role="button"]') as HTMLElement;
+    expect(tile.className).not.toContain('rgba(52,211,153');
+  });
+
+  it('suppresses the chemistry glow when the tile is selected', () => {
+    const { container } = render(
+      <LineupPlayerTile
+        player={makePlayer()}
+        position="CM"
+        isSelected
+        chemistryLinkCount={6}
+        onClick={() => { /* noop */ }}
+      />,
+    );
+    const tile = container.querySelector('[role="button"]') as HTMLElement;
+    // Selected tiles own their own highlight; the glow would double up.
+    expect(tile.className).not.toContain('rgba(52,211,153');
+  });
 });
