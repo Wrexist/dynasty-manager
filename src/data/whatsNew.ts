@@ -83,6 +83,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Moved \'What\'s New\' to a small button in the top-right of the title screen so the menu is cleaner.',
       'Compacted the What\'s New page into a tight update log so you can scan releases at a glance.',
       'Match commentary now reads with proper build-up — slick passing, quick counters, and dangerous corners now lead into the moment a goal is scored, instead of jumping straight to the finish.',
+      'Speculative shots from outside the box no longer clutter the commentary feed — only meaningful chances surface, while shot count and xG keep tracking every effort.',
     ],
     fixed: [],
   },

@@ -126,6 +126,12 @@ export const FOUL_THRESHOLD = 0.78;
 /** Fraction of event rolls between fouls and non-foul injuries */
 export const INJURY_EVENT_THRESHOLD = 0.81;
 
+/** xG below this counts as a "speculative" shot — most don't reach the commentary feed.
+ *  Stats (shot count, xG, momentum) still update; only the live commentary line is suppressed. */
+export const LOW_XG_MISS_THRESHOLD = 0.06;
+/** Chance a low-xG missed shot still surfaces in the commentary feed. */
+export const LOW_XG_MISS_SHOW_CHANCE = 0.3;
+
 // ── Shot Quality Weights ──
 export const SHOT_QUALITY_WEIGHTS = {
   shooting: 0.40,

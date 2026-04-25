@@ -28,6 +28,7 @@ import {
   TACTICAL_FAMILIARITY_MULTIPLIER, HOME_ADVANTAGE,
   BASE_EVENT_CHANCE, LATE_GAME_EVENT_BONUS, LATE_GAME_THRESHOLD_MINUTE,
   SHOT_ATTEMPT_THRESHOLD, FOUL_THRESHOLD, INJURY_EVENT_THRESHOLD,
+  LOW_XG_MISS_THRESHOLD, LOW_XG_MISS_SHOW_CHANCE,
   SHOT_QUALITY_WEIGHTS, FITNESS_FACTOR_BASE, FITNESS_FACTOR_SCALE,
   GOAL_CHANCE_ATTACK_MULT, GOAL_CHANCE_DEFENSE_MULT, GOAL_CHANCE_ATTACK_MOD_SCALE, GOAL_CHANCE_COUNTER_VULN_SCALE, GOAL_CHANCE_MIN,
   CORNER_FROM_SAVE_CHANCE, CORNER_FROM_MISS_CHANCE,
@@ -1571,7 +1572,13 @@ export function simulateHalf(
         if (Math.random() < WOODWORK_CHANCE) {
           events.push({ minute: min, type: 'hit_woodwork', playerId: scorer.id, clubId: club.id, description: withContextSuffix(pick(woodworkDescs)(scorer.lastName)), momentum, homeXG, awayXG });
         } else {
-          events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: withContextSuffix(pick(missDescs)(scorer.lastName)), momentum, homeXG, awayXG });
+          // Suppress most low-xG misses from the live commentary feed to keep it focused.
+          // Stats (shot count, xG, momentum) above already updated, so the underlying
+          // match data is unchanged — only the on-screen prose gets quieter.
+          const isMeaningfulChance = clampedChance >= LOW_XG_MISS_THRESHOLD;
+          if (isMeaningfulChance || Math.random() < LOW_XG_MISS_SHOW_CHANCE) {
+            events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: withContextSuffix(pick(missDescs)(scorer.lastName)), momentum, homeXG, awayXG });
+          }
         }
         // Corner chance from missed shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_MISS_CHANCE + widthCornerBonus) {
