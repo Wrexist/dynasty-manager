@@ -85,6 +85,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Tactics pitch spreads players further apart so cards no longer overlap, and formation switches now smoothly slide each tile to its new slot.',
       'Transfer modals (Buy/List/Loan/Approach/Deal Complete) now show the proper FIFA-style player shield instead of the placeholder rating square.',
       'Hero player UIs (Ballon d\'Or winner, Man of the Match, season-summary winner) now show the proper FIFA-style shield instead of a plain trophy/rating tile.',
+      'Opponent rosters and recent-pulls cards now use the same mini player shield as the tactics pitch — consistent OVR-left / position-right layout across the app.',
     ],
     fixed: [
       'Position label now lights up green when a player is slotted into one of their listed alternate positions, matching FUT chemistry.',
