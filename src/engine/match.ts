@@ -28,6 +28,7 @@ import {
   TACTICAL_FAMILIARITY_MULTIPLIER, HOME_ADVANTAGE,
   BASE_EVENT_CHANCE, LATE_GAME_EVENT_BONUS, LATE_GAME_THRESHOLD_MINUTE,
   SHOT_ATTEMPT_THRESHOLD, FOUL_THRESHOLD, INJURY_EVENT_THRESHOLD,
+  LOW_XG_MISS_THRESHOLD, LOW_XG_MISS_SHOW_CHANCE,
   SHOT_QUALITY_WEIGHTS, FITNESS_FACTOR_BASE, FITNESS_FACTOR_SCALE,
   GOAL_CHANCE_ATTACK_MULT, GOAL_CHANCE_DEFENSE_MULT, GOAL_CHANCE_ATTACK_MOD_SCALE, GOAL_CHANCE_COUNTER_VULN_SCALE, GOAL_CHANCE_MIN,
   CORNER_FROM_SAVE_CHANCE, CORNER_FROM_MISS_CHANCE,
@@ -894,7 +895,116 @@ export function simulateHalf(
     (name: string, _club: string) => `GOAL! Bullet header from ${name}! Nobody was going to stop that!`,
   ];
 
-  // ── Weather Event Suffixes ──
+  // ── Build-up commentary that precedes goals ──
+  // Generic build-up (open play, no special flavor)
+  const buildUpGenericDescs = [
+    (club: string) => `${club} working it patiently in the final third...`,
+    (club: string) => `${club} strung together a lovely move there...`,
+    (club: string) => `${club} carve their way into the box...`,
+    (club: string) => `Quick one-twos from ${club} on the edge of the area...`,
+    (club: string) => `${club} switch the play and catch the defence flat...`,
+    (club: string) => `Slick passing from ${club} prises the defence open...`,
+    (_club: string) => `A clever flick releases the runner in behind...`,
+    (_club: string) => `The ball is worked across the box, defenders scrambling...`,
+    (club: string) => `${club} pin them back and keep probing...`,
+    (_club: string) => `A neat through ball splits the back line...`,
+  ];
+  // Counter-attack build-up
+  const buildUpCounterDescs = [
+    (club: string) => `${club} win it back and break with pace! Three-on-two...`,
+    (club: string) => `Turnover! ${club} are away on the counter...`,
+    (_club: string) => `Lightning transition — the defence is caught miles upfield...`,
+    (club: string) => `${club} spring forward at speed, acres of space ahead...`,
+    (_club: string) => `One pass takes out four defenders on the break...`,
+  ];
+  // Long-range build-up
+  const buildUpLongRangeDescs = [
+    (_club: string) => `He picks it up 25 yards out, defenders backing off...`,
+    (_club: string) => `Space opens up on the edge of the D, he takes a touch...`,
+    (_club: string) => `The ball is laid back to the edge of the box, he lines it up...`,
+    (_club: string) => `Defenders dropping deep, daring him to shoot from range...`,
+  ];
+  // Header / cross build-up
+  const buildUpHeaderDescs = [
+    (club: string) => `${club} get to the byline, the cross is whipped in...`,
+    (_club: string) => `Beautiful ball to the back post, defenders ball-watching...`,
+    (_club: string) => `The wide man swings it in, attackers swarming the box...`,
+    (club: string) => `${club} overload the box, the cross is in the air...`,
+  ];
+  // Solo / dribble build-up
+  const buildUpSoloDescs = [
+    (_club: string) => `He picks the ball up in midfield and drives at the defence...`,
+    (_club: string) => `Drop of the shoulder, he's past one... past two...`,
+    (_club: string) => `A jinking run carries him into the box, defenders backing off...`,
+    (_club: string) => `He goes it alone, weaving through challenges...`,
+  ];
+  // Free-kick build-up
+  const buildUpFreeKickDescs = [
+    (_club: string) => `Free kick in a dangerous area. The wall lines up...`,
+    (_club: string) => `Promising free kick on the edge of the box. Specialist standing over it...`,
+    (_club: string) => `Dead ball about 22 yards out — perfect range for a strike...`,
+  ];
+  // Corner build-up (used for set-piece header goals)
+  const buildUpCornerDescs = [
+    (club: string) => `Corner for ${club}. Tall men loading the box...`,
+    (_club: string) => `The corner is being measured up. Bodies jostling in the area...`,
+    (club: string) => `${club} send everyone forward for this corner...`,
+  ];
+  // GK-error build-up
+  const buildUpGKErrorDescs = [
+    (_club: string) => `Hopeful ball into the box — and the keeper goes to claim it...`,
+    (_club: string) => `A speculative cross causes panic in the six-yard area...`,
+    (_club: string) => `The shot is straight at the keeper, but he can't hold on to it...`,
+  ];
+
+  /** Pick a build-up commentary line based on the goal flavor. */
+  const pickBuildUp = (
+    flavor: 'generic' | 'counter' | 'long_range' | 'header' | 'solo' | 'free_kick' | 'corner' | 'gk_error',
+    clubShortName: string,
+  ): string => {
+    let descs: ((club: string) => string)[];
+    switch (flavor) {
+      case 'counter': descs = buildUpCounterDescs; break;
+      case 'long_range': descs = buildUpLongRangeDescs; break;
+      case 'header': descs = buildUpHeaderDescs; break;
+      case 'solo': descs = buildUpSoloDescs; break;
+      case 'free_kick': descs = buildUpFreeKickDescs; break;
+      case 'corner': descs = buildUpCornerDescs; break;
+      case 'gk_error': descs = buildUpGKErrorDescs; break;
+      default: descs = buildUpGenericDescs;
+    }
+    return pick(descs)(clubShortName);
+  };
+
+  // ── Substitution commentary ──
+  // Forced (injury) subs MUST contain "injured" — the live commentary row
+  // detects forced subs by scanning the description for that word.
+  const forcedSubDescs = [
+    (inName: string, outName: string, _club: string) => `${inName} comes on for the injured ${outName}.`,
+    (inName: string, outName: string, club: string) => `Forced change for ${club} — ${inName} replaces the injured ${outName}.`,
+    (inName: string, outName: string, _club: string) => `${outName} can't continue. The injured man is replaced by ${inName}.`,
+    (inName: string, outName: string, _club: string) => `Reluctant change — ${inName} on for the injured ${outName}.`,
+  ];
+  // Tactical / planned subs — varied templates, with optional flavour mentioning the bench, manager, or scoreboard pressure.
+  const tacticalSubDescs = [
+    (inName: string, outName: string, _club: string) => `${inName} comes on for ${outName}.`,
+    (inName: string, outName: string, club: string) => `Change for ${club} — ${outName} off, ${inName} on.`,
+    (inName: string, outName: string, _club: string) => `${outName} makes way for ${inName}. Fresh legs from the bench.`,
+    (inName: string, outName: string, club: string) => `${club} go to the bench: ${inName} replaces ${outName}.`,
+    (inName: string, outName: string, _club: string) => `Tactical switch — ${inName} replaces ${outName}.`,
+    (inName: string, outName: string, _club: string) => `${inName} is on, ${outName} trudges off to applause.`,
+    (inName: string, outName: string, club: string) => `${club}'s manager rolls the dice — ${inName} for ${outName}.`,
+    (inName: string, outName: string, _club: string) => `Off comes ${outName}, on goes ${inName}.`,
+    (inName: string, outName: string, club: string) => `${club} ring the changes — ${inName} replaces ${outName}.`,
+    (inName: string, outName: string, _club: string) => `${inName} is brought on for ${outName}. The manager wants something different.`,
+  ];
+  /** Build a substitution description. Forced subs always include "injured" so the UI can flag them. */
+  const pickSubDesc = (inName: string, outName: string, clubShortName: string, isForced: boolean): string => {
+    const pool = isForced ? forcedSubDescs : tacticalSubDescs;
+    return pick(pool)(inName, outName, clubShortName);
+  };
+
+
   const rainSuffixes = [
     ' The wet conditions playing their part.',
     ' Treacherous underfoot in this rain.',
@@ -1353,6 +1463,20 @@ export function simulateHalf(
           assist = undefined;
         }
 
+        // Build-up commentary preceding the goal — adds narrative texture
+        const buildUpFlavor: Parameters<typeof pickBuildUp>[0] =
+          goalType === 'counter_attack_goal' ? 'counter' :
+          goalType === 'long_range_goal' ? 'long_range' :
+          goalType === 'header_goal' ? 'header' :
+          goalType === 'solo_goal' ? 'solo' :
+          goalType === 'free_kick_goal' ? 'free_kick' :
+          'generic';
+        events.push({
+          minute: min, type: 'commentary', clubId: club.id,
+          description: pickBuildUp(buildUpFlavor, clubName),
+          momentum,
+        });
+
         events.push({
           minute: min, type: goalType, playerId: actualScorerId,
           assistPlayerId: assist?.id, clubId: club.id,
@@ -1440,6 +1564,7 @@ export function simulateHalf(
                   ? Math.min(100, momentum + MOMENTUM_GOAL_SWING)
                   : Math.max(-100, momentum - MOMENTUM_GOAL_SWING);
                 const cDesc = pick(cornerGoalDescs);
+                events.push({ minute: min, type: 'commentary', clubId: club.id, description: pickBuildUp('corner', club.shortName), momentum });
                 events.push({ minute: min, type: 'goal', playerId: header.id, assistPlayerId: cornerAssist?.id, clubId: club.id, description: withContextSuffix(cDesc(`${header.firstName} ${header.lastName}`, club.shortName)) + (cornerAssist ? ` (assist: ${cornerAssist.lastName})` : ''), momentum });
               }
             }
@@ -1458,6 +1583,7 @@ export function simulateHalf(
           ? Math.min(100, momentum + MOMENTUM_GOAL_SWING)
           : Math.max(-100, momentum - MOMENTUM_GOAL_SWING);
         const gkName = oppGK ? oppGK.lastName : 'the keeper';
+        events.push({ minute: min, type: 'commentary', clubId: club.id, description: pickBuildUp('gk_error', club.shortName), momentum });
         events.push({
           minute: min, type: 'goalkeeper_error', playerId: scorer.id, assistPlayerId: gkErrorAssist?.id,
           goalkeeperId: oppGK?.id, clubId: club.id,
@@ -1474,7 +1600,13 @@ export function simulateHalf(
         if (Math.random() < WOODWORK_CHANCE) {
           events.push({ minute: min, type: 'hit_woodwork', playerId: scorer.id, clubId: club.id, description: withContextSuffix(pick(woodworkDescs)(scorer.lastName)), momentum, homeXG, awayXG });
         } else {
-          events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: withContextSuffix(pick(missDescs)(scorer.lastName)), momentum, homeXG, awayXG });
+          // Suppress most low-xG misses from the live commentary feed to keep it focused.
+          // Stats (shot count, xG, momentum) above already updated, so the underlying
+          // match data is unchanged — only the on-screen prose gets quieter.
+          const isMeaningfulChance = clampedChance >= LOW_XG_MISS_THRESHOLD;
+          if (isMeaningfulChance || Math.random() < LOW_XG_MISS_SHOW_CHANCE) {
+            events.push({ minute: min, type: 'shot_missed', playerId: scorer.id, clubId: club.id, description: withContextSuffix(pick(missDescs)(scorer.lastName)), momentum, homeXG, awayXG });
+          }
         }
         // Corner chance from missed shot (wide play increases corner frequency)
         if (Math.random() < CORNER_FROM_MISS_CHANCE + widthCornerBonus) {
@@ -1584,7 +1716,10 @@ export function simulateHalf(
               // Init playerEvents and matchFitness for sub
               if (!playerEvents[inPlayer.id]) playerEvents[inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: injuredIsHome ? awayGoals : homeGoals };
               matchFitness[inPlayer.id] = Math.min(100, inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
-              events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: injuredIsHome ? homeClub.id : awayClub.id, description: `${inPlayer.lastName} replaces the injured ${outPlayer.lastName}.` });
+              {
+                const subClub = injuredIsHome ? homeClub : awayClub;
+                events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: subClub.id, description: pickSubDesc(inPlayer.lastName, outPlayer.lastName, subClub.shortName, true) });
+              }
               // Rebalance after sub improves team
               const subRecomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
               homeStr = subRecomp.homeStr; awayStr = subRecomp.awayStr;
@@ -1676,7 +1811,7 @@ export function simulateHalf(
             if (benchIdx2 >= 0) benchPool2.splice(benchIdx2, 1);
             if (!playerEvents[inPlayer.id]) playerEvents[inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: candIsHome ? awayGoals : homeGoals };
             matchFitness[inPlayer.id] = Math.min(100, inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
-            events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: club.id, description: `${inPlayer.lastName} replaces the injured ${outPlayer.lastName}.` });
+            events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: club.id, description: pickSubDesc(inPlayer.lastName, outPlayer.lastName, club.shortName, true) });
             const subRecomp2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = subRecomp2.homeStr; awayStr = subRecomp2.awayStr;
           }
@@ -1708,7 +1843,7 @@ export function simulateHalf(
           if (bIdx >= 0) homeBenchPool.splice(bIdx, 1);
           if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: awayGoals };
           matchFitness[aiSub.inPlayer.id] = Math.min(100, aiSub.inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
-          events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: homeClub.id, description: `${aiSub.inPlayer.lastName} comes on for ${aiSub.outPlayer.lastName}.` });
+          events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: homeClub.id, description: pickSubDesc(aiSub.inPlayer.lastName, aiSub.outPlayer.lastName, homeClub.shortName, false) });
           const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
           homeStr = recomp.homeStr; awayStr = recomp.awayStr;
         }
@@ -1727,7 +1862,7 @@ export function simulateHalf(
           if (bIdx >= 0) awayBenchPool.splice(bIdx, 1);
           if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: homeGoals };
           matchFitness[aiSub.inPlayer.id] = Math.min(100, aiSub.inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
-          events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: awayClub.id, description: `${aiSub.inPlayer.lastName} comes on for ${aiSub.outPlayer.lastName}.` });
+          events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: awayClub.id, description: pickSubDesc(aiSub.inPlayer.lastName, aiSub.outPlayer.lastName, awayClub.shortName, false) });
           const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
           homeStr = recomp.homeStr; awayStr = recomp.awayStr;
         }
