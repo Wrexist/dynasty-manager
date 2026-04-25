@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import { LEAGUES, getLeaguesByCountry, generateDivisionFixtures, ALL_CLUBS } from '@/data/league';
-import { generateSquad, selectBestLineup } from '@/utils/playerGen';
+import { generateSquad, selectBestLineup, expandAbbreviatedFirstName } from '@/utils/playerGen';
 import { autoFillBestTeam } from '@/utils/autoFillLineup';
 import type { Club, Player, FormationType } from '@/types/game';
 /**
@@ -9,7 +9,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 61;
+const CURRENT_VERSION = 62;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -922,6 +922,33 @@ const migrations: Record<number, MigrationFn> = {
             lastSeedSeason: 99,
           },
     };
+  },
+
+  // v61 → v62: expand abbreviated first names ("E.", "A. Van") to full
+  // names. Community-pack data (auto-derived from FC26 short_name) used
+  // to ship as bare initials, which rendered as a lone "E." under the
+  // surname on player cards. We now expand on import; this migration
+  // does the same for players already saved.
+  61: (data) => {
+    const players = data.players as Record<string, Player> | undefined;
+    if (!players || typeof players !== 'object') {
+      return { ...data, version: 62 };
+    }
+    const next: Record<string, Player> = {};
+    for (const [id, raw] of Object.entries(players)) {
+      const p = raw as Player | undefined;
+      if (!p || typeof p !== 'object') {
+        next[id] = raw;
+        continue;
+      }
+      const expanded = expandAbbreviatedFirstName(
+        p.firstName ?? '',
+        p.nationality ?? '',
+        p.id ?? id,
+      );
+      next[id] = expanded === p.firstName ? p : { ...p, firstName: expanded };
+    }
+    return { ...data, version: 62, players: next };
   },
 };
 
