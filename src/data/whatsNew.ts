@@ -93,6 +93,9 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Switching tabs is now instant — removed the blocking transition that delayed each page load.',
       'Match playback runs more smoothly at every speed, especially on older devices.',
       'League-position lookups in the top bar and dashboard are faster on every render.',
+      'Player cards now show full first names instead of a bare initial.',
+      'Position label moved under the OVR on the left so XI/SUB/LIST badges no longer overlap the top-right corner.',
+      'More clearance above the bottom nav so the last row of cards always sits above the tab bar.',
     ],
     fixed: [
       'Alternate positions now glow green like FUT chemistry.',

@@ -284,7 +284,7 @@ const GameShell = () => {
           // intentional left/right swipes via useSwipeGesture (which already
           // ignores edge-originating touches).
           className="touch-pan-y"
-          style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(5rem + env(safe-area-inset-bottom, 0px))' }}
+          style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))' }}
           {...swipeHandlers}
         >
           {subNavGroup && (
