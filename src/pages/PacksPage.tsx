@@ -12,6 +12,7 @@ import { PACK_TIERS, PACK_TIER_MAP, PACK_PITY_THRESHOLD, RECENT_PULLS_LIMIT, get
 import type { PackPlayerPlacement, PackTierKey } from '@/types/game';
 import { PackShopCard } from '@/components/game/pack/PackShopCard';
 import { PackOpeningOverlay } from '@/components/game/pack/PackOpeningOverlay';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { errorToast, successToast } from '@/utils/gameToast';
@@ -244,22 +245,19 @@ const PacksPage = () => {
                       </span>
                     </div>
 
-                    {/* Best player block — big OVR + name + position. */}
-                    <div className="relative flex items-end gap-2.5">
-                      <span
-                        className="text-4xl font-display font-black leading-none tabular-nums bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]"
-                        style={{
-                          backgroundImage: `linear-gradient(135deg, ${ptier.gradientFrom} 0%, ${ptier.gradientVia} 60%, ${ptier.gradientTo} 100%)`,
-                        }}
-                      >
-                        {best.overall}
-                      </span>
-                      <div className="min-w-0 pb-0.5">
+                    {/* Best player block — mini shield (matches the tactics
+                        tile look: OVR top-left, position top-right) plus
+                        side text for player tier. */}
+                    <div className="relative flex items-center gap-2.5">
+                      <div className="shrink-0">
+                        <PlayerCard player={best} size="sm" interactive="none" compact />
+                      </div>
+                      <div className="min-w-0">
                         <p className="text-sm font-bold text-foreground leading-tight truncate">
                           {best.firstName.charAt(0)}. {best.lastName}
                         </p>
-                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground leading-tight mt-0.5">
-                          {best.position} · {ptier.label}
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground leading-tight mt-0.5 truncate">
+                          {ptier.label}
                         </p>
                       </div>
                     </div>
