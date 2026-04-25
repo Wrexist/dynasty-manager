@@ -1,7 +1,6 @@
 import * as Sentry from '@sentry/react';
-import { useEffect, useCallback, lazy, Suspense } from 'react';
+import { useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, useReducedMotion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { TopBar } from '@/components/game/TopBar';
@@ -141,16 +140,14 @@ const GameShell = () => {
   const isUnemployed = useCareerUnemployed();
   const activeTabs = isUnemployed ? UNEMPLOYED_MAIN_TABS : MAIN_TABS;
 
-  // Derive the sub-nav group for the current screen, if any.
-  // Hoisting the SubNav above the page AnimatePresence lets the active
-  // pill slide smoothly between siblings via framer-motion's layoutId.
-  const subNavGroup = (() => {
+  // Derive the sub-nav group for the current screen, if any. Memoized so
+  // SubNav doesn't receive a fresh `items` array on every GameShell render
+  // (which would defeat its prop stability and trigger child re-renders).
+  const subNavGroup = useMemo(() => {
     const group = SCREEN_GROUPS.find(g => g.includes(currentScreen));
     if (!group) return null;
     if (group[0] === 'squad') {
-      // Decorate Packs tab with a dot when pity is primed (pack feature hook).
-      const items = SQUAD_SUB_NAV;
-      return { items, layoutId: 'subnav-pill-squad' };
+      return { items: SQUAD_SUB_NAV, layoutId: 'subnav-pill-squad' };
     }
     if (group[0] === 'transfers') {
       const items = MARKET_SUB_NAV.map(item =>
@@ -161,7 +158,7 @@ const GameShell = () => {
       return { items, layoutId: 'subnav-pill-market' };
     }
     return null;
-  })();
+  }, [currentScreen, packPityCounter]);
 
   useEffect(() => {
     if (!gameStarted) navigate('/');
@@ -181,6 +178,10 @@ const GameShell = () => {
       void import('./TacticsPage').catch(swallow);
       void import('./TransferPage').catch(swallow);
       void import('./InboxPage').catch(swallow);
+      void import('./LeagueTable').catch(swallow);
+      void import('./CalendarView').catch(swallow);
+      void import('./TrainingPage').catch(swallow);
+      void import('./MatchPrep').catch(swallow);
     });
   }, []);
 
@@ -264,7 +265,6 @@ const GameShell = () => {
     console.warn(`[GameShell] Unrecognized screen: "${currentScreen}", falling back to Dashboard`);
   }
   const Screen = screens[currentScreen] || Dashboard;
-  const reduceMotion = useReducedMotion();
 
   // Use 'instant' so we don't wait for a smooth-scroll animation on tab change;
   // the user expects the new screen to be at the top *immediately*.
@@ -292,23 +292,15 @@ const GameShell = () => {
               <SubNav items={subNavGroup.items} layoutId={subNavGroup.layoutId} />
             </div>
           )}
-          {/* Single in-place fade — no AnimatePresence + no exit animation, so
-              the next screen mounts on the very next frame after setScreen()
-              instead of waiting for the previous screen's exit transition.
-              This is the difference between navigation feeling laggy
-              (~120ms perceptible delay) and feeling instant. */}
-          <motion.div
-            key={currentScreen}
-            initial={reduceMotion ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: reduceMotion ? 0 : 0.08, ease: 'linear' }}
-          >
-            <PageErrorBoundary>
-              <Suspense fallback={<PageSuspenseFallback />}>
-                <Screen />
-              </Suspense>
-            </PageErrorBoundary>
-          </motion.div>
+          {/* Render the active screen directly (no AnimatePresence wait):
+              tab switches mount the new screen instantly instead of
+              blocking on an exit animation, which was the dominant
+              source of perceived "long loading between tabs". */}
+          <PageErrorBoundary>
+            <Suspense fallback={<PageSuspenseFallback />}>
+              <Screen />
+            </Suspense>
+          </PageErrorBoundary>
         </main>
         <BottomNav />
         <ContractNegotiation />
