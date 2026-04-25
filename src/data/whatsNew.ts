@@ -82,6 +82,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Hardened internal button handling so the menu buttons across the app can never accidentally trigger a future form submission.',
       'Moved \'What\'s New\' to a small button in the top-right of the title screen so the menu is cleaner.',
       'Compacted the What\'s New page into a tight update log so you can scan releases at a glance.',
+      'Match commentary now reads with proper build-up — slick passing, quick counters, and dangerous corners now lead into the moment a goal is scored, instead of jumping straight to the finish.',
     ],
     fixed: [],
   },
