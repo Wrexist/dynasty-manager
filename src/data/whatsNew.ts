@@ -76,6 +76,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'The latest version is marked with a "NEW" badge until you open the page, so you never miss a meaningful update.',
       'Press Escape to close the contract, transfer, loan, and list-for-sale modals.',
       'Modals and form inputs now expose proper accessibility labels for screen readers.',
+      'Hardened internal button handling so the menu buttons across the app can never accidentally trigger a future form submission.',
     ],
     fixed: [],
   },
