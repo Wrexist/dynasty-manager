@@ -57,6 +57,7 @@ import { ProUpsell } from '@/components/game/ProUpsell';
 import { Button } from '@/components/ui/button';
 import { getConfidenceColor, getMatchRatingColor, areColorsSimilar, getRatingHex } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { generateMatchInsights } from '@/utils/matchInsights';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
 import { getDerbyName, getDerbyIntensity } from '@/data/league';
@@ -756,24 +757,23 @@ const MatchReview = () => {
         return (
           <GlassPanel className="p-3 border-primary/30 bg-primary/5">
             <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center"
-                style={{ boxShadow: `inset 0 0 0 2px ${getRatingHex(bestPlayer.overall)}` }}
-              >
-                <span className="text-sm font-black text-primary">{best.rating.toFixed(1)}</span>
+              <div className="relative shrink-0">
+                <PlayerCard player={bestPlayer} size="md" interactive="none" compact />
+                {/* Match-rating pill anchored to the shield's bottom-right —
+                    the rating is the headline number for MOTM, so it sits
+                    over the card rather than as a separate tile. */}
+                <span
+                  className="absolute -bottom-1.5 -right-1.5 px-1.5 py-0.5 rounded-md text-xs font-black tabular-nums bg-primary text-primary-foreground shadow-[0_2px_6px_rgba(0,0,0,0.5)] z-10"
+                >
+                  {best.rating.toFixed(1)}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-primary uppercase tracking-wider font-semibold">Man of the Match</p>
-                <div className="flex items-center gap-1.5">
+                <p className="text-sm font-bold text-foreground truncate flex items-center gap-1.5">
                   <FlagIcon nationality={bestPlayer.nationality} size={14} className="shrink-0" />
-                  <p className="text-sm font-bold text-foreground truncate">{bestPlayer.firstName} {bestPlayer.lastName}</p>
-                  <span
-                    className="text-[10px] font-bold tabular-nums shrink-0"
-                    style={{ color: getRatingHex(bestPlayer.overall) }}
-                  >
-                    {bestPlayer.overall}
-                  </span>
-                </div>
+                  {bestPlayer.firstName} {bestPlayer.lastName}
+                </p>
                 <p className="text-[10px] text-muted-foreground">
                   {best.goals > 0 ? `${best.goals}G ` : ''}{best.assists > 0 ? `${best.assists}A ` : ''}{bestPlayer.position}
                 </p>
