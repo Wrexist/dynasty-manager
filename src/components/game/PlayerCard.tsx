@@ -196,7 +196,11 @@ export const PlayerCard = memo(function PlayerCard({
         }
       }}
       className={cn(
-        'relative block aspect-[3/4] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 shadow-[0_18px_36px_rgba(0,0,0,0.55)]',
+        'relative block aspect-[3/4] overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+        // The big drop-shadow looks like a dark halo behind the tactics-pitch
+        // tiles on a green pitch; keep it only at sm+ where the card sits on
+        // a dark UI surface and the cast shadow reads as depth.
+        size !== 'xs' && 'shadow-[0_18px_36px_rgba(0,0,0,0.55)]',
         clickable && 'cursor-pointer',
         className,
       )}
@@ -217,17 +221,23 @@ export const PlayerCard = memo(function PlayerCard({
         style={cardArt.filter ? { filter: cardArt.filter } : undefined}
       />
 
-      {/* Targeted darkening for legibility (same gradient stack as pack face). */}
-      <div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background:
-            'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.65), transparent 75%),' +
-            'linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.32) 58%, rgba(0,0,0,0.18) 62%, transparent 64%),' +
-            'linear-gradient(to bottom, transparent 63%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)',
-        }}
-      />
+      {/* Targeted darkening for legibility on the larger shields where the
+          stat panel sits on top of the gray band. The xs pitch tile leaves
+          the artwork clean — text already has heavy text-shadows for
+          readability, and the gradient overlay reads as a dark halo on the
+          crowded tactics view. */}
+      {size !== 'xs' && (
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(ellipse 42% 32% at 18% 17%, rgba(0,0,0,0.65), transparent 75%),' +
+              'linear-gradient(to bottom, transparent 48%, rgba(0,0,0,0.32) 58%, rgba(0,0,0,0.18) 62%, transparent 64%),' +
+              'linear-gradient(to bottom, transparent 63%, rgba(0,0,0,0.4) 72%, rgba(0,0,0,0.55) 86%, rgba(0,0,0,0.65) 100%)',
+          }}
+        />
+      )}
 
       <div className="relative h-full text-white">
         {/* Quick-release × */}
@@ -245,9 +255,11 @@ export const PlayerCard = memo(function PlayerCard({
           </button>
         )}
 
-        {/* OVR + position — inset from the shield's top-left curve. The
-            position label optionally takes on a compat tone on the pitch:
-            green = natural slot, amber = compatible, red = wrong. */}
+        {/* OVR (top-left) and position (top-right, mirrored) — inset from
+            the shield's top curves. The position label optionally takes on
+            a compat tone on the pitch: green = natural slot (primary or
+            alt), amber = compatible (covered by static fallback table),
+            red = wrong. */}
         <div
           className="absolute leading-none"
           style={{ top: tk.ovrTopPx, left: tk.ovrLeftPx, textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.45)' }}
@@ -258,14 +270,19 @@ export const PlayerCard = memo(function PlayerCard({
           >
             {player.overall}
           </div>
+        </div>
+        <div
+          className="absolute leading-none text-right"
+          style={{ top: tk.ovrTopPx, right: tk.ovrLeftPx }}
+        >
           <div
-            className="mt-0.5 font-bold tracking-[0.15em]"
+            className="font-display font-black tracking-[0.08em]"
             style={{
-              fontSize: tk.posPx,
-              color: positionTone ? POSITION_TONE_COLORS[positionTone] : 'rgba(255,255,255,0.9)',
+              fontSize: Math.round(tk.ovrPx * 0.55),
+              color: positionTone ? POSITION_TONE_COLORS[positionTone] : 'rgba(255,255,255,0.95)',
               textShadow: positionTone
-                ? '0 1px 3px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.5)'
-                : '0 1px 3px rgba(0,0,0,0.85)',
+                ? '0 2px 6px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.55)'
+                : '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.45)',
             }}
           >
             {player.position}
@@ -278,8 +295,15 @@ export const PlayerCard = memo(function PlayerCard({
             inline with the surname (squad-page / pack look). */}
         {(() => {
           const flagOverName = size === 'xs' || size === 'sm';
+          // Mononym players (Savinho, Rodri, Ederson, …) come through with
+          // identical firstName / lastName from the FC25-sourced templates.
+          // Showing both lines as the same word reads as a duplicate, so
+          // suppress the secondary first-name row in that case.
+          const isMononym =
+            !!player.firstName &&
+            player.firstName.trim().toLowerCase() === player.lastName.trim().toLowerCase();
           const showFirstName =
-            size === 'xs' ? compact : size === 'sm' ? true : !compact;
+            !isMononym && (size === 'xs' ? compact : size === 'sm' ? true : !compact);
           return (
             <div
               className="absolute text-center"

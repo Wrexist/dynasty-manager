@@ -31,6 +31,10 @@ const SLOT_Y_BOTTOM = 97;
 
 function getCompatibility(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
   if (player.position === slotPos) return 'natural';
+  // Alternate positions are part of the player's printed card position
+  // list (FC25-style "ALT POS"); treating them as natural matches FUT
+  // chemistry where ALT POS slots light up green, not amber.
+  if (player.alternatePositions?.includes(slotPos)) return 'natural';
   if (canPlayPosition(player, slotPos)) return 'compatible';
   return 'wrong';
 }

@@ -80,8 +80,13 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Starting lineup cards colour each player\'s position label green when they\'re in their natural slot, amber when compatible, and red when out of position.',
       'Removed the club-colour stripe from bench and reserve cards for a cleaner shield look.',
       'Hardened internal button handling so the menu buttons across the app can never accidentally trigger a future form submission.',
+      'Player cards now show the position label on the right, mirroring the overall rating on the left.',
+      'Cleared the dark halo behind tactics-pitch player cards so the pitch reads cleaner.',
     ],
-    fixed: [],
+    fixed: [
+      'Position label now lights up green when a player is slotted into one of their listed alternate positions, matching FUT chemistry.',
+      'Hid the duplicated first-name line for mononym players (Savinho, Rodri, Ederson, …) so cards stop showing the same name twice.',
+    ],
   },
 ];
 

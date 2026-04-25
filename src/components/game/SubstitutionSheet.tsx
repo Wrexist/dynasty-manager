@@ -61,6 +61,10 @@ function getFormLabel(form: number): { text: string; className: string } {
 
 function getCompatibility(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
   if (player.position === slotPos) return 'natural';
+  // Alternate positions count as natural — same rule as the lineup editor;
+  // keeps the color logic consistent between the tactics screen and the
+  // in-match substitution sheet.
+  if (player.alternatePositions?.includes(slotPos)) return 'natural';
   if (canPlayPosition(player, slotPos)) return 'compatible';
   return 'wrong';
 }
