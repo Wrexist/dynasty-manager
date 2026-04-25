@@ -976,7 +976,35 @@ export function simulateHalf(
     return pick(descs)(clubShortName);
   };
 
-  // ── Weather Event Suffixes ──
+  // ── Substitution commentary ──
+  // Forced (injury) subs MUST contain "injured" — the live commentary row
+  // detects forced subs by scanning the description for that word.
+  const forcedSubDescs = [
+    (inName: string, outName: string, _club: string) => `${inName} comes on for the injured ${outName}.`,
+    (inName: string, outName: string, club: string) => `Forced change for ${club} — ${inName} replaces the injured ${outName}.`,
+    (inName: string, outName: string, _club: string) => `${outName} can't continue. The injured man is replaced by ${inName}.`,
+    (inName: string, outName: string, _club: string) => `Reluctant change — ${inName} on for the injured ${outName}.`,
+  ];
+  // Tactical / planned subs — varied templates, with optional flavour mentioning the bench, manager, or scoreboard pressure.
+  const tacticalSubDescs = [
+    (inName: string, outName: string, _club: string) => `${inName} comes on for ${outName}.`,
+    (inName: string, outName: string, club: string) => `Change for ${club} — ${outName} off, ${inName} on.`,
+    (inName: string, outName: string, _club: string) => `${outName} makes way for ${inName}. Fresh legs from the bench.`,
+    (inName: string, outName: string, club: string) => `${club} go to the bench: ${inName} replaces ${outName}.`,
+    (inName: string, outName: string, _club: string) => `Tactical switch — ${inName} replaces ${outName}.`,
+    (inName: string, outName: string, _club: string) => `${inName} is on, ${outName} trudges off to applause.`,
+    (inName: string, outName: string, club: string) => `${club}'s manager rolls the dice — ${inName} for ${outName}.`,
+    (inName: string, outName: string, _club: string) => `Off comes ${outName}, on goes ${inName}.`,
+    (inName: string, outName: string, club: string) => `${club} ring the changes — ${inName} replaces ${outName}.`,
+    (inName: string, outName: string, _club: string) => `${inName} is brought on for ${outName}. The manager wants something different.`,
+  ];
+  /** Build a substitution description. Forced subs always include "injured" so the UI can flag them. */
+  const pickSubDesc = (inName: string, outName: string, clubShortName: string, isForced: boolean): string => {
+    const pool = isForced ? forcedSubDescs : tacticalSubDescs;
+    return pick(pool)(inName, outName, clubShortName);
+  };
+
+
   const rainSuffixes = [
     ' The wet conditions playing their part.',
     ' Treacherous underfoot in this rain.',
@@ -1688,7 +1716,10 @@ export function simulateHalf(
               // Init playerEvents and matchFitness for sub
               if (!playerEvents[inPlayer.id]) playerEvents[inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: injuredIsHome ? awayGoals : homeGoals };
               matchFitness[inPlayer.id] = Math.min(100, inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
-              events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: injuredIsHome ? homeClub.id : awayClub.id, description: `${inPlayer.lastName} replaces the injured ${outPlayer.lastName}.` });
+              {
+                const subClub = injuredIsHome ? homeClub : awayClub;
+                events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: subClub.id, description: pickSubDesc(inPlayer.lastName, outPlayer.lastName, subClub.shortName, true) });
+              }
               // Rebalance after sub improves team
               const subRecomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
               homeStr = subRecomp.homeStr; awayStr = subRecomp.awayStr;
@@ -1780,7 +1811,7 @@ export function simulateHalf(
             if (benchIdx2 >= 0) benchPool2.splice(benchIdx2, 1);
             if (!playerEvents[inPlayer.id]) playerEvents[inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: candIsHome ? awayGoals : homeGoals };
             matchFitness[inPlayer.id] = Math.min(100, inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
-            events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: club.id, description: `${inPlayer.lastName} replaces the injured ${outPlayer.lastName}.` });
+            events.push({ minute: min, type: 'substitution', playerId: inPlayer.id, assistPlayerId: outPlayer.id, clubId: club.id, description: pickSubDesc(inPlayer.lastName, outPlayer.lastName, club.shortName, true) });
             const subRecomp2 = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
             homeStr = subRecomp2.homeStr; awayStr = subRecomp2.awayStr;
           }
@@ -1812,7 +1843,7 @@ export function simulateHalf(
           if (bIdx >= 0) homeBenchPool.splice(bIdx, 1);
           if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: awayGoals };
           matchFitness[aiSub.inPlayer.id] = Math.min(100, aiSub.inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
-          events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: homeClub.id, description: `${aiSub.inPlayer.lastName} comes on for ${aiSub.outPlayer.lastName}.` });
+          events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: homeClub.id, description: pickSubDesc(aiSub.inPlayer.lastName, aiSub.outPlayer.lastName, homeClub.shortName, false) });
           const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
           homeStr = recomp.homeStr; awayStr = recomp.awayStr;
         }
@@ -1831,7 +1862,7 @@ export function simulateHalf(
           if (bIdx >= 0) awayBenchPool.splice(bIdx, 1);
           if (!playerEvents[aiSub.inPlayer.id]) playerEvents[aiSub.inPlayer.id] = { goals: 0, assists: 0, yellows: 0, redCard: false, saves: 0, cleanSheet: true, goalsAtEntry: homeGoals };
           matchFitness[aiSub.inPlayer.id] = Math.min(100, aiSub.inPlayer.fitness + SUB_ENTRY_FITNESS_BOOST);
-          events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: awayClub.id, description: `${aiSub.inPlayer.lastName} comes on for ${aiSub.outPlayer.lastName}.` });
+          events.push({ minute: min, type: 'substitution', playerId: aiSub.inPlayer.id, assistPlayerId: aiSub.outPlayer.id, clubId: awayClub.id, description: pickSubDesc(aiSub.inPlayer.lastName, aiSub.outPlayer.lastName, awayClub.shortName, false) });
           const recomp = computeStrengths(homeClub, awayClub, homeAvail(), awayAvail(), homeTactics, awayTactics, tacticalFamiliarity, playerClubId);
           homeStr = recomp.homeStr; awayStr = recomp.awayStr;
         }

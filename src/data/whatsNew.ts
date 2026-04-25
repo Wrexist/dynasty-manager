@@ -84,6 +84,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Compacted the What\'s New page into a tight update log so you can scan releases at a glance.',
       'Match commentary now reads with proper build-up — slick passing, quick counters, and dangerous corners now lead into the moment a goal is scored, instead of jumping straight to the finish.',
       'Speculative shots from outside the box no longer clutter the commentary feed — only meaningful chances surface, while shot count and xG keep tracking every effort.',
+      'Substitutions now read with proper live commentary — varied lines for tactical changes from the bench, plus a clearly different tone when an injured player is forced off.',
     ],
     fixed: [],
   },
