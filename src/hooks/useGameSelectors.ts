@@ -18,8 +18,13 @@ export function usePlayerClub(): Club {
 export function useLeaguePosition(clubId?: string): number {
   return useGameStore(s => {
     const id = clubId ?? s.playerClubId;
-    const entry = s.leagueTable.find(e => e.clubId === id);
-    return entry ? s.leagueTable.indexOf(entry) + 1 : s.leagueTable.length;
+    // Single pass — find returns the entry whose index *is* the position-1.
+    // The previous .find().indexOf() pair walked the array twice on every
+    // store change for every page that used this selector.
+    for (let i = 0; i < s.leagueTable.length; i++) {
+      if (s.leagueTable[i].clubId === id) return i + 1;
+    }
+    return s.leagueTable.length;
   });
 }
 

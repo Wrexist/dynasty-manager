@@ -90,6 +90,9 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Transfer modals use the proper FIFA-style player shield.',
       'Ballon d\'Or, MOTM, and season-summary winners use the FIFA-style shield.',
       'Opponent rosters and recent pulls use the same mini player shield.',
+      'Tab switches and screen transitions are instant — pages no longer wait for a fade-out before the next screen mounts.',
+      'Match playback runs more smoothly at every speed, especially on older devices.',
+      'League-position lookups in the top bar and dashboard are faster on every render.',
     ],
     fixed: [
       'Alternate positions now glow green like FUT chemistry.',

@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 import { useEffect, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { TopBar } from '@/components/game/TopBar';
@@ -264,8 +264,13 @@ const GameShell = () => {
     console.warn(`[GameShell] Unrecognized screen: "${currentScreen}", falling back to Dashboard`);
   }
   const Screen = screens[currentScreen] || Dashboard;
+  const reduceMotion = useReducedMotion();
 
-  useEffect(() => { window.scrollTo(0, 0); }, [currentScreen]);
+  // Use 'instant' so we don't wait for a smooth-scroll animation on tab change;
+  // the user expects the new screen to be at the top *immediately*.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [currentScreen]);
 
   return (
     <ErrorBoundary>
@@ -287,21 +292,23 @@ const GameShell = () => {
               <SubNav items={subNavGroup.items} layoutId={subNavGroup.layoutId} />
             </div>
           )}
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={currentScreen}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.1, ease: 'easeOut' }}
-            >
-              <PageErrorBoundary>
-                <Suspense fallback={<PageSuspenseFallback />}>
-                  <Screen />
-                </Suspense>
-              </PageErrorBoundary>
-            </motion.div>
-          </AnimatePresence>
+          {/* Single in-place fade — no AnimatePresence + no exit animation, so
+              the next screen mounts on the very next frame after setScreen()
+              instead of waiting for the previous screen's exit transition.
+              This is the difference between navigation feeling laggy
+              (~120ms perceptible delay) and feeling instant. */}
+          <motion.div
+            key={currentScreen}
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: reduceMotion ? 0 : 0.08, ease: 'linear' }}
+          >
+            <PageErrorBoundary>
+              <Suspense fallback={<PageSuspenseFallback />}>
+                <Screen />
+              </Suspense>
+            </PageErrorBoundary>
+          </motion.div>
         </main>
         <BottomNav />
         <ContractNegotiation />
