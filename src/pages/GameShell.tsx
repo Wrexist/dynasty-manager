@@ -266,7 +266,11 @@ const GameShell = () => {
   }
   const Screen = screens[currentScreen] || Dashboard;
 
-  useEffect(() => { window.scrollTo(0, 0); }, [currentScreen]);
+  // Use 'instant' so we don't wait for a smooth-scroll animation on tab change;
+  // the user expects the new screen to be at the top *immediately*.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as ScrollBehavior });
+  }, [currentScreen]);
 
   return (
     <ErrorBoundary>
@@ -290,7 +294,7 @@ const GameShell = () => {
           )}
           {/* Render the active screen directly (no AnimatePresence wait):
               tab switches mount the new screen instantly instead of
-              blocking on a 100ms exit animation, which was the dominant
+              blocking on an exit animation, which was the dominant
               source of perceived "long loading between tabs". */}
           <PageErrorBoundary>
             <Suspense fallback={<PageSuspenseFallback />}>

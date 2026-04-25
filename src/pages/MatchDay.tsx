@@ -395,6 +395,12 @@ const MatchDayInner = () => {
   const matchPhaseRef = useRef(matchPhase);
   matchPhaseRef.current = matchPhase;
 
+  // Forward-only pointer into allEvents so each tick advances by O(k) where k
+  // is the number of events at the new minute, instead of O(n) where n is the
+  // full event list. Reset whenever allEvents reference changes (new half).
+  const eventCursorRef = useRef(0);
+  useEffect(() => { eventCursorRef.current = 0; }, [allEvents]);
+
   // Animate events for current half
   useEffect(() => {
     if (phase !== 'first_half' && phase !== 'second_half' && phase !== 'extra_time') return;
@@ -423,13 +429,27 @@ const MatchDayInner = () => {
         return;
       }
 
-      const events = allEvents.filter(e => e.minute <= next);
+      // Advance the cursor while events are at-or-before the new minute. The
+      // engine emits events in chronological order, so this is equivalent to
+      // `allEvents.filter(e => e.minute <= next)` but O(k) per tick instead
+      // of O(n). At "Instant" speed (20ms) this matters: the previous filter
+      // was 50× n ops/sec — meaningful on low-end Android.
+      let cursor = eventCursorRef.current;
+      const total = allEvents.length;
+      while (cursor < total && allEvents[cursor].minute <= next) cursor++;
+      const cursorChanged = cursor !== eventCursorRef.current;
+      eventCursorRef.current = cursor;
       currentMinRef.current = next;
       setCurrentMin(next);
-      setVisibleEvents(events);
+      // Only allocate a new visibleEvents slice when the cursor actually
+      // moved. Most ticks have no new events, especially on Instant speed.
+      const events = cursorChanged ? allEvents.slice(0, cursor) : null;
+      if (events) setVisibleEvents(events);
 
-      // Check for key moment at this minute
-      const moment = checkKeyMomentRef.current(next, events);
+      // Check for key moment at this minute. Pass the cursor-truncated slice
+      // when we computed one; otherwise re-use the last visibleEvents reference
+      // (key-moment heuristics only care about events up to `next`).
+      const moment = checkKeyMomentRef.current(next, events ?? allEvents.slice(0, cursor));
       if (moment) {
         clearInterval(intervalRef.current!);
         setKeyMoment(moment);
