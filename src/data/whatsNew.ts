@@ -91,6 +91,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Ballon d\'Or, MOTM, and season-summary winners use the FIFA-style shield.',
       'Opponent rosters and recent pulls use the same mini player shield.',
       'Switching tabs is now instant — removed the blocking transition that delayed each page load.',
+      'Player cards now show full first names instead of a bare initial.',
     ],
     fixed: [
       'Alternate positions now glow green like FUT chemistry.',

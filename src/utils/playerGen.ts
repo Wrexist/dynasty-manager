@@ -59,6 +59,92 @@ export function pickNameForNationality(nationality: string): { firstName: string
   return { firstName: pick(FALLBACK_FIRST_NAMES), lastName: pick(FALLBACK_LAST_NAMES) };
 }
 
+// Squad templates use "Holland" while NATIONALITY_NAME_POOLS keys on
+// "Netherlands"; map a few common aliases so the FC26-derived data
+// resolves to a real first-name pool.
+const NATIONALITY_POOL_ALIASES: Record<string, string> = {
+  Holland: 'Netherlands',
+  'Czech Republic': 'Czechia',
+  Czechia: 'Czech Republic',
+  'South Korea': 'Korea Republic',
+  'Korea Republic': 'South Korea',
+};
+
+function resolveFirstNamePool(nationality: string): string[] {
+  const direct = NATIONALITY_NAME_POOLS[nationality];
+  if (direct) return direct.firstNames;
+  const alias = NATIONALITY_POOL_ALIASES[nationality];
+  if (alias) {
+    const aliased = NATIONALITY_NAME_POOLS[alias];
+    if (aliased) return aliased.firstNames;
+  }
+  return FALLBACK_FIRST_NAMES;
+}
+
+// Cheap deterministic 32-bit hash (djb2-xor). Used to pick the same
+// expansion for the same player every time, so reloading a save shows
+// the same name as before.
+function hashSeed(s: string): number {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) {
+    h = ((h << 5) + h) ^ s.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+}
+
+// Detects an abbreviated first name like "E.", "A. Van", "B. van den".
+// Capture group 1 is the leading letter, group 2 is the remainder of the
+// string (which may itself be a nobiliary particle / second word that we
+// preserve verbatim).
+const ABBREVIATED_FIRST_NAME_RE = /^([A-Za-zÀ-ÖØ-öø-ÿ])\.\s*(.*)$/;
+
+/**
+ * Expand a first name that comes through as just an initial (e.g. "E.",
+ * "A. Van", "B. van den") into a full name using the player's
+ * nationality name pool. Returns the input unchanged when it doesn't
+ * match the abbreviated pattern, or when the pool contains no name
+ * starting with the given letter.
+ *
+ * The choice is deterministic in `seed` so the same player always picks
+ * the same expansion across reloads.
+ */
+export function expandAbbreviatedFirstName(
+  rawFirstName: string,
+  nationality: string,
+  seed: string,
+): string {
+  if (!rawFirstName) return rawFirstName;
+  const match = ABBREVIATED_FIRST_NAME_RE.exec(rawFirstName.trim());
+  if (!match) return rawFirstName;
+
+  const initial = match[1].toLocaleUpperCase();
+  const remainder = match[2].trim();
+
+  const startsWithInitial = (name: string) =>
+    name.length > 0 && name[0].toLocaleUpperCase() === initial;
+
+  const localPool = resolveFirstNamePool(nationality).filter(startsWithInitial);
+  let candidates = localPool;
+
+  if (candidates.length === 0) {
+    // Cast a wider net across every pool + fallback so the player still
+    // gets a real-sounding name even if their specific nationality has
+    // no entry under this initial.
+    const allNames = new Set<string>();
+    for (const pool of Object.values(NATIONALITY_NAME_POOLS)) {
+      for (const n of pool.firstNames) if (startsWithInitial(n)) allNames.add(n);
+    }
+    for (const n of FALLBACK_FIRST_NAMES) if (startsWithInitial(n)) allNames.add(n);
+    candidates = Array.from(allNames);
+  }
+
+  if (candidates.length === 0) return rawFirstName;
+
+  const chosen = candidates[hashSeed(seed) % candidates.length];
+  return remainder ? `${chosen} ${remainder}` : chosen;
+}
+
 const variance = (range = 15) => Math.floor(Math.random() * range * 2) - range;
 
 function qualityScale(clubQuality: number): number {
@@ -187,7 +273,11 @@ export function buildPlayerFromTemplate(
 ): Player {
   const nationality = nationalityOverride ?? t.nat;
   const player = generatePlayer(t.pos, t.ovr, clubId, season);
-  player.firstName = t.fn;
+  // Community-pack templates (auto-derived from FC26 short_name) often
+  // ship as `"E."` / `"A. Van"`; expand to a full first name so cards
+  // and lists don't render a bare initial.
+  const expansionSeed = t.fcId ?? `${t.fn}|${t.ln}|${nationality}|${t.pos}`;
+  player.firstName = expandAbbreviatedFirstName(t.fn, nationality, expansionSeed);
   player.lastName = t.ln;
   player.age = t.age;
   player.nationality = nationality;
