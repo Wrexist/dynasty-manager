@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { getRatingColor, posBadgeColor } from '@/utils/uiHelpers';
 import { FlagIcon } from '@/components/game/FlagIcon';
-import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { HeartPulse } from 'lucide-react';
 import { LEAGUES } from '@/data/league';
 import { getSuffix } from '@/utils/helpers';
@@ -214,8 +214,12 @@ const TeamDetailPage = () => {
                   onClick={() => selectPlayer(p.id)}
                   className="flex items-center gap-2 py-2 px-2 -mx-2 rounded-lg cursor-pointer active:bg-muted/40 transition-colors"
                 >
-                  {/* Overall */}
-                  <PlayerRatingBadge overall={p.overall} size="sm" />
+                  {/* Mini player shield — same OVR-left / POS-right layout
+                      as the tactics tile so opponent rosters carry the same
+                      visual language. xs (52px) keeps the row compact. */}
+                  <div className="shrink-0">
+                    <PlayerCard player={p} size="xs" interactive="none" compact />
+                  </div>
                   {/* Name + position */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">

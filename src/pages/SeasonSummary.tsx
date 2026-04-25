@@ -4,6 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { getSuffix } from '@/utils/helpers';
 import { getReputationTierLabel, getManagerBonusLabel } from '@/utils/managerCareer';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
 import { Trophy, Star, Award, Users, ChevronDown, ChevronUp, ArrowDown, ArrowUp } from 'lucide-react';
 import { DynamicIcon } from '@/components/game/DynamicIcon';
@@ -33,11 +34,12 @@ const AWARD_STAT_LABELS: Record<string, string> = {
 };
 
 const SeasonSummary = () => {
-  const { seasonHistory, season, playerClubId, clubs, leagueTable, gameMode, careerManager } = useGameStore(useShallow((s) => ({
+  const { seasonHistory, season, playerClubId, clubs, players, leagueTable, gameMode, careerManager } = useGameStore(useShallow((s) => ({
     seasonHistory: s.seasonHistory,
     season: s.season,
     playerClubId: s.playerClubId,
     clubs: s.clubs,
+    players: s.players,
     leagueTable: s.leagueTable,
     gameMode: s.gameMode,
     careerManager: s.careerManager,
@@ -339,14 +341,26 @@ const SeasonSummary = () => {
         {/* Ballon d'Or Winner */}
         {latest.ballonDOrRanking && latest.ballonDOrRanking.length > 0 && (() => {
           const winner = latest.ballonDOrRanking[0];
+          const winnerPlayer = players[winner.playerId];
           const yourPlayers = latest.ballonDOrRanking.filter(e => e.clubName === playerClubShort);
           return (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.7, duration: 0.5, type: 'spring' }}>
               <GlassPanel className="p-4 border-[hsl(43,96%,46%)]/20">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[hsl(43,96%,46%)]/15 border border-[hsl(43,96%,46%)]/30 flex items-center justify-center shrink-0">
-                    <Trophy className="w-5 h-5 text-[hsl(43,96%,56%)]" />
-                  </div>
+                  {winnerPlayer ? (
+                    <div className="shrink-0">
+                      <PlayerCard
+                        player={{ ...winnerPlayer, overall: winner.overall, position: winner.position }}
+                        size="md"
+                        interactive="none"
+                        compact
+                      />
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[hsl(43,96%,46%)]/15 border border-[hsl(43,96%,46%)]/30 flex items-center justify-center shrink-0">
+                      <Trophy className="w-5 h-5 text-[hsl(43,96%,56%)]" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-[10px] text-[hsl(43,96%,56%)] uppercase tracking-wider font-bold">Ballon d'Or Winner</p>
                     <p className="text-sm font-black text-foreground truncate">{winner.playerName}</p>

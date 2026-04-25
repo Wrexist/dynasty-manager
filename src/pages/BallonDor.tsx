@@ -2,12 +2,13 @@ import { useState, useMemo } from 'react';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Trophy, Crown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { darken, lighten } from '@/utils/colorUtils';
-import { BallonDOrEntry } from '@/types/game';
+import { BallonDOrEntry, Player } from '@/types/game';
 
 const RANK_MEDAL_COLORS: Record<number, { bg: string; text: string; border: string; glow: string }> = {
   1: { bg: 'bg-[hsl(43,96%,46%)]/20', text: 'text-[hsl(43,96%,56%)]', border: 'border-[hsl(43,96%,46%)]/40', glow: 'shadow-[0_0_20px_hsl(43,96%,46%,0.3)]' },
@@ -28,7 +29,7 @@ function getRankLabel(rank: number): string {
   return `${rank}th`;
 }
 
-const WinnerSpotlight = ({ entry, onNavigate }: { entry: BallonDOrEntry; onNavigate: () => void }) => (
+const WinnerSpotlight = ({ entry, player, onNavigate }: { entry: BallonDOrEntry; player: Player | null; onNavigate: () => void }) => (
   <motion.div
     initial={{ opacity: 0, scale: 0.8, y: 30 }}
     animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -47,26 +48,43 @@ const WinnerSpotlight = ({ entry, onNavigate }: { entry: BallonDOrEntry; onNavig
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
         />
 
-        {/* Trophy icon */}
+        <motion.p
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="relative z-10 text-[10px] text-[hsl(43,96%,56%)] uppercase tracking-[0.2em] font-bold mb-3"
+        >
+          Ballon d'Or Winner
+        </motion.p>
+
+        {/* Player shield with trophy badge — fall back to a trophy medallion
+            if the player record is no longer available (retired / saved out
+            of squad). The shield's OVR / position are pinned to the BD-night
+            snapshot so historical winners always show their season values. */}
         <motion.div
           initial={{ scale: 0, rotate: -10 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ delay: 0.3, duration: 0.6, type: 'spring' }}
-          className="relative z-10 mx-auto mb-3"
+          className="relative z-10 mx-auto mb-3 inline-block"
         >
-          <div className="w-20 h-20 rounded-full bg-[hsl(43,96%,46%)]/15 border-2 border-[hsl(43,96%,46%)]/30 flex items-center justify-center mx-auto shadow-[0_0_30px_hsl(43,96%,46%,0.25)]">
-            <Trophy className="w-10 h-10 text-[hsl(43,96%,56%)]" />
-          </div>
+          {player ? (
+            <div className="relative">
+              <PlayerCard
+                player={{ ...player, overall: entry.overall, position: entry.position }}
+                size="lg"
+                interactive="none"
+                compact
+              />
+              <div className="absolute -top-2 -right-2 w-9 h-9 rounded-full bg-[hsl(43,96%,46%)]/95 border-2 border-[hsl(43,96%,46%)] flex items-center justify-center shadow-[0_4px_14px_rgba(0,0,0,0.5)]">
+                <Trophy className="w-4 h-4 text-[hsl(43,15%,15%)]" />
+              </div>
+            </div>
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-[hsl(43,96%,46%)]/15 border-2 border-[hsl(43,96%,46%)]/30 flex items-center justify-center shadow-[0_0_30px_hsl(43,96%,46%,0.25)]">
+              <Trophy className="w-10 h-10 text-[hsl(43,96%,56%)]" />
+            </div>
+          )}
         </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.4 }}
-          className="relative z-10 text-[10px] text-[hsl(43,96%,56%)] uppercase tracking-[0.2em] font-bold mb-1"
-        >
-          Ballon d'Or Winner
-        </motion.p>
 
         <motion.p
           initial={{ opacity: 0, y: 10 }}
@@ -330,6 +348,7 @@ const BallonDor = () => {
       {winner && (
         <WinnerSpotlight
           entry={winner}
+          player={players[winner.playerId] ?? null}
           onNavigate={() => navigateToPlayer(winner.playerId)}
         />
       )}

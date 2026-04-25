@@ -13,7 +13,7 @@ import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { NEGOTIATION_SLIDER_MIN_RATIO, NEGOTIATION_SLIDER_MAX_RATIO, NEGOTIATION_MAX_STRIKES } from '@/config/transfers';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { StrikeIndicator } from '@/components/game/StrikeIndicator';
-import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import {
   X, TrendingUp, TrendingDown,
   ArrowRight, RotateCcw, Handshake, XCircle, Star, AlertTriangle, Wallet, Users, Unlock, Lock,
@@ -248,31 +248,31 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="relative shrink-0">
-                      <PlayerRatingBadge overall={player.overall} size="xl" />
+                      <PlayerCard player={player} size="md" interactive="none" compact />
                       {hasPotential && (
-                        <span className="absolute -top-1 -right-1 bg-primary/20 border border-primary/40 rounded-md px-1 py-px text-[9px] font-bold text-primary flex items-center gap-0.5">
+                        <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-[9px] font-black flex items-center gap-0.5 shadow-[0_2px_6px_rgba(0,0,0,0.5)] z-10">
                           <Star className="w-2.5 h-2.5" />{player.potential}
                         </span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-foreground font-display text-base leading-tight">{player.firstName} {player.lastName}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="font-bold text-foreground font-display text-base leading-tight truncate">{player.firstName} {player.lastName}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                         {player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}
                       </p>
-                      <p className="text-[11px] text-muted-foreground/70 mt-0.5">
+                      <p className="text-[11px] text-muted-foreground/70 mt-0.5 truncate">
                         From <span className="text-foreground/80">{sellerClub.name}</span>
                       </p>
+                      {/* Top 3 attributes inline beside the card so the modal stays compact */}
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        {top3.map(attr => (
+                          <span key={attr.label} className="text-[10px] font-mono bg-muted/60 px-1.5 py-0.5 rounded leading-none">
+                            <span className="text-muted-foreground">{attr.label}</span>{' '}
+                            <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                  {/* Top attributes */}
-                  <div className="flex gap-1.5 mt-2.5">
-                    {top3.map(attr => (
-                      <span key={attr.label} className="text-[10px] font-mono bg-muted/60 px-1.5 py-0.5 rounded">
-                        <span className="text-muted-foreground">{attr.label}</span>{' '}
-                        <span className={cn('font-bold', getRatingColor(attr.value))}>{attr.value}</span>
-                      </span>
-                    ))}
                   </div>
                 </div>
 
@@ -513,11 +513,15 @@ export function TransferNegotiation({ listing, onClose }: Props) {
                   transition={{ type: 'spring', stiffness: 300, damping: 20, delay: 0.15 }}
                 >
                   <div className="flex items-center gap-3">
-                    <PlayerRatingBadge overall={player.overall} size="lg" />
+                    <div className="shrink-0">
+                      <PlayerCard player={player} size="md" interactive="none" compact />
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
-                      <p className="text-[11px] text-muted-foreground">{player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /></p>
-                      <p className="text-[11px] text-emerald-400/80 mt-0.5">Welcome to {buyerClub.name}</p>
+                      <p className="font-bold text-foreground font-display truncate">{player.firstName} {player.lastName}</p>
+                      <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                        {player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} />
+                      </p>
+                      <p className="text-[11px] text-emerald-400/80 mt-0.5 truncate">Welcome to {buyerClub.name}</p>
                     </div>
                   </div>
                 </motion.div>

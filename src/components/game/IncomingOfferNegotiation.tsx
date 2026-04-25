@@ -11,7 +11,7 @@ import { formatWage } from '@/utils/contracts';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { INCOMING_NEGOTIATE_MAX_MULTIPLIER, NEGOTIATION_MAX_STRIKES } from '@/config/transfers';
 import { StrikeIndicator } from '@/components/game/StrikeIndicator';
-import { PlayerRatingBadge } from '@/components/game/PlayerRatingBadge';
+import { PlayerCard } from '@/components/game/PlayerCard';
 import {
   X, Banknote, Users, Shield, ArrowRight, RotateCcw, Handshake, XCircle, Lock,
 } from 'lucide-react';
@@ -215,7 +215,9 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
                   >
-                    <PlayerRatingBadge overall={player.overall} size="xl" />
+                    <div className="shrink-0">
+                      <PlayerCard player={player} size="md" interactive="none" compact />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display">{player.firstName} {player.lastName}</p>
                       <p className="text-xs text-muted-foreground">{player.position} · {player.age}y · <FlagIcon nationality={player.nationality} size={14} /> {player.nationality}</p>
@@ -451,7 +453,9 @@ export function IncomingOfferNegotiation({ offer, onClose }: Props) {
                   transition={{ delay: 0.2 }}
                 >
                   <div className="flex items-start gap-3">
-                    <PlayerRatingBadge overall={player.overall} size="lg" />
+                    <div className="shrink-0">
+                      <PlayerCard player={player} size="md" interactive="none" compact />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground font-display">
                         {player.firstName} {player.lastName}

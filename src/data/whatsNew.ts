@@ -85,8 +85,17 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Match commentary now reads with proper build-up — slick passing, quick counters, and dangerous corners now lead into the moment a goal is scored, instead of jumping straight to the finish.',
       'Speculative shots from outside the box no longer clutter the commentary feed — only meaningful chances surface, while shot count and xG keep tracking every effort.',
       'Substitutions now read with proper live commentary — varied lines for tactical changes from the bench, plus a clearly different tone when an injured player is forced off.',
+      'Player cards now show the position label on the right, mirroring the overall rating on the left.',
+      'Cleared the dark halo behind tactics-pitch player cards so the pitch reads cleaner.',
+      'Tactics pitch spreads players further apart so cards no longer overlap, and formation switches now smoothly slide each tile to its new slot.',
+      'Transfer modals (Buy/List/Loan/Approach/Deal Complete) now show the proper FIFA-style player shield instead of the placeholder rating square.',
+      'Hero player UIs (Ballon d\'Or winner, Man of the Match, season-summary winner) now show the proper FIFA-style shield instead of a plain trophy/rating tile.',
+      'Opponent rosters and recent-pulls cards now use the same mini player shield as the tactics pitch — consistent OVR-left / position-right layout across the app.',
     ],
-    fixed: [],
+    fixed: [
+      'Position label now lights up green when a player is slotted into one of their listed alternate positions, matching FUT chemistry.',
+      'Hid the duplicated first-name line for mononym players (Savinho, Rodri, Ederson, …) so cards stop showing the same name twice.',
+    ],
   },
 ];
 
