@@ -199,13 +199,23 @@ export const createMatchSlice = (set: Set, get: Get) => ({
     club.lineup = [...club.lineup.map(id => id === outId ? inId : id)];
     club.subs = [...club.subs.filter(id => id !== inId), outId];
     const outPlayer = state.players[outId];
+    const inFull = `${inPlayer.firstName} ${inPlayer.lastName}`;
+    const outFull = outPlayer ? `${outPlayer.firstName} ${outPlayer.lastName}` : 'Unknown';
+    const playerSubTemplates = [
+      `${inFull} comes on for ${outFull}.`,
+      `${inFull} replaces ${outFull}.`,
+      `${outFull} makes way for ${inFull}.`,
+      `Off comes ${outFull}, on goes ${inFull}.`,
+      `${club.shortName} go to the bench: ${inFull} replaces ${outFull}.`,
+      `Tactical change for ${club.shortName} — ${inFull} on, ${outFull} off.`,
+    ];
     const subEvent = {
       minute: minute ?? 45,
       type: 'substitution' as const,
       playerId: inId,
       assistPlayerId: outId,
       clubId: state.playerClubId,
-      description: `${inPlayer.firstName} ${inPlayer.lastName} replaces ${outPlayer ? `${outPlayer.firstName} ${outPlayer.lastName}` : 'Unknown'}`,
+      description: playerSubTemplates[Math.floor(Math.random() * playerSubTemplates.length)],
     };
     const updates: Partial<GameState> = { clubs: { ...state.clubs, [club.id]: club }, matchSubsUsed: state.matchSubsUsed + 1 };
     if (state.currentMatchResult) {

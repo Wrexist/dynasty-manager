@@ -26,37 +26,11 @@ const CATEGORY_META: Record<ReleaseCategory, {
   label: string;
   icon: typeof Sparkles;
   color: string;
-  bg: string;
-  border: string;
 }> = {
-  highlights: {
-    label: 'Highlights',
-    icon: Star,
-    color: 'text-primary',
-    bg: 'bg-primary/15',
-    border: 'border-primary/30',
-  },
-  new: {
-    label: 'New',
-    icon: Plus,
-    color: 'text-emerald-300',
-    bg: 'bg-emerald-400/10',
-    border: 'border-emerald-400/30',
-  },
-  improved: {
-    label: 'Improved',
-    icon: ArrowUp,
-    color: 'text-sky-300',
-    bg: 'bg-sky-400/10',
-    border: 'border-sky-400/30',
-  },
-  fixed: {
-    label: 'Fixed',
-    icon: Wrench,
-    color: 'text-amber-300',
-    bg: 'bg-amber-400/10',
-    border: 'border-amber-400/30',
-  },
+  highlights: { label: 'Highlights', icon: Star,    color: 'text-primary' },
+  new:        { label: 'New',        icon: Plus,    color: 'text-emerald-300' },
+  improved:   { label: 'Improved',   icon: ArrowUp, color: 'text-sky-300' },
+  fixed:      { label: 'Fixed',      icon: Wrench,  color: 'text-amber-300' },
 };
 
 const CATEGORY_ORDER: ReleaseCategory[] = ['highlights', 'new', 'improved', 'fixed'];
@@ -74,22 +48,17 @@ function ChangeSection({ category, items }: { category: ReleaseCategory; items: 
   const Icon = meta.icon;
   return (
     <div>
-      <div className="flex items-center gap-2 mb-2">
-        <div className={cn(
-          'w-5 h-5 rounded-md flex items-center justify-center border',
-          meta.bg, meta.border,
-        )}>
-          <Icon className={cn('w-3 h-3', meta.color)} />
-        </div>
-        <p className={cn('text-[11px] font-bold uppercase tracking-[0.18em]', meta.color)}>
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon className={cn('w-3 h-3 shrink-0', meta.color)} />
+        <p className={cn('text-[9px] font-bold uppercase tracking-[0.18em]', meta.color)}>
           {meta.label}
         </p>
       </div>
-      <ul className="space-y-1.5 pl-[26px]">
+      <ul className="space-y-0.5 pl-[16px]">
         {items.map((item, i) => (
           <li
             key={i}
-            className="text-[13px] leading-relaxed text-foreground/85 relative before:content-['•'] before:absolute before:-left-3 before:text-muted-foreground/50"
+            className="text-[12px] leading-snug text-foreground/80 relative before:content-['•'] before:absolute before:-left-3 before:text-muted-foreground/40"
           >
             {item}
           </li>
@@ -108,48 +77,44 @@ function ReleaseCard({ entry, isLatest }: { entry: ReleaseNote; isLatest: boolea
     );
 
   return (
-    <GlassPanel className={cn('p-4 space-y-3.5', isLatest && 'border border-primary/20')}>
-      {/* Header — version + build + date, App Store style */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 flex-wrap">
+    <GlassPanel className={cn('p-3 space-y-2', isLatest && 'border border-primary/25')}>
+      {/* Compact header — version pill + date/build inline */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5">
           <span className={cn(
-            'text-[11px] font-bold uppercase tracking-[0.18em] px-2 py-0.5 rounded-full border',
+            'text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border',
             isLatest
               ? 'bg-primary/20 text-primary border-primary/30'
               : 'bg-white/5 text-muted-foreground border-white/10',
           )}>
-            Version {entry.version}
+            v{entry.version}
           </span>
           {isLatest && (
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] px-2 py-0.5 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/30">
-              Latest
+            <span className="text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-emerald-400/15 text-emerald-300 border border-emerald-400/30">
+              New
             </span>
           )}
         </div>
-        <h3 className="font-display text-lg leading-tight font-bold text-foreground tracking-tight">
-          {entry.headline}
-        </h3>
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground uppercase tracking-wider">
-          <span className="flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
-            {formatDate(entry.date)}
-          </span>
-          <span aria-hidden className="w-1 h-1 rounded-full bg-muted-foreground/40" />
-          <span className="flex items-center gap-1">
-            <Package className="w-3 h-3" />
-            {entry.build !== null ? `Build ${entry.build}` : 'Build pending'}
-          </span>
+        <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground/80 uppercase tracking-wider">
+          <Calendar className="w-2.5 h-2.5" aria-hidden />
+          <span>{formatDate(entry.date)}</span>
+          {entry.build !== null && (
+            <>
+              <span aria-hidden className="w-0.5 h-0.5 rounded-full bg-muted-foreground/40" />
+              <Package className="w-2.5 h-2.5" aria-hidden />
+              <span>{entry.build}</span>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Player-facing summary */}
-      <p className="text-[13px] leading-relaxed text-foreground/75">
-        {entry.summary}
-      </p>
+      <h3 className="font-display text-[14px] leading-tight font-bold text-foreground tracking-tight">
+        {entry.headline}
+      </h3>
 
-      {/* Categorized change sections */}
+      {/* Categorized changes — the meat of the entry */}
       {sections.length > 0 && (
-        <div className="space-y-3 pt-1 border-t border-white/[0.06]">
+        <div className="space-y-2 pt-1 border-t border-white/[0.06]">
           {sections.map(([category, items]) => (
             <ChangeSection key={category} category={category} items={items} />
           ))}
@@ -205,38 +170,36 @@ const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
   };
 
   const content = (
-    <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
-      {/* Intro header */}
-      <div className="flex items-center gap-2 mb-1">
+    <div className="max-w-lg mx-auto px-4 py-3 space-y-2">
+      {/* Compact header row */}
+      <div className="flex items-center gap-2">
         {standalone && (
           <button
             type="button"
             onClick={handleBack}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+            className="w-8 h-8 -ml-1 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
             aria-label="Back"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
         )}
-        <Sparkles className="w-5 h-5 text-primary" />
-        <h2 className="font-display text-lg font-bold text-foreground tracking-tight">
-          What&apos;s New
+        <Sparkles className="w-4 h-4 text-primary" />
+        <h2 className="font-display text-base font-bold text-foreground tracking-tight">
+          Update Log
         </h2>
+        <span className="ml-auto text-[10px] text-muted-foreground/70 uppercase tracking-wider">
+          {notes.length} {notes.length === 1 ? 'release' : 'releases'}
+        </span>
       </div>
 
-      <p className="text-[12px] text-muted-foreground leading-relaxed px-1">
-        Every release, big and small. New features, polish, and fixes — most
-        recent at the top.
-      </p>
-
       {/* Release cards */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {notes.map((entry, idx) => (
           <motion.div
             key={`${entry.version}-${entry.build ?? 'pending'}`}
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: Math.min(idx * 0.05, 0.3), duration: 0.35, ease: 'easeOut' }}
+            transition={{ delay: Math.min(idx * 0.04, 0.24), duration: 0.3, ease: 'easeOut' }}
           >
             <ReleaseCard entry={entry} isLatest={idx === 0} />
           </motion.div>
@@ -244,14 +207,14 @@ const WhatsNewPage = ({ standalone = false }: WhatsNewPageProps) => {
       </div>
 
       {notes.length === 0 && (
-        <GlassPanel className="p-8 text-center">
-          <Sparkles className="w-8 h-8 text-muted-foreground/40 mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No release notes yet.</p>
+        <GlassPanel className="p-6 text-center">
+          <Sparkles className="w-7 h-7 text-muted-foreground/40 mx-auto mb-2" />
+          <p className="text-xs text-muted-foreground">No release notes yet.</p>
         </GlassPanel>
       )}
 
-      <p className="text-[10px] text-muted-foreground/60 text-center pt-2 pb-4">
-        Updates arrive via the App Store. Restart the app to pull the latest TestFlight build.
+      <p className="text-[9px] text-muted-foreground/50 text-center pt-1 pb-3">
+        Updates ship via the App Store · restart to pull latest TestFlight build.
       </p>
     </div>
   );
