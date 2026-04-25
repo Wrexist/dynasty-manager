@@ -92,6 +92,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Opponent rosters and recent pulls use the same mini player shield.',
       'Switching tabs is now instant — removed the blocking transition that delayed each page load.',
       'Player cards now show full first names instead of a bare initial.',
+      'Position label moved under the OVR on the left so XI/SUB/LIST badges no longer overlap the top-right corner.',
+      'More clearance above the bottom nav so the last row of cards always sits above the tab bar.',
     ],
     fixed: [
       'Alternate positions now glow green like FUT chemistry.',

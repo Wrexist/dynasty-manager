@@ -255,30 +255,30 @@ export const PlayerCard = memo(function PlayerCard({
           </button>
         )}
 
-        {/* OVR (top-left) and position (top-right, mirrored) — inset from
-            the shield's top curves. The position label optionally takes on
-            a compat tone on the pitch: green = natural slot (primary or
-            alt), amber = compatible (covered by static fallback table),
-            red = wrong. */}
+        {/* OVR + position stacked at top-left (FUT-style). Keeping the pos
+            label on the left frees the entire top-right corner for the
+            caller-overlaid status pills (XI / SUB / LIST / contract /
+            injured) without colliding with the shield artwork. The pos
+            label optionally takes on a compat tone on the pitch: green =
+            natural slot (primary or alt), amber = compatible, red = wrong. */}
         <div
           className="absolute leading-none"
-          style={{ top: tk.ovrTopPx, left: tk.ovrLeftPx, textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.45)' }}
+          style={{ top: tk.ovrTopPx, left: tk.ovrLeftPx }}
         >
           <div
             className="font-display font-black tabular-nums tracking-tight"
-            style={{ fontSize: tk.ovrPx }}
+            style={{
+              fontSize: tk.ovrPx,
+              textShadow: '0 2px 6px rgba(0,0,0,0.85), 0 0 12px rgba(0,0,0,0.45)',
+            }}
           >
             {player.overall}
           </div>
-        </div>
-        <div
-          className="absolute leading-none text-right"
-          style={{ top: tk.ovrTopPx, right: tk.ovrLeftPx }}
-        >
           <div
             className="font-display font-black tracking-[0.08em]"
             style={{
               fontSize: Math.round(tk.ovrPx * 0.55),
+              marginTop: Math.max(1, Math.round(tk.ovrPx * 0.05)),
               color: positionTone ? POSITION_TONE_COLORS[positionTone] : 'rgba(255,255,255,0.95)',
               textShadow: positionTone
                 ? '0 2px 6px rgba(0,0,0,0.95), 0 0 8px rgba(0,0,0,0.55)'
