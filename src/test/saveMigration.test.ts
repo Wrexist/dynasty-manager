@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 61', () => {
-    expect(CURRENT_VERSION).toBe(61);
+  it('should have current version set to 62', () => {
+    expect(CURRENT_VERSION).toBe(62);
   });
 
   it('v57 → v59 chains cleanly with a realistic halfTimeState payload', () => {
@@ -137,5 +137,31 @@ describe('saveMigration', () => {
     // After v22→v23 clean break, old data is wiped
     expect(result.version).toBe(CURRENT_VERSION);
     expect(result.gameStarted).toBe(false);
+  });
+
+  it('v61 → v62 expands abbreviated firstName fields on saved players', () => {
+    const v61: Record<string, unknown> = {
+      version: 61,
+      players: {
+        p1: { id: 'p1', firstName: 'E.', lastName: 'Haaland', nationality: 'Norway' },
+        p2: { id: 'p2', firstName: 'L.', lastName: 'Martínez', nationality: 'Argentina' },
+        p3: { id: 'p3', firstName: 'Erling', lastName: 'Solo', nationality: 'Norway' },
+        p4: { id: 'p4', firstName: 'A. Van', lastName: 'Berg', nationality: 'Netherlands' },
+      },
+    };
+    const result = migrateSaveData(v61) as Record<string, unknown>;
+    const players = result.players as Record<string, { firstName: string }>;
+    expect(players.p1.firstName).not.toBe('E.');
+    expect(players.p1.firstName.startsWith('E')).toBe(true);
+    expect(players.p2.firstName.startsWith('L')).toBe(true);
+    expect(players.p3.firstName).toBe('Erling'); // unchanged
+    expect(players.p4.firstName.endsWith(' Van')).toBe(true);
+  });
+
+  it('v61 → v62 leaves saves without a players map untouched', () => {
+    const v61: Record<string, unknown> = { version: 61 };
+    expect(() => migrateSaveData(v61)).not.toThrow();
+    const result = migrateSaveData(v61) as Record<string, unknown>;
+    expect(result.version).toBe(CURRENT_VERSION);
   });
 });
