@@ -218,7 +218,7 @@ const InboxPage = () => {
           </p>
         </div>
         {(hasActiveFilter ? filteredUnread : totalUnread) > 0 && (
-          <button onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs text-primary hover:underline">
+          <button type="button" onClick={handleMarkAllRead} className="flex items-center gap-1 text-xs text-primary hover:underline">
             <CheckCheck className="w-3 h-3" />
             {hasActiveFilter ? 'Mark filtered read' : 'Mark all read'}
           </button>
@@ -545,7 +545,7 @@ const InboxPage = () => {
             {hasActiveFilter ? 'Try a different filter or clear all filters below' : 'Messages about transfers, contracts, injuries, and more will appear here as you progress'}
           </p>
           {hasActiveFilter && (
-            <button className="text-xs text-primary mt-2 hover:underline" onClick={clearAllFilters}>
+            <button type="button" className="text-xs text-primary mt-2 hover:underline" onClick={clearAllFilters}>
               Clear all filters
             </button>
           )}

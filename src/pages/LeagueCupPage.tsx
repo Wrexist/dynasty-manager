@@ -91,7 +91,7 @@ function RoundSection({ round, ties, playerClubId, clubs, isCurrent, allPlayed, 
 
   return (
     <div className="space-y-2">
-      <button onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 w-full text-left">
+      <button type="button" onClick={() => setExpanded(!expanded)} className="flex items-center gap-2 w-full text-left">
         {expanded ? <ChevronDown className="w-3 h-3 text-muted-foreground shrink-0" /> : <ChevronRight className="w-3 h-3 text-muted-foreground shrink-0" />}
         <h2 className={cn('text-sm font-display font-bold', isCurrent ? 'text-cyan-400' : allPlayed ? 'text-muted-foreground' : 'text-foreground')}>
           {getRoundName(round)}
