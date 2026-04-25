@@ -194,6 +194,37 @@ const TitleScreen = () => {
         />
       ))}
 
+      {/* What's New — small floating pill, top-right corner. Surfaces the
+          latest release notes without taking a full row in the menu list.
+          Pulses a green dot until the user opens the page once. */}
+      <motion.button
+        type="button"
+        onClick={() => { hapticLight(); navigate('/whats-new'); }}
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35, duration: 0.45, ease: 'easeOut' }}
+        whileTap={{ scale: 0.94 }}
+        className={cn(
+          'absolute right-4 z-20 flex items-center gap-1.5 pl-2.5 pr-3 py-1.5 rounded-full',
+          'bg-white/[0.06] border border-white/15 backdrop-blur-md',
+          'text-[11px] font-semibold text-foreground/90 tracking-wide',
+          'shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_4px_14px_-6px_rgba(0,0,0,0.6)]',
+          'transition-colors active:bg-white/[0.12] hover:bg-white/[0.09]',
+          whatsNewUnseen && 'border-primary/35',
+        )}
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+        aria-label={whatsNewUnseen ? 'What’s new — unread update' : 'What’s new'}
+      >
+        <Sparkles className="w-3.5 h-3.5 text-primary shrink-0" />
+        <span>What&apos;s New!</span>
+        {whatsNewUnseen && (
+          <span
+            aria-hidden
+            className="ml-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_hsl(150_85%_60%/0.7)]"
+          />
+        )}
+      </motion.button>
+
       {/* Title section */}
       <motion.div
         initial={{ opacity: 0, y: -40 }}
@@ -361,46 +392,8 @@ const TitleScreen = () => {
           </GlassPanel>
         </motion.div>
 
-        {/* What's New — App Store–style release notes. Shows a dot on the
-            icon when the latest version hasn't been opened yet. */}
-        <motion.div custom={slots.length + 3} variants={buttonVariants} initial="hidden" animate="visible">
-          <GlassPanel
-            className="p-0"
-            onClick={() => navigate('/whats-new')}
-            aria-label="What's new in this update"
-          >
-            <div className="flex items-center gap-3 px-4 py-3.5">
-              <div className="relative shrink-0">
-                <div className="w-11 h-11 rounded-xl bg-white/[0.06] border border-white/15 flex items-center justify-center shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
-                  <Sparkles className="w-[18px] h-[18px] text-primary" />
-                </div>
-                {whatsNewUnseen && (
-                  <span
-                    aria-hidden
-                    className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-background/90 animate-pulse"
-                  />
-                )}
-              </div>
-              <div className="flex-1 min-w-0 text-left">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-bold text-foreground">What&apos;s New</p>
-                  {whatsNewUnseen && (
-                    <span className="text-[9px] bg-emerald-400/15 text-emerald-300 px-1.5 py-[1px] rounded-full font-semibold uppercase tracking-wider border border-emerald-400/30">
-                      New
-                    </span>
-                  )}
-                </div>
-                <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
-                  v{LATEST_RELEASE.version} · {LATEST_RELEASE.headline}
-                </p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/60 shrink-0" />
-            </div>
-          </GlassPanel>
-        </motion.div>
-
         {/* Settings */}
-        <motion.div custom={slots.length + 4} variants={buttonVariants} initial="hidden" animate="visible">
+        <motion.div custom={slots.length + 3} variants={buttonVariants} initial="hidden" animate="visible">
           <Sheet>
             <SheetTrigger asChild>
               <button

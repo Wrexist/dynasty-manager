@@ -80,6 +80,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Starting lineup cards colour each player\'s position label green when they\'re in their natural slot, amber when compatible, and red when out of position.',
       'Removed the club-colour stripe from bench and reserve cards for a cleaner shield look.',
       'Hardened internal button handling so the menu buttons across the app can never accidentally trigger a future form submission.',
+      'Moved \'What\'s New\' to a small button in the top-right of the title screen so the menu is cleaner.',
+      'Compacted the What\'s New page into a tight update log so you can scan releases at a glance.',
     ],
     fixed: [],
   },
