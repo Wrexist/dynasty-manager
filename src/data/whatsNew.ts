@@ -79,6 +79,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Tactics pitch and bench player cards now stack the flag above the surname, show the first name underneath, and label each stat (PAC, SHO, DEF…) right above its value.',
       'Starting lineup cards colour each player\'s position label green when they\'re in their natural slot, amber when compatible, and red when out of position.',
       'Removed the club-colour stripe from bench and reserve cards for a cleaner shield look.',
+      'Hardened internal button handling so the menu buttons across the app can never accidentally trigger a future form submission.',
     ],
     fixed: [],
   },

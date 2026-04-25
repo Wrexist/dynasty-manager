@@ -46,7 +46,7 @@ export function PurchaseModal({ productId, onConfirm, onCancel, loading }: Purch
                 {isSubscription ? 'Confirm Subscription' : 'Confirm Purchase'}
               </h3>
             </div>
-            <button onClick={onCancel} className="text-muted-foreground hover:text-foreground">
+            <button type="button" onClick={onCancel} className="text-muted-foreground hover:text-foreground">
               <X className="w-5 h-5" />
             </button>
           </div>

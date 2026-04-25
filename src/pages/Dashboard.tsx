@@ -939,20 +939,20 @@ const Dashboard = () => {
           {/* Activity suggestions */}
           <div className="flex flex-wrap gap-2 justify-center">
             {transferWindowOpen && (
-              <button onClick={() => setScreen('transfers')} className="inline-flex items-center gap-1 bg-primary/10 border border-primary/20 rounded-full px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
+              <button type="button" onClick={() => setScreen('transfers')} className="inline-flex items-center gap-1 bg-primary/10 border border-primary/20 rounded-full px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors">
                 <UserPlus className="w-3 h-3" /> Scout Transfers
               </button>
             )}
-            <button onClick={() => setScreen('training')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+            <button type="button" onClick={() => setScreen('training')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
               <Dumbbell className="w-3 h-3" /> Training
             </button>
             {youthAcademy.prospects.some(p => p.readyToPromote) && (
-              <button onClick={() => setScreen('youth-academy')} className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors">
+              <button type="button" onClick={() => setScreen('youth-academy')} className="inline-flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors">
                 <Users className="w-3 h-3" /> Youth Ready
               </button>
             )}
             {scouting.reports.length > 0 && (
-              <button onClick={() => setScreen('scouting')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+              <button type="button" onClick={() => setScreen('scouting')} className="inline-flex items-center gap-1 bg-muted/30 border border-border/50 rounded-full px-3 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
                 <BarChart3 className="w-3 h-3" /> Scout Reports
               </button>
             )}
