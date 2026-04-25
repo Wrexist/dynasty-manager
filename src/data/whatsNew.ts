@@ -82,6 +82,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Hardened internal button handling so the menu buttons across the app can never accidentally trigger a future form submission.',
       'Player cards now show the position label on the right, mirroring the overall rating on the left.',
       'Cleared the dark halo behind tactics-pitch player cards so the pitch reads cleaner.',
+      'Tactics pitch spreads players further apart so cards no longer overlap, and formation switches now smoothly slide each tile to its new slot.',
     ],
     fixed: [
       'Position label now lights up green when a player is slotted into one of their listed alternate positions, matching FUT chemistry.',

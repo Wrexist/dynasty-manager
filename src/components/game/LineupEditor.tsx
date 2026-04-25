@@ -25,8 +25,11 @@ const VP_W = 68;
 
 // Vertical span (in SVG units) used to lay out slots inside the half-pitch.
 // Wider span → more vertical room between player tiles → less overlap on
-// formations that stack attackers / midfielders close together.
-const SLOT_Y_RANGE = 46;
+// formations that stack attackers / midfielders close together. The
+// canonical formation `y` values top out around 82, so `y=100` doesn't
+// need to fit on screen — keep room above the GK row for the highest
+// strikers / wingers without overflowing the pitch.
+const SLOT_Y_RANGE = 54;
 const SLOT_Y_BOTTOM = 97;
 
 function getCompatibility(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): 'natural' | 'compatible' | 'wrong' {
@@ -315,7 +318,12 @@ export function LineupEditor() {
           return (
             <div
               key={`slot-${i}`}
-              className={cn('absolute transition-opacity duration-200', isFaded && 'opacity-40')}
+              className={cn(
+                // Animate left/top so a formation switch visibly slides
+                // each tile to its new slot rather than snapping in place.
+                'absolute transition-[left,top,opacity] duration-300 ease-out',
+                isFaded && 'opacity-40',
+              )}
               style={{
                 left: `${left}%`,
                 top: `${top}%`,
