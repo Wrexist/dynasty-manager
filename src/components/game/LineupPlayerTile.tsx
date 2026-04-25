@@ -2,7 +2,7 @@ import { memo } from 'react';
 import { cn } from '@/lib/utils';
 import { Link, TrendingUp, TrendingDown } from 'lucide-react';
 import type { Player } from '@/types/game';
-import { PlayerCard } from './PlayerCard';
+import { PlayerCard, type PositionTone } from './PlayerCard';
 
 const HOT_FORM_MIN = 70;
 const COLD_FORM_MAX = 35;
@@ -13,6 +13,13 @@ interface LineupPlayerTileProps {
   isSelected: boolean;
   chemistryLinkCount: number;
   compatRing?: 'natural' | 'compatible' | 'wrong' | null;
+  /**
+   * Tone for the position label on the card (reflects whether this player
+   * fits the slot they're in): natural → green, compatible → amber, wrong
+   * → red. Unlike `compatRing` (which is driven by the *selected* player
+   * vs every slot), this is always the tile-player vs its own slot.
+   */
+  positionTone?: PositionTone | null;
   week?: number;
   /** @deprecated kept for prop-API compatibility; colorstripe removed from tile. */
   clubColor?: string;
@@ -49,6 +56,7 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
   isSelected,
   chemistryLinkCount,
   compatRing,
+  positionTone,
   week,
   onClick,
 }: LineupPlayerTileProps) {
@@ -86,6 +94,7 @@ export const LineupPlayerTile = memo(function LineupPlayerTile({
         size="xs"
         interactive="none"
         compact
+        positionTone={positionTone}
       />
 
       {isSelected && (
