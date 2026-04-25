@@ -73,10 +73,10 @@ interface PlayerCardProps {
   className?: string;
 }
 
-const POSITION_TONE_COLORS: Record<PositionTone, string> = {
-  natural: '#34d399',
-  compatible: '#fbbf24',
-  wrong: '#f87171',
+const POSITION_TONE_CLASSES: Record<PositionTone, string> = {
+  natural: 'text-emerald-400',
+  compatible: 'text-amber-400',
+  wrong: 'text-red-400',
 };
 
 /**
@@ -185,6 +185,57 @@ export const PlayerCard = memo(function PlayerCard({
         ? `${player.firstName} ${player.lastName}, ${player.overall} overall. Open details.`
         : `${player.firstName} ${player.lastName}, ${player.overall} overall.`;
 
+  const flagOverName = size === 'xs' || size === 'sm';
+  // xs ties firstName to `compact` (inverted vs other sizes) — see the
+  // comment above the identity block in the return for rationale.
+  const showFirstName =
+    size === 'xs' ? compact : size === 'sm' ? true : !compact;
+
+  const identityBlock = (
+    <div
+      className="absolute text-center"
+      style={{
+        left: tk.paddingXPx,
+        right: tk.paddingXPx,
+        bottom: flagOverName ? '44%' : '39%',
+      }}
+    >
+      {flagOverName && (
+        <div
+          aria-hidden
+          className="mx-auto mb-0.5 rounded-[2px] overflow-hidden border border-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+          style={{ width: tk.flagWPx, height: tk.flagHPx }}
+        >
+          <FlagIcon nationality={player.nationality} fill />
+        </div>
+      )}
+      <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full">
+        <p
+          className="min-w-0 font-display font-black leading-none truncate uppercase tracking-[0.02em]"
+          style={{ fontSize: tk.namePx, textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}
+        >
+          {player.lastName}
+        </p>
+        {!flagOverName && (
+          <div
+            className="rounded-[2px] overflow-hidden border border-white/40 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
+            style={{ width: tk.flagWPx, height: tk.flagHPx }}
+          >
+            <FlagIcon nationality={player.nationality} fill />
+          </div>
+        )}
+      </div>
+      {showFirstName && (
+        <p
+          className="mt-0.5 font-medium text-white/80 leading-none truncate"
+          style={{ fontSize: tk.firstNamePx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+        >
+          {player.firstName}
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <div
       onClick={clickable ? handleClick : undefined}
@@ -259,10 +310,12 @@ export const PlayerCard = memo(function PlayerCard({
             {player.overall}
           </div>
           <div
-            className="mt-0.5 font-bold tracking-[0.15em]"
+            className={cn(
+              'mt-0.5 font-bold tracking-[0.15em]',
+              positionTone ? POSITION_TONE_CLASSES[positionTone] : 'text-white/90',
+            )}
             style={{
               fontSize: tk.posPx,
-              color: positionTone ? POSITION_TONE_COLORS[positionTone] : 'rgba(255,255,255,0.9)',
               textShadow: positionTone
                 ? '0 1px 3px rgba(0,0,0,0.95), 0 0 6px rgba(0,0,0,0.5)'
                 : '0 1px 3px rgba(0,0,0,0.85)',
@@ -275,56 +328,15 @@ export const PlayerCard = memo(function PlayerCard({
         {/* Identity block — flag sits above the surname on the small
             tactics/bench tiles (xs / sm) so the same stack reads at a
             glance regardless of name length. Larger cards keep the flag
-            inline with the surname (squad-page / pack look). */}
-        {(() => {
-          const flagOverName = size === 'xs' || size === 'sm';
-          const showFirstName =
-            size === 'xs' ? compact : size === 'sm' ? true : !compact;
-          return (
-            <div
-              className="absolute text-center"
-              style={{
-                left: tk.paddingXPx,
-                right: tk.paddingXPx,
-                bottom: flagOverName ? '44%' : '39%',
-              }}
-            >
-              {flagOverName && (
-                <div
-                  aria-hidden
-                  className="mx-auto mb-0.5 rounded-[2px] overflow-hidden border border-white/50 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
-                  style={{ width: tk.flagWPx, height: tk.flagHPx }}
-                >
-                  <FlagIcon nationality={player.nationality} fill />
-                </div>
-              )}
-              <div className="flex items-center justify-center gap-1.5 min-w-0 max-w-full">
-                <p
-                  className="min-w-0 font-display font-black leading-none truncate uppercase tracking-[0.02em]"
-                  style={{ fontSize: tk.namePx, textShadow: '0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5)' }}
-                >
-                  {player.lastName}
-                </p>
-                {!flagOverName && (
-                  <div
-                    className="rounded-[2px] overflow-hidden border border-white/40 shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.6)]"
-                    style={{ width: tk.flagWPx, height: tk.flagHPx }}
-                  >
-                    <FlagIcon nationality={player.nationality} fill />
-                  </div>
-                )}
-              </div>
-              {showFirstName && (
-                <p
-                  className="mt-0.5 font-medium text-white/80 leading-none truncate"
-                  style={{ fontSize: tk.firstNamePx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
-                >
-                  {player.firstName}
-                </p>
-              )}
-            </div>
-          );
-        })()}
+            inline with the surname (squad-page / pack look).
+
+            showFirstName note: xs is intentionally tied to `compact`
+            (inverted vs other sizes). xs is only used by LineupPlayerTile,
+            which always passes compact=true, so the xs+!compact branch is
+            unreachable in practice. Kept inverted so an accidental
+            xs+!compact call hides the firstName instead of squeezing two
+            lines of text into a 52px tile. */}
+        {identityBlock}
 
         {/* Tactics-tile bottom band: fitness sits on the card's natural
             divider (gradient line around ~60% from top, between the name
@@ -397,55 +409,58 @@ export const PlayerCard = memo(function PlayerCard({
           style={{ left: tk.paddingXPx * 0.9, right: tk.paddingXPx * 0.9 }}
         >
           <AnimatePresence mode="wait" initial={false}>
-            {statView === 0 && (
-              <motion.div
-                key="stats"
-                {...viewMotion(prefersReducedMotion)}
-                className="grid grid-cols-3 gap-x-2"
-                style={{ rowGap: tk.statRowGapPx + 1 }}
-              >
-                {([
-                  ['PAC', player.attributes.pace],
-                  ['SHO', player.attributes.shooting],
-                  ['PAS', player.attributes.passing],
-                  ['DRI', player.attributes.mental],
-                  ['DEF', player.attributes.defending],
-                  ['PHY', player.attributes.physical],
-                ] as const).map(([label, value]) => (
-                  size === 'sm' ? (
-                    <div key={label} className="flex flex-col items-center leading-none">
-                      <span
-                        className="font-semibold tracking-[0.08em] text-white/75"
-                        style={{ fontSize: tk.statLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                      >
-                        {label}
-                      </span>
-                      <span
-                        className="font-display font-black tabular-nums text-white"
-                        style={{ fontSize: tk.statValPx, marginTop: 1, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
-                      >
-                        {value}
-                      </span>
-                    </div>
-                  ) : (
-                    <div key={label} className="flex items-baseline justify-between gap-1">
-                      <span
-                        className="font-semibold tracking-[0.12em] text-white/75 leading-none"
-                        style={{ fontSize: tk.statLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
-                      >
-                        {label}
-                      </span>
-                      <span
-                        className="font-display font-black tabular-nums leading-none text-white"
-                        style={{ fontSize: tk.statValPx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
-                      >
-                        {value}
-                      </span>
-                    </div>
-                  )
-                ))}
-              </motion.div>
-            )}
+            {statView === 0 && (() => {
+              const stats = [
+                ['PAC', player.attributes.pace],
+                ['SHO', player.attributes.shooting],
+                ['PAS', player.attributes.passing],
+                ['DRI', player.attributes.mental],
+                ['DEF', player.attributes.defending],
+                ['PHY', player.attributes.physical],
+              ] as const;
+              return (
+                <motion.div
+                  key="stats"
+                  {...viewMotion(prefersReducedMotion)}
+                  className="grid grid-cols-3 gap-x-2"
+                  style={{ rowGap: tk.statRowGapPx + 1 }}
+                >
+                  {size === 'sm'
+                    ? stats.map(([label, value]) => (
+                        <div key={label} className="flex flex-col items-center leading-none">
+                          <span
+                            className="font-semibold tracking-[0.08em] text-white/75"
+                            style={{ fontSize: tk.statLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                          >
+                            {label}
+                          </span>
+                          <span
+                            className="font-display font-black tabular-nums text-white"
+                            style={{ fontSize: tk.statValPx, marginTop: 1, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+                          >
+                            {value}
+                          </span>
+                        </div>
+                      ))
+                    : stats.map(([label, value]) => (
+                        <div key={label} className="flex items-baseline justify-between gap-1">
+                          <span
+                            className="font-semibold tracking-[0.12em] text-white/75 leading-none"
+                            style={{ fontSize: tk.statLabelPx, textShadow: '0 1px 2px rgba(0,0,0,0.8)' }}
+                          >
+                            {label}
+                          </span>
+                          <span
+                            className="font-display font-black tabular-nums leading-none text-white"
+                            style={{ fontSize: tk.statValPx, textShadow: '0 1px 3px rgba(0,0,0,0.85)' }}
+                          >
+                            {value}
+                          </span>
+                        </div>
+                      ))}
+                </motion.div>
+              );
+            })()}
             {statView === 1 && (
               <motion.div
                 key="profile"
@@ -653,12 +668,16 @@ function PotentialRow({ current, potential, tk }: { current: number; potential: 
 
 function LiquidGlassBar({ label, value, tk }: { label: string; value: number; tk: SizeTokens }) {
   const pct = Math.max(0, Math.min(100, value));
+  // Tailwind palette steps map exactly to the previous hex tones:
+  //   emerald-400/600 → #34d399 / #059669
+  //   amber-400/600   → #fbbf24 / #d97706
+  //   red-400/600     → #f87171 / #dc2626
   const tone =
     pct >= 75
-      ? { top: '#34d399', bottom: '#059669', glow: 'rgba(52,211,153,0.45)' }
+      ? { gradientClass: 'from-emerald-400 to-emerald-600', glow: 'rgba(52,211,153,0.45)' }
       : pct >= 50
-        ? { top: '#fbbf24', bottom: '#d97706', glow: 'rgba(251,191,36,0.45)' }
-        : { top: '#f87171', bottom: '#dc2626', glow: 'rgba(248,113,113,0.45)' };
+        ? { gradientClass: 'from-amber-400 to-amber-600', glow: 'rgba(251,191,36,0.45)' }
+        : { gradientClass: 'from-red-400 to-red-600', glow: 'rgba(248,113,113,0.45)' };
 
   return (
     <div className="flex items-center gap-1.5">
@@ -677,10 +696,12 @@ function LiquidGlassBar({ label, value, tk }: { label: string; value: number; tk
         }}
       >
         <div
-          className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-300"
+          className={cn(
+            'absolute inset-y-0 left-0 rounded-full transition-[width] duration-300 bg-gradient-to-b',
+            tone.gradientClass,
+          )}
           style={{
             width: `${pct}%`,
-            background: `linear-gradient(180deg, ${tone.top}, ${tone.bottom})`,
             boxShadow: `inset 0 1px 0 rgba(255,255,255,0.45), 0 0 6px ${tone.glow}`,
           }}
         >
