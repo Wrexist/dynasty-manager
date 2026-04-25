@@ -83,6 +83,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Player cards now show the position label on the right, mirroring the overall rating on the left.',
       'Cleared the dark halo behind tactics-pitch player cards so the pitch reads cleaner.',
       'Tactics pitch spreads players further apart so cards no longer overlap, and formation switches now smoothly slide each tile to its new slot.',
+      'Transfer modals (Buy/List/Loan/Approach/Deal Complete) now show the proper FIFA-style player shield instead of the placeholder rating square.',
     ],
     fixed: [
       'Position label now lights up green when a player is slotted into one of their listed alternate positions, matching FUT chemistry.',
