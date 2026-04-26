@@ -23,32 +23,54 @@ const POOL_NATIONALITY_ALIASES: Record<string, string[]> = {
   'Czech Republic': ['Czechia', 'Czech Republic'],
 };
 
-const claimedKeys = new Set<string>();
-
-function templateKey(t: { fcId?: string; fn: string; ln: string }): string {
-  if (t.fcId) return `id:${t.fcId}`;
-  return `n:${t.fn.toLowerCase()}|${t.ln.toLowerCase()}`;
+/**
+ * Whether `templateNat` denotes the same real-world nation as
+ * `gameNat` under the FC26 ↔ in-game alias map. Used to decide
+ * when to canonicalize a real player's nationality (alias case)
+ * versus preserving it (the picker fell back to a different nation).
+ */
+export function isNationalityAliasOf(templateNat: string, gameNat: string): boolean {
+  if (templateNat === gameNat) return true;
+  const aliases = POOL_NATIONALITY_ALIASES[gameNat];
+  return aliases ? aliases.includes(templateNat) : false;
 }
 
+// Two-set registry. fcId-backed templates claim by id only — without
+// this, two unrelated FC26 entries that happen to share a name (and
+// FC26 has many such pairs, e.g. multiple "Vinicius"/"Lucas" players)
+// would mutually block each other. Templates with no fcId fall back
+// to name-based claiming so legacy CLUB_TEMPLATES entries still
+// prevent the picker from re-handing the same person.
+const claimedFcIds = new Set<string>();
+const claimedNames = new Set<string>();
+
 function nameKey(fn: string, ln: string): string {
-  return `n:${fn.toLowerCase()}|${ln.toLowerCase()}`;
+  return `${fn.toLowerCase()}|${ln.toLowerCase()}`;
 }
 
 export function resetRealPlayerClaims(): void {
-  claimedKeys.clear();
+  claimedFcIds.clear();
+  claimedNames.clear();
 }
 
 export function claimRealPlayer(t: { fcId?: string; fn: string; ln: string }): void {
-  claimedKeys.add(templateKey(t));
-  claimedKeys.add(nameKey(t.fn, t.ln));
+  if (t.fcId) {
+    claimedFcIds.add(t.fcId);
+    return;
+  }
+  claimedNames.add(nameKey(t.fn, t.ln));
 }
 
 export function claimByName(fn: string, ln: string): void {
-  claimedKeys.add(nameKey(fn, ln));
+  claimedNames.add(nameKey(fn, ln));
 }
 
 function isClaimed(t: PlayerTemplate): boolean {
-  return claimedKeys.has(templateKey(t)) || claimedKeys.has(nameKey(t.fn, t.ln));
+  if (t.fcId && claimedFcIds.has(t.fcId)) return true;
+  // Name-based claims block by name even for fcId-backed candidates,
+  // so a CLUB_TEMPLATES entry without a stable fcId can still keep
+  // "their" person out of other clubs' filler slots.
+  return claimedNames.has(nameKey(t.fn, t.ln));
 }
 
 const POSITION_FALLBACK: Record<Position, Position[]> = {
@@ -66,6 +88,10 @@ const POSITION_FALLBACK: Record<Position, Position[]> = {
   ST: ['CAM', 'LW', 'RW'],
 };
 
+function dedupKey(t: PlayerTemplate): string {
+  return t.fcId ? `id:${t.fcId}` : `n:${nameKey(t.fn, t.ln)}`;
+}
+
 function dedupedPool(aliases: string[]): PlayerTemplate[] {
   const merged: PlayerTemplate[] = [];
   const seen = new Set<string>();
@@ -73,7 +99,7 @@ function dedupedPool(aliases: string[]): PlayerTemplate[] {
     const pool = NATIONAL_PLAYER_POOL[alias];
     if (!pool) continue;
     for (const t of pool) {
-      const k = templateKey(t);
+      const k = dedupKey(t);
       if (seen.has(k)) continue;
       seen.add(k);
       merged.push(t);

@@ -22,7 +22,7 @@ import {
 import { NATIONALITY_NAME_POOLS, FALLBACK_FIRST_NAMES, FALLBACK_LAST_NAMES } from '@/config/namePool';
 import { CLUB_TEMPLATES, type PlayerTemplate } from '@/data/playerTemplates';
 import { resolveSquadKey } from '@/data/clubTemplateAliases';
-import { claimRealPlayer, pickUnclaimedRealPlayer } from '@/utils/realPlayerPicker';
+import { claimRealPlayer, pickUnclaimedRealPlayer, isNationalityAliasOf } from '@/utils/realPlayerPicker';
 
 const ALL_NATIONALITIES = [
   'England', 'Spain', 'France', 'Germany', 'Italy', 'Brazil', 'Argentina', 'Portugal',
@@ -366,7 +366,14 @@ export function generateSquad(clubId: string, quality: number, season: number, d
       maxOvr: Math.min(99, quality + 8),
     });
     if (realTemplate) {
-      const real = buildPlayerFromTemplate(realTemplate, clubId, season, nationality);
+      // Only canonicalise nationality when the picker's choice is an
+      // alias of the preferred nation (e.g. Holland ↔ Netherlands). On
+      // a global-pool fallback the chosen template belongs to a
+      // different nation, so keep its real nationality + flag.
+      const overrideNat = isNationalityAliasOf(realTemplate.nat, nationality)
+        ? nationality
+        : undefined;
+      const real = buildPlayerFromTemplate(realTemplate, clubId, season, overrideNat);
       realFillerIds.add(real.id);
       return real;
     }
