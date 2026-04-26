@@ -63,6 +63,10 @@ const NATIONALITY_GAME_ALIAS = {
   China: 'China PR',
   'Cape Verde': 'Cabo Verde',
   Bosnia: 'Bosnia and Herzegovina',
+  // FC26 adopted the official 2022 Türkiye rename — the in-game label
+  // is still 'Turkey'. Without this entry every Turkish row (~270) is
+  // silently dropped from the pool.
+  Turkey: 'Türkiye',
 };
 
 // Add aliases as additional accepted keys so the script also emits a pool
@@ -133,7 +137,8 @@ function parsePositions(playerPositions) {
 }
 
 const NAME_SUFFIXES = new Set(['Jr.', 'Sr.', 'Jr', 'Sr', 'II', 'III', 'IV', 'Júnior']);
-const ABBREV_RE = /^([A-ZÀ-ÖØ-öø-ÿ])\.\s+(.+)$/;
+// Latin-1 + Latin Extended-A so Š./Ž./Č. initials don't fall through.
+const ABBREV_RE = /^([A-ZÀ-ÖØ-öø-ÿĀ-ſ])\.\s+(.+)$/;
 
 // Lowercase + strip whitespace and hyphens so "Gue-sung" / "Gue Sung"
 // collapse to the same key — used to dedupe hyphenated mononyms.

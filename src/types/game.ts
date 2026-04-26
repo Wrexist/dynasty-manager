@@ -1858,3 +1858,15 @@ export interface ReleaseNote {
   /** Bug fixes. */
   fixed?: string[];
 }
+
+/**
+ * OVR window passed to `pickUnclaimedRealPlayer` so weak clubs do
+ * not snatch elite real players (and vice-versa) when filling slots
+ * from the FC26 pool.
+ */
+export interface PickRealPlayerOptions {
+  /** Inclusive lower OVR bound. */
+  minOvr?: number;
+  /** Inclusive upper OVR bound. */
+  maxOvr?: number;
+}

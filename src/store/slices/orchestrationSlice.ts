@@ -168,16 +168,16 @@ const AGGRESSIVE_TRIM_EVENT_COUNT = 30_000;
 
 /**
  * Reset the module-level real-player claim registry and re-claim every
- * player currently in `players`. Called from initGame (fresh start) and
- * loadGame (save rehydration) so the picker never hands out a player
- * who's already on someone's roster.
+ * persisted FC-backed player. Procedural players carry no `fcId` and
+ * must NOT be claimed — claiming a generated "Pieter Jansen" would
+ * later block a real FC26 player who happens to share that name and
+ * push the picker into procedural fallback unnecessarily.
  */
 function rebuildRealPlayerClaims(players: Record<string, Player>): void {
   resetRealPlayerClaims();
   for (const p of Object.values(players)) {
-    if (p.fcId || (p.firstName && p.lastName)) {
-      claimRealPlayer({ fcId: p.fcId, fn: p.firstName, ln: p.lastName });
-    }
+    if (!p.fcId) continue;
+    claimRealPlayer({ fcId: p.fcId, fn: p.firstName, ln: p.lastName });
   }
 }
 
@@ -1667,8 +1667,11 @@ function endSeasonImpl(set: Set, get: Get) {
             playerIds: [], formation: '4-4-2', lineup: [], subs: [],
             divisionId: cl.id,
           };
-          const qualityTier = cl.qualityTier || 4;
-          const squad = generateSquad(clubId, clubData.squadQuality, season, qualityTier);
+          // generateSquad's `divisionTier` param is the league id used to
+          // bias filler nationality distribution (e.g. 'eng', 'eng-2'),
+          // not the numeric qualityTier (1–4). Passing the number drops
+          // the league-aware bias into the DEFAULT distribution bucket.
+          const squad = generateSquad(clubId, clubData.squadQuality, season, cl.id);
           let totalWages = 0;
           squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
           newClub.wageBill = totalWages;
@@ -1696,7 +1699,6 @@ function endSeasonImpl(set: Set, get: Get) {
       const rClub = workingClubs[replacedId] || clubs[replacedId];
       if (rClub) rClub.playerIds.forEach(pid => { delete workingPlayers[pid]; });
     }
-    const qualityTier = league?.qualityTier || 2;
     const newLeagueClubs = [...singleResult.updatedLeagueClubs];
     if (!newLeagueClubs.includes(playerClubId)) newLeagueClubs.push(playerClubId);
     for (let i = 0; i < turnover.relegatedClubs.length; i++) {
@@ -1710,7 +1712,9 @@ function endSeasonImpl(set: Set, get: Get) {
         playerIds: [], formation: '4-4-2', lineup: [], subs: [],
         divisionId: playerDiv,
       };
-      const squad = generateSquad(clubId, clubData.squadQuality, season, qualityTier);
+      // Pass league id (not numeric qualityTier) so generateSquad picks
+      // an appropriate nationality distribution bucket for the country.
+      const squad = generateSquad(clubId, clubData.squadQuality, season, playerDiv);
       let totalWages = 0;
       squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
       newClub.wageBill = totalWages;

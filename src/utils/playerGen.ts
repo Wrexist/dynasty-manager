@@ -99,7 +99,9 @@ function hashSeed(s: string): number {
 // Capture group 1 is the leading letter, group 2 is the remainder of the
 // string (which may itself be a nobiliary particle / second word that we
 // preserve verbatim).
-const ABBREVIATED_FIRST_NAME_RE = /^([A-Za-zÀ-ÖØ-öø-ÿ])\.\s*(.*)$/;
+// Cover Latin-1 (À-ÿ) + Latin Extended-A (Ā-ſ, U+0100–U+017F) so
+// FC26 initials like Š./Ž./Č./Ł./Ś. round-trip correctly.
+const ABBREVIATED_FIRST_NAME_RE = /^([A-Za-zÀ-ÖØ-öø-ÿĀ-ſ])\.\s*(.*)$/;
 
 /**
  * Expand a first name that comes through as just an initial (e.g. "E.",
@@ -299,17 +301,19 @@ export function buildPlayerFromTemplate(
       physical: clamp(t.physical ?? player.attributes.physical),
       mental: clamp(t.mental ?? player.attributes.mental),
     };
-    // Real FC26 templates carry their own author-curated overall.
-    // Recomputing via POSITION_WEIGHTS underestimates GKs by 3–6
-    // points (gk_kicking gets double-counted in shooting+passing,
-    // and the 6-axis blend can't reproduce EA's GK-specific formula).
-    // Preserve t.ovr for real entries; recompute only for procedural
-    // / test templates that don't carry a curated rating.
-    if (t.source === 'real' && typeof t.ovr === 'number') {
-      player.overall = clamp(t.ovr);
-    } else {
+    if (t.source !== 'real') {
+      // Procedural / test templates: derive overall from the new attrs.
       player.overall = calculateOverall(player.attributes, player.position);
     }
+  }
+  // Real FC26 templates carry their own author-curated overall.
+  // Recomputing via POSITION_WEIGHTS underestimates GKs by 3–6 points
+  // (gk_kicking gets double-counted across shooting+passing, and the
+  // 6-axis blend can't reproduce EA's GK-specific formula). Preserve
+  // t.ovr verbatim — independent of the pace-gated attribute branch
+  // so a future real template that ships without `pace` still wins.
+  if (t.source === 'real' && typeof t.ovr === 'number') {
+    player.overall = clamp(t.ovr);
   }
   if (t.altPos?.length) player.alternatePositions = t.altPos;
   if (t.skillMoves) player.skillMoves = t.skillMoves;

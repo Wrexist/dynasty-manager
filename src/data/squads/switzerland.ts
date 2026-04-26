@@ -67,7 +67,7 @@ export const SQUADS: Record<string, PlayerTemplate[]> = {
       { fn: 'Fotis', ln: 'Pseftis', pos: 'GK', age: 22, nat: 'Greece', ovr: 59, pot: 66, pace: 22, shooting: 62, passing: 62, defending: 60, physical: 57, mental: 44, skillMoves: 1, heightCm: 191, weightKg: 86, fcId: 'fc26-276674', source: 'real' },
       { fn: 'Ilija', ln: 'Maslarov', pos: 'CDM', age: 18, nat: 'Switzerland', ovr: 58, pot: 73, pace: 53, shooting: 33, passing: 52, defending: 59, physical: 53, mental: 50, altPos: ['CM'], skillMoves: 2, heightCm: 181, weightKg: 75, fcId: 'fc26-73154', source: 'real' },
       { fn: 'Diego', ln: 'Mina', pos: 'GK', age: 19, nat: 'Switzerland', ovr: 56, pot: 68, pace: 29, shooting: 54, passing: 54, defending: 54, physical: 56, mental: 44, skillMoves: 1, heightCm: 185, weightKg: 78, fcId: 'fc26-70281', source: 'real' },
-      { fn: 'Š.', ln: 'Berbić', pos: 'GK', age: 23, nat: 'Switzerland', ovr: 55, pot: 63, pace: 33, shooting: 52, passing: 52, defending: 54, physical: 54, mental: 39, skillMoves: 1, heightCm: 194, weightKg: 84, fcId: 'fc26-271502', source: 'real' },
+      { fn: 'Serif', ln: 'Berbić', pos: 'GK', age: 23, nat: 'Switzerland', ovr: 55, pot: 63, pace: 33, shooting: 52, passing: 52, defending: 54, physical: 54, mental: 39, skillMoves: 1, heightCm: 194, weightKg: 84, fcId: 'fc26-271502', source: 'real' },
   ],
   'fc-zurich': [
       { fn: 'Steven', ln: 'Zuber', pos: 'ST', age: 33, nat: 'Switzerland', ovr: 74, pot: 74, pace: 75, shooting: 75, passing: 73, defending: 60, physical: 75, mental: 72, altPos: ['CAM', 'LM'], skillMoves: 3, heightCm: 182, weightKg: 83, fcId: 'fc26-190059', source: 'real' },

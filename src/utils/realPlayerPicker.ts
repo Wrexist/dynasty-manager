@@ -1,6 +1,9 @@
-import type { Position } from '@/types/game';
+import type { Position, PickRealPlayerOptions } from '@/types/game';
 import type { PlayerTemplate } from '@/data/playerTemplates';
 import { NATIONAL_PLAYER_POOL } from '@/data/nationalPlayerPool';
+import { pick } from '@/utils/helpers';
+
+export type { PickRealPlayerOptions };
 
 /**
  * FC25/FC26 pool labels often differ from the in-game canonical
@@ -21,6 +24,8 @@ const POOL_NATIONALITY_ALIASES: Record<string, string[]> = {
   'Republic of Ireland': ['Ireland', 'Republic of Ireland'],
   Czechia: ['Czechia', 'Czech Republic'],
   'Czech Republic': ['Czechia', 'Czech Republic'],
+  Turkey: ['Turkey', 'Türkiye'],
+  'Türkiye': ['Turkey', 'Türkiye'],
 };
 
 /**
@@ -127,13 +132,6 @@ function poolForAll(): PlayerTemplate[] {
   return allPoolsCache;
 }
 
-export interface PickRealPlayerOptions {
-  /** Inclusive lower OVR bound. Used so weak clubs don't snatch elite players. */
-  minOvr?: number;
-  /** Inclusive upper OVR bound. */
-  maxOvr?: number;
-}
-
 function inOvrRange(t: PlayerTemplate, opts?: PickRealPlayerOptions): boolean {
   if (opts?.minOvr !== undefined && t.ovr < opts.minOvr) return false;
   if (opts?.maxOvr !== undefined && t.ovr > opts.maxOvr) return false;
@@ -142,7 +140,7 @@ function inOvrRange(t: PlayerTemplate, opts?: PickRealPlayerOptions): boolean {
 
 function pickFromList(list: PlayerTemplate[]): PlayerTemplate | null {
   if (list.length === 0) return null;
-  const choice = list[Math.floor(Math.random() * list.length)];
+  const choice = pick(list);
   claimRealPlayer(choice);
   return choice;
 }

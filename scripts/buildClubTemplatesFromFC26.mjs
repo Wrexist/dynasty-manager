@@ -292,7 +292,9 @@ function parsePositions(playerPositions) {
 }
 
 const NAME_SUFFIXES = new Set(['Jr.', 'Sr.', 'Jr', 'Sr', 'II', 'III', 'IV', 'Júnior']);
-const ABBREV_RE = /^([A-ZÀ-ÖØ-öø-ÿ])\.\s+(.+)$/;
+// Cover Latin-1 (À-ÿ) and Latin Extended-A (Ā-ſ, U+0100–U+017F) so
+// initials like Š./Ž./Č./Ł./Ś. hit the abbreviation branch.
+const ABBREV_RE = /^([A-ZÀ-ÖØ-öø-ÿĀ-ſ])\.\s+(.+)$/;
 
 // Lowercase + strip whitespace and hyphens so "Gue-sung" / "Gue Sung" /
 // "Guesung" all collapse to the same key. Used to detect when a
