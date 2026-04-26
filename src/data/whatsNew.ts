@@ -75,6 +75,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     ],
     fixed: [
       'Pack shop no longer locks you out of pack opens for the rest of the week.',
+      'Pack shop now checks challenge restrictions before kicking off a real-money purchase, so you can never be charged for a pack you cannot open.',
     ],
   },
   {

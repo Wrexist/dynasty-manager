@@ -45,6 +45,7 @@ const PacksPage = () => {
     adPackOpens: s.adPackOpens || { date: '', counts: {} },
   })));
   const openPack = useGameStore(s => s.openPack);
+  const canOpenPack = useGameStore(s => s.canOpenPack);
   const quickSellPackedPlayer = useGameStore(s => s.quickSellPackedPlayer);
 
   const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean; placement?: Record<string, PackPlayerPlacement> } | null>(null);
@@ -114,18 +115,21 @@ const PacksPage = () => {
     const tier = PACK_TIER_MAP[tierKey];
     if (!club) return;
 
-    if (squadSize + tier.cards > MAX_SQUAD_SIZE) {
-      errorToast('Squad full', `Release players — pack delivers ${tier.cards} player(s).`);
+    // Single source-of-truth eligibility pre-flight. Critical for the IAP
+    // path: without this, a charged consumable could be followed by an
+    // openPack failure (e.g. an active challenge blocking signings) — the
+    // user pays real money and gets nothing. The slice runs the same
+    // check internally, but charging happens here BEFORE openPack, so we
+    // gate every out-of-band cost on this result.
+    const eligibility = canOpenPack(tierKey);
+    if (!eligibility.ok) {
+      errorToast('Cannot open pack', eligibility.message);
       return;
     }
 
     const unlock = tier.unlock || 'currency';
 
     if (unlock === 'currency') {
-      if (club.budget < tier.price) {
-        errorToast('Insufficient funds', `This pack costs ${formatMoney(tier.price)}.`);
-        return;
-      }
       const result = openPack(tierKey);
       if (!result.success || !result.players) {
         errorToast('Could not open pack', result.message);
@@ -136,11 +140,6 @@ const PacksPage = () => {
     }
 
     if (unlock === 'ad') {
-      const remaining = adOpensRemaining(tier) ?? 0;
-      if (remaining <= 0) {
-        errorToast('Daily limit reached', `${tier.dailyLimit} ${tier.label}s per day. Come back tomorrow.`);
-        return;
-      }
       setBusy(true);
       try {
         const watched = await showRewardedAd();

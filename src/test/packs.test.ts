@@ -484,6 +484,42 @@ describe('Pack opening — challenge guard', () => {
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/challenge/i);
   });
+
+  it('canOpenPack reports the challenge block before the page charges an IAP', () => {
+    // Regression for the IAP-charge-then-deny bug: the page MUST call
+    // canOpenPack before kicking off purchaseConsumable() so the user
+    // can never pay $9.99 and then be rejected by openPack.
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 } },
+      activeChallenge: { scenarioId: 'penny-pincher', startSeason: 1, seasonsRemaining: 1, completed: false, failed: false },
+    });
+    const can = useGameStore.getState().canOpenPack('icon');
+    expect(can.ok).toBe(false);
+    if (!can.ok) expect(can.message).toMatch(/challenge/i);
+
+    // And openPack itself still refuses even with skipPayment — defence
+    // in depth. The slice never grants the pack just because the page
+    // claims a payment was made.
+    const skipResult = useGameStore.getState().openPack('icon', { skipPayment: true });
+    expect(skipResult.success).toBe(false);
+    expect(skipResult.message).toMatch(/challenge/i);
+  });
+
+  it('canOpenPack reports the daily limit before the page plays an ad', () => {
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 1_000_000 } },
+    });
+    const limit = PACK_TIER_MAP.bronze.dailyLimit ?? 0;
+    for (let i = 0; i < limit; i++) {
+      const open = useGameStore.getState().openPack('bronze');
+      expect(open.success).toBe(true);
+    }
+    const can = useGameStore.getState().canOpenPack('bronze');
+    expect(can.ok).toBe(false);
+    if (!can.ok) expect(can.message).toMatch(/daily limit/i);
+  });
 });
 
 describe('Pack opening — AI counter-signings (league balance)', () => {

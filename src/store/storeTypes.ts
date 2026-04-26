@@ -442,6 +442,11 @@ export interface GameState {
    *  purchase (`unlock: 'iap'`) — the slice still validates the daily ad
    *  limit on its own. */
   openPack: (tier: PackTierKey, opts?: { skipPayment?: boolean }) => OpenPackResult;
+  /** Eligibility pre-flight. Run this BEFORE charging real money or
+   *  starting a rewarded ad so the user can never pay/watch and then be
+   *  rejected by `openPack` (e.g. an active challenge that blocks
+   *  signings). Returns the same blocking message `openPack` would. */
+  canOpenPack: (tier: PackTierKey) => { ok: true } | { ok: false; message: string };
   releasePackedPlayer: (playerId: string) => ReleasePackedPlayerResult;
   quickSellPackedPlayer: (playerId: string) => QuickSellPackedPlayerResult;
 

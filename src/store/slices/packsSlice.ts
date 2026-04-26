@@ -46,6 +46,49 @@ function todayDateKey(): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+export type CanOpenPackResult = { ok: true } | { ok: false; message: string };
+
+/** Pure eligibility check. The page MUST call this before kicking off any
+ *  out-of-band cost (rewarded ad or consumable IAP) so the user can never
+ *  pay real money or watch a full ad and then get rejected by `openPack`.
+ *  Mirrors the validation block at the top of `openPack` exactly — keep
+ *  the two in sync. The IAP-without-skipPayment branch is intentionally
+ *  skipped here because the page knows it'll pass skipPayment after a
+ *  successful purchase. */
+function evaluateOpenPack(state: GameState, tierKey: PackTierKey): CanOpenPackResult {
+  const tier = PACK_TIER_MAP[tierKey];
+  if (!tier) return { ok: false, message: 'Unknown pack tier.' };
+
+  const club = state.clubs[state.playerClubId];
+  if (!club) return { ok: false, message: 'No active club.' };
+
+  const blocked = challengeBlockReason(state);
+  if (blocked) return { ok: false, message: blocked };
+
+  const unlock = tier.unlock || 'currency';
+
+  const today = todayDateKey();
+  const adOpens = state.adPackOpens || { date: '', counts: {} };
+  const adOpensToday = adOpens.date === today ? (adOpens.counts[tierKey] || 0) : 0;
+  if (unlock === 'ad' && tier.dailyLimit != null && adOpensToday >= tier.dailyLimit) {
+    return { ok: false, message: `Daily limit reached — ${tier.dailyLimit} ${tier.label}s per day. Come back tomorrow.` };
+  }
+
+  if (unlock === 'currency' && club.budget < tier.price) {
+    return { ok: false, message: 'Insufficient funds for this pack.' };
+  }
+
+  const slotsAvailable = MAX_SQUAD_SIZE - club.playerIds.length;
+  if (slotsAvailable < tier.cards) {
+    return {
+      ok: false,
+      message: `Not enough squad space — this pack delivers ${tier.cards} player(s). Release players first.`,
+    };
+  }
+
+  return { ok: true };
+}
+
 export const createPacksSlice = (set: Set, get: Get) => ({
   openedPacks: [] as OpenedPackRecord[],
   packPityCounter: 0,
@@ -53,50 +96,42 @@ export const createPacksSlice = (set: Set, get: Get) => ({
   lastPackSeason: 0,
   adPackOpens: { date: '', counts: {} } as { date: string; counts: Partial<Record<PackTierKey, number>> },
 
+  /** Eligibility pre-flight. Returns `{ ok: true }` only if `openPack`
+   *  would succeed *given that payment will be provided* (currency
+   *  funds, rewarded ad watched, or consumable IAP completed). Run this
+   *  before charging real money so the user can't pay and then be
+   *  blocked by a challenge or squad-cap rule. */
+  canOpenPack: (tierKey: PackTierKey): CanOpenPackResult => evaluateOpenPack(get(), tierKey),
+
   openPack: (tierKey: PackTierKey, opts?: { skipPayment?: boolean }): OpenPackResult => {
     const state = get();
     const tier = PACK_TIER_MAP[tierKey];
     if (!tier) return { success: false, message: 'Unknown pack tier.' };
 
-    const club = state.clubs[state.playerClubId];
-    if (!club) return { success: false, message: 'No active club.' };
-
-    const blocked = challengeBlockReason(state);
-    if (blocked) return { success: false, message: blocked };
-
-    const unlock = tier.unlock || 'currency';
     const skipPayment = opts?.skipPayment === true;
+    const unlock = tier.unlock || 'currency';
 
-    // Daily-limit gate for ad-unlock packs (e.g. Bronze). The page is
-    // expected to show a rewarded ad before calling openPack with
-    // skipPayment=true; this gate runs even on skipPayment=true so the
-    // limit can't be bypassed by a misbehaving caller.
-    const today = todayDateKey();
-    const adOpens = state.adPackOpens || { date: '', counts: {} };
-    const adOpensToday = adOpens.date === today ? (adOpens.counts[tierKey] || 0) : 0;
-    if (unlock === 'ad' && tier.dailyLimit != null && adOpensToday >= tier.dailyLimit) {
-      return { success: false, message: `Daily limit reached — ${tier.dailyLimit} ${tier.label}s per day. Come back tomorrow.` };
-    }
-
-    if (unlock === 'currency' && !skipPayment && club.budget < tier.price) {
-      return { success: false, message: 'Insufficient funds for this pack.' };
-    }
-
+    // IAP packs require a successful real-money purchase from the page
+    // before openPack is invoked. Checked early so the daily/funds gates
+    // below don't accidentally produce a misleading error message for
+    // an IAP-tier call.
     if (unlock === 'iap' && !skipPayment) {
-      // IAP packs require a successful real-money purchase from the page
-      // before openPack is invoked. The slice never charges in-game funds
-      // for IAP packs — the page must call purchaseConsumable() and pass
-      // skipPayment=true on success.
       return { success: false, message: 'This pack requires an in-app purchase.' };
     }
 
-    const slotsAvailable = MAX_SQUAD_SIZE - club.playerIds.length;
-    if (slotsAvailable < tier.cards) {
-      return {
-        success: false,
-        message: `Not enough squad space — this pack delivers ${tier.cards} player(s). Release players first.`,
-      };
+    // Run the same eligibility checks the page used to pre-validate. If
+    // anything has changed between pre-flight and now (state changed
+    // mid-ad, etc.), we still refuse to grant the pack — the page is
+    // responsible for refunding/handling on its end.
+    const eligible = evaluateOpenPack(state, tierKey);
+    if (!eligible.ok) {
+      return { success: false, message: eligible.message };
     }
+
+    const club = state.clubs[state.playerClubId]!;
+    const today = todayDateKey();
+    const adOpens = state.adPackOpens || { date: '', counts: {} };
+    const adOpensToday = adOpens.date === today ? (adOpens.counts[tierKey] || 0) : 0;
 
     const pityTriggered = shouldPityTrigger(state.packPityCounter || 0);
     const players = generatePackContents(tierKey, state.season, { pityTriggered });
