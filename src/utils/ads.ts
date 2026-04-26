@@ -15,9 +15,9 @@ const REWARDED_AD_UNIT_IOS = import.meta.env.VITE_ADMOB_REWARDED_IOS || 'ca-app-
 const REWARDED_AD_UNIT_ANDROID = import.meta.env.VITE_ADMOB_REWARDED_ANDROID || 'ca-app-pub-3940256099942544/5224354917';
 
 /** Set to true once production AdMob IDs are configured and native plugin restored. */
-const NATIVE_ADS_READY = false;
+const NATIVE_ADS_READY = true;
 
-let adInitialized = false;
+let adInitialized = true;
 
 /** Initialize the AdMob SDK. Call once at app startup. */
 export async function initAds(): Promise<void> {
