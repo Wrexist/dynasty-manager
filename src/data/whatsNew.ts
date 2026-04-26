@@ -100,6 +100,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     fixed: [
       'Alternate positions now glow green like FUT chemistry.',
       'Mononym players (Savinho, Rodri, Ederson) no longer show their name twice.',
+      'Random squad fillers now use real FC26 players with their actual names, ratings and stats.',
     ],
   },
 ];

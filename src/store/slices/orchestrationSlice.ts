@@ -14,6 +14,7 @@ import {
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies, getLeaguesByCountry } from '@/data/league';
 import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall, buildPlayerFromTemplate } from '@/utils/playerGen';
+import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
 import type { PlayerTemplate } from '@/data/playerTemplates';
 import { getActivePool, drawForMarket, drawForFaPoolSeed } from '@/utils/communityPackPool';
 import {
@@ -2859,6 +2860,22 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     resetSeasonGrowth();
     clearLeagueTableCache();
+    // Fresh game → fresh real-player claim registry. Without this, names
+    // claimed by an earlier session's squad generation would still block
+    // the new run from picking the same real players.
+    resetRealPlayerClaims();
+    // Pre-claim every community-pack template (per-club + free agents)
+    // before any squad is generated, so the FC25 real-player picker that
+    // backs `generateSquad` can't hand the same person to a non-CP club
+    // as a filler.
+    if (cpByClub) {
+      for (const list of Object.values(cpByClub)) {
+        for (const t of list) claimRealPlayer(t);
+      }
+    }
+    if (cpFreeAgents) {
+      for (const t of cpFreeAgents) claimRealPlayer(t);
+    }
     const allPlayers: Record<string, Player> = {};
     const clubs: Record<string, Club> = {};
     const assignedFcIds: string[] = [];

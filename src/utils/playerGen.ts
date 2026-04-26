@@ -22,6 +22,7 @@ import {
 import { NATIONALITY_NAME_POOLS, FALLBACK_FIRST_NAMES, FALLBACK_LAST_NAMES } from '@/config/namePool';
 import { CLUB_TEMPLATES, type PlayerTemplate } from '@/data/playerTemplates';
 import { resolveSquadKey } from '@/data/clubTemplateAliases';
+import { claimRealPlayer, pickUnclaimedRealPlayer } from '@/utils/realPlayerPicker';
 
 const ALL_NATIONALITIES = [
   'England', 'Spain', 'France', 'Germany', 'Italy', 'Brazil', 'Argentina', 'Portugal',
@@ -319,6 +320,9 @@ export function buildPlayerFromTemplate(
 export function generateSquad(clubId: string, quality: number, season: number, divisionTier?: number | string, isInitialSeason: boolean = false): Player[] {
   const scale = qualityScale(quality);
   const templates = CLUB_TEMPLATES[resolveSquadKey(clubId)] || [];
+  // Claim template names up-front so the real-player picker doesn't hand
+  // the same person to another club as a filler later in the init loop.
+  for (const t of templates) claimRealPlayer(t);
   const templatePlayers: Player[] = templates.map(t => buildPlayerFromTemplate(t, clubId, season));
 
   // ── Step 2: Determine remaining positions to fill ──
@@ -345,9 +349,28 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     ? remainingPositions.slice(0, Math.max(0, INITIAL_SQUAD_MIN_TARGET - templatePlayers.length))
     : remainingPositions;
 
-  // ── Step 3: Generate random filler players for remaining slots ──
+  // ── Step 3: Fill remaining slots with real FC25 players first, then ──
+  // procedural fallbacks. Real-template fillers carry their actual name,
+  // ratings, attributes, height/weight and skill moves — only the clubId
+  // is overridden in buildPlayerFromTemplate. Procedural fallbacks keep
+  // the existing age-bucket / potential-boost behaviour.
   const ageTargets = buildAgeTargets(fillerPositions.length);
+  const leagueKeyForNationality = typeof divisionTier === 'string' ? divisionTier : undefined;
+  const realFillerIds = new Set<string>();
   const fillerPlayers = fillerPositions.map((pos, idx) => {
+    const nationality = pickNationality(leagueKeyForNationality);
+    // Bias the real-player pick toward the club's quality tier so a
+    // 4th-division side doesn't accidentally sign Mbappé as a filler.
+    const realTemplate = pickUnclaimedRealPlayer(nationality, pos, {
+      minOvr: Math.max(40, quality - 10),
+      maxOvr: Math.min(99, quality + 8),
+    });
+    if (realTemplate) {
+      const real = buildPlayerFromTemplate(realTemplate, clubId, season, nationality);
+      realFillerIds.add(real.id);
+      return real;
+    }
+
     const scaledVariance = Math.round(SQUAD_QUALITY_VARIANCE * scale);
     const effectiveMin = Math.round(SQUAD_QUALITY_MIN_LOW + (SQUAD_QUALITY_MIN - SQUAD_QUALITY_MIN_LOW) * scale);
     const q = clamp(quality + variance(scaledVariance), effectiveMin, SQUAD_QUALITY_MAX);
@@ -362,10 +385,13 @@ export function generateSquad(clubId: string, quality: number, season: number, d
 
   const squad = [...templatePlayers, ...fillerPlayers];
 
-  // ── Step 4: Star/veteran boosts — only for non-template filler players ──
-  if (fillerPlayers.length > 0) {
-    const starIdx = fillerPlayers.reduce((best, p, i) => p.overall > fillerPlayers[best].overall ? i : best, 0);
-    const star = fillerPlayers[starIdx];
+  // ── Step 4: Star/veteran boosts — only for procedural fillers. ──
+  // Real-template fillers already carry their FC25 attributes and must
+  // not be inflated, otherwise their ratings stop matching the player.
+  const proceduralFillers = fillerPlayers.filter(p => !realFillerIds.has(p.id));
+  if (proceduralFillers.length > 0) {
+    const starIdx = proceduralFillers.reduce((best, p, i) => p.overall > proceduralFillers[best].overall ? i : best, 0);
+    const star = proceduralFillers[starIdx];
     const starBoost = Math.round((STAR_PLAYER_BOOST_MIN + Math.floor(Math.random() * (STAR_PLAYER_BOOST_MAX - STAR_PLAYER_BOOST_MIN + 1))) * scale);
     const starAttrs = { ...star.attributes };
     for (const key of Object.keys(starAttrs) as (keyof PlayerAttributes)[]) {
@@ -387,7 +413,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     star.potential = clamp(Math.max(star.overall + starPotGap, star.potential), 1, GENERATED_PLAYER_POTENTIAL_CAP);
     star.value = calculatePlayerValue(star.overall);
 
-    const veterans = fillerPlayers.filter(p => p.age >= 30 && p !== star);
+    const veterans = proceduralFillers.filter(p => p.age >= 30 && p !== star);
     if (veterans.length > 0) {
       const vet = veterans[Math.floor(Math.random() * veterans.length)];
       const vetBoost = Math.round((VETERAN_BOOST_MIN + Math.floor(Math.random() * (VETERAN_BOOST_MAX - VETERAN_BOOST_MIN + 1))) * scale);
