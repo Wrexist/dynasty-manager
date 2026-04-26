@@ -62,9 +62,6 @@ import {
   LINEUP_BENCH_SWAP_PASSES,
   BENCH_PLAYER_FITNESS_WEIGHT,
   // Pro-tier "Smart" signals
-  GK_DEFENDING_WEIGHT,
-  GK_MENTAL_WEIGHT,
-  GK_PHYSICAL_WEIGHT,
   TACTICS_FAST_TEMPO_PASSING_THRESHOLD,
   TACTICS_FAST_TEMPO_PASSING_BONUS,
   TACTICS_SLOW_TEMPO_PHYSICAL_THRESHOLD,
@@ -125,6 +122,7 @@ import {
   BENCH_CLOSER_MENTAL_THRESHOLD,
   BENCH_CLOSER_BONUS,
 } from '@/config/lineupOptimization';
+import { GK_DEFENDING_WEIGHT, GK_MENTAL_WEIGHT, GK_PHYSICAL_WEIGHT } from '@/config/matchEngine';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 
 interface AutoFillResult {
@@ -149,12 +147,10 @@ export interface AutoFillContext {
   setPieceTakerId?: string;
   penaltyTakerId?: string;
   defensiveFormation?: FormationType;
-  /** Tacticalfamiliarity 0-100 — at low values, compatible (non-natural) deployments are penalised */
+  /** Tactical familiarity 0-100 — at low values, compatible (non-natural) deployments are penalised */
   tacticalFamiliarity?: number;
   /** Manager perks unlocked this run — affect discipline/fitness/morale/wantsToLeave weights */
   managerPerks?: PerkId[];
-  /** Career-wide discipline modifier (negative reduces card-risk weighting) */
-  careerDisciplineModifier?: number;
 }
 
 // Position role sets (mirrors match engine categories)
@@ -244,10 +240,6 @@ export function scorePlayerForSlot(player: Player, slotPosition: Position, conte
   const cardPenaltyMult = perks.includes('disciplinarian') ? PERK_DISCIPLINARIAN_CARD_MULT : 1;
   const unhappyPenaltyMult = perks.includes('iron_will') ? PERK_IRON_WILL_UNHAPPY_MULT : 1;
 
-  // Career-wide discipline modifier scales card penalties further (negative reduces them)
-  const careerDisc = context?.careerDisciplineModifier ?? 0;
-  const careerCardMult = Math.max(0.25, 1 + careerDisc); // clamp so no perverse negative effects
-
   // Extra penalty for low fitness — match engine applies -0.15 shot penalty below 50
   if (player.fitness < LOW_FITNESS_THRESHOLD) {
     score += LOW_FITNESS_EXTRA_PENALTY * fitnessPenaltyMult;
@@ -265,9 +257,9 @@ export function scorePlayerForSlot(player: Player, slotPosition: Position, conte
 
   // Yellow card suspension risk — non-linear: 2+ cards = imminent ban risk
   if (player.yellowCards >= YELLOW_CARD_HIGH_THRESHOLD) {
-    score += YELLOW_CARD_HIGH_PENALTY * cardPenaltyMult * careerCardMult;
+    score += YELLOW_CARD_HIGH_PENALTY * cardPenaltyMult;
   } else if (player.yellowCards > 0) {
-    score += YELLOW_CARD_LOW_PENALTY * cardPenaltyMult * careerCardMult;
+    score += YELLOW_CARD_LOW_PENALTY * cardPenaltyMult;
   }
 
   // Re-injury risk for players recently returned from injury
@@ -290,8 +282,8 @@ export function scorePlayerForSlot(player: Player, slotPosition: Position, conte
     if (context.derbyIntensity && context.derbyIntensity > 0 && player.personality?.temperament != null) {
       if (player.personality.temperament < CONTEXT_DERBY_TEMPERAMENT_THRESHOLD) {
         const tempGap = CONTEXT_DERBY_TEMPERAMENT_THRESHOLD - player.personality.temperament;
-        // Disciplinarian perk + career discipline reduce derby-card pressure too
-        score -= tempGap * context.derbyIntensity * CONTEXT_DERBY_TEMPERAMENT_PENALTY_PER_INTENSITY * cardPenaltyMult * careerCardMult;
+        // Disciplinarian perk reduces derby-card pressure too
+        score -= tempGap * context.derbyIntensity * CONTEXT_DERBY_TEMPERAMENT_PENALTY_PER_INTENSITY * cardPenaltyMult;
       }
     }
 

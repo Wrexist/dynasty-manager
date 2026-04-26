@@ -152,14 +152,6 @@ export const LINEUP_BENCH_SWAP_PASSES = 3;
 // tiebreakers within the rating tier they apply to.
 // ──────────────────────────────────────────────────────────────────────────
 
-// ── Goalkeeper-specific scoring (mirrors match engine GK formula) ──
-/** GK shot-stopping value: defending * 0.40 + mental * 0.30 + physical * 0.30 (engine match.ts:267-272) */
-export const GK_DEFENDING_WEIGHT = 0.40;
-export const GK_MENTAL_WEIGHT = 0.30;
-export const GK_PHYSICAL_WEIGHT = 0.30;
-/** Multiplier applied so GK quality matches the magnitude of positionalOverall */
-export const GK_QUALITY_SCALE = 0.30;
-
 // ── Tactics-aware scoring ──
 /** High-tempo passing/mental boost for midfielders & attackers (passing >= threshold) */
 export const TACTICS_FAST_TEMPO_PASSING_THRESHOLD = 70;
