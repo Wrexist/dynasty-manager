@@ -102,6 +102,8 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Optimizer rewards clutch traits in big matches and cup ties — leadership, mental, and cup experience.',
       'Optimizer surfaces specialist threats — long-range shooters, headers, skill-move soloists, and free-kick takers.',
       'Manager perks now bend lineup picks: Disciplinarian softens card risk, Fitness Guru forgives tired legs, Motivator picks low-morale players, Set-Piece Coach pushes your taker into the XI.',
+      'Lineup optimizer now mirrors the match engine\'s defensive, shooting, assist, and wide-play formulas — pick stoppers for CB, finishers for ST, creators for CAM and pacy crossers for the wings.',
+      'Attacking and defensive mentalities now bend the optimizer\'s role weights — attacking modes lift attackers, defensive modes lift defenders.',
     ],
     fixed: [
       'Alternate positions now glow green like FUT chemistry.',

@@ -544,6 +544,88 @@ describe('autoFillBestTeam — Smart signals (Pro)', () => {
     expect(youngScore).toBeGreaterThan(oldScore);
   });
 
+  // ── Engine-aligned role contribution signals (defense / shot / assist / wide play) ──
+
+  it('CB defense formula: prefers a high-defending CB over an equal-rated technical CB', () => {
+    // Two CBs with the same positional CB OVR (CB weights are 0.35 def + 0.25 phys).
+    // The "stopper" has more defending+physical (engine defense formula),
+    // the "ball-player" has compensating passing+pace. Engine contribution
+    // should tip the choice toward the stopper.
+    const stopper = makePlayer({
+      id: 'stopper', position: 'CB',
+      attributes: { pace: 55, shooting: 30, passing: 45, defending: 82, physical: 78, mental: 65 },
+    });
+    const ballPlayer = makePlayer({
+      id: 'ballp', position: 'CB',
+      attributes: { pace: 78, shooting: 30, passing: 75, defending: 70, physical: 70, mental: 70 },
+    });
+    expect(scorePlayerForSlot(stopper, 'CB')).toBeGreaterThan(scorePlayerForSlot(ballPlayer, 'CB'));
+  });
+
+  it('defensive mentality amplifies the defensive contribution score', () => {
+    const cb = makePlayer({
+      id: 'cb', position: 'CB',
+      attributes: { pace: 60, shooting: 30, passing: 50, defending: 80, physical: 75, mental: 65 },
+    });
+    const balanced = scorePlayerForSlot(cb, 'CB', {
+      tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
+    });
+    const defensive = scorePlayerForSlot(cb, 'CB', {
+      tactics: { mentality: 'defensive', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
+    });
+    expect(defensive).toBeGreaterThan(balanced);
+  });
+
+  it('ST shot formula: prefers a finisher (shooting + mental) over a target man', () => {
+    const finisher = makePlayer({
+      id: 'finisher', position: 'ST',
+      attributes: { pace: 70, shooting: 85, passing: 55, defending: 30, physical: 65, mental: 80 },
+    });
+    const target = makePlayer({
+      id: 'target', position: 'ST',
+      attributes: { pace: 55, shooting: 70, passing: 55, defending: 30, physical: 85, mental: 65 },
+    });
+    expect(scorePlayerForSlot(finisher, 'ST')).toBeGreaterThan(scorePlayerForSlot(target, 'ST'));
+  });
+
+  it('attacking mentality amplifies the shot contribution score for attackers', () => {
+    const striker = makePlayer({
+      id: 'striker', position: 'ST',
+      attributes: { pace: 75, shooting: 80, passing: 55, defending: 30, physical: 70, mental: 70 },
+    });
+    const balanced = scorePlayerForSlot(striker, 'ST', {
+      tactics: { mentality: 'balanced', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
+    });
+    const attacking = scorePlayerForSlot(striker, 'ST', {
+      tactics: { mentality: 'attacking', width: 'normal', tempo: 'normal', defensiveLine: 'normal', pressingIntensity: 50 },
+    });
+    expect(attacking).toBeGreaterThan(balanced);
+  });
+
+  it('CAM assist formula: prefers a creator (passing + mental) over a poacher', () => {
+    const creator = makePlayer({
+      id: 'creator', position: 'CAM',
+      attributes: { pace: 65, shooting: 65, passing: 85, defending: 35, physical: 60, mental: 80 },
+    });
+    const poacher = makePlayer({
+      id: 'poacher', position: 'CAM',
+      attributes: { pace: 75, shooting: 80, passing: 60, defending: 35, physical: 65, mental: 70 },
+    });
+    expect(scorePlayerForSlot(creator, 'CAM')).toBeGreaterThan(scorePlayerForSlot(poacher, 'CAM'));
+  });
+
+  it('wide play formula: prefers a pacy crosser over a technical narrow player at LM', () => {
+    const pacyCrosser = makePlayer({
+      id: 'crosser', position: 'LM',
+      attributes: { pace: 85, shooting: 60, passing: 75, defending: 50, physical: 70, mental: 65 },
+    });
+    const narrowTechnician = makePlayer({
+      id: 'narrow', position: 'LM',
+      attributes: { pace: 60, shooting: 70, passing: 80, defending: 50, physical: 60, mental: 75 },
+    });
+    expect(scorePlayerForSlot(pacyCrosser, 'LM')).toBeGreaterThan(scorePlayerForSlot(narrowTechnician, 'LM'));
+  });
+
   it('high pressing intensity penalises low-fitness midfielders', () => {
     const tired = makePlayer({ id: 'tired', position: 'CM', fitness: 60 });
     const fresh = makePlayer({ id: 'fresh', position: 'CM', fitness: 95 });

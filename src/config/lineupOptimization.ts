@@ -152,6 +152,30 @@ export const LINEUP_BENCH_SWAP_PASSES = 3;
 // tiebreakers within the rating tier they apply to.
 // ──────────────────────────────────────────────────────────────────────────
 
+// ── Engine-aligned role contribution weights ──
+// The match engine uses distinct formulas for defense, shot, and assist
+// quality. Layering an engine-aligned tiebreaker on top of positionalOverall
+// makes the optimizer pick the player who actually contributes most in the
+// engine, not just the highest-rated player on paper.
+//
+// All four scores are normalized 0-100 (input attrs are 0-100). The weight
+// below scales them into the same magnitude as a slot-fit bonus so they act
+// as tiebreakers, not primary drivers.
+//
+/** Weight applied to each engine-aligned contribution score (kept low so
+ *  positionalOverall stays the dominant signal). */
+export const ENGINE_ROLE_CONTRIBUTION_WEIGHT = 0.10;
+
+/** Engine attack mod scales shot quality up under attacking mentality
+ *  (matchEngine.ts:52-58). We mirror that here as a multiplier on the
+ *  shot contribution component. */
+export const ENGINE_ATTACK_MOD_ATTACKING = 1.30;
+export const ENGINE_ATTACK_MOD_ALL_OUT = 1.50;
+/** Engine defense mod scales defensive contribution under defensive
+ *  mentality (matchEngine.ts:60-66). Mirrored here. */
+export const ENGINE_DEF_MOD_DEFENSIVE = 1.35;
+export const ENGINE_DEF_MOD_CAUTIOUS = 1.20;
+
 // ── Tactics-aware scoring ──
 /** High-tempo passing/mental boost for midfielders & attackers (passing >= threshold) */
 export const TACTICS_FAST_TEMPO_PASSING_THRESHOLD = 70;

@@ -121,8 +121,23 @@ import {
   BENCH_CLOSER_PHYSICAL_THRESHOLD,
   BENCH_CLOSER_MENTAL_THRESHOLD,
   BENCH_CLOSER_BONUS,
+  ENGINE_ROLE_CONTRIBUTION_WEIGHT,
+  ENGINE_ATTACK_MOD_ATTACKING,
+  ENGINE_ATTACK_MOD_ALL_OUT,
+  ENGINE_DEF_MOD_DEFENSIVE,
+  ENGINE_DEF_MOD_CAUTIOUS,
 } from '@/config/lineupOptimization';
-import { GK_DEFENDING_WEIGHT, GK_MENTAL_WEIGHT, GK_PHYSICAL_WEIGHT } from '@/config/matchEngine';
+import {
+  GK_DEFENDING_WEIGHT,
+  GK_MENTAL_WEIGHT,
+  GK_PHYSICAL_WEIGHT,
+  DEFENSE_DEFENDING_WEIGHT,
+  DEFENSE_PHYSICAL_WEIGHT,
+  DEFENSE_MENTAL_WEIGHT,
+  ASSIST_PASSING_WEIGHT,
+  ASSIST_MENTAL_WEIGHT,
+  SHOT_QUALITY_WEIGHTS,
+} from '@/config/matchEngine';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 
 interface AutoFillResult {
@@ -170,6 +185,44 @@ function gkQuality(attrs: PlayerAttributes): number {
   return attrs.defending * GK_DEFENDING_WEIGHT
     + attrs.mental * GK_MENTAL_WEIGHT
     + attrs.physical * GK_PHYSICAL_WEIGHT;
+}
+
+/**
+ * Engine-aligned role contribution scores (all 0-100). These mirror the
+ * formulas the match engine actually uses for defense quality, shot quality,
+ * assist creation, and wide play. Layered as tiebreakers on top of
+ * positionalOverall so the optimizer prefers the player who contributes
+ * most in the engine, not just the highest-rated player.
+ */
+function engineDefenseContribution(attrs: PlayerAttributes): number {
+  // match.ts:255-263: defending*0.6 + physical*0.3 + mental*0.1
+  return attrs.defending * DEFENSE_DEFENDING_WEIGHT
+    + attrs.physical * DEFENSE_PHYSICAL_WEIGHT
+    + attrs.mental * DEFENSE_MENTAL_WEIGHT;
+}
+
+function engineShotContribution(attrs: PlayerAttributes): number {
+  // matchEngine.ts:136-143 (form excluded — already weighted separately)
+  return attrs.shooting * SHOT_QUALITY_WEIGHTS.shooting
+    + attrs.mental * SHOT_QUALITY_WEIGHTS.mental
+    + attrs.pace * SHOT_QUALITY_WEIGHTS.pace
+    + attrs.physical * SHOT_QUALITY_WEIGHTS.physical;
+}
+
+function engineAssistContribution(attrs: PlayerAttributes): number {
+  // match.ts:173-187: assist weights = passing*0.7 + mental*0.3
+  return attrs.passing * ASSIST_PASSING_WEIGHT
+    + attrs.mental * ASSIST_MENTAL_WEIGHT;
+}
+
+function engineWidePlayContribution(attrs: PlayerAttributes): number {
+  // No single engine constant for wide play, but the engine rewards width
+  // through pace (counter-attacks, getting in behind) + passing (cross
+  // delivery) + work-rate proxies (mental + physical for tracking back).
+  return attrs.pace * 0.40
+    + attrs.passing * 0.30
+    + attrs.mental * 0.20
+    + attrs.physical * 0.10;
 }
 
 
@@ -232,6 +285,51 @@ export function scorePlayerForSlot(player: Player, slotPosition: Position, conte
     (player.fitness / 100) * fitnessWeight +
     (player.morale / 100) * MORALE_WEIGHT +
     positionFitScore(player, slotPosition);
+
+  // ── Engine-aligned role contribution (tiebreaker layered on positionalOverall) ──
+  // We add the engine's actual formulas for the role(s) this slot performs,
+  // so the optimizer doesn't just pick the highest-rated player — it picks
+  // the player whose attributes contribute most under the engine's model.
+  // Mentality multipliers mirror engine attack/defense mods so attacking
+  // tactics weight shot contribution heavier and defensive tactics weight
+  // defensive contribution heavier.
+  const mentality = context?.tactics?.mentality;
+  const attackMod = mentality === 'all-out-attack' ? ENGINE_ATTACK_MOD_ALL_OUT
+    : mentality === 'attacking' ? ENGINE_ATTACK_MOD_ATTACKING
+    : 1;
+  const defenseMod = mentality === 'defensive' ? ENGINE_DEF_MOD_DEFENSIVE
+    : mentality === 'cautious' ? ENGINE_DEF_MOD_CAUTIOUS
+    : 1;
+
+  // Defenders (CB, LB, RB, CDM): engine defense formula is the primary
+  // contribution they make. Defensive mentality scales it up.
+  if (DEFENSIVE_POSITIONS.includes(slotPosition)) {
+    score += engineDefenseContribution(player.attributes)
+      * ENGINE_ROLE_CONTRIBUTION_WEIGHT * defenseMod;
+  }
+  // Attackers (ST, LW, RW, CAM): engine shot quality is what wins games.
+  // Attacking mentality scales it up.
+  if (ATTACKING_POSITIONS.includes(slotPosition)) {
+    score += engineShotContribution(player.attributes)
+      * ENGINE_ROLE_CONTRIBUTION_WEIGHT * attackMod;
+  }
+  // Creators (CAM, CM, CDM): engine assist formula is passing*0.7 +
+  // mental*0.3. CAM and CM are the primary creators; CDM creates from
+  // deep but at a lower weight (already covered partly by long-range
+  // shot threat).
+  if (slotPosition === 'CAM' || slotPosition === 'CM') {
+    score += engineAssistContribution(player.attributes) * ENGINE_ROLE_CONTRIBUTION_WEIGHT;
+  } else if (slotPosition === 'CDM') {
+    score += engineAssistContribution(player.attributes) * ENGINE_ROLE_CONTRIBUTION_WEIGHT * 0.5;
+  }
+  // Wide players (LM, RM, LW, RW, LB, RB): pace + passing + work-rate
+  // matter most. LB/RB do less wide creating in attack, so half weight.
+  if (slotPosition === 'LM' || slotPosition === 'RM'
+    || slotPosition === 'LW' || slotPosition === 'RW') {
+    score += engineWidePlayContribution(player.attributes) * ENGINE_ROLE_CONTRIBUTION_WEIGHT;
+  } else if (slotPosition === 'LB' || slotPosition === 'RB') {
+    score += engineWidePlayContribution(player.attributes) * ENGINE_ROLE_CONTRIBUTION_WEIGHT * 0.5;
+  }
 
   // ── Perk-aware multipliers (default 1.0 when perks/context absent) ──
   const perks = context?.managerPerks ?? [];
