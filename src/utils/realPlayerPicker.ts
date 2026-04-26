@@ -44,6 +44,11 @@ export function isNationalityAliasOf(templateNat: string, gameNat: string): bool
 const claimedFcIds = new Set<string>();
 const claimedNames = new Set<string>();
 
+// Memoised "all nationalities merged" pool for the global-fallback path.
+// Cleared on resetRealPlayerClaims so dev tools / tests that mutate
+// NATIONAL_PLAYER_POOL between resets see fresh data on next call.
+let allPoolsCache: PlayerTemplate[] | null = null;
+
 function nameKey(fn: string, ln: string): string {
   return `${fn.toLowerCase()}|${ln.toLowerCase()}`;
 }
@@ -51,6 +56,9 @@ function nameKey(fn: string, ln: string): string {
 export function resetRealPlayerClaims(): void {
   claimedFcIds.clear();
   claimedNames.clear();
+  // Drop the merged-pool memo too so any test or dev tool that mutates
+  // NATIONAL_PLAYER_POOL between resets sees the fresh data on next call.
+  allPoolsCache = null;
 }
 
 export function claimRealPlayer(t: { fcId?: string; fn: string; ln: string }): void {
@@ -113,7 +121,6 @@ function poolFor(nationality: string): PlayerTemplate[] {
   return dedupedPool(aliases);
 }
 
-let allPoolsCache: PlayerTemplate[] | null = null;
 function poolForAll(): PlayerTemplate[] {
   if (allPoolsCache) return allPoolsCache;
   allPoolsCache = dedupedPool(Object.keys(NATIONAL_PLAYER_POOL));

@@ -58,7 +58,6 @@ const NATIONALITY_GAME_ALIAS = {
   'South Korea': 'Korea Republic',
   USA: 'United States',
   Ireland: 'Republic of Ireland',
-  Czechia: 'Czechia',
   'Czech Republic': 'Czechia',
   UAE: 'United Arab Emirates',
   China: 'China PR',
@@ -74,15 +73,19 @@ for (const k of Object.keys(NATIONALITY_GAME_ALIAS)) {
 }
 
 function parseCSV(content) {
-  const lines = content.split('\n');
-  const headers = parseCSVLine(lines[0]);
+  // Strip a UTF-8 BOM and normalise CRLF → LF. Without this a BOM
+  // poisons the first header ("﻿player_id"), which then produces empty
+  // fcIds for every emitted row.
+  const normalized = content.replace(/^﻿/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const lines = normalized.split('\n');
+  const headers = parseCSVLine(lines[0]).map(h => h.trim());
   const results = [];
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i];
     if (!line.trim()) continue;
     const values = parseCSVLine(line);
     const obj = {};
-    for (let j = 0; j < headers.length; j++) obj[headers[j]] = values[j] || '';
+    for (let j = 0; j < headers.length; j++) obj[headers[j]] = (values[j] || '').trim();
     results.push(obj);
   }
   return results;
@@ -132,34 +135,73 @@ function parsePositions(playerPositions) {
 const NAME_SUFFIXES = new Set(['Jr.', 'Sr.', 'Jr', 'Sr', 'II', 'III', 'IV', 'Júnior']);
 const ABBREV_RE = /^([A-ZÀ-ÖØ-öø-ÿ])\.\s+(.+)$/;
 
+// Lowercase + strip whitespace and hyphens so "Gue-sung" / "Gue Sung"
+// collapse to the same key — used to dedupe hyphenated mononyms.
+function nameDedupKey(s) {
+  return (s || '').toLowerCase().replace(/[\s-]+/g, '');
+}
+
 /**
  * Extract first + last name from FC26 long_name + short_name.
- *
- *  - Last name preference: the part after "X." in short_name (the
- *    author-curated family name as fans know the player). Falls back
- *    to the last meaningful word of long_name when short_name has no
- *    abbreviation marker.
- *  - First name: the first word of long_name (the actual given name,
- *    not just the initial).
+ *  - Abbreviated short ("J. Bellingham"): full fn from long_name,
+ *    ln from the part after the dot.
+ *  - Multi-token short ("Lautaro Martínez"): split short, pull fn
+ *    from long_name so multi-word first names survive.
+ *  - Mononym short ("Carvajal", "Rodrygo"): treat short as the
+ *    family name and pull fn from long_name's first token that
+ *    differs (so we get "Daniel Carvajal", not "Daniel Ramos").
+ *  - Falls back to long_name if short is missing entirely.
+ *  - If fn and ln still match (hyphenated mononyms like "Gue-sung"
+ *    vs "Gue Sung"), collapses to a single mononym.
  */
 function extractName(longName, shortName) {
   const longParts = (longName || '').trim().split(/\s+/).filter(Boolean);
   const shortParts = (shortName || '').trim().split(/\s+/).filter(Boolean);
+  const fallback = longParts[0] || shortParts[0] || 'Unknown';
 
-  const fn = longParts[0] || shortParts[0] || 'Unknown';
-
+  let fn;
   let ln;
+
   const m = (shortName || '').match(ABBREV_RE);
   if (m) {
+    fn = longParts[0] || fallback;
     ln = m[2].trim();
   } else if (shortParts.length >= 2) {
+    // EA's short_name encodes how the player is labelled (Western
+    // "Lautaro Martínez" or Korean "Cho Gue Sung"). Trust it: first
+    // token = fn, rest = ln. Multi-word first names like
+    // "Pierre-Emerick" already arrive hyphenated as one token.
+    fn = shortParts[0];
     ln = shortParts.slice(1).join(' ');
-  } else if (longParts.length >= 2) {
-    let i = longParts.length - 1;
-    while (i > 0 && NAME_SUFFIXES.has(longParts[i])) i--;
-    ln = longParts[i];
+  } else if (shortParts.length === 1 && longParts.length >= 2) {
+    // Single-token short_name. Two cases:
+    //   a) True mononym — long_name starts with the short token
+    //      (Rodrygo / Endrick / Brahim). Emit fn = ln = short.
+    //   b) Surname-only short — long_name starts with a different
+    //      given name (Carvajal → "Daniel Carvajal Ramos"). Use
+    //      short as ln and pull fn from long_name's first token.
+    const shortKey = nameDedupKey(shortParts[0]);
+    if (longParts.length > 0 && nameDedupKey(longParts[0]) === shortKey) {
+      fn = shortParts[0];
+      ln = shortParts[0];
+    } else {
+      ln = shortParts[0];
+      const firstDifferent = longParts.find(p => nameDedupKey(p) !== shortKey);
+      fn = firstDifferent ?? longParts[0] ?? ln;
+    }
   } else {
-    ln = shortParts[0] || longParts[0] || 'Unknown';
+    fn = fallback;
+    if (longParts.length >= 2) {
+      let i = longParts.length - 1;
+      while (i > 0 && NAME_SUFFIXES.has(longParts[i])) i--;
+      ln = longParts[i];
+    } else {
+      ln = shortParts[0] || longParts[0] || 'Unknown';
+    }
+  }
+
+  if (nameDedupKey(fn) === nameDedupKey(ln)) {
+    fn = ln;
   }
   return { fn, ln };
 }

@@ -166,6 +166,21 @@ const AGGRESSIVE_TRIM_THRESHOLD = 3_000_000; // >3MB → strip ALL match events
 // so we strip aggressively before the first stringify instead of after.
 const AGGRESSIVE_TRIM_EVENT_COUNT = 30_000;
 
+/**
+ * Reset the module-level real-player claim registry and re-claim every
+ * player currently in `players`. Called from initGame (fresh start) and
+ * loadGame (save rehydration) so the picker never hands out a player
+ * who's already on someone's roster.
+ */
+function rebuildRealPlayerClaims(players: Record<string, Player>): void {
+  resetRealPlayerClaims();
+  for (const p of Object.values(players)) {
+    if (p.fcId || (p.firstName && p.lastName)) {
+      claimRealPlayer({ fcId: p.fcId, fn: p.firstName, ln: p.lastName });
+    }
+  }
+}
+
 // ── Async save scheduler ──
 // Auto-saves run inside requestIdleCallback so JSON.stringify of the full game
 // state (100KB+) doesn't block the main thread during match/week transitions.
@@ -7100,6 +7115,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       resetSaveHash();
       // Hydrate module-level growth tracker so development functions use persisted data
       hydrateSeasonGrowth(data.seasonGrowthTracker || {});
+      // Rebuild the real-player claim registry from the loaded squad. The
+      // registry lives in module state, so without this the picker either
+      // (fresh tab) thinks every real player is available and could re-issue
+      // them as fillers, or (same tab as a previous session) keeps stale
+      // claims from the old game and blocks valid picks.
+      rebuildRealPlayerClaims(data.players || {});
       track('save_loaded', { slot: s });
       return true;
     } catch (err) {

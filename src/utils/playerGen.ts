@@ -15,6 +15,7 @@ import {
   YOUNG_POTENTIAL_BOOST_BASE, YOUNG_POTENTIAL_BOOST_RANGE, YOUNG_POTENTIAL_AGE_THRESHOLD,
   STAR_PLAYER_BOOST_MIN, STAR_PLAYER_BOOST_MAX, VETERAN_BOOST_MIN, VETERAN_BOOST_MAX,
   GENERATED_PLAYER_OVERALL_CAP, GENERATED_PLAYER_POTENTIAL_CAP,
+  REAL_FILLER_OVR_FLOOR, REAL_FILLER_OVR_CEIL, REAL_FILLER_OVR_BAND_BELOW, REAL_FILLER_OVR_BAND_ABOVE,
   EFFECTIVE_RATING_OVERALL_WEIGHT, EFFECTIVE_RATING_FORM_WEIGHT, EFFECTIVE_RATING_FITNESS_WEIGHT,
   MAX_SUBS, MIN_TEAM_STRENGTH, TEAM_STRENGTH_BASE, TEAM_STRENGTH_FITNESS_SCALE, TEAM_STRENGTH_MORALE_SCALE,
   NATIONALITY_DISTRIBUTION,
@@ -298,7 +299,17 @@ export function buildPlayerFromTemplate(
       physical: clamp(t.physical ?? player.attributes.physical),
       mental: clamp(t.mental ?? player.attributes.mental),
     };
-    player.overall = calculateOverall(player.attributes, player.position);
+    // Real FC26 templates carry their own author-curated overall.
+    // Recomputing via POSITION_WEIGHTS underestimates GKs by 3–6
+    // points (gk_kicking gets double-counted in shooting+passing,
+    // and the 6-axis blend can't reproduce EA's GK-specific formula).
+    // Preserve t.ovr for real entries; recompute only for procedural
+    // / test templates that don't carry a curated rating.
+    if (t.source === 'real' && typeof t.ovr === 'number') {
+      player.overall = clamp(t.ovr);
+    } else {
+      player.overall = calculateOverall(player.attributes, player.position);
+    }
   }
   if (t.altPos?.length) player.alternatePositions = t.altPos;
   if (t.skillMoves) player.skillMoves = t.skillMoves;
@@ -362,8 +373,8 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     // Bias the real-player pick toward the club's quality tier so a
     // 4th-division side doesn't accidentally sign Mbappé as a filler.
     const realTemplate = pickUnclaimedRealPlayer(nationality, pos, {
-      minOvr: Math.max(40, quality - 10),
-      maxOvr: Math.min(99, quality + 8),
+      minOvr: Math.max(REAL_FILLER_OVR_FLOOR, quality - REAL_FILLER_OVR_BAND_BELOW),
+      maxOvr: Math.min(REAL_FILLER_OVR_CEIL, quality + REAL_FILLER_OVR_BAND_ABOVE),
     });
     if (realTemplate) {
       // Only canonicalise nationality when the picker's choice is an
