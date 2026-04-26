@@ -296,7 +296,7 @@ export const PlayerCard = memo(function PlayerCard({
         {(() => {
           const flagOverName = size === 'xs' || size === 'sm';
           // Mononym players (Savinho, Rodri, Ederson, …) come through with
-          // identical firstName / lastName from the FC25-sourced templates.
+          // identical firstName / lastName from the FC26-sourced templates.
           // Showing both lines as the same word reads as a duplicate, so
           // suppress the secondary first-name row in that case.
           const isMononym =

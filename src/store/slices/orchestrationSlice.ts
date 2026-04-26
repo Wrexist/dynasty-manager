@@ -674,6 +674,16 @@ function advanceInternationalWeekImpl(set: Set, get: Get) {
   const nationality = state.managerNationality;
   const currentWeek = tournament.currentWeek;
 
+  // Pre-tournament squad picker: until the manager has confirmed their squad
+  // we must not progress the week — the picker is the canonical "first
+  // week before the first national game" gate.
+  if (!tournament.squadConfirmed) {
+    if (state.currentScreen !== 'national-squad-picker') {
+      set({ currentScreen: 'national-squad-picker' });
+    }
+    return;
+  }
+
   if (tournament.phase === 'group') {
     // Process group stage
     const { groups, playerMatchThisWeek } = processGroupWeek(
@@ -2573,10 +2583,17 @@ function finalizeSeason(
       }
     }
 
+    // Career managers without an active national team appointment can't run
+    // the picker. Sandbox always has a national team. The picker is the
+    // pre-tournament "week before the first national game" prompt.
+    const showPicker = nt !== null;
+
     const tournamentMsg = addMsg(postState.messages, {
-      week: 1, season: newSeason, type: 'general',
-      title: `${tournament.name} Begins!`,
-      body: `The ${tournament.name} is about to start! You'll manage ${postState.managerNationality} through the tournament. ${squad.length} players have been called up.`,
+      week: 1, season: newSeason, type: 'national_team',
+      title: showPicker ? `${tournament.name} — Pick Your Squad` : `${tournament.name} Begins!`,
+      body: showPicker
+        ? `The ${tournament.name} starts next week. Confirm your 23-man ${postState.managerNationality} squad before kick-off.`
+        : `The ${tournament.name} is about to start! You'll manage ${postState.managerNationality} through the tournament. ${squad.length} players have been called up.`,
     });
 
     set({
@@ -2585,7 +2602,7 @@ function finalizeSeason(
       nationalTeam: nt,
       players: boostedPlayers,
       messages: tournamentMsg,
-      currentScreen: 'international-tournament',
+      currentScreen: showPicker ? 'national-squad-picker' : 'international-tournament',
     });
     return;
   }
@@ -2888,7 +2905,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
     // the new run from picking the same real players.
     resetRealPlayerClaims();
     // Pre-claim every community-pack template (per-club + free agents)
-    // before any squad is generated, so the FC25 real-player picker that
+    // before any squad is generated, so the FC26 real-player picker that
     // backs `generateSquad` can't hand the same person to a non-CP club
     // as a filler.
     if (cpByClub) {

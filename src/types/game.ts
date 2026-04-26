@@ -80,7 +80,7 @@ export type FormationType = '4-4-2' | '4-3-3' | '3-5-2' | '4-2-3-1' | '4-1-4-1' 
 
 export type SeasonPhase = 'regular' | 'offseason' | 'international';
 
-export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor';
+export type GameScreen = 'dashboard' | 'squad' | 'tactics' | 'transfers' | 'club' | 'match' | 'player-detail' | 'league-table' | 'inbox' | 'season-summary' | 'calendar' | 'training' | 'scouting' | 'packs' | 'staff' | 'youth-academy' | 'facilities' | 'finance' | 'merchandise' | 'match-prep' | 'match-review' | 'board' | 'settings' | 'comparison' | 'manager-profile' | 'cup' | 'league-cup' | 'champions-cup' | 'shield-cup' | 'conference-cup' | 'super-cup' | 'perks' | 'trophy-cabinet' | 'prestige' | 'hall-of-managers' | 'team-detail' | 'shop' | 'help' | 'whats-new' | 'national-team' | 'national-squad-picker' | 'international-tournament' | 'job-market' | 'career-overview' | 'ballon-dor';
 
 export interface PlayerAttributes {
   pace: number;
@@ -164,7 +164,7 @@ export interface Player {
   lowMoraleWeeks?: number; // consecutive weeks with morale below threshold
   transferCooldownUntilWeek?: number; // after being convinced to stay, immune until this week
   lastTransferTalkWeek?: number; // week of last transfer talk interaction (prevents spam)
-  alternatePositions?: Position[];  // positions this player can fill naturally (from FC25 data)
+  alternatePositions?: Position[];  // positions this player can fill naturally (from FC26 data)
   skillMoves?: number;              // 1-5 star skill moves rating
   internationalCaps?: number;
   internationalGoals?: number;
@@ -692,7 +692,7 @@ export const POSITION_COMPATIBILITY: Record<Position, Position[]> = {
 /**
  * Check if a player can fill a given slot position.
  * Uses both the static POSITION_COMPATIBILITY table and the player's
- * FC25-sourced alternatePositions for per-player flexibility.
+ * FC26-sourced alternatePositions for per-player flexibility.
  */
 export function canPlayPosition(player: { position: Position; alternatePositions?: Position[] }, slotPos: Position): boolean {
   if (player.position === slotPos) return true;
@@ -1413,7 +1413,7 @@ export type InternationalKnockoutRound = 'R16' | 'QF' | 'SF' | 'F';
 
 export interface InternationalTournamentState {
   type: InternationalTournamentType;
-  name: string;                           // "World Cup Season 4", "Continental Cup Season 2"
+  name: string;                           // "World Cup Season 4", "European Championship", etc.
   season: number;
   phase: 'group' | 'knockout' | 'complete';
   groups: InternationalGroup[];
@@ -1422,6 +1422,10 @@ export interface InternationalTournamentState {
   playerEliminated: boolean;
   winner: string | null;                  // nationality name
   currentWeek: number;                    // tracks which international week we're on (47-52)
+  /** Player has confirmed their 23-man squad via the pre-tournament picker.
+   *  When false, advanceWeek's international step will not progress fixtures
+   *  involving the player nation — they are gated behind the picker. */
+  squadConfirmed: boolean;
 }
 
 export interface InternationalGroup {

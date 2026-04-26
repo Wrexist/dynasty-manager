@@ -58,6 +58,30 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.0.4',
+    build: null,
+    date: '2026-04-26',
+    headline: 'Real national teams, smarter rankings, fancy squad picker.',
+    summary:
+      'Take charge of your country with real FC26 stars, accurate world rankings, and a brand-new squad selection screen. Tournaments now follow a clean three-year cycle — World Cup, continental cup, off year — and you pick your 23-man squad the week before the first match.',
+    highlights: [
+      'New pre-tournament squad picker lets you choose your final 23 from the top 50 nationally eligible players.',
+      'Three-year tournament cycle: World Cup, then your continental cup (Euros, Copa America, AFCON, Asian Cup, Gold Cup), then a quiet year, then World Cup again.',
+    ],
+    new: [
+      'National Team page now shows the next tournament tile — tap it to see the format, qualifying teams, and live group standings.',
+      'Continental tournaments are now confederation-specific and named correctly (European Championship, Copa America, AFCON, Asian Cup, Gold Cup).',
+      'International Tournament screen shows a pre-draw preview with all expected qualifiers when no tournament is active.',
+    ],
+    improved: [
+      'Real FC26 player pool always seeds your national team candidates — no more random-name squads when you take a top nation like France.',
+      'World ranking on the National Team page now reflects each nation\'s real FIFA-style ranking instead of a flat #25 placeholder.',
+    ],
+    fixed: [
+      'Fixed France (and other top nations) appearing as #25 in the world rankings.',
+    ],
+  },
+  {
     version: '1.0.3',
     build: null,
     date: '2026-04-26',

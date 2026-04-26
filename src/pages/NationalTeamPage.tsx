@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { getNation } from '@/data/nations';
+import { getNation, getNationRanking } from '@/data/nations';
+import { getUpcomingTournament } from '@/utils/international';
 import { cn } from '@/lib/utils';
-import { Globe, Users, Trophy, ChevronRight, ChevronDown, CheckCircle, XCircle, Calendar, TrendingUp, Check, Shuffle } from 'lucide-react';
+import { Globe, Users, Trophy, ChevronRight, ChevronDown, CheckCircle, XCircle, Calendar, TrendingUp, Check, Shuffle, Flag } from 'lucide-react';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { Button } from '@/components/ui/button';
 import { PageHint } from '@/components/game/PageHint';
@@ -31,6 +32,7 @@ const NationalTeamPage = () => {
   const nationalTeamOffer = useGameStore(s => s.nationalTeamOffer);
   const gameMode = useGameStore(s => s.gameMode);
   const season = useGameStore(s => s.season);
+  const week = useGameStore(s => s.week);
   const careerManager = useGameStore(s => s.careerManager);
   const acceptNationalTeamOffer = useGameStore(s => s.acceptNationalTeamOffer);
   const declineNationalTeamOffer = useGameStore(s => s.declineNationalTeamOffer);
@@ -188,6 +190,8 @@ const NationalTeamPage = () => {
   }
 
   const nation = getNation(managerNationality);
+  const ranking = getNationRanking(managerNationality);
+  const upcoming = getUpcomingTournament(season, week, managerNationality);
 
   const totalCaps = Object.values(nationalTeam.caps).reduce((s, c) => s + c, 0);
   const totalGoals = Object.values(nationalTeam.internationalGoals).reduce((s, g) => s + g, 0);
@@ -253,7 +257,7 @@ const NationalTeamPage = () => {
           </div>
           <div className="flex-1">
             <h1 className="text-xl font-bold text-foreground font-display">{managerNationality}</h1>
-            <p className="text-sm text-muted-foreground">World Ranking: #{nationalTeam.fifaRanking}</p>
+            <p className="text-sm text-muted-foreground">World Ranking: #{ranking}</p>
             <div className="flex gap-3 mt-1 text-xs text-muted-foreground">
               <span className="flex items-center gap-1"><Users className="w-3.5 h-3.5" /> {squadPlayers.length} players</span>
               <span>{totalCaps} caps</span>
@@ -262,6 +266,47 @@ const NationalTeamPage = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Upcoming / current tournament tile — always tappable */}
+      {upcoming && (
+        <motion.button
+          type="button"
+          onClick={() => {
+            if (internationalTournament && !internationalTournament.squadConfirmed) {
+              setScreen('national-squad-picker');
+            } else {
+              setScreen('international-tournament');
+            }
+          }}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(
+            LIQUID_GLASS_SURFACE,
+            'w-full border border-primary/30 p-4 text-left hover:border-primary/60 transition-colors',
+          )}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
+          <div className="relative flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
+              <Flag className="w-5 h-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] text-primary font-bold uppercase tracking-[0.2em]">
+                {upcoming.season === season ? 'This Season' : 'Coming Up'}
+              </p>
+              <p className="text-sm font-bold text-foreground truncate">{upcoming.name}</p>
+              <p className="text-[11px] text-muted-foreground">
+                {upcoming.inProgress
+                  ? `Live now · Week ${week}`
+                  : upcoming.weeksAway === 0
+                    ? 'Kicks off this week'
+                    : `${upcoming.weeksAway} week${upcoming.weeksAway === 1 ? '' : 's'} away · Season ${upcoming.season}`}
+              </p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+          </div>
+        </motion.button>
+      )}
 
       {/* Tenure (career mode) */}
       {gameMode === 'career' && careerManager?.nationalTeamAppointedSeason && (
