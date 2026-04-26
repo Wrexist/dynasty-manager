@@ -71,6 +71,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'What\'s New tile on the title screen.',
       'What\'s New shortcut in Settings → Help.',
       'Build number and ship date saved for every release.',
+      'Added a one-tap App Store review prompt that appears after a winning season — title, promotion, or cup victory.',
     ],
     improved: [
       'Update log now reads as a flat bullet list — no more long descriptions.',
