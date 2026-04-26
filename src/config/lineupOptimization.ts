@@ -144,3 +144,149 @@ export const BENCH_DEFENSIVE_FORMATION_COVER_BONUS = 8;
 
 /** Max number of best-first bench-to-starter swap passes */
 export const LINEUP_BENCH_SWAP_PASSES = 3;
+
+// ──────────────────────────────────────────────────────────────────────────
+// Pro-tier "Smart" Optimizer Signals
+// These factor in tactics, manager perks, threat profiles, fragility, and
+// reputation gap. Calibrated to keep raw rating dominant; all signals are
+// tiebreakers within the rating tier they apply to.
+// ──────────────────────────────────────────────────────────────────────────
+
+// ── Engine-aligned role contribution weights ──
+// The match engine uses distinct formulas for defense, shot, and assist
+// quality. Layering an engine-aligned tiebreaker on top of positionalOverall
+// makes the optimizer pick the player who actually contributes most in the
+// engine, not just the highest-rated player on paper.
+//
+// All four scores are normalized 0-100 (input attrs are 0-100). The weight
+// below scales them into the same magnitude as a slot-fit bonus so they act
+// as tiebreakers, not primary drivers.
+//
+/** Weight applied to each engine-aligned contribution score (kept low so
+ *  positionalOverall stays the dominant signal). */
+export const ENGINE_ROLE_CONTRIBUTION_WEIGHT = 0.10;
+
+/** Engine attack mod scales shot quality up under attacking mentality
+ *  (matchEngine.ts:52-58). We mirror that here as a multiplier on the
+ *  shot contribution component. */
+export const ENGINE_ATTACK_MOD_ATTACKING = 1.30;
+export const ENGINE_ATTACK_MOD_ALL_OUT = 1.50;
+/** Engine defense mod scales defensive contribution under defensive
+ *  mentality (matchEngine.ts:60-66). Mirrored here. */
+export const ENGINE_DEF_MOD_DEFENSIVE = 1.35;
+export const ENGINE_DEF_MOD_CAUTIOUS = 1.20;
+
+// ── Tactics-aware scoring ──
+/** High-tempo passing/mental boost for midfielders & attackers (passing >= threshold) */
+export const TACTICS_FAST_TEMPO_PASSING_THRESHOLD = 70;
+export const TACTICS_FAST_TEMPO_PASSING_BONUS = 3;
+/** Slow-tempo physical/mental boost for defenders (physical >= threshold) */
+export const TACTICS_SLOW_TEMPO_PHYSICAL_THRESHOLD = 70;
+export const TACTICS_SLOW_TEMPO_PHYSICAL_BONUS = 2;
+
+/** High-press fitness penalty: per-point fitness gap below threshold, scaled by intensity */
+export const TACTICS_HIGH_PRESS_INTENSITY_THRESHOLD = 65;
+export const TACTICS_HIGH_PRESS_FITNESS_THRESHOLD = 80;
+export const TACTICS_HIGH_PRESS_FITNESS_PENALTY_PER_POINT = 0.06;
+/** Bonus for high-physical/mental midfielders/forwards under high pressing */
+export const TACTICS_HIGH_PRESS_PHYS_MENTAL_THRESHOLD = 70;
+export const TACTICS_HIGH_PRESS_PHYS_MENTAL_BONUS = 3;
+
+/** High defensive line: penalize slow CBs (pace below threshold) */
+export const TACTICS_HIGH_LINE_CB_PACE_THRESHOLD = 65;
+export const TACTICS_HIGH_LINE_CB_SLOW_PENALTY = -6;
+/** Deep defensive line: forgive slow CBs but boost defending/physical */
+export const TACTICS_DEEP_LINE_CB_DEFENDING_THRESHOLD = 75;
+export const TACTICS_DEEP_LINE_CB_BONUS = 2;
+
+/** Wide width: boost pacy wide players (LM/RM/LW/RW/LB/RB with pace >= threshold) */
+export const TACTICS_WIDE_WIDE_PLAYER_PACE_THRESHOLD = 75;
+export const TACTICS_WIDE_WIDE_PLAYER_BONUS = 3;
+/** Narrow width: boost central midfielders (passing/mental) */
+export const TACTICS_NARROW_CENTRAL_BONUS = 2;
+
+/** Attacking/all-out mentality: extra weight on attacker shooting+pace */
+export const TACTICS_ATTACKING_MENTALITY_BONUS = 2;
+export const TACTICS_ALL_OUT_ATTACK_MENTALITY_BONUS = 4;
+/** Defensive/cautious mentality: extra weight on defender defending+physical */
+export const TACTICS_DEFENSIVE_MENTALITY_BONUS = 3;
+export const TACTICS_CAUTIOUS_MENTALITY_BONUS = 1;
+
+// ── Goal-flavor threat profiles (match engine event types) ──
+/** Long-range goal threshold (engine: shooting >= 75 unlocks long-range goals) */
+export const THREAT_LONG_RANGE_SHOOTING_THRESHOLD = 75;
+export const THREAT_LONG_RANGE_BONUS = 2;
+/** Header threat threshold (engine: physical >= 70 unlocks header goals) */
+export const THREAT_HEADER_PHYSICAL_THRESHOLD = 70;
+/** Header threat bonus, scaled by tall-player factor */
+export const THREAT_HEADER_BONUS = 2;
+/** Tall-player threshold (heightCm) for additional aerial bonus */
+export const THREAT_TALL_HEIGHT_CM = 188;
+export const THREAT_TALL_BONUS = 1;
+/** Solo goal threshold (engine: skillMoves >= 4 + pace >= 70 unlocks solo goals) */
+export const THREAT_SOLO_SKILL_MOVES_THRESHOLD = 4;
+export const THREAT_SOLO_PACE_THRESHOLD = 70;
+export const THREAT_SOLO_BONUS = 3;
+/** Free-kick threat threshold for the optimizer bonus. Engine unlocks FK goals at shooting >= 60; we set a higher bar so the bonus only fires for genuine specialists. */
+export const THREAT_FREEKICK_SHOOTING_THRESHOLD = 70;
+export const THREAT_FREEKICK_BONUS = 2;
+/** Skill moves >=4 boost shot quality by +0.02 in engine — bonus for attackers */
+export const THREAT_SKILL_MOVES_THRESHOLD = 4;
+export const THREAT_SKILL_MOVES_BONUS = 2;
+
+// ── Big-match / reputation-gap awareness ──
+/** Reputation difference (opponentRep - ourRep) above which we treat as a "big match" */
+export const BIG_MATCH_REP_GAP_THRESHOLD = 8;
+/** Players with mental at or above this threshold qualify for the big-match bonus */
+export const BIG_MATCH_MENTAL_THRESHOLD = 70;
+/** Flat bonus added to qualifying players' scores in a big match */
+export const BIG_MATCH_MENTAL_BONUS = 2;
+/** Leadership bonus added on top of base context leadership for big matches */
+export const BIG_MATCH_LEADERSHIP_BONUS = 2;
+/** Cup match: leadership matters even more */
+export const CUP_LEADERSHIP_BONUS = 2;
+/** Cup match boost for skill moves >=4 (cup moments) */
+export const CUP_SKILL_MOVES_BONUS = 2;
+
+// ── Tactical familiarity (low familiarity → prefer natural over compatible) ──
+/** Tactical familiarity below which we add an extra penalty to compatible-only fits */
+export const FAMILIARITY_LOW_THRESHOLD = 40;
+/** Per-missing-familiarity-point penalty for compatible (non-natural) deployments */
+export const FAMILIARITY_COMPATIBLE_PENALTY_PER_POINT = 0.10;
+
+// ── Manager perk modifiers (perk-aware scoring) ──
+/** disciplinarian: yellow-card penalties multiplied by this factor */
+export const PERK_DISCIPLINARIAN_CARD_MULT = 0.5;
+/** fitness_guru: low-fitness penalty multiplied by this factor */
+export const PERK_FITNESS_GURU_FITNESS_MULT = 0.5;
+/** motivator: low-morale penalty multiplied by this factor */
+export const PERK_MOTIVATOR_MORALE_MULT = 0.5;
+/** iron_will: wantsToLeave penalty multiplied by this factor */
+export const PERK_IRON_WILL_UNHAPPY_MULT = 0.4;
+/** set_piece_coach: extra bonus for designated set-piece taker (already +6, perk adds this) */
+export const PERK_SET_PIECE_COACH_TAKER_BONUS = 4;
+
+// ── Age + physical fragility (derived from match engine injury formula) ──
+/** Age above which fragility starts to matter */
+export const AGE_FRAGILITY_THRESHOLD = 31;
+/** Per-year-over-threshold + low-physical penalty (engine: OLD_PLAYER_INJURY_BONUS + (100-physical)*0.0005) */
+export const AGE_FRAGILITY_PENALTY_PER_YEAR = 0.5;
+/** When physical is below this, we add a small reliability penalty */
+export const FRAGILITY_LOW_PHYSICAL_THRESHOLD = 60;
+export const FRAGILITY_LOW_PHYSICAL_PENALTY = -2;
+/** Older players in congested fixtures take an extra rotation penalty */
+export const AGE_CONGESTED_PENALTY = -2;
+/** Older-and-tired players: age >= 33 + fitness < 80 in congested weeks */
+export const AGE_CONGESTED_AGE_THRESHOLD = 33;
+export const AGE_CONGESTED_FITNESS_THRESHOLD = 80;
+
+// ── Bench: long-range / pace / closer profiles ──
+/** Bench long-range threat bonus (CAM/CM with shooting >= threshold) */
+export const BENCH_LONG_RANGE_THREAT_BONUS = 4;
+/** Bench impact-pace bonus (LW/RW/ST with pace >= threshold) */
+export const BENCH_IMPACT_PACE_THRESHOLD = 80;
+export const BENCH_IMPACT_PACE_BONUS = 4;
+/** Bench "closer" defender bonus (CB with physical+mental high) */
+export const BENCH_CLOSER_PHYSICAL_THRESHOLD = 75;
+export const BENCH_CLOSER_MENTAL_THRESHOLD = 70;
+export const BENCH_CLOSER_BONUS = 4;

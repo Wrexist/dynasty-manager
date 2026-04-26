@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import { Sparkles, Crown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface OptimizeLineupButtonProps {
@@ -42,7 +42,15 @@ export function OptimizeLineupButton({ potentialGain, autoFilling, onOptimize }:
           }}
         />
         <Sparkles className={cn('relative w-4 h-4', autoFilling && 'animate-spin')} />
-        <span className="relative">{autoFilling ? 'Optimizing...' : 'Optimize Lineup'}</span>
+        <span className="relative">{autoFilling ? 'Optimizing...' : 'Smart Optimize Lineup'}</span>
+        {/* PRO badge — signals that this is a paid Dynasty Pro feature */}
+        <span
+          className="relative ml-1 inline-flex items-center gap-0.5 rounded-full bg-primary-foreground/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+          aria-label="Dynasty Pro feature"
+        >
+          <Crown className="w-2.5 h-2.5" />
+          Pro
+        </span>
       </button>
     </div>
   );
