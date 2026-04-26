@@ -85,8 +85,8 @@ export const PACK_TIERS: PackTierDefinition[] = [
   {
     key: 'rare',
     label: 'Rare Gold',
-    tagline: '5 players · 1× 84+ guaranteed · walkout possible',
-    price: 80_000_000,
+    tagline: '5 players · 1× 84+ guaranteed · walkout possible · in-app purchase',
+    price: 0,
     cards: 5,
     guaranteedMinOvr: 84,
     ovrMin: 75,
@@ -96,6 +96,8 @@ export const PACK_TIERS: PackTierDefinition[] = [
     gradientTo: 'hsl(var(--pack-rare-to))',
     accent: 'hsl(var(--pack-rare-accent))',
     artSrc: '/packs/rare.webp',
+    productId: 'com.dynastymanager.pack.rare_gold',
+    iapPriceDisplay: '$6.99',
   },
   {
     key: 'icon',

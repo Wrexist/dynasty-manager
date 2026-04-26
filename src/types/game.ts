@@ -1317,6 +1317,7 @@ export type ProductId =
   | 'com.dynastymanager.bundle.all'
   | 'com.dynastymanager.pack.gold'
   | 'com.dynastymanager.pack.premium_gold'
+  | 'com.dynastymanager.pack.rare_gold'
   | 'com.dynastymanager.pack.icon';
 
 export type SubscriptionTier = 'monthly' | 'lifetime';

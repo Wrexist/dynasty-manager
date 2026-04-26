@@ -58,6 +58,19 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.0.3',
+    build: null,
+    date: '2026-04-26',
+    headline: 'Rare Gold pack joins the in-app store.',
+    summary: 'Rare Gold packs are now an in-app purchase, matching Premium Gold and Icon. The £80M in-game price is gone — pay $6.99 for a guaranteed 84+ rated player and a chance at a walkout reveal.',
+    highlights: [],
+    new: [],
+    improved: [
+      'Rare Gold pack is now an in-app purchase ($6.99) instead of an £80M in-game spend.',
+    ],
+    fixed: [],
+  },
+  {
     version: '1.0.2',
     build: null,
     date: '2026-04-26',

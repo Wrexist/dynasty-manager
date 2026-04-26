@@ -102,6 +102,13 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
     priceUsd: 4.99,
     type: 'one_time',
   },
+  'com.dynastymanager.pack.rare_gold': {
+    id: 'com.dynastymanager.pack.rare_gold',
+    name: 'Rare Gold Pack',
+    description: '5 players with at least one 84+ rated player and a possible walkout reveal. Consumable — buy each open.',
+    priceUsd: 6.99,
+    type: 'one_time',
+  },
   'com.dynastymanager.pack.icon': {
     id: 'com.dynastymanager.pack.icon',
     name: 'Icon Pack',
@@ -116,6 +123,7 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
 export const CONSUMABLE_PRODUCT_IDS: ProductId[] = [
   'com.dynastymanager.pack.gold',
   'com.dynastymanager.pack.premium_gold',
+  'com.dynastymanager.pack.rare_gold',
   'com.dynastymanager.pack.icon',
 ];
 
