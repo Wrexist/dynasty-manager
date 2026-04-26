@@ -18,8 +18,15 @@ describe('clubTemplateAliases', () => {
   });
 
   it('resolveSquadKey returns the alias when present, else the id itself', () => {
-    expect(resolveSquadKey('bodo-glimt')).toBe('fk-bodglimt');
-    expect(resolveSquadKey('fredrikstad')).toBe('fredrikstad-fk');
+    // Add a temporary fixture entry so the alias-vs-passthrough behaviour
+    // is exercised even when CLUB_TEMPLATE_ALIASES is empty (FC26 squads
+    // are now keyed by league id directly, so no real aliases are needed).
+    CLUB_TEMPLATE_ALIASES['fixture-club'] = 'fixture-club-template';
+    try {
+      expect(resolveSquadKey('fixture-club')).toBe('fixture-club-template');
+    } finally {
+      delete CLUB_TEMPLATE_ALIASES['fixture-club'];
+    }
     expect(resolveSquadKey('arsenal')).toBe('arsenal');
     expect(resolveSquadKey('club-without-template')).toBe('club-without-template');
   });
