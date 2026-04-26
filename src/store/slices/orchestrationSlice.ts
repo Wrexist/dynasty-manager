@@ -14,6 +14,7 @@ import {
 import { ALL_CLUBS, buildLeagueTable, generateDivisionFixtures, buildAllDivisionTables, DERBIES, LEAGUES, getDerbyIntensity, getDerbyName, clearLeagueTableCache, generateFriendlies, getLeaguesByCountry } from '@/data/league';
 import { FRIENDLY_BOARD_CONFIDENCE_MULT, BOARD_OBJ_XP_CRITICAL, BOARD_OBJ_XP_IMPORTANT, BOARD_OBJ_XP_OPTIONAL, BOARD_OBJ_XP_OVERACHIEVE_MULT, BOARD_OBJ_BUDGET_BOOST, BOARD_OBJ_ALL_COMPLETE_XP, BOARD_OBJ_ALL_COMPLETE_CONFIDENCE, BOARD_REVIEW_RELAX_THRESHOLD, BOARD_REVIEW_RAISE_THRESHOLD, BOARD_REVIEW_ADJUST_POSITIONS, INTERNATIONAL_BREAK_WEEKS, INTERNATIONAL_BREAK_FITNESS_COST, INTERNATIONAL_CALLUP_MIN_OVR, INTERNATIONAL_SNUB_MIN_OVR, CALLUP_SNUB_MORALE_PENALTY, POST_TOURNAMENT_FITNESS_COST_HIGH, POST_TOURNAMENT_FITNESS_COST_LOW } from '@/config/gameBalance';
 import { generateSquad, selectBestLineup, generatePlayer, calculateOverall, buildPlayerFromTemplate } from '@/utils/playerGen';
+import { resetRealPlayerClaims, claimRealPlayer } from '@/utils/realPlayerPicker';
 import type { PlayerTemplate } from '@/data/playerTemplates';
 import { getActivePool, drawForMarket, drawForFaPoolSeed } from '@/utils/communityPackPool';
 import {
@@ -164,6 +165,21 @@ const AGGRESSIVE_TRIM_THRESHOLD = 3_000_000; // >3MB → strip ALL match events
 // Pre-flight threshold: roughly 30k event records translates to ~3MB of JSON,
 // so we strip aggressively before the first stringify instead of after.
 const AGGRESSIVE_TRIM_EVENT_COUNT = 30_000;
+
+/**
+ * Reset the module-level real-player claim registry and re-claim every
+ * persisted FC-backed player. Procedural players carry no `fcId` and
+ * must NOT be claimed — claiming a generated "Pieter Jansen" would
+ * later block a real FC26 player who happens to share that name and
+ * push the picker into procedural fallback unnecessarily.
+ */
+function rebuildRealPlayerClaims(players: Record<string, Player>): void {
+  resetRealPlayerClaims();
+  for (const p of Object.values(players)) {
+    if (!p.fcId) continue;
+    claimRealPlayer({ fcId: p.fcId, fn: p.firstName, ln: p.lastName });
+  }
+}
 
 // ── Async save scheduler ──
 // Auto-saves run inside requestIdleCallback so JSON.stringify of the full game
@@ -1651,8 +1667,11 @@ function endSeasonImpl(set: Set, get: Get) {
             playerIds: [], formation: '4-4-2', lineup: [], subs: [],
             divisionId: cl.id,
           };
-          const qualityTier = cl.qualityTier || 4;
-          const squad = generateSquad(clubId, clubData.squadQuality, season, qualityTier);
+          // generateSquad's `divisionTier` param is the league id used to
+          // bias filler nationality distribution (e.g. 'eng', 'eng-2'),
+          // not the numeric qualityTier (1–4). Passing the number drops
+          // the league-aware bias into the DEFAULT distribution bucket.
+          const squad = generateSquad(clubId, clubData.squadQuality, season, cl.id);
           let totalWages = 0;
           squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
           newClub.wageBill = totalWages;
@@ -1680,7 +1699,6 @@ function endSeasonImpl(set: Set, get: Get) {
       const rClub = workingClubs[replacedId] || clubs[replacedId];
       if (rClub) rClub.playerIds.forEach(pid => { delete workingPlayers[pid]; });
     }
-    const qualityTier = league?.qualityTier || 2;
     const newLeagueClubs = [...singleResult.updatedLeagueClubs];
     if (!newLeagueClubs.includes(playerClubId)) newLeagueClubs.push(playerClubId);
     for (let i = 0; i < turnover.relegatedClubs.length; i++) {
@@ -1694,7 +1712,9 @@ function endSeasonImpl(set: Set, get: Get) {
         playerIds: [], formation: '4-4-2', lineup: [], subs: [],
         divisionId: playerDiv,
       };
-      const squad = generateSquad(clubId, clubData.squadQuality, season, qualityTier);
+      // Pass league id (not numeric qualityTier) so generateSquad picks
+      // an appropriate nationality distribution bucket for the country.
+      const squad = generateSquad(clubId, clubData.squadQuality, season, playerDiv);
       let totalWages = 0;
       squad.forEach(p => { workingPlayers[p.id] = p; newClub.playerIds.push(p.id); totalWages += p.wage; });
       newClub.wageBill = totalWages;
@@ -2859,6 +2879,22 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
 
     resetSeasonGrowth();
     clearLeagueTableCache();
+    // Fresh game → fresh real-player claim registry. Without this, names
+    // claimed by an earlier session's squad generation would still block
+    // the new run from picking the same real players.
+    resetRealPlayerClaims();
+    // Pre-claim every community-pack template (per-club + free agents)
+    // before any squad is generated, so the FC25 real-player picker that
+    // backs `generateSquad` can't hand the same person to a non-CP club
+    // as a filler.
+    if (cpByClub) {
+      for (const list of Object.values(cpByClub)) {
+        for (const t of list) claimRealPlayer(t);
+      }
+    }
+    if (cpFreeAgents) {
+      for (const t of cpFreeAgents) claimRealPlayer(t);
+    }
     const allPlayers: Record<string, Player> = {};
     const clubs: Record<string, Club> = {};
     const assignedFcIds: string[] = [];
@@ -7083,6 +7119,12 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       resetSaveHash();
       // Hydrate module-level growth tracker so development functions use persisted data
       hydrateSeasonGrowth(data.seasonGrowthTracker || {});
+      // Rebuild the real-player claim registry from the loaded squad. The
+      // registry lives in module state, so without this the picker either
+      // (fresh tab) thinks every real player is available and could re-issue
+      // them as fillers, or (same tab as a previous session) keeps stale
+      // claims from the old game and blocks valid picks.
+      rebuildRealPlayerClaims(data.players || {});
       track('save_loaded', { slot: s });
       return true;
     } catch (err) {

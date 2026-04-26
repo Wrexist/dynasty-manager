@@ -116,6 +116,17 @@ export const VETERAN_MENTAL_BONUS = 10;
 export const GENERATED_PLAYER_OVERALL_CAP = 86;
 export const GENERATED_PLAYER_POTENTIAL_CAP = 94;
 
+// ── Real-player filler OVR window ──
+// When generateSquad falls back to the FC26 real-player pool for a
+// filler slot, it asks the picker for a player whose OVR sits inside
+// `[quality - BAND_BELOW, quality + BAND_ABOVE]`, clamped to the
+// global floor/ceiling. Tuning these widens or narrows how often a
+// weak club gets a real-named filler vs. a procedural one.
+export const REAL_FILLER_OVR_FLOOR = 40;
+export const REAL_FILLER_OVR_CEIL = 99;
+export const REAL_FILLER_OVR_BAND_BELOW = 10;
+export const REAL_FILLER_OVR_BAND_ABOVE = 8;
+
 /** Young player potential boost: +10 + random(0..14) */
 export const YOUNG_POTENTIAL_BOOST_BASE = 10;
 export const YOUNG_POTENTIAL_BOOST_RANGE = 15;

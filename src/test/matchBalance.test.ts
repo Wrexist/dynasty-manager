@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { simulateMatch } from '@/engine/match';
 import { generateSquad, selectBestLineup } from '@/utils/playerGen';
+import { resetRealPlayerClaims } from '@/utils/realPlayerPicker';
 import type { Club, Match } from '@/types/game';
 
 // Deterministic PRNG so statistical balance assertions don't flake.
@@ -37,7 +38,13 @@ function setupClub(id: string, quality: number, rep: number) {
 
 describe('Match Balance', () => {
   const originalRandom = Math.random;
-  beforeEach(() => { Math.random = mulberry32(0xDEAD_BEEF); });
+  beforeEach(() => {
+    Math.random = mulberry32(0xDEAD_BEEF);
+    // Real-player claims are module-level. Without a reset, the second test
+    // would inherit "claimed" real players from the first and silently fall
+    // through to procedural generation for those slots.
+    resetRealPlayerClaims();
+  });
   afterEach(() => { Math.random = originalRandom; });
 
   it('average goals per match is within expected range (1.0-3.5)', () => {
@@ -65,6 +72,11 @@ describe('Match Balance', () => {
 
     const { club: elite, lineup: elitePlayers } = setupClub('elite', 85, 90);
     const { club: weak, lineup: weakPlayers } = setupClub('weak', 55, 40);
+
+    // Re-seed after squad generation so the simulation random sequence
+    // doesn't drift when squad-gen consumes a different number of values
+    // (e.g. when fillers are pulled from the real-player pool).
+    Math.random = mulberry32(0xC0FFEE);
 
     for (let i = 0; i < SAMPLE_SIZE; i++) {
       const match: Match = { id: `mismatch-${i}`, week: 1, homeClubId: 'elite', awayClubId: 'weak', played: false, homeGoals: 0, awayGoals: 0, events: [] };

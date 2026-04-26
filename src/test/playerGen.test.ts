@@ -1,7 +1,12 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { generatePlayer, generateSquad, selectBestLineup, getTeamStrength, calculateOverall, pickNameForNationality } from '@/utils/playerGen';
+import { resetRealPlayerClaims } from '@/utils/realPlayerPicker';
 import { Position, Player, PlayerAttributes, FormationType } from '@/types/game';
 import { SQUAD_TEMPLATE, MAX_SUBS, PLAYER_MIN_AGE, PLAYER_AGE_RANGE } from '@/config/playerGeneration';
+
+// Real-player claims are module-level. Reset before every test so squads
+// generated in one case don't poison the next case's random pool.
+beforeEach(() => resetRealPlayerClaims());
 
 // ── Helper ──
 
@@ -181,11 +186,20 @@ describe('generateSquad', () => {
   });
 
   it('higher quality produces higher average overall', () => {
-    const lowSquad = generateSquad('c', 45, 1);
-    const highSquad = generateSquad('c', 80, 1);
-    const avgLow = lowSquad.reduce((s, p) => s + p.overall, 0) / lowSquad.length;
-    const avgHigh = highSquad.reduce((s, p) => s + p.overall, 0) / highSquad.length;
-    expect(avgHigh).toBeGreaterThan(avgLow);
+    // Average across several seeds — fillers now pull from the real-player
+    // pool with a quality-banded filter, so any single squad can drift if
+    // a position is starved within the band.
+    const avgFor = (quality: number): number => {
+      let total = 0;
+      const SAMPLES = 4;
+      for (let i = 0; i < SAMPLES; i++) {
+        resetRealPlayerClaims();
+        const squad = generateSquad(`c-${quality}-${i}`, quality, 1);
+        total += squad.reduce((s, p) => s + p.overall, 0) / squad.length;
+      }
+      return total / SAMPLES;
+    };
+    expect(avgFor(80)).toBeGreaterThan(avgFor(45));
   });
 
   it('has a star player boost (at least one filler above base quality)', () => {
@@ -202,8 +216,10 @@ describe('generateSquad', () => {
   it('generates valid ages for all players', () => {
     const squad = generateSquad('c', 70, 1);
     for (const p of squad) {
+      // Procedural fillers stay within the age buckets (≤34), but real
+      // FC26 players can be active into their early 40s — accept either.
       expect(p.age).toBeGreaterThanOrEqual(17);
-      expect(p.age).toBeLessThanOrEqual(34);
+      expect(p.age).toBeLessThanOrEqual(44);
     }
   });
 });
