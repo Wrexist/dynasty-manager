@@ -48,7 +48,7 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSUserTrackingUsageDescription</key>
-	<string>Vi använder din annons-ID för att visa relevanta belöningsannonser så du kan öppna gratis paket.</string>
+	<string>We use your advertising ID to show relevant reward ads so you can open free packs.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoadsInWebContent</key>
