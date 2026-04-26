@@ -40,8 +40,8 @@ export function buildAutoFillContext(
     penaltyTakerId: club.penaltyTakerId,
     defensiveFormation: club.defensiveFormation,
     // Pro-tier signals: tactical familiarity (0-100), manager perks, our reputation
-    tacticalFamiliarity: state.training?.tacticalFamiliarity,
-    managerPerks: state.managerProgression?.unlockedPerks,
+    tacticalFamiliarity: state.training.tacticalFamiliarity,
+    managerPerks: state.managerProgression.unlockedPerks,
     ourReputation: club.reputation,
   };
 

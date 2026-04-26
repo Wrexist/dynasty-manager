@@ -52,12 +52,6 @@ export function useLineupOptimizer() {
     if (!club) return;
     setAutoFilling(true);
     try {
-      const oldLineup = [...club.lineup];
-      const oldAvg = Math.round(
-        oldLineup.map(id => players[id]).filter(Boolean)
-          .reduce((s, p) => s + p.overall, 0) / Math.max(1, oldLineup.filter(id => players[id]).length)
-      );
-
       const result = autoFillTeam();
 
       if (result.proRequired) {
@@ -70,7 +64,12 @@ export function useLineupOptimizer() {
         return;
       }
 
-      // Compute OVR diff from fresh state
+      // Only compute OVR diff for Pro users who passed the gate.
+      const oldLineup = [...club.lineup];
+      const oldAvg = Math.round(
+        oldLineup.map(id => players[id]).filter(Boolean)
+          .reduce((s, p) => s + p.overall, 0) / Math.max(1, oldLineup.filter(id => players[id]).length)
+      );
       const freshState = useGameStore.getState();
       const freshClub = freshState.clubs[playerClubId];
       const newAvg = freshClub

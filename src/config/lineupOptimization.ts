@@ -203,7 +203,7 @@ export const THREAT_TALL_BONUS = 1;
 export const THREAT_SOLO_SKILL_MOVES_THRESHOLD = 4;
 export const THREAT_SOLO_PACE_THRESHOLD = 70;
 export const THREAT_SOLO_BONUS = 3;
-/** Free-kick threat threshold (engine: shooting >= 60 for FK goals) */
+/** Free-kick threat threshold for the optimizer bonus. Engine unlocks FK goals at shooting >= 60; we set a higher bar so the bonus only fires for genuine specialists. */
 export const THREAT_FREEKICK_SHOOTING_THRESHOLD = 70;
 export const THREAT_FREEKICK_BONUS = 2;
 /** Skill moves >=4 boost shot quality by +0.02 in engine — bonus for attackers */
@@ -213,8 +213,9 @@ export const THREAT_SKILL_MOVES_BONUS = 2;
 // ── Big-match / reputation-gap awareness ──
 /** Reputation difference (opponentRep - ourRep) above which we treat as a "big match" */
 export const BIG_MATCH_REP_GAP_THRESHOLD = 8;
-/** Mental attribute bonus per point above threshold for big matches (capped) */
+/** Players with mental at or above this threshold qualify for the big-match bonus */
 export const BIG_MATCH_MENTAL_THRESHOLD = 70;
+/** Flat bonus added to qualifying players' scores in a big match */
 export const BIG_MATCH_MENTAL_BONUS = 2;
 /** Leadership bonus added on top of base context leadership for big matches */
 export const BIG_MATCH_LEADERSHIP_BONUS = 2;

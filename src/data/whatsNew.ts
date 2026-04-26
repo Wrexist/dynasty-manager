@@ -97,7 +97,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Player cards now show full first names instead of a bare initial.',
       'Position label moved under the OVR on the left so XI/SUB/LIST badges no longer overlap the top-right corner.',
       'More clearance above the bottom nav so the last row of cards always sits above the tab bar.',
-      'Optimizer now scores goalkeepers with the match-engine save formula.',
+      'Goalkeepers are now picked using the same shot-stopping signals matches care about.',
       'Optimizer reads your tactics: high pressing benches tired players, wide play favours pacy wingers, a high line drops slow centre-backs.',
       'Optimizer rewards clutch traits in big matches and cup ties — leadership, mental, and cup experience.',
       'Optimizer surfaces specialist threats — long-range shooters, headers, skill-move soloists, and free-kick takers.',

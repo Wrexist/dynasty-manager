@@ -558,13 +558,4 @@ describe('autoFillBestTeam — Smart signals (Pro)', () => {
     // Tired players lose more under high pressing than fresh players do
     expect(tiredHigh - tiredLow).toBeLessThan(freshHigh - freshLow);
   });
-
-  it('serves the user a Pro upsell instead of optimising when not Pro', () => {
-    // We cannot easily exercise the slice without a full store; this test
-    // documents the contract on the public action's result shape via the
-    // type definition. The behaviour is exercised end-to-end in
-    // useLineupOptimizer through its proRequired branch.
-    const result = { changes: 0, chemistryLabel: 'Low', chemistryBonus: 0, undersized: false, proRequired: true };
-    expect(result.proRequired).toBe(true);
-  });
 });
