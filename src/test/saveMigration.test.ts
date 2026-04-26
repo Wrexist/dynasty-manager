@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 63', () => {
-    expect(CURRENT_VERSION).toBe(63);
+  it('should have current version set to 64', () => {
+    expect(CURRENT_VERSION).toBe(64);
   });
 
   it('v57 → v59 chains cleanly with a realistic halfTimeState payload', () => {
@@ -112,7 +112,32 @@ describe('saveMigration', () => {
     const existing = { date: '2026-04-26', counts: { bronze: 2 } };
     const v62Data: Record<string, unknown> = { version: 62, adPackOpens: existing };
     const result = migrateSaveData(v62Data) as Record<string, unknown>;
-    expect(result.adPackOpens).toEqual(existing);
+    // v62→v63 keeps the bucket; v63→v64 then converts it into the new
+    // dailyPackOpens shape, preserving the ad counts and starting free at 0.
+    expect(result.dailyPackOpens).toEqual({
+      date: '2026-04-26',
+      free: {},
+      ad: { bronze: 2 },
+    });
+  });
+
+  it('v63 → v64 converts adPackOpens into dailyPackOpens with free + ad buckets', () => {
+    const v63Data: Record<string, unknown> = {
+      version: 63,
+      adPackOpens: { date: '2026-04-26', counts: { bronze: 2, silver: 1 } },
+    };
+    const result = migrateSaveData(v63Data) as Record<string, unknown>;
+    expect(result.dailyPackOpens).toEqual({
+      date: '2026-04-26',
+      free: {},
+      ad: { bronze: 2, silver: 1 },
+    });
+  });
+
+  it('v63 → v64 falls back to empty buckets when adPackOpens is missing', () => {
+    const v63Data: Record<string, unknown> = { version: 63 };
+    const result = migrateSaveData(v63Data) as Record<string, unknown>;
+    expect(result.dailyPackOpens).toEqual({ date: '', free: {}, ad: {} });
   });
 
   it('should perform clean break at v22→v23 (European leagues expansion)', () => {

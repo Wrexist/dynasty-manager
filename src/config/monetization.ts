@@ -88,6 +88,13 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
   // consumed each time the user opens the pack — no permanent entitlement is
   // granted. Configure them as consumable products in App Store Connect /
   // Google Play, and as non-restoring products in RevenueCat.
+  'com.dynastymanager.pack.gold': {
+    id: 'com.dynastymanager.pack.gold',
+    name: 'Gold Pack',
+    description: '5 players with at least one 78+ rated player. Consumable — buy each open beyond the daily free pack.',
+    priceUsd: 2.99,
+    type: 'one_time',
+  },
   'com.dynastymanager.pack.premium_gold': {
     id: 'com.dynastymanager.pack.premium_gold',
     name: 'Premium Gold Pack',
@@ -107,6 +114,7 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
 /** Consumable IAP product IDs — these are NOT restorable / not permanent
  *  entitlements. Each purchase grants a single pack open. */
 export const CONSUMABLE_PRODUCT_IDS: ProductId[] = [
+  'com.dynastymanager.pack.gold',
   'com.dynastymanager.pack.premium_gold',
   'com.dynastymanager.pack.icon',
 ];

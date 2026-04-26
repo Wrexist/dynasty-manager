@@ -1,31 +1,39 @@
-# In-App Purchases — Premium Gold & Icon-paket (Svensk Guide)
+# In-App Purchases — Gold, Premium Gold & Icon-paket (Svensk Guide)
 
 > **NÄR ska detta göras?**
 > Innan du lämnar in appen till App Store / Google Play för granskning.
 > INTE efter lansering — Apple och Google kräver att produkterna finns
 > i butikerna INNAN de granskar bygget som använder dem.
 >
-> **Tills du gör detta:** appen funkar i dev-läge. Premium Gold och Icon
-> "köps" tyst utan riktig betalning (test-nyckel inbakad). Du kan testa
+> **Tills du gör detta:** appen funkar i dev-läge. Gold, Premium Gold och
+> Icon "köps" tyst utan riktig betalning (test-nyckel inbakad). Du kan testa
 > hela köp-flödet på datorn utan att göra något i App Store / Google Play.
 >
 > **Vad gör detta?**
-> Sätter upp riktiga betalningar för Premium Gold ($4.99) och Icon ($9.99).
-> Båda är **konsumerbara** (consumable) — varje köp ger ett paket-öppning,
-> inget permanent. Det är samma modell som t.ex. mynt-paket i andra spel.
+> Sätter upp riktiga betalningar för Gold ($2.99), Premium Gold ($4.99) och
+> Icon ($9.99). Alla tre är **konsumerbara** (consumable) — varje köp ger
+> ett paket-öppning, inget permanent. Gold är ett extra paket utöver det
+> dagliga gratis-paketet (1/dag). Det är samma modell som t.ex. mynt-paket
+> i andra spel.
 
 ---
 
-## Översikt — du behöver konfigurera 4 produkter totalt
+## Översikt — du behöver konfigurera 6 produkter totalt
 
 | Produkt | Plattform | Pris | Product ID |
 |---------|-----------|------|------------|
+| Gold (iOS) | App Store | $2.99 | `com.dynastymanager.pack.gold` |
+| Gold (Android) | Google Play | $2.99 | `com.dynastymanager.pack.gold` |
 | Premium Gold (iOS) | App Store | $4.99 | `com.dynastymanager.pack.premium_gold` |
 | Premium Gold (Android) | Google Play | $4.99 | `com.dynastymanager.pack.premium_gold` |
 | Icon (iOS) | App Store | $9.99 | `com.dynastymanager.pack.icon` |
 | Icon (Android) | Google Play | $9.99 | `com.dynastymanager.pack.icon` |
 
 Sedan kopplas de ihop via **RevenueCat** så koden bara behöver hantera ett system.
+
+> **OBS:** Gold-paketet är ett extra köp **efter** det dagliga gratis-paketet
+> har använts. Bronze och Silver kräver INGEN IAP — bara reklam efter det
+> dagliga gratis-paketet (se `ADMOB_REKLAM_SETUP.md`).
 
 ---
 
@@ -57,6 +65,37 @@ produktion brukar man ha olika `.env.production.ios` och
 ---
 
 ## DEL B — App Store Connect (iOS)
+
+### Steg B.0 — Gold-produkt (iOS)
+
+1. Logga in på https://appstoreconnect.apple.com
+2. **My Apps** → välj **Dynasty Manager**
+3. Vänster meny → **In-App Purchases** → klicka **+** → välj **Consumable** → **Create**
+
+| Fält | Värde |
+|------|-------|
+| Reference Name | `Gold Pack` |
+| Product ID | `com.dynastymanager.pack.gold` |
+| Pricing Tier | **Tier 3 ($2.99 USD)** |
+
+**English Display Name:** `Gold Pack`
+**English Description:**
+```
+Open one Gold pack with 5 players including a guaranteed 78+ rated player. Available after today's daily free Gold pack.
+```
+
+**Swedish Display Name:** `Gold-paket`
+**Swedish Description:**
+```
+Öppna ett Gold-paket med 5 spelare, varav minst en med betyg 78 eller högre. Tillgängligt efter dagens gratis Gold-paket.
+```
+
+**Review notes:**
+```
+Consumable IAP. Each purchase grants one Gold pack opening with 5 randomized in-game players, including at least one rated 78 or higher. The reward is granted immediately. No permanent unlock. Cannot be restored. Players also receive one free Gold pack per real-world day at no cost.
+```
+
+Klicka **Save**.
 
 ### Steg B.1 — Premium Gold-produkt (iOS)
 
@@ -154,6 +193,22 @@ Consumable IAP. Each purchase grants one Icon pack opening with one Icon-tier pl
 
 ## DEL C — Google Play Console (Android)
 
+### Steg C.0 — Gold-produkt (Android)
+
+1. Logga in på https://play.google.com/console
+2. Välj **Dynasty Manager**
+3. Vänster meny → **Monetize** → **Products** → **In-app products** → **Create product**
+
+| Fält | Värde |
+|------|-------|
+| Product ID | `com.dynastymanager.pack.gold` |
+| Name | `Gold Pack` |
+| Description | `Open one Gold pack with 5 players including a guaranteed 78+ rated player. Available after today's daily free Gold pack.` |
+| Default price | **USD 2.99** (≈ 32 kr i SEK) |
+| Status | **Active** |
+
+Klicka **Save** → **Activate**.
+
 ### Steg C.1 — Premium Gold-produkt (Android)
 
 1. Logga in på https://play.google.com/console
@@ -202,6 +257,21 @@ Aktivera.
 
 > Detta är där det är lättast att göra fel. Läs noga.
 
+### Steg D.0 — Lägg till Gold (iOS + Android) i RevenueCat
+
+1. https://app.revenuecat.com → välj projektet → vänster meny → **Products**
+2. Klicka **+ New** för iOS:
+
+| Fält | Värde |
+|------|-------|
+| Store | **App Store** |
+| App | välj din iOS-app |
+| Identifier | `com.dynastymanager.pack.gold` |
+| Type | **Consumable** ⚠️ |
+| Entitlement | TOMT |
+
+3. Klicka **+ New** igen för Android med samma Identifier men **Store: Play Store**.
+
 ### Steg D.1 — Lägg till Premium Gold (iOS) i RevenueCat
 
 1. https://app.revenuecat.com → välj projektet → vänster meny → **Products**
@@ -240,7 +310,7 @@ Upprepa två gånger till för Icon-paketet med:
 - Type: **Consumable**
 - Entitlement: **TOMT**
 
-Du har nu 4 produkter totalt i RevenueCat (2 paket × 2 plattformar).
+Du har nu 6 produkter totalt i RevenueCat (3 paket × 2 plattformar).
 
 ### Steg D.4 — Lägg produkterna i en Offering
 
@@ -249,26 +319,33 @@ Du har nu 4 produkter totalt i RevenueCat (2 paket × 2 plattformar).
    - **Identifier:** `default` (eller `packs`)
    - Klicka **Create**
 
-3. Klicka **+ New package** inuti offeringen
-4. För Premium Gold:
+3. Klicka **+ New package** inuti offeringen — gör detta tre gånger.
+
+**Paket 1 — Gold:**
+
+| Fält | Värde |
+|------|-------|
+| Identifier | `gold` |
+| Package type | **Custom** |
+| Products | välj BÅDA Gold-produkterna (App Store + Play Store) |
+
+**Paket 2 — Premium Gold:**
 
 | Fält | Värde |
 |------|-------|
 | Identifier | `premium_gold` |
 | Package type | **Custom** |
-| Products | välj BÅDA Premium Gold-produkterna (App Store + Play Store) |
+| Products | välj BÅDA Premium Gold-produkterna |
 
-5. Klicka **Save**
-
-6. Klicka **+ New package** igen för Icon:
+**Paket 3 — Icon:**
 
 | Fält | Värde |
 |------|-------|
 | Identifier | `icon` |
 | Package type | **Custom** |
-| Products | välj BÅDA Icon-produkterna (App Store + Play Store) |
+| Products | välj BÅDA Icon-produkterna |
 
-7. Klicka **Save**
+Klicka **Save** efter varje.
 
 ### Steg D.5 — Aktivera offeringen
 
@@ -342,21 +419,24 @@ Det är denna offering som koden hämtar via `Purchases.getOfferings()`.
 | RevenueCat iOS-nyckel sparad | ☐ |
 | RevenueCat Android-nyckel sparad | ☐ |
 | `.env.local` har `VITE_REVENUECAT_API_KEY` | ☐ |
-| App Store: `com.dynastymanager.pack.premium_gold` skapad som **Consumable** | ☐ |
-| App Store: Premium Gold prissatt som Tier 5 ($4.99) | ☐ |
+| App Store: `com.dynastymanager.pack.gold` skapad som **Consumable** ($2.99) | ☐ |
+| App Store: Gold har English + Swedish localizations | ☐ |
+| App Store: `com.dynastymanager.pack.premium_gold` skapad som **Consumable** ($4.99) | ☐ |
 | App Store: Premium Gold har English + Swedish localizations | ☐ |
-| App Store: `com.dynastymanager.pack.icon` skapad som **Consumable** | ☐ |
-| App Store: Icon prissatt som Tier 10 ($9.99) | ☐ |
+| App Store: `com.dynastymanager.pack.icon` skapad som **Consumable** ($9.99) | ☐ |
 | App Store: Icon har English + Swedish localizations | ☐ |
-| Play Store: `com.dynastymanager.pack.premium_gold` skapad och **Active** | ☐ |
-| Play Store: Premium Gold prissatt USD 4.99 | ☐ |
-| Play Store: `com.dynastymanager.pack.icon` skapad och **Active** | ☐ |
-| Play Store: Icon prissatt USD 9.99 | ☐ |
-| RevenueCat: 4 produkter typ **Consumable** (INTE subscription/non-consumable) | ☐ |
-| RevenueCat: alla 4 har TOMT entitlement-fält | ☐ |
-| RevenueCat: båda paketen ligger i en **current** Offering | ☐ |
-| Sandbox-test iOS lyckas (riktig $4.99-prompt visas och paketet öppnas) | ☐ |
-| Internal-test Android lyckas (riktig 49 kr-prompt visas och paketet öppnas) | ☐ |
+| Play Store: `com.dynastymanager.pack.gold` skapad och **Active** ($2.99) | ☐ |
+| Play Store: `com.dynastymanager.pack.premium_gold` skapad och **Active** ($4.99) | ☐ |
+| Play Store: `com.dynastymanager.pack.icon` skapad och **Active** ($9.99) | ☐ |
+| RevenueCat: alla 6 produkter typ **Consumable** (INTE subscription/non-consumable) | ☐ |
+| RevenueCat: alla 6 har TOMT entitlement-fält | ☐ |
+| RevenueCat: alla 3 paketen ligger i en **current** Offering | ☐ |
+| Sandbox-test iOS — Gold ($2.99) lyckas | ☐ |
+| Sandbox-test iOS — Premium Gold ($4.99) lyckas | ☐ |
+| Sandbox-test iOS — Icon ($9.99) lyckas | ☐ |
+| Internal-test Android — Gold (32 kr) lyckas | ☐ |
+| Internal-test Android — Premium Gold (49 kr) lyckas | ☐ |
+| Internal-test Android — Icon (109 kr) lyckas | ☐ |
 
 När alla rutor är ikryssade → kör `npm run ship -- "Wire RevenueCat IAPs for production"` och bygg ny TestFlight / Play-version.
 

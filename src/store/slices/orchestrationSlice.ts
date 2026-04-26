@@ -375,7 +375,7 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     packPityCounter: state.packPityCounter || 0,
     lastPackWeek: state.lastPackWeek || 0,
     lastPackSeason: state.lastPackSeason || 0,
-    adPackOpens: state.adPackOpens || { date: '', counts: {} },
+    dailyPackOpens: state.dailyPackOpens || { date: '', free: {}, ad: {} },
   };
   let json = JSON.stringify(saveData);
 
@@ -3142,7 +3142,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       packPityCounter: 0,
       lastPackWeek: 0,
       lastPackSeason: 0,
-      adPackOpens: { date: '', counts: {} },
+      dailyPackOpens: { date: '', free: {}, ad: {} },
       sponsorDeals: generateStarterDeals(pcInit.reputation, 1),
       sponsorOffers: [],
       sponsorSlotCooldowns: {},
@@ -7215,7 +7215,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pendingPressConference: null, activeNegotiation: null,
       pendingFarewell: [], pendingStoryline: null,
       openedPacks: [], packPityCounter: 0, lastPackWeek: 0, lastPackSeason: 0,
-      adPackOpens: { date: '', counts: {} },
+      dailyPackOpens: { date: '', free: {}, ad: {} },
       activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
       objectiveStreak: 0, objectivesStartWeek: 1, completedCoachTaskIds: [],
       weekCliffhangers: [], rivalries: {}, lastMatchDrama: null, lastMatchCompetition: null,

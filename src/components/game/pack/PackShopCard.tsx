@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Lock, Sparkles, ShieldCheck, Play, ShoppingBag } from 'lucide-react';
-import type { PackTierDefinition } from '@/types/game';
+import { Lock, Sparkles, ShieldCheck, Play, ShoppingBag, Gift } from 'lucide-react';
+import type { PackTierDefinition, PackUnlockMethod } from '@/types/game';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
@@ -9,13 +9,22 @@ import { PackArt } from './PackArt';
 
 interface PackShopCardProps {
   tier: PackTierDefinition;
-  /** True if the player can pay for this pack right now (currency or IAP). */
+  /** True if the player can use the active method right now. */
   affordable: boolean;
   squadOk: boolean;
   onSelect: () => void;
   featured?: boolean;
-  /** For ad-unlock packs: how many opens remain today. Undefined for non-ad packs. */
-  adOpensRemaining?: number;
+  /** Active method for this tier given today's usage — the page picks
+   *  this via `free → ad → iap → currency` priority. `null` means
+   *  nothing is available right now (caps hit, no fallback). */
+  method: PackUnlockMethod | null;
+  /** Free opens remaining today (0 if tier doesn't offer free opens). */
+  freeRemaining: number;
+  /** Ad opens remaining today (0 if tier doesn't offer ad opens). */
+  adRemaining: number;
+  /** Pre-formatted countdown string to next daily reset (e.g. "5h 23m").
+   *  Only shown when the active method is locked behind a daily reset. */
+  resetCountdown?: string;
 }
 
 /**
@@ -25,36 +34,56 @@ interface PackShopCardProps {
  * from the art behind it via backdrop-blur + backdrop-saturate. Guarantee
  * badge floats over the art top-right.
  */
-export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured, adOpensRemaining }: PackShopCardProps) {
-  const unlock = tier.unlock || 'currency';
-  const adExhausted = unlock === 'ad' && typeof adOpensRemaining === 'number' && adOpensRemaining <= 0;
-  const disabled = !squadOk || (!affordable && unlock !== 'ad') || adExhausted;
+export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured, method, freeRemaining, adRemaining, resetCountdown }: PackShopCardProps) {
+  const noMethod = method === null;
+  const disabled = !squadOk || noMethod || !affordable;
   const prefersReducedMotion = useReducedMotion();
 
-  // CTA chip text + icon vary by unlock type. Ad packs say WATCH, IAP packs
-  // surface the planned price tier, currency packs keep BUY.
-  const ctaLabel = unlock === 'ad'
-    ? (adExhausted ? 'Tomorrow' : 'Watch')
-    : unlock === 'iap'
-      ? 'Buy'
-      : 'Buy';
+  // CTA chip text + icon vary by active unlock method.
+  const ctaLabel = method === 'free'
+    ? 'Open Free'
+    : method === 'ad'
+      ? 'Watch'
+      : method === 'iap'
+        ? 'Buy'
+        : method === 'currency'
+          ? 'Buy'
+          : 'Tomorrow';
   const lockedReason = !squadOk
     ? 'Full'
-    : unlock === 'ad'
+    : noMethod
       ? 'Tomorrow'
-      : unlock === 'iap'
-        ? 'Store'
-        : 'Budget';
+      : method === 'currency'
+        ? 'Budget'
+        : 'Store';
 
-  // Bottom-row price line: ad packs show "FREE · X left today", IAP packs
-  // show their planned store price, currency packs show in-game money.
-  const priceLine = unlock === 'ad'
-    ? (typeof adOpensRemaining === 'number' ? `Free · ${adOpensRemaining} left today` : 'Free · watch ad')
-    : unlock === 'iap'
-      ? (tier.iapPriceDisplay || 'In-app purchase')
-      : formatMoney(tier.price);
+  // Bottom-row price/availability line. Free is the headline when free
+  // opens remain; once free is used we step down to ad / iap / currency.
+  // We also surface "X left today" so the user knows their daily quota.
+  let priceLine: string;
+  if (method === 'free') {
+    priceLine = freeRemaining > 1
+      ? `FREE · ${freeRemaining} left today`
+      : 'FREE · today\'s daily';
+  } else if (method === 'ad') {
+    priceLine = adRemaining > 0
+      ? `Free · ${adRemaining} ad${adRemaining === 1 ? '' : 's'} left today`
+      : 'Watch ad';
+  } else if (method === 'iap') {
+    priceLine = tier.iapPriceDisplay || 'In-app purchase';
+  } else if (method === 'currency') {
+    priceLine = formatMoney(tier.price);
+  } else {
+    priceLine = resetCountdown ? `Resets in ${resetCountdown}` : 'Come back tomorrow';
+  }
 
-  const CtaIcon = unlock === 'ad' ? Play : unlock === 'iap' ? ShoppingBag : null;
+  const CtaIcon = method === 'free'
+    ? Gift
+    : method === 'ad'
+      ? Play
+      : method === 'iap'
+        ? ShoppingBag
+        : null;
 
   return (
     <motion.button

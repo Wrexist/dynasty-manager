@@ -1315,6 +1315,7 @@ export type ProductId =
   | 'com.dynastymanager.pack.stadium'
   | 'com.dynastymanager.pack.legends'
   | 'com.dynastymanager.bundle.all'
+  | 'com.dynastymanager.pack.gold'
   | 'com.dynastymanager.pack.premium_gold'
   | 'com.dynastymanager.pack.icon';
 
@@ -1694,18 +1695,21 @@ export interface PackRarityWeights {
   legendary: number;  // 90+
 }
 
-/** How a pack is unlocked.
+/** Method used to unlock a single pack open.
+ *  - `free`: zero-cost daily allowance, capped by `freeDailyLimit`.
+ *  - `ad`: rewarded video ad, capped by `adDailyLimit`. Used after free runs out.
  *  - `currency`: spends in-game club budget at `price` per open.
- *  - `ad`: free, but the player watches a rewarded ad to open. Capped by
- *    `dailyLimit` opens per real-world day.
- *  - `iap`: real-money in-app purchase per open. The matching `productId`
- *    is purchased via RevenueCat each time the pack is opened. */
-export type PackUnlockType = 'currency' | 'ad' | 'iap';
+ *  - `iap`: real-money in-app purchase via RevenueCat at `productId`.
+ *
+ *  A tier can support multiple methods. The page picks the active one in
+ *  this priority: `free` → `ad` → `iap` → `currency`. */
+export type PackUnlockMethod = 'free' | 'ad' | 'currency' | 'iap';
 
 export interface PackTierDefinition {
   key: PackTierKey;
   label: string;
   tagline: string;
+  /** In-game currency price. 0 means the pack is not buyable with money. */
   price: number;
   cards: number;
   /** Guaranteed-rare floor applied to one card in the pack. */
@@ -1724,14 +1728,16 @@ export interface PackTierDefinition {
    *  placeholder. Public asset path (e.g. `/packs/bronze.png`). The img
    *  fails silently to the placeholder if the asset isn't deployed yet. */
   artSrc?: string;
-  /** How this pack is unlocked. Defaults to currency when omitted. */
-  unlock?: PackUnlockType;
-  /** Per-day open limit when `unlock === 'ad'`. */
-  dailyLimit?: number;
-  /** RevenueCat / store product identifier when `unlock === 'iap'`. */
+  /** Free opens per real-world day (no ad, no payment). Default 0. */
+  freeDailyLimit?: number;
+  /** Rewarded-ad opens per real-world day, used after free opens are
+   *  exhausted. Default 0. */
+  adDailyLimit?: number;
+  /** RevenueCat / store product identifier. When set, the pack supports
+   *  unlimited consumable IAP opens after free/ad allowances run out. */
   productId?: ProductId;
-  /** Display-only price string when `unlock === 'iap'` (e.g. `'$4.99'`).
-   *  Real price comes from the store at runtime — this is the planned tier. */
+  /** Display-only price string for the IAP path (e.g. `'$4.99'`). Real
+   *  price comes from the store at runtime — this is the planned tier. */
   iapPriceDisplay?: string;
 }
 
@@ -1760,6 +1766,8 @@ export interface OpenPackResult {
   placement?: Record<string, PackPlayerPlacement>;
   /** Number of starter-slot changes the auto-place applied. */
   lineupChanges?: number;
+  /** Which unlock method was used for this open. */
+  method?: PackUnlockMethod;
 }
 
 export interface ReleasePackedPlayerResult {

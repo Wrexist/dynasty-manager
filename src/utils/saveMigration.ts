@@ -9,7 +9,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 63;
+const CURRENT_VERSION = 64;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -962,6 +962,29 @@ const migrations: Record<number, MigrationFn> = {
     version: 63,
     adPackOpens: data.adPackOpens || { date: '', counts: {} },
   }),
+
+  // v63 → v64: Pack model now supports layered methods per tier
+  // (free → ad → iap → currency). Replaces the single-bucket
+  // `adPackOpens.counts` with two buckets (`free`, `ad`) under a new
+  // `dailyPackOpens` key. Bronze + Silver: 1 free/day + 3 ad/day.
+  // Gold: 1 free/day + unlimited IAP. Premium / Icon: IAP only.
+  // Migration carries the old per-tier ad count into the new `ad`
+  // bucket and starts the `free` bucket empty (so users get today's
+  // free pack on next open).
+  63: (data) => {
+    const oldBucket = data.adPackOpens as
+      | { date?: string; counts?: Record<string, number> }
+      | undefined;
+    return {
+      ...data,
+      version: 64,
+      dailyPackOpens: {
+        date: oldBucket?.date || '',
+        free: {},
+        ad: oldBucket?.counts || {},
+      },
+    };
+  },
 };
 
 /** Lightweight structural check for a save payload *after* migration. Guards
