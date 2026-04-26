@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { migrateSaveData, CURRENT_VERSION } from '@/utils/saveMigration';
 
 describe('saveMigration', () => {
-  it('should have current version set to 62', () => {
-    expect(CURRENT_VERSION).toBe(62);
+  it('should have current version set to 63', () => {
+    expect(CURRENT_VERSION).toBe(63);
   });
 
   it('v57 → v59 chains cleanly with a realistic halfTimeState payload', () => {
@@ -100,6 +100,19 @@ describe('saveMigration', () => {
     expect(result.packPityCounter).toBe(4);
     expect(result.lastPackWeek).toBe(5);
     expect(result.lastPackSeason).toBe(2);
+  });
+
+  it('v62 → v63 seeds an empty adPackOpens bucket for the new daily-limit gate', () => {
+    const v62Data: Record<string, unknown> = { version: 62 };
+    const result = migrateSaveData(v62Data) as Record<string, unknown>;
+    expect(result.adPackOpens).toEqual({ date: '', counts: {} });
+  });
+
+  it('v62 → v63 preserves an existing adPackOpens bucket', () => {
+    const existing = { date: '2026-04-26', counts: { bronze: 2 } };
+    const v62Data: Record<string, unknown> = { version: 62, adPackOpens: existing };
+    const result = migrateSaveData(v62Data) as Record<string, unknown>;
+    expect(result.adPackOpens).toEqual(existing);
   });
 
   it('should perform clean break at v22→v23 (European leagues expansion)', () => {

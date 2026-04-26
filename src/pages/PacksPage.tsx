@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
-import { Package, Coins, Flame, AlertCircle } from 'lucide-react';
+import { Package, Coins, Flame } from 'lucide-react';
 import { useGameStore } from '@/store/gameStore';
 import { GlassPanel, LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
 import { PageHint } from '@/components/game/PageHint';
@@ -9,36 +9,49 @@ import { AnimatedNumber } from '@/components/game/AnimatedNumber';
 import { PAGE_HINTS, PLAYER_TIER_THRESHOLDS } from '@/config/ui';
 import { MAX_SQUAD_SIZE } from '@/config/gameBalance';
 import { PACK_TIERS, PACK_TIER_MAP, PACK_PITY_THRESHOLD, RECENT_PULLS_LIMIT, getFeaturedPackTier } from '@/config/packs';
-import type { PackPlayerPlacement, PackTierKey } from '@/types/game';
+import type { PackPlayerPlacement, PackTierKey, PackTierDefinition } from '@/types/game';
 import { PackShopCard } from '@/components/game/pack/PackShopCard';
 import { PackOpeningOverlay } from '@/components/game/pack/PackOpeningOverlay';
 import { PlayerCard } from '@/components/game/PlayerCard';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
-import { errorToast, successToast } from '@/utils/gameToast';
+import { errorToast, infoToast, successToast } from '@/utils/gameToast';
 import type { Player } from '@/types/game';
+import { showRewardedAd } from '@/utils/ads';
+import { purchaseConsumable } from '@/utils/purchases';
 
 function playerTier(ovr: number) {
   for (const t of PLAYER_TIER_THRESHOLDS) if (ovr >= t.min) return t;
   return PLAYER_TIER_THRESHOLDS[PLAYER_TIER_THRESHOLDS.length - 1];
 }
 
+/** Same YYYY-MM-DD key the slice uses to bucket per-day ad opens. */
+function todayDateKey(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 const PacksPage = () => {
-  const { club, players, openedPacks, packPityCounter, lastPackWeek, lastPackSeason, season, week } = useGameStore(useShallow((s) => ({
+  const { club, players, openedPacks, packPityCounter, season, week, adPackOpens } = useGameStore(useShallow((s) => ({
     club: s.clubs[s.playerClubId],
     players: s.players,
     openedPacks: s.openedPacks || [],
     packPityCounter: s.packPityCounter || 0,
-    lastPackWeek: s.lastPackWeek || 0,
-    lastPackSeason: s.lastPackSeason || 0,
     season: s.season,
     week: s.week,
+    adPackOpens: s.adPackOpens || { date: '', counts: {} },
   })));
   const openPack = useGameStore(s => s.openPack);
   const quickSellPackedPlayer = useGameStore(s => s.quickSellPackedPlayer);
 
   const [opening, setOpening] = useState<{ tier: PackTierKey; players: Player[]; pityTriggered?: boolean; placement?: Record<string, PackPlayerPlacement> } | null>(null);
   const [replay, setReplay] = useState<{ tier: PackTierKey; players: Player[] } | null>(null);
+  /** True while a rewarded ad or IAP flow is in flight — prevents
+   *  double-clicks producing duplicate spend or back-to-back ad requests. */
+  const [busy, setBusy] = useState(false);
 
   // Keep just drops the card from the overlay view — the player stays on
   // the squad (openPack already wrote them in). No store action needed.
@@ -64,42 +77,113 @@ const PacksPage = () => {
 
   const budget = club?.budget ?? 0;
   const squadSize = club?.playerIds.length ?? 0;
-  // Drive cooldown state purely from the tracked (season, week) pair so the
-  // UI stays correct even if openedPacks history gets pruned or migrated.
-  const weekCooldownActive = lastPackSeason > 0 && lastPackWeek > 0
-    && lastPackSeason === season && lastPackWeek === week;
 
   const pityRemaining = Math.max(0, PACK_PITY_THRESHOLD - packPityCounter);
   const pityProgressPct = Math.min(100, (packPityCounter / PACK_PITY_THRESHOLD) * 100);
+
+  // Ad-pack daily quota (currently bronze). Reset implicitly when the
+  // device clock rolls past midnight by virtue of the date key changing.
+  const today = todayDateKey();
+  const adOpensToday = (tier: PackTierDefinition): number => {
+    if (adPackOpens.date !== today) return 0;
+    return adPackOpens.counts[tier.key] || 0;
+  };
+  const adOpensRemaining = (tier: PackTierDefinition): number | undefined => {
+    if (tier.unlock !== 'ad' || tier.dailyLimit == null) return undefined;
+    return Math.max(0, tier.dailyLimit - adOpensToday(tier));
+  };
 
   const featuredKey = useMemo(() => getFeaturedPackTier(season, week), [season, week]);
   const featured = PACK_TIER_MAP[featuredKey];
   const nonFeatured = useMemo(() => PACK_TIERS.filter(t => t.key !== featuredKey), [featuredKey]);
 
-  const handleOpen = (tierKey: PackTierKey) => {
-    // Guard against rapid double-taps while an overlay is already up or
-    // a pack was just opened this frame. openPack() is synchronous so
-    // this is enough — no timers needed.
-    if (opening || replay) return;
-    if (weekCooldownActive) {
-      errorToast('Only one pack per week', 'Advance a week to open another.');
-      return;
-    }
+  /** True if the player can pay for this pack right now. Currency packs
+   *  check budget; ad packs are always "affordable" until the daily limit
+   *  is exhausted; IAP packs are always affordable here (the store decides). */
+  const isAffordable = (tier: PackTierDefinition): boolean => {
+    const unlock = tier.unlock || 'currency';
+    if (unlock === 'currency') return budget >= tier.price;
+    if (unlock === 'ad') return (adOpensRemaining(tier) ?? 0) > 0;
+    return true; // iap — let the store sheet handle availability
+  };
+
+  const handleOpen = async (tierKey: PackTierKey) => {
+    // Guard against rapid double-taps while an overlay is already up,
+    // a pack was just opened this frame, or an async ad/IAP is mid-flight.
+    if (opening || replay || busy) return;
     const tier = PACK_TIER_MAP[tierKey];
-    if (!club || club.budget < tier.price) {
-      errorToast('Insufficient funds', `This pack costs ${formatMoney(tier.price)}.`);
-      return;
-    }
+    if (!club) return;
+
     if (squadSize + tier.cards > MAX_SQUAD_SIZE) {
       errorToast('Squad full', `Release players — pack delivers ${tier.cards} player(s).`);
       return;
     }
-    const result = openPack(tierKey);
-    if (!result.success || !result.players) {
-      errorToast('Could not open pack', result.message);
+
+    const unlock = tier.unlock || 'currency';
+
+    if (unlock === 'currency') {
+      if (club.budget < tier.price) {
+        errorToast('Insufficient funds', `This pack costs ${formatMoney(tier.price)}.`);
+        return;
+      }
+      const result = openPack(tierKey);
+      if (!result.success || !result.players) {
+        errorToast('Could not open pack', result.message);
+        return;
+      }
+      setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
       return;
     }
-    setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
+
+    if (unlock === 'ad') {
+      const remaining = adOpensRemaining(tier) ?? 0;
+      if (remaining <= 0) {
+        errorToast('Daily limit reached', `${tier.dailyLimit} ${tier.label}s per day. Come back tomorrow.`);
+        return;
+      }
+      setBusy(true);
+      try {
+        const watched = await showRewardedAd();
+        if (!watched) {
+          infoToast('Ad not shown', 'No reward granted — please try again.');
+          return;
+        }
+        const result = openPack(tierKey, { skipPayment: true });
+        if (!result.success || !result.players) {
+          errorToast('Could not open pack', result.message);
+          return;
+        }
+        setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
+    // unlock === 'iap'
+    if (!tier.productId) {
+      errorToast('Pack unavailable', 'This pack is missing a store product ID.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const purchased = await purchaseConsumable(tier.productId);
+      if (!purchased) {
+        // User cancelled or store unavailable — silent on cancel, message otherwise.
+        return;
+      }
+      const result = openPack(tierKey, { skipPayment: true });
+      if (!result.success || !result.players) {
+        errorToast('Could not open pack', result.message);
+        return;
+      }
+      successToast('Purchase complete', `${tier.label} unlocked.`);
+      setOpening({ tier: tierKey, players: result.players, pityTriggered: result.pityTriggered, placement: result.placement });
+    } catch {
+      errorToast('Purchase failed', 'Please try again.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const recentPacks = openedPacks.slice(0, RECENT_PULLS_LIMIT);
@@ -131,7 +215,8 @@ const PacksPage = () => {
           </div>
         </div>
 
-        {/* Squad cap + weekly throttle chips */}
+        {/* Squad cap chip. The once-per-week throttle was removed —
+            Bronze now caps via a daily ad limit, surfaced on its own card. */}
         <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest">
           <span className={cn(
             'px-2 py-1 rounded-md border',
@@ -141,11 +226,6 @@ const PacksPage = () => {
           )}>
             Squad {squadSize}/{MAX_SQUAD_SIZE}
           </span>
-          {weekCooldownActive && (
-            <span className="px-2 py-1 rounded-md border border-amber-400/40 text-amber-400 bg-amber-400/10 flex items-center gap-1">
-              <AlertCircle className="w-3 h-3" /> One per week
-            </span>
-          )}
         </div>
 
         {/* Featured hero */}
@@ -157,9 +237,10 @@ const PacksPage = () => {
           <PackShopCard
             featured
             tier={featured}
-            affordable={budget >= featured.price}
+            affordable={isAffordable(featured)}
             squadOk={squadSize + featured.cards <= MAX_SQUAD_SIZE}
-            onSelect={() => handleOpen(featured.key)}
+            onSelect={() => { void handleOpen(featured.key); }}
+            adOpensRemaining={adOpensRemaining(featured)}
           />
         </div>
 
@@ -171,9 +252,10 @@ const PacksPage = () => {
               <PackShopCard
                 key={tier.key}
                 tier={tier}
-                affordable={budget >= tier.price}
+                affordable={isAffordable(tier)}
                 squadOk={squadSize + tier.cards <= MAX_SQUAD_SIZE}
-                onSelect={() => handleOpen(tier.key)}
+                onSelect={() => { void handleOpen(tier.key); }}
+                adOpensRemaining={adOpensRemaining(tier)}
               />
             ))}
           </div>

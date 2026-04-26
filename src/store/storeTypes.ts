@@ -427,9 +427,21 @@ export interface GameState {
   // Pack Opening
   openedPacks: OpenedPackRecord[];
   packPityCounter: number;
+  /** Legacy fields — last (season, week) a pack was opened. The
+   *  once-per-week throttle has been removed; these are kept for save
+   *  compatibility and analytics but no longer gate opening. */
   lastPackWeek: number;
   lastPackSeason: number;
-  openPack: (tier: PackTierKey) => OpenPackResult;
+  /** Per-real-day open count for ad-unlocked packs (currently bronze).
+   *  `date` is an ISO date string `YYYY-MM-DD` keyed off the device clock;
+   *  `counts` maps PackTierKey → opens on that date. Resets the next day. */
+  adPackOpens: { date: string; counts: Partial<Record<PackTierKey, number>> };
+  /** Open a pack. For `unlock: 'currency'` packs the in-game budget is
+   *  charged. Pass `{ skipPayment: true }` from the page after a successful
+   *  rewarded ad (`unlock: 'ad'`) or after a successful consumable IAP
+   *  purchase (`unlock: 'iap'`) — the slice still validates the daily ad
+   *  limit on its own. */
+  openPack: (tier: PackTierKey, opts?: { skipPayment?: boolean }) => OpenPackResult;
   releasePackedPlayer: (playerId: string) => ReleasePackedPlayerResult;
   quickSellPackedPlayer: (playerId: string) => QuickSellPackedPlayerResult;
 

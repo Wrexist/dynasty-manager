@@ -58,6 +58,26 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.0.1',
+    build: null,
+    date: '2026-04-26',
+    headline: 'Free packs, fewer limits, premium drops.',
+    summary: 'Open packs as often as you like — the once-per-week wait is gone. Bronze packs are now free with a quick rewarded ad, capped at three opens per day. Silver and Gold packs cost more, while Premium Gold and Icon packs are real-money in-app purchases for instant elite signings.',
+    highlights: [
+      'Removed the weekly pack cooldown — open as many packs as you can afford.',
+    ],
+    new: [
+      'Bronze packs are now free with a rewarded ad, up to three opens per day.',
+      'Premium Gold and Icon packs are now in-app purchases for guaranteed elite pulls.',
+    ],
+    improved: [
+      'Silver and Gold packs cost more in-game money, matching their stronger guarantees.',
+    ],
+    fixed: [
+      'Pack shop no longer locks you out of pack opens for the rest of the week.',
+    ],
+  },
+  {
     version: '1.0.0',
     build: null,
     date: '2026-04-24',

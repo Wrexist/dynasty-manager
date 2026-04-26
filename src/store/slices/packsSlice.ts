@@ -35,13 +35,25 @@ type Get = () => GameState;
 // OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult all live in
 // `@/types/game` (single source of truth for domain types).
 
+/** Real-world date key (YYYY-MM-DD, device-local) used to bucket
+ *  daily ad-pack opens. Lives in the slice so tests can stub `Date`
+ *  without touching production timezone logic. */
+function todayDateKey(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 export const createPacksSlice = (set: Set, get: Get) => ({
   openedPacks: [] as OpenedPackRecord[],
   packPityCounter: 0,
   lastPackWeek: 0,
   lastPackSeason: 0,
+  adPackOpens: { date: '', counts: {} } as { date: string; counts: Partial<Record<PackTierKey, number>> },
 
-  openPack: (tierKey: PackTierKey): OpenPackResult => {
+  openPack: (tierKey: PackTierKey, opts?: { skipPayment?: boolean }): OpenPackResult => {
     const state = get();
     const tier = PACK_TIER_MAP[tierKey];
     if (!tier) return { success: false, message: 'Unknown pack tier.' };
@@ -52,8 +64,30 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     const blocked = challengeBlockReason(state);
     if (blocked) return { success: false, message: blocked };
 
-    if (club.budget < tier.price) {
+    const unlock = tier.unlock || 'currency';
+    const skipPayment = opts?.skipPayment === true;
+
+    // Daily-limit gate for ad-unlock packs (e.g. Bronze). The page is
+    // expected to show a rewarded ad before calling openPack with
+    // skipPayment=true; this gate runs even on skipPayment=true so the
+    // limit can't be bypassed by a misbehaving caller.
+    const today = todayDateKey();
+    const adOpens = state.adPackOpens || { date: '', counts: {} };
+    const adOpensToday = adOpens.date === today ? (adOpens.counts[tierKey] || 0) : 0;
+    if (unlock === 'ad' && tier.dailyLimit != null && adOpensToday >= tier.dailyLimit) {
+      return { success: false, message: `Daily limit reached — ${tier.dailyLimit} ${tier.label}s per day. Come back tomorrow.` };
+    }
+
+    if (unlock === 'currency' && !skipPayment && club.budget < tier.price) {
       return { success: false, message: 'Insufficient funds for this pack.' };
+    }
+
+    if (unlock === 'iap' && !skipPayment) {
+      // IAP packs require a successful real-money purchase from the page
+      // before openPack is invoked. The slice never charges in-game funds
+      // for IAP packs — the page must call purchaseConsumable() and pass
+      // skipPayment=true on success.
+      return { success: false, message: 'This pack requires an in-app purchase.' };
     }
 
     const slotsAvailable = MAX_SQUAD_SIZE - club.playerIds.length;
@@ -62,20 +96,6 @@ export const createPacksSlice = (set: Set, get: Get) => ({
         success: false,
         message: `Not enough squad space — this pack delivers ${tier.cards} player(s). Release players first.`,
       };
-    }
-
-    // Once-per-week throttle, keyed solely by the cooldown fields
-    // (season, week). Advancing a week re-enables opening. The `> 0` guards
-    // skip the first-ever open (both fields start at 0). We deliberately
-    // don't consult `openedPacks` so the cooldown survives log pruning or
-    // any future migration that clears history.
-    if (
-      (state.lastPackSeason || 0) > 0
-      && (state.lastPackWeek || 0) > 0
-      && state.lastPackSeason === state.season
-      && state.lastPackWeek === state.week
-    ) {
-      return { success: false, message: 'Only one pack per week — advance a week to open another.' };
     }
 
     const pityTriggered = shouldPityTrigger(state.packPityCounter || 0);
@@ -90,9 +110,12 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       return owned;
     });
 
+    // Only `currency` packs charge club budget. Ad packs are free; IAP
+    // packs are paid in real money outside the simulation.
+    const budgetDeduction = unlock === 'currency' ? tier.price : 0;
     const updatedClub = {
       ...club,
-      budget: Math.max(0, club.budget - tier.price),
+      budget: Math.max(0, club.budget - budgetDeduction),
       playerIds: [...club.playerIds, ...finalizedPlayers.map(p => p.id)],
       wageBill: club.wageBill + finalizedPlayers.reduce((s, p) => s + p.wage, 0),
     };
@@ -110,12 +133,17 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     const newPity = updatedPityCounter(state.packPityCounter || 0, finalizedPlayers);
     const topPlayer = finalizedPlayers.reduce((best, p) => p.overall > best.overall ? p : best, finalizedPlayers[0]);
 
+    const costLabel = unlock === 'currency'
+      ? `cost £${(tier.price / 1e6).toFixed(1)}M`
+      : unlock === 'ad'
+        ? 'opened with a rewarded ad'
+        : 'unlocked via in-app purchase';
     let newMessages = addMsg(state.messages, {
       week: state.week,
       season: state.season,
       type: 'transfer',
       title: `${tier.label} Opened`,
-      body: `${tier.label} cost £${(tier.price / 1e6).toFixed(1)}M. Top pull: ${topPlayer.firstName} ${topPlayer.lastName} (${topPlayer.overall} OVR, ${topPlayer.position}). ${tier.cards} player(s) added to your squad.`,
+      body: `${tier.label} ${costLabel}. Top pull: ${topPlayer.firstName} ${topPlayer.lastName} (${topPlayer.overall} OVR, ${topPlayer.position}). ${tier.cards} player(s) added to your squad.`,
     });
 
     // FFP wage-ratio warning — mirrors renewContract. A stack of Icon/Rare
@@ -274,6 +302,18 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       });
     }
 
+    // Bump per-day ad-pack counter on ad-unlock opens so the daily limit
+    // is enforced even after a save reload. `date` rolls over the moment
+    // a new ISO-day starts; existing buckets fall away with it.
+    const nextAdPackOpens = unlock === 'ad'
+      ? {
+          date: today,
+          counts: adOpens.date === today
+            ? { ...adOpens.counts, [tierKey]: adOpensToday + 1 }
+            : { [tierKey]: 1 },
+        }
+      : adOpens;
+
     set({
       players: playersWithAi,
       clubs: clubsWithLineup,
@@ -281,8 +321,9 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       packPityCounter: newPity,
       lastPackWeek: state.week,
       lastPackSeason: state.season,
+      adPackOpens: nextAdPackOpens,
       messages: newMessages,
-      seasonTotalExpenses: (state.seasonTotalExpenses || 0) + tier.price,
+      seasonTotalExpenses: (state.seasonTotalExpenses || 0) + budgetDeduction,
       managerProgression: newProgression,
       careerManager: newCareerManager,
       lastMatchXPGain: xpEarned > 0 ? xpEarned : state.lastMatchXPGain,

@@ -84,7 +84,32 @@ export const PRODUCTS: Record<ProductId, ProductDef> = {
       'com.dynastymanager.pack.legends',
     ],
   },
+  // Consumable player-pack IAPs. Unlike cosmetic / Pro products, these are
+  // consumed each time the user opens the pack — no permanent entitlement is
+  // granted. Configure them as consumable products in App Store Connect /
+  // Google Play, and as non-restoring products in RevenueCat.
+  'com.dynastymanager.pack.premium_gold': {
+    id: 'com.dynastymanager.pack.premium_gold',
+    name: 'Premium Gold Pack',
+    description: '5 players with at least one 82+ rated star. Consumable — buy each open.',
+    priceUsd: 4.99,
+    type: 'one_time',
+  },
+  'com.dynastymanager.pack.icon': {
+    id: 'com.dynastymanager.pack.icon',
+    name: 'Icon Pack',
+    description: '1 guaranteed 88+ Icon player with a walkout reveal. Consumable — buy each open.',
+    priceUsd: 9.99,
+    type: 'one_time',
+  },
 };
+
+/** Consumable IAP product IDs — these are NOT restorable / not permanent
+ *  entitlements. Each purchase grants a single pack open. */
+export const CONSUMABLE_PRODUCT_IDS: ProductId[] = [
+  'com.dynastymanager.pack.premium_gold',
+  'com.dynastymanager.pack.icon',
+];
 
 /** Product IDs that grant Pro access (one-time purchases + subscriptions) */
 export const PRO_PRODUCT_IDS: ProductId[] = [

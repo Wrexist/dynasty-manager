@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Lock, Sparkles, ShieldCheck } from 'lucide-react';
+import { Lock, Sparkles, ShieldCheck, Play, ShoppingBag } from 'lucide-react';
 import type { PackTierDefinition } from '@/types/game';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
@@ -9,10 +9,13 @@ import { PackArt } from './PackArt';
 
 interface PackShopCardProps {
   tier: PackTierDefinition;
+  /** True if the player can pay for this pack right now (currency or IAP). */
   affordable: boolean;
   squadOk: boolean;
   onSelect: () => void;
   featured?: boolean;
+  /** For ad-unlock packs: how many opens remain today. Undefined for non-ad packs. */
+  adOpensRemaining?: number;
 }
 
 /**
@@ -22,10 +25,37 @@ interface PackShopCardProps {
  * from the art behind it via backdrop-blur + backdrop-saturate. Guarantee
  * badge floats over the art top-right.
  */
-export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured }: PackShopCardProps) {
-  const disabled = !affordable || !squadOk;
+export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured, adOpensRemaining }: PackShopCardProps) {
+  const unlock = tier.unlock || 'currency';
+  const adExhausted = unlock === 'ad' && typeof adOpensRemaining === 'number' && adOpensRemaining <= 0;
+  const disabled = !squadOk || (!affordable && unlock !== 'ad') || adExhausted;
   const prefersReducedMotion = useReducedMotion();
-  const lockedReason = !affordable ? 'Budget' : 'Full';
+
+  // CTA chip text + icon vary by unlock type. Ad packs say WATCH, IAP packs
+  // surface the planned price tier, currency packs keep BUY.
+  const ctaLabel = unlock === 'ad'
+    ? (adExhausted ? 'Tomorrow' : 'Watch')
+    : unlock === 'iap'
+      ? 'Buy'
+      : 'Buy';
+  const lockedReason = !squadOk
+    ? 'Full'
+    : unlock === 'ad'
+      ? 'Tomorrow'
+      : unlock === 'iap'
+        ? 'Store'
+        : 'Budget';
+
+  // Bottom-row price line: ad packs show "FREE · X left today", IAP packs
+  // show their planned store price, currency packs show in-game money.
+  const priceLine = unlock === 'ad'
+    ? (typeof adOpensRemaining === 'number' ? `Free · ${adOpensRemaining} left today` : 'Free · watch ad')
+    : unlock === 'iap'
+      ? (tier.iapPriceDisplay || 'In-app purchase')
+      : formatMoney(tier.price);
+
+  const CtaIcon = unlock === 'ad' ? Play : unlock === 'iap' ? ShoppingBag : null;
+
   return (
     <motion.button
       type="button"
@@ -38,7 +68,7 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl',
         disabled && 'opacity-60 grayscale cursor-not-allowed',
       )}
-      aria-label={`Buy ${tier.label}, ${formatMoney(tier.price)}${disabled ? ` (unavailable — ${lockedReason.toLowerCase()})` : ''}`}
+      aria-label={`${ctaLabel} ${tier.label}, ${priceLine}${disabled ? ` (unavailable — ${lockedReason.toLowerCase()})` : ''}`}
     >
       <div
         className={cn(
@@ -129,7 +159,7 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
                     featured ? 'text-xs' : 'text-[11px]',
                   )}
                 >
-                  {formatMoney(tier.price)}
+                  {priceLine}
                 </p>
               </div>
 
@@ -149,8 +179,12 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
                 )}
               >
                 <span className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/55 to-transparent" />
-                {disabled && <Lock className="relative w-3 h-3" />}
-                <span className="relative">{disabled ? lockedReason : 'Buy'}</span>
+                {disabled
+                  ? <Lock className="relative w-3 h-3" />
+                  : CtaIcon
+                    ? <CtaIcon className="relative w-3 h-3" />
+                    : null}
+                <span className="relative">{disabled ? lockedReason : ctaLabel}</span>
               </span>
             </div>
           </div>

@@ -1314,7 +1314,9 @@ export type ProductId =
   | 'com.dynastymanager.pack.manager'
   | 'com.dynastymanager.pack.stadium'
   | 'com.dynastymanager.pack.legends'
-  | 'com.dynastymanager.bundle.all';
+  | 'com.dynastymanager.bundle.all'
+  | 'com.dynastymanager.pack.premium_gold'
+  | 'com.dynastymanager.pack.icon';
 
 export type SubscriptionTier = 'monthly' | 'lifetime';
 
@@ -1692,6 +1694,14 @@ export interface PackRarityWeights {
   legendary: number;  // 90+
 }
 
+/** How a pack is unlocked.
+ *  - `currency`: spends in-game club budget at `price` per open.
+ *  - `ad`: free, but the player watches a rewarded ad to open. Capped by
+ *    `dailyLimit` opens per real-world day.
+ *  - `iap`: real-money in-app purchase per open. The matching `productId`
+ *    is purchased via RevenueCat each time the pack is opened. */
+export type PackUnlockType = 'currency' | 'ad' | 'iap';
+
 export interface PackTierDefinition {
   key: PackTierKey;
   label: string;
@@ -1714,6 +1724,15 @@ export interface PackTierDefinition {
    *  placeholder. Public asset path (e.g. `/packs/bronze.png`). The img
    *  fails silently to the placeholder if the asset isn't deployed yet. */
   artSrc?: string;
+  /** How this pack is unlocked. Defaults to currency when omitted. */
+  unlock?: PackUnlockType;
+  /** Per-day open limit when `unlock === 'ad'`. */
+  dailyLimit?: number;
+  /** RevenueCat / store product identifier when `unlock === 'iap'`. */
+  productId?: ProductId;
+  /** Display-only price string when `unlock === 'iap'` (e.g. `'$4.99'`).
+   *  Real price comes from the store at runtime — this is the planned tier. */
+  iapPriceDisplay?: string;
 }
 
 export interface OpenedPackRecord {

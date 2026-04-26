@@ -9,7 +9,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 62;
+const CURRENT_VERSION = 63;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -950,6 +950,18 @@ const migrations: Record<number, MigrationFn> = {
     }
     return { ...data, version: 62, players: next };
   },
+
+  // v62 → v63: Pack monetization revamp — the once-per-week throttle was
+  // removed, Bronze became a free rewarded-ad pack with a per-day open
+  // limit, and Premium / Icon packs are now consumable IAPs. Existing
+  // saves get a fresh `adPackOpens` bucket so the daily-limit gate works
+  // immediately. `lastPackWeek` / `lastPackSeason` are kept for save
+  // compatibility but no longer enforce a cooldown.
+  62: (data) => ({
+    ...data,
+    version: 63,
+    adPackOpens: data.adPackOpens || { date: '', counts: {} },
+  }),
 };
 
 /** Lightweight structural check for a save payload *after* migration. Guards

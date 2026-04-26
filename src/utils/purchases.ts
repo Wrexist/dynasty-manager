@@ -50,6 +50,49 @@ export async function initPurchases(): Promise<void> {
   }
 }
 
+/**
+ * Purchase a consumable IAP (e.g. a single Premium Gold or Icon pack open).
+ * Returns true if the purchase completed successfully. The caller is
+ * responsible for granting the in-game reward immediately on success —
+ * consumables are NOT persisted as entitlements and cannot be restored.
+ *
+ * On web/dev (where the native plugin isn't available) this resolves true
+ * so the rest of the flow can be tested without a real store.
+ */
+export async function purchaseConsumable(productId: ProductId): Promise<boolean> {
+  if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
+    // No native store available — treat as a successful test purchase so
+    // the pack flow can be exercised end-to-end in dev.
+    return true;
+  }
+
+  try {
+    const { Purchases } = await import('@revenuecat/purchases-capacitor');
+    const offerings = await Purchases.getOfferings() as {
+      current?: { availablePackages: { product: { identifier: string } }[] };
+      all?: Record<string, { availablePackages: { product: { identifier: string } }[] }>;
+    };
+    const allPackages = [
+      ...(offerings.current?.availablePackages || []),
+      ...Object.values(offerings.all || {}).flatMap(o => o.availablePackages || []),
+    ];
+    const pkg = allPackages.find(p => p.product.identifier === productId);
+    if (!pkg) {
+      throw new Error(`Consumable ${productId} not found in offerings`);
+    }
+    await Purchases.purchasePackage({ aPackage: pkg as Parameters<typeof Purchases.purchasePackage>[0]['aPackage'] });
+    return true;
+  } catch (err: unknown) {
+    const error = err as { code?: string; userCancelled?: boolean };
+    if (error.userCancelled || error.code === 'PURCHASE_CANCELLED') {
+      return false;
+    }
+    if (import.meta.env.DEV) console.error('[Purchases] Consumable purchase failed:', err);
+    Sentry.captureException(err, { tags: { context: 'purchases.purchaseConsumable' }, extra: { productId } });
+    throw err;
+  }
+}
+
 /** Purchase a product. Returns the list of granted entitlement product IDs. */
 export async function purchaseProduct(productId: ProductId): Promise<ProductId[]> {
   if (!Capacitor.isNativePlatform() || !NATIVE_MONETIZATION_READY) {
@@ -143,7 +186,10 @@ export async function getCustomerInfo(): Promise<any | null> {
   }
 }
 
-/** Map RevenueCat CustomerInfo to our ProductId array. */
+/** Map RevenueCat CustomerInfo to our ProductId array.
+ *  Consumable pack IAPs (premium_gold, icon) are intentionally NOT listed
+ *  here — they grant a single pack open at purchase time and must not be
+ *  restored as permanent entitlements. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapEntitlements(customerInfo: any): ProductId[] {
   const validIds: ProductId[] = [
