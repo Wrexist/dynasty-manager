@@ -3,6 +3,7 @@ import type { GameState } from '../storeTypes';
 import { selectBestLineup } from '@/utils/playerGen';
 import { autoFillBestTeam } from '@/utils/autoFillLineup';
 import { buildAutoFillContext } from '@/utils/autoFillContext';
+import { isPro } from '@/utils/monetization';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -43,6 +44,20 @@ export const createClubSlice = (set: Set, get: Get) => ({
 
   autoFillTeam: () => {
     const state = get();
+
+    // Pro entitlement guard — the Smart Optimizer is a Pro feature. UI is
+    // already gated, but we re-check here so any non-UI caller (devtools,
+    // future shortcuts, plug-in code) can't bypass the paywall.
+    if (!isPro(state.monetization)) {
+      return {
+        changes: 0,
+        chemistryLabel: 'Low',
+        chemistryBonus: 0,
+        undersized: false,
+        proRequired: true,
+      };
+    }
+
     const club = { ...state.clubs[state.playerClubId] };
     const squad = club.playerIds.map(id => state.players[id]).filter(Boolean);
     const oldLineup = [...club.lineup];

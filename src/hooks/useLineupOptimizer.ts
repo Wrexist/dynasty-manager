@@ -60,6 +60,11 @@ export function useLineupOptimizer() {
 
       const result = autoFillTeam();
 
+      if (result.proRequired) {
+        toast.warning('Smart Optimizer is a Dynasty Pro feature.');
+        return;
+      }
+
       if (result.undersized) {
         toast.warning(result.undersizedDetail);
         return;

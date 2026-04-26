@@ -65,6 +65,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     summary: 'A simple bullet-point changelog for every TestFlight build, so you can scan what changed at a glance.',
     highlights: [
       'New What\'s New page on the main menu and in Settings.',
+      'Smart Optimize Lineup is now a Dynasty Pro feature that reads tactics, manager perks and opposition.',
     ],
     new: [
       'What\'s New tile on the title screen.',
@@ -96,6 +97,11 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Player cards now show full first names instead of a bare initial.',
       'Position label moved under the OVR on the left so XI/SUB/LIST badges no longer overlap the top-right corner.',
       'More clearance above the bottom nav so the last row of cards always sits above the tab bar.',
+      'Optimizer now scores goalkeepers with the match-engine save formula.',
+      'Optimizer reads your tactics: high pressing benches tired players, wide play favours pacy wingers, a high line drops slow centre-backs.',
+      'Optimizer rewards clutch traits in big matches and cup ties — leadership, mental, and cup experience.',
+      'Optimizer surfaces specialist threats — long-range shooters, headers, skill-move soloists, and free-kick takers.',
+      'Manager perks now bend lineup picks: Disciplinarian softens card risk, Fitness Guru forgives tired legs, Motivator picks low-morale players, Set-Piece Coach pushes your taker into the XI.',
     ],
     fixed: [
       'Alternate positions now glow green like FUT chemistry.',

@@ -1,4 +1,4 @@
-import type { Player, FormationType, Position, PlayerAttributes, TacticalInstructions, AIManagerStyle } from '@/types/game';
+import type { Player, FormationType, Position, PlayerAttributes, TacticalInstructions, AIManagerStyle, PerkId } from '@/types/game';
 import { FORMATION_POSITIONS, canPlayPosition } from '@/types/game';
 import { POSITION_WEIGHTS } from '@/config/playerGeneration';
 import { MAX_SUBS } from '@/config/playerGeneration';
@@ -61,6 +61,69 @@ import {
   BENCH_DEFENSIVE_FORMATION_COVER_BONUS,
   LINEUP_BENCH_SWAP_PASSES,
   BENCH_PLAYER_FITNESS_WEIGHT,
+  // Pro-tier "Smart" signals
+  GK_DEFENDING_WEIGHT,
+  GK_MENTAL_WEIGHT,
+  GK_PHYSICAL_WEIGHT,
+  TACTICS_FAST_TEMPO_PASSING_THRESHOLD,
+  TACTICS_FAST_TEMPO_PASSING_BONUS,
+  TACTICS_SLOW_TEMPO_PHYSICAL_THRESHOLD,
+  TACTICS_SLOW_TEMPO_PHYSICAL_BONUS,
+  TACTICS_HIGH_PRESS_INTENSITY_THRESHOLD,
+  TACTICS_HIGH_PRESS_FITNESS_THRESHOLD,
+  TACTICS_HIGH_PRESS_FITNESS_PENALTY_PER_POINT,
+  TACTICS_HIGH_PRESS_PHYS_MENTAL_THRESHOLD,
+  TACTICS_HIGH_PRESS_PHYS_MENTAL_BONUS,
+  TACTICS_HIGH_LINE_CB_PACE_THRESHOLD,
+  TACTICS_HIGH_LINE_CB_SLOW_PENALTY,
+  TACTICS_DEEP_LINE_CB_DEFENDING_THRESHOLD,
+  TACTICS_DEEP_LINE_CB_BONUS,
+  TACTICS_WIDE_WIDE_PLAYER_PACE_THRESHOLD,
+  TACTICS_WIDE_WIDE_PLAYER_BONUS,
+  TACTICS_NARROW_CENTRAL_BONUS,
+  TACTICS_ATTACKING_MENTALITY_BONUS,
+  TACTICS_ALL_OUT_ATTACK_MENTALITY_BONUS,
+  TACTICS_DEFENSIVE_MENTALITY_BONUS,
+  TACTICS_CAUTIOUS_MENTALITY_BONUS,
+  THREAT_LONG_RANGE_SHOOTING_THRESHOLD,
+  THREAT_LONG_RANGE_BONUS,
+  THREAT_HEADER_PHYSICAL_THRESHOLD,
+  THREAT_HEADER_BONUS,
+  THREAT_TALL_HEIGHT_CM,
+  THREAT_TALL_BONUS,
+  THREAT_SOLO_SKILL_MOVES_THRESHOLD,
+  THREAT_SOLO_PACE_THRESHOLD,
+  THREAT_SOLO_BONUS,
+  THREAT_FREEKICK_SHOOTING_THRESHOLD,
+  THREAT_FREEKICK_BONUS,
+  THREAT_SKILL_MOVES_THRESHOLD,
+  THREAT_SKILL_MOVES_BONUS,
+  BIG_MATCH_REP_GAP_THRESHOLD,
+  BIG_MATCH_MENTAL_THRESHOLD,
+  BIG_MATCH_MENTAL_BONUS,
+  BIG_MATCH_LEADERSHIP_BONUS,
+  CUP_LEADERSHIP_BONUS,
+  CUP_SKILL_MOVES_BONUS,
+  FAMILIARITY_LOW_THRESHOLD,
+  FAMILIARITY_COMPATIBLE_PENALTY_PER_POINT,
+  PERK_DISCIPLINARIAN_CARD_MULT,
+  PERK_FITNESS_GURU_FITNESS_MULT,
+  PERK_MOTIVATOR_MORALE_MULT,
+  PERK_IRON_WILL_UNHAPPY_MULT,
+  PERK_SET_PIECE_COACH_TAKER_BONUS,
+  AGE_FRAGILITY_THRESHOLD,
+  AGE_FRAGILITY_PENALTY_PER_YEAR,
+  FRAGILITY_LOW_PHYSICAL_THRESHOLD,
+  FRAGILITY_LOW_PHYSICAL_PENALTY,
+  AGE_CONGESTED_PENALTY,
+  AGE_CONGESTED_AGE_THRESHOLD,
+  AGE_CONGESTED_FITNESS_THRESHOLD,
+  BENCH_LONG_RANGE_THREAT_BONUS,
+  BENCH_IMPACT_PACE_THRESHOLD,
+  BENCH_IMPACT_PACE_BONUS,
+  BENCH_CLOSER_PHYSICAL_THRESHOLD,
+  BENCH_CLOSER_MENTAL_THRESHOLD,
+  BENCH_CLOSER_BONUS,
 } from '@/config/lineupOptimization';
 import { getChemistryBonus, getChemistryLabel } from '@/utils/chemistry';
 
@@ -77,6 +140,8 @@ export interface AutoFillContext {
   opponentFormation?: FormationType;
   opponentStyle?: AIManagerStyle;
   opponentReputation?: number;
+  /** Our reputation — used together with opponentReputation to detect "big match" rep gap */
+  ourReputation?: number;
   isHome?: boolean;
   derbyIntensity?: number;
   isCupMatch?: boolean;
@@ -84,11 +149,32 @@ export interface AutoFillContext {
   setPieceTakerId?: string;
   penaltyTakerId?: string;
   defensiveFormation?: FormationType;
+  /** Tacticalfamiliarity 0-100 — at low values, compatible (non-natural) deployments are penalised */
+  tacticalFamiliarity?: number;
+  /** Manager perks unlocked this run — affect discipline/fitness/morale/wantsToLeave weights */
+  managerPerks?: PerkId[];
+  /** Career-wide discipline modifier (negative reduces card-risk weighting) */
+  careerDisciplineModifier?: number;
 }
 
 // Position role sets (mirrors match engine categories)
 const ATTACKING_POSITIONS: Position[] = ['ST', 'LW', 'RW', 'CAM'];
 const DEFENSIVE_POSITIONS: Position[] = ['CB', 'CDM', 'LB', 'RB'];
+const WIDE_POSITIONS: Position[] = ['LB', 'RB', 'LM', 'RM', 'LW', 'RW'];
+const CENTRAL_MID_POSITIONS: Position[] = ['CM', 'CDM', 'CAM'];
+const HEADER_THREAT_POSITIONS: Position[] = ['CB', 'ST'];
+
+/**
+ * Goalkeeper shot-stopping quality, mirroring the match engine formula at
+ * match.ts:267-272: `(defending*0.4 + mental*0.3 + physical*0.3)`. Returned
+ * on the same 0-100 scale as positionalOverall so it slots into the
+ * scoring sum without requiring separate calibration.
+ */
+function gkQuality(attrs: PlayerAttributes): number {
+  return attrs.defending * GK_DEFENDING_WEIGHT
+    + attrs.mental * GK_MENTAL_WEIGHT
+    + attrs.physical * GK_PHYSICAL_WEIGHT;
+}
 
 
 
@@ -118,12 +204,28 @@ function positionFitScore(player: { position: Position; alternatePositions?: Pos
 
 /**
  * Score a player for a specific formation slot.
- * Considers: positional overall, form, fitness (position-specific), morale, position fit,
- * wantsToLeave, yellow card suspension risk, re-injury risk, threshold penalties,
- * and match context (opponent style, derby, home/away, cup, congestion, leadership).
+ *
+ * Base signals (always-on):
+ *   positional overall, form, fitness (position-specific), morale, position fit,
+ *   wantsToLeave, yellow-card suspension risk, re-injury risk, threshold penalties.
+ *
+ * Pro-tier "Smart" signals (only active when the matching context fields are
+ * supplied — see `buildAutoFillContext`):
+ *   - GK match-engine formula (defending*0.4 + mental*0.3 + physical*0.3)
+ *   - Tactics interactions (mentality / tempo / pressing / defensive line / width)
+ *   - Goal-flavor threats (long-range, header, solo, free-kick, skill moves)
+ *   - Big-match / reputation gap awareness (mental + leadership)
+ *   - Tactical familiarity (penalises compatible-only fits when low)
+ *   - Manager perks (disciplinarian, fitness_guru, motivator, iron_will, set_piece_coach)
+ *   - Age / physical fragility (engine injury risk)
+ *   - Career discipline modifier
  */
-function scorePlayerForSlot(player: Player, slotPosition: Position, context?: AutoFillContext): number {
-  const posOverall = positionalOverall(player.attributes, slotPosition);
+export function scorePlayerForSlot(player: Player, slotPosition: Position, context?: AutoFillContext): number {
+  // ── Base rating: GK gets engine-accurate formula, outfield uses positionalOverall ──
+  // Both functions return 0-100 (weights sum to 1), so they share calibration.
+  const posOverall = slotPosition === 'GK'
+    ? gkQuality(player.attributes)
+    : positionalOverall(player.attributes, slotPosition);
 
   // Position-specific fitness weight: attackers need more fitness (40% of goal selection in match engine)
   const fitnessWeight = POSITION_FITNESS_OVERRIDE[slotPosition] ?? FITNESS_WEIGHT;
@@ -135,31 +237,51 @@ function scorePlayerForSlot(player: Player, slotPosition: Position, context?: Au
     (player.morale / 100) * MORALE_WEIGHT +
     positionFitScore(player, slotPosition);
 
+  // ── Perk-aware multipliers (default 1.0 when perks/context absent) ──
+  const perks = context?.managerPerks ?? [];
+  const fitnessPenaltyMult = perks.includes('fitness_guru') ? PERK_FITNESS_GURU_FITNESS_MULT : 1;
+  const moralePenaltyMult = perks.includes('motivator') ? PERK_MOTIVATOR_MORALE_MULT : 1;
+  const cardPenaltyMult = perks.includes('disciplinarian') ? PERK_DISCIPLINARIAN_CARD_MULT : 1;
+  const unhappyPenaltyMult = perks.includes('iron_will') ? PERK_IRON_WILL_UNHAPPY_MULT : 1;
+
+  // Career-wide discipline modifier scales card penalties further (negative reduces them)
+  const careerDisc = context?.careerDisciplineModifier ?? 0;
+  const careerCardMult = Math.max(0.25, 1 + careerDisc); // clamp so no perverse negative effects
+
   // Extra penalty for low fitness — match engine applies -0.15 shot penalty below 50
   if (player.fitness < LOW_FITNESS_THRESHOLD) {
-    score += LOW_FITNESS_EXTRA_PENALTY;
+    score += LOW_FITNESS_EXTRA_PENALTY * fitnessPenaltyMult;
   }
 
   // Extra penalty for low morale — match engine applies (morale-50)/100 * 0.10 modifier
   if (player.morale < LOW_MORALE_THRESHOLD) {
-    score += LOW_MORALE_EXTRA_PENALTY;
+    score += LOW_MORALE_EXTRA_PENALTY * moralePenaltyMult;
   }
 
   // Unhappy players reduce team strength ~1.4% per unhappy player (15% / 11)
   if (player.wantsToLeave) {
-    score += WANTS_TO_LEAVE_PENALTY;
+    score += WANTS_TO_LEAVE_PENALTY * unhappyPenaltyMult;
   }
 
   // Yellow card suspension risk — non-linear: 2+ cards = imminent ban risk
   if (player.yellowCards >= YELLOW_CARD_HIGH_THRESHOLD) {
-    score += YELLOW_CARD_HIGH_PENALTY;
+    score += YELLOW_CARD_HIGH_PENALTY * cardPenaltyMult * careerCardMult;
   } else if (player.yellowCards > 0) {
-    score += YELLOW_CARD_LOW_PENALTY;
+    score += YELLOW_CARD_LOW_PENALTY * cardPenaltyMult * careerCardMult;
   }
 
   // Re-injury risk for players recently returned from injury
   if (player.injuryDetails?.reinjuryWeeksRemaining && player.injuryDetails.reinjuryWeeksRemaining > 0) {
     score += REINJURY_RISK_PENALTY_SCALE * (player.injuryDetails.reinjuryRisk || 0);
+  }
+
+  // ── Age / physical fragility (engine injury formula match.ts:1777-1788) ──
+  // Older + low-physical players are riskier; bias the optimizer toward more reliable picks.
+  if (player.age >= AGE_FRAGILITY_THRESHOLD) {
+    score -= (player.age - AGE_FRAGILITY_THRESHOLD + 1) * AGE_FRAGILITY_PENALTY_PER_YEAR;
+  }
+  if (player.attributes.physical < FRAGILITY_LOW_PHYSICAL_THRESHOLD) {
+    score += FRAGILITY_LOW_PHYSICAL_PENALTY;
   }
 
   // ── Match Context Adjustments ──
@@ -168,7 +290,8 @@ function scorePlayerForSlot(player: Player, slotPosition: Position, context?: Au
     if (context.derbyIntensity && context.derbyIntensity > 0 && player.personality?.temperament != null) {
       if (player.personality.temperament < CONTEXT_DERBY_TEMPERAMENT_THRESHOLD) {
         const tempGap = CONTEXT_DERBY_TEMPERAMENT_THRESHOLD - player.personality.temperament;
-        score -= tempGap * context.derbyIntensity * CONTEXT_DERBY_TEMPERAMENT_PENALTY_PER_INTENSITY;
+        // Disciplinarian perk + career discipline reduce derby-card pressure too
+        score -= tempGap * context.derbyIntensity * CONTEXT_DERBY_TEMPERAMENT_PENALTY_PER_INTENSITY * cardPenaltyMult * careerCardMult;
       }
     }
 
@@ -182,10 +305,24 @@ function scorePlayerForSlot(player: Player, slotPosition: Position, context?: Au
     if (context.isCupMatch && player.appearances >= CONTEXT_CUP_EXPERIENCE_THRESHOLD) {
       score += CONTEXT_CUP_EXPERIENCE_BONUS;
     }
+    if (context.isCupMatch && player.personality?.leadership != null
+      && player.personality.leadership >= CONTEXT_LEADERSHIP_BONUS_THRESHOLD) {
+      score += CUP_LEADERSHIP_BONUS;
+    }
+    if (context.isCupMatch && (player.skillMoves ?? 0) >= THREAT_SKILL_MOVES_THRESHOLD
+      && ATTACKING_POSITIONS.includes(slotPosition)) {
+      score += CUP_SKILL_MOVES_BONUS;
+    }
 
     // Congested fixtures: penalize fatigued players who'll be exhausted for next match
     if (context.hasMatchNextWeek && player.fitness < CONTEXT_CONGESTED_FITNESS_PENALTY_THRESHOLD) {
       score += CONTEXT_CONGESTED_FITNESS_PENALTY;
+    }
+    // Older + tired starters get an extra rotation penalty in congested weeks
+    if (context.hasMatchNextWeek
+      && player.age >= AGE_CONGESTED_AGE_THRESHOLD
+      && player.fitness < AGE_CONGESTED_FITNESS_THRESHOLD) {
+      score += AGE_CONGESTED_PENALTY;
     }
 
     // Opponent style counter bonuses
@@ -217,15 +354,143 @@ function scorePlayerForSlot(player: Player, slotPosition: Position, context?: Au
       }
     }
 
+    // ── Big-match / reputation gap (engine: HOME_ADVANTAGE + reputation matters) ──
+    if (context.opponentReputation != null && context.ourReputation != null) {
+      const repGap = context.opponentReputation - context.ourReputation;
+      if (repGap >= BIG_MATCH_REP_GAP_THRESHOLD) {
+        if (player.attributes.mental >= BIG_MATCH_MENTAL_THRESHOLD) score += BIG_MATCH_MENTAL_BONUS;
+        if (player.personality?.leadership != null
+          && player.personality.leadership >= CONTEXT_LEADERSHIP_BONUS_THRESHOLD) {
+          score += BIG_MATCH_LEADERSHIP_BONUS;
+        }
+      }
+    }
+
     // Leadership bonus: high-leadership players boost team cohesion
     if (player.personality?.leadership != null && player.personality.leadership >= CONTEXT_LEADERSHIP_BONUS_THRESHOLD) {
       score += CONTEXT_LEADERSHIP_STARTER_BONUS;
     }
 
-    // Set piece taker bonuses: ensure designated takers stay in the XI
-    // Engine gives +3% corner goal chance and +5% penalty conversion for designated takers
-    if (context.setPieceTakerId === player.id) score += LINEUP_SET_PIECE_TAKER_BONUS;
+    // ── Set-piece taker bonuses ──
+    // Engine gives +3% corner goal chance and +5% penalty conversion for designated takers.
+    // set_piece_coach perk amplifies the taker bonus further.
+    if (context.setPieceTakerId === player.id) {
+      score += LINEUP_SET_PIECE_TAKER_BONUS
+        + (perks.includes('set_piece_coach') ? PERK_SET_PIECE_COACH_TAKER_BONUS : 0);
+    }
     if (context.penaltyTakerId === player.id) score += LINEUP_PENALTY_TAKER_BONUS;
+
+    // ── Tactical familiarity: at low values, the squad struggles outside their natural shape ──
+    // We add an extra penalty proportional to the gap when the slot is non-natural.
+    if (context.tacticalFamiliarity != null
+      && context.tacticalFamiliarity < FAMILIARITY_LOW_THRESHOLD
+      && player.position !== slotPosition
+      && canPlayPosition(player, slotPosition)) {
+      const gap = FAMILIARITY_LOW_THRESHOLD - context.tacticalFamiliarity;
+      score -= gap * FAMILIARITY_COMPATIBLE_PENALTY_PER_POINT;
+    }
+
+    // ── Tactics-aware scoring (mentality / tempo / pressing / defensive line / width) ──
+    if (context.tactics) {
+      const t = context.tactics;
+      const isAttacker = ATTACKING_POSITIONS.includes(slotPosition);
+      const isDefender = DEFENSIVE_POSITIONS.includes(slotPosition);
+      const isWide = WIDE_POSITIONS.includes(slotPosition);
+      const isCentralMid = CENTRAL_MID_POSITIONS.includes(slotPosition);
+
+      // Tempo: fast wants high passing/mental in midfield+attack; slow wants physical in defence/mid
+      if (t.tempo === 'fast'
+        && (isAttacker || isCentralMid || slotPosition === 'LM' || slotPosition === 'RM')
+        && player.attributes.passing >= TACTICS_FAST_TEMPO_PASSING_THRESHOLD) {
+        score += TACTICS_FAST_TEMPO_PASSING_BONUS;
+      }
+      if (t.tempo === 'slow'
+        && (isDefender || isCentralMid)
+        && player.attributes.physical >= TACTICS_SLOW_TEMPO_PHYSICAL_THRESHOLD) {
+        score += TACTICS_SLOW_TEMPO_PHYSICAL_BONUS;
+      }
+
+      // Pressing intensity: high press needs stamina (engine drains fitness faster).
+      // Penalize tired players, reward high physical+mental.
+      if (t.pressingIntensity != null && t.pressingIntensity >= TACTICS_HIGH_PRESS_INTENSITY_THRESHOLD) {
+        if (player.fitness < TACTICS_HIGH_PRESS_FITNESS_THRESHOLD) {
+          const gap = TACTICS_HIGH_PRESS_FITNESS_THRESHOLD - player.fitness;
+          // Scale penalty by how high the press is (50→0 effect, 100→0.5x base)
+          const intensityScale = (t.pressingIntensity - 50) / 50;
+          score -= gap * TACTICS_HIGH_PRESS_FITNESS_PENALTY_PER_POINT * intensityScale * fitnessPenaltyMult;
+        }
+        if (player.attributes.physical >= TACTICS_HIGH_PRESS_PHYS_MENTAL_THRESHOLD
+          && player.attributes.mental >= TACTICS_HIGH_PRESS_PHYS_MENTAL_THRESHOLD
+          && (isCentralMid || isWide || slotPosition === 'CDM')) {
+          score += TACTICS_HIGH_PRESS_PHYS_MENTAL_BONUS;
+        }
+      }
+
+      // Defensive line: high line punishes slow CBs; deep line forgives them
+      if (slotPosition === 'CB') {
+        if (t.defensiveLine === 'high' && player.attributes.pace < TACTICS_HIGH_LINE_CB_PACE_THRESHOLD) {
+          score += TACTICS_HIGH_LINE_CB_SLOW_PENALTY;
+        }
+        if (t.defensiveLine === 'deep'
+          && player.attributes.defending >= TACTICS_DEEP_LINE_CB_DEFENDING_THRESHOLD) {
+          score += TACTICS_DEEP_LINE_CB_BONUS;
+        }
+      }
+
+      // Width: wide play wants pacy wide players; narrow play favours central creators
+      if (t.width === 'wide' && isWide
+        && player.attributes.pace >= TACTICS_WIDE_WIDE_PLAYER_PACE_THRESHOLD) {
+        score += TACTICS_WIDE_WIDE_PLAYER_BONUS;
+      }
+      if (t.width === 'narrow' && isCentralMid) {
+        score += TACTICS_NARROW_CENTRAL_BONUS;
+      }
+
+      // Mentality: attacking shifts goal-chance attack mod; defensive shifts defence mod
+      if (t.mentality === 'all-out-attack' && isAttacker) score += TACTICS_ALL_OUT_ATTACK_MENTALITY_BONUS;
+      else if (t.mentality === 'attacking' && isAttacker) score += TACTICS_ATTACKING_MENTALITY_BONUS;
+      else if (t.mentality === 'defensive' && isDefender) score += TACTICS_DEFENSIVE_MENTALITY_BONUS;
+      else if (t.mentality === 'cautious' && isDefender) score += TACTICS_CAUTIOUS_MENTALITY_BONUS;
+    }
+
+    // Free-kick threat (engine: shooting >= 60-70 unlocks FK goals) — requires designated taker
+    if (context.setPieceTakerId === player.id
+      && player.attributes.shooting >= THREAT_FREEKICK_SHOOTING_THRESHOLD) {
+      score += THREAT_FREEKICK_BONUS;
+    }
+  }
+
+  // ── Goal-flavor threat profiles (always-on; intrinsic to the player) ──
+  // Match engine unlocks specific goal types based on attribute thresholds; reward
+  // players who match those thresholds for the slots that produce those goals.
+  if (ATTACKING_POSITIONS.includes(slotPosition)) {
+    // Long-range goals (engine: shooting >= 75) — most relevant for CAM/ST
+    if (player.attributes.shooting >= THREAT_LONG_RANGE_SHOOTING_THRESHOLD
+      && (slotPosition === 'CAM' || slotPosition === 'ST')) {
+      score += THREAT_LONG_RANGE_BONUS;
+    }
+    // Solo goals (engine: skillMoves >= 4 + pace >= 70) — for wide forwards & strikers
+    if ((player.skillMoves ?? 0) >= THREAT_SOLO_SKILL_MOVES_THRESHOLD
+      && player.attributes.pace >= THREAT_SOLO_PACE_THRESHOLD) {
+      score += THREAT_SOLO_BONUS;
+    }
+    // Skill moves attribute lift (+0.02 to shot quality in engine)
+    if ((player.skillMoves ?? 0) >= THREAT_SKILL_MOVES_THRESHOLD) {
+      score += THREAT_SKILL_MOVES_BONUS;
+    }
+  }
+  // Long-range goals from deeper midfield are also a thing
+  if ((slotPosition === 'CM' || slotPosition === 'CDM')
+    && player.attributes.shooting >= THREAT_LONG_RANGE_SHOOTING_THRESHOLD) {
+    score += THREAT_LONG_RANGE_BONUS;
+  }
+  // Header threats (engine: corner header weighting CB 1.5x, ST 1.4x, scaled by physical)
+  if (HEADER_THREAT_POSITIONS.includes(slotPosition)
+    && player.attributes.physical >= THREAT_HEADER_PHYSICAL_THRESHOLD) {
+    score += THREAT_HEADER_BONUS;
+    if ((player.heightCm ?? 0) >= THREAT_TALL_HEIGHT_CM) {
+      score += THREAT_TALL_BONUS;
+    }
   }
 
   return score;
@@ -757,6 +1022,24 @@ export function autoFillBestTeam(
           }
         }
       }
+    }
+
+    // ── Bench profile bonuses (always-on; cheap signals, big tactical pay-off) ──
+    // Long-range threat off the bench (chase a goal): CAM/CM with shooting >= threshold
+    if ((p.position === 'CAM' || p.position === 'CM')
+      && p.attributes.shooting >= THREAT_LONG_RANGE_SHOOTING_THRESHOLD) {
+      contextBenchBonus += BENCH_LONG_RANGE_THREAT_BONUS;
+    }
+    // Speed sub (late-game impact): wide forwards or strikers with very high pace
+    if ((p.position === 'LW' || p.position === 'RW' || p.position === 'ST')
+      && p.attributes.pace >= BENCH_IMPACT_PACE_THRESHOLD) {
+      contextBenchBonus += BENCH_IMPACT_PACE_BONUS;
+    }
+    // "Closer" defender (protect a lead): CB with high physical+mental
+    if (p.position === 'CB'
+      && p.attributes.physical >= BENCH_CLOSER_PHYSICAL_THRESHOLD
+      && p.attributes.mental >= BENCH_CLOSER_MENTAL_THRESHOLD) {
+      contextBenchBonus += BENCH_CLOSER_BONUS;
     }
 
     // ── Total bench score ──

@@ -39,6 +39,10 @@ export function buildAutoFillContext(
     setPieceTakerId: club.setPieceTakerId,
     penaltyTakerId: club.penaltyTakerId,
     defensiveFormation: club.defensiveFormation,
+    // Pro-tier signals: tactical familiarity (0-100), manager perks, our reputation
+    tacticalFamiliarity: state.training?.tacticalFamiliarity,
+    managerPerks: state.managerProgression?.unlockedPerks,
+    ourReputation: club.reputation,
   };
 
   const leagueMatch = state.fixtures.find(
