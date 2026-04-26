@@ -9,7 +9,13 @@
  * generateReplacementClub deterministic.
  */
 
-import type { Club, LeagueInfo, LeagueTableEntry } from '@/types/game';
+import type {
+  Club,
+  LeagueInfo,
+  LeagueTableEntry,
+  Player,
+  Position,
+} from '@/types/game';
 import { LEAGUES, getLeaguesByCountry } from '@/data/league';
 
 // ── Club builders ──
@@ -44,6 +50,56 @@ export function buildClub(opts: ClubBuildOpts): Club {
     penaltyTakerId: opts.penaltyTakerId,
     stadiumName: opts.stadiumName,
     stadiumCapacity: opts.stadiumCapacity,
+  };
+}
+
+// ── Player builders ──
+
+export interface PlayerBuildOpts extends Partial<Player> {
+  id: string;
+  position?: Position;
+}
+
+/** Build a Player with sane defaults for tests. */
+export function buildPlayer(opts: PlayerBuildOpts): Player {
+  return {
+    id: opts.id,
+    firstName: opts.firstName ?? 'Test',
+    lastName: opts.lastName ?? `Player${opts.id}`,
+    age: opts.age ?? 25,
+    nationality: opts.nationality ?? 'England',
+    position: opts.position ?? 'CM',
+    attributes: opts.attributes ?? {
+      pace: 70, shooting: 70, passing: 70, defending: 70, physical: 70, mental: 70,
+    },
+    overall: opts.overall ?? 70,
+    potential: opts.potential ?? 75,
+    clubId: opts.clubId ?? 'test-club',
+    wage: opts.wage ?? 50_000,
+    value: opts.value ?? 5_000_000,
+    contractEnd: opts.contractEnd ?? 5,
+    fitness: opts.fitness ?? 100,
+    morale: opts.morale ?? 75,
+    form: opts.form ?? 70,
+    injured: opts.injured ?? false,
+    injuryWeeks: opts.injuryWeeks ?? 0,
+    injuryDetails: opts.injuryDetails,
+    goals: opts.goals ?? 0,
+    assists: opts.assists ?? 0,
+    appearances: opts.appearances ?? 0,
+    careerGoals: opts.careerGoals ?? 0,
+    careerAssists: opts.careerAssists ?? 0,
+    careerAppearances: opts.careerAppearances ?? 0,
+    yellowCards: opts.yellowCards ?? 0,
+    redCards: opts.redCards ?? 0,
+    suspendedUntilWeek: opts.suspendedUntilWeek,
+    onLoan: opts.onLoan ?? false,
+    loanFromClubId: opts.loanFromClubId,
+    loanToClubId: opts.loanToClubId,
+    listedForSale: opts.listedForSale ?? false,
+    joinedSeason: opts.joinedSeason,
+    isFromYouthAcademy: opts.isFromYouthAcademy,
+    alternatePositions: opts.alternatePositions,
   };
 }
 
