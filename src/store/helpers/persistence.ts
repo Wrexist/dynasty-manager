@@ -237,6 +237,11 @@ export const STORAGE_KEYS = {
    *  a plain version string (e.g. "1.0.1"). Used to gate the "NEW" badge on
    *  the main-menu + Settings tiles so it clears once they tap through. */
   WHATS_NEW_SEEN_VERSION: 'dynasty-whats-new-seen',
+  /** localStorage: native App Store review prompt state. JSON-encoded
+   *  `{ count, lastShownAt, lastReason }`. Used to throttle our own calls to
+   *  `SKStoreReviewController.requestReview` on top of Apple's 3/365-day
+   *  hard cap so we only spend prompts on genuine high-emotion moments. */
+  APP_REVIEW_STATE: 'dynasty-review-state',
 } as const;
 
 /** Read the latest "What's New" version the user has acknowledged. */
@@ -248,6 +253,38 @@ export function readWhatsNewSeenVersion(): string | null {
 /** Mark a "What's New" version as read (typically the latest, on page open). */
 export function writeWhatsNewSeenVersion(version: string): void {
   try { localStorage.setItem(STORAGE_KEYS.WHATS_NEW_SEEN_VERSION, version); }
+  catch { /* storage unavailable — non-fatal */ }
+}
+
+/** Persistent state for the native App Store review prompt. We layer our own
+ *  cap on top of Apple's built-in 3/365 throttle so we only burn requests on
+ *  high-emotion moments (season-end with a trophy / promotion / title). */
+export interface AppReviewState {
+  /** Total number of times we've called `requestReview` over the install's
+   *  lifetime. The OS may have shown 0 or all of them — we can't tell. */
+  count: number;
+  /** Epoch ms of the most recent call. Used to enforce a min-gap. */
+  lastShownAt: number;
+  /** Free-form tag identifying which moment triggered the most recent call —
+   *  useful for analytics / debugging. */
+  lastReason?: string;
+}
+
+export function readAppReviewState(): AppReviewState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.APP_REVIEW_STATE);
+    if (!raw) return { count: 0, lastShownAt: 0 };
+    const parsed = JSON.parse(raw);
+    return {
+      count: typeof parsed.count === 'number' ? parsed.count : 0,
+      lastShownAt: typeof parsed.lastShownAt === 'number' ? parsed.lastShownAt : 0,
+      lastReason: typeof parsed.lastReason === 'string' ? parsed.lastReason : undefined,
+    };
+  } catch { return { count: 0, lastShownAt: 0 }; }
+}
+
+export function writeAppReviewState(state: AppReviewState): void {
+  try { localStorage.setItem(STORAGE_KEYS.APP_REVIEW_STATE, JSON.stringify(state)); }
   catch { /* storage unavailable — non-fatal */ }
 }
 

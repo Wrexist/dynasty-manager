@@ -15,6 +15,7 @@ import { motion } from 'framer-motion';
 import { VERDICT_COLORS, VERDICT_LABELS } from '@/config/ui';
 import { hapticHeavy } from '@/utils/haptics';
 import { PageHint } from '@/components/game/PageHint';
+import { isCelebratorySeason, maybeRequestReview, pickSeasonReviewTrigger } from '@/utils/appReview';
 
 const AWARD_ICONS: Record<string, string> = {
   'Golden Boot': 'footprints',
@@ -562,7 +563,17 @@ const SeasonSummary = () => {
         <div className="max-w-lg mx-auto">
           <Button
             className="w-full h-12 text-base font-bold"
-            onClick={() => setScreen(gameMode === 'career' && careerManager && !careerManager.contract ? 'job-market' : 'dashboard')}
+            onClick={() => {
+              // Highest-emotion calm moment: the user has just scrolled their
+              // own trophies and is voluntarily tapping forward. If they had a
+              // celebratory season, fire the native one-tap App Store review
+              // sheet. Self-throttled inside `maybeRequestReview` (60-day gap,
+              // 4-lifetime cap) so we don't burn Apple's 3/365 quota.
+              if (isCelebratorySeason(latest)) {
+                void maybeRequestReview(pickSeasonReviewTrigger(latest));
+              }
+              setScreen(gameMode === 'career' && careerManager && !careerManager.contract ? 'job-market' : 'dashboard');
+            }}
           >
             {gameMode === 'career' && careerManager && !careerManager.contract ? 'Find a New Club' : `Start Season ${season}`}
           </Button>
