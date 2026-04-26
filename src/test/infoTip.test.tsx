@@ -31,7 +31,10 @@ describe('InfoTip', () => {
     await act(async () => {
       fireEvent.keyDown(document, { key: 'Escape' });
     });
-    expect(screen.queryByRole('tooltip')).toBeNull();
+    // AnimatePresence keeps the exiting tip around briefly — wait for it to unmount.
+    await waitFor(() => {
+      expect(screen.queryByRole('tooltip')).toBeNull();
+    });
     expect(button).toHaveAttribute('aria-expanded', 'false');
   });
 
