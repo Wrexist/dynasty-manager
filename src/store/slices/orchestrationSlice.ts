@@ -382,12 +382,16 @@ function performSave(set: Set, get: Get, slot: number | undefined): void {
     jobVacancies: state.jobVacancies,
     jobOffers: state.jobOffers,
     activeInterview: state.activeInterview,
-    // Pack Opening — persist opened-packs log, pity counter, and weekly
-    // throttle so progress survives save/load.
+    // Pack Opening — persist opened-packs log, pity counter, and the
+    // ad-pack daily-open bucket so the per-day limit survives save/load.
+    // `lastPackWeek` / `lastPackSeason` are legacy fields kept for save
+    // compatibility; the once-per-week cooldown they enforced has been
+    // removed.
     openedPacks: state.openedPacks || [],
     packPityCounter: state.packPityCounter || 0,
     lastPackWeek: state.lastPackWeek || 0,
     lastPackSeason: state.lastPackSeason || 0,
+    dailyPackOpens: state.dailyPackOpens || { date: '', free: {}, ad: {} },
   };
   let json = JSON.stringify(saveData);
 
@@ -3174,6 +3178,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       packPityCounter: 0,
       lastPackWeek: 0,
       lastPackSeason: 0,
+      dailyPackOpens: { date: '', free: {}, ad: {} },
       sponsorDeals: generateStarterDeals(pcInit.reputation, 1),
       sponsorOffers: [],
       sponsorSlotCooldowns: {},
@@ -7252,6 +7257,7 @@ export const createOrchestrationSlice = (set: Set, get: Get) => ({
       pendingPressConference: null, activeNegotiation: null,
       pendingFarewell: [], pendingStoryline: null,
       openedPacks: [], packPityCounter: 0, lastPackWeek: 0, lastPackSeason: 0,
+      dailyPackOpens: { date: '', free: {}, ad: {} },
       activeStorylineChains: [], completedStorylineChainIds: [], weeklyObjectives: [],
       objectiveStreak: 0, objectivesStartWeek: 1, completedCoachTaskIds: [],
       weekCliffhangers: [], rivalries: {}, lastMatchDrama: null, lastMatchCompetition: null,

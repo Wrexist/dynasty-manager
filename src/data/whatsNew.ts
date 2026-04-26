@@ -58,6 +58,59 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.0.3',
+    build: null,
+    date: '2026-04-26',
+    headline: 'Rare Gold pack joins the in-app store.',
+    summary: 'Rare Gold packs are now an in-app purchase, matching Premium Gold and Icon. The £80M in-game price is gone — pay $6.99 for a guaranteed 84+ rated player and a chance at a walkout reveal.',
+    highlights: [],
+    new: [],
+    improved: [
+      'Rare Gold pack is now an in-app purchase ($6.99) instead of an £80M in-game spend.',
+    ],
+    fixed: [],
+  },
+  {
+    version: '1.0.2',
+    build: null,
+    date: '2026-04-26',
+    headline: 'Daily free packs and a live reset countdown.',
+    summary: 'Every day brings a free Bronze, Silver, and Gold pack — no ad, no cost. Watch a quick ad to grab three more Bronze or Silver opens, or instantly buy a Gold pack with an in-app purchase. A live countdown on the pack store shows exactly when your free packs come back.',
+    highlights: [
+      'Open one Bronze, Silver, AND Gold pack completely free, every day.',
+    ],
+    new: [
+      'Bronze and Silver packs give 1 free open daily, then 3 more by watching a rewarded ad.',
+      'Gold pack gives 1 free open daily, then unlimited opens via in-app purchase.',
+      'Live countdown chip shows when your free daily packs reset.',
+    ],
+    improved: [
+      'Pack store CTAs now reflect the active method per tier — Open Free, Watch ad, or Buy.',
+    ],
+    fixed: [],
+  },
+  {
+    version: '1.0.1',
+    build: null,
+    date: '2026-04-26',
+    headline: 'Free packs, fewer limits, premium drops.',
+    summary: 'Open packs as often as you like — the once-per-week wait is gone. Bronze packs are now free with a quick rewarded ad, capped at three opens per day. Silver and Gold packs cost more, while Premium Gold and Icon packs are real-money in-app purchases for instant elite signings.',
+    highlights: [
+      'Removed the weekly pack cooldown — open as many packs as you can afford.',
+    ],
+    new: [
+      'Bronze packs are now free with a rewarded ad, up to three opens per day.',
+      'Premium Gold and Icon packs are now in-app purchases for guaranteed elite pulls.',
+    ],
+    improved: [
+      'Silver and Gold packs cost more in-game money, matching their stronger guarantees.',
+    ],
+    fixed: [
+      'Pack shop no longer locks you out of pack opens for the rest of the week.',
+      'Pack shop now checks challenge restrictions before kicking off a real-money purchase, so you can never be charged for a pack you cannot open.',
+    ],
+  },
+  {
     version: '1.0.0',
     build: null,
     date: '2026-04-24',

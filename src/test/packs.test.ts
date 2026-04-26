@@ -100,17 +100,21 @@ describe('Pack opening — openPack action', () => {
   // gets a clean slate with no extra work.
   beforeEach(() => { initAndGetState(); });
 
-  it('rejects when budget is insufficient', () => {
+  it('rejects currency-method opens for tiers that no longer support in-game purchase', () => {
+    // Every tier is now either daily-free, ad-supported, or IAP-only.
+    // No tier supports the legacy currency method, so explicitly asking
+    // for it on any tier should be politely refused — not silently
+    // fall through and grant a free pack.
     const state = useGameStore.getState();
     useGameStore.setState({
       clubs: {
         ...state.clubs,
-        [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 0 },
+        [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 },
       },
     });
-    const result = useGameStore.getState().openPack('gold');
+    const result = useGameStore.getState().openPack('rare', { method: 'currency' });
     expect(result.success).toBe(false);
-    expect(result.message).toMatch(/insufficient/i);
+    expect(result.message).toMatch(/in-game money/i);
   });
 
   it('rejects when squad cap would be exceeded', () => {
@@ -133,6 +137,8 @@ describe('Pack opening — openPack action', () => {
   });
 
   it('deducts budget, adds players to roster, and logs an opened pack record', () => {
+    // Silver is currency-unlock — bronze is now a free ad pack and no
+    // longer deducts in-game budget, so this ledger test moved to silver.
     const state = useGameStore.getState();
     const club = state.clubs[state.playerClubId];
     useGameStore.setState({
@@ -144,45 +150,115 @@ describe('Pack opening — openPack action', () => {
     const budgetBefore = useGameStore.getState().clubs[state.playerClubId].budget;
     const squadBefore = useGameStore.getState().clubs[state.playerClubId].playerIds.length;
 
-    const result = useGameStore.getState().openPack('bronze');
+    const result = useGameStore.getState().openPack('silver');
     expect(result.success).toBe(true);
     expect(result.players).toBeDefined();
-    expect(result.players).toHaveLength(PACK_TIER_MAP.bronze.cards);
+    expect(result.players).toHaveLength(PACK_TIER_MAP.silver.cards);
 
     const after = useGameStore.getState();
     const clubAfter = after.clubs[state.playerClubId];
-    expect(clubAfter.budget).toBe(budgetBefore - PACK_TIER_MAP.bronze.price);
-    expect(clubAfter.playerIds.length).toBe(squadBefore + PACK_TIER_MAP.bronze.cards);
+    expect(clubAfter.budget).toBe(budgetBefore - PACK_TIER_MAP.silver.price);
+    expect(clubAfter.playerIds.length).toBe(squadBefore + PACK_TIER_MAP.silver.cards);
     for (const p of result.players!) {
       expect(clubAfter.playerIds).toContain(p.id);
       expect(after.players[p.id]).toBeDefined();
       expect(after.players[p.id].clubId).toBe(state.playerClubId);
     }
     expect(after.openedPacks.length).toBeGreaterThan(0);
-    expect(after.openedPacks[0].tier).toBe('bronze');
+    expect(after.openedPacks[0].tier).toBe('silver');
   });
 
-  it('enforces one pack per in-game week', () => {
+  it('does not deduct in-game budget for free (ad-unlock) bronze packs', () => {
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...club, budget: 5_000_000 } },
+    });
+    const budgetBefore = useGameStore.getState().clubs[state.playerClubId].budget;
+    const result = useGameStore.getState().openPack('bronze');
+    expect(result.success).toBe(true);
+    const after = useGameStore.getState();
+    expect(after.clubs[state.playerClubId].budget).toBe(budgetBefore);
+  });
+
+  it('caps bronze opens at free + ad daily limits combined', () => {
+    // Trim the default squad to a known small size so 4 bronze packs
+    // (3 cards each = 12 players) don't bump up against MAX_SQUAD_SIZE.
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    const trimmedIds = club.playerIds.slice(0, 20);
+    useGameStore.setState({
+      clubs: {
+        ...state.clubs,
+        [state.playerClubId]: { ...club, playerIds: trimmedIds, budget: 1_000_000 },
+      },
+    });
+    const freeCap = PACK_TIER_MAP.bronze.freeDailyLimit ?? 0;
+    const adCap = PACK_TIER_MAP.bronze.adDailyLimit ?? 0;
+    expect(freeCap + adCap).toBeGreaterThan(0);
+
+    // First open uses today's free allowance.
+    for (let i = 0; i < freeCap; i++) {
+      const open = useGameStore.getState().openPack('bronze', { method: 'free' });
+      expect(open.success).toBe(true);
+      expect(open.method).toBe('free');
+    }
+    // Subsequent opens fall back to ad (page would have shown a rewarded
+    // ad before calling). skipPayment mirrors the page's contract.
+    for (let i = 0; i < adCap; i++) {
+      const open = useGameStore.getState().openPack('bronze', { method: 'ad', skipPayment: true });
+      expect(open.success).toBe(true);
+      expect(open.method).toBe('ad');
+    }
+    // After both caps are hit, additional opens are blocked.
+    const overflow = useGameStore.getState().openPack('bronze', { method: 'ad', skipPayment: true });
+    expect(overflow.success).toBe(false);
+    expect(overflow.message).toMatch(/daily ad limit/i);
+  });
+
+  it('rejects IAP-method opens unless skipPayment is set', () => {
     const state = useGameStore.getState();
     useGameStore.setState({
-      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 999_999_999 } },
     });
-    const first = useGameStore.getState().openPack('bronze');
-    expect(first.success).toBe(true);
+    // openPack('icon', { method: 'iap' }) without skipPayment is a misuse
+    // — the page must complete the consumable purchase first.
+    const direct = useGameStore.getState().openPack('icon', { method: 'iap' });
+    expect(direct.success).toBe(false);
+    expect(direct.message).toMatch(/in-app purchase/i);
 
-    const second = useGameStore.getState().openPack('bronze');
-    expect(second.success).toBe(false);
-    expect(second.message).toMatch(/one pack per week/i);
+    // After the page proves a successful real-money purchase, the slice
+    // accepts skipPayment and opens the pack without charging in-game funds.
+    const budgetBefore = useGameStore.getState().clubs[state.playerClubId].budget;
+    const paid = useGameStore.getState().openPack('icon', { method: 'iap', skipPayment: true });
+    expect(paid.success).toBe(true);
+    expect(useGameStore.getState().clubs[state.playerClubId].budget).toBe(budgetBefore);
+  });
+
+  it('lets the user open multiple IAP packs in the same week (no weekly cooldown)', () => {
+    // IAP-only tiers can be opened back-to-back as many times as the
+    // user pays for. Silver/Gold now have a 1/day free allowance, so
+    // back-to-back opens require ad/IAP — covered by the dedicated
+    // daily-limit test above.
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 1_000_000_000 } },
+    });
+    const first = useGameStore.getState().openPack('rare', { method: 'iap', skipPayment: true });
+    expect(first.success).toBe(true);
+    const second = useGameStore.getState().openPack('rare', { method: 'iap', skipPayment: true });
+    expect(second.success).toBe(true);
   });
 
   it('flags walkout-eligible players at 84+', () => {
+    // Rare pack guarantees 84+ (matches the walkout threshold); the icon
+    // pack is now an IAP-only product so it can't be opened directly here.
     const state = useGameStore.getState();
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 } },
     });
-    const result = useGameStore.getState().openPack('icon');
+    const result = useGameStore.getState().openPack('rare', { method: 'iap', skipPayment: true });
     expect(result.success).toBe(true);
-    // Icon pack guarantees 88+ which is above walkout threshold
     const topOvr = Math.max(...result.players!.map(p => p.overall));
     expect(topOvr).toBeGreaterThanOrEqual(WALKOUT_OVR_THRESHOLD);
   });
@@ -220,18 +296,14 @@ describe('Pack opening — openPack action', () => {
       },
     });
 
-    const result = useGameStore.getState().openPack('icon');
+    // Rare pack guarantees 84+ — strong enough to crack a default squad.
+    // Icon is now IAP-only so it can't be opened directly in tests.
+    const result = useGameStore.getState().openPack('rare', { method: 'iap', skipPayment: true });
     expect(result.success).toBe(true);
 
     const after = useGameStore.getState();
     const clubAfter = after.clubs[state.playerClubId];
 
-    // Every pulled player is tracked in playerIds; auto-place is best-effort
-    // and a strong existing squad can keep some pulls in squad-only. The
-    // prior `placedCount > 0` assertion flaked on CI when Celtic's default
-    // squad was already stacked with 88+ OVR — the "something placed"
-    // property is already covered deterministically by the placement-
-    // metadata test below.
     for (const p of result.players!) {
       expect(clubAfter.playerIds).toContain(p.id);
     }
@@ -247,15 +319,12 @@ describe('Pack opening — openPack action', () => {
         [state.playerClubId]: { ...club, budget: 200_000_000 },
       },
     });
-    const result = useGameStore.getState().openPack('icon');
+    const result = useGameStore.getState().openPack('rare', { method: 'iap', skipPayment: true });
     expect(result.success).toBe(true);
     expect(result.placement).toBeDefined();
-    // Every pull is classified into one of the three buckets — matches the
-    // test name and the bronze-pack test below. A strong existing squad can
-    // keep even an 88+ icon in 'squad'.
     const top = result.players![0];
     expect(['starter', 'bench', 'squad']).toContain(result.placement![top.id]);
-    // At least one icon pull should change the lineup.
+    // At least one rare pull (84+ guaranteed) should change the lineup.
     expect(result.lineupChanges).toBeGreaterThan(0);
   });
 
@@ -291,7 +360,7 @@ describe('Pack opening — openPack action', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 } },
     });
-    const open = useGameStore.getState().openPack('icon');
+    const open = useGameStore.getState().openPack('rare', { method: 'iap', skipPayment: true });
     expect(open.success).toBe(true);
 
     const followUp = useGameStore.getState().autoFillTeam();
@@ -348,12 +417,12 @@ describe('Pack opening — releasePackedPlayer action', () => {
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 } },
     });
-    const openResult = useGameStore.getState().openPack('icon');
+    const openResult = useGameStore.getState().openPack('rare', { method: 'iap', skipPayment: true });
     expect(openResult.success).toBe(true);
     const clubAfterOpen = useGameStore.getState().clubs[state.playerClubId];
     const lineupLenBefore = clubAfterOpen.lineup.length;
 
-    // Release the icon pull (very likely a starter given 88+ OVR)
+    // Release the rare pull (very likely a starter given 84+ OVR)
     const target = openResult.players![0];
     const rel = useGameStore.getState().releasePackedPlayer(target.id);
     expect(rel.success).toBe(true);
@@ -395,7 +464,7 @@ describe('Pack opening — releasePackedPlayer action', () => {
 describe('Pack opening — save/load persistence', () => {
   beforeEach(() => { initAndGetState(); });
 
-  it('persists openedPacks, pity counter, and weekly throttle across save/load', () => {
+  it('persists openedPacks, pity counter, and daily-pack bucket across save/load', () => {
     const state = useGameStore.getState();
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 50_000_000 } },
@@ -406,9 +475,10 @@ describe('Pack opening — save/load persistence', () => {
     const preSave = useGameStore.getState();
     const expectedOpenedPacksLength = preSave.openedPacks.length;
     const expectedPity = preSave.packPityCounter;
-    const expectedLastWeek = preSave.lastPackWeek;
-    const expectedLastSeason = preSave.lastPackSeason;
+    const expectedDailyOpens = preSave.dailyPackOpens;
     expect(expectedOpenedPacksLength).toBeGreaterThan(0);
+    // Bronze's first daily open is `free`, so the free bucket should be 1.
+    expect(expectedDailyOpens.free.bronze).toBe(1);
 
     useGameStore.getState().saveGame(1);
     // Wipe in-memory pack state to prove the values come from storage
@@ -417,6 +487,7 @@ describe('Pack opening — save/load persistence', () => {
       packPityCounter: 0,
       lastPackWeek: 0,
       lastPackSeason: 0,
+      dailyPackOpens: { date: '', free: {}, ad: {} },
     });
     const loaded = useGameStore.getState().loadGame(1);
     expect(loaded).toBe(true);
@@ -425,8 +496,7 @@ describe('Pack opening — save/load persistence', () => {
     expect(after.openedPacks.length).toBe(expectedOpenedPacksLength);
     expect(after.openedPacks[0].tier).toBe('bronze');
     expect(after.packPityCounter).toBe(expectedPity);
-    expect(after.lastPackWeek).toBe(expectedLastWeek);
-    expect(after.lastPackSeason).toBe(expectedLastSeason);
+    expect(after.dailyPackOpens).toEqual(expectedDailyOpens);
   });
 });
 
@@ -443,6 +513,56 @@ describe('Pack opening — challenge guard', () => {
     const result = useGameStore.getState().openPack('bronze');
     expect(result.success).toBe(false);
     expect(result.message).toMatch(/challenge/i);
+  });
+
+  it('canOpenPack reports the challenge block before the page charges an IAP', () => {
+    // Regression for the IAP-charge-then-deny bug: the page MUST call
+    // canOpenPack before kicking off purchaseConsumable() so the user
+    // can never pay $9.99 and then be rejected by openPack.
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 } },
+      activeChallenge: { scenarioId: 'penny-pincher', startSeason: 1, seasonsRemaining: 1, completed: false, failed: false },
+    });
+    const can = useGameStore.getState().canOpenPack('icon');
+    expect(can.ok).toBe(false);
+    if (can.ok === false) expect(can.message).toMatch(/challenge/i);
+
+    // And openPack itself still refuses even with skipPayment — defence
+    // in depth. The slice never grants the pack just because the page
+    // claims a payment was made.
+    const skipResult = useGameStore.getState().openPack('icon', { method: 'iap', skipPayment: true });
+    expect(skipResult.success).toBe(false);
+    expect(skipResult.message).toMatch(/challenge/i);
+  });
+
+  it('canOpenPack reports the daily limit before the page plays an ad', () => {
+    // Trim squad so 4 bronze packs (12 cards) don't bump MAX_SQUAD_SIZE.
+    const state = useGameStore.getState();
+    const club = state.clubs[state.playerClubId];
+    useGameStore.setState({
+      clubs: {
+        ...state.clubs,
+        [state.playerClubId]: { ...club, playerIds: club.playerIds.slice(0, 20), budget: 1_000_000 },
+      },
+    });
+    // Burn through every free + ad open for bronze, then ask if more
+    // are available. canOpenPack with no method picks the next-cheapest
+    // available — once both caps hit, that's `null` and the slice
+    // surfaces a "no opens available" message.
+    const freeCap = PACK_TIER_MAP.bronze.freeDailyLimit ?? 0;
+    const adCap = PACK_TIER_MAP.bronze.adDailyLimit ?? 0;
+    for (let i = 0; i < freeCap; i++) {
+      const open = useGameStore.getState().openPack('bronze', { method: 'free' });
+      expect(open.success).toBe(true);
+    }
+    for (let i = 0; i < adCap; i++) {
+      const open = useGameStore.getState().openPack('bronze', { method: 'ad', skipPayment: true });
+      expect(open.success).toBe(true);
+    }
+    const can = useGameStore.getState().canOpenPack('bronze');
+    expect(can.ok).toBe(false);
+    if (can.ok === false) expect(can.message).toMatch(/no opens available|daily/i);
   });
 });
 
@@ -477,12 +597,14 @@ describe('Pack opening — AI counter-signings (league balance)', () => {
   });
 
   it('Icon packs grant the user the only signing — no AI backfill', () => {
+    // Icon is now an IAP — opened via skipPayment after a successful
+    // real-money purchase. The no-AI-backfill contract still holds.
     const state = useGameStore.getState();
     useGameStore.setState({
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 } },
     });
     const beforePlayerCount = Object.keys(useGameStore.getState().players).length;
-    const result = useGameStore.getState().openPack('icon');
+    const result = useGameStore.getState().openPack('icon', { skipPayment: true });
     expect(result.success).toBe(true);
     const after = useGameStore.getState();
     const added = Object.keys(after.players).length - beforePlayerCount;
@@ -518,7 +640,7 @@ describe('Pack opening — manager XP & career stat growth', () => {
       clubs: { ...state.clubs, [state.playerClubId]: { ...state.clubs[state.playerClubId], budget: 200_000_000 } },
     });
     const xpBefore = useGameStore.getState().managerProgression.xp || 0;
-    const result = useGameStore.getState().openPack('icon');
+    const result = useGameStore.getState().openPack('icon', { skipPayment: true });
     expect(result.success).toBe(true);
 
     const topOvr = Math.max(...result.players!.map(p => p.overall));

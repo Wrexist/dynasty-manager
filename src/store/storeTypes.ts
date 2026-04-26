@@ -1,4 +1,4 @@
-import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, LoadError } from '@/types/game';
+import { Club, Player, Match, MatchWeather, LeagueTableEntry, FormationType, TransferListing, BoardObjective, GameScreen, Message, SeasonHistory, IncomingOffer, GameSettings, TacticalInstructions, TrainingState, TrainingModule, StaffMember, ScoutingState, ScoutRegion, YouthAcademyState, FacilitiesState, FinanceRecord, PlayerMatchRating, LoanDeal, IncomingLoanOffer, OutgoingLoanRequest, CupState, PressConference, ContractOffer, ActiveChallenge, LeagueId, SeasonTurnover, DerbyRivalry, ClubRecords, SeasonPhase, CareerMilestone, ManagerProgression, PerkId, StorylineEvent, ActiveStorylineChain, SponsorDeal, SponsorOffer, SponsorSlotId, MerchState, MerchProductLine, MerchPricingTier, MerchCampaignType, CliffhangerItem, MatchDramaType, SessionStats, HeadToHeadRecord, MonetizationState, ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo, TransferNewsEntry, NationalTeamState, NationalTeamOffer, InternationalTournamentState, GameMode, CareerManager, JobVacancy, JobOffer, ActiveInterview, PitchTone, ManagerBonus, LeagueCupState, ContinentalTournamentState, ContinentalCompetition, VirtualClub, SuperCupMatch, TransferTalk, TeamTalkType, PenaltyKick, MatchShout, ShoutType, NegotiationStrike, OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult, QuickSellPackedPlayerResult, PackTierKey, PackUnlockMethod, LoadError } from '@/types/game';
 import type { ObjectiveInstance } from '@/utils/weeklyObjectives';
 import type { HalfState } from '@/engine/match';
 
@@ -427,9 +427,39 @@ export interface GameState {
   // Pack Opening
   openedPacks: OpenedPackRecord[];
   packPityCounter: number;
+  /** Legacy fields — last (season, week) a pack was opened. The
+   *  once-per-week throttle has been removed; these are kept for save
+   *  compatibility and analytics but no longer gate opening. */
   lastPackWeek: number;
   lastPackSeason: number;
-  openPack: (tier: PackTierKey) => OpenPackResult;
+  /** Per-real-day open counts for free + ad pack methods. `date` is an
+   *  ISO `YYYY-MM-DD` keyed off the device clock; both `free` and `ad`
+   *  bucket opens by tier. Resets implicitly when the date rolls over.
+   *  IAP and currency opens are NOT tracked here — they have no daily cap. */
+  dailyPackOpens: {
+    date: string;
+    free: Partial<Record<PackTierKey, number>>;
+    ad: Partial<Record<PackTierKey, number>>;
+  };
+  /** Open a pack via a specific method. The page is responsible for
+   *  picking the right method (free → ad → iap → currency priority) and
+   *  for completing any out-of-band cost (showing the rewarded ad,
+   *  running the consumable IAP) BEFORE invoking openPack. Pass
+   *  `skipPayment: true` for `ad` and `iap` methods so the slice doesn't
+   *  charge in-game funds. The slice still re-validates eligibility and
+   *  daily caps as defence in depth. */
+  openPack: (
+    tier: PackTierKey,
+    opts?: { method?: PackUnlockMethod; skipPayment?: boolean },
+  ) => OpenPackResult;
+  /** Eligibility pre-flight. Run this BEFORE charging real money or
+   *  starting a rewarded ad so the user can never pay/watch and then be
+   *  rejected by `openPack` (e.g. an active challenge that blocks
+   *  signings). Returns the same blocking message `openPack` would. */
+  canOpenPack: (
+    tier: PackTierKey,
+    method?: PackUnlockMethod,
+  ) => { ok: true } | { ok: false; message: string };
   releasePackedPlayer: (playerId: string) => ReleasePackedPlayerResult;
   quickSellPackedPlayer: (playerId: string) => QuickSellPackedPlayerResult;
 

@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Lock, Sparkles, ShieldCheck } from 'lucide-react';
-import type { PackTierDefinition } from '@/types/game';
+import { Lock, Sparkles, ShieldCheck, Play, ShoppingBag, Gift } from 'lucide-react';
+import type { PackTierDefinition, PackUnlockMethod } from '@/types/game';
 import { formatMoney } from '@/utils/helpers';
 import { cn } from '@/lib/utils';
 import { hapticLight } from '@/utils/haptics';
@@ -9,10 +9,22 @@ import { PackArt } from './PackArt';
 
 interface PackShopCardProps {
   tier: PackTierDefinition;
+  /** True if the player can use the active method right now. */
   affordable: boolean;
   squadOk: boolean;
   onSelect: () => void;
   featured?: boolean;
+  /** Active method for this tier given today's usage — the page picks
+   *  this via `free → ad → iap → currency` priority. `null` means
+   *  nothing is available right now (caps hit, no fallback). */
+  method: PackUnlockMethod | null;
+  /** Free opens remaining today (0 if tier doesn't offer free opens). */
+  freeRemaining: number;
+  /** Ad opens remaining today (0 if tier doesn't offer ad opens). */
+  adRemaining: number;
+  /** Pre-formatted countdown string to next daily reset (e.g. "5h 23m").
+   *  Only shown when the active method is locked behind a daily reset. */
+  resetCountdown?: string;
 }
 
 /**
@@ -22,10 +34,57 @@ interface PackShopCardProps {
  * from the art behind it via backdrop-blur + backdrop-saturate. Guarantee
  * badge floats over the art top-right.
  */
-export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured }: PackShopCardProps) {
-  const disabled = !affordable || !squadOk;
+export const PackShopCard = memo(function PackShopCard({ tier, affordable, squadOk, onSelect, featured, method, freeRemaining, adRemaining, resetCountdown }: PackShopCardProps) {
+  const noMethod = method === null;
+  const disabled = !squadOk || noMethod || !affordable;
   const prefersReducedMotion = useReducedMotion();
-  const lockedReason = !affordable ? 'Budget' : 'Full';
+
+  // CTA chip text + icon vary by active unlock method.
+  const ctaLabel = method === 'free'
+    ? 'Open Free'
+    : method === 'ad'
+      ? 'Watch'
+      : method === 'iap'
+        ? 'Buy'
+        : method === 'currency'
+          ? 'Buy'
+          : 'Tomorrow';
+  const lockedReason = !squadOk
+    ? 'Full'
+    : noMethod
+      ? 'Tomorrow'
+      : method === 'currency'
+        ? 'Budget'
+        : 'Store';
+
+  // Bottom-row price/availability line. Free is the headline when free
+  // opens remain; once free is used we step down to ad / iap / currency.
+  // We also surface "X left today" so the user knows their daily quota.
+  let priceLine: string;
+  if (method === 'free') {
+    priceLine = freeRemaining > 1
+      ? `FREE · ${freeRemaining} left today`
+      : 'FREE · today\'s daily';
+  } else if (method === 'ad') {
+    priceLine = adRemaining > 0
+      ? `Free · ${adRemaining} ad${adRemaining === 1 ? '' : 's'} left today`
+      : 'Watch ad';
+  } else if (method === 'iap') {
+    priceLine = tier.iapPriceDisplay || 'In-app purchase';
+  } else if (method === 'currency') {
+    priceLine = formatMoney(tier.price);
+  } else {
+    priceLine = resetCountdown ? `Resets in ${resetCountdown}` : 'Come back tomorrow';
+  }
+
+  const CtaIcon = method === 'free'
+    ? Gift
+    : method === 'ad'
+      ? Play
+      : method === 'iap'
+        ? ShoppingBag
+        : null;
+
   return (
     <motion.button
       type="button"
@@ -38,7 +97,7 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-2xl',
         disabled && 'opacity-60 grayscale cursor-not-allowed',
       )}
-      aria-label={`Buy ${tier.label}, ${formatMoney(tier.price)}${disabled ? ` (unavailable — ${lockedReason.toLowerCase()})` : ''}`}
+      aria-label={`${ctaLabel} ${tier.label}, ${priceLine}${disabled ? ` (unavailable — ${lockedReason.toLowerCase()})` : ''}`}
     >
       <div
         className={cn(
@@ -129,7 +188,7 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
                     featured ? 'text-xs' : 'text-[11px]',
                   )}
                 >
-                  {formatMoney(tier.price)}
+                  {priceLine}
                 </p>
               </div>
 
@@ -149,8 +208,12 @@ export const PackShopCard = memo(function PackShopCard({ tier, affordable, squad
                 )}
               >
                 <span className="pointer-events-none absolute inset-x-1 top-0.5 h-1/2 rounded-full bg-gradient-to-b from-white/55 to-transparent" />
-                {disabled && <Lock className="relative w-3 h-3" />}
-                <span className="relative">{disabled ? lockedReason : 'Buy'}</span>
+                {disabled
+                  ? <Lock className="relative w-3 h-3" />
+                  : CtaIcon
+                    ? <CtaIcon className="relative w-3 h-3" />
+                    : null}
+                <span className="relative">{disabled ? lockedReason : ctaLabel}</span>
               </span>
             </div>
           </div>

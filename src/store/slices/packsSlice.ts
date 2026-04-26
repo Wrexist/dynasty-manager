@@ -1,4 +1,4 @@
-import type { OpenedPackRecord, OpenPackResult, PackTierKey, Player, QuickSellPackedPlayerResult, ReleasePackedPlayerResult } from '@/types/game';
+import type { OpenedPackRecord, OpenPackResult, PackTierKey, PackUnlockMethod, Player, QuickSellPackedPlayerResult, ReleasePackedPlayerResult } from '@/types/game';
 import type { GameState } from '../storeTypes';
 import { addMsg } from '@/utils/helpers';
 import { MAX_SQUAD_SIZE, FFP_WAGE_RATIO_WARNING } from '@/config/gameBalance';
@@ -35,48 +35,177 @@ type Get = () => GameState;
 // OpenedPackRecord, OpenPackResult, ReleasePackedPlayerResult all live in
 // `@/types/game` (single source of truth for domain types).
 
+/** Real-world date key (YYYY-MM-DD, device-local) used to bucket
+ *  daily ad-pack opens. Lives in the slice so tests can stub `Date`
+ *  without touching production timezone logic. */
+function todayDateKey(): string {
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export type CanOpenPackResult = { ok: true } | { ok: false; message: string };
+
+/** Read today's free/ad open count for a given tier from state, defaulting
+ *  to 0 if the bucket date no longer matches the device's current day. */
+function todayCounts(state: GameState, tierKey: PackTierKey): { free: number; ad: number } {
+  const today = todayDateKey();
+  const buckets = state.dailyPackOpens || { date: '', free: {}, ad: {} };
+  if (buckets.date !== today) return { free: 0, ad: 0 };
+  return {
+    free: buckets.free?.[tierKey] || 0,
+    ad: buckets.ad?.[tierKey] || 0,
+  };
+}
+
+/** Pick the cheapest available method for the user given their current
+ *  daily usage. Page consumes this when no explicit method was passed.
+ *  Order: free → ad → iap → currency. Returns null if nothing is
+ *  available right now (e.g. all caps hit and no IAP/currency fallback). */
+export function defaultMethodFor(
+  state: GameState,
+  tierKey: PackTierKey,
+): PackUnlockMethod | null {
+  const tier = PACK_TIER_MAP[tierKey];
+  if (!tier) return null;
+  const used = todayCounts(state, tierKey);
+  if ((tier.freeDailyLimit ?? 0) > used.free) return 'free';
+  if ((tier.adDailyLimit ?? 0) > used.ad) return 'ad';
+  if (tier.productId) return 'iap';
+  if ((tier.price ?? 0) > 0) return 'currency';
+  return null;
+}
+
+/** Pure eligibility check for a specific method. The page MUST call this
+ *  before kicking off any out-of-band cost (rewarded ad or consumable IAP)
+ *  so the user can never pay real money or watch a full ad and then get
+ *  rejected by `openPack`. Same checks `openPack` runs internally. */
+function evaluateOpenPack(
+  state: GameState,
+  tierKey: PackTierKey,
+  method?: PackUnlockMethod,
+): CanOpenPackResult {
+  const tier = PACK_TIER_MAP[tierKey];
+  if (!tier) return { ok: false, message: 'Unknown pack tier.' };
+
+  const club = state.clubs[state.playerClubId];
+  if (!club) return { ok: false, message: 'No active club.' };
+
+  const blocked = challengeBlockReason(state);
+  if (blocked) return { ok: false, message: blocked };
+
+  const resolvedMethod = method ?? defaultMethodFor(state, tierKey);
+  if (!resolvedMethod) {
+    return {
+      ok: false,
+      message: `No opens available — daily allowance used and no purchase option for ${tier.label}.`,
+    };
+  }
+
+  const used = todayCounts(state, tierKey);
+
+  if (resolvedMethod === 'free') {
+    const cap = tier.freeDailyLimit ?? 0;
+    if (cap === 0) return { ok: false, message: `${tier.label} has no free opens.` };
+    if (used.free >= cap) {
+      return {
+        ok: false,
+        message: `Today's free ${tier.label} already opened — come back tomorrow or watch an ad / buy more.`,
+      };
+    }
+  } else if (resolvedMethod === 'ad') {
+    const cap = tier.adDailyLimit ?? 0;
+    if (cap === 0) return { ok: false, message: `${tier.label} doesn't support ad opens.` };
+    if (used.ad >= cap) {
+      return {
+        ok: false,
+        message: `Daily ad limit reached — ${cap} ad opens per day for ${tier.label}.`,
+      };
+    }
+  } else if (resolvedMethod === 'iap') {
+    if (!tier.productId) return { ok: false, message: `${tier.label} has no in-app purchase option.` };
+  } else if (resolvedMethod === 'currency') {
+    if ((tier.price ?? 0) <= 0) return { ok: false, message: `${tier.label} can't be bought with in-game money.` };
+    if (club.budget < tier.price) return { ok: false, message: 'Insufficient funds for this pack.' };
+  }
+
+  const slotsAvailable = MAX_SQUAD_SIZE - club.playerIds.length;
+  if (slotsAvailable < tier.cards) {
+    return {
+      ok: false,
+      message: `Not enough squad space — this pack delivers ${tier.cards} player(s). Release players first.`,
+    };
+  }
+
+  return { ok: true };
+}
+
 export const createPacksSlice = (set: Set, get: Get) => ({
   openedPacks: [] as OpenedPackRecord[],
   packPityCounter: 0,
   lastPackWeek: 0,
   lastPackSeason: 0,
+  dailyPackOpens: { date: '', free: {}, ad: {} } as {
+    date: string;
+    free: Partial<Record<PackTierKey, number>>;
+    ad: Partial<Record<PackTierKey, number>>;
+  },
 
-  openPack: (tierKey: PackTierKey): OpenPackResult => {
+  /** Eligibility pre-flight. Optional `method` lets the page check a
+   *  specific path (e.g. "is the IAP path open?"); without it the slice
+   *  evaluates the cheapest auto-picked method. Run this BEFORE charging
+   *  real money so the user can't pay and then be blocked by a challenge
+   *  or squad-cap rule. */
+  canOpenPack: (tierKey: PackTierKey, method?: PackUnlockMethod): CanOpenPackResult =>
+    evaluateOpenPack(get(), tierKey, method),
+
+  openPack: (
+    tierKey: PackTierKey,
+    opts?: { method?: PackUnlockMethod; skipPayment?: boolean },
+  ): OpenPackResult => {
     const state = get();
     const tier = PACK_TIER_MAP[tierKey];
     if (!tier) return { success: false, message: 'Unknown pack tier.' };
 
-    const club = state.clubs[state.playerClubId];
-    if (!club) return { success: false, message: 'No active club.' };
+    const skipPayment = opts?.skipPayment === true;
+    const method = opts?.method ?? defaultMethodFor(state, tierKey);
 
-    const blocked = challengeBlockReason(state);
-    if (blocked) return { success: false, message: blocked };
-
-    if (club.budget < tier.price) {
-      return { success: false, message: 'Insufficient funds for this pack.' };
-    }
-
-    const slotsAvailable = MAX_SQUAD_SIZE - club.playerIds.length;
-    if (slotsAvailable < tier.cards) {
+    if (!method) {
       return {
         success: false,
-        message: `Not enough squad space — this pack delivers ${tier.cards} player(s). Release players first.`,
+        message: `No opens available — daily allowance used and no purchase option for ${tier.label}.`,
       };
     }
 
-    // Once-per-week throttle, keyed solely by the cooldown fields
-    // (season, week). Advancing a week re-enables opening. The `> 0` guards
-    // skip the first-ever open (both fields start at 0). We deliberately
-    // don't consult `openedPacks` so the cooldown survives log pruning or
-    // any future migration that clears history.
-    if (
-      (state.lastPackSeason || 0) > 0
-      && (state.lastPackWeek || 0) > 0
-      && state.lastPackSeason === state.season
-      && state.lastPackWeek === state.week
-    ) {
-      return { success: false, message: 'Only one pack per week — advance a week to open another.' };
+    // Out-of-band methods (ad, iap) require the page to have completed
+    // the cost OUTSIDE this call. The page must pass skipPayment=true.
+    // Without it we refuse to grant the pack — it's a misuse, not a
+    // user-facing error path. The page is the single gatekeeper for ad
+    // playback and consumable IAP completion.
+    if ((method === 'ad' || method === 'iap') && !skipPayment) {
+      return {
+        success: false,
+        message: method === 'ad'
+          ? 'This pack requires watching a rewarded ad first.'
+          : 'This pack requires an in-app purchase.',
+      };
     }
+
+    // Run the same eligibility checks the page used to pre-validate. If
+    // anything has changed between pre-flight and now (state changed
+    // mid-ad, etc.), we still refuse to grant the pack — the page is
+    // responsible for refunding/handling on its end.
+    const eligible = evaluateOpenPack(state, tierKey, method);
+    if (eligible.ok === false) {
+      return { success: false, message: eligible.message };
+    }
+
+    const club = state.clubs[state.playerClubId]!;
+    const today = todayDateKey();
+    const buckets = state.dailyPackOpens || { date: '', free: {}, ad: {} };
+    const usedToday = buckets.date === today ? buckets : { date: today, free: {}, ad: {} };
 
     const pityTriggered = shouldPityTrigger(state.packPityCounter || 0);
     const players = generatePackContents(tierKey, state.season, { pityTriggered });
@@ -90,9 +219,12 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       return owned;
     });
 
+    // Only `currency` opens charge club budget. Free/ad opens are
+    // zero-cost; IAP opens are paid in real money outside the simulation.
+    const budgetDeduction = method === 'currency' ? (tier.price ?? 0) : 0;
     const updatedClub = {
       ...club,
-      budget: Math.max(0, club.budget - tier.price),
+      budget: Math.max(0, club.budget - budgetDeduction),
       playerIds: [...club.playerIds, ...finalizedPlayers.map(p => p.id)],
       wageBill: club.wageBill + finalizedPlayers.reduce((s, p) => s + p.wage, 0),
     };
@@ -110,12 +242,19 @@ export const createPacksSlice = (set: Set, get: Get) => ({
     const newPity = updatedPityCounter(state.packPityCounter || 0, finalizedPlayers);
     const topPlayer = finalizedPlayers.reduce((best, p) => p.overall > best.overall ? p : best, finalizedPlayers[0]);
 
+    const costLabel = method === 'currency'
+      ? `cost £${(tier.price / 1e6).toFixed(1)}M`
+      : method === 'ad'
+        ? 'opened with a rewarded ad'
+        : method === 'iap'
+          ? 'unlocked via in-app purchase'
+          : 'opened with today\'s free allowance';
     let newMessages = addMsg(state.messages, {
       week: state.week,
       season: state.season,
       type: 'transfer',
       title: `${tier.label} Opened`,
-      body: `${tier.label} cost £${(tier.price / 1e6).toFixed(1)}M. Top pull: ${topPlayer.firstName} ${topPlayer.lastName} (${topPlayer.overall} OVR, ${topPlayer.position}). ${tier.cards} player(s) added to your squad.`,
+      body: `${tier.label} ${costLabel}. Top pull: ${topPlayer.firstName} ${topPlayer.lastName} (${topPlayer.overall} OVR, ${topPlayer.position}). ${tier.cards} player(s) added to your squad.`,
     });
 
     // FFP wage-ratio warning — mirrors renewContract. A stack of Icon/Rare
@@ -274,6 +413,24 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       });
     }
 
+    // Bump the matching per-day bucket so daily caps survive save reloads.
+    // The date rolls over the moment a new ISO-day starts; existing
+    // buckets fall away with it.
+    let nextDailyOpens: GameState['dailyPackOpens'] = usedToday;
+    if (method === 'free') {
+      nextDailyOpens = {
+        date: today,
+        free: { ...usedToday.free, [tierKey]: (usedToday.free[tierKey] || 0) + 1 },
+        ad: usedToday.ad,
+      };
+    } else if (method === 'ad') {
+      nextDailyOpens = {
+        date: today,
+        free: usedToday.free,
+        ad: { ...usedToday.ad, [tierKey]: (usedToday.ad[tierKey] || 0) + 1 },
+      };
+    }
+
     set({
       players: playersWithAi,
       clubs: clubsWithLineup,
@@ -281,8 +438,9 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       packPityCounter: newPity,
       lastPackWeek: state.week,
       lastPackSeason: state.season,
+      dailyPackOpens: nextDailyOpens,
       messages: newMessages,
-      seasonTotalExpenses: (state.seasonTotalExpenses || 0) + tier.price,
+      seasonTotalExpenses: (state.seasonTotalExpenses || 0) + budgetDeduction,
       managerProgression: newProgression,
       careerManager: newCareerManager,
       lastMatchXPGain: xpEarned > 0 ? xpEarned : state.lastMatchXPGain,
@@ -307,6 +465,7 @@ export const createPacksSlice = (set: Set, get: Get) => ({
       pityTriggered,
       placement,
       lineupChanges,
+      method,
     };
   },
 
