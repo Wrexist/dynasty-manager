@@ -48,11 +48,20 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSUserTrackingUsageDescription</key>
-	<string>We use this to personalise ads and measure their effectiveness. You can opt out at any time in device Settings.</string>
+	<string>Vi använder din annons-ID för att visa relevanta belöningsannonser så du kan öppna gratis paket.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoadsInWebContent</key>
 		<true/>
 	</dict>
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-DITT-IOS-APP-ID</string>
+	<key>SKAdNetworkItems</key>
+	<array>
+		<dict>
+			<key>SKAdNetworkIdentifier</key>
+			<string>cstr6suwn9.skadnetwork</string>
+		</dict>
+	</array>
 </dict>
 </plist>
