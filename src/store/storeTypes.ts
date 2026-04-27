@@ -391,6 +391,7 @@ export interface GameState {
   applyYouthPreview: () => void;
   applyDoubleXP: () => void;
   updateSubscription: (info: SubscriptionInfo | null) => void;
+  startFreeTrial: () => void;
 
   // Actions — National Team
   initNationalTeam: (nationality: string) => void;

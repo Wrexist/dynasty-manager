@@ -29,6 +29,27 @@ export function isPro(state: MonetizationState): boolean {
   return false;
 }
 
+/** Check if the player is currently in the introductory free-trial window.
+ *  Returns false if the trial has expired or no subscription exists. */
+export function isOnFreeTrial(state: MonetizationState): boolean {
+  const sub = state.subscription;
+  if (!sub) return false;
+  if (sub.tier !== 'trial' && !sub.isTrial) return false;
+  return !isSubscriptionExpired(sub);
+}
+
+/** Get the number of full days remaining on the active free trial.
+ *  Returns 0 if not on a trial or trial has expired. Rounds up so a
+ *  partial day still reads as "1 day left". */
+export function getFreeTrialDaysRemaining(state: MonetizationState): number {
+  if (!isOnFreeTrial(state)) return 0;
+  const expiresAt = state.subscription?.expiresAt;
+  if (!expiresAt) return 0;
+  const ms = new Date(expiresAt).getTime() - Date.now();
+  if (ms <= 0) return 0;
+  return Math.ceil(ms / (24 * 60 * 60 * 1000));
+}
+
 /** Check if the player owns a specific product */
 export function hasProduct(state: MonetizationState, productId: ProductId): boolean {
   return state.entitlements.includes(productId);

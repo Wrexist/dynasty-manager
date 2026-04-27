@@ -9,6 +9,8 @@ import {
   isStarterKitAvailable,
   getStarterKitRemainingMs,
   getPurchaseCount,
+  isOnFreeTrial,
+  getFreeTrialDaysRemaining,
 } from '@/utils/monetization';
 import {
   PRODUCTS,
@@ -84,6 +86,61 @@ describe('monetization utils', () => {
           willRenew: false,
         },
       }))).toBe(true);
+    });
+  });
+
+  describe('free trial', () => {
+    const trialState = (expiresAt: string) => makeState({
+      subscription: {
+        tier: 'trial',
+        productId: 'com.dynastymanager.pro.monthly',
+        expiresAt,
+        isInGracePeriod: false,
+        willRenew: true,
+        isTrial: true,
+      },
+    });
+
+    it('isOnFreeTrial returns true within trial window', () => {
+      const state = trialState(new Date(Date.now() + 86400000 * 2).toISOString());
+      expect(isOnFreeTrial(state)).toBe(true);
+    });
+
+    it('isOnFreeTrial returns false after trial expires', () => {
+      const state = trialState(new Date(Date.now() - 1000).toISOString());
+      expect(isOnFreeTrial(state)).toBe(false);
+    });
+
+    it('isOnFreeTrial returns false for non-trial subscriptions', () => {
+      const state = makeState({
+        subscription: {
+          tier: 'monthly',
+          productId: 'com.dynastymanager.pro.monthly',
+          expiresAt: new Date(Date.now() + 86400000).toISOString(),
+          isInGracePeriod: false,
+          willRenew: true,
+        },
+      });
+      expect(isOnFreeTrial(state)).toBe(false);
+    });
+
+    it('isPro returns true while on trial', () => {
+      const state = trialState(new Date(Date.now() + 86400000).toISOString());
+      expect(isPro(state)).toBe(true);
+    });
+
+    it('getFreeTrialDaysRemaining rounds up partial days', () => {
+      const state = trialState(new Date(Date.now() + (1.4 * 86400000)).toISOString());
+      expect(getFreeTrialDaysRemaining(state)).toBe(2);
+    });
+
+    it('getFreeTrialDaysRemaining returns 0 for expired trial', () => {
+      const state = trialState(new Date(Date.now() - 1000).toISOString());
+      expect(getFreeTrialDaysRemaining(state)).toBe(0);
+    });
+
+    it('getFreeTrialDaysRemaining returns 0 when no subscription', () => {
+      expect(getFreeTrialDaysRemaining(makeState())).toBe(0);
     });
   });
 

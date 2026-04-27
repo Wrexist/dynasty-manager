@@ -258,12 +258,20 @@ export function extractSubscriptionInfo(customerInfo: any): SubscriptionInfo | n
   const product = PRODUCTS[productId];
   if (!product || (product.type !== 'subscription' && product.subscriptionTier !== 'lifetime')) return null;
 
+  // RevenueCat surfaces introductory free-trial periods through the
+  // `periodType` field on an active entitlement. Values: 'NORMAL' | 'INTRO'
+  // | 'TRIAL'. Either INTRO or TRIAL → the user is currently on a free
+  // (or introductory-priced) period, and we should display "Trial" copy.
+  const periodType: string | undefined = proEntitlement.periodType;
+  const isTrial = periodType === 'TRIAL' || periodType === 'INTRO';
+
   return {
-    tier: product.subscriptionTier!,
+    tier: isTrial ? 'trial' : product.subscriptionTier!,
     productId,
     expiresAt: proEntitlement.expirationDate || null,
     isInGracePeriod: proEntitlement.billingIssueDetectedAt != null,
     willRenew: !proEntitlement.unsubscribeDetectedAt,
+    isTrial,
   };
 }
 

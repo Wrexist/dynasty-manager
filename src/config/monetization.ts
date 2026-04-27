@@ -264,6 +264,22 @@ export const COSMETIC_ITEMS: CosmeticItem[] = [
   { id: 'hom-frame-holographic', category: 'hom_frame', name: 'Holographic', description: 'Shimmering holographic border', pack: 'com.dynastymanager.pack.legends' },
 ];
 
+// ── Free Trial (introductory offer for monthly subscription) ──
+
+/** Free trial duration before the monthly subscription begins billing.
+ *  Configured to match the introductory offer set in App Store Connect /
+ *  Google Play Console for `com.dynastymanager.pro.monthly`. The native
+ *  store handles the actual trial billing — this constant is used to
+ *  display the correct copy in the onboarding paywall and to mock the
+ *  trial window when running on web/dev (no native plugin available). */
+export const FREE_TRIAL_DAYS = 3;
+export const FREE_TRIAL_MS = FREE_TRIAL_DAYS * 24 * 60 * 60 * 1000;
+
+/** The product the free trial converts into when it ends. Players opting
+ *  into the trial during onboarding are auto-enrolled in the monthly plan
+ *  via `purchaseProduct(TRIAL_TARGET_PRODUCT_ID)`. */
+export const TRIAL_TARGET_PRODUCT_ID: ProductId = 'com.dynastymanager.pro.monthly';
+
 // ── Starter Kit (time-limited offer) ──
 
 /** Starter kit is available for this many milliseconds after first launch */

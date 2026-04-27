@@ -1320,7 +1320,7 @@ export type ProductId =
   | 'com.dynastymanager.pack.rare_gold'
   | 'com.dynastymanager.pack.icon';
 
-export type SubscriptionTier = 'monthly' | 'lifetime';
+export type SubscriptionTier = 'trial' | 'monthly' | 'lifetime';
 
 export interface SubscriptionInfo {
   tier: SubscriptionTier;
@@ -1331,6 +1331,10 @@ export interface SubscriptionInfo {
   isInGracePeriod: boolean;
   /** Whether the subscription will auto-renew */
   willRenew: boolean;
+  /** True if the player is currently in the introductory free-trial window
+   *  for the monthly subscription. Auto-converts to a paid monthly billing
+   *  cycle when `expiresAt` is reached unless the user cancels. */
+  isTrial?: boolean;
 }
 
 export type ProFeature =
