@@ -84,7 +84,7 @@ export function PressConference() {
             </button>
           );
         })}
-        {!userIsPro && pendingPressConference.options.length <= 3 && (
+        {!userIsPro && pendingPressConference.hasProOption && pendingPressConference.options.length <= 3 && (
           <ProUpsell feature="Expanded Press Conferences" className="mt-1" />
         )}
       </div>

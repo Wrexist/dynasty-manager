@@ -61,10 +61,10 @@ const FEATURES: FeatureCard[] = [
   {
     id: 'analytics',
     icon: LineChart,
-    title: 'Advanced Analytics',
-    tagline: 'See the patterns AI sees',
+    title: 'Match Insights',
+    tagline: 'Tactical reads after every match',
     description:
-      'Heatmaps, xG breakdowns, opponent shape — the full coaching dashboard your rivals don\'t have.',
+      'Possession reads, conversion analysis, and a per-match performance summary — the patterns the box-score hides.',
     hue: 280,
   },
   {
