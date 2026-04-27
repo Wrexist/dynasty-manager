@@ -39,11 +39,13 @@ export function validateGameState(state: GameState): ValidationError[] {
   }
 
   // Validate all loaded leagues have correct sizes
+  let expectedTotalFromLeagues = 0;
   for (const [leagueId, clubs] of Object.entries(state.divisionClubs)) {
     const leagueInfo = LEAGUES.find(l => l.id === leagueId);
     if (leagueInfo && clubs.length !== leagueInfo.teamCount) {
       errors.push({ field: `divisionClubs.${leagueId}`, message: `${leagueId} has ${clubs.length} clubs, expected ${leagueInfo.teamCount}`, severity: 'critical' });
     }
+    if (leagueInfo) expectedTotalFromLeagues += leagueInfo.teamCount;
   }
 
   // ── No club in multiple leagues ──
@@ -55,6 +57,15 @@ export function validateGameState(state: GameState): ValidationError[] {
       }
       allDivClubIds.add(clubId);
     }
+  }
+
+  // Pyramid total: unique clubs across divisions should match sum of configured tier sizes (e.g. 92-club England)
+  if (expectedTotalFromLeagues > 0 && allDivClubIds.size !== expectedTotalFromLeagues) {
+    errors.push({
+      field: 'divisionClubs',
+      message: `unique clubs across divisions is ${allDivClubIds.size}, expected ${expectedTotalFromLeagues} from league configs`,
+      severity: 'critical',
+    });
   }
 
   // ── Every league club exists in state.clubs ──
