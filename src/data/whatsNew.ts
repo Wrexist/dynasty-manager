@@ -69,7 +69,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Three-year tournament cycle: World Cup, then your continental cup (Euros, Copa America, AFCON, Asian Cup, Gold Cup), then a quiet year, then World Cup again.',
     ],
     new: [
-      'National Team page now shows the next tournament tile — tap it to see the format, qualifying teams, and live group standings.',
+      'National Team page now shows the next tournament tile with the exact start week and season — tap it to see the format, qualifying teams, and live group standings.',
       'Continental tournaments are now confederation-specific and named correctly (European Championship, Copa America, AFCON, Asian Cup, Gold Cup).',
       'International Tournament screen shows a pre-draw preview with all expected qualifiers when no tournament is active.',
     ],

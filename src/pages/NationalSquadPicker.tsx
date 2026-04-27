@@ -236,7 +236,10 @@ const NationalSquadPicker = () => {
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1 flex items-center gap-1">
                 <Calendar className="w-3 h-3" /> Kick-off
               </p>
-              <p className="text-sm font-semibold text-foreground leading-tight">Next week (Wk {tournament.currentWeek})</p>
+              <p className="text-sm font-semibold text-foreground leading-tight">
+                Week {tournament.currentWeek}, Season {tournament.season}
+              </p>
+              <p className="text-[10px] text-muted-foreground">First match next week</p>
             </div>
           </div>
 

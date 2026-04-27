@@ -299,8 +299,8 @@ const NationalTeamPage = () => {
                 {upcoming.inProgress
                   ? `Live now · Week ${week}`
                   : upcoming.weeksAway === 0
-                    ? 'Kicks off this week'
-                    : `${upcoming.weeksAway} week${upcoming.weeksAway === 1 ? '' : 's'} away · Season ${upcoming.season}`}
+                    ? `Kicks off this week · Wk ${upcoming.startWeek}, S${upcoming.season}`
+                    : `Starts Wk ${upcoming.startWeek}, Season ${upcoming.season} · ${upcoming.weeksAway} week${upcoming.weeksAway === 1 ? '' : 's'} away`}
               </p>
             </div>
             <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />

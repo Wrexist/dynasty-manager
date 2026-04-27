@@ -98,6 +98,8 @@ export interface UpcomingTournamentInfo {
   type: InternationalTournamentType;
   /** Season the tournament takes place in. */
   season: number;
+  /** Week of `season` the first match kicks off (always 47 for now). */
+  startWeek: number;
   /** Approximate regular-season weeks until first match (capped at >=0). */
   weeksAway: number;
   /** Pretty display name for the cup (confederation-aware for continental). */
@@ -139,7 +141,14 @@ export function getUpcomingTournament(
       ? `World Cup ${targetSeason}`
       : continentalTournamentName(playerNationality);
 
-    return { type, season: targetSeason, weeksAway: Math.max(0, weeksAway), name, inProgress };
+    return {
+      type,
+      season: targetSeason,
+      startWeek: FIRST_INTL_WEEK,
+      weeksAway: Math.max(0, weeksAway),
+      name,
+      inProgress,
+    };
   }
   return null;
 }

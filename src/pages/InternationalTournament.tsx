@@ -99,8 +99,8 @@ const InternationalTournament = () => {
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Calendar className="w-3 h-3" />
                   {upcoming.weeksAway === 0
-                    ? 'Kicks off this week'
-                    : `${upcoming.weeksAway} week${upcoming.weeksAway === 1 ? '' : 's'} away · Season ${upcoming.season}`}
+                    ? `Kicks off this week · Week ${upcoming.startWeek}, Season ${upcoming.season}`
+                    : `Starts Week ${upcoming.startWeek}, Season ${upcoming.season} · ${upcoming.weeksAway} week${upcoming.weeksAway === 1 ? '' : 's'} away`}
                 </p>
               </div>
             </div>
