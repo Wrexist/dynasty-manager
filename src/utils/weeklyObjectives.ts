@@ -412,6 +412,9 @@ const OBJECTIVE_TEMPLATES: WeeklyObjective[] = [
   },
 ];
 
+/** Count of unique weekly objective templates (for tests / content audits). */
+export const WEEKLY_OBJECTIVE_TEMPLATE_COUNT = OBJECTIVE_TEMPLATES.length;
+
 const MATCH_OBJECTIVE_IDS = [
   'win-match', 'clean-sheet', 'score-2-plus', 'win-by-2', 'score-3-plus',
   'no-cards', 'dont-lose', 'comeback-win', 'late-drama', 'away-clean-sheet',

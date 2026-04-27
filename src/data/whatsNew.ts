@@ -84,8 +84,11 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'Inbox now shows an amber warning if your Pro payment fails so you can update billing before features lapse.',
       'Staff effectiveness now scales with morale — keep the backroom happy and they get more out of training, scouting, and youth.',
       'Star players can now headline limited-edition Signature Drops on the Merchandise tab for a multi-week revenue spike.',
+      'Tighter validation of league and club data during long careers.',
     ],
-    fixed: [],
+    fixed: [
+      'Hall of Managers no longer breaks if stored data is invalid.',
+    ],
   },
   {
     version: '1.0.4',
