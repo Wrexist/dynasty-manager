@@ -12,6 +12,7 @@ import { QUESTIONS as PRESS_QUESTIONS } from '@/data/pressConferences';
 import { generateFixtures } from '@/data/league';
 import { ACHIEVEMENTS } from '@/utils/achievements';
 import { MANAGER_PERKS, xpForLevel } from '@/utils/managerPerks';
+import { WEEKLY_OBJECTIVE_TEMPLATE_COUNT } from '@/utils/weeklyObjectives';
 
 // Gated behind VITEST_AUDIT=1 so regular CI/dev runs stay quiet.
 // Run `VITEST_AUDIT=1 npm test` to surface these diagnostic numbers.
@@ -69,10 +70,8 @@ describe('3B: Press Conference Variety', () => {
 
 describe('3C: Weekly Objective Variety', () => {
   it('has at least 12 unique objective templates', () => {
-    // We know there are 16 templates (10 common + 5 rare + 1 legendary)
-    const templateCount = 16;
-    expect(templateCount).toBeGreaterThanOrEqual(12);
-    auditLog(`[Content Audit] Weekly objectives: ${templateCount} templates, 3 per week = ~15 weeks to see most`);
+    expect(WEEKLY_OBJECTIVE_TEMPLATE_COUNT).toBeGreaterThanOrEqual(12);
+    auditLog(`[Content Audit] Weekly objectives: ${WEEKLY_OBJECTIVE_TEMPLATE_COUNT} templates, 3 per week = ~15 weeks to see most`);
   });
 });
 
