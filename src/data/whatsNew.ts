@@ -62,8 +62,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     build: null,
     date: '2026-04-26',
     headline: 'Real national teams, smarter rankings, fancy squad picker.',
-    summary:
-      'Take charge of your country with real FC26 stars, accurate world rankings, and a brand-new squad selection screen. Tournaments now follow a clean three-year cycle — World Cup, continental cup, off year — and you pick your 23-man squad the week before the first match.',
+    summary: 'Take charge of your country with real FC26 stars, accurate world rankings, and a brand-new squad selection screen. Tournaments now follow a clean three-year cycle — World Cup, continental cup, off year — and you pick your 23-man squad the week before the first match.',
     highlights: [
       'New pre-tournament squad picker lets you choose your final 23 from the top 50 nationally eligible players.',
       'Three-year tournament cycle: World Cup, then your continental cup (Euros, Copa America, AFCON, Asian Cup, Gold Cup), then a quiet year, then World Cup again.',
@@ -79,6 +78,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     ],
     fixed: [
       'Fixed France (and other top nations) appearing as #25 in the world rankings.',
+      'Fixed Restore Purchases not working when tapped before the store finished initialising.',
     ],
   },
   {
