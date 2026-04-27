@@ -58,6 +58,23 @@ export { readWhatsNewSeenVersion, writeWhatsNewSeenVersion };
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.0.5',
+    build: null,
+    date: '2026-04-27',
+    headline: 'Try Dynasty Pro free for three days.',
+    summary: 'Every new game now opens with a fun, interactive tour of the full Pro toolkit — and you can unlock everything free for three days. Tactical presets, instant sim, advanced analytics, ad-free play and the gold Pro badge are all yours from the first kick-off.',
+    highlights: [
+      'Brand-new interactive Liquid Glass paywall walks through every Pro feature.',
+    ],
+    new: [
+      'Three-day free trial of Dynasty Pro on every new game.',
+    ],
+    improved: [
+      'Subscription onboarding now auto-enrols you into the monthly plan after the trial — cancel anytime.',
+    ],
+    fixed: [],
+  },
+  {
     version: '1.0.4',
     build: null,
     date: '2026-04-26',

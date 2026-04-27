@@ -1,6 +1,6 @@
 import type { GameState } from '../storeTypes';
 import type { ProductId, CosmeticCategory, AdRewardType, SubscriptionInfo } from '@/types/game';
-import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, DEFAULT_MONETIZATION_STATE } from '@/config/monetization';
+import { PRODUCTS, COSMETIC_ITEMS, AD_REWARD_LIMITS, AD_REWARD_VALUES, DEFAULT_MONETIZATION_STATE, FREE_TRIAL_MS, TRIAL_TARGET_PRODUCT_ID } from '@/config/monetization';
 import { grantXP } from '@/utils/managerPerks';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
@@ -169,6 +169,33 @@ export function createMonetizationSlice(_set: Set, _get: Get) {
         monetization: {
           ...s.monetization,
           subscription: info,
+        },
+      }));
+    },
+
+    /** Start the introductory 3-day free trial.
+     *  Marks the player as Pro-via-trial locally so all gated features unlock
+     *  immediately. The native paywall flow (`purchaseProduct`) is what actually
+     *  enrolls them in the monthly plan on iOS / Android — the store handles
+     *  the introductory pricing automatically. On web/dev where there's no
+     *  native plugin, this is the only path that grants trial access. Calling
+     *  this when an active subscription already exists is a no-op. */
+    startFreeTrial: () => {
+      const state = _get();
+      if (state.monetization.subscription && state.monetization.subscription.tier !== 'trial') return;
+      const expiresAt = new Date(Date.now() + FREE_TRIAL_MS).toISOString();
+      const trialInfo: SubscriptionInfo = {
+        tier: 'trial',
+        productId: TRIAL_TARGET_PRODUCT_ID,
+        expiresAt,
+        isInGracePeriod: false,
+        willRenew: true,
+        isTrial: true,
+      };
+      _set((s) => ({
+        monetization: {
+          ...s.monetization,
+          subscription: trialInfo,
         },
       }));
     },

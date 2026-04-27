@@ -21,6 +21,7 @@ const ChallengePicker = lazy(() => import("./pages/ChallengePicker"));
 const ModeSelect = lazy(() => import("./pages/ModeSelect"));
 const ManagerCreation = lazy(() => import("./pages/ManagerCreation"));
 const WhatsNewPage = lazy(() => import("./pages/WhatsNewPage"));
+const SubscribeOnboarding = lazy(() => import("./pages/SubscribeOnboarding"));
 
 // Loading fallback
 const LoadingFallback = () => (
@@ -80,6 +81,10 @@ const App = () => {
               <Route
                 path="/whats-new"
                 element={<ErrorBoundary scope="whats-new"><WhatsNewPage standalone /></ErrorBoundary>}
+              />
+              <Route
+                path="/subscribe"
+                element={<ErrorBoundary scope="subscribe"><SubscribeOnboarding /></ErrorBoundary>}
               />
               <Route
                 path="/game"

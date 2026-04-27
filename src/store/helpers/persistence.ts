@@ -242,6 +242,12 @@ export const STORAGE_KEYS = {
    *  `SKStoreReviewController.requestReview` on top of Apple's 3/365-day
    *  hard cap so we only spend prompts on genuine high-emotion moments. */
   APP_REVIEW_STATE: 'dynasty-review-state',
+  /** localStorage: tracks whether the user has seen the subscription
+   *  onboarding paywall. Set once the user either starts the free trial or
+   *  taps "Maybe later" on the new-game flow. Prevents the paywall from
+   *  showing on every subsequent New Game tap. Returning Pro users skip
+   *  the check entirely. */
+  SUBSCRIBE_ONBOARDING_SEEN: 'dynasty-subscribe-onboarding-seen',
 } as const;
 
 /** Read the latest "What's New" version the user has acknowledged. */

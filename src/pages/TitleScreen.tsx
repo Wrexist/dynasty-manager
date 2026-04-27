@@ -19,6 +19,8 @@ import {
   writeCommunityPackSlotPref,
   clearCommunityPackSlotPref,
   isSaveStorageHydrated,
+  getFlag,
+  STORAGE_KEYS,
 } from '@/store/helpers/persistence';
 import { CommunityPackPopup } from '@/components/CommunityPackPopup';
 import { restorePurchases, openSubscriptionManagement, getCustomerInfo, extractSubscriptionInfo } from '@/utils/purchases';
@@ -105,7 +107,12 @@ const TitleScreen = () => {
       setCommunityPackSlot(slot);
       return;
     }
-    navigate('/mode-select', { state: { slot, communityPackEnabled: pref } });
+    // Returning to a slot that already answered the community pack popup —
+    // still funnel through the subscription paywall on first sight.
+    const shouldShowSubscribe =
+      !userIsPro && !hasActiveSub && !getFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
+    const nextRoute = shouldShowSubscribe ? '/subscribe' : '/mode-select';
+    navigate(nextRoute, { state: { slot, communityPackEnabled: pref, returnTo: '/mode-select' } });
   };
 
   const handleCommunityPackChoice = (enabled: boolean) => {
@@ -113,7 +120,13 @@ const TitleScreen = () => {
     if (slot === null) return;
     writeCommunityPackSlotPref(slot, enabled);
     setCommunityPackSlot(null);
-    navigate('/mode-select', { state: { slot, communityPackEnabled: enabled } });
+    // Show the subscription onboarding once per device, before mode-select.
+    // Skip for users who already have Pro (one-time purchase or active sub)
+    // and for those who already answered the trial paywall on a prior run.
+    const shouldShowSubscribe =
+      !userIsPro && !hasActiveSub && !getFlag(STORAGE_KEYS.SUBSCRIBE_ONBOARDING_SEEN);
+    const nextRoute = shouldShowSubscribe ? '/subscribe' : '/mode-select';
+    navigate(nextRoute, { state: { slot, communityPackEnabled: enabled, returnTo: '/mode-select' } });
   };
 
   const handleDelete = (slot: number) => {
