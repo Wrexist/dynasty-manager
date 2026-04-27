@@ -92,6 +92,17 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     improved: [
       'Real FC26 player pool always seeds your national team candidates — no more random-name squads when you take a top nation like France.',
       'World ranking on the National Team page now reflects each nation\'s real FIFA-style ranking instead of a flat #25 placeholder.',
+      'Tightened native bridge typing for in-app purchases and haptics.',
+      'Hardened the matchday flow with new safety tests for penalty shootouts and prestige resets.',
+      'Locked down transfer market behaviour with new tests for offers, releases, renewals, and free agents.',
+      'Added safety net tests for the new quick-sell flow on packs.',
+      'Locked down the Smart Sub recommender so injuries always trigger a swap and tactical context counts late in matches.',
+      'Refactored the season game-loop module for cleaner internals.',
+      'Continued tightening the season game-loop module for cleaner internals.',
+      'Cleaner Transfer screen — News tab and Free Agent signing modal now load as their own components.',
+      'Cleaner Dashboard internals — competition status and board objectives now load as their own components.',
+      'Refactored the match engine for cleaner internals.',
+      'Cleaner MatchDay screen — score header and match-speed picker now load as their own components.',
     ],
     fixed: [
       'Fixed France (and other top nations) appearing as #25 in the world rankings.',

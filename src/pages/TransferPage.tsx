@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { GlassPanel } from '@/components/game/GlassPanel';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, ArrowUpRight, Repeat2, Clock, Users, Search, Calendar, Newspaper, X, ArrowUpDown, TrendingUp } from 'lucide-react';
+import { ShoppingCart, Bookmark, BookmarkCheck, Tag, ArrowDownLeft, Repeat2, Clock, Users, Search, Calendar, Newspaper, X, ArrowUpDown, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { hapticLight, hapticMedium, hapticHeavy } from '@/utils/haptics';
 import { AnimatedNumber } from '@/components/game/AnimatedNumber';
@@ -15,12 +15,14 @@ import { POSITION_FILTERS, PAGE_HINTS, SIGNIFICANT_OFFER_OVERALL, SIGNIFICANT_OF
 import { TransferNegotiation } from '@/components/game/TransferNegotiation';
 import { IncomingOfferNegotiation } from '@/components/game/IncomingOfferNegotiation';
 import { PageHint } from '@/components/game/PageHint';
-import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, FREE_AGENT_DEFAULT_CONTRACT_YEARS, FREE_AGENT_MIN_WAGE_RATIO, FREE_AGENT_MAX_WAGE_RATIO, LOAN_BUY_FEE_MULTIPLIER, PRE_SEASON_END } from '@/config/transfers';
+import { SUMMER_WINDOW_END, WINTER_WINDOW_START, WINTER_WINDOW_END, OFFER_EXPIRY_WEEKS, FREE_AGENT_DEFAULT_CONTRACT_YEARS, LOAN_BUY_FEE_MULTIPLIER, PRE_SEASON_END } from '@/config/transfers';
 import { MAX_SQUAD_SIZE, LOAN_MIN_WEEKS_BEFORE_RECALL } from '@/config/gameBalance';
 import { formatMoney } from '@/utils/helpers';
-import { getPerformanceMultiplier, getMaxFreeAgentOverall, calculateSigningBonus } from '@/utils/transferOffers';
+import { getPerformanceMultiplier, getMaxFreeAgentOverall } from '@/utils/transferOffers';
 import { TransferPlayerCard } from '@/components/game/TransferPlayerCard';
 import { LEAGUES } from '@/data/league';
+import { NewsTab } from '@/components/transfer/NewsTab';
+import { FreeAgentSigningModal } from '@/components/transfer/FreeAgentSigningModal';
 
 const TransferPage = () => {
   const {
@@ -930,246 +932,35 @@ const TransferPage = () => {
       )}
 
       {/* Transfer News Feed */}
-      {tab === 'news' && (() => {
-        const { allNews, totalTransfers, totalLoans, totalFreeAgents, totalSpend, biggestDeal, myClubDeals } = newsSummary;
-        const { filteredNews, grouped } = filteredGroupedNews;
-
-        return (
-          <div className="space-y-3">
-            {/* News Summary Stats */}
-            {allNews.length > 0 && (
-              <GlassPanel className="p-3 space-y-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <TrendingUp className="w-3.5 h-3.5 text-primary" />
-                  <span className="text-xs font-semibold text-foreground">Window Summary</span>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="bg-muted/30 rounded-lg p-2">
-                    <p className="text-[10px] text-muted-foreground">Total Spend</p>
-                    <p className="text-sm font-bold text-primary">{formatMoney(totalSpend)}</p>
-                  </div>
-                  <div className="bg-muted/30 rounded-lg p-2">
-                    <p className="text-[10px] text-muted-foreground">Deals</p>
-                    <p className="text-sm font-bold text-foreground">{allNews.length}</p>
-                  </div>
-                  {biggestDeal?.fee ? (
-                    <div className="bg-muted/30 rounded-lg p-2 col-span-2">
-                      <p className="text-[10px] text-muted-foreground">Biggest Deal</p>
-                      <p className="text-sm font-bold text-foreground">
-                        {biggestDeal.playerName} <span className="text-primary">{formatMoney(biggestDeal.fee)}</span>
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-                {myClubDeals.length > 0 && (
-                  <div className="flex items-center gap-1.5 pt-1 border-t border-border/30">
-                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                    <span className="text-[10px] text-muted-foreground">
-                      Your club: <span className="text-foreground font-medium">{myClubDeals.length} deal{myClubDeals.length !== 1 ? 's' : ''}</span>
-                    </span>
-                  </div>
-                )}
-              </GlassPanel>
-            )}
-
-            {/* Type Filter */}
-            {allNews.length > 0 && (
-              <div className="flex gap-1.5">
-                {([
-                  { id: 'all' as const, label: 'All', count: allNews.length },
-                  { id: 'transfer' as const, label: 'Transfers', count: totalTransfers },
-                  { id: 'loan' as const, label: 'Loans', count: totalLoans },
-                  { id: 'free_agent' as const, label: 'Free Agents', count: totalFreeAgents },
-                ]).map(f => (
-                  <button
-                    key={f.id}
-                    onClick={() => { hapticLight(); setNewsTypeFilter(f.id); }}
-                    className={cn(
-                      'px-2 py-1 rounded text-[10px] font-medium shrink-0 transition-all',
-                      newsTypeFilter === f.id
-                        ? f.id === 'transfer' ? 'bg-primary/20 text-primary'
-                        : f.id === 'loan' ? 'bg-amber-500/20 text-amber-400'
-                        : f.id === 'free_agent' ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'bg-secondary text-secondary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
-                  >
-                    {f.label} ({f.count})
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Grouped News Feed */}
-            {filteredNews.length > 0 ? (
-              Object.entries(grouped).map(([weekLabel, entries]) => (
-                <div key={weekLabel} className="space-y-1.5">
-                  <div className="flex items-center gap-2 pt-1">
-                    <Calendar className="w-3 h-3 text-muted-foreground/50" />
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{weekLabel}</span>
-                    <div className="flex-1 h-px bg-border/30" />
-                  </div>
-                  {entries.map((entry, i) => {
-                    const fromClub = clubs[entry.fromClubId];
-                    const toClub = clubs[entry.toClubId];
-                    const involvesMyClub = entry.fromClubId === playerClubId || entry.toClubId === playerClubId;
-                    return (
-                      <motion.div
-                        key={entry.id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.2 }}
-                      >
-                        <GlassPanel className={cn('p-3', involvesMyClub && 'ring-1 ring-primary/30')}>
-                          <div className="flex items-start gap-3">
-                            <div className={cn(
-                              'w-9 h-9 rounded-full flex items-center justify-center shrink-0',
-                              entry.type === 'transfer' ? 'bg-primary/15 text-primary' :
-                              entry.type === 'loan' ? 'bg-amber-500/15 text-amber-400' :
-                              'bg-emerald-500/15 text-emerald-400'
-                            )}>
-                              {entry.type === 'transfer' ? <ArrowUpRight className="w-4 h-4" /> :
-                               entry.type === 'loan' ? <Repeat2 className="w-4 h-4" /> :
-                               <Users className="w-4 h-4" />}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <p className="text-sm font-bold text-foreground">{entry.playerName}</p>
-                                {involvesMyClub && (
-                                  <span className="text-[8px] font-bold bg-primary/20 text-primary px-1 py-0.5 rounded">YOU</span>
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                {entry.playerPosition} {'\u2022'} {entry.playerAge}y {'\u2022'} {entry.playerOverall} OVR
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {entry.type === 'free_agent' ? (
-                                  <>Signed by <span className="text-foreground font-medium">{toClub?.shortName || '?'}</span></>
-                                ) : (
-                                  <>
-                                    <span className="text-foreground">{fromClub?.shortName || '?'}</span>
-                                    {' \u2192 '}
-                                    <span className="text-foreground">{toClub?.shortName || '?'}</span>
-                                    {entry.type === 'loan' && entry.loanDuration && (
-                                      <span className="text-amber-400 ml-1">({entry.loanDuration}wk loan)</span>
-                                    )}
-                                  </>
-                                )}
-                              </p>
-                            </div>
-                            <div className="text-right shrink-0">
-                              {entry.fee ? (
-                                <span className="text-sm font-bold text-primary">{formatMoney(entry.fee)}</span>
-                              ) : entry.type === 'loan' ? (
-                                <span className="text-[10px] font-semibold bg-amber-500/15 text-amber-400 px-1.5 py-0.5 rounded">LOAN</span>
-                              ) : (
-                                <span className="text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 px-1.5 py-0.5 rounded">FREE</span>
-                              )}
-                            </div>
-                          </div>
-                        </GlassPanel>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              ))
-            ) : allNews.length > 0 ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
-                <Newspaper className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No {newsTypeFilter === 'transfer' ? 'transfers' : newsTypeFilter === 'loan' ? 'loans' : 'free agent signings'} this season</p>
-              </motion.div>
-            ) : (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8">
-                <Newspaper className="w-8 h-8 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No transfer activity yet this season</p>
-                <p className="text-xs text-muted-foreground/60 mt-1">AI club transfers and loans will appear here</p>
-              </motion.div>
-            )}
-          </div>
-        );
-      })()}
+      {tab === 'news' && (
+        <NewsTab
+          newsSummary={newsSummary}
+          filteredGroupedNews={filteredGroupedNews}
+          clubs={clubs}
+          playerClubId={playerClubId}
+          newsTypeFilter={newsTypeFilter}
+          onSetNewsTypeFilter={setNewsTypeFilter}
+        />
+      )}
 
       {/* Free Agent Signing Modal */}
-      {signingPlayer && (() => {
-        const p = players[signingPlayer];
-        if (!p) return null;
-        const signingBonus = calculateSigningBonus(offerWage, offerYears);
-        const canAfford = (club?.budget || 0) >= signingBonus;
-        return (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-            <GlassPanel className="p-5 max-w-sm w-full space-y-4">
-              <h3 className="text-base font-bold text-foreground font-display">Sign {p.firstName} {p.lastName}</h3>
-              <p className="text-xs text-muted-foreground">{p.position} {'\u2022'} {p.age}y {'\u2022'} OVR {p.overall}</p>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Weekly Wage</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="range"
-                    min={Math.round(p.wage * FREE_AGENT_MIN_WAGE_RATIO)}
-                    max={Math.round(p.wage * FREE_AGENT_MAX_WAGE_RATIO)}
-                    step={1000}
-                    value={offerWage}
-                    onChange={e => setOfferWage(Number(e.target.value))}
-                    className="flex-1"
-                  />
-                  <span className="text-sm font-bold text-foreground tabular-nums w-16 text-right">{'\u00A3'}{(offerWage / 1e3).toFixed(0)}K</span>
-                </div>
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1 block">Contract Length</label>
-                <div className="flex gap-2">
-                  {[1, 2, 3].map(y => (
-                    <button
-                      key={y}
-                      onClick={() => setOfferYears(y)}
-                      className={cn(
-                        'flex-1 py-1.5 rounded-lg text-xs font-medium transition-all',
-                        offerYears === y ? 'bg-primary text-primary-foreground' : 'bg-muted/50 text-muted-foreground'
-                      )}
-                    >
-                      {y} year{y > 1 ? 's' : ''}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Signing Bonus</span>
-                <span className={cn('font-semibold', canAfford ? 'text-foreground' : 'text-destructive')}>
-                  {'\u00A3'}{(signingBonus / 1e6).toFixed(1)}M
-                </span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">First Year Cost</span>
-                <span className="font-semibold text-muted-foreground">
-                  {'\u00A3'}{((signingBonus + offerWage * (totalWeeks || 46)) / 1e6).toFixed(1)}M
-                </span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Squad Size</span>
-                <span className={cn('font-semibold', (club?.playerIds.length || 0) >= MAX_SQUAD_SIZE ? 'text-destructive' : 'text-muted-foreground')}>
-                  {club?.playerIds.length || 0} / {MAX_SQUAD_SIZE}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm" className="flex-1 h-9 text-xs"
-                  disabled={!canAfford || (club?.playerIds.length || 0) >= MAX_SQUAD_SIZE}
-                  onClick={() => {
-                    const result = signFreeAgent(signingPlayer, offerWage, offerYears);
-                    if (result.success) { hapticHeavy(); successToast(result.message); } else { errorToast(result.message); }
-                    setSigningPlayer(null);
-                  }}
-                >
-                  {(club?.playerIds.length || 0) >= MAX_SQUAD_SIZE ? 'Squad Full' : canAfford ? 'Confirm Signing' : 'Cannot Afford'}
-                </Button>
-                <Button size="sm" variant="outline" className="flex-1 h-9 text-xs" onClick={() => setSigningPlayer(null)}>
-                  Cancel
-                </Button>
-              </div>
-            </GlassPanel>
-          </div>
-        );
-      })()}
+      {signingPlayer && players[signingPlayer] && (
+        <FreeAgentSigningModal
+          player={players[signingPlayer]}
+          club={club}
+          offerWage={offerWage}
+          offerYears={offerYears}
+          totalWeeks={totalWeeks}
+          onSetOfferWage={setOfferWage}
+          onSetOfferYears={setOfferYears}
+          onConfirm={() => {
+            const result = signFreeAgent(signingPlayer, offerWage, offerYears);
+            if (result.success) { hapticHeavy(); successToast(result.message); } else { errorToast(result.message); }
+            setSigningPlayer(null);
+          }}
+          onCancel={() => setSigningPlayer(null)}
+        />
+      )}
 
       {/* Transfer Negotiation Popup */}
       {negotiatingListing && (
