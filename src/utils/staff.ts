@@ -89,6 +89,18 @@ export function generateStaffMarket(): StaffMember[] {
 }
 
 /**
+ * Monotonic absolute week index used for season-spanning cooldown math.
+ * Stored on staff timestamp fields (lastInteractionWeek, lastRenewalWeek)
+ * so a praise in season 2 / week 40 doesn't go negative when checked in
+ * season 3 / week 5. The fixed multiplier is larger than any totalWeeks
+ * value the leagues use (max 46), so weeks never collide across seasons.
+ */
+export const ABS_WEEK_PER_SEASON = 60;
+export function absWeek(season: number, week: number): number {
+  return season * ABS_WEEK_PER_SEASON + week;
+}
+
+/**
  * Convert a staff member's morale into an effectiveness multiplier
  * (0.6 at 0 morale → 1.2 at 100 morale).
  */

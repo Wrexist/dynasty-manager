@@ -11,7 +11,7 @@ import {
   STAFF_RENEWAL_FEE_WEEKS, STAFF_RENEWAL_WAGE_RAISE, STAFF_RENEWAL_COOLDOWN, STAFF_CONTRACT_YEARS,
   STAFF_MARKET_REFRESH_FEE, STAFF_MARKET_REFRESH_COOLDOWN,
 } from '@/config/staff';
-import { generateStaffMarket, ensureStaffFields } from '@/utils/staff';
+import { generateStaffMarket, ensureStaffFields, absWeek } from '@/utils/staff';
 import { STAND_INFO } from '@/utils/facilities';
 import { placePlayerInClub } from '../helpers/rosterOps';
 
@@ -129,7 +129,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       body: `${hire.firstName} ${hire.lastName} has joined your staff as ${hire.role.replace(/-/g, ' ')}. Hiring fee: £${Math.round(hiringFee / 1000)}K.`,
     });
     set({
-      staff: { members: newMembers, availableHires: newAvailable },
+      staff: { ...state.staff, members: newMembers, availableHires: newAvailable },
       clubs: { ...state.clubs, [state.playerClubId]: newClub },
       scouting: { ...state.scouting, maxAssignments: scoutCount },
       messages: newMessages,
@@ -161,8 +161,10 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const idx = state.staff.members.findIndex(s => s.id === staffId);
     if (idx < 0) return { success: false, message: 'Staff member not found.' };
     const member = ensureStaffFields(state.staff.members[idx]);
-    const lastWeek = member.lastInteractionWeek ?? -99;
-    const weeksSince = state.week - lastWeek;
+    // Absolute-week math so cooldowns survive season rollover.
+    const nowAbs = absWeek(state.season, state.week);
+    const lastAbs = member.lastInteractionWeek ?? -99;
+    const weeksSince = nowAbs - lastAbs;
     if (weeksSince < STAFF_INTERACTION_COOLDOWN) {
       const left = STAFF_INTERACTION_COOLDOWN - weeksSince;
       return { success: false, message: `Cooldown: ${left} week${left === 1 ? '' : 's'} until you can talk to them again.` };
@@ -173,7 +175,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const updated: typeof member = {
       ...member,
       morale: Math.min(100, (member.morale ?? 70) + gain),
-      lastInteractionWeek: state.week,
+      lastInteractionWeek: nowAbs,
     };
     const newMembers = state.staff.members.slice();
     newMembers[idx] = updated;
@@ -186,8 +188,9 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const idx = state.staff.members.findIndex(s => s.id === staffId);
     if (idx < 0) return { success: false, message: 'Staff member not found.' };
     const member = ensureStaffFields(state.staff.members[idx]);
-    const lastWeek = member.lastInteractionWeek ?? -99;
-    const weeksSince = state.week - lastWeek;
+    const nowAbs = absWeek(state.season, state.week);
+    const lastAbs = member.lastInteractionWeek ?? -99;
+    const weeksSince = nowAbs - lastAbs;
     if (weeksSince < STAFF_INTERACTION_COOLDOWN) {
       const left = STAFF_INTERACTION_COOLDOWN - weeksSince;
       return { success: false, message: `Cooldown: ${left} week${left === 1 ? '' : 's'} until you can talk to them again.` };
@@ -196,7 +199,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const updated: typeof member = {
       ...member,
       morale: Math.max(0, (member.morale ?? 70) - loss),
-      lastInteractionWeek: state.week,
+      lastInteractionWeek: nowAbs,
     };
     const newMembers = state.staff.members.slice();
     newMembers[idx] = updated;
@@ -209,8 +212,9 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
     const idx = state.staff.members.findIndex(s => s.id === staffId);
     if (idx < 0) return { success: false, message: 'Staff member not found.' };
     const member = ensureStaffFields(state.staff.members[idx]);
+    const nowAbs = absWeek(state.season, state.week);
     const lastRenew = member.lastRenewalWeek ?? -99;
-    if (state.week - lastRenew < STAFF_RENEWAL_COOLDOWN) {
+    if (nowAbs - lastRenew < STAFF_RENEWAL_COOLDOWN) {
       return { success: false, message: 'They renewed recently — wait before negotiating again.' };
     }
     const club = state.clubs[state.playerClubId];
@@ -223,7 +227,7 @@ export const createSystemsSlice = (set: Set, get: Get) => ({
       wage: newWage,
       contractYearsRemaining: Math.max(member.contractYearsRemaining ?? 0, 0) + STAFF_CONTRACT_YEARS,
       morale: Math.min(100, (member.morale ?? 70) + 6),
-      lastRenewalWeek: state.week,
+      lastRenewalWeek: nowAbs,
     };
     const newMembers = state.staff.members.slice();
     newMembers[idx] = updated;

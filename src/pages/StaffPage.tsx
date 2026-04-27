@@ -14,7 +14,7 @@ import {
   STAFF_HIRING_FEE_WEEKS, STAFF_INTERACTION_COOLDOWN, STAFF_MARKET_REFRESH_FEE,
   STAFF_RENEWAL_FEE_WEEKS, STAFF_RENEWAL_COOLDOWN,
 } from '@/config/staff';
-import { getEffectiveQuality, getMoraleMultiplier, getTraitLabel, getTraitDescription } from '@/utils/staff';
+import { getEffectiveQuality, getMoraleMultiplier, getTraitLabel, getTraitDescription, absWeek } from '@/utils/staff';
 import { successToast, infoToast, errorToast } from '@/utils/gameToast';
 import { hapticLight } from '@/utils/haptics';
 
@@ -268,12 +268,15 @@ const StaffPage = () => {
           // Current member derived state
           const currentMorale = current?.morale ?? 70;
           const currentContractYears = current?.contractYearsRemaining ?? 0;
-          const expiringSoon = current ? currentContractYears <= 0 : false;
+          // Warn when this is the member's last full season — i.e. one more
+          // season-end tick will take them to 0 and they'll walk.
+          const expiringSoon = current ? currentContractYears <= 1 : false;
+          const nowAbs = absWeek(season, week);
           const lastInteract = current?.lastInteractionWeek ?? -99;
-          const interactCooldown = Math.max(0, STAFF_INTERACTION_COOLDOWN - (week - lastInteract));
+          const interactCooldown = Math.max(0, STAFF_INTERACTION_COOLDOWN - (nowAbs - lastInteract));
           const interactReady = interactCooldown <= 0;
           const lastRenew = current?.lastRenewalWeek ?? -99;
-          const renewCooldown = Math.max(0, STAFF_RENEWAL_COOLDOWN - (week - lastRenew));
+          const renewCooldown = Math.max(0, STAFF_RENEWAL_COOLDOWN - (nowAbs - lastRenew));
           const renewFee = current ? Math.round(current.wage * STAFF_RENEWAL_FEE_WEEKS) : 0;
           const canRenew = current && renewCooldown <= 0 && (club?.budget ?? 0) >= renewFee;
           const moraleMult = getMoraleMultiplier(currentMorale);

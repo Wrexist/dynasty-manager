@@ -919,12 +919,15 @@ function finalizeSeason(
 
   const newAvailableHires = generateStaffMarket();
 
-  // Staff season tick: decrement contracts, walk-aways, rising-star bumps, reset performance
+  // Staff season tick: decrement contracts, walk-aways, rising-star bumps, reset performance.
+  // Semantics: contractYearsRemaining N at season start = N more end-of-season ticks
+  // before the member walks. So a fresh 2y deal lasts exactly 2 seasons:
+  //   start S1 = 2 → end S1 tick = 1 → start S2 = 1 → end S2 tick = 0 → walks.
   const staffAfterSeason: typeof state.staff.members = [];
   for (const m of state.staff.members) {
     const ensured = ensureStaffFields(m);
     const remaining = (ensured.contractYearsRemaining ?? 1) - 1;
-    if (remaining < 0) {
+    if (remaining <= 0) {
       // Contract expired — they walk
       newMessages = addMsg(newMessages, {
         week: 1, season: newSeason, type: 'general',
