@@ -1,31 +1,18 @@
-import { Match, MatchEvent, MatchStats, Player, Club, TacticalInstructions, PlayerMatchRating, FORMATION_POSITIONS, canPlayPosition, FormationType, MatchWeather, WeatherCondition, PitchCondition } from '@/types/game';
+import { Match, MatchEvent, MatchStats, Player, Club, TacticalInstructions, PlayerMatchRating, canPlayPosition, MatchWeather, WeatherCondition, PitchCondition } from '@/types/game';
 import { getAIReactiveTactics, AI_REACTIVITY_MINUTES } from '@/config/aiManager';
 import {
-  INJURY_TYPES, FOUL_INJURY_TYPE_WEIGHTS, NON_FOUL_INJURY_TYPE_WEIGHTS,
-  INJURY_SEVERITY_WEIGHTS, MEDICAL_INJURY_PREVENTION_PER_LEVEL,
-  UNHAPPY_PERFORMANCE_PENALTY, REINJURY_MATCH_CHECK_CHANCE,
-  FIRST_MATCH_ATTACK_BOOST, FIRST_MATCH_DEFENSE_BOOST,
-  LINEUP_SIZE,
+  INJURY_TYPES,
+  MEDICAL_INJURY_PREVENTION_PER_LEVEL,
+  REINJURY_MATCH_CHECK_CHANCE,
 } from '@/config/gameBalance';
-import type { InjuryType, InjurySeverity, InjuryDetails } from '@/types/game';
-import { getTeamStrength } from '@/utils/playerGen';
+import type { InjuryDetails } from '@/types/game';
 import { pick } from '@/utils/helpers';
-import { getChemistryBonus } from '@/utils/chemistry';
 import { getCardRiskMultiplier } from '@/utils/personality';
 import {
-  GOAL_SCORING_TYPES,
-  FORMATION_FIT_MAX_BONUS,
-  MIDFIELDER_POSITIONS,
-  SCORER_POSITION_WEIGHTS, SCORER_SHOOTING_INFLUENCE, SCORER_FITNESS_INFLUENCE, SCORER_FORM_INFLUENCE,
-  ASSIST_CHANCE, ASSIST_PASSING_WEIGHT, ASSIST_MENTAL_WEIGHT,
-  MENTALITY_ATTACK_MOD, MENTALITY_DEFENSE_MOD,
-  TEMPO_SHOT_MOD, DEFENSIVE_LINE_COUNTER_VULN, WIDTH_POSSESSION_MOD,
   PRESSING_THRESHOLD, PRESSING_VS_SLOW_BONUS, WIDE_VS_NARROW_BONUS,
-  DEEP_VS_HIGH_BONUS, FAST_VS_CAUTIOUS_BONUS, ALL_OUT_VS_DEFENSIVE_BONUS,
-  PRESSING_FOUL_MULTIPLIER, PRESSING_FOUL_BASELINE,
-  DEFENDER_POSITIONS, DEFENSE_DEFENDING_WEIGHT, DEFENSE_PHYSICAL_WEIGHT, DEFENSE_MENTAL_WEIGHT, DEFENSE_QUALITY_FALLBACK,
-  GK_DEFENDING_WEIGHT, GK_MENTAL_WEIGHT, GK_PHYSICAL_WEIGHT, GK_SAVE_BASE, GK_SAVE_RANGE,
-  TACTICAL_FAMILIARITY_MULTIPLIER, HOME_ADVANTAGE,
+  DEEP_VS_HIGH_BONUS, FAST_VS_CAUTIOUS_BONUS,
+  DEFENDER_POSITIONS,
+  GK_SAVE_BASE, GK_SAVE_RANGE,
   BASE_EVENT_CHANCE, LATE_GAME_EVENT_BONUS, LATE_GAME_THRESHOLD_MINUTE,
   SHOT_ATTEMPT_THRESHOLD, FOUL_THRESHOLD, INJURY_EVENT_THRESHOLD,
   LOW_XG_MISS_THRESHOLD, LOW_XG_MISS_SHOW_CHANCE,
@@ -38,30 +25,22 @@ import {
   RATING_GOAL_BONUS, RATING_ASSIST_BONUS, RATING_SAVE_BONUS, RATING_YELLOW_PENALTY, RATING_RED_PENALTY, RATING_CLEAN_SHEET_BONUS,
   RATING_DEFENDER_SCALE, RATING_DEFENDER_OFFSET, RATING_MIDFIELDER_SCALE, RATING_MIDFIELDER_OFFSET,
   RATING_EXHAUSTION_THRESHOLD, RATING_EXHAUSTION_PENALTY, RATING_VARIANCE, RATING_MIN, RATING_MAX,
-  FORMATION_ATTACK_BONUS, FORMATION_DEFENSE_BONUS,
-  STOPPAGE_TIME_BASE, STOPPAGE_TIME_MAX_EXTRA, STOPPAGE_TIME_INJURY_ADD, STOPPAGE_TIME_CARD_ADD, STOPPAGE_TIME_GOAL_ADD, STOPPAGE_TIME_MAX,
   CORNER_GOAL_CHANCE, CORNER_GOAL_PHYSICAL_WEIGHT, CORNER_GOAL_DEFENDING_WEIGHT,
   FITNESS_DEGRADE_PER_MINUTE, FITNESS_DEGRADE_VARIANCE, LOW_FITNESS_SHOT_PENALTY, MATCH_LOW_FITNESS_THRESHOLD, LOW_FITNESS_INJURY_BONUS,
   PRESSING_FITNESS_DRAIN_PER_POINT, PRESSING_FITNESS_DRAIN_BASELINE, TEMPO_FAST_FITNESS_DRAIN_MOD, TEMPO_SLOW_FITNESS_DRAIN_MOD,
   FATIGUE_COMMENTARY_THRESHOLD, FATIGUE_COMMENTARY_MIN_MINUTE, FATIGUE_COMMENTARY_INTERVAL,
-  FOULER_DEFENDER_WEIGHT, FOULER_MIDFIELDER_WEIGHT, FOULER_ATTACKER_WEIGHT,
-  FORMATION_MATCHUP,
-  DEFENSE_MODIFIER_SCALE,
   DERBY_EVENT_MOD_SCALE, DERBY_FOUL_MOD_SCALE, DERBY_CARD_MOD_SCALE,
   CORNER_HEADER_MIN_CHANCE, CORNER_HEADER_PHYSICAL_SCALE, CORNER_HEADER_CB_MULT, CORNER_HEADER_ST_MULT, CORNER_HEADER_MID_MULT,
   OWN_GOAL_CHANCE, PENALTY_FROM_FOUL_CHANCE, PENALTY_CONVERSION_RATE,
   WOODWORK_CHANCE, GOAL_LINE_CLEARANCE_CHANCE,
-  MORALE_PERFORMANCE_WEIGHT, MORALE_BASELINE,
   DISCIPLINARIAN_CARD_REDUCTION,
   MOMENTUM_GOAL_SWING, MOMENTUM_SAVE_SWING, MOMENTUM_CARD_SWING, MOMENTUM_PENALTY_SWING,
   MOMENTUM_COMMENTARY_SWING, MOMENTUM_SHOT_ATTEMPT_SWING, MOMENTUM_FOUL_SWING, MOMENTUM_RED_CARD_SWING,
   MOMENTUM_DECAY_PER_MINUTE, MOMENTUM_STRENGTH_SCALE,
   SUB_FRESHNESS_BONUS,
   SET_PIECE_TAKER_CORNER_BONUS, PENALTY_TAKER_BONUS,
-  PENALTY_TAKER_SHOOTING_WEIGHT, PENALTY_TAKER_MENTAL_WEIGHT,
   COMMENTARY_GAP_MAX, COMMENTARY_CHANCE,
   MIN_PLAYERS_TO_CONTINUE,
-  RED_CARD_STRENGTH_PENALTY_PER_PLAYER,
   MAX_SUBSTITUTIONS, SUB_ENTRY_FITNESS_BOOST,
   AI_SUB_CHECK_MINUTES, AI_SUB_FITNESS_THRESHOLD, AI_TACTICAL_SUB_CHANCE,
   TACTICAL_INSIGHT_MIN_BONUS, FITNESS_SNAPSHOT_INTERVAL,
@@ -72,9 +51,25 @@ import {
   VAR_CHECK_CHANCE, VAR_DISALLOW_CHANCE,
   FREE_KICK_SET_PIECE_TAKER_CHANCE,
   WEATHER_SUFFIX_CHANCE, DERBY_SUFFIX_CHANCE,
+  MORALE_BASELINE, MORALE_PERFORMANCE_WEIGHT,
 } from '@/config/matchEngine';
 import { generateCommentary } from '@/utils/matchCommentary';
 import { getDerbyName } from '@/data/league';
+import {
+  AI_DEFAULT_TACTICS,
+  pickAttacker,
+  pickPenaltyTaker,
+  pickAssist,
+  pickFouler,
+  getTacticalMatchupBonus,
+  getFormationMatchupBonus,
+  getDefenseQuality,
+  getGKSaveChance,
+  computeStrengths,
+  calcStoppageTime,
+  generateInjuryDetails,
+  isSquadValid,
+} from '@/engine/match/helpers';
 
 /** State carried between halves so the second half can continue from the first */
 export interface HalfState {
@@ -115,255 +110,12 @@ export interface HalfState {
   usedCommentaryLines: string[];
 }
 
-/** Formation fit bonus: 0.0 to ~0.12 — mismatched players are a real penalty */
-function getFormationFitBonus(players: Player[], formation: FormationType): number {
-  const slots = FORMATION_POSITIONS[formation];
-  if (!slots || players.length === 0) return 0;
-  let fitCount = 0;
-  const outfieldSlots = slots.filter(s => s.pos !== 'GK');
-  const outfieldPlayers = players.filter(p => p.position !== 'GK');
-  for (const slot of outfieldSlots) {
-    if (outfieldPlayers.some(p => canPlayPosition(p, slot.pos))) fitCount++;
-  }
-  const fitRatio = Math.min(1, outfieldSlots.length > 0 ? fitCount / outfieldSlots.length : 1);
-  return fitRatio * FORMATION_FIT_MAX_BONUS;
-}
-
-/** Pick a goal scorer weighted by position role, shooting skill, fitness, and current form.
- *  Forwards >> midfielders >> defenders. GKs are excluded from open-play scoring unless
- *  they are the only players left (extreme red-card edge case). */
-function pickAttacker(players: Player[]): Player {
-  // Exclude GKs — they don't score in open play
-  const pool = players.filter(p => p.position !== 'GK');
-  const candidates = pool.length > 0 ? pool : players;
-  if (candidates.length === 1) return candidates[0];
-
-  const weights = candidates.map(p => {
-    const posWeight = SCORER_POSITION_WEIGHTS[p.position] ?? 0.3;
-    const shootingBonus = (p.attributes.shooting / 100) * SCORER_SHOOTING_INFLUENCE;
-    const fitnessBonus = (p.fitness / 100) * SCORER_FITNESS_INFLUENCE;
-    const formBonus = ((p.form - 50) / 100) * SCORER_FORM_INFLUENCE;
-    return Math.max(0.01, posWeight + shootingBonus + fitnessBonus + formBonus);
-  });
-  const totalWeight = weights.reduce((a, b) => a + b, 0);
-  if (totalWeight <= 0) return candidates[Math.floor(Math.random() * candidates.length)];
-  let r = Math.random() * totalWeight;
-  for (let i = 0; i < candidates.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return candidates[i];
-  }
-  return candidates[candidates.length - 1];
-}
-
-/** Pick the best penalty taker weighted by shooting + mental */
-function pickPenaltyTaker(players: Player[]): Player {
-  if (players.length <= 1) return players[0];
-  const weights = players.map(p => (p.attributes.shooting * PENALTY_TAKER_SHOOTING_WEIGHT + p.attributes.mental * PENALTY_TAKER_MENTAL_WEIGHT) / 100);
-  const totalWeight = weights.reduce((a, b) => a + b, 0);
-  if (totalWeight <= 0) return players[Math.floor(Math.random() * players.length)];
-  let r = Math.random() * totalWeight;
-  for (let i = 0; i < players.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return players[i];
-  }
-  return players[players.length - 1];
-}
-
-/** Pick an assist provider weighted by passing quality */
-function pickAssist(players: Player[], scorerId: string): Player | undefined {
-  const others = players.filter(p => p.id !== scorerId);
-  if (others.length === 0) return undefined;
-  if (Math.random() < ASSIST_CHANCE) {
-    const weights = others.map(p => (p.attributes.passing * ASSIST_PASSING_WEIGHT + p.attributes.mental * ASSIST_MENTAL_WEIGHT) / 100);
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-    if (totalWeight <= 0) return others[Math.floor(Math.random() * others.length)];
-    let r = Math.random() * totalWeight;
-    for (let i = 0; i < others.length; i++) {
-      r -= weights[i];
-      if (r <= 0) return others[i];
-    }
-    return others[others.length - 1];
-  }
-  return undefined;
-}
-
-/** Pick a fouler weighted by position — defenders/CDMs 3x more likely than attackers */
-function pickFouler(players: Player[]): Player | null {
-  if (players.length === 0) return null;
-  const weights = players.map(p => {
-    if ((DEFENDER_POSITIONS as readonly string[]).includes(p.position)) return FOULER_DEFENDER_WEIGHT;
-    if ((MIDFIELDER_POSITIONS as readonly string[]).includes(p.position)) return FOULER_MIDFIELDER_WEIGHT;
-    return FOULER_ATTACKER_WEIGHT;
-  });
-  const totalWeight = weights.reduce((a, b) => a + b, 0);
-  let r = Math.random() * totalWeight;
-  for (let i = 0; i < players.length; i++) {
-    r -= weights[i];
-    if (r <= 0) return players[i];
-  }
-  return players[players.length - 1];
-}
-
-/** Tactical matchup bonus: certain styles counter others */
-function getTacticalMatchupBonus(myTactics?: TacticalInstructions, oppTactics?: TacticalInstructions): number {
-  if (!myTactics || !oppTactics) return 0;
-  let bonus = 0;
-  if (myTactics.pressingIntensity >= PRESSING_THRESHOLD && oppTactics.tempo === 'slow') bonus += PRESSING_VS_SLOW_BONUS;
-  if (myTactics.width === 'wide' && oppTactics.width === 'narrow') bonus += WIDE_VS_NARROW_BONUS;
-  if (myTactics.defensiveLine === 'deep' && oppTactics.defensiveLine === 'high') bonus += DEEP_VS_HIGH_BONUS;
-  if (myTactics.tempo === 'fast' && (oppTactics.mentality === 'cautious' || oppTactics.mentality === 'defensive')) bonus += FAST_VS_CAUTIOUS_BONUS;
-  if (myTactics.mentality === 'all-out-attack' && oppTactics.mentality === 'defensive') bonus += ALL_OUT_VS_DEFENSIVE_BONUS;
-  return bonus;
-}
-
-/** Formation-vs-formation matchup bonus (e.g. 3-back weak vs wingers) */
-function getFormationMatchupBonus(myFormation: FormationType, oppFormation: FormationType): number {
-  return FORMATION_MATCHUP[myFormation]?.[oppFormation] ?? 0;
-}
-
-/** Calculate stoppage time based on events in a half */
-function calcStoppageTime(events: MatchEvent[], halfStart: number, halfEnd: number): number {
-  const halfEvents = events.filter(e => e.minute >= halfStart && e.minute <= halfEnd);
-  const injuries = halfEvents.filter(e => e.type === 'injury').length;
-  const cards = halfEvents.filter(e => e.type === 'yellow_card' || e.type === 'red_card').length;
-  const goals = halfEvents.filter(e => (GOAL_SCORING_TYPES as readonly string[]).includes(e.type)).length;
-  const extra = STOPPAGE_TIME_BASE + Math.random() * STOPPAGE_TIME_MAX_EXTRA + injuries * STOPPAGE_TIME_INJURY_ADD + cards * STOPPAGE_TIME_CARD_ADD + goals * STOPPAGE_TIME_GOAL_ADD;
-  return Math.round(Math.min(extra, STOPPAGE_TIME_MAX));
-}
-
-/** Default balanced tactics for AI teams */
-const AI_DEFAULT_TACTICS: TacticalInstructions = {
-  mentality: 'balanced',
-  width: 'normal',
-  tempo: 'normal',
-  defensiveLine: 'normal',
-  pressingIntensity: 50,
-};
-
-function getTacticsModifiers(tactics?: TacticalInstructions) {
-  if (!tactics) return { attackMod: 0, defenseMod: 0, shotMod: 0, foulMod: 0, counterVuln: 0, widthMod: 0 };
-  return {
-    attackMod: MENTALITY_ATTACK_MOD[tactics.mentality] || 0,
-    defenseMod: MENTALITY_DEFENSE_MOD[tactics.mentality] || 0,
-    shotMod: TEMPO_SHOT_MOD[tactics.tempo] || 0,
-    foulMod: (tactics.pressingIntensity - PRESSING_FOUL_BASELINE) * PRESSING_FOUL_MULTIPLIER,
-    counterVuln: DEFENSIVE_LINE_COUNTER_VULN[tactics.defensiveLine] || 0,
-    widthMod: WIDTH_POSSESSION_MOD[tactics.width] || 0,
-  };
-}
-
-/** Compute average defensive quality of a squad's defenders (morale-adjusted) */
-function getDefenseQuality(squad: Player[]): number {
-  const defenders = squad.filter(p => (DEFENDER_POSITIONS as readonly string[]).includes(p.position));
-  if (defenders.length === 0) return DEFENSE_QUALITY_FALLBACK;
-  return defenders.reduce((s, p) => {
-    const base = (p.attributes.defending * DEFENSE_DEFENDING_WEIGHT + p.attributes.physical * DEFENSE_PHYSICAL_WEIGHT + p.attributes.mental * DEFENSE_MENTAL_WEIGHT) / 100;
-    const moraleMod = (p.morale - MORALE_BASELINE) / 100 * MORALE_PERFORMANCE_WEIGHT;
-    return s + base + moraleMod;
-  }, 0) / defenders.length;
-}
-
-/** Get the GK's save ability (0.30 to 0.70) */
-function getGKSaveChance(squad: Player[]): number {
-  const gk = squad.find(p => p.position === 'GK');
-  if (!gk) return GK_SAVE_BASE;
-  const quality = (gk.attributes.defending * GK_DEFENDING_WEIGHT + gk.attributes.mental * GK_MENTAL_WEIGHT + gk.attributes.physical * GK_PHYSICAL_WEIGHT) / 100;
-  return GK_SAVE_BASE + quality * GK_SAVE_RANGE;
-}
-
-/**
- * Compute attack/defense strength for both sides factoring in:
- * player attributes, tactical modifiers, formation fit, familiarity,
- * home advantage, and rock-paper-scissors tactical matchups.
- */
-function computeStrengths(
-  homeClub: Club, awayClub: Club,
-  homePlayers: Player[], awayPlayers: Player[],
-  homeTactics?: TacticalInstructions, awayTactics?: TacticalInstructions,
-  tacticalFamiliarity?: number, playerClubId?: string, currentSeason?: number,
-) {
-  const homeMods = getTacticsModifiers(homeTactics);
-  const awayMods = getTacticsModifiers(awayTactics);
-  const homeFamBonus = (playerClubId === homeClub.id && tacticalFamiliarity) ? tacticalFamiliarity * TACTICAL_FAMILIARITY_MULTIPLIER : 0;
-  const awayFamBonus = (playerClubId === awayClub.id && tacticalFamiliarity) ? tacticalFamiliarity * TACTICAL_FAMILIARITY_MULTIPLIER : 0;
-  const homeFormBonus = getFormationFitBonus(homePlayers, homeClub.formation);
-  const awayFormBonus = getFormationFitBonus(awayPlayers, awayClub.formation);
-  // Defensive formation fit also contributes to defensive strength
-  const homeDefFitBonus = homeClub.defensiveFormation ? getFormationFitBonus(homePlayers, homeClub.defensiveFormation) * 0.5 : 0;
-  const awayDefFitBonus = awayClub.defensiveFormation ? getFormationFitBonus(awayPlayers, awayClub.defensiveFormation) * 0.5 : 0;
-  const homeMatchup = getTacticalMatchupBonus(homeTactics, awayTactics);
-  const awayMatchup = getTacticalMatchupBonus(awayTactics, homeTactics);
-  // Chemistry bonus (0-8%) based on squad composition
-  const homeChemistry = getChemistryBonus(homePlayers, homeClub.formation, currentSeason);
-  const awayChemistry = getChemistryBonus(awayPlayers, awayClub.formation, currentSeason);
-  // Formation-specific attack/defense profiles (e.g. 3-4-3 = +10% attack, -8% defense)
-  // Use defensiveFormation for defense bonus when set, otherwise fall back to main formation
-  const homeFormAtk = FORMATION_ATTACK_BONUS[homeClub.formation] || 0;
-  const awayFormAtk = FORMATION_ATTACK_BONUS[awayClub.formation] || 0;
-  const homeDefFormation = homeClub.defensiveFormation || homeClub.formation;
-  const awayDefFormation = awayClub.defensiveFormation || awayClub.formation;
-  const homeFormDef = FORMATION_DEFENSE_BONUS[homeDefFormation] || 0;
-  const awayFormDef = FORMATION_DEFENSE_BONUS[awayDefFormation] || 0;
-  // Formation matchup bonus (e.g. 3-back vs wingers)
-  const homeFormMatchup = getFormationMatchupBonus(homeClub.formation, awayClub.formation);
-  const awayFormMatchup = getFormationMatchupBonus(awayClub.formation, homeClub.formation);
-  // Unhappy players perform worse — reduce team strength proportionally
-  const homeUnhappyCount = homePlayers.filter(p => p.wantsToLeave).length;
-  const awayUnhappyCount = awayPlayers.filter(p => p.wantsToLeave).length;
-  const homeUnhappyMod = 1 - (homeUnhappyCount / Math.max(homePlayers.length, 1)) * UNHAPPY_PERFORMANCE_PENALTY;
-  const awayUnhappyMod = 1 - (awayUnhappyCount / Math.max(awayPlayers.length, 1)) * UNHAPPY_PERFORMANCE_PENALTY;
-  // First-season confidence boost for the player's team (subtle help during season 1)
-  const homeFirstMatchBoost = (currentSeason === 1 && playerClubId === homeClub.id) ? FIRST_MATCH_ATTACK_BOOST : 0;
-  const awayFirstMatchBoost = (currentSeason === 1 && playerClubId === awayClub.id) ? FIRST_MATCH_ATTACK_BOOST : 0;
-  const homeFirstDefBoost = (currentSeason === 1 && playerClubId === homeClub.id) ? FIRST_MATCH_DEFENSE_BOOST : 0;
-  const awayFirstDefBoost = (currentSeason === 1 && playerClubId === awayClub.id) ? FIRST_MATCH_DEFENSE_BOOST : 0;
-  // Numerical disadvantage: penalize teams with fewer than full squad (red cards / injuries)
-  const homeMissing = Math.max(0, LINEUP_SIZE - homePlayers.length);
-  const awayMissing = Math.max(0, LINEUP_SIZE - awayPlayers.length);
-  const homeNumericalMod = 1 - homeMissing * RED_CARD_STRENGTH_PENALTY_PER_PLAYER;
-  const awayNumericalMod = 1 - awayMissing * RED_CARD_STRENGTH_PENALTY_PER_PLAYER;
-  // Strength = base * (attack modifiers) reduced by opponent's defensive modifiers
-  // Clamped to a minimum of 0.01 to prevent negative/zero strength from extreme modifier combinations
-  const homeStr = Math.max(0.01, getTeamStrength(homePlayers) * homeUnhappyMod * homeNumericalMod * (HOME_ADVANTAGE + homeMods.attackMod + homeMods.widthMod + homeFamBonus + homeFormBonus + homeMatchup + homeChemistry + homeFormAtk + homeFormMatchup + homeFirstMatchBoost) * (1 - (awayMods.defenseMod + awayFormDef + awayDefFitBonus - awayFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
-  const awayStr = Math.max(0.01, getTeamStrength(awayPlayers) * awayUnhappyMod * awayNumericalMod * (1 + awayMods.attackMod + awayMods.widthMod + awayFamBonus + awayFormBonus + awayMatchup + awayChemistry + awayFormAtk + awayFormMatchup + awayFirstMatchBoost) * (1 - (homeMods.defenseMod + homeFormDef + homeDefFitBonus - homeFirstDefBoost) * DEFENSE_MODIFIER_SCALE));
-  return { homeStr, awayStr, homeMods, awayMods };
-}
-
-/** Pick from a weighted pool */
-function weightedPick<T extends string>(weights: Record<T, number>): T {
-  const entries = Object.entries(weights) as [T, number][];
-  const total = entries.reduce((s, [, w]) => s + (w as number), 0);
-  let r = Math.random() * total;
-  for (const [key, weight] of entries) {
-    r -= weight as number;
-    if (r <= 0) return key;
-  }
-  return entries[entries.length - 1][0];
-}
-
-/** Generate injury details based on whether it was foul-related and medical facility level */
-function generateInjuryDetails(isFoulRelated: boolean, medicalLevel: number = 5): InjuryDetails {
-  const typeWeights = isFoulRelated ? FOUL_INJURY_TYPE_WEIGHTS : NON_FOUL_INJURY_TYPE_WEIGHTS;
-  const type = weightedPick(typeWeights) as InjuryType;
-  const severity = weightedPick(INJURY_SEVERITY_WEIGHTS) as InjurySeverity;
-  const config = INJURY_TYPES[type];
-  const [minWeeks, maxWeeks] = config.weeks[severity];
-  const weeksRaw = minWeeks + Math.floor(Math.random() * (maxWeeks - minWeeks + 1));
-  // Medical facility reduces recovery slightly (better facilities = faster recovery)
-  const medicalReduction = Math.max(0, Math.floor(medicalLevel / 5));
-  const weeks = Math.max(1, weeksRaw - medicalReduction);
-  const reinjuryRisk = Math.max(0, config.reinjuryRisk[severity] - medicalLevel * MEDICAL_INJURY_PREVENTION_PER_LEVEL);
-
-  return {
-    type,
-    severity,
-    weeksRemaining: weeks,
-    totalWeeks: weeks,
-    reinjuryRisk,
-    reinjuryWeeksRemaining: config.reinjuryDuration[severity],
-    fitnessOnReturn: config.fitnessOnReturn[severity],
-  };
-}
+// Pure helpers (`getFormationFitBonus`, `pickAttacker`, `pickPenaltyTaker`,
+// `pickAssist`, `pickFouler`, `getTacticalMatchupBonus`,
+// `getFormationMatchupBonus`, `calcStoppageTime`, `getTacticsModifiers`,
+// `getDefenseQuality`, `getGKSaveChance`, `computeStrengths`, `weightedPick`,
+// `generateInjuryDetails`, `isSquadValid`, `AI_DEFAULT_TACTICS`) live in
+// `./match/helpers.ts`. See the import at the top of this file.
 
 /**
  * AI substitution logic: find the best bench replacement for a player.
@@ -1995,12 +1747,7 @@ export function finalizeMatch(
   };
 }
 
-/** Validate a squad has enough players to field a team.
- *  Player's team requires 11; AI teams allow down to 7 (injury-depleted squads). */
-function isSquadValid(players: Player[], isPlayerTeam = false): boolean {
-  const minPlayers = isPlayerTeam ? 11 : 7;
-  return players.length >= minPlayers && players.some(p => p.position === 'GK');
-}
+// `isSquadValid` is exported from `./match/helpers.ts`.
 
 /**
  * Simulate a full match in one call (used for AI-vs-AI matches and instant sim).
