@@ -4,6 +4,7 @@ import { addMsg } from '@/utils/helpers';
 import { NT_JOB_OFFER_DURATION_WEEKS } from '@/config/gameBalance';
 import { generateNationalTeamPool, autoSelectNationalSquad } from '@/utils/international';
 import { selectBestLineup } from '@/utils/playerGen';
+import { getNationRanking } from '@/data/nations';
 
 type Set = (partial: Partial<GameState> | ((s: GameState) => Partial<GameState>)) => void;
 type Get = () => GameState;
@@ -44,7 +45,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
         lineup,
         subs,
         formation,
-        fifaRanking: 25,
+        fifaRanking: getNationRanking(nationality),
         caps: {},
         internationalGoals: {},
         results: [],
@@ -114,7 +115,7 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
       lineup,
       subs,
       formation,
-      fifaRanking: 25,
+      fifaRanking: getNationRanking(nationality),
       caps: {},
       internationalGoals: {},
       results: [],
@@ -194,6 +195,27 @@ export const createNationalTeamSlice = (_set: Set, _get: Get) => ({
         ...state.nationalTeam,
         formation: f,
       },
+    });
+  },
+
+  /** Confirm the manager's pre-tournament squad. Locks the 23 they picked,
+   *  flips `squadConfirmed` so `advanceInternationalWeekImpl` can run, and
+   *  sends the manager to the tournament screen. */
+  confirmNationalSquad: (squad: string[], lineup: string[], subs: string[]) => {
+    const state = _get();
+    if (!state.nationalTeam || !state.internationalTournament) return;
+    _set({
+      nationalTeam: {
+        ...state.nationalTeam,
+        squad,
+        lineup,
+        subs,
+      },
+      internationalTournament: {
+        ...state.internationalTournament,
+        squadConfirmed: true,
+      },
+      currentScreen: 'international-tournament',
     });
   },
 

@@ -15,13 +15,12 @@ import type {
   Player,
   Position,
 } from '@/types/game';
-import { NATIONS, getNation } from '@/data/nations';
+import { NATIONS, getNation, CONTINENTAL_TOURNAMENT_NAMES } from '@/data/nations';
+import { TOTAL_WEEKS } from '@/config/gameBalance';
 import {
   WORLD_CUP_GROUPS,
   WORLD_CUP_TEAMS_PER_GROUP,
   CONTINENTAL_CUP_GROUPS,
-  WORLD_CUP_FREQUENCY,
-  CONTINENTAL_CUP_FREQUENCY,
   NATIONAL_SQUAD_SIZE,
   NT_CANDIDATE_POOL_TARGET,
 } from '@/config/gameBalance';
@@ -31,7 +30,7 @@ import { NATIONAL_PLAYER_POOL } from '@/data/nationalPlayerPool';
 
 /**
  * Nationality aliases — maps the game's canonical nation names (src/data/nations.ts)
- * to equivalent labels used by FC25 data (club squads + NATIONAL_PLAYER_POOL).
+ * to equivalent labels used by FC26 data (club squads + NATIONAL_PLAYER_POOL).
  * Required because the CSV uses e.g. "Côte d'Ivoire"/"Holland"/"Korea Republic"
  * while the game's NATIONS list uses "Ivory Coast"/"Netherlands"/"South Korea".
  */
@@ -48,13 +47,13 @@ const NATIONALITY_ALIASES: Record<string, string[]> = {
   'DR Congo': ['Congo DR'],
 };
 
-/** Return the canonical nationality plus any FC25-side aliases. */
+/** Return the canonical nationality plus any FC26-side aliases. */
 export function resolveNationalityAliases(nationality: string): string[] {
   const aliases = NATIONALITY_ALIASES[nationality] ?? [];
   return [nationality, ...aliases];
 }
 
-/** Combined pool of real FC25 templates for a nationality, merged across all aliases. */
+/** Combined pool of real FC26 templates for a nationality, merged across all aliases. */
 function getRealPoolForNationality(nationality: string) {
   const names = resolveNationalityAliases(nationality);
   const merged = names.flatMap(n => NATIONAL_PLAYER_POOL[n] ?? []);
@@ -73,11 +72,93 @@ function nextFixtureId(): string {
   return `intl-${++fixtureCounter}-${Date.now().toString(36)}`;
 }
 
-/** Determine which international tournament (if any) happens at end of the given season */
+/** Determine which international tournament (if any) happens at end of the given season.
+ *
+ * 3-year cycle, repeating from season 1 onwards:
+ *   year 1 → World Cup
+ *   year 2 → Continental Cup (Euros / Copa America / AFCON / Asian Cup / Gold Cup)
+ *   year 3 → no tournament (off year)
+ *   year 4 → World Cup again, etc.
+ *
+ * `WORLD_CUP_FREQUENCY` and `CONTINENTAL_CUP_FREQUENCY` are kept for legacy
+ * code paths but the cycle now drives scheduling directly.
+ */
 export function getTournamentForSeason(season: number): InternationalTournamentType | null {
-  if (season >= 2 && season % WORLD_CUP_FREQUENCY === 0) return 'world-cup';
-  if (season >= 2 && season % CONTINENTAL_CUP_FREQUENCY === 2) return 'continental';
+  if (season < 1) return null;
+  const cycleIndex = ((season - 1) % 3 + 3) % 3;
+  if (cycleIndex === 0) return 'world-cup';
+  if (cycleIndex === 1) return 'continental';
   return null;
+}
+
+/** Information about the next national tournament a manager will participate in.
+ *  `weeksAway` is approximate (counts in regular season weeks of TOTAL_WEEKS each)
+ *  and is 0 if the tournament is already running. */
+export interface UpcomingTournamentInfo {
+  type: InternationalTournamentType;
+  /** Season the tournament takes place in. */
+  season: number;
+  /** Week of `season` the first match kicks off (always 47 for now). */
+  startWeek: number;
+  /** Approximate regular-season weeks until first match (capped at >=0). */
+  weeksAway: number;
+  /** Pretty display name for the cup (confederation-aware for continental). */
+  name: string;
+  /** True if the tournament window has already begun (week >= 47 in target season). */
+  inProgress: boolean;
+}
+
+/** Compute the upcoming tournament for a manager given current season/week and
+ *  optional player nationality (used to label continental tournaments).
+ *
+ *  Looks ahead up to 4 seasons. Returns null if no tournament is on the
+ *  horizon (shouldn't happen given the 3-year cycle, but defensive). */
+export function getUpcomingTournament(
+  currentSeason: number,
+  currentWeek: number,
+  playerNationality: string | null,
+): UpcomingTournamentInfo | null {
+  const FIRST_INTL_WEEK = 47;
+  for (let lookahead = 0; lookahead <= 4; lookahead++) {
+    const targetSeason = currentSeason + lookahead;
+    const type = getTournamentForSeason(targetSeason);
+    if (!type) continue;
+
+    let weeksAway: number;
+    let inProgress = false;
+    if (lookahead === 0) {
+      if (currentWeek >= FIRST_INTL_WEEK) {
+        weeksAway = 0;
+        inProgress = true;
+      } else {
+        weeksAway = FIRST_INTL_WEEK - currentWeek;
+      }
+    } else {
+      weeksAway = (TOTAL_WEEKS - currentWeek) + (lookahead - 1) * TOTAL_WEEKS + FIRST_INTL_WEEK - 1;
+    }
+
+    const name = type === 'world-cup'
+      ? `World Cup ${targetSeason}`
+      : continentalTournamentName(playerNationality);
+
+    return {
+      type,
+      season: targetSeason,
+      startWeek: FIRST_INTL_WEEK,
+      weeksAway: Math.max(0, weeksAway),
+      name,
+      inProgress,
+    };
+  }
+  return null;
+}
+
+/** Confederation-aware name for the continental cup. Defaults to "Continental Cup". */
+export function continentalTournamentName(playerNationality: string | null | undefined): string {
+  if (!playerNationality) return 'Continental Cup';
+  const nation = getNation(playerNationality);
+  if (!nation) return 'Continental Cup';
+  return CONTINENTAL_TOURNAMENT_NAMES[nation.confederation] ?? 'Continental Cup';
 }
 
 /** Shuffle array (Fisher-Yates) */
@@ -100,9 +181,29 @@ export function generateTournament(
   const teamsPerGroup = WORLD_CUP_TEAMS_PER_GROUP;
   const totalTeams = numGroups * teamsPerGroup;
 
-  // Sort nations by ranking, ensure player nation qualifies
+  // Build the qualifier pool. World Cup pulls the top globally-ranked nations.
+  // Continental tournaments restrict to the player's confederation (and pad
+  // with the next best-ranked global nations if the federation has fewer
+  // than `totalTeams` members).
   const sorted = [...NATIONS].sort((a, b) => a.baseRanking - b.baseRanking);
-  const qualified = sorted.slice(0, totalTeams).map(n => n.name);
+  let qualified: string[];
+  if (type === 'continental') {
+    const playerNation = getNation(playerNationality);
+    const confed = playerNation?.confederation ?? null;
+    const inConfed = confed
+      ? sorted.filter(n => n.confederation === confed).map(n => n.name)
+      : sorted.map(n => n.name);
+    qualified = inConfed.slice(0, totalTeams);
+    if (qualified.length < totalTeams) {
+      const filler = sorted
+        .filter(n => !qualified.includes(n.name))
+        .map(n => n.name)
+        .slice(0, totalTeams - qualified.length);
+      qualified = qualified.concat(filler);
+    }
+  } else {
+    qualified = sorted.slice(0, totalTeams).map(n => n.name);
+  }
 
   // Ensure the player's nation is in
   if (!qualified.includes(playerNationality)) {
@@ -150,8 +251,8 @@ export function generateTournament(
   }
 
   const name = type === 'world-cup'
-    ? `World Cup Season ${season}`
-    : `Continental Cup Season ${season}`;
+    ? `World Cup ${season}`
+    : `${continentalTournamentName(playerNationality)} ${season}`;
 
   return {
     type,
@@ -164,6 +265,7 @@ export function generateTournament(
     playerEliminated: false,
     winner: null,
     currentWeek: 47,
+    squadConfirmed: false,
   };
 }
 
@@ -496,13 +598,15 @@ const NT_QUALITY_TIERS = [
 /**
  * Generate a pool of national team candidate players for a given nationality.
  * Called when the user accepts the national team coaching job, to ensure
- * enough eligible players exist for squad selection.
+ * enough eligible real-name candidates exist for squad selection.
  *
  * Strategy:
- *   1. Count existing real in-game players of this nationality (from club squads).
- *   2. Top up from the FC25 real-player pool (NATIONAL_PLAYER_POOL), skipping
- *      duplicates of players already in-game for that nationality.
- *   3. If still short (small nations), fall back to procedural generation.
+ *   1. Always inject the top non-duplicate real FC26 players from
+ *      NATIONAL_PLAYER_POOL — even if there are already 50+ procedurally
+ *      generated players of that nationality in-game (those have fake names
+ *      and undermine the "pick real stars" experience).
+ *   2. If the combined pool still falls short of the candidate target,
+ *      fill the remaining slots with procedural players.
  */
 export function generateNationalTeamPool(
   nationality: string,
@@ -513,31 +617,32 @@ export function generateNationalTeamPool(
   const existing = Object.values(existingPlayers)
     .filter(p => nats.has(p.nationality) && !p.injured && p.age >= 17);
 
-  const needed = NT_CANDIDATE_POOL_TARGET - existing.length;
-  if (needed <= 0) return {};
-
   const newPlayers: Record<string, Player> = {};
 
-  // ── Step 1: Top up from real FC25 pool (across all nationality aliases) ──
+  // ── Step 1: Always top up from real FC26 pool (across all aliases) ──
+  // We keep adding real-name FC26 players up to the candidate target so a
+  // manager always has the actual star players to choose from, regardless of
+  // how many procedurally-named players already exist in club squads.
   const existingNameKeys = new Set(
     existing.map(p => `${p.firstName.toLowerCase()}|${p.lastName.toLowerCase()}`)
   );
   const realPool = getRealPoolForNationality(nationality);
   let realAdded = 0;
   for (const t of realPool) {
-    if (realAdded >= needed) break;
+    if (realAdded >= NT_CANDIDATE_POOL_TARGET) break;
     const key = `${t.fn.toLowerCase()}|${t.ln.toLowerCase()}`;
     if (existingNameKeys.has(key)) continue; // already in-game via club squad
     existingNameKeys.add(key);
     // Pass canonical nationality so appearance generation uses the game's
-    // nation name rather than the FC25 alias (e.g. "Netherlands" not "Holland")
+    // nation name rather than the FC26 alias (e.g. "Netherlands" not "Holland")
     const player = buildPlayerFromTemplate(t, '', season, nationality);
     newPlayers[player.id] = player;
     realAdded++;
   }
 
-  // ── Step 2: Fall back to procedural generation for any remaining slots ──
-  const remaining = needed - realAdded;
+  // ── Step 2: Fall back to procedural generation if the combined pool is short ──
+  const totalAfter = existing.length + realAdded;
+  const remaining = Math.max(0, NT_CANDIDATE_POOL_TARGET - totalAfter);
   if (remaining <= 0) return newPlayers;
 
   let posIndex = 0;

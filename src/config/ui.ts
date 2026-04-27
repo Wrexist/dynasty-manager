@@ -301,6 +301,10 @@ export const PAGE_HINTS: Record<string, { title: string; body: string }> = {
     title: 'International Tournament',
     body: 'Your national team competes in a group stage followed by knockout rounds. Advance the tournament week by week — win the final to become world champions!',
   },
+  nationalSquadPicker: {
+    title: 'Squad Selection',
+    body: 'Pick your 23-man national squad before the first match. Your top 50 eligible players are listed by overall — choose the best mix of stars, depth, and youth.',
+  },
 } as const;
 
 // ── More Drawer (New Player Onboarding) ──

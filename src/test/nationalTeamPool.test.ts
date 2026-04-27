@@ -24,10 +24,10 @@ describe('National Team Real-Player Pool', () => {
     expect(resolveNationalityAliases('Ireland')).toContain('Republic of Ireland');
   });
 
-  it('generates a pool containing real FC25 players for France', () => {
+  it('generates a pool containing real FC26 players for France', () => {
     const pool = generateNationalTeamPool('France', {}, 1);
     const names = Object.values(pool).map(p => `${p.firstName} ${p.lastName}`);
-    // Mbappé, Griezmann are the top France players in the FC25 pool
+    // Mbappé, Griezmann are the top France players in the FC26 pool
     expect(names.some(n => n.includes('Mbappé'))).toBe(true);
     expect(names.some(n => n.includes('Griezmann'))).toBe(true);
     // All players should be tagged with the canonical game nationality
@@ -39,7 +39,7 @@ describe('National Team Real-Player Pool', () => {
     expect(Object.keys(pool).length).toBeGreaterThan(0);
     // All new players should be normalized to the canonical name
     Object.values(pool).forEach(p => expect(p.nationality).toBe('Ivory Coast'));
-    // Should contain real Ivorian stars — e.g. Kessié is at the top of the FC25 pool
+    // Should contain real Ivorian stars — e.g. Kessié is at the top of the FC26 pool
     const names = Object.values(pool).map(p => p.lastName);
     const realPool = NATIONAL_PLAYER_POOL["Côte d'Ivoire"] ?? [];
     expect(realPool.length).toBeGreaterThan(0);
@@ -82,7 +82,7 @@ describe('National Team Real-Player Pool', () => {
     expect(mbappeInPool.length).toBe(0); // dedup worked
   });
 
-  it('falls back to procedural generation when a nation has no FC25 pool entry', () => {
+  it('falls back to procedural generation when a nation has no FC26 pool entry', () => {
     // Pick an obviously-missing nation name
     const pool = generateNationalTeamPool('Atlantis', {}, 1);
     // Still produces a full candidate roster (procedural)

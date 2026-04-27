@@ -357,3 +357,20 @@ export function getNation(name: string): NationData | undefined {
 export function getAllNationNames(): string[] {
   return NATIONS.map(n => n.name);
 }
+
+/** Display rank for a nation — falls back to a mid-table 50 if missing. */
+export function getNationRanking(name: string): number {
+  return getNation(name)?.baseRanking ?? 50;
+}
+
+/**
+ * Continental tournament label keyed by confederation. Used for the cup name
+ * (and countdown UI) when the player nation is in that confederation.
+ */
+export const CONTINENTAL_TOURNAMENT_NAMES: Record<NationData['confederation'], string> = {
+  UEFA: 'European Championship',
+  CONMEBOL: 'Copa America',
+  CAF: 'Africa Cup of Nations',
+  AFC: 'AFC Asian Cup',
+  CONCACAF: 'CONCACAF Gold Cup',
+};

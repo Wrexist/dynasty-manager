@@ -262,7 +262,7 @@ function buildAgeTargets(count: number): { min: number; max: number }[] {
 /**
  * Build a Player from a PlayerTemplate (real-world roster data).
  * Seeds a procedurally-generated player then overrides identity and
- * FC25-derived attributes from the template.
+ * FC26-derived attributes from the template.
  *
  * @param nationalityOverride Optional canonical nationality (e.g. "Netherlands")
  *   used when the template carries an alias label ("Holland"); ensures the
@@ -364,7 +364,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
     ? remainingPositions.slice(0, Math.max(0, INITIAL_SQUAD_MIN_TARGET - templatePlayers.length))
     : remainingPositions;
 
-  // ── Step 3: Fill remaining slots with real FC25 players first, then ──
+  // ── Step 3: Fill remaining slots with real FC26 players first, then ──
   // procedural fallbacks. Real-template fillers carry their actual name,
   // ratings, attributes, height/weight and skill moves — only the clubId
   // is overridden in buildPlayerFromTemplate. Procedural fallbacks keep
@@ -408,7 +408,7 @@ export function generateSquad(clubId: string, quality: number, season: number, d
   const squad = [...templatePlayers, ...fillerPlayers];
 
   // ── Step 4: Star/veteran boosts — only for procedural fillers. ──
-  // Real-template fillers already carry their FC25 attributes and must
+  // Real-template fillers already carry their FC26 attributes and must
   // not be inflated, otherwise their ratings stop matching the player.
   const proceduralFillers = fillerPlayers.filter(p => !realFillerIds.has(p.id));
   if (proceduralFillers.length > 0) {

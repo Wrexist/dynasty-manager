@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import { LEAGUES, getLeaguesByCountry, generateDivisionFixtures, ALL_CLUBS } from '@/data/league';
 import { generateSquad, selectBestLineup, expandAbbreviatedFirstName } from '@/utils/playerGen';
 import { autoFillBestTeam } from '@/utils/autoFillLineup';
+import { NATIONS } from '@/data/nations';
 import type { Club, Player, FormationType } from '@/types/game';
 /**
  * Save migration system for Dynasty Manager.
@@ -9,7 +10,7 @@ import type { Club, Player, FormationType } from '@/types/game';
  * Add new migrations when the save schema changes.
  */
 
-const CURRENT_VERSION = 64;
+const CURRENT_VERSION = 65;
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 
@@ -983,6 +984,32 @@ const migrations: Record<number, MigrationFn> = {
         free: {},
         ad: oldBucket?.counts || {},
       },
+    };
+  },
+
+  // v64 → v65: National team `fifaRanking` was hardcoded to 25 on init —
+  // recompute from the canonical per-nation `baseRanking` so France no
+  // longer shows up as #25. Also adds `squadConfirmed: false` to any
+  // active international tournament so the new pre-tournament squad
+  // picker still triggers for in-progress saves.
+  64: (data) => {
+    const nt = data.nationalTeam as { nationality?: string; fifaRanking?: number } | null | undefined;
+    let fixedNationalTeam = nt;
+    if (nt && typeof nt === 'object' && nt.nationality) {
+      const found = NATIONS.find(n => n.name === nt.nationality);
+      fixedNationalTeam = { ...nt, fifaRanking: found?.baseRanking ?? nt.fifaRanking ?? 50 };
+    }
+    const tourney = data.internationalTournament as { squadConfirmed?: boolean } | null | undefined;
+    let fixedTournament = tourney;
+    if (tourney && typeof tourney === 'object' && tourney.squadConfirmed === undefined) {
+      // Existing tournaments are already running, so treat the squad as confirmed.
+      fixedTournament = { ...tourney, squadConfirmed: true };
+    }
+    return {
+      ...data,
+      version: 65,
+      nationalTeam: fixedNationalTeam ?? null,
+      internationalTournament: fixedTournament ?? null,
     };
   },
 };

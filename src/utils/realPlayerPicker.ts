@@ -6,10 +6,10 @@ import { pick } from '@/utils/helpers';
 export type { PickRealPlayerOptions };
 
 /**
- * FC25/FC26 pool labels often differ from the in-game canonical
+ * FC26 pool labels often differ from the in-game canonical
  * nationality. Look up both forms when fetching the pool so a Dutch
  * player generated with `nationality: 'Netherlands'` still pulls from
- * the FC25 'Holland' bucket.
+ * the FC26 'Holland' bucket.
  */
 const POOL_NATIONALITY_ALIASES: Record<string, string[]> = {
   Netherlands: ['Netherlands', 'Holland'],

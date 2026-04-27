@@ -2,12 +2,19 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '@/store/gameStore';
 import { FlagIcon } from '@/components/game/FlagIcon';
 import { cn } from '@/lib/utils';
-import { Globe, Trophy, Play } from 'lucide-react';
+import { Globe, Trophy, Play, Calendar, Flag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { guardAsync } from '@/utils/asyncGuard';
 import { PAGE_HINTS } from '@/config/ui';
 import { PageHint } from '@/components/game/PageHint';
 import { LIQUID_GLASS_SURFACE } from '@/components/game/GlassPanel';
+import { getUpcomingTournament } from '@/utils/international';
+import { NATIONS, getNation } from '@/data/nations';
+import {
+  WORLD_CUP_GROUPS,
+  WORLD_CUP_TEAMS_PER_GROUP,
+  CONTINENTAL_CUP_GROUPS,
+} from '@/config/gameBalance';
 
 const PHASE_STEPS = [
   { key: 'group', label: 'Groups' },
@@ -35,20 +42,126 @@ const InternationalTournament = () => {
   const internationalTournament = useGameStore((s) => s.internationalTournament);
   const managerNationality = useGameStore((s) => s.managerNationality);
   const seasonPhase = useGameStore((s) => s.seasonPhase);
+  const season = useGameStore((s) => s.season);
+  const week = useGameStore((s) => s.week);
   const advanceWeek = useGameStore((s) => s.advanceWeek);
   const setScreen = useGameStore((s) => s.setScreen);
 
   if (!internationalTournament) {
+    // Pre-tournament preview — list expected qualifiers / format until the
+    // draw happens at the end of the regular season.
+    const upcoming = getUpcomingTournament(season, week, managerNationality);
+    if (!upcoming) {
+      return (
+        <div className="max-w-lg mx-auto px-4 py-8 text-center">
+          <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-lg font-bold text-foreground font-display mb-2">No Active Tournament</h2>
+          <p className="text-sm text-muted-foreground">
+            The next international tournament will be scheduled in a future season.
+          </p>
+          <Button variant="outline" className="mt-4" onClick={() => setScreen('national-team')}>
+            View National Team
+          </Button>
+        </div>
+      );
+    }
+
+    const playerNation = managerNationality ? getNation(managerNationality) : null;
+    const isWorldCup = upcoming.type === 'world-cup';
+    const teamsTotal = (isWorldCup ? WORLD_CUP_GROUPS : CONTINENTAL_CUP_GROUPS) * WORLD_CUP_TEAMS_PER_GROUP;
+    const groupCount = isWorldCup ? WORLD_CUP_GROUPS : CONTINENTAL_CUP_GROUPS;
+
+    const sorted = [...NATIONS].sort((a, b) => a.baseRanking - b.baseRanking);
+    const expected = isWorldCup
+      ? sorted.slice(0, teamsTotal)
+      : sorted
+          .filter(n => playerNation ? n.confederation === playerNation.confederation : true)
+          .slice(0, teamsTotal);
+
     return (
-      <div className="max-w-lg mx-auto px-4 py-8 text-center">
-        <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-        <h2 className="text-lg font-bold text-foreground font-display mb-2">No Active Tournament</h2>
-        <p className="text-sm text-muted-foreground">
-          International tournaments take place every 2-4 seasons after the domestic season ends.
-        </p>
-        <Button variant="outline" className="mt-4" onClick={() => setScreen('national-team')}>
-          View National Team
-        </Button>
+      <div className="max-w-lg mx-auto px-4 py-5 pb-24 space-y-4">
+        <PageHint screen="internationalTournament" title={PAGE_HINTS.internationalTournament.title} body={PAGE_HINTS.internationalTournament.body} />
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn(LIQUID_GLASS_SURFACE, 'border border-primary/30 p-5 shadow-[0_0_20px_hsl(var(--primary)/0.12)]')}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/15 via-amber-500/5 to-transparent pointer-events-none" />
+          <div className="relative space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/30 flex items-center justify-center">
+                <Trophy className="w-6 h-6 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-primary font-bold uppercase tracking-[0.2em]">Coming Up</p>
+                <h1 className="text-lg font-bold text-foreground font-display truncate">{upcoming.name}</h1>
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {upcoming.weeksAway === 0
+                    ? `Kicks off this week · Week ${upcoming.startWeek}, Season ${upcoming.season}`
+                    : `Starts Week ${upcoming.startWeek}, Season ${upcoming.season} · ${upcoming.weeksAway} week${upcoming.weeksAway === 1 ? '' : 's'} away`}
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-muted/20 rounded-lg p-2 border border-border/30 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Format</p>
+                <p className="text-xs font-bold text-foreground">{groupCount} groups</p>
+              </div>
+              <div className="bg-muted/20 rounded-lg p-2 border border-border/30 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Teams</p>
+                <p className="text-xs font-bold text-foreground">{teamsTotal}</p>
+              </div>
+              <div className="bg-muted/20 rounded-lg p-2 border border-border/30 text-center">
+                <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Knockout</p>
+                <p className="text-xs font-bold text-foreground">{isWorldCup ? 'R16 → F' : 'QF → F'}</p>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-muted-foreground">
+              The official draw is made when the regular season ends — you'll then pick your 23-man squad before kick-off.
+            </p>
+          </div>
+        </motion.div>
+
+        <div className="space-y-2">
+          <h2 className="text-sm font-bold text-foreground px-1 flex items-center gap-2">
+            <Flag className="w-3.5 h-3.5 text-primary" />
+            Expected qualifiers ({expected.length})
+          </h2>
+          <div className="space-y-1.5">
+            {expected.map((n, i) => (
+              <motion.div
+                key={n.name}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: Math.min(i * 0.01, 0.2) }}
+                className={cn(
+                  'flex items-center gap-3 p-2.5 rounded-xl border',
+                  n.name === managerNationality
+                    ? 'bg-primary/15 border-primary/40'
+                    : 'bg-card/30 border-border/20',
+                )}
+              >
+                <div
+                  className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                  style={{ backgroundColor: n.color }}
+                >
+                  <FlagIcon nationality={n.name} size={28} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground truncate">{n.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{n.confederation} · #{n.baseRanking}</p>
+                </div>
+                {n.name === managerNationality && (
+                  <span className="text-[10px] text-primary font-bold uppercase tracking-wider">You</span>
+                )}
+              </motion.div>
+            ))}
+          </div>
+        </div>
       </div>
     );
   }
