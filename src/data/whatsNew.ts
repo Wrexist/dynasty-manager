@@ -77,6 +77,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
       'World ranking on the National Team page now reflects each nation\'s real FIFA-style ranking instead of a flat #25 placeholder.',
       'Tightened native bridge typing for in-app purchases and haptics.',
       'Hardened the matchday flow with new safety tests for penalty shootouts and prestige resets.',
+      'Locked down transfer market behaviour with new tests for offers, releases, renewals, and free agents.',
     ],
     fixed: [
       'Fixed France (and other top nations) appearing as #25 in the world rankings.',
