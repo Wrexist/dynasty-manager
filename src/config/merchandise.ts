@@ -173,3 +173,27 @@ export const CAMPAIGN_END_OF_SEASON_MIN_WEEK = 38;
 export const CAMPAIGN_STAR_SIGNING_MIN_VALUE = 5_000_000;
 export const CAMPAIGN_HOLIDAY_MIN_WEEK = 18;
 export const CAMPAIGN_HOLIDAY_MAX_WEEK = 22;
+
+// ── Signature Drops ──
+/** Setup cost to launch a player signature drop. */
+export const SIGNATURE_DROP_COST = 75_000;
+/** Duration in weeks. */
+export const SIGNATURE_DROP_WEEKS = 3;
+/** Per-week revenue bonus, scaled by player marketability score (>=10 typically). */
+export const SIGNATURE_DROP_BONUS_PER_MARKET = 18_000;
+/** Floor weekly bonus regardless of marketability. */
+export const SIGNATURE_DROP_BASE_BONUS = 60_000;
+/** Cooldown in weeks before another drop can be launched. */
+export const SIGNATURE_DROP_COOLDOWN_WEEKS = 6;
+
+// ── Win Streak / Derby Buzz ──
+/** Win streak length where the bonus kicks in. */
+export const WIN_STREAK_BONUS_THRESHOLD = 3;
+/** Per-extra-win revenue multiplier above threshold (capped). */
+export const WIN_STREAK_BONUS_PER_WIN = 0.04;
+/** Cap on streak revenue multiplier. */
+export const WIN_STREAK_BONUS_CAP = 0.20;
+/** Weeks of buzz applied automatically after a derby win. */
+export const DERBY_BUZZ_WEEKS = 2;
+/** Revenue multiplier during derby buzz weeks. */
+export const DERBY_BUZZ_FACTOR = 1.15;

@@ -72,12 +72,18 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     new: [
       'Three-day free trial of Dynasty Pro on every new game.',
       'Every press conference now has a Pro-only analytical or strategic response option — full coverage across all 88 questions.',
+      'Backroom staff now have personality traits, morale, and contracts you can actively manage.',
+      'Praise or criticise staff to lift their morale, then renew their contract before they walk.',
+      'Youth Academy gets per-prospect training focus and limited Spotlight Sessions for big dev boosts.',
+      'Merchandise gains player Signature Drops, derby-week buzz, and a win-streak revenue bonus.',
     ],
     improved: [
       'Subscription onboarding now auto-enrols you into the monthly plan after the trial — cancel anytime.',
       'Pro upsell on press conferences only appears on questions that genuinely have a Pro response — no more bait prompts.',
       'Pro subscription onboarding now describes the analytics you actually get — tactical match insights and a per-match performance summary.',
       'Inbox now shows an amber warning if your Pro payment fails so you can update billing before features lapse.',
+      'Staff effectiveness now scales with morale — keep the backroom happy and they get more out of training, scouting, and youth.',
+      'Star players can now headline limited-edition Signature Drops on the Merchandise tab for a multi-week revenue spike.',
     ],
     fixed: [],
   },

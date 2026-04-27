@@ -18,6 +18,9 @@ import {
   CAMPAIGN_KIT_LAUNCH_MAX_WEEK, CAMPAIGN_TITLE_RACE_MAX_POSITION,
   CAMPAIGN_END_OF_SEASON_MIN_WEEK, CAMPAIGN_HOLIDAY_MIN_WEEK, CAMPAIGN_HOLIDAY_MAX_WEEK,
   CAMPAIGN_STAR_SIGNING_MIN_VALUE,
+  WIN_STREAK_BONUS_THRESHOLD, WIN_STREAK_BONUS_PER_WIN, WIN_STREAK_BONUS_CAP,
+  DERBY_BUZZ_FACTOR,
+  SIGNATURE_DROP_BASE_BONUS, SIGNATURE_DROP_BONUS_PER_MARKET,
 } from '@/config/merchandise';
 import { hasPerk } from '@/utils/managerPerks';
 
@@ -106,15 +109,35 @@ export function calculateWeeklyMerchRevenue(
   // Fan favourite perk
   const fanFavMult = hasPerk(managerProgression, 'fan_favourite') ? 1.15 : 1;
 
+  // Win streak — kicks in at threshold, capped
+  const streakLen = merch.winStreak ?? 0;
+  const streakMult = streakLen >= WIN_STREAK_BONUS_THRESHOLD
+    ? 1 + Math.min(WIN_STREAK_BONUS_CAP, (streakLen - WIN_STREAK_BONUS_THRESHOLD + 1) * WIN_STREAK_BONUS_PER_WIN)
+    : 1;
+
+  // Derby buzz — auto-applied for a few weeks after a derby
+  const derbyMult = (merch.derbyBuzzWeeks ?? 0) > 0 ? DERBY_BUZZ_FACTOR : 1;
+
   // Star player bonus
   const starPlayers = getStarPlayerMerch(club, players);
   const starPlayerBonus = starPlayers.reduce((sum, sp) => sum + sp.merchBonus, 0);
 
+  // Signature drop bonus (flat weekly add-on while active)
+  const sigDrop = merch.signatureDrop ?? null;
+  const signatureBonus = sigDrop && sigDrop.weeksRemaining > 0 ? sigDrop.weeklyBonus : 0;
+
   // Operating costs
   const operatingCosts = getMerchOperatingCost(merch.activeProductLines);
 
-  const grossRevenue = baseRevenue * productLineFactor * pricingMult * campaignBoost * dipBuzzMult * fanFavMult;
-  return Math.max(0, Math.round(grossRevenue + starPlayerBonus - operatingCosts));
+  const grossRevenue = baseRevenue * productLineFactor * pricingMult * campaignBoost * dipBuzzMult * fanFavMult * streakMult * derbyMult;
+  return Math.max(0, Math.round(grossRevenue + starPlayerBonus + signatureBonus - operatingCosts));
+}
+
+/** Compute the per-week bonus a player would generate as a signature drop. */
+export function getSignatureDropBonus(player: Player): number {
+  const market = getPlayerMarketability(player);
+  if (market <= 0) return 0;
+  return Math.round(SIGNATURE_DROP_BASE_BONUS + market * SIGNATURE_DROP_BONUS_PER_MARKET);
 }
 
 /** Check if a campaign can be launched */
@@ -180,5 +203,10 @@ export function getDefaultMerchState(): MerchState {
     starPlayerDip: 0,
     starSigningBuzz: 0,
     kitLaunchUsedThisSeason: false,
+    signatureDrop: null,
+    signatureDropCooldownWeeks: 0,
+    signatureDropsUsedThisSeason: [],
+    winStreak: 0,
+    derbyBuzzWeeks: 0,
   };
 }

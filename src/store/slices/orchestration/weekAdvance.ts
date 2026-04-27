@@ -5,7 +5,11 @@ import {
 } from '@/config/managerCareer';
 import { buildLeagueTable, buildAllDivisionTables, LEAGUES } from '@/data/league';
 
-import { generateStaffMarket, getStaffBonus } from '@/utils/staff';
+import { generateStaffMarket, getStaffBonus, ensureStaffFields } from '@/utils/staff';
+import {
+  STAFF_DEFAULT_MORALE, STAFF_MORALE_WEEKLY_DRIFT,
+  STAFF_MORALE_WIN_BONUS, STAFF_MORALE_LOSS_PENALTY,
+} from '@/config/staff';
 
 import type { GameState } from '../../storeTypes';
 import { addMsg, pick, shuffle } from '@/utils/helpers';
@@ -1848,14 +1852,37 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
         const baseDevGain = 1 + youthCoachQuality * 0.3 + newFacilities.youthLevel * 0.2;
         const careerYouthMod = (state.gameMode === 'career' && state.careerManager) ? state.careerManager.attributes.youthDevelopment * MOD_YOUTH_GROWTH : 0;
         const ydm = dynastyMult(state.managerProgression);
-        const devGain = hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST * ydm + careerYouthMod) : baseDevGain * (1 + careerYouthMod);
+        // Focused prospects get a small dev gain bonus to encourage active management
+        const focusBoost = (prospect.trainingFocus && prospect.trainingFocus !== 'balanced') ? 1.1 : 1;
+        const devGain = (hasPerk(state.managerProgression, 'youth_developer') ? baseDevGain * (1 + YOUTH_DEVELOPER_BOOST * ydm + careerYouthMod) : baseDevGain * (1 + careerYouthMod)) * focusBoost;
         prospect.developmentScore = Math.min(100, prospect.developmentScore + devGain);
+        // Focus biasing — 8% chance per week to nudge a focus-aligned attribute
+        const focus = prospect.trainingFocus;
+        if (focus && focus !== 'balanced' && Math.random() < 0.08) {
+          type AttrKey = keyof PlayerAttributes;
+          const attrPool: Record<'technical' | 'physical' | 'mental', AttrKey[]> = {
+            technical: ['shooting', 'passing', 'mental'],
+            physical: ['pace', 'physical', 'defending'],
+            mental: ['mental', 'passing', 'defending'],
+          };
+          const attrs = attrPool[focus];
+          const attr = attrs[Math.floor(Math.random() * attrs.length)];
+          const before = yp.attributes[attr] ?? 0;
+          if (before < yp.potential) {
+            const newAttrs = { ...yp.attributes, [attr]: Math.min(yp.potential, before + 1) };
+            const newOverall = Math.round(
+              (newAttrs.pace + newAttrs.shooting + newAttrs.passing + newAttrs.defending + newAttrs.physical + newAttrs.mental) / 6,
+            );
+            newPlayers[prospect.playerId] = { ...yp, attributes: newAttrs, overall: Math.max(yp.overall, newOverall) };
+          }
+        }
       }
       // Bust risk: low-potential prospects can lose potential permanently (1% per week)
       const bustChance = yp.potential < 55 ? 0.01 : yp.potential < 65 ? 0.005 : 0;
       if (Math.random() < bustChance) {
         const drop = 3 + Math.floor(Math.random() * 3); // lose 3-5 potential
-        const bustedPlayer = { ...yp, potential: Math.max(yp.overall, yp.potential - drop) };
+        const ypUpdated = newPlayers[prospect.playerId] || yp;
+        const bustedPlayer = { ...ypUpdated, potential: Math.max(ypUpdated.overall, ypUpdated.potential - drop) };
         newPlayers[prospect.playerId] = bustedPlayer;
         newMessages = addMsg(newMessages, {
           week: newWeek, season, type: 'development',
@@ -1863,7 +1890,8 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
           body: `Youth prospect ${yp.firstName} ${yp.lastName}'s development ceiling appears to have dropped. Potential now ${bustedPlayer.potential}.`,
         });
       }
-      prospect.readyToPromote = yp.overall >= 55 || prospect.developmentScore >= 80;
+      const ypFinal = newPlayers[prospect.playerId] || yp;
+      prospect.readyToPromote = ypFinal.overall >= 55 || prospect.developmentScore >= 80;
       newYouthAcademy.prospects[i] = prospect;
     }
   }
@@ -1877,6 +1905,29 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   const thisWeekMatch = updatedFixtures.find(m => m.week === week && m.played && (m.homeClubId === playerClubId || m.awayClubId === playerClubId));
   const derbyIncomeIntensity = thisWeekMatch ? getDerbyIntensity(thisWeekMatch.homeClubId, thisWeekMatch.awayClubId) : 0;
   const derbyIncomeBonus = derbyIncomeIntensity > 0 ? 1 + 0.25 * derbyIncomeIntensity : 1;
+
+  // Staff morale & weekly performance tick (extends the existing `newStaff`
+  // from the mid-season market refresh block above).
+  const moraleTickedMembers = newStaff.members.map(m => {
+    const ensured = ensureStaffFields(m);
+    let morale = ensured.morale ?? STAFF_DEFAULT_MORALE;
+    const driftRate = (ensured.traits || []).includes('veteran')
+      ? STAFF_MORALE_WEEKLY_DRIFT * 0.5
+      : STAFF_MORALE_WEEKLY_DRIFT;
+    if (morale > 50) morale = Math.max(50, morale - driftRate);
+    else if (morale < 50) morale = Math.min(50, morale + driftRate);
+    if ((ensured.traits || []).includes('motivator') && morale < 40) morale = 40;
+    if (thisWeekMatch && thisWeekMatch.played) {
+      const isHome = thisWeekMatch.homeClubId === playerClubId;
+      const myScore = isHome ? thisWeekMatch.homeGoals : thisWeekMatch.awayGoals;
+      const oppScore = isHome ? thisWeekMatch.awayGoals : thisWeekMatch.homeGoals;
+      if (myScore > oppScore) morale = Math.min(100, morale + STAFF_MORALE_WIN_BONUS);
+      else if (myScore < oppScore) morale = Math.max(0, morale - STAFF_MORALE_LOSS_PENALTY);
+    }
+    const perf = ensured.performance ?? { trainingGains: 0, youthPromotions: 0, scoutFinds: 0, injuriesPrevented: 0, weeksAtClub: 0 };
+    return { ...ensured, morale, performance: { ...perf, weeksAtClub: perf.weeksAtClub + 1 } };
+  });
+  newStaff = { ...newStaff, members: moraleTickedMembers };
   const streakIncomeMult = currentWinStreak >= STREAK_INCOME_THRESHOLD ? 1 + STREAK_INCOME_MULTIPLIER : 1;
   const matchdayIncome = Math.round(playerClub.fanBase * MATCHDAY_INCOME_PER_FAN * fanMoodMult * derbyIncomeBonus * streakIncomeMult);
   const commercialIncome = Math.round(COMMERCIAL_INCOME_BASE + playerClub.reputation * COMMERCIAL_INCOME_PER_REP);
@@ -1961,6 +2012,38 @@ export async function advanceWeekImpl(set: Set, get: Get): Promise<void> {
   // Decrement star player dip / signing buzz
   if (newMerch.starPlayerDip > 0) newMerch.starPlayerDip -= 1;
   if (newMerch.starSigningBuzz > 0) newMerch.starSigningBuzz -= 1;
+  // Decrement signature drop timer
+  if (newMerch.signatureDrop && newMerch.signatureDrop.weeksRemaining > 0) {
+    const remaining = newMerch.signatureDrop.weeksRemaining - 1;
+    if (remaining <= 0) {
+      newMessages = addMsg(newMessages, {
+        week: newWeek, season, type: 'general',
+        title: `Signature Drop Ended`,
+        body: `${newMerch.signatureDrop.playerName}'s signature line has finished its run.`,
+      });
+      newMerch.signatureDrop = null;
+      newMerch.signatureDropCooldownWeeks = (newMerch.signatureDropCooldownWeeks ?? 0) + 0; // base cooldown set on cancel only
+    } else {
+      newMerch.signatureDrop = { ...newMerch.signatureDrop, weeksRemaining: remaining };
+    }
+  }
+  if ((newMerch.signatureDropCooldownWeeks ?? 0) > 0) {
+    newMerch.signatureDropCooldownWeeks = (newMerch.signatureDropCooldownWeeks ?? 0) - 1;
+  }
+  // Decrement derby buzz
+  if ((newMerch.derbyBuzzWeeks ?? 0) > 0) newMerch.derbyBuzzWeeks = (newMerch.derbyBuzzWeeks ?? 0) - 1;
+  // Apply derby buzz when player just played a derby
+  if (thisWeekMatch && derbyIncomeIntensity > 0) {
+    newMerch.derbyBuzzWeeks = Math.max(newMerch.derbyBuzzWeeks ?? 0, 2); // 2 weeks of buzz
+  }
+  // Update win streak: only fire on player league/cup matches the player participated in
+  if (thisWeekMatch && thisWeekMatch.played) {
+    const isHome = thisWeekMatch.homeClubId === playerClubId;
+    const myScore = isHome ? thisWeekMatch.homeGoals : thisWeekMatch.awayGoals;
+    const oppScore = isHome ? thisWeekMatch.awayGoals : thisWeekMatch.homeGoals;
+    if (myScore > oppScore) newMerch.winStreak = (newMerch.winStreak ?? 0) + 1;
+    else newMerch.winStreak = 0;
+  }
   // Apply pricing fan mood impact
   const pricingMoodDelta = MERCH_PRICING_TIERS[newMerch.pricingTier].fanMoodImpact;
   const cultHeroFloor = hasPerk(state.managerProgression, 'cult_hero') ? 40 : 0;
