@@ -72,7 +72,7 @@ describe('computeSmartSub — return value', () => {
 
   it('returns null when bench is suspended for the current week', () => {
     const starters = Array.from({ length: 11 }, () => p({ position: 'CM' }));
-    const bench = [p({ position: 'CM', suspendedUntilWeek: 10 } as Partial<Player>)];
+    const bench = [p({ position: 'CM', suspendedUntilWeek: 10 })];
     const result = computeSmartSub({
       ...makeContext(starters, bench, starters.map(() => 'CM' as Position)),
       week: 5,
@@ -94,9 +94,9 @@ describe('computeSmartSub — early-game gating', () => {
   });
 
   it('DOES suggest a sub for an injured starter even at minute 10', () => {
-    const tired = p({ position: 'CM', fitness: 90, lastName: 'Hurt' } as Partial<Player>);
+    const tired = p({ position: 'CM', fitness: 90, lastName: 'Hurt' });
     const starters = [tired, ...Array.from({ length: 10 }, () => p({ position: 'CM', fitness: 90 }))];
-    const bench = [p({ position: 'CM', overall: 75, fitness: 100, lastName: 'Fresh' } as Partial<Player>)];
+    const bench = [p({ position: 'CM', overall: 75, fitness: 100, lastName: 'Fresh' })];
     const result = computeSmartSub({
       ...makeContext(starters, bench, starters.map(() => 'CM' as Position)),
       matchMinute: 10,
@@ -108,7 +108,7 @@ describe('computeSmartSub — early-game gating', () => {
   });
 
   it('DOES suggest a sub for a very tired starter (<50% fitness) even early', () => {
-    const tired = p({ position: 'CM', fitness: 30, lastName: 'Drained' } as Partial<Player>);
+    const tired = p({ position: 'CM', fitness: 30, lastName: 'Drained' });
     const starters = [tired, ...Array.from({ length: 10 }, () => p({ position: 'CM', fitness: 90 }))];
     const bench = [p({ position: 'CM', overall: 80, fitness: 100 })];
     const result = computeSmartSub({
@@ -135,11 +135,11 @@ describe('computeSmartSub — downgrade rejection', () => {
 describe('computeSmartSub — context bonuses', () => {
   it('after minute 55 when losing, prefers an attacker over a defender', () => {
     // 11 starters: 1 CB at low fitness so it's swappable, rest filler
-    const tiredCB = p({ position: 'CB', fitness: 55, overall: 75, lastName: 'Tired' } as Partial<Player>);
+    const tiredCB = p({ position: 'CB', fitness: 55, overall: 75, lastName: 'Tired' });
     const starters = [tiredCB, ...Array.from({ length: 10 }, () => p({ position: 'CM', fitness: 90, overall: 80 }))];
     const slots: Position[] = ['CB', ...Array.from({ length: 10 }, () => 'CM' as Position)];
-    const attacker = p({ position: 'ST', overall: 80, fitness: 100, form: 80, lastName: 'Striker' } as Partial<Player>);
-    const defender = p({ position: 'CB', overall: 80, fitness: 100, form: 80, lastName: 'Stopper' } as Partial<Player>);
+    const attacker = p({ position: 'ST', overall: 80, fitness: 100, form: 80, lastName: 'Striker' });
+    const defender = p({ position: 'CB', overall: 80, fitness: 100, form: 80, lastName: 'Stopper' });
     const result = computeSmartSub({
       ...makeContext(starters, [attacker, defender], slots),
       matchMinute: 70,
@@ -156,10 +156,10 @@ describe('computeSmartSub — context bonuses', () => {
   });
 
   it('after minute 75 when winning, prefers shoring up with a defender', () => {
-    const tiredCB = p({ position: 'CB', fitness: 50, overall: 75, lastName: 'Tired' } as Partial<Player>);
+    const tiredCB = p({ position: 'CB', fitness: 50, overall: 75, lastName: 'Tired' });
     const starters = [tiredCB, ...Array.from({ length: 10 }, () => p({ position: 'CM', fitness: 90, overall: 80 }))];
     const slots: Position[] = ['CB', ...Array.from({ length: 10 }, () => 'CM' as Position)];
-    const fresh = p({ position: 'CB', overall: 80, fitness: 100, form: 80, lastName: 'Stopper' } as Partial<Player>);
+    const fresh = p({ position: 'CB', overall: 80, fitness: 100, form: 80, lastName: 'Stopper' });
     const result = computeSmartSub({
       ...makeContext(starters, [fresh], slots),
       matchMinute: 80,
@@ -175,9 +175,9 @@ describe('computeSmartSub — context bonuses', () => {
 
 describe('computeSmartSub — fitness and form reasons', () => {
   it('cites tiredness when the starter is below 60% fitness', () => {
-    const tired = p({ position: 'CM', fitness: 50, overall: 75, form: 70, lastName: 'Knackered' } as Partial<Player>);
+    const tired = p({ position: 'CM', fitness: 50, overall: 75, form: 70, lastName: 'Knackered' });
     const starters = [tired, ...Array.from({ length: 10 }, () => p({ position: 'CM', fitness: 95, overall: 80 }))];
-    const fresh = p({ position: 'CM', overall: 80, fitness: 100, form: 70, lastName: 'Spry' } as Partial<Player>);
+    const fresh = p({ position: 'CM', overall: 80, fitness: 100, form: 70, lastName: 'Spry' });
     const result = computeSmartSub({
       ...makeContext(starters, [fresh], starters.map(() => 'CM' as Position)),
       matchMinute: 60,
@@ -188,9 +188,9 @@ describe('computeSmartSub — fitness and form reasons', () => {
   });
 
   it('cites poor form when fit but underperforming', () => {
-    const slumping = p({ position: 'CM', fitness: 90, overall: 75, form: 40, lastName: 'Slump' } as Partial<Player>);
+    const slumping = p({ position: 'CM', fitness: 90, overall: 75, form: 40, lastName: 'Slump' });
     const starters = [slumping, ...Array.from({ length: 10 }, () => p({ position: 'CM', fitness: 90, overall: 80, form: 70 }))];
-    const fresh = p({ position: 'CM', overall: 78, fitness: 90, form: 70, lastName: 'Steady' } as Partial<Player>);
+    const fresh = p({ position: 'CM', overall: 78, fitness: 90, form: 70, lastName: 'Steady' });
     const result = computeSmartSub({
       ...makeContext(starters, [fresh], starters.map(() => 'CM' as Position)),
       matchMinute: 60,
@@ -203,11 +203,11 @@ describe('computeSmartSub — fitness and form reasons', () => {
 
 describe('computeSmartSub — position compatibility', () => {
   it('prefers a natural-position sub over an out-of-position one for the same OVR', () => {
-    const tired = p({ position: 'CB', fitness: 50, overall: 80, lastName: 'Tired' } as Partial<Player>);
+    const tired = p({ position: 'CB', fitness: 50, overall: 80, lastName: 'Tired' });
     const starters = [tired, ...Array.from({ length: 10 }, () => p({ position: 'CM', fitness: 95, overall: 90 }))];
     const slots: Position[] = ['CB', ...Array.from({ length: 10 }, () => 'CM' as Position)];
-    const naturalCB = p({ position: 'CB', overall: 80, fitness: 100, lastName: 'Native' } as Partial<Player>);
-    const oopCM = p({ position: 'CM', overall: 80, fitness: 100, lastName: 'Foreign' } as Partial<Player>);
+    const naturalCB = p({ position: 'CB', overall: 80, fitness: 100, lastName: 'Native' });
+    const oopCM = p({ position: 'CM', overall: 80, fitness: 100, lastName: 'Foreign' });
     const result = computeSmartSub({
       ...makeContext(starters, [oopCM, naturalCB], slots),
       matchMinute: 60,

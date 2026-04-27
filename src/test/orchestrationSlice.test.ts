@@ -40,7 +40,7 @@ describe('orchestrationSlice — dismissFarewell', () => {
 
 describe('orchestrationSlice — clearLoadError', () => {
   it('nulls the loadError field', () => {
-    useGameStore.setState({ loadError: 'previous failure' });
+    useGameStore.setState({ loadError: { slot: 0, kind: 'corrupt', canRecover: false } });
     useGameStore.getState().clearLoadError();
     expect(useGameStore.getState().loadError).toBeNull();
   });
